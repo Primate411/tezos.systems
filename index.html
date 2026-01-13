@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time Tezos network statistics including bakers, tz4 adoption, issuance, and transaction volume">
+    <meta name="keywords" content="Tezos, XTZ, blockchain, statistics, bakers, tz4, DeFi, NFT">
+    <title>Tezos Network Statistics | tezos.systems</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="dark">
+    <!-- Header with controls -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="title">Tezos Network Statistics</h1>
+            <div class="controls">
+                <select id="rpc-selector" class="glass-select" aria-label="Select data source">
+                    <option value="tzkt">TzKT API</option>
+                    <option value="octez">Octez RPC</option>
+                </select>
+                <button id="theme-toggle" class="glass-button" aria-label="Toggle dark/light mode">
+                    <span class="theme-icon">☀️</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main stats grid -->
+    <main class="stats-grid">
+        <!-- Total Bakers Card -->
+        <div class="stat-card" data-stat="total-bakers">
+            <div class="card-inner">
+                <div class="card-front">
+                    <h2 class="stat-label">Total Bakers</h2>
+                    <div class="stat-value" id="total-bakers-front">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Active validators</p>
+                </div>
+                <div class="card-back">
+                    <h2 class="stat-label">Total Bakers</h2>
+                    <div class="stat-value" id="total-bakers-back">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Active validators</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- tz4 Bakers Card -->
+        <div class="stat-card" data-stat="tz4-bakers">
+            <div class="card-inner">
+                <div class="card-front">
+                    <h2 class="stat-label">tz4 Consensus Bakers</h2>
+                    <div class="stat-value" id="tz4-bakers-front">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Using tz4 addresses</p>
+                </div>
+                <div class="card-back">
+                    <h2 class="stat-label">tz4 Consensus Bakers</h2>
+                    <div class="stat-value" id="tz4-bakers-back">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Using tz4 addresses</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- tz4 Adoption Card -->
+        <div class="stat-card" data-stat="tz4-adoption">
+            <div class="card-inner">
+                <div class="card-front">
+                    <h2 class="stat-label">tz4 Adoption</h2>
+                    <div class="stat-value" id="tz4-adoption-front">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Migration progress</p>
+                </div>
+                <div class="card-back">
+                    <h2 class="stat-label">tz4 Adoption</h2>
+                    <div class="stat-value" id="tz4-adoption-back">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Migration progress</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total Issuance Card -->
+        <div class="stat-card" data-stat="total-issuance">
+            <div class="card-inner">
+                <div class="card-front">
+                    <h2 class="stat-label">Total Issuance</h2>
+                    <div class="stat-value" id="total-issuance-front">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Current supply</p>
+                </div>
+                <div class="card-back">
+                    <h2 class="stat-label">Total Issuance</h2>
+                    <div class="stat-value" id="total-issuance-back">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Current supply</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Volume Card -->
+        <div class="stat-card" data-stat="tx-volume">
+            <div class="card-inner">
+                <div class="card-front">
+                    <h2 class="stat-label">Transaction Volume</h2>
+                    <div class="stat-value" id="tx-volume-front">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Last 24 hours</p>
+                </div>
+                <div class="card-back">
+                    <h2 class="stat-label">Transaction Volume</h2>
+                    <div class="stat-value" id="tx-volume-back">
+                        <span class="loading">...</span>
+                    </div>
+                    <p class="stat-description">Last 24 hours</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer with update info -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="update-info">
+                Last updated: <span id="last-update" class="highlight">Never</span>
+            </p>
+            <p class="countdown-info">
+                Next update: <span id="countdown" class="highlight">18s</span>
+            </p>
+        </div>
+        <p class="attribution">
+            Data from <a href="https://tzkt.io" target="_blank" rel="noopener">TzKT</a>
+            and <a href="https://eu.rpc.tez.capital" target="_blank" rel="noopener">Tez.Capital</a>
+        </p>
+    </footer>
+
+    <!-- Load app as module -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>

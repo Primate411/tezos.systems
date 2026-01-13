@@ -1,0 +1,435 @@
+/* ==========================================
+   CSS Variables for Theming
+   ========================================== */
+
+:root {
+    /* Dark theme colors */
+    --bg-gradient-start: #0a0e27;
+    --bg-gradient-end: #1a1f3a;
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-shadow: rgba(0, 0, 0, 0.1);
+    --text-primary: #ffffff;
+    --text-secondary: #a0aec0;
+    --text-tertiary: #718096;
+    --accent-color: #667eea;
+    --accent-hover: #764ba2;
+    --blur-amount: 12px;
+    --card-bg: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] {
+    /* Light theme colors */
+    --bg-gradient-start: #e0e7ff;
+    --bg-gradient-end: #fef3c7;
+    --glass-bg: rgba(255, 255, 255, 0.5);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: rgba(0, 0, 0, 0.05);
+    --text-primary: #1a202c;
+    --text-secondary: #4a5568;
+    --text-tertiary: #718096;
+    --accent-color: #5a67d8;
+    --accent-hover: #667eea;
+    --blur-amount: 12px;
+    --card-bg: rgba(255, 255, 255, 0.6);
+}
+
+/* ==========================================
+   Reset and Base Styles
+   ========================================== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    font-size: 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, var(--bg-gradient-start), var(--bg-gradient-end));
+    min-height: 100vh;
+    color: var(--text-primary);
+    transition: background 0.3s ease, color 0.3s ease;
+    overflow-x: hidden;
+}
+
+/* ==========================================
+   Header Styles
+   ========================================== */
+
+.header {
+    padding: 2rem 1rem 1rem;
+    text-align: center;
+}
+
+.header-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+}
+
+.controls {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Glass button styles */
+.glass-button,
+.glass-select {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-amount));
+    -webkit-backdrop-filter: blur(var(--blur-amount));
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.75rem 1.25rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 16px var(--glass-shadow);
+}
+
+.glass-button {
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.glass-button:hover,
+.glass-select:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px var(--glass-shadow);
+}
+
+.glass-button:active,
+.glass-select:active {
+    transform: translateY(0);
+}
+
+.glass-select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23ffffff' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    padding-right: 2.5rem;
+}
+
+[data-theme="light"] .glass-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231a202c' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+}
+
+.theme-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+/* ==========================================
+   Stats Grid
+   ========================================== */
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 2rem 1rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* ==========================================
+   Stat Cards with Glassmorphism
+   ========================================== */
+
+.stat-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(var(--blur-amount));
+    -webkit-backdrop-filter: blur(var(--blur-amount));
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px var(--glass-shadow);
+    padding: 0;
+    perspective: 1000px;
+    height: 220px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* Card flip container */
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    transform: translate3d(0, 0, 0);
+}
+
+.stat-card.flipping .card-inner {
+    transform: rotateY(180deg);
+}
+
+/* Front and back faces */
+.card-front,
+.card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.card-back {
+    transform: rotateY(180deg);
+}
+
+.stat-label {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stat-value {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    line-height: 1;
+    min-height: 3rem;
+}
+
+.stat-description {
+    font-size: 0.9rem;
+    color: var(--text-tertiary);
+    margin-top: auto;
+}
+
+.loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.6;
+    }
+    50% {
+        opacity: 1;
+    }
+}
+
+/* Error state */
+.stat-value.error-state {
+    color: #f56565;
+    font-size: 1.5rem;
+}
+
+/* Browser fallback for older browsers without backdrop-filter */
+@supports not (backdrop-filter: blur(12px)) {
+    .stat-card {
+        background: rgba(26, 31, 58, 0.85);
+    }
+
+    [data-theme="light"] .stat-card {
+        background: rgba(255, 255, 255, 0.85);
+    }
+}
+
+/* ==========================================
+   Footer Styles
+   ========================================== */
+
+.footer {
+    padding: 2rem 1rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.update-info,
+.countdown-info {
+    font-size: 0.9rem;
+}
+
+.highlight {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+.attribution {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+    margin-top: 0.5rem;
+}
+
+.attribution a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.attribution a:hover {
+    color: var(--accent-hover);
+    text-decoration: underline;
+}
+
+.error-message {
+    color: #f56565;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+/* ==========================================
+   Responsive Design
+   ========================================== */
+
+/* Tablet */
+@media (min-width: 768px) {
+    .title {
+        font-size: 3rem;
+    }
+
+    .header-content {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 2rem;
+        gap: 2rem;
+    }
+
+    .footer-content {
+        flex-direction: row;
+        justify-content: center;
+        gap: 2rem;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .stat-value {
+        font-size: 3.5rem;
+        min-height: 3.5rem;
+    }
+}
+
+/* Large desktop */
+@media (min-width: 1400px) {
+    .stats-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* Mobile optimization - reduce blur for performance */
+@media (max-width: 768px) {
+    :root {
+        --blur-amount: 8px;
+    }
+
+    .stat-card {
+        height: 200px;
+    }
+
+    .stat-value {
+        font-size: 2.5rem;
+        min-height: 2.5rem;
+    }
+}
+
+/* ==========================================
+   Performance Optimizations
+   ========================================== */
+
+/* Hint browser about transforms */
+.card-inner {
+    will-change: transform;
+}
+
+.stat-card {
+    /* Create stacking context */
+    isolation: isolate;
+    transform: translateZ(0);
+}
+
+/* ==========================================
+   Accessibility
+   ========================================== */
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    .card-inner {
+        transition: none !important;
+    }
+
+    .stat-card:hover {
+        transform: none;
+    }
+}
+
+/* Focus styles for keyboard navigation */
+.glass-button:focus,
+.glass-select:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .stat-card {
+        border: 2px solid var(--text-primary);
+    }
+}
