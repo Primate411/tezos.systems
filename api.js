@@ -85,25 +85,42 @@ async function fetchWithRetry(url, retries = 3, delay = 1000) {
  * @returns {Promise<Object>} Baker statistics
  */
 async function fetchBakers() {
-    const url = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&select=address,consensusKey&limit=10000`;
-
-    const bakers = await fetchWithRetry(url);
-
-    // Count total active bakers
+    // Get total active bakers
+    const bakersUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&limit=10000`;
+    const bakers = await fetchWithRetry(bakersUrl);
     const total = bakers.length;
 
-    // Count bakers using tz4 consensus keys
-    const tz4Count = bakers.filter(baker => {
-        return baker.consensusKey && baker.consensusKey.startsWith('tz4');
-    }).length;
+    // Get tz4 consensus key adoptions from update_consensus_key operations
+    // We need to fetch enough operations to cover all bakers who have updated
+    const opsUrl = `${ENDPOINTS.tzkt.base}/operations/update_consensus_key?limit=2000&sort.desc=id`;
+    const operations = await fetchWithRetry(opsUrl);
 
-    // Calculate adoption percentage
-    const percentage = calculatePercentage(tz4Count, total);
+    // Build map of baker -> most recent consensus key
+    const bakerConsensusKeys = {};
+    for (const op of operations) {
+        const baker = op.sender.address;
+        const keyHash = op.publicKeyHash || '';
+
+        // Only store if we haven't seen this baker yet (most recent first due to sort)
+        if (!bakerConsensusKeys[baker]) {
+            bakerConsensusKeys[baker] = keyHash;
+        }
+    }
+
+    // Count bakers using tz4 consensus keys
+    const tz4Count = Object.values(bakerConsensusKeys).filter(key =>
+        key.startsWith('tz4')
+    ).length;
+
+    // Calculate adoption percentage (of bakers who have set consensus keys)
+    const bakersWithConsensusKeys = Object.keys(bakerConsensusKeys).length;
+    const percentage = calculatePercentage(tz4Count, bakersWithConsensusKeys);
 
     return {
         total,
         tz4Count,
-        tz4Percentage: percentage
+        tz4Percentage: percentage,
+        bakersWithConsensusKeys
     };
 }
 
