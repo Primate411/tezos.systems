@@ -116,7 +116,7 @@ function showAllLoading() {
     showLoading('total-bakers');
     showLoading('tz4-bakers');
     showLoading('tz4-adoption');
-    showLoading('total-issuance');
+    showLoading('issuance-rate');
     showLoading('tx-volume');
 }
 
@@ -168,11 +168,11 @@ async function updateStats() {
             });
         }
 
-        if (state.currentStats.totalIssuance !== newStats.totalIssuance) {
+        if (state.currentStats.currentIssuanceRate !== newStats.currentIssuanceRate) {
             updates.push({
-                cardId: 'total-issuance',
-                value: newStats.totalIssuance,
-                formatter: formatXTZ
+                cardId: 'issuance-rate',
+                value: newStats.currentIssuanceRate,
+                formatter: formatPercentage
             });
         }
 
@@ -190,7 +190,7 @@ async function updateStats() {
             updateStatInstant('total-bakers', newStats.totalBakers, formatCount);
             updateStatInstant('tz4-bakers', newStats.tz4Bakers, formatCount);
             updateStatInstant('tz4-adoption', newStats.tz4Percentage, formatPercentage);
-            updateStatInstant('total-issuance', newStats.totalIssuance, formatXTZ);
+            updateStatInstant('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
             updateStatInstant('tx-volume', newStats.transactionVolume24h, formatLarge);
         } else if (updates.length > 0) {
             // Animate changes
@@ -248,7 +248,7 @@ function showErrorState(error) {
     showError('total-bakers', 'Error');
     showError('tz4-bakers', 'Error');
     showError('tz4-adoption', 'Error');
-    showError('total-issuance', 'Error');
+    showError('issuance-rate', 'Error');
     showError('tx-volume', 'Error');
 
     // Auto-remove error message after 5 seconds

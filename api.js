@@ -112,110 +112,59 @@ async function fetchBakers() {
         key.startsWith('tz4')
     ).length;
 
-    // Calculate adoption percentage (of bakers who have set consensus keys)
-    const bakersWithConsensusKeys = Object.keys(bakerConsensusKeys).length;
-    const percentage = calculatePercentage(tz4Count, bakersWithConsensusKeys);
+    // Calculate adoption percentage (of all active bakers)
+    const percentage = calculatePercentage(tz4Count, total);
 
     return {
         total,
         tz4Count,
-        tz4Percentage: percentage,
-        bakersWithConsensusKeys
+        tz4Percentage: percentage
     };
 }
 
 /**
- * Fetch total issuance from Octez RPC
- * @returns {Promise<number>} Total issuance in XTZ
+ * Fetch current yearly issuance rate from Octez RPC
+ * @returns {Promise<number>} Current yearly issuance rate as percentage
  */
 async function fetchIssuance() {
-    const url = `${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`;
+    const url = `${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`;
 
-    // Octez RPC returns a string number in mutez
-    const mutezString = await fetchWithRetry(url);
+    // Octez RPC returns the current yearly rate as a string (e.g., "3.525")
+    const rateString = await fetchWithRetry(url);
 
-    // Parse and convert to XTZ
-    const mutez = parseInt(mutezString.replace(/"/g, ''), 10);
-    const xtz = mutez / 1_000_000;
+    // Parse and return as number
+    const rate = parseFloat(rateString.replace(/"/g, ''));
 
-    return xtz;
+    return rate;
 }
 
 /**
  * Fetch transaction volume for last 24 hours
+ * Uses block level range for accurate counting
  * @returns {Promise<number>} Transaction count
  */
 async function fetchTransactionVolume() {
-    // Calculate timestamp for 24 hours ago
-    const oneDayAgo = new Date();
-    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-    const timestamp = oneDayAgo.toISOString();
-
-    // Use statistics endpoint for better performance
-    const statsUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`;
-
     try {
-        const stats = await fetchWithRetry(statsUrl);
+        // Calculate timestamp for 24 hours ago
+        const oneDayAgo = new Date();
+        oneDayAgo.setHours(oneDayAgo.getHours() - 24);
+        const timestamp = oneDayAgo.toISOString();
 
-        // TzKT statistics includes transaction counts
-        // We'll get the current total transactions and estimate 24h volume
-        // Note: For more accurate data, we could use the operations endpoint with date filter
-        // but that's more expensive. Using statistics as approximation.
+        // Get the block level from 24 hours ago
+        const blocksAgoUrl = `${ENDPOINTS.tzkt.base}/blocks?timestamp.le=${timestamp}&limit=1&sort.desc=level&select=level`;
+        const blocksAgoResponse = await fetchWithRetry(blocksAgoUrl);
 
-        if (stats && stats.totalTransactions) {
-            // This is an approximation - in production you might want to track
-            // the previous value and calculate the difference
-            // For now, we'll use a different approach with the operations endpoint
-            throw new Error('Using operations endpoint instead');
-        }
-    } catch (error) {
-        // Fallback to operations endpoint with date filter
-        const opsUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.operations}?timestamp.ge=${timestamp}&limit=10000&select=id`;
-
-        try {
-            const operations = await fetchWithRetry(opsUrl);
-            return operations.length;
-        } catch (opsError) {
-            console.error('Failed to fetch transaction volume:', opsError);
-            // Return approximate value based on typical network activity
-            return 0;
-        }
-    }
-
-    return 0;
-}
-
-/**
- * Fetch transaction volume using efficient method
- * Uses operations count endpoint
- * @returns {Promise<number>} Transaction count for last 24h
- */
-async function fetchTransactionVolumeEfficient() {
-    // Calculate timestamp for 24 hours ago
-    const oneDayAgo = new Date();
-    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
-    const timestamp = oneDayAgo.toISOString();
-
-    // Use operations endpoint with count
-    const url = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.operations}?timestamp.ge=${timestamp}&limit=1`;
-
-    try {
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
+        if (!blocksAgoResponse || blocksAgoResponse.length === 0) {
+            throw new Error('Could not determine block level from 24h ago');
         }
 
-        // TzKT returns total count in X-Total-Count header
-        const totalCount = response.headers.get('X-Total-Count');
+        const levelAgo = blocksAgoResponse[0];
 
-        if (totalCount) {
-            return parseInt(totalCount, 10);
-        }
+        // Count transactions since that block level
+        const countUrl = `${ENDPOINTS.tzkt.base}/operations/transactions/count?level.ge=${levelAgo}`;
+        const count = await fetchWithRetry(countUrl);
 
-        // Fallback: parse response
-        const data = await response.json();
-        return data.length;
+        return count;
 
     } catch (error) {
         console.error('Failed to fetch transaction volume:', error);
@@ -233,19 +182,19 @@ export async function fetchAllStats() {
         const [bakersData, issuance, txVolume] = await Promise.allSettled([
             fetchBakers(),
             fetchIssuance(),
-            fetchTransactionVolumeEfficient()
+            fetchTransactionVolume()
         ]);
 
         // Extract results or use fallback values
         const bakers = bakersData.status === 'fulfilled' ? bakersData.value : { total: 0, tz4Count: 0, tz4Percentage: 0 };
-        const totalIssuance = issuance.status === 'fulfilled' ? issuance.value : 0;
+        const issuanceRate = issuance.status === 'fulfilled' ? issuance.value : 0;
         const transactions = txVolume.status === 'fulfilled' ? txVolume.value : 0;
 
         return {
             totalBakers: bakers.total,
             tz4Bakers: bakers.tz4Count,
             tz4Percentage: bakers.tz4Percentage,
-            totalIssuance: totalIssuance,
+            currentIssuanceRate: issuanceRate,
             transactionVolume24h: transactions
         };
     } catch (error) {
