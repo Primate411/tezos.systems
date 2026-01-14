@@ -11,12 +11,14 @@ const ENDPOINTS = {
         base: 'https://api.tzkt.io/v1',
         bakers: '/delegates',
         statistics: '/statistics/current',
-        operations: '/operations/transactions'
+        operations: '/operations/transactions',
+        cycles: '/cycles'
     },
     octez: {
         base: 'https://eu.rpc.tez.capital',
         totalSupply: '/chains/main/blocks/head/context/total_supply',
-        issuance: '/chains/main/blocks/head/context/issuance/current_yearly_rate'
+        issuance: '/chains/main/blocks/head/context/issuance/current_yearly_rate',
+        totalFrozenStake: '/chains/main/blocks/head/context/total_frozen_stake'
     }
 };
 
@@ -173,29 +175,83 @@ async function fetchTransactionVolume() {
 }
 
 /**
+ * Fetch total supply from Octez RPC
+ * @returns {Promise<number>} Total supply in XTZ
+ */
+async function fetchTotalSupply() {
+    const url = `${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`;
+    
+    try {
+        const supplyMutez = await fetchWithRetry(url);
+        // Convert from mutez (micro-tez) to XTZ
+        const supplyXTZ = parseInt(supplyMutez.replace(/"/g, '')) / 1e6;
+        return supplyXTZ;
+    } catch (error) {
+        console.error('Failed to fetch total supply:', error);
+        return 0;
+    }
+}
+
+/**
+ * Fetch staking ratio (total frozen stake / total supply)
+ * @returns {Promise<number>} Staking ratio as percentage
+ */
+async function fetchStakingRatio() {
+    try {
+        // Fetch both total supply and total frozen stake
+        const [supplyUrl, stakeUrl] = [
+            `${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`,
+            `${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalFrozenStake}`
+        ];
+
+        const [supplyMutez, stakeMutez] = await Promise.all([
+            fetchWithRetry(supplyUrl),
+            fetchWithRetry(stakeUrl)
+        ]);
+
+        const totalSupply = parseInt(supplyMutez.replace(/"/g, ''));
+        const totalStake = parseInt(stakeMutez.replace(/"/g, ''));
+
+        if (totalSupply === 0) return 0;
+
+        const ratio = (totalStake / totalSupply) * 100;
+        return ratio;
+    } catch (error) {
+        console.error('Failed to fetch staking ratio:', error);
+        return 0;
+    }
+}
+
+/**
  * Fetch all statistics in parallel
  * @returns {Promise<Object>} All statistics
  */
 export async function fetchAllStats() {
     try {
         // Fetch all data in parallel for better performance
-        const [bakersData, issuance, txVolume] = await Promise.allSettled([
+        const [bakersData, issuance, txVolume, stakingRatio, totalSupply] = await Promise.allSettled([
             fetchBakers(),
             fetchIssuance(),
-            fetchTransactionVolume()
+            fetchTransactionVolume(),
+            fetchStakingRatio(),
+            fetchTotalSupply()
         ]);
 
         // Extract results or use fallback values
         const bakers = bakersData.status === 'fulfilled' ? bakersData.value : { total: 0, tz4Count: 0, tz4Percentage: 0 };
         const issuanceRate = issuance.status === 'fulfilled' ? issuance.value : 0;
         const transactions = txVolume.status === 'fulfilled' ? txVolume.value : 0;
+        const staking = stakingRatio.status === 'fulfilled' ? stakingRatio.value : 0;
+        const supply = totalSupply.status === 'fulfilled' ? totalSupply.value : 0;
 
         return {
             totalBakers: bakers.total,
             tz4Bakers: bakers.tz4Count,
             tz4Percentage: bakers.tz4Percentage,
             currentIssuanceRate: issuanceRate,
-            transactionVolume24h: transactions
+            transactionVolume24h: transactions,
+            stakingRatio: staking,
+            totalSupply: supply
         };
     } catch (error) {
         console.error('Failed to fetch all stats:', error);

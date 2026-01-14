@@ -18,14 +18,15 @@ import {
     formatPercentage,
     formatXTZ,
     formatLarge,
-    formatTimestamp
+    formatTimestamp,
+    formatSupply
 } from './utils.js';
 
 // Application state
 const state = {
     currentStats: {},
     lastUpdate: null,
-    refreshInterval: 900000, // 15 minutes in milliseconds
+    refreshInterval: 7200000, // 2 hours in milliseconds
     countdownInterval: null,
     updateInterval: null,
     isUpdating: false
@@ -69,41 +70,66 @@ function setupEventListeners() {
         themeToggle.addEventListener('click', toggleTheme);
     }
 
-    // tz4 info modal
-    const tz4InfoBtn = document.getElementById('tz4-info-btn');
-    const modal = document.getElementById('tz4-modal');
-    const modalClose = document.getElementById('modal-close');
-
-    if (tz4InfoBtn && modal) {
-        tz4InfoBtn.addEventListener('click', () => {
-            modal.classList.add('active');
+    // Refresh button
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            refresh();
+            // Add spin animation
+            refreshBtn.classList.add('spinning');
+            setTimeout(() => refreshBtn.classList.remove('spinning'), 1000);
         });
     }
 
-    if (modalClose && modal) {
-        modalClose.addEventListener('click', () => {
-            modal.classList.remove('active');
-        });
+    // Setup modals
+    setupModal('consensus-info-btn', 'consensus-modal', 'consensus-modal-close');
+    setupModal('economy-info-btn', 'economy-modal', 'economy-modal-close');
+
+    // Handle visibility change (pause when tab is hidden)
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+}
+
+/**
+ * Setup a modal with open/close behavior
+ */
+function setupModal(triggerBtnId, modalId, closeBtnId) {
+    const triggerBtn = document.getElementById(triggerBtnId);
+    const modal = document.getElementById(modalId);
+    const closeBtn = document.getElementById(closeBtnId);
+
+    const openModal = () => {
+        modal.classList.add('active');
+        modal.setAttribute('aria-hidden', 'false');
+    };
+
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+    };
+
+    if (triggerBtn && modal) {
+        triggerBtn.addEventListener('click', openModal);
+    }
+
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', closeModal);
     }
 
     // Close modal on overlay click
     if (modal) {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                modal.classList.remove('active');
+                closeModal();
+            }
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.classList.contains('active')) {
+                closeModal();
             }
         });
     }
-
-    // Close modal on escape key
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
-            modal.classList.remove('active');
-        }
-    });
-
-    // Handle visibility change (pause when tab is hidden)
-    document.addEventListener('visibilitychange', handleVisibilityChange);
 }
 
 /**
@@ -129,6 +155,8 @@ function showAllLoading() {
     showLoading('tz4-adoption');
     showLoading('issuance-rate');
     showLoading('tx-volume');
+    showLoading('staking-ratio');
+    showLoading('total-supply');
 }
 
 /**
@@ -195,6 +223,22 @@ async function updateStats() {
             });
         }
 
+        if (state.currentStats.stakingRatio !== newStats.stakingRatio) {
+            updates.push({
+                cardId: 'staking-ratio',
+                value: newStats.stakingRatio,
+                formatter: formatPercentage
+            });
+        }
+
+        if (state.currentStats.totalSupply !== newStats.totalSupply) {
+            updates.push({
+                cardId: 'total-supply',
+                value: newStats.totalSupply,
+                formatter: formatSupply
+            });
+        }
+
         // If first load, update instantly without animation
         if (!state.lastUpdate) {
             console.log('First load - updating instantly');
@@ -203,6 +247,8 @@ async function updateStats() {
             updateStatInstant('tz4-adoption', newStats.tz4Percentage, formatPercentage);
             updateStatInstant('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
             updateStatInstant('tx-volume', newStats.transactionVolume24h, formatLarge);
+            updateStatInstant('staking-ratio', newStats.stakingRatio, formatPercentage);
+            updateStatInstant('total-supply', newStats.totalSupply, formatSupply);
         } else if (updates.length > 0) {
             // Animate changes
             console.log(`Animating ${updates.length} changed stats`);
@@ -261,6 +307,8 @@ function showErrorState(error) {
     showError('tz4-adoption', 'Error');
     showError('issuance-rate', 'Error');
     showError('tx-volume', 'Error');
+    showError('staking-ratio', 'Error');
+    showError('total-supply', 'Error');
 
     // Auto-remove error message after 5 seconds
     setTimeout(() => {

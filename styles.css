@@ -140,6 +140,21 @@ body::before {
     font-size: 1.2rem;
 }
 
+.refresh-icon {
+    font-size: 1.3rem;
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+.glass-button.spinning .refresh-icon {
+    animation: spin 1s ease-in-out;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 /* ==========================================
    Main Content
    ========================================== */
@@ -230,7 +245,7 @@ body::before {
     perspective: 1000px;
     min-height: 200px;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
     transition: var(--transition);
 }
 
@@ -261,6 +276,149 @@ body::before {
     box-shadow: 0 12px 40px rgba(183, 148, 246, 0.08);
 }
 
+.stat-card[data-stat="staking-ratio"]:hover {
+    box-shadow: 0 12px 40px rgba(0, 212, 255, 0.08);
+}
+
+.stat-card[data-stat="total-supply"]:hover {
+    box-shadow: 0 12px 40px rgba(255, 107, 157, 0.08);
+}
+
+/* Card Info Button */
+.card-info-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-tertiary);
+    cursor: pointer;
+    z-index: 50;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0.6;
+    pointer-events: auto;
+}
+
+.card-info-btn:hover {
+    opacity: 1;
+    background: rgba(0, 212, 255, 0.15);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    transform: scale(1.15) rotate(15deg);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+.card-info-btn:hover svg {
+    animation: pulse-glow 1s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 2px currentColor); }
+    50% { filter: drop-shadow(0 0 8px currentColor); }
+}
+
+/* Card Tooltip */
+.card-tooltip {
+    position: absolute;
+    top: 3rem;
+    right: 0.5rem;
+    width: 280px;
+    padding: 0;
+    background: var(--bg-secondary);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px) scale(0.95);
+    transform-origin: top right;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.card-info-btn:hover + .card-tooltip,
+.card-tooltip:hover {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+}
+
+.tooltip-content {
+    padding: 1.25rem;
+}
+
+.tooltip-content h4 {
+    margin: 0 0 0.75rem 0;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.tooltip-content p {
+    margin: 0 0 1rem 0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.tooltip-content a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--accent-cyan);
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.tooltip-content a:hover {
+    color: var(--accent-purple);
+    text-decoration: underline;
+}
+
+/* Tooltip Arrow */
+.card-tooltip::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    right: 1rem;
+    width: 12px;
+    height: 12px;
+    background: var(--bg-secondary);
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    transform: rotate(45deg);
+}
+
+/* Light theme tooltip adjustments */
+[data-theme="light"] .card-tooltip {
+    background: white;
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="light"] .card-tooltip::before {
+    background: white;
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .card-info-btn {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .card-info-btn:hover {
+    background: rgba(0, 212, 255, 0.1);
+}
+
 /* Flip animation system */
 .card-inner {
     position: relative;
@@ -268,6 +426,12 @@ body::before {
     height: 100%;
     transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     transform-style: preserve-3d;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.card-front, .card-back {
+    pointer-events: auto;
 }
 
 .stat-card.flipping .card-inner {
@@ -291,6 +455,16 @@ body::before {
 
 .card-back {
     transform: rotateY(180deg);
+    /* Hide from screen readers when not visible */
+    visibility: hidden;
+}
+
+.stat-card.flipping .card-back {
+    visibility: visible;
+}
+
+.stat-card.flipping .card-front {
+    visibility: hidden;
 }
 
 /* Card content */
@@ -331,6 +505,14 @@ body::before {
 
 .stat-card[data-stat="tx-volume"] .stat-value {
     color: var(--accent-purple);
+}
+
+.stat-card[data-stat="staking-ratio"] .stat-value {
+    color: var(--accent-cyan);
+}
+
+.stat-card[data-stat="total-supply"] .stat-value {
+    color: var(--accent-pink);
 }
 
 .stat-description {

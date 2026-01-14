@@ -87,6 +87,26 @@ export function formatLarge(num) {
 }
 
 /**
+ * Format total supply in billions with XTZ suffix
+ * @param {number} num - The supply amount in mutez or XTZ
+ * @returns {string} Formatted supply string (e.g., "1.05B")
+ */
+export function formatSupply(num) {
+    if (!isFinite(num) || num === null || num === undefined) {
+        return '---';
+    }
+    // Format in billions
+    if (num >= 1e9) {
+        return (num / 1e9).toFixed(2) + 'B';
+    }
+    // Format in millions
+    if (num >= 1e6) {
+        return (num / 1e6).toFixed(2) + 'M';
+    }
+    return formatNumber(num, { decimals: 0, useAbbreviation: true });
+}
+
+/**
  * Format timestamp to human-readable time
  * @param {Date} date - The date to format
  * @returns {string} Formatted time string
