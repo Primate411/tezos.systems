@@ -240,3 +240,48 @@ export function clearAnimations() {
 export function isAnimating() {
     return animQueue.isProcessing || animQueue.length > 0;
 }
+
+/**
+ * Update circular progress ring for percentage stats
+ * @param {string} cardId - ID of the stat card
+ * @param {number} percentage - Percentage value (0-100)
+ * @param {boolean} animate - Whether to animate the change
+ */
+export function updateProgressRing(cardId, percentage, animate = true) {
+    // Only update rings for percentage-based stats
+    if (cardId !== 'tz4-adoption' && cardId !== 'issuance-rate') {
+        return;
+    }
+
+    // Calculate circumference based on card type
+    const circumference = cardId === 'tz4-adoption' ? 703.72 : 527.79; // 2πr
+
+    // Calculate offset (percentage from 0-100)
+    const offset = circumference - (percentage / 100 * circumference);
+
+    // Update both front and back rings
+    const frontRing = document.getElementById(`${cardId}-ring-front`);
+    const backRing = document.getElementById(`${cardId}-ring-back`);
+
+    if (frontRing) {
+        if (animate) {
+            // Smooth animation via CSS transition
+            requestAnimationFrame(() => {
+                frontRing.style.strokeDashoffset = offset;
+            });
+        } else {
+            // Instant update
+            frontRing.style.strokeDashoffset = offset;
+        }
+    }
+
+    if (backRing) {
+        if (animate) {
+            requestAnimationFrame(() => {
+                backRing.style.strokeDashoffset = offset;
+            });
+        } else {
+            backRing.style.strokeDashoffset = offset;
+        }
+    }
+}
