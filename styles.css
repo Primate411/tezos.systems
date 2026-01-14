@@ -35,15 +35,21 @@
 }
 
 [data-theme="light"] {
-    --bg-primary: #ffffff;
-    --bg-secondary: #fafafa;
-    --bg-tertiary: #f5f5f5;
-    --glass-bg: rgba(0, 0, 0, 0.02);
-    --glass-border: rgba(0, 0, 0, 0.06);
+    --bg-primary: #f8f9fc;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f0f2f5;
+    --glass-bg: #ffffff;
+    --glass-border: rgba(0, 0, 0, 0.12);
     --text-primary: #1a1a2e;
-    --text-secondary: #505060;
-    --text-tertiary: #707080;
-    --text-muted: #a0a0b0;
+    --text-secondary: #3d3d4e;
+    --text-tertiary: #5a5a6e;
+    --text-muted: #8888a0;
+    
+    /* Light mode accent adjustments for better contrast */
+    --accent-cyan: #0099cc;
+    --accent-purple: #8b5cf6;
+    --accent-pink: #db2777;
+    --accent-blue: #2563eb;
 }
 
 /* ==========================================
@@ -101,11 +107,19 @@ body::before {
 }
 
 .title {
-    font-size: clamp(1.75rem, 3vw, 2.5rem);
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.75rem, 4vw, 3rem);
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     color: var(--text-primary);
     line-height: 1.2;
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 50%, var(--accent-pink) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+    position: relative;
 }
 
 .controls {
@@ -416,7 +430,116 @@ body::before {
 }
 
 [data-theme="light"] .card-info-btn:hover {
-    background: rgba(0, 212, 255, 0.1);
+    background: rgba(0, 153, 204, 0.15);
+}
+
+/* Light mode card enhancements */
+[data-theme="light"] .stat-card {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .stat-card:hover {
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .stat-label {
+    color: #4a4a5a;
+    font-weight: 600;
+}
+
+[data-theme="light"] .stat-description {
+    color: #6a6a7a;
+}
+
+/* Light mode section titles */
+[data-theme="light"] .section-title {
+    color: #2a2a3a;
+}
+
+/* Light mode header */
+[data-theme="light"] .header {
+    background: linear-gradient(135deg, #f8f9fc 0%, #e8ebf0 100%);
+}
+
+[data-theme="light"] .title {
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 50%, var(--accent-pink) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: none;
+}
+
+/* Light mode glass buttons */
+[data-theme="light"] .glass-button {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    color: #3d3d4e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .glass-button:hover {
+    background: #f0f2f5;
+    border-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Light mode info buttons */
+[data-theme="light"] .info-button {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    color: #5a5a6e;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .info-button:hover {
+    background: #f0f2f5;
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+}
+
+/* Light mode footer */
+[data-theme="light"] .footer {
+    background: #f0f2f5;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .footer a {
+    color: var(--accent-cyan);
+}
+
+/* Light mode modal */
+[data-theme="light"] .modal-content {
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="light"] .modal-title {
+    color: #1a1a2e;
+}
+
+[data-theme="light"] .modal-body p,
+[data-theme="light"] .modal-body li {
+    color: #3d3d4e;
+}
+
+[data-theme="light"] .modal-note {
+    background: rgba(0, 153, 204, 0.08);
+    border-color: var(--accent-cyan);
+}
+
+[data-theme="light"] .modal-links a {
+    background: #f8f9fc;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: #3d3d4e;
+}
+
+[data-theme="light"] .modal-links a:hover {
+    background: #f0f2f5;
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
 }
 
 /* Flip animation system */

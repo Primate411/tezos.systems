@@ -91,25 +91,31 @@ async function fetchBakers() {
     const bakersUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&limit=10000`;
     const bakers = await fetchWithRetry(bakersUrl);
     const total = bakers.length;
+    
+    // Create a Set of active baker addresses for fast lookup
+    const activeBakerAddresses = new Set(bakers.map(b => b.address));
 
     // Get tz4 consensus key adoptions from update_consensus_key operations
     // We need to fetch enough operations to cover all bakers who have updated
     const opsUrl = `${ENDPOINTS.tzkt.base}/operations/update_consensus_key?limit=2000&sort.desc=id`;
     const operations = await fetchWithRetry(opsUrl);
 
-    // Build map of baker -> most recent consensus key
+    // Build map of ACTIVE baker -> most recent consensus key
+    // Only count bakers that are currently active
     const bakerConsensusKeys = {};
     for (const op of operations) {
-        const baker = op.sender.address;
+        const baker = op.sender?.address;
         const keyHash = op.publicKeyHash || '';
 
-        // Only store if we haven't seen this baker yet (most recent first due to sort)
-        if (!bakerConsensusKeys[baker]) {
+        // Only store if:
+        // 1. We haven't seen this baker yet (most recent first due to sort)
+        // 2. The baker is currently ACTIVE
+        if (baker && !bakerConsensusKeys[baker] && activeBakerAddresses.has(baker)) {
             bakerConsensusKeys[baker] = keyHash;
         }
     }
 
-    // Count bakers using tz4 consensus keys
+    // Count active bakers using tz4 consensus keys
     const tz4Count = Object.values(bakerConsensusKeys).filter(key =>
         key.startsWith('tz4')
     ).length;
