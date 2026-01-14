@@ -614,6 +614,13 @@ body::before {
     font-size: clamp(1.6rem, 3.5vw, 2.2rem);
 }
 
+/* Text-based stat values (proposal names, voting periods) */
+.stat-value-text {
+    font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
 /* Elegant accent colors for each stat */
 .stat-card[data-stat="total-bakers"] .stat-value {
     color: var(--accent-cyan);
@@ -640,6 +647,59 @@ body::before {
 }
 
 .stat-card[data-stat="total-supply"] .stat-value {
+    color: var(--accent-pink);
+}
+
+/* Governance colors */
+.stat-card[data-stat="proposal"] .stat-value {
+    color: var(--accent-cyan);
+}
+
+.stat-card[data-stat="voting-period"] .stat-value {
+    color: var(--accent-purple);
+}
+
+.stat-card[data-stat="participation"] .stat-value {
+    color: var(--accent-pink);
+}
+
+/* Economy additional colors */
+.stat-card[data-stat="staking-apy"] .stat-value {
+    color: #10b981;
+}
+
+.stat-card[data-stat="delegated"] .stat-value {
+    color: var(--accent-purple);
+}
+
+.stat-card[data-stat="total-burned"] .stat-value {
+    color: #f59e0b;
+}
+
+/* Network Activity colors */
+.stat-card[data-stat="contract-calls"] .stat-value {
+    color: var(--accent-cyan);
+}
+
+.stat-card[data-stat="funded-accounts"] .stat-value {
+    color: var(--accent-pink);
+}
+
+/* Ecosystem colors */
+.stat-card[data-stat="smart-contracts"] .stat-value {
+    color: var(--accent-purple);
+}
+
+.stat-card[data-stat="tokens"] .stat-value {
+    color: #f59e0b;
+}
+
+.stat-card[data-stat="rollups"] .stat-value {
+    color: #10b981;
+}
+
+/* Cycle progress color */
+.stat-card[data-stat="cycle-progress"] .stat-value {
     color: var(--accent-pink);
 }
 

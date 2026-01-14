@@ -20,15 +20,15 @@
     <meta name="twitter:description" content="Real-time Tezos network stats: baker counts, tz4/BLS adoption, issuance rate, and transaction volume">
     <meta name="twitter:image" content="https://tezos.systems/og-image.png">
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
-    <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    
     <!-- Google Fonts - Techy font for title -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
     
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -72,8 +72,8 @@
                     <div class="card-tooltip" id="tooltip-total-bakers">
                         <div class="tooltip-content">
                             <h4>What are Bakers?</h4>
-                            <p>Bakers are validators who secure the Tezos network. They create new blocks, validate transactions, and earn rewards for their work. Anyone with enough XTZ can become a baker or delegate their tokens to one.</p>
-                            <a href="https://opentezos.com/baking" target="_blank" rel="noopener">Learn more about baking →</a>
+                            <p>Bakers are validators who secure the Tezos network. They create new blocks, validate transactions, and earn rewards for their work.</p>
+                            <a href="https://opentezos.com/baking" target="_blank" rel="noopener">Learn more →</a>
                         </div>
                     </div>
                     <div class="card-inner">
@@ -94,39 +94,7 @@
                     </div>
                 </div>
 
-                <!-- tz4 Bakers Card -->
-                <div class="stat-card" data-stat="tz4-bakers">
-                    <div class="card-info-btn" data-tooltip="tz4-bakers">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="card-tooltip" id="tooltip-tz4-bakers">
-                        <div class="tooltip-content">
-                            <h4>What are tz4 Bakers?</h4>
-                            <p>tz4 bakers use a new type of cryptographic key (BLS signatures) that allows multiple signatures to be combined into one. This makes the network faster and more efficient—reducing bandwidth by up to 63x.</p>
-                            <a href="https://research-development.nomadic-labs.com/seoul-is-live.html" target="_blank" rel="noopener">Learn about BLS signatures →</a>
-                        </div>
-                    </div>
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <h2 class="stat-label">tz4 Consensus Bakers</h2>
-                            <div class="stat-value stat-value-dual" id="tz4-bakers-front">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Target: 50% of bakers</p>
-                        </div>
-                        <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">tz4 Consensus Bakers</h2>
-                            <div class="stat-value stat-value-dual" id="tz4-bakers-back">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Target: 50% of bakers</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- tz4 Adoption Card -->
+                <!-- tz4 Adoption Card (Combined) -->
                 <div class="stat-card" data-stat="tz4-adoption">
                     <div class="card-info-btn" data-tooltip="tz4-adoption">
                         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -135,9 +103,9 @@
                     </div>
                     <div class="card-tooltip" id="tooltip-tz4-adoption">
                         <div class="tooltip-content">
-                            <h4>tz4 Adoption Progress</h4>
-                            <p>This shows the percentage of bakers who have upgraded to the new tz4 key format. Higher adoption means better network efficiency. The goal is 100% migration to unlock full BLS benefits.</p>
-                            <a href="https://spotlight.tezos.com/tezos-upgrade-seoul-is-live/" target="_blank" rel="noopener">Read about the Seoul upgrade →</a>
+                            <h4>tz4/BLS Adoption</h4>
+                            <p>tz4 bakers use BLS signatures that can be aggregated, reducing bandwidth by 63x. Target is 50% adoption to unlock full network benefits.</p>
+                            <a href="https://spotlight.tezos.com/tezos-upgrade-seoul-is-live/" target="_blank" rel="noopener">Learn more →</a>
                         </div>
                     </div>
                     <div class="card-inner">
@@ -146,7 +114,7 @@
                             <div class="stat-value stat-value-dual" id="tz4-adoption-front">
                                 <span class="loading">...</span>
                             </div>
-                            <p class="stat-description">Target: 50%</p>
+                            <p class="stat-description" id="tz4-description">Target: 50%</p>
                         </div>
                         <div class="card-back" aria-hidden="true">
                             <h2 class="stat-label">tz4 Adoption</h2>
@@ -154,6 +122,148 @@
                                 <span class="loading">...</span>
                             </div>
                             <p class="stat-description">Target: 50%</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Cycle Progress Card -->
+                <div class="stat-card" data-stat="cycle-progress">
+                    <div class="card-info-btn" data-tooltip="cycle-progress">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-cycle-progress">
+                        <div class="tooltip-content">
+                            <h4>Cycle Progress</h4>
+                            <p>Tezos operates in cycles of ~2.8 days (10,800 blocks). Staking rewards and baker rights are calculated per cycle.</p>
+                            <a href="https://opentezos.com/tezos-basics/economics/" target="_blank" rel="noopener">Learn more →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Current Cycle</h2>
+                            <div class="stat-value" id="cycle-progress-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description" id="cycle-description">Loading...</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Current Cycle</h2>
+                            <div class="stat-value" id="cycle-progress-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Governance Section -->
+        <section class="stats-section">
+            <div class="section-header">
+                <h2 class="section-title">Governance</h2>
+                <button class="info-button" id="governance-info-btn" aria-label="Learn about Tezos governance">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <!-- Current Proposal Card -->
+                <div class="stat-card" data-stat="proposal">
+                    <div class="card-info-btn" data-tooltip="proposal">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-proposal">
+                        <div class="tooltip-content">
+                            <h4>Protocol Proposals</h4>
+                            <p>Tezos upgrades through on-chain governance. Bakers vote on protocol proposals that can add new features or improve the network.</p>
+                            <a href="https://opentezos.com/tezos-basics/governance-on-chain/" target="_blank" rel="noopener">Learn more →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Active Proposal</h2>
+                            <div class="stat-value stat-value-text" id="proposal-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description" id="proposal-description">Loading...</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Active Proposal</h2>
+                            <div class="stat-value stat-value-text" id="proposal-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Voting Period Card -->
+                <div class="stat-card" data-stat="voting-period">
+                    <div class="card-info-btn" data-tooltip="voting-period">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-voting-period">
+                        <div class="tooltip-content">
+                            <h4>Voting Periods</h4>
+                            <p>Governance has 5 periods: Proposal, Exploration, Cooldown, Promotion, and Adoption. Each lasts ~2 weeks.</p>
+                            <a href="https://tezos.gitlab.io/active/voting.html" target="_blank" rel="noopener">Learn more →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Voting Period</h2>
+                            <div class="stat-value stat-value-text" id="voting-period-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description" id="voting-description">Loading...</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Voting Period</h2>
+                            <div class="stat-value stat-value-text" id="voting-period-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Participation Card -->
+                <div class="stat-card" data-stat="participation">
+                    <div class="card-info-btn" data-tooltip="participation">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-participation">
+                        <div class="tooltip-content">
+                            <h4>Voter Participation</h4>
+                            <p>The percentage of eligible stake that has participated in the current voting period. Higher participation means stronger consensus.</p>
+                            <a href="https://tzkt.io/governance" target="_blank" rel="noopener">View voting history →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Participation</h2>
+                            <div class="stat-value" id="participation-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description" id="participation-description">Voter turnout</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Participation</h2>
+                            <div class="stat-value" id="participation-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Voter turnout</p>
                         </div>
                     </div>
                 </div>
@@ -172,7 +282,7 @@
             </div>
 
             <div class="stats-grid">
-                <!-- Current Issuance Rate Card -->
+                <!-- Issuance Rate Card -->
                 <div class="stat-card" data-stat="issuance-rate">
                     <div class="card-info-btn" data-tooltip="issuance-rate">
                         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -181,9 +291,9 @@
                     </div>
                     <div class="card-tooltip" id="tooltip-issuance-rate">
                         <div class="tooltip-content">
-                            <h4>What is Issuance Rate?</h4>
-                            <p>The total yearly rate at which new XTZ is created. This includes <strong>adaptive issuance</strong> (staking rewards that adjust based on participation) plus the <strong>liquidity baking subsidy</strong> (5 XTZ per block minted into the XTZ/tzBTC DEX pool).</p>
-                            <a href="https://opentezos.com/defi/liquidity-baking/" target="_blank" rel="noopener">Learn about liquidity baking →</a>
+                            <h4>Issuance Rate</h4>
+                            <p>Total yearly XTZ creation including adaptive issuance (staking rewards) plus liquidity baking subsidy (5 XTZ/min to XTZ/tzBTC pool).</p>
+                            <a href="https://opentezos.com/defi/liquidity-baking/" target="_blank" rel="noopener">Learn more →</a>
                         </div>
                     </div>
                     <div class="card-inner">
@@ -204,34 +314,34 @@
                     </div>
                 </div>
 
-                <!-- Transaction Volume Card -->
-                <div class="stat-card" data-stat="tx-volume">
-                    <div class="card-info-btn" data-tooltip="tx-volume">
+                <!-- Staking APY Card -->
+                <div class="stat-card" data-stat="staking-apy">
+                    <div class="card-info-btn" data-tooltip="staking-apy">
                         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                         </svg>
                     </div>
-                    <div class="card-tooltip" id="tooltip-tx-volume">
+                    <div class="card-tooltip" id="tooltip-staking-apy">
                         <div class="tooltip-content">
-                            <h4>Transaction Volume</h4>
-                            <p>The total number of transactions processed on the Tezos blockchain in the last 24 hours. This includes XTZ transfers, smart contract interactions, NFT trades, and DeFi activities.</p>
-                            <a href="https://tzkt.io/stats" target="_blank" rel="noopener">View detailed statistics →</a>
+                            <h4>Staking APY</h4>
+                            <p>Estimated annual yield for staking XTZ. Delegators earn less (~3%) than direct stakers (~9%) due to baker fees.</p>
+                            <a href="https://stake.tezos.com" target="_blank" rel="noopener">Start staking →</a>
                         </div>
                     </div>
                     <div class="card-inner">
                         <div class="card-front">
-                            <h2 class="stat-label">Transaction Volume</h2>
-                            <div class="stat-value" id="tx-volume-front">
+                            <h2 class="stat-label">Staking APY</h2>
+                            <div class="stat-value stat-value-dual" id="staking-apy-front">
                                 <span class="loading">...</span>
                             </div>
-                            <p class="stat-description">Last 24 hours</p>
+                            <p class="stat-description">Delegate / Stake</p>
                         </div>
                         <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">Transaction Volume</h2>
-                            <div class="stat-value" id="tx-volume-back">
+                            <h2 class="stat-label">Staking APY</h2>
+                            <div class="stat-value stat-value-dual" id="staking-apy-back">
                                 <span class="loading">...</span>
                             </div>
-                            <p class="stat-description">Last 24 hours</p>
+                            <p class="stat-description">Delegate / Stake</p>
                         </div>
                     </div>
                 </div>
@@ -245,9 +355,9 @@
                     </div>
                     <div class="card-tooltip" id="tooltip-staking-ratio">
                         <div class="tooltip-content">
-                            <h4>What is Staking Ratio?</h4>
-                            <p>The percentage of all XTZ tokens that are currently staked (locked up) to help secure the network. Higher staking means better security. Stakers earn rewards for participating in consensus.</p>
-                            <a href="https://opentezos.com/tezos-basics/liquid-proof-of-stake/" target="_blank" rel="noopener">Learn about Liquid Proof of Stake →</a>
+                            <h4>Staking Ratio</h4>
+                            <p>Percentage of total XTZ that is staked. The adaptive issuance system targets around 50% for optimal security.</p>
+                            <a href="https://opentezos.com/tezos-basics/liquid-proof-of-stake/" target="_blank" rel="noopener">Learn more →</a>
                         </div>
                     </div>
                     <div class="card-inner">
@@ -268,6 +378,38 @@
                     </div>
                 </div>
 
+                <!-- Delegated Card -->
+                <div class="stat-card" data-stat="delegated">
+                    <div class="card-info-btn" data-tooltip="delegated">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-delegated">
+                        <div class="tooltip-content">
+                            <h4>Delegated XTZ</h4>
+                            <p>XTZ delegated to bakers (not locked). Delegators keep custody of their tokens while earning rewards through their chosen baker.</p>
+                            <a href="https://baking-bad.org/docs/tezos-staking-for-beginners" target="_blank" rel="noopener">Learn more →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Delegated</h2>
+                            <div class="stat-value" id="delegated-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Not locked</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Delegated</h2>
+                            <div class="stat-value" id="delegated-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Not locked</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Total Supply Card -->
                 <div class="stat-card" data-stat="total-supply">
                     <div class="card-info-btn" data-tooltip="total-supply">
@@ -278,8 +420,8 @@
                     <div class="card-tooltip" id="tooltip-total-supply">
                         <div class="tooltip-content">
                             <h4>Total Supply</h4>
-                            <p>The total number of XTZ tokens in existence. Unlike Bitcoin's fixed supply, Tezos has a small, controlled inflation rate to reward participants who secure the network through staking.</p>
-                            <a href="https://coinmarketcap.com/currencies/tezos/" target="_blank" rel="noopener">View Tezos metrics →</a>
+                            <p>Total XTZ in existence. Tezos has controlled inflation from staking rewards and liquidity baking, partially offset by burns.</p>
+                            <a href="https://coinmarketcap.com/currencies/tezos/" target="_blank" rel="noopener">View metrics →</a>
                         </div>
                     </div>
                     <div class="card-inner">
@@ -299,6 +441,258 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Total Burned Card -->
+                <div class="stat-card" data-stat="total-burned">
+                    <div class="card-info-btn" data-tooltip="total-burned">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-total-burned">
+                        <div class="tooltip-content">
+                            <h4>Total Burned</h4>
+                            <p>XTZ permanently removed from circulation through storage fees, failed operations, and protocol burns. This creates deflationary pressure.</p>
+                            <a href="https://tzkt.io/tz1burnburnburnburnburnburnburjAYjjX" target="_blank" rel="noopener">View burn address →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Total Burned</h2>
+                            <div class="stat-value" id="total-burned-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">XTZ destroyed</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Total Burned</h2>
+                            <div class="stat-value" id="total-burned-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">XTZ destroyed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Network Activity Section -->
+        <section class="stats-section">
+            <div class="section-header">
+                <h2 class="section-title">Network Activity</h2>
+                <button class="info-button" id="network-info-btn" aria-label="Learn about network activity">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <!-- Transaction Volume Card -->
+                <div class="stat-card" data-stat="tx-volume">
+                    <div class="card-info-btn" data-tooltip="tx-volume">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-tx-volume">
+                        <div class="tooltip-content">
+                            <h4>Transactions</h4>
+                            <p>Total transactions in the last 24 hours including XTZ transfers, contract calls, delegations, and token operations.</p>
+                            <a href="https://tzkt.io/stats" target="_blank" rel="noopener">View stats →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Transactions</h2>
+                            <div class="stat-value" id="tx-volume-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Last 24 hours</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Transactions</h2>
+                            <div class="stat-value" id="tx-volume-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Last 24 hours</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contract Calls Card -->
+                <div class="stat-card" data-stat="contract-calls">
+                    <div class="card-info-btn" data-tooltip="contract-calls">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-contract-calls">
+                        <div class="tooltip-content">
+                            <h4>Contract Calls</h4>
+                            <p>Smart contract interactions in 24h. Includes DeFi trades, NFT mints, and dApp usage - a key metric for ecosystem activity.</p>
+                            <a href="https://tzkt.io/dapps" target="_blank" rel="noopener">Explore dApps →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Contract Calls</h2>
+                            <div class="stat-value" id="contract-calls-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Last 24 hours</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Contract Calls</h2>
+                            <div class="stat-value" id="contract-calls-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Last 24 hours</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Accounts Card -->
+                <div class="stat-card" data-stat="funded-accounts">
+                    <div class="card-info-btn" data-tooltip="funded-accounts">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-funded-accounts">
+                        <div class="tooltip-content">
+                            <h4>Funded Accounts</h4>
+                            <p>Total accounts with non-zero XTZ balance. This represents the user base holding or using Tezos.</p>
+                            <a href="https://tzkt.io/accounts" target="_blank" rel="noopener">Browse accounts →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Funded Accounts</h2>
+                            <div class="stat-value" id="funded-accounts-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">With balance</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Funded Accounts</h2>
+                            <div class="stat-value" id="funded-accounts-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">With balance</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ecosystem Section -->
+        <section class="stats-section">
+            <div class="section-header">
+                <h2 class="section-title">Ecosystem</h2>
+                <button class="info-button" id="ecosystem-info-btn" aria-label="Learn about Tezos ecosystem">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <!-- Smart Contracts Card -->
+                <div class="stat-card" data-stat="smart-contracts">
+                    <div class="card-info-btn" data-tooltip="smart-contracts">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-smart-contracts">
+                        <div class="tooltip-content">
+                            <h4>Smart Contracts</h4>
+                            <p>Total deployed contracts on Tezos. Written in Michelson or higher-level languages like SmartPy, LIGO, and Archetype.</p>
+                            <a href="https://smartpy.io" target="_blank" rel="noopener">Build on Tezos →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Smart Contracts</h2>
+                            <div class="stat-value" id="smart-contracts-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Deployed</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Smart Contracts</h2>
+                            <div class="stat-value" id="smart-contracts-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Deployed</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tokens Card -->
+                <div class="stat-card" data-stat="tokens">
+                    <div class="card-info-btn" data-tooltip="tokens">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-tokens">
+                        <div class="tooltip-content">
+                            <h4>FA Tokens</h4>
+                            <p>Fungible and non-fungible tokens on Tezos using FA1.2 and FA2 standards - includes DeFi tokens, stablecoins, and NFTs.</p>
+                            <a href="https://tzkt.io/tokens" target="_blank" rel="noopener">Browse tokens →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Tokens</h2>
+                            <div class="stat-value" id="tokens-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">FA1.2 & FA2</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Tokens</h2>
+                            <div class="stat-value" id="tokens-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">FA1.2 & FA2</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Smart Rollups Card -->
+                <div class="stat-card" data-stat="rollups">
+                    <div class="card-info-btn" data-tooltip="rollups">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-rollups">
+                        <div class="tooltip-content">
+                            <h4>Smart Rollups</h4>
+                            <p>Layer 2 scaling solutions on Tezos. Includes Etherlink (EVM-compatible) for high-throughput, low-cost transactions.</p>
+                            <a href="https://www.etherlink.com" target="_blank" rel="noopener">Try Etherlink →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Smart Rollups</h2>
+                            <div class="stat-value" id="rollups-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">L2 solutions</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Smart Rollups</h2>
+                            <div class="stat-value" id="rollups-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">L2 solutions</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     </main>
@@ -310,26 +704,43 @@
             <h3 class="modal-title">How Tezos Consensus Works</h3>
             <div class="modal-body">
                 <p>
-                    Tezos uses <strong>Tenderbake</strong>, a consensus mechanism inspired by classical BFT (Byzantine Fault Tolerant) algorithms. 
-                    It provides fast finality—once a block is confirmed, it's permanent and can't be reversed.
-                </p>
-                <p>
-                    <strong>Key features:</strong>
+                    Tezos uses <strong>Tenderbake</strong>, a consensus mechanism inspired by classical BFT algorithms. 
+                    It provides fast finality—once a block is confirmed, it's permanent.
                 </p>
                 <ul>
-                    <li><strong>Deterministic finality</strong>: Transactions are final in about 30 seconds, with no risk of chain reorganizations</li>
-                    <li><strong>Energy efficient</strong>: Uses Proof of Stake instead of energy-intensive mining</li>
-                    <li><strong>Liquid staking</strong>: You can delegate your XTZ to bakers without locking them up</li>
-                    <li><strong>Self-amendment</strong>: The protocol can upgrade itself through on-chain voting</li>
+                    <li><strong>Deterministic finality</strong>: Transactions final in ~30 seconds</li>
+                    <li><strong>Energy efficient</strong>: Proof of Stake, not mining</li>
+                    <li><strong>Liquid staking</strong>: Delegate without locking tokens</li>
+                    <li><strong>Self-amendment</strong>: Protocol upgrades via on-chain voting</li>
                 </ul>
-                <p class="modal-note">
-                    Tenderbake was introduced in the <strong>Ithaca upgrade</strong> (2022), replacing the previous Emmy* consensus. 
-                    It significantly improved transaction finality and network reliability.
-                </p>
                 <div class="modal-links">
-                    <a href="https://opentezos.com/tezos-basics/liquid-proof-of-stake/" target="_blank" rel="noopener">OpenTezos: Liquid Proof of Stake</a>
-                    <a href="https://opentezos.com/tezos-basics/history-of-tezos/#tenderbake-and-transaction-optimistic-rollups" target="_blank" rel="noopener">OpenTezos: Tenderbake History</a>
-                    <a href="https://tezos.gitlab.io/active/consensus.html" target="_blank" rel="noopener">Technical: Consensus Documentation</a>
+                    <a href="https://opentezos.com/tezos-basics/liquid-proof-of-stake/" target="_blank" rel="noopener">OpenTezos: Liquid PoS</a>
+                    <a href="https://tezos.gitlab.io/active/consensus.html" target="_blank" rel="noopener">Technical Documentation</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Governance Info Modal -->
+    <div class="modal-overlay" id="governance-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="governance-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Tezos On-Chain Governance</h3>
+            <div class="modal-body">
+                <p>
+                    Tezos can upgrade itself without hard forks through <strong>on-chain governance</strong>. 
+                    Bakers vote on protocol proposals in a structured 5-period process.
+                </p>
+                <ul>
+                    <li><strong>Proposal</strong>: Bakers submit and upvote proposals</li>
+                    <li><strong>Exploration</strong>: Top proposal goes to supermajority vote</li>
+                    <li><strong>Cooldown</strong>: Time for testing and review</li>
+                    <li><strong>Promotion</strong>: Final confirmation vote</li>
+                    <li><strong>Adoption</strong>: New protocol activates</li>
+                </ul>
+                <div class="modal-links">
+                    <a href="https://opentezos.com/tezos-basics/governance-on-chain/" target="_blank" rel="noopener">OpenTezos: Governance</a>
+                    <a href="https://tzkt.io/governance" target="_blank" rel="noopener">TzKT: Voting History</a>
                 </div>
             </div>
         </div>
@@ -339,42 +750,82 @@
     <div class="modal-overlay" id="economy-modal" aria-hidden="true">
         <div class="modal-content">
             <button class="modal-close" id="economy-modal-close" aria-label="Close">&times;</button>
-            <h3 class="modal-title">Understanding Tezos Economics</h3>
+            <h3 class="modal-title">Tezos Economic Model</h3>
             <div class="modal-body">
                 <p>
-                    Tezos uses <strong>Adaptive Issuance</strong>—a smart system that automatically adjusts how many new tokens are created 
-                    based on network participation. This keeps the economy balanced and sustainable.
-                </p>
-                <p>
-                    <strong>How it works:</strong>
+                    Tezos uses <strong>Adaptive Issuance</strong>—rewards automatically adjust based on 
+                    staking participation to maintain optimal network security.
                 </p>
                 <ul>
-                    <li><strong>Dynamic rewards</strong>: When more people stake, issuance decreases. When fewer stake, it increases—incentivizing participation</li>
-                    <li><strong>Target staking ratio</strong>: The system aims for around 50% of XTZ to be staked for optimal security</li>
-                    <li><strong>No fixed cap</strong>: Unlike Bitcoin, Tezos has controlled inflation to continuously reward network participants</li>
-                    <li><strong>Burns & fees</strong>: Transaction fees and some protocol operations burn XTZ, partially offsetting new issuance</li>
+                    <li><strong>Dynamic rewards</strong>: More staking = lower issuance</li>
+                    <li><strong>Target: ~50% staked</strong>: System balances security vs liquidity</li>
+                    <li><strong>Liquidity Baking</strong>: 5 XTZ/min to XTZ/tzBTC DEX pool</li>
+                    <li><strong>Burns</strong>: Storage fees and failed ops reduce supply</li>
                 </ul>
-                <p class="modal-note">
-                    <strong>Adaptive Issuance</strong> was introduced in the <strong>Paris protocol</strong> (June 2024), 
-                    replacing the previous fixed ~5% annual issuance with a smarter, market-responsive system.
-                </p>
                 <div class="modal-links">
-                    <a href="https://research-development.nomadic-labs.com/paris-announcement.html" target="_blank" rel="noopener">Nomadic Labs: Paris Protocol</a>
-                    <a href="https://opentezos.com/tezos-basics/economics/" target="_blank" rel="noopener">OpenTezos: Tezos Economics</a>
-                    <a href="https://tzkt.io/docs/api" target="_blank" rel="noopener">TzKT API Documentation</a>
+                    <a href="https://research-development.nomadic-labs.com/paris-announcement.html" target="_blank" rel="noopener">Nomadic Labs: Paris</a>
+                    <a href="https://opentezos.com/tezos-basics/economics/" target="_blank" rel="noopener">OpenTezos: Economics</a>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Footer with update info -->
+    <!-- Network Info Modal -->
+    <div class="modal-overlay" id="network-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="network-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Network Activity</h3>
+            <div class="modal-body">
+                <p>
+                    Track real-time activity on the Tezos blockchain including transactions, 
+                    smart contract usage, and account growth.
+                </p>
+                <ul>
+                    <li><strong>Transactions</strong>: XTZ transfers, delegations, reveals</li>
+                    <li><strong>Contract calls</strong>: DeFi, NFTs, dApps interactions</li>
+                    <li><strong>Low fees</strong>: Typically under $0.01 per transaction</li>
+                    <li><strong>Fast blocks</strong>: ~8 second block times</li>
+                </ul>
+                <div class="modal-links">
+                    <a href="https://tzkt.io" target="_blank" rel="noopener">TzKT Block Explorer</a>
+                    <a href="https://tzstats.com" target="_blank" rel="noopener">TzStats Analytics</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ecosystem Info Modal -->
+    <div class="modal-overlay" id="ecosystem-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="ecosystem-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Tezos Ecosystem</h3>
+            <div class="modal-body">
+                <p>
+                    Tezos has a thriving ecosystem of DeFi, NFTs, gaming, and enterprise applications 
+                    built on its secure and upgradeable foundation.
+                </p>
+                <ul>
+                    <li><strong>NFTs</strong>: Objkt, fxhash, Teia - major art platforms</li>
+                    <li><strong>DeFi</strong>: Plenty, Youves, Ctez - trading & lending</li>
+                    <li><strong>Gaming</strong>: Tezotopia, Emergents TCG</li>
+                    <li><strong>Etherlink</strong>: EVM L2 for Ethereum compatibility</li>
+                </ul>
+                <div class="modal-links">
+                    <a href="https://tezos.com/ecosystem" target="_blank" rel="noopener">Tezos Ecosystem</a>
+                    <a href="https://www.etherlink.com" target="_blank" rel="noopener">Etherlink L2</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
             <p class="update-info">
                 Last updated: <span id="last-update" class="highlight">Never</span>
             </p>
             <p class="countdown-info">
-                Next update in: <span id="countdown" class="highlight">15:00</span>
+                Next update in: <span id="countdown" class="highlight">2:00:00</span>
             </p>
         </div>
         <p class="attribution">
@@ -382,20 +833,6 @@
             and <a href="https://eu.rpc.tez.capital" target="_blank" rel="noopener">Tez.Capital</a>
         </p>
     </footer>
-
-    <!-- SVG Definitions for Progress Rings -->
-    <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-            <linearGradient id="gradient-pink" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#ec4899;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#a855f7;stop-opacity:1" />
-            </linearGradient>
-            <linearGradient id="gradient-blue" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#2563eb;stop-opacity:1" />
-            </linearGradient>
-        </defs>
-    </svg>
 
     <!-- Load app as module -->
     <script type="module" src="app.js"></script>

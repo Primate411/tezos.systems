@@ -1,18 +1,11 @@
 /**
- * Main application orchestration
- * Coordinates theme, animations, data fetching, and auto-refresh
+ * Tezos Systems - Main Application
+ * Dashboard for Tezos network statistics
  */
 
-import { fetchAllStats, checkHealth } from './api.js';
+import { fetchAllStats, checkApiHealth } from './api.js';
 import { initTheme, toggleTheme } from './theme.js';
-import {
-    updateStatWithAnimation,
-    updateStatsWithStagger,
-    updateStatInstant,
-    showLoading,
-    showError,
-    isAnimating
-} from './animations.js';
+import { flipCard, updateStatInstant, showLoading, showError } from './animations.js';
 import {
     formatCount,
     formatPercentage,
@@ -27,44 +20,179 @@ const state = {
     currentStats: {},
     lastUpdate: null,
     refreshInterval: 7200000, // 2 hours in milliseconds
-    countdownInterval: null,
-    updateInterval: null,
-    isUpdating: false
+    refreshTimer: null,
+    countdownTimer: null
 };
 
 /**
- * Initialize application
+ * Initialize the dashboard
  */
 async function init() {
-    console.log('Initializing Tezos Statistics Dashboard...');
+    console.log('Initializing Tezos Systems dashboard...');
 
-    // Initialize theme system
+    // Initialize theme
     initTheme();
 
     // Setup event listeners
     setupEventListeners();
 
-    // Show loading states
-    showAllLoading();
-
     // Check API health
-    const health = await checkHealth();
+    const health = await checkApiHealth();
     console.log('API Health:', health);
 
-    // Initial data fetch
-    await updateStats();
+    // Initial data load
+    await refresh();
 
-    // Start auto-refresh
-    startAutoRefresh();
+    // Setup refresh interval
+    startRefreshTimer();
 
-    console.log('Dashboard initialized successfully');
+    console.log('Dashboard initialized');
 }
 
 /**
- * Setup event listeners for UI controls
+ * Refresh all statistics
+ */
+async function refresh() {
+    console.log('Refreshing stats...');
+    showAllLoading();
+
+    try {
+        const newStats = await fetchAllStats();
+        console.log('Stats received:', newStats);
+        await updateStats(newStats);
+        state.lastUpdate = new Date();
+        updateLastRefreshTime();
+        resetCountdown();
+    } catch (error) {
+        console.error('Failed to refresh stats:', error);
+        showErrorState();
+    }
+}
+
+/**
+ * Update displayed statistics
+ */
+async function updateStats(newStats) {
+    // Calculate targets
+    const tz4Target = Math.ceil(newStats.totalBakers * 0.5);
+    
+    // First load - update instantly
+    if (!state.lastUpdate) {
+        console.log('First load - updating instantly');
+        
+        // Consensus
+        updateStatInstant('total-bakers', newStats.totalBakers, formatCount);
+        updateStatInstant('tz4-adoption', newStats.tz4Percentage, 
+            (val) => `${formatPercentage(val)} / 50%`);
+        document.getElementById('tz4-description').textContent = 
+            `${newStats.tz4Bakers} / ${tz4Target} bakers`;
+        updateStatInstant('cycle-progress', newStats.cycle, formatCount);
+        document.getElementById('cycle-description').textContent = 
+            `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
+        
+        // Governance
+        updateStatInstant('proposal', newStats.proposal, (v) => v);
+        document.getElementById('proposal-description').textContent = newStats.proposalDescription;
+        updateStatInstant('voting-period', newStats.votingPeriod, (v) => v);
+        document.getElementById('voting-description').textContent = newStats.votingDescription;
+        updateStatInstant('participation', newStats.participation, formatPercentage);
+        document.getElementById('participation-description').textContent = newStats.participationDescription;
+        
+        // Economy
+        updateStatInstant('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
+        updateStatInstant('staking-apy', newStats.delegateAPY, 
+            (val) => `${val.toFixed(1)}% / ${newStats.stakeAPY.toFixed(1)}%`);
+        updateStatInstant('staking-ratio', newStats.stakingRatio, formatPercentage);
+        updateStatInstant('delegated', newStats.delegatedRatio, formatPercentage);
+        updateStatInstant('total-supply', newStats.totalSupply, formatSupply);
+        updateStatInstant('total-burned', newStats.totalBurned, formatSupply);
+        
+        // Network Activity
+        updateStatInstant('tx-volume', newStats.transactionVolume24h, formatLarge);
+        updateStatInstant('contract-calls', newStats.contractCalls24h, formatLarge);
+        updateStatInstant('funded-accounts', newStats.fundedAccounts, formatLarge);
+        
+        // Ecosystem
+        updateStatInstant('smart-contracts', newStats.smartContracts, formatLarge);
+        updateStatInstant('tokens', newStats.tokens, formatLarge);
+        updateStatInstant('rollups', newStats.rollups, formatCount);
+    } else {
+        // Animate changes
+        const updates = [];
+        
+        if (state.currentStats.totalBakers !== newStats.totalBakers) {
+            updates.push({ cardId: 'total-bakers', value: newStats.totalBakers, formatter: formatCount });
+        }
+        if (state.currentStats.tz4Percentage !== newStats.tz4Percentage) {
+            updates.push({ 
+                cardId: 'tz4-adoption', 
+                value: newStats.tz4Percentage, 
+                formatter: (val) => `${formatPercentage(val)} / 50%` 
+            });
+        }
+        if (state.currentStats.cycle !== newStats.cycle) {
+            updates.push({ cardId: 'cycle-progress', value: newStats.cycle, formatter: formatCount });
+        }
+        if (state.currentStats.currentIssuanceRate !== newStats.currentIssuanceRate) {
+            updates.push({ cardId: 'issuance-rate', value: newStats.currentIssuanceRate, formatter: formatPercentage });
+        }
+        if (state.currentStats.stakingRatio !== newStats.stakingRatio) {
+            updates.push({ cardId: 'staking-ratio', value: newStats.stakingRatio, formatter: formatPercentage });
+        }
+        if (state.currentStats.transactionVolume24h !== newStats.transactionVolume24h) {
+            updates.push({ cardId: 'tx-volume', value: newStats.transactionVolume24h, formatter: formatLarge });
+        }
+
+        // Apply updates with animations
+        for (const update of updates) {
+            const card = document.querySelector(`[data-stat="${update.cardId}"]`);
+            if (card) await flipCard(card, update.value, update.formatter);
+        }
+        
+        // Update descriptions
+        document.getElementById('tz4-description').textContent = 
+            `${newStats.tz4Bakers} / ${tz4Target} bakers`;
+        document.getElementById('cycle-description').textContent = 
+            `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
+    }
+
+    // Store current stats
+    state.currentStats = { ...newStats };
+}
+
+/**
+ * Show loading state on all cards
+ */
+function showAllLoading() {
+    const cards = [
+        'total-bakers', 'tz4-adoption', 'cycle-progress',
+        'proposal', 'voting-period', 'participation',
+        'issuance-rate', 'staking-apy', 'staking-ratio', 'delegated', 'total-supply', 'total-burned',
+        'tx-volume', 'contract-calls', 'funded-accounts',
+        'smart-contracts', 'tokens', 'rollups'
+    ];
+    cards.forEach(id => showLoading(id));
+}
+
+/**
+ * Show error state
+ */
+function showErrorState() {
+    const cards = [
+        'total-bakers', 'tz4-adoption', 'cycle-progress',
+        'proposal', 'voting-period', 'participation',
+        'issuance-rate', 'staking-apy', 'staking-ratio', 'delegated', 'total-supply', 'total-burned',
+        'tx-volume', 'contract-calls', 'funded-accounts',
+        'smart-contracts', 'tokens', 'rollups'
+    ];
+    cards.forEach(id => showError(id, 'Error'));
+}
+
+/**
+ * Setup event listeners
  */
 function setupEventListeners() {
-    // Theme toggle button
+    // Theme toggle
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
@@ -75,7 +203,6 @@ function setupEventListeners() {
     if (refreshBtn) {
         refreshBtn.addEventListener('click', () => {
             refresh();
-            // Add spin animation
             refreshBtn.classList.add('spinning');
             setTimeout(() => refreshBtn.classList.remove('spinning'), 1000);
         });
@@ -83,14 +210,17 @@ function setupEventListeners() {
 
     // Setup modals
     setupModal('consensus-info-btn', 'consensus-modal', 'consensus-modal-close');
+    setupModal('governance-info-btn', 'governance-modal', 'governance-modal-close');
     setupModal('economy-info-btn', 'economy-modal', 'economy-modal-close');
+    setupModal('network-info-btn', 'network-modal', 'network-modal-close');
+    setupModal('ecosystem-info-btn', 'ecosystem-modal', 'ecosystem-modal-close');
 
-    // Handle visibility change (pause when tab is hidden)
+    // Handle visibility change
     document.addEventListener('visibilitychange', handleVisibilityChange);
 }
 
 /**
- * Setup a modal with open/close behavior
+ * Setup a modal
  */
 function setupModal(triggerBtnId, modalId, closeBtnId) {
     const triggerBtn = document.getElementById(triggerBtnId);
@@ -115,15 +245,11 @@ function setupModal(triggerBtnId, modalId, closeBtnId) {
         closeBtn.addEventListener('click', closeModal);
     }
 
-    // Close modal on overlay click
     if (modal) {
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                closeModal();
-            }
+            if (e.target === modal) closeModal();
         });
 
-        // Close modal on escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && modal.classList.contains('active')) {
                 closeModal();
@@ -133,310 +259,81 @@ function setupModal(triggerBtnId, modalId, closeBtnId) {
 }
 
 /**
- * Handle visibility change (pause/resume when tab hidden/visible)
+ * Start refresh timer
  */
-function handleVisibilityChange() {
-    if (document.hidden) {
-        console.log('Tab hidden - pausing auto-refresh');
-        stopAutoRefresh();
-    } else {
-        console.log('Tab visible - resuming auto-refresh');
-        updateStats();
-        startAutoRefresh();
-    }
-}
-
-/**
- * Show loading state on all cards
- */
-function showAllLoading() {
-    showLoading('total-bakers');
-    showLoading('tz4-bakers');
-    showLoading('tz4-adoption');
-    showLoading('issuance-rate');
-    showLoading('tx-volume');
-    showLoading('staking-ratio');
-    showLoading('total-supply');
-}
-
-/**
- * Update all statistics
- */
-async function updateStats() {
-    // Prevent overlapping updates
-    if (state.isUpdating) {
-        console.log('Update already in progress, skipping...');
-        return;
-    }
-
-    state.isUpdating = true;
-
-    try {
-        console.log('Fetching latest statistics...');
-
-        // Fetch all stats
-        const newStats = await fetchAllStats();
-
-        console.log('Stats received:', newStats);
-
-        // Prepare updates
-        const updates = [];
-
-        // Check each stat and add to updates if changed
-        if (state.currentStats.totalBakers !== newStats.totalBakers) {
-            updates.push({
-                cardId: 'total-bakers',
-                value: newStats.totalBakers,
-                formatter: formatCount
-            });
-        }
-
-        if (state.currentStats.tz4Bakers !== newStats.tz4Bakers || state.currentStats.totalBakers !== newStats.totalBakers) {
-            // Calculate target (50% of total bakers)
-            const target = Math.ceil(newStats.totalBakers * 0.5);
-            updates.push({
-                cardId: 'tz4-bakers',
-                value: newStats.tz4Bakers,
-                formatter: (val) => `${formatCount(val)} / ${formatCount(target)}`
-            });
-        }
-
-        if (state.currentStats.tz4Percentage !== newStats.tz4Percentage) {
-            updates.push({
-                cardId: 'tz4-adoption',
-                value: newStats.tz4Percentage,
-                formatter: (val) => `${formatPercentage(val)} / 50%`
-            });
-        }
-
-        if (state.currentStats.currentIssuanceRate !== newStats.currentIssuanceRate) {
-            updates.push({
-                cardId: 'issuance-rate',
-                value: newStats.currentIssuanceRate,
-                formatter: formatPercentage
-            });
-        }
-
-        if (state.currentStats.transactionVolume24h !== newStats.transactionVolume24h) {
-            updates.push({
-                cardId: 'tx-volume',
-                value: newStats.transactionVolume24h,
-                formatter: formatLarge
-            });
-        }
-
-        if (state.currentStats.stakingRatio !== newStats.stakingRatio) {
-            updates.push({
-                cardId: 'staking-ratio',
-                value: newStats.stakingRatio,
-                formatter: formatPercentage
-            });
-        }
-
-        if (state.currentStats.totalSupply !== newStats.totalSupply) {
-            updates.push({
-                cardId: 'total-supply',
-                value: newStats.totalSupply,
-                formatter: formatSupply
-            });
-        }
-
-        // If first load, update instantly without animation
-        if (!state.lastUpdate) {
-            console.log('First load - updating instantly');
-            const target = Math.ceil(newStats.totalBakers * 0.5);
-            updateStatInstant('total-bakers', newStats.totalBakers, formatCount);
-            updateStatInstant('tz4-bakers', newStats.tz4Bakers, (val) => `${formatCount(val)} / ${formatCount(target)}`);
-            updateStatInstant('tz4-adoption', newStats.tz4Percentage, (val) => `${formatPercentage(val)} / 50%`);
-            updateStatInstant('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
-            updateStatInstant('tx-volume', newStats.transactionVolume24h, formatLarge);
-            updateStatInstant('staking-ratio', newStats.stakingRatio, formatPercentage);
-            updateStatInstant('total-supply', newStats.totalSupply, formatSupply);
-        } else if (updates.length > 0) {
-            // Animate changes
-            console.log(`Animating ${updates.length} changed stats`);
-            await updateStatsWithStagger(updates);
-        } else {
-            console.log('No changes detected');
-        }
-
-        // Update state
-        state.currentStats = newStats;
-        state.lastUpdate = new Date();
-
-        // Update last update time
-        updateLastUpdateTime();
-
-    } catch (error) {
-        console.error('Failed to update stats:', error);
-        showErrorState(error);
-    } finally {
-        state.isUpdating = false;
-    }
-}
-
-/**
- * Update last update timestamp display
- */
-function updateLastUpdateTime() {
-    const lastUpdateEl = document.getElementById('last-update');
-    if (lastUpdateEl && state.lastUpdate) {
-        lastUpdateEl.textContent = formatTimestamp(state.lastUpdate);
-    }
-}
-
-/**
- * Show error state
- * @param {Error} error - The error that occurred
- */
-function showErrorState(error) {
-    const footer = document.querySelector('.footer');
-
-    // Remove any existing error message
-    const existingError = footer.querySelector('.error-message');
-    if (existingError) {
-        existingError.remove();
-    }
-
-    // Add new error message
-    const errorMsg = document.createElement('p');
-    errorMsg.className = 'error-message';
-    errorMsg.textContent = `Failed to fetch data: ${error.message}`;
-    footer.appendChild(errorMsg);
-
-    // Show error on cards
-    showError('total-bakers', 'Error');
-    showError('tz4-bakers', 'Error');
-    showError('tz4-adoption', 'Error');
-    showError('issuance-rate', 'Error');
-    showError('tx-volume', 'Error');
-    showError('staking-ratio', 'Error');
-    showError('total-supply', 'Error');
-
-    // Auto-remove error message after 5 seconds
-    setTimeout(() => {
-        if (errorMsg.parentNode) {
-            errorMsg.remove();
-        }
-    }, 5000);
-}
-
-/**
- * Start auto-refresh timer
- */
-function startAutoRefresh() {
-    // Clear any existing intervals
-    stopAutoRefresh();
-
-    console.log(`Starting auto-refresh (every ${state.refreshInterval / 1000}s)`);
-
-    // Main update interval
-    state.updateInterval = setInterval(() => {
-        updateStats();
-    }, state.refreshInterval);
-
-    // Countdown timer
+function startRefreshTimer() {
+    if (state.refreshTimer) clearInterval(state.refreshTimer);
+    state.refreshTimer = setInterval(refresh, state.refreshInterval);
     startCountdown();
 }
 
 /**
- * Stop auto-refresh timer
- */
-function stopAutoRefresh() {
-    if (state.updateInterval) {
-        clearInterval(state.updateInterval);
-        state.updateInterval = null;
-    }
-
-    if (state.countdownInterval) {
-        clearInterval(state.countdownInterval);
-        state.countdownInterval = null;
-    }
-}
-
-/**
- * Start countdown timer
+ * Start countdown display
  */
 function startCountdown() {
-    // Clear existing countdown
-    if (state.countdownInterval) {
-        clearInterval(state.countdownInterval);
-    }
-
-    let secondsRemaining = state.refreshInterval / 1000;
-    const countdownEl = document.getElementById('countdown');
-
-    // Format time as MM:SS
-    const formatTime = (totalSeconds) => {
-        const minutes = Math.floor(totalSeconds / 60);
-        const seconds = totalSeconds % 60;
-        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    if (state.countdownTimer) clearInterval(state.countdownTimer);
+    
+    let remaining = state.refreshInterval / 1000;
+    
+    const updateCountdown = () => {
+        const hours = Math.floor(remaining / 3600);
+        const minutes = Math.floor((remaining % 3600) / 60);
+        const seconds = remaining % 60;
+        
+        const display = hours > 0 
+            ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+            : `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        
+        const el = document.getElementById('countdown');
+        if (el) el.textContent = display;
+        
+        remaining--;
+        if (remaining < 0) remaining = state.refreshInterval / 1000;
     };
-
-    // Update immediately
-    if (countdownEl) {
-        countdownEl.textContent = formatTime(secondsRemaining);
-    }
-
-    // Update every second
-    state.countdownInterval = setInterval(() => {
-        secondsRemaining--;
-
-        if (secondsRemaining <= 0) {
-            secondsRemaining = state.refreshInterval / 1000;
-        }
-
-        if (countdownEl) {
-            countdownEl.textContent = formatTime(secondsRemaining);
-        }
-    }, 1000);
+    
+    updateCountdown();
+    state.countdownTimer = setInterval(updateCountdown, 1000);
 }
 
 /**
- * Manually trigger update
+ * Reset countdown
  */
-export function refresh() {
-    console.log('Manual refresh triggered');
-    updateStats();
+function resetCountdown() {
     startCountdown();
 }
 
 /**
- * Get current application state
- * @returns {Object} Current state
+ * Update last refresh time display
  */
-export function getState() {
-    return { ...state };
+function updateLastRefreshTime() {
+    const el = document.getElementById('last-update');
+    if (el && state.lastUpdate) {
+        el.textContent = formatTimestamp(state.lastUpdate);
+    }
 }
 
 /**
- * Update refresh interval
- * @param {number} intervalMs - New interval in milliseconds
+ * Handle visibility change
  */
-export function setRefreshInterval(intervalMs) {
-    if (intervalMs < 1000) {
-        console.warn('Refresh interval too short, using minimum 1000ms');
-        intervalMs = 1000;
+function handleVisibilityChange() {
+    if (document.visibilityState === 'visible') {
+        // Refresh if it's been a while
+        if (state.lastUpdate) {
+            const elapsed = Date.now() - state.lastUpdate.getTime();
+            if (elapsed > state.refreshInterval * 0.9) {
+                refresh();
+            }
+        }
+        startCountdown();
     }
-
-    state.refreshInterval = intervalMs;
-    console.log(`Refresh interval updated to ${intervalMs}ms`);
-
-    // Restart auto-refresh with new interval
-    startAutoRefresh();
 }
 
-// Initialize app when DOM is ready
+// Initialize on DOM ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
     init();
 }
 
-// Export for debugging
-window.TezosStats = {
-    refresh,
-    getState,
-    setRefreshInterval,
-    checkHealth
-};
+// Expose refresh function globally
+window.TezosStats = { refresh };
