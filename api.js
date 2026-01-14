@@ -132,18 +132,60 @@ async function fetchBakers() {
 
 /**
  * Fetch current yearly issuance rate from Octez RPC
- * @returns {Promise<number>} Current yearly issuance rate as percentage
+ * Includes both adaptive issuance (staking rewards) and liquidity baking subsidy
+ * @returns {Promise<number>} Total yearly issuance rate as percentage
  */
 async function fetchIssuance() {
-    const url = `${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`;
+    try {
+        // Fetch adaptive issuance rate and LB subsidy constant in parallel
+        const [issuanceUrl, constantsUrl, supplyUrl] = [
+            `${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`,
+            `${ENDPOINTS.octez.base}/chains/main/blocks/head/context/constants`,
+            `${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`
+        ];
 
-    // Octez RPC returns the current yearly rate as a string (e.g., "3.525")
-    const rateString = await fetchWithRetry(url);
+        const [rateString, constants, supplyMutez] = await Promise.all([
+            fetchWithRetry(issuanceUrl),
+            fetchWithRetry(constantsUrl),
+            fetchWithRetry(supplyUrl)
+        ]);
 
-    // Parse and return as number
-    const rate = parseFloat(rateString.replace(/"/g, ''));
+        // Parse adaptive issuance rate (staking rewards)
+        const adaptiveRate = parseFloat(rateString.replace(/"/g, ''));
 
-    return rate;
+        // Get liquidity baking subsidy PER MINUTE (in mutez) - NOT per block!
+        // As per Tezos docs: LIQUIDITY_BAKING_SUBSIDY specifies amount minted per minute
+        const lbSubsidyPerMinute = parseInt(constants.liquidity_baking_subsidy) || 0;
+        
+        // Get minimal block delay (seconds)
+        const blockDelay = parseInt(constants.minimal_block_delay) || 8;
+        
+        // Get total supply (convert from mutez to XTZ)
+        const totalSupplyXTZ = parseInt(supplyMutez.replace(/"/g, '')) / 1e6;
+
+        // Calculate LB yearly rate
+        // Minutes per year
+        const minutesPerYear = 365.25 * 24 * 60;
+        
+        // LB XTZ per year (subsidy is in mutez per minute, convert to XTZ per year)
+        const lbXTZPerYear = (lbSubsidyPerMinute / 1e6) * minutesPerYear;
+        
+        // LB rate as percentage of total supply
+        const lbRate = (lbXTZPerYear / totalSupplyXTZ) * 100;
+
+        // Total issuance = adaptive issuance + liquidity baking
+        const totalRate = adaptiveRate + lbRate;
+
+        console.log(`Issuance breakdown: Adaptive ${adaptiveRate.toFixed(2)}% + LB ${lbRate.toFixed(2)}% = ${totalRate.toFixed(2)}%`);
+
+        return totalRate;
+    } catch (error) {
+        console.error('Failed to fetch issuance rate:', error);
+        // Fallback to just adaptive issuance if LB calculation fails
+        const url = `${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`;
+        const rateString = await fetchWithRetry(url);
+        return parseFloat(rateString.replace(/"/g, ''));
+    }
 }
 
 /**

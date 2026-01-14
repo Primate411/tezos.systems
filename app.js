@@ -191,11 +191,13 @@ async function updateStats() {
             });
         }
 
-        if (state.currentStats.tz4Bakers !== newStats.tz4Bakers) {
+        if (state.currentStats.tz4Bakers !== newStats.tz4Bakers || state.currentStats.totalBakers !== newStats.totalBakers) {
+            // Calculate target (50% of total bakers)
+            const target = Math.ceil(newStats.totalBakers * 0.5);
             updates.push({
                 cardId: 'tz4-bakers',
                 value: newStats.tz4Bakers,
-                formatter: formatCount
+                formatter: (val) => `${formatCount(val)} / ${formatCount(target)}`
             });
         }
 
@@ -203,7 +205,7 @@ async function updateStats() {
             updates.push({
                 cardId: 'tz4-adoption',
                 value: newStats.tz4Percentage,
-                formatter: formatPercentage
+                formatter: (val) => `${formatPercentage(val)} / 50%`
             });
         }
 
@@ -242,9 +244,10 @@ async function updateStats() {
         // If first load, update instantly without animation
         if (!state.lastUpdate) {
             console.log('First load - updating instantly');
+            const target = Math.ceil(newStats.totalBakers * 0.5);
             updateStatInstant('total-bakers', newStats.totalBakers, formatCount);
-            updateStatInstant('tz4-bakers', newStats.tz4Bakers, formatCount);
-            updateStatInstant('tz4-adoption', newStats.tz4Percentage, formatPercentage);
+            updateStatInstant('tz4-bakers', newStats.tz4Bakers, (val) => `${formatCount(val)} / ${formatCount(target)}`);
+            updateStatInstant('tz4-adoption', newStats.tz4Percentage, (val) => `${formatPercentage(val)} / 50%`);
             updateStatInstant('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
             updateStatInstant('tx-volume', newStats.transactionVolume24h, formatLarge);
             updateStatInstant('staking-ratio', newStats.stakingRatio, formatPercentage);
