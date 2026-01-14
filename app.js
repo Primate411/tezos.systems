@@ -23,7 +23,6 @@ import {
 
 // Application state
 const state = {
-    rpcEndpoint: 'tzkt',
     currentStats: {},
     lastUpdate: null,
     refreshInterval: 18000, // 18 seconds in milliseconds
@@ -70,29 +69,8 @@ function setupEventListeners() {
         themeToggle.addEventListener('click', toggleTheme);
     }
 
-    // RPC endpoint selector
-    const rpcSelector = document.getElementById('rpc-selector');
-    if (rpcSelector) {
-        rpcSelector.addEventListener('change', handleRpcChange);
-    }
-
     // Handle visibility change (pause when tab is hidden)
     document.addEventListener('visibilitychange', handleVisibilityChange);
-}
-
-/**
- * Handle RPC endpoint change
- * @param {Event} event - Change event
- */
-function handleRpcChange(event) {
-    const newEndpoint = event.target.value;
-    console.log(`Switching to ${newEndpoint} endpoint...`);
-
-    state.rpcEndpoint = newEndpoint;
-
-    // Immediately fetch new data
-    showAllLoading();
-    updateStats();
 }
 
 /**
