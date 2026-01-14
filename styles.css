@@ -184,16 +184,68 @@ body::before {
 }
 
 /* ==========================================
-   Stats Grid
+   Main Content & Sections
    ========================================== */
+
+.main-content {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1rem 2rem;
+}
+
+.stats-section {
+    margin-bottom: 4rem;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 0 1rem;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+}
+
+.info-button {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--blur-amount));
+    -webkit-backdrop-filter: blur(var(--blur-amount));
+    border: 1px solid var(--glass-border);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--accent-color);
+    transition: all 0.3s ease;
+}
+
+.info-button:hover {
+    background: var(--accent-color);
+    color: #ffffff;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px var(--accent-glow);
+}
+
+.info-button svg {
+    width: 20px;
+    height: 20px;
+}
 
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.5rem;
-    padding: 2rem 1rem;
-    max-width: 1400px;
-    margin: 0 auto;
 }
 
 /* ==========================================
@@ -399,6 +451,148 @@ body::before {
    Responsive Design
    ========================================== */
 
+/* ==========================================
+   Modal Styles
+   ========================================== */
+
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal-overlay.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    backdrop-filter: blur(var(--blur-amount)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--blur-amount)) saturate(180%);
+    border-radius: 24px;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px var(--accent-glow);
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    padding: 2.5rem;
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.modal-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-color) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.modal-body {
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.modal-body p {
+    margin-bottom: 1rem;
+}
+
+.modal-body strong {
+    color: var(--text-primary);
+}
+
+.modal-body ul {
+    margin: 1rem 0 1.5rem 1.5rem;
+}
+
+.modal-body li {
+    margin-bottom: 0.75rem;
+}
+
+.modal-note {
+    background: rgba(61, 90, 241, 0.1);
+    border-left: 3px solid var(--accent-color);
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    font-size: 0.95rem;
+}
+
+.modal-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.modal-links a {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    background: rgba(61, 90, 241, 0.1);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.modal-links a:hover {
+    background: rgba(61, 90, 241, 0.2);
+    border-color: var(--accent-color);
+    transform: translateX(4px);
+}
+
+/* ==========================================
+   Responsive Design
+   ========================================== */
+
 /* Tablet */
 @media (min-width: 768px) {
     .title {
@@ -412,7 +606,6 @@ body::before {
 
     .stats-grid {
         grid-template-columns: repeat(2, 1fr);
-        padding: 2rem;
         gap: 2rem;
     }
 
@@ -432,13 +625,6 @@ body::before {
     .stat-value {
         font-size: 3.5rem;
         min-height: 3.5rem;
-    }
-}
-
-/* Large desktop */
-@media (min-width: 1400px) {
-    .stats-grid {
-        grid-template-columns: repeat(5, 1fr);
     }
 }
 

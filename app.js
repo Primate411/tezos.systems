@@ -25,7 +25,7 @@ import {
 const state = {
     currentStats: {},
     lastUpdate: null,
-    refreshInterval: 18000, // 18 seconds in milliseconds
+    refreshInterval: 900000, // 15 minutes in milliseconds
     countdownInterval: null,
     updateInterval: null,
     isUpdating: false
@@ -68,6 +68,39 @@ function setupEventListeners() {
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
+
+    // tz4 info modal
+    const tz4InfoBtn = document.getElementById('tz4-info-btn');
+    const modal = document.getElementById('tz4-modal');
+    const modalClose = document.getElementById('modal-close');
+
+    if (tz4InfoBtn && modal) {
+        tz4InfoBtn.addEventListener('click', () => {
+            modal.classList.add('active');
+        });
+    }
+
+    if (modalClose && modal) {
+        modalClose.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+    }
+
+    // Close modal on overlay click
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && modal.classList.contains('active')) {
+            modal.classList.remove('active');
+        }
+    });
 
     // Handle visibility change (pause when tab is hidden)
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -279,24 +312,31 @@ function startCountdown() {
         clearInterval(state.countdownInterval);
     }
 
-    let seconds = state.refreshInterval / 1000;
+    let secondsRemaining = state.refreshInterval / 1000;
     const countdownEl = document.getElementById('countdown');
+
+    // Format time as MM:SS
+    const formatTime = (totalSeconds) => {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    };
 
     // Update immediately
     if (countdownEl) {
-        countdownEl.textContent = `${seconds}s`;
+        countdownEl.textContent = formatTime(secondsRemaining);
     }
 
     // Update every second
     state.countdownInterval = setInterval(() => {
-        seconds--;
+        secondsRemaining--;
 
-        if (seconds <= 0) {
-            seconds = state.refreshInterval / 1000;
+        if (secondsRemaining <= 0) {
+            secondsRemaining = state.refreshInterval / 1000;
         }
 
         if (countdownEl) {
-            countdownEl.textContent = `${seconds}s`;
+            countdownEl.textContent = formatTime(secondsRemaining);
         }
     }, 1000);
 }

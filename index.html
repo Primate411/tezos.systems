@@ -21,10 +21,22 @@
         </div>
     </header>
 
-    <!-- Main stats grid -->
-    <main class="stats-grid">
-        <!-- Total Bakers Card -->
-        <div class="stat-card" data-stat="total-bakers">
+    <!-- Main content -->
+    <main class="main-content">
+        <!-- Consensus Section -->
+        <section class="stats-section">
+            <div class="section-header">
+                <h2 class="section-title">Consensus</h2>
+                <button class="info-button" id="tz4-info-btn" aria-label="Learn about tz4/BLS">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <!-- Total Bakers Card -->
+                <div class="stat-card" data-stat="total-bakers">
             <div class="card-inner">
                 <div class="card-front">
                     <h2 class="stat-label">Total Bakers</h2>
@@ -82,7 +94,16 @@
                 </div>
             </div>
         </div>
+            </div>
+        </section>
 
+        <!-- Economy Section -->
+        <section class="stats-section">
+            <div class="section-header">
+                <h2 class="section-title">Economy</h2>
+            </div>
+
+            <div class="stats-grid">
         <!-- Current Issuance Rate Card -->
         <div class="stat-card" data-stat="issuance-rate">
             <div class="card-inner">
@@ -122,7 +143,41 @@
                 </div>
             </div>
         </div>
+            </div>
+        </section>
     </main>
+
+    <!-- tz4/BLS Info Modal -->
+    <div class="modal-overlay" id="tz4-modal">
+        <div class="modal-content">
+            <button class="modal-close" id="modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">What is tz4 / BLS Baking?</h3>
+            <div class="modal-body">
+                <p>
+                    tz4 accounts use <strong>BLS signatures</strong>, which have a unique property: they can be <strong>aggregated</strong>.
+                    This means multiple signatures can be combined into one.
+                </p>
+                <p>
+                    <strong>Why it matters:</strong>
+                </p>
+                <ul>
+                    <li><strong>63x less bandwidth</strong>: From 900 MB/day to just 14 MB/day for bakers</li>
+                    <li><strong>Single signature</strong>: Replaces ~200 attestation signatures per block with one</li>
+                    <li><strong>More secure</strong>: Enables all bakers to attest every block (with Tallinn upgrade)</li>
+                    <li><strong>Leaner consensus</strong>: Faster validation and reduced storage needs</li>
+                </ul>
+                <p class="modal-note">
+                    Introduced in the <strong>Seoul protocol</strong> (September 2025), tz4/BLS baking is a major step toward
+                    making Tezos more efficient and scalable.
+                </p>
+                <div class="modal-links">
+                    <a href="https://research-development.nomadic-labs.com/seoul-is-live.html" target="_blank" rel="noopener">Nomadic Labs: Seoul Overview</a>
+                    <a href="https://spotlight.tezos.com/tezos-upgrade-seoul-is-live/" target="_blank" rel="noopener">Tezos Spotlight: Seoul</a>
+                    <a href="https://octez.tezos.com/docs/protocols/023_seoul.html" target="_blank" rel="noopener">Octez Docs: Seoul Protocol</a>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer with update info -->
     <footer class="footer">
