@@ -157,7 +157,7 @@ async function fetchCycleInfo() {
     
     // Calculate time remaining
     const blocksRemaining = blocksPerCycle - blocksIntoCycle;
-    const secondsRemaining = blocksRemaining * 8;
+    const secondsRemaining = blocksRemaining * 6;
     const hoursRemaining = Math.floor(secondsRemaining / 3600);
     const minutesRemaining = Math.floor((secondsRemaining % 3600) / 60);
     

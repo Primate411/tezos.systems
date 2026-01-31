@@ -82,8 +82,8 @@ async function updateStats(newStats) {
         
         // Consensus
         updateStatInstant('total-bakers', newStats.totalBakers, formatCount);
-        updateStatInstant('tz4-adoption', newStats.tz4Percentage, 
-            (val) => `${formatPercentage(val)} / 50%`);
+        updateStatInstant('tz4-adoption', newStats.tz4Percentage,
+            (val) => `${val.toFixed(1)} / 50%`);
         document.getElementById('tz4-description').textContent = 
             `${newStats.tz4Bakers} / ${tz4Target} bakers`;
         updateStatInstant('cycle-progress', newStats.cycle, formatCount);
@@ -124,10 +124,10 @@ async function updateStats(newStats) {
             updates.push({ cardId: 'total-bakers', value: newStats.totalBakers, formatter: formatCount });
         }
         if (state.currentStats.tz4Percentage !== newStats.tz4Percentage) {
-            updates.push({ 
-                cardId: 'tz4-adoption', 
-                value: newStats.tz4Percentage, 
-                formatter: (val) => `${formatPercentage(val)} / 50%` 
+            updates.push({
+                cardId: 'tz4-adoption',
+                value: newStats.tz4Percentage,
+                formatter: (val) => `${val.toFixed(1)} / 50%`
             });
         }
         if (state.currentStats.cycle !== newStats.cycle) {
