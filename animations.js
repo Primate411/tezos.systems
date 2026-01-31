@@ -5,6 +5,16 @@
 
 import { sleep } from './utils.js';
 
+// Import arcade effects (dynamic to avoid circular dependency)
+let arcadeEffects = null;
+try {
+    import('./arcade-effects.js').then(module => {
+        arcadeEffects = module;
+    });
+} catch (e) {
+    console.log('Arcade effects not available');
+}
+
 const FLIP_DURATION = 600; // milliseconds - matches CSS transition
 const STAGGER_DELAY = 100; // milliseconds between card flips
 
@@ -108,6 +118,16 @@ export async function flipCard(cardElement, newValue, formatter) {
 
             // Add flipping class to start animation
             cardElement.classList.add('flipping');
+
+            // Trigger arcade effects if available
+            if (arcadeEffects) {
+                // Hit flash on flip
+                setTimeout(() => {
+                    if (arcadeEffects.hitFlash) {
+                        arcadeEffects.hitFlash(cardElement);
+                    }
+                }, 200);
+            }
 
             // After animation completes
             setTimeout(() => {

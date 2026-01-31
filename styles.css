@@ -1020,3 +1020,194 @@ body::before {
 .svg-defs {
     display: none;
 }
+
+/* ==========================================
+   ARCADE EFFECTS ENHANCEMENTS
+   ========================================== */
+
+/* Enhanced card click state */
+.stat-card:active {
+    transform: translateY(-2px) scale(0.98);
+    transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Neon glow on active cards */
+.stat-card.arcade-active {
+    box-shadow:
+        0 0 20px currentColor,
+        0 0 40px currentColor,
+        0 12px 40px rgba(0, 0, 0, 0.15);
+    border-color: currentColor;
+}
+
+/* Button press effects */
+.glass-button:active,
+.info-button:active {
+    transform: translateY(0) scale(0.95);
+}
+
+/* Enhanced glow for button hover */
+.glass-button:hover {
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+}
+
+/* Title glow enhancement */
+.title {
+    animation: title-glow 3s ease-in-out infinite;
+}
+
+@keyframes title-glow {
+    0%, 100% {
+        filter: drop-shadow(0 0 20px rgba(0, 212, 255, 0.3));
+    }
+    50% {
+        filter: drop-shadow(0 0 40px rgba(183, 148, 246, 0.4));
+    }
+}
+
+/* Arcade mode toggle effect */
+body.arcade-mode::before {
+    background:
+        radial-gradient(at 20% 30%, rgba(0, 212, 255, 0.08) 0px, transparent 50%),
+        radial-gradient(at 80% 70%, rgba(183, 148, 246, 0.08) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(255, 107, 157, 0.05) 0px, transparent 50%);
+    animation: ambient-pulse 4s ease-in-out infinite;
+}
+
+@keyframes ambient-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Enhanced stat value animations */
+.stat-value {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stat-card:hover .stat-value {
+    transform: scale(1.05);
+    text-shadow: 0 0 20px currentColor;
+}
+
+/* Loading animation enhancement */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.05);
+    }
+}
+
+/* Section header glow */
+.section-title {
+    transition: all 0.3s ease;
+}
+
+.stats-section:hover .section-title {
+    color: var(--accent-cyan);
+    text-shadow: 0 0 10px var(--accent-cyan);
+}
+
+/* Enhanced modal entry */
+.modal-overlay.active .modal-content {
+    animation: modal-arcade-entry 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes modal-arcade-entry {
+    0% {
+        transform: translateY(20px) scale(0.9);
+        opacity: 0;
+        filter: blur(10px);
+    }
+    60% {
+        transform: translateY(-5px) scale(1.02);
+        filter: blur(0px);
+    }
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Footer glow effect */
+.footer .highlight {
+    animation: highlight-pulse 2s ease-in-out infinite;
+}
+
+@keyframes highlight-pulse {
+    0%, 100% {
+        color: var(--accent-cyan);
+        text-shadow: 0 0 5px var(--accent-cyan);
+    }
+    50% {
+        color: var(--accent-purple);
+        text-shadow: 0 0 10px var(--accent-purple);
+    }
+}
+
+/* Enhanced refresh spinning */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.glass-button.spinning {
+    animation: spin 1s ease-in-out, button-pulse 1s ease-in-out;
+}
+
+@keyframes button-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0px var(--accent-cyan);
+    }
+    50% {
+        box-shadow: 0 0 30px var(--accent-cyan);
+    }
+}
+
+/* Card info button enhanced */
+.card-info-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-info-btn:active {
+    transform: scale(0.9) rotate(0deg);
+}
+
+/* Link effects */
+a {
+    transition: all 0.2s ease;
+}
+
+a:hover {
+    filter: drop-shadow(0 0 5px currentColor);
+}
+
+/* Enhanced tooltips */
+.card-tooltip {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+/* Responsive arcade enhancements */
+@media (min-width: 768px) {
+    .stat-card:hover {
+        box-shadow:
+            0 12px 40px rgba(0, 0, 0, 0.15),
+            0 0 30px rgba(0, 212, 255, 0.1);
+    }
+}
+
+/* Special effects for high combo */
+body.high-combo .stat-card {
+    animation: rainbow-border 2s linear infinite;
+}
+
+@keyframes rainbow-border {
+    0% { border-color: rgba(0, 212, 255, 0.3); }
+    33% { border-color: rgba(183, 148, 246, 0.3); }
+    66% { border-color: rgba(255, 107, 157, 0.3); }
+    100% { border-color: rgba(0, 212, 255, 0.3); }
+}

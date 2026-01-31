@@ -145,26 +145,40 @@ async function fetchBakers() {
 async function fetchCycleInfo() {
     const headUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.head}`;
     const head = await fetchWithRetry(headUrl);
-    
+
     const cycleUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.cycles}/${head.cycle}`;
     const cycle = await fetchWithRetry(cycleUrl);
-    
-    const blocksPerCycle = 10800;
+
     const currentBlock = head.level;
     const cycleStartBlock = cycle.firstLevel;
+    const cycleEndBlock = cycle.lastLevel;
+    const blocksPerCycle = cycleEndBlock - cycleStartBlock;
     const blocksIntoCycle = currentBlock - cycleStartBlock;
     const progress = (blocksIntoCycle / blocksPerCycle) * 100;
-    
+
     // Calculate time remaining
-    const blocksRemaining = blocksPerCycle - blocksIntoCycle;
-    const secondsRemaining = blocksRemaining * 6;
-    const hoursRemaining = Math.floor(secondsRemaining / 3600);
-    const minutesRemaining = Math.floor((secondsRemaining % 3600) / 60);
-    
+    const blocksRemaining = cycleEndBlock - currentBlock;
+    let timeRemaining;
+
+    if (blocksRemaining <= 0) {
+        // Cycle is complete or past due
+        timeRemaining = '< 1m left';
+    } else {
+        const secondsRemaining = blocksRemaining * 6;
+        const hoursRemaining = Math.floor(secondsRemaining / 3600);
+        const minutesRemaining = Math.floor((secondsRemaining % 3600) / 60);
+
+        if (hoursRemaining > 0) {
+            timeRemaining = `${hoursRemaining}h ${minutesRemaining}m left`;
+        } else {
+            timeRemaining = `${minutesRemaining}m left`;
+        }
+    }
+
     return {
         cycle: head.cycle,
         progress: Math.min(progress, 100),
-        timeRemaining: `${hoursRemaining}h ${minutesRemaining}m left`
+        timeRemaining
     };
 }
 

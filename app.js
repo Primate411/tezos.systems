@@ -14,6 +14,7 @@ import {
     formatTimestamp,
     formatSupply
 } from './utils.js';
+import { initArcadeEffects, celebrate, scorePopup } from './arcade-effects.js';
 
 // Application state
 const state = {
@@ -32,6 +33,9 @@ async function init() {
 
     // Initialize theme
     initTheme();
+
+    // Initialize arcade effects
+    initArcadeEffects();
 
     // Setup event listeners
     setupEventListeners();
@@ -205,6 +209,11 @@ function setupEventListeners() {
             refresh();
             refreshBtn.classList.add('spinning');
             setTimeout(() => refreshBtn.classList.remove('spinning'), 1000);
+
+            // Show refresh message
+            setTimeout(() => {
+                scorePopup(refreshBtn, 'DATA REFRESHED!', '#00d4ff');
+            }, 500);
         });
     }
 
