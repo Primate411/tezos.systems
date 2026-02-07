@@ -23,13 +23,16 @@
     <!-- Google Fonts - Techy font for title -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     
+    <!-- Ultra Cyberpunk Styles -->
+    <link rel="stylesheet" href="styles-ultra.css">
+    <!-- Original styles as fallback -->
     <link rel="stylesheet" href="styles.css">
 </head>
 <body data-theme="dark">
@@ -38,6 +41,9 @@
         <div class="header-content">
             <h1 class="title">Tezos Systems</h1>
             <div class="controls">
+                <button id="ultra-mode-btn" class="glass-button ultra-btn" aria-label="Toggle Ultra Mode" title="⚡ ULTRA MODE">
+                    <span>⚡</span>
+                </button>
                 <button id="refresh-btn" class="glass-button" aria-label="Refresh data now" title="Refresh now">
                     <span class="refresh-icon">↻</span>
                 </button>
@@ -834,6 +840,9 @@
         </p>
     </footer>
 
+    <!-- Ultra Effects - BOMBASTIC JavaScript -->
+    <script type="module" src="effects-ultra.js"></script>
+    
     <!-- Load app as module -->
     <script type="module" src="app.js"></script>
 </body>

@@ -8,26 +8,26 @@
    ========================================== */
 
 :root {
-    /* Refined dark theme */
-    --bg-primary: #0f0f1a;
-    --bg-secondary: #1a1a2e;
-    --bg-tertiary: #16213e;
+    /* THE MATRIX theme */
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #0d0d0d;
 
-    /* Minimal glassmorphism */
-    --glass-bg: rgba(255, 255, 255, 0.02);
-    --glass-border: rgba(255, 255, 255, 0.06);
+    /* Matrix glassmorphism */
+    --glass-bg: rgba(0, 15, 0, 0.7);
+    --glass-border: rgba(0, 255, 0, 0.3);
 
-    /* Elegant typography */
-    --text-primary: #ffffff;
-    --text-secondary: #a0a0b0;
-    --text-tertiary: #707080;
-    --text-muted: #505060;
+    /* Matrix green typography */
+    --text-primary: #00ff00;
+    --text-secondary: #00cc00;
+    --text-tertiary: #009900;
+    --text-muted: #006600;
 
-    /* Refined accent colors */
-    --accent-cyan: #00d4ff;
-    --accent-purple: #b794f6;
-    --accent-pink: #ff6b9d;
-    --accent-blue: #5b8def;
+    /* All accents are Matrix green */
+    --accent-cyan: #00ff00;
+    --accent-purple: #00ff00;
+    --accent-pink: #00ff00;
+    --accent-blue: #00ff00;
 
     /* Subtle effects */
     --blur-amount: 24px;
@@ -35,21 +35,20 @@
 }
 
 [data-theme="light"] {
-    --bg-primary: #f8f9fc;
-    --bg-secondary: #ffffff;
-    --bg-tertiary: #f0f2f5;
-    --glass-bg: #ffffff;
-    --glass-border: rgba(0, 0, 0, 0.12);
-    --text-primary: #1a1a2e;
-    --text-secondary: #3d3d4e;
-    --text-tertiary: #5a5a6e;
-    --text-muted: #8888a0;
-    
-    /* Light mode accent adjustments for better contrast */
-    --accent-cyan: #0099cc;
-    --accent-purple: #8b5cf6;
-    --accent-pink: #db2777;
-    --accent-blue: #2563eb;
+    /* Light mode also stays Matrix - there is no escape */
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #0d0d0d;
+    --glass-bg: rgba(0, 15, 0, 0.7);
+    --glass-border: rgba(0, 255, 0, 0.3);
+    --text-primary: #00ff00;
+    --text-secondary: #00cc00;
+    --text-tertiary: #009900;
+    --text-muted: #006600;
+    --accent-cyan: #00ff00;
+    --accent-purple: #00ff00;
+    --accent-pink: #00ff00;
+    --accent-blue: #00ff00;
 }
 
 /* ==========================================
@@ -69,12 +68,13 @@ html {
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif;
+    font-family: 'Courier New', 'Monaco', 'Consolas', monospace;
     background: var(--bg-primary);
     color: var(--text-primary);
     min-height: 100vh;
     overflow-x: hidden;
     line-height: 1.6;
+    text-shadow: 0 0 10px var(--text-primary);
 }
 
 /* Subtle ambient gradient */
@@ -107,18 +107,18 @@ body::before {
 }
 
 .title {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Courier New', 'Monaco', monospace;
     font-size: clamp(1.75rem, 4vw, 3rem);
-    font-weight: 900;
-    letter-spacing: 0.05em;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--text-primary);
+    color: #00ff00;
     line-height: 1.2;
-    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 50%, var(--accent-pink) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    text-shadow: 0 0 40px rgba(0, 212, 255, 0.3);
+    text-shadow: 
+        0 0 5px #00ff00,
+        0 0 10px #00ff00,
+        0 0 20px #00ff00,
+        0 0 40px #00ff00;
     position: relative;
 }
 
@@ -181,6 +181,7 @@ body::before {
 
 .stats-section {
     margin-bottom: 5rem;
+    padding-top: 1.5rem;
 }
 
 .section-header {
@@ -191,11 +192,13 @@ body::before {
 }
 
 .section-title {
+    font-family: 'Courier New', monospace;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--text-tertiary);
+    color: #00cc00;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.15em;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.5);
 }
 
 .info-button {
@@ -250,52 +253,38 @@ body::before {
    ========================================== */
 
 .stat-card {
-    background: var(--glass-bg);
+    background: rgba(0, 10, 0, 0.8);
     backdrop-filter: blur(var(--blur-amount));
     -webkit-backdrop-filter: blur(var(--blur-amount));
-    border: 1px solid var(--glass-border);
-    border-radius: 20px;
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    border-radius: 8px;
     padding: 0;
     perspective: 1000px;
     min-height: 200px;
     position: relative;
     overflow: visible;
     transition: var(--transition);
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.1), inset 0 0 30px rgba(0, 255, 0, 0.05);
 }
 
 .stat-card:hover {
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(0, 255, 0, 0.6);
     transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3), inset 0 0 30px rgba(0, 255, 0, 0.1);
 }
 
-/* Subtle accent glow on hover */
+/* Matrix green glow on all hovers */
 .stat-card[data-stat="total-bakers"]:hover {
-    box-shadow: 0 12px 40px rgba(0, 212, 255, 0.08);
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
 }
 
-.stat-card[data-stat="tz4-bakers"]:hover {
-    box-shadow: 0 12px 40px rgba(183, 148, 246, 0.08);
-}
-
-.stat-card[data-stat="tz4-adoption"]:hover {
-    box-shadow: 0 12px 40px rgba(255, 107, 157, 0.08);
-}
-
-.stat-card[data-stat="issuance-rate"]:hover {
-    box-shadow: 0 12px 40px rgba(91, 141, 239, 0.08);
-}
-
-.stat-card[data-stat="tx-volume"]:hover {
-    box-shadow: 0 12px 40px rgba(183, 148, 246, 0.08);
-}
-
-.stat-card[data-stat="staking-ratio"]:hover {
-    box-shadow: 0 12px 40px rgba(0, 212, 255, 0.08);
-}
-
+.stat-card[data-stat="tz4-bakers"]:hover,
+.stat-card[data-stat="tz4-adoption"]:hover,
+.stat-card[data-stat="issuance-rate"]:hover,
+.stat-card[data-stat="tx-volume"]:hover,
+.stat-card[data-stat="staking-ratio"]:hover,
 .stat-card[data-stat="total-supply"]:hover {
-    box-shadow: 0 12px 40px rgba(255, 107, 157, 0.08);
+    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
 }
 
 /* Card Info Button */
@@ -592,21 +581,24 @@ body::before {
 
 /* Card content */
 .stat-label {
+    font-family: 'Courier New', monospace;
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--text-tertiary);
+    color: #009900;
     margin-bottom: 1.5rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
 }
 
 .stat-value {
+    font-family: 'Courier New', monospace;
     font-size: clamp(2.5rem, 5vw, 3.5rem);
     font-weight: 700;
     line-height: 1;
     margin-bottom: 0.75rem;
-    letter-spacing: -0.03em;
-    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.7), 0 0 20px rgba(0, 255, 0, 0.4);
 }
 
 /* Dual value styling for progress indicators (e.g., "37 / 130") */
@@ -621,42 +613,18 @@ body::before {
     text-transform: capitalize;
 }
 
-/* Elegant accent colors for each stat */
-.stat-card[data-stat="total-bakers"] .stat-value {
-    color: var(--accent-cyan);
-}
-
-.stat-card[data-stat="tz4-bakers"] .stat-value {
-    color: var(--accent-purple);
-}
-
-.stat-card[data-stat="tz4-adoption"] .stat-value {
-    color: var(--accent-pink);
-}
-
-.stat-card[data-stat="issuance-rate"] .stat-value {
-    color: var(--accent-blue);
-}
-
-.stat-card[data-stat="tx-volume"] .stat-value {
-    color: var(--accent-purple);
-}
-
-.stat-card[data-stat="staking-ratio"] .stat-value {
-    color: var(--accent-cyan);
-}
-
-.stat-card[data-stat="total-supply"] .stat-value {
-    color: var(--accent-pink);
-}
-
-/* Governance colors */
-.stat-card[data-stat="proposal"] .stat-value {
-    color: var(--accent-cyan);
-}
-
+/* Matrix green for all stats */
+.stat-card[data-stat="total-bakers"] .stat-value,
+.stat-card[data-stat="tz4-bakers"] .stat-value,
+.stat-card[data-stat="tz4-adoption"] .stat-value,
+.stat-card[data-stat="issuance-rate"] .stat-value,
+.stat-card[data-stat="tx-volume"] .stat-value,
+.stat-card[data-stat="staking-ratio"] .stat-value,
+.stat-card[data-stat="total-supply"] .stat-value,
+.stat-card[data-stat="proposal"] .stat-value,
 .stat-card[data-stat="voting-period"] .stat-value {
-    color: var(--accent-purple);
+    color: #00ff00;
+    text-shadow: 0 0 10px rgba(0, 255, 0, 0.7), 0 0 20px rgba(0, 255, 0, 0.4);
 }
 
 .stat-card[data-stat="participation"] .stat-value {
