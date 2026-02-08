@@ -39,13 +39,20 @@ async function getTz4Stats() {
 // Fetch staking data
 async function getStakingData() {
   try {
+    console.log('Fetching staking data...');
     // Get total supply from Octez RPC (more reliable)
     const supplyResponse = await fetch(`${OCTEZ_RPC}/chains/main/blocks/head/context/total_supply`);
+    if (!supplyResponse.ok) {
+      console.error(`Supply fetch failed: ${supplyResponse.status} ${supplyResponse.statusText}`);
+      throw new Error('Supply fetch failed');
+    }
     const supplyString = await supplyResponse.text();
     const totalSupply = parseInt(supplyString.replace(/"/g, '')) / 1e6;
+    console.log(`Total supply: ${totalSupply} XTZ`);
 
     // Get bakers and calculate staking
     const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=stakingBalance,delegatedBalance`);
+    console.log(`Fetched ${bakers.length} bakers`);
 
     let totalStaked = 0;
     let totalDelegated = 0;
@@ -57,6 +64,7 @@ async function getStakingData() {
 
     totalStaked = totalStaked / 1000000;
     totalDelegated = totalDelegated / 1000000;
+    console.log(`Total staked: ${totalStaked} XTZ, Total delegated: ${totalDelegated} XTZ`);
 
     const stakingRatio = totalSupply > 0 ? (totalStaked / totalSupply) * 100 : 0;
     const delegatedRatio = totalSupply > 0 ? (totalDelegated / totalSupply) * 100 : 0;
@@ -68,7 +76,7 @@ async function getStakingData() {
       totalStaked
     };
   } catch (error) {
-    console.error('Failed to fetch staking data:', error);
+    console.error('Failed to fetch staking data:', error.message);
     return { stakingRatio: 0, delegatedRatio: 0, totalSupply: 0, totalStaked: 0 };
   }
 }
@@ -76,18 +84,29 @@ async function getStakingData() {
 // Fetch issuance rate (correctly, including LB subsidy)
 async function getIssuanceRate() {
   try {
+    console.log('Fetching issuance rate...');
     // Fetch adaptive issuance rate (returns as text like "4.5")
     const rateResponse = await fetch(`${OCTEZ_RPC}/chains/main/blocks/head/context/issuance/current_yearly_rate`);
+    if (!rateResponse.ok) {
+      console.error(`Issuance rate fetch failed: ${rateResponse.status} ${rateResponse.statusText}`);
+      return 0;
+    }
     const rateString = await rateResponse.text();
     const adaptiveRate = parseFloat(rateString.replace(/"/g, ''));
+    console.log(`Adaptive rate: ${adaptiveRate}`);
 
     // Fetch constants for LB subsidy
     const constants = await fetchWithRetry(`${OCTEZ_RPC}/chains/main/blocks/head/context/constants`);
 
     // Fetch total supply
     const supplyResponse = await fetch(`${OCTEZ_RPC}/chains/main/blocks/head/context/total_supply`);
+    if (!supplyResponse.ok) {
+      console.error(`Supply fetch failed: ${supplyResponse.status} ${supplyResponse.statusText}`);
+      return adaptiveRate; // Return at least the adaptive rate
+    }
     const supplyString = await supplyResponse.text();
     const totalSupplyXTZ = parseInt(supplyString.replace(/"/g, '')) / 1e6;
+    console.log(`Total supply: ${totalSupplyXTZ}`);
 
     // Calculate LB subsidy rate
     const lbSubsidyPerMinute = parseInt(constants.liquidity_baking_subsidy) || 0;
@@ -97,17 +116,26 @@ async function getIssuanceRate() {
 
     // Total rate
     const totalRate = adaptiveRate + lbRate;
+    console.log(`Total issuance rate: ${totalRate}`);
     return parseFloat(totalRate.toFixed(2));
   } catch (error) {
-    console.error('Failed to fetch issuance rate:', error);
+    console.error('Failed to fetch issuance rate:', error.message);
     return 0;
   }
 }
 
 // Fetch total burned
 async function getTotalBurned() {
-  const stats = await fetchWithRetry(`${TZKT_API}/statistics`);
-  return stats.totalBurned ? stats.totalBurned / 1000000 : 0;
+  try {
+    console.log('Fetching total burned...');
+    const stats = await fetchWithRetry(`${TZKT_API}/statistics`);
+    const burned = stats.totalBurned ? stats.totalBurned / 1000000 : 0;
+    console.log(`Total burned: ${burned} XTZ`);
+    return burned;
+  } catch (error) {
+    console.error('Failed to fetch total burned:', error.message);
+    return 0;
+  }
 }
 
 // Fetch transaction volume (24h)
