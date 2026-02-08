@@ -29,10 +29,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    
-    <!-- Ultra Cyberpunk Styles -->
-    <link rel="stylesheet" href="styles-ultra.css">
-    <!-- Original styles as fallback -->
+
     <link rel="stylesheet" href="styles.css">
 </head>
 <body data-theme="dark">
@@ -41,8 +38,8 @@
         <div class="header-content">
             <h1 class="title">Tezos Systems</h1>
             <div class="controls">
-                <button id="ultra-mode-btn" class="glass-button ultra-btn" aria-label="Toggle Ultra Mode" title="⚡ ULTRA MODE">
-                    <span>⚡</span>
+                <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
+                    <span>📊</span>
                 </button>
                 <button id="refresh-btn" class="glass-button" aria-label="Refresh data now" title="Refresh now">
                     <span class="refresh-icon">↻</span>
@@ -88,6 +85,7 @@
                             <div class="stat-value" id="total-bakers-front">
                                 <span class="loading">...</span>
                             </div>
+                            <canvas id="bakers-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
                             <p class="stat-description">Active validators</p>
                         </div>
                         <div class="card-back" aria-hidden="true">
@@ -120,6 +118,7 @@
                             <div class="stat-value stat-value-dual" id="tz4-adoption-front">
                                 <span class="loading">...</span>
                             </div>
+                            <canvas id="tz4-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
                             <p class="stat-description" id="tz4-description">Target: 50%</p>
                         </div>
                         <div class="card-back" aria-hidden="true">
@@ -308,6 +307,7 @@
                             <div class="stat-value" id="issuance-rate-front">
                                 <span class="loading">...</span>
                             </div>
+                            <canvas id="issuance-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
                             <p class="stat-description">Current yearly rate</p>
                         </div>
                         <div class="card-back" aria-hidden="true">
@@ -372,6 +372,7 @@
                             <div class="stat-value" id="staking-ratio-front">
                                 <span class="loading">...</span>
                             </div>
+                            <canvas id="staking-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
                             <p class="stat-description">XTZ staked</p>
                         </div>
                         <div class="card-back" aria-hidden="true">
@@ -436,6 +437,7 @@
                             <div class="stat-value" id="total-supply-front">
                                 <span class="loading">...</span>
                             </div>
+                            <canvas id="supply-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
                             <p class="stat-description">Circulating XTZ</p>
                         </div>
                         <div class="card-back" aria-hidden="true">
@@ -840,10 +842,53 @@
         </p>
     </footer>
 
-    <!-- Ultra Effects - BOMBASTIC JavaScript -->
+    <!-- History Modal -->
+    <div class="modal-overlay" id="history-modal" aria-hidden="true">
+        <div class="modal-content modal-large">
+            <button class="modal-close" id="history-modal-close">&times;</button>
+            <h3 class="modal-title">Historical Data</h3>
+
+            <div class="history-controls">
+                <button class="time-range-btn" data-range="24h">24 Hours</button>
+                <button class="time-range-btn active" data-range="7d">7 Days</button>
+                <button class="time-range-btn" data-range="30d">30 Days</button>
+                <button class="time-range-btn" data-range="all">All Time</button>
+            </div>
+
+            <div class="charts-container">
+                <div class="chart-section">
+                    <h4>tz4 Adoption Progress</h4>
+                    <canvas id="chart-tz4"></canvas>
+                </div>
+                <div class="chart-section">
+                    <h4>Staking Ratio</h4>
+                    <canvas id="chart-staking"></canvas>
+                </div>
+                <div class="chart-section">
+                    <h4>Total Active Bakers</h4>
+                    <canvas id="chart-bakers"></canvas>
+                </div>
+                <div class="chart-section">
+                    <h4>Issuance Rate</h4>
+                    <canvas id="chart-issuance"></canvas>
+                </div>
+                <div class="chart-section">
+                    <h4>Total Supply</h4>
+                    <canvas id="chart-supply"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Matrix background effect -->
     <script type="module" src="effects-ultra.js"></script>
-    
+
+    <!-- Chart.js for visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
     <!-- Load app as module -->
     <script type="module" src="app.js"></script>
+    <script type="module" src="history.js"></script>
 </body>
 </html>

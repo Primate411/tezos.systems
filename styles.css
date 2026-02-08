@@ -35,20 +35,34 @@
 }
 
 [data-theme="light"] {
-    /* Light mode also stays Matrix - there is no escape */
-    --bg-primary: #000000;
-    --bg-secondary: #0a0a0a;
-    --bg-tertiary: #0d0d0d;
-    --glass-bg: rgba(0, 15, 0, 0.7);
-    --glass-border: rgba(0, 255, 0, 0.3);
-    --text-primary: #00ff00;
-    --text-secondary: #00cc00;
-    --text-tertiary: #009900;
-    --text-muted: #006600;
-    --accent-cyan: #00ff00;
-    --accent-purple: #00ff00;
-    --accent-pink: #00ff00;
-    --accent-blue: #00ff00;
+    /* Proper light mode - escape the Matrix */
+    --bg-primary: #f0f4f8;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e8eef4;
+    --glass-bg: rgba(255, 255, 255, 0.9);
+    --glass-border: rgba(0, 100, 150, 0.2);
+    --text-primary: #0a1628;
+    --text-secondary: #3d4f5f;
+    --text-tertiary: #6a7a8a;
+    --text-muted: #9aaa9a;
+    --accent-cyan: #0088aa;
+    --accent-purple: #7744cc;
+    --accent-pink: #cc4488;
+    --accent-blue: #0066cc;
+}
+
+[data-theme="light"] body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    text-shadow: none;
+}
+
+[data-theme="light"] .title {
+    text-shadow: none;
+    color: var(--accent-cyan);
+}
+
+[data-theme="light"] .stat-value {
+    text-shadow: none;
 }
 
 /* ==========================================
@@ -59,6 +73,19 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+/* Text selection styling */
+::selection {
+    background: rgba(0, 255, 0, 0.3);
+    color: #ffffff;
+    text-shadow: none;
+}
+
+::-moz-selection {
+    background: rgba(0, 255, 0, 0.3);
+    color: #ffffff;
+    text-shadow: none;
 }
 
 html {
@@ -74,7 +101,7 @@ body {
     min-height: 100vh;
     overflow-x: hidden;
     line-height: 1.6;
-    text-shadow: 0 0 10px var(--text-primary);
+    text-shadow: 0 0 3px rgba(0, 255, 0, 0.2);
 }
 
 /* Subtle ambient gradient */
@@ -268,23 +295,11 @@ body::before {
 }
 
 .stat-card:hover {
-    border-color: rgba(0, 255, 0, 0.6);
-    transform: translateY(-4px);
-    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3), inset 0 0 30px rgba(0, 255, 0, 0.1);
-}
-
-/* Matrix green glow on all hovers */
-.stat-card[data-stat="total-bakers"]:hover {
+    border-color: rgba(0, 255, 0, 0.5);
+    transform: translateY(-4px) scale(1.5);
     box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
-}
-
-.stat-card[data-stat="tz4-bakers"]:hover,
-.stat-card[data-stat="tz4-adoption"]:hover,
-.stat-card[data-stat="issuance-rate"]:hover,
-.stat-card[data-stat="tx-volume"]:hover,
-.stat-card[data-stat="staking-ratio"]:hover,
-.stat-card[data-stat="total-supply"]:hover {
-    box-shadow: 0 0 30px rgba(0, 255, 0, 0.3);
+    background: rgba(0, 10, 0, 0.8) !important;
+    z-index: 10;
 }
 
 /* Card Info Button */
@@ -598,7 +613,7 @@ body::before {
     margin-bottom: 0.75rem;
     letter-spacing: -0.02em;
     color: #00ff00;
-    text-shadow: 0 0 10px rgba(0, 255, 0, 0.7), 0 0 20px rgba(0, 255, 0, 0.4);
+    text-shadow: 0 0 5px rgba(0, 255, 0, 0.3), 0 0 10px rgba(0, 255, 0, 0.15);
 }
 
 /* Dual value styling for progress indicators (e.g., "37 / 130") */
@@ -990,6 +1005,113 @@ body::before {
 }
 
 /* ==========================================
+   Historical Data & Charts
+   ========================================== */
+
+/* Sparklines on stat cards */
+.sparkline-chart {
+    width: 100%;
+    height: 40px;
+    margin: 8px 0;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.sparkline-chart:hover {
+    opacity: 1;
+}
+
+/* History Modal */
+.modal-large {
+    max-width: 1200px;
+    width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.history-controls {
+    display: flex;
+    gap: 12px;
+    margin: 20px 0;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.time-range-btn {
+    padding: 8px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.time-range-btn:hover {
+    background: rgba(0, 212, 255, 0.15);
+    border-color: rgba(0, 212, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.time-range-btn.active {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: #00d4ff;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3);
+}
+
+.charts-container {
+    display: grid;
+    gap: 30px;
+    margin-top: 30px;
+}
+
+.chart-section {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chart-section h4 {
+    color: var(--accent-cyan);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    text-align: center;
+}
+
+.chart-section canvas {
+    height: 300px !important;
+    max-height: 300px;
+}
+
+/* Responsive chart adjustments */
+@media (max-width: 768px) {
+    .modal-large {
+        width: 95vw;
+        max-height: 95vh;
+        padding: 20px;
+    }
+
+    .chart-section {
+        padding: 15px;
+    }
+
+    .chart-section canvas {
+        height: 250px !important;
+    }
+
+    .time-range-btn {
+        padding: 6px 16px;
+        font-size: 0.85rem;
+    }
+}
+
+/* ==========================================
    ARCADE EFFECTS ENHANCEMENTS
    ========================================== */
 
@@ -1053,8 +1175,8 @@ body.arcade-mode::before {
 }
 
 .stat-card:hover .stat-value {
-    transform: scale(1.05);
-    text-shadow: 0 0 20px currentColor;
+    transform: scale(1.02);
+    /* Removed bright text-shadow for readability */
 }
 
 /* Loading animation enhancement */
@@ -1102,18 +1224,8 @@ body.arcade-mode::before {
 
 /* Footer glow effect */
 .footer .highlight {
-    animation: highlight-pulse 2s ease-in-out infinite;
-}
-
-@keyframes highlight-pulse {
-    0%, 100% {
-        color: var(--accent-cyan);
-        text-shadow: 0 0 5px var(--accent-cyan);
-    }
-    50% {
-        color: var(--accent-purple);
-        text-shadow: 0 0 10px var(--accent-purple);
-    }
+    color: #00ff00;
+    text-shadow: none;
 }
 
 /* Enhanced refresh spinning */

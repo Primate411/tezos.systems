@@ -19,13 +19,13 @@ const ULTRA_CONFIG = {
     matrix: {
         enabled: true,
         fontSize: 16,
-        speed: 50,  // ms between frames - faster for Matrix effect
+        speed: 40,  // Smooth, classic Matrix speed
         density: 0.97,
         chars: 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン日月火水木金土01'
     },
     particles: {
         count: 50,
-        colors: ['#00ffff', '#ff00ff', '#00ff00', '#ffff00', '#ff6600', '#0066ff'],
+        colors: ['#00ff00'],
         maxSize: 4,
         speed: 3
     },
@@ -53,7 +53,7 @@ class MatrixRain {
             width: 100%;
             height: 100%;
             z-index: -2;
-            opacity: 0.4;
+            opacity: 0.5;
             pointer-events: none;
         `;
         document.body.prepend(this.canvas);
@@ -412,27 +412,26 @@ class MagneticCursor {
         
         this.cursor.style.cssText = `
             position: fixed;
-            width: 40px;
-            height: 40px;
-            border: 2px solid rgba(0, 255, 255, 0.5);
+            width: 32px;
+            height: 32px;
+            border: 1px solid rgba(0, 255, 0, 0.4);
             border-radius: 50%;
             pointer-events: none;
             z-index: 10000;
             transition: transform 0.15s ease-out, width 0.2s, height 0.2s, border-color 0.2s;
             transform: translate(-50%, -50%);
-            mix-blend-mode: difference;
         `;
-        
+
         this.cursorDot.style.cssText = `
             position: fixed;
-            width: 8px;
-            height: 8px;
-            background: #00ffff;
+            width: 4px;
+            height: 4px;
+            background: #00ff00;
             border-radius: 50%;
             pointer-events: none;
             z-index: 10001;
             transform: translate(-50%, -50%);
-            box-shadow: 0 0 20px #00ffff;
+            box-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
         `;
         
         document.body.appendChild(this.cursor);
@@ -450,11 +449,11 @@ class MagneticCursor {
         document.querySelectorAll('a, button, .stat-card').forEach(el => {
             el.addEventListener('mouseenter', () => {
                 this.cursor.style.transform = 'translate(-50%, -50%) scale(1.5)';
-                this.cursor.style.borderColor = 'rgba(255, 0, 255, 0.8)';
+                this.cursor.style.borderColor = 'rgba(0, 255, 0, 0.8)';
             });
             el.addEventListener('mouseleave', () => {
                 this.cursor.style.transform = 'translate(-50%, -50%) scale(1)';
-                this.cursor.style.borderColor = 'rgba(0, 255, 255, 0.5)';
+                this.cursor.style.borderColor = 'rgba(0, 255, 0, 0.4)';
             });
         });
         
@@ -615,9 +614,9 @@ function applyHolographicEffect(element) {
         background: linear-gradient(
             135deg,
             transparent 0%,
-            rgba(255, 0, 255, 0.1) 25%,
-            rgba(0, 255, 255, 0.1) 50%,
-            rgba(255, 255, 0, 0.1) 75%,
+            rgba(0, 255, 0, 0.15) 25%,
+            rgba(0, 255, 100, 0.2) 50%,
+            rgba(0, 255, 0, 0.15) 75%,
             transparent 100%
         );
         background-size: 200% 200%;
@@ -632,9 +631,9 @@ function applyHolographicEffect(element) {
         const rect = element.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 100;
         const y = ((e.clientY - rect.top) / rect.height) * 100;
-        
+
         hologram.style.backgroundPosition = `${x}% ${y}%`;
-        hologram.style.opacity = '1';
+        hologram.style.opacity = '0';  // Disabled - was contributing to bright green wash
     });
     
     element.addEventListener('mouseleave', () => {
@@ -655,13 +654,183 @@ function createScanlines() {
             0deg,
             transparent,
             transparent 2px,
-            rgba(0, 0, 0, 0.03) 2px,
-            rgba(0, 0, 0, 0.03) 4px
+            rgba(0, 255, 0, 0.12) 2px,
+            rgba(0, 255, 0, 0.12) 4px
         );
         pointer-events: none;
         z-index: 9998;
+        animation: scanlineScroll 2s linear infinite;
     `;
+
+    // Add animation keyframes
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes scanlineScroll {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+    `;
+    document.head.appendChild(style);
+
     document.body.appendChild(scanlines);
+}
+
+// ============================================
+// SCREEN BORDER GLOW
+// ============================================
+function createScreenGlow() {
+    const glow = document.createElement('div');
+    glow.className = 'screen-glow';
+    glow.style.cssText = `
+        position: fixed;
+        inset: 0;
+        border: 4px solid rgba(0, 255, 0, 0.6);
+        pointer-events: none;
+        z-index: 9999;
+        box-shadow:
+            inset 0 0 100px rgba(0, 255, 0, 0.4),
+            inset 0 0 200px rgba(0, 255, 0, 0.3),
+            0 0 100px rgba(0, 255, 0, 0.6),
+            0 0 200px rgba(0, 255, 0, 0.4);
+        animation: screenPulse 1s ease-in-out infinite;
+    `;
+
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes screenPulse {
+            0%, 100% {
+                opacity: 0.8;
+                box-shadow:
+                    inset 0 0 100px rgba(0, 255, 0, 0.4),
+                    inset 0 0 200px rgba(0, 255, 0, 0.3),
+                    0 0 100px rgba(0, 255, 0, 0.6),
+                    0 0 200px rgba(0, 255, 0, 0.4);
+            }
+            50% {
+                opacity: 1;
+                box-shadow:
+                    inset 0 0 150px rgba(0, 255, 0, 0.6),
+                    inset 0 0 300px rgba(0, 255, 0, 0.4),
+                    0 0 150px rgba(0, 255, 0, 0.8),
+                    0 0 300px rgba(0, 255, 0, 0.6);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(glow);
+}
+
+// ============================================
+// SCANNING BEAM
+// ============================================
+function createScanningBeam() {
+    const beam = document.createElement('div');
+    beam.style.cssText = `
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100px;
+        background: linear-gradient(
+            to bottom,
+            transparent,
+            rgba(0, 255, 0, 0.2),
+            transparent
+        );
+        pointer-events: none;
+        z-index: 9997;
+        animation: scanBeam 3s linear infinite;
+        filter: blur(10px);
+    `;
+
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes scanBeam {
+            0% { transform: translateY(-100px); }
+            100% { transform: translateY(100vh); }
+        }
+    `;
+    document.head.appendChild(style);
+
+    document.body.appendChild(beam);
+}
+
+// ============================================
+// SCREEN SHAKE
+// ============================================
+function createScreenShake() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes insaneShake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            10% { transform: translate(-2px, 2px) rotate(0.5deg); }
+            20% { transform: translate(2px, -2px) rotate(-0.5deg); }
+            30% { transform: translate(-2px, -2px) rotate(0.5deg); }
+            40% { transform: translate(2px, 2px) rotate(-0.5deg); }
+            50% { transform: translate(-2px, 2px) rotate(0.5deg); }
+            60% { transform: translate(2px, -2px) rotate(-0.5deg); }
+            70% { transform: translate(-2px, -2px) rotate(0.5deg); }
+            80% { transform: translate(2px, 2px) rotate(-0.5deg); }
+            90% { transform: translate(-2px, 2px) rotate(0.5deg); }
+        }
+
+        .main-content {
+            animation: insaneShake 0.5s ease-in-out infinite;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// ============================================
+// CHROMATIC ABERRATION
+// ============================================
+function createChromaticAberration() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes chromaticPulse {
+            0%, 100% {
+                filter:
+                    drop-shadow(2px 0 0 rgba(0, 255, 0, 0.5))
+                    drop-shadow(-2px 0 0 rgba(0, 255, 0, 0.3));
+            }
+            50% {
+                filter:
+                    drop-shadow(3px 0 0 rgba(0, 255, 0, 0.7))
+                    drop-shadow(-3px 0 0 rgba(0, 255, 0, 0.5));
+            }
+        }
+
+        .title {
+            animation: chromaticPulse 2s ease-in-out infinite !important;
+        }
+
+        .stat-value {
+            filter:
+                drop-shadow(1px 0 0 rgba(0, 255, 0, 0.3))
+                drop-shadow(-1px 0 0 rgba(0, 255, 0, 0.2));
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// ============================================
+// RANDOM FLASHES
+// ============================================
+function createRandomFlashes() {
+    setInterval(() => {
+        const flash = document.createElement('div');
+        flash.style.cssText = `
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 255, 0, 0.1);
+            pointer-events: none;
+            z-index: 9998;
+        `;
+        document.body.appendChild(flash);
+
+        setTimeout(() => flash.remove(), 50);
+    }, 3000);
 }
 
 // ============================================
@@ -676,20 +845,20 @@ function setupClickRipple() {
             top: ${e.clientY}px;
             width: 0;
             height: 0;
-            border: 2px solid #00ffff;
+            border: 3px solid #00ff00;
             border-radius: 50%;
             pointer-events: none;
             z-index: 10000;
             transform: translate(-50%, -50%);
-            box-shadow: 0 0 20px #00ffff, inset 0 0 20px #00ffff;
+            box-shadow: 0 0 30px #00ff00, inset 0 0 30px #00ff00, 0 0 60px rgba(0, 255, 0, 0.5);
         `;
         document.body.appendChild(ripple);
-        
+
         ripple.animate([
             { width: '0px', height: '0px', opacity: 1 },
-            { width: '100px', height: '100px', opacity: 0 }
+            { width: '400px', height: '400px', opacity: 0 }
         ], {
-            duration: 500,
+            duration: 800,
             easing: 'ease-out'
         }).onfinish = () => ripple.remove();
     });
@@ -699,34 +868,10 @@ function setupClickRipple() {
 // INITIALIZE ALL EFFECTS
 // ============================================
 export function initUltraEffects() {
-    console.log('🚀 Initializing ULTRA effects...');
-    
-    // Background effects
+    console.log('🚀 Initializing Matrix rain background...');
+
+    // Only Matrix rain background effect
     new MatrixRain();
-    new FloatingParticles();
-    createScanlines();
-    
-    // Cursor
-    if (window.innerWidth > 768) {
-        new MagneticCursor();
-        document.body.style.cursor = 'none';
-    }
-    
-    // Title glitch
-    const title = document.querySelector('.title, h1');
-    if (title) {
-        new GlitchText(title);
-    }
-    
-    // Card effects
-    document.querySelectorAll('.stat-card').forEach(card => {
-        new ParallaxCard(card);
-        new EnergyBorder(card);
-        applyHolographicEffect(card);
-    });
-    
-    // Click effects
-    setupClickRipple();
     
     // Number counters - will be triggered when data loads
     window.initHackerCounter = (element, value) => {

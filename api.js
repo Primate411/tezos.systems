@@ -510,3 +510,49 @@ export async function checkApiHealth() {
         return { tzkt: false, octez: false };
     }
 }
+
+// Historical data fetching
+export async function fetchHistoricalData(range = '7d') {
+    const { SUPABASE_CONFIG } = await import('./config.js');
+
+    // Calculate start time based on range
+    const now = new Date();
+    let startTime;
+
+    switch (range) {
+        case '24h':
+            startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            break;
+        case '7d':
+            startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            break;
+        case '30d':
+            startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            break;
+        case 'all':
+            startTime = new Date('2024-01-01'); // Start from beginning of 2024
+            break;
+        default:
+            startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/tezos_history?timestamp=gte.${startTime.toISOString()}&order=timestamp.asc`;
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'apikey': SUPABASE_CONFIG.key,
+                'Authorization': `Bearer ${SUPABASE_CONFIG.key}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Supabase fetch failed: ${response.status}`);
+        }
+
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to fetch historical data:', error);
+        return [];
+    }
+}

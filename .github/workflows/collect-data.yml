@@ -1,0 +1,25 @@
+name: Collect Tezos Stats
+
+on:
+  schedule:
+    # Run every 2 hours at :05 past the hour
+    - cron: '5 */2 * * *'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Collect and store data
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: node .github/scripts/collect-data.js

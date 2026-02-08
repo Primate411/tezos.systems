@@ -15,6 +15,7 @@ import {
     formatSupply
 } from './utils.js';
 import { initArcadeEffects, celebrate, scorePopup } from './arcade-effects.js';
+import { initHistoryModal, updateSparklines } from './history.js';
 
 // Application state
 const state = {
@@ -46,6 +47,13 @@ async function init() {
 
     // Initial data load
     await refresh();
+
+    // Initialize history features
+    initHistoryModal();
+    await updateSparklines();
+
+    // Setup sparkline refresh interval (every 10 minutes)
+    setInterval(updateSparklines, 600000);
 
     // Setup refresh interval
     startRefreshTimer();

@@ -522,7 +522,7 @@ function setupCardEffects() {
         // Hover effects
         card.addEventListener('mouseenter', () => {
             scanlines.classList.add('active');
-            pulseEffect(card);
+            // Removed pulseEffect - was too bright
         });
 
         card.addEventListener('mouseleave', () => {
