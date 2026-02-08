@@ -2,7 +2,7 @@
 // Fetches current Tezos stats and stores them in Supabase
 
 const TZKT_API = 'https://api.tzkt.io/v1';
-const OCTEZ_RPC = 'https://rpc.tzbeta.net';
+const OCTEZ_RPC = 'https://eu.rpc.tez.capital'; // Better for GitHub Actions
 
 // Fetch with retry logic
 async function fetchWithRetry(url, options = {}, retries = 3) {
@@ -33,8 +33,8 @@ async function getTz4Stats() {
   const activeBakerAddresses = new Set(bakers.map(b => b.address));
   console.log(`Found ${totalBakers} active bakers`);
 
-  // Fetch recent update_consensus_key operations to get consensus keys
-  const opsUrl = `${TZKT_API}/operations/update_consensus_key?limit=2000&sort.desc=id`;
+  // Fetch MORE consensus key operations (need more historical data to match active bakers)
+  const opsUrl = `${TZKT_API}/operations/update_consensus_key?limit=10000&sort.desc=id`;
   const operations = await fetchWithRetry(opsUrl);
   console.log(`Found ${operations.length} consensus key operations`);
 
@@ -122,9 +122,9 @@ async function getIssuanceRate() {
 
     // Try multiple RPC endpoints (GitHub Actions-friendly)
     const rpcEndpoints = [
-      'https://mainnet.api.tez.ie',
-      'https://rpc.tzbeta.net',
-      'https://mainnet.smartpy.io'
+      'https://eu.rpc.tez.capital',
+      'https://us.rpc.tez.capital',
+      'https://mainnet.api.tez.ie'
     ];
 
     let adaptiveRate = 0;
