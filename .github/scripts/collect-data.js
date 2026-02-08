@@ -40,15 +40,11 @@ async function getTz4Stats() {
 async function getStakingData() {
   try {
     console.log('Fetching staking data...');
-    // Get total supply from Octez RPC (more reliable)
-    const supplyResponse = await fetch(`${OCTEZ_RPC}/chains/main/blocks/head/context/total_supply`);
-    if (!supplyResponse.ok) {
-      console.error(`Supply fetch failed: ${supplyResponse.status} ${supplyResponse.statusText}`);
-      throw new Error('Supply fetch failed');
-    }
-    const supplyString = await supplyResponse.text();
-    const totalSupply = parseInt(supplyString.replace(/"/g, '')) / 1e6;
-    console.log(`Total supply: ${totalSupply} XTZ`);
+
+    // Get total supply from TzKT statistics (more reliable for GitHub Actions)
+    const stats = await fetchWithRetry(`${TZKT_API}/statistics`);
+    const totalSupply = stats.totalSupply ? stats.totalSupply / 1000000 : 0;
+    console.log(`Total supply from TzKT: ${totalSupply} XTZ`);
 
     // Get bakers and calculate staking
     const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=stakingBalance,delegatedBalance`);
@@ -81,42 +77,70 @@ async function getStakingData() {
   }
 }
 
-// Fetch issuance rate (correctly, including LB subsidy)
+// Fetch issuance rate using alternative RPC
 async function getIssuanceRate() {
   try {
     console.log('Fetching issuance rate...');
-    // Fetch adaptive issuance rate (returns as text like "4.5")
-    const rateResponse = await fetch(`${OCTEZ_RPC}/chains/main/blocks/head/context/issuance/current_yearly_rate`);
-    if (!rateResponse.ok) {
-      console.error(`Issuance rate fetch failed: ${rateResponse.status} ${rateResponse.statusText}`);
+
+    // Try multiple RPC endpoints (GitHub Actions-friendly)
+    const rpcEndpoints = [
+      'https://mainnet.api.tez.ie',
+      'https://rpc.tzbeta.net',
+      'https://mainnet.smartpy.io'
+    ];
+
+    let adaptiveRate = 0;
+    let constants = null;
+    let totalSupplyXTZ = 0;
+
+    // Try each RPC until one works
+    for (const rpc of rpcEndpoints) {
+      try {
+        console.log(`Trying RPC: ${rpc}`);
+
+        // Fetch adaptive issuance rate
+        const rateResponse = await fetch(`${rpc}/chains/main/blocks/head/context/issuance/current_yearly_rate`);
+        if (!rateResponse.ok) continue;
+
+        const rateString = await rateResponse.text();
+        adaptiveRate = parseFloat(rateString.replace(/"/g, ''));
+        console.log(`Adaptive rate: ${adaptiveRate}`);
+
+        // Fetch constants for LB subsidy
+        const constResponse = await fetch(`${rpc}/chains/main/blocks/head/context/constants`);
+        if (!constResponse.ok) continue;
+        constants = await constResponse.json();
+
+        // Fetch total supply
+        const supplyResponse = await fetch(`${rpc}/chains/main/blocks/head/context/total_supply`);
+        if (!supplyResponse.ok) continue;
+
+        const supplyString = await supplyResponse.text();
+        totalSupplyXTZ = parseInt(supplyString.replace(/"/g, '')) / 1e6;
+        console.log(`Total supply: ${totalSupplyXTZ}`);
+
+        // If we got here, this RPC works!
+        break;
+      } catch (err) {
+        console.log(`RPC ${rpc} failed, trying next...`);
+        continue;
+      }
+    }
+
+    if (adaptiveRate === 0) {
+      console.log('All RPCs failed, returning 0');
       return 0;
     }
-    const rateString = await rateResponse.text();
-    const adaptiveRate = parseFloat(rateString.replace(/"/g, ''));
-    console.log(`Adaptive rate: ${adaptiveRate}`);
-
-    // Fetch constants for LB subsidy
-    const constants = await fetchWithRetry(`${OCTEZ_RPC}/chains/main/blocks/head/context/constants`);
-
-    // Fetch total supply
-    const supplyResponse = await fetch(`${OCTEZ_RPC}/chains/main/blocks/head/context/total_supply`);
-    if (!supplyResponse.ok) {
-      console.error(`Supply fetch failed: ${supplyResponse.status} ${supplyResponse.statusText}`);
-      return adaptiveRate; // Return at least the adaptive rate
-    }
-    const supplyString = await supplyResponse.text();
-    const totalSupplyXTZ = parseInt(supplyString.replace(/"/g, '')) / 1e6;
-    console.log(`Total supply: ${totalSupplyXTZ}`);
 
     // Calculate LB subsidy rate
-    const lbSubsidyPerMinute = parseInt(constants.liquidity_baking_subsidy) || 0;
+    const lbSubsidyPerMinute = constants ? (parseInt(constants.liquidity_baking_subsidy) || 0) : 0;
     const minutesPerYear = 365.25 * 24 * 60;
     const lbXTZPerYear = (lbSubsidyPerMinute / 1e6) * minutesPerYear;
-    const lbRate = (lbXTZPerYear / totalSupplyXTZ) * 100;
+    const lbRate = totalSupplyXTZ > 0 ? (lbXTZPerYear / totalSupplyXTZ) * 100 : 0;
 
     // Total rate
     const totalRate = adaptiveRate + lbRate;
-    console.log(`Total issuance rate: ${totalRate}`);
+    console.log(`Total issuance rate: ${totalRate.toFixed(2)}%`);
     return parseFloat(totalRate.toFixed(2));
   } catch (error) {
     console.error('Failed to fetch issuance rate:', error.message);
