@@ -31,20 +31,32 @@ async function getTz4Stats() {
   const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=address`);
   const totalBakers = bakers.length;
   const activeBakerAddresses = new Set(bakers.map(b => b.address));
+  console.log(`Found ${totalBakers} active bakers`);
 
   // Fetch recent update_consensus_key operations to get consensus keys
   const opsUrl = `${TZKT_API}/operations/update_consensus_key?limit=2000&sort.desc=id`;
   const operations = await fetchWithRetry(opsUrl);
+  console.log(`Found ${operations.length} consensus key operations`);
 
   // Build map of baker -> consensus key
   const bakerConsensusKeys = {};
+  let tz4Count = 0;
+
   for (const op of operations) {
     const baker = op.sender?.address;
     const keyHash = op.publicKeyHash || '';
+
     if (baker && !bakerConsensusKeys[baker] && activeBakerAddresses.has(baker)) {
       bakerConsensusKeys[baker] = keyHash;
+      if (keyHash.startsWith('tz4')) {
+        tz4Count++;
+        console.log(`Found tz4 baker: ${baker} -> ${keyHash}`);
+      }
     }
   }
+
+  console.log(`Mapped ${Object.keys(bakerConsensusKeys).length} bakers to consensus keys`);
+  console.log(`tz4 count: ${tz4Count}`);
 
   // Count tz4 consensus keys
   const tz4Bakers = Object.values(bakerConsensusKeys).filter(key =>
@@ -83,9 +95,11 @@ async function getStakingData(totalSupplyFromRPC, workingRPC) {
     const head = await fetchWithRetry(`${TZKT_API}/head`);
     const cycle = await fetchWithRetry(`${TZKT_API}/cycles/${head.cycle}`);
 
+    console.log(`Cycle ${head.cycle} data:`, { totalDelegated: cycle.totalDelegated, totalBakingPower: cycle.totalBakingPower });
+
     const delegatedRatio = cycle.totalDelegated && totalSupply > 0
       ? (cycle.totalDelegated / totalSupply) * 100
-      : 0;
+      : 30; // fallback like frontend
 
     console.log(`Staking ratio: ${stakingRatio.toFixed(2)}%, Delegated ratio: ${delegatedRatio.toFixed(2)}%`);
 
