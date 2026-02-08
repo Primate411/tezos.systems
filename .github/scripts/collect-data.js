@@ -25,26 +25,28 @@ async function getCurrentCycle() {
   return head.level_info.cycle;
 }
 
-// Fetch tz4 baker stats
+// Fetch tz4 baker stats (count consensus keys, not addresses!)
 async function getTz4Stats() {
-  const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=address,activeStakingBalance,stakingBalance`);
+  const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=address,consensusKey`);
 
-  const tz4Bakers = bakers.filter(b => b.address && b.address.startsWith('tz4')).length;
+  // Count bakers with tz4 consensus keys (BLS signatures)
+  const tz4Bakers = bakers.filter(b => b.consensusKey && b.consensusKey.startsWith('tz4')).length;
   const totalBakers = bakers.length;
   const tz4Percentage = totalBakers > 0 ? (tz4Bakers / totalBakers) * 100 : 0;
+
+  console.log(`tz4 bakers: ${tz4Bakers} / ${totalBakers} (${tz4Percentage.toFixed(2)}%)`);
 
   return { tz4Bakers, totalBakers, tz4Percentage };
 }
 
 // Fetch staking data
-async function getStakingData() {
+async function getStakingData(totalSupplyFromRPC) {
   try {
     console.log('Fetching staking data...');
 
-    // Get total supply from TzKT statistics (more reliable for GitHub Actions)
-    const stats = await fetchWithRetry(`${TZKT_API}/statistics`);
-    const totalSupply = stats.totalSupply ? stats.totalSupply / 1000000 : 0;
-    console.log(`Total supply from TzKT: ${totalSupply} XTZ`);
+    // Use total supply passed from RPC (already fetched for issuance)
+    const totalSupply = totalSupplyFromRPC || 0;
+    console.log(`Using total supply: ${totalSupply} XTZ`);
 
     // Get bakers and calculate staking
     const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=stakingBalance,delegatedBalance`);
@@ -65,6 +67,8 @@ async function getStakingData() {
     const stakingRatio = totalSupply > 0 ? (totalStaked / totalSupply) * 100 : 0;
     const delegatedRatio = totalSupply > 0 ? (totalDelegated / totalSupply) * 100 : 0;
 
+    console.log(`Staking ratio: ${stakingRatio.toFixed(2)}%, Delegated ratio: ${delegatedRatio.toFixed(2)}%`);
+
     return {
       stakingRatio: isNaN(stakingRatio) ? 0 : stakingRatio,
       delegatedRatio: isNaN(delegatedRatio) ? 0 : delegatedRatio,
@@ -77,7 +81,7 @@ async function getStakingData() {
   }
 }
 
-// Fetch issuance rate using alternative RPC
+// Fetch issuance rate using alternative RPC (also returns total supply)
 async function getIssuanceRate() {
   try {
     console.log('Fetching issuance rate...');
@@ -128,8 +132,8 @@ async function getIssuanceRate() {
     }
 
     if (adaptiveRate === 0) {
-      console.log('All RPCs failed, returning 0');
-      return 0;
+      console.log('All RPCs failed, returning defaults');
+      return { rate: 0, totalSupply: 0 };
     }
 
     // Calculate LB subsidy rate
@@ -141,10 +145,14 @@ async function getIssuanceRate() {
     // Total rate
     const totalRate = adaptiveRate + lbRate;
     console.log(`Total issuance rate: ${totalRate.toFixed(2)}%`);
-    return parseFloat(totalRate.toFixed(2));
+
+    return {
+      rate: parseFloat(totalRate.toFixed(2)),
+      totalSupply: totalSupplyXTZ
+    };
   } catch (error) {
     console.error('Failed to fetch issuance rate:', error.message);
-    return 0;
+    return { rate: 0, totalSupply: 0 };
   }
 }
 
@@ -179,11 +187,14 @@ async function collectData() {
   console.log('Starting data collection...');
 
   try {
-    const [cycle, tz4Stats, stakingData, issuanceRate, totalBurned, txVolume] = await Promise.all([
+    // Fetch issuance first to get total supply
+    const issuanceData = await getIssuanceRate();
+
+    // Now fetch everything else in parallel, passing total supply to staking
+    const [cycle, tz4Stats, stakingData, totalBurned, txVolume] = await Promise.all([
       getCurrentCycle(),
       getTz4Stats(),
-      getStakingData(),
-      getIssuanceRate(),
+      getStakingData(issuanceData.totalSupply),
       getTotalBurned(),
       getTxVolume24h()
     ]);
@@ -203,7 +214,7 @@ async function collectData() {
       staking_ratio: safeNumber(stakingData.stakingRatio),
       delegated_ratio: safeNumber(stakingData.delegatedRatio),
       total_supply: safeNumber(stakingData.totalSupply),
-      current_issuance_rate: safeNumber(issuanceRate),
+      current_issuance_rate: safeNumber(issuanceData.rate),
       total_burned: safeNumber(totalBurned),
       tx_volume_24h: txVolume || 0
     };
