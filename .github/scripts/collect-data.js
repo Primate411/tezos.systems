@@ -38,33 +38,70 @@ async function getTz4Stats() {
 
 // Fetch staking data
 async function getStakingData() {
-  const stats = await fetchWithRetry(`${TZKT_API}/statistics`);
-  const totalSupply = stats.totalSupply / 1000000; // Convert from mutez
+  try {
+    // Get total supply from Octez RPC (more reliable)
+    const supplyResponse = await fetch(`${OCTEZ_RPC}/chains/main/blocks/head/context/total_supply`);
+    const supplyString = await supplyResponse.text();
+    const totalSupply = parseInt(supplyString.replace(/"/g, '')) / 1e6;
 
-  const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=stakingBalance,delegatedBalance`);
+    // Get bakers and calculate staking
+    const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=stakingBalance,delegatedBalance`);
 
-  let totalStaked = 0;
-  let totalDelegated = 0;
+    let totalStaked = 0;
+    let totalDelegated = 0;
 
-  bakers.forEach(b => {
-    totalStaked += b.stakingBalance || 0;
-    totalDelegated += b.delegatedBalance || 0;
-  });
+    bakers.forEach(b => {
+      totalStaked += (b.stakingBalance || 0);
+      totalDelegated += (b.delegatedBalance || 0);
+    });
 
-  totalStaked = totalStaked / 1000000;
-  totalDelegated = totalDelegated / 1000000;
+    totalStaked = totalStaked / 1000000;
+    totalDelegated = totalDelegated / 1000000;
 
-  const stakingRatio = totalSupply > 0 ? (totalStaked / totalSupply) * 100 : 0;
-  const delegatedRatio = totalSupply > 0 ? (totalDelegated / totalSupply) * 100 : 0;
+    const stakingRatio = totalSupply > 0 ? (totalStaked / totalSupply) * 100 : 0;
+    const delegatedRatio = totalSupply > 0 ? (totalDelegated / totalSupply) * 100 : 0;
 
-  return { stakingRatio, delegatedRatio, totalSupply, totalStaked };
+    return {
+      stakingRatio: isNaN(stakingRatio) ? 0 : stakingRatio,
+      delegatedRatio: isNaN(delegatedRatio) ? 0 : delegatedRatio,
+      totalSupply: isNaN(totalSupply) ? 0 : totalSupply,
+      totalStaked
+    };
+  } catch (error) {
+    console.error('Failed to fetch staking data:', error);
+    return { stakingRatio: 0, delegatedRatio: 0, totalSupply: 0, totalStaked: 0 };
+  }
 }
 
-// Fetch issuance rate
+// Fetch issuance rate (correctly, including LB subsidy)
 async function getIssuanceRate() {
-  const constants = await fetchWithRetry(`${OCTEZ_RPC}/chains/main/blocks/head/context/constants`);
-  const rate = constants.issuance_weights ? constants.issuance_weights.base_total_issued_per_minute : null;
-  return rate ? parseFloat((rate / 1000000 * 525600).toFixed(2)) : 0; // Convert to annual rate
+  try {
+    // Fetch adaptive issuance rate (returns as text like "4.5")
+    const rateResponse = await fetch(`${OCTEZ_RPC}/chains/main/blocks/head/context/issuance/current_yearly_rate`);
+    const rateString = await rateResponse.text();
+    const adaptiveRate = parseFloat(rateString.replace(/"/g, ''));
+
+    // Fetch constants for LB subsidy
+    const constants = await fetchWithRetry(`${OCTEZ_RPC}/chains/main/blocks/head/context/constants`);
+
+    // Fetch total supply
+    const supplyResponse = await fetch(`${OCTEZ_RPC}/chains/main/blocks/head/context/total_supply`);
+    const supplyString = await supplyResponse.text();
+    const totalSupplyXTZ = parseInt(supplyString.replace(/"/g, '')) / 1e6;
+
+    // Calculate LB subsidy rate
+    const lbSubsidyPerMinute = parseInt(constants.liquidity_baking_subsidy) || 0;
+    const minutesPerYear = 365.25 * 24 * 60;
+    const lbXTZPerYear = (lbSubsidyPerMinute / 1e6) * minutesPerYear;
+    const lbRate = (lbXTZPerYear / totalSupplyXTZ) * 100;
+
+    // Total rate
+    const totalRate = adaptiveRate + lbRate;
+    return parseFloat(totalRate.toFixed(2));
+  } catch (error) {
+    console.error('Failed to fetch issuance rate:', error);
+    return 0;
+  }
 }
 
 // Fetch total burned
@@ -99,18 +136,24 @@ async function collectData() {
       getTxVolume24h()
     ]);
 
+    // Helper to safely format numbers
+    const safeNumber = (val, decimals = 2) => {
+      const num = parseFloat(val);
+      return isNaN(num) || !isFinite(num) ? 0 : parseFloat(num.toFixed(decimals));
+    };
+
     const dataPoint = {
       timestamp: new Date().toISOString(),
-      cycle,
-      tz4_bakers: tz4Stats.tz4Bakers,
-      tz4_percentage: parseFloat(tz4Stats.tz4Percentage.toFixed(2)),
-      total_bakers: tz4Stats.totalBakers,
-      staking_ratio: parseFloat(stakingData.stakingRatio.toFixed(2)),
-      delegated_ratio: parseFloat(stakingData.delegatedRatio.toFixed(2)),
-      total_supply: parseFloat(stakingData.totalSupply.toFixed(2)),
-      current_issuance_rate: issuanceRate,
-      total_burned: parseFloat(totalBurned.toFixed(2)),
-      tx_volume_24h: txVolume
+      cycle: cycle || 0,
+      tz4_bakers: tz4Stats.tz4Bakers || 0,
+      tz4_percentage: safeNumber(tz4Stats.tz4Percentage),
+      total_bakers: tz4Stats.totalBakers || 0,
+      staking_ratio: safeNumber(stakingData.stakingRatio),
+      delegated_ratio: safeNumber(stakingData.delegatedRatio),
+      total_supply: safeNumber(stakingData.totalSupply),
+      current_issuance_rate: safeNumber(issuanceRate),
+      total_burned: safeNumber(totalBurned),
+      tx_volume_24h: txVolume || 0
     };
 
     console.log('Collected data:', dataPoint);
