@@ -25,47 +25,17 @@ async function getCurrentCycle() {
   return head.level_info.cycle;
 }
 
-// Fetch tz4 baker stats (count consensus keys from operations!)
+// Fetch tz4 baker stats (use consensusAddress field directly!)
 async function getTz4Stats() {
-  // Get all active bakers
-  const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=address`);
+  // Get all active bakers with their consensus addresses
+  const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=address,consensusAddress`);
   const totalBakers = bakers.length;
-  const activeBakerAddresses = new Set(bakers.map(b => b.address));
-  console.log(`Found ${totalBakers} active bakers`);
 
-  // Fetch MORE consensus key operations (need more historical data to match active bakers)
-  const opsUrl = `${TZKT_API}/operations/update_consensus_key?limit=10000&sort.desc=id`;
-  const operations = await fetchWithRetry(opsUrl);
-  console.log(`Found ${operations.length} consensus key operations`);
-
-  // Build map of baker -> consensus key
-  const bakerConsensusKeys = {};
-  let tz4Count = 0;
-
-  for (const op of operations) {
-    const baker = op.sender?.address;
-    const keyHash = op.publicKeyHash || '';
-
-    if (baker && !bakerConsensusKeys[baker] && activeBakerAddresses.has(baker)) {
-      bakerConsensusKeys[baker] = keyHash;
-      if (keyHash.startsWith('tz4')) {
-        tz4Count++;
-        console.log(`Found tz4 baker: ${baker} -> ${keyHash}`);
-      }
-    }
-  }
-
-  console.log(`Mapped ${Object.keys(bakerConsensusKeys).length} bakers to consensus keys`);
-  console.log(`tz4 count: ${tz4Count}`);
-
-  // Count tz4 consensus keys
-  const tz4Bakers = Object.values(bakerConsensusKeys).filter(key =>
-    key.startsWith('tz4')
-  ).length;
-
+  // Count bakers with tz4 consensus addresses
+  const tz4Bakers = bakers.filter(b => b.consensusAddress && b.consensusAddress.startsWith('tz4')).length;
   const tz4Percentage = totalBakers > 0 ? (tz4Bakers / totalBakers) * 100 : 0;
 
-  console.log(`tz4 bakers: ${tz4Bakers} / ${totalBakers} (${tz4Percentage.toFixed(2)}%)`);
+  console.log(`Found ${totalBakers} active bakers, ${tz4Bakers} with tz4 consensus addresses (${tz4Percentage.toFixed(2)}%)`);
 
   return { tz4Bakers, totalBakers, tz4Percentage };
 }
