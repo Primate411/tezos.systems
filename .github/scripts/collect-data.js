@@ -25,13 +25,32 @@ async function getCurrentCycle() {
   return head.level_info.cycle;
 }
 
-// Fetch tz4 baker stats (count consensus keys, not addresses!)
+// Fetch tz4 baker stats (count consensus keys from operations!)
 async function getTz4Stats() {
-  const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=address,consensusKey`);
-
-  // Count bakers with tz4 consensus keys (BLS signatures)
-  const tz4Bakers = bakers.filter(b => b.consensusKey && b.consensusKey.startsWith('tz4')).length;
+  // Get all active bakers
+  const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=address`);
   const totalBakers = bakers.length;
+  const activeBakerAddresses = new Set(bakers.map(b => b.address));
+
+  // Fetch recent update_consensus_key operations to get consensus keys
+  const opsUrl = `${TZKT_API}/operations/update_consensus_key?limit=2000&sort.desc=id`;
+  const operations = await fetchWithRetry(opsUrl);
+
+  // Build map of baker -> consensus key
+  const bakerConsensusKeys = {};
+  for (const op of operations) {
+    const baker = op.sender?.address;
+    const keyHash = op.publicKeyHash || '';
+    if (baker && !bakerConsensusKeys[baker] && activeBakerAddresses.has(baker)) {
+      bakerConsensusKeys[baker] = keyHash;
+    }
+  }
+
+  // Count tz4 consensus keys
+  const tz4Bakers = Object.values(bakerConsensusKeys).filter(key =>
+    key.startsWith('tz4')
+  ).length;
+
   const tz4Percentage = totalBakers > 0 ? (tz4Bakers / totalBakers) * 100 : 0;
 
   console.log(`tz4 bakers: ${tz4Bakers} / ${totalBakers} (${tz4Percentage.toFixed(2)}%)`);
@@ -39,33 +58,34 @@ async function getTz4Stats() {
   return { tz4Bakers, totalBakers, tz4Percentage };
 }
 
-// Fetch staking data
-async function getStakingData(totalSupplyFromRPC) {
+// Fetch staking data (match frontend approach)
+async function getStakingData(totalSupplyFromRPC, workingRPC) {
   try {
     console.log('Fetching staking data...');
 
-    // Use total supply passed from RPC (already fetched for issuance)
     const totalSupply = totalSupplyFromRPC || 0;
     console.log(`Using total supply: ${totalSupply} XTZ`);
 
-    // Get bakers and calculate staking
-    const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=stakingBalance,delegatedBalance`);
-    console.log(`Fetched ${bakers.length} bakers`);
+    // Get total frozen stake from RPC (same as frontend)
+    const stakeResponse = await fetch(`${workingRPC}/chains/main/blocks/head/context/total_frozen_stake`);
+    if (!stakeResponse.ok) {
+      console.error(`Frozen stake fetch failed: ${stakeResponse.status}`);
+      return { stakingRatio: 0, delegatedRatio: 0, totalSupply, totalStaked: 0 };
+    }
 
-    let totalStaked = 0;
-    let totalDelegated = 0;
-
-    bakers.forEach(b => {
-      totalStaked += (b.stakingBalance || 0);
-      totalDelegated += (b.delegatedBalance || 0);
-    });
-
-    totalStaked = totalStaked / 1000000;
-    totalDelegated = totalDelegated / 1000000;
-    console.log(`Total staked: ${totalStaked} XTZ, Total delegated: ${totalDelegated} XTZ`);
+    const stakeMutez = await stakeResponse.text();
+    const totalStaked = parseInt(stakeMutez.replace(/"/g, '')) / 1e6;
+    console.log(`Total frozen stake: ${totalStaked} XTZ`);
 
     const stakingRatio = totalSupply > 0 ? (totalStaked / totalSupply) * 100 : 0;
-    const delegatedRatio = totalSupply > 0 ? (totalDelegated / totalSupply) * 100 : 0;
+
+    // Get delegated ratio from TzKT cycle data (same as frontend)
+    const head = await fetchWithRetry(`${TZKT_API}/head`);
+    const cycle = await fetchWithRetry(`${TZKT_API}/cycles/${head.cycle}`);
+
+    const delegatedRatio = cycle.totalDelegated && totalSupply > 0
+      ? (cycle.totalDelegated / totalSupply) * 100
+      : 0;
 
     console.log(`Staking ratio: ${stakingRatio.toFixed(2)}%, Delegated ratio: ${delegatedRatio.toFixed(2)}%`);
 
@@ -81,7 +101,7 @@ async function getStakingData(totalSupplyFromRPC) {
   }
 }
 
-// Fetch issuance rate using alternative RPC (also returns total supply)
+// Fetch issuance rate using alternative RPC (also returns total supply and working RPC)
 async function getIssuanceRate() {
   try {
     console.log('Fetching issuance rate...');
@@ -96,6 +116,7 @@ async function getIssuanceRate() {
     let adaptiveRate = 0;
     let constants = null;
     let totalSupplyXTZ = 0;
+    let workingRPC = null;
 
     // Try each RPC until one works
     for (const rpc of rpcEndpoints) {
@@ -124,6 +145,7 @@ async function getIssuanceRate() {
         console.log(`Total supply: ${totalSupplyXTZ}`);
 
         // If we got here, this RPC works!
+        workingRPC = rpc;
         break;
       } catch (err) {
         console.log(`RPC ${rpc} failed, trying next...`);
@@ -131,9 +153,9 @@ async function getIssuanceRate() {
       }
     }
 
-    if (adaptiveRate === 0) {
+    if (adaptiveRate === 0 || !workingRPC) {
       console.log('All RPCs failed, returning defaults');
-      return { rate: 0, totalSupply: 0 };
+      return { rate: 0, totalSupply: 0, workingRPC: null };
     }
 
     // Calculate LB subsidy rate
@@ -148,20 +170,21 @@ async function getIssuanceRate() {
 
     return {
       rate: parseFloat(totalRate.toFixed(2)),
-      totalSupply: totalSupplyXTZ
+      totalSupply: totalSupplyXTZ,
+      workingRPC
     };
   } catch (error) {
     console.error('Failed to fetch issuance rate:', error.message);
-    return { rate: 0, totalSupply: 0 };
+    return { rate: 0, totalSupply: 0, workingRPC: null };
   }
 }
 
-// Fetch total burned
+// Fetch total burned (match frontend endpoint)
 async function getTotalBurned() {
   try {
     console.log('Fetching total burned...');
-    const stats = await fetchWithRetry(`${TZKT_API}/statistics`);
-    const burned = stats.totalBurned ? stats.totalBurned / 1000000 : 0;
+    const stats = await fetchWithRetry(`${TZKT_API}/statistics/current`);
+    const burned = stats.totalBurned ? stats.totalBurned / 1e6 : 0;
     console.log(`Total burned: ${burned} XTZ`);
     return burned;
   } catch (error) {
@@ -190,11 +213,11 @@ async function collectData() {
     // Fetch issuance first to get total supply
     const issuanceData = await getIssuanceRate();
 
-    // Now fetch everything else in parallel, passing total supply to staking
+    // Now fetch everything else in parallel, passing total supply and RPC to staking
     const [cycle, tz4Stats, stakingData, totalBurned, txVolume] = await Promise.all([
       getCurrentCycle(),
       getTz4Stats(),
-      getStakingData(issuanceData.totalSupply),
+      getStakingData(issuanceData.totalSupply, issuanceData.workingRPC),
       getTotalBurned(),
       getTxVolume24h()
     ]);
