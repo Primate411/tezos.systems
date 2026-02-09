@@ -41,9 +41,6 @@
                 <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
                     <span>📊</span>
                 </button>
-                <button id="layout-toggle" class="glass-button" aria-label="Change card layout" title="Layout: Option 1">
-                    <span class="layout-icon">⚡</span>
-                </button>
                 <button id="refresh-btn" class="glass-button" aria-label="Refresh data now" title="Refresh now">
                     <span class="refresh-icon">↻</span>
                 </button>
@@ -88,8 +85,7 @@
                             <div class="stat-value" id="total-bakers-front">
                                 <span class="loading">...</span>
                             </div>
-                            <canvas id="bakers-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
-                            <p class="stat-description">Active validators</p>
+                            <canvas id="bakers-sparkline" class="sparkline-chart" width="200" height="24"></canvas>
                         </div>
                         <div class="card-back" aria-hidden="true">
                             <h2 class="stat-label">Total Bakers</h2>
@@ -121,8 +117,7 @@
                             <div class="stat-value stat-value-dual" id="tz4-adoption-front">
                                 <span class="loading">...</span>
                             </div>
-                            <canvas id="tz4-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
-                            <p class="stat-description" id="tz4-description">Target: 50%</p>
+                            <canvas id="tz4-sparkline" class="sparkline-chart" width="200" height="24"></canvas>
                         </div>
                         <div class="card-back" aria-hidden="true">
                             <h2 class="stat-label">tz4 Adoption</h2>
@@ -310,8 +305,7 @@
                             <div class="stat-value" id="issuance-rate-front">
                                 <span class="loading">...</span>
                             </div>
-                            <canvas id="issuance-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
-                            <p class="stat-description">Current yearly rate</p>
+                            <canvas id="issuance-sparkline" class="sparkline-chart" width="200" height="24"></canvas>
                         </div>
                         <div class="card-back" aria-hidden="true">
                             <h2 class="stat-label">Issuance Rate</h2>
@@ -375,8 +369,7 @@
                             <div class="stat-value" id="staking-ratio-front">
                                 <span class="loading">...</span>
                             </div>
-                            <canvas id="staking-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
-                            <p class="stat-description">XTZ staked</p>
+                            <canvas id="staking-sparkline" class="sparkline-chart" width="200" height="24"></canvas>
                         </div>
                         <div class="card-back" aria-hidden="true">
                             <h2 class="stat-label">Staking Ratio</h2>
@@ -440,8 +433,7 @@
                             <div class="stat-value" id="total-supply-front">
                                 <span class="loading">...</span>
                             </div>
-                            <canvas id="supply-sparkline" class="sparkline-chart" width="200" height="40"></canvas>
-                            <p class="stat-description">Circulating XTZ</p>
+                            <canvas id="supply-sparkline" class="sparkline-chart" width="200" height="24"></canvas>
                         </div>
                         <div class="card-back" aria-hidden="true">
                             <h2 class="stat-label">Total Supply</h2>
@@ -891,6 +883,5 @@
     <script type="module" src="app.js"></script>
     <script type="module" src="history.js"></script>
     <script type="module" src="matrix-effects.js"></script>
-    <script type="module" src="layout.js"></script>
 </body>
 </html>

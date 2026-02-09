@@ -253,7 +253,7 @@ body::before {
     border-radius: 20px;
     padding: 0;
     perspective: 1000px;
-    min-height: 200px;
+    height: 210px;
     position: relative;
     overflow: visible;
     transition: var(--transition);
@@ -436,10 +436,12 @@ body::before {
     -webkit-backface-visibility: hidden;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between;
     align-items: flex-start;
-    padding: 2.5rem 2rem;
+    padding: 1.5rem 1.75rem;
     text-align: left;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .card-back {
@@ -461,7 +463,7 @@ body::before {
     font-size: 0.75rem;
     font-weight: 600;
     color: var(--text-tertiary);
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
 }
@@ -470,7 +472,7 @@ body::before {
     font-size: clamp(2.5rem, 5vw, 3.5rem);
     font-weight: 700;
     line-height: 1;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.25rem;
     letter-spacing: -0.03em;
     color: var(--text-primary);
 }
@@ -573,7 +575,7 @@ body::before {
     font-size: 0.875rem;
     color: var(--text-secondary);
     font-weight: 400;
-    margin-top: auto;
+    margin-top: 0.5rem;
 }
 
 /* Loading state */
@@ -833,7 +835,7 @@ body::before {
     }
 
     .stat-card {
-        min-height: 180px;
+        height: 190px;
     }
 
     .stat-value {
@@ -842,7 +844,7 @@ body::before {
 
     .card-front,
     .card-back {
-        padding: 2rem 1.5rem;
+        padding: 1.25rem 1.5rem;
     }
 
     .modal-content {
@@ -1080,8 +1082,8 @@ body.high-combo .stat-card {
 /* Sparklines on stat cards */
 .sparkline-chart {
     width: 100%;
-    height: 40px;
-    margin: 8px 0;
+    height: 28px;
+    margin-top: auto;
     opacity: 0.7;
     transition: opacity 0.3s ease;
 }
@@ -1223,470 +1225,4 @@ body.high-combo .stat-card {
 [data-theme="matrix"] .stat-card:hover {
     border-color: rgba(0, 255, 0, 0.4);
     box-shadow: 0 8px 32px rgba(0, 255, 0, 0.15);
-}
-
-/* ==========================================
-   CARD LAYOUT SYSTEM - 10 OPTIONS
-   ========================================== */
-
-/* ==========================================
-   OPTION 1: CLEAN STACK (Default/Recommended)
-   Vertical stack with left alignment
-   ========================================== */
-[data-card-layout="option-1"] .card-front,
-[data-card-layout="option-1"] .card-back {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
-    padding: 2rem 1.75rem;
-    gap: 0.5rem;
-}
-
-[data-card-layout="option-1"] .stat-label {
-    margin-bottom: 0.5rem;
-}
-
-[data-card-layout="option-1"] .stat-value {
-    margin-bottom: 0.25rem;
-}
-
-[data-card-layout="option-1"] .sparkline-chart {
-    height: 24px;
-    margin: 0.5rem 0;
-}
-
-[data-card-layout="option-1"] .stat-description {
-    margin-top: 0.5rem;
-}
-
-/* ==========================================
-   OPTION 2: CENTERED ZEN
-   Everything centered for balance
-   ========================================== */
-[data-card-layout="option-2"] .card-front,
-[data-card-layout="option-2"] .card-back {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 2rem 1.75rem;
-    gap: 0.75rem;
-}
-
-[data-card-layout="option-2"] .stat-label {
-    margin-bottom: 0.25rem;
-}
-
-[data-card-layout="option-2"] .stat-value {
-    margin-bottom: 0.25rem;
-}
-
-[data-card-layout="option-2"] .sparkline-chart {
-    height: 28px;
-    margin: 0.5rem 0;
-}
-
-[data-card-layout="option-2"] .stat-description {
-    margin-top: 0.25rem;
-}
-
-/* ==========================================
-   OPTION 3: COMPACT GRID
-   Efficient 2x2 grid layout
-   ========================================== */
-[data-card-layout="option-3"] .card-front,
-[data-card-layout="option-3"] .card-back {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto 1fr auto;
-    gap: 0.75rem;
-    padding: 1.75rem 1.5rem;
-    align-items: start;
-}
-
-[data-card-layout="option-3"] .stat-label {
-    grid-column: 1 / 2;
-    grid-row: 1;
-    margin-bottom: 0;
-}
-
-[data-card-layout="option-3"] .stat-description {
-    grid-column: 2 / 3;
-    grid-row: 1;
-    text-align: right;
-    font-size: 0.75rem;
-    align-self: center;
-}
-
-[data-card-layout="option-3"] .stat-value {
-    grid-column: 1 / 2;
-    grid-row: 2;
-    margin-bottom: 0;
-    align-self: center;
-}
-
-[data-card-layout="option-3"] .sparkline-chart {
-    grid-column: 2 / 3;
-    grid-row: 2;
-    height: 30px;
-    margin: 0;
-    align-self: center;
-}
-
-/* ==========================================
-   OPTION 4: DASHBOARD PRO
-   Label and value on same line, full-width chart
-   ========================================== */
-[data-card-layout="option-4"] .card-front,
-[data-card-layout="option-4"] .card-back {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 1.75rem 1.5rem;
-    gap: 0.75rem;
-}
-
-[data-card-layout="option-4"] .stat-label {
-    position: absolute;
-    top: 1.75rem;
-    left: 1.5rem;
-    margin-bottom: 0;
-}
-
-[data-card-layout="option-4"] .stat-value {
-    position: absolute;
-    top: 1.5rem;
-    right: 1.5rem;
-    margin-bottom: 0;
-}
-
-[data-card-layout="option-4"] .sparkline-chart {
-    height: 20px;
-    margin: 3rem 0 0.5rem 0;
-    width: 100%;
-}
-
-[data-card-layout="option-4"] .stat-description {
-    margin-top: 0.25rem;
-    text-align: left;
-}
-
-/* ==========================================
-   OPTION 5: ASYMMETRIC MODERN
-   Diagonal flow with dynamic positioning
-   ========================================== */
-[data-card-layout="option-5"] .card-front,
-[data-card-layout="option-5"] .card-back {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    padding: 1.75rem 1.5rem;
-    position: relative;
-}
-
-[data-card-layout="option-5"] .stat-label {
-    position: absolute;
-    top: 1.75rem;
-    right: 1.5rem;
-    margin-bottom: 0;
-    text-align: right;
-}
-
-[data-card-layout="option-5"] .stat-value {
-    position: absolute;
-    bottom: 3.5rem;
-    left: 1.5rem;
-    margin-bottom: 0;
-}
-
-[data-card-layout="option-5"] .sparkline-chart {
-    height: 25px;
-    margin: 0;
-    position: absolute;
-    bottom: 3.75rem;
-    right: 1.5rem;
-    width: 45%;
-}
-
-[data-card-layout="option-5"] .stat-description {
-    position: absolute;
-    bottom: 1.75rem;
-    left: 1.5rem;
-    margin-top: 0;
-}
-
-/* ==========================================
-   OPTION 6: CARD HEADER STYLE
-   Distinct header area with centered content
-   ========================================== */
-[data-card-layout="option-6"] .card-front,
-[data-card-layout="option-6"] .card-back {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    padding: 0;
-}
-
-[data-card-layout="option-6"] .stat-label {
-    background: rgba(255, 255, 255, 0.03);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-    padding: 1rem 1.5rem;
-    margin-bottom: 0;
-    width: 100%;
-    text-align: center;
-}
-
-[data-card-layout="option-6"] .stat-value {
-    margin: 1.5rem 0 1rem 0;
-    text-align: center;
-    width: 100%;
-}
-
-[data-card-layout="option-6"] .sparkline-chart {
-    height: 22px;
-    margin: 0 1.5rem 1rem 1.5rem;
-    width: calc(100% - 3rem);
-}
-
-[data-card-layout="option-6"] .stat-description {
-    padding: 0 1.5rem 1.5rem 1.5rem;
-    text-align: center;
-    margin-top: 0;
-}
-
-/* ==========================================
-   OPTION 7: MINIMAL DIVIDERS
-   Clean separation with subtle lines
-   ========================================== */
-[data-card-layout="option-7"] .card-front,
-[data-card-layout="option-7"] .card-back {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    padding: 1.5rem;
-    gap: 1rem;
-}
-
-[data-card-layout="option-7"] .stat-label {
-    margin-bottom: 0;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-[data-card-layout="option-7"] .stat-value {
-    margin-bottom: 0;
-    padding: 0.5rem 0;
-}
-
-[data-card-layout="option-7"] .sparkline-chart {
-    height: 28px;
-    margin: 0;
-    padding: 0.5rem 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-[data-card-layout="option-7"] .stat-description {
-    margin-top: 0;
-    padding-top: 0.5rem;
-}
-
-/* ==========================================
-   OPTION 8: INLINE COMPACT
-   All elements in visual row
-   ========================================== */
-[data-card-layout="option-8"] .card-front,
-[data-card-layout="option-8"] .card-back {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    padding: 2rem 1.5rem;
-    gap: 1rem;
-}
-
-[data-card-layout="option-8"] .stat-label {
-    margin-bottom: 0;
-    font-size: 0.7rem;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    transform: rotate(180deg);
-}
-
-[data-card-layout="option-8"] .stat-value {
-    margin-bottom: 0;
-    font-size: clamp(2rem, 4vw, 2.75rem);
-    flex-grow: 1;
-    text-align: center;
-}
-
-[data-card-layout="option-8"] .sparkline-chart {
-    height: 18px;
-    width: 80px;
-    margin: 0;
-}
-
-[data-card-layout="option-8"] .stat-description {
-    margin-top: 0;
-    font-size: 0.7rem;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-}
-
-/* ==========================================
-   OPTION 9: TRADITIONAL CARD
-   Classic card design with prominent title
-   ========================================== */
-[data-card-layout="option-9"] .card-front,
-[data-card-layout="option-9"] .card-back {
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    padding: 2rem 1.5rem;
-    gap: 0.5rem;
-}
-
-[data-card-layout="option-9"] .stat-label {
-    font-size: 0.85rem;
-    margin-bottom: 1rem;
-    text-align: center;
-}
-
-[data-card-layout="option-9"] .stat-value {
-    margin-bottom: 0.75rem;
-    text-align: center;
-}
-
-[data-card-layout="option-9"] .sparkline-chart {
-    height: 24px;
-    margin: 0.5rem 0;
-    width: 100%;
-}
-
-[data-card-layout="option-9"] .stat-description {
-    margin-top: 0.75rem;
-    text-align: center;
-    font-size: 0.8rem;
-    opacity: 0.7;
-}
-
-/* ==========================================
-   OPTION 10: SPLIT LAYOUT
-   Two-column design
-   ========================================== */
-[data-card-layout="option-10"] .card-front,
-[data-card-layout="option-10"] .card-back {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr;
-    grid-template-rows: 1fr 1fr;
-    gap: 1rem;
-    padding: 2rem 1.5rem;
-    align-items: center;
-}
-
-[data-card-layout="option-10"] .stat-label {
-    grid-column: 1;
-    grid-row: 1;
-    margin-bottom: 0;
-    align-self: start;
-}
-
-[data-card-layout="option-10"] .stat-description {
-    grid-column: 1;
-    grid-row: 2;
-    margin-top: 0;
-    align-self: end;
-    font-size: 0.75rem;
-}
-
-[data-card-layout="option-10"] .stat-value {
-    grid-column: 2;
-    grid-row: 1;
-    margin-bottom: 0;
-    text-align: right;
-}
-
-[data-card-layout="option-10"] .sparkline-chart {
-    grid-column: 2;
-    grid-row: 2;
-    height: 26px;
-    margin: 0;
-}
-
-/* ==========================================
-   RESPONSIVE ADJUSTMENTS FOR LAYOUTS
-   ========================================== */
-
-@media (max-width: 640px) {
-    /* Option 3: Stack on mobile */
-    [data-card-layout="option-3"] .card-front,
-    [data-card-layout="option-3"] .card-back {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto auto;
-    }
-
-    [data-card-layout="option-3"] .stat-description {
-        grid-column: 1;
-        grid-row: 2;
-        text-align: left;
-    }
-
-    [data-card-layout="option-3"] .stat-value {
-        grid-row: 3;
-    }
-
-    [data-card-layout="option-3"] .sparkline-chart {
-        grid-column: 1;
-        grid-row: 4;
-        width: 100%;
-    }
-
-    /* Option 8: Stack on mobile */
-    [data-card-layout="option-8"] .card-front,
-    [data-card-layout="option-8"] .card-back {
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-
-    [data-card-layout="option-8"] .stat-label {
-        writing-mode: horizontal-tb;
-        transform: none;
-    }
-
-    [data-card-layout="option-8"] .stat-description {
-        writing-mode: horizontal-tb;
-    }
-
-    [data-card-layout="option-8"] .sparkline-chart {
-        width: 100%;
-    }
-
-    /* Option 10: Stack on mobile */
-    [data-card-layout="option-10"] .card-front,
-    [data-card-layout="option-10"] .card-back {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto auto;
-    }
-
-    [data-card-layout="option-10"] .stat-label {
-        grid-row: 1;
-    }
-
-    [data-card-layout="option-10"] .stat-value {
-        grid-column: 1;
-        grid-row: 2;
-        text-align: left;
-    }
-
-    [data-card-layout="option-10"] .sparkline-chart {
-        grid-column: 1;
-        grid-row: 3;
-    }
-
-    [data-card-layout="option-10"] .stat-description {
-        grid-row: 4;
-    }
 }

@@ -2,6 +2,7 @@
 // Handles sparklines and full charts using Chart.js
 
 import { fetchHistoricalData } from './api.js';
+import { getCurrentTheme } from './theme.js';
 
 // Store chart instances for cleanup
 const chartInstances = {};
@@ -20,21 +21,28 @@ export function createSparkline(canvasId, data, metric) {
     const values = data.map(d => d[metric]);
     const timestamps = data.map(d => new Date(d.timestamp));
 
-    // Determine color based on trend
+    // Determine color based on trend and theme
     const firstValue = values[0];
     const lastValue = values[values.length - 1];
     const isPositive = lastValue >= firstValue;
+    const isMatrix = getCurrentTheme() === 'matrix';
 
-    // Different colors for different metrics
-    const colorMap = {
-        tz4_percentage: isPositive ? '#00d4ff' : '#ff6b9d',
-        staking_ratio: isPositive ? '#00d4ff' : '#ff6b9d',
-        total_bakers: isPositive ? '#00d4ff' : '#ff6b9d',
-        current_issuance_rate: !isPositive ? '#00d4ff' : '#ff6b9d', // Lower is better
-        total_supply: '#00d4ff'
-    };
-
-    const lineColor = colorMap[metric] || '#00d4ff';
+    // Matrix theme: all lines green. Default theme: cyan/pink based on trend
+    let lineColor;
+    if (isMatrix) {
+        lineColor = '#00ff41';  // Matrix green for all lines
+    } else {
+        const positiveColor = '#00d4ff';
+        const negativeColor = '#ff6b9d';
+        const colorMap = {
+            tz4_percentage: isPositive ? positiveColor : negativeColor,
+            staking_ratio: isPositive ? positiveColor : negativeColor,
+            total_bakers: isPositive ? positiveColor : negativeColor,
+            current_issuance_rate: !isPositive ? positiveColor : negativeColor, // Lower is better
+            total_supply: positiveColor
+        };
+        lineColor = colorMap[metric] || positiveColor;
+    }
 
     const ctx = canvas.getContext('2d');
     chartInstances[canvasId] = new Chart(ctx, {
@@ -170,7 +178,7 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
 // Update all sparklines on the page
 export async function updateSparklines() {
     try {
-        const data = await fetchHistoricalData('24h');
+        const data = await fetchHistoricalData('30d');
 
         if (data.length === 0) {
             console.log('No historical data available yet');
@@ -202,6 +210,11 @@ export async function updateSparklines() {
     }
 }
 
+// Listen for theme changes to update sparkline colors
+window.addEventListener('themechange', () => {
+    updateSparklines();
+});
+
 // Initialize history modal functionality
 export function initHistoryModal() {
     const modal = document.getElementById('history-modal');
@@ -213,7 +226,7 @@ export function initHistoryModal() {
         return;
     }
 
-    let currentRange = '7d';
+    let currentRange = 'all';
 
     // Open modal
     openBtn.addEventListener('click', async () => {

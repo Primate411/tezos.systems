@@ -1,57 +1,49 @@
 /**
  * Theme management module
- * Handles dark/light mode switching and persistence
+ * Handles visual theme switching and persistence
  */
 
 const THEME_KEY = 'tezos-systems-theme';
-const DARK_THEME = 'dark';
-const LIGHT_THEME = 'light';
+const THEMES = ['default', 'matrix'];
+const DEFAULT_THEME = 'matrix';
 
 /**
  * Initialize theme system
- * Loads theme from localStorage or system preference
+ * Loads theme from localStorage or defaults to 'default'
  */
 export function initTheme() {
     // Try to load saved theme
     const savedTheme = localStorage.getItem(THEME_KEY);
 
-    // Check system preference
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    // Use saved theme, otherwise use system preference, default to dark
-    const theme = savedTheme || (systemPrefersDark ? DARK_THEME : LIGHT_THEME);
+    // Use saved theme, otherwise default
+    const theme = savedTheme && THEMES.includes(savedTheme) ? savedTheme : DEFAULT_THEME;
 
     // Apply theme
     setTheme(theme);
-
-    // Listen for system theme changes (only if no saved preference)
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        // Only auto-switch if user hasn't set a preference
-        if (!localStorage.getItem(THEME_KEY)) {
-            setTheme(e.matches ? DARK_THEME : LIGHT_THEME);
-        }
-    });
 }
 
 /**
- * Toggle between dark and light themes
+ * Cycle to next theme
  */
 export function toggleTheme() {
     const current = getCurrentTheme();
-    const next = current === DARK_THEME ? LIGHT_THEME : DARK_THEME;
+    const currentIndex = THEMES.indexOf(current);
+    const nextIndex = (currentIndex + 1) % THEMES.length;
+    const next = THEMES[nextIndex];
+
     setTheme(next);
     localStorage.setItem(THEME_KEY, next);
 }
 
 /**
  * Set theme
- * @param {string} theme - Theme to set ('dark' or 'light')
+ * @param {string} theme - Theme to set ('default' or 'matrix')
  */
 export function setTheme(theme) {
     // Validate theme
-    if (theme !== DARK_THEME && theme !== LIGHT_THEME) {
-        console.warn(`Invalid theme: ${theme}, defaulting to dark`);
-        theme = DARK_THEME;
+    if (!THEMES.includes(theme)) {
+        console.warn(`Invalid theme: ${theme}, defaulting to ${DEFAULT_THEME}`);
+        theme = DEFAULT_THEME;
     }
 
     // Apply theme to body
@@ -68,10 +60,10 @@ export function setTheme(theme) {
 
 /**
  * Get current theme
- * @returns {string} Current theme ('dark' or 'light')
+ * @returns {string} Current theme
  */
 export function getCurrentTheme() {
-    return document.body.getAttribute('data-theme') || DARK_THEME;
+    return document.body.getAttribute('data-theme') || DEFAULT_THEME;
 }
 
 /**
@@ -81,52 +73,38 @@ export function getCurrentTheme() {
 function updateThemeIcon(theme) {
     const icon = document.querySelector('.theme-icon');
     if (icon) {
-        // Show sun in dark mode (to switch to light)
-        // Show moon in light mode (to switch to dark)
-        icon.textContent = theme === DARK_THEME ? '☀️' : '🌙';
+        // Show icon based on current theme
+        const icons = {
+            'default': '🎨',
+            'matrix': '💚'
+        };
+
+        icon.textContent = icons[theme] || '🎨';
 
         // Update aria-label for accessibility
         const button = document.getElementById('theme-toggle');
         if (button) {
-            button.setAttribute('aria-label',
-                theme === DARK_THEME
-                    ? 'Switch to light mode'
-                    : 'Switch to dark mode'
-            );
+            const nextIndex = (THEMES.indexOf(theme) + 1) % THEMES.length;
+            const nextTheme = THEMES[nextIndex];
+            button.setAttribute('aria-label', `Switch to ${nextTheme} theme`);
+            button.setAttribute('title', `Theme: ${theme}`);
         }
     }
 }
 
 /**
- * Check if dark mode is active
- * @returns {boolean} True if dark mode is active
+ * Get all available themes
+ * @returns {Array} Array of theme names
  */
-export function isDarkMode() {
-    return getCurrentTheme() === DARK_THEME;
-}
-
-/**
- * Force set to dark mode
- */
-export function setDarkMode() {
-    setTheme(DARK_THEME);
-    localStorage.setItem(THEME_KEY, DARK_THEME);
-}
-
-/**
- * Force set to light mode
- */
-export function setLightMode() {
-    setTheme(LIGHT_THEME);
-    localStorage.setItem(THEME_KEY, LIGHT_THEME);
+export function getAvailableThemes() {
+    return [...THEMES];
 }
 
 /**
  * Clear saved theme preference
- * Will revert to system preference
+ * Will revert to default theme
  */
 export function clearThemePreference() {
     localStorage.removeItem(THEME_KEY);
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setTheme(systemPrefersDark ? DARK_THEME : LIGHT_THEME);
+    setTheme(DEFAULT_THEME);
 }

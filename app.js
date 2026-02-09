@@ -5,7 +5,6 @@
 
 import { fetchAllStats, checkApiHealth } from './api.js';
 import { initTheme, toggleTheme } from './theme.js';
-import { initLayout } from './layout.js';
 import { flipCard, updateStatInstant, showLoading, showError } from './animations.js';
 import {
     formatCount,
@@ -97,8 +96,8 @@ async function updateStats(newStats) {
         updateStatInstant('total-bakers', newStats.totalBakers, formatCount);
         updateStatInstant('tz4-adoption', newStats.tz4Percentage,
             (val) => `${val.toFixed(1)} / 50%`);
-        document.getElementById('tz4-description').textContent = 
-            `${newStats.tz4Bakers} / ${tz4Target} bakers`;
+        const tz4Desc = document.getElementById('tz4-description');
+        if (tz4Desc) tz4Desc.textContent = `${newStats.tz4Bakers} / ${tz4Target} bakers`;
         updateStatInstant('cycle-progress', newStats.cycle, formatCount);
         document.getElementById('cycle-description').textContent = 
             `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
@@ -163,8 +162,8 @@ async function updateStats(newStats) {
         }
         
         // Update descriptions
-        document.getElementById('tz4-description').textContent = 
-            `${newStats.tz4Bakers} / ${tz4Target} bakers`;
+        const tz4Desc2 = document.getElementById('tz4-description');
+        if (tz4Desc2) tz4Desc2.textContent = `${newStats.tz4Bakers} / ${tz4Target} bakers`;
         document.getElementById('cycle-description').textContent = 
             `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
     }
