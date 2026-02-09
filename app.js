@@ -16,6 +16,7 @@ import {
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from './arcade-effects.js';
 import { initHistoryModal, updateSparklines } from './history.js';
+import { initShare } from './share.js';
 
 // Application state
 const state = {
@@ -37,6 +38,9 @@ async function init() {
 
     // Initialize arcade effects
     initArcadeEffects();
+    
+    // Initialize share functionality
+    initShare();
 
     // Setup event listeners
     setupEventListeners();

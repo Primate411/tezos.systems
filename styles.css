@@ -102,6 +102,12 @@ body::before {
     align-items: center;
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .title {
     font-family: 'Orbitron', sans-serif;
     font-size: clamp(1.75rem, 4vw, 3rem);
@@ -1404,13 +1410,14 @@ body.high-combo .stat-card {
     grid-column: 2;
 }
 
-.ultra-selector-toggle {
+.ultra-selector-footer {
+    display: flex;
+    gap: 8px;
     padding: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.ultra-selector-toggle button {
-    width: 100%;
+.ultra-selector-footer button {
     padding: 10px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1421,7 +1428,16 @@ body.high-combo .stat-card {
     transition: all 0.2s;
 }
 
-.ultra-selector-toggle button.active {
+#ultra-power-btn {
+    flex: 1;
+}
+
+#ultra-audio-btn {
+    width: 44px;
+    font-size: 1.1rem;
+}
+
+.ultra-selector-footer button.active {
     background: rgba(0, 212, 255, 0.2);
     border-color: var(--accent-cyan);
     color: var(--accent-cyan);
@@ -1442,7 +1458,7 @@ body.high-combo .stat-card {
     border-color: #00ff00;
 }
 
-[data-theme="matrix"] .ultra-selector-toggle button.active {
+[data-theme="matrix"] .ultra-selector-footer button.active {
     background: rgba(0, 255, 0, 0.2);
     border-color: #00ff00;
     color: #00ff00;
@@ -1599,4 +1615,135 @@ body.high-combo .stat-card {
 @keyframes pulse-glow-matrix {
     0%, 100% { box-shadow: 0 0 20px rgba(0, 255, 0, 0.1); }
     50% { box-shadow: 0 0 30px rgba(0, 255, 0, 0.3); }
+}
+
+/* ==========================================
+   SHARE MODAL
+   ========================================== */
+
+.share-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    z-index: 10005;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+.share-modal-overlay.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.share-modal-content {
+    background: rgba(15, 15, 20, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.2s ease;
+}
+
+.share-modal-overlay.visible .share-modal-content {
+    transform: scale(1);
+}
+
+.share-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.share-modal-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.share-modal-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.share-modal-close:hover {
+    color: var(--text-primary);
+}
+
+.share-modal-preview {
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    max-height: 400px;
+    overflow: auto;
+}
+
+.share-modal-preview img {
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
+.share-modal-actions {
+    display: flex;
+    gap: 12px;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.share-action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.share-action-btn:hover {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: var(--accent-cyan);
+}
+
+.share-action-btn span {
+    font-size: 1.1rem;
+}
+
+[data-theme="matrix"] .share-action-btn:hover {
+    background: rgba(0, 255, 0, 0.1);
+    border-color: #00ff00;
+}
+
+.share-icon {
+    font-size: 1.2rem;
+}
+
+@media (max-width: 600px) {
+    .share-modal-actions {
+        flex-direction: column;
+    }
 }

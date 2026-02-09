@@ -3,6 +3,8 @@
  * 5 distinct sub-modes for tezos.systems
  */
 
+import { initAudio, playClick, playHover, playActivate, playTrail, toggleAudio, isAudioEnabled } from './audio.js';
+
 const ULTRA_MODES = {
     terminal: {
         name: 'TERMINAL',
@@ -72,6 +74,7 @@ export function initArcadeEffects() {
     createCanvas();
     createModeSelector();
     setupEventListeners();
+    initAudio();
     
     if (ultraEnabled) {
         startEffects();
@@ -110,6 +113,8 @@ function resizeCanvas() {
  * Create mode selector dropdown
  */
 function createModeSelector() {
+    const audioOn = localStorage.getItem('ultraAudio') !== 'false';
+    
     const selector = document.createElement('div');
     selector.id = 'ultra-selector';
     selector.className = 'ultra-selector';
@@ -127,7 +132,10 @@ function createModeSelector() {
                 </button>
             `).join('')}
         </div>
-        <div class="ultra-selector-toggle">
+        <div class="ultra-selector-footer">
+            <button id="ultra-audio-btn" class="${audioOn ? 'active' : ''}" title="Toggle sound effects">
+                ${audioOn ? '🔊' : '🔇'}
+            </button>
             <button id="ultra-power-btn" class="${ultraEnabled ? 'active' : ''}">
                 ${ultraEnabled ? '⚡ ENABLED' : '○ DISABLED'}
             </button>
@@ -154,6 +162,13 @@ function createModeSelector() {
         powerBtn.className = ultraEnabled ? 'active' : '';
         powerBtn.textContent = ultraEnabled ? '⚡ ENABLED' : '○ DISABLED';
     });
+    
+    const audioBtn = selector.querySelector('#ultra-audio-btn');
+    audioBtn.addEventListener('click', () => {
+        const isOn = toggleAudio();
+        audioBtn.className = isOn ? 'active' : '';
+        audioBtn.textContent = isOn ? '🔊' : '🔇';
+    });
 }
 
 /**
@@ -167,6 +182,7 @@ function toggleUltra() {
     if (ultraEnabled) {
         document.body.setAttribute('data-ultra', currentMode);
         startEffects();
+        playActivate(currentMode);
     } else {
         document.body.removeAttribute('data-ultra');
         stopEffects();
@@ -188,6 +204,7 @@ function selectMode(mode) {
         stopEffects();
         resetState();
         startEffects();
+        playActivate(mode);
     }
     
     updateToggleButton();
@@ -306,6 +323,9 @@ function handleMouseMove(e) {
  */
 function handleClick(e) {
     if (!ultraEnabled) return;
+    
+    // Play click sound
+    playClick(currentMode);
     
     switch (currentMode) {
         case 'terminal':
@@ -743,6 +763,9 @@ function hexBurst(x, y) {
 
 function handleCardEnter(card) {
     if (!ultraEnabled) return;
+    
+    // Play hover sound
+    playHover(currentMode);
     
     switch (currentMode) {
         case 'terminal':
