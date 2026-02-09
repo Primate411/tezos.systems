@@ -1231,3 +1231,50 @@ body.high-combo .stat-card {
     border-color: rgba(0, 255, 0, 0.4);
     box-shadow: 0 8px 32px rgba(0, 255, 0, 0.15);
 }
+
+/* ==========================================
+   Corner Ribbon Banner
+   ========================================== */
+
+.corner-ribbon {
+    position: fixed;
+    top: 24px;
+    right: -60px;
+    width: 220px;
+    padding: 8px 0;
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+    color: var(--bg-primary);
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-align: center;
+    text-decoration: none;
+    transform: rotate(45deg);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    transition: var(--transition);
+    letter-spacing: 0.5px;
+}
+
+.corner-ribbon:hover {
+    background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-cyan) 100%);
+    box-shadow: 0 4px 30px rgba(0, 212, 255, 0.5);
+    transform: rotate(45deg) scale(1.05);
+}
+
+[data-theme="matrix"] .corner-ribbon {
+    background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
+    color: #000;
+    box-shadow: 0 4px 20px rgba(0, 255, 0, 0.3);
+}
+
+[data-theme="matrix"] .corner-ribbon:hover {
+    background: linear-gradient(135deg, #00cc00 0%, #00ff00 100%);
+    box-shadow: 0 4px 30px rgba(0, 255, 0, 0.6);
+}
+
+/* Hide ribbon on small screens */
+@media (max-width: 768px) {
+    .corner-ribbon {
+        display: none;
+    }
+}
