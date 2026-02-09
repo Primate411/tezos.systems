@@ -317,7 +317,39 @@
                     </div>
                 </div>
 
-                <!-- Staked Card -->
+                <!-- Staking APY Card -->
+                <div class="stat-card" data-stat="staking-apy">
+                    <div class="card-info-btn" data-tooltip="staking-apy">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-staking-apy">
+                        <div class="tooltip-content">
+                            <h4>Staking APY</h4>
+                            <p>Estimated annual yield for staking XTZ. Delegators earn less (~3%) than direct stakers (~9%) due to baker fees.</p>
+                            <a href="https://stake.tezos.com" target="_blank" rel="noopener">Start staking →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Staking APY</h2>
+                            <div class="stat-value stat-value-dual" id="staking-apy-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Delegate / Stake</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Staking APY</h2>
+                            <div class="stat-value stat-value-dual" id="staking-apy-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Delegate / Stake</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staking Ratio Card -->
                 <div class="stat-card" data-stat="staking-ratio">
                     <div class="card-info-btn" data-tooltip="staking-ratio">
                         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -326,21 +358,21 @@
                     </div>
                     <div class="card-tooltip" id="tooltip-staking-ratio">
                         <div class="tooltip-content">
-                            <h4>Staked</h4>
+                            <h4>Staking Ratio</h4>
                             <p>Percentage of total XTZ that is staked. The adaptive issuance system targets around 50% for optimal security.</p>
                             <a href="https://opentezos.com/tezos-basics/liquid-proof-of-stake/" target="_blank" rel="noopener">Learn more →</a>
                         </div>
                     </div>
                     <div class="card-inner">
                         <div class="card-front">
-                            <h2 class="stat-label">Staked</h2>
+                            <h2 class="stat-label">Staking Ratio</h2>
                             <div class="stat-value" id="staking-ratio-front">
                                 <span class="loading">...</span>
                             </div>
                             <div class="sparkline-container"><canvas id="staking-sparkline" class="sparkline-chart"></canvas></div>
                         </div>
                         <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">Staked</h2>
+                            <h2 class="stat-label">Staking Ratio</h2>
                             <div class="stat-value" id="staking-ratio-back">
                                 <span class="loading">...</span>
                             </div>
@@ -377,38 +409,6 @@
                                 <span class="loading">...</span>
                             </div>
                             <p class="stat-description">Not locked</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Staking APY Card -->
-                <div class="stat-card" data-stat="staking-apy">
-                    <div class="card-info-btn" data-tooltip="staking-apy">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="card-tooltip" id="tooltip-staking-apy">
-                        <div class="tooltip-content">
-                            <h4>Staking APY</h4>
-                            <p>Estimated annual yield for staking XTZ. Delegators earn less (~3%) than direct stakers (~9%) due to baker fees.</p>
-                            <a href="https://stake.tezos.com" target="_blank" rel="noopener">Start staking →</a>
-                        </div>
-                    </div>
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <h2 class="stat-label">Staking APY</h2>
-                            <div class="stat-value stat-value-dual" id="staking-apy-front">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Delegate / Stake</p>
-                        </div>
-                        <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">Staking APY</h2>
-                            <div class="stat-value stat-value-dual" id="staking-apy-back">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Delegate / Stake</p>
                         </div>
                     </div>
                 </div>
@@ -856,7 +856,7 @@
                     <canvas id="chart-tz4"></canvas>
                 </div>
                 <div class="chart-section">
-                    <h4>Staked</h4>
+                    <h4>Staking Ratio</h4>
                     <canvas id="chart-staking"></canvas>
                 </div>
                 <div class="chart-section">
