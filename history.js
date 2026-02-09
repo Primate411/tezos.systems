@@ -64,13 +64,31 @@ export function createSparkline(canvasId, data, metric) {
             maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
-                tooltip: { enabled: false }
+                tooltip: {
+                    enabled: true,
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#00ff41',
+                    bodyColor: '#fff',
+                    borderColor: '#00ff41',
+                    borderWidth: 1,
+                    padding: 8,
+                    displayColors: false,
+                    callbacks: {
+                        title: (items) => {
+                            const date = new Date(items[0].label);
+                            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        },
+                        label: (item) => item.formattedValue
+                    }
+                }
             },
             scales: {
                 x: { display: false },
                 y: { display: false }
             },
-            interaction: { mode: null }
+            interaction: { mode: 'index', intersect: false }
         }
     });
 }

@@ -163,6 +163,212 @@
             </div>
         </section>
 
+        <!-- Economy Section -->
+        <section class="stats-section">
+            <div class="section-header">
+                <h2 class="section-title">Economy</h2>
+                <button class="info-button" id="economy-info-btn" aria-label="Learn about Tezos economics">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <!-- Issuance Rate Card -->
+                <div class="stat-card" data-stat="issuance-rate">
+                    <div class="card-info-btn" data-tooltip="issuance-rate">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-issuance-rate">
+                        <div class="tooltip-content">
+                            <h4>Issuance Rate</h4>
+                            <p>Total yearly XTZ creation including adaptive issuance (staking rewards) plus liquidity baking subsidy (5 XTZ/min to XTZ/tzBTC pool).</p>
+                            <a href="https://opentezos.com/defi/liquidity-baking/" target="_blank" rel="noopener">Learn more →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Issuance Rate</h2>
+                            <div class="stat-value" id="issuance-rate-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <div class="sparkline-container"><canvas id="issuance-sparkline" class="sparkline-chart"></canvas></div>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Issuance Rate</h2>
+                            <div class="stat-value" id="issuance-rate-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Current yearly rate</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staking APY Card -->
+                <div class="stat-card" data-stat="staking-apy">
+                    <div class="card-info-btn" data-tooltip="staking-apy">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-staking-apy">
+                        <div class="tooltip-content">
+                            <h4>Staking APY</h4>
+                            <p>Estimated annual yield for staking XTZ. Delegators earn less (~3%) than direct stakers (~9%) due to baker fees.</p>
+                            <a href="https://stake.tezos.com" target="_blank" rel="noopener">Start staking →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Staking APY</h2>
+                            <div class="stat-value stat-value-dual" id="staking-apy-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Delegate / Stake</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Staking APY</h2>
+                            <div class="stat-value stat-value-dual" id="staking-apy-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Delegate / Stake</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Staking Ratio Card -->
+                <div class="stat-card" data-stat="staking-ratio">
+                    <div class="card-info-btn" data-tooltip="staking-ratio">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-staking-ratio">
+                        <div class="tooltip-content">
+                            <h4>Staking Ratio</h4>
+                            <p>Percentage of total XTZ that is staked. The adaptive issuance system targets around 50% for optimal security.</p>
+                            <a href="https://opentezos.com/tezos-basics/liquid-proof-of-stake/" target="_blank" rel="noopener">Learn more →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Staking Ratio</h2>
+                            <div class="stat-value" id="staking-ratio-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <div class="sparkline-container"><canvas id="staking-sparkline" class="sparkline-chart"></canvas></div>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Staking Ratio</h2>
+                            <div class="stat-value" id="staking-ratio-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">XTZ staked</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delegated Card -->
+                <div class="stat-card" data-stat="delegated">
+                    <div class="card-info-btn" data-tooltip="delegated">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-delegated">
+                        <div class="tooltip-content">
+                            <h4>Delegated XTZ</h4>
+                            <p>XTZ delegated to bakers (not locked). Delegators keep custody of their tokens while earning rewards through their chosen baker.</p>
+                            <a href="https://baking-bad.org/docs/tezos-staking-for-beginners" target="_blank" rel="noopener">Learn more →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Delegated</h2>
+                            <div class="stat-value" id="delegated-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Not locked</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Delegated</h2>
+                            <div class="stat-value" id="delegated-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Not locked</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Supply Card -->
+                <div class="stat-card" data-stat="total-supply">
+                    <div class="card-info-btn" data-tooltip="total-supply">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-total-supply">
+                        <div class="tooltip-content">
+                            <h4>Total Supply</h4>
+                            <p>Total XTZ in existence. Tezos has controlled inflation from staking rewards and liquidity baking, partially offset by burns.</p>
+                            <a href="https://coinmarketcap.com/currencies/tezos/" target="_blank" rel="noopener">View metrics →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Total Supply</h2>
+                            <div class="stat-value" id="total-supply-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <div class="sparkline-container"><canvas id="supply-sparkline" class="sparkline-chart"></canvas></div>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Total Supply</h2>
+                            <div class="stat-value" id="total-supply-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">Circulating XTZ</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Burned Card -->
+                <div class="stat-card" data-stat="total-burned">
+                    <div class="card-info-btn" data-tooltip="total-burned">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-total-burned">
+                        <div class="tooltip-content">
+                            <h4>Total Burned</h4>
+                            <p>XTZ permanently removed from circulation through storage fees, failed operations, and protocol burns. This creates deflationary pressure.</p>
+                            <a href="https://tzkt.io/tz1burnburnburnburnburnburnburjAYjjX" target="_blank" rel="noopener">View burn address →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Total Burned</h2>
+                            <div class="stat-value" id="total-burned-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">XTZ destroyed</p>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Total Burned</h2>
+                            <div class="stat-value" id="total-burned-back">
+                                <span class="loading">...</span>
+                            </div>
+                            <p class="stat-description">XTZ destroyed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Governance Section -->
         <section class="stats-section">
             <div class="section-header">
@@ -267,212 +473,6 @@
                                 <span class="loading">...</span>
                             </div>
                             <p class="stat-description">Voter turnout</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Economy Section -->
-        <section class="stats-section">
-            <div class="section-header">
-                <h2 class="section-title">Economy</h2>
-                <button class="info-button" id="economy-info-btn" aria-label="Learn about Tezos economics">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="stats-grid">
-                <!-- Issuance Rate Card -->
-                <div class="stat-card" data-stat="issuance-rate">
-                    <div class="card-info-btn" data-tooltip="issuance-rate">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="card-tooltip" id="tooltip-issuance-rate">
-                        <div class="tooltip-content">
-                            <h4>Issuance Rate</h4>
-                            <p>Total yearly XTZ creation including adaptive issuance (staking rewards) plus liquidity baking subsidy (5 XTZ/min to XTZ/tzBTC pool).</p>
-                            <a href="https://opentezos.com/defi/liquidity-baking/" target="_blank" rel="noopener">Learn more →</a>
-                        </div>
-                    </div>
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <h2 class="stat-label">Issuance Rate</h2>
-                            <div class="stat-value" id="issuance-rate-front">
-                                <span class="loading">...</span>
-                            </div>
-                            <div class="sparkline-container"><canvas id="issuance-sparkline" class="sparkline-chart"></canvas></div>
-                        </div>
-                        <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">Issuance Rate</h2>
-                            <div class="stat-value" id="issuance-rate-back">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Current yearly rate</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Staked Card -->
-                <div class="stat-card" data-stat="staking-ratio">
-                    <div class="card-info-btn" data-tooltip="staking-ratio">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="card-tooltip" id="tooltip-staking-ratio">
-                        <div class="tooltip-content">
-                            <h4>Staked</h4>
-                            <p>Percentage of total XTZ that is staked. The adaptive issuance system targets around 50% for optimal security.</p>
-                            <a href="https://opentezos.com/tezos-basics/liquid-proof-of-stake/" target="_blank" rel="noopener">Learn more →</a>
-                        </div>
-                    </div>
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <h2 class="stat-label">Staked</h2>
-                            <div class="stat-value" id="staking-ratio-front">
-                                <span class="loading">...</span>
-                            </div>
-                            <div class="sparkline-container"><canvas id="staking-sparkline" class="sparkline-chart"></canvas></div>
-                        </div>
-                        <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">Staked</h2>
-                            <div class="stat-value" id="staking-ratio-back">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">XTZ staked</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Delegated Card -->
-                <div class="stat-card" data-stat="delegated">
-                    <div class="card-info-btn" data-tooltip="delegated">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="card-tooltip" id="tooltip-delegated">
-                        <div class="tooltip-content">
-                            <h4>Delegated XTZ</h4>
-                            <p>XTZ delegated to bakers (not locked). Delegators keep custody of their tokens while earning rewards through their chosen baker.</p>
-                            <a href="https://baking-bad.org/docs/tezos-staking-for-beginners" target="_blank" rel="noopener">Learn more →</a>
-                        </div>
-                    </div>
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <h2 class="stat-label">Delegated</h2>
-                            <div class="stat-value" id="delegated-front">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Not locked</p>
-                        </div>
-                        <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">Delegated</h2>
-                            <div class="stat-value" id="delegated-back">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Not locked</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Staking APY Card -->
-                <div class="stat-card" data-stat="staking-apy">
-                    <div class="card-info-btn" data-tooltip="staking-apy">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="card-tooltip" id="tooltip-staking-apy">
-                        <div class="tooltip-content">
-                            <h4>Staking APY</h4>
-                            <p>Estimated annual yield for staking XTZ. Delegators earn less (~3%) than direct stakers (~9%) due to baker fees.</p>
-                            <a href="https://stake.tezos.com" target="_blank" rel="noopener">Start staking →</a>
-                        </div>
-                    </div>
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <h2 class="stat-label">Staking APY</h2>
-                            <div class="stat-value stat-value-dual" id="staking-apy-front">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Delegate / Stake</p>
-                        </div>
-                        <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">Staking APY</h2>
-                            <div class="stat-value stat-value-dual" id="staking-apy-back">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Delegate / Stake</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total Supply Card -->
-                <div class="stat-card" data-stat="total-supply">
-                    <div class="card-info-btn" data-tooltip="total-supply">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="card-tooltip" id="tooltip-total-supply">
-                        <div class="tooltip-content">
-                            <h4>Total Supply</h4>
-                            <p>Total XTZ in existence. Tezos has controlled inflation from staking rewards and liquidity baking, partially offset by burns.</p>
-                            <a href="https://coinmarketcap.com/currencies/tezos/" target="_blank" rel="noopener">View metrics →</a>
-                        </div>
-                    </div>
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <h2 class="stat-label">Total Supply</h2>
-                            <div class="stat-value" id="total-supply-front">
-                                <span class="loading">...</span>
-                            </div>
-                            <div class="sparkline-container"><canvas id="supply-sparkline" class="sparkline-chart"></canvas></div>
-                        </div>
-                        <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">Total Supply</h2>
-                            <div class="stat-value" id="total-supply-back">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">Circulating XTZ</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Total Burned Card -->
-                <div class="stat-card" data-stat="total-burned">
-                    <div class="card-info-btn" data-tooltip="total-burned">
-                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </div>
-                    <div class="card-tooltip" id="tooltip-total-burned">
-                        <div class="tooltip-content">
-                            <h4>Total Burned</h4>
-                            <p>XTZ permanently removed from circulation through storage fees, failed operations, and protocol burns. This creates deflationary pressure.</p>
-                            <a href="https://tzkt.io/tz1burnburnburnburnburnburnburjAYjjX" target="_blank" rel="noopener">View burn address →</a>
-                        </div>
-                    </div>
-                    <div class="card-inner">
-                        <div class="card-front">
-                            <h2 class="stat-label">Total Burned</h2>
-                            <div class="stat-value" id="total-burned-front">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">XTZ destroyed</p>
-                        </div>
-                        <div class="card-back" aria-hidden="true">
-                            <h2 class="stat-label">Total Burned</h2>
-                            <div class="stat-value" id="total-burned-back">
-                                <span class="loading">...</span>
-                            </div>
-                            <p class="stat-description">XTZ destroyed</p>
                         </div>
                     </div>
                 </div>
@@ -856,7 +856,7 @@
                     <canvas id="chart-tz4"></canvas>
                 </div>
                 <div class="chart-section">
-                    <h4>Staked</h4>
+                    <h4>Staking Ratio</h4>
                     <canvas id="chart-staking"></canvas>
                 </div>
                 <div class="chart-section">
