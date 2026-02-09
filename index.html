@@ -23,7 +23,7 @@
     <!-- Google Fonts - Techy font for title -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
@@ -32,7 +32,7 @@
 
     <link rel="stylesheet" href="styles.css">
 </head>
-<body data-theme="dark">
+<body data-theme="default">
     <!-- Header with controls -->
     <header class="header">
         <div class="header-content">
@@ -41,11 +41,14 @@
                 <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
                     <span>📊</span>
                 </button>
+                <button id="layout-toggle" class="glass-button" aria-label="Change card layout" title="Layout: Option 1">
+                    <span class="layout-icon">⚡</span>
+                </button>
                 <button id="refresh-btn" class="glass-button" aria-label="Refresh data now" title="Refresh now">
                     <span class="refresh-icon">↻</span>
                 </button>
-                <button id="theme-toggle" class="glass-button" aria-label="Toggle dark/light mode">
-                    <span class="theme-icon">☀️</span>
+                <button id="theme-toggle" class="glass-button" aria-label="Switch to matrix theme" title="Theme: default">
+                    <span class="theme-icon">🎨</span>
                 </button>
             </div>
         </div>
@@ -880,9 +883,6 @@
         </div>
     </div>
 
-    <!-- Matrix background effect -->
-    <script type="module" src="effects-ultra.js"></script>
-
     <!-- Chart.js for visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
@@ -890,5 +890,7 @@
     <!-- Load app as module -->
     <script type="module" src="app.js"></script>
     <script type="module" src="history.js"></script>
+    <script type="module" src="matrix-effects.js"></script>
+    <script type="module" src="layout.js"></script>
 </body>
 </html>

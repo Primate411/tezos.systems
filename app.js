@@ -5,6 +5,7 @@
 
 import { fetchAllStats, checkApiHealth } from './api.js';
 import { initTheme, toggleTheme } from './theme.js';
+import { initLayout } from './layout.js';
 import { flipCard, updateStatInstant, showLoading, showError } from './animations.js';
 import {
     formatCount,
