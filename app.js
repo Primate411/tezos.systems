@@ -220,19 +220,10 @@ function setupEventListeners() {
         });
     }
 
-    // Ultra mode toggle
+    // Ultra mode toggle - opens selector
     const ultraToggle = document.getElementById('ultra-toggle');
     if (ultraToggle) {
-        // Set initial state from localStorage
-        if (localStorage.getItem('ultraMode') === 'true') {
-            ultraToggle.title = 'Ultra mode: ON';
-            ultraToggle.classList.add('active');
-        }
-        ultraToggle.addEventListener('click', () => {
-            const isOn = toggleUltraMode();
-            ultraToggle.title = `Ultra mode: ${isOn ? 'ON' : 'OFF'}`;
-            ultraToggle.classList.toggle('active', isOn);
-        });
+        ultraToggle.addEventListener('click', toggleUltraMode);
     }
 
     // Setup modals

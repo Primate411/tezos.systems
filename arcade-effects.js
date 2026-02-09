@@ -1,116 +1,91 @@
 /**
- * ARCADE EFFECTS SYSTEM
- * Ultra mode: interactive effects for tezos.systems
- * Default mode: no interactive effects (just existing CSS animations)
+ * ULTRA MODE SYSTEM
+ * 5 distinct sub-modes for tezos.systems
  */
 
-// Configuration
-const CONFIG = {
-    particles: {
-        count: 30,
-        lifetime: 1000,
-        colors: {
-            default: ['#00d4ff', '#b794f6', '#ff6b9d', '#5b8def', '#10b981'],
-            matrix: ['#00ff00', '#00cc00', '#00ff66', '#33ff33']
-        }
+const ULTRA_MODES = {
+    terminal: {
+        name: 'TERMINAL',
+        desc: 'CRT phosphor trails, cursor echo, hex underlayer',
+        icon: '▮'
     },
-    trail: {
-        maxPoints: 20,
-        fadeTime: 400
+    signal: {
+        name: 'SIGNAL', 
+        desc: 'Oscilloscope waves, EKG pulses, scanline sweeps',
+        icon: '〜'
     },
-    shake: {
-        intensity: 8,
-        duration: 300
+    circuit: {
+        name: 'CIRCUIT',
+        desc: 'Packet routing, card traces, bracket lock-on',
+        icon: '⎔'
     },
-    combo: {
-        timeout: 1500,
-        maxCombo: 50
+    glitch: {
+        name: 'GLITCH',
+        desc: 'RGB splits, slice distortion, data corruption',
+        icon: '▦'
+    },
+    network: {
+        name: 'NETWORK',
+        desc: 'Node mesh, connections, delta pulses',
+        icon: '◉'
     }
 };
 
 // State
-let ultraMode = false;
-let comboCount = 0;
-let comboTimeout = null;
-let trailPoints = [];
+let ultraEnabled = false;
+let currentMode = 'terminal';
 let canvas = null;
 let ctx = null;
-let animating = false;
-
-/**
- * Check if Ultra mode is enabled
- */
-function isUltra() {
-    return ultraMode || document.body.classList.contains('ultra-mode');
-}
+let animationId = null;
+let trailPoints = [];
+let networkNodes = [];
+let lastMousePos = { x: 0, y: 0 };
+let mouseVelocity = 0;
 
 /**
  * Get theme-aware colors
  */
 function getColors() {
-    const theme = document.body.getAttribute('data-theme');
-    return theme === 'matrix' ? CONFIG.particles.colors.matrix : CONFIG.particles.colors.default;
+    const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
+    return {
+        primary: isMatrix ? '#00ff41' : '#00d4ff',
+        secondary: isMatrix ? '#00aa00' : '#b794f6',
+        tertiary: isMatrix ? '#005500' : '#ff6b9d',
+        glow: isMatrix ? 'rgba(0,255,65,0.3)' : 'rgba(0,212,255,0.3)',
+        bg: isMatrix ? '#000' : '#0a0a0f'
+    };
 }
 
 /**
- * Get random color from current theme
- */
-function randomColor() {
-    const colors = getColors();
-    return colors[Math.floor(Math.random() * colors.length)];
-}
-
-/**
- * Initialize arcade effects
+ * Initialize the Ultra system
  */
 export function initArcadeEffects() {
-    // Load saved Ultra preference
-    ultraMode = localStorage.getItem('ultraMode') === 'true';
-    if (ultraMode) {
+    // Load saved preferences
+    ultraEnabled = localStorage.getItem('ultraEnabled') === 'true';
+    currentMode = localStorage.getItem('ultraMode') || 'terminal';
+    
+    if (ultraEnabled) {
         document.body.classList.add('ultra-mode');
+        document.body.setAttribute('data-ultra', currentMode);
     }
 
-    // Create canvas (used only in Ultra mode)
-    createEffectsCanvas();
-
-    // Setup listeners (they check isUltra() internally)
-    setupMouseTrail();
-    setupClickEffects();
-    setupComboDisplay();
-    setupEasterEggs();
-
-    console.log(`🎮 Arcade effects initialized (Ultra: ${ultraMode ? 'ON' : 'OFF'})`);
-}
-
-/**
- * Toggle Ultra mode
- */
-export function toggleUltraMode() {
-    ultraMode = !ultraMode;
-    localStorage.setItem('ultraMode', ultraMode.toString());
-    document.body.classList.toggle('ultra-mode', ultraMode);
-
-    if (ultraMode) {
-        // Activation fanfare
-        showMessage('⚡ ULTRA MODE ⚡', '#ff6b9d');
-        screenShake(10);
-    } else {
-        // Clear any active effects
-        if (ctx && canvas) {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-        }
-        trailPoints = [];
+    createCanvas();
+    createModeSelector();
+    setupEventListeners();
+    
+    if (ultraEnabled) {
+        startEffects();
     }
 
-    return ultraMode;
+    console.log(`🎮 Ultra system ready (${ultraEnabled ? currentMode.toUpperCase() : 'OFF'})`);
 }
 
 /**
  * Create effects canvas
  */
-function createEffectsCanvas() {
+function createCanvas() {
     canvas = document.createElement('canvas');
-    canvas.id = 'arcade-effects-canvas';
+    canvas.id = 'ultra-canvas';
     canvas.style.cssText = `
         position: fixed;
         top: 0;
@@ -122,426 +97,705 @@ function createEffectsCanvas() {
     `;
     document.body.appendChild(canvas);
     ctx = canvas.getContext('2d');
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+}
 
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener('resize', resize);
+function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
 }
 
 /**
- * Mouse trail - ULTRA ONLY
+ * Create mode selector dropdown
  */
-function setupMouseTrail() {
-    document.addEventListener('mousemove', (e) => {
-        if (!isUltra()) return;
+function createModeSelector() {
+    const selector = document.createElement('div');
+    selector.id = 'ultra-selector';
+    selector.className = 'ultra-selector';
+    selector.innerHTML = `
+        <div class="ultra-selector-header">
+            <span class="ultra-selector-title">ULTRA MODE</span>
+            <span class="ultra-selector-close">×</span>
+        </div>
+        <div class="ultra-selector-modes">
+            ${Object.entries(ULTRA_MODES).map(([key, mode]) => `
+                <button class="ultra-mode-btn ${key === currentMode ? 'active' : ''}" data-mode="${key}">
+                    <span class="ultra-mode-icon">${mode.icon}</span>
+                    <span class="ultra-mode-name">${mode.name}</span>
+                    <span class="ultra-mode-desc">${mode.desc}</span>
+                </button>
+            `).join('')}
+        </div>
+        <div class="ultra-selector-toggle">
+            <button id="ultra-power-btn" class="${ultraEnabled ? 'active' : ''}">
+                ${ultraEnabled ? '⚡ ENABLED' : '○ DISABLED'}
+            </button>
+        </div>
+    `;
+    document.body.appendChild(selector);
 
-        trailPoints.push({
-            x: e.clientX,
-            y: e.clientY,
-            time: Date.now(),
-            color: randomColor()
+    // Event listeners for selector
+    selector.querySelector('.ultra-selector-close').addEventListener('click', () => {
+        selector.classList.remove('visible');
+    });
+
+    selector.querySelectorAll('.ultra-mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectMode(btn.dataset.mode);
+            selector.querySelectorAll('.ultra-mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
         });
+    });
 
-        if (trailPoints.length > CONFIG.trail.maxPoints) {
-            trailPoints.shift();
-        }
-
-        if (!animating) {
-            animating = true;
-            renderTrail();
-        }
+    const powerBtn = selector.querySelector('#ultra-power-btn');
+    powerBtn.addEventListener('click', () => {
+        toggleUltra();
+        powerBtn.className = ultraEnabled ? 'active' : '';
+        powerBtn.textContent = ultraEnabled ? '⚡ ENABLED' : '○ DISABLED';
     });
 }
 
 /**
- * Render mouse trail
+ * Toggle Ultra on/off
  */
-function renderTrail() {
-    if (!ctx || !canvas) return;
-
-    const now = Date.now();
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // Filter old points
-    trailPoints = trailPoints.filter(p => now - p.time < CONFIG.trail.fadeTime);
-
-    if (trailPoints.length < 2 || !isUltra()) {
-        animating = false;
-        return;
+function toggleUltra() {
+    ultraEnabled = !ultraEnabled;
+    localStorage.setItem('ultraEnabled', ultraEnabled.toString());
+    document.body.classList.toggle('ultra-mode', ultraEnabled);
+    
+    if (ultraEnabled) {
+        document.body.setAttribute('data-ultra', currentMode);
+        startEffects();
+    } else {
+        document.body.removeAttribute('data-ultra');
+        stopEffects();
     }
+    
+    updateToggleButton();
+}
 
-    // Draw trail
+/**
+ * Select a specific mode
+ */
+function selectMode(mode) {
+    currentMode = mode;
+    localStorage.setItem('ultraMode', mode);
+    document.body.setAttribute('data-ultra', mode);
+    
+    // Restart effects with new mode
+    if (ultraEnabled) {
+        stopEffects();
+        resetState();
+        startEffects();
+    }
+    
+    updateToggleButton();
+}
+
+function resetState() {
+    trailPoints = [];
+    networkNodes = [];
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+function updateToggleButton() {
+    const btn = document.getElementById('ultra-toggle');
+    if (btn) {
+        btn.classList.toggle('active', ultraEnabled);
+        btn.title = ultraEnabled ? `Ultra: ${ULTRA_MODES[currentMode].name}` : 'Ultra: OFF';
+    }
+}
+
+/**
+ * Toggle selector visibility
+ */
+export function toggleUltraMode() {
+    const selector = document.getElementById('ultra-selector');
+    selector.classList.toggle('visible');
+    return ultraEnabled;
+}
+
+/**
+ * Setup event listeners
+ */
+function setupEventListeners() {
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('click', handleClick);
+    
+    // Card hover effects
+    document.querySelectorAll('.stat-card').forEach(card => {
+        card.addEventListener('mouseenter', () => handleCardEnter(card));
+        card.addEventListener('mouseleave', () => handleCardLeave(card));
+    });
+}
+
+/**
+ * Start effects loop
+ */
+function startEffects() {
+    if (currentMode === 'network') {
+        initNetworkNodes();
+    }
+    
+    function loop() {
+        if (!ultraEnabled) return;
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        switch (currentMode) {
+            case 'terminal':
+                renderTerminalTrail();
+                break;
+            case 'signal':
+                renderSignalTrail();
+                break;
+            case 'circuit':
+                renderCircuitTrail();
+                break;
+            case 'glitch':
+                renderGlitchTrail();
+                break;
+            case 'network':
+                renderNetworkMesh();
+                break;
+        }
+        
+        animationId = requestAnimationFrame(loop);
+    }
+    
+    loop();
+}
+
+function stopEffects() {
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+/**
+ * Mouse move handler
+ */
+function handleMouseMove(e) {
+    if (!ultraEnabled) return;
+    
+    const dx = e.clientX - lastMousePos.x;
+    const dy = e.clientY - lastMousePos.y;
+    mouseVelocity = Math.sqrt(dx * dx + dy * dy);
+    
+    lastMousePos = { x: e.clientX, y: e.clientY };
+    
+    trailPoints.push({
+        x: e.clientX,
+        y: e.clientY,
+        time: Date.now(),
+        velocity: mouseVelocity
+    });
+    
+    // Keep trail manageable
+    const maxPoints = currentMode === 'signal' ? 30 : 15;
+    if (trailPoints.length > maxPoints) {
+        trailPoints.shift();
+    }
+}
+
+/**
+ * Click handler
+ */
+function handleClick(e) {
+    if (!ultraEnabled) return;
+    
+    switch (currentMode) {
+        case 'terminal':
+            terminalCursorEcho(e.clientX, e.clientY);
+            break;
+        case 'signal':
+            ekgPulse(e.clientX, e.clientY);
+            break;
+        case 'circuit':
+            packetBurst(e.clientX, e.clientY);
+            break;
+        case 'glitch':
+            glitchSlice(e.target);
+            break;
+        case 'network':
+            hexBurst(e.clientX, e.clientY);
+            break;
+    }
+}
+
+// ============================================
+// TERMINAL MODE
+// ============================================
+
+function renderTerminalTrail() {
+    const colors = getColors();
+    const now = Date.now();
+    
+    trailPoints = trailPoints.filter(p => now - p.time < 600);
+    
+    trailPoints.forEach((point, i) => {
+        const age = now - point.time;
+        const alpha = Math.pow(1 - age / 600, 2); // Logarithmic decay
+        const size = 8 * alpha;
+        
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = colors.primary;
+        ctx.globalAlpha = alpha * 0.6;
+        ctx.fill();
+        
+        // Outer glow
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, size * 2, 0, Math.PI * 2);
+        ctx.fillStyle = colors.glow;
+        ctx.globalAlpha = alpha * 0.3;
+        ctx.fill();
+    });
+    
+    ctx.globalAlpha = 1;
+}
+
+function terminalCursorEcho(x, y) {
+    const colors = getColors();
+    const echo = document.createElement('div');
+    echo.className = 'terminal-echo';
+    echo.style.cssText = `
+        position: fixed;
+        left: ${x}px;
+        top: ${y}px;
+        width: 12px;
+        height: 20px;
+        border: 2px solid ${colors.primary};
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 10000;
+        box-shadow: 0 0 10px ${colors.glow};
+    `;
+    document.body.appendChild(echo);
+    
+    echo.animate([
+        { width: '12px', height: '20px', opacity: 0.9 },
+        { width: '100px', height: '120px', opacity: 0 }
+    ], {
+        duration: 400,
+        easing: 'ease-out'
+    }).onfinish = () => echo.remove();
+}
+
+// ============================================
+// SIGNAL MODE
+// ============================================
+
+function renderSignalTrail() {
+    const colors = getColors();
+    const now = Date.now();
+    
+    trailPoints = trailPoints.filter(p => now - p.time < 800);
+    
+    if (trailPoints.length < 2) return;
+    
+    ctx.beginPath();
+    ctx.strokeStyle = colors.primary;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.8;
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = colors.primary;
+    
     for (let i = 1; i < trailPoints.length; i++) {
         const p = trailPoints[i];
         const prev = trailPoints[i - 1];
         const age = now - p.time;
-        const alpha = 1 - (age / CONFIG.trail.fadeTime);
-
-        ctx.strokeStyle = p.color;
-        ctx.globalAlpha = alpha;
-        ctx.lineWidth = 3 * alpha;
-        ctx.lineCap = 'round';
-        ctx.shadowBlur = 10 * alpha;
-        ctx.shadowColor = p.color;
-
+        const alpha = 1 - age / 800;
+        
+        // Oscilloscope wave based on velocity
+        const frequency = Math.min(p.velocity / 5, 15);
+        const amplitude = 5 + p.velocity / 3;
+        const offset = Math.sin(i * frequency * 0.3) * amplitude;
+        
+        if (i === 1) {
+            ctx.moveTo(prev.x, prev.y);
+        }
+        
+        // Draw with perpendicular wave offset
+        const dx = p.x - prev.x;
+        const dy = p.y - prev.y;
+        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+        const nx = -dy / len;
+        const ny = dx / len;
+        
+        ctx.lineTo(p.x + nx * offset, p.y + ny * offset);
+        ctx.globalAlpha = alpha * 0.8;
+    }
+    
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+    
+    // Voltage tick marks
+    for (let i = 0; i < trailPoints.length; i += 3) {
+        const p = trailPoints[i];
+        const age = now - p.time;
+        const alpha = 1 - age / 800;
+        
+        ctx.strokeStyle = colors.secondary;
+        ctx.globalAlpha = alpha * 0.4;
         ctx.beginPath();
-        ctx.moveTo(prev.x, prev.y);
-        ctx.lineTo(p.x, p.y);
+        ctx.moveTo(p.x - 4, p.y);
+        ctx.lineTo(p.x + 4, p.y);
         ctx.stroke();
     }
-
+    
     ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
-
-    requestAnimationFrame(renderTrail);
 }
 
-/**
- * Click effects - ULTRA ONLY
- */
-function setupClickEffects() {
-    document.addEventListener('click', (e) => {
-        if (!isUltra()) return;
-
-        createExplosion(e.clientX, e.clientY);
-        incrementCombo();
-
-        // Find clicked element for score popup
-        const target = e.target.closest('.stat-card, .glass-button, .info-button');
-        if (target) {
-            const scores = ['+100', '+250', 'NICE!', 'GREAT!'];
-            scorePopup(target, scores[Math.floor(Math.random() * scores.length)]);
-
-            // Screen shake on high combo
-            if (comboCount > 5) {
-                screenShake(Math.min(comboCount, 15));
-            }
-        }
-    });
-}
-
-/**
- * Particle explosion
- */
-function createExplosion(x, y) {
-    if (!ctx) return;
-
-    const particles = [];
+function ekgPulse(x, y) {
     const colors = getColors();
-
-    for (let i = 0; i < CONFIG.particles.count; i++) {
-        const angle = (Math.PI * 2 * i) / CONFIG.particles.count;
-        const velocity = 2 + Math.random() * 3;
-
-        particles.push({
-            x, y,
-            vx: Math.cos(angle) * velocity,
-            vy: Math.sin(angle) * velocity,
-            color: colors[Math.floor(Math.random() * colors.length)],
-            size: 2 + Math.random() * 3,
-            life: 1
-        });
-    }
-
-    function animate() {
-        particles.forEach(p => {
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.15; // gravity
-            p.life -= 0.02;
-
-            if (p.life > 0) {
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = p.life;
-                ctx.shadowBlur = 10 * p.life;
-                ctx.shadowColor = p.color;
-                ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        });
-
-        ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0;
-
-        if (particles.some(p => p.life > 0)) {
-            requestAnimationFrame(animate);
-        }
-    }
-
-    animate();
-}
-
-/**
- * Screen shake
- */
-function screenShake(intensity = CONFIG.shake.intensity) {
-    const duration = CONFIG.shake.duration;
-    const start = Date.now();
-
-    function shake() {
-        const elapsed = Date.now() - start;
-        const progress = elapsed / duration;
-
-        if (progress >= 1) {
-            document.body.style.transform = '';
-            return;
-        }
-
-        const amt = intensity * (1 - progress);
-        const x = (Math.random() - 0.5) * amt;
-        const y = (Math.random() - 0.5) * amt;
-        document.body.style.transform = `translate(${x}px, ${y}px)`;
-
-        requestAnimationFrame(shake);
-    }
-
-    shake();
-}
-
-/**
- * Combo display setup
- */
-function setupComboDisplay() {
-    const display = document.createElement('div');
-    display.id = 'combo-display';
-    display.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(0);
-        font-size: 4rem;
-        font-weight: 900;
-        pointer-events: none;
-        z-index: 10001;
-        font-family: 'Orbitron', monospace;
-        opacity: 0;
-        transition: all 0.3s ease;
-    `;
-    document.body.appendChild(display);
-}
-
-/**
- * Increment combo
- */
-function incrementCombo() {
-    comboCount++;
-    if (comboTimeout) clearTimeout(comboTimeout);
-
-    if (comboCount > 2) {
-        showCombo();
-    }
-
-    comboTimeout = setTimeout(() => {
-        comboCount = 0;
-    }, CONFIG.combo.timeout);
-}
-
-/**
- * Show combo counter
- */
-function showCombo() {
-    const display = document.getElementById('combo-display');
-    if (!display) return;
-
-    const color = randomColor();
-    display.textContent = comboCount >= CONFIG.combo.maxCombo ? '🔥 MAX COMBO! 🔥' : `${comboCount}x COMBO!`;
-    display.style.color = color;
-    display.style.textShadow = `0 0 20px ${color}, 0 0 40px ${color}`;
-    display.style.opacity = '1';
-    display.style.transform = 'translate(-50%, -50%) scale(1)';
-
-    setTimeout(() => {
-        display.style.opacity = '0';
-        display.style.transform = 'translate(-50%, -50%) scale(0.8)';
-    }, 500);
-}
-
-/**
- * Score popup
- */
-function scorePopup(element, text) {
-    const rect = element.getBoundingClientRect();
-    const popup = document.createElement('div');
-    const color = randomColor();
-
-    popup.textContent = text;
-    popup.style.cssText = `
-        position: fixed;
-        left: ${rect.left + rect.width / 2}px;
-        top: ${rect.top}px;
-        transform: translate(-50%, 0);
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: ${color};
-        text-shadow: 0 0 10px ${color};
-        pointer-events: none;
-        z-index: 10000;
-        font-family: 'Orbitron', monospace;
-    `;
-
-    document.body.appendChild(popup);
-
-    popup.animate([
-        { transform: 'translate(-50%, 0)', opacity: 1 },
-        { transform: 'translate(-50%, -80px)', opacity: 0 }
-    ], {
-        duration: 800,
-        easing: 'ease-out'
-    }).onfinish = () => popup.remove();
-}
-
-/**
- * Show centered message
- */
-function showMessage(text, color = '#00d4ff') {
-    const msg = document.createElement('div');
-    msg.textContent = text;
-    msg.style.cssText = `
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 3rem;
-        font-weight: 900;
-        color: ${color};
-        text-shadow: 0 0 30px ${color};
-        pointer-events: none;
-        z-index: 10002;
-        font-family: 'Orbitron', monospace;
-    `;
-    document.body.appendChild(msg);
-
-    msg.animate([
-        { transform: 'translate(-50%, -50%) scale(0)', opacity: 0 },
-        { transform: 'translate(-50%, -50%) scale(1.2)', opacity: 1 },
-        { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
-        { transform: 'translate(-50%, -50%) scale(0)', opacity: 0 }
-    ], {
-        duration: 2000,
-        easing: 'ease-out'
-    }).onfinish = () => msg.remove();
-}
-
-/**
- * Easter eggs - ULTRA ONLY
- */
-function setupEasterEggs() {
-    // Konami code: ↑↑↓↓←→←→BA
-    const konami = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
-    let konamiIdx = 0;
-
-    // Text buffer for word-based eggs
-    let textBuffer = '';
-    let textTimeout = null;
-
-    document.addEventListener('keydown', (e) => {
-        if (!isUltra()) return;
-
-        // Konami code check
-        const key = e.key.toLowerCase();
-        if (key === konami[konamiIdx] || e.key === konami[konamiIdx]) {
-            konamiIdx++;
-            if (konamiIdx === konami.length) {
-                triggerKonami();
-                konamiIdx = 0;
-            }
-        } else {
-            konamiIdx = 0;
-        }
-
-        // Text-based easter eggs
-        if (e.key.length === 1) {
-            textBuffer += e.key.toLowerCase();
-            if (textTimeout) clearTimeout(textTimeout);
-            textTimeout = setTimeout(() => { textBuffer = ''; }, 2000);
-
-            if (textBuffer.includes('hodl')) {
-                triggerHodl();
-                textBuffer = '';
-            } else if (textBuffer.includes(':wq')) {
-                triggerVim();
-                textBuffer = '';
-            } else if (textBuffer.includes('bake')) {
-                triggerBake();
-                textBuffer = '';
-            }
-        }
-    });
-}
-
-/**
- * Konami code activation
- */
-function triggerKonami() {
-    showMessage('🎮 LEGENDARY MODE 🎮', '#ff6b9d');
-
-    // Multiple explosions
-    for (let i = 0; i < 8; i++) {
+    
+    for (let ring = 0; ring < 3; ring++) {
         setTimeout(() => {
-            createExplosion(
-                Math.random() * window.innerWidth,
-                Math.random() * window.innerHeight
-            );
-        }, i * 150);
-    }
-
-    screenShake(20);
-}
-
-/**
- * HODL easter egg - diamond hands
- */
-function triggerHodl() {
-    showMessage('💎 DIAMOND HANDS 💎', '#00d4ff');
-
-    // Freeze effect
-    document.body.style.filter = 'saturate(0.5) brightness(1.2)';
-    setTimeout(() => {
-        document.body.style.filter = '';
-    }, 2000);
-}
-
-/**
- * Vim easter egg
- */
-function triggerVim() {
-    showMessage('> saved and quit', '#10b981');
-}
-
-/**
- * Bake easter egg - bread rain
- */
-function triggerBake() {
-    showMessage('🍞 BAKING TIME 🍞', '#f59e0b');
-
-    for (let i = 0; i < 20; i++) {
-        setTimeout(() => {
-            const bread = document.createElement('div');
-            bread.textContent = '🍞';
-            bread.style.cssText = `
+            const pulse = document.createElement('div');
+            pulse.className = 'ekg-pulse';
+            pulse.style.cssText = `
                 position: fixed;
-                left: ${Math.random() * 100}%;
-                top: -50px;
-                font-size: 2rem;
+                left: ${x}px;
+                top: ${y}px;
+                width: 20px;
+                height: 20px;
+                border: 2px solid ${colors.primary};
+                border-radius: 50%;
+                transform: translate(-50%, -50%);
                 pointer-events: none;
                 z-index: 10000;
             `;
-            document.body.appendChild(bread);
-
-            bread.animate([
-                { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
-                { transform: `translateY(${window.innerHeight + 100}px) rotate(${Math.random() * 720 - 360}deg)`, opacity: 0.5 }
+            document.body.appendChild(pulse);
+            
+            pulse.animate([
+                { width: '20px', height: '20px', opacity: 0.8, borderWidth: '2px' },
+                { width: '200px', height: '200px', opacity: 0, borderWidth: '1px' }
             ], {
-                duration: 3000 + Math.random() * 2000,
-                easing: 'ease-in'
-            }).onfinish = () => bread.remove();
-        }, i * 100);
+                duration: 600,
+                easing: 'ease-out'
+            }).onfinish = () => pulse.remove();
+        }, ring * 100);
     }
 }
 
-// Export for external use
-export { isUltra, screenShake, createExplosion };
+// ============================================
+// CIRCUIT MODE
+// ============================================
+
+function renderCircuitTrail() {
+    const colors = getColors();
+    const now = Date.now();
+    
+    trailPoints = trailPoints.filter(p => now - p.time < 400);
+    
+    if (trailPoints.length < 2) return;
+    
+    ctx.strokeStyle = colors.primary;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.7;
+    
+    // Draw right-angle paths
+    for (let i = 1; i < trailPoints.length; i++) {
+        const p = trailPoints[i];
+        const prev = trailPoints[i - 1];
+        const age = now - p.time;
+        const alpha = 1 - age / 400;
+        
+        ctx.globalAlpha = alpha * 0.7;
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        // Horizontal then vertical
+        ctx.lineTo(p.x, prev.y);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+    }
+    
+    ctx.globalAlpha = 1;
+}
+
+function packetBurst(x, y) {
+    const colors = getColors();
+    const targets = document.querySelectorAll('.stat-card, .glass-button');
+    const packets = [];
+    
+    // Create 6-8 packets
+    for (let i = 0; i < 8; i++) {
+        const packet = document.createElement('div');
+        packet.style.cssText = `
+            position: fixed;
+            left: ${x}px;
+            top: ${y}px;
+            width: 6px;
+            height: 3px;
+            background: ${colors.primary};
+            box-shadow: 0 0 8px ${colors.primary};
+            pointer-events: none;
+            z-index: 10000;
+        `;
+        document.body.appendChild(packet);
+        
+        // Pick a random target
+        const target = targets[Math.floor(Math.random() * targets.length)];
+        const rect = target.getBoundingClientRect();
+        const tx = rect.left + rect.width / 2;
+        const ty = rect.top + rect.height / 2;
+        
+        // Animate with right-angle path
+        const midX = x + (tx - x) * 0.5;
+        
+        packet.animate([
+            { left: `${x}px`, top: `${y}px`, opacity: 1 },
+            { left: `${midX}px`, top: `${y}px`, opacity: 1, offset: 0.3 },
+            { left: `${midX}px`, top: `${ty}px`, opacity: 1, offset: 0.7 },
+            { left: `${tx}px`, top: `${ty}px`, opacity: 0 }
+        ], {
+            duration: 500 + Math.random() * 300,
+            easing: 'ease-out'
+        }).onfinish = () => packet.remove();
+    }
+}
+
+// ============================================
+// GLITCH MODE
+// ============================================
+
+function renderGlitchTrail() {
+    const colors = getColors();
+    const now = Date.now();
+    
+    trailPoints = trailPoints.filter(p => now - p.time < 300);
+    
+    // RGB split trail
+    trailPoints.forEach((point, i) => {
+        const age = now - point.time;
+        const alpha = 1 - age / 300;
+        const offset = point.velocity / 3;
+        
+        // Red channel (offset left)
+        ctx.fillStyle = '#ff0000';
+        ctx.globalAlpha = alpha * 0.3;
+        ctx.fillRect(point.x - offset - 3, point.y - 3, 6, 6);
+        
+        // Green channel (center)
+        ctx.fillStyle = '#00ff00';
+        ctx.globalAlpha = alpha * 0.3;
+        ctx.fillRect(point.x - 3, point.y - 3, 6, 6);
+        
+        // Blue channel (offset right)
+        ctx.fillStyle = '#0000ff';
+        ctx.globalAlpha = alpha * 0.3;
+        ctx.fillRect(point.x + offset - 3, point.y - 3, 6, 6);
+    });
+    
+    ctx.globalAlpha = 1;
+    
+    // Random noise pixels
+    if (Math.random() < 0.3) {
+        for (let i = 0; i < 5; i++) {
+            const nx = lastMousePos.x + (Math.random() - 0.5) * 100;
+            const ny = lastMousePos.y + (Math.random() - 0.5) * 100;
+            ctx.fillStyle = colors.primary;
+            ctx.globalAlpha = Math.random() * 0.5;
+            ctx.fillRect(nx, ny, 2, 2);
+        }
+    }
+    
+    ctx.globalAlpha = 1;
+}
+
+function glitchSlice(element) {
+    if (!element.classList) return;
+    
+    element.style.animation = 'none';
+    element.offsetHeight; // Reflow
+    element.classList.add('glitch-active');
+    
+    setTimeout(() => {
+        element.classList.remove('glitch-active');
+    }, 150);
+}
+
+// ============================================
+// NETWORK MODE
+// ============================================
+
+function initNetworkNodes() {
+    networkNodes = [];
+    for (let i = 0; i < 20; i++) {
+        networkNodes.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 0.5,
+            vy: (Math.random() - 0.5) * 0.5,
+            size: 3 + Math.random() * 3
+        });
+    }
+}
+
+function renderNetworkMesh() {
+    const colors = getColors();
+    
+    // Update node positions
+    networkNodes.forEach(node => {
+        // Brownian motion
+        node.x += node.vx;
+        node.y += node.vy;
+        
+        // Bounce off edges
+        if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
+        if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
+        
+        // Cursor gravity
+        const dx = lastMousePos.x - node.x;
+        const dy = lastMousePos.y - node.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 200) {
+            const force = (200 - dist) / 200 * 0.02;
+            node.vx += dx * force;
+            node.vy += dy * force;
+        }
+        
+        // Damping
+        node.vx *= 0.98;
+        node.vy *= 0.98;
+    });
+    
+    // Draw connections
+    ctx.strokeStyle = colors.primary;
+    ctx.lineWidth = 1;
+    
+    for (let i = 0; i < networkNodes.length; i++) {
+        for (let j = i + 1; j < networkNodes.length; j++) {
+            const a = networkNodes[i];
+            const b = networkNodes[j];
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < 150) {
+                ctx.globalAlpha = (1 - dist / 150) * 0.3;
+                ctx.beginPath();
+                ctx.moveTo(a.x, a.y);
+                ctx.lineTo(b.x, b.y);
+                ctx.stroke();
+            }
+        }
+    }
+    
+    // Draw nodes
+    ctx.fillStyle = colors.primary;
+    networkNodes.forEach(node => {
+        const dx = lastMousePos.x - node.x;
+        const dy = lastMousePos.y - node.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const glow = dist < 200 ? 1 : 0.4;
+        
+        ctx.globalAlpha = glow;
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+        ctx.fill();
+    });
+    
+    ctx.globalAlpha = 1;
+}
+
+function hexBurst(x, y) {
+    const colors = getColors();
+    
+    // 6 radial lines at 60° intervals
+    for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI * 2 * i) / 6;
+        const line = document.createElement('div');
+        line.style.cssText = `
+            position: fixed;
+            left: ${x}px;
+            top: ${y}px;
+            width: 2px;
+            height: 0;
+            background: ${colors.primary};
+            box-shadow: 0 0 8px ${colors.primary};
+            transform-origin: center top;
+            transform: translate(-50%, 0) rotate(${angle}rad);
+            pointer-events: none;
+            z-index: 10000;
+        `;
+        document.body.appendChild(line);
+        
+        line.animate([
+            { height: '0px', opacity: 1 },
+            { height: '60px', opacity: 0 }
+        ], {
+            duration: 400,
+            easing: 'ease-out'
+        }).onfinish = () => line.remove();
+    }
+}
+
+// ============================================
+// CARD HOVER EFFECTS
+// ============================================
+
+function handleCardEnter(card) {
+    if (!ultraEnabled) return;
+    
+    switch (currentMode) {
+        case 'terminal':
+            addHexUnderlayer(card);
+            break;
+        case 'signal':
+            addScanlineSweep(card);
+            break;
+        case 'circuit':
+            addBracketLockOn(card);
+            break;
+        case 'glitch':
+            addStaticNoise(card);
+            break;
+        case 'network':
+            addPulseGlow(card);
+            break;
+    }
+}
+
+function handleCardLeave(card) {
+    if (!ultraEnabled) return;
+    
+    // Clean up any hover effects
+    card.querySelectorAll('.ultra-hover-effect').forEach(el => el.remove());
+    card.classList.remove('bracket-locked', 'scanline-active', 'hex-active', 'static-active', 'pulse-active');
+}
+
+function addHexUnderlayer(card) {
+    card.classList.add('hex-active');
+}
+
+function addScanlineSweep(card) {
+    card.classList.add('scanline-active');
+    
+    const scanline = document.createElement('div');
+    scanline.className = 'ultra-hover-effect scanline-sweep';
+    card.appendChild(scanline);
+    
+    setTimeout(() => scanline.remove(), 500);
+}
+
+function addBracketLockOn(card) {
+    card.classList.add('bracket-locked');
+}
+
+function addStaticNoise(card) {
+    card.classList.add('static-active');
+}
+
+function addPulseGlow(card) {
+    card.classList.add('pulse-active');
+}
+
+// ULTRA_MODES also exported for external use
+export { ULTRA_MODES };
