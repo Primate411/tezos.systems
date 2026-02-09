@@ -53,7 +53,8 @@ export function createSparkline(canvasId, data, metric) {
                 data: values,
                 borderColor: lineColor,
                 borderWidth: 2,
-                fill: false,
+                fill: true,
+                backgroundColor: lineColor + '33',  // 20% opacity
                 pointRadius: 0,
                 tension: 0.4
             }]
