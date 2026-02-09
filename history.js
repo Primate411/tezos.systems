@@ -194,6 +194,62 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
     });
 }
 
+// Calculate 7-day trend from data
+function calculateTrend(data, metric) {
+    if (data.length < 2) return null;
+    
+    const now = Date.now();
+    const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
+    
+    // Get current value (latest)
+    const currentValue = data[data.length - 1][metric];
+    
+    // Find value closest to 7 days ago
+    let weekAgoValue = data[0][metric]; // fallback to oldest
+    for (let i = data.length - 1; i >= 0; i--) {
+        const timestamp = new Date(data[i].timestamp).getTime();
+        if (timestamp <= sevenDaysAgo) {
+            weekAgoValue = data[i][metric];
+            break;
+        }
+    }
+    
+    if (weekAgoValue === 0) return null;
+    
+    const change = ((currentValue - weekAgoValue) / weekAgoValue) * 100;
+    return change;
+}
+
+// Update trend arrow element
+function updateTrendArrow(trendId, change, inverted = false) {
+    const el = document.getElementById(trendId);
+    if (!el) return;
+    
+    if (change === null) {
+        el.textContent = '';
+        el.className = 'trend-arrow';
+        return;
+    }
+    
+    const absChange = Math.abs(change);
+    const arrow = change > 0.1 ? '↑' : change < -0.1 ? '↓' : '→';
+    const direction = change > 0.1 ? 'up' : change < -0.1 ? 'down' : 'neutral';
+    
+    // Format the percentage
+    let text;
+    if (absChange < 0.1) {
+        text = '→ flat';
+    } else if (absChange < 1) {
+        text = `${arrow}${absChange.toFixed(2)}%`;
+    } else {
+        text = `${arrow}${absChange.toFixed(1)}%`;
+    }
+    
+    el.textContent = text;
+    el.className = `trend-arrow ${direction}${inverted ? ' inverted' : ''}`;
+    el.title = `7-day change: ${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+}
+
 // Update all sparklines on the page
 export async function updateSparklines() {
     try {
@@ -212,15 +268,17 @@ export async function updateSparklines() {
 
         // Update sparklines for priority metrics
         const sparklines = [
-            { canvasId: 'tz4-sparkline', metric: 'tz4_percentage' },
-            { canvasId: 'staking-sparkline', metric: 'staking_ratio' },
-            { canvasId: 'bakers-sparkline', metric: 'total_bakers' },
-            { canvasId: 'issuance-sparkline', metric: 'current_issuance_rate' },
-            { canvasId: 'supply-sparkline', metric: 'total_supply' }
+            { canvasId: 'tz4-sparkline', metric: 'tz4_percentage', trendId: 'tz4-trend' },
+            { canvasId: 'staking-sparkline', metric: 'staking_ratio', trendId: 'staking-trend' },
+            { canvasId: 'bakers-sparkline', metric: 'total_bakers', trendId: 'bakers-trend' },
+            { canvasId: 'issuance-sparkline', metric: 'current_issuance_rate', trendId: 'issuance-trend', inverted: true },
+            { canvasId: 'supply-sparkline', metric: 'total_supply', trendId: 'supply-trend' }
         ];
 
-        sparklines.forEach(({ canvasId, metric }) => {
+        sparklines.forEach(({ canvasId, metric, trendId, inverted }) => {
             createSparkline(canvasId, data, metric);
+            const trend = calculateTrend(data, metric);
+            updateTrendArrow(trendId, trend, inverted);
         });
 
         console.log(`Updated ${sparklines.length} sparklines with ${data.length} data points`);

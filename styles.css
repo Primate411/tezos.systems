@@ -1432,6 +1432,7 @@ body.high-combo .stat-card {
     width: 100%;
     height: 77px;
     margin-top: auto;
+    position: relative;
 }
 
 .sparkline-chart {
@@ -1443,6 +1444,65 @@ body.high-combo .stat-card {
 
 .sparkline-chart:hover {
     opacity: 1;
+}
+
+/* Trend arrows next to sparklines */
+.trend-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 2px 5px;
+    border-radius: 3px;
+    position: absolute;
+    bottom: 6px;
+    right: 6px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    opacity: 0.85;
+    transition: opacity 0.3s ease;
+}
+
+.sparkline-container:hover .trend-arrow {
+    opacity: 1;
+}
+
+.trend-arrow.up {
+    color: #00ff88;
+}
+
+.trend-arrow.down {
+    color: #ff6b9d;
+}
+
+.trend-arrow.neutral {
+    color: #888;
+}
+
+/* Issuance: lower is better, so invert colors */
+.trend-arrow.up.inverted {
+    color: #ff6b9d;
+}
+
+.trend-arrow.down.inverted {
+    color: #00ff88;
+}
+
+[data-theme="matrix"] .trend-arrow.up {
+    color: #00ff41;
+}
+
+[data-theme="matrix"] .trend-arrow.down {
+    color: #ff4141;
+}
+
+[data-theme="matrix"] .trend-arrow.up.inverted {
+    color: #ff4141;
+}
+
+[data-theme="matrix"] .trend-arrow.down.inverted {
+    color: #00ff41;
 }
 
 /* History Modal */
