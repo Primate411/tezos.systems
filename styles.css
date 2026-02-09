@@ -108,6 +108,332 @@ body::before {
     gap: 16px;
 }
 
+/* ==========================================
+   UPGRADE CLOCK
+   ========================================== */
+
+.upgrade-clock {
+    max-width: 1200px;
+    margin: 0 auto 2rem;
+    padding: 0 2rem;
+}
+
+.upgrade-clock-content {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 20px 24px 16px;
+    backdrop-filter: blur(10px);
+    overflow: visible;
+}
+
+.upgrade-main {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.upgrade-count {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-right: 20px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.upgrade-number {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1;
+}
+
+.upgrade-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-top: 2px;
+}
+
+.upgrade-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.upgrade-current {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.current-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.current-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.upgrade-highlight {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+}
+
+.upgrade-badges {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.upgrade-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.1) 0%, rgba(183, 148, 246, 0.1) 100%);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 10px;
+}
+
+.badge-text {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+.badge-subtext {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    white-space: nowrap;
+}
+
+.upgrade-status {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    display: none;
+}
+
+.upgrade-status.active {
+    display: block;
+}
+
+.voting-status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.voting-period {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.voting-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    animation: voting-pulse 2s ease-in-out infinite;
+}
+
+@keyframes voting-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+.voting-period-name {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.voting-time {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.voting-progress {
+    flex: 1;
+    min-width: 200px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.voting-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.upgrade-timeline {
+    margin-top: 12px;
+    padding-top: 12px;
+    padding-bottom: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    overflow: visible;
+}
+
+.timeline-track {
+    display: flex;
+    gap: 2px;
+    flex-wrap: nowrap;
+}
+
+.timeline-item {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 22px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.timeline-item:hover {
+    background: rgba(0, 212, 255, 0.1);
+    border-color: var(--accent-cyan);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+    z-index: 200;
+}
+
+.timeline-item.current {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.2) 0%, rgba(183, 148, 246, 0.2) 100%);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+}
+
+.timeline-item::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(10, 10, 15, 0.98);
+    color: var(--text-primary);
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    white-space: normal;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    margin-top: 10px;
+    width: 320px;
+    max-width: 90vw;
+    text-align: left;
+    z-index: 1000;
+    border: 1px solid rgba(0, 212, 255, 0.4);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+}
+
+.timeline-item:hover::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Matrix theme */
+[data-theme="matrix"] .upgrade-number {
+    background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+[data-theme="matrix"] .upgrade-badge {
+    background: rgba(0, 255, 0, 0.1);
+    border-color: rgba(0, 255, 0, 0.3);
+}
+
+[data-theme="matrix"] .badge-text {
+    color: #00ff00;
+}
+
+[data-theme="matrix"] .voting-dot {
+    background: #00ff00;
+}
+
+[data-theme="matrix"] .voting-progress-bar {
+    background: linear-gradient(90deg, #00ff00, #00cc00);
+}
+
+[data-theme="matrix"] .timeline-item.current {
+    background: rgba(0, 255, 0, 0.2);
+    border-color: #00ff00;
+    color: #00ff00;
+}
+
+[data-theme="matrix"] .timeline-item:hover {
+    background: rgba(0, 255, 0, 0.1);
+    border-color: #00ff00;
+}
+
+[data-theme="matrix"] .timeline-item::after {
+    background: rgba(0, 10, 0, 0.98);
+    border-color: rgba(0, 255, 0, 0.5);
+    color: #00ff00;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .upgrade-clock-content {
+        padding: 20px;
+    }
+    
+    .upgrade-main {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+    
+    .upgrade-count {
+        flex-direction: row;
+        gap: 12px;
+        padding-right: 0;
+        border-right: none;
+        padding-bottom: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        width: 100%;
+    }
+    
+    .upgrade-number {
+        font-size: 2.5rem;
+    }
+    
+    .upgrade-badge {
+        width: 100%;
+    }
+}
+
 .title {
     font-family: 'Orbitron', sans-serif;
     font-size: clamp(1.75rem, 4vw, 3rem);

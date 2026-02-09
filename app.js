@@ -17,6 +17,7 @@ import {
 import { initArcadeEffects, toggleUltraMode } from './arcade-effects.js';
 import { initHistoryModal, updateSparklines } from './history.js';
 import { initShare } from './share.js';
+import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from './governance.js';
 
 // Application state
 const state = {
@@ -59,6 +60,9 @@ async function init() {
     // Setup sparkline refresh interval (every 10 minutes)
     setInterval(updateSparklines, 600000);
 
+    // Initialize upgrade clock
+    await updateUpgradeClock();
+
     // Setup refresh interval
     startRefreshTimer();
 
@@ -76,6 +80,7 @@ async function refresh() {
         const newStats = await fetchAllStats();
         console.log('Stats received:', newStats);
         await updateStats(newStats);
+        await updateUpgradeClock(); // Update protocol + days live
         state.lastUpdate = new Date();
         updateLastRefreshTime();
         resetCountdown();
@@ -347,6 +352,104 @@ function handleVisibilityChange() {
             }
         }
         startCountdown();
+    }
+}
+
+/**
+ * Update the Upgrade Clock section
+ */
+async function updateUpgradeClock() {
+    try {
+        const [protocols, votingStatus] = await Promise.all([
+            fetchProtocols(),
+            fetchVotingStatus()
+        ]);
+        
+        // Update upgrade count
+        const countEl = document.getElementById('upgrade-count');
+        if (countEl) {
+            countEl.textContent = protocols.length;
+        }
+        
+        // Update current protocol
+        const currentProtocol = protocols.find(p => p.isCurrent) || protocols[protocols.length - 1];
+        const protocolEl = document.getElementById('current-protocol');
+        if (protocolEl && currentProtocol) {
+            protocolEl.textContent = currentProtocol.name;
+        }
+        
+        // Update highlight
+        const highlightEl = document.getElementById('upgrade-highlight');
+        if (highlightEl && currentProtocol) {
+            highlightEl.textContent = currentProtocol.highlight;
+        }
+        
+        // Update days live (mainnet launched June 30, 2018)
+        const daysLiveEl = document.getElementById('days-live');
+        if (daysLiveEl) {
+            const mainnetLaunch = new Date('2018-06-30T00:00:00Z');
+            const now = new Date();
+            const daysLive = Math.floor((now - mainnetLaunch) / (1000 * 60 * 60 * 24));
+            daysLiveEl.textContent = daysLive.toLocaleString();
+        }
+        
+        // Update voting status if in active voting
+        const statusEl = document.getElementById('upgrade-status');
+        if (statusEl && votingStatus) {
+            if (votingStatus.kind !== 'proposal' || votingStatus.proposalsCount > 0) {
+                statusEl.classList.add('active');
+                
+                const startTime = new Date(votingStatus.startTime);
+                const endTime = new Date(votingStatus.endTime);
+                const now = new Date();
+                const progress = ((now - startTime) / (endTime - startTime)) * 100;
+                
+                statusEl.innerHTML = `
+                    <div class="voting-status">
+                        <div class="voting-period">
+                            <span class="voting-dot"></span>
+                            <span class="voting-period-name">${getVotingPeriodName(votingStatus.kind)}</span>
+                        </div>
+                        <div class="voting-time">${formatTimeRemaining(votingStatus.endTime)}</div>
+                        <div class="voting-progress">
+                            <div class="voting-progress-bar" style="width: ${Math.min(progress, 100)}%"></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                statusEl.classList.remove('active');
+            }
+        }
+        
+        // Build timeline
+        const timelineEl = document.getElementById('upgrade-timeline');
+        if (timelineEl && protocols.length > 0) {
+            // Show ALL protocols - they flex to fit
+            const timelineHTML = `
+                <div class="timeline-track">
+                    ${protocols.map(p => {
+                        // Build tooltip with highlight and optional debate
+                        let tooltip = `${p.name}: ${p.highlight}`;
+                        if (p.debate) {
+                            tooltip += ` 📌 ${p.debate}`;
+                        }
+                        // Escape quotes for HTML attribute
+                        tooltip = tooltip.replace(/"/g, '&quot;');
+                        return `
+                        <div class="timeline-item ${p.isCurrent ? 'current' : ''}" 
+                             data-tooltip="${tooltip}"
+                             data-protocol="${p.name}">
+                            ${p.name[0]}
+                        </div>
+                    `}).join('')}
+                </div>
+            `;
+            timelineEl.innerHTML = timelineHTML;
+        }
+        
+        console.log('Upgrade clock updated');
+    } catch (error) {
+        console.error('Failed to update upgrade clock:', error);
     }
 }
 
