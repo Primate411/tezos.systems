@@ -14,7 +14,7 @@ import {
     formatTimestamp,
     formatSupply
 } from './utils.js';
-import { initArcadeEffects, celebrate, scorePopup } from './arcade-effects.js';
+import { initArcadeEffects, toggleUltraMode } from './arcade-effects.js';
 import { initHistoryModal, updateSparklines } from './history.js';
 
 // Application state
@@ -217,11 +217,21 @@ function setupEventListeners() {
             refresh();
             refreshBtn.classList.add('spinning');
             setTimeout(() => refreshBtn.classList.remove('spinning'), 1000);
+        });
+    }
 
-            // Show refresh message
-            setTimeout(() => {
-                scorePopup(refreshBtn, 'DATA REFRESHED!', '#00d4ff');
-            }, 500);
+    // Ultra mode toggle
+    const ultraToggle = document.getElementById('ultra-toggle');
+    if (ultraToggle) {
+        // Set initial state from localStorage
+        if (localStorage.getItem('ultraMode') === 'true') {
+            ultraToggle.title = 'Ultra mode: ON';
+            ultraToggle.classList.add('active');
+        }
+        ultraToggle.addEventListener('click', () => {
+            const isOn = toggleUltraMode();
+            ultraToggle.title = `Ultra mode: ${isOn ? 'ON' : 'OFF'}`;
+            ultraToggle.classList.toggle('active', isOn);
         });
     }
 
