@@ -12,7 +12,8 @@ import {
     formatXTZ,
     formatLarge,
     formatTimestamp,
-    formatSupply
+    formatSupply,
+    escapeHtml
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from './arcade-effects.js';
 import { initHistoryModal, updateSparklines } from './history.js';
@@ -25,12 +26,25 @@ import { initSleepingGiants } from './sleeping-giants.js';
 import { initPriceBar } from './price.js';
 import { initStreak } from './streak.js';
 import { updatePageTitle } from './title.js';
+import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH } from './config.js';
+
+// Protocols with major governance contention (level 3+)
+const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
+
+// All stat card IDs (used for loading/error states)
+const ALL_CARD_IDS = [
+    'total-bakers', 'tz4-adoption', 'cycle-progress',
+    'proposal', 'voting-period', 'participation',
+    'issuance-rate', 'staking-apy', 'staking-ratio', 'delegated', 'total-supply', 'total-burned',
+    'tx-volume', 'contract-calls', 'funded-accounts',
+    'smart-contracts', 'tokens', 'rollups'
+];
 
 // Application state
 const state = {
     currentStats: {},
     lastUpdate: null,
-    refreshInterval: 7200000, // 2 hours in milliseconds
+    refreshInterval: REFRESH_INTERVALS.main,
     refreshTimer: null,
     countdownTimer: null
 };
@@ -107,8 +121,8 @@ async function init() {
     initHistoryModal();
     updateSparklines(); // Don't await - let it load in background
 
-    // Setup sparkline refresh interval (every 10 minutes)
-    setInterval(updateSparklines, 600000);
+    // Setup sparkline refresh interval
+    setInterval(updateSparklines, REFRESH_INTERVALS.sparkline);
 
     // Setup refresh interval
     startRefreshTimer();
@@ -353,7 +367,7 @@ async function updateStats(newStats) {
         // Consensus
         updateStatInstant('total-bakers', newStats.totalBakers, formatCount);
         updateStatInstant('tz4-adoption', newStats.tz4Percentage,
-            (val) => `${val.toFixed(1)} / 50%`);
+            (val) => `${val.toFixed(1)} / ${STAKING_TARGET}%`);
         const tz4Desc = document.getElementById('tz4-description');
         if (tz4Desc) tz4Desc.textContent = `${newStats.tz4Bakers} / ${tz4Target} bakers`;
         updateStatInstant('cycle-progress', newStats.cycle, formatCount);
@@ -397,7 +411,7 @@ async function updateStats(newStats) {
             updates.push({
                 cardId: 'tz4-adoption',
                 value: newStats.tz4Percentage,
-                formatter: (val) => `${val.toFixed(1)} / 50%`
+                formatter: (val) => `${val.toFixed(1)} / ${STAKING_TARGET}%`
             });
         }
         if (state.currentStats.cycle !== newStats.cycle) {
@@ -437,28 +451,14 @@ async function updateStats(newStats) {
  * Show loading state on all cards
  */
 function showAllLoading() {
-    const cards = [
-        'total-bakers', 'tz4-adoption', 'cycle-progress',
-        'proposal', 'voting-period', 'participation',
-        'issuance-rate', 'staking-apy', 'staking-ratio', 'delegated', 'total-supply', 'total-burned',
-        'tx-volume', 'contract-calls', 'funded-accounts',
-        'smart-contracts', 'tokens', 'rollups'
-    ];
-    cards.forEach(id => showLoading(id));
+    ALL_CARD_IDS.forEach(id => showLoading(id));
 }
 
 /**
  * Show error state
  */
 function showErrorState() {
-    const cards = [
-        'total-bakers', 'tz4-adoption', 'cycle-progress',
-        'proposal', 'voting-period', 'participation',
-        'issuance-rate', 'staking-apy', 'staking-ratio', 'delegated', 'total-supply', 'total-burned',
-        'tx-volume', 'contract-calls', 'funded-accounts',
-        'smart-contracts', 'tokens', 'rollups'
-    ];
-    cards.forEach(id => showError(id, 'Error'));
+    ALL_CARD_IDS.forEach(id => showError(id, 'Error'));
 }
 
 /**
@@ -506,14 +506,24 @@ function setupModal(triggerBtnId, modalId, closeBtnId) {
     const modal = document.getElementById(modalId);
     const closeBtn = document.getElementById(closeBtnId);
 
+    let escHandler = null;
+
     const openModal = () => {
         modal.classList.add('active');
         modal.setAttribute('aria-hidden', 'false');
+        escHandler = (e) => {
+            if (e.key === 'Escape') closeModal();
+        };
+        document.addEventListener('keydown', escHandler);
     };
 
     const closeModal = () => {
         modal.classList.remove('active');
         modal.setAttribute('aria-hidden', 'true');
+        if (escHandler) {
+            document.removeEventListener('keydown', escHandler);
+            escHandler = null;
+        }
     };
 
     if (triggerBtn && modal) {
@@ -527,12 +537,6 @@ function setupModal(triggerBtnId, modalId, closeBtnId) {
     if (modal) {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) closeModal();
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('active')) {
-                closeModal();
-            }
         });
     }
 }
@@ -614,9 +618,6 @@ function renderProtocolTimeline(protocols) {
     const timelineEl = document.getElementById('upgrade-timeline');
     if (!timelineEl || !protocols.length) return;
     
-    // Protocols with major governance contention (level 3+)
-    const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
-    
     const timelineHTML = `
         <div class="timeline-track">
             ${protocols.map(p => {
@@ -666,8 +667,6 @@ async function renderInfographic(protocols, timelineEl) {
     if (data?.protocols) {
         data.protocols.forEach(p => { richMap[p.name] = p; });
     }
-    
-    const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
     
     // Toggle button
     const toggleDiv = document.createElement('div');
@@ -1014,7 +1013,7 @@ async function updateUpgradeClock() {
         // Update days live (mainnet launched June 30, 2018)
         const daysLiveEl = document.getElementById('days-live');
         if (daysLiveEl) {
-            const mainnetLaunch = new Date('2018-06-30T00:00:00Z');
+            const mainnetLaunch = new Date(MAINNET_LAUNCH);
             const now = new Date();
             const daysLive = Math.floor((now - mainnetLaunch) / (1000 * 60 * 60 * 24));
             daysLiveEl.textContent = daysLive.toLocaleString();

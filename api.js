@@ -3,10 +3,12 @@
  * Fetches data from TzKT API and Octez RPC
  */
 
+import { API_URLS, CACHE_TTLS, FETCH_LIMITS, HISTORY_START } from './config.js';
+
 // API endpoint configurations
 const ENDPOINTS = {
     tzkt: {
-        base: 'https://api.tzkt.io/v1',
+        base: API_URLS.tzkt,
         bakers: '/delegates',
         statistics: '/statistics/current',
         operations: '/operations/transactions',
@@ -20,7 +22,7 @@ const ENDPOINTS = {
         rollups: '/smart_rollups/count'
     },
     octez: {
-        base: 'https://eu.rpc.tez.capital',
+        base: API_URLS.octez,
         totalSupply: '/chains/main/blocks/head/context/total_supply',
         issuance: '/chains/main/blocks/head/context/issuance/current_yearly_rate',
         totalFrozenStake: '/chains/main/blocks/head/context/total_frozen_stake'
@@ -31,7 +33,7 @@ const ENDPOINTS = {
 const cache = {
     data: {},
     timestamps: {},
-    ttl: 60000 // 1 minute cache TTL
+    ttl: CACHE_TTLS.memory
 };
 
 /**
@@ -108,13 +110,13 @@ function calculatePercentage(part, total) {
  * Fetch baker data from TzKT API
  */
 async function fetchBakers() {
-    const bakersUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&limit=10000`;
+    const bakersUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&limit=${FETCH_LIMITS.bakers}`;
     const bakers = await fetchWithRetry(bakersUrl);
     const total = bakers.length;
     
     const activeBakerAddresses = new Set(bakers.map(b => b.address));
 
-    const opsUrl = `${ENDPOINTS.tzkt.base}/operations/update_consensus_key?limit=2000&sort.desc=id`;
+    const opsUrl = `${ENDPOINTS.tzkt.base}/operations/update_consensus_key?limit=${FETCH_LIMITS.consensusOps}&sort.desc=id`;
     const operations = await fetchWithRetry(opsUrl);
 
     const bakerConsensusKeys = {};
@@ -542,7 +544,7 @@ export async function fetchHistoricalData(range = '7d') {
             startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             break;
         case 'all':
-            startTime = new Date('2024-01-01'); // Start from beginning of 2024
+            startTime = new Date(HISTORY_START);
             break;
         default:
             startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);

@@ -3,9 +3,11 @@
  * Displays live XTZ/USD price, 24h change, and market cap rank
  */
 
+import { REFRESH_INTERVALS } from './config.js';
+
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd&include_24hr_change=true&include_market_cap=true';
 const COINGECKO_PAGE = 'https://www.coingecko.com/en/coins/tezos';
-const REFRESH_INTERVAL = 60000;
+const REFRESH_INTERVAL = REFRESH_INTERVALS.price;
 
 let priceTimer = null;
 let lastPrice = null;

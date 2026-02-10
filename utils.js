@@ -185,6 +185,21 @@ export function throttle(func, limit) {
 }
 
 /**
+ * Escape HTML special characters to prevent XSS
+ * @param {*} str - Value to escape (converted to string)
+ * @returns {string} Escaped string safe for innerHTML interpolation
+ */
+export function escapeHtml(str) {
+    const s = String(str ?? '');
+    return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
  * Sleep/delay function
  * @param {number} ms - Milliseconds to sleep
  * @returns {Promise} Promise that resolves after delay

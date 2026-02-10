@@ -4,6 +4,7 @@
  */
 
 import { initAudio, playClick, playHover, playActivate, playTrail, toggleAudio, isAudioEnabled } from './audio.js';
+import { throttle, debounce } from './utils.js';
 
 const ULTRA_MODES = {
     terminal: {
@@ -101,7 +102,7 @@ function createCanvas() {
     document.body.appendChild(canvas);
     ctx = canvas.getContext('2d');
     resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', debounce(resizeCanvas, 150));
 }
 
 function resizeCanvas() {
@@ -236,8 +237,10 @@ export function toggleUltraMode() {
 /**
  * Setup event listeners
  */
+const throttledMouseMove = throttle(handleMouseMove, 16);
+
 function setupEventListeners() {
-    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mousemove', throttledMouseMove);
     document.addEventListener('click', handleClick);
     
     // Card hover effects

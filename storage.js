@@ -3,6 +3,8 @@
  * Caches stats for instant page loads
  */
 
+import { CACHE_TTLS } from './config.js';
+
 const STORAGE_KEYS = {
     stats: 'tezos-systems-stats',
     protocols: 'tezos-systems-protocols',
@@ -11,8 +13,8 @@ const STORAGE_KEYS = {
     lastVisitStats: 'tezos-systems-lastVisitStats'
 };
 
-// Cache TTL: 4 hours (data refreshes every 2h, so this gives buffer)
-const CACHE_TTL = 4 * 60 * 60 * 1000;
+// Cache TTL from config
+const CACHE_TTL = CACHE_TTLS.storage;
 
 // Minimum time between visits to show deltas (1 hour)
 const DELTA_MIN_GAP = 60 * 60 * 1000;

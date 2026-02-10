@@ -3,13 +3,16 @@
  * Tracks large wallets that have been dormant and alerts when they awaken
  */
 
+import { escapeHtml } from './utils.js';
+import { THRESHOLDS, API_URLS } from './config.js';
+
 // Configuration
 const CONFIG = {
-    minBalance: 1000000 * 1e6,  // 1M XTZ minimum (in mutez)
+    minBalance: THRESHOLDS.giantMinBalance,
     minDormantDays: 365,        // 1 year minimum dormancy
     maxGiants: 25,              // Top 25 sleeping giants
     pollInterval: 300000,       // 5 minutes
-    apiBase: 'https://api.tzkt.io/v1'
+    apiBase: API_URLS.tzkt
 };
 
 // State
@@ -265,8 +268,8 @@ function createGiantCard(giant, rank) {
             <span class="dormancy-label">${neverActive ? 'Dormant' : 'Asleep for'}</span>
             <span class="dormancy-value">${dormancy}</span>
         </div>
-        <div class="giant-address" title="${giant.address}">
-            ${giant.address.slice(0, 8)}...${giant.address.slice(-4)}
+        <div class="giant-address" title="${escapeHtml(giant.address)}">
+            ${escapeHtml(giant.address.slice(0, 8))}...${escapeHtml(giant.address.slice(-4))}
         </div>
         <div class="giant-heartbeat">
             <svg viewBox="0 0 100 30" class="flatline">
@@ -303,7 +306,7 @@ function createAwakeningAlert(awakening) {
             <span class="awakening-balance">${balance} ꜩ</span>
             <span class="awakening-dormancy">after ${dormancy} of sleep</span>
         </div>
-        <div class="awakening-address">${awakening.address.slice(0, 12)}...</div>
+        <div class="awakening-address">${escapeHtml(awakening.address.slice(0, 12))}...</div>
     `;
     
     alert.addEventListener('click', () => {

@@ -3,6 +3,9 @@
  * Shows notable XTZ movements with context
  */
 
+import { escapeHtml } from './utils.js';
+import { THRESHOLDS, API_URLS } from './config.js';
+
 // Known address labels
 const ADDRESS_LABELS = {
     // Exchanges
@@ -28,10 +31,10 @@ const ADDRESS_LABELS = {
 
 // Configuration
 const CONFIG = {
-    minAmount: 1000 * 1e6, // 1000 XTZ in mutez
+    minAmount: THRESHOLDS.whaleMinAmount,
     maxItems: 25,
     pollInterval: 20000, // 20 seconds (more activity at lower threshold)
-    apiBase: 'https://api.tzkt.io/v1'
+    apiBase: API_URLS.tzkt
 };
 
 // State
@@ -316,13 +319,13 @@ function createTransactionElement(tx) {
             const delegateAlias = tx.target?.alias || tx.newDelegate?.alias;
             const baker = getAddressLabel(delegateAddr, delegateAlias);
             flowHtml = `
-                <span class="whale-tx-addr" title="${tx.sender?.address}">${sender.icon} ${sender.name}</span>
+                <span class="whale-tx-addr" title="${escapeHtml(tx.sender?.address)}">${escapeHtml(sender.icon)} ${escapeHtml(sender.name)}</span>
                 <span class="whale-tx-arrow">→</span>
-                <span class="whale-tx-addr" title="${delegateAddr}">${baker.icon} ${baker.name}</span>
+                <span class="whale-tx-addr" title="${escapeHtml(delegateAddr)}">${escapeHtml(baker.icon)} ${escapeHtml(baker.name)}</span>
             `;
         } else {
             flowHtml = `
-                <span class="whale-tx-addr" title="${tx.sender?.address}">${sender.icon} ${sender.name}</span>
+                <span class="whale-tx-addr" title="${escapeHtml(tx.sender?.address)}">${escapeHtml(sender.icon)} ${escapeHtml(sender.name)}</span>
                 <span class="whale-tx-arrow">→</span>
                 <span class="whale-tx-addr">None</span>
             `;
@@ -330,24 +333,24 @@ function createTransactionElement(tx) {
     } else if (tx.type === 'stake' || tx.type === 'unstake') {
         const baker = tx.baker ? getAddressLabel(tx.baker.address, tx.baker.alias) : null;
         flowHtml = `
-            <span class="whale-tx-addr" title="${tx.sender?.address}">${sender.icon} ${sender.name}</span>
-            ${baker ? `<span class="whale-tx-arrow">↔</span><span class="whale-tx-addr" title="${tx.baker.address}">${baker.icon} ${baker.name}</span>` : ''}
+            <span class="whale-tx-addr" title="${escapeHtml(tx.sender?.address)}">${escapeHtml(sender.icon)} ${escapeHtml(sender.name)}</span>
+            ${baker ? `<span class="whale-tx-arrow">↔</span><span class="whale-tx-addr" title="${escapeHtml(tx.baker.address)}">${escapeHtml(baker.icon)} ${escapeHtml(baker.name)}</span>` : ''}
         `;
     } else {
         const target = getAddressLabel(tx.target?.address, tx.target?.alias);
         flowHtml = `
-            <span class="whale-tx-addr" title="${tx.sender?.address}">${sender.icon} ${sender.name}</span>
+            <span class="whale-tx-addr" title="${escapeHtml(tx.sender?.address)}">${escapeHtml(sender.icon)} ${escapeHtml(sender.name)}</span>
             <span class="whale-tx-arrow">→</span>
-            <span class="whale-tx-addr" title="${tx.target?.address}">${target.icon} ${target.name}</span>
+            <span class="whale-tx-addr" title="${escapeHtml(tx.target?.address)}">${escapeHtml(target.icon)} ${escapeHtml(target.name)}</span>
         `;
     }
     
     el.innerHTML = `
         <div class="whale-tx-header">
-            <span class="whale-tx-context">${context.emoji} ${context.label}</span>
-            <span class="whale-tx-time">${timeAgo(tx.timestamp)}</span>
+            <span class="whale-tx-context">${escapeHtml(context.emoji)} ${escapeHtml(context.label)}</span>
+            <span class="whale-tx-time">${escapeHtml(timeAgo(tx.timestamp))}</span>
         </div>
-        <div class="whale-tx-amount">${amount} <span class="xtz">ꜩ</span></div>
+        <div class="whale-tx-amount">${escapeHtml(amount)} <span class="xtz">ꜩ</span></div>
         <div class="whale-tx-flow">${flowHtml}</div>
     `;
     
