@@ -26,7 +26,7 @@ const UPGRADE_HIGHLIGHTS = {
     'Oxford': 'REJECTED then passed without AI ⚠️ • Oslo debate: AI params • Feb 2024',
     'Paris': '1.5× faster (10s blocks) • DAL launched • AI voting enabled • Jun 2024',
     'Paris C': 'DAL activation follow-up • Quick patch • Jun 2024',
-    'Quebec': '1.25× faster (8s blocks) • Quebec A vs B debate ⚡ • Jan 2025',
+    'Quebec': '8s blocks • Adaptive Maximum issuance • Quebec vs Qena economic governance battle ⚔️ • Jan 2025',
     'Rio': 'DAL rewards • Daily cycles (~1 day) • May 2025',
     'Seoul': 'Attestation aggregation • BLS proof-of-possession • Sep 2025',
     'Tallinn': '1.33× faster (6s blocks) • All Bakers Attest prep • Jan 2026'
@@ -39,7 +39,7 @@ const PROTOCOL_DEBATES = {
     'Jakarta': 'Redesigned LB "Escape Hatch" into "Toggle Vote" for ongoing democratic control.',
     'Lima': 'Timelocks disabled after security vulnerability found - adversary could forge proofs.',
     'Oxford': 'MAJOR: First Oxford REJECTED at Promotion stage. Oslo proposal competed with different AI params (7.5% max vs 5%). Oxford 2 passed with AI disabled pending more work.',
-    'Quebec': 'Two variants: Quebec A (50% delegation weight) vs Quebec B (33% weight). B won - further incentivizes staking over delegation.'
+    'Quebec': 'Tezos\' first economic governance crisis. Quebec\'s "adaptive maximum" issuance curve vs Tez Capital\'s Qena alternatives championing natural market forces. Qena variants won 75-80% support but failed 80% supermajority thresholds across multiple cycles. The 6-month battle established precedents for community scrutiny of economic changes and tested whether governance would remain developer-led or evolve toward community-driven decisions.'
 };
 
 /**

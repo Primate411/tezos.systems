@@ -16,7 +16,7 @@ import {
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from './arcade-effects.js';
 import { initHistoryModal, updateSparklines } from './history.js';
-import { initShare } from './share.js';
+import { initShare, initProtocolShare } from './share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from './governance.js';
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
 import { initTabs } from './tabs.js';
@@ -46,6 +46,7 @@ async function init() {
     
     // Initialize share functionality
     initShare();
+    initProtocolShare();
     
     // Initialize mobile tabs
     initTabs();
@@ -598,24 +599,26 @@ function renderProtocolTimeline(protocols) {
     const timelineEl = document.getElementById('upgrade-timeline');
     if (!timelineEl || !protocols.length) return;
     
+    // Protocols with major governance contention
+    const CONTENTIOUS = new Set(['Quebec']);
+    
     const timelineHTML = `
         <div class="timeline-track">
             ${protocols.map(p => {
-                let tooltip = `${p.name}: ${p.highlight}`;
-                if (p.debate) {
-                    tooltip += ` 📌 ${p.debate}`;
-                }
-                tooltip = tooltip.replace(/"/g, '&quot;');
+                const contentious = CONTENTIOUS.has(p.name);
                 return `
-                <div class="timeline-item ${p.isCurrent ? 'current' : ''}" 
-                     data-tooltip="${tooltip}"
+                <div class="timeline-item ${p.isCurrent ? 'current' : ''} ${contentious ? 'contentious' : ''}" 
                      data-protocol="${p.name}">
                     ${p.name[0]}
+                    ${contentious ? '<span class="contention-icon">⚔</span>' : ''}
                 </div>
             `}).join('')}
         </div>
     `;
     timelineEl.innerHTML = timelineHTML;
+    
+    // Load protocol-data.json for rich tooltips, then attach JS tooltips
+    initRichTooltips(protocols);
     
     // Update count
     const countEl = document.getElementById('upgrade-count');
@@ -630,6 +633,110 @@ function renderProtocolTimeline(protocols) {
         const highlightEl = document.getElementById('upgrade-highlight');
         if (highlightEl) highlightEl.textContent = currentProtocol.highlight;
     }
+}
+
+/**
+ * Rich JS-powered tooltips for protocol timeline items
+ */
+let _protocolDataCache = null;
+async function loadProtocolData() {
+    if (_protocolDataCache) return _protocolDataCache;
+    try {
+        const resp = await fetch('protocol-data.json');
+        _protocolDataCache = await resp.json();
+        return _protocolDataCache;
+    } catch (e) { return null; }
+}
+
+async function initRichTooltips(protocols) {
+    const data = await loadProtocolData();
+    const richMap = {};
+    if (data?.protocols) {
+        data.protocols.forEach(p => { richMap[p.name] = p; });
+    }
+
+    // Create shared tooltip element
+    let tooltipEl = document.getElementById('timeline-tooltip');
+    if (!tooltipEl) {
+        tooltipEl = document.createElement('div');
+        tooltipEl.id = 'timeline-tooltip';
+        const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
+        tooltipEl.style.cssText = `
+            position: fixed; z-index: 10000; pointer-events: none;
+            opacity: 0; visibility: hidden;
+            transition: opacity 0.2s ease, visibility 0.2s ease;
+            background: ${isMatrix ? 'rgba(0, 10, 0, 0.98)' : 'rgba(10, 10, 15, 0.98)'};
+            border: 1px solid ${isMatrix ? 'rgba(0, 255, 0, 0.5)' : 'rgba(0, 212, 255, 0.4)'};
+            border-radius: 10px; padding: 14px 16px;
+            width: 340px; max-width: 90vw;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            font-size: 0.72rem; line-height: 1.5;
+            color: ${isMatrix ? '#00ff00' : 'var(--text-primary)'};
+        `;
+        document.body.appendChild(tooltipEl);
+    }
+
+    const items = document.querySelectorAll('.timeline-item');
+    items.forEach(item => {
+        const name = item.getAttribute('data-protocol');
+        const govP = protocols.find(p => p.name === name);
+        const richP = richMap[name];
+
+        item.addEventListener('mouseenter', (e) => {
+            const accent = document.body.getAttribute('data-theme') === 'matrix' ? '#00ff00' : '#00d4ff';
+            const accentDim = document.body.getAttribute('data-theme') === 'matrix' ? 'rgba(0,255,0,0.6)' : 'rgba(0,212,255,0.6)';
+            
+            let html = '';
+            // Title line
+            const headline = richP?.headline || govP?.highlight || 'Network upgrade';
+            html += `<div style="font-weight:700; color:${accent}; font-size:0.82rem; margin-bottom:4px;">${name}</div>`;
+            html += `<div style="color:rgba(255,255,255,0.75); margin-bottom:6px; font-style:italic;">${headline}</div>`;
+            
+            // Debate
+            const debate = richP?.debate || govP?.debate;
+            if (debate) {
+                html += `<div style="color:${accentDim}; margin-bottom:6px;">📌 ${debate}</div>`;
+            }
+            
+            // Changes
+            const changes = richP?.changes;
+            if (changes && changes.length) {
+                html += `<div style="margin-top:4px; color:rgba(255,255,255,0.6);">`;
+                changes.forEach(c => { html += `<div style="padding-left:8px;">• ${c}</div>`; });
+                html += `</div>`;
+            }
+            
+            // Date
+            if (richP?.date) {
+                const d = new Date(richP.date + 'T00:00:00Z');
+                const dateStr = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+                html += `<div style="margin-top:6px; color:rgba(255,255,255,0.3); font-size:0.65rem;">${dateStr}</div>`;
+            }
+
+            tooltipEl.innerHTML = html;
+            tooltipEl.style.opacity = '1';
+            tooltipEl.style.visibility = 'visible';
+            positionTooltip(e, tooltipEl);
+        });
+        
+        item.addEventListener('mousemove', (e) => positionTooltip(e, tooltipEl));
+        
+        item.addEventListener('mouseleave', () => {
+            tooltipEl.style.opacity = '0';
+            tooltipEl.style.visibility = 'hidden';
+        });
+    });
+}
+
+function positionTooltip(e, tooltipEl) {
+    const rect = tooltipEl.getBoundingClientRect();
+    let x = e.clientX + 12;
+    let y = e.clientY + 16;
+    // Keep on screen
+    if (x + rect.width > window.innerWidth - 10) x = e.clientX - rect.width - 12;
+    if (y + rect.height > window.innerHeight - 10) y = e.clientY - rect.height - 16;
+    tooltipEl.style.left = x + 'px';
+    tooltipEl.style.top = y + 'px';
 }
 
 /**
