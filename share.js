@@ -844,7 +844,12 @@ async function captureAndShare() {
     document.querySelectorAll('.stats-section').forEach(sec => {
         const titleEl = sec.querySelector('.section-header .section-title');
         if (titleEl) {
-            sections.push({ name: titleEl.textContent.trim(), element: sec });
+            // Get text without chevron span
+            const name = Array.from(titleEl.childNodes)
+                .filter(n => n.nodeType === Node.TEXT_NODE)
+                .map(n => n.textContent.trim())
+                .join('');
+            sections.push({ name: name || titleEl.textContent.trim(), element: sec });
         }
     });
     
@@ -961,7 +966,6 @@ async function doCaptureAndShare(selectedSections) {
             top: 0;
             left: 0;
             width: 1200px;
-            min-height: 800px;
             background: ${getComputedStyle(document.body).background};
             padding: 30px;
             z-index: -1;
@@ -972,12 +976,23 @@ async function doCaptureAndShare(selectedSections) {
         const clone = mainContent.cloneNode(true);
         clone.style.cssText = 'margin: 0; padding: 0;';
         
+        // Add Protocols section (upgrade-clock is outside .main-content)
+        const selectedNames = new Set(selectedSections.map(s => s.name));
+        if (selectedNames.has('Protocols')) {
+            const ucOriginal = document.getElementById('upgrade-clock');
+            if (ucOriginal) {
+                const ucClone = ucOriginal.cloneNode(true);
+                ucClone.style.marginBottom = '20px';
+                // Remove infographic (too tall for capture) and toggle
+                ucClone.querySelectorAll('.protocol-infographic, .infographic-toggle').forEach(el => el.remove());
+                clone.insertBefore(ucClone, clone.firstChild);
+            }
+        }
+        
         // Remove card share buttons and info buttons from clone
         clone.querySelectorAll('.card-share-btn, .card-info-btn, .card-tooltip').forEach(el => el.remove());
         
-        // Remove unselected sections from clone
-        const selectedNames = new Set(selectedSections.map(s => s.name));
-        // Remove upgrade-clock if Protocols not selected
+        // Remove unselected sections from clone (upgrade-clock already handled above)
         if (!selectedNames.has('Protocols')) {
             const uc = clone.querySelector('.upgrade-clock');
             if (uc) uc.remove();
@@ -985,8 +1000,15 @@ async function doCaptureAndShare(selectedSections) {
         
         clone.querySelectorAll('.stats-section').forEach(sec => {
             const titleEl = sec.querySelector('.section-header .section-title');
-            if (titleEl && !selectedNames.has(titleEl.textContent.trim())) {
-                sec.remove();
+            if (titleEl) {
+                // Strip chevron spans to match picker names
+                const cleanName = Array.from(titleEl.childNodes)
+                    .filter(n => n.nodeType === Node.TEXT_NODE)
+                    .map(n => n.textContent.trim())
+                    .join('');
+                if (!selectedNames.has(cleanName) && !selectedNames.has(titleEl.textContent.trim())) {
+                    sec.remove();
+                }
             }
         });
         
@@ -994,8 +1016,30 @@ async function doCaptureAndShare(selectedSections) {
         const lastSection = clone.querySelector('.stats-section:last-child');
         if (lastSection) lastSection.style.marginBottom = '0';
         
-        // Remove section chevrons from capture
-        clone.querySelectorAll('.section-chevron').forEach(el => el.remove());
+        // Remove section chevrons and infographic toggle from capture
+        clone.querySelectorAll('.section-chevron, .infographic-toggle').forEach(el => el.remove());
+        
+        // Convert sparkline canvases to images (html2canvas can't render Chart.js canvases from clones)
+        document.querySelectorAll('canvas[id$="-sparkline"]').forEach(origCanvas => {
+            const cloneCanvas = clone.querySelector('#' + origCanvas.id);
+            if (cloneCanvas && origCanvas.width > 0) {
+                try {
+                    const img = document.createElement('img');
+                    img.src = origCanvas.toDataURL('image/png');
+                    img.style.cssText = cloneCanvas.style.cssText || 'width:100%;height:100%;';
+                    img.width = origCanvas.width;
+                    img.height = origCanvas.height;
+                    cloneCanvas.parentNode.replaceChild(img, cloneCanvas);
+                } catch(e) { /* ignore CORS errors */ }
+            }
+        });
+        
+        // Expand any collapsed sections in clone
+        clone.querySelectorAll('.stats-section.collapsed').forEach(sec => {
+            sec.classList.remove('collapsed');
+            var grid = sec.querySelector('.stats-grid');
+            if (grid) { grid.style.maxHeight = ''; grid.style.overflow = ''; grid.style.opacity = '1'; }
+        });
         
         const header = document.createElement('div');
         header.style.cssText = `
@@ -1037,12 +1081,17 @@ async function doCaptureAndShare(selectedSections) {
         
         document.body.appendChild(wrapper);
         
+        // Trim wrapper height to actual content (avoid dead space)
+        const actualHeight = wrapper.scrollHeight;
+        wrapper.style.height = actualHeight + 'px';
+        
         const canvas = await html2canvas(wrapper, {
             backgroundColor: isMatrix ? '#000000' : '#0a0a0f',
             scale: 2,
             useCORS: true,
             logging: false,
             width: 1200,
+            height: actualHeight,
             windowWidth: 1200
         });
         

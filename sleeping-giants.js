@@ -211,7 +211,7 @@ async function checkAwakenings(previousGiants) {
     for (const giant of previousGiants) {
         try {
             const response = await fetch(
-                `${CONFIG.apiBase}/accounts/${giant.address}/operations?limit=1&sort.desc=timestamp`
+                `${CONFIG.apiBase}/accounts/${giant.address}/operations?limit=1&sort.desc=id`
             );
             if (!response.ok) continue;
             

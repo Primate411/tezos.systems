@@ -12,11 +12,6 @@ export function createSparkline(canvasId, data, metric) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
 
-    // Destroy existing chart if any
-    if (chartInstances[canvasId]) {
-        chartInstances[canvasId].destroy();
-    }
-
     // Extract values and timestamps
     const values = data.map(d => d[metric]);
     const timestamps = data.map(d => new Date(d.timestamp));
@@ -45,6 +40,12 @@ export function createSparkline(canvasId, data, metric) {
     }
 
     const ctx = canvas.getContext('2d');
+    // Destroy existing chart so it picks up fresh options (e.g. grace)
+    if (chartInstances[canvasId]) {
+        chartInstances[canvasId].destroy();
+        delete chartInstances[canvasId];
+    }
+
     chartInstances[canvasId] = new Chart(ctx, {
         type: 'line',
         data: {
@@ -62,6 +63,8 @@ export function createSparkline(canvasId, data, metric) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: { top: 15, bottom: 2 } },
+            animation: { duration: 500 },  // Shorter initial animation
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -86,7 +89,10 @@ export function createSparkline(canvasId, data, metric) {
             },
             scales: {
                 x: { display: false },
-                y: { display: false }
+                y: {
+                    display: false,
+                    grace: '30%'
+                }
             },
             interaction: { mode: 'index', intersect: false }
         }

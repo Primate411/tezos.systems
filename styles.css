@@ -197,6 +197,8 @@ body::before {
     display: flex;
     gap: 10px;
     margin-left: auto;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .upgrade-badge {
@@ -299,6 +301,7 @@ body::before {
     display: flex;
     gap: 2px;
     flex-wrap: nowrap;
+    padding-bottom: 16px;
 }
 
 .timeline-item {
@@ -355,7 +358,7 @@ body::before {
 .timeline-item.contentious:hover .contention-icon {
     filter: drop-shadow(0 0 6px rgba(255, 80, 80, 0.9));
     opacity: 1;
-    transform: scale(1.2);
+    transform: translateX(-50%) scale(1.2);
 }
 
 [data-theme="matrix"] .contention-icon {
@@ -433,6 +436,20 @@ body::before {
     
     .upgrade-badge {
         width: 100%;
+    }
+
+    .upgrade-badges {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .contention-icon {
+        font-size: 0.6rem;
+        bottom: -12px;
+    }
+
+    .timeline-track {
+        padding-bottom: 14px;
     }
 }
 
@@ -801,7 +818,7 @@ body::before {
     padding: 1.5rem 1.75rem;
     text-align: left;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .card-back {

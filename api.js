@@ -238,13 +238,33 @@ async function fetchGovernance() {
  */
 async function fetchIssuance() {
     try {
-        const issuanceUrl = `${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`;
-        const rateString = await fetchText(issuanceUrl);
+        // Compute actual issuance rate from TzKT statistics (matches TzKT.io display)
+        // Compare totalCreated from 30 days ago vs now, annualize
+        const now = new Date();
+        const daysBack = 30;
+        const past = new Date(now.getTime() - daysBack * 24 * 3600 * 1000);
+        const pastStr = past.toISOString().split('T')[0];
+        const nextDay = new Date(past.getTime() + 24 * 3600 * 1000).toISOString().split('T')[0];
         
-        // current_yearly_rate from Octez already reflects actual issuance
-        // (LB subsidy was turned off in Quebec — constant still exists but isn't minted)
-        const rate = parseFloat(rateString.replace(/"/g, ''));
-        return rate;
+        const [currentStats, pastStats] = await Promise.all([
+            fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`),
+            fetchWithRetry(`${ENDPOINTS.tzkt.base}/statistics?timestamp.ge=${pastStr}T00:00:00Z&timestamp.lt=${nextDay}T00:00:00Z&limit=1`)
+        ]);
+        
+        const pastStat = Array.isArray(pastStats) ? pastStats[0] : pastStats;
+        if (!pastStat || !pastStat.totalCreated || !currentStats.totalSupply) {
+            // Fallback to Octez RPC
+            const rateString = await fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`);
+            return parseFloat(rateString.replace(/"/g, ''));
+        }
+        
+        const createdDiff = currentStats.totalCreated - pastStat.totalCreated;
+        const burnedDiff = (currentStats.totalBurned || 0) - (pastStat.totalBurned || 0);
+        const netIssuance = createdDiff - burnedDiff;
+        const avgSupply = (currentStats.totalSupply + pastStat.totalSupply) / 2;
+        const annualized = (netIssuance / avgSupply) * (365.25 / daysBack) * 100;
+        
+        return annualized;
     } catch (error) {
         console.error('Failed to fetch issuance:', error);
         return 0;

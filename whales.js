@@ -28,7 +28,7 @@ const ADDRESS_LABELS = {
 
 // Configuration
 const CONFIG = {
-    minAmount: 100 * 1e6, // 100 XTZ in mutez
+    minAmount: 1000 * 1e6, // 1000 XTZ in mutez
     maxItems: 25,
     pollInterval: 20000, // 20 seconds (more activity at lower threshold)
     apiBase: 'https://api.tzkt.io/v1'
@@ -200,7 +200,7 @@ function getTransactionContext(tx) {
 async function fetchTransactions(since) {
     const params = new URLSearchParams({
         'amount.ge': CONFIG.minAmount,
-        'sort.desc': 'timestamp',
+        'sort.desc': 'id',
         'limit': 15,
         'status': 'applied'
     });
@@ -216,25 +216,26 @@ async function fetchTransactions(since) {
  */
 async function fetchDelegations(since) {
     const params = new URLSearchParams({
-        'amount.ge': CONFIG.minAmount,
-        'sort.desc': 'timestamp',
-        'limit': 10,
+        'sort.desc': 'id',
+        'limit': 30,
         'status': 'applied'
     });
     if (since) params.set('timestamp.gt', since);
     
     try {
         const response = await fetch(`${CONFIG.apiBase}/operations/delegations?${params}`);
-        if (!response.ok) return []; // Silently fail, delegations may not have amount filter
+        if (!response.ok) return [];
         const data = await response.json();
         
-        // Normalize delegation data to match transaction format
-        return data.map(d => ({
-            ...d,
-            type: 'delegation',
-            amount: d.amount || d.stakedBalance || 0,
-            target: d.newDelegate ? { address: d.newDelegate.address, alias: d.newDelegate.alias } : null
-        }));
+        // Filter client-side — TzKT's amount.ge doesn't reliably filter delegations
+        return data
+            .filter(d => (d.amount || 0) >= CONFIG.minAmount)
+            .map(d => ({
+                ...d,
+                type: 'delegation',
+                amount: d.amount || 0,
+                target: d.newDelegate ? { address: d.newDelegate.address, alias: d.newDelegate.alias } : null
+            }));
     } catch {
         return [];
     }
@@ -246,9 +247,8 @@ async function fetchDelegations(since) {
 async function fetchStaking(since) {
     try {
         const params = new URLSearchParams({
-            'amount.ge': CONFIG.minAmount,
-            'sort.desc': 'timestamp',
-            'limit': 10,
+            'sort.desc': 'id',
+            'limit': 30,
             'status': 'applied'
         });
         if (since) params.set('timestamp.gt', since);
@@ -262,11 +262,12 @@ async function fetchStaking(since) {
         const stakes = stakeRes.ok ? await stakeRes.json() : [];
         const unstakes = unstakeRes.ok ? await unstakeRes.json() : [];
         
-        // Normalize and tag
-        return [
+        // Normalize, tag, and filter client-side (TzKT amount.ge unreliable for staking)
+        const all = [
             ...stakes.map(s => ({ ...s, type: 'stake' })),
             ...unstakes.map(s => ({ ...s, type: 'unstake' }))
         ];
+        return all.filter(s => (s.amount || s.requestedAmount || 0) >= CONFIG.minAmount);
     } catch {
         return [];
     }
@@ -461,7 +462,7 @@ async function loadInitialTransactions() {
             <div id="whale-empty" class="whale-empty">
                 <span class="whale-empty-icon">🐬</span>
                 <span>No activity detected recently</span>
-                <span class="whale-empty-sub">Watching transfers, stakes & delegations > 100 ꜩ</span>
+                <span class="whale-empty-sub">Watching transfers, stakes & delegations > 1,000 ꜩ</span>
             </div>
         `;
         return;
