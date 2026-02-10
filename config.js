@@ -46,3 +46,50 @@ export const MAINNET_LAUNCH = '2018-06-30T00:00:00Z';
 
 // History data start date
 export const HISTORY_START = '2024-01-01';
+
+// Static comparison data for other chains (updated periodically)
+export const CHAIN_COMPARISON = {
+    lastUpdated: '2026-02-10',
+    ethereum: {
+        name: 'Ethereum',
+        symbol: 'ETH',
+        blockTime: '~12s',
+        finality: '~13 min',
+        finalityNote: '2 epochs',
+        validators: '~1,100,000',
+        stakingPct: '~28%',
+        annualIssuance: '~0.5%',
+        selfAmendments: 0,
+        selfAmendmentsNote: 'Hard forks only',
+        hardForks: '14+',
+        energyPerTx: '~0.003 kWh',
+        energyPerTxNote: 'Post-Merge',
+        avgTxFee: '~$1–5',
+    },
+    solana: {
+        name: 'Solana',
+        symbol: 'SOL',
+        blockTime: '~0.4s',
+        finality: '~6.4s',
+        finalityNote: 'Confirmed',
+        validators: '~1,300',
+        stakingPct: '~65%',
+        annualIssuance: '~5.4%',
+        selfAmendments: 0,
+        selfAmendmentsNote: 'No on-chain governance',
+        hardForks: 'Multiple outages',
+        energyPerTx: '~0.00051 kWh',
+        energyPerTxNote: '',
+        avgTxFee: '~$0.005',
+    },
+    tezosStatic: {
+        // Fallback values when live data isn't available yet
+        blockTime: '~6s',
+        finality: '~6s',
+        finalityNote: '1 block',
+        hardForks: '0',
+        energyPerTx: '<0.001 kWh',
+        energyPerTxNote: '',
+        avgTxFee: '~$0.01',
+    }
+};

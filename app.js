@@ -27,6 +27,9 @@ import { initPriceBar } from './price.js';
 import { initStreak } from './streak.js';
 import { updatePageTitle } from './title.js';
 import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH } from './config.js';
+import { initComparison, updateComparison } from './comparison.js';
+import { init as initMyBaker, refresh as refreshMyBaker } from './my-baker.js';
+import { initCalculator } from './calculator.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -79,6 +82,12 @@ async function init() {
 
     // Initialize visit streak
     initStreak();
+
+    // Initialize My Baker
+    initMyBaker();
+
+    // Initialize Rewards Calculator
+    initCalculator();
 
     // Setup event listeners
     setupEventListeners();
@@ -318,6 +327,9 @@ async function refreshInBackground() {
         // Also refresh protocol data
         await updateUpgradeClock();
         
+        // Refresh My Baker data
+        refreshMyBaker();
+        
         resetCountdown();
     } catch (error) {
         console.error('Background refresh failed:', error);
@@ -347,6 +359,7 @@ async function refresh() {
         state.lastUpdate = new Date();
         updateLastRefreshTime();
         resetCountdown();
+        refreshMyBaker();
     } catch (error) {
         console.error('Failed to refresh stats:', error);
         showErrorState();
@@ -443,6 +456,9 @@ async function updateStats(newStats) {
     // Store current stats
     state.currentStats = { ...newStats };
 
+    // Update comparison section with live Tezos data
+    updateComparison(state.currentStats);
+
     // Update page title with live stats
     updatePageTitle(state.currentStats);
 }
@@ -493,6 +509,7 @@ function setupEventListeners() {
     setupModal('economy-info-btn', 'economy-modal', 'economy-modal-close');
     setupModal('network-info-btn', 'network-modal', 'network-modal-close');
     setupModal('ecosystem-info-btn', 'ecosystem-modal', 'ecosystem-modal-close');
+    setupModal('comparison-info-btn', 'comparison-modal', 'comparison-modal-close');
 
     // Handle visibility change
     document.addEventListener('visibilitychange', handleVisibilityChange);

@@ -386,7 +386,7 @@ async function fetchRollups() {
 /**
  * Fetch estimated staking APY
  */
-async function fetchStakingAPY() {
+export async function fetchStakingAPY() {
     try {
         // Get net issuance rate from Octez RPC (this is what TzKT uses for APY calc)
         const rateString = await fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`);

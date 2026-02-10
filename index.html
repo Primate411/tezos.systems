@@ -91,6 +91,9 @@
                 <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
                     <span>📊</span>
                 </button>
+                <button id="my-baker-toggle" class="glass-button" aria-label="Toggle My Baker" title="My Baker: OFF">
+                    <span class="my-baker-toggle-icon">🏠</span>
+                </button>
                 <button id="whale-toggle" class="glass-button" aria-label="Toggle Mini Whale feed" title="Mini Whale: OFF">
                     <span class="whale-toggle-icon">🐬</span>
                 </button>
@@ -192,6 +195,68 @@
                 <h3 class="awakenings-history-title">📜 Recent Awakenings</h3>
                 <div id="awakenings-log" class="awakenings-log">
                     <!-- Awakening history will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- My Baker Section (hidden by default, toggled via header button) -->
+    <section class="my-baker-section" id="my-baker-section">
+        <div class="my-baker-section-inner">
+            <h2 class="my-baker-title">🏠 My Baker</h2>
+            <div class="my-baker-controls">
+                <input type="text" id="my-baker-input" class="my-baker-input" placeholder="Enter your tz1... address" spellcheck="false" autocomplete="off" maxlength="36">
+                <button id="my-baker-save" class="glass-button my-baker-btn">Save</button>
+                <button id="my-baker-clear" class="glass-button my-baker-btn">Clear</button>
+            </div>
+            <div id="my-baker-error-msg" class="my-baker-error"></div>
+            <div id="my-baker-results" class="my-baker-results"></div>
+        </div>
+    </section>
+
+    <!-- Rewards Calculator (hidden by default, shown with My Baker) -->
+    <section class="my-baker-section" id="calculator-section">
+        <div class="my-baker-section-inner">
+            <h2 class="my-baker-title">🧮 Rewards Calculator</h2>
+            <div class="calc-container">
+                <div class="calc-input-row">
+                    <div class="calc-amount-wrap">
+                        <label for="calc-amount" class="calc-label">Amount (XTZ)</label>
+                        <input type="number" id="calc-amount" class="calc-input" placeholder="10000" min="0" step="any" autocomplete="off">
+                    </div>
+                    <div class="calc-toggle-wrap">
+                        <span class="calc-toggle-label-text">Delegate</span>
+                        <label class="calc-toggle">
+                            <input type="checkbox" id="calc-mode-toggle">
+                            <span class="calc-toggle-slider"></span>
+                        </label>
+                        <span class="calc-toggle-label-text" id="calc-mode-label-stake">Stake</span>
+                    </div>
+                    <div class="calc-apy-badge">
+                        <span class="calc-apy-label">APY</span>
+                        <span class="calc-apy-value" id="calc-apy-display">—</span>
+                    </div>
+                </div>
+                <div class="calc-results-grid" id="calc-results">
+                    <div class="calc-result-card">
+                        <span class="calc-result-period">Daily</span>
+                        <span class="calc-result-xtz" id="calc-daily-xtz">—</span>
+                        <span class="calc-result-usd" id="calc-daily-usd">—</span>
+                    </div>
+                    <div class="calc-result-card">
+                        <span class="calc-result-period">Monthly</span>
+                        <span class="calc-result-xtz" id="calc-monthly-xtz">—</span>
+                        <span class="calc-result-usd" id="calc-monthly-usd">—</span>
+                    </div>
+                    <div class="calc-result-card">
+                        <span class="calc-result-period">Yearly</span>
+                        <span class="calc-result-xtz" id="calc-yearly-xtz">—</span>
+                        <span class="calc-result-usd" id="calc-yearly-usd">—</span>
+                    </div>
+                </div>
+                <div class="calc-compound">
+                    <h3 class="calc-compound-title">Compound Projection</h3>
+                    <div class="calc-compound-body" id="calc-compound-body"></div>
                 </div>
             </div>
         </div>
@@ -864,7 +929,50 @@
                 </div>
             </div>
         </section>
+
+        <!-- How Tezos Compares Section -->
+        <section class="stats-section" id="comparison-section">
+            <div class="section-header">
+                <h2 class="section-title">How Tezos Compares</h2>
+                <button class="info-button" id="comparison-info-btn" aria-label="About comparison data">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="comparison-grid" id="comparison-grid">
+                <!-- Comparison cards rendered by comparison.js -->
+            </div>
+            <div class="comparison-footer">
+                <span class="comparison-last-updated" id="comparison-last-updated"></span>
+            </div>
+        </section>
+
+        <!-- Calculator moved to my-baker toggle area above -->
     </main>
+
+    <!-- Comparison Info Modal -->
+    <div class="modal-overlay" id="comparison-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="comparison-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">How Tezos Compares</h3>
+            <div class="modal-body">
+                <p>
+                    Side-by-side comparison of Tezos with Ethereum and Solana across key blockchain metrics.
+                    <strong>Tezos data is live</strong> from the network; Ethereum and Solana data is static and updated periodically.
+                </p>
+                <ul>
+                    <li><strong>Green highlight</strong>: The winner for each metric</li>
+                    <li><strong>Block Time</strong>: Time between blocks (lower = faster)</li>
+                    <li><strong>Finality</strong>: Time until a transaction is irreversible</li>
+                    <li><strong>Self-Amendments</strong>: On-chain upgrades without hard forks — unique to Tezos</li>
+                </ul>
+                <div class="modal-note">
+                    <p>All comparison data is verifiable from public sources. ETH/SOL values are approximate and may vary.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Consensus Info Modal -->
     <div class="modal-overlay" id="consensus-modal" aria-hidden="true">
@@ -1069,5 +1177,6 @@
     <script type="module" src="matrix-effects.js"></script>
     <script type="module" src="gauge.js"></script>
     <script type="module" src="price.js"></script>
+    <script type="module" src="comparison.js"></script>
 </body>
 </html>
