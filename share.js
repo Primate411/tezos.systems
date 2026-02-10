@@ -2055,7 +2055,7 @@ export async function initProtocolShare() {
     if (badgesContainer) {
         const btn = document.createElement('button');
         btn.className = 'timeline-share-btn';
-        btn.innerHTML = '📤';
+        btn.innerHTML = '📸';
         btn.title = 'Share the full protocol timeline';
         btn.style.cssText = `
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
