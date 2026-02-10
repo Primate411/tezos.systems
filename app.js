@@ -59,6 +59,9 @@ async function init() {
 
     // Setup event listeners
     setupEventListeners();
+    
+    // Initialize collapsible sections
+    initCollapsibleSections();
 
     // Try to load cached data for instant display
     const cachedStats = loadStats();
@@ -599,8 +602,8 @@ function renderProtocolTimeline(protocols) {
     const timelineEl = document.getElementById('upgrade-timeline');
     if (!timelineEl || !protocols.length) return;
     
-    // Protocols with major governance contention
-    const CONTENTIOUS = new Set(['Quebec']);
+    // Protocols with major governance contention (level 3+)
+    const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
     
     const timelineHTML = `
         <div class="timeline-track">
@@ -616,6 +619,9 @@ function renderProtocolTimeline(protocols) {
         </div>
     `;
     timelineEl.innerHTML = timelineHTML;
+    
+    // Render expanded infographic below timeline
+    renderInfographic(protocols, timelineEl);
     
     // Load protocol-data.json for rich tooltips, then attach JS tooltips
     initRichTooltips(protocols);
@@ -636,13 +642,115 @@ function renderProtocolTimeline(protocols) {
 }
 
 /**
+ * Render expanded protocol infographic below the letter timeline
+ */
+async function renderInfographic(protocols, timelineEl) {
+    // Clean up old instances (timeline gets rebuilt on data refresh)
+    document.querySelectorAll('.infographic-toggle').forEach(function(el) { el.remove(); });
+    document.querySelectorAll('.protocol-infographic').forEach(function(el) { el.remove(); });
+    
+    const data = await loadProtocolData();
+    const richMap = {};
+    if (data?.protocols) {
+        data.protocols.forEach(p => { richMap[p.name] = p; });
+    }
+    
+    const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
+    
+    // Toggle button
+    const toggleDiv = document.createElement('div');
+    toggleDiv.className = 'infographic-toggle';
+    toggleDiv.innerHTML = `<button class="infographic-toggle-btn">View Full Timeline ▾</button>`;
+    // Place below the upgrade count (21 UPGRADES)
+    const upgradeCount = document.querySelector('.upgrade-count');
+    if (upgradeCount) {
+        upgradeCount.appendChild(toggleDiv);
+    } else {
+        timelineEl.appendChild(toggleDiv);
+    }
+    
+    // Infographic container
+    const infographic = document.createElement('div');
+    infographic.className = 'protocol-infographic';
+    infographic.id = 'protocol-infographic';
+    
+    // Pick a key tag for each protocol (first change, shortened)
+    function getTag(p) {
+        const rich = richMap[p.name];
+        if (rich?.blockTime) return `${rich.blockTime}s blocks`;
+        if (rich?.changes?.length) {
+            const c = rich.changes[0];
+            if (c.length <= 20) return c;
+            return c.slice(0, 18) + '…';
+        }
+        return null;
+    }
+    
+    let rowsHTML = '';
+    protocols.forEach((p, i) => {
+        const contentious = CONTENTIOUS.has(p.name);
+        const isCurrent = p.isCurrent || i === protocols.length - 1;
+        const rich = richMap[p.name];
+        const dateStr = rich?.date
+            ? new Date(rich.date + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+            : '';
+        const headline = rich?.headline || '';
+        const tag = getTag(p);
+        const delay = i * 30;
+        
+        rowsHTML += `
+            <div class="infographic-row ${contentious ? 'contentious' : ''} ${isCurrent ? 'current' : ''}" 
+                 style="animation-delay: ${delay}ms" data-protocol="${p.name}">
+                <div class="infographic-dot"></div>
+                <span class="infographic-letter">${p.name[0]}</span>
+                <span class="infographic-name" title="${p.name}">${p.name}</span>
+                <span class="infographic-date">${dateStr}</span>
+                <span class="infographic-headline">${headline}</span>
+                ${contentious ? '<span class="infographic-contention">⚔</span>' : ''}
+                ${tag ? `<div class="infographic-tags"><span class="infographic-tag">${tag}</span></div>` : ''}
+            </div>
+        `;
+    });
+    
+    infographic.innerHTML = `<div class="infographic-inner">${rowsHTML}</div>`;
+    timelineEl.appendChild(infographic);
+    
+    // Click on infographic rows — same behavior as clicking timeline letters
+    infographic.addEventListener('click', function(e) {
+        var row = e.target.closest('.infographic-row');
+        if (!row) return;
+        var name = row.getAttribute('data-protocol');
+        if (!name) return;
+        var richP = richMap[name];
+        if (richP && richP.history) {
+            showProtocolHistoryModal(richP.history, name);
+        } else if (typeof window.captureProtocol === 'function') {
+            var proto = richMap[name];
+            if (proto) window.captureProtocol(proto);
+        }
+    });
+    
+    // Make rows look clickable
+    infographic.querySelectorAll('.infographic-row').forEach(function(row) {
+        row.style.cursor = 'pointer';
+    });
+    
+    // Toggle logic
+    const btn = toggleDiv.querySelector('.infographic-toggle-btn');
+    btn.addEventListener('click', () => {
+        const expanded = infographic.classList.toggle('expanded');
+        btn.textContent = expanded ? 'Hide Timeline ▴' : 'View Full Timeline ▾';
+    });
+}
+
+/**
  * Rich JS-powered tooltips for protocol timeline items
  */
 let _protocolDataCache = null;
 async function loadProtocolData() {
     if (_protocolDataCache) return _protocolDataCache;
     try {
-        const resp = await fetch('protocol-data.json');
+        const resp = await fetch('protocol-data.json?v=' + Date.now());
         _protocolDataCache = await resp.json();
         return _protocolDataCache;
     } catch (e) { return null; }
@@ -713,6 +821,15 @@ async function initRichTooltips(protocols) {
                 html += `<div style="margin-top:6px; color:rgba(255,255,255,0.3); font-size:0.65rem;">${dateStr}</div>`;
             }
 
+            // "Read Full History" button for contentious protocols
+            if (richP?.history) {
+                html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
+                    <span class="history-expand-hint" style="color:${accent}; font-size:0.68rem; cursor:pointer; opacity:0.8;">
+                        ⚔ Click to read the full history →
+                    </span>
+                </div>`;
+            }
+
             tooltipEl.innerHTML = html;
             tooltipEl.style.opacity = '1';
             tooltipEl.style.visibility = 'visible';
@@ -725,7 +842,112 @@ async function initRichTooltips(protocols) {
             tooltipEl.style.opacity = '0';
             tooltipEl.style.visibility = 'hidden';
         });
+
+        // Click to open full history modal for contentious protocols
+        if (richP?.history) {
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', () => {
+                tooltipEl.style.opacity = '0';
+                tooltipEl.style.visibility = 'hidden';
+                showProtocolHistoryModal(richP.history, name);
+            });
+        }
     });
+}
+
+function showProtocolHistoryModal(history, protocolName) {
+    const existing = document.getElementById('protocol-history-modal');
+    if (existing) existing.remove();
+
+    const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
+    const accent = isMatrix ? '#00ff00' : '#00d4ff';
+    const accentRgb = isMatrix ? '0,255,0' : '0,212,255';
+    const bg = isMatrix ? 'rgba(0, 8, 0, 0.98)' : 'rgba(8, 8, 16, 0.98)';
+    const borderColor = isMatrix ? 'rgba(0,255,0,0.3)' : 'rgba(0,212,255,0.3)';
+
+    let sectionsHtml = '';
+    for (const section of history.sections) {
+        if (section.type === 'timeline') {
+            sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
+            sectionsHtml += `<div class="history-timeline" style="position:relative; padding-left:24px; border-left:2px solid ${borderColor};">`;
+            for (const ev of section.events) {
+                const sideColor = ev.side === 'quebec' ? '#ff6b6b' : ev.side === 'qena' ? '#4ecdc4' : 'rgba(255,255,255,0.5)';
+                sectionsHtml += `
+                    <div style="margin-bottom:16px; position:relative;">
+                        <div style="position:absolute; left:-30px; top:4px; width:12px; height:12px; border-radius:50%; background:${sideColor}; box-shadow:0 0 8px ${sideColor};"></div>
+                        <div style="color:rgba(255,255,255,0.4); font-size:0.72rem; font-weight:600; margin-bottom:2px;">${ev.date}</div>
+                        <div style="color:rgba(255,255,255,0.85); font-size:0.82rem; line-height:1.5;">${ev.text}</div>
+                    </div>`;
+            }
+            sectionsHtml += `<div style="display:flex; gap:16px; margin-top:8px; font-size:0.68rem; color:rgba(255,255,255,0.4);">
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff6b6b;margin-right:4px;"></span>Quebec</span>
+                <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ecdc4;margin-right:4px;"></span>Qena</span>
+            </div></div>`;
+        } else if (section.type === 'versus') {
+            sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
+            sectionsHtml += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">`;
+            for (const side of [section.left, section.right]) {
+                const sideColor = side === section.left ? '#ff6b6b' : '#4ecdc4';
+                sectionsHtml += `
+                    <div style="background:rgba(255,255,255,0.03); border:1px solid ${sideColor}30; border-radius:10px; padding:16px;">
+                        <div style="color:${sideColor}; font-weight:700; font-size:0.9rem; margin-bottom:4px;">${side.name}</div>
+                        <div style="color:rgba(255,255,255,0.4); font-size:0.7rem; margin-bottom:8px;">${side.team}</div>
+                        <div style="color:rgba(255,255,255,0.75); font-size:0.8rem; line-height:1.5; margin-bottom:10px;">${side.position}</div>
+                        <div style="border-left:3px solid ${sideColor}40; padding-left:10px; color:rgba(255,255,255,0.6); font-style:italic; font-size:0.78rem; line-height:1.5;">"${side.quote}"</div>
+                    </div>`;
+            }
+            sectionsHtml += `</div>`;
+        } else {
+            sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
+            const paras = section.content.split('\n\n');
+            for (const p of paras) {
+                if (p.startsWith('•') || p.startsWith('- ')) {
+                    sectionsHtml += `<div style="color:rgba(255,255,255,0.75); font-size:0.82rem; line-height:1.6; margin-bottom:6px; padding-left:12px;">${p}</div>`;
+                } else if (p.startsWith('"') || p.startsWith('\u201c')) {
+                    sectionsHtml += `<blockquote style="border-left:3px solid ${borderColor}; padding:10px 14px; margin:10px 0; color:rgba(255,255,255,0.6); font-style:italic; font-size:0.82rem; line-height:1.6; background:rgba(255,255,255,0.02); border-radius:0 8px 8px 0;">${p}</blockquote>`;
+                } else {
+                    sectionsHtml += `<p style="color:rgba(255,255,255,0.75); font-size:0.82rem; line-height:1.7; margin-bottom:12px;">${p}</p>`;
+                }
+            }
+        }
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'protocol-history-modal';
+    modal.style.cssText = `
+        position:fixed; inset:0; z-index:10001; display:flex; align-items:center; justify-content:center;
+        background:rgba(0,0,0,0.85); backdrop-filter:blur(8px);
+        opacity:0; transition:opacity 0.3s ease;
+    `;
+    modal.innerHTML = `
+        <div class="modal-large" style="
+            background:${bg}; border:1px solid ${borderColor};
+            border-radius:16px; max-width:720px; width:92vw; max-height:85vh; overflow-y:auto;
+            padding:32px; position:relative;
+            box-shadow:0 0 60px rgba(${accentRgb},0.1), 0 20px 60px rgba(0,0,0,0.5);
+        ">
+            <button id="history-modal-close" style="
+                position:sticky; top:0; float:right; background:rgba(255,255,255,0.05);
+                border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.6);
+                width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:18px;
+                display:flex; align-items:center; justify-content:center; z-index:2;
+                transition:all 0.2s;
+            ">×</button>
+            <div style="font-family:'Orbitron',sans-serif; color:${accent}; font-size:1.3rem; font-weight:700;
+                letter-spacing:2px; text-shadow:0 0 20px rgba(${accentRgb},0.4); margin-bottom:4px;">
+                ⚔ ${history.title}
+            </div>
+            <div style="color:rgba(255,255,255,0.4); font-size:0.78rem; margin-bottom:20px;">${history.subtitle}</div>
+            ${sectionsHtml}
+        </div>
+    `;
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => { modal.style.opacity = '1'; });
+
+    const closeModal = () => { modal.style.opacity = '0'; setTimeout(() => modal.remove(), 300); };
+    modal.querySelector('#history-modal-close').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', esc); } });
 }
 
 function positionTooltip(e, tooltipEl) {
@@ -803,6 +1025,46 @@ if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
 } else {
     init();
+}
+
+// Collapsible sections
+function initCollapsibleSections() {
+    document.querySelectorAll('.section-header').forEach(header => {
+        const title = header.querySelector('.section-title');
+        if (!title) return;
+        title.style.cursor = 'pointer';
+        title.style.userSelect = 'none';
+        // Add chevron
+        const chevron = document.createElement('span');
+        chevron.className = 'section-chevron';
+        chevron.textContent = '▾';
+        chevron.style.cssText = 'margin-left: 8px; font-size: 0.7em; opacity: 0.5; transition: transform 0.3s ease, opacity 0.3s ease; display: inline-block;';
+        title.appendChild(chevron);
+        title.addEventListener('mouseenter', () => { chevron.style.opacity = '1'; });
+        title.addEventListener('mouseleave', () => { chevron.style.opacity = header.closest('.stats-section').classList.contains('collapsed') ? '0.7' : '0.5'; });
+        title.addEventListener('click', () => {
+            const section = header.closest('.stats-section');
+            if (!section) return;
+            const content = section.querySelector('.stats-grid, .stats-grid-2');
+            if (!content) return;
+            const isCollapsed = section.classList.toggle('collapsed');
+            if (isCollapsed) {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                content.offsetHeight; // force reflow
+                content.style.maxHeight = '0';
+                content.style.overflow = 'hidden';
+                content.style.opacity = '0';
+                chevron.style.transform = 'rotate(-90deg)';
+                chevron.style.opacity = '0.7';
+            } else {
+                content.style.maxHeight = content.scrollHeight + 'px';
+                content.style.opacity = '1';
+                chevron.style.transform = 'rotate(0deg)';
+                chevron.style.opacity = '0.5';
+                setTimeout(() => { content.style.maxHeight = ''; content.style.overflow = ''; }, 300);
+            }
+        });
+    });
 }
 
 // Expose refresh function globally

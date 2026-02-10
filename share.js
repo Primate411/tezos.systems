@@ -8,97 +8,248 @@ let html2canvasLoaded = false;
 // change: 'up' | 'down' | 'neutral' | ''
 const TWEET_OPTIONS = {
     'total-bakers': [
-        { label: '📊 Standard', text: (v) => `🧑‍🍳 Tezos has ${v} active bakers securing the network\n\nReal-time stats →` },
-        { label: '🔥 Dunk', text: (v) => `${v} independent bakers vs Solana's 1 off-switch. Decentralization isn't a buzzword on Tezos 🧑‍🍳` },
-        { label: '💪 Flex', text: (v) => `${v} validators, no foundation permission needed, no $1M hardware. That's what permissionless looks like 🫡` },
+        // Standard
+        { label: '📊 Standard', text: (v) => `Tezos has ${v} active bakers securing the network right now.\n\nReal-time stats →` },
+        { label: '📊 Standard', text: (v) => `${v} independent validators running Tezos consensus.\n\nNo permission needed. No minimum stake. Just bake.` },
+        { label: '📊 Standard', text: (v) => `Current Tezos baker count: ${v}\n\nEvery single one ran by an independent operator. That's decentralization you can count.` },
+        // Dunk
+        { label: '🔥 Dunk', text: (v) => `${v} independent bakers vs Solana's "we'll just restart it" approach.\n\nDecentralization isn't a marketing slide.` },
+        { label: '🔥 Dunk', text: (v) => `ETH requires 32 ETH (~$100K) to validate.\nTezos requires... a Raspberry Pi and some XTZ.\n\n${v} bakers chose the permissionless option.` },
+        { label: '🔥 Dunk', text: (v) => `Solana has 1 validator client. If it bugs out, the chain stops.\n\nTezos has ${v} bakers running multiple clients. We don't do single points of failure.` },
+        { label: '🔥 Dunk', text: (v) => `"Decentralized" chains with a foundation kill switch vs ${v} Tezos bakers that literally no one can shut down.\n\nChoose wisely.` },
+        // Flex
+        { label: '💪 Flex', text: (v) => `${v} validators. No foundation permission. No $1M hardware requirement.\n\nThat's what permissionless actually looks like.` },
+        { label: '💪 Flex', text: (v) => `${v} bakers, each one an equal vote in protocol governance.\n\nNo delegation to insiders. No "governance tokens." Just stake and vote.` },
+        // Recruit
         { label: '📢 Recruit', text: (v, c) => c === 'down'
-            ? `Baker count is trending down — barrier to entry just got lower. Start baking 🍞\nhttps://docs.tez.capital`
-            : `${v} bakers and growing. Join them → https://docs.tez.capital` },
+            ? `Baker count trending down to ${v} — your vote has never mattered more.\n\nLess competition, more rewards. Start baking today →\nhttps://docs.tez.capital`
+            : `${v} bakers and counting. The barrier to entry is shockingly low.\n\nGot a spare machine? You could be earning rewards by tonight →\nhttps://docs.tez.capital` },
+        { label: '📢 Recruit', text: (v, c) => c === 'down'
+            ? `Fewer bakers = bigger slice of the pie. ${v} and dropping.\n\nSeriously, if you hold XTZ and aren't baking, what are you doing?`
+            : `Every new baker makes Tezos stronger. Currently at ${v}.\n\nNo lockup, no slashing, no $100K minimum. What's stopping you?` },
+        // Question
+        { label: '❓ Question', text: (v) => `${v} independent bakers on Tezos.\n\nHow many validators does your chain need to go down before you start worrying?` },
+        { label: '❓ Question', text: (v) => `Genuine question: why would anyone stake on a chain with slashing risk when Tezos has ${v} bakers earning yield with zero slashing?` },
+        // Comparison
+        { label: '📈 Compare', text: (v) => `Validator counts:\n• Tezos: ${v} (anyone can join)\n• Solana: ~1,900 (need expensive hardware)\n• BTC: 0 (miners aren't validators)\n\nPermissionless means permissionless.` },
     ],
     'tz4-adoption': [
-        { label: '📊 Standard', text: (v) => `🔑 ${v} of Tezos bakers now use tz4/BLS — 63x bandwidth savings\n\nTrack the migration →` },
-        { label: '🔥 Dunk', text: (v) => `${v} of Tezos bakers already on BLS signatures. ETH still arguing about account abstraction 💅` },
-        { label: '💪 Flex', text: (v) => `${v} tz4/BLS adoption on Tezos. 63× bandwidth savings. The chain upgrades itself AND its bakers upgrade with it 🔑` },
+        // Standard
+        { label: '📊 Standard', text: (v) => `${v} of Tezos bakers now use tz4/BLS signatures — 63× bandwidth savings over traditional keys.\n\nTrack the migration →` },
+        { label: '📊 Standard', text: (v) => `BLS signature adoption on Tezos: ${v}\n\nSmaller consensus messages, faster finality, better scalability. The upgrade path is working.` },
+        // Dunk
+        { label: '🔥 Dunk', text: (v) => `${v} of Tezos bakers already migrated to BLS signatures.\n\nETH is still arguing about account abstraction. Tezos ships.` },
+        { label: '🔥 Dunk', text: (v) => `While other chains debate signature schemes in Discord, ${v} of Tezos bakers already upgraded to BLS.\n\nOn-chain governance means upgrades actually happen.` },
+        { label: '🔥 Dunk', text: (v) => `BLS signatures give Tezos 63× bandwidth savings.\n\nSolana's solution to bandwidth? "Just buy more expensive hardware." Cool cool cool.` },
+        // Flex
+        { label: '💪 Flex', text: (v) => `${v} tz4/BLS adoption. 63× bandwidth savings. The chain upgrades itself AND its bakers upgrade with it.\n\nThis is what a living protocol looks like.` },
+        { label: '💪 Flex', text: (v) => `tz4 adoption at ${v} and climbing.\n\nBLS aggregate signatures mean Tezos consensus gets lighter as more bakers adopt. The network literally gets better over time.` },
+        // Question
+        { label: '❓ Question', text: (v) => `${v} of Tezos bakers voluntarily upgraded their signing keys to a more efficient scheme.\n\nWhen was the last time your chain's validators proactively improved consensus?` },
+        { label: '❓ Question', text: (v) => `63× bandwidth savings from BLS signatures. ${v} adoption and growing.\n\nWhy isn't every chain doing this?` },
+        // Comparison
+        { label: '📈 Compare', text: (v) => `Signature tech comparison:\n• Tezos: BLS aggregate sigs (${v} adopted), 63× savings\n• ETH: Still on ECDSA, EIP-7702 pending\n• Solana: Ed25519 only\n\nTezos moves fast because governance works.` },
     ],
     'staking-apy': [
-        { label: '📊 Standard', text: (v) => `📈 Tezos staking APY: ${v}\n\nStake your XTZ →` },
-        { label: '🔥 Dunk', text: (v) => `Tezos staking APY: ${v}. No lockups, no slashing surprises, no "restaking" Ponzi needed 😌` },
-        { label: '💪 Flex', text: (v) => `${v} APY just for securing the network. Tezos staking: simple, liquid, no minimum 💰` },
+        // Standard
+        { label: '📊 Standard', text: (v) => `Tezos staking APY: ${v}\n\nNo lockup. No slashing. No minimum. Just delegate and earn.` },
+        { label: '📊 Standard', text: (v) => `Current XTZ staking yield: ${v}\n\nFully liquid — use your tokens anytime while earning rewards.` },
+        // Dunk
+        { label: '🔥 Dunk', text: (v) => `Tezos staking: ${v} APY. No lockups, no slashing surprises, no "restaking" ponzi needed.\n\nJust honest yield for securing the network.` },
+        { label: '🔥 Dunk', text: (v) => `ETH staking: lock 32 ETH, risk slashing, need Lido wrapper.\nTezos staking: ${v} APY, fully liquid, delegate any amount.\n\nOne of these is user-friendly.` },
+        { label: '🔥 Dunk', text: (v) => `Tezos: ${v} APY, liquid, no slashing.\nCosmos: similar APY, 21-day unbonding, slashing risk.\n\nWhy do people accept worse terms?` },
+        // Flex
+        { label: '💪 Flex', text: (v) => `${v} APY for securing one of the most technically advanced L1s in crypto.\n\nNo wrappers. No lockups. No slashing. Just XTZ.` },
+        { label: '💪 Flex', text: (v) => `Earning ${v} just for holding and delegating XTZ.\n\nMeanwhile it's also deflationary. The tokenomics actually make sense.` },
+        // Recruit
+        { label: '📢 Recruit', text: (v) => `Not staking your XTZ?\n\nYou're leaving ${v} APY on the table. Delegation takes 2 clicks and your tokens stay liquid.` },
+        // Question
+        { label: '❓ Question', text: (v) => `${v} staking APY with zero lockup and zero slashing risk.\n\nWhy would anyone choose a chain that punishes you for validating?` },
+        { label: '❓ Question', text: (v) => `If you could earn ${v} yield without locking your tokens or risking slashing... why wouldn't you?\n\nSerious question for ETH stakers.` },
     ],
     'issuance-rate': [
-        { label: '📊 Standard', text: (v) => `💰 Tezos issuance rate: ${v}\n\nMonitor in real-time →` },
-        { label: '🔥 Dunk', text: (v) => `Tezos issuance: ${v}. Adaptive, voted on by the network. Not decided by a foundation in a group chat 🫠` },
+        // Standard
+        { label: '📊 Standard', text: (v) => `Tezos issuance rate: ${v}\n\nAdaptive issuance — the protocol adjusts based on staking participation. Sound money, on-chain.` },
+        { label: '📊 Standard', text: (v) => `Current XTZ issuance: ${v}\n\nNot fixed by decree. Not set by a foundation. Determined by protocol-level economic feedback loops.` },
+        // Dunk
+        { label: '🔥 Dunk', text: (v) => `Tezos issuance: ${v}. Adaptive, voted on by the network.\n\nNot decided by a foundation in a group chat. Not printed to fund VC rounds.` },
+        { label: '🔥 Dunk', text: (v) => `ETH went from PoW to PoS and called it "ultrasound money."\n\nTezos has had adaptive issuance at ${v} governed by on-chain votes since day one. No marketing needed.` },
+        { label: '🔥 Dunk', text: (v) => `Solana's inflation: fixed schedule, no governance input.\nTezos issuance: ${v}, dynamically adjusted by protocol economics.\n\nOne is monetary policy. The other is "trust us bro."` },
+        // Flex
+        { label: '💪 Flex', text: (v) => `${v} issuance rate. Adaptive. Governed. Transparent.\n\nTezos monetary policy is literally encoded in the protocol, not someone's Twitter bio.` },
+        // Question
+        { label: '❓ Question', text: (v) => `Tezos issuance: ${v}, dynamically adjusted by the protocol itself.\n\nDo you know your chain's issuance schedule? Do you get a vote on it?` },
+        { label: '❓ Question', text: (v) => `Should monetary policy be hardcoded, or should it adapt to network conditions?\n\nTezos chose adaptive: ${v} current rate, governed on-chain.` },
+        // Comparison
+        { label: '📈 Compare', text: (v) => `Issuance governance:\n• BTC: Fixed halving (no input)\n• ETH: Core dev decisions\n• SOL: Fixed schedule\n• XTZ: ${v} — adaptive, on-chain governed\n\nOnly one lets stakeholders vote.` },
     ],
     'staking-ratio': [
-        { label: '📊 Standard', text: (v) => `🔒 ${v} of all XTZ is now staked\n\nNetwork health →` },
-        { label: '💪 Flex', text: (v) => `${v} staking ratio. XTZ holders put their money where their mouth is 💪` },
-        { label: '🔥 Dunk', text: (v) => `${v} of XTZ staked. No liquid staking derivatives needed — it's native and liquid by default 🧊` },
+        // Standard
+        { label: '📊 Standard', text: (v) => `${v} of all XTZ is now staked.\n\nStrong participation = strong security = healthy network.` },
+        { label: '📊 Standard', text: (v) => `Tezos staking ratio: ${v}\n\nEvery staked XTZ is a vote of confidence in the network's future.` },
+        // Dunk
+        { label: '🔥 Dunk', text: (v) => `${v} of XTZ staked natively. No Lido. No liquid staking derivatives. No wrapper tokens.\n\nIt's built into the protocol. Novel concept, apparently.` },
+        { label: '🔥 Dunk', text: (v) => `ETH staking ratio: ~28% (and most of it through Lido/Coinbase).\nTezos staking ratio: ${v} — natively, directly, no middleman.\n\nThe difference is protocol design.` },
+        { label: '🔥 Dunk', text: (v) => `${v} staked on Tezos without a single liquid staking derivative existing.\n\nETH needed an entire DeFi vertical just to make staking usable. Tezos ships it at the protocol level.` },
+        // Flex
+        { label: '💪 Flex', text: (v) => `${v} staking ratio. XTZ holders don't just hold — they participate.\n\nStaking IS governance on Tezos. Your stake is your vote.` },
+        { label: '💪 Flex', text: (v) => `${v} of all XTZ securing the network.\n\nFully liquid. No lockups. No intermediaries. This is how PoS should work.` },
+        // Question
+        { label: '❓ Question', text: (v) => `${v} of XTZ staked natively vs ETH's ~28% (mostly through third parties).\n\nWhich network has better aligned incentives?` },
+        { label: '❓ Question', text: (v) => `If ${v} of a token's supply is actively staked and governing the chain, is that bullish or bearish?\n\n(It's bullish.)` },
+        // Comparison
+        { label: '📈 Compare', text: (v) => `Staking participation:\n• Tezos: ${v} (native, liquid)\n• ETH: ~28% (mostly via Lido/Coinbase)\n• SOL: ~67% (lockup required)\n• ATOM: ~63% (21-day unbonding)\n\nTezos: highest effective participation, zero lockup.` },
     ],
     'total-burned': [
-        { label: '📊 Standard', text: (v) => `🔥 ${v} XTZ burned forever\n\nDeflationary pressure →` },
-        { label: '💪 Flex', text: (v) => `${v} XTZ gone forever. Every smart contract call burns a little. Deflation built into the protocol 🔥` },
+        // Standard
+        { label: '📊 Standard', text: (v) => `${v} XTZ burned and removed from circulation permanently.\n\nEvery smart contract call, every transaction — a little more gets burned.` },
+        { label: '📊 Standard', text: (v) => `Total XTZ burned: ${v}\n\nDeflationary pressure built directly into protocol economics.` },
+        // Dunk
+        { label: '🔥 Dunk', text: (v) => `${v} XTZ burned.\n\nETH needed EIP-1559 and years of debate to add fee burning. Tezos just... had it.` },
+        { label: '🔥 Dunk', text: (v) => `"Ultrasound money" requires a marketing campaign.\n\nTezos just quietly burns ${v} XTZ through normal protocol operations. No branding needed.` },
+        // Flex
+        { label: '💪 Flex', text: (v) => `${v} XTZ gone forever. Not locked. Not staked. Burned.\n\nAdaptive issuance + protocol-level burning = genuinely sound tokenomics.` },
+        { label: '💪 Flex', text: (v) => `Every smart contract call on Tezos burns XTZ. Total so far: ${v}\n\nMore usage = more scarcity. The flywheel works.` },
+        // Question
+        { label: '❓ Question', text: (v) => `${v} XTZ permanently burned through protocol operations.\n\nAt what point does a token with adaptive issuance AND burn mechanics become the most sound money in crypto?` },
+        { label: '❓ Question', text: (v) => `Adaptive issuance + ${v} XTZ burned.\n\nIs Tezos the most underappreciated deflationary asset in crypto right now?` },
+        // Comparison
+        { label: '📈 Compare', text: (v) => `Burn mechanics:\n• ETH: EIP-1559 base fee burn (since 2021)\n• BTC: None\n• SOL: Priority fee burn (50%)\n• XTZ: ${v} burned via storage fees + operations\n\nTezos had fee burning before it was cool.` },
     ],
     'total-supply': [
-        { label: '📊 Standard', text: (v) => `💎 Total XTZ supply: ${v}\n\nTrack the economy →` },
+        { label: '📊 Standard', text: (v) => `Total XTZ supply: ${v}\n\nWith adaptive issuance and ongoing burns, this number tells a story of sound monetary policy.` },
+        { label: '📊 Standard', text: (v) => `${v} total XTZ in existence.\n\nNo VC unlocks. No team dumps. Transparent, on-chain economics.` },
+        { label: '💪 Flex', text: (v) => `${v} XTZ total supply. Every token accounted for on-chain.\n\nNo hidden wallets. No surprise unlocks. No "strategic reserves."` },
+        { label: '🔥 Dunk', text: (v) => `${v} XTZ total supply.\n\nMeanwhile SOL has mysterious wallet movements and ETH foundation is selling. XTZ tokenomics are fully transparent.` },
+        { label: '❓ Question', text: (v) => `Total XTZ supply: ${v}\n\nWith burns reducing this number every day, do you know which direction your chain's supply is heading?` },
     ],
     'delegated': [
-        { label: '📊 Standard', text: (v) => `🤝 ${v} XTZ delegated to bakers\n\nLiquid staking →` },
-        { label: '💪 Flex', text: (v) => `${v} XTZ delegated — fully liquid, no lockup, no wrapper token. Just delegate and earn 🤝` },
+        { label: '📊 Standard', text: (v) => `${v} XTZ delegated to bakers — fully liquid, earning rewards, participating in governance.\n\nAll without a single wrapper token.` },
+        { label: '📊 Standard', text: (v) => `${v} XTZ actively delegated on Tezos.\n\nDelegation is native. No smart contract risk. No third-party custody.` },
+        { label: '💪 Flex', text: (v) => `${v} XTZ delegated — liquid, no lockup, no wrapper token, no intermediary.\n\nJust point your tokens at a baker and earn. Revolutionary, apparently.` },
+        { label: '🔥 Dunk', text: (v) => `ETH stakers: lock 32 ETH, use Lido wrapper, pray for no slashing.\nTezos delegators: ${v} XTZ delegated, fully liquid, zero risk.\n\nSame rewards. Wildly different UX.` },
+        { label: '❓ Question', text: (v) => `${v} XTZ delegated without a single lockup or wrapper.\n\nWhy does every other chain make staking so complicated?` },
+        { label: '📢 Recruit', text: (v) => `${v} XTZ already delegated. Are yours?\n\nDelegation takes 2 minutes and your tokens never leave your wallet. Zero excuses.` },
     ],
     'cycle-progress': [
-        { label: '📊 Standard', text: (v) => `⏱️ Tezos cycle ${v} in progress\n\nWatch it live →` },
+        { label: '📊 Standard', text: (v) => `Tezos cycle ${v} in progress.\n\nEvery cycle: bakers validate, stakers earn, governance continues. The machine keeps running.` },
+        { label: '💪 Flex', text: (v) => `Cycle ${v} ticking along on Tezos.\n\nNo downtime. No "degraded performance." No emergency patches. Just blocks, every 6 seconds.` },
+        { label: '🔥 Dunk', text: (v) => `Tezos cycle ${v}. Chain has never stopped.\n\nSolana is on what, outage #47? But sure, tell me about their TPS numbers.` },
+        { label: '❓ Question', text: (v) => `Tezos is on cycle ${v} with zero downtime ever.\n\nWhat's the uptime record for your L1?` },
     ],
     'proposal': [
-        { label: '📊 Standard', text: (v) => `🗳️ Tezos governance: ${v}\n\nSelf-amending blockchain →` },
-        { label: '🔥 Dunk', text: (v) => `Tezos governance: ${v}. No hard forks, no dictators, no "rough consensus." Just votes 🗳️` },
+        { label: '📊 Standard', text: (v) => `Tezos governance: ${v}\n\nOn-chain, transparent, binding. The protocol evolves through baker votes.` },
+        { label: '📊 Standard', text: (v) => `Current Tezos governance state: ${v}\n\nNo off-chain signaling. No "rough consensus." Real votes with real consequences.` },
+        { label: '🔥 Dunk', text: (v) => `Tezos governance: ${v}\n\nNo hard forks. No dictators. No "rough consensus." No foundation veto. Just votes.` },
+        { label: '🔥 Dunk', text: (v) => `${v}\n\nOther chains: "We'll discuss governance in the Discord."\nTezos: "We voted on-chain and it's live." Different breed.` },
+        { label: '💪 Flex', text: (v) => `${v}\n\nTezos governance works because it's not optional. Every upgrade, every parameter change — voted on by the people running the chain.` },
+        { label: '❓ Question', text: (v) => `${v}\n\nWhen was the last time YOU got to vote on a protocol upgrade for your chain? Tezos bakers vote on every single one.` },
+        { label: '📈 Compare', text: (v) => `Governance models:\n• BTC: Mailing list arguments\n• ETH: Core dev calls\n• SOL: Foundation decides\n• Tezos: ${v} — on-chain binding votes\n\nOnly one is actually democratic.` },
     ],
     'voting-period': [
-        { label: '📊 Standard', text: (v) => `🗳️ Tezos voting: ${v}\n\nOn-chain governance →` },
+        { label: '📊 Standard', text: (v) => `Tezos voting: ${v}\n\nMulti-round on-chain governance. Every baker gets a proportional vote.` },
+        { label: '📊 Standard', text: (v) => `Current Tezos voting period: ${v}\n\nFive rounds ensure thorough deliberation before any upgrade goes live.` },
+        { label: '💪 Flex', text: (v) => `${v}\n\nTezos governance: proposal → exploration → cooldown → promotion → adoption.\n\n5 stages. All on-chain. All transparent. All voted.` },
+        { label: '🔥 Dunk', text: (v) => `Tezos: ${v}\nETH: "We'll discuss it at Devcon and maybe do an EIP."\n\nOne has a governance process. The other has vibes.` },
+        { label: '❓ Question', text: (v) => `${v}\n\nTezos has formalized on-chain governance with multiple voting rounds. Your chain has... a Discord poll?` },
     ],
     'participation': [
-        { label: '📊 Standard', text: (v) => `✅ ${v} voter participation in Tezos governance\n\nDemocracy on-chain →` },
-        { label: '🔥 Dunk', text: (v) => `${v} voter turnout on Tezos. Higher than most national elections and definitely higher than ETH signaling polls 🏛️` },
+        { label: '📊 Standard', text: (v) => `${v} voter participation in current Tezos governance period.\n\nOn-chain democracy with real turnout.` },
+        { label: '📊 Standard', text: (v) => `Tezos governance participation: ${v}\n\nStakeholders actually show up to vote. The governance isn't theater.` },
+        { label: '🔥 Dunk', text: (v) => `${v} voter turnout on Tezos governance.\n\nHigher than most national elections. Definitely higher than ETH's non-binding signaling polls.` },
+        { label: '🔥 Dunk', text: (v) => `${v} participation rate.\n\nCardano has "governance" now too. Let me know when Voltaire actually works.` },
+        { label: '💪 Flex', text: (v) => `${v} governance participation. Tezos bakers don't just validate — they govern.\n\nStaking IS governance. No separate "governance token" needed.` },
+        { label: '❓ Question', text: (v) => `${v} of Tezos stake actively voting on protocol upgrades.\n\nWhat's the governance participation rate on your chain? Do you even know?` },
+        { label: '❓ Question', text: (v) => `${v} voter participation on Tezos.\n\nIf your chain's governance is "multisig controlled by the foundation," is it really decentralized?` },
+        { label: '📈 Compare', text: (v) => `Governance participation:\n• Tezos: ${v} (binding on-chain votes)\n• ETH: Coin votes on Snapshot (non-binding)\n• SOL: No governance mechanism\n• BTC: Miner signaling only\n\nTezos is the only L1 with real on-chain democracy.` },
     ],
     'tx-volume': [
-        { label: '📊 Standard', text: (v) => `⚡ ${v} transactions on Tezos in 24h\n\nNetwork activity →` },
-        { label: '💪 Flex', text: (v) => `${v} txs in 24h on Tezos. 6-second blocks, sub-cent fees, real finality. Not a testnet 😤` },
+        { label: '📊 Standard', text: (v) => `${v} transactions on Tezos in the last 24 hours.\n\nSub-cent fees. 6-second finality. Real usage.` },
+        { label: '📊 Standard', text: (v) => `24h Tezos transaction volume: ${v}\n\nEvery single one final in seconds, for less than a penny.` },
+        { label: '🔥 Dunk', text: (v) => `${v} txs in 24h on Tezos.\n\nAll of them actually finalized. Unlike some chains where "confirmed" means "probably won't reorg."` },
+        { label: '🔥 Dunk', text: (v) => `${v} Tezos transactions today. Average fee: sub-cent.\n\nETH users paid more in gas for one swap than Tezos users paid for ${v} transactions combined.` },
+        { label: '💪 Flex', text: (v) => `${v} txs in 24h. 6-second blocks. Sub-cent fees. Deterministic finality.\n\nNot a testnet. Not an L2. This is the L1.` },
+        { label: '💪 Flex', text: (v) => `${v} transactions processed on Tezos today.\n\nAll verified. All final. All cheap. Boring? Maybe. But boring infrastructure is good infrastructure.` },
+        { label: '❓ Question', text: (v) => `${v} transactions in 24h with sub-cent fees.\n\nAt what point do people realize Tezos already solved the scalability trilemma at L1?` },
+        { label: '📈 Compare', text: (v) => `24h transactions with sub-cent fees:\n• Tezos: ${v} ✓\n• ETH: Nope ($2-50 per tx)\n• BTC: Nope ($1-20 per tx)\n• SOL: Yes, but chain stops sometimes\n\nReliable AND cheap. Pick Tezos.` },
     ],
     'contract-calls': [
-        { label: '📊 Standard', text: (v) => `📜 ${v} smart contract calls on Tezos in 24h\n\nDApp ecosystem →` },
-        { label: '💪 Flex', text: (v) => `${v} contract calls in 24h. Tezos smart contracts: formally verified, battle-tested, and cheap to call 📜` },
+        { label: '📊 Standard', text: (v) => `${v} smart contract calls on Tezos in 24h.\n\nFormally verified contracts, sub-cent execution. The developer experience matters.` },
+        { label: '📊 Standard', text: (v) => `24h Tezos contract calls: ${v}\n\nReal dApps, real users, real on-chain activity.` },
+        { label: '🔥 Dunk', text: (v) => `${v} contract calls in 24h on Tezos. Sub-cent each.\n\nETH devs are paying more in gas to deploy a contract than Tezos users pay in a year.` },
+        { label: '💪 Flex', text: (v) => `${v} contract calls in 24h. Formally verified. Battle-tested. Cheap to call.\n\nTezos smart contracts: where "move fast and break things" meets mathematical proofs.` },
+        { label: '💪 Flex', text: (v) => `${v} smart contract interactions today.\n\nMichelson and SmartPy contracts with formal verification built in. When the contract says X, it does X. No reentrancy exploits.` },
+        { label: '❓ Question', text: (v) => `${v} contract calls on Tezos today.\n\nHow many DeFi exploits has Tezos had vs ETH? Formal verification matters.` },
+        { label: '📈 Compare', text: (v) => `Smart contract security:\n• ETH: Billions lost to exploits\n• SOL: Multiple DeFi hacks\n• Tezos: ${v} calls/day, formal verification, near-zero exploits\n\nMaybe "move fast and break things" isn't ideal for financial infrastructure.` },
     ],
     'funded-accounts': [
-        { label: '📊 Standard', text: (v) => `👥 ${v} funded accounts on Tezos\n\nGrowing network →` },
+        { label: '📊 Standard', text: (v) => `${v} funded accounts on Tezos.\n\nEvery single one is a real address with real value.` },
+        { label: '📊 Standard', text: (v) => `Tezos network: ${v} funded accounts and growing.\n\nOrganic growth from real usage, not airdrop farmers.` },
+        { label: '💪 Flex', text: (v) => `${v} funded accounts. No sybil-farmed airdrops inflating the numbers.\n\nTezos doesn't need fake metrics. The fundamentals speak.` },
+        { label: '🔥 Dunk', text: (v) => `${v} Tezos accounts with real balances.\n\nNot "unique wallets" created for a points program that evaporate after the airdrop. Actual users.` },
+        { label: '❓ Question', text: (v) => `${v} funded accounts on Tezos.\n\nHow many of your chain's "active wallets" are just bots farming airdrops?` },
+        { label: '📢 Recruit', text: (v) => `${v} funded accounts on Tezos.\n\nJoining takes seconds. No gas wars. No failed transactions. Just a working blockchain.` },
     ],
     'smart-contracts': [
-        { label: '📊 Standard', text: (v) => `🔧 ${v} smart contracts deployed on Tezos\n\nBuild on Tezos →` },
+        { label: '📊 Standard', text: (v) => `${v} smart contracts deployed on Tezos.\n\nFormally verified. Upgradeable through governance. Built to last.` },
+        { label: '📊 Standard', text: (v) => `Tezos smart contract count: ${v}\n\nWritten in Michelson, SmartPy, or Ligo — all with formal verification support.` },
+        { label: '💪 Flex', text: (v) => `${v} smart contracts deployed on a chain where formal verification is a first-class citizen.\n\nYour money deserves mathematically proven contracts.` },
+        { label: '🔥 Dunk', text: (v) => `${v} Tezos contracts, many formally verified.\n\nSolidity devs: "We'll just audit it." Tezos devs: "We'll just prove it correct."` },
+        { label: '❓ Question', text: (v) => `${v} smart contracts on Tezos with formal verification support.\n\nWhen billions are at stake, would you rather have an "audit" or a mathematical proof?` },
+        { label: '📢 Recruit', text: (v) => `${v} contracts deployed on Tezos.\n\nSmartPy makes it shockingly easy to write formally verifiable contracts. Solidity devs: you'd feel right at home.` },
     ],
     'tokens': [
-        { label: '📊 Standard', text: (v) => `🪙 ${v} tokens on Tezos\n\nExplore the ecosystem →` },
+        { label: '📊 Standard', text: (v) => `${v} tokens on Tezos.\n\nFA2 standard: multi-asset, composable, and way cleaner than ERC-20.` },
+        { label: '📊 Standard', text: (v) => `Tezos token ecosystem: ${v} tokens and counting.\n\nEvery one running on sub-cent transaction fees.` },
+        { label: '💪 Flex', text: (v) => `${v} tokens on Tezos using the FA2 standard.\n\nOne standard for fungible, NFTs, and multi-asset. ETH needed ERC-20, ERC-721, AND ERC-1155.` },
+        { label: '🔥 Dunk', text: (v) => `${v} tokens on Tezos. Not a single one was a rug-pull memecoin launched in 30 seconds.\n\nOk maybe a few. But the infrastructure is legitimate.` },
+        { label: '❓ Question', text: (v) => `${v} tokens on Tezos with sub-cent transfer fees.\n\nRemember when you paid $50 in gas to swap an ERC-20? Tezos users don't have that memory.` },
     ],
     'rollups': [
-        { label: '📊 Standard', text: (v) => `🚀 ${v} smart rollups on Tezos\n\nL2 scaling →` },
-        { label: '🔥 Dunk', text: (v) => `${v} smart rollups on Tezos. Enshrined in the protocol, not bolted on as an afterthought 🚀` },
+        { label: '📊 Standard', text: (v) => `${v} smart rollups live on Tezos.\n\nEnshrined L2 scaling — verified by the protocol itself, not a multisig.` },
+        { label: '📊 Standard', text: (v) => `Tezos smart rollups: ${v}\n\nL2 scaling that's part of the protocol, not bolted on as a business.` },
+        { label: '🔥 Dunk', text: (v) => `${v} smart rollups on Tezos. Enshrined in the protocol.\n\nETH rollups: "Trust this multisig to not steal your funds."\nTezos rollups: "The L1 verifies everything."\n\nNot the same.` },
+        { label: '🔥 Dunk', text: (v) => `${v} Tezos rollups, all enshrined.\n\nMeanwhile ETH L2s are centralized sequencers with "training wheels" that have been on for 3 years. Those wheels aren't coming off.` },
+        { label: '💪 Flex', text: (v) => `${v} smart rollups. Protocol-enshrined. No admin keys. No centralized sequencer.\n\nThis is what real L2 scaling looks like.` },
+        { label: '💪 Flex', text: (v) => `Tezos smart rollups: ${v} and growing. Run any VM — EVM, WASM, whatever.\n\nThe L1 secures them all. No separate trust assumptions.` },
+        { label: '❓ Question', text: (v) => `${v} Tezos rollups, all verified by the L1 protocol itself.\n\nHow many ETH rollups can say the same? (Hint: zero. They all have admin keys.)` },
+        { label: '📈 Compare', text: (v) => `L2 architecture:\n• ETH: Centralized sequencers + multisig admin keys\n• Tezos: ${v} enshrined rollups, L1-verified, no admin keys\n\nOne is "rollup" in name. The other is rollup in design.` },
     ],
 };
 
 // Protocol-specific tweet options
 const PROTOCOL_TWEET_OPTIONS = [
-    { label: '📊 Standard', text: (name, num, headline, total) => `🗳️ #${num} ${name}: "${headline}"\n\nTezos has self-amended ${total} times with zero hard forks.` },
-    { label: '🔥 Dunk', text: (name, num, headline, total) => `${total} upgrades. Zero forks. Meanwhile ETH had to literally split the chain to fix a hack 💅\n\nLatest: ${name}` },
-    { label: '💪 Flex', text: (name, num, headline, total) => `Upgrade #${num}: ${name}. ${headline}.\n\n${total} self-amendments. No contentious forks. This is what governance looks like 🏛️` },
-    { label: '🫡 Governance', text: (name, num, headline, total) => `While other chains debate who gets to push the button, Tezos bakers just voted in upgrade #${num}: ${name} 🗳️` },
+    { label: '📊 Standard', text: (name, num, headline, total) => `Tezos upgrade #${num}: ${name}\n\n"${headline}"\n\n${total} self-amendments. Zero hard forks. The protocol evolves through votes.` },
+    { label: '📊 Standard', text: (name, num, headline, total) => `${name} is live on Tezos. Upgrade #${num} of ${total}.\n\n${headline}\n\nAll voted on-chain by bakers. No foundation approval needed.` },
+    { label: '🔥 Dunk', text: (name, num, headline, total) => `${total} upgrades. Zero forks. Meanwhile ETH had to literally split the chain to fix a hack and BTC can't agree on block size.\n\nLatest: ${name} — ${headline}` },
+    { label: '🔥 Dunk', text: (name, num, headline, total) => `Cardano is still shipping "governance" after 8 years.\n\nTezos just completed upgrade #${num} (${name}). That's ${total} on-chain voted upgrades since 2018.\n\nShipping > Promising.` },
+    { label: '🔥 Dunk', text: (name, num, headline, total) => `How other chains upgrade: "Trust the core team."\nHow Tezos upgrades: ${total} on-chain votes, zero forks.\n\nUpgrade #${num} ${name}: ${headline}` },
+    { label: '💪 Flex', text: (name, num, headline, total) => `Upgrade #${num}: ${name}.\n\n${headline}\n\n${total} self-amendments since 2018. Every single one voted on-chain. No contentious forks. Ever.` },
+    { label: '💪 Flex', text: (name, num, headline, total) => `${name} is Tezos upgrade #${num}.\n\nThe chain has upgraded itself ${total} times without splitting, without downtime, without drama.\n\nThis is what mature infrastructure looks like.` },
+    { label: '🗳️ Governance', text: (name, num, headline, total) => `While other chains debate who gets to push the button, Tezos bakers just voted in upgrade #${num}: ${name}.\n\nDemocracy works when you actually build it into the protocol.` },
+    { label: '🗳️ Governance', text: (name, num, headline, total) => `${total} protocol upgrades. ${total} on-chain votes. Zero forks.\n\nUpgrade #${num} (${name}) proves on-chain governance isn't a pipe dream — it's production reality.` },
+    { label: '❓ Question', text: (name, num, headline, total) => `Tezos just completed its ${total}th self-amendment: ${name}.\n\nHow many times has your chain upgraded without forking?` },
+    { label: '❓ Question', text: (name, num, headline, total) => `${name}: "${headline}"\n\nVoted on by bakers. Activated on-chain. No fork.\n\nUpgrade #${num} of ${total}. Is any other L1 even close to this governance track record?` },
+    { label: '📈 Compare', text: (name, num, headline, total) => `Protocol upgrade records:\n• BTC: Taproot (2021), took years of debate\n• ETH: The Merge (2022), required chain split fix in 2016\n• Tezos: ${total} upgrades, all voted, zero forks\n\nLatest: #${num} ${name}` },
 ];
 
 const TIMELINE_TWEET_OPTIONS = [
-    { label: '📊 Standard', text: (total) => `🏛️ ${total} protocol upgrades. Zero hard forks. Tezos governance in action.` },
-    { label: '🔥 Dunk', text: (total) => `${total} upgrades. Zero hard forks. Zero foundation vetoes. Meanwhile BTC can't even agree on block size 💀` },
-    { label: '💪 Flex', text: (total) => `${total} self-amendments since 2018. Every single one voted on-chain by bakers. No king, no committee, just code and consensus 👑` },
-    { label: '🗳️ Democracy', text: (total) => `Imagine a blockchain that upgrades itself ${total} times without splitting in half. You don't have to imagine — it's Tezos 🧬` },
+    { label: '📊 Standard', text: (total) => `${total} protocol upgrades. Zero hard forks. Tezos governance in action since 2018.` },
+    { label: '📊 Standard', text: (total) => `Tezos: ${total} self-amendments, all voted on-chain, zero contentious forks.\n\nThis is what a self-amending blockchain actually looks like.` },
+    { label: '🔥 Dunk', text: (total) => `${total} upgrades. Zero forks. Zero foundation vetoes.\n\nBTC can't agree on block size. ETH split the chain over a hack. Tezos just votes and ships.` },
+    { label: '🔥 Dunk', text: (total) => `Other chains call themselves "decentralized" but upgrades are decided by 5 people on a call.\n\nTezos has ${total} on-chain voted upgrades. Show me another L1 with this record.` },
+    { label: '🔥 Dunk', text: (total) => `Solana: "We'll restart the chain."\nETH: "The core devs decided."\nBTC: "We don't upgrade."\nTezos: "${total} voted upgrades, zero forks."\n\nGovernance matters.` },
+    { label: '💪 Flex', text: (total) => `${total} self-amendments since 2018. Every single one voted on-chain by bakers.\n\nNo king. No committee. No off-chain governance theater. Just code and consensus.` },
+    { label: '💪 Flex', text: (total) => `The Tezos protocol has evolved ${total} times without breaking, forking, or stopping.\n\nThat's not just technology. That's institutional design.` },
+    { label: '🗳️ Democracy', text: (total) => `Imagine a blockchain that upgrades itself ${total} times without splitting in half.\n\nYou don't have to imagine. It's Tezos.` },
+    { label: '🗳️ Democracy', text: (total) => `${total} protocol upgrades.\n${total} on-chain votes.\nZero forks.\nZero downtime.\n\nThis is governance. Everything else is theater.` },
+    { label: '❓ Question', text: (total) => `${total} self-amendments. Zero forks. Since 2018.\n\nName another L1 with a better governance track record. I'll wait.` },
+    { label: '❓ Question', text: (total) => `If a blockchain can't upgrade itself without forking, is it really decentralized?\n\nTezos: ${total} upgrades. Zero forks. The question answers itself.` },
+    { label: '📈 Compare', text: (total) => `Governance track record:\n• BTC: ~3 soft forks in 15 years\n• ETH: ~15 hard forks (including chain split)\n• Tezos: ${total} self-amendments, zero forks\n\nOn-chain governance works. The data proves it.` },
 ];
 
-const TWEET_SUFFIX = '\n\nhttps://tezos.systems\n\n#Tezos #XTZ';
-const DASHBOARD_TWEET = '📊 Real-time Tezos network stats\n\nhttps://tezos.systems\n\n#Tezos #XTZ';
+const TWEET_SUFFIX = '\n\nhttps://tezos.systems';
+const DASHBOARD_TWEET = 'Real-time Tezos network stats — bakers, staking, governance, burns, and more.\n\nhttps://tezos.systems';
 
 /**
  * Load html2canvas dynamically
@@ -131,6 +282,47 @@ function getCardChange(card) {
 }
 
 /**
+ * Shuffle array in-place (Fisher-Yates)
+ */
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+/**
+ * Pick a random subset of options, ensuring category diversity
+ */
+function pickRandomOptions(allOptions, count = 4) {
+    if (allOptions.length <= count) return [...allOptions];
+    // Try to get diverse categories
+    const byCategory = {};
+    allOptions.forEach(o => {
+        const cat = o.label.split(' ')[1] || o.label;
+        if (!byCategory[cat]) byCategory[cat] = [];
+        byCategory[cat].push(o);
+    });
+    const categories = Object.keys(byCategory);
+    shuffleArray(categories);
+    const picked = [];
+    // One from each category first
+    for (const cat of categories) {
+        if (picked.length >= count) break;
+        const items = byCategory[cat];
+        picked.push(items[Math.floor(Math.random() * items.length)]);
+    }
+    // Fill remaining slots randomly from unpicked
+    if (picked.length < count) {
+        const remaining = allOptions.filter(o => !picked.includes(o));
+        shuffleArray(remaining);
+        picked.push(...remaining.slice(0, count - picked.length));
+    }
+    return shuffleArray(picked);
+}
+
+/**
  * Get all tweet options for a card
  */
 function getTweetOptions(card) {
@@ -145,7 +337,15 @@ function getTweetOptions(card) {
     }
     const label = card.querySelector('.stat-label');
     const labelText = label ? label.textContent.trim() : 'Tezos stats';
-    return [{ label: '📊 Standard', text: `📊 ${labelText}: ${value}\n\nhttps://tezos.systems\n\n#Tezos #XTZ` }];
+    return [{ label: '📊 Standard', text: `${labelText}: ${value}\n\nhttps://tezos.systems` }];
+}
+
+/**
+ * Get randomized subset of tweet options for display
+ */
+function getRandomTweetOptions(card) {
+    const all = getTweetOptions(card);
+    return pickRandomOptions(all, 4);
 }
 
 /**
@@ -461,9 +661,10 @@ async function captureCard(card) {
         
         wrapper.remove();
         
-        const options = getTweetOptions(card);
+        const allOptions = getTweetOptions(card);
+        const displayOptions = pickRandomOptions(allOptions, 4);
         const cardTitle = getCardTitle(card);
-        showShareModal(canvas, options, cardTitle);
+        showShareModal(canvas, displayOptions, cardTitle, allOptions);
         
     } catch (error) {
         console.error('Card screenshot failed:', error);
@@ -481,6 +682,11 @@ async function captureCard(card) {
  */
 async function captureAndShare() {
     const sections = [];
+    // Add Protocols section (upgrade clock)
+    const upgradeClock = document.getElementById('upgrade-clock');
+    if (upgradeClock) {
+        sections.push({ name: 'Protocols', element: upgradeClock });
+    }
     document.querySelectorAll('.stats-section').forEach(sec => {
         const titleEl = sec.querySelector('.section-header .section-title');
         if (titleEl) {
@@ -617,12 +823,25 @@ async function doCaptureAndShare(selectedSections) {
         
         // Remove unselected sections from clone
         const selectedNames = new Set(selectedSections.map(s => s.name));
+        // Remove upgrade-clock if Protocols not selected
+        if (!selectedNames.has('Protocols')) {
+            const uc = clone.querySelector('.upgrade-clock');
+            if (uc) uc.remove();
+        }
+        
         clone.querySelectorAll('.stats-section').forEach(sec => {
             const titleEl = sec.querySelector('.section-header .section-title');
             if (titleEl && !selectedNames.has(titleEl.textContent.trim())) {
                 sec.remove();
             }
         });
+        
+        // Remove bottom margin/padding on last visible section
+        const lastSection = clone.querySelector('.stats-section:last-child');
+        if (lastSection) lastSection.style.marginBottom = '0';
+        
+        // Remove section chevrons from capture
+        clone.querySelectorAll('.section-chevron').forEach(el => el.remove());
         
         const header = document.createElement('div');
         header.style.cssText = `
@@ -657,6 +876,11 @@ async function doCaptureAndShare(selectedSections) {
         
         wrapper.appendChild(header);
         wrapper.appendChild(clone);
+        
+        // Trim bottom padding — measure actual content
+        clone.style.paddingBottom = '0';
+        clone.style.marginBottom = '0';
+        
         document.body.appendChild(wrapper);
         
         const canvas = await html2canvas(wrapper, {
@@ -697,14 +921,17 @@ async function nativeShare(canvas, text) {
  * Show modal with share options
  * tweetTextOrOptions: string (legacy) or array of {label, text}
  */
-function showShareModal(canvas, tweetTextOrOptions, title) {
+function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForRefresh) {
     const existing = document.getElementById('share-modal');
     if (existing) existing.remove();
     
     // Normalize to options array
-    const tweetOptions = Array.isArray(tweetTextOrOptions)
+    let tweetOptions = Array.isArray(tweetTextOrOptions)
         ? tweetTextOrOptions
         : [{ label: '📊 Standard', text: tweetTextOrOptions }];
+    
+    // Keep all options for refresh functionality
+    const allTweetOptions = allOptionsForRefresh || tweetOptions;
     
     const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
     const accent = isMatrix ? '#00ff00' : '#00d4ff';
@@ -716,19 +943,29 @@ function showShareModal(canvas, tweetTextOrOptions, title) {
         ? `<button class="share-action-btn" id="share-native"><span>📱</span> Share</button>` 
         : '';
     
-    // Build tweet picker HTML
-    const pickerHtml = tweetOptions.length > 1 ? `
+    // Build tweet picker HTML helper
+    function buildPickerHtml(options) {
+        if (options.length <= 1) return '';
+        return `
         <div class="tweet-picker" style="
             padding: 12px 16px;
             border-bottom: 1px solid rgba(255,255,255,0.08);
             max-height: 200px;
             overflow-y: auto;
         ">
-            <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px;
-                color: rgba(${accentRgb},0.6); font-weight: 600; margin-bottom: 8px;">
-                Choose tweet style
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px;
+                    color: rgba(${accentRgb},0.6); font-weight: 600;">
+                    Choose tweet style
+                </div>
+                <button id="tweet-refresh-btn" title="Shuffle options" style="
+                    background: none; border: 1px solid rgba(${accentRgb},0.2); color: rgba(${accentRgb},0.6);
+                    width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px;
+                    display: flex; align-items: center; justify-content: center;
+                    transition: all 0.2s;
+                ">🔄</button>
             </div>
-            ${tweetOptions.map((opt, i) => `
+            ${options.map((opt, i) => `
                 <label class="tweet-option" style="
                     display: flex; align-items: flex-start; gap: 10px;
                     padding: 8px 10px; margin-bottom: 4px;
@@ -751,7 +988,9 @@ function showShareModal(canvas, tweetTextOrOptions, title) {
                 </label>
             `).join('')}
         </div>
-    ` : '';
+    `;
+    }
+    const pickerHtml = buildPickerHtml(tweetOptions);
     
     const modal = document.createElement('div');
     modal.id = 'share-modal';
@@ -800,20 +1039,40 @@ function showShareModal(canvas, tweetTextOrOptions, title) {
             }
         });
     };
-    modal.querySelectorAll('.tweet-option').forEach(label => {
-        label.addEventListener('change', styleOptions);
-        label.addEventListener('mouseenter', () => {
-            const radio = label.querySelector('input[type="radio"]');
-            if (!radio.checked) label.style.background = `rgba(${accentRgb},0.04)`;
+    
+    const wirePickerEvents = () => {
+        modal.querySelectorAll('.tweet-option').forEach(label => {
+            label.addEventListener('change', styleOptions);
+            label.addEventListener('mouseenter', () => {
+                const radio = label.querySelector('input[type="radio"]');
+                if (!radio.checked) label.style.background = `rgba(${accentRgb},0.04)`;
+            });
+            label.addEventListener('mouseleave', () => styleOptions());
         });
-        label.addEventListener('mouseleave', () => styleOptions());
-    });
+    };
+    wirePickerEvents();
+    
+    // Refresh button — reshuffle tweet options
+    const wireRefresh = () => {
+        const btn = modal.querySelector('#tweet-refresh-btn');
+        if (!btn || allTweetOptions.length <= 4) return;
+        btn.addEventListener('click', () => {
+            tweetOptions = pickRandomOptions(allTweetOptions, 4);
+            const picker = modal.querySelector('.tweet-picker');
+            if (picker) {
+                picker.outerHTML = buildPickerHtml(tweetOptions);
+                wirePickerEvents();
+                wireRefresh();
+            }
+        });
+    };
+    wireRefresh();
     
     // Helper to get selected tweet text
     const getSelectedTweet = () => {
         const checked = modal.querySelector('input[name="tweet-choice"]:checked');
         const idx = checked ? parseInt(checked.value) : 0;
-        return tweetOptions[idx].text;
+        return tweetOptions[idx]?.text || tweetOptions[0]?.text || '';
     };
     
     modal.querySelector('.share-modal-close').addEventListener('click', () => closeShareModal(modal));
@@ -1076,12 +1335,13 @@ export async function captureProtocol(protocol) {
         });
         wrapper.remove();
 
-        const suffix = '\n\nhttps://tezos.systems\n\n#Tezos #XTZ #Governance';
-        const options = PROTOCOL_TWEET_OPTIONS.map(o => ({
+        const suffix = '\n\nhttps://tezos.systems';
+        const allOptions = PROTOCOL_TWEET_OPTIONS.map(o => ({
             label: o.label,
             text: o.text(protocol.name, num, protocol.headline, total) + suffix
         }));
-        showShareModal(canvas, options, `Protocol #${num}: ${protocol.name}`);
+        const displayOptions = pickRandomOptions(allOptions, 4);
+        showShareModal(canvas, displayOptions, `Protocol #${num}: ${protocol.name}`, allOptions);
     } catch (error) {
         console.error('Protocol capture failed:', error);
         showNotification('Screenshot failed. Try again.', 'error');
@@ -1169,12 +1429,13 @@ export async function captureTimeline(allProtocols) {
         });
         wrapper.remove();
 
-        const suffix = '\n\nhttps://tezos.systems\n\n#Tezos #XTZ #Governance';
-        const options = TIMELINE_TWEET_OPTIONS.map(o => ({
+        const suffix = '\n\nhttps://tezos.systems';
+        const allOptions = TIMELINE_TWEET_OPTIONS.map(o => ({
             label: o.label,
             text: o.text(total) + suffix
         }));
-        showShareModal(canvas, options, 'Protocol Timeline');
+        const displayOptions = pickRandomOptions(allOptions, 4);
+        showShareModal(canvas, displayOptions, 'Protocol Timeline', allOptions);
     } catch (error) {
         console.error('Timeline capture failed:', error);
         showNotification('Screenshot failed. Try again.', 'error');
@@ -1197,6 +1458,8 @@ export async function initProtocolShare() {
         timelineEl.addEventListener('click', (e) => {
             const item = e.target.closest('.timeline-item');
             if (!item) return;
+            // Contentious protocols open history modal instead (handled by app.js)
+            if (item.classList.contains('contentious')) return;
             const name = item.getAttribute('data-protocol');
             if (!name) return;
             const protocol = protocols.find(p => p.name === name);
@@ -1249,3 +1512,6 @@ export async function initProtocolShare() {
         }
     }
 }
+
+// Expose captureProtocol globally for infographic row clicks
+window.captureProtocol = captureProtocol;
