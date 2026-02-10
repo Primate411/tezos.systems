@@ -31,6 +31,46 @@
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
     <link rel="stylesheet" href="styles.css">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Tezos Systems",
+      "url": "https://tezos.systems",
+      "description": "Real-time Tezos blockchain network statistics dashboard featuring baker counts, staking ratios, issuance rates, whale tracking, and protocol upgrade history",
+      "applicationCategory": "Finance",
+      "operatingSystem": "Web",
+      "browserRequirements": "Requires JavaScript",
+      "creator": {
+        "@type": "Organization",
+        "name": "Tez Capital",
+        "url": "https://tez.capital"
+      },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Dataset",
+      "name": "Tezos Network Statistics",
+      "description": "Real-time and historical Tezos blockchain metrics including baker counts, staking ratios, transaction volumes, and protocol upgrade history",
+      "url": "https://tezos.systems",
+      "license": "https://creativecommons.org/licenses/by/4.0/",
+      "temporalCoverage": "2018-06-30/..",
+      "creator": {
+        "@type": "Organization",
+        "name": "Tez Capital",
+        "url": "https://tez.capital"
+      }
+    }
+    </script>
 </head>
 <body data-theme="matrix">
     <!-- Corner ribbon banner -->
@@ -69,6 +109,18 @@
             </div>
         </div>
     </header>
+
+    <!-- XTZ Price Bar -->
+    <div id="price-bar" class="price-bar">
+        <div class="price-bar-content">
+            <a href="https://www.coingecko.com/en/coins/tezos" target="_blank" rel="noopener" class="price-link">
+                <span class="price-label">XTZ</span>
+                <span class="price-value">—</span>
+            </a>
+            <span class="price-change">—</span>
+            <span class="price-mcap">—</span>
+        </div>
+    </div>
 
     <!-- Upgrade Clock -->
     <section class="upgrade-clock" id="upgrade-clock">
@@ -460,6 +512,26 @@
                         </div>
                     </div>
                 </div>
+
+            <!-- Stake-O-Meter Gauge -->
+            <div class="stat-card staking-gauge-card" id="staking-gauge-container">
+                <div class="card-info-btn" data-tooltip="stake-o-meter">
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </div>
+                <div class="card-tooltip" id="tooltip-stake-o-meter">
+                    <div class="tooltip-content">
+                        <h4>What is the Stake-O-Meter?</h4>
+                        <p>Tezos protocol targets 50% of the total supply to be staked. When staking is below target, the protocol increases rewards to incentivize more staking. When above target, rewards decrease.</p>
+                        <p>This gauge shows how close the network is to the optimal 50% staking ratio. Higher staking means stronger network security.</p>
+                    </div>
+                </div>
+                <h2 class="stat-label gauge-label">Stake-O-Meter</h2>
+                <div class="stat-value" id="stake-o-meter-value" style="position:absolute;left:-9999px;pointer-events:none;">27.9%</div>
+                <p class="stat-description" style="position:absolute;left:-9999px;pointer-events:none;">of 50% target</p>
+                <canvas id="staking-gauge-canvas"></canvas>
+            </div>
             </div>
         </section>
 
@@ -995,5 +1067,7 @@
     <script type="module" src="app.js"></script>
     <script type="module" src="history.js"></script>
     <script type="module" src="matrix-effects.js"></script>
+    <script type="module" src="gauge.js"></script>
+    <script type="module" src="price.js"></script>
 </body>
 </html>

@@ -109,6 +109,111 @@ body::before {
 }
 
 /* ==========================================
+   XTZ PRICE BAR
+   ========================================== */
+
+.price-bar {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 6px 20px;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+}
+
+.price-bar.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.price-bar-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.price-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    text-decoration: none;
+    color: inherit;
+    transition: color 0.2s;
+}
+
+.price-link:hover {
+    color: var(--accent-cyan);
+}
+
+.price-label {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    opacity: 0.6;
+}
+
+.price-value {
+    font-family: 'Orbitron', monospace;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+}
+
+.price-change {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.price-change.positive {
+    color: #00ff88;
+}
+
+.price-change.negative {
+    color: #ff4466;
+}
+
+.price-mcap {
+    font-size: 0.75rem;
+    opacity: 0.5;
+}
+
+@keyframes pricePulse {
+    0% { text-shadow: 0 0 8px var(--accent-cyan); }
+    100% { text-shadow: none; }
+}
+
+.price-pulse {
+    animation: pricePulse 0.8s ease-out;
+}
+
+/* Matrix theme overrides */
+[data-theme="matrix"] .price-change.positive {
+    color: #00ff00;
+}
+
+[data-theme="matrix"] .price-change.negative {
+    color: #ff3333;
+}
+
+@media (max-width: 600px) {
+    .price-bar {
+        padding: 4px 12px;
+    }
+    .price-bar-content {
+        gap: 10px;
+        font-size: 0.75rem;
+    }
+    .price-mcap {
+        display: none;
+    }
+}
+
+/* ==========================================
    UPGRADE CLOCK
    ========================================== */
 
@@ -3699,3 +3804,91 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
         transition: none;
     }
 }
+
+/* ===== Streak Badge ===== */
+.streak-badge {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(0, 10, 0, 0.85);
+    border: 1px solid rgba(0, 255, 0, 0.3);
+    color: #00ff00;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-family: 'Orbitron', sans-serif;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    pointer-events: none;
+    box-shadow: 0 2px 12px rgba(0, 255, 0, 0.1);
+    letter-spacing: 0.5px;
+}
+
+.streak-badge.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.streak-badge.milestone {
+    animation: streak-glow 2s ease-in-out infinite;
+    border-color: rgba(0, 255, 0, 0.6);
+}
+
+@keyframes streak-glow {
+    0%, 100% { box-shadow: 0 2px 12px rgba(0, 255, 0, 0.15); }
+    50% { box-shadow: 0 2px 24px rgba(0, 255, 0, 0.4), 0 0 40px rgba(0, 255, 0, 0.15); }
+}
+
+/* Cyber theme variant */
+[data-theme="cyber"] .streak-badge {
+    background: rgba(10, 10, 25, 0.85);
+    border-color: rgba(0, 212, 255, 0.3);
+    color: #00d4ff;
+    box-shadow: 0 2px 12px rgba(0, 212, 255, 0.1);
+}
+
+[data-theme="cyber"] .streak-badge.milestone {
+    border-color: rgba(0, 212, 255, 0.6);
+    animation: streak-glow-cyber 2s ease-in-out infinite;
+}
+
+@keyframes streak-glow-cyber {
+    0%, 100% { box-shadow: 0 2px 12px rgba(0, 212, 255, 0.15); }
+    50% { box-shadow: 0 2px 24px rgba(0, 212, 255, 0.4), 0 0 40px rgba(0, 212, 255, 0.15); }
+}
+
+@media (max-width: 768px) {
+    .streak-badge {
+        bottom: 12px;
+        left: 12px;
+        font-size: 0.72rem;
+        padding: 6px 12px;
+    }
+}
+
+/* ===== Staking Target Gauge ===== */
+/* Staking Gauge - full-width row in stats-grid */
+.staking-gauge-card {
+    grid-column: 1 / -1;
+    padding: 1.2rem 1.5rem 0.8rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: auto;
+}
+
+.gauge-label {
+    align-self: flex-start;
+    margin: 0 0 0.3rem 0.5rem;
+}
+
+.staking-gauge-card canvas {
+    width: 100%;
+    max-width: 500px;
+    aspect-ratio: 2 / 1;
+    display: block;
+}
+
+/* Gauge share button handled by share.js (same as other stat-cards) */

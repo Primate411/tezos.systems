@@ -22,6 +22,9 @@ import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVis
 import { initTabs } from './tabs.js';
 import { initWhaleTracker } from './whales.js';
 import { initSleepingGiants } from './sleeping-giants.js';
+import { initPriceBar } from './price.js';
+import { initStreak } from './streak.js';
+import { updatePageTitle } from './title.js';
 
 // Application state
 const state = {
@@ -56,6 +59,12 @@ async function init() {
     
     // Initialize sleeping giants
     initSleepingGiants();
+
+    // Initialize price bar
+    initPriceBar();
+
+    // Initialize visit streak
+    initStreak();
 
     // Setup event listeners
     setupEventListeners();
@@ -419,6 +428,9 @@ async function updateStats(newStats) {
 
     // Store current stats
     state.currentStats = { ...newStats };
+
+    // Update page title with live stats
+    updatePageTitle(state.currentStats);
 }
 
 /**
