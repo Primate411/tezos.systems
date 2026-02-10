@@ -246,7 +246,7 @@ async function captureCard(card) {
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
             position: fixed; top: -9999px; left: -9999px;
-            width: 1200px; height: 630px;
+            width: 600px; height: 630px;
             background: ${bgColor};
             font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
             color: white;
@@ -296,7 +296,7 @@ async function captureCard(card) {
         const title = document.createElement('div');
         title.style.cssText = `
             font-family: 'Orbitron', sans-serif;
-            font-size: 36px; font-weight: 900;
+            font-size: 28px; font-weight: 900;
             color: ${brandColor};
             letter-spacing: 4px;
             text-transform: uppercase;
@@ -346,7 +346,7 @@ async function captureCard(card) {
         // HERO stat value
         const valueEl = document.createElement('div');
         valueEl.style.cssText = `
-            font-size: 120px; font-weight: 800;
+            font-size: 72px; font-weight: 800;
             color: ${brandColor};
             line-height: 1;
             letter-spacing: -2px;
@@ -354,17 +354,17 @@ async function captureCard(card) {
                          0 0 80px ${isMatrix ? 'rgba(0,255,0,0.2)' : 'rgba(0,212,255,0.2)'};
             margin-bottom: 12px;
             text-align: center;
-            max-width: 1000px;
+            max-width: 520px;
             overflow: hidden;
         `;
         // Scale down font for long values
         const valLen = statValue.length;
         if (valLen > 12) {
-            valueEl.style.fontSize = '64px';
+            valueEl.style.fontSize = '40px';
         } else if (valLen > 8) {
-            valueEl.style.fontSize = '80px';
+            valueEl.style.fontSize = '48px';
         } else if (valLen > 5) {
-            valueEl.style.fontSize = '100px';
+            valueEl.style.fontSize = '60px';
         }
         valueEl.textContent = statValue;
         content.appendChild(valueEl);
@@ -392,11 +392,11 @@ async function captureCard(card) {
         
         // Sparkline as SVG (or decorative bars)
         const sparkContainer = document.createElement('div');
-        sparkContainer.style.cssText = 'width: 400px; height: 50px; margin-bottom: 8px;';
+        sparkContainer.style.cssText = 'width: 300px; height: 50px; margin-bottom: 8px;';
         
         if (sparklineData && sparklineData.length > 1) {
             // Render as inline SVG polyline
-            const w = 400, h = 50;
+            const w = 300, h = 50;
             const nums = sparklineData.map(Number).filter(n => !isNaN(n));
             const min = Math.min(...nums);
             const max = Math.max(...nums);
@@ -461,9 +461,9 @@ async function captureCard(card) {
             scale: 2,
             useCORS: true,
             logging: false,
-            width: 1200,
+            width: 600,
             height: 630,
-            windowWidth: 1200
+            windowWidth: 600
         });
         
         wrapper.remove();
@@ -618,7 +618,7 @@ async function doCaptureAndShare(selectedSections) {
             position: fixed;
             top: 0;
             left: 0;
-            width: 1200px;
+            width: 600px;
             background: ${getComputedStyle(document.body).background};
             padding: 30px;
             z-index: -1;
@@ -743,9 +743,9 @@ async function doCaptureAndShare(selectedSections) {
             scale: 2,
             useCORS: true,
             logging: false,
-            width: 1200,
+            width: 600,
             height: actualHeight,
-            windowWidth: 1200
+            windowWidth: 600
         });
         
         wrapper.remove();
@@ -1073,7 +1073,7 @@ function createBaseWrapper(bg, brandRgb) {
     const wrapper = document.createElement('div');
     wrapper.style.cssText = `
         position: fixed; top: -9999px; left: -9999px;
-        width: 1200px; height: 630px;
+        width: 600px; height: 630px;
         background: ${bg};
         font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
         color: white; overflow: hidden;
@@ -1132,28 +1132,28 @@ export async function captureProtocol(protocol) {
             position: relative; z-index: 1;
             width: 100%; height: 100%;
             display: flex; flex-direction: column;
-            padding: 48px 60px 70px 60px;
+            padding: 36px 36px 60px 36px;
             box-sizing: border-box;
         `;
 
         // Title
         content.innerHTML += `
-            <div style="font-family:'Orbitron',sans-serif; font-size:32px; font-weight:900; color:${brand};
-                letter-spacing:4px; text-transform:uppercase; margin-bottom:2px;
+            <div style="font-family:'Orbitron',sans-serif; font-size:22px; font-weight:900; color:${brand};
+                letter-spacing:3px; text-transform:uppercase; margin-bottom:2px;
                 text-shadow: 0 0 30px rgba(${brandRgb},0.5), 0 0 60px rgba(${brandRgb},0.3), 0 0 90px rgba(${brandRgb},0.1);">
                 TEZOS SYSTEMS
             </div>
-            <div style="font-size:13px; font-weight:600; color:rgba(${brandRgb},0.4); text-transform:uppercase;
-                letter-spacing:3px; margin-bottom:12px;">PROTOCOL HISTORY</div>
+            <div style="font-size:11px; font-weight:600; color:rgba(${brandRgb},0.4); text-transform:uppercase;
+                letter-spacing:3px; margin-bottom:10px;">PROTOCOL HISTORY</div>
             <div style="width:200px; height:1px; background:linear-gradient(90deg, transparent, rgba(${brandRgb},0.4), transparent); margin-bottom:28px;"></div>
         `;
 
         // Protocol number + name
         const num = protocol.number - 3; // Athens is #1 (code 4)
         content.innerHTML += `
-            <div style="display:flex; align-items:baseline; gap:16px; margin-bottom:8px;">
-                <span style="font-family:'Orbitron',sans-serif; font-size:48px; font-weight:900; color:rgba(255,255,255,0.15);">#${num}</span>
-                <span style="font-family:'Orbitron',sans-serif; font-size:48px; font-weight:900; color:${brand};
+            <div style="display:flex; align-items:baseline; gap:10px; margin-bottom:8px;">
+                <span style="font-family:'Orbitron',sans-serif; font-size:32px; font-weight:900; color:rgba(255,255,255,0.15);">#${num}</span>
+                <span style="font-family:'Orbitron',sans-serif; font-size:32px; font-weight:900; color:${brand};
                     text-shadow: 0 0 30px rgba(${brandRgb},0.4);">${protocol.name.toUpperCase()}</span>
             </div>
         `;
@@ -1166,8 +1166,8 @@ export async function captureProtocol(protocol) {
 
         // Headline quote
         content.innerHTML += `
-            <div style="font-size:20px; font-style:italic; color:rgba(255,255,255,0.7); margin-bottom:24px;
-                padding-left:16px; border-left:3px solid rgba(${brandRgb},0.3);">
+            <div style="font-size:15px; font-style:italic; color:rgba(255,255,255,0.7); margin-bottom:20px;
+                padding-left:14px; border-left:3px solid rgba(${brandRgb},0.3);">
                 "${protocol.headline}"
             </div>
         `;
@@ -1175,9 +1175,9 @@ export async function captureProtocol(protocol) {
         // Key changes
         const changes = (protocol.changes || []).slice(0, 5);
         if (changes.length) {
-            let changesHtml = `<div style="font-size:14px; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">Key Changes</div>`;
+            let changesHtml = `<div style="font-size:12px; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:2px; margin-bottom:8px;">Key Changes</div>`;
             changes.forEach(c => {
-                changesHtml += `<div style="font-size:16px; color:rgba(255,255,255,0.65); margin-bottom:6px; padding-left:8px;">• ${c}</div>`;
+                changesHtml += `<div style="font-size:13px; color:rgba(255,255,255,0.65); margin-bottom:5px; padding-left:8px;">• ${c}</div>`;
             });
             content.innerHTML += `<div>${changesHtml}</div>`;
         }
@@ -1187,7 +1187,7 @@ export async function captureProtocol(protocol) {
         document.body.appendChild(wrapper);
 
         const canvas = await html2canvas(wrapper, {
-            backgroundColor: bg, scale: 2, useCORS: true, logging: false, width: 1200, height: 630, windowWidth: 1200
+            backgroundColor: bg, scale: 2, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
         });
         wrapper.remove();
 
@@ -1222,14 +1222,14 @@ export async function captureTimeline(allProtocols) {
             width: 100%; height: 100%;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            padding: 48px 40px 70px 40px;
+            padding: 36px 24px 60px 24px;
             box-sizing: border-box;
         `;
 
         // Title
         content.innerHTML += `
-            <div style="font-family:'Orbitron',sans-serif; font-size:30px; font-weight:900; color:${brand};
-                letter-spacing:4px; text-transform:uppercase; margin-bottom:8px;
+            <div style="font-family:'Orbitron',sans-serif; font-size:18px; font-weight:900; color:${brand};
+                letter-spacing:3px; text-transform:uppercase; margin-bottom:8px;
                 text-shadow: 0 0 30px rgba(${brandRgb},0.5), 0 0 60px rgba(${brandRgb},0.3), 0 0 90px rgba(${brandRgb},0.1);">
                 TEZOS SYSTEMS — PROTOCOL HISTORY
             </div>
@@ -1237,8 +1237,8 @@ export async function captureTimeline(allProtocols) {
         `;
 
         // Timeline pills
-        const pillSize = 40;
-        const gap = 6;
+        const pillSize = 22;
+        const gap = 3;
         const totalWidth = allProtocols.length * (pillSize + gap) - gap;
         let pillsHtml = `<div style="display:flex; gap:${gap}px; justify-content:center; margin-bottom:12px;">`;
         allProtocols.forEach((p, i) => {
@@ -1246,7 +1246,7 @@ export async function captureTimeline(allProtocols) {
             pillsHtml += `<div style="
                 width:${pillSize}px; height:${pillSize}px; border-radius:50%;
                 display:flex; align-items:center; justify-content:center;
-                font-family:'Orbitron',sans-serif; font-size:14px; font-weight:900;
+                font-family:'Orbitron',sans-serif; font-size:9px; font-weight:900;
                 color:${isCurrent ? bg : 'rgba(255,255,255,0.7)'};
                 background:${isCurrent ? brand : `rgba(${brandRgb},0.12)`};
                 border:1px solid ${isCurrent ? brand : `rgba(${brandRgb},0.25)`};
@@ -1272,7 +1272,7 @@ export async function captureTimeline(allProtocols) {
 
         // Tagline
         content.innerHTML += `
-            <div style="font-size:22px; font-weight:700; color:rgba(255,255,255,0.6); letter-spacing:1px;">
+            <div style="font-size:16px; font-weight:700; color:rgba(255,255,255,0.6); letter-spacing:1px;">
                 ${total} Self-Amendments • Zero Hard Forks • Since 2018
             </div>
         `;
@@ -1282,7 +1282,7 @@ export async function captureTimeline(allProtocols) {
         document.body.appendChild(wrapper);
 
         const canvas = await html2canvas(wrapper, {
-            backgroundColor: bg, scale: 2, useCORS: true, logging: false, width: 1200, height: 630, windowWidth: 1200
+            backgroundColor: bg, scale: 2, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
         });
         wrapper.remove();
 
