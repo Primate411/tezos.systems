@@ -13,12 +13,12 @@ const TWEET_OPTIONS = {
         { label: '📊 Standard', text: (v) => `${v} independent validators running Tezos consensus.\n\nNo permission needed. No minimum stake. Just bake.` },
         { label: '📊 Standard', text: (v) => `Current Tezos baker count: ${v}\n\nEvery single one ran by an independent operator. That's decentralization you can count.` },
         // Dunk
-        { label: '🔥 Dunk', text: (v) => `${v} independent bakers vs Solana's "we'll just restart it" approach.\n\nDecentralization isn't a marketing slide.` },
-        { label: '🔥 Dunk', text: (v) => `ETH requires 32 ETH (~$100K) to validate.\nTezos requires... a Raspberry Pi and some XTZ.\n\n${v} bakers chose the permissionless option.` },
-        { label: '🔥 Dunk', text: (v) => `Solana has 1 validator client. If it bugs out, the chain stops.\n\nTezos has ${v} bakers running multiple clients. We don't do single points of failure.` },
+        { label: '🔥 Dunk', text: (v) => `${v} independent bakers on Tezos. Each one can run on a Raspberry Pi.\n\nDecentralization isn't a marketing slide.` },
+        { label: '🔥 Dunk', text: (v) => `ETH requires 32 ETH (~$64K+) to solo validate.\nTezos requires... a Raspberry Pi and some XTZ.\n\n${v} bakers chose the permissionless option.` },
+        { label: '🔥 Dunk', text: (v) => `Tezos has ${v} bakers running multiple client implementations. Octez, Mavkit — real client diversity from day one.\n\nNo single points of failure.` },
         { label: '🔥 Dunk', text: (v) => `"Decentralized" chains with a foundation kill switch vs ${v} Tezos bakers that literally no one can shut down.\n\nChoose wisely.` },
         // Flex
-        { label: '💪 Flex', text: (v) => `${v} validators. No foundation permission. No $1M hardware requirement.\n\nThat's what permissionless actually looks like.` },
+        { label: '💪 Flex', text: (v) => `${v} validators. No foundation permission. No expensive hardware requirement.\n\nThat's what permissionless actually looks like.` },
         { label: '💪 Flex', text: (v) => `${v} bakers, each one an equal vote in protocol governance.\n\nNo delegation to insiders. No "governance tokens." Just stake and vote.` },
         // Recruit
         { label: '📢 Recruit', text: (v, c) => c === 'down'
@@ -26,21 +26,21 @@ const TWEET_OPTIONS = {
             : `${v} bakers and counting. The barrier to entry is shockingly low.\n\nGot a spare machine? You could be earning rewards by tonight →\nhttps://docs.tez.capital` },
         { label: '📢 Recruit', text: (v, c) => c === 'down'
             ? `Fewer bakers = bigger slice of the pie. ${v} and dropping.\n\nSeriously, if you hold XTZ and aren't baking, what are you doing?`
-            : `Every new baker makes Tezos stronger. Currently at ${v}.\n\nNo lockup, no slashing, no $100K minimum. What's stopping you?` },
+            : `Every new baker makes Tezos stronger. Currently at ${v}.\n\nNo lockup, no slashing, no $64K minimum. What's stopping you?` },
         // Question
         { label: '❓ Question', text: (v) => `${v} independent bakers on Tezos.\n\nHow many validators does your chain need to go down before you start worrying?` },
         { label: '❓ Question', text: (v) => `Genuine question: why would anyone stake on a chain with slashing risk when Tezos has ${v} bakers earning yield with zero slashing?` },
         // Comparison
-        { label: '📈 Compare', text: (v) => `Validator counts:\n• Tezos: ${v} (anyone can join)\n• Solana: ~1,900 (need expensive hardware)\n• BTC: 0 (miners aren't validators)\n\nPermissionless means permissionless.` },
+        { label: '📈 Compare', text: (v) => `Validator accessibility:\n• Tezos: ${v} bakers (anyone can join, low hardware)\n• ETH: ~1M validators (32 ETH minimum, ~$64K+)\n• SOL: ~1,800 (expensive hardware required)\n\nPermissionless means permissionless.` },
     ],
     'tz4-adoption': [
         // Standard
         { label: '📊 Standard', text: (v) => `${v} of Tezos bakers now use tz4/BLS signatures — 63× bandwidth savings over traditional keys.\n\nTrack the migration →` },
         { label: '📊 Standard', text: (v) => `BLS signature adoption on Tezos: ${v}\n\nSmaller consensus messages, faster finality, better scalability. The upgrade path is working.` },
         // Dunk
-        { label: '🔥 Dunk', text: (v) => `${v} of Tezos bakers already migrated to BLS signatures.\n\nETH is still arguing about account abstraction. Tezos ships.` },
+        { label: '🔥 Dunk', text: (v) => `${v} of Tezos bakers already migrated to BLS signatures.\n\nETH is still working through its account abstraction roadmap. Tezos ships.` },
         { label: '🔥 Dunk', text: (v) => `While other chains debate signature schemes in Discord, ${v} of Tezos bakers already upgraded to BLS.\n\nOn-chain governance means upgrades actually happen.` },
-        { label: '🔥 Dunk', text: (v) => `BLS signatures give Tezos 63× bandwidth savings.\n\nSolana's solution to bandwidth? "Just buy more expensive hardware." Cool cool cool.` },
+        { label: '🔥 Dunk', text: (v) => `BLS signatures give Tezos 63× bandwidth savings on consensus.\n\nMost chains are still debating whether to even adopt aggregate signatures.` },
         // Flex
         { label: '💪 Flex', text: (v) => `${v} tz4/BLS adoption. 63× bandwidth savings. The chain upgrades itself AND its bakers upgrade with it.\n\nThis is what a living protocol looks like.` },
         { label: '💪 Flex', text: (v) => `tz4 adoption at ${v} and climbing.\n\nBLS aggregate signatures mean Tezos consensus gets lighter as more bakers adopt. The network literally gets better over time.` },
@@ -48,7 +48,7 @@ const TWEET_OPTIONS = {
         { label: '❓ Question', text: (v) => `${v} of Tezos bakers voluntarily upgraded their signing keys to a more efficient scheme.\n\nWhen was the last time your chain's validators proactively improved consensus?` },
         { label: '❓ Question', text: (v) => `63× bandwidth savings from BLS signatures. ${v} adoption and growing.\n\nWhy isn't every chain doing this?` },
         // Comparison
-        { label: '📈 Compare', text: (v) => `Signature tech comparison:\n• Tezos: BLS aggregate sigs (${v} adopted), 63× savings\n• ETH: Still on ECDSA, EIP-7702 pending\n• Solana: Ed25519 only\n\nTezos moves fast because governance works.` },
+        { label: '📈 Compare', text: (v) => `Signature tech comparison:\n• Tezos: BLS aggregate sigs (${v} adopted), 63× savings\n• ETH: Still primarily ECDSA, EIP-7702 in progress\n• Solana: Ed25519 only\n\nTezos moves fast because governance works.` },
     ],
     'staking-apy': [
         // Standard
@@ -60,7 +60,7 @@ const TWEET_OPTIONS = {
         { label: '🔥 Dunk', text: (v) => `Tezos: ${v} APY, liquid, no slashing.\nCosmos: similar APY, 21-day unbonding, slashing risk.\n\nWhy do people accept worse terms?` },
         // Flex
         { label: '💪 Flex', text: (v) => `${v} APY for securing one of the most technically advanced L1s in crypto.\n\nNo wrappers. No lockups. No slashing. Just XTZ.` },
-        { label: '💪 Flex', text: (v) => `Earning ${v} just for holding and delegating XTZ.\n\nMeanwhile it's also deflationary. The tokenomics actually make sense.` },
+        { label: '💪 Flex', text: (v) => `Earning ${v} just for holding and delegating XTZ.\n\nThe tokenomics actually make sense — adaptive issuance adjusts based on network participation.` },
         // Recruit
         { label: '📢 Recruit', text: (v) => `Not staking your XTZ?\n\nYou're leaving ${v} APY on the table. Delegation takes 2 clicks and your tokens stay liquid.` },
         // Question
@@ -73,7 +73,7 @@ const TWEET_OPTIONS = {
         { label: '📊 Standard', text: (v) => `Current XTZ issuance: ${v}\n\nNot fixed by decree. Not set by a foundation. Determined by protocol-level economic feedback loops.` },
         // Dunk
         { label: '🔥 Dunk', text: (v) => `Tezos issuance: ${v}. Adaptive, voted on by the network.\n\nNot decided by a foundation in a group chat. Not printed to fund VC rounds.` },
-        { label: '🔥 Dunk', text: (v) => `ETH went from PoW to PoS and called it "ultrasound money."\n\nTezos has had adaptive issuance at ${v} governed by on-chain votes since day one. No marketing needed.` },
+        { label: '🔥 Dunk', text: (v) => `ETH went from PoW to PoS and called it "ultrasound money."\n\nTezos has had adaptive issuance at ${v} governed by on-chain votes. No marketing campaign needed.` },
         { label: '🔥 Dunk', text: (v) => `Solana's inflation: fixed schedule, no governance input.\nTezos issuance: ${v}, dynamically adjusted by protocol economics.\n\nOne is monetary policy. The other is "trust us bro."` },
         // Flex
         { label: '💪 Flex', text: (v) => `${v} issuance rate. Adaptive. Governed. Transparent.\n\nTezos monetary policy is literally encoded in the protocol, not someone's Twitter bio.` },
@@ -89,16 +89,16 @@ const TWEET_OPTIONS = {
         { label: '📊 Standard', text: (v) => `Tezos staking ratio: ${v}\n\nEvery staked XTZ is a vote of confidence in the network's future.` },
         // Dunk
         { label: '🔥 Dunk', text: (v) => `${v} of XTZ staked natively. No Lido. No liquid staking derivatives. No wrapper tokens.\n\nIt's built into the protocol. Novel concept, apparently.` },
-        { label: '🔥 Dunk', text: (v) => `ETH staking ratio: ~28% (and most of it through Lido/Coinbase).\nTezos staking ratio: ${v} — natively, directly, no middleman.\n\nThe difference is protocol design.` },
-        { label: '🔥 Dunk', text: (v) => `${v} staked on Tezos without a single liquid staking derivative existing.\n\nETH needed an entire DeFi vertical just to make staking usable. Tezos ships it at the protocol level.` },
+        { label: '🔥 Dunk', text: (v) => `ETH staking ratio: ~28% (and a large chunk through Lido/Coinbase).\nTezos staking ratio: ${v} — natively, directly, no middleman.\n\nThe difference is protocol design.` },
+        { label: '🔥 Dunk', text: (v) => `${v} staked on Tezos without needing a single liquid staking derivative.\n\nETH needed an entire DeFi vertical just to make staking usable. Tezos ships it at the protocol level.` },
         // Flex
         { label: '💪 Flex', text: (v) => `${v} staking ratio. XTZ holders don't just hold — they participate.\n\nStaking IS governance on Tezos. Your stake is your vote.` },
         { label: '💪 Flex', text: (v) => `${v} of all XTZ securing the network.\n\nFully liquid. No lockups. No intermediaries. This is how PoS should work.` },
         // Question
-        { label: '❓ Question', text: (v) => `${v} of XTZ staked natively vs ETH's ~28% (mostly through third parties).\n\nWhich network has better aligned incentives?` },
+        { label: '❓ Question', text: (v) => `${v} of XTZ staked natively vs ETH's ~28% (largely through third parties).\n\nWhich network has better aligned incentives?` },
         { label: '❓ Question', text: (v) => `If ${v} of a token's supply is actively staked and governing the chain, is that bullish or bearish?\n\n(It's bullish.)` },
         // Comparison
-        { label: '📈 Compare', text: (v) => `Staking participation:\n• Tezos: ${v} (native, liquid)\n• ETH: ~28% (mostly via Lido/Coinbase)\n• SOL: ~67% (lockup required)\n• ATOM: ~63% (21-day unbonding)\n\nTezos: highest effective participation, zero lockup.` },
+        { label: '📈 Compare', text: (v) => `Staking participation:\n• Tezos: ${v} (native, liquid)\n• ETH: ~28% (largely via Lido/Coinbase)\n• SOL: ~65% (lockup required)\n• ATOM: ~63% (21-day unbonding)\n\nTezos: highest effective participation, zero lockup.` },
     ],
     'total-burned': [
         // Standard
@@ -114,27 +114,27 @@ const TWEET_OPTIONS = {
         { label: '❓ Question', text: (v) => `${v} XTZ permanently burned through protocol operations.\n\nAt what point does a token with adaptive issuance AND burn mechanics become the most sound money in crypto?` },
         { label: '❓ Question', text: (v) => `Adaptive issuance + ${v} XTZ burned.\n\nIs Tezos the most underappreciated deflationary asset in crypto right now?` },
         // Comparison
-        { label: '📈 Compare', text: (v) => `Burn mechanics:\n• ETH: EIP-1559 base fee burn (since 2021)\n• BTC: None\n• SOL: Priority fee burn (50%)\n• XTZ: ${v} burned via storage fees + operations\n\nTezos had fee burning before it was cool.` },
+        { label: '📈 Compare', text: (v) => `Burn mechanics:\n• ETH: EIP-1559 base fee burn (since Aug 2021)\n• BTC: None\n• SOL: 50% of fees burned\n• XTZ: ${v} burned via storage fees + operations\n\nTezos had fee burning before it was cool.` },
     ],
     'total-supply': [
         { label: '📊 Standard', text: (v) => `Total XTZ supply: ${v}\n\nWith adaptive issuance and ongoing burns, this number tells a story of sound monetary policy.` },
         { label: '📊 Standard', text: (v) => `${v} total XTZ in existence.\n\nNo VC unlocks. No team dumps. Transparent, on-chain economics.` },
         { label: '💪 Flex', text: (v) => `${v} XTZ total supply. Every token accounted for on-chain.\n\nNo hidden wallets. No surprise unlocks. No "strategic reserves."` },
-        { label: '🔥 Dunk', text: (v) => `${v} XTZ total supply.\n\nMeanwhile SOL has mysterious wallet movements and ETH foundation is selling. XTZ tokenomics are fully transparent.` },
+        { label: '🔥 Dunk', text: (v) => `${v} XTZ total supply.\n\nFully transparent on-chain economics. No mysterious wallet movements, no surprise foundation sells.` },
         { label: '❓ Question', text: (v) => `Total XTZ supply: ${v}\n\nWith burns reducing this number every day, do you know which direction your chain's supply is heading?` },
     ],
     'delegated': [
         { label: '📊 Standard', text: (v) => `${v} XTZ delegated to bakers — fully liquid, earning rewards, participating in governance.\n\nAll without a single wrapper token.` },
         { label: '📊 Standard', text: (v) => `${v} XTZ actively delegated on Tezos.\n\nDelegation is native. No smart contract risk. No third-party custody.` },
         { label: '💪 Flex', text: (v) => `${v} XTZ delegated — liquid, no lockup, no wrapper token, no intermediary.\n\nJust point your tokens at a baker and earn. Revolutionary, apparently.` },
-        { label: '🔥 Dunk', text: (v) => `ETH stakers: lock 32 ETH, use Lido wrapper, pray for no slashing.\nTezos delegators: ${v} XTZ delegated, fully liquid, zero risk.\n\nSame rewards. Wildly different UX.` },
+        { label: '🔥 Dunk', text: (v) => `ETH stakers: lock 32 ETH, use Lido wrapper, risk slashing.\nTezos delegators: ${v} XTZ delegated, fully liquid, zero risk.\n\nSame concept. Wildly different UX.` },
         { label: '❓ Question', text: (v) => `${v} XTZ delegated without a single lockup or wrapper.\n\nWhy does every other chain make staking so complicated?` },
         { label: '📢 Recruit', text: (v) => `${v} XTZ already delegated. Are yours?\n\nDelegation takes 2 minutes and your tokens never leave your wallet. Zero excuses.` },
     ],
     'cycle-progress': [
         { label: '📊 Standard', text: (v) => `Tezos cycle ${v} in progress.\n\nEvery cycle: bakers validate, stakers earn, governance continues. The machine keeps running.` },
         { label: '💪 Flex', text: (v) => `Cycle ${v} ticking along on Tezos.\n\nNo downtime. No "degraded performance." No emergency patches. Just blocks, every 6 seconds.` },
-        { label: '🔥 Dunk', text: (v) => `Tezos cycle ${v}. Chain has never stopped.\n\nSolana is on what, outage #47? But sure, tell me about their TPS numbers.` },
+        { label: '🔥 Dunk', text: (v) => `Tezos cycle ${v}. Chain has never stopped.\n\nSolana had 4 major outages between 2021-2022. Tezos: zero. Ever.` },
         { label: '❓ Question', text: (v) => `Tezos is on cycle ${v} with zero downtime ever.\n\nWhat's the uptime record for your L1?` },
     ],
     'proposal': [
@@ -144,7 +144,7 @@ const TWEET_OPTIONS = {
         { label: '🔥 Dunk', text: (v) => `${v}\n\nOther chains: "We'll discuss governance in the Discord."\nTezos: "We voted on-chain and it's live." Different breed.` },
         { label: '💪 Flex', text: (v) => `${v}\n\nTezos governance works because it's not optional. Every upgrade, every parameter change — voted on by the people running the chain.` },
         { label: '❓ Question', text: (v) => `${v}\n\nWhen was the last time YOU got to vote on a protocol upgrade for your chain? Tezos bakers vote on every single one.` },
-        { label: '📈 Compare', text: (v) => `Governance models:\n• BTC: Mailing list arguments\n• ETH: Core dev calls\n• SOL: Foundation decides\n• Tezos: ${v} — on-chain binding votes\n\nOnly one is actually democratic.` },
+        { label: '📈 Compare', text: (v) => `Governance models:\n• BTC: Mailing list arguments + miner signaling\n• ETH: Core dev calls (ACD)\n• SOL: Foundation decides\n• Tezos: ${v} — on-chain binding votes\n\nOnly one is actually democratic.` },
     ],
     'voting-period': [
         { label: '📊 Standard', text: (v) => `Tezos voting: ${v}\n\nMulti-round on-chain governance. Every baker gets a proportional vote.` },
@@ -156,31 +156,31 @@ const TWEET_OPTIONS = {
     'participation': [
         { label: '📊 Standard', text: (v) => `${v} voter participation in current Tezos governance period.\n\nOn-chain democracy with real turnout.` },
         { label: '📊 Standard', text: (v) => `Tezos governance participation: ${v}\n\nStakeholders actually show up to vote. The governance isn't theater.` },
-        { label: '🔥 Dunk', text: (v) => `${v} voter turnout on Tezos governance.\n\nHigher than most national elections. Definitely higher than ETH's non-binding signaling polls.` },
-        { label: '🔥 Dunk', text: (v) => `${v} participation rate.\n\nCardano has "governance" now too. Let me know when Voltaire actually works.` },
+        { label: '🔥 Dunk', text: (v) => `${v} voter turnout on Tezos governance.\n\nHigher than most national elections. Definitely higher than ETH's non-binding Snapshot polls.` },
+        { label: '🔥 Dunk', text: (v) => `${v} participation rate.\n\nCardano launched Voltaire governance in 2024. Tezos has had binding on-chain votes since 2019.` },
         { label: '💪 Flex', text: (v) => `${v} governance participation. Tezos bakers don't just validate — they govern.\n\nStaking IS governance. No separate "governance token" needed.` },
         { label: '❓ Question', text: (v) => `${v} of Tezos stake actively voting on protocol upgrades.\n\nWhat's the governance participation rate on your chain? Do you even know?` },
         { label: '❓ Question', text: (v) => `${v} voter participation on Tezos.\n\nIf your chain's governance is "multisig controlled by the foundation," is it really decentralized?` },
-        { label: '📈 Compare', text: (v) => `Governance participation:\n• Tezos: ${v} (binding on-chain votes)\n• ETH: Coin votes on Snapshot (non-binding)\n• SOL: No governance mechanism\n• BTC: Miner signaling only\n\nTezos is the only L1 with real on-chain democracy.` },
+        { label: '📈 Compare', text: (v) => `Governance participation:\n• Tezos: ${v} (binding on-chain votes)\n• ETH: Coin votes on Snapshot (non-binding)\n• SOL: No formal governance mechanism\n• BTC: Miner signaling only\n\nTezos is the only L1 with real on-chain democracy.` },
     ],
     'tx-volume': [
         { label: '📊 Standard', text: (v) => `${v} transactions on Tezos in the last 24 hours.\n\nSub-cent fees. 6-second finality. Real usage.` },
         { label: '📊 Standard', text: (v) => `24h Tezos transaction volume: ${v}\n\nEvery single one final in seconds, for less than a penny.` },
-        { label: '🔥 Dunk', text: (v) => `${v} txs in 24h on Tezos.\n\nAll of them actually finalized. Unlike some chains where "confirmed" means "probably won't reorg."` },
-        { label: '🔥 Dunk', text: (v) => `${v} Tezos transactions today. Average fee: sub-cent.\n\nETH users paid more in gas for one swap than Tezos users paid for ${v} transactions combined.` },
+        { label: '🔥 Dunk', text: (v) => `${v} txs in 24h on Tezos.\n\nAll of them actually finalized. Deterministic finality — not probabilistic "it's probably fine."` },
+        { label: '🔥 Dunk', text: (v) => `${v} Tezos transactions today. Average fee: sub-cent.\n\nEven with ETH's low gas right now, Tezos L1 fees are still a fraction of a cent. Consistently.` },
         { label: '💪 Flex', text: (v) => `${v} txs in 24h. 6-second blocks. Sub-cent fees. Deterministic finality.\n\nNot a testnet. Not an L2. This is the L1.` },
         { label: '💪 Flex', text: (v) => `${v} transactions processed on Tezos today.\n\nAll verified. All final. All cheap. Boring? Maybe. But boring infrastructure is good infrastructure.` },
-        { label: '❓ Question', text: (v) => `${v} transactions in 24h with sub-cent fees.\n\nAt what point do people realize Tezos already solved the scalability trilemma at L1?` },
-        { label: '📈 Compare', text: (v) => `24h transactions with sub-cent fees:\n• Tezos: ${v} ✓\n• ETH: Nope ($2-50 per tx)\n• BTC: Nope ($1-20 per tx)\n• SOL: Yes, but chain stops sometimes\n\nReliable AND cheap. Pick Tezos.` },
+        { label: '❓ Question', text: (v) => `${v} transactions in 24h with sub-cent fees and deterministic finality.\n\nAt what point do people realize Tezos already solved the reliability problem at L1?` },
+        { label: '📈 Compare', text: (v) => `L1 reliability + cost:\n• Tezos: ${v} txs/24h, sub-cent fees, zero downtime ever\n• ETH: Low fees now but historically volatile, 12s blocks\n• SOL: High throughput but 4 major outages in 2021-2022\n\nReliable AND cheap. Tezos.` },
     ],
     'contract-calls': [
         { label: '📊 Standard', text: (v) => `${v} smart contract calls on Tezos in 24h.\n\nFormally verified contracts, sub-cent execution. The developer experience matters.` },
         { label: '📊 Standard', text: (v) => `24h Tezos contract calls: ${v}\n\nReal dApps, real users, real on-chain activity.` },
-        { label: '🔥 Dunk', text: (v) => `${v} contract calls in 24h on Tezos. Sub-cent each.\n\nETH devs are paying more in gas to deploy a contract than Tezos users pay in a year.` },
+        { label: '🔥 Dunk', text: (v) => `${v} contract calls in 24h on Tezos. Sub-cent each.\n\nFormal verification support means fewer exploits. The smart contract security difference is real.` },
         { label: '💪 Flex', text: (v) => `${v} contract calls in 24h. Formally verified. Battle-tested. Cheap to call.\n\nTezos smart contracts: where "move fast and break things" meets mathematical proofs.` },
         { label: '💪 Flex', text: (v) => `${v} smart contract interactions today.\n\nMichelson and SmartPy contracts with formal verification built in. When the contract says X, it does X. No reentrancy exploits.` },
         { label: '❓ Question', text: (v) => `${v} contract calls on Tezos today.\n\nHow many DeFi exploits has Tezos had vs ETH? Formal verification matters.` },
-        { label: '📈 Compare', text: (v) => `Smart contract security:\n• ETH: Billions lost to exploits\n• SOL: Multiple DeFi hacks\n• Tezos: ${v} calls/day, formal verification, near-zero exploits\n\nMaybe "move fast and break things" isn't ideal for financial infrastructure.` },
+        { label: '📈 Compare', text: (v) => `Smart contract security:\n• ETH: Billions lost to exploits over the years\n• SOL: Multiple DeFi hacks\n• Tezos: ${v} calls/day, formal verification, near-zero exploits\n\nSecurity-first design pays off.` },
     ],
     'funded-accounts': [
         { label: '📊 Standard', text: (v) => `${v} funded accounts on Tezos.\n\nEvery single one is a real address with real value.` },
@@ -202,50 +202,204 @@ const TWEET_OPTIONS = {
         { label: '📊 Standard', text: (v) => `${v} tokens on Tezos.\n\nFA2 standard: multi-asset, composable, and way cleaner than ERC-20.` },
         { label: '📊 Standard', text: (v) => `Tezos token ecosystem: ${v} tokens and counting.\n\nEvery one running on sub-cent transaction fees.` },
         { label: '💪 Flex', text: (v) => `${v} tokens on Tezos using the FA2 standard.\n\nOne standard for fungible, NFTs, and multi-asset. ETH needed ERC-20, ERC-721, AND ERC-1155.` },
-        { label: '🔥 Dunk', text: (v) => `${v} tokens on Tezos. Not a single one was a rug-pull memecoin launched in 30 seconds.\n\nOk maybe a few. But the infrastructure is legitimate.` },
-        { label: '❓ Question', text: (v) => `${v} tokens on Tezos with sub-cent transfer fees.\n\nRemember when you paid $50 in gas to swap an ERC-20? Tezos users don't have that memory.` },
+        { label: '🔥 Dunk', text: (v) => `${v} tokens on Tezos. The FA2 standard handles fungible, NFTs, and multi-asset in one clean interface.\n\nETH's token standard fragmentation is a feature, apparently.` },
+        { label: '❓ Question', text: (v) => `${v} tokens on Tezos with sub-cent transfer fees.\n\nRemember when ETH gas was $50+ per swap? Those days may be over, but Tezos fees have been sub-cent since day one.` },
     ],
     'rollups': [
         { label: '📊 Standard', text: (v) => `${v} smart rollups live on Tezos.\n\nEnshrined L2 scaling — verified by the protocol itself, not a multisig.` },
         { label: '📊 Standard', text: (v) => `Tezos smart rollups: ${v}\n\nL2 scaling that's part of the protocol, not bolted on as a business.` },
         { label: '🔥 Dunk', text: (v) => `${v} smart rollups on Tezos. Enshrined in the protocol.\n\nETH rollups: "Trust this multisig to not steal your funds."\nTezos rollups: "The L1 verifies everything."\n\nNot the same.` },
-        { label: '🔥 Dunk', text: (v) => `${v} Tezos rollups, all enshrined.\n\nMeanwhile ETH L2s are centralized sequencers with "training wheels" that have been on for 3 years. Those wheels aren't coming off.` },
+        { label: '🔥 Dunk', text: (v) => `${v} Tezos rollups, all enshrined.\n\nMost ETH L2s still run centralized sequencers with admin keys. Tezos rollups are verified by the protocol itself.` },
         { label: '💪 Flex', text: (v) => `${v} smart rollups. Protocol-enshrined. No admin keys. No centralized sequencer.\n\nThis is what real L2 scaling looks like.` },
         { label: '💪 Flex', text: (v) => `Tezos smart rollups: ${v} and growing. Run any VM — EVM, WASM, whatever.\n\nThe L1 secures them all. No separate trust assumptions.` },
-        { label: '❓ Question', text: (v) => `${v} Tezos rollups, all verified by the L1 protocol itself.\n\nHow many ETH rollups can say the same? (Hint: zero. They all have admin keys.)` },
-        { label: '📈 Compare', text: (v) => `L2 architecture:\n• ETH: Centralized sequencers + multisig admin keys\n• Tezos: ${v} enshrined rollups, L1-verified, no admin keys\n\nOne is "rollup" in name. The other is rollup in design.` },
+        { label: '❓ Question', text: (v) => `${v} Tezos rollups, all verified by the L1 protocol itself.\n\nHow many ETH rollups have fully removed their admin keys? Almost none.` },
+        { label: '📈 Compare', text: (v) => `L2 architecture:\n• ETH: Mostly centralized sequencers + multisig admin keys\n• Tezos: ${v} enshrined rollups, L1-verified, no admin keys\n\nOne is "rollup" in name. The other is rollup in design.` },
     ],
 };
 
-// Protocol-specific tweet options
-const PROTOCOL_TWEET_OPTIONS = [
+// Protocol-specific tweet options — keyed by protocol name for targeted tweets
+const PROTOCOL_TWEET_OPTIONS_BY_NAME = {
+    'Athens': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Athens: Tezos' first-ever self-amendment. May 2019.\n\nReduced baking threshold from 10k to 8k tez and doubled gas limits. The governance system worked on its very first try.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `May 2019: Tezos proved self-amendment wasn't just theory.\n\nAthens passed through on-chain governance and activated without a fork. No other blockchain had ever done this.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Athens (May 2019): The first time a blockchain upgraded itself through on-chain voting.\n\nETH was still on PoW. Cardano had no smart contracts. Tezos was already self-amending.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Athens proved on-chain governance works — May 2019.\n\nTezos has now done it ${total} times. How many on-chain voted upgrades has your chain completed?` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `First on-chain self-amendment in blockchain history: Tezos Athens, May 2019.\n\nSince then: ${total} more upgrades, zero forks. No other L1 has matched this governance track record.` },
+    ],
+    'Babylon': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Babylon (Oct 2019): Emmy+ consensus, smart contract entrypoints, and account system overhaul.\n\nTezos was refining its consensus algorithm while most chains hadn't shipped one.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Babylon introduced smart contract entrypoints — typed function calls to contracts.\n\nClean, composable contract interfaces in 2019. The kind of developer UX others are still catching up to.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Babylon shipped Emmy+ consensus and entrypoints in October 2019.\n\nETH didn't get its consensus upgrade (The Merge) until September 2022 — three years later.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Babylon added typed entrypoints to Tezos smart contracts in 2019.\n\nHow many chains have properly typed contract call interfaces even now?` },
+    ],
+    'Carthage': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Carthage (Mar 2020): 30% more gas capacity.\n\nNotable because the first Carthage proposal was rejected — proving governance works both ways.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `The first Carthage proposal failed with 3.5% support (needed 5%). Then it was fixed and passed.\n\nThat's not a bug — that's governance working as designed.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Carthage's first proposal was rejected, fixed, and resubmitted successfully.\n\nOn-chain governance means bad proposals get stopped. When was the last time your chain's community blocked a bad upgrade?` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Carthage proved Tezos governance can reject proposals too.\n\nIf your chain can only approve upgrades but never reject them, is that really governance?` },
+    ],
+    'Delphi': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Delphi (Nov 2020): Storage costs dropped 4× and the gas model was completely recomputed.\n\nMaking the chain cheaper and more efficient — through an on-chain vote.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Delphi cut storage costs from 1 tez to 0.25 tez per kilobyte. November 2020.\n\nProtocol-level cost optimization voted on by bakers. No foundation decree needed.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Delphi made Tezos 4× cheaper for storage in November 2020.\n\nETH's fee problem got so bad they needed an entirely new fee market (EIP-1559, August 2021). Tezos just voted and shipped.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Delphi cut Tezos storage costs 4× through a governance vote.\n\nWhen your chain needs economic parameter changes, who decides? The community or a core team?` },
+    ],
+    'Edo': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Edo (Feb 2021): Sapling privacy, BLS12-381 curve, and tickets for L2.\n\nPrivacy-preserving transactions at the protocol level — not a mixer, not a wrapper.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Edo shipped protocol-level privacy (Sapling) and the BLS12-381 curve in February 2021.\n\nZk-proof infrastructure built into the L1, years before the "zk everything" hype cycle.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Tezos had BLS12-381 curve support since February 2021 (Edo).\n\nThe same cryptographic primitive that's now the foundation of every zk-rollup. Tezos was early.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Edo added Sapling privacy and BLS12-381 to Tezos in February 2021.\n\nHow many L1s have native privacy-preserving transaction support built into the protocol?` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `ZK cryptography adoption:\n• Tezos: BLS12-381 since Feb 2021 (Edo)\n• ETH: Still building zk infrastructure via L2s\n• Most L1s: No native ZK support\n\nTezos shipped zk primitives before the zk hype.` },
+    ],
+    'Florence': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Florence (May 2021): Depth-first execution and 32KB operation support.\n\nA technical refinement that made smart contract execution more predictable.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Florence switched Tezos to depth-first contract execution — more predictable, more composable.\n\nNotably, "Baking Accounts" were removed after the community found undocumented breaking changes. Governance works.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Florence removed a feature (Baking Accounts) because the community found undocumented breaking changes.\n\nOn-chain governance caught a problem and fixed it. Try doing that with a hard fork.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Florence proved Tezos governance can remove problematic features, not just add new ones.\n\nCan your chain's governance subtract complexity? Or does it only grow?` },
+    ],
+    'Granada': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Granada (Aug 2021): Block time cut from 60s to 30s, gas reduced 3-6×, and Liquidity Baking introduced.\n\nThe most controversial Tezos upgrade — protocol-level DEX liquidity.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Granada introduced Liquidity Baking — the protocol itself providing DEX liquidity. August 2021.\n\nNo other L1 has ever attempted protocol-level liquidity subsidies. Love it or hate it, it was genuinely novel.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Granada shipped protocol-level liquidity in August 2021.\n\nEvery block, the protocol minted tez for a DEX pool. No other chain has attempted this because most chains can't upgrade their economic model through governance.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Granada made Tezos the only L1 to subsidize DEX liquidity at the protocol level.\n\nIs protocol-managed liquidity the future, or should markets handle it? Tezos let bakers decide.` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `Block time evolution:\n• Granada (Aug 2021): 60s → 30s\n• Mumbai (Mar 2023): 30s → 15s\n• Paris (Jun 2024): 15s → 10s\n• Tallinn (Jan 2026): 8s → 6s\n\nTezos keeps getting faster through governance.` },
+    ],
+    'Hangzhou': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Hangzhou (Dec 2021): On-chain views, timelock encryption, and global constants.\n\nClean composability primitives that make contract-to-contract calls actually work.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Hangzhou added on-chain views to Tezos — contracts can read each other's state without callbacks.\n\nDecember 2021. Simple, clean, composable. The way smart contracts should work.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Hangzhou shipped timelock encryption in December 2021 — commit-reveal without the trust assumptions.\n\nProtocol-level primitives for fair ordering. Most chains are still debating MEV solutions.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Hangzhou gave Tezos on-chain views and timelock encryption in 2021.\n\nDoes your chain have protocol-level commit-reveal for fair ordering, or are you still getting front-run?` },
+    ],
+    'Ithaca': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Ithaca (Apr 2022): Tenderbake consensus — deterministic finality in ~1 minute.\n\nTezos moved from probabilistic to deterministic finality. Once confirmed, it's final. Period.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Ithaca shipped Tenderbake in April 2022 — deterministic finality for Tezos.\n\n2-block finality (~1 min). No reorgs. No "wait for 12 confirmations." When Tezos says final, it means final.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Tezos has had deterministic finality since April 2022 (Ithaca/Tenderbake).\n\nETH still uses probabilistic finality — technically, transactions can reorg. Tezos blocks are mathematically final.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Tenderbake gave Tezos deterministic finality in April 2022.\n\nDoes your chain have mathematical finality, or just "probably final after enough confirmations"?` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `Finality models:\n• BTC: ~60 min (6 confirmations, probabilistic)\n• ETH: ~15 min (probabilistic, can reorg)\n• Tezos: ~12 seconds (deterministic since Ithaca, Apr 2022)\n\nDeterministic > probabilistic.` },
+    ],
+    'Jakarta': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Jakarta (Jun 2022): Transaction rollups debut, tz4/BLS addresses introduced.\n\nThe first step toward enshrined L2 scaling on Tezos.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Jakarta introduced BLS signature support (tz4 addresses) in June 2022.\n\n63× bandwidth savings for consensus. The foundation for Tezos' scalability roadmap.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Jakarta shipped transaction rollups in June 2022.\n\nEnshrined in the protocol. Not a VC-funded L2 with a centralized sequencer and admin keys.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Jakarta added BLS signatures to Tezos in June 2022 — 63× bandwidth savings.\n\nWhy aren't more chains adopting aggregate signatures for consensus efficiency?` },
+    ],
+    'Kathmandu': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Kathmandu (Sep 2022): Contract events (EMIT) and VDF randomness.\n\nProper event systems and verifiable randomness — protocol-level infrastructure.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Kathmandu added VDF-based randomness to Tezos in September 2022.\n\nVerifiable, unbiasable randomness at the protocol level. Not Chainlink. Not an oracle. Built in.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Kathmandu shipped protocol-level VDF randomness in September 2022.\n\nMost chains rely on external oracles for randomness. Tezos builds it into the protocol.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Kathmandu gave Tezos verifiable randomness and contract events in 2022.\n\nDoes your chain have unbiasable randomness built into the protocol, or do you trust an oracle?` },
+    ],
+    'Lima': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Lima (Dec 2022): Consensus keys — separate your baking key from your funds.\n\nOperational security for validators, voted in through governance.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Lima let bakers separate consensus keys from spending keys — December 2022.\n\nYour baking operation doesn't need access to your funds. Basic security that most chains still don't offer.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Lima gave Tezos bakers consensus key separation in December 2022.\n\nETH validators still can't separate their signing key from their withdrawal credentials without third-party tools.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Lima introduced consensus key separation for Tezos bakers.\n\nCan your chain's validators use a hot signing key without exposing their funds? Tezos has since December 2022.` },
+    ],
+    'Mumbai': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Mumbai (Mar 2023): 15-second blocks and Smart Rollups go live.\n\nEnshrined L2 scaling — the L1 protocol verifies rollup execution. No multisig. No admin keys.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Mumbai shipped Smart Rollups in March 2023. Enshrined in the protocol.\n\nAny VM — EVM, WASM, whatever — verified by the L1. This is what a rollup-centric roadmap looks like when done right.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Tezos shipped enshrined Smart Rollups in March 2023.\n\nETH's rollup-centric roadmap is still mostly centralized sequencers with admin keys. Tezos enshrined rollups at the protocol level.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Mumbai shipped protocol-enshrined Smart Rollups in March 2023.\n\nHow many ETH L2s have fully removed their admin keys and centralized sequencers? Still waiting.` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `Rollup security:\n• Tezos Smart Rollups (Mar 2023): L1-verified, no admin keys\n• ETH rollups: Centralized sequencers, multisig upgradeable\n• Most L2s: "Trust us, we'll decentralize later"\n\nTezos shipped it right the first time.` },
+    ],
+    'Nairobi': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Nairobi (Jun 2023): Smart Rollup improvements and DAL foundations.\n\nIterating on L2 infrastructure — outbox messages and precise gas accounting.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Nairobi refined Smart Rollups with outbox messages and laid the DAL foundations. June 2023.\n\nTezos doesn't just ship features — it iterates on them through governance.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Nairobi improved Tezos rollups just 3 months after Mumbai launched them.\n\nShip, iterate, improve — all through on-chain votes. No waiting years for "the next hard fork."` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Nairobi iterated on Smart Rollups just 3 months after they launched.\n\nHow fast can your chain iterate on new features? Tezos governance enables rapid, safe evolution.` },
+    ],
+    'Oxford': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Oxford (Feb 2024): The first protocol proposal ever REJECTED by Tezos bakers.\n\nAdaptive Issuance was too complex. Bakers said no. Oxford 2 passed with AI disabled.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Oxford was the first rejected proposal in Tezos history. February 2024.\n\nBakers reviewed the economics, found issues, and voted it down. Then a fixed version passed. This is governance working exactly as designed.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Tezos bakers rejected Oxford's economic changes in February 2024 — a historic first.\n\nWhen was the last time validators on your chain blocked an upgrade they disagreed with? On Tezos, it's a feature.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Oxford proved Tezos governance isn't rubber-stamping.\n\nBakers rejected complex economic changes, the proposal was fixed, and a clean version passed. Can your chain do this?` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `Governance power:\n• Oxford rejected → fixed → Oxford 2 passed (Tezos)\n• ETH: Core devs decide, community signals but can't block\n• SOL: Foundation pushes updates\n\nOnly on Tezos can validators actually reject protocol changes.` },
+    ],
+    'Paris': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Paris (Jun 2024): 10-second blocks and the Data Availability Layer goes live.\n\nFaster blocks + native data availability for rollups. All voted in by bakers.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Paris launched Tezos' Data Availability Layer in June 2024.\n\nNative DA for rollups — no third-party DA layer needed. The L1 handles data availability itself.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Paris shipped a native Data Availability Layer in June 2024.\n\nETH rollups still depend on expensive L1 calldata or third-party DA layers like Celestia. Tezos built it in.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Paris gave Tezos a native Data Availability Layer in June 2024.\n\nDoes your L1 provide data availability for rollups natively, or do you need a separate chain for that?` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `Data availability:\n• Tezos DAL (Jun 2024): Native, protocol-level\n• ETH: EIP-4844 blobs (limited), relies on third-party DA\n• Celestia: Separate chain just for DA\n\nTezos integrates DA at the protocol level.` },
+    ],
+    'Paris C': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Paris C (Jun 2024): Quick DAL parameter tuning follow-up.\n\nThe ability to ship a fast follow-up fix through governance — that's operational maturity.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Paris C: a rapid governance follow-up to tune DAL parameters. June 2024.\n\nTezos can ship a targeted fix in weeks, not months. The governance pipeline is fast when it needs to be.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Paris C shipped a parameter fix just weeks after Paris B.\n\nMost chains would need an emergency hard fork for this. Tezos just ran another governance cycle.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Paris C was a rapid follow-up governance cycle for DAL tuning.\n\nCan your chain ship targeted parameter fixes through governance in weeks? Tezos can.` },
+    ],
+    'Quebec': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Quebec (Jan 2025): 8-second blocks and Adaptive Maximum issuance.\n\nThe most contested upgrade in Tezos history — 6 months of economic governance warfare.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Quebec was the most contested Tezos upgrade ever. Community alternatives (Qena, Q3NA) challenged core developers for 6 months.\n\nThe protocol survived it. That's stress-tested governance.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Quebec saw the first serious community challenge to core developer proposals. Qena42 won a Proposal vote with 59.9%.\n\nThis level of contested economic governance doesn't exist anywhere else in crypto.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Quebec: 6 months of economic governance debate. Community alternatives. Competing proposals.\n\nHas your chain's community ever produced a competing protocol proposal? On Tezos, it's just democracy.` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `Economic governance:\n• BTC: Block size war lasted years, caused a chain split\n• ETH: EIP-1559 debate, core devs decided\n• Tezos Quebec: 6-month community debate, on-chain votes, no fork\n\nContested governance without breaking the chain.` },
+    ],
+    'Rio': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Rio (May 2025): Daily cycles and DAL rewards activated.\n\nCycles compressed from ~2.8 days to ~1 day. Faster reward distribution, faster governance.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Rio compressed Tezos cycles to ~1 day. May 2025.\n\nFaster rewards, faster governance periods, faster iteration. The protocol keeps getting leaner.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Rio activated DAL incentives — rewarding operators who contribute data availability. May 2025.\n\nTezos pays for infrastructure at the protocol level. No separate token. No VC-funded side chain.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Rio compressed Tezos cycles to ~1 day and activated DAL rewards.\n\nDoes your chain incentivize data availability operators at the protocol level?` },
+    ],
+    'Seoul': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Seoul (Sep 2025): Attestation aggregation and BLS Proof of Possession.\n\nConsensus gets lighter and more secure with every upgrade.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Seoul shipped attestation aggregation in September 2025.\n\nFewer messages, same security. Tezos consensus keeps getting more efficient through governance-driven upgrades.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Seoul brought attestation aggregation to Tezos — September 2025.\n\nETH's been discussing attestation aggregation for years. Tezos voted it in and shipped it.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Seoul shipped attestation aggregation for Tezos in September 2025.\n\nHow many consensus optimizations has your chain shipped through governance? Tezos keeps iterating.` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `Consensus efficiency:\n• Tezos Seoul (Sep 2025): Attestation aggregation, BLS PoP\n• ETH: Discussing similar features in roadmap\n• SOL: Turbine protocol (fixed architecture)\n\nTezos evolves consensus through governance. Others wait for hard forks.` },
+    ],
+    'Tallinn': [
+        { label: '📊 Standard', text: (name, num, headline, total) => `Tallinn (Jan 2026): 6-second blocks. Tezos' fastest block time yet.\n\nPlus All Bakers Attest prep — once 50% of bakers adopt BLS, every baker will attest every block.` },
+        { label: '💪 Flex', text: (name, num, headline, total) => `Tallinn: 6-second blocks on Tezos. January 2026.\n\nFrom 60s (pre-Granada) to 6s in 4 years. That's a 10× improvement delivered through governance, not hard forks.` },
+        { label: '🔥 Dunk', text: (name, num, headline, total) => `Tezos now has 6-second blocks (Tallinn, Jan 2026). ETH is still at 12 seconds.\n\nTezos has halved its block time through governance 4 times. ETH's block time hasn't changed since The Merge.` },
+        { label: '❓ Question', text: (name, num, headline, total) => `Tezos went from 60-second to 6-second blocks in 4 years — all through on-chain governance.\n\nWhat's your chain's block time? Has it ever improved through a governance vote?` },
+        { label: '📈 Compare', text: (name, num, headline, total) => `Block time evolution:\n• Tezos: 60s → 30s → 15s → 10s → 8s → 6s (all governance-voted)\n• ETH: 12s (fixed since The Merge, Sep 2022)\n• BTC: 10 min (never changed)\n\nTezos keeps getting faster because governance works.` },
+    ],
+};
+
+// Generic fallback for protocols not in the specific map
+const PROTOCOL_TWEET_OPTIONS_GENERIC = [
     { label: '📊 Standard', text: (name, num, headline, total) => `Tezos upgrade #${num}: ${name}\n\n"${headline}"\n\n${total} self-amendments. Zero hard forks. The protocol evolves through votes.` },
     { label: '📊 Standard', text: (name, num, headline, total) => `${name} is live on Tezos. Upgrade #${num} of ${total}.\n\n${headline}\n\nAll voted on-chain by bakers. No foundation approval needed.` },
-    { label: '🔥 Dunk', text: (name, num, headline, total) => `${total} upgrades. Zero forks. Meanwhile ETH had to literally split the chain to fix a hack and BTC can't agree on block size.\n\nLatest: ${name} — ${headline}` },
-    { label: '🔥 Dunk', text: (name, num, headline, total) => `Cardano is still shipping "governance" after 8 years.\n\nTezos just completed upgrade #${num} (${name}). That's ${total} on-chain voted upgrades since 2018.\n\nShipping > Promising.` },
-    { label: '🔥 Dunk', text: (name, num, headline, total) => `How other chains upgrade: "Trust the core team."\nHow Tezos upgrades: ${total} on-chain votes, zero forks.\n\nUpgrade #${num} ${name}: ${headline}` },
+    { label: '🔥 Dunk', text: (name, num, headline, total) => `${total} upgrades. Zero forks. Latest: ${name} — ${headline}\n\nBTC has had ~3 soft forks in 15 years. ETH has had ~15 hard forks. Tezos just votes and ships.` },
     { label: '💪 Flex', text: (name, num, headline, total) => `Upgrade #${num}: ${name}.\n\n${headline}\n\n${total} self-amendments since 2018. Every single one voted on-chain. No contentious forks. Ever.` },
-    { label: '💪 Flex', text: (name, num, headline, total) => `${name} is Tezos upgrade #${num}.\n\nThe chain has upgraded itself ${total} times without splitting, without downtime, without drama.\n\nThis is what mature infrastructure looks like.` },
     { label: '🗳️ Governance', text: (name, num, headline, total) => `While other chains debate who gets to push the button, Tezos bakers just voted in upgrade #${num}: ${name}.\n\nDemocracy works when you actually build it into the protocol.` },
-    { label: '🗳️ Governance', text: (name, num, headline, total) => `${total} protocol upgrades. ${total} on-chain votes. Zero forks.\n\nUpgrade #${num} (${name}) proves on-chain governance isn't a pipe dream — it's production reality.` },
-    { label: '❓ Question', text: (name, num, headline, total) => `Tezos just completed its ${total}th self-amendment: ${name}.\n\nHow many times has your chain upgraded without forking?` },
     { label: '❓ Question', text: (name, num, headline, total) => `${name}: "${headline}"\n\nVoted on by bakers. Activated on-chain. No fork.\n\nUpgrade #${num} of ${total}. Is any other L1 even close to this governance track record?` },
-    { label: '📈 Compare', text: (name, num, headline, total) => `Protocol upgrade records:\n• BTC: Taproot (2021), took years of debate\n• ETH: The Merge (2022), required chain split fix in 2016\n• Tezos: ${total} upgrades, all voted, zero forks\n\nLatest: #${num} ${name}` },
 ];
+
+// Wrapper: PROTOCOL_TWEET_OPTIONS kept as array for backward compat
+const PROTOCOL_TWEET_OPTIONS = PROTOCOL_TWEET_OPTIONS_GENERIC;
+
+/**
+ * Get protocol-specific tweet options, falling back to generic
+ */
+function getProtocolTweetOptions(protocol, num, total) {
+    const specific = PROTOCOL_TWEET_OPTIONS_BY_NAME[protocol.name];
+    if (specific) {
+        return specific.map(o => ({
+            label: o.label,
+            text: o.text(protocol.name, num, protocol.headline, total)
+        }));
+    }
+    return PROTOCOL_TWEET_OPTIONS_GENERIC.map(o => ({
+        label: o.label,
+        text: o.text(protocol.name, num, protocol.headline, total)
+    }));
+}
 
 const TIMELINE_TWEET_OPTIONS = [
     { label: '📊 Standard', text: (total) => `${total} protocol upgrades. Zero hard forks. Tezos governance in action since 2018.` },
     { label: '📊 Standard', text: (total) => `Tezos: ${total} self-amendments, all voted on-chain, zero contentious forks.\n\nThis is what a self-amending blockchain actually looks like.` },
-    { label: '🔥 Dunk', text: (total) => `${total} upgrades. Zero forks. Zero foundation vetoes.\n\nBTC can't agree on block size. ETH split the chain over a hack. Tezos just votes and ships.` },
-    { label: '🔥 Dunk', text: (total) => `Other chains call themselves "decentralized" but upgrades are decided by 5 people on a call.\n\nTezos has ${total} on-chain voted upgrades. Show me another L1 with this record.` },
-    { label: '🔥 Dunk', text: (total) => `Solana: "We'll restart the chain."\nETH: "The core devs decided."\nBTC: "We don't upgrade."\nTezos: "${total} voted upgrades, zero forks."\n\nGovernance matters.` },
+    { label: '🔥 Dunk', text: (total) => `${total} upgrades. Zero forks. Zero foundation vetoes.\n\nBTC can't agree on block size (remember the BCH split?). ETH split the chain over The DAO hack. Tezos just votes and ships.` },
+    { label: '🔥 Dunk', text: (total) => `Other chains call themselves "decentralized" but upgrades are decided by a handful of people on a call.\n\nTezos has ${total} on-chain voted upgrades. Show me another L1 with this record.` },
+    { label: '🔥 Dunk', text: (total) => `Solana: Foundation pushes updates.\nETH: Core devs decide on ACD calls.\nBTC: Miner signaling and mailing list debates.\nTezos: ${total} on-chain voted upgrades, zero forks.\n\nGovernance matters.` },
     { label: '💪 Flex', text: (total) => `${total} self-amendments since 2018. Every single one voted on-chain by bakers.\n\nNo king. No committee. No off-chain governance theater. Just code and consensus.` },
     { label: '💪 Flex', text: (total) => `The Tezos protocol has evolved ${total} times without breaking, forking, or stopping.\n\nThat's not just technology. That's institutional design.` },
     { label: '🗳️ Democracy', text: (total) => `Imagine a blockchain that upgrades itself ${total} times without splitting in half.\n\nYou don't have to imagine. It's Tezos.` },
     { label: '🗳️ Democracy', text: (total) => `${total} protocol upgrades.\n${total} on-chain votes.\nZero forks.\nZero downtime.\n\nThis is governance. Everything else is theater.` },
     { label: '❓ Question', text: (total) => `${total} self-amendments. Zero forks. Since 2018.\n\nName another L1 with a better governance track record. I'll wait.` },
     { label: '❓ Question', text: (total) => `If a blockchain can't upgrade itself without forking, is it really decentralized?\n\nTezos: ${total} upgrades. Zero forks. The question answers itself.` },
-    { label: '📈 Compare', text: (total) => `Governance track record:\n• BTC: ~3 soft forks in 15 years\n• ETH: ~15 hard forks (including chain split)\n• Tezos: ${total} self-amendments, zero forks\n\nOn-chain governance works. The data proves it.` },
+    { label: '📈 Compare', text: (total) => `Governance track record:\n• BTC: ~3 soft forks in 16 years\n• ETH: ~15 hard forks (including The DAO chain split)\n• Tezos: ${total} self-amendments, zero forks\n\nOn-chain governance works. The data proves it.` },
 ];
 
 const TWEET_SUFFIX = '\n\nhttps://tezos.systems';
@@ -1336,9 +1490,9 @@ export async function captureProtocol(protocol) {
         wrapper.remove();
 
         const suffix = '\n\nhttps://tezos.systems';
-        const allOptions = PROTOCOL_TWEET_OPTIONS.map(o => ({
-            label: o.label,
-            text: o.text(protocol.name, num, protocol.headline, total) + suffix
+        const allOptions = getProtocolTweetOptions(protocol, num, total).map(o => ({
+            ...o,
+            text: o.text + suffix
         }));
         const displayOptions = pickRandomOptions(allOptions, 4);
         showShareModal(canvas, displayOptions, `Protocol #${num}: ${protocol.name}`, allOptions);
@@ -1454,11 +1608,9 @@ export async function initProtocolShare() {
     // Wire up per-protocol share on timeline items
     const timelineEl = document.getElementById('upgrade-timeline');
     if (timelineEl) {
-        // Use event delegation since timeline items are dynamically rendered
         timelineEl.addEventListener('click', (e) => {
             const item = e.target.closest('.timeline-item');
             if (!item) return;
-            // Contentious protocols open history modal instead (handled by app.js)
             if (item.classList.contains('contentious')) return;
             const name = item.getAttribute('data-protocol');
             if (!name) return;
@@ -1467,7 +1619,7 @@ export async function initProtocolShare() {
         });
     }
 
-    // Add "Share Timeline" button — to the left of the Zero Forks badge
+    // Add "Share Timeline" button
     const badgesContainer = document.querySelector('.upgrade-badges');
     if (badgesContainer) {
         const btn = document.createElement('button');
@@ -1495,10 +1647,8 @@ export async function initProtocolShare() {
             btn.style.background = 'rgba(255,255,255,0.05)';
         });
         btn.addEventListener('click', () => captureTimeline(protocols));
-        // Insert before the first badge (Zero Forks)
         badgesContainer.insertBefore(btn, badgesContainer.firstChild);
 
-        // Show/hide on hover over the upgrade clock section
         const clockSection = document.querySelector('.upgrade-clock-content');
         if (clockSection) {
             clockSection.addEventListener('mouseenter', () => {

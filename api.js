@@ -238,27 +238,13 @@ async function fetchGovernance() {
  */
 async function fetchIssuance() {
     try {
-        const [issuanceUrl, constantsUrl, supplyUrl] = [
-            `${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`,
-            `${ENDPOINTS.octez.base}/chains/main/blocks/head/context/constants`,
-            `${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`
-        ];
-
-        const [rateString, constants, supplyMutez] = await Promise.all([
-            fetchText(issuanceUrl),
-            fetchWithRetry(constantsUrl),
-            fetchText(supplyUrl)
-        ]);
-
-        const adaptiveRate = parseFloat(rateString.replace(/"/g, ''));
-        const lbSubsidyPerMinute = parseInt(constants.liquidity_baking_subsidy) || 0;
-        const totalSupplyXTZ = parseInt(supplyMutez.replace(/"/g, '')) / 1e6;
-        const minutesPerYear = 365.25 * 24 * 60;
-        const lbXTZPerYear = (lbSubsidyPerMinute / 1e6) * minutesPerYear;
-        const lbRate = (lbXTZPerYear / totalSupplyXTZ) * 100;
-        const totalRate = adaptiveRate + lbRate;
-
-        return totalRate;
+        const issuanceUrl = `${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`;
+        const rateString = await fetchText(issuanceUrl);
+        
+        // current_yearly_rate from Octez already reflects actual issuance
+        // (LB subsidy was turned off in Quebec — constant still exists but isn't minted)
+        const rate = parseFloat(rateString.replace(/"/g, ''));
+        return rate;
     } catch (error) {
         console.error('Failed to fetch issuance:', error);
         return 0;
@@ -295,36 +281,23 @@ async function fetchContractCalls() {
 
 /**
  * Fetch staking ratio and delegated percentage
+ * Uses TzKT statistics for consistency with TzKT.io displayed values
  */
 async function fetchStakingRatio() {
     try {
-        const [supplyUrl, stakeUrl] = [
-            `${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`,
-            `${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalFrozenStake}`
-        ];
-
-        const [supplyMutez, stakeMutez] = await Promise.all([
-            fetchText(supplyUrl),
-            fetchText(stakeUrl)
-        ]);
-
-        const totalSupply = parseInt(supplyMutez.replace(/"/g, ''));
-        const totalStake = parseInt(stakeMutez.replace(/"/g, ''));
-
+        const statsUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`;
+        const stats = await fetchWithRetry(statsUrl);
+        
+        const totalSupply = stats.totalSupply || 0;
         if (totalSupply === 0) return { stakingRatio: 0, delegatedRatio: 0 };
-
-        const stakingRatio = (totalStake / totalSupply) * 100;
         
-        // Fetch delegated info from TzKT
-        const headUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.head}`;
-        const head = await fetchWithRetry(headUrl);
+        // Staking = own staked + external staked (matches TzKT.io display)
+        const totalStaked = (stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0);
+        const stakingRatio = (totalStaked / totalSupply) * 100;
         
-        const cycleUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.cycles}/${head.cycle}`;
-        const cycle = await fetchWithRetry(cycleUrl);
-        
-        const delegatedRatio = cycle.totalDelegated 
-            ? (cycle.totalDelegated / (totalSupply / 1e6)) * 100
-            : 30; // fallback
+        // Delegated = own delegated + external delegated (not locked/staked)
+        const totalDelegated = (stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0);
+        const delegatedRatio = (totalDelegated / totalSupply) * 100;
 
         return { stakingRatio, delegatedRatio };
     } catch (error) {
