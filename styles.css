@@ -2133,3 +2133,198 @@ body.high-combo .stat-card {
         flex-direction: column;
     }
 }
+
+/* ==========================================
+   Mobile Swipeable Tabs
+   ========================================== */
+
+.mobile-tabs {
+    display: none;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15, 15, 26, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
+    padding: 0;
+    overflow: hidden;
+}
+
+.tab-list {
+    display: flex;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 0 8px;
+}
+
+.tab-list::-webkit-scrollbar {
+    display: none;
+}
+
+.tab-button {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 16px;
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    white-space: nowrap;
+}
+
+.tab-button::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 32px;
+    height: 2px;
+    background: var(--accent-cyan);
+    border-radius: 2px;
+    transition: transform 0.2s ease;
+}
+
+.tab-button.active {
+    color: var(--text-primary);
+}
+
+.tab-button.active::after {
+    transform: translateX(-50%) scaleX(1);
+}
+
+.tab-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+.tab-label {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+[data-theme="matrix"] .tab-button::after {
+    background: #00ff00;
+}
+
+/* Tab panel states */
+body.mobile-tabs-active [data-tab-panel] {
+    display: none;
+}
+
+body.mobile-tabs-active [data-tab-panel].tab-active {
+    display: block;
+    animation: tabFadeIn 0.3s ease;
+}
+
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Slide animations */
+body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-left {
+    animation: slideFromLeft 0.3s ease;
+}
+
+body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-right {
+    animation: slideFromRight 0.3s ease;
+}
+
+@keyframes slideFromLeft {
+    from {
+        opacity: 0;
+        transform: translateX(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(-30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Mobile tab adjustments */
+@media (max-width: 767px) {
+    .mobile-tabs {
+        display: block;
+    }
+    
+    /* Adjust header for mobile tabs */
+    body.mobile-tabs-active .header {
+        padding-top: 2rem;
+        padding-bottom: 1.5rem;
+    }
+    
+    body.mobile-tabs-active .header-content {
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    body.mobile-tabs-active .title {
+        font-size: 1.5rem;
+    }
+    
+    /* Hide section headers in tab mode (redundant with tab labels) */
+    body.mobile-tabs-active .section-header {
+        display: none;
+    }
+    
+    /* Adjust main content padding */
+    body.mobile-tabs-active .main-content {
+        padding-top: 1rem;
+    }
+    
+    /* Make sections full width */
+    body.mobile-tabs-active .stats-section {
+        padding: 0 1rem;
+    }
+    
+    /* Swipe hint - subtle */
+    body.mobile-tabs-active .main-content::after {
+        content: '';
+        display: block;
+        height: 40px;
+    }
+}
+
+/* Reduce motion */
+@media (prefers-reduced-motion: reduce) {
+    .tab-button::after {
+        transition: none;
+    }
+    
+    body.mobile-tabs-active [data-tab-panel].tab-active {
+        animation: none;
+    }
+    
+    body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-left,
+    body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-right {
+        animation: none;
+    }
+}

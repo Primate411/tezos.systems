@@ -19,6 +19,7 @@ import { initHistoryModal, updateSparklines } from './history.js';
 import { initShare } from './share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from './governance.js';
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
+import { initTabs } from './tabs.js';
 
 // Application state
 const state = {
@@ -43,6 +44,9 @@ async function init() {
     
     // Initialize share functionality
     initShare();
+    
+    // Initialize mobile tabs
+    initTabs();
 
     // Setup event listeners
     setupEventListeners();
