@@ -386,16 +386,35 @@ async function fetchRollups() {
  */
 async function fetchStakingAPY() {
     try {
-        const votingUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.voting}`;
-        const voting = await fetchWithRetry(votingUrl);
+        // Get net issuance rate from Octez RPC (this is what TzKT uses for APY calc)
+        const rateString = await fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`);
+        const netIssuance = parseFloat(rateString.replace(/"/g, ''));
         
-        // Get from TzKT's calculated values if available
-        const delegateAPY = 3.2;  // Conservative estimate for delegators
-        const stakeAPY = 9.5;     // Higher for direct stakers
+        // Get staked/delegated percentages from TzKT
+        const stats = await fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`);
+        const supply = stats.totalSupply / 1e6;
+        const staked = ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0)) / 1e6;
+        const delegated = ((stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0)) / 1e6;
         
-        return { delegateAPY, stakeAPY };
+        const s = staked / supply;
+        const d = delegated / supply;
+        const edge = 2; // edge_of_baking_over_staking protocol constant
+        
+        // Effective baking power: staked + delegated/(1+edge)
+        const effective = s + d / (1 + edge);
+        
+        // Staker APY = net_issuance / effective_stake_ratio
+        const stakeAPY = (netIssuance / 100) / effective * 100;
+        // Delegator APY = staker_apy / (1+edge)
+        const delegateAPY = stakeAPY / (1 + edge);
+        
+        return { 
+            delegateAPY: Math.round(delegateAPY * 10) / 10, 
+            stakeAPY: Math.round(stakeAPY * 10) / 10 
+        };
     } catch (error) {
-        return { delegateAPY: 3.2, stakeAPY: 9.5 };
+        console.error('Failed to fetch staking APY:', error);
+        return { delegateAPY: 3.1, stakeAPY: 9.2 }; // Fallback to recent known values
     }
 }
 
