@@ -84,10 +84,13 @@ function setupSections() {
  */
 function switchTab(index, animate = true) {
     if (index < 0 || index >= TABS.length) return;
-    if (index === currentTab) return;
+    if (index === currentTab && animate) return;
     
     const direction = index > currentTab ? 'left' : 'right';
     currentTab = index;
+    
+    // Set active tab on body for CSS targeting
+    document.body.setAttribute('data-active-tab', TABS[index].id);
     
     // Update tab buttons
     document.querySelectorAll('.tab-button').forEach((btn, i) => {

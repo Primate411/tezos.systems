@@ -93,6 +93,20 @@ export function createSparkline(canvasId, data, metric) {
     });
 }
 
+// Calculate stats for a metric
+function calculateStats(data, metric) {
+    const values = data.map(d => d[metric]).filter(v => v != null);
+    if (values.length === 0) return null;
+    
+    const current = values[values.length - 1];
+    const first = values[0];
+    const high = Math.max(...values);
+    const low = Math.min(...values);
+    const change = first !== 0 ? ((current - first) / first) * 100 : 0;
+    
+    return { current, high, low, change };
+}
+
 // Create detailed line chart for history modal
 export function createFullChart(canvasId, data, metric, label, unit = '') {
     const canvas = document.getElementById(canvasId);
@@ -106,12 +120,42 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
     // Extract values and timestamps
     const values = data.map(d => d[metric]);
     const timestamps = data.map(d => new Date(d.timestamp));
+    
+    // Calculate stats for this metric
+    const stats = calculateStats(data, metric);
+    
+    // Update stats display if element exists
+    const statsEl = document.getElementById(`stats-${canvasId}`);
+    if (statsEl && stats) {
+        const changeClass = stats.change > 0 ? 'positive' : stats.change < 0 ? 'negative' : 'neutral';
+        const changeArrow = stats.change > 0 ? '↑' : stats.change < 0 ? '↓' : '→';
+        statsEl.innerHTML = `
+            <span class="stat-item">
+                <span class="stat-label">Change</span>
+                <span class="stat-value ${changeClass}">${changeArrow} ${Math.abs(stats.change).toFixed(2)}%</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">High</span>
+                <span class="stat-value">${stats.high.toFixed(2)}${unit}</span>
+            </span>
+            <span class="stat-item">
+                <span class="stat-label">Low</span>
+                <span class="stat-value">${stats.low.toFixed(2)}${unit}</span>
+            </span>
+        `;
+    }
+
+    // Check theme for colors
+    const isMatrix = getCurrentTheme() === 'matrix';
+    const primaryColor = isMatrix ? '#00ff00' : '#00d4ff';
+    const glowColor = isMatrix ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 212, 255, 0.8)';
 
     // Gradient fill
     const ctx = canvas.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, 'rgba(0, 212, 255, 0.3)');
-    gradient.addColorStop(1, 'rgba(0, 212, 255, 0)');
+    gradient.addColorStop(0, isMatrix ? 'rgba(0, 255, 0, 0.4)' : 'rgba(0, 212, 255, 0.4)');
+    gradient.addColorStop(0.5, isMatrix ? 'rgba(0, 255, 0, 0.15)' : 'rgba(0, 212, 255, 0.15)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
     chartInstances[canvasId] = new Chart(ctx, {
         type: 'line',
@@ -120,35 +164,54 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
             datasets: [{
                 label: label,
                 data: values,
-                borderColor: '#00d4ff',
+                borderColor: primaryColor,
                 backgroundColor: gradient,
-                borderWidth: 2,
+                borderWidth: 3,
                 fill: true,
-                pointRadius: 3,
-                pointHoverRadius: 5,
-                tension: 0.4
+                pointRadius: 0,
+                pointHoverRadius: 8,
+                pointHoverBackgroundColor: primaryColor,
+                pointHoverBorderColor: '#fff',
+                pointHoverBorderWidth: 2,
+                tension: 0.4,
+                // Glow effect via shadow
+                borderCapStyle: 'round',
+                borderJoinStyle: 'round'
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            animation: {
+                duration: 1500,
+                easing: 'easeOutQuart',
+                delay: (context) => context.dataIndex * 10
+            },
             plugins: {
                 legend: { display: false },
                 tooltip: {
+                    enabled: true,
                     mode: 'index',
                     intersect: false,
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#00d4ff',
+                    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                    titleColor: primaryColor,
                     bodyColor: '#fff',
-                    borderColor: '#00d4ff',
-                    borderWidth: 1,
+                    borderColor: primaryColor,
+                    borderWidth: 2,
+                    cornerRadius: 8,
+                    padding: 12,
+                    titleFont: { size: 14, weight: 'bold' },
+                    bodyFont: { size: 16, weight: 'bold' },
+                    displayColors: false,
                     callbacks: {
                         label: (context) => {
-                            return `${label}: ${context.parsed.y.toFixed(2)}${unit}`;
+                            const val = context.parsed.y;
+                            return `${val.toLocaleString(undefined, {maximumFractionDigits: 2})}${unit}`;
                         },
                         title: (contexts) => {
                             const date = new Date(contexts[0].label);
                             return date.toLocaleString('en-US', {
+                                weekday: 'short',
                                 month: 'short',
                                 day: 'numeric',
                                 hour: '2-digit',
@@ -168,20 +231,26 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
                         }
                     },
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false
                     },
                     ticks: {
-                        color: '#999'
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        font: { size: 11 },
+                        maxRotation: 0
                     }
                 },
                 y: {
                     beginAtZero: false,
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
+                        color: 'rgba(255, 255, 255, 0.05)',
+                        drawBorder: false
                     },
                     ticks: {
-                        color: '#999',
-                        callback: (value) => value.toFixed(1) + unit
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        font: { size: 11 },
+                        callback: (value) => value.toLocaleString(undefined, {maximumFractionDigits: 1}) + unit,
+                        padding: 10
                     }
                 }
             },
@@ -189,8 +258,28 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
                 mode: 'nearest',
                 axis: 'x',
                 intersect: false
+            },
+            elements: {
+                line: {
+                    borderCapStyle: 'round'
+                }
             }
-        }
+        },
+        plugins: [{
+            // Custom plugin for glow effect
+            id: 'glowEffect',
+            beforeDatasetsDraw: (chart) => {
+                const ctx = chart.ctx;
+                ctx.save();
+                ctx.shadowColor = glowColor;
+                ctx.shadowBlur = 15;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 0;
+            },
+            afterDatasetsDraw: (chart) => {
+                chart.ctx.restore();
+            }
+        }]
     });
 }
 

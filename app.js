@@ -20,6 +20,7 @@ import { initShare } from './share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from './governance.js';
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
 import { initTabs } from './tabs.js';
+import { initWhaleTracker } from './whales.js';
 
 // Application state
 const state = {
@@ -47,6 +48,9 @@ async function init() {
     
     // Initialize mobile tabs
     initTabs();
+    
+    // Initialize whale tracker
+    initWhaleTracker();
 
     // Setup event listeners
     setupEventListeners();

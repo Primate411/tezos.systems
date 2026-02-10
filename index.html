@@ -51,6 +51,9 @@
                 <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
                     <span>📊</span>
                 </button>
+                <button id="whale-toggle" class="glass-button" aria-label="Toggle Mini Whale feed" title="Mini Whale: OFF">
+                    <span class="whale-toggle-icon">🐬</span>
+                </button>
                 <button id="theme-toggle" class="glass-button" aria-label="Switch to matrix theme" title="Theme: default">
                     <span class="theme-icon">🎨</span>
                 </button>
@@ -95,6 +98,19 @@
             </div>
             <div class="upgrade-timeline" id="upgrade-timeline">
                 <!-- Timeline will be inserted here -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Whale Tracker -->
+    <section class="whale-section" id="whale-section">
+        <div class="whale-section-inner">
+            <div class="whale-header">
+                <h2 class="whale-title">🐬 Mini Whale</h2>
+                <span class="whale-subtitle">Live activity > 100 ꜩ</span>
+            </div>
+            <div class="whale-feed" id="whale-feed">
+                <!-- Transactions will be inserted here -->
             </div>
         </div>
     </section>
@@ -899,24 +915,39 @@
             </div>
 
             <div class="charts-container">
-                <div class="chart-section">
-                    <h4>tz4 Adoption Progress</h4>
+                <div class="chart-section" style="--delay: 0">
+                    <div class="chart-header">
+                        <h4>tz4 Adoption Progress</h4>
+                        <div class="chart-stats" id="stats-chart-tz4"></div>
+                    </div>
                     <canvas id="chart-tz4"></canvas>
                 </div>
-                <div class="chart-section">
-                    <h4>Staking Ratio</h4>
+                <div class="chart-section" style="--delay: 1">
+                    <div class="chart-header">
+                        <h4>Staking Ratio</h4>
+                        <div class="chart-stats" id="stats-chart-staking"></div>
+                    </div>
                     <canvas id="chart-staking"></canvas>
                 </div>
-                <div class="chart-section">
-                    <h4>Total Active Bakers</h4>
+                <div class="chart-section" style="--delay: 2">
+                    <div class="chart-header">
+                        <h4>Total Active Bakers</h4>
+                        <div class="chart-stats" id="stats-chart-bakers"></div>
+                    </div>
                     <canvas id="chart-bakers"></canvas>
                 </div>
-                <div class="chart-section">
-                    <h4>Issuance Rate</h4>
+                <div class="chart-section" style="--delay: 3">
+                    <div class="chart-header">
+                        <h4>Issuance Rate</h4>
+                        <div class="chart-stats" id="stats-chart-issuance"></div>
+                    </div>
                     <canvas id="chart-issuance"></canvas>
                 </div>
-                <div class="chart-section">
-                    <h4>Total Supply</h4>
+                <div class="chart-section" style="--delay: 4">
+                    <div class="chart-header">
+                        <h4>Total Supply</h4>
+                        <div class="chart-stats" id="stats-chart-supply"></div>
+                    </div>
                     <canvas id="chart-supply"></canvas>
                 </div>
             </div>
