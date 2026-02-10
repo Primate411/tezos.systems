@@ -2726,13 +2726,13 @@ body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-right {
     }
 }
 
-/* Mobile tabs integration - whale section shows with overview */
+/* Mobile tabs integration - whale section shows with overview only if enabled */
 body.mobile-tabs-active .whale-section {
-    display: none;
+    display: none !important;
 }
 
-body.mobile-tabs-active[data-active-tab="overview"] .whale-section {
-    display: block;
+body.mobile-tabs-active[data-active-tab="overview"] .whale-section.visible {
+    display: block !important;
 }
 
 /* Reduced motion */
