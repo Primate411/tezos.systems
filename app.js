@@ -18,7 +18,7 @@ import { initArcadeEffects, toggleUltraMode } from './arcade-effects.js';
 import { initHistoryModal, updateSparklines } from './history.js';
 import { initShare } from './share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from './governance.js';
-import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge } from './storage.js';
+import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
 
 // Application state
 const state = {
@@ -121,6 +121,135 @@ function showCacheIndicator(age) {
 }
 
 /**
+ * Show deltas panel for "since last visit" changes
+ */
+function showDeltasPanel(deltas) {
+    console.log('📊 Showing deltas since last visit:', deltas);
+    
+    // Format delta values
+    const formatDelta = (metric) => {
+        const sign = metric.delta > 0 ? '+' : '';
+        const arrow = metric.delta > 0 ? '↑' : '↓';
+        const color = metric.delta > 0 ? 'var(--color-success, #10b981)' : 'var(--color-error, #ef4444)';
+        
+        let value;
+        if (metric.format === 'percent') {
+            value = `${sign}${metric.delta.toFixed(1)}%`;
+        } else if (metric.format === 'supply') {
+            const deltaM = metric.delta / 1000000;
+            value = `${sign}${deltaM.toFixed(2)}M`;
+        } else {
+            value = `${sign}${metric.delta.toLocaleString()}`;
+        }
+        
+        return `<span style="color: ${color}">${arrow} ${value}</span>`;
+    };
+    
+    const metricsHtml = deltas.metrics
+        .slice(0, 4) // Show max 4 changes
+        .map(m => `
+            <div class="delta-item">
+                <span class="delta-label">${m.label}</span>
+                ${formatDelta(m)}
+            </div>
+        `).join('');
+    
+    const panel = document.createElement('div');
+    panel.className = 'deltas-panel';
+    panel.innerHTML = `
+        <div class="deltas-header">
+            <span>📊 Since ${deltas.timeAgo}</span>
+            <button class="deltas-close" aria-label="Close">×</button>
+        </div>
+        <div class="deltas-content">
+            ${metricsHtml}
+        </div>
+    `;
+    
+    panel.style.cssText = `
+        position: fixed;
+        top: 60px;
+        right: 10px;
+        background: var(--color-surface, rgba(15, 15, 25, 0.95));
+        border: 1px solid var(--color-border, rgba(255,255,255,0.1));
+        border-radius: 8px;
+        padding: 12px 16px;
+        min-width: 180px;
+        z-index: 1001;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        opacity: 0;
+        transform: translateY(-10px);
+        transition: opacity 0.3s ease, transform 0.3s ease;
+    `;
+    
+    document.body.appendChild(panel);
+    
+    // Add styles for inner elements
+    const style = document.createElement('style');
+    style.textContent = `
+        .deltas-panel .deltas-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.8rem;
+            color: var(--color-text-secondary, #888);
+        }
+        .deltas-panel .deltas-close {
+            background: none;
+            border: none;
+            color: var(--color-text-secondary, #888);
+            cursor: pointer;
+            font-size: 1.2rem;
+            padding: 0;
+            line-height: 1;
+        }
+        .deltas-panel .deltas-close:hover {
+            color: var(--color-text, #fff);
+        }
+        .deltas-panel .delta-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 4px 0;
+            font-size: 0.85rem;
+        }
+        .deltas-panel .delta-label {
+            color: var(--color-text, #fff);
+        }
+    `;
+    document.head.appendChild(style);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        panel.style.opacity = '1';
+        panel.style.transform = 'translateY(0)';
+    });
+    
+    // Close button handler
+    panel.querySelector('.deltas-close').addEventListener('click', () => {
+        panel.style.opacity = '0';
+        panel.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+            panel.remove();
+            style.remove();
+        }, 300);
+    });
+    
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        if (panel.parentNode) {
+            panel.style.opacity = '0';
+            panel.style.transform = 'translateY(-10px)';
+            setTimeout(() => {
+                panel.remove();
+                style.remove();
+            }, 300);
+        }
+    }, 10000);
+}
+
+/**
  * Refresh data in background without showing loading states
  */
 async function refreshInBackground() {
@@ -129,6 +258,15 @@ async function refreshInBackground() {
     try {
         const newStats = await fetchAllStats();
         console.log('✅ Fresh stats received');
+        
+        // Check for deltas from last visit BEFORE saving new snapshot
+        const deltas = getVisitDeltas(newStats);
+        if (deltas) {
+            showDeltasPanel(deltas);
+        }
+        
+        // Save visit snapshot for next time
+        saveVisitSnapshot(newStats);
         
         // Save to localStorage for next visit
         saveStats(newStats);
