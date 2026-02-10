@@ -18,6 +18,7 @@ import { initArcadeEffects, toggleUltraMode } from './arcade-effects.js';
 import { initHistoryModal, updateSparklines } from './history.js';
 import { initShare } from './share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from './governance.js';
+import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge } from './storage.js';
 
 // Application state
 const state = {
@@ -46,22 +47,43 @@ async function init() {
     // Setup event listeners
     setupEventListeners();
 
-    // Check API health
-    const health = await checkApiHealth();
-    console.log('API Health:', health);
+    // Try to load cached data for instant display
+    const cachedStats = loadStats();
+    const cachedProtocols = loadProtocols();
+    
+    if (cachedStats) {
+        console.log('⚡ Rendering cached data instantly');
+        await updateStats(cachedStats);
+        // updateStats already sets state.currentStats, just set lastUpdate
+        state.lastUpdate = new Date(); // Will be corrected after fresh fetch
+        updateLastRefreshTime();
+        
+        // Show cache indicator briefly
+        const cacheAge = getCacheAge();
+        if (cacheAge) {
+            showCacheIndicator(cacheAge);
+        }
+    } else {
+        showAllLoading();
+    }
+    
+    // Load cached protocols for instant timeline
+    if (cachedProtocols) {
+        renderProtocolTimeline(cachedProtocols);
+    }
 
-    // Initial data load
-    await refresh();
+    // Check API health (non-blocking)
+    checkApiHealth().then(health => console.log('API Health:', health));
+
+    // Fetch fresh data in background
+    refreshInBackground();
 
     // Initialize history features
     initHistoryModal();
-    await updateSparklines();
+    updateSparklines(); // Don't await - let it load in background
 
     // Setup sparkline refresh interval (every 10 minutes)
     setInterval(updateSparklines, 600000);
-
-    // Initialize upgrade clock
-    await updateUpgradeClock();
 
     // Setup refresh interval
     startRefreshTimer();
@@ -70,7 +92,67 @@ async function init() {
 }
 
 /**
- * Refresh all statistics
+ * Show brief cache indicator
+ */
+function showCacheIndicator(age) {
+    const indicator = document.createElement('div');
+    indicator.className = 'cache-indicator';
+    indicator.innerHTML = `<span>📦 Cached: ${age}</span>`;
+    indicator.style.cssText = `
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 212, 255, 0.2);
+        color: var(--color-primary);
+        padding: 6px 12px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        z-index: 1000;
+        opacity: 1;
+        transition: opacity 0.5s ease;
+    `;
+    document.body.appendChild(indicator);
+    
+    // Fade out after 3 seconds
+    setTimeout(() => {
+        indicator.style.opacity = '0';
+        setTimeout(() => indicator.remove(), 500);
+    }, 3000);
+}
+
+/**
+ * Refresh data in background without showing loading states
+ */
+async function refreshInBackground() {
+    console.log('🔄 Fetching fresh data in background...');
+    
+    try {
+        const newStats = await fetchAllStats();
+        console.log('✅ Fresh stats received');
+        
+        // Save to localStorage for next visit
+        saveStats(newStats);
+        
+        // Update display (will animate changes if different from cached)
+        await updateStats(newStats);
+        state.lastUpdate = new Date();
+        updateLastRefreshTime();
+        
+        // Also refresh protocol data
+        await updateUpgradeClock();
+        
+        resetCountdown();
+    } catch (error) {
+        console.error('Background refresh failed:', error);
+        // Don't show error state if we have cached data
+        if (!state.currentStats || Object.keys(state.currentStats).length === 0) {
+            showErrorState();
+        }
+    }
+}
+
+/**
+ * Refresh all statistics (manual refresh - shows loading)
  */
 async function refresh() {
     console.log('Refreshing stats...');
@@ -79,6 +161,10 @@ async function refresh() {
     try {
         const newStats = await fetchAllStats();
         console.log('Stats received:', newStats);
+        
+        // Save to localStorage for instant load next time
+        saveStats(newStats);
+        
         await updateStats(newStats);
         await updateUpgradeClock(); // Update protocol + days live
         state.lastUpdate = new Date();
@@ -356,6 +442,47 @@ function handleVisibilityChange() {
 }
 
 /**
+ * Render protocol timeline from data (used for both cached and fresh)
+ */
+function renderProtocolTimeline(protocols) {
+    const timelineEl = document.getElementById('upgrade-timeline');
+    if (!timelineEl || !protocols.length) return;
+    
+    const timelineHTML = `
+        <div class="timeline-track">
+            ${protocols.map(p => {
+                let tooltip = `${p.name}: ${p.highlight}`;
+                if (p.debate) {
+                    tooltip += ` 📌 ${p.debate}`;
+                }
+                tooltip = tooltip.replace(/"/g, '&quot;');
+                return `
+                <div class="timeline-item ${p.isCurrent ? 'current' : ''}" 
+                     data-tooltip="${tooltip}"
+                     data-protocol="${p.name}">
+                    ${p.name[0]}
+                </div>
+            `}).join('')}
+        </div>
+    `;
+    timelineEl.innerHTML = timelineHTML;
+    
+    // Update count
+    const countEl = document.getElementById('upgrade-count');
+    if (countEl) countEl.textContent = protocols.length;
+    
+    // Update current protocol name and highlight
+    const currentProtocol = protocols.find(p => p.isCurrent) || protocols[protocols.length - 1];
+    if (currentProtocol) {
+        const protocolEl = document.getElementById('current-protocol');
+        if (protocolEl) protocolEl.textContent = currentProtocol.name;
+        
+        const highlightEl = document.getElementById('upgrade-highlight');
+        if (highlightEl) highlightEl.textContent = currentProtocol.highlight;
+    }
+}
+
+/**
  * Update the Upgrade Clock section
  */
 async function updateUpgradeClock() {
@@ -365,24 +492,11 @@ async function updateUpgradeClock() {
             fetchVotingStatus()
         ]);
         
-        // Update upgrade count
-        const countEl = document.getElementById('upgrade-count');
-        if (countEl) {
-            countEl.textContent = protocols.length;
-        }
+        // Cache protocols for next visit
+        saveProtocols(protocols);
         
-        // Update current protocol
-        const currentProtocol = protocols.find(p => p.isCurrent) || protocols[protocols.length - 1];
-        const protocolEl = document.getElementById('current-protocol');
-        if (protocolEl && currentProtocol) {
-            protocolEl.textContent = currentProtocol.name;
-        }
-        
-        // Update highlight
-        const highlightEl = document.getElementById('upgrade-highlight');
-        if (highlightEl && currentProtocol) {
-            highlightEl.textContent = currentProtocol.highlight;
-        }
+        // Render timeline
+        renderProtocolTimeline(protocols);
         
         // Update days live (mainnet launched June 30, 2018)
         const daysLiveEl = document.getElementById('days-live');
@@ -419,32 +533,6 @@ async function updateUpgradeClock() {
             } else {
                 statusEl.classList.remove('active');
             }
-        }
-        
-        // Build timeline
-        const timelineEl = document.getElementById('upgrade-timeline');
-        if (timelineEl && protocols.length > 0) {
-            // Show ALL protocols - they flex to fit
-            const timelineHTML = `
-                <div class="timeline-track">
-                    ${protocols.map(p => {
-                        // Build tooltip with highlight and optional debate
-                        let tooltip = `${p.name}: ${p.highlight}`;
-                        if (p.debate) {
-                            tooltip += ` 📌 ${p.debate}`;
-                        }
-                        // Escape quotes for HTML attribute
-                        tooltip = tooltip.replace(/"/g, '&quot;');
-                        return `
-                        <div class="timeline-item ${p.isCurrent ? 'current' : ''}" 
-                             data-tooltip="${tooltip}"
-                             data-protocol="${p.name}">
-                            ${p.name[0]}
-                        </div>
-                    `}).join('')}
-                </div>
-            `;
-            timelineEl.innerHTML = timelineHTML;
         }
         
         console.log('Upgrade clock updated');
