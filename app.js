@@ -926,13 +926,22 @@ function showProtocolHistoryModal(history, protocolName) {
             padding:32px; position:relative;
             box-shadow:0 0 60px rgba(${accentRgb},0.1), 0 20px 60px rgba(0,0,0,0.5);
         ">
-            <button id="history-modal-close" style="
-                position:sticky; top:0; float:right; background:rgba(255,255,255,0.05);
-                border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.6);
-                width:32px; height:32px; border-radius:50%; cursor:pointer; font-size:18px;
-                display:flex; align-items:center; justify-content:center; z-index:2;
-                transition:all 0.2s;
-            ">×</button>
+            <div style="position:absolute; top:16px; right:16px; display:flex; gap:8px; z-index:10;">
+                <button id="history-modal-share" title="Share this history" style="
+                    background:rgba(255,255,255,0.08);
+                    border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.7);
+                    width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:18px;
+                    display:flex; align-items:center; justify-content:center;
+                    transition:all 0.2s;
+                ">📸</button>
+                <button id="history-modal-close" style="
+                    background:rgba(255,255,255,0.08);
+                    border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.7);
+                    width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:20px;
+                    display:flex; align-items:center; justify-content:center;
+                    transition:all 0.2s;
+                ">×</button>
+            </div>
             <div style="font-family:'Orbitron',sans-serif; color:${accent}; font-size:1.3rem; font-weight:700;
                 letter-spacing:2px; text-shadow:0 0 20px rgba(${accentRgb},0.4); margin-bottom:4px;">
                 ⚔ ${history.title}
@@ -946,6 +955,19 @@ function showProtocolHistoryModal(history, protocolName) {
 
     const closeModal = () => { modal.style.opacity = '0'; setTimeout(() => modal.remove(), 300); };
     modal.querySelector('#history-modal-close').addEventListener('click', closeModal);
+    modal.querySelector('#history-modal-share').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const btn = e.currentTarget;
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.style.opacity = '0.5';
+        if (window.captureProtocolHistory) {
+            window.captureProtocolHistory(protocolName).finally(() => {
+                btn.disabled = false;
+                btn.style.opacity = '';
+            });
+        }
+    });
     modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', esc); } });
 }

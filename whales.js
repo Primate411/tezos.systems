@@ -588,10 +588,12 @@ export async function initWhaleTracker() {
     // Set initial visibility
     updateWhaleVisibility();
     
-    // Only load data if enabled
+    // Only load data if enabled (delay to avoid TzKT rate limits on page load)
     if (isEnabled) {
-        await loadInitialTransactions();
-        startPolling();
+        setTimeout(async () => {
+            await loadInitialTransactions();
+            startPolling();
+        }, 3000);
     }
     
     // Handle tab visibility

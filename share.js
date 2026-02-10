@@ -2094,5 +2094,50 @@ export async function initProtocolShare() {
     }
 }
 
+/**
+ * Capture the protocol history modal as a shareable image
+ */
+async function captureProtocolHistory(protocolName) {
+    try {
+        await loadHtml2Canvas();
+        const modalContent = document.querySelector('#protocol-history-modal .modal-large');
+        if (!modalContent) return;
+
+        const data = await getProtocolData();
+        const protocols = data?.protocols || [];
+        const protocol = protocols.find(p => p.name === protocolName);
+        const total = data?.meta?.totalUpgrades || 21;
+        const num = protocol ? protocol.number - 3 : '?';
+
+        // Capture the modal content directly
+        const canvas = await html2canvas(modalContent, {
+            backgroundColor: document.body.getAttribute('data-theme') === 'matrix' ? '#000800' : '#08081a',
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            width: modalContent.scrollWidth,
+            windowWidth: modalContent.scrollWidth
+        });
+
+        // Get tweet options for this protocol
+        const suffix = '\n\nhttps://tezos.systems';
+        let allOptions;
+        if (protocol) {
+            allOptions = getProtocolTweetOptions(protocol, num, total).map(o => ({
+                ...o,
+                text: o.text + suffix
+            }));
+        } else {
+            allOptions = [{ label: '📊 Standard', text: `The ${protocolName} protocol — a chapter in Tezos governance history.${suffix}` }];
+        }
+        const displayOptions = pickRandomOptions(allOptions, 4);
+        showShareModal(canvas, displayOptions, `⚔ ${protocolName} History`, allOptions);
+    } catch (error) {
+        console.error('History capture failed:', error);
+        showNotification('Screenshot failed. Try again.', 'error');
+    }
+}
+
 // Expose captureProtocol globally for infographic row clicks
 window.captureProtocol = captureProtocol;
+window.captureProtocolHistory = captureProtocolHistory;
