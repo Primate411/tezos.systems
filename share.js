@@ -51,7 +51,7 @@ const DASHBOARD_TWEET = 'Real-time Tezos network stats — bakers, staking, gove
 /**
  * Load html2canvas dynamically
  */
-async function loadHtml2Canvas() {
+export async function loadHtml2Canvas() {
     if (html2canvasLoaded) return;
     
     return new Promise((resolve, reject) => {
@@ -777,7 +777,7 @@ async function nativeShare(canvas, text) {
  * Show modal with share options
  * tweetTextOrOptions: string (legacy) or array of {label, text}
  */
-function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForRefresh) {
+export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForRefresh) {
     const existing = document.getElementById('share-modal');
     if (existing) existing.remove();
     

@@ -33,6 +33,18 @@ async function fetchXTZPrice() {
     if (cachedPrice && Date.now() - priceFetchedAt < CACHE_TTL) {
         return cachedPrice;
     }
+    // Try reading from the price bar DOM first (price.js already fetches this)
+    const priceEl = document.querySelector('.price-value');
+    if (priceEl) {
+        const text = priceEl.textContent.replace(/[^0-9.]/g, '');
+        const parsed = parseFloat(text);
+        if (parsed > 0) {
+            cachedPrice = parsed;
+            priceFetchedAt = Date.now();
+            return cachedPrice;
+        }
+    }
+    // Fallback: fetch from CoinGecko directly
     try {
         const res = await fetch(COINGECKO_PRICE_URL);
         if (!res.ok) throw new Error('CoinGecko fetch failed');

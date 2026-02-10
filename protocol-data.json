@@ -8,7 +8,7 @@
       "block": 458753,
       "headline": "First self-amendment: 8k tez baking threshold",
       "changes": [
-        "Reduced roll size 10k\u21928k tez",
+        "Reduced roll size 10k→8k tez",
         "Doubled gas limits",
         "Forbade spendable smart contracts"
       ],
@@ -53,9 +53,9 @@
       "hash": "PsDELPH1",
       "date": "2020-11-12",
       "block": 1212417,
-      "headline": "4\u00d7 cheaper storage, gas revolution",
+      "headline": "4× cheaper storage, gas revolution",
       "changes": [
-        "Storage 1 tez\u21920.25 tez/KB",
+        "Storage 1 tez→0.25 tez/KB",
         "Gas model recomputed",
         "Account creation cost reduced"
       ],
@@ -102,9 +102,9 @@
       "headline": "30-second blocks, liquidity baking",
       "changes": [
         "Emmy* consensus",
-        "Block time 60s\u219230s",
+        "Block time 60s→30s",
         "Liquidity Baking introduced",
-        "Gas reduced 3-6\u00d7"
+        "Gas reduced 3-6×"
       ],
       "blockTime": 30,
       "debate": "Liquidity Baking controversial: protocol-level DeFi subsidy debate began",
@@ -114,7 +114,7 @@
         "sections": [
           {
             "heading": "The Original Sin",
-            "content": "Granada introduced Liquidity Baking \u2014 a forced protocol-level subsidy of 2.5 tez per block to the tzBTC/XTZ liquidity pool. Every single block, the protocol would mint new tez and inject them into a specific DeFi pool.\n\nThis was unprecedented. No other blockchain had ever used protocol-level inflation to subsidize a specific trading pair. Critics called it \"protocol-level market manipulation.\" Supporters argued it was essential for creating deep, decentralized liquidity for tez."
+            "content": "Granada introduced Liquidity Baking — a forced protocol-level subsidy of 2.5 tez per block to the tzBTC/XTZ liquidity pool. Every single block, the protocol would mint new tez and inject them into a specific DeFi pool.\n\nThis was unprecedented. No other blockchain had ever used protocol-level inflation to subsidize a specific trading pair. Critics called it \"protocol-level market manipulation.\" Supporters argued it was essential for creating deep, decentralized liquidity for tez."
           },
           {
             "heading": "The Debate",
@@ -123,7 +123,7 @@
               "name": "Pro-LB",
               "team": "Core developers, DeFi advocates",
               "position": "Deep liquidity is essential for network health. Protocol-level subsidies create reliable, censorship-resistant liquidity that can't be withdrawn on a whim.",
-              "quote": "Liquidity Baking provides something no centralized exchange can \u2014 permanent, permissionless liquidity."
+              "quote": "Liquidity Baking provides something no centralized exchange can — permanent, permissionless liquidity."
             },
             "right": {
               "name": "Anti-LB",
@@ -138,7 +138,7 @@
           },
           {
             "heading": "Why It Matters",
-            "content": "Granada set the precedent that Tezos could make economic policy at the protocol level \u2014 not just technical upgrades. Once that box was opened, every subsequent upgrade became a debate about economic philosophy.\n\nThe Liquidity Baking Trilogy (Granada \u2192 Ithaca \u2192 Jakarta) consumed three consecutive protocol cycles with governance warfare over a single feature. Granada was where it all began."
+            "content": "Granada set the precedent that Tezos could make economic policy at the protocol level — not just technical upgrades. Once that box was opened, every subsequent upgrade became a debate about economic philosophy.\n\nThe Liquidity Baking Trilogy (Granada → Ithaca → Jakarta) consumed three consecutive protocol cycles with governance warfare over a single feature. Granada was where it all began."
           }
         ]
       },
@@ -168,10 +168,10 @@
       "block": 2244609,
       "headline": "Tenderbake: deterministic finality",
       "changes": [
-        "Tenderbake consensus",
-        "2-block finality (~1 min)",
+        "Tenderbake: BFT-style consensus",
+        "Deterministic finality in 2 blocks",
         "7000 endorsement slots",
-        "LB escape threshold 50%\u219233%"
+        "LB escape threshold 50%→33%"
       ],
       "blockTime": 30,
       "debate": "Extended Liquidity Baking sunset by ~10 months",
@@ -180,16 +180,20 @@
         "subtitle": "Tenderbake consensus arrived, but Liquidity Baking stole the show",
         "sections": [
           {
+            "heading": "Why Deterministic Finality Matters",
+            "content": "Before Ithaca, Tezos used Emmy* — a Nakamoto-style consensus with probabilistic finality. Tenderbake replaced it with a BFT algorithm where blocks are mathematically final after 2 confirmations.\n\nThe advantage isn't just speed. Deterministic finality means simpler implementations, clearer specifications, and more tractable mathematical proofs. Every PBFT-family algorithm is conceptually easier to reason about than probabilistic alternatives.\n\nEthereum still uses probabilistic finality — technically, transactions can reorg. Solana uses a probabilistic approach too. Tezos blocks are mathematically final. Period."
+          },
+          {
             "heading": "Tenderbake vs LB Drama",
-            "content": "Ithaca's headline feature was Tenderbake \u2014 a major consensus upgrade bringing deterministic finality to Tezos. It was a genuinely significant technical achievement.\n\nBut the governance conversation was dominated by Liquidity Baking. Ithaca extended the LB sunset by approximately 10 months (~20 voting periods), keeping the controversial subsidy alive."
+            "content": "Ithaca's headline feature was Tenderbake — a major consensus upgrade bringing deterministic finality to Tezos. It was a genuinely significant technical achievement.\n\nBut the governance conversation was dominated by Liquidity Baking. Ithaca extended the LB sunset by approximately 10 months (~20 voting periods), keeping the controversial subsidy alive."
           },
           {
             "heading": "The Threshold Battle",
-            "content": "The key compromise: Ithaca lowered the escape hatch threshold from 50% to 33%. This meant it would be easier for the community to turn off LB if sentiment shifted.\n\nThe community was genuinely split:\n\n\u2022 \"Valuable liquidity\" camp: LB provides essential infrastructure, removing it would damage the ecosystem\n\u2022 \"Inappropriate subsidy\" camp: Protocol shouldn't force inflation for one specific pool, especially when XTZ/BTC was trending down"
+            "content": "The key compromise: Ithaca lowered the escape hatch threshold from 50% to 33%. This meant it would be easier for the community to turn off LB if sentiment shifted.\n\nThe community was genuinely split:\n\n• \"Valuable liquidity\" camp: LB provides essential infrastructure, removing it would damage the ecosystem\n• \"Inappropriate subsidy\" camp: Protocol shouldn't force inflation for one specific pool, especially when XTZ/BTC was trending down"
           },
           {
             "heading": "Why It Matters",
-            "content": "Ithaca showed that once economic policy enters protocol governance, it's nearly impossible to remove. The LB debate consumed oxygen that could have celebrated Tenderbake \u2014 one of the most important technical upgrades in Tezos history.\n\nThe lowered threshold was a compromise, but it satisfied nobody fully. The anti-LB faction wanted it gone; the pro-LB faction worried about its survival."
+            "content": "Ithaca showed that once economic policy enters protocol governance, it's nearly impossible to remove. The LB debate consumed oxygen that could have celebrated Tenderbake — one of the most important technical upgrades in Tezos history.\n\nThe lowered threshold was a compromise, but it satisfied nobody fully. The anti-LB faction wanted it gone; the pro-LB faction worried about its survival."
           }
         ]
       },
@@ -216,15 +220,15 @@
         "sections": [
           {
             "heading": "From Escape to Toggle",
-            "content": "Jakarta transformed the LB \"Escape Hatch\" into a more sophisticated \"Toggle Vote\" system. Instead of a binary escape mechanism, bakers now had three options: On, Off, or Pass.\n\nThis made deactivation reversible \u2014 LB could be turned off and then turned back on through ongoing democratic votes. Technically elegant, but it effectively enshrined LB as a permanent governance debate."
+            "content": "Jakarta transformed the LB \"Escape Hatch\" into a more sophisticated \"Toggle Vote\" system. Instead of a binary escape mechanism, bakers now had three options: On, Off, or Pass.\n\nThis made deactivation reversible — LB could be turned off and then turned back on through ongoing democratic votes. Technically elegant, but it effectively enshrined LB as a permanent governance debate."
           },
           {
             "heading": "The Entrenchment Concern",
-            "content": "Critics saw the Toggle Vote as further entrenching a controversial mechanism into the protocol. Rather than resolving the LB debate, Jakarta made it a permanent fixture of Tezos governance.\n\nThe entities benefiting from LB \u2014 farmers extracting yield from the subsidy \u2014 were unlikely to vote to turn it off. The toggle vote structure arguably favored continuation over removal."
+            "content": "Critics saw the Toggle Vote as further entrenching a controversial mechanism into the protocol. Rather than resolving the LB debate, Jakarta made it a permanent fixture of Tezos governance.\n\nThe entities benefiting from LB — farmers extracting yield from the subsidy — were unlikely to vote to turn it off. The toggle vote structure arguably favored continuation over removal."
           },
           {
             "heading": "Why It Matters",
-            "content": "Jakarta completed the Liquidity Baking Trilogy. Three consecutive protocol upgrades had their governance conversations dominated by a single controversial feature.\n\nThe Toggle Vote became the template for ongoing economic policy debates in Tezos \u2014 a permanent democratic mechanism for managing protocol-level economic interventions."
+            "content": "Jakarta completed the Liquidity Baking Trilogy. Three consecutive protocol upgrades had their governance conversations dominated by a single controversial feature.\n\nThe Toggle Vote became the template for ongoing economic policy debates in Tezos — a permanent democratic mechanism for managing protocol-level economic interventions."
           }
         ]
       },
@@ -270,7 +274,7 @@
       "block": 3268609,
       "headline": "15-second blocks, Smart Rollups live",
       "changes": [
-        "Block time 30s\u219215s",
+        "Block time 30s→15s",
         "Smart Rollups production",
         "TORU removed",
         "tz4/BLS accounts",
@@ -311,11 +315,11 @@
       "debate": "MAJOR: First Oxford REJECTED at Promotion. AI/Staking too complex, bugs found. Oxford 2 passed with AI disabled.",
       "history": {
         "title": "The First Rejection: Oxford vs Oslo",
-        "subtitle": "The community proved it could say no \u2014 and nearly broke in the process",
+        "subtitle": "The community proved it could say no — and nearly broke in the process",
         "sections": [
           {
             "heading": "A Historic First",
-            "content": "Oxford became the first protocol proposal ever rejected in Tezos history. After years of upgrades passing through governance smoothly, the community drew a line.\n\nThe rejection happened at the Promotion stage \u2014 Oxford had already passed Exploration and Cooldown, but when it came time for final adoption, bakers said no."
+            "content": "Oxford became the first protocol proposal ever rejected in Tezos history. After years of upgrades passing through governance smoothly, the community drew a line.\n\nThe rejection happened at the Promotion stage — Oxford had already passed Exploration and Cooldown, but when it came time for final adoption, bakers said no."
           },
           {
             "heading": "Oxford vs Oslo",
@@ -335,11 +339,11 @@
           },
           {
             "heading": "The Aftermath",
-            "content": "After rejection, Oxford was resubmitted as \"Oxford 2\" with Adaptive Issuance disabled \u2014 the economic features stripped out pending more community discussion. The technical upgrades passed; the economic policy was shelved.\n\nThis set the stage for Paris (which finally activated Adaptive Issuance) and ultimately Quebec (where the economic warfare reached its peak)."
+            "content": "After rejection, Oxford was resubmitted as \"Oxford 2\" with Adaptive Issuance disabled — the economic features stripped out pending more community discussion. The technical upgrades passed; the economic policy was shelved.\n\nThis set the stage for Paris (which finally activated Adaptive Issuance) and ultimately Quebec (where the economic warfare reached its peak)."
           },
           {
             "heading": "Why It Matters",
-            "content": "Oxford proved that Tezos governance wasn't rubber-stamping. The community could and would reject core developer proposals when they disagreed with the economic direction.\n\nThis was the moment bakers realized their votes actually mattered for economic policy \u2014 and it emboldened the community challenges that would define Quebec."
+            "content": "Oxford proved that Tezos governance wasn't rubber-stamping. The community could and would reject core developer proposals when they disagreed with the economic direction.\n\nThis was the moment bakers realized their votes actually mattered for economic policy — and it emboldened the community challenges that would define Quebec."
           }
         ]
       },
@@ -353,7 +357,7 @@
       "block": 5726209,
       "headline": "10-second blocks, DAL launches",
       "changes": [
-        "Block time 15s\u219210s",
+        "Block time 15s→10s",
         "DAL fully launched",
         "AI voting enabled",
         "Delayed slashing"
@@ -381,11 +385,11 @@
       "hash": "PsQuebec",
       "date": "2025-01-20",
       "block": 7692289,
-      "headline": "8-second blocks, Adaptive Maximum \u2014 the most contested upgrade in Tezos history",
+      "headline": "8-second blocks, Adaptive Maximum — the most contested upgrade in Tezos history",
       "changes": [
-        "Block time 10s\u21928s",
+        "Block time 10s→8s",
         "Adaptive Maximum issuance curve",
-        "Delegation weight reduced (1/2\u21921/3)",
+        "Delegation weight reduced (1/2→1/3)",
         "Contract-rollup interop",
         "WASM PVM V5"
       ],
@@ -394,11 +398,11 @@
       "contention": true,
       "history": {
         "title": "The Quebec/Qena Wars: A Battle for Tezos' Economic Soul",
-        "subtitle": "The most contested upgrade in Tezos history \u2014 a 6-month governance crisis",
+        "subtitle": "The most contested upgrade in Tezos history — a 6-month governance crisis",
         "sections": [
           {
             "heading": "The Spark",
-            "content": "When Paris activated in June 2024, it introduced Adaptive Issuance \u2014 Tezos' automatic inflation adjustment targeting 50% staked. But by September, Nomadic Labs proposed Quebec A and B with an \"adaptive maximum\" curve that would cap issuance as staking approached the target. The community response was immediate and fierce."
+            "content": "When Paris activated in June 2024, it introduced Adaptive Issuance — Tezos' automatic inflation adjustment targeting 50% staked. But by September, Nomadic Labs proposed Quebec A and B with an \"adaptive maximum\" curve that would cap issuance as staking approached the target. The community response was immediate and fierce."
           },
           {
             "heading": "Timeline",
@@ -416,17 +420,17 @@
               },
               {
                 "date": "Sep 17, 2024",
-                "text": "Tez Capital fires back with Qena \u2014 all technical upgrades, no economic changes. \"Adaptive issuance hasn't matured yet.\"",
+                "text": "Tez Capital fires back with Qena — all technical upgrades, no economic changes. \"Adaptive issuance hasn't matured yet.\"",
                 "side": "qena"
               },
               {
                 "date": "Oct 2024",
-                "text": "Period 131: Qena wins Proposal vote but gets only 77% in Exploration \u2014 fails the 80% supermajority by 3%.",
+                "text": "Period 131: Qena wins Proposal vote but gets only 77% in Exploration — fails the 80% supermajority by 3%.",
                 "side": "qena"
               },
               {
                 "date": "Oct 24, 2024",
-                "text": "Tez Capital publishes economic analysis, launches Qena42 \u2014 moves target to 42%, cuts delegation weight to 1/3.",
+                "text": "Tez Capital publishes economic analysis, launches Qena42 — moves target to 42%, cuts delegation weight to 1/3.",
                 "side": "qena"
               },
               {
@@ -436,12 +440,12 @@
               },
               {
                 "date": "Nov 2024",
-                "text": "Period 134: Core developers publish bug advisory for Qena42. Many bakers abstain \u2014 Exploration fails with no quorum.",
+                "text": "Period 134: Core developers publish bug advisory for Qena42. Many bakers abstain — Exploration fails with no quorum.",
                 "side": "quebec"
               },
               {
                 "date": "Nov 10, 2024",
-                "text": "Tez Capital launches Q3NA \u2014 accepts 50% target and adaptive maximum, but turns off Liquidity Baking to cut issuance by 0.5%/year.",
+                "text": "Tez Capital launches Q3NA — accepts 50% target and adaptive maximum, but turns off Liquidity Baking to cut issuance by 0.5%/year.",
                 "side": "qena"
               },
               {
@@ -453,7 +457,7 @@
           },
           {
             "heading": "The Core Dispute",
-            "content": "At its heart, this was a philosophical battle. Quebec proposed an algorithmic curve to automatically reduce maximum issuance as staking approached 50%. At that point, issuance would be capped at just 1% annually.\n\nTez Capital argued this was premature \u2014 Adaptive Issuance had only been live for 4 months. They warned that Quebec would cause rewards to \"drop by as much as one-third\" and that people were being attracted to stake with high APY promises without being told about the upcoming cuts."
+            "content": "At its heart, this was a philosophical battle. Quebec proposed an algorithmic curve to automatically reduce maximum issuance as staking approached 50%. At that point, issuance would be capped at just 1% annually.\n\nTez Capital argued this was premature — Adaptive Issuance had only been live for 4 months. They warned that Quebec would cause rewards to \"drop by as much as one-third\" and that people were being attracted to stake with high APY promises without being told about the upcoming cuts."
           },
           {
             "heading": "The Players",
@@ -473,15 +477,15 @@
           },
           {
             "heading": "The Trust Crisis",
-            "content": "The most emotionally charged moment came when Tez Capital accused the ecosystem of \"misleading stakers\" \u2014 encouraging people to stake with promises of high APYs while quietly planning to slash those rewards via Quebec.\n\n\"Right now, there's a heavy push to attract stakers with promises of high APYs, but there has been little communication in the context of what comes next... APYs could drop to half, a third, or even a quarter of what they are now.\"\n\nThis struck at fundamental questions of community trust and baker responsibility."
+            "content": "The most emotionally charged moment came when Tez Capital accused the ecosystem of \"misleading stakers\" — encouraging people to stake with promises of high APYs while quietly planning to slash those rewards via Quebec.\n\n\"Right now, there's a heavy push to attract stakers with promises of high APYs, but there has been little communication in the context of what comes next... APYs could drop to half, a third, or even a quarter of what they are now.\"\n\nThis struck at fundamental questions of community trust and baker responsibility."
           },
           {
             "heading": "The Compromise Attempts",
-            "content": "Tez Capital evolved through three proposals, each incorporating lessons:\n\n\u2022 Qena: No economic changes \u2014 just technical progress. Won Proposal vote, got 77% in Exploration but failed the 80% supermajority by 3%.\n\u2022 Qena42: Moved staking target to 42%, cut delegation weight to 1/3. Won the next Proposal vote with 59.9% of upvotes \u2014 but died from no quorum in Exploration after a core developer bug advisory caused mass abstention.\n\u2022 Q3NA: Accept the 50% target and adaptive maximum, but turn off Liquidity Baking to cut issuance by 0.5%/year \u2014 a genuine compromise attempt."
+            "content": "Tez Capital evolved through three proposals, each incorporating lessons:\n\n• Qena: No economic changes — just technical progress. Won Proposal vote, got 77% in Exploration but failed the 80% supermajority by 3%.\n• Qena42: Moved staking target to 42%, cut delegation weight to 1/3. Won the next Proposal vote with 59.9% of upvotes — but died from no quorum in Exploration after a core developer bug advisory caused mass abstention.\n• Q3NA: Accept the 50% target and adaptive maximum, but turn off Liquidity Baking to cut issuance by 0.5%/year — a genuine compromise attempt."
           },
           {
             "heading": "Why It Matters",
-            "content": "The Quebec/Qena wars established that economic protocol changes require higher scrutiny than technical ones. The community demonstrated it could produce viable alternative implementations, engage in sophisticated economic debates, and force genuine compromise through sustained democratic pressure.\n\nThis was the moment Tezos governance grew up \u2014 the first time bakers seriously challenged core developer economic proposals instead of rubber-stamping them."
+            "content": "The Quebec/Qena wars established that economic protocol changes require higher scrutiny than technical ones. The community demonstrated it could produce viable alternative implementations, engage in sophisticated economic debates, and force genuine compromise through sustained democratic pressure.\n\nThis was the moment Tezos governance grew up — the first time bakers seriously challenged core developer economic proposals instead of rubber-stamping them."
           }
         ]
       }
@@ -525,7 +529,7 @@
       "block": 11640289,
       "headline": "6-second blocks, All Bakers Attest prep",
       "changes": [
-        "Block time 8s\u21926s",
+        "Block time 8s→6s",
         "All Bakers Attest (50% BLS trigger)",
         "INDEX_ADDRESS instruction",
         "AI vote removed from header"

@@ -131,8 +131,10 @@ async function renderBakerData(address, container) {
             grid.appendChild(createStatItem('Staked', fmtXTZ(account.stakedBalance)));
         }
 
-        // Delegate info
-        if (account.delegate) {
+        // Delegate info (skip for bakers — the baker IS the delegate)
+        if (bakerData) {
+            // This address is a baker, no need to show delegate
+        } else if (account.delegate) {
             const delegateName = delegateDomain
                 || account.delegate.alias
                 || (account.delegate.address.slice(0, 8) + '…');
@@ -219,8 +221,9 @@ export function init() {
         toggleBtn.addEventListener('click', toggleMyBaker);
     }
 
-    // Restore visibility preference (default: off)
-    const isVisible = localStorage.getItem(TOGGLE_KEY) === 'true';
+    // Restore visibility preference (default: on)
+    const stored = localStorage.getItem(TOGGLE_KEY);
+    const isVisible = stored === null ? true : stored === 'true';
     updateVisibility(isVisible);
 
     const input = document.getElementById('my-baker-input');

@@ -4,6 +4,7 @@
  */
 
 import { CHAIN_COMPARISON, API_URLS } from './config.js';
+import { loadHtml2Canvas, showShareModal } from './share.js';
 
 // Metric definitions: key, label, tezosLive getter, winner logic
 const METRICS = [
@@ -21,16 +22,17 @@ const METRICS = [
         icon: '✅',
         tezosLive: () => CHAIN_COMPARISON.tezosStatic.finality,
         tezosNote: () => CHAIN_COMPARISON.tezosStatic.finalityNote,
-        winner: 'tezos', // ~6s deterministic finality
-        winNote: 'Fastest deterministic',
+        winner: 'tezos', // ~12s deterministic finality vs Solana probabilistic
+        winNote: 'Deterministic',
     },
     {
         key: 'validators',
-        label: 'Validators / Bakers',
-        icon: '🏗',
-        tezosLive: (stats) => stats.totalBakers ? stats.totalBakers.toLocaleString() : '—',
-        winner: 'ethereum', // most validators
-        winNote: 'Most decentralized',
+        label: 'Nakamoto Coefficient',
+        icon: '🛡',
+        tezosLive: () => '4',
+        tezosNote: () => 'bakers for 33%',
+        winner: 'solana', // ~20 for 33%
+        winNote: 'Most distributed stake',
     },
     {
         key: 'stakingPct',
@@ -191,38 +193,32 @@ function buildComparisonCard(metric, stats) {
  * Share a single comparison card (delegates to share.js pattern)
  */
 async function shareComparisonCard(cardEl, metric) {
-    // Use the same captureCard approach — find the share module
-    // For now, trigger html2canvas on the card
     const btn = cardEl.querySelector('.comparison-share-btn');
-    if (btn) {
-        btn.textContent = '⏳';
-        btn.style.opacity = '1';
-    }
+    if (btn) { btn.textContent = '⏳'; btn.style.opacity = '1'; }
     try {
-        // Dynamically load html2canvas if needed
-        if (typeof html2canvas === 'undefined') {
-            await new Promise((resolve, reject) => {
-                if (document.querySelector('script[src*="html2canvas"]')) {
-                    // Already loading, wait for it
-                    const check = setInterval(() => {
-                        if (typeof html2canvas !== 'undefined') { clearInterval(check); resolve(); }
-                    }, 100);
-                    setTimeout(() => { clearInterval(check); reject(new Error('timeout')); }, 5000);
-                } else {
-                    const script = document.createElement('script');
-                    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                }
-            });
-        }
+        const canvas = await captureComparisonImage(cardEl, metric.label);
+        const tweetOptions = [
+            { label: 'Standard', text: `Tezos vs the field — ${metric.label}\n\ntezos.systems` }
+        ];
+        showShareModal(canvas, tweetOptions, `Comparison: ${metric.label}`);
+    } catch (err) {
+        console.error('Comparison card share failed:', err);
+    } finally {
+        if (btn) { btn.textContent = '📸'; btn.style.opacity = ''; }
+    }
+}
 
+/**
+ * Capture all comparison cards as a single image
+ */
+async function shareAllComparisons() {
+    try {
+        await loadHtml2Canvas();
         const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
         const bgColor = isMatrix ? '#0a0a0a' : '#0a0a0f';
         const brand = isMatrix ? '#00ff00' : '#00d4ff';
+        const brandRgb = isMatrix ? '0,255,0' : '0,212,255';
 
-        // Create a branded wrapper for the screenshot
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
             position: fixed; top: -9999px; left: -9999px;
@@ -232,64 +228,115 @@ async function shareComparisonCard(cardEl, metric) {
             color: white;
         `;
 
-        // Title
         const title = document.createElement('div');
-        title.style.cssText = `
-            font-family: 'Orbitron', sans-serif; font-size: 20px; font-weight: 900;
-            color: ${brand}; letter-spacing: 3px; text-transform: uppercase;
-            margin-bottom: 4px;
-            text-shadow: 0 0 20px ${isMatrix ? 'rgba(0,255,0,0.5)' : 'rgba(0,212,255,0.5)'};
-        `;
+        title.style.cssText = `font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900;
+            color:${brand}; letter-spacing:3px; text-transform:uppercase; margin-bottom:4px;
+            text-shadow: 0 0 20px rgba(${brandRgb},0.5);`;
         title.textContent = 'TEZOS SYSTEMS';
         wrapper.appendChild(title);
 
         const subtitle = document.createElement('div');
-        subtitle.style.cssText = `font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase;
-            letter-spacing: 2px; margin-bottom: 20px;`;
+        subtitle.style.cssText = `font-size:11px; color:rgba(255,255,255,0.4); text-transform:uppercase;
+            letter-spacing:2px; margin-bottom:20px;`;
         subtitle.textContent = 'How Tezos Compares';
         wrapper.appendChild(subtitle);
 
-        // Clone the card
-        const clone = cardEl.cloneNode(true);
-        // Remove share button from clone
-        const cloneBtn = clone.querySelector('.comparison-share-btn');
-        if (cloneBtn) cloneBtn.remove();
-        clone.style.margin = '0';
-        wrapper.appendChild(clone);
+        // Clone all comparison cards
+        const cards = document.querySelectorAll('.comparison-card');
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display:flex; flex-direction:column; gap:12px;';
+        cards.forEach(card => {
+            const clone = card.cloneNode(true);
+            const btn = clone.querySelector('.comparison-share-btn');
+            if (btn) btn.remove();
+            clone.style.margin = '0';
+            grid.appendChild(clone);
+        });
+        wrapper.appendChild(grid);
 
-        // Footer
         const footer = document.createElement('div');
-        footer.style.cssText = `display: flex; justify-content: space-between; margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.3);`;
-        const dateStr = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        footer.style.cssText = `display:flex; justify-content:space-between; margin-top:16px; font-size:12px; color:rgba(255,255,255,0.3);`;
         const left = document.createElement('span');
-        left.textContent = dateStr;
+        left.textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         const right = document.createElement('span');
-        right.innerHTML = 'tezos.systems';
+        right.textContent = 'tezos.systems';
         footer.appendChild(left);
         footer.appendChild(right);
         wrapper.appendChild(footer);
 
         document.body.appendChild(wrapper);
-
         const canvas = await html2canvas(wrapper, {
             backgroundColor: bgColor, scale: 2, useCORS: true, logging: false,
             width: 600, windowWidth: 600
         });
         wrapper.remove();
 
-        // Simple share: download
-        const link = document.createElement('a');
-        link.download = 'tezos-vs-' + metric.key + '.png';
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+        const tweetOptions = [
+            { label: 'Data Drop', text: 'Tezos vs Ethereum vs Solana — the numbers speak for themselves\n\ntezos.systems' },
+            { label: 'Flex', text: '21 self-amendments. Zero hard forks. 6-second finality. How does your chain compare?\n\ntezos.systems' },
+            { label: 'Understated', text: 'Side by side, metric by metric. Tezos holds its own against the biggest chains.\n\ntezos.systems' }
+        ];
+        showShareModal(canvas, tweetOptions, 'How Tezos Compares');
     } catch (err) {
-        console.error('Comparison card share failed:', err);
-    } finally {
-        if (btn) {
-            btn.textContent = '📸';
-            btn.style.opacity = '';
-        }
+        console.error('All comparisons share failed:', err);
     }
+}
+
+/**
+ * Capture a single comparison card as an image
+ */
+async function captureComparisonImage(cardEl, label) {
+    await loadHtml2Canvas();
+    const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
+    const bgColor = isMatrix ? '#0a0a0a' : '#0a0a0f';
+    const brand = isMatrix ? '#00ff00' : '#00d4ff';
+    const brandRgb = isMatrix ? '0,255,0' : '0,212,255';
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = `
+        position: fixed; top: -9999px; left: -9999px;
+        width: 600px; padding: 32px;
+        background: ${bgColor};
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
+        color: white;
+    `;
+
+    const title = document.createElement('div');
+    title.style.cssText = `font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900;
+        color:${brand}; letter-spacing:3px; text-transform:uppercase; margin-bottom:4px;
+        text-shadow: 0 0 20px rgba(${brandRgb},0.5);`;
+    title.textContent = 'TEZOS SYSTEMS';
+    wrapper.appendChild(title);
+
+    const subtitle = document.createElement('div');
+    subtitle.style.cssText = `font-size:11px; color:rgba(255,255,255,0.4); text-transform:uppercase;
+        letter-spacing:2px; margin-bottom:20px;`;
+    subtitle.textContent = 'How Tezos Compares';
+    wrapper.appendChild(subtitle);
+
+    const clone = cardEl.cloneNode(true);
+    const cloneBtn = clone.querySelector('.comparison-share-btn');
+    if (cloneBtn) cloneBtn.remove();
+    clone.style.margin = '0';
+    wrapper.appendChild(clone);
+
+    const footer = document.createElement('div');
+    footer.style.cssText = `display:flex; justify-content:space-between; margin-top:16px; font-size:12px; color:rgba(255,255,255,0.3);`;
+    const left = document.createElement('span');
+    left.textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const right = document.createElement('span');
+    right.textContent = 'tezos.systems';
+    footer.appendChild(left);
+    footer.appendChild(right);
+    wrapper.appendChild(footer);
+
+    document.body.appendChild(wrapper);
+    const canvas = await html2canvas(wrapper, {
+        backgroundColor: bgColor, scale: 2, useCORS: true, logging: false,
+        width: 600, windowWidth: 600
+    });
+    wrapper.remove();
+    return canvas;
 }
 
 /**
@@ -313,6 +360,13 @@ export function initComparison(stats) {
     if (updatedEl) {
         const d = new Date(CHAIN_COMPARISON.lastUpdated + 'T00:00:00Z');
         updatedEl.textContent = 'ETH/SOL data as of ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    }
+
+    // Wire up section-level share button
+    const shareAllBtn = document.getElementById('comparison-share-all-btn');
+    if (shareAllBtn && !shareAllBtn._wired) {
+        shareAllBtn._wired = true;
+        shareAllBtn.addEventListener('click', shareAllComparisons);
     }
 }
 
