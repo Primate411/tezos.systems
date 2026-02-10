@@ -21,6 +21,7 @@ import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriod
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
 import { initTabs } from './tabs.js';
 import { initWhaleTracker } from './whales.js';
+import { initSleepingGiants } from './sleeping-giants.js';
 
 // Application state
 const state = {
@@ -51,6 +52,9 @@ async function init() {
     
     // Initialize whale tracker
     initWhaleTracker();
+    
+    // Initialize sleeping giants
+    initSleepingGiants();
 
     // Setup event listeners
     setupEventListeners();
