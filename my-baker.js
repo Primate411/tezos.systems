@@ -98,6 +98,28 @@ async function getStakingAPY() {
 }
 
 /**
+ * Fetch consensus participation from Octez RPC
+ */
+async function fetchParticipation(bakerAddr) {
+    try {
+        const resp = await fetch(`${API_URLS.octez}/chains/main/blocks/head/context/delegates/${bakerAddr}/participation`);
+        if (!resp.ok) return null;
+        return await resp.json();
+    } catch { return null; }
+}
+
+/**
+ * Fetch DAL participation from Octez RPC
+ */
+async function fetchDALParticipation(bakerAddr) {
+    try {
+        const resp = await fetch(`${API_URLS.octez}/chains/main/blocks/head/context/delegates/${bakerAddr}/dal_participation`);
+        if (!resp.ok) return null;
+        return await resp.json();
+    } catch { return null; }
+}
+
+/**
  * Create a stat item element
  */
 function createStatItem(label, value) {
@@ -228,10 +250,15 @@ async function renderBakerData(address, container) {
             } catch { /* ignore */ }
         }
 
-        // Fetch APY and domain resolution in parallel
-        const [apy, delegateDomain] = await Promise.all([
+        // Determine baker address for participation lookups
+        const participationAddr = bakerData ? address : account.delegate?.address;
+
+        // Fetch APY, domain, and participation data in parallel
+        const [apy, delegateDomain, participation, dalParticipation] = await Promise.all([
             getStakingAPY(),
-            account.delegate?.address ? resolveDomain(account.delegate.address) : Promise.resolve(null)
+            account.delegate?.address ? resolveDomain(account.delegate.address) : Promise.resolve(null),
+            participationAddr ? fetchParticipation(participationAddr) : Promise.resolve(null),
+            participationAddr ? fetchDALParticipation(participationAddr) : Promise.resolve(null),
         ]);
 
         container.innerHTML = '';
@@ -278,6 +305,26 @@ async function renderBakerData(address, container) {
 
             const totalMissed = (bakerData.missedBlocks || 0) + (bakerData.missedEndorsements || 0);
             grid.appendChild(createStatItem('Missed (Blocks/Attest)', `${bakerData.missedBlocks || 0} / ${bakerData.missedEndorsements || 0}`));
+        }
+
+        // Participation indicators (for baker and delegator/staker views)
+        if (participation) {
+            const expected = participation.expected_cycle_activity || 0;
+            const missed = participation.missed_slots || 0;
+            const attested = expected - missed;
+            const pct = expected > 0 ? ((attested / expected) * 100) : 0;
+            const ok = pct >= 66.67;
+            const icon = ok ? '✅' : '❌';
+            grid.appendChild(createStatItem('Attestation Rate', `${icon} ${pct.toFixed(2)}%`));
+        }
+
+        if (dalParticipation) {
+            const ok = dalParticipation.sufficient_dal_participation;
+            const attested = dalParticipation.delegate_attested_dal_slots || 0;
+            const attestable = dalParticipation.delegate_attestable_dal_slots || 0;
+            const icon = ok ? '✅' : '❌';
+            const ratio = attestable > 0 ? `${attested}/${attestable}` : 'N/A';
+            grid.appendChild(createStatItem('DAL Participation', `${icon} ${ratio} slots`));
         }
 
         // Estimated rewards based on staked balance or total balance
