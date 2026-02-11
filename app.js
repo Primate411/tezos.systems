@@ -641,8 +641,8 @@ function renderProtocolTimeline(protocols) {
                 const contentious = CONTENTIOUS.has(p.name);
                 return `
                 <div class="timeline-item ${p.isCurrent ? 'current' : ''} ${contentious ? 'contentious' : ''}" 
-                     data-protocol="${p.name}">
-                    ${p.name[0]}
+                     data-protocol="${escapeHtml(p.name)}">
+                    ${escapeHtml(p.name[0])}
                     ${contentious ? '<span class="contention-icon">⚔</span>' : ''}
                 </div>
             `}).join('')}
@@ -728,14 +728,14 @@ async function renderInfographic(protocols, timelineEl) {
         
         rowsHTML += `
             <div class="infographic-row ${contentious ? 'contentious' : ''} ${isCurrent ? 'current' : ''}" 
-                 style="animation-delay: ${delay}ms" data-protocol="${p.name}">
+                 style="animation-delay: ${delay}ms" data-protocol="${escapeHtml(p.name)}">
                 <div class="infographic-dot"></div>
-                <span class="infographic-letter">${p.name[0]}</span>
-                <span class="infographic-name" title="${p.name}">${p.name}</span>
-                <span class="infographic-date">${dateStr}</span>
-                <span class="infographic-headline">${headline}</span>
+                <span class="infographic-letter">${escapeHtml(p.name[0])}</span>
+                <span class="infographic-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
+                <span class="infographic-date">${escapeHtml(dateStr)}</span>
+                <span class="infographic-headline">${escapeHtml(headline)}</span>
                 ${contentious ? '<span class="infographic-contention">⚔</span>' : ''}
-                ${tag ? `<div class="infographic-tags"><span class="infographic-tag">${tag}</span></div>` : ''}
+                ${tag ? `<div class="infographic-tags"><span class="infographic-tag">${escapeHtml(tag)}</span></div>` : ''}
             </div>
         `;
     });
@@ -825,20 +825,20 @@ async function initRichTooltips(protocols) {
             let html = '';
             // Title line
             const headline = richP?.headline || govP?.highlight || 'Network upgrade';
-            html += `<div style="font-weight:700; color:${accent}; font-size:0.82rem; margin-bottom:4px;">${name}</div>`;
-            html += `<div style="color:rgba(255,255,255,0.75); margin-bottom:6px; font-style:italic;">${headline}</div>`;
+            html += `<div style="font-weight:700; color:${accent}; font-size:0.82rem; margin-bottom:4px;">${escapeHtml(name)}</div>`;
+            html += `<div style="color:rgba(255,255,255,0.75); margin-bottom:6px; font-style:italic;">${escapeHtml(headline)}</div>`;
             
             // Debate
             const debate = richP?.debate || govP?.debate;
             if (debate) {
-                html += `<div style="color:${accentDim}; margin-bottom:6px;">📌 ${debate}</div>`;
+                html += `<div style="color:${accentDim}; margin-bottom:6px;">📌 ${escapeHtml(debate)}</div>`;
             }
             
             // Changes
             const changes = richP?.changes;
             if (changes && changes.length) {
                 html += `<div style="margin-top:4px; color:rgba(255,255,255,0.6);">`;
-                changes.forEach(c => { html += `<div style="padding-left:8px;">• ${c}</div>`; });
+                changes.forEach(c => { html += `<div style="padding-left:8px;">• ${escapeHtml(c)}</div>`; });
                 html += `</div>`;
             }
             

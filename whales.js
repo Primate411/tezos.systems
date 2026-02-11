@@ -74,7 +74,8 @@ async function resolveDomain(address) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: `query { reverseRecord(address: "${address}") { domain { name } } }`
+                query: `query GetReverseDomain($address: String!) { reverseRecord(address: $address) { domain { name } } }`,
+                variables: { address: address }
             })
         });
         

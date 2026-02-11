@@ -20,6 +20,9 @@
     <meta name="twitter:description" content="Real-time Tezos network stats: baker counts, tz4/BLS adoption, issuance rate, and transaction volume">
     <meta name="twitter:image" content="https://tezos.systems/og-image.png">
     
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' unpkg.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co; img-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    
     <!-- Google Fonts - Techy font for title -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -206,8 +209,8 @@
             <h2 class="my-baker-title">🏠 My Baker</h2>
             <div class="my-baker-controls">
                 <input type="text" id="my-baker-input" class="my-baker-input" placeholder="Enter your tz1... address" spellcheck="false" autocomplete="off" maxlength="36">
-                <button id="my-baker-save" class="glass-button my-baker-btn">Save</button>
-                <button id="my-baker-clear" class="glass-button my-baker-btn">Clear</button>
+                <button id="my-baker-save" class="glass-button my-baker-btn" aria-label="Save baker address" title="Save baker address">Save</button>
+                <button id="my-baker-clear" class="glass-button my-baker-btn" aria-label="Clear baker address" title="Clear baker address">Clear</button>
             </div>
             <div id="my-baker-error-msg" class="my-baker-error"></div>
             <div id="my-baker-results" class="my-baker-results"></div>
@@ -268,7 +271,7 @@
         <section class="stats-section">
             <div class="section-header">
                 <h2 class="section-title">Consensus</h2>
-                <button class="info-button" id="consensus-info-btn" aria-label="Learn about Tezos consensus">
+                <button class="info-button" id="consensus-info-btn" aria-label="Learn about Tezos consensus" title="Learn about Tezos consensus">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                     </svg>
@@ -378,7 +381,7 @@
         <section class="stats-section">
             <div class="section-header">
                 <h2 class="section-title">Economy</h2>
-                <button class="info-button" id="economy-info-btn" aria-label="Learn about Tezos economics">
+                <button class="info-button" id="economy-info-btn" aria-label="Learn about Tezos economics" title="Learn about Tezos economics">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                     </svg>
@@ -604,7 +607,7 @@
         <section class="stats-section">
             <div class="section-header">
                 <h2 class="section-title">Governance</h2>
-                <button class="info-button" id="governance-info-btn" aria-label="Learn about Tezos governance">
+                <button class="info-button" id="governance-info-btn" aria-label="Learn about Tezos governance" title="Learn about Tezos governance">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                     </svg>
@@ -714,7 +717,7 @@
         <section class="stats-section">
             <div class="section-header">
                 <h2 class="section-title">Network Activity</h2>
-                <button class="info-button" id="network-info-btn" aria-label="Learn about network activity">
+                <button class="info-button" id="network-info-btn" aria-label="Learn about network activity" title="Learn about network activity">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                     </svg>
@@ -824,7 +827,7 @@
         <section class="stats-section">
             <div class="section-header">
                 <h2 class="section-title">Ecosystem</h2>
-                <button class="info-button" id="ecosystem-info-btn" aria-label="Learn about Tezos ecosystem">
+                <button class="info-button" id="ecosystem-info-btn" aria-label="Learn about Tezos ecosystem" title="Learn about Tezos ecosystem">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                     </svg>
@@ -934,7 +937,7 @@
         <section class="stats-section" id="comparison-section">
             <div class="section-header">
                 <h2 class="section-title">How Tezos Compares</h2>
-                <button class="info-button" id="comparison-info-btn" aria-label="About comparison data">
+                <button class="info-button" id="comparison-info-btn" aria-label="About comparison data" title="About comparison data">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
                     </svg>
