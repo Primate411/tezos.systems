@@ -33,7 +33,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-    <link rel="stylesheet" href="styles.css?v=20260211b">
+    <link rel="stylesheet" href="styles.css?v=20260211d">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -91,20 +91,20 @@
                 </button>
             </div>
             <div class="controls">
-                <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
-                    <span>📊</span>
-                </button>
+                <!-- Primary: always visible -->
                 <button id="my-baker-toggle" class="glass-button" aria-label="Toggle My Baker" title="My Baker: OFF">
                     <span class="my-baker-toggle-icon">🥐</span>
                 </button>
                 <button id="calc-toggle" class="glass-button" aria-label="Toggle Rewards Calculator" title="Calculator: OFF">
                     <span class="calc-toggle-icon">🧮</span>
                 </button>
-                <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
-                    <span class="objkt-toggle-icon">🖼️</span>
-                </button>
+
+                <!-- Secondary -->
                 <button id="comparison-toggle" class="glass-button" aria-label="Toggle How Tezos Compares" title="Compare: OFF">
                     <span class="comparison-toggle-icon">⚔️</span>
+                </button>
+                <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
+                    <span class="objkt-toggle-icon">🖼️</span>
                 </button>
                 <button id="whale-toggle" class="glass-button" aria-label="Toggle Mini Whale feed" title="Mini Whale: OFF">
                     <span class="whale-toggle-icon">🐬</span>
@@ -112,15 +112,29 @@
                 <button id="giants-toggle" class="glass-button" aria-label="Toggle Sleeping Giants" title="Sleeping Giants: OFF">
                     <span class="giants-toggle-icon">😴</span>
                 </button>
-                <button id="theme-toggle" class="glass-button" aria-label="Switch to matrix theme" title="Theme: default">
-                    <span class="theme-icon">🎨</span>
+
+                <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
+                    <span>📊</span>
                 </button>
-                <button id="ultra-toggle" class="glass-button" aria-label="Toggle Ultra mode" title="Ultra mode: OFF">
-                    <span class="ultra-icon">⚡</span>
-                </button>
-                <button id="share-btn" class="glass-button" aria-label="Share snapshot" title="Share snapshot">
-                    <span class="share-icon">📸</span>
-                </button>
+
+                <!-- Settings group -->
+                <div class="dock-settings-group">
+                    <button id="settings-gear" class="glass-button" aria-label="Settings" title="Settings">
+                        <span>⚙️</span>
+                    </button>
+                    <div class="settings-dropdown" id="settings-dropdown">
+                        <button id="theme-toggle" class="glass-button" aria-label="Switch to matrix theme" title="Theme: default">
+                            <span class="theme-icon">🎨</span> <span class="dropdown-label">Theme</span>
+                        </button>
+                        <button id="ultra-toggle" class="glass-button" aria-label="Toggle Ultra mode" title="Ultra mode: OFF">
+                            <span class="ultra-icon">⚡</span> <span class="dropdown-label">Ultra</span>
+                        </button>
+                        <button id="share-btn" class="glass-button" aria-label="Share snapshot" title="Share snapshot">
+                            <span class="share-icon">📸</span> <span class="dropdown-label">Share</span>
+                        </button>
+                    </div>
+                </div>
+
             </div>
         </div>
     </header>
@@ -1246,7 +1260,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
-    <script type="module" src="app.js?v=20260211c"></script>
+    <script type="module" src="app.js?v=20260211d"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

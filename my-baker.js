@@ -239,15 +239,32 @@ async function renderBakerData(address, container) {
         const stakedAmt = (account.stakedBalance || 0) / 1e6;
         const balanceAmt = (account.balance || 0) / 1e6;
         const rewardBase = stakedAmt > 0 ? stakedAmt : balanceAmt;
-        const apyRate = stakedAmt > 0 ? apy.stakeAPY : apy.delegateAPY;
-        const apyLabel = stakedAmt > 0 ? 'Staker' : 'Delegator';
+
+        // Determine the baker's edge fee for APY adjustment
+        const activeBaker = bakerData || delegateBakerData;
+        const bakerEdge = activeBaker?.edgeOfBakingOverStaking != null
+            ? activeBaker.edgeOfBakingOverStaking / 1e9
+            : 0;
+
+        let apyRate, apyLabel;
+        if (stakedAmt > 0) {
+            // For stakers: effective APY = raw stakeAPY reduced by baker's edge fee
+            apyRate = bakerEdge > 0
+                ? Math.round(apy.stakeAPY / (1 + bakerEdge) * 10) / 10
+                : apy.stakeAPY;
+            apyLabel = 'Staker';
+        } else {
+            apyRate = apy.delegateAPY;
+            apyLabel = 'Delegator';
+        }
 
         if (rewardBase > 0 && apyRate > 0) {
             const yearly = rewardBase * (apyRate / 100);
             const monthly = yearly / 12;
             const daily = yearly / 365.25;
 
-            grid.appendChild(createStatItem(`APY (${apyLabel})`, `${apyRate}%`));
+            const feeNote = bakerEdge > 0 ? ` (${(bakerEdge * 100).toFixed(0)}% fee)` : '';
+            grid.appendChild(createStatItem(`APY (${apyLabel})${feeNote}`, `${apyRate}%`));
             grid.appendChild(createStatItem('Est. Daily', `${daily.toFixed(2)} ꜩ`));
             grid.appendChild(createStatItem('Est. Monthly', `${monthly.toFixed(2)} ꜩ`));
             grid.appendChild(createStatItem('Est. Yearly', `${yearly.toFixed(2)} ꜩ`));

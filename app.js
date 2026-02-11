@@ -98,6 +98,9 @@ async function init() {
     // Initialize collapsible sections
     initCollapsibleSections();
 
+    // Initialize Smart Dock (overflow menu + bottom sheet)
+    initSmartDock();
+
     // Try to load cached data for instant display
     const cachedStats = loadStats();
     const cachedProtocols = loadProtocols();
@@ -1223,6 +1226,28 @@ function initCollapsibleSections() {
             chevron.style.opacity = '0.7';
         }
     });
+}
+
+// ==========================================
+// SMART DOCK — Overflow + Bottom Sheet
+// ==========================================
+function initSmartDock() {
+    const gear = document.getElementById('settings-gear');
+    const dropdown = document.getElementById('settings-dropdown');
+
+    if (!gear || !dropdown) return;
+
+    // Gear dropdown toggle
+    gear.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdown.classList.toggle('open');
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener('click', () => {
+        dropdown.classList.remove('open');
+    });
+    dropdown.addEventListener('click', (e) => e.stopPropagation());
 }
 
 // Expose refresh function globally
