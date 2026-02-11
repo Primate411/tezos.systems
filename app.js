@@ -345,7 +345,6 @@ async function refreshInBackground() {
  */
 async function refresh() {
     console.log('Refreshing stats...');
-    showAllLoading();
 
     try {
         const newStats = await fetchAllStats();
@@ -353,11 +352,14 @@ async function refresh() {
         
         // Save to localStorage for instant load next time
         saveStats(newStats);
-        
+
+        // Force full re-render by clearing lastUpdate temporarily
+        const hadPriorUpdate = !!state.lastUpdate;
+        state.lastUpdate = null;
         await updateStats(newStats);
-        await updateUpgradeClock(); // Update protocol + days live
         state.lastUpdate = new Date();
         updateLastRefreshTime();
+        await updateUpgradeClock(); // Update protocol + days live
         resetCountdown();
         refreshMyBaker();
     } catch (error) {

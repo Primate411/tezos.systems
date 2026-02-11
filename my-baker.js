@@ -270,9 +270,9 @@ export function init() {
         toggleBtn.addEventListener('click', toggleMyBaker);
     }
 
-    // Restore visibility preference (default: on)
+    // Restore visibility preference (default: off)
     const stored = localStorage.getItem(TOGGLE_KEY);
-    const isVisible = stored === null ? true : stored === 'true';
+    const isVisible = stored === 'true';
     updateBakerVisibility(isVisible);
 
     const input = document.getElementById('my-baker-input');

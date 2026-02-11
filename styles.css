@@ -2920,6 +2920,15 @@ body.mobile-tabs-active[data-active-tab="overview"] .whale-section.visible {
     display: block !important;
 }
 
+/* Mobile tabs integration - my-baker & calculator show with overview only if enabled */
+body.mobile-tabs-active .my-baker-section {
+    display: none !important;
+}
+
+body.mobile-tabs-active[data-active-tab="overview"] .my-baker-section.visible {
+    display: block !important;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .whale-tx-new,
@@ -2944,6 +2953,14 @@ body.mobile-tabs-active[data-active-tab="overview"] .whale-section.visible {
 }
 
 #my-baker-toggle.active {
+    opacity: 1;
+}
+
+#calc-toggle {
+    opacity: 0.5;
+}
+
+#calc-toggle.active {
     opacity: 1;
 }
 
