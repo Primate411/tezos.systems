@@ -5,6 +5,7 @@
 
 import { API_URLS } from './config.js';
 import { escapeHtml, formatNumber } from './utils.js';
+// objkt.js moved to standalone section
 
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const TOGGLE_KEY = 'tezos-systems-my-baker-visible';
@@ -16,6 +17,32 @@ const TZKT = API_URLS.tzkt;
 function isValidAddress(addr) {
     if (!addr || addr.length !== 36) return false;
     return /^(tz[1-4]|KT1)[a-zA-Z0-9]{33}$/.test(addr);
+}
+
+/**
+ * Check if input looks like a Tezos domain
+ */
+function isTezDomain(input) {
+    return input && input.endsWith('.tez') && input.length > 4;
+}
+
+/**
+ * Resolve a .tez domain to an address
+ */
+async function resolveForwardDomain(name) {
+    try {
+        const resp = await fetch('https://api.tezos.domains/graphql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: `query { domain(name: "${name}") { address } }`
+            })
+        });
+        const data = await resp.json();
+        return data?.data?.domain?.address || null;
+    } catch {
+        return null;
+    }
 }
 
 /**
@@ -227,6 +254,10 @@ async function renderBakerData(address, container) {
         }
 
         container.appendChild(grid);
+
+        // Sync address to Objkt section if it exists
+        const objktInput = document.getElementById('objkt-input');
+        if (objktInput && !objktInput.value) objktInput.value = address;
     } catch (err) {
         container.innerHTML = '';
         const errorEl = document.createElement('div');
@@ -235,6 +266,8 @@ async function renderBakerData(address, container) {
         container.appendChild(errorEl);
     }
 }
+
+/* Objkt rendering moved to objkt-ui.js */
 
 /**
  * Initialize the My Baker section
@@ -290,11 +323,25 @@ export function init() {
         renderBakerData(saved, results);
     }
 
-    saveBtn.addEventListener('click', () => {
-        const addr = input.value.trim();
+    saveBtn.addEventListener('click', async () => {
+        const raw = input.value.trim();
         errorMsg.textContent = '';
+
+        let addr = raw;
+        if (isTezDomain(raw)) {
+            errorMsg.textContent = 'Resolving domain...';
+            const resolved = await resolveForwardDomain(raw);
+            if (!resolved) {
+                errorMsg.textContent = `Could not resolve "${raw}". Domain not found.`;
+                return;
+            }
+            addr = resolved;
+            input.value = addr;
+            errorMsg.textContent = '';
+        }
+
         if (!isValidAddress(addr)) {
-            errorMsg.textContent = 'Invalid address. Must be tz1/tz2/tz3/tz4/KT1 and 36 characters.';
+            errorMsg.textContent = 'Invalid address. Enter a tz1…/KT1… address or a .tez domain.';
             return;
         }
         localStorage.setItem(STORAGE_KEY, addr);

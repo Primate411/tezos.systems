@@ -30,6 +30,7 @@ import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH } from './config.js';
 import { initComparison, updateComparison } from './comparison.js';
 import { init as initMyBaker, refresh as refreshMyBaker } from './my-baker.js';
 import { initCalculator } from './calculator.js';
+import { initObjkt } from './objkt-ui.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -88,6 +89,8 @@ async function init() {
 
     // Initialize Rewards Calculator
     initCalculator();
+    initObjkt();
+    initComparisonToggle();
 
     // Setup event listeners
     setupEventListeners();
@@ -482,6 +485,31 @@ function showErrorState() {
 /**
  * Setup event listeners
  */
+const COMPARISON_VISIBLE_KEY = 'tezos-systems-comparison-visible';
+
+function initComparisonToggle() {
+    const section = document.getElementById('comparison-section');
+    const toggleBtn = document.getElementById('comparison-toggle');
+    if (!section || !toggleBtn) return;
+
+    function updateVis(isVisible) {
+        section.classList.toggle('visible', isVisible);
+        toggleBtn.classList.toggle('active', isVisible);
+        toggleBtn.title = `Compare: ${isVisible ? 'ON' : 'OFF'}`;
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        const isVisible = localStorage.getItem(COMPARISON_VISIBLE_KEY) === 'true';
+        const newState = !isVisible;
+        localStorage.setItem(COMPARISON_VISIBLE_KEY, String(newState));
+        updateVis(newState);
+    });
+
+    // Default off
+    const isVisible = localStorage.getItem(COMPARISON_VISIBLE_KEY) === 'true';
+    updateVis(isVisible);
+}
+
 function setupEventListeners() {
     // Theme toggle
     const themeToggle = document.getElementById('theme-toggle');

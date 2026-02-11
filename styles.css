@@ -2964,6 +2964,40 @@ body.mobile-tabs-active[data-active-tab="overview"] .my-baker-section.visible {
     opacity: 1;
 }
 
+#objkt-toggle {
+    opacity: 0.5;
+}
+
+#objkt-toggle.active {
+    opacity: 1;
+}
+
+#comparison-toggle {
+    opacity: 0.5;
+}
+
+#comparison-toggle.active {
+    opacity: 1;
+}
+
+/* Toggleable sections (hidden by default, shown with .visible) */
+.toggleable-section {
+    display: none;
+}
+
+.toggleable-section.visible {
+    display: block;
+}
+
+/* Mobile tabs integration for toggleable sections */
+body.mobile-tabs-active .toggleable-section {
+    display: none !important;
+}
+
+body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible {
+    display: block !important;
+}
+
 #whale-toggle {
     opacity: 0.5;
 }
@@ -4510,6 +4544,72 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     align-items: center;
     gap: 0.5rem;
     padding-bottom: 0.25rem;
+}
+
+/* Objkt NFT Profile */
+.objkt-subsection {
+    margin-bottom: 1.25rem;
+}
+
+.objkt-subtitle {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    margin: 0 0 0.5rem;
+}
+
+.objkt-collections {
+    margin-top: 0.75rem;
+}
+
+.objkt-collections-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    margin-bottom: 0.4rem;
+}
+
+.objkt-collection-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    gap: 1rem;
+}
+
+.objkt-coll-name {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 40%;
+}
+
+.objkt-coll-stats {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-align: right;
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .objkt-collection-row {
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+    .objkt-coll-name {
+        max-width: 100%;
+    }
+    .objkt-coll-stats {
+        text-align: left;
+    }
 }
 
 /* (old checkbox toggle removed — now using button group from .calc-toggle-btn) */

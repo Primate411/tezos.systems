@@ -21,7 +21,7 @@
     <meta name="twitter:image" content="https://tezos.systems/og-image.png">
     
     <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' unpkg.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co; img-src 'self' data:; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' unpkg.com cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co data.objkt.com; img-src 'self' data: *.objkt.com assets.objkt.media ipfs.io; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
     
     <!-- Google Fonts - Techy font for title -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -99,6 +99,12 @@
                 </button>
                 <button id="calc-toggle" class="glass-button" aria-label="Toggle Rewards Calculator" title="Calculator: OFF">
                     <span class="calc-toggle-icon">🧮</span>
+                </button>
+                <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
+                    <span class="objkt-toggle-icon">🖼️</span>
+                </button>
+                <button id="comparison-toggle" class="glass-button" aria-label="Toggle How Tezos Compares" title="Compare: OFF">
+                    <span class="comparison-toggle-icon">⚔️</span>
                 </button>
                 <button id="whale-toggle" class="glass-button" aria-label="Toggle Mini Whale feed" title="Mini Whale: OFF">
                     <span class="whale-toggle-icon">🐬</span>
@@ -212,7 +218,7 @@
             <h2 class="my-baker-title">🥐 My Baker</h2>
             <p class="my-baker-desc">Paste any Tezos address — baker or delegator — to see balance, rewards, and baker stats.</p>
             <div class="my-baker-controls">
-                <input type="text" id="my-baker-input" class="my-baker-input" placeholder="tz1… / tz2… / tz3… / tz4… / KT1…" spellcheck="false" autocomplete="off" maxlength="36">
+                <input type="text" id="my-baker-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
                 <button id="my-baker-save" class="glass-button my-baker-btn" aria-label="Save baker address" title="Save baker address">Save</button>
                 <button id="my-baker-clear" class="glass-button my-baker-btn" aria-label="Clear baker address" title="Clear baker address">Clear</button>
             </div>
@@ -287,6 +293,20 @@
                     <div class="calc-compound-body" id="calc-compound-body"></div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section class="my-baker-section" id="objkt-section">
+        <div class="my-baker-section-inner">
+            <h2 class="my-baker-title">🖼️ NFT Profile</h2>
+            <p class="my-baker-desc">Paste any Tezos address to see creator and collector stats from objkt.com.</p>
+            <div class="my-baker-controls">
+                <input type="text" id="objkt-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
+                <button id="objkt-fetch" class="glass-button my-baker-btn" aria-label="Fetch NFT profile" title="Fetch NFT profile">Fetch</button>
+                <button id="objkt-clear" class="glass-button my-baker-btn" aria-label="Clear" title="Clear">Clear</button>
+            </div>
+            <div id="objkt-error-msg" class="my-baker-error"></div>
+            <div id="objkt-results" class="my-baker-results"></div>
         </div>
     </section>
 
@@ -959,7 +979,7 @@
         </section>
 
         <!-- How Tezos Compares Section -->
-        <section class="stats-section" id="comparison-section">
+        <section class="stats-section toggleable-section" id="comparison-section">
             <div class="section-header">
                 <h2 class="section-title">How Tezos Compares</h2>
                 <button class="info-button" id="comparison-info-btn" aria-label="About comparison data" title="About comparison data">
