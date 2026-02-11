@@ -499,6 +499,9 @@ export function toggleSleepingGiants() {
     updateVisibility();
     
     if (isEnabled) {
+        const container = document.getElementById('optional-sections');
+        const section = document.getElementById('giants-section');
+        if (container && section && section.parentElement === container) container.prepend(section);
         if (giants.length === 0) {
             loadInitialData();
         }

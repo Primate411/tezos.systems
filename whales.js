@@ -537,8 +537,11 @@ export function toggleWhaleTracker() {
     localStorage.setItem(STORAGE_KEY, isEnabled ? 'true' : 'false');
     updateWhaleVisibility();
     
-    if (isEnabled && transactions.length === 0) {
-        loadInitialTransactions();
+    if (isEnabled) {
+        const container = document.getElementById('optional-sections');
+        const section = document.getElementById('whale-section');
+        if (container && section && section.parentElement === container) container.prepend(section);
+        if (transactions.length === 0) loadInitialTransactions();
     }
     
     return isEnabled;

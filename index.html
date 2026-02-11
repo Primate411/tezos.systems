@@ -33,7 +33,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles.css?v=20260211b">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -161,6 +161,9 @@
                         <span class="badge-text" id="days-live">—</span>
                         <span class="badge-subtext">Days live • 0 outages</span>
                     </div>
+                    <div class="upgrade-badge stake-o-meter-badge" id="staking-gauge-container">
+                        <canvas id="staking-gauge-canvas" width="100" height="60"></canvas>
+                    </div>
                 </div>
             </div>
             <div class="upgrade-status" id="upgrade-status">
@@ -172,11 +175,40 @@
         </div>
     </section>
 
+    <!-- Optional Sections Container (reorderable) -->
+    <div id="optional-sections">
+
+    <!-- How Tezos Compares Section -->
+    <section class="stats-section toggleable-section" id="comparison-section">
+        <div class="section-header">
+            <h2 class="section-title">⚔️ How Tezos Compares</h2>
+            <button class="info-button" id="comparison-info-btn" aria-label="About comparison data" title="About comparison data">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+            <button class="info-button" id="comparison-share-all-btn" aria-label="Share all comparisons" title="Share all comparisons">📸</button>
+        </div>
+        <div class="comparison-grid" id="comparison-grid">
+            <!-- Comparison cards rendered by comparison.js -->
+        </div>
+        <div class="comparison-footer">
+            <span class="comparison-last-updated" id="comparison-last-updated"></span>
+        </div>
+    </section>
+
     <!-- Whale Tracker -->
     <section class="whale-section" id="whale-section">
+        <div class="section-header">
+            <h2 class="section-title">🐬 Mini Whale</h2>
+            <button class="info-button" id="whale-info-btn" aria-label="About Mini Whale" title="About Mini Whale">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
         <div class="whale-section-inner">
             <div class="whale-header">
-                <h2 class="whale-title">🐬 Mini Whale</h2>
                 <span class="whale-subtitle">Live activity > 1,000 ꜩ</span>
             </div>
             <div class="whale-feed" id="whale-feed">
@@ -187,10 +219,17 @@
 
     <!-- Sleeping Giants -->
     <section class="giants-section" id="giants-section">
+        <div class="section-header">
+            <h2 class="section-title">😴 Sleeping Giants</h2>
+            <button class="info-button" id="giants-info-btn" aria-label="About Sleeping Giants" title="About Sleeping Giants">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
         <div class="giants-section-inner">
             <div class="giants-header">
                 <div class="giants-title-row">
-                    <h2 class="giants-title">😴 Sleeping Giants</h2>
                     <span class="giants-subtitle">Dormant whales with 1M+ ꜩ</span>
                 </div>
                 <div class="giants-stats" id="giants-stats">
@@ -214,8 +253,15 @@
 
     <!-- My Baker Section (hidden by default, toggled via header button) -->
     <section class="my-baker-section" id="my-baker-section">
+        <div class="section-header">
+            <h2 class="section-title">🥐 My Baker</h2>
+            <button class="info-button" id="my-baker-info-btn" aria-label="About My Baker" title="About My Baker">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
         <div class="my-baker-section-inner">
-            <h2 class="my-baker-title">🥐 My Baker</h2>
             <p class="my-baker-desc">Paste any Tezos address — baker or delegator — to see balance, rewards, and baker stats.</p>
             <div class="my-baker-controls">
                 <input type="text" id="my-baker-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
@@ -229,8 +275,15 @@
 
     <!-- Rewards Calculator (hidden by default, shown with My Baker) -->
     <section class="my-baker-section" id="calculator-section">
+        <div class="section-header">
+            <h2 class="section-title">🧮 Rewards Calculator</h2>
+            <button class="info-button" id="calc-info-btn" aria-label="About Rewards Calculator" title="About Rewards Calculator">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
         <div class="my-baker-section-inner">
-            <h2 class="my-baker-title">🧮 Rewards Calculator</h2>
             <div class="calc-container">
                 <div class="calc-input-row">
                     <div class="calc-amount-wrap">
@@ -297,8 +350,15 @@
     </section>
 
     <section class="my-baker-section" id="objkt-section">
+        <div class="section-header">
+            <h2 class="section-title">🖼️ NFT Profile</h2>
+            <button class="info-button" id="objkt-info-btn" aria-label="About NFT Profile" title="About NFT Profile">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
         <div class="my-baker-section-inner">
-            <h2 class="my-baker-title">🖼️ NFT Profile</h2>
             <p class="my-baker-desc">Paste any Tezos address to see creator and collector stats from objkt.com.</p>
             <div class="my-baker-controls">
                 <input type="text" id="objkt-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
@@ -310,12 +370,15 @@
         </div>
     </section>
 
+    </div><!-- end optional-sections -->
+
     <!-- Main content -->
     <main class="main-content">
+
         <!-- Consensus Section -->
         <section class="stats-section">
             <div class="section-header">
-                <h2 class="section-title">Consensus</h2>
+                <h2 class="section-title">🛡️ Consensus</h2>
                 <button class="info-button" id="consensus-info-btn" aria-label="Learn about Tezos consensus" title="Learn about Tezos consensus">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -425,7 +488,7 @@
         <!-- Economy Section -->
         <section class="stats-section">
             <div class="section-header">
-                <h2 class="section-title">Economy</h2>
+                <h2 class="section-title">💰 Economy</h2>
                 <button class="info-button" id="economy-info-btn" aria-label="Learn about Tezos economics" title="Learn about Tezos economics">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -626,32 +689,13 @@
                     </div>
                 </div>
 
-            <!-- Stake-O-Meter Gauge -->
-            <div class="stat-card staking-gauge-card" id="staking-gauge-container">
-                <div class="card-info-btn" data-tooltip="stake-o-meter">
-                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                    </svg>
-                </div>
-                <div class="card-tooltip" id="tooltip-stake-o-meter">
-                    <div class="tooltip-content">
-                        <h4>What is the Stake-O-Meter?</h4>
-                        <p>Tezos protocol targets 50% of the total supply to be staked. When staking is below target, the protocol increases rewards to incentivize more staking. When above target, rewards decrease.</p>
-                        <p>This gauge shows how close the network is to the optimal 50% staking ratio. Higher staking means stronger network security.</p>
-                    </div>
-                </div>
-                <h2 class="stat-label gauge-label">Stake-O-Meter</h2>
-                <div class="stat-value" id="stake-o-meter-value" style="position:absolute;left:-9999px;pointer-events:none;">27.9%</div>
-                <p class="stat-description" style="position:absolute;left:-9999px;pointer-events:none;">of 50% target</p>
-                <canvas id="staking-gauge-canvas"></canvas>
-            </div>
             </div>
         </section>
 
         <!-- Governance Section -->
         <section class="stats-section">
             <div class="section-header">
-                <h2 class="section-title">Governance</h2>
+                <h2 class="section-title">🏛️ Governance</h2>
                 <button class="info-button" id="governance-info-btn" aria-label="Learn about Tezos governance" title="Learn about Tezos governance">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -761,7 +805,7 @@
         <!-- Network Activity Section -->
         <section class="stats-section">
             <div class="section-header">
-                <h2 class="section-title">Network Activity</h2>
+                <h2 class="section-title">📡 Network Activity</h2>
                 <button class="info-button" id="network-info-btn" aria-label="Learn about network activity" title="Learn about network activity">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -871,7 +915,7 @@
         <!-- Ecosystem Section -->
         <section class="stats-section">
             <div class="section-header">
-                <h2 class="section-title">Ecosystem</h2>
+                <h2 class="section-title">🌿 Ecosystem</h2>
                 <button class="info-button" id="ecosystem-info-btn" aria-label="Learn about Tezos ecosystem" title="Learn about Tezos ecosystem">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -975,25 +1019,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </section>
-
-        <!-- How Tezos Compares Section -->
-        <section class="stats-section toggleable-section" id="comparison-section">
-            <div class="section-header">
-                <h2 class="section-title">How Tezos Compares</h2>
-                <button class="info-button" id="comparison-info-btn" aria-label="About comparison data" title="About comparison data">
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                    </svg>
-                </button>
-                <button class="info-button" id="comparison-share-all-btn" aria-label="Share all comparisons" title="Share all comparisons">📸</button>
-            </div>
-            <div class="comparison-grid" id="comparison-grid">
-                <!-- Comparison cards rendered by comparison.js -->
-            </div>
-            <div class="comparison-footer">
-                <span class="comparison-last-updated" id="comparison-last-updated"></span>
             </div>
         </section>
 
@@ -1221,10 +1246,118 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
-    <script type="module" src="app.js"></script>
+    <script type="module" src="app.js?v=20260211c"></script>
+    <!-- My Baker Info Modal -->
+    <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="my-baker-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">My Baker</h3>
+            <div class="modal-body">
+                <p>
+                    Paste any Tezos address — baker or delegator — to see real-time stats pulled from the <strong>TzKT API</strong>.
+                </p>
+                <ul>
+                    <li><strong>Balance &amp; Staked</strong>: Current XTZ balance and staked amount</li>
+                    <li><strong>Baker Staking Power</strong>: Total baking power including external stake and delegation</li>
+                    <li><strong>Stakers &amp; Delegators</strong>: Count of addresses staking or delegating to this baker</li>
+                    <li><strong>Missed Blocks/Attestations</strong>: Current cycle misses from TzKT</li>
+                    <li><strong>APY</strong>: Estimated annual yield based on current protocol issuance rate</li>
+                    <li><strong>Estimated Rewards</strong>: Daily, monthly, and yearly projections</li>
+                </ul>
+                <p>
+                    For delegator addresses, shows which baker you're delegated to and your balance. The address syncs to the NFT Profile and Calculator panes automatically.
+                </p>
+                <div class="modal-links">
+                    <a href="https://docs.tez.capital/tezbake/" target="_blank" rel="noopener">TezBake Documentation</a>
+                    <a href="https://tzkt.io" target="_blank" rel="noopener">TzKT Explorer</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rewards Calculator Info Modal -->
+    <div class="modal-overlay" id="calc-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="calc-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Rewards Calculator</h3>
+            <div class="modal-body">
+                <p>
+                    Estimate your Tezos staking rewards across three modes:
+                </p>
+                <ul>
+                    <li><strong>Delegate</strong>: Earn ~3% APY by delegating to a baker (no lock-up)</li>
+                    <li><strong>Stake</strong>: Earn ~9% APY by staking directly (funds locked)</li>
+                    <li><strong>Baker</strong>: Full income breakdown — own stake rewards + staking fees from external stakers + delegation income</li>
+                </ul>
+                <p>
+                    APY is calculated from the current protocol issuance rate and network participation. Includes 1-5 year compound projections.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- NFT Profile Info Modal -->
+    <div class="modal-overlay" id="objkt-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="objkt-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">NFT Profile</h3>
+            <div class="modal-body">
+                <p>
+                    Look up any Tezos address to see NFT activity from <strong>objkt.com</strong>, the leading Tezos NFT marketplace.
+                </p>
+                <ul>
+                    <li><strong>Creator stats</strong>: Collections created, items minted, sales volume</li>
+                    <li><strong>Collector stats</strong>: Items owned, collections, total spent</li>
+                </ul>
+                <p>Data pulled from the objkt.com GraphQL API. Address auto-syncs from My Baker.</p>
+                <div class="modal-links">
+                    <a href="https://objkt.com" target="_blank" rel="noopener">objkt.com</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mini Whale Info Modal -->
+    <div class="modal-overlay" id="whale-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="whale-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Mini Whale Tracker</h3>
+            <div class="modal-body">
+                <p>
+                    Live feed of large XTZ transactions (1,000+ ꜩ) happening on the Tezos network right now.
+                </p>
+                <ul>
+                    <li><strong>Real-time</strong>: Polls TzKT for recent large transfers</li>
+                    <li><strong>Amount &amp; Direction</strong>: Shows sender, receiver, and XTZ amount</li>
+                    <li><strong>Timestamps</strong>: When each transaction occurred</li>
+                </ul>
+                <p>Useful for spotting large movements, exchange flows, and whale activity.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sleeping Giants Info Modal -->
+    <div class="modal-overlay" id="giants-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="giants-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Sleeping Giants</h3>
+            <div class="modal-body">
+                <p>
+                    Tracks dormant whale wallets holding <strong>1M+ ꜩ</strong> that haven't moved in extended periods.
+                </p>
+                <ul>
+                    <li><strong>Dormant whales</strong>: Large holders inactive for months or years</li>
+                    <li><strong>Last activity</strong>: When each wallet was last active</li>
+                    <li><strong>Awakening alerts</strong>: Notifications when a sleeping giant moves</li>
+                </ul>
+                <p>These wallets represent significant potential market impact if they become active.</p>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="history.js"></script>
     <script type="module" src="matrix-effects.js"></script>
-    <script type="module" src="gauge.js"></script>
+    <script type="module" src="gauge.js?v=3"></script>
     <script type="module" src="price.js"></script>
     <script type="module" src="comparison.js"></script>
 </body>

@@ -4,6 +4,42 @@
    ========================================== */
 
 /* ==========================================
+   GLOBAL MATRIX SCROLLBARS
+   ========================================== */
+
+/* Webkit (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 20, 0, 0.3);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 212, 255, 0.25);
+    border-radius: 3px;
+    border: 1px solid rgba(0, 255, 65, 0.1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 212, 255, 0.5);
+    box-shadow: 0 0 6px rgba(0, 255, 65, 0.3);
+}
+
+::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 212, 255, 0.25) rgba(0, 20, 0, 0.3);
+}
+
+/* ==========================================
    CSS Variables
    ========================================== */
 
@@ -648,7 +684,9 @@ body::before {
 }
 
 .stats-section {
-    margin-bottom: 5rem;
+    max-width: 1200px;
+    margin: 0 auto 5rem;
+    padding: 0;
     transition: margin-bottom 0.3s ease;
 }
 
@@ -1474,7 +1512,8 @@ body.arcade-mode::before {
     transition: all 0.3s ease;
 }
 
-.stats-section:hover .section-title {
+.stats-section:hover .section-title,
+.my-baker-section:hover .section-title {
     color: var(--accent-cyan);
     text-shadow: 0 0 10px var(--accent-cyan);
 }
@@ -2678,18 +2717,12 @@ body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-right {
    Whale Tracker Section
    ========================================== */
 
-.whale-section {
-    max-width: 1200px;
-    margin: 0 auto 2rem;
-    padding: 0 2rem;
-}
-
 .whale-section-inner {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    backdrop-filter: blur(10px);
-    padding: 20px 24px 16px;
+    background: none;
+    border: none;
+    border-radius: 0;
+    backdrop-filter: none;
+    padding: 0;
 }
 
 .whale-header {
@@ -2983,6 +3016,7 @@ body.mobile-tabs-active[data-active-tab="overview"] .my-baker-section.visible {
 /* Toggleable sections (hidden by default, shown with .visible) */
 .toggleable-section {
     display: none;
+    padding: 0 2rem;
 }
 
 .toggleable-section.visible {
@@ -3007,12 +3041,33 @@ body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible 
 }
 
 /* Whale section hidden by default */
-.whale-section {
+.whale-section,
+.giants-section {
     display: none;
+    max-width: 1200px;
+    margin: 0 auto 5rem;
+    padding: 0 2rem;
 }
 
-.whale-section.visible {
+.whale-section.visible,
+.giants-section.visible {
     display: block;
+}
+
+.whale-section.collapsed,
+.giants-section.collapsed {
+    margin-bottom: 1rem;
+}
+
+.whale-section.collapsed .section-header,
+.giants-section.collapsed .section-header {
+    margin-bottom: 0;
+}
+
+.whale-section:hover .section-title,
+.giants-section:hover .section-title {
+    color: var(--accent-cyan);
+    text-shadow: 0 0 10px var(--accent-cyan);
 }
 
 /* History modal scrollbar theming */
@@ -3109,23 +3164,14 @@ body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible 
    Sleeping Giants Section
    ========================================== */
 
-.giants-section {
-    display: none;
-    max-width: 1200px;
-    margin: 0 auto 2rem;
-    padding: 0 2rem;
-}
-
-.giants-section.visible {
-    display: block;
-}
+/* giants-section rules consolidated below with whale-section */
 
 .giants-section-inner {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    backdrop-filter: blur(10px);
-    padding: 24px;
+    background: none;
+    border: none;
+    border-radius: 0;
+    backdrop-filter: none;
+    padding: 0;
 }
 
 .giants-header {
@@ -3929,24 +3975,19 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 
 /* ===== Staking Target Gauge ===== */
 /* Staking Gauge - full-width row in stats-grid */
-.staking-gauge-card {
-    grid-column: 1 / -1;
-    padding: 1.2rem 1.5rem 0.8rem;
+/* Stake-O-Meter mini badge in protocol header */
+.stake-o-meter-badge {
     display: flex;
-    flex-direction: column;
     align-items: center;
-    height: auto;
+    justify-content: center;
+    padding: 0.15rem 0.25rem !important;
+    min-width: 110px;
+    overflow: hidden;
 }
 
-.gauge-label {
-    align-self: flex-start;
-    margin: 0 0 0.3rem 0.5rem;
-}
-
-.staking-gauge-card canvas {
-    width: 100%;
-    max-width: 500px;
-    aspect-ratio: 2 / 1;
+.stake-o-meter-badge canvas {
+    width: 110px;
+    height: 60px;
     display: block;
 }
 
@@ -4872,7 +4913,7 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 .my-baker-section {
     display: none;
     max-width: 1200px;
-    margin: 0 auto 2rem;
+    margin: 0 auto 5rem;
     padding: 0 2rem;
 }
 
@@ -4880,12 +4921,20 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     display: block;
 }
 
+.my-baker-section.collapsed {
+    margin-bottom: 1rem;
+}
+
+.my-baker-section.collapsed .section-header {
+    margin-bottom: 0;
+}
+
 .my-baker-section-inner {
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 16px;
-    backdrop-filter: blur(10px);
-    padding: 20px 24px 16px;
+    background: none;
+    border: none;
+    border-radius: 0;
+    backdrop-filter: none;
+    padding: 0;
 }
 
 .my-baker-title {

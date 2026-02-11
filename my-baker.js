@@ -232,7 +232,7 @@ async function renderBakerData(address, container) {
             grid.appendChild(createStatItem('Delegators', formatNumber(bakerData.numDelegators || 0, { decimals: 0, useAbbreviation: false })));
 
             const totalMissed = (bakerData.missedBlocks || 0) + (bakerData.missedEndorsements || 0);
-            grid.appendChild(createStatItem('Missed (Blocks/Endorse)', `${bakerData.missedBlocks || 0} / ${bakerData.missedEndorsements || 0}`));
+            grid.appendChild(createStatItem('Missed (Blocks/Attest)', `${bakerData.missedBlocks || 0} / ${bakerData.missedEndorsements || 0}`));
         }
 
         // Estimated rewards based on staked balance or total balance
@@ -286,11 +286,20 @@ function updateBakerVisibility(isVisible) {
     }
 }
 
+function bringToTop(sectionId) {
+    const container = document.getElementById('optional-sections');
+    const section = document.getElementById(sectionId);
+    if (container && section && section.parentElement === container) {
+        container.prepend(section);
+    }
+}
+
 function toggleMyBaker() {
     const isVisible = localStorage.getItem(TOGGLE_KEY) === 'true';
     const newState = !isVisible;
     localStorage.setItem(TOGGLE_KEY, String(newState));
     updateBakerVisibility(newState);
+    if (newState) bringToTop('my-baker-section');
 }
 
 export function init() {

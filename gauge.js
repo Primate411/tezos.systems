@@ -27,8 +27,9 @@ function drawGauge(canvas, ratio, animated = true) {
     ctx.scale(dpr, dpr);
 
     const cx = w / 2;
-    const cy = h * 0.65;
-    const radius = Math.min(w, h) * 0.48;
+    const isSmall = w < 150;
+    const cy = isSmall ? h * 0.82 : h * 0.65;
+    const radius = isSmall ? Math.min(w, h) * 0.65 : Math.min(w, h) * 0.48;
     const lineWidth = radius * 0.18;
     const progress = Math.min(ratio / TARGET, 1); // 0..1 toward target
     const startAngle = Math.PI;
@@ -62,9 +63,9 @@ function drawGauge(canvas, ratio, animated = true) {
 
         // Progress arc
         if (t > 0) {
-            const accent = getAccentColor();
+            const red = { r: 220, g: 30, b: 30 };
             const green = { r: 0, g: 220, b: 80 };
-            const currentColor = lerpColor(accent, green, t * progress);
+            const currentColor = lerpColor(red, green, t * progress);
             const sweepAngle = startAngle + (endAngle - startAngle) * progress * t;
 
             // Glow
@@ -92,7 +93,8 @@ function drawGauge(canvas, ratio, animated = true) {
         ctx.fillText(`${displayRatio}%`, cx, cy - radius * 0.08);
 
         // Subtitle
-        ctx.font = `400 ${radius * 0.13}px 'Orbitron', sans-serif`;
+        const subSize = isSmall ? radius * 0.2 : radius * 0.13;
+        ctx.font = `400 ${subSize}px 'Orbitron', sans-serif`;
         ctx.fillStyle = 'rgba(255,255,255,0.45)';
         ctx.fillText(`of ${TARGET}% target`, cx, cy + radius * 0.18);
 

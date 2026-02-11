@@ -212,6 +212,11 @@ function toggle() {
     const newState = !isVisible;
     localStorage.setItem(VISIBLE_KEY, String(newState));
     updateVisibility(newState);
+    if (newState) {
+        const container = document.getElementById('optional-sections');
+        const section = document.getElementById('objkt-section');
+        if (container && section && section.parentElement === container) container.prepend(section);
+    }
 }
 
 export function initObjkt() {

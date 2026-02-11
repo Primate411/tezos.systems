@@ -485,6 +485,17 @@ function showErrorState() {
 /**
  * Setup event listeners
  */
+/**
+ * Move a section to the top of the optional-sections container
+ */
+function bringToTop(sectionId) {
+    const container = document.getElementById('optional-sections');
+    const section = document.getElementById(sectionId);
+    if (container && section && section.parentElement === container) {
+        container.prepend(section);
+    }
+}
+
 const COMPARISON_VISIBLE_KEY = 'tezos-systems-comparison-visible';
 
 function initComparisonToggle() {
@@ -503,6 +514,7 @@ function initComparisonToggle() {
         const newState = !isVisible;
         localStorage.setItem(COMPARISON_VISIBLE_KEY, String(newState));
         updateVis(newState);
+        if (newState) bringToTop('comparison-section');
     });
 
     // Default off
@@ -540,6 +552,11 @@ function setupEventListeners() {
     setupModal('network-info-btn', 'network-modal', 'network-modal-close');
     setupModal('ecosystem-info-btn', 'ecosystem-modal', 'ecosystem-modal-close');
     setupModal('comparison-info-btn', 'comparison-modal', 'comparison-modal-close');
+    setupModal('my-baker-info-btn', 'my-baker-modal', 'my-baker-modal-close');
+    setupModal('calc-info-btn', 'calc-modal', 'calc-modal-close');
+    setupModal('objkt-info-btn', 'objkt-modal', 'objkt-modal-close');
+    setupModal('whale-info-btn', 'whale-modal', 'whale-modal-close');
+    setupModal('giants-info-btn', 'giants-modal', 'giants-modal-close');
 
     // Handle visibility change
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -1107,43 +1124,104 @@ if (document.readyState === 'loading') {
     init();
 }
 
-// Collapsible sections
+// Collapsible sections — works on ALL section types
 function initCollapsibleSections() {
     document.querySelectorAll('.section-header').forEach(header => {
         const title = header.querySelector('.section-title');
         if (!title) return;
+
+        // Find the parent section (works for .stats-section, .my-baker-section, etc.)
+        const section = header.closest('section');
+        if (!section) return;
+
+        // Find collapsible content: first sibling container after the header
+        // For stats-section: .stats-grid or .stats-grid-2 or .comparison-grid
+        // For my-baker-section: .my-baker-section-inner children after header
+        // Generic: everything in the section after the .section-header
+        const sectionId = section.id || '';
+        const storageKey = sectionId ? `tezos-systems-collapsed-${sectionId}` : null;
+
         title.style.cursor = 'pointer';
         title.style.userSelect = 'none';
+
         // Add chevron
         const chevron = document.createElement('span');
         chevron.className = 'section-chevron';
         chevron.textContent = '▾';
         chevron.style.cssText = 'margin-left: 8px; font-size: 0.7em; opacity: 0.5; transition: transform 0.3s ease, opacity 0.3s ease; display: inline-block;';
         title.appendChild(chevron);
+
+        // Gather all collapsible siblings (everything after the section-header)
+        function getCollapsibleElements() {
+            const parent = header.parentElement;
+            const siblings = [];
+            let found = false;
+            for (const child of parent.children) {
+                if (child === header) { found = true; continue; }
+                if (found) siblings.push(child);
+            }
+            return siblings;
+        }
+
+        function collapse() {
+            section.classList.add('collapsed');
+            getCollapsibleElements().forEach(el => {
+                el.style.maxHeight = el.scrollHeight + 'px';
+                el.offsetHeight; // force reflow
+                el.style.maxHeight = '0';
+                el.style.overflow = 'hidden';
+                el.style.opacity = '0';
+                el.style.margin = '0';
+                el.style.padding = '0';
+                el.style.transition = 'max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease';
+            });
+            chevron.style.transform = 'rotate(-90deg)';
+            chevron.style.opacity = '0.7';
+            if (storageKey) localStorage.setItem(storageKey, '1');
+        }
+
+        function expand() {
+            section.classList.remove('collapsed');
+            getCollapsibleElements().forEach(el => {
+                el.style.margin = '';
+                el.style.padding = '';
+                el.style.maxHeight = el.scrollHeight + 'px';
+                el.style.opacity = '1';
+                el.style.transition = 'max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease';
+                setTimeout(() => { el.style.maxHeight = ''; el.style.overflow = ''; }, 300);
+            });
+            chevron.style.transform = 'rotate(0deg)';
+            chevron.style.opacity = '0.5';
+            if (storageKey) localStorage.removeItem(storageKey);
+        }
+
         title.addEventListener('mouseenter', () => { chevron.style.opacity = '1'; });
-        title.addEventListener('mouseleave', () => { chevron.style.opacity = header.closest('.stats-section').classList.contains('collapsed') ? '0.7' : '0.5'; });
-        title.addEventListener('click', () => {
-            const section = header.closest('.stats-section');
-            if (!section) return;
-            const content = section.querySelector('.stats-grid, .stats-grid-2');
-            if (!content) return;
-            const isCollapsed = section.classList.toggle('collapsed');
-            if (isCollapsed) {
-                content.style.maxHeight = content.scrollHeight + 'px';
-                content.offsetHeight; // force reflow
-                content.style.maxHeight = '0';
-                content.style.overflow = 'hidden';
-                content.style.opacity = '0';
-                chevron.style.transform = 'rotate(-90deg)';
-                chevron.style.opacity = '0.7';
+        title.addEventListener('mouseleave', () => { chevron.style.opacity = section.classList.contains('collapsed') ? '0.7' : '0.5'; });
+
+        title.addEventListener('click', (e) => {
+            // Don't collapse if clicking info button
+            if (e.target.closest('.info-button')) return;
+            if (section.classList.contains('collapsed')) {
+                expand();
             } else {
-                content.style.maxHeight = content.scrollHeight + 'px';
-                content.style.opacity = '1';
-                chevron.style.transform = 'rotate(0deg)';
-                chevron.style.opacity = '0.5';
-                setTimeout(() => { content.style.maxHeight = ''; content.style.overflow = ''; }, 300);
+                collapse();
             }
         });
+
+        // Restore saved state
+        if (storageKey && localStorage.getItem(storageKey) === '1') {
+            // Instant collapse (no animation)
+            section.classList.add('collapsed');
+            getCollapsibleElements().forEach(el => {
+                el.style.maxHeight = '0';
+                el.style.overflow = 'hidden';
+                el.style.opacity = '0';
+                el.style.margin = '0';
+                el.style.padding = '0';
+            });
+            chevron.style.transform = 'rotate(-90deg)';
+            chevron.style.opacity = '0.7';
+        }
     });
 }
 

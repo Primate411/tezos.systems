@@ -336,6 +336,11 @@ function toggleCalc() {
     const newState = !isVisible;
     localStorage.setItem(CALC_VISIBLE_KEY, String(newState));
     updateCalcVisibility(newState);
+    if (newState) {
+        const container = document.getElementById('optional-sections');
+        const section = document.getElementById('calculator-section');
+        if (container && section && section.parentElement === container) container.prepend(section);
+    }
 }
 
 export function initCalculator() {
