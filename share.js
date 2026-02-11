@@ -4,6 +4,10 @@
 
 let html2canvasLoaded = false;
 
+// Mobile devices have strict canvas size limits (iOS Safari ~16MP)
+// Use scale 1 on mobile to avoid OOM failures
+const CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
+
 
 // Tweet data loaded lazily from tweets.json
 let _tweetsData = null;
@@ -458,7 +462,7 @@ async function captureCard(card) {
         
         const canvas = await html2canvas(wrapper, {
             backgroundColor: bgColor,
-            scale: 2,
+            scale: CAPTURE_SCALE,
             useCORS: true,
             logging: false,
             width: 600,
@@ -740,7 +744,7 @@ async function doCaptureAndShare(selectedSections) {
         
         const canvas = await html2canvas(wrapper, {
             backgroundColor: isMatrix ? '#000000' : '#0a0a0f',
-            scale: 2,
+            scale: CAPTURE_SCALE,
             useCORS: true,
             logging: false,
             width: 600,
@@ -1187,7 +1191,7 @@ export async function captureProtocol(protocol) {
         document.body.appendChild(wrapper);
 
         const canvas = await html2canvas(wrapper, {
-            backgroundColor: bg, scale: 2, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
+            backgroundColor: bg, scale: CAPTURE_SCALE, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
         });
         wrapper.remove();
 
@@ -1282,7 +1286,7 @@ export async function captureTimeline(allProtocols) {
         document.body.appendChild(wrapper);
 
         const canvas = await html2canvas(wrapper, {
-            backgroundColor: bg, scale: 2, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
+            backgroundColor: bg, scale: CAPTURE_SCALE, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
         });
         wrapper.remove();
 
@@ -1386,7 +1390,7 @@ async function captureProtocolHistory(protocolName) {
         // Capture the modal content directly
         const canvas = await html2canvas(modalContent, {
             backgroundColor: document.body.getAttribute('data-theme') === 'matrix' ? '#000800' : '#08081a',
-            scale: 2,
+            scale: CAPTURE_SCALE,
             useCORS: true,
             logging: false,
             width: modalContent.scrollWidth,

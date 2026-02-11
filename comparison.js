@@ -3,6 +3,8 @@
  * Shows Tezos metrics side-by-side with Ethereum and Solana
  */
 
+const COMPARISON_CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
+
 import { CHAIN_COMPARISON, API_URLS } from './config.js';
 import { loadHtml2Canvas, showShareModal } from './share.js';
 
@@ -266,7 +268,7 @@ async function shareAllComparisons() {
 
         document.body.appendChild(wrapper);
         const canvas = await html2canvas(wrapper, {
-            backgroundColor: bgColor, scale: 2, useCORS: true, logging: false,
+            backgroundColor: bgColor, scale: COMPARISON_CAPTURE_SCALE, useCORS: true, logging: false,
             width: 600, windowWidth: 600
         });
         wrapper.remove();
@@ -332,7 +334,7 @@ async function captureComparisonImage(cardEl, label) {
 
     document.body.appendChild(wrapper);
     const canvas = await html2canvas(wrapper, {
-        backgroundColor: bgColor, scale: 2, useCORS: true, logging: false,
+        backgroundColor: bgColor, scale: COMPARISON_CAPTURE_SCALE, useCORS: true, logging: false,
         width: 600, windowWidth: 600
     });
     wrapper.remove();
