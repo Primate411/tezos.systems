@@ -60,7 +60,7 @@ export async function loadHtml2Canvas() {
     
     return new Promise((resolve, reject) => {
         const script = document.createElement('script');
-        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
         script.onload = () => {
             html2canvasLoaded = true;
             resolve();
