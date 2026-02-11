@@ -319,9 +319,39 @@ function setMode(mode) {
     updateResults();
 }
 
+const CALC_VISIBLE_KEY = 'tezos-systems-calc-visible';
+
+function updateCalcVisibility(isVisible) {
+    const section = document.getElementById('calculator-section');
+    const toggleBtn = document.getElementById('calc-toggle');
+    if (section) section.classList.toggle('visible', isVisible);
+    if (toggleBtn) {
+        toggleBtn.classList.toggle('active', isVisible);
+        toggleBtn.title = `Calculator: ${isVisible ? 'ON' : 'OFF'}`;
+    }
+}
+
+function toggleCalc() {
+    const isVisible = localStorage.getItem(CALC_VISIBLE_KEY) === 'true';
+    const newState = !isVisible;
+    localStorage.setItem(CALC_VISIBLE_KEY, String(newState));
+    updateCalcVisibility(newState);
+}
+
 export function initCalculator() {
     const section = document.getElementById('calculator-section');
     if (!section) return;
+
+    // Setup toggle button
+    const calcToggleBtn = document.getElementById('calc-toggle');
+    if (calcToggleBtn) {
+        calcToggleBtn.addEventListener('click', toggleCalc);
+    }
+
+    // Restore visibility (default: off)
+    const visStored = localStorage.getItem(CALC_VISIBLE_KEY);
+    const isVisible = visStored === 'true';
+    updateCalcVisibility(isVisible);
 
     const amountInput = document.getElementById('calc-amount');
     if (!amountInput) return;

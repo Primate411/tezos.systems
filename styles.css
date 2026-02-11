@@ -3966,6 +3966,36 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     animation: pulse 2s ease-in-out infinite;
 }
 
+.my-baker-loading-matrix {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    padding: 1.5rem 0;
+    flex-wrap: wrap;
+    max-width: 280px;
+    margin: 0 auto;
+}
+
+.matrix-char {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.75rem;
+    color: var(--accent-cyan);
+    opacity: 0;
+    animation: matrixPulse ease-in-out infinite;
+    width: 14px;
+    text-align: center;
+    line-height: 1.6;
+}
+
+[data-theme="matrix"] .matrix-char {
+    color: #00ff00;
+}
+
+@keyframes matrixPulse {
+    0%, 100% { opacity: 0.05; }
+    50% { opacity: 0.8; }
+}
+
 .my-baker-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -4747,6 +4777,14 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     font-weight: 700;
     color: var(--text-secondary);
     margin-bottom: 1rem;
+}
+
+.my-baker-desc {
+    font-size: 0.8rem;
+    margin-top: 0;
+    color: var(--text-tertiary);
+    margin: 0 0 1rem;
+    line-height: 1.4;
 }
 
 @media (max-width: 768px) {

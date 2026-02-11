@@ -88,13 +88,48 @@ function createStatItem(label, value) {
 }
 
 /**
+ * Create a subtle matrix-style character shimmer loader
+ */
+function createMatrixLoader() {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'my-baker-loading-matrix';
+
+    const chars = 'tz14KTꜩ0xABCDEF89';
+    const count = 24;
+
+    for (let i = 0; i < count; i++) {
+        const span = document.createElement('span');
+        span.className = 'matrix-char';
+        span.textContent = chars[Math.floor(Math.random() * chars.length)];
+        span.style.animationDelay = `${(Math.random() * 2).toFixed(2)}s`;
+        span.style.animationDuration = `${(1.2 + Math.random() * 1.6).toFixed(2)}s`;
+        wrapper.appendChild(span);
+    }
+
+    // Cycle characters periodically
+    const interval = setInterval(() => {
+        const spans = wrapper.querySelectorAll('.matrix-char');
+        const idx = Math.floor(Math.random() * spans.length);
+        spans[idx].textContent = chars[Math.floor(Math.random() * chars.length)];
+    }, 150);
+
+    const observer = new MutationObserver(() => {
+        if (!wrapper.isConnected) {
+            clearInterval(interval);
+            observer.disconnect();
+        }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return wrapper;
+}
+
+/**
  * Render the My Baker data into the results container
  */
 async function renderBakerData(address, container) {
     container.innerHTML = '';
-    const loadingEl = document.createElement('div');
-    loadingEl.className = 'my-baker-loading';
-    loadingEl.textContent = 'Loading...';
+    const loadingEl = createMatrixLoader();
     container.appendChild(loadingEl);
 
     try {
@@ -205,15 +240,13 @@ async function renderBakerData(address, container) {
  * Initialize the My Baker section
  */
 /**
- * Toggle visibility of My Baker + Calculator sections
+ * Toggle visibility of My Baker section (independent of calculator)
  */
-function updateVisibility(isVisible) {
+function updateBakerVisibility(isVisible) {
     const bakerSection = document.getElementById('my-baker-section');
-    const calcSection = document.getElementById('calculator-section');
     const toggleBtn = document.getElementById('my-baker-toggle');
 
     if (bakerSection) bakerSection.classList.toggle('visible', isVisible);
-    if (calcSection) calcSection.classList.toggle('visible', isVisible);
     if (toggleBtn) {
         toggleBtn.classList.toggle('active', isVisible);
         toggleBtn.title = `My Baker: ${isVisible ? 'ON' : 'OFF'}`;
@@ -224,7 +257,7 @@ function toggleMyBaker() {
     const isVisible = localStorage.getItem(TOGGLE_KEY) === 'true';
     const newState = !isVisible;
     localStorage.setItem(TOGGLE_KEY, String(newState));
-    updateVisibility(newState);
+    updateBakerVisibility(newState);
 }
 
 export function init() {
@@ -240,7 +273,7 @@ export function init() {
     // Restore visibility preference (default: on)
     const stored = localStorage.getItem(TOGGLE_KEY);
     const isVisible = stored === null ? true : stored === 'true';
-    updateVisibility(isVisible);
+    updateBakerVisibility(isVisible);
 
     const input = document.getElementById('my-baker-input');
     const saveBtn = document.getElementById('my-baker-save');
