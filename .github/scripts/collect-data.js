@@ -189,6 +189,70 @@ async function getTxVolume24h() {
   return ops || 0;
 }
 
+// Fetch contract calls (24h)
+async function getContractCalls24h() {
+  const now = new Date();
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  try {
+    const count = await fetchWithRetry(
+      `${TZKT_API}/operations/transactions/count?timestamp.gt=${yesterday.toISOString()}&entrypoint.null=false`
+    );
+    console.log(`Contract calls 24h: ${count}`);
+    return count || 0;
+  } catch (error) {
+    console.error('Failed to fetch contract calls:', error.message);
+    return 0;
+  }
+}
+
+// Fetch funded accounts
+async function getFundedAccounts() {
+  try {
+    const count = await fetchWithRetry(`${TZKT_API}/accounts/count?balance.gt=0`);
+    console.log(`Funded accounts: ${count}`);
+    return count || 0;
+  } catch (error) {
+    console.error('Failed to fetch funded accounts:', error.message);
+    return 0;
+  }
+}
+
+// Fetch smart contracts count
+async function getSmartContracts() {
+  try {
+    const count = await fetchWithRetry(`${TZKT_API}/accounts/count?type=contract&kind=smart_contract`);
+    console.log(`Smart contracts: ${count}`);
+    return count || 0;
+  } catch (error) {
+    console.error('Failed to fetch smart contracts:', error.message);
+    return 0;
+  }
+}
+
+// Fetch token count
+async function getTokens() {
+  try {
+    const count = await fetchWithRetry(`${TZKT_API}/tokens/count`);
+    console.log(`Tokens: ${count}`);
+    return count || 0;
+  } catch (error) {
+    console.error('Failed to fetch tokens:', error.message);
+    return 0;
+  }
+}
+
+// Fetch smart rollups count
+async function getRollups() {
+  try {
+    const count = await fetchWithRetry(`${TZKT_API}/smart_rollups/count`);
+    console.log(`Smart rollups: ${count}`);
+    return count || 0;
+  } catch (error) {
+    console.error('Failed to fetch rollups:', error.message);
+    return 0;
+  }
+}
+
 // Main collection function
 async function collectData() {
   console.log('Starting data collection...');
@@ -198,12 +262,17 @@ async function collectData() {
     const issuanceData = await getIssuanceRate();
 
     // Now fetch everything else in parallel, passing total supply and RPC to staking
-    const [cycle, tz4Stats, stakingData, totalBurned, txVolume] = await Promise.all([
+    const [cycle, tz4Stats, stakingData, totalBurned, txVolume, contractCalls, fundedAccounts, smartContracts, tokens, rollups] = await Promise.all([
       getCurrentCycle(),
       getTz4Stats(),
       getStakingData(issuanceData.totalSupply, issuanceData.workingRPC),
       getTotalBurned(),
-      getTxVolume24h()
+      getTxVolume24h(),
+      getContractCalls24h(),
+      getFundedAccounts(),
+      getSmartContracts(),
+      getTokens(),
+      getRollups()
     ]);
 
     // Helper to safely format numbers
@@ -223,7 +292,12 @@ async function collectData() {
       total_supply: safeNumber(stakingData.totalSupply),
       current_issuance_rate: safeNumber(issuanceData.rate),
       total_burned: safeNumber(totalBurned),
-      tx_volume_24h: txVolume || 0
+      tx_volume_24h: txVolume || 0,
+      contract_calls_24h: contractCalls || 0,
+      funded_accounts: fundedAccounts || 0,
+      smart_contracts: smartContracts || 0,
+      tokens: tokens || 0,
+      rollups: rollups || 0
     };
 
     console.log('Collected data:', dataPoint);

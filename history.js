@@ -367,7 +367,15 @@ export async function updateSparklines() {
             { canvasId: 'staking-sparkline', metric: 'staking_ratio', trendId: 'staking-trend' },
             { canvasId: 'bakers-sparkline', metric: 'total_bakers', trendId: 'bakers-trend' },
             { canvasId: 'issuance-sparkline', metric: 'current_issuance_rate', trendId: 'issuance-trend', inverted: true },
-            { canvasId: 'supply-sparkline', metric: 'total_supply', trendId: 'supply-trend' }
+            { canvasId: 'supply-sparkline', metric: 'total_supply', trendId: 'supply-trend' },
+            // Network Activity
+            { canvasId: 'tx-volume-sparkline', metric: 'tx_volume_24h', trendId: 'tx-volume-trend' },
+            { canvasId: 'contract-calls-sparkline', metric: 'contract_calls_24h', trendId: 'contract-calls-trend' },
+            { canvasId: 'funded-accounts-sparkline', metric: 'funded_accounts', trendId: 'funded-accounts-trend' },
+            // Ecosystem
+            { canvasId: 'smart-contracts-sparkline', metric: 'smart_contracts', trendId: 'smart-contracts-trend' },
+            { canvasId: 'tokens-sparkline', metric: 'tokens', trendId: 'tokens-trend' },
+            { canvasId: 'rollups-sparkline', metric: 'rollups', trendId: 'rollups-trend' }
         ];
 
         sparklines.forEach(({ canvasId, metric, trendId, inverted }) => {
