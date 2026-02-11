@@ -315,9 +315,7 @@ async function renderBakerData(address, container) {
             grid.appendChild(createStatItem('Est. Yearly', `${yearly.toFixed(2)} ꜩ`));
         }
 
-        container.appendChild(grid);
-
-        // Capacity bars for bakers
+        // Capacity bars for bakers — shown at top
         if (bakerData) {
             const ownStake = (bakerData.stakedBalance || 0) / 1e6;
             const extStaked = (bakerData.externalStakedBalance || 0) / 1e6;
@@ -351,6 +349,8 @@ async function renderBakerData(address, container) {
 
             container.appendChild(barsContainer);
         }
+
+        container.appendChild(grid);
 
         // Sync address to Objkt section if it exists
         const objktInput = document.getElementById('objkt-input');
