@@ -98,6 +98,7 @@ html {
     font-size: 16px;
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
 }
 
 body {
@@ -613,6 +614,8 @@ body::before {
 .controls {
     display: flex;
     gap: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .glass-button {
@@ -2039,11 +2042,10 @@ body.high-combo .stat-card {
     box-shadow: 2px 0 24px rgba(0, 255, 0, 0.6);
 }
 
-/* Adjust ribbon on small screens */
+/* Hide ribbon on mobile — it overlaps content */
 @media (max-width: 768px) {
     .corner-ribbon {
-        font-size: 0.6rem;
-        padding: 10px 4px;
+        display: none;
     }
 }
 
