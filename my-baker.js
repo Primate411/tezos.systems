@@ -112,6 +112,15 @@ async function renderBakerData(address, container) {
             } catch { /* not a baker */ }
         }
 
+        // If not a baker but has a delegate, fetch the delegate's baker data
+        let delegateBakerData = null;
+        if (!bakerData && account.delegate?.address) {
+            try {
+                const dResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(account.delegate.address)}`);
+                if (dResp.ok) delegateBakerData = await dResp.json();
+            } catch { /* ignore */ }
+        }
+
         // Fetch APY and domain resolution in parallel
         const [apy, delegateDomain] = await Promise.all([
             getStakingAPY(),
@@ -145,12 +154,19 @@ async function renderBakerData(address, container) {
             grid.appendChild(createStatItem('Delegate', 'None'));
         }
 
+        // Show delegate's baker stats for non-baker addresses
+        if (!bakerData && delegateBakerData) {
+            grid.appendChild(createStatItem('Baker Stakers', formatNumber(delegateBakerData.stakersCount || 0, { decimals: 0, useAbbreviation: false })));
+            grid.appendChild(createStatItem('Baker Delegators', formatNumber(delegateBakerData.numDelegators || 0, { decimals: 0, useAbbreviation: false })));
+            grid.appendChild(createStatItem('Baker Staking Power', fmtXTZ(delegateBakerData.stakingBalance)));
+        }
+
         // If baker, show baker-specific stats
         if (bakerData) {
             grid.appendChild(createStatItem('Baker Staking Power', fmtXTZ(bakerData.stakingBalance)));
             grid.appendChild(createStatItem('External Staked', fmtXTZ(bakerData.externalStakedBalance)));
             grid.appendChild(createStatItem('External Delegated', fmtXTZ(bakerData.externalDelegatedBalance)));
-            grid.appendChild(createStatItem('Active Stakers', formatNumber(bakerData.activeStakers || 0, { decimals: 0, useAbbreviation: false })));
+            grid.appendChild(createStatItem('Stakers', formatNumber(bakerData.stakersCount || 0, { decimals: 0, useAbbreviation: false })));
             grid.appendChild(createStatItem('Delegators', formatNumber(bakerData.numDelegators || 0, { decimals: 0, useAbbreviation: false })));
 
             const totalMissed = (bakerData.missedBlocks || 0) + (bakerData.missedEndorsements || 0);

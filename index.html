@@ -224,20 +224,41 @@
             <div class="calc-container">
                 <div class="calc-input-row">
                     <div class="calc-amount-wrap">
-                        <label for="calc-amount" class="calc-label">Amount (XTZ)</label>
+                        <label for="calc-amount" class="calc-label" id="calc-amount-label">Amount (XTZ)</label>
                         <input type="number" id="calc-amount" class="calc-input" placeholder="10000" min="0" step="any" autocomplete="off">
                     </div>
                     <div class="calc-toggle-wrap">
-                        <span class="calc-toggle-label-text">Delegate</span>
-                        <label class="calc-toggle">
-                            <input type="checkbox" id="calc-mode-toggle">
-                            <span class="calc-toggle-slider"></span>
-                        </label>
-                        <span class="calc-toggle-label-text" id="calc-mode-label-stake">Stake</span>
+                        <div class="calc-toggle" id="calc-mode-toggle">
+                            <button class="calc-toggle-btn calc-toggle-active" data-mode="delegate">Delegate</button>
+                            <button class="calc-toggle-btn" data-mode="stake">Stake</button>
+                            <button class="calc-toggle-btn" data-mode="baker">Baker</button>
+                        </div>
                     </div>
                     <div class="calc-apy-badge">
                         <span class="calc-apy-label">APY</span>
                         <span class="calc-apy-value" id="calc-apy-display">—</span>
+                    </div>
+                </div>
+                <div class="calc-baker-fields" id="calc-baker-fields" style="display:none;">
+                    <div class="calc-baker-row">
+                        <div class="calc-amount-wrap">
+                            <label for="calc-ext-staked" class="calc-label">External Staked (XTZ)</label>
+                            <input type="number" id="calc-ext-staked" class="calc-input" placeholder="100000" min="0" step="any" autocomplete="off">
+                        </div>
+                        <div class="calc-amount-wrap">
+                            <label for="calc-staking-fee" class="calc-label">Staking Fee (%)</label>
+                            <input type="number" id="calc-staking-fee" class="calc-input" placeholder="5" min="0" max="100" step="any" autocomplete="off" value="5">
+                        </div>
+                    </div>
+                    <div class="calc-baker-row">
+                        <div class="calc-amount-wrap">
+                            <label for="calc-ext-delegated" class="calc-label">External Delegated (XTZ)</label>
+                            <input type="number" id="calc-ext-delegated" class="calc-input" placeholder="500000" min="0" step="any" autocomplete="off">
+                        </div>
+                        <div class="calc-amount-wrap">
+                            <label for="calc-deleg-payout" class="calc-label">Delegator Payout (%)</label>
+                            <input type="number" id="calc-deleg-payout" class="calc-input" placeholder="80" min="0" max="100" step="any" autocomplete="off" value="80">
+                        </div>
                     </div>
                 </div>
                 <div class="calc-results-grid" id="calc-results">

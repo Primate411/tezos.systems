@@ -4465,66 +4465,81 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     padding-bottom: 0.25rem;
 }
 
-.calc-toggle-label-text {
+/* (old checkbox toggle removed — now using button group from .calc-toggle-btn) */
+
+/* Baker fields */
+.calc-baker-fields {
+    margin-bottom: 1.5rem;
+}
+
+.calc-baker-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.calc-baker-row .calc-amount-wrap {
+    flex: 1;
+}
+
+.calc-baker-row .calc-input {
+    width: 100%;
+}
+
+@media (max-width: 600px) {
+    .calc-baker-row {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+}
+
+/* Baker income breakdown */
+.calc-baker-breakdown {
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+}
+
+.calc-baker-breakdown h4 {
+    margin: 0 0 0.75rem;
     font-size: 0.8rem;
-    font-weight: 600;
-    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    color: var(--text-tertiary);
 }
 
-.calc-toggle {
-    position: relative;
-    display: inline-block;
-    width: 48px;
-    height: 26px;
+.calc-breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.35rem 0;
+    font-size: 0.9rem;
 }
 
-.calc-toggle input {
-    opacity: 0;
-    width: 0;
-    height: 0;
+.calc-breakdown-label {
+    color: var(--text-secondary);
 }
 
-.calc-toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    inset: 0;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--glass-border);
-    border-radius: 26px;
-    transition: var(--transition);
+.calc-breakdown-value {
+    color: var(--text-primary);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
 }
 
-.calc-toggle-slider::before {
-    content: '';
-    position: absolute;
-    height: 20px;
-    width: 20px;
-    left: 2px;
-    bottom: 2px;
-    background: var(--text-secondary);
-    border-radius: 50%;
-    transition: var(--transition);
+.calc-breakdown-total {
+    border-top: 1px solid var(--glass-border);
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    font-weight: 600;
 }
 
-.calc-toggle input:checked + .calc-toggle-slider {
-    background: rgba(0, 212, 255, 0.2);
-    border-color: var(--accent-cyan);
+.calc-breakdown-total .calc-breakdown-value {
+    color: var(--accent-cyan);
 }
 
-.calc-toggle input:checked + .calc-toggle-slider::before {
-    transform: translateX(22px);
-    background: var(--accent-cyan);
-}
-
-[data-theme="matrix"] .calc-toggle input:checked + .calc-toggle-slider {
-    background: rgba(0, 255, 0, 0.2);
-    border-color: #00ff00;
-}
-
-[data-theme="matrix"] .calc-toggle input:checked + .calc-toggle-slider::before {
-    background: #00ff00;
+[data-theme="matrix"] .calc-breakdown-total .calc-breakdown-value {
+    color: #00ff00;
 }
 
 /* APY badge */
