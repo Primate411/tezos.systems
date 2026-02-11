@@ -76,16 +76,14 @@
     </script>
 </head>
 <body data-theme="matrix">
-    <!-- Corner ribbon banner -->
-    <a href="https://docs.tez.capital" target="_blank" rel="noopener" class="corner-ribbon">
-        🍞 Start Baking
-    </a>
-
     <!-- Header with controls -->
     <header class="header">
         <div class="header-content">
             <div class="header-left">
                 <h1 class="title">Tezos Systems</h1>
+                <button id="about-tezos-btn" class="glass-button" aria-label="What is Tezos?" title="What is Tezos?">
+                    <span>?</span>
+                </button>
                 <button id="refresh-btn" class="glass-button" aria-label="Refresh data now" title="Refresh now">
                     <span class="refresh-icon">↻</span>
                 </button>
@@ -99,25 +97,42 @@
                     <span class="calc-toggle-icon">🧮</span>
                 </button>
 
-                <!-- Secondary -->
-                <button id="comparison-toggle" class="glass-button" aria-label="Toggle How Tezos Compares" title="Compare: OFF">
-                    <span class="comparison-toggle-icon">⚔️</span>
-                </button>
-                <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
-                    <span class="objkt-toggle-icon">🖼️</span>
-                </button>
-                <button id="whale-toggle" class="glass-button" aria-label="Toggle Mini Whale feed" title="Mini Whale: OFF">
-                    <span class="whale-toggle-icon">🐬</span>
-                </button>
-                <button id="giants-toggle" class="glass-button" aria-label="Toggle Sleeping Giants" title="Sleeping Giants: OFF">
-                    <span class="giants-toggle-icon">😴</span>
-                </button>
+                <!-- Analytics dropdown -->
+                <div class="dock-settings-group">
+                    <button id="analytics-gear" class="glass-button" aria-label="Analytics tools" title="Analytics">
+                        <span>📊</span>
+                    </button>
+                    <div class="settings-dropdown" id="analytics-dropdown">
+                        <button id="comparison-toggle" class="glass-button" aria-label="Toggle How Tezos Compares" title="Compare: OFF">
+                            <span class="comparison-toggle-icon">⚔️</span> <span class="dropdown-label">Compare</span>
+                        </button>
+                        <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
+                            <span class="objkt-toggle-icon">🖼️</span> <span class="dropdown-label">NFTs</span>
+                        </button>
+                        <button id="whale-toggle" class="glass-button" aria-label="Toggle Mini Whale feed" title="Mini Whale: OFF">
+                            <span class="whale-toggle-icon">🐬</span> <span class="dropdown-label">Whales</span>
+                        </button>
+                        <button id="giants-toggle" class="glass-button" aria-label="Toggle Sleeping Giants" title="Sleeping Giants: OFF">
+                            <span class="giants-toggle-icon">😴</span> <span class="dropdown-label">Giants</span>
+                        </button>
+                        <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
+                            <span>📈</span> <span class="dropdown-label">History</span>
+                        </button>
+                    </div>
+                </div>
 
-                <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
-                    <span>📊</span>
-                </button>
+                <!-- Toolbar separator -->
+                <span class="toolbar-separator"></span>
 
-                <!-- Settings group -->
+                <!-- Tez Capital CTAs -->
+                <a href="https://docs.tez.capital" target="_blank" rel="noopener" class="glass-button toolbar-cta" title="Start baking on Tezos — docs.tez.capital">
+                    <span>🍞</span><span class="toolbar-cta-label">Bake</span><span class="toolbar-cta-ext">↗</span>
+                </a>
+                <a href="https://gov.tez.capital" target="_blank" rel="noopener" class="glass-button toolbar-cta" title="Stake your XTZ — gov.tez.capital">
+                    <span>🥩</span><span class="toolbar-cta-label">Stake</span><span class="toolbar-cta-ext">↗</span>
+                </a>
+
+                <!-- Settings dropdown -->
                 <div class="dock-settings-group">
                     <button id="settings-gear" class="glass-button" aria-label="Settings" title="Settings">
                         <span>⚙️</span>
@@ -134,7 +149,6 @@
                         </button>
                     </div>
                 </div>
-
             </div>
         </div>
     </header>
@@ -1365,6 +1379,36 @@
                     <li><strong>Awakening alerts</strong>: Notifications when a sleeping giant moves</li>
                 </ul>
                 <p>These wallets represent significant potential market impact if they become active.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Tezos Modal -->
+    <div class="modal-overlay" id="about-tezos-modal" aria-hidden="true">
+        <div class="modal-content about-tezos-modal-content">
+            <button class="modal-close" id="about-tezos-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">What is Tezos?</h3>
+            <div class="modal-body">
+                <p>Tezos is a self-amending proof-of-stake blockchain. Unlike other networks that hard fork to upgrade, Tezos evolves through <strong>on-chain governance</strong> — token holders vote on protocol changes directly.</p>
+                <div class="about-tezos-stats">
+                    <div class="about-tezos-stat">
+                        <span class="about-tezos-stat-value" id="about-apy">~9.1%</span>
+                        <span class="about-tezos-stat-label">Staking APY</span>
+                    </div>
+                    <div class="about-tezos-stat">
+                        <span class="about-tezos-stat-value" id="about-upgrades">21</span>
+                        <span class="about-tezos-stat-label">Upgrades, Zero Forks</span>
+                    </div>
+                    <div class="about-tezos-stat">
+                        <span class="about-tezos-stat-value" id="about-days">2,783</span>
+                        <span class="about-tezos-stat-label">Days Live, 0 Outages</span>
+                    </div>
+                </div>
+                <p><strong>Bakers</strong> are validators who secure the network and earn rewards. You can delegate or stake your XTZ to a baker to earn passive income.</p>
+                <div class="about-tezos-links">
+                    <a href="https://docs.tez.capital" target="_blank" rel="noopener" class="hero-cta-primary">Start Baking →</a>
+                    <a href="https://gov.tez.capital" target="_blank" rel="noopener" class="hero-cta-secondary">Stake XTZ</a>
+                </div>
             </div>
         </div>
     </div>

@@ -251,6 +251,116 @@ body::before {
 }
 
 /* ==========================================
+   ABOUT TEZOS MODAL & CTA BUTTONS
+   ========================================== */
+
+.about-tezos-modal-content {
+    max-width: 480px;
+}
+
+.about-tezos-stats {
+    display: flex;
+    gap: 1.5rem;
+    margin: 1.25rem 0;
+    padding: 1rem;
+    background: rgba(0, 255, 0, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+}
+
+.about-tezos-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    text-align: center;
+}
+
+.about-tezos-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.about-tezos-stat-label {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.about-tezos-links {
+    display: flex;
+    gap: 10px;
+    margin-top: 1.25rem;
+}
+
+.hero-cta-primary {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 24px;
+    background: var(--accent-cyan);
+    color: #000;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: var(--transition);
+    letter-spacing: 0.01em;
+}
+
+[data-theme="matrix"] .hero-cta-primary {
+    background: #00ff00;
+    box-shadow: 0 0 16px rgba(0, 255, 0, 0.25);
+}
+
+.hero-cta-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+}
+
+[data-theme="matrix"] .hero-cta-primary:hover {
+    box-shadow: 0 4px 20px rgba(0, 255, 0, 0.4);
+}
+
+.hero-cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 24px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: 500;
+    font-size: 0.9rem;
+    border-radius: 8px;
+    border: 1px solid var(--glass-border);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.hero-cta-secondary:hover {
+    border-color: var(--accent-cyan);
+    color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+    .about-tezos-stats {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .about-tezos-links {
+        flex-direction: column;
+    }
+
+    .hero-cta-primary,
+    .hero-cta-secondary {
+        justify-content: center;
+        text-align: center;
+    }
+}
+
+/* ==========================================
    UPGRADE CLOCK
    ========================================== */
 
@@ -2090,56 +2200,58 @@ body.high-combo .stat-card {
 }
 
 /* ==========================================
-   Corner Ribbon Banner
+   Toolbar CTA Buttons
    ========================================== */
 
-.corner-ribbon {
-    position: fixed;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    writing-mode: vertical-rl;
-    text-orientation: upright;
-    width: auto;
-    padding: 12px 3px;
-    background: linear-gradient(180deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
-    color: var(--bg-primary);
-    font-weight: 700;
-    font-size: 0.7rem;
-    text-align: center;
+.toolbar-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     text-decoration: none;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border-radius: 0 8px 8px 0;
-    box-shadow: 2px 0 16px rgba(0, 212, 255, 0.3);
-    z-index: 1000;
-    transition: var(--transition);
-    border: 1px solid rgba(0, 212, 255, 0.2);
-    border-left: none;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    border: 1px solid rgba(0, 255, 0, 0.15);
+    width: auto;
+    padding: 0 12px;
+    white-space: nowrap;
 }
 
-.corner-ribbon:hover {
-    background: linear-gradient(180deg, var(--accent-purple) 0%, var(--accent-cyan) 100%);
-    box-shadow: 2px 0 24px rgba(0, 212, 255, 0.5);
-    padding-left: 8px;
+.toolbar-cta-label {
+    font-weight: 600;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
 }
 
-[data-theme="matrix"] .corner-ribbon {
-    background: linear-gradient(180deg, #00ff00 0%, #00cc00 100%);
-    color: #000;
-    box-shadow: 2px 0 16px rgba(0, 255, 0, 0.3);
-    border: 1px solid rgba(0, 255, 0, 0.25);
-    border-left: none;
+.toolbar-cta-ext {
+    font-size: 0.65rem;
+    opacity: 0.5;
+    margin-left: 1px;
 }
 
-[data-theme="matrix"] .corner-ribbon:hover {
-    background: linear-gradient(180deg, #00cc00 0%, #00ff00 100%);
-    box-shadow: 2px 0 24px rgba(0, 255, 0, 0.6);
+.toolbar-cta:hover {
+    color: var(--text-primary);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(0, 255, 0, 0.2);
 }
 
-/* Hide ribbon on mobile — it overlaps content */
+[data-theme="matrix"] .toolbar-cta:hover {
+    box-shadow: 0 0 12px rgba(0, 255, 0, 0.3);
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background: var(--glass-border);
+    margin: 0 4px;
+    flex-shrink: 0;
+}
+
 @media (max-width: 768px) {
-    .corner-ribbon {
+    .toolbar-cta-label,
+    .toolbar-cta-ext {
+        display: none;
+    }
+    .toolbar-separator {
         display: none;
     }
 }

@@ -467,6 +467,10 @@ async function updateStats(newStats) {
     // Store current stats
     state.currentStats = { ...newStats };
 
+    // Update about modal with live data
+    const aboutApy = document.getElementById('about-apy');
+    if (aboutApy) aboutApy.textContent = `~${newStats.stakeAPY.toFixed(1)}%`;
+
     // Update comparison section with live Tezos data
     updateComparison(state.currentStats);
 
@@ -563,6 +567,7 @@ function setupEventListeners() {
     setupModal('objkt-info-btn', 'objkt-modal', 'objkt-modal-close');
     setupModal('whale-info-btn', 'whale-modal', 'whale-modal-close');
     setupModal('giants-info-btn', 'giants-modal', 'giants-modal-close');
+    setupModal('about-tezos-btn', 'about-tezos-modal', 'about-tezos-modal-close');
 
     // Handle visibility change
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -712,6 +717,8 @@ function renderProtocolTimeline(protocols) {
     // Update count
     const countEl = document.getElementById('upgrade-count');
     if (countEl) countEl.textContent = protocols.length;
+    const aboutUpgrades = document.getElementById('about-upgrades');
+    if (aboutUpgrades) aboutUpgrades.textContent = protocols.length;
     
     // Update current protocol name and highlight
     const currentProtocol = protocols.find(p => p.isCurrent) || protocols[protocols.length - 1];
@@ -1087,6 +1094,8 @@ async function updateUpgradeClock() {
             const now = new Date();
             const daysLive = Math.floor((now - mainnetLaunch) / (1000 * 60 * 60 * 24));
             daysLiveEl.textContent = daysLive.toLocaleString();
+            const aboutDays = document.getElementById('about-days');
+            if (aboutDays) aboutDays.textContent = daysLive.toLocaleString();
         }
         
         // Update voting status if in active voting
@@ -1235,22 +1244,29 @@ function initCollapsibleSections() {
 // SMART DOCK — Overflow + Bottom Sheet
 // ==========================================
 function initSmartDock() {
-    const gear = document.getElementById('settings-gear');
-    const dropdown = document.getElementById('settings-dropdown');
+    // Generic dropdown setup
+    function setupDropdown(gearId, dropdownId) {
+        const g = document.getElementById(gearId);
+        const d = document.getElementById(dropdownId);
+        if (!g || !d) return;
+        g.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Close other dropdowns first
+            document.querySelectorAll('.settings-dropdown.open').forEach(el => {
+                if (el !== d) el.classList.remove('open');
+            });
+            d.classList.toggle('open');
+        });
+        d.addEventListener('click', (e) => e.stopPropagation());
+    }
 
-    if (!gear || !dropdown) return;
+    setupDropdown('settings-gear', 'settings-dropdown');
+    setupDropdown('analytics-gear', 'analytics-dropdown');
 
-    // Gear dropdown toggle
-    gear.addEventListener('click', (e) => {
-        e.stopPropagation();
-        dropdown.classList.toggle('open');
-    });
-
-    // Close dropdown on outside click
+    // Close all dropdowns on outside click
     document.addEventListener('click', () => {
-        dropdown.classList.remove('open');
+        document.querySelectorAll('.settings-dropdown.open').forEach(el => el.classList.remove('open'));
     });
-    dropdown.addEventListener('click', (e) => e.stopPropagation());
 }
 
 // ==========================================
