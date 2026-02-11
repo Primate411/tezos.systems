@@ -603,4 +603,7 @@ export async function initSleepingGiants() {
     });
 }
 
+// Expose for pulse indicator
+window.sleepingGiantsData = { get awakenings() { return awakenings; } };
+
 export { giants, awakenings };

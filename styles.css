@@ -681,6 +681,34 @@ body::before {
     }
 }
 
+/* Pulse indicator on toggle buttons */
+.glass-button.has-pulse {
+    position: relative;
+}
+
+.glass-button.has-pulse::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 8px;
+    height: 8px;
+    background: #ff4444;
+    border-radius: 50%;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+    box-shadow: 0 0 6px rgba(255, 68, 68, 0.6);
+}
+
+[data-theme="matrix"] .glass-button.has-pulse::after {
+    background: #00ff41;
+    box-shadow: 0 0 6px rgba(0, 255, 65, 0.6);
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+}
+
 /* ==========================================
    END SMART DOCK
    ========================================== */
@@ -4210,6 +4238,111 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 @media (max-width: 640px) {
     .my-baker-grid {
         grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* ==========================================
+   CAPACITY BARS
+   ========================================== */
+
+.capacity-bars {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.capacity-bar-card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 16px;
+}
+
+.capacity-bar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.capacity-bar-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-tertiary);
+}
+
+.capacity-bar-pct {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+}
+
+.capacity-bar-track {
+    width: 100%;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.capacity-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+    transition: width 0.6s ease;
+    min-width: 2px;
+}
+
+.capacity-bar-fill.capacity-warning {
+    background: linear-gradient(90deg, #f0a030, #ff6b00);
+}
+
+.capacity-bar-fill.capacity-critical {
+    background: linear-gradient(90deg, #ff4444, #ff0066);
+}
+
+.capacity-bar-details {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.capacity-bar-note {
+    margin-top: 6px;
+    font-size: 0.65rem;
+    color: var(--text-tertiary);
+    text-align: center;
+}
+
+/* Matrix theme */
+[data-theme="matrix"] .capacity-bar-pct {
+    color: #00ff41;
+}
+
+[data-theme="matrix"] .capacity-bar-fill {
+    background: linear-gradient(90deg, #00ff41, #00cc33);
+}
+
+[data-theme="matrix"] .capacity-bar-fill.capacity-warning {
+    background: linear-gradient(90deg, #ffcc00, #ff8800);
+}
+
+[data-theme="matrix"] .capacity-bar-fill.capacity-critical {
+    background: linear-gradient(90deg, #ff4444, #ff0066);
+}
+
+[data-theme="matrix"] .capacity-bar-card {
+    border-color: rgba(0, 255, 0, 0.1);
+}
+
+@media (max-width: 640px) {
+    .capacity-bars {
+        grid-template-columns: 1fr;
     }
 }
 

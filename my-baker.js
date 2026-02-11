@@ -115,6 +115,51 @@ function createStatItem(label, value) {
 }
 
 /**
+ * Create a capacity bar card showing used vs max capacity
+ */
+function createCapacityBar(label, used, max, note) {
+    const pct = max > 0 ? Math.min((used / max) * 100, 100) : 0;
+    const remaining = Math.max(max - used, 0);
+
+    const card = document.createElement('div');
+    card.className = 'capacity-bar-card';
+
+    const header = document.createElement('div');
+    header.className = 'capacity-bar-header';
+    header.innerHTML = `
+        <span class="capacity-bar-label">${label}</span>
+        <span class="capacity-bar-pct">${pct.toFixed(1)}%</span>
+    `;
+
+    const barTrack = document.createElement('div');
+    barTrack.className = 'capacity-bar-track';
+    const barFill = document.createElement('div');
+    barFill.className = 'capacity-bar-fill';
+    barFill.style.width = `${pct}%`;
+    // Color based on fill level
+    if (pct >= 90) barFill.classList.add('capacity-critical');
+    else if (pct >= 70) barFill.classList.add('capacity-warning');
+    barTrack.appendChild(barFill);
+
+    const details = document.createElement('div');
+    details.className = 'capacity-bar-details';
+    details.innerHTML = `
+        <span>${formatNumber(used, { decimals: 0 })} ꜩ used</span>
+        <span>${formatNumber(remaining, { decimals: 0 })} ꜩ free</span>
+    `;
+
+    const noteEl = document.createElement('div');
+    noteEl.className = 'capacity-bar-note';
+    noteEl.textContent = `Max: ${formatNumber(max, { decimals: 0 })} ꜩ (${note})`;
+
+    card.appendChild(header);
+    card.appendChild(barTrack);
+    card.appendChild(details);
+    card.appendChild(noteEl);
+    return card;
+}
+
+/**
  * Create a subtle matrix-style character shimmer loader
  */
 function createMatrixLoader() {
@@ -271,6 +316,41 @@ async function renderBakerData(address, container) {
         }
 
         container.appendChild(grid);
+
+        // Capacity bars for bakers
+        if (bakerData) {
+            const ownStake = (bakerData.stakedBalance || 0) / 1e6;
+            const extStaked = (bakerData.externalStakedBalance || 0) / 1e6;
+            const extDelegated = (bakerData.externalDelegatedBalance || 0) / 1e6;
+
+            // Staking capacity: baker's limitOfStakingOverBaking (in millionths, default 0 = disabled)
+            const stakingMultiplier = (bakerData.limitOfStakingOverBaking || 0) / 1e6;
+            const maxStaking = ownStake * stakingMultiplier;
+
+            // Delegation capacity: always 9x own stake
+            const maxDelegation = ownStake * 9;
+
+            const barsContainer = document.createElement('div');
+            barsContainer.className = 'capacity-bars';
+
+            if (stakingMultiplier > 0) {
+                barsContainer.appendChild(createCapacityBar(
+                    'Staking Capacity',
+                    extStaked,
+                    maxStaking,
+                    `${stakingMultiplier}x multiplier`
+                ));
+            }
+
+            barsContainer.appendChild(createCapacityBar(
+                'Delegation Capacity',
+                extDelegated,
+                maxDelegation,
+                '9x multiplier'
+            ));
+
+            container.appendChild(barsContainer);
+        }
 
         // Sync address to Objkt section if it exists
         const objktInput = document.getElementById('objkt-input');

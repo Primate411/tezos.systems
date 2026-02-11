@@ -98,8 +98,11 @@ async function init() {
     // Initialize collapsible sections
     initCollapsibleSections();
 
-    // Initialize Smart Dock (overflow menu + bottom sheet)
+    // Initialize Smart Dock (gear dropdown)
     initSmartDock();
+
+    // Start pulse indicator checks
+    initPulseIndicators();
 
     // Try to load cached data for instant display
     const cachedStats = loadStats();
@@ -1248,6 +1251,37 @@ function initSmartDock() {
         dropdown.classList.remove('open');
     });
     dropdown.addEventListener('click', (e) => e.stopPropagation());
+}
+
+// ==========================================
+// PULSE INDICATORS — Activity dots on toggle buttons
+// ==========================================
+function initPulseIndicators() {
+    function checkPulse() {
+        const whaleBtn = document.getElementById('whale-toggle');
+        const giantsBtn = document.getElementById('giants-toggle');
+        const now = Date.now();
+        const FIVE_MIN = 5 * 60 * 1000;
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+
+        // Whale pulse: any transaction in last 5 minutes
+        if (whaleBtn && window.whaleTracker?.transactions?.length) {
+            const latest = window.whaleTracker.transactions[0];
+            const age = now - new Date(latest.timestamp).getTime();
+            whaleBtn.classList.toggle('has-pulse', age < FIVE_MIN);
+        }
+
+        // Giants pulse: any awakening in last 24 hours
+        if (giantsBtn && window.sleepingGiantsData?.awakenings?.length) {
+            const latest = window.sleepingGiantsData.awakenings[0];
+            const age = now - new Date(latest.awakenedAt).getTime();
+            giantsBtn.classList.toggle('has-pulse', age < ONE_DAY);
+        }
+    }
+
+    // Check every 30 seconds
+    checkPulse();
+    setInterval(checkPulse, 30000);
 }
 
 // Expose refresh function globally
