@@ -247,6 +247,18 @@ function closeToast(toast, momentId) {
  */
 export function initMomentsTimeline() {
     renderMomentsTimeline();
+
+    // Dismiss-all button hides the section and clears recent moments from view
+    const dismissBtn = document.getElementById('moments-dismiss-all');
+    if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => {
+            const section = document.getElementById('moments-section');
+            if (section) section.style.display = 'none';
+            // Mark all current moments as dismissed so they don't re-show
+            const moments = getMoments();
+            moments.forEach(m => dismissMoment(m.id));
+        });
+    }
 }
 
 /**
@@ -254,20 +266,22 @@ export function initMomentsTimeline() {
  */
 function renderMomentsTimeline() {
     const container = document.getElementById('moments-timeline-content');
+    const section = document.getElementById('moments-section');
     if (!container) return;
 
     const moments = getMoments();
     const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000);
     const recent = moments
-        .filter(m => m.timestamp > thirtyDaysAgo)
+        .filter(m => m.timestamp > thirtyDaysAgo && !isDismissed(m.id))
         .sort((a, b) => b.timestamp - a.timestamp);
 
+    // Show/hide section based on whether there are undismissed moments
+    if (section) {
+        section.style.display = recent.length > 0 ? '' : 'none';
+    }
+
     if (recent.length === 0) {
-        container.innerHTML = `
-            <div class="moments-empty">
-                No moments recorded yet. Keep watching!
-            </div>
-        `;
+        container.innerHTML = '';
         return;
     }
 
