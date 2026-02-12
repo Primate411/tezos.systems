@@ -847,10 +847,10 @@ body::before {
     color: #00E5FF !important;
     font-family: 'Orbitron', sans-serif !important;
     font-weight: 700 !important;
-    font-size: 1.8rem !important;
+    font-size: clamp(2rem, 4vw, 2.5rem) !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.25em !important;
-    text-shadow: 0 0 10px rgba(0,229,255,0.5), 0 0 30px rgba(0,229,255,0.15) !important;
+    letter-spacing: 0.15em !important;
+    text-shadow: 0 0 3px #00E5FF, 0 0 12px rgba(0,229,255,0.4), 0 0 25px rgba(0,229,255,0.15) !important;
 }
 
 .controls {
@@ -2315,10 +2315,10 @@ body.high-combo .stat-card {
     color: #00FF41 !important;
     font-family: 'Orbitron', sans-serif !important;
     font-weight: 700 !important;
-    font-size: 1.8rem !important;
+    font-size: clamp(2rem, 4vw, 2.5rem) !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.3em !important;
-    text-shadow: 0 0 8px rgba(0,255,65,0.6), 0 0 20px rgba(0,255,65,0.25) !important;
+    letter-spacing: 0.2em !important;
+    text-shadow: 0 0 2px #00FF41, 0 0 10px rgba(0,255,65,0.5), 0 0 30px rgba(0,255,65,0.2) !important;
     filter: none !important;
 }
 
@@ -5825,17 +5825,17 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 
 /* --- Void: Exo 2 --- */
 [data-theme="void"] .title {
-    font-family: 'Orbitron', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: 1.8rem !important;
+    font-family: 'Exo 2', 'Orbitron', sans-serif !important;
+    font-weight: 300 !important;
+    font-size: clamp(2rem, 4vw, 2.5rem) !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.25em !important;
-    background: linear-gradient(135deg, #B388FF 0%, #7C4DFF 50%, #E040FB 100%) !important;
+    letter-spacing: 0.2em !important;
+    background: linear-gradient(135deg, #BF40FF, #FF40A0) !important;
     -webkit-background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
     background-clip: text !important;
     text-shadow: none !important;
-    filter: drop-shadow(0 0 12px rgba(124,77,255,0.4)) !important;
+    filter: drop-shadow(0 0 8px rgba(191,64,255,0.4)) !important;
 }
 [data-theme="void"] .upgrade-number,
 [data-theme="void"] .current-name,
@@ -5904,32 +5904,35 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     font-weight: 500;
 }
 
-/* Ember title treatment — solid amber with firelight glow */
+/* Ember title treatment — Chakra Petch, amber with firelight glow */
 [data-theme="ember"] .title {
     background: none !important;
     -webkit-background-clip: unset !important;
     -webkit-text-fill-color: #FF8A00 !important;
     background-clip: unset !important;
     color: #FF8A00 !important;
-    font-size: 1.8rem !important;
+    font-family: 'Chakra Petch', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: clamp(2rem, 4vw, 2.5rem) !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.2em !important;
-    text-shadow: 0 0 8px rgba(255,138,0,0.5), 0 0 24px rgba(255,60,0,0.2) !important;
+    letter-spacing: 0.15em !important;
+    text-shadow: 0 0 3px #FF8A00, 0 0 12px rgba(255,138,0,0.5), 0 0 30px rgba(200,50,0,0.25) !important;
     filter: none !important;
 }
 
-/* Signal title treatment — teal, wide-spaced, minimal glow */
+/* Signal title treatment — teal, crisp LED glow */
 [data-theme="signal"] .title {
     background: none !important;
     -webkit-background-clip: unset !important;
-    -webkit-text-fill-color: #00BFA5 !important;
+    -webkit-text-fill-color: #00D4B0 !important;
     background-clip: unset !important;
-    color: #00BFA5 !important;
-    font-size: 1.8rem !important;
+    color: #00D4B0 !important;
+    font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
     font-weight: 600 !important;
+    font-size: clamp(2rem, 4vw, 2.5rem) !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.35em !important;
-    text-shadow: 0 0 6px rgba(0,191,165,0.35) !important;
+    letter-spacing: 0.15em !important;
+    text-shadow: 0 0 2px #00D4B0, 0 0 8px rgba(0,212,176,0.4) !important;
     filter: none !important;
 }
 
@@ -6022,14 +6025,14 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 [data-theme="clean"] .title {
     background: none !important;
     -webkit-background-clip: unset !important;
-    -webkit-text-fill-color: #0784c3 !important;
+    -webkit-text-fill-color: #0277BD !important;
     background-clip: unset !important;
-    color: #0784c3 !important;
+    color: #0277BD !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif !important;
-    font-weight: 600 !important;
-    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem) !important;
     text-transform: none !important;
-    letter-spacing: -0.01em !important;
+    letter-spacing: 0.02em !important;
     text-shadow: none !important;
     filter: none !important;
 }
@@ -6723,7 +6726,7 @@ body {
 [data-theme="dark"] .stat-value { color: #E8E8E8 !important; }
 [data-theme="dark"] .stat-label { color: #9A9A9A; }
 [data-theme="dark"] .stat-description { color: #737373; }
-[data-theme="dark"] .title { color: #E0E0E0; background: none; -webkit-text-fill-color: #E0E0E0; }
+[data-theme="dark"] .title { color: #E8EAED; background: none; -webkit-text-fill-color: #E8EAED; }
 [data-theme="dark"] .glass-button:hover { border-color: #484848; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
 
 /* Toolbar button */
@@ -7137,15 +7140,15 @@ body {
 [data-theme="dark"] .title {
     background: none !important;
     -webkit-background-clip: unset !important;
-    -webkit-text-fill-color: #E0E0E0 !important;
+    -webkit-text-fill-color: #E8EAED !important;
     background-clip: unset !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif !important;
-    font-size: 1.5rem !important;
-    font-weight: 500 !important;
-    color: #E0E0E0 !important;
-    letter-spacing: 0 !important;
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem) !important;
+    font-weight: 300 !important;
+    color: #E8EAED !important;
+    letter-spacing: 0.02em !important;
     text-transform: none !important;
-    text-shadow: none !important;
+    text-shadow: 0 0 20px rgba(255,255,255,0.05) !important;
     filter: none !important;
 }
 
@@ -7312,11 +7315,11 @@ body {
     background-clip: unset !important;
     color: #FF69B4 !important;
     font-family: 'Orbitron', sans-serif !important;
-    font-weight: 500 !important;
-    font-size: 2rem !important;
+    font-weight: 600 !important;
+    font-size: clamp(2rem, 4vw, 2.5rem) !important;
     text-transform: none !important;
     letter-spacing: 0.05em !important;
-    text-shadow: 0 0 12px rgba(255,105,180,0.35), 0 2px 0 rgba(0,0,0,0.2) !important;
+    text-shadow: 0 0 4px rgba(255,105,180,0.5), 0 0 15px rgba(255,105,180,0.25), 0 2px 4px rgba(0,0,0,0.3) !important;
     filter: none !important;
 }
 [data-theme="bubblegum"] .upgrade-number,

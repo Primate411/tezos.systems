@@ -49,14 +49,25 @@ let mouseVelocity = 0;
  * Get theme-aware colors
  */
 function getColors() {
-    const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
-    return {
-        primary: isMatrix ? '#00ff41' : '#00d4ff',
-        secondary: isMatrix ? '#00aa00' : '#b794f6',
-        tertiary: isMatrix ? '#005500' : '#ff6b9d',
-        glow: isMatrix ? 'rgba(0,255,65,0.3)' : 'rgba(0,212,255,0.3)',
-        bg: isMatrix ? '#000' : '#0a0a0f'
-    };
+    const theme = document.body.getAttribute('data-theme') || 'default';
+    switch (theme) {
+        case 'matrix':
+            return { primary: '#00ff41', secondary: '#00aa00', tertiary: '#005500', glow: 'rgba(0,255,65,0.3)', bg: '#000000' };
+        case 'void':
+            return { primary: '#a78bfa', secondary: '#7C4DFF', tertiary: '#4a2d8a', glow: 'rgba(167,139,250,0.3)', bg: '#0a0a12' };
+        case 'ember':
+            return { primary: '#ff9f43', secondary: '#FF6B00', tertiary: '#993f00', glow: 'rgba(255,159,67,0.3)', bg: '#0f0a05' };
+        case 'signal':
+            return { primary: '#00ffc8', secondary: '#00BFA5', tertiary: '#007a6a', glow: 'rgba(0,255,200,0.3)', bg: '#050f0d' };
+        case 'clean':
+            return { primary: '#0784c3', secondary: '#055a85', tertiary: '#033b57', glow: 'rgba(7,132,195,0.15)', bg: '#f0f0f0' };
+        case 'dark':
+            return { primary: '#C8C8C8', secondary: '#888888', tertiary: '#444444', glow: 'rgba(200,200,200,0.1)', bg: '#0a0a0a' };
+        case 'bubblegum':
+            return { primary: '#FF69B4', secondary: '#FF85C8', tertiary: '#cc3587', glow: 'rgba(255,105,180,0.3)', bg: '#120a10' };
+        default:
+            return { primary: '#00d4ff', secondary: '#b794f6', tertiary: '#ff6b9d', glow: 'rgba(0,212,255,0.3)', bg: '#0a0a0f' };
+    }
 }
 
 /**
@@ -149,11 +160,26 @@ function createModeSelector() {
         selector.classList.remove('visible');
     });
 
+    // Click outside to close
+    document.addEventListener('click', (e) => {
+        if (!selector.classList.contains('visible')) return;
+        const ultraToggle = document.getElementById('ultra-toggle');
+        if (!selector.contains(e.target) && e.target !== ultraToggle && !ultraToggle?.contains(e.target)) {
+            selector.classList.remove('visible');
+        }
+    });
+
     selector.querySelectorAll('.ultra-mode-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             selectMode(btn.dataset.mode);
             selector.querySelectorAll('.ultra-mode-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            // Auto-enable ultra when selecting a mode
+            if (!ultraEnabled) {
+                toggleUltra();
+                powerBtn.className = 'active';
+                powerBtn.textContent = '⚡ ENABLED';
+            }
         });
     });
 
