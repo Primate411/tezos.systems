@@ -127,7 +127,7 @@ Each metric card has: label, big number (with sparkline trend chart), 7-day chan
 ## Local Development
 
 ```bash
-git clone https://github.com/ArtDeco/tezos.systems.git
+git clone https://github.com/Primate411/tezos.systems.git
 cd tezos.systems
 python3 -m http.server 8888
 # Open http://localhost:8888
