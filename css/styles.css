@@ -132,6 +132,25 @@
     --accent-blue: #00D2D3;
 }
 
+/* --- Clean: Professional light theme --- */
+[data-theme="clean"] {
+    --bg-primary: #FFFFFF;
+    --bg-secondary: #F8F9FA;
+    --bg-tertiary: #F0F1F3;
+    --glass-bg: #FFFFFF;
+    --glass-border: #e7eaf3;
+    --text-primary: #1e2022;
+    --text-secondary: #6c757e;
+    --text-tertiary: #8c98a4;
+    --text-muted: #b7bfc6;
+    --accent-cyan: #0784c3;
+    --accent-purple: #0784c3;
+    --accent-pink: #dc3545;
+    --accent-blue: #0784c3;
+    --blur-amount: 0px;
+    --transition: all 0.15s ease;
+}
+
 /* ==========================================
    Reset & Base
    ========================================== */
@@ -5816,4 +5835,397 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 [data-theme="signal"] .my-baker-title {
     font-family: 'IBM Plex Mono', 'Courier New', monospace;
     font-weight: 500;
+}
+
+/* ============================================================
+   CLEAN THEME — Full light-mode overrides
+   ============================================================ */
+
+/* Kill ambient gradient overlay */
+[data-theme="clean"] body::before { display: none; }
+
+/* Kill ALL text-shadow glow effects */
+[data-theme="clean"] * { text-shadow: none !important; }
+
+/* Light scrollbars */
+[data-theme="clean"] ::-webkit-scrollbar-track { background: #EDF0F4; }
+[data-theme="clean"] ::-webkit-scrollbar-thumb { background: #CBD5E0; border: none; }
+[data-theme="clean"] ::-webkit-scrollbar-thumb:hover { background: #A0AEC0; box-shadow: none; }
+[data-theme="clean"] * { scrollbar-color: #CBD5E0 #EDF0F4; }
+
+/* Cards: solid white + subtle shadow, no glassmorphism */
+[data-theme="clean"] .glass-card,
+[data-theme="clean"] .metric-card,
+[data-theme="clean"] .card,
+[data-theme="clean"] .stat-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+[data-theme="clean"] .glass-card:hover,
+[data-theme="clean"] .metric-card:hover,
+[data-theme="clean"] .card:hover,
+[data-theme="clean"] .stat-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: #CBD5E0;
+}
+
+/* Price changes — standard fintech colors */
+[data-theme="clean"] .price-change.positive { color: #059669; }
+[data-theme="clean"] .price-change.negative { color: #DC2626; }
+
+/* CTA button */
+[data-theme="clean"] .hero-cta-primary { background: #2563EB; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25); }
+[data-theme="clean"] .hero-cta-primary:hover { box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35); }
+
+/* Contention icons — no glow */
+[data-theme="clean"] .contention-icon { filter: none; }
+[data-theme="clean"] .timeline-item.contentious:hover .contention-icon { filter: none; }
+
+/* Upgrade clock / timeline */
+[data-theme="clean"] .upgrade-number { background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); -webkit-background-clip: text; background-clip: text; }
+[data-theme="clean"] .upgrade-badge { background: rgba(37, 99, 235, 0.08); border-color: rgba(37, 99, 235, 0.2); }
+[data-theme="clean"] .badge-text { color: #2563EB; }
+[data-theme="clean"] .voting-dot { background: #2563EB; }
+[data-theme="clean"] .voting-progress-bar { background: linear-gradient(90deg, #2563EB, #1D4ED8); }
+[data-theme="clean"] .timeline-item.current { background: rgba(37, 99, 235, 0.08); border-color: #2563EB; color: #2563EB; }
+[data-theme="clean"] .timeline-item:hover { background: rgba(37, 99, 235, 0.05); border-color: #2563EB; }
+
+/* Settings dropdown */
+[data-theme="clean"] .settings-dropdown { background: #FFFFFF; border-color: #E2E8F0; }
+
+/* Pulse indicator */
+[data-theme="clean"] .glass-button.has-pulse::after { background: #2563EB; box-shadow: 0 0 4px rgba(37, 99, 235, 0.4); }
+
+/* Ultra toggle */
+[data-theme="clean"] #ultra-toggle.active { background: rgba(37, 99, 235, 0.1); border-color: rgba(37, 99, 235, 0.3); box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15); }
+
+/* Trend arrows */
+[data-theme="clean"] .trend-arrow.up { color: #059669; }
+[data-theme="clean"] .trend-arrow.down { color: #DC2626; }
+[data-theme="clean"] .trend-arrow.up.inverted { color: #DC2626; }
+[data-theme="clean"] .trend-arrow.down.inverted { color: #059669; }
+
+/* Modal large */
+[data-theme="clean"] .modal-large { background: #FFFFFF; border-color: #E2E8F0; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.12); color: #1A1A2E; }
+[data-theme="clean"] .modal-large .modal-title { background: none; -webkit-background-clip: unset; background-clip: unset; color: #1A1A2E; -webkit-text-fill-color: #1A1A2E; }
+[data-theme="clean"] .time-range-btn { border-color: #E2E8F0; color: #4A5568; }
+[data-theme="clean"] .time-range-btn:hover { background: #F8F9FA; border-color: #CBD5E0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); }
+[data-theme="clean"] .time-range-btn.active { background: rgba(37, 99, 235, 0.08); border-color: #2563EB; color: #2563EB; box-shadow: none; }
+[data-theme="clean"] .chart-section::before { background: linear-gradient(90deg, transparent, #E2E8F0, transparent); }
+[data-theme="clean"] .chart-section h4 { color: #1A1A2E; }
+[data-theme="clean"] .chart-section canvas { filter: none; }
+[data-theme="clean"] .chart-stats .stat-value.positive { color: #059669; }
+
+/* Stat display */
+[data-theme="clean"] .stat-value { color: #1A1A2E; }
+[data-theme="clean"] .stat-label { color: #718096; }
+[data-theme="clean"] .stat-description { color: #4A5568; }
+[data-theme="clean"] .title { color: #1A1A2E; }
+[data-theme="clean"] .glass-button:hover { border-color: #CBD5E0; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+
+/* Toolbar CTA */
+[data-theme="clean"] .toolbar-cta:hover { box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2); }
+
+/* Ultra selector */
+[data-theme="clean"] .ultra-selector { border-color: #E2E8F0; background: #FFFFFF; }
+[data-theme="clean"] .ultra-selector-title,
+[data-theme="clean"] .ultra-mode-icon { color: #2563EB; }
+[data-theme="clean"] .ultra-mode-btn.active { background: rgba(37, 99, 235, 0.08); border-color: #2563EB; }
+[data-theme="clean"] .ultra-selector-footer button.active { background: rgba(37, 99, 235, 0.1); border-color: #2563EB; color: #2563EB; box-shadow: none; }
+
+/* Stat card ultra effects — disable all decorative effects */
+[data-theme="clean"] .stat-card.hex-active::before { display: none; }
+[data-theme="clean"] .stat-card.scanline-active::after { display: none; }
+[data-theme="clean"] .stat-card.bracket-locked::before,
+[data-theme="clean"] .stat-card.bracket-locked::after { display: none; }
+[data-theme="clean"] .stat-card.pulse-active { animation: none; }
+
+/* Share action button */
+[data-theme="clean"] .share-action-btn:hover { border-color: #2563EB; color: #2563EB; }
+
+/* Tab button */
+[data-theme="clean"] .tab-button::after { background: #2563EB; }
+
+/* Whale tracker */
+[data-theme="clean"] .whale-tx:hover { border-color: #CBD5E0; }
+[data-theme="clean"] .whale-tx-amount .xtz { color: #2563EB; }
+[data-theme="clean"] .whale-tx-whale { color: #1D4ED8; }
+[data-theme="clean"] .whale-tx-addr .domain-name { color: #2563EB; }
+
+/* Modal scrollbars */
+[data-theme="clean"] .modal-large::-webkit-scrollbar-thumb { background: #CBD5E0; }
+[data-theme="clean"] .modal-large::-webkit-scrollbar-thumb:hover { background: #A0AEC0; }
+[data-theme="clean"] .modal-large { scrollbar-color: #CBD5E0 #EDF0F4; }
+
+/* Share modal scrollbars */
+[data-theme="clean"] .share-modal-content::-webkit-scrollbar-thumb,
+[data-theme="clean"] .tweet-picker::-webkit-scrollbar-thumb { background: #CBD5E0; }
+[data-theme="clean"] .share-modal-content::-webkit-scrollbar-thumb:hover,
+[data-theme="clean"] .tweet-picker::-webkit-scrollbar-thumb:hover { background: #A0AEC0; }
+[data-theme="clean"] .share-modal-content,
+[data-theme="clean"] .tweet-picker { scrollbar-color: #CBD5E0 #EDF0F4; }
+
+/* Sleeping Giants */
+[data-theme="clean"] .giants-stat .stat-value { color: #1A1A2E; }
+[data-theme="clean"] .giant-balance .xtz { color: #2563EB; }
+[data-theme="clean"] .awakening-alert { background: #FFFFFF; border-color: #E2E8F0; }
+[data-theme="clean"] .awakening-title { color: #1A1A2E; }
+
+/* Awakening log */
+[data-theme="clean"] .awakening-log-item { border-color: #EDF0F4; }
+[data-theme="clean"] .awakening-log-item:hover { border-color: #CBD5E0; }
+[data-theme="clean"] .log-time { color: #2563EB; }
+[data-theme="clean"] .awakenings-log::-webkit-scrollbar-thumb { background: #CBD5E0; }
+[data-theme="clean"] .awakenings-log::-webkit-scrollbar-thumb:hover { background: #A0AEC0; }
+
+/* Infographic */
+[data-theme="clean"] .infographic-toggle-btn:hover { border-color: #2563EB; color: #2563EB; }
+[data-theme="clean"] .infographic-inner::before { background: linear-gradient(180deg, #2563EB 0%, rgba(37, 99, 235, 0.2) 100%); }
+[data-theme="clean"] .infographic-dot { background: #2563EB; box-shadow: none; }
+[data-theme="clean"] .infographic-row.contentious .infographic-dot { background: #DC2626; box-shadow: none; }
+[data-theme="clean"] .infographic-row.current .infographic-dot { background: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2); }
+[data-theme="clean"] .infographic-row.current .infographic-name { color: #2563EB; }
+[data-theme="clean"] .infographic-tag { border-color: #E2E8F0; color: #718096; }
+
+/* My Baker */
+[data-theme="clean"] .my-baker-input:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+[data-theme="clean"] .matrix-char { display: none !important; }
+[data-theme="clean"] .my-baker-stat-value { color: #1A1A2E; }
+[data-theme="clean"] .my-baker-stat { border-color: #EDF0F4; }
+[data-theme="clean"] .my-baker-stat:hover { border-color: #CBD5E0; }
+
+/* Capacity bar */
+[data-theme="clean"] .capacity-bar-pct { color: #2563EB; }
+[data-theme="clean"] .capacity-bar-fill { background: linear-gradient(90deg, #2563EB, #1D4ED8); }
+[data-theme="clean"] .capacity-bar-fill.capacity-warning { background: linear-gradient(90deg, #D97706, #B45309); }
+[data-theme="clean"] .capacity-bar-fill.capacity-critical { background: linear-gradient(90deg, #DC2626, #B91C1C); }
+[data-theme="clean"] .capacity-bar-card { border-color: #EDF0F4; }
+
+/* Calculator */
+[data-theme="clean"] .calc-input { background: #FFFFFF; border-color: #E2E8F0; color: #1A1A2E; }
+[data-theme="clean"] .calc-input:focus { border-color: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+[data-theme="clean"] .calc-toggle-btn.calc-toggle-active { background: rgba(37, 99, 235, 0.08); border-color: #2563EB; color: #2563EB; }
+[data-theme="clean"] .calc-apy-badge { border-color: #E2E8F0; }
+[data-theme="clean"] .calc-apy-value { color: #059669; }
+[data-theme="clean"] .calc-breakdown-total .calc-breakdown-value { color: #2563EB; }
+[data-theme="clean"] .calc-compound-year { border-color: #EDF0F4; }
+[data-theme="clean"] .calc-compound-earned { color: #059669; }
+
+/* Comparison */
+[data-theme="clean"] .comparison-col-tezos { border-color: rgba(37, 99, 235, 0.2); background: rgba(37, 99, 235, 0.04); }
+[data-theme="clean"] .comparison-col-tezos .comparison-chain-name,
+[data-theme="clean"] .comparison-col-tezos .comparison-chain-value { color: #2563EB; }
+[data-theme="clean"] .comparison-winner { color: #059669; }
+[data-theme="clean"] .comparison-card { border-color: #EDF0F4; }
+[data-theme="clean"] .comparison-card:hover { border-color: #CBD5E0; }
+
+/* Links */
+[data-theme="clean"] a { color: #2563EB; }
+[data-theme="clean"] a:hover { color: #1D4ED8; }
+
+/* Status colors */
+[data-theme="clean"] .status-good,
+[data-theme="clean"] .positive { color: #059669; }
+[data-theme="clean"] .status-bad,
+[data-theme="clean"] .negative { color: #DC2626; }
+
+/* Clean theme display font — system monospace for data */
+[data-theme="clean"] .title {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+}
+[data-theme="clean"] .upgrade-number,
+[data-theme="clean"] .current-name,
+[data-theme="clean"] .stat-value,
+[data-theme="clean"] .price-label,
+[data-theme="clean"] .price-value,
+[data-theme="clean"] .price-change,
+[data-theme="clean"] .badge-text,
+[data-theme="clean"] .chart-section h4,
+[data-theme="clean"] .infographic-letter,
+[data-theme="clean"] .infographic-name,
+[data-theme="clean"] .about-tezos-stat-value,
+[data-theme="clean"] .calc-breakdown-value,
+[data-theme="clean"] .calc-apy-value,
+[data-theme="clean"] .calc-result-xtz,
+[data-theme="clean"] .calc-compound-year,
+[data-theme="clean"] .calc-compound-xtz,
+[data-theme="clean"] .my-baker-title {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-weight: 500;
+}
+
+/* ============================================================
+   CLEAN THEME V2 — Etherscan-inspired fixes
+   ============================================================ */
+
+/* CRITICAL: Force ALL stat values to dark color — override rainbow colors */
+[data-theme="clean"] .stat-value,
+[data-theme="clean"] .value-text,
+[data-theme="clean"] .metric-value,
+[data-theme="clean"] .price-display .price-value,
+[data-theme="clean"] .ticker-price,
+[data-theme="clean"] .hex-value,
+[data-theme="clean"] .supply-burned .xtz,
+[data-theme="clean"] .supply-total .xtz,
+[data-theme="clean"] .delegate-count .delegate-number,
+[data-theme="clean"] .baker-stats .stat-number,
+[data-theme="clean"] .network-stat-value,
+[data-theme="clean"] .protocol-stat .stat-value,
+[data-theme="clean"] .governance-stat .value,
+[data-theme="clean"] .burn-stat .burn-amount,
+[data-theme="clean"] .whale-amount,
+[data-theme="clean"] .giant-balance .balance-number,
+[data-theme="clean"] .volume-stat .volume-number,
+[data-theme="clean"] .market-stat .market-value {
+    color: #1e2022 !important;
+    -webkit-text-fill-color: #1e2022 !important;
+    background: none !important;
+    -webkit-background-clip: unset !important;
+    background-clip: unset !important;
+    text-shadow: none !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif !important;
+}
+
+/* Force system font for all number displays, not Orbitron */
+[data-theme="clean"] .title,
+[data-theme="clean"] .big-number,
+[data-theme="clean"] .large-stat,
+[data-theme="clean"] .protocol-number {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif !important;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    color: #1e2022 !important;
+}
+
+/* Compact layout - reduce spacing throughout */
+[data-theme="clean"] .header {
+    padding: 0.75rem 1.5rem 1rem;
+}
+
+[data-theme="clean"] .section {
+    margin-bottom: 1rem;
+}
+
+[data-theme="clean"] .section-header {
+    margin-bottom: 0.5rem;
+}
+
+[data-theme="clean"] .metrics-grid {
+    gap: 12px;
+}
+
+/* Etherscan-style cards */
+[data-theme="clean"] .glass-card,
+[data-theme="clean"] .metric-card,
+[data-theme="clean"] .card,
+[data-theme="clean"] .stat-card {
+    padding: 14px 16px !important;
+    border-radius: 0.5rem !important;
+    border: 1px solid #e7eaf3 !important;
+    background: #FFFFFF !important;
+    box-shadow: 0 0.5rem 1.2rem rgb(189 197 209 / 20%) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Hover effects - subtle shadow only */
+[data-theme="clean"] .glass-card:hover,
+[data-theme="clean"] .metric-card:hover,
+[data-theme="clean"] .card:hover,
+[data-theme="clean"] .stat-card:hover {
+    box-shadow: 0 0.5rem 1.5rem rgb(189 197 209 / 30%) !important;
+    transform: none !important;
+    border-color: #cbd5e0 !important;
+}
+
+/* Section labels - clean professional style */
+[data-theme="clean"] .section-label,
+[data-theme="clean"] .section-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757e;
+    font-weight: 600;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+}
+
+/* Links/buttons */
+[data-theme="clean"] a {
+    color: #0784c3 !important;
+}
+
+[data-theme="clean"] .glass-button {
+    border: 1px solid #e7eaf3;
+    background: #FFFFFF;
+    color: #1e2022;
+}
+
+[data-theme="clean"] .glass-button:hover {
+    border-color: #cbd5e0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* Price changes - standard fintech colors but no rainbow numbers */
+[data-theme="clean"] .price-change.positive {
+    color: #059669 !important;
+}
+
+[data-theme="clean"] .price-change.negative {
+    color: #dc3545 !important;
+}
+
+/* Ensure trend arrows keep their colors but numbers stay dark */
+[data-theme="clean"] .trend-arrow.up {
+    color: #059669 !important;
+}
+
+[data-theme="clean"] .trend-arrow.down {
+    color: #dc3545 !important;
+}
+
+/* But the actual stat values next to them stay dark */
+[data-theme="clean"] .stat-card .stat-value,
+[data-theme="clean"] .metric-card .metric-value {
+    color: #1e2022 !important;
+}
+
+/* Compact timeline/protocol section */
+[data-theme="clean"] .timeline-grid {
+    gap: 8px;
+}
+
+[data-theme="clean"] .timeline-item {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+}
+
+/* Clean typography throughout */
+[data-theme="clean"] h1, 
+[data-theme="clean"] h2, 
+[data-theme="clean"] h3, 
+[data-theme="clean"] h4, 
+[data-theme="clean"] h5, 
+[data-theme="clean"] h6 {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif !important;
+    color: #1e2022 !important;
+    letter-spacing: 0 !important;
+}
+
+/* Remove any remaining glows or special effects */
+[data-theme="clean"] * {
+    text-shadow: none !important;
+    filter: none !important;
+    -webkit-text-stroke: unset !important;
+}
+
+/* Ensure sparklines and charts are visible */
+[data-theme="clean"] .sparkline-canvas,
+[data-theme="clean"] .chart-canvas {
+    opacity: 1 !important;
+    filter: none !important;
 }

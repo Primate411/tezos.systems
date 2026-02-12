@@ -859,18 +859,20 @@ async function initRichTooltips(protocols) {
     if (!tooltipEl) {
         tooltipEl = document.createElement('div');
         tooltipEl.id = 'timeline-tooltip';
-        const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
+        const currentTheme = document.body.getAttribute('data-theme');
+        const isMatrix = currentTheme === 'matrix';
+        const isClean = currentTheme === 'clean';
         tooltipEl.style.cssText = `
             position: fixed; z-index: 10000; pointer-events: none;
             opacity: 0; visibility: hidden;
             transition: opacity 0.2s ease, visibility 0.2s ease;
-            background: ${isMatrix ? 'rgba(0, 10, 0, 0.98)' : 'rgba(10, 10, 15, 0.98)'};
-            border: 1px solid ${isMatrix ? 'rgba(0, 255, 0, 0.5)' : 'rgba(0, 212, 255, 0.4)'};
+            background: ${isClean ? 'rgba(255, 255, 255, 0.98)' : isMatrix ? 'rgba(0, 10, 0, 0.98)' : 'rgba(10, 10, 15, 0.98)'};
+            border: 1px solid ${isClean ? 'rgba(0, 0, 0, 0.1)' : isMatrix ? 'rgba(0, 255, 0, 0.5)' : 'rgba(0, 212, 255, 0.4)'};
             border-radius: 10px; padding: 14px 16px;
             width: 340px; max-width: 90vw;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            box-shadow: ${isClean ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.6)'};
             font-size: 0.72rem; line-height: 1.5;
-            color: ${isMatrix ? '#00ff00' : 'var(--text-primary)'};
+            color: ${isClean ? '#1A1A2E' : isMatrix ? '#00ff00' : 'var(--text-primary)'};
         `;
         document.body.appendChild(tooltipEl);
     }
@@ -882,8 +884,9 @@ async function initRichTooltips(protocols) {
         const richP = richMap[name];
 
         item.addEventListener('mouseenter', (e) => {
-            const accent = document.body.getAttribute('data-theme') === 'matrix' ? '#00ff00' : '#00d4ff';
-            const accentDim = document.body.getAttribute('data-theme') === 'matrix' ? 'rgba(0,255,0,0.6)' : 'rgba(0,212,255,0.6)';
+            const _theme = document.body.getAttribute('data-theme');
+            const accent = _theme === 'clean' ? '#2563EB' : _theme === 'matrix' ? '#00ff00' : '#00d4ff';
+            const accentDim = _theme === 'clean' ? 'rgba(37,99,235,0.6)' : _theme === 'matrix' ? 'rgba(0,255,0,0.6)' : 'rgba(0,212,255,0.6)';
             
             let html = '';
             // Title line
@@ -950,11 +953,13 @@ function showProtocolHistoryModal(history, protocolName) {
     const existing = document.getElementById('protocol-history-modal');
     if (existing) existing.remove();
 
-    const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
-    const accent = isMatrix ? '#00ff00' : '#00d4ff';
-    const accentRgb = isMatrix ? '0,255,0' : '0,212,255';
-    const bg = isMatrix ? 'rgba(0, 8, 0, 0.98)' : 'rgba(8, 8, 16, 0.98)';
-    const borderColor = isMatrix ? 'rgba(0,255,0,0.3)' : 'rgba(0,212,255,0.3)';
+    const _modalTheme = document.body.getAttribute('data-theme');
+    const isMatrix = _modalTheme === 'matrix';
+    const isClean = _modalTheme === 'clean';
+    const accent = isClean ? '#2563EB' : isMatrix ? '#00ff00' : '#00d4ff';
+    const accentRgb = isClean ? '37,99,235' : isMatrix ? '0,255,0' : '0,212,255';
+    const bg = isClean ? 'rgba(255, 255, 255, 0.98)' : isMatrix ? 'rgba(0, 8, 0, 0.98)' : 'rgba(8, 8, 16, 0.98)';
+    const borderColor = isClean ? 'rgba(0,0,0,0.1)' : isMatrix ? 'rgba(0,255,0,0.3)' : 'rgba(0,212,255,0.3)';
 
     let sectionsHtml = '';
     for (const section of history.sections) {
@@ -962,15 +967,15 @@ function showProtocolHistoryModal(history, protocolName) {
             sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
             sectionsHtml += `<div class="history-timeline" style="position:relative; padding-left:24px; border-left:2px solid ${borderColor};">`;
             for (const ev of section.events) {
-                const sideColor = ev.side === 'quebec' ? '#ff6b6b' : ev.side === 'qena' ? '#4ecdc4' : 'rgba(255,255,255,0.5)';
+                const sideColor = ev.side === 'quebec' ? '#ff6b6b' : ev.side === 'qena' ? '#4ecdc4' : (isClean ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)');
                 sectionsHtml += `
                     <div style="margin-bottom:16px; position:relative;">
-                        <div style="position:absolute; left:-30px; top:4px; width:12px; height:12px; border-radius:50%; background:${sideColor}; box-shadow:0 0 8px ${sideColor};"></div>
-                        <div style="color:rgba(255,255,255,0.4); font-size:0.72rem; font-weight:600; margin-bottom:2px;">${ev.date}</div>
-                        <div style="color:rgba(255,255,255,0.85); font-size:0.82rem; line-height:1.5;">${ev.text}</div>
+                        <div style="position:absolute; left:-30px; top:4px; width:12px; height:12px; border-radius:50%; background:${sideColor}; box-shadow:${isClean ? 'none' : '0 0 8px ' + sideColor};"></div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.4)'}; font-size:0.72rem; font-weight:600; margin-bottom:2px;">${ev.date}</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.85)'}; font-size:0.82rem; line-height:1.5;">${ev.text}</div>
                     </div>`;
             }
-            sectionsHtml += `<div style="display:flex; gap:16px; margin-top:8px; font-size:0.68rem; color:rgba(255,255,255,0.4);">
+            sectionsHtml += `<div style="display:flex; gap:16px; margin-top:8px; font-size:0.68rem; color:${isClean ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.4)'};">
                 <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff6b6b;margin-right:4px;"></span>Quebec</span>
                 <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ecdc4;margin-right:4px;"></span>Qena</span>
             </div></div>`;
@@ -980,11 +985,11 @@ function showProtocolHistoryModal(history, protocolName) {
             for (const side of [section.left, section.right]) {
                 const sideColor = side === section.left ? '#ff6b6b' : '#4ecdc4';
                 sectionsHtml += `
-                    <div style="background:rgba(255,255,255,0.03); border:1px solid ${sideColor}30; border-radius:10px; padding:16px;">
+                    <div style="background:${isClean ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)'}; border:1px solid ${sideColor}30; border-radius:10px; padding:16px;">
                         <div style="color:${sideColor}; font-weight:700; font-size:0.9rem; margin-bottom:4px;">${side.name}</div>
-                        <div style="color:rgba(255,255,255,0.4); font-size:0.7rem; margin-bottom:8px;">${side.team}</div>
-                        <div style="color:rgba(255,255,255,0.75); font-size:0.8rem; line-height:1.5; margin-bottom:10px;">${side.position}</div>
-                        <div style="border-left:3px solid ${sideColor}40; padding-left:10px; color:rgba(255,255,255,0.6); font-style:italic; font-size:0.78rem; line-height:1.5;">"${side.quote}"</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.4)'}; font-size:0.7rem; margin-bottom:8px;">${side.team}</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.75)'}; font-size:0.8rem; line-height:1.5; margin-bottom:10px;">${side.position}</div>
+                        <div style="border-left:3px solid ${sideColor}40; padding-left:10px; color:${isClean ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)'}; font-style:italic; font-size:0.78rem; line-height:1.5;">"${side.quote}"</div>
                     </div>`;
             }
             sectionsHtml += `</div>`;
@@ -992,12 +997,15 @@ function showProtocolHistoryModal(history, protocolName) {
             sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
             const paras = section.content.split('\n\n');
             for (const p of paras) {
+                const textHigh = isClean ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.75)';
+                const textMid = isClean ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)';
+                const bgSubtle = isClean ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)';
                 if (p.startsWith('•') || p.startsWith('- ')) {
-                    sectionsHtml += `<div style="color:rgba(255,255,255,0.75); font-size:0.82rem; line-height:1.6; margin-bottom:6px; padding-left:12px;">${p}</div>`;
+                    sectionsHtml += `<div style="color:${textHigh}; font-size:0.82rem; line-height:1.6; margin-bottom:6px; padding-left:12px;">${p}</div>`;
                 } else if (p.startsWith('"') || p.startsWith('\u201c')) {
-                    sectionsHtml += `<blockquote style="border-left:3px solid ${borderColor}; padding:10px 14px; margin:10px 0; color:rgba(255,255,255,0.6); font-style:italic; font-size:0.82rem; line-height:1.6; background:rgba(255,255,255,0.02); border-radius:0 8px 8px 0;">${p}</blockquote>`;
+                    sectionsHtml += `<blockquote style="border-left:3px solid ${borderColor}; padding:10px 14px; margin:10px 0; color:${textMid}; font-style:italic; font-size:0.82rem; line-height:1.6; background:${bgSubtle}; border-radius:0 8px 8px 0;">${p}</blockquote>`;
                 } else {
-                    sectionsHtml += `<p style="color:rgba(255,255,255,0.75); font-size:0.82rem; line-height:1.7; margin-bottom:12px;">${p}</p>`;
+                    sectionsHtml += `<p style="color:${textHigh}; font-size:0.82rem; line-height:1.7; margin-bottom:12px;">${p}</p>`;
                 }
             }
         }
