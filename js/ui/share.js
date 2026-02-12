@@ -241,8 +241,10 @@ async function captureCard(card) {
         const _shareTheme = document.body.getAttribute('data-theme');
         const isMatrix = _shareTheme === 'matrix';
         const isClean = _shareTheme === 'clean';
-        const brandColor = isClean ? '#2563EB' : isMatrix ? '#00ff00' : '#00d4ff';
-        const bgColor = isClean ? '#F8F9FA' : isMatrix ? '#0a0a0a' : '#0a0a0f';
+        const isDark = _shareTheme === 'dark';
+        const isBubblegum = _shareTheme === 'bubblegum';
+        const brandColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
+        const bgColor = isClean ? '#F8F9FA' : isDark ? '#1A1A1A' : isMatrix ? '#0a0a0a' : isBubblegum ? '#1A0F22' : '#0a0a0f';
         
         // Read data from the card
         const statLabel = card.querySelector('.stat-label')?.textContent.trim() || '';
@@ -287,10 +289,10 @@ async function captureCard(card) {
         const gradient = document.createElement('div');
         gradient.style.cssText = `
             position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
-            background: ${isClean ? 'none' : `
-                radial-gradient(ellipse at 30% 20%, ${isMatrix ? 'rgba(0,255,0,0.08)' : 'rgba(0,212,255,0.08)'} 0%, transparent 50%),
-                radial-gradient(ellipse at 70% 80%, ${isMatrix ? 'rgba(0,200,0,0.05)' : 'rgba(183,148,246,0.05)'} 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, ${isMatrix ? 'rgba(0,255,0,0.03)' : 'rgba(0,212,255,0.03)'} 0%, transparent 70%)`};
+            background: ${isClean || isDark ? 'none' : `
+                radial-gradient(ellipse at 30% 20%, ${isMatrix ? 'rgba(0,255,0,0.08)' : isBubblegum ? 'rgba(255,105,180,0.08)' : 'rgba(0,212,255,0.08)'} 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, ${isMatrix ? 'rgba(0,200,0,0.05)' : isBubblegum ? 'rgba(196,122,255,0.05)' : 'rgba(183,148,246,0.05)'} 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, ${isMatrix ? 'rgba(0,255,0,0.03)' : isBubblegum ? 'rgba(255,105,180,0.03)' : 'rgba(0,212,255,0.03)'} 0%, transparent 70%)`};
         `;
         wrapper.appendChild(gradient);
         
@@ -298,9 +300,9 @@ async function captureCard(card) {
         const borderGlow = document.createElement('div');
         borderGlow.style.cssText = `
             position: absolute; top: 12px; left: 12px; right: 12px; bottom: 12px;
-            border: 1px solid ${isClean ? 'rgba(0,0,0,0.08)' : isMatrix ? 'rgba(0,255,0,0.15)' : 'rgba(0,212,255,0.15)'};
+            border: 1px solid ${isClean ? 'rgba(0,0,0,0.08)' : isDark ? 'rgba(51,51,51,0.5)' : isMatrix ? 'rgba(0,255,0,0.15)' : 'rgba(0,212,255,0.15)'};
             border-radius: 12px;
-            box-shadow: ${isClean ? '0 1px 3px rgba(0,0,0,0.06)' : `inset 0 0 30px ${isMatrix ? 'rgba(0,255,0,0.03)' : 'rgba(0,212,255,0.03)'},
+            box-shadow: ${isClean || isDark ? '0 1px 3px rgba(0,0,0,0.06)' : `inset 0 0 30px ${isMatrix ? 'rgba(0,255,0,0.03)' : 'rgba(0,212,255,0.03)'},
                         0 0 15px ${isMatrix ? 'rgba(0,255,0,0.05)' : 'rgba(0,212,255,0.05)'}`};
             pointer-events: none;
         `;
@@ -325,7 +327,7 @@ async function captureCard(card) {
             color: ${brandColor};
             letter-spacing: 4px;
             text-transform: uppercase;
-            text-shadow: ${isClean ? 'none' : `0 0 30px ${isMatrix ? 'rgba(0,255,0,0.5)' : 'rgba(0,212,255,0.5)'},
+            text-shadow: ${isClean || isDark ? 'none' : `0 0 30px ${isMatrix ? 'rgba(0,255,0,0.5)' : 'rgba(0,212,255,0.5)'},
                          0 0 60px ${isMatrix ? 'rgba(0,255,0,0.3)' : 'rgba(0,212,255,0.3)'},
                          0 0 90px ${isMatrix ? 'rgba(0,255,0,0.1)' : 'rgba(0,212,255,0.1)'}`};
             margin-bottom: 6px;
@@ -337,7 +339,7 @@ async function captureCard(card) {
         const divider = document.createElement('div');
         divider.style.cssText = `
             width: 200px; height: 1px;
-            background: linear-gradient(90deg, transparent, ${isClean ? 'rgba(37,99,235,0.3)' : isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'}, transparent);
+            background: linear-gradient(90deg, transparent, ${isClean ? 'rgba(37,99,235,0.3)' : isDark ? 'rgba(200,200,200,0.3)' : isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'}, transparent);
             margin: 10px 0 16px 0;
         `;
         content.appendChild(divider);
@@ -347,7 +349,7 @@ async function captureCard(card) {
             const sectionEl = document.createElement('div');
             sectionEl.style.cssText = `
                 font-size: 14px; font-weight: 600;
-                color: ${isClean ? 'rgba(37,99,235,0.5)' : isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'};
+                color: ${isClean ? 'rgba(37,99,235,0.5)' : isDark ? 'rgba(200,200,200,0.4)' : isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'};
                 text-transform: uppercase;
                 letter-spacing: 3px;
                 margin-bottom: 20px;
@@ -360,7 +362,7 @@ async function captureCard(card) {
         const labelEl = document.createElement('div');
         labelEl.style.cssText = `
             font-size: 18px; font-weight: 600;
-            color: ${isClean ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.5)'};
+            color: ${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.5)' : 'rgba(255,255,255,0.5)'};
             text-transform: uppercase;
             letter-spacing: 2px;
             margin-bottom: 12px;
@@ -375,7 +377,7 @@ async function captureCard(card) {
             color: ${brandColor};
             line-height: 1;
             letter-spacing: -2px;
-            text-shadow: ${isClean ? 'none' : `0 0 40px ${isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'},
+            text-shadow: ${isClean || isDark ? 'none' : `0 0 40px ${isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'},
                          0 0 80px ${isMatrix ? 'rgba(0,255,0,0.2)' : 'rgba(0,212,255,0.2)'}`};
             margin-bottom: 12px;
             text-align: center;
@@ -432,7 +434,7 @@ async function captureCard(card) {
                 return `${x.toFixed(1)},${y.toFixed(1)}`;
             }).join(' ');
             
-            const sparkColor = isClean ? '#2563EB' : isMatrix ? '#00ff00' : '#00d4ff';
+            const sparkColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
             sparkContainer.innerHTML = `
                 <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
                     <defs>
@@ -452,7 +454,7 @@ async function captureCard(card) {
         } else {
             // Decorative bar chart as fallback
             const barCount = 20;
-            const sparkColor = isClean ? '#2563EB' : isMatrix ? '#00ff00' : '#00d4ff';
+            const sparkColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
             let barsHtml = '';
             for (let i = 0; i < barCount; i++) {
                 // Create a wave pattern
@@ -541,7 +543,9 @@ async function captureAndShare() {
     const _pickerTheme = document.body.getAttribute('data-theme');
     const isMatrix = _pickerTheme === 'matrix';
     const isClean = _pickerTheme === 'clean';
-    const accentColor = isClean ? '#2563EB' : isMatrix ? '#00ff00' : '#00d4ff';
+    const isDark = _pickerTheme === 'dark';
+    const isBubblegum = _pickerTheme === 'bubblegum';
+    const accentColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
     
     const modal = document.createElement('div');
     modal.id = 'section-picker-modal';
@@ -566,7 +570,7 @@ async function captureAndShare() {
                 </div>
             </div>
             <div style="padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 12px;">
-                <button id="section-capture-btn" class="share-action-btn" style="flex: 1; background: rgba(${isClean ? '37,99,235' : isMatrix ? '0,255,0' : '0,212,255'},0.15); border-color: ${accentColor}; color: ${accentColor}; font-weight: 600;">
+                <button id="section-capture-btn" class="share-action-btn" style="flex: 1; background: rgba(${isClean ? '37,99,235' : isDark ? '200,200,200' : isMatrix ? '0,255,0' : '0,212,255'},0.15); border-color: ${accentColor}; color: ${accentColor}; font-weight: 600;">
                     <span>📸</span> Capture
                 </button>
                 <button id="section-cancel-btn" class="share-action-btn" style="flex: 0 0 auto;">
@@ -737,14 +741,16 @@ async function doCaptureAndShare(selectedSections) {
         const _secTheme = document.body.getAttribute('data-theme');
         const isMatrix = _secTheme === 'matrix';
         const isClean = _secTheme === 'clean';
-        const brandColor = isClean ? '#2563EB' : isMatrix ? '#00ff00' : '#00d4ff';
+        const isDark = _secTheme === 'dark';
+        const isBubblegum = _secTheme === 'bubblegum';
+        const brandColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
         
         header.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
-                <span style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900; color: ${brandColor}; letter-spacing: 2px; text-transform: uppercase; text-shadow: ${isClean ? 'none' : `0 0 20px ${brandColor}40, 0 0 40px ${brandColor}20`};">TEZOS SYSTEMS</span>
+                <span style="font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: 900; color: ${brandColor}; letter-spacing: 2px; text-transform: uppercase; text-shadow: ${isClean || isDark ? 'none' : `0 0 20px ${brandColor}40, 0 0 40px ${brandColor}20`};">TEZOS SYSTEMS</span>
             </div>
             <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
-                <div style="font-size: 14px; color: ${isClean ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.6)'};">
+                <div style="font-size: 14px; color: ${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.6)' : 'rgba(255,255,255,0.6)'};">
                     ${new Date().toLocaleString('en-US', { 
                         month: 'short', 
                         day: 'numeric', 
@@ -754,7 +760,7 @@ async function doCaptureAndShare(selectedSections) {
                     })}
                 </div>
                 <span style="font-size: 13px; color: ${brandColor}; font-weight: 600; letter-spacing: 1px;">tezos.systems</span>
-                <span style="font-size: 13px; color: ${isClean ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)'}; letter-spacing: 0.5px;">Powered by <span style="color: ${brandColor}; font-weight: 600;">Tez Capital</span></span>
+                <span style="font-size: 13px; color: ${isClean ? 'rgba(0,0,0,0.4)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'}; letter-spacing: 0.5px;">Powered by <span style="color: ${brandColor}; font-weight: 600;">Tez Capital</span></span>
             </div>
         `;
         
@@ -773,7 +779,7 @@ async function doCaptureAndShare(selectedSections) {
         const restoreSpacing = await fixWordSpacing(wrapper);
         
         const canvas = await html2canvas(wrapper, {
-            backgroundColor: isClean ? '#F8F9FA' : isMatrix ? '#000000' : '#0a0a0f',
+            backgroundColor: isClean ? '#F8F9FA' : isDark ? '#1A1A1A' : isMatrix ? '#000000' : '#0a0a0f',
             scale: CAPTURE_SCALE,
             useCORS: true,
             logging: false,
@@ -827,8 +833,9 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     const _modalTheme2 = document.body.getAttribute('data-theme');
     const isMatrix = _modalTheme2 === 'matrix';
     const isClean = _modalTheme2 === 'clean';
-    const accent = isClean ? '#2563EB' : isMatrix ? '#00ff00' : '#00d4ff';
-    const accentRgb = isClean ? '37,99,235' : isMatrix ? '0,255,0' : '0,212,255';
+    const isDark = _modalTheme2 === 'dark';
+    const accent = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : '#00d4ff';
+    const accentRgb = isClean ? '37,99,235' : isDark ? '200,200,200' : isMatrix ? '0,255,0' : '0,212,255';
     
     // Check Web Share API support
     const canNativeShare = typeof navigator.canShare === 'function';
@@ -1074,10 +1081,11 @@ function showNotification(message, type = 'info') {
     const _notifTheme = document.body.getAttribute('data-theme');
     const isMatrix = _notifTheme === 'matrix';
     const isClean = _notifTheme === 'clean';
+    const isDark = _notifTheme === 'dark';
     const colors = {
-        success: isClean ? '#059669' : isMatrix ? '#00ff00' : '#10b981',
-        error: isClean ? '#DC2626' : isMatrix ? '#ff0000' : '#ef4444',
-        info: isClean ? '#2563EB' : isMatrix ? '#00ff00' : '#00d4ff'
+        success: isClean ? '#059669' : isDark ? '#4ADE80' : isMatrix ? '#00ff00' : '#10b981',
+        error: isClean ? '#DC2626' : isDark ? '#F87171' : isMatrix ? '#ff0000' : '#ef4444',
+        info: isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : '#00d4ff'
     };
     
     const notification = document.createElement('div');
@@ -1131,11 +1139,13 @@ async function getProtocolData() {
 }
 
 function getThemeColors() {
-    const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
-    const brand = isMatrix ? '#00ff00' : '#00d4ff';
-    const bg = isMatrix ? '#0a0a0a' : '#0a0a0f';
-    const brandRgb = isMatrix ? '0,255,0' : '0,212,255';
-    return { isMatrix, brand, bg, brandRgb };
+    const currentTheme = document.body.getAttribute('data-theme');
+    const isMatrix = currentTheme === 'matrix';
+    const isDark = currentTheme === 'dark';
+    const brand = isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : '#00d4ff';
+    const bg = isDark ? '#1A1A1A' : isMatrix ? '#0a0a0a' : '#0a0a0f';
+    const brandRgb = isDark ? '200,200,200' : isMatrix ? '0,255,0' : '0,212,255';
+    return { isMatrix, isDark, brand, bg, brandRgb };
 }
 
 function createBaseWrapper(bg, brandRgb) {
@@ -1462,7 +1472,7 @@ async function captureProtocolHistory(protocolName) {
 
         // Capture the modal content directly
         const canvas = await html2canvas(modalContent, {
-            backgroundColor: document.body.getAttribute('data-theme') === 'matrix' ? '#000800' : '#08081a',
+            backgroundColor: document.body.getAttribute('data-theme') === 'dark' ? '#1A1A1A' : document.body.getAttribute('data-theme') === 'matrix' ? '#000800' : '#08081a',
             scale: CAPTURE_SCALE,
             useCORS: true,
             logging: false,
@@ -1520,7 +1530,7 @@ async function captureHistoricalData() {
         const modalTitle = modalContent.querySelector('.modal-title');
         const origTitleStyle = modalTitle ? modalTitle.style.cssText : '';
         if (modalTitle) {
-            const accentColors = { matrix: '#00ff41', void: '#8B5CF6', ember: '#FF9F43', signal: '#00FFC8', default: '#00d4ff' };
+            const accentColors = { matrix: '#00ff41', void: '#8B5CF6', ember: '#FF9F43', signal: '#00FFC8', bubblegum: '#FF69B4', default: '#00d4ff' };
             const titleColor = accentColors[theme] || '#00d4ff';
             modalTitle.style.background = 'none';
             modalTitle.style.webkitBackgroundClip = 'unset';
@@ -1561,7 +1571,7 @@ async function captureHistoricalData() {
 
         const fullHeight = modalContent.scrollHeight;
         const fullWidth = modalContent.scrollWidth;
-        const bgColors = { matrix: '#000800', void: '#06060f', ember: '#0f0806', signal: '#060a0f', default: '#08081a' };
+        const bgColors = { matrix: '#000800', void: '#06060f', ember: '#0f0806', signal: '#060a0f', bubblegum: '#1A0F22', default: '#08081a' };
         const restoreSpacing = await fixWordSpacing(modalContent);
         const canvas = await html2canvas(modalContent, {
             backgroundColor: bgColors[theme] || '#08081a',

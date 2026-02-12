@@ -3,7 +3,7 @@
  * Shares the same canvas pattern as matrix-effects.js
  */
 
-const BG_THEMES = ['void', 'ember', 'signal'];
+const BG_THEMES = ['void', 'ember', 'signal', 'bubblegum'];
 
 class VoidEffect {
     constructor(canvas, ctx) {
@@ -391,6 +391,138 @@ class SignalEffect {
     }
 }
 
+class BubblegumEffect {
+    constructor(canvas, ctx) {
+        this.canvas = canvas;
+        this.ctx = ctx;
+        this.bubbles = [];
+        this.maxBubbles = 28;
+        this.animationId = null;
+    }
+
+    init() {
+        this.bubbles = [];
+        for (let i = 0; i < this.maxBubbles; i++) {
+            this.spawnBubble(true);
+        }
+    }
+
+    spawnBubble(randomAge) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Pick tier: 0=large/faint, 1=medium/glossy, 2=tiny
+        const tierRoll = Math.random();
+        let tier, radius, opacity;
+        if (tierRoll < 0.25) {
+            tier = 0; // large faint
+            radius = 30 + Math.random() * 30;
+            opacity = 0.04 + Math.random() * 0.02;
+        } else if (tierRoll < 0.6) {
+            tier = 1; // medium glossy
+            radius = 8 + Math.random() * 12;
+            opacity = 0.08 + Math.random() * 0.04;
+        } else {
+            tier = 2; // tiny
+            radius = 2 + Math.random() * 3;
+            opacity = 0.1 + Math.random() * 0.08;
+        }
+
+        // Pick color: 60% pink, 30% purple, 10% mint
+        const colorRoll = Math.random();
+        let r, g, b;
+        if (colorRoll < 0.6) {
+            // Pink range: #FF69B4 to #FF85C8
+            r = 255; g = 105 + Math.random() * 28; b = 180 + Math.random() * 20;
+        } else if (colorRoll < 0.9) {
+            // Purple range: #C47AFF to #9B59D0
+            r = 155 + Math.random() * 41; g = 89 + Math.random() * 33; b = 208 + Math.random() * 47;
+        } else {
+            // Mint: #7FFFBA
+            r = 127; g = 255; b = 186;
+        }
+
+        const life = 6000 + Math.random() * 6000;
+        this.bubbles.push({
+            x: Math.random() * w,
+            y: h + radius + Math.random() * 100,
+            radius,
+            opacity,
+            maxOpacity: opacity,
+            tier,
+            r, g, b,
+            speed: 0.2 + Math.random() * 0.4,
+            swayAmp: 15 + Math.random() * 25,
+            swayFreq: 0.001 + Math.random() * 0.002,
+            swayPhase: Math.random() * Math.PI * 2,
+            life,
+            age: randomAge ? Math.random() * life : 0,
+            scale: 1,
+        });
+    }
+
+    update(dt) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        for (let i = this.bubbles.length - 1; i >= 0; i--) {
+            const b = this.bubbles[i];
+            b.age += dt;
+
+            if (b.age > b.life || b.y + b.radius < -50) {
+                this.bubbles.splice(i, 1);
+                this.spawnBubble(false);
+                continue;
+            }
+
+            // Move up
+            b.y -= b.speed;
+
+            // Sine sway
+            b.x += Math.sin(b.age * b.swayFreq + b.swayPhase) * 0.3;
+
+            // Fade in/out with scale-up dissolve
+            const lifeFrac = b.age / b.life;
+            if (lifeFrac < 0.1) {
+                b.opacity = b.maxOpacity * (lifeFrac / 0.1);
+                b.scale = 1;
+            } else if (lifeFrac > 0.75) {
+                const fadeOut = 1 - (lifeFrac - 0.75) / 0.25;
+                b.opacity = b.maxOpacity * fadeOut;
+                b.scale = 1 + (1 - fadeOut) * 0.3; // gentle scale up
+            } else {
+                b.opacity = b.maxOpacity;
+                b.scale = 1;
+            }
+        }
+    }
+
+    draw(time) {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        for (const b of this.bubbles) {
+            const r = b.radius * b.scale;
+
+            ctx.beginPath();
+            ctx.arc(b.x, b.y, r, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${Math.round(b.r)}, ${Math.round(b.g)}, ${Math.round(b.b)}, ${b.opacity})`;
+            ctx.fill();
+
+            // Medium glossy bubbles get a white arc highlight
+            if (b.tier === 1) {
+                ctx.beginPath();
+                ctx.arc(b.x - r * 0.3, b.y - r * 0.3, r * 0.45, Math.PI * 1.1, Math.PI * 1.7);
+                ctx.strokeStyle = `rgba(255, 255, 255, ${b.opacity * 0.6})`;
+                ctx.lineWidth = Math.max(1, r * 0.1);
+                ctx.stroke();
+            }
+        }
+    }
+}
+
 // ============================================
 // MANAGER
 // ============================================
@@ -444,6 +576,8 @@ function startEffect(themeName) {
         currentEffect = new EmberEffect(canvas, ctx);
     } else if (themeName === 'signal') {
         currentEffect = new SignalEffect(canvas, ctx);
+    } else if (themeName === 'bubblegum') {
+        currentEffect = new BubblegumEffect(canvas, ctx);
     }
 
     if (currentEffect) {

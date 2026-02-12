@@ -4,7 +4,7 @@
  */
 
 const THEME_KEY = 'tezos-systems-theme';
-const THEMES = ['matrix', 'void', 'ember', 'signal', 'clean', 'default'];
+const THEMES = ['matrix', 'default', 'void', 'ember', 'signal', 'clean', 'dark', 'bubblegum'];
 const DEFAULT_THEME = 'matrix';
 
 // Theme color definitions for the picker dots
@@ -14,7 +14,9 @@ const THEME_COLORS = {
     'ember': { bg: '#0f0a08', accent: '#ff6b2b', text: '#ff9f43' },
     'signal': { bg: '#0a0f0e', accent: '#00ffc8', text: '#00d4ff' },
     'clean': { bg: '#ffffff', accent: '#0784c3', text: '#1e2022' },
-    'default': { bg: '#0f0f1a', accent: '#00d4ff', text: '#b794f6' }
+    'dark': { bg: '#1A1A1A', accent: '#C8C8C8', text: '#E8E8E8' },
+    'default': { bg: '#0f0f1a', accent: '#00d4ff', text: '#b794f6' },
+    'bubblegum': { bg: '#1A0F22', accent: '#FF69B4', text: '#F0E0F6' }
 };
 
 let currentPreviewTheme = null;
@@ -280,7 +282,9 @@ function updateThemeIcon(theme) {
             'void': '🕳️',
             'ember': '🌋',
             'signal': '📡',
-            'clean': '📊'
+            'clean': '📊',
+            'dark': '🌑',
+            'bubblegum': '🫧'
         };
 
         icon.textContent = icons[theme] || '🎨';

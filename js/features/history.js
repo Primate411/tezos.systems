@@ -22,10 +22,18 @@ export function createSparkline(canvasId, data, metric) {
     const isPositive = lastValue >= firstValue;
     const isMatrix = getCurrentTheme() === 'matrix';
 
-    // Matrix theme: all lines green. Default theme: cyan/pink based on trend
+    // Theme-aware sparkline colors
+    const currentThemeVal = getCurrentTheme();
     let lineColor;
-    if (isMatrix) {
-        lineColor = '#00ff41';  // Matrix green for all lines
+    if (currentThemeVal === 'matrix') {
+        lineColor = '#00ff41';
+    } else if (currentThemeVal === 'dark') {
+        // Achromatic: light gray for positive, dimmer gray for negative
+        lineColor = isPositive ? '#999999' : '#666666';
+    } else if (currentThemeVal === 'clean') {
+        lineColor = isPositive ? '#0784c3' : '#dc3545';
+    } else if (currentThemeVal === 'bubblegum') {
+        lineColor = isPositive ? '#FF69B4' : '#FF5E8A';
     } else {
         const positiveColor = '#00d4ff';
         const negativeColor = '#ff6b9d';

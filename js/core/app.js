@@ -4,7 +4,7 @@
  */
 
 import { fetchAllStats, checkApiHealth } from './api.js';
-import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes4';
+import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes5';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
     formatCount,
@@ -754,7 +754,7 @@ async function renderInfographic(protocols, timelineEl) {
     // Toggle button
     const toggleDiv = document.createElement('div');
     toggleDiv.className = 'infographic-toggle';
-    toggleDiv.innerHTML = `<button class="infographic-toggle-btn">View Full Timeline ▾</button>`;
+    toggleDiv.innerHTML = `<button class="infographic-toggle-btn">View Timeline ▾</button>`;
     // Place below the upgrade count (21 UPGRADES)
     const upgradeCount = document.querySelector('.upgrade-count');
     if (upgradeCount) {
@@ -833,7 +833,7 @@ async function renderInfographic(protocols, timelineEl) {
     const btn = toggleDiv.querySelector('.infographic-toggle-btn');
     btn.addEventListener('click', () => {
         const expanded = infographic.classList.toggle('expanded');
-        btn.textContent = expanded ? 'Hide Timeline ▴' : 'View Full Timeline ▾';
+        btn.textContent = expanded ? 'Hide Timeline ▴' : 'View Timeline ▾';
     });
 }
 
@@ -865,17 +865,19 @@ async function initRichTooltips(protocols) {
         const currentTheme = document.body.getAttribute('data-theme');
         const isMatrix = currentTheme === 'matrix';
         const isClean = currentTheme === 'clean';
+        const isDark = currentTheme === 'dark';
+        const isBubblegum = currentTheme === 'bubblegum';
         tooltipEl.style.cssText = `
             position: fixed; z-index: 10000; pointer-events: none;
             opacity: 0; visibility: hidden;
             transition: opacity 0.2s ease, visibility 0.2s ease;
-            background: ${isClean ? 'rgba(255, 255, 255, 0.98)' : isMatrix ? 'rgba(0, 10, 0, 0.98)' : 'rgba(10, 10, 15, 0.98)'};
-            border: 1px solid ${isClean ? 'rgba(0, 0, 0, 0.1)' : isMatrix ? 'rgba(0, 255, 0, 0.5)' : 'rgba(0, 212, 255, 0.4)'};
+            background: ${isClean ? 'rgba(255, 255, 255, 0.98)' : isDark ? 'rgba(26, 26, 26, 0.98)' : isMatrix ? 'rgba(0, 10, 0, 0.98)' : isBubblegum ? 'rgba(26, 15, 34, 0.98)' : 'rgba(10, 10, 15, 0.98)'};
+            border: 1px solid ${isClean ? 'rgba(0, 0, 0, 0.1)' : isDark ? '#333333' : isMatrix ? 'rgba(0, 255, 0, 0.5)' : isBubblegum ? 'rgba(255, 105, 180, 0.4)' : 'rgba(0, 212, 255, 0.4)'};
             border-radius: 10px; padding: 14px 16px;
             width: 340px; max-width: 90vw;
             box-shadow: ${isClean ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.6)'};
             font-size: 0.72rem; line-height: 1.5;
-            color: ${isClean ? '#1A1A2E' : isMatrix ? '#00ff00' : 'var(--text-primary)'};
+            color: ${isClean ? '#1A1A2E' : isDark ? '#E8E8E8' : isMatrix ? '#00ff00' : isBubblegum ? '#F0E0F6' : 'var(--text-primary)'};
         `;
         document.body.appendChild(tooltipEl);
     }
@@ -888,8 +890,8 @@ async function initRichTooltips(protocols) {
 
         item.addEventListener('mouseenter', (e) => {
             const _theme = document.body.getAttribute('data-theme');
-            const accent = _theme === 'clean' ? '#2563EB' : _theme === 'matrix' ? '#00ff00' : '#00d4ff';
-            const accentDim = _theme === 'clean' ? 'rgba(37,99,235,0.6)' : _theme === 'matrix' ? 'rgba(0,255,0,0.6)' : 'rgba(0,212,255,0.6)';
+            const accent = _theme === 'clean' ? '#2563EB' : _theme === 'dark' ? '#C8C8C8' : _theme === 'matrix' ? '#00ff00' : '#00d4ff';
+            const accentDim = _theme === 'clean' ? 'rgba(37,99,235,0.6)' : _theme === 'dark' ? 'rgba(200,200,200,0.6)' : _theme === 'matrix' ? 'rgba(0,255,0,0.6)' : 'rgba(0,212,255,0.6)';
             
             let html = '';
             // Title line
@@ -959,10 +961,12 @@ function showProtocolHistoryModal(history, protocolName) {
     const _modalTheme = document.body.getAttribute('data-theme');
     const isMatrix = _modalTheme === 'matrix';
     const isClean = _modalTheme === 'clean';
-    const accent = isClean ? '#2563EB' : isMatrix ? '#00ff00' : '#00d4ff';
-    const accentRgb = isClean ? '37,99,235' : isMatrix ? '0,255,0' : '0,212,255';
-    const bg = isClean ? 'rgba(255, 255, 255, 0.98)' : isMatrix ? 'rgba(0, 8, 0, 0.98)' : 'rgba(8, 8, 16, 0.98)';
-    const borderColor = isClean ? 'rgba(0,0,0,0.1)' : isMatrix ? 'rgba(0,255,0,0.3)' : 'rgba(0,212,255,0.3)';
+    const isDark = _modalTheme === 'dark';
+    const isBubblegum = _modalTheme === 'bubblegum';
+    const accent = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
+    const accentRgb = isClean ? '37,99,235' : isDark ? '200,200,200' : isMatrix ? '0,255,0' : isBubblegum ? '255,105,180' : '0,212,255';
+    const bg = isClean ? 'rgba(255, 255, 255, 0.98)' : isDark ? 'rgba(26, 26, 26, 0.98)' : isMatrix ? 'rgba(0, 8, 0, 0.98)' : isBubblegum ? 'rgba(26, 15, 34, 0.98)' : 'rgba(8, 8, 16, 0.98)';
+    const borderColor = isClean ? 'rgba(0,0,0,0.1)' : isDark ? '#333333' : isMatrix ? 'rgba(0,255,0,0.3)' : isBubblegum ? 'rgba(255,105,180,0.3)' : 'rgba(0,212,255,0.3)';
 
     let sectionsHtml = '';
     for (const section of history.sections) {
@@ -970,15 +974,15 @@ function showProtocolHistoryModal(history, protocolName) {
             sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
             sectionsHtml += `<div class="history-timeline" style="position:relative; padding-left:24px; border-left:2px solid ${borderColor};">`;
             for (const ev of section.events) {
-                const sideColor = ev.side === 'quebec' ? '#ff6b6b' : ev.side === 'qena' ? '#4ecdc4' : (isClean ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.5)');
+                const sideColor = ev.side === 'quebec' ? '#ff6b6b' : ev.side === 'qena' ? '#4ecdc4' : (isClean ? 'rgba(0,0,0,0.4)' : isDark ? 'rgba(200,200,200,0.5)' : 'rgba(255,255,255,0.5)');
                 sectionsHtml += `
                     <div style="margin-bottom:16px; position:relative;">
-                        <div style="position:absolute; left:-30px; top:4px; width:12px; height:12px; border-radius:50%; background:${sideColor}; box-shadow:${isClean ? 'none' : '0 0 8px ' + sideColor};"></div>
-                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.4)'}; font-size:0.72rem; font-weight:600; margin-bottom:2px;">${ev.date}</div>
-                        <div style="color:${isClean ? 'rgba(0,0,0,0.8)' : 'rgba(255,255,255,0.85)'}; font-size:0.82rem; line-height:1.5;">${ev.text}</div>
+                        <div style="position:absolute; left:-30px; top:4px; width:12px; height:12px; border-radius:50%; background:${sideColor}; box-shadow:${isClean || isDark ? 'none' : '0 0 8px ' + sideColor};"></div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'}; font-size:0.72rem; font-weight:600; margin-bottom:2px;">${ev.date}</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.8)' : isDark ? 'rgba(232,232,232,0.85)' : 'rgba(255,255,255,0.85)'}; font-size:0.82rem; line-height:1.5;">${ev.text}</div>
                     </div>`;
             }
-            sectionsHtml += `<div style="display:flex; gap:16px; margin-top:8px; font-size:0.68rem; color:${isClean ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.4)'};">
+            sectionsHtml += `<div style="display:flex; gap:16px; margin-top:8px; font-size:0.68rem; color:${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'};">
                 <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff6b6b;margin-right:4px;"></span>Quebec</span>
                 <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ecdc4;margin-right:4px;"></span>Qena</span>
             </div></div>`;
@@ -988,11 +992,11 @@ function showProtocolHistoryModal(history, protocolName) {
             for (const side of [section.left, section.right]) {
                 const sideColor = side === section.left ? '#ff6b6b' : '#4ecdc4';
                 sectionsHtml += `
-                    <div style="background:${isClean ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)'}; border:1px solid ${sideColor}30; border-radius:10px; padding:16px;">
+                    <div style="background:${isClean ? 'rgba(0,0,0,0.02)' : isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.03)'}; border:1px solid ${sideColor}30; border-radius:10px; padding:16px;">
                         <div style="color:${sideColor}; font-weight:700; font-size:0.9rem; margin-bottom:4px;">${side.name}</div>
-                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : 'rgba(255,255,255,0.4)'}; font-size:0.7rem; margin-bottom:8px;">${side.team}</div>
-                        <div style="color:${isClean ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.75)'}; font-size:0.8rem; line-height:1.5; margin-bottom:10px;">${side.position}</div>
-                        <div style="border-left:3px solid ${sideColor}40; padding-left:10px; color:${isClean ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)'}; font-style:italic; font-size:0.78rem; line-height:1.5;">"${side.quote}"</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'}; font-size:0.7rem; margin-bottom:8px;">${side.team}</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.75)' : isDark ? 'rgba(232,232,232,0.75)' : 'rgba(255,255,255,0.75)'}; font-size:0.8rem; line-height:1.5; margin-bottom:10px;">${side.position}</div>
+                        <div style="border-left:3px solid ${sideColor}40; padding-left:10px; color:${isClean ? 'rgba(0,0,0,0.6)' : isDark ? 'rgba(232,232,232,0.6)' : 'rgba(255,255,255,0.6)'}; font-style:italic; font-size:0.78rem; line-height:1.5;">"${side.quote}"</div>
                     </div>`;
             }
             sectionsHtml += `</div>`;
@@ -1000,9 +1004,9 @@ function showProtocolHistoryModal(history, protocolName) {
             sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
             const paras = section.content.split('\n\n');
             for (const p of paras) {
-                const textHigh = isClean ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.75)';
-                const textMid = isClean ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.6)';
-                const bgSubtle = isClean ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)';
+                const textHigh = isClean ? 'rgba(0,0,0,0.75)' : isDark ? 'rgba(232,232,232,0.75)' : 'rgba(255,255,255,0.75)';
+                const textMid = isClean ? 'rgba(0,0,0,0.6)' : isDark ? 'rgba(232,232,232,0.6)' : 'rgba(255,255,255,0.6)';
+                const bgSubtle = isClean ? 'rgba(0,0,0,0.02)' : isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.02)';
                 if (p.startsWith('•') || p.startsWith('- ')) {
                     sectionsHtml += `<div style="color:${textHigh}; font-size:0.82rem; line-height:1.6; margin-bottom:6px; padding-left:12px;">${p}</div>`;
                 } else if (p.startsWith('"') || p.startsWith('\u201c')) {

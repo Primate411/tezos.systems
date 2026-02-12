@@ -5,6 +5,100 @@
 
 const TARGET = 50; // 50% staking target
 
+function getThemeColors() {
+    const theme = document.body.getAttribute('data-theme') || 'default';
+    switch (theme) {
+        case 'clean':
+            return {
+                textColor: '#1e2022',
+                subColor: 'rgba(0,0,0,0.45)',
+                bgArc: 'rgba(0,0,0,0.08)',
+                tickColor: 'rgba(0,0,0,0.15)',
+                lowColor: { r: 220, g: 50, b: 50 },
+                highColor: { r: 5, g: 132, b: 195 }, // #0784c3
+                glowEnabled: false,
+                font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
+            };
+        case 'dark':
+            return {
+                textColor: '#E8E8E8',
+                subColor: 'rgba(255,255,255,0.35)',
+                bgArc: 'rgba(255,255,255,0.06)',
+                tickColor: 'rgba(255,255,255,0.1)',
+                lowColor: { r: 180, g: 180, b: 180 },
+                highColor: { r: 232, g: 232, b: 232 },
+                glowEnabled: false,
+                font: "-apple-system, BlinkMacSystemFont, 'Inter', sans-serif",
+            };
+        case 'matrix':
+            return {
+                textColor: '#00ff00',
+                subColor: 'rgba(255,255,255,0.45)',
+                bgArc: 'rgba(255,255,255,0.06)',
+                tickColor: 'rgba(255,255,255,0.15)',
+                lowColor: { r: 220, g: 30, b: 30 },
+                highColor: { r: 0, g: 220, b: 80 },
+                glowEnabled: true,
+                font: "'Orbitron', monospace",
+            };
+        case 'void':
+            return {
+                textColor: '#a78bfa',
+                subColor: 'rgba(255,255,255,0.45)',
+                bgArc: 'rgba(255,255,255,0.06)',
+                tickColor: 'rgba(255,255,255,0.15)',
+                lowColor: { r: 220, g: 30, b: 30 },
+                highColor: { r: 139, g: 92, b: 246 },
+                glowEnabled: true,
+                font: "'Orbitron', monospace",
+            };
+        case 'ember':
+            return {
+                textColor: '#ff9f43',
+                subColor: 'rgba(255,255,255,0.45)',
+                bgArc: 'rgba(255,255,255,0.06)',
+                tickColor: 'rgba(255,255,255,0.15)',
+                lowColor: { r: 220, g: 30, b: 30 },
+                highColor: { r: 255, g: 159, b: 67 },
+                glowEnabled: true,
+                font: "'Orbitron', monospace",
+            };
+        case 'signal':
+            return {
+                textColor: '#00ffc8',
+                subColor: 'rgba(255,255,255,0.45)',
+                bgArc: 'rgba(255,255,255,0.06)',
+                tickColor: 'rgba(255,255,255,0.15)',
+                lowColor: { r: 220, g: 30, b: 30 },
+                highColor: { r: 0, g: 255, b: 200 },
+                glowEnabled: true,
+                font: "'Orbitron', monospace",
+            };
+        case 'bubblegum':
+            return {
+                textColor: '#FF85C8',
+                subColor: 'rgba(160,125,181,0.6)',
+                bgArc: 'rgba(255,105,180,0.08)',
+                tickColor: 'rgba(255,105,180,0.15)',
+                lowColor: { r: 255, g: 94, b: 138 },
+                highColor: { r: 255, g: 105, b: 180 },
+                glowEnabled: true,
+                font: "'Orbitron', monospace",
+            };
+        default:
+            return {
+                textColor: '#00d4ff',
+                subColor: 'rgba(255,255,255,0.45)',
+                bgArc: 'rgba(255,255,255,0.06)',
+                tickColor: 'rgba(255,255,255,0.15)',
+                lowColor: { r: 220, g: 30, b: 30 },
+                highColor: { r: 0, g: 212, b: 255 },
+                glowEnabled: true,
+                font: "'Orbitron', monospace",
+            };
+    }
+}
+
 function getAccentColor() {
     return { r: 0, g: 200, b: 60 };
 }
@@ -35,13 +129,15 @@ function drawGauge(canvas, ratio, animated = true) {
     const startAngle = Math.PI;
     const endAngle = 2 * Math.PI;
 
+    const tc = getThemeColors();
+
     function render(t) {
         ctx.clearRect(0, 0, w, h);
 
-        // Background arc (dark)
+        // Background arc
         ctx.beginPath();
         ctx.arc(cx, cy, radius, startAngle, endAngle);
-        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.strokeStyle = tc.bgArc;
         ctx.lineWidth = lineWidth;
         ctx.lineCap = 'round';
         ctx.stroke();
@@ -55,7 +151,7 @@ function drawGauge(canvas, ratio, animated = true) {
             ctx.beginPath();
             ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
             ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
-            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.strokeStyle = tc.tickColor;
             ctx.lineWidth = 1.5;
             ctx.lineCap = 'round';
             ctx.stroke();
@@ -63,15 +159,14 @@ function drawGauge(canvas, ratio, animated = true) {
 
         // Progress arc
         if (t > 0) {
-            const red = { r: 220, g: 30, b: 30 };
-            const green = { r: 0, g: 220, b: 80 };
-            const currentColor = lerpColor(red, green, t * progress);
+            const currentColor = lerpColor(tc.lowColor, tc.highColor, t * progress);
             const sweepAngle = startAngle + (endAngle - startAngle) * progress * t;
 
-            // Glow
             ctx.save();
-            ctx.shadowColor = `rgba(${currentColor.r},${currentColor.g},${currentColor.b},0.5)`;
-            ctx.shadowBlur = 18;
+            if (tc.glowEnabled) {
+                ctx.shadowColor = `rgba(${currentColor.r},${currentColor.g},${currentColor.b},0.5)`;
+                ctx.shadowBlur = 18;
+            }
             ctx.beginPath();
             ctx.arc(cx, cy, radius, startAngle, sweepAngle);
             ctx.strokeStyle = `rgb(${currentColor.r},${currentColor.g},${currentColor.b})`;
@@ -83,19 +178,18 @@ function drawGauge(canvas, ratio, animated = true) {
 
         // Center text
         const displayRatio = (ratio * t).toFixed(1);
-        const textColor = '#00ff00';
 
         // Large percentage
-        ctx.font = `700 ${radius * 0.38}px 'Orbitron', monospace`;
-        ctx.fillStyle = textColor;
+        ctx.font = `700 ${radius * 0.38}px ${tc.font}`;
+        ctx.fillStyle = tc.textColor;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`${displayRatio}%`, cx, cy - radius * 0.08);
 
         // Subtitle
         const subSize = isSmall ? radius * 0.2 : radius * 0.13;
-        ctx.font = `400 ${subSize}px 'Orbitron', sans-serif`;
-        ctx.fillStyle = 'rgba(255,255,255,0.45)';
+        ctx.font = `400 ${subSize}px ${tc.font}`;
+        ctx.fillStyle = tc.subColor;
         ctx.fillText(`of ${TARGET}% target`, cx, cy + radius * 0.18);
 
         // Label removed — now an HTML element above canvas
@@ -155,7 +249,7 @@ function initGauge() {
     const themeObserver = new MutationObserver(() => {
         if (lastRatio !== null) drawGauge(canvas, lastRatio, false);
     });
-    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    themeObserver.observe(document.body, { attributes: true, attributeFilter: ['data-theme'] });
 
     // Resize
     let resizeTimer;
