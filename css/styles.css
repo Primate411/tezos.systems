@@ -4277,6 +4277,7 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 }
 
 /* ===== Streak Badge ===== */
+/* Streak badge — base (matrix green default) */
 .streak-badge {
     position: fixed;
     bottom: 20px;
@@ -4312,22 +4313,115 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     50% { box-shadow: 0 2px 24px rgba(0, 255, 0, 0.4), 0 0 40px rgba(0, 255, 0, 0.15); }
 }
 
-/* Cyber theme variant */
-[data-theme="cyber"] .streak-badge {
+/* Default/Cyber theme */
+[data-theme="default"] .streak-badge {
     background: rgba(10, 10, 25, 0.85);
-    border-color: rgba(0, 212, 255, 0.3);
-    color: #00d4ff;
-    box-shadow: 0 2px 12px rgba(0, 212, 255, 0.1);
+    border-color: rgba(0, 229, 255, 0.3);
+    color: #00E5FF;
+    box-shadow: 0 2px 12px rgba(0, 229, 255, 0.1);
+}
+[data-theme="default"] .streak-badge.milestone {
+    border-color: rgba(0, 229, 255, 0.6);
+    animation: streak-glow-default 2s ease-in-out infinite;
+}
+@keyframes streak-glow-default {
+    0%, 100% { box-shadow: 0 2px 12px rgba(0, 229, 255, 0.15); }
+    50% { box-shadow: 0 2px 24px rgba(0, 229, 255, 0.4), 0 0 40px rgba(0, 229, 255, 0.15); }
 }
 
-[data-theme="cyber"] .streak-badge.milestone {
-    border-color: rgba(0, 212, 255, 0.6);
-    animation: streak-glow-cyber 2s ease-in-out infinite;
+/* Void theme */
+[data-theme="void"] .streak-badge {
+    background: rgba(12, 6, 25, 0.9);
+    border-color: rgba(139, 92, 246, 0.3);
+    color: #A78BFA;
+    box-shadow: 0 2px 12px rgba(139, 92, 246, 0.1);
+}
+[data-theme="void"] .streak-badge.milestone {
+    border-color: rgba(139, 92, 246, 0.6);
+    animation: streak-glow-void 2s ease-in-out infinite;
+}
+@keyframes streak-glow-void {
+    0%, 100% { box-shadow: 0 2px 12px rgba(139, 92, 246, 0.15); }
+    50% { box-shadow: 0 2px 24px rgba(139, 92, 246, 0.4), 0 0 40px rgba(139, 92, 246, 0.15); }
 }
 
-@keyframes streak-glow-cyber {
-    0%, 100% { box-shadow: 0 2px 12px rgba(0, 212, 255, 0.15); }
-    50% { box-shadow: 0 2px 24px rgba(0, 212, 255, 0.4), 0 0 40px rgba(0, 212, 255, 0.15); }
+/* Ember theme */
+[data-theme="ember"] .streak-badge {
+    background: rgba(25, 12, 5, 0.9);
+    border-color: rgba(255, 138, 0, 0.3);
+    color: #FF8A00;
+    font-family: 'Chakra Petch', sans-serif;
+    box-shadow: 0 2px 12px rgba(255, 138, 0, 0.1);
+}
+[data-theme="ember"] .streak-badge.milestone {
+    border-color: rgba(255, 138, 0, 0.6);
+    animation: streak-glow-ember 2s ease-in-out infinite;
+}
+@keyframes streak-glow-ember {
+    0%, 100% { box-shadow: 0 2px 12px rgba(255, 138, 0, 0.15); }
+    50% { box-shadow: 0 2px 24px rgba(255, 138, 0, 0.4), 0 0 40px rgba(255, 138, 0, 0.15); }
+}
+
+/* Signal theme */
+[data-theme="signal"] .streak-badge {
+    background: rgba(8, 18, 20, 0.9);
+    border-color: rgba(0, 191, 165, 0.3);
+    color: #00BFA5;
+    box-shadow: 0 2px 12px rgba(0, 191, 165, 0.1);
+}
+[data-theme="signal"] .streak-badge.milestone {
+    border-color: rgba(0, 191, 165, 0.6);
+    animation: streak-glow-signal 2s ease-in-out infinite;
+}
+@keyframes streak-glow-signal {
+    0%, 100% { box-shadow: 0 2px 12px rgba(0, 191, 165, 0.15); }
+    50% { box-shadow: 0 2px 24px rgba(0, 191, 165, 0.4), 0 0 40px rgba(0, 191, 165, 0.15); }
+}
+
+/* Clean theme */
+[data-theme="clean"] .streak-badge {
+    background: rgba(255, 255, 255, 0.95);
+    border-color: #d5dae2;
+    color: #0784c3;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    letter-spacing: 0;
+}
+[data-theme="clean"] .streak-badge.milestone {
+    border-color: #0784c3;
+    animation: none;
+    box-shadow: 0 2px 12px rgba(7, 132, 195, 0.15);
+}
+
+/* Dark theme */
+[data-theme="dark"] .streak-badge {
+    background: rgba(30, 30, 30, 0.9);
+    border-color: #3a3a3a;
+    color: #C8C8C8;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    letter-spacing: 0;
+}
+[data-theme="dark"] .streak-badge.milestone {
+    border-color: #666;
+    animation: none;
+    box-shadow: 0 2px 12px rgba(200, 200, 200, 0.1);
+}
+
+/* Bubblegum theme */
+[data-theme="bubblegum"] .streak-badge {
+    background: rgba(31, 14, 24, 0.9);
+    border-color: rgba(255, 105, 180, 0.3);
+    color: #FF69B4;
+    box-shadow: 0 2px 12px rgba(255, 105, 180, 0.1);
+}
+[data-theme="bubblegum"] .streak-badge.milestone {
+    border-color: rgba(255, 105, 180, 0.6);
+    animation: streak-glow-bubblegum 2s ease-in-out infinite;
+}
+@keyframes streak-glow-bubblegum {
+    0%, 100% { box-shadow: 0 2px 12px rgba(255, 105, 180, 0.15); }
+    50% { box-shadow: 0 2px 24px rgba(255, 105, 180, 0.4), 0 0 40px rgba(255, 105, 180, 0.15); }
 }
 
 @media (max-width: 768px) {
@@ -4338,6 +4432,70 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
         padding: 6px 12px;
     }
 }
+
+/* ===== Deltas Panel (Since Last Visit) ===== */
+.deltas-panel {
+    background: rgba(15, 15, 25, 0.95);
+    border: 1px solid rgba(0, 255, 0, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+.deltas-panel .deltas-header { color: rgba(0, 255, 0, 0.6); }
+.deltas-panel .delta-label { color: #00ff00; }
+
+[data-theme="default"] .deltas-panel {
+    background: rgba(10, 10, 30, 0.95);
+    border-color: rgba(0, 229, 255, 0.2);
+}
+[data-theme="default"] .deltas-panel .deltas-header { color: rgba(0, 229, 255, 0.6); }
+[data-theme="default"] .deltas-panel .delta-label { color: #e0e0e0; }
+
+[data-theme="void"] .deltas-panel {
+    background: rgba(12, 6, 25, 0.95);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+[data-theme="void"] .deltas-panel .deltas-header { color: rgba(139, 92, 246, 0.6); }
+[data-theme="void"] .deltas-panel .delta-label { color: #e0d0ff; }
+
+[data-theme="ember"] .deltas-panel {
+    background: rgba(25, 12, 5, 0.95);
+    border-color: rgba(255, 138, 0, 0.2);
+}
+[data-theme="ember"] .deltas-panel .deltas-header { color: rgba(255, 138, 0, 0.6); }
+[data-theme="ember"] .deltas-panel .delta-label { color: #f0d0a0; }
+
+[data-theme="signal"] .deltas-panel {
+    background: rgba(8, 18, 20, 0.95);
+    border-color: rgba(0, 191, 165, 0.2);
+}
+[data-theme="signal"] .deltas-panel .deltas-header { color: rgba(0, 191, 165, 0.6); }
+[data-theme="signal"] .deltas-panel .delta-label { color: #d0e8e4; }
+
+[data-theme="clean"] .deltas-panel {
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid #d5dae2;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+[data-theme="clean"] .deltas-panel .deltas-header { color: #6c757d; }
+[data-theme="clean"] .deltas-panel .delta-label { color: #1e2022; }
+[data-theme="clean"] .deltas-panel .deltas-close { color: #6c757d; }
+[data-theme="clean"] .deltas-panel .deltas-close:hover { color: #1e2022; }
+
+[data-theme="dark"] .deltas-panel {
+    background: rgba(30, 30, 30, 0.95);
+    border: 1px solid #3a3a3a;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+[data-theme="dark"] .deltas-panel .deltas-header { color: #9A9A9A; }
+[data-theme="dark"] .deltas-panel .delta-label { color: #E8E8E8; }
+[data-theme="dark"] .deltas-panel .deltas-close { color: #9A9A9A; }
+[data-theme="dark"] .deltas-panel .deltas-close:hover { color: #E8E8E8; }
+
+[data-theme="bubblegum"] .deltas-panel {
+    background: rgba(31, 14, 24, 0.95);
+    border-color: rgba(255, 105, 180, 0.2);
+}
+[data-theme="bubblegum"] .deltas-panel .deltas-header { color: rgba(255, 105, 180, 0.6); }
+[data-theme="bubblegum"] .deltas-panel .delta-label { color: #F5E0EE; }
 
 /* ===== Staking Target Gauge ===== */
 /* Staking Gauge - full-width row in stats-grid */
@@ -6272,14 +6430,17 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 }
 
 [data-theme="clean"] .glass-button {
-    border: 1px solid #e7eaf3;
-    background: #FFFFFF;
-    color: #1e2022;
+    border: 1px solid #d5dae2;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #6c757d;
 }
 
 [data-theme="clean"] .glass-button:hover {
-    border-color: #cbd5e0;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: #0784c3;
+    color: #0784c3;
+    box-shadow: 0 2px 8px rgba(7, 132, 195, 0.12);
 }
 
 /* Price changes - standard fintech colors but no rainbow numbers */
@@ -6950,14 +7111,18 @@ body {
 }
 
 [data-theme="dark"] .glass-button {
-    background: #2A2A2A;
-    border: 1px solid #333333;
+    background: rgba(42, 42, 42, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid #3a3a3a;
+    color: #9A9A9A;
 }
 
 [data-theme="dark"] .glass-button:hover {
-    background: #323232;
-    border-color: #484848;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: rgba(50, 50, 50, 0.6);
+    border-color: #555555;
+    color: #E8E8E8;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Price changes - keep green/red ONLY for these */
@@ -7116,14 +7281,17 @@ body {
 
 /* Glass buttons compact */
 [data-theme="dark"] .glass-button {
-    border: 1px solid #333333;
-    background: #2A2A2A;
-    color: #E8E8E8;
+    border: 1px solid #3a3a3a;
+    background: rgba(42, 42, 42, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #9A9A9A;
 }
 
 [data-theme="dark"] .glass-button:hover {
-    border-color: #484848;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: #555555;
+    color: #E8E8E8;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* Timeline compact */

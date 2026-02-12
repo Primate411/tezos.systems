@@ -227,13 +227,10 @@ function showDeltasPanel(deltas) {
         position: fixed;
         top: 60px;
         right: 10px;
-        background: var(--color-surface, rgba(15, 15, 25, 0.95));
-        border: 1px solid var(--color-border, rgba(255,255,255,0.1));
         border-radius: 8px;
         padding: 12px 16px;
         min-width: 180px;
         z-index: 1001;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         opacity: 0;
         transform: translateY(-10px);
         transition: opacity 0.3s ease, transform 0.3s ease;
@@ -250,19 +247,14 @@ function showDeltasPanel(deltas) {
             align-items: center;
             margin-bottom: 10px;
             font-size: 0.8rem;
-            color: var(--color-text-secondary, #888);
         }
         .deltas-panel .deltas-close {
             background: none;
             border: none;
-            color: var(--color-text-secondary, #888);
             cursor: pointer;
             font-size: 1.2rem;
             padding: 0;
             line-height: 1;
-        }
-        .deltas-panel .deltas-close:hover {
-            color: var(--color-text, #fff);
         }
         .deltas-panel .delta-item {
             display: flex;
@@ -270,9 +262,6 @@ function showDeltasPanel(deltas) {
             align-items: center;
             padding: 4px 0;
             font-size: 0.85rem;
-        }
-        .deltas-panel .delta-label {
-            color: var(--color-text, #fff);
         }
     `;
     document.head.appendChild(style);
