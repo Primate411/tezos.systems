@@ -454,6 +454,7 @@ async function captureCard(card) {
         `;
         footer.innerHTML = `
             <span style="font-size: 13px; color: rgba(255,255,255,0.3);">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span style="font-size: 13px; color: ${brandColor}; font-weight: 600; letter-spacing: 1px;">tezos.systems</span>
             <span style="font-size: 13px; color: rgba(255,255,255,0.35); letter-spacing: 0.5px;">Powered by <span style="color: ${brandColor}; font-weight: 600;">Tez Capital</span></span>
         `;
         wrapper.appendChild(footer);
@@ -725,6 +726,7 @@ async function doCaptureAndShare(selectedSections) {
                         minute: '2-digit'
                     })}
                 </div>
+                <span style="font-size: 13px; color: ${brandColor}; font-weight: 600; letter-spacing: 1px;">tezos.systems</span>
                 <span style="font-size: 13px; color: rgba(255,255,255,0.4); letter-spacing: 0.5px;">Powered by <span style="color: ${brandColor}; font-weight: 600;">Tez Capital</span></span>
             </div>
         `;
@@ -1144,6 +1146,7 @@ function addFooter(wrapper, brand, leftText) {
     `;
     footer.innerHTML = `
         <span style="font-size: 13px; color: rgba(255,255,255,0.35);">${leftText}</span>
+        <span style="font-size: 13px; color: ${brand}; font-weight: 600; letter-spacing: 1px;">tezos.systems</span>
         <span style="font-size: 13px; color: rgba(255,255,255,0.35); letter-spacing: 0.5px;">Powered by <span style="color: ${brand}; font-weight: 600;">Tez Capital</span></span>
     `;
     wrapper.appendChild(footer);
