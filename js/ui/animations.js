@@ -3,12 +3,12 @@
  * Manages animation queue to prevent overlapping flips
  */
 
-import { sleep } from './utils.js';
+import { sleep } from '../core/utils.js';
 
 // Import arcade effects (dynamic to avoid circular dependency)
 let arcadeEffects = null;
 try {
-    import('./arcade-effects.js').then(module => {
+    import('../effects/arcade-effects.js').then(module => {
         arcadeEffects = module;
     });
 } catch (e) {

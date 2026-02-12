@@ -3,7 +3,7 @@
  */
 
 import { fetchObjktProfile, resolveIpfs } from './objkt.js';
-import { escapeHtml } from './utils.js';
+import { escapeHtml } from '../core/utils.js';
 
 const STORAGE_KEY = 'tezos-systems-objkt-address';
 const VISIBLE_KEY = 'tezos-systems-objkt-visible';

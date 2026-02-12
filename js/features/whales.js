@@ -3,8 +3,8 @@
  * Shows notable XTZ movements with context
  */
 
-import { escapeHtml } from './utils.js';
-import { THRESHOLDS, API_URLS } from './config.js';
+import { escapeHtml } from '../core/utils.js';
+import { THRESHOLDS, API_URLS } from '../core/config.js';
 
 // Known address labels
 const ADDRESS_LABELS = {

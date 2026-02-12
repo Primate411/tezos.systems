@@ -1,8 +1,8 @@
 // Historical data visualization module
 // Handles sparklines and full charts using Chart.js
 
-import { fetchHistoricalData } from './api.js';
-import { getCurrentTheme } from './theme.js';
+import { fetchHistoricalData } from '../core/api.js';
+import { getCurrentTheme } from '../ui/theme.js';
 
 // Store chart instances for cleanup
 const chartInstances = {};

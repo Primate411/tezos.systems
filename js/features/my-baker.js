@@ -3,8 +3,8 @@
  * Shows delegation target, staking balance, estimated rewards, and baker info
  */
 
-import { API_URLS } from './config.js';
-import { escapeHtml, formatNumber } from './utils.js';
+import { API_URLS } from '../core/config.js';
+import { escapeHtml, formatNumber } from '../core/utils.js';
 // objkt.js moved to standalone section
 
 const STORAGE_KEY = 'tezos-systems-my-baker-address';

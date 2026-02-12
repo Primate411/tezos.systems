@@ -4,7 +4,7 @@
  * Caches data per user session, refreshes every 30 minutes
  */
 
-import { REFRESH_INTERVALS } from './config.js';
+import { REFRESH_INTERVALS } from '../core/config.js';
 
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd,eur,btc&include_24hr_change=true&include_market_cap=true';
 const COINGECKO_PAGE = 'https://www.coingecko.com/en/coins/tezos';

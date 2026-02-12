@@ -3379,6 +3379,14 @@ body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible 
     scrollbar-color: var(--accent-cyan) rgba(0, 0, 0, 0.3);
 }
 
+/* Fix word-spacing in protocol history modals (mobile rendering bug) */
+#protocol-history-modal .modal-large *,
+#history-modal .modal-large * {
+    word-spacing: 0.15em !important;
+    text-rendering: geometricPrecision;
+    -webkit-text-size-adjust: 100%;
+}
+
 /* Matrix theme scrollbar */
 [data-theme="matrix"] .modal-large::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, #00ff00 0%, #00aa00 100%);

@@ -8,13 +8,32 @@ let html2canvasLoaded = false;
 // Use scale 1 on mobile to avoid OOM failures
 const CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
 
+/**
+ * Fix html2canvas word-spacing bug: force explicit word-spacing on text elements
+ * before capture, returns a restore function to call after.
+ */
+async function fixWordSpacing(container) {
+    // Wait for all fonts to load before capture (prevents metric mismatch)
+    if (document.fonts && document.fonts.ready) {
+        await document.fonts.ready;
+    }
+    const els = container.querySelectorAll('*');
+    const orig = [];
+    els.forEach(el => {
+        orig.push(el.style.wordSpacing);
+        if (!el.style.wordSpacing || el.style.wordSpacing === 'normal') {
+            el.style.wordSpacing = '3.5px';
+        }
+    });
+    return () => els.forEach((el, i) => { el.style.wordSpacing = orig[i]; });
+}
 
 // Tweet data loaded lazily from tweets.json
 let _tweetsData = null;
 async function loadTweetsData() {
     if (_tweetsData) return _tweetsData;
     try {
-        const resp = await fetch('tweets.json?v=' + Date.now());
+        const resp = await fetch('/data/tweets.json?v=' + Date.now());
         _tweetsData = await resp.json();
         return _tweetsData;
     } catch (e) {
@@ -460,6 +479,7 @@ async function captureCard(card) {
         wrapper.appendChild(footer);
         
         document.body.appendChild(wrapper);
+        const restoreSpacing = await fixWordSpacing(wrapper);
         
         const canvas = await html2canvas(wrapper, {
             backgroundColor: bgColor,
@@ -471,6 +491,7 @@ async function captureCard(card) {
             windowWidth: 600
         });
         
+        restoreSpacing();
         wrapper.remove();
         
         const allOptions = await getTweetOptions(card);
@@ -743,6 +764,7 @@ async function doCaptureAndShare(selectedSections) {
         // Trim wrapper height to actual content (avoid dead space)
         const actualHeight = wrapper.scrollHeight;
         wrapper.style.height = actualHeight + 'px';
+        const restoreSpacing = await fixWordSpacing(wrapper);
         
         const canvas = await html2canvas(wrapper, {
             backgroundColor: isMatrix ? '#000000' : '#0a0a0f',
@@ -754,6 +776,7 @@ async function doCaptureAndShare(selectedSections) {
             windowWidth: 600
         });
         
+        restoreSpacing();
         wrapper.remove();
         elementsToHide.forEach(el => el.style.visibility = '');
         
@@ -1088,7 +1111,7 @@ let protocolDataCache = null;
 async function getProtocolData() {
     if (protocolDataCache) return protocolDataCache;
     try {
-        const resp = await fetch('protocol-data.json');
+        const resp = await fetch('/data/protocol-data.json');
         protocolDataCache = await resp.json();
         return protocolDataCache;
     } catch (e) {
@@ -1222,10 +1245,12 @@ export async function captureProtocol(protocol) {
         wrapper.appendChild(content);
         addFooter(wrapper, brand, `${total} upgrades • Zero forks`);
         document.body.appendChild(wrapper);
+        const restoreSpacing = await fixWordSpacing(wrapper);
 
         const canvas = await html2canvas(wrapper, {
             backgroundColor: bg, scale: CAPTURE_SCALE, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
         });
+        restoreSpacing();
         wrapper.remove();
 
         const suffix = '\n\nhttps://tezos.systems';
@@ -1317,10 +1342,12 @@ export async function captureTimeline(allProtocols) {
         wrapper.appendChild(content);
         addFooter(wrapper, brand, new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
         document.body.appendChild(wrapper);
+        const restoreSpacing = await fixWordSpacing(wrapper);
 
         const canvas = await html2canvas(wrapper, {
             backgroundColor: bg, scale: CAPTURE_SCALE, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
         });
+        restoreSpacing();
         wrapper.remove();
 
         const suffix = '\n\nhttps://tezos.systems';
@@ -1420,6 +1447,9 @@ async function captureProtocolHistory(protocolName) {
         const total = data?.meta?.totalUpgrades || 21;
         const num = protocol ? protocol.number - 3 : '?';
 
+        // Fix html2canvas word-spacing bug
+        const restoreSpacing = await fixWordSpacing(modalContent);
+
         // Capture the modal content directly
         const canvas = await html2canvas(modalContent, {
             backgroundColor: document.body.getAttribute('data-theme') === 'matrix' ? '#000800' : '#08081a',
@@ -1429,6 +1459,8 @@ async function captureProtocolHistory(protocolName) {
             width: modalContent.scrollWidth,
             windowWidth: modalContent.scrollWidth
         });
+
+        restoreSpacing();
 
         // Get tweet options for this protocol
         const suffix = '\n\nhttps://tezos.systems';
@@ -1520,6 +1552,7 @@ async function captureHistoricalData() {
         const fullHeight = modalContent.scrollHeight;
         const fullWidth = modalContent.scrollWidth;
         const bgColors = { matrix: '#000800', void: '#06060f', ember: '#0f0806', signal: '#060a0f', default: '#08081a' };
+        const restoreSpacing = await fixWordSpacing(modalContent);
         const canvas = await html2canvas(modalContent, {
             backgroundColor: bgColors[theme] || '#08081a',
             scale: CAPTURE_SCALE,
@@ -1530,6 +1563,8 @@ async function captureHistoricalData() {
             width: fullWidth,
             windowWidth: fullWidth
         });
+
+        restoreSpacing();
 
         // Restore original canvases
         canvasBackups.reverse().forEach(({ canvas: orig, img, parent }) => {

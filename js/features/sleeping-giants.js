@@ -3,8 +3,8 @@
  * Tracks large wallets that have been dormant and alerts when they awaken
  */
 
-import { escapeHtml } from './utils.js';
-import { THRESHOLDS, API_URLS } from './config.js';
+import { escapeHtml } from '../core/utils.js';
+import { THRESHOLDS, API_URLS } from '../core/config.js';
 
 // Configuration
 const CONFIG = {

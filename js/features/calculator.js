@@ -3,7 +3,7 @@
  * Calculates estimated XTZ staking/delegation/baker rewards with compound projections
  */
 
-import { fetchStakingAPY } from './api.js';
+import { fetchStakingAPY } from '../core/api.js';
 
 const STORAGE_KEY = 'tezos-calc-state';
 const COINGECKO_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd';

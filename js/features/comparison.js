@@ -5,7 +5,7 @@
 
 const COMPARISON_CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
 
-import { CHAIN_COMPARISON, API_URLS } from './config.js';
+import { CHAIN_COMPARISON, API_URLS } from '../core/config.js';
 
 // --- Full comparison tweet options ---
 const COMPARISON_TWEETS_FULL = [
@@ -82,7 +82,7 @@ const COMPARISON_TWEETS_PER_METRIC = {
         { label: 'Economics', text: '~$0.01 per transaction.\n\nAffordable enough for real apps, expensive enough to prevent spam. The sweet spot for sustainable economics.' },
     ],
 };
-import { loadHtml2Canvas, showShareModal } from './share.js';
+import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 
 // Metric definitions: key, label, tezosLive getter, winner logic
 const METRICS = [

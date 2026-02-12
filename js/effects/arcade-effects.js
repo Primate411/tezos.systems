@@ -4,7 +4,7 @@
  */
 
 import { initAudio, playClick, playHover, playActivate, playTrail, toggleAudio, isAudioEnabled } from './audio.js';
-import { throttle, debounce } from './utils.js';
+import { throttle, debounce } from '../core/utils.js';
 
 const ULTRA_MODES = {
     terminal: {

@@ -4,8 +4,8 @@
  */
 
 import { fetchAllStats, checkApiHealth } from './api.js';
-import { initTheme, toggleTheme } from './theme.js?v=themes2';
-import { flipCard, updateStatInstant, showLoading, showError } from './animations.js';
+import { initTheme, toggleTheme } from '../ui/theme.js?v=themes2';
+import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
     formatCount,
     formatPercentage,
@@ -15,22 +15,22 @@ import {
     formatSupply,
     escapeHtml
 } from './utils.js';
-import { initArcadeEffects, toggleUltraMode } from './arcade-effects.js';
-import { initHistoryModal, updateSparklines } from './history.js';
-import { initShare, initProtocolShare } from './share.js';
-import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from './governance.js';
+import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
+import { initHistoryModal, updateSparklines } from '../features/history.js';
+import { initShare, initProtocolShare } from '../ui/share.js';
+import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
-import { initTabs } from './tabs.js';
-import { initWhaleTracker } from './whales.js';
-import { initSleepingGiants } from './sleeping-giants.js';
-import { initPriceBar } from './price.js';
-import { initStreak } from './streak.js';
-import { updatePageTitle } from './title.js';
+import { initTabs } from '../ui/tabs.js';
+import { initWhaleTracker } from '../features/whales.js';
+import { initSleepingGiants } from '../features/sleeping-giants.js';
+import { initPriceBar } from '../features/price.js';
+import { initStreak } from '../features/streak.js';
+import { updatePageTitle } from '../ui/title.js';
 import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH } from './config.js';
-import { initComparison, updateComparison } from './comparison.js';
-import { init as initMyBaker, refresh as refreshMyBaker } from './my-baker.js';
-import { initCalculator } from './calculator.js';
-import { initObjkt } from './objkt-ui.js';
+import { initComparison, updateComparison } from '../features/comparison.js';
+import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js';
+import { initCalculator } from '../features/calculator.js';
+import { initObjkt } from '../features/objkt-ui.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -841,7 +841,7 @@ let _protocolDataCache = null;
 async function loadProtocolData() {
     if (_protocolDataCache) return _protocolDataCache;
     try {
-        const resp = await fetch('protocol-data.json?v=' + Date.now());
+        const resp = await fetch('/data/protocol-data.json?v=' + Date.now());
         _protocolDataCache = await resp.json();
         return _protocolDataCache;
     } catch (e) { return null; }
