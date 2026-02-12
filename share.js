@@ -941,12 +941,34 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     });
     
     // Download
-    modal.querySelector('#share-download').addEventListener('click', () => {
-        const link = document.createElement('a');
-        link.download = `tezos-systems-${Date.now()}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-        showNotification('Image downloaded!', 'success');
+    modal.querySelector('#share-download').addEventListener('click', async () => {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        
+        if (isMobile && navigator.canShare) {
+            // Mobile: use Web Share API to trigger native save/share
+            try {
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                const file = new File([blob], `tezos-systems-${Date.now()}.png`, { type: 'image/png' });
+                await navigator.share({ files: [file] });
+                showNotification('Shared!', 'success');
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    // Fallback: open image in new tab for long-press save
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const w = window.open();
+                    if (w) {
+                        w.document.write(`<img src="${dataUrl}" style="max-width:100%"><p style="text-align:center;font-family:sans-serif;color:#888;">Long-press the image to save</p>`);
+                    }
+                }
+            }
+        } else {
+            // Desktop: standard download
+            const link = document.createElement('a');
+            link.download = `tezos-systems-${Date.now()}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showNotification('Image downloaded!', 'success');
+        }
     });
     
     // Copy to clipboard
@@ -1428,3 +1450,39 @@ async function captureProtocolHistory(protocolName) {
 // Expose captureProtocol globally for infographic row clicks
 window.captureProtocol = captureProtocol;
 window.captureProtocolHistory = captureProtocolHistory;
+
+/**
+ * Capture the Historical Data modal as a shareable image
+ */
+async function captureHistoricalData() {
+    try {
+        await loadHtml2Canvas();
+        const modalContent = document.querySelector('#history-modal .modal-large');
+        if (!modalContent) return;
+
+        // Get selected time range
+        const activeBtn = document.querySelector('.time-range-btn.active');
+        const range = activeBtn ? activeBtn.textContent.trim() : '7 Days';
+
+        const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
+        const canvas = await html2canvas(modalContent, {
+            backgroundColor: isMatrix ? '#000800' : '#08081a',
+            scale: CAPTURE_SCALE,
+            useCORS: true,
+            logging: false,
+            width: modalContent.scrollWidth,
+            windowWidth: modalContent.scrollWidth
+        });
+
+        const suffix = '\n\nhttps://tezos.systems';
+        const tweetOptions = [
+            { label: '📊 Standard', text: `Tezos historical data — ${range} view${suffix}` }
+        ];
+        showShareModal(canvas, tweetOptions, `📈 Historical Data (${range})`);
+    } catch (error) {
+        console.error('Historical data capture failed:', error);
+        showNotification('Screenshot failed. Try again.', 'error');
+    }
+}
+
+window.captureHistoricalData = captureHistoricalData;

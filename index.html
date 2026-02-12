@@ -194,13 +194,23 @@
                             </svg>
                         </button>
                     </div>
-                    <div class="upgrade-badge">
+                    <div class="upgrade-badge" style="position:relative;">
                         <span class="badge-text">Zero Forks</span>
                         <span class="badge-subtext">Self-amending blockchain</span>
+                        <button class="info-button stake-o-meter-info" id="zero-forks-info-btn" aria-label="About Zero Forks" title="About Zero Forks">
+                            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
                     </div>
-                    <div class="upgrade-badge">
+                    <div class="upgrade-badge" style="position:relative;">
                         <span class="badge-text" id="days-live">—</span>
                         <span class="badge-subtext">Days live • 0 outages</span>
+                        <button class="info-button stake-o-meter-info" id="days-live-info-btn" aria-label="About Tezos Uptime" title="About Tezos Uptime">
+                            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1183,6 +1193,54 @@
         </div>
     </div>
 
+    <!-- Zero Forks Info Modal -->
+    <div class="modal-overlay" id="zero-forks-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="zero-forks-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Zero Forks</h3>
+            <div class="modal-body">
+                <p>
+                    Tezos has <strong>never forked</strong>. Unlike most blockchains that split into competing chains 
+                    when major upgrades happen, Tezos upgrades itself through <strong>on-chain governance</strong>.
+                </p>
+                <ul>
+                    <li><strong>Self-amending</strong>: Protocol changes are proposed, tested, and voted on-chain by bakers</li>
+                    <li><strong>No community splits</strong>: Upgrades are consensus-driven — no "Tezos Classic" scenarios</li>
+                    <li><strong>21 upgrades and counting</strong>: From Athens (2019) to Tallinn (2026), every upgrade adopted seamlessly</li>
+                    <li><strong>Why it matters</strong>: Forks split communities, liquidity, and developer attention — Tezos avoids all of that</li>
+                </ul>
+                <div class="modal-links">
+                    <a href="https://docs.tezos.com/architecture/governance" target="_blank" rel="noopener">Tezos Docs: Governance</a>
+                    <a href="https://tezos.com/governance" target="_blank" rel="noopener">Tezos.com: Governance</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Days Live / Uptime Info Modal -->
+    <div class="modal-overlay" id="days-live-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="days-live-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Tezos Uptime</h3>
+            <div class="modal-body">
+                <p>
+                    Tezos mainnet launched on <strong>June 30, 2018</strong> and has maintained 
+                    <strong>100% uptime with zero outages</strong> — no downtime, no halts, no emergency restarts.
+                </p>
+                <ul>
+                    <li><strong>Always online</strong>: The chain has never stopped producing blocks since genesis</li>
+                    <li><strong>No emergency patches</strong>: Unlike some chains that required manual intervention or halts</li>
+                    <li><strong>Battle-tested consensus</strong>: Tenderbake (now with 6-second blocks) has proven rock-solid</li>
+                    <li><strong>Deterministic finality</strong>: Blocks are final after 2 confirmations (~12 seconds)</li>
+                </ul>
+                <div class="modal-links">
+                    <a href="https://tzkt.io" target="_blank" rel="noopener">TzKT: Block Explorer</a>
+                    <a href="https://docs.tezos.com/architecture/consensus" target="_blank" rel="noopener">Tezos Docs: Consensus</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Network Info Modal -->
     <div class="modal-overlay" id="network-modal" aria-hidden="true">
         <div class="modal-content">
@@ -1254,7 +1312,12 @@
     <div class="modal-overlay" id="history-modal" aria-hidden="true">
         <div class="modal-content modal-large">
             <button class="modal-close" id="history-modal-close">&times;</button>
-            <h3 class="modal-title">Historical Data</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+                <h3 class="modal-title" style="margin: 0;">Historical Data</h3>
+                <button class="info-button" id="history-share-btn" aria-label="Share snapshot" title="Share snapshot" style="margin-right: 32px;">
+                    📸
+                </button>
+            </div>
 
             <div class="history-controls">
                 <button class="time-range-btn" data-range="24h">24 Hours</button>

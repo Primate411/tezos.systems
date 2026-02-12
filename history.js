@@ -443,6 +443,16 @@ export function initHistoryModal() {
             await updateHistoryCharts(currentRange);
         });
     });
+
+    // Share button
+    const shareBtn = document.getElementById('history-share-btn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', () => {
+            if (typeof window.captureHistoricalData === 'function') {
+                window.captureHistoricalData();
+            }
+        });
+    }
 }
 
 // Update all charts in history modal
