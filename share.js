@@ -1464,27 +1464,81 @@ async function captureHistoricalData() {
         const activeBtn = document.querySelector('.time-range-btn.active');
         const range = activeBtn ? activeBtn.textContent.trim() : '7 Days';
 
+        // Hide close & share buttons during capture
+        const closeBtn = modalContent.querySelector('.modal-close');
+        const shareBtn = modalContent.querySelector('#history-share-btn');
+        if (closeBtn) closeBtn.style.display = 'none';
+        if (shareBtn) shareBtn.style.display = 'none';
+
+        // Fix gradient text (html2canvas can't render background-clip: text)
+        const theme = document.body.getAttribute('data-theme') || 'default';
+        const modalTitle = modalContent.querySelector('.modal-title');
+        const origTitleStyle = modalTitle ? modalTitle.style.cssText : '';
+        if (modalTitle) {
+            const accentColors = { matrix: '#00ff41', void: '#8B5CF6', ember: '#FF9F43', signal: '#00FFC8', default: '#00d4ff' };
+            const titleColor = accentColors[theme] || '#00d4ff';
+            modalTitle.style.background = 'none';
+            modalTitle.style.webkitBackgroundClip = 'unset';
+            modalTitle.style.backgroundClip = 'unset';
+            modalTitle.style.webkitTextFillColor = titleColor;
+            modalTitle.style.color = titleColor;
+        }
+
         // Temporarily remove scroll constraints so html2canvas captures ALL charts
         const origMaxHeight = modalContent.style.maxHeight;
         const origOverflow = modalContent.style.overflow;
         modalContent.style.maxHeight = 'none';
         modalContent.style.overflow = 'visible';
 
-        const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
+        // Convert Chart.js canvases to images (html2canvas can't render them)
+        const chartCanvases = Array.from(modalContent.querySelectorAll('canvas'));
+        const canvasBackups = [];
+        chartCanvases.forEach(origCanvas => {
+            if (origCanvas.width > 0 && origCanvas.height > 0) {
+                try {
+                    const img = document.createElement('img');
+                    img.src = origCanvas.toDataURL('image/png');
+                    img.style.width = '100%';
+                    img.style.height = origCanvas.offsetHeight + 'px';
+                    img.style.display = 'block';
+                    const parent = origCanvas.parentNode;
+                    const nextSib = origCanvas.nextSibling;
+                    parent.replaceChild(img, origCanvas);
+                    canvasBackups.push({ canvas: origCanvas, img, parent, nextSib });
+                } catch(e) { /* ignore */ }
+            }
+        });
+
+        // Force reflow after canvas→img swap so scrollHeight is accurate
+        void modalContent.offsetHeight;
+        // Wait a tick for images to settle in layout
+        await new Promise(r => setTimeout(r, 100));
+
+        const fullHeight = modalContent.scrollHeight;
+        const fullWidth = modalContent.scrollWidth;
+        const bgColors = { matrix: '#000800', void: '#06060f', ember: '#0f0806', signal: '#060a0f', default: '#08081a' };
         const canvas = await html2canvas(modalContent, {
-            backgroundColor: isMatrix ? '#000800' : '#08081a',
+            backgroundColor: bgColors[theme] || '#08081a',
             scale: CAPTURE_SCALE,
             useCORS: true,
             logging: false,
-            height: modalContent.scrollHeight,
-            windowHeight: modalContent.scrollHeight,
-            width: modalContent.scrollWidth,
-            windowWidth: modalContent.scrollWidth
+            height: fullHeight,
+            windowHeight: fullHeight,
+            width: fullWidth,
+            windowWidth: fullWidth
         });
 
-        // Restore scroll constraints
+        // Restore original canvases
+        canvasBackups.reverse().forEach(({ canvas: orig, img, parent }) => {
+            if (img.parentNode === parent) parent.replaceChild(orig, img);
+        });
+
+        // Restore scroll constraints & buttons
         modalContent.style.maxHeight = origMaxHeight;
         modalContent.style.overflow = origOverflow;
+        if (closeBtn) closeBtn.style.display = '';
+        if (shareBtn) shareBtn.style.display = '';
+        if (modalTitle) modalTitle.style.cssText = origTitleStyle;
 
         const suffix = '\n\nhttps://tezos.systems';
         const tweetOptions = [
