@@ -4,7 +4,7 @@
  */
 
 import { fetchAllStats, checkApiHealth } from './api.js';
-import { initTheme, toggleTheme } from '../ui/theme.js?v=themes2';
+import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes4';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
     formatCount,
@@ -536,7 +536,10 @@ function setupEventListeners() {
     // Theme toggle
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
+        themeToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openThemePicker();
+        });
     }
 
     // Refresh button

@@ -6229,3 +6229,300 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     opacity: 1 !important;
     filter: none !important;
 }
+
+/* ==========================================
+   THEME PICKER DROPDOWN
+   ========================================== */
+
+.theme-picker-dropdown {
+    display: none;
+    position: fixed;
+    right: 0;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 8px;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    transition: var(--transition);
+    z-index: 201;
+    min-width: 200px;
+}
+
+.theme-picker-dropdown.open {
+    display: block;
+}
+
+.theme-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: var(--transition);
+    gap: 12px;
+    min-height: 40px;
+}
+
+.theme-row:hover {
+    background: var(--glass-bg);
+    transform: translateX(2px);
+}
+
+.theme-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.theme-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+}
+
+.theme-label {
+    flex-grow: 1;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.theme-checkmark {
+    color: var(--accent-cyan);
+    font-size: 0.9rem;
+    font-weight: bold;
+}
+
+/* Mobile bottom sheet */
+.theme-picker-dropdown.mobile-bottom-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 9999;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* ==========================================
+   FIRST-VISIT MODAL
+   ========================================== */
+
+.first-visit-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.first-visit-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.first-visit-modal-content {
+    position: relative;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 480px;
+    width: 90%;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.6);
+    text-align: center;
+}
+
+.first-visit-modal h2 {
+    margin: 0 0 8px 0;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.first-visit-modal p {
+    margin: 0 0 24px 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.theme-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.theme-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid transparent;
+}
+
+.theme-card:hover {
+    background: var(--glass-bg);
+    border-color: var(--glass-border);
+    transform: translateY(-2px);
+}
+
+.theme-preview {
+    width: 60px;
+    height: 40px;
+    border-radius: 8px;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.theme-accent {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 8px;
+    border-radius: 0 0 7px 7px;
+}
+
+.theme-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Theme-specific dropdown styles */
+[data-theme="matrix"] .theme-picker-dropdown {
+    background: #0a0f0a;
+    border-color: rgba(0, 255, 0, 0.15);
+}
+
+[data-theme="void"] .theme-picker-dropdown {
+    background: #0a0a14;
+    border-color: rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="ember"] .theme-picker-dropdown {
+    background: #0f0a08;
+    border-color: rgba(255, 159, 67, 0.15);
+}
+
+[data-theme="signal"] .theme-picker-dropdown {
+    background: #0a0f0e;
+    border-color: rgba(0, 255, 200, 0.15);
+}
+
+[data-theme="clean"] .theme-picker-dropdown {
+    background: #ffffff;
+    border-color: #e2e8f0;
+}
+
+[data-theme="clean"] .theme-row:hover {
+    background: rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="clean"] .theme-label {
+    color: #64748b;
+}
+
+/* Theme-specific modal styles */
+[data-theme="matrix"] .first-visit-modal-content {
+    background: #0a0f0a;
+    border-color: rgba(0, 255, 0, 0.15);
+}
+
+[data-theme="void"] .first-visit-modal-content {
+    background: #0a0a14;
+    border-color: rgba(139, 92, 246, 0.15);
+}
+
+[data-theme="ember"] .first-visit-modal-content {
+    background: #0f0a08;
+    border-color: rgba(255, 159, 67, 0.15);
+}
+
+[data-theme="signal"] .first-visit-modal-content {
+    background: #0a0f0e;
+    border-color: rgba(0, 255, 200, 0.15);
+}
+
+[data-theme="clean"] .first-visit-modal-content {
+    background: #ffffff;
+    border-color: #e2e8f0;
+}
+
+[data-theme="clean"] .theme-card:hover {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: #e2e8f0;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .theme-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+    
+    .theme-card {
+        padding: 16px;
+    }
+    
+    .theme-preview {
+        width: 50px;
+        height: 32px;
+    }
+    
+    .first-visit-modal-content {
+        padding: 24px;
+        width: 95%;
+    }
+}
+
+/* Add smooth transitions for theme changes */
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}

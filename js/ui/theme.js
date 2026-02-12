@@ -7,23 +7,220 @@ const THEME_KEY = 'tezos-systems-theme';
 const THEMES = ['matrix', 'void', 'ember', 'signal', 'clean', 'default'];
 const DEFAULT_THEME = 'matrix';
 
+// Theme color definitions for the picker dots
+const THEME_COLORS = {
+    'matrix': { bg: '#0a0f0a', accent: '#00ff00', text: '#00ff41' },
+    'void': { bg: '#0a0a14', accent: '#8b5cf6', text: '#a78bfa' },
+    'ember': { bg: '#0f0a08', accent: '#ff6b2b', text: '#ff9f43' },
+    'signal': { bg: '#0a0f0e', accent: '#00ffc8', text: '#00d4ff' },
+    'clean': { bg: '#ffffff', accent: '#0784c3', text: '#1e2022' },
+    'default': { bg: '#0f0f1a', accent: '#00d4ff', text: '#b794f6' }
+};
+
+let currentPreviewTheme = null;
+let originalTheme = null;
+
 /**
  * Initialize theme system
- * Loads theme from localStorage or defaults to 'default'
+ * Loads theme from localStorage or shows first-visit modal
  */
 export function initTheme() {
     // Try to load saved theme
     const savedTheme = localStorage.getItem(THEME_KEY);
 
-    // Use saved theme, otherwise default
-    const theme = savedTheme && THEMES.includes(savedTheme) ? savedTheme : DEFAULT_THEME;
+    if (!savedTheme) {
+        // First visit - show picker modal
+        showFirstVisitPicker();
+        // Set default theme temporarily
+        setTheme(DEFAULT_THEME);
+        return;
+    }
 
-    // Apply theme
+    // Use saved theme
+    const theme = THEMES.includes(savedTheme) ? savedTheme : DEFAULT_THEME;
     setTheme(theme);
 }
 
 /**
- * Cycle to next theme
+ * Show first-visit theme picker modal
+ */
+function showFirstVisitPicker() {
+    // Remove any existing modal
+    const existingModal = document.getElementById('first-visit-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create modal HTML
+    const modalHTML = `
+        <div id="first-visit-modal" class="first-visit-modal">
+            <div class="first-visit-modal-backdrop"></div>
+            <div class="first-visit-modal-content">
+                <h2>Choose Your Vibe</h2>
+                <p>Pick a theme for your dashboard</p>
+                <div class="theme-grid">
+                    ${THEMES.map(theme => `
+                        <div class="theme-card" data-theme="${theme}">
+                            <div class="theme-preview" style="background: ${THEME_COLORS[theme].bg};">
+                                <div class="theme-accent" style="background: ${THEME_COLORS[theme].accent};"></div>
+                            </div>
+                            <span class="theme-name">${capitalizeTheme(theme)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Add to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+    // Add event listeners
+    const modal = document.getElementById('first-visit-modal');
+    const themeCards = modal.querySelectorAll('.theme-card');
+
+    themeCards.forEach(card => {
+        card.addEventListener('click', (e) => {
+            const theme = card.dataset.theme;
+            setTheme(theme);
+            localStorage.setItem(THEME_KEY, theme);
+            modal.remove();
+        });
+    });
+
+    // Prevent closing the modal - user must pick a theme
+}
+
+/**
+ * Open theme picker dropdown
+ */
+export function openThemePicker() {
+    // Remove any existing theme picker
+    const existingPicker = document.getElementById('theme-picker-dropdown');
+    if (existingPicker) {
+        existingPicker.remove();
+    }
+
+    const currentTheme = getCurrentTheme();
+    originalTheme = currentTheme;
+
+    // Create picker HTML
+    const pickerHTML = `
+        <div id="theme-picker-dropdown" class="theme-picker-dropdown">
+            ${THEMES.map(theme => `
+                <div class="theme-row" data-theme="${theme}">
+                    <div class="theme-dots">
+                        <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].bg};"></span>
+                        <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].accent};"></span>
+                        <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].text};"></span>
+                    </div>
+                    <span class="theme-label">${capitalizeTheme(theme)}</span>
+                    <span class="theme-checkmark" ${currentTheme === theme ? '' : 'style="display: none;"'}>✓</span>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    // Position picker (mobile vs desktop)
+    // Always append to body with fixed positioning to avoid layout shifts during theme preview
+    document.body.insertAdjacentHTML('beforeend', pickerHTML);
+    const pickerEl = document.getElementById('theme-picker-dropdown');
+    
+    if (window.innerWidth < 768) {
+        // Mobile: bottom sheet
+        pickerEl.classList.add('mobile-bottom-sheet');
+    } else {
+        // Desktop: position fixed, anchored to the settings gear button
+        const settingsBtn = document.getElementById('settings-gear');
+        if (settingsBtn) {
+            const rect = settingsBtn.getBoundingClientRect();
+            pickerEl.style.position = 'fixed';
+            pickerEl.style.top = (rect.bottom + 8) + 'px';
+            pickerEl.style.right = (window.innerWidth - rect.right) + 'px';
+            pickerEl.style.left = 'auto';
+        }
+    }
+
+    // Get the picker element
+    const picker = document.getElementById('theme-picker-dropdown');
+
+    // Add event listeners
+    const themeRows = picker.querySelectorAll('.theme-row');
+
+    themeRows.forEach(row => {
+        const theme = row.dataset.theme;
+
+        // Hover preview (desktop only)
+        if (window.innerWidth >= 768) {
+            row.addEventListener('mouseenter', () => {
+                currentPreviewTheme = theme;
+                setTheme(theme, true); // true = preview mode
+            });
+        }
+
+        // Click to select
+        row.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentPreviewTheme = null;
+            setTheme(theme);
+            localStorage.setItem(THEME_KEY, theme);
+            closeThemePicker();
+        });
+    });
+
+    // Hover out of picker - revert to original
+    if (window.innerWidth >= 768) {
+        picker.addEventListener('mouseleave', () => {
+            if (currentPreviewTheme && originalTheme) {
+                setTheme(originalTheme, true);
+                currentPreviewTheme = null;
+            }
+        });
+    }
+
+    // Close on outside click
+    const closeHandler = (e) => {
+        if (!picker.contains(e.target)) {
+            closeThemePicker();
+            document.removeEventListener('click', closeHandler);
+        }
+    };
+    
+    setTimeout(() => {
+        document.addEventListener('click', closeHandler);
+    }, 100);
+
+    // Close on escape
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeThemePicker();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+
+    // Show picker
+    picker.classList.add('open');
+}
+
+/**
+ * Close theme picker and cleanup
+ */
+function closeThemePicker() {
+    const picker = document.getElementById('theme-picker-dropdown');
+    if (!picker) return;
+
+    // Revert any preview
+    if (currentPreviewTheme && originalTheme) {
+        setTheme(originalTheme);
+        currentPreviewTheme = null;
+    }
+
+    picker.remove();
+}
+
+/**
+ * Cycle to next theme (kept for backward compatibility)
  */
 export function toggleTheme() {
     const current = getCurrentTheme();
@@ -38,8 +235,9 @@ export function toggleTheme() {
 /**
  * Set theme
  * @param {string} theme - Theme to set ('default' or 'matrix')
+ * @param {boolean} isPreview - If true, don't update UI elements (for hover preview)
  */
-export function setTheme(theme) {
+export function setTheme(theme, isPreview = false) {
     // Validate theme
     if (!THEMES.includes(theme)) {
         console.warn(`Invalid theme: ${theme}, defaulting to ${DEFAULT_THEME}`);
@@ -49,13 +247,15 @@ export function setTheme(theme) {
     // Apply theme to body
     document.body.setAttribute('data-theme', theme);
 
-    // Update theme icon
-    updateThemeIcon(theme);
-
-    // Dispatch custom event for other components
+    // Always dispatch themechange so canvas effects (matrix rain, particles) start/stop
     window.dispatchEvent(new CustomEvent('themechange', {
-        detail: { theme }
+        detail: { theme, isPreview }
     }));
+
+    if (!isPreview) {
+        // Update theme icon
+        updateThemeIcon(theme);
+    }
 }
 
 /**
@@ -88,12 +288,19 @@ function updateThemeIcon(theme) {
         // Update aria-label for accessibility
         const button = document.getElementById('theme-toggle');
         if (button) {
-            const nextIndex = (THEMES.indexOf(theme) + 1) % THEMES.length;
-            const nextTheme = THEMES[nextIndex];
-            button.setAttribute('aria-label', `Switch to ${nextTheme} theme`);
-            button.setAttribute('title', `Theme: ${theme}`);
+            button.setAttribute('aria-label', `Select theme`);
+            button.setAttribute('title', `Theme: ${capitalizeTheme(theme)}`);
         }
     }
+}
+
+/**
+ * Capitalize theme name for display
+ * @param {string} theme - Theme name
+ * @returns {string} Capitalized theme name
+ */
+function capitalizeTheme(theme) {
+    return theme.charAt(0).toUpperCase() + theme.slice(1);
 }
 
 /**
