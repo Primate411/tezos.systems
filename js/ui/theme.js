@@ -55,6 +55,17 @@ export function initTheme() {
 /**
  * Show first-visit theme picker modal
  */
+const THEME_VIBES = {
+    'matrix': { tagline: 'Code the Future', icon: '🟢' },
+    'default': { tagline: 'Refined Discovery', icon: '💎' },
+    'void': { tagline: 'Deep Space', icon: '🔮' },
+    'ember': { tagline: 'Phoenix Rising', icon: '🔥' },
+    'signal': { tagline: 'Decode the Data', icon: '📡' },
+    'clean': { tagline: 'Pure Analytics', icon: '📊' },
+    'dark': { tagline: 'Zero Distractions', icon: '🌑' },
+    'bubblegum': { tagline: 'Sweet Simplicity', icon: '🫧' }
+};
+
 function showFirstVisitPicker() {
     // Remove any existing modal
     const existingModal = document.getElementById('first-visit-modal');
@@ -62,22 +73,36 @@ function showFirstVisitPicker() {
         existingModal.remove();
     }
 
-    // Create modal HTML
+    // Create modal HTML with hero + vibe picker
     const modalHTML = `
         <div id="first-visit-modal" class="first-visit-modal">
             <div class="first-visit-modal-backdrop"></div>
             <div class="first-visit-modal-content">
-                <h2>Choose Your Vibe</h2>
-                <p>Pick a theme for your dashboard</p>
-                <div class="theme-grid">
-                    ${THEMES.map(theme => `
-                        <div class="theme-card" data-theme="${theme}">
-                            <div class="theme-preview" style="background: ${THEME_COLORS[theme].bg};">
-                                <div class="theme-accent" style="background: ${THEME_COLORS[theme].accent};"></div>
+                <div class="hero-section">
+                    <h1 class="hero-title">21 Upgrades. Zero Forks.</h1>
+                    <p class="hero-subtitle">The blockchain that evolves itself — live.</p>
+                    <div class="hero-stats">
+                        <span class="hero-stat"><span class="hero-stat-dot"></span>Live</span>
+                        <span class="hero-stat-divider">·</span>
+                        <span class="hero-stat">2,784+ days uptime</span>
+                        <span class="hero-stat-divider">·</span>
+                        <span class="hero-stat">Since 2018</span>
+                    </div>
+                </div>
+                <div class="vibe-section">
+                    <h2 class="vibe-heading">Choose Your Vibe</h2>
+                    <div class="theme-grid">
+                        ${THEMES.map(theme => `
+                            <div class="theme-card" data-theme="${theme}">
+                                <div class="theme-preview" style="background: ${THEME_COLORS[theme].bg};">
+                                    <div class="theme-accent" style="background: ${THEME_COLORS[theme].accent};"></div>
+                                </div>
+                                <span class="theme-name">${capitalizeTheme(theme)}</span>
+                                <span class="theme-tagline">${THEME_VIBES[theme].tagline}</span>
                             </div>
-                            <span class="theme-name">${capitalizeTheme(theme)}</span>
-                        </div>
-                    `).join('')}
+                        `).join('')}
+                    </div>
+                    <button class="hero-skip" id="hero-skip-btn">Just show me the data →</button>
                 </div>
             </div>
         </div>
@@ -95,11 +120,21 @@ function showFirstVisitPicker() {
             const theme = card.dataset.theme;
             setTheme(theme);
             localStorage.setItem(THEME_KEY, theme);
-            modal.remove();
+            modal.classList.add('closing');
+            setTimeout(() => modal.remove(), 300);
         });
     });
 
-    // Prevent closing the modal - user must pick a theme
+    // Skip button — use default theme
+    const skipBtn = document.getElementById('hero-skip-btn');
+    if (skipBtn) {
+        skipBtn.addEventListener('click', () => {
+            setTheme(DEFAULT_THEME);
+            localStorage.setItem(THEME_KEY, DEFAULT_THEME);
+            modal.classList.add('closing');
+            setTimeout(() => modal.remove(), 300);
+        });
+    }
 }
 
 /**

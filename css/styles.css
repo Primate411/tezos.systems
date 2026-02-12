@@ -6626,42 +6626,111 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     background: var(--bg-secondary);
     border: 1px solid var(--glass-border);
     border-radius: 16px;
-    padding: 32px;
-    max-width: 480px;
-    width: 90%;
+    padding: 0;
+    max-width: 560px;
+    width: 92%;
+    max-height: 90vh;
+    overflow-y: auto;
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     box-shadow: 0 16px 64px rgba(0, 0, 0, 0.6);
     text-align: center;
 }
 
-.first-visit-modal h2 {
-    margin: 0 0 8px 0;
-    color: var(--text-primary);
-    font-size: 1.5rem;
-    font-weight: 600;
+.first-visit-modal.closing {
+    animation: fadeOut 0.3s ease forwards;
 }
 
-.first-visit-modal p {
-    margin: 0 0 24px 0;
+@keyframes fadeOut {
+    to { opacity: 0; transform: scale(0.95); }
+}
+
+/* Hero section */
+.hero-section {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.hero-title {
+    margin: 0 0 6px 0;
+    color: var(--text-primary);
+    font-size: clamp(1.4rem, 4vw, 1.8rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.hero-subtitle {
+    margin: 0 0 14px 0;
     color: var(--text-secondary);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+.hero-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.hero-stat {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.hero-stat-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+    display: inline-block;
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.hero-stat-divider {
+    color: var(--text-secondary);
+    opacity: 0.3;
+    font-size: 0.7rem;
+}
+
+/* Vibe section */
+.vibe-section {
+    padding: 20px 32px 24px;
+}
+
+.vibe-heading {
+    margin: 0 0 4px 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
 }
 
 .theme-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 16px;
-    margin-top: 24px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 16px;
 }
 
 .theme-card {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 20px;
-    border-radius: 12px;
+    gap: 6px;
+    padding: 14px 8px;
+    border-radius: 10px;
     cursor: pointer;
     transition: var(--transition);
     border: 1px solid transparent;
@@ -6674,9 +6743,9 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 }
 
 .theme-preview {
-    width: 60px;
-    height: 40px;
-    border-radius: 8px;
+    width: 48px;
+    height: 32px;
+    border-radius: 6px;
     position: relative;
     border: 1px solid rgba(255, 255, 255, 0.1);
     overflow: hidden;
@@ -6687,14 +6756,38 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 8px;
-    border-radius: 0 0 7px 7px;
+    height: 6px;
+    border-radius: 0 0 5px 5px;
 }
 
 .theme-name {
-    font-size: 0.8rem;
-    font-weight: 500;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    opacity: 0.9;
+}
+
+.theme-tagline {
+    font-size: 0.62rem;
     color: var(--text-secondary);
+    opacity: 0.6;
+    white-space: nowrap;
+}
+
+.hero-skip {
+    margin-top: 16px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    font-size: 0.78rem;
+    cursor: pointer;
+    padding: 6px 12px;
+    transition: opacity 0.2s;
+}
+
+.hero-skip:hover {
+    opacity: 0.9;
 }
 
 @keyframes fadeIn {
@@ -6776,22 +6869,39 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
     .theme-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 12px;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 8px;
     }
     
     .theme-card {
-        padding: 16px;
+        padding: 10px 6px;
     }
     
     .theme-preview {
-        width: 50px;
-        height: 32px;
+        width: 40px;
+        height: 26px;
     }
     
     .first-visit-modal-content {
-        padding: 24px;
         width: 95%;
+    }
+
+    .hero-section {
+        padding: 22px 20px 16px;
+    }
+
+    .vibe-section {
+        padding: 16px 20px 20px;
+    }
+
+    .theme-tagline {
+        display: none;
+    }
+}
+
+@media (max-width: 400px) {
+    .theme-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
