@@ -10,7 +10,9 @@ const STORAGE_KEYS = {
     protocols: 'tezos-systems-protocols',
     timestamp: 'tezos-systems-lastUpdate',
     lastVisit: 'tezos-systems-lastVisit',
-    lastVisitStats: 'tezos-systems-lastVisitStats'
+    lastVisitStats: 'tezos-systems-lastVisitStats',
+    moments: 'tezos-systems-moments',
+    momentsDismissed: 'tezos-systems-moments-dismissed'
 };
 
 // Cache TTL from config
@@ -217,6 +219,71 @@ export function getVisitDeltas(currentStats) {
     } catch (error) {
         console.warn('Failed to calculate deltas:', error);
         return null;
+    }
+}
+
+// ─── Moments Storage ─────────────────────────────────────────────
+
+/**
+ * Save a triggered moment to localStorage
+ * @param {Object} moment - { id, emoji, title, tweet, timestamp }
+ */
+export function saveMoment(moment) {
+    try {
+        const moments = getMoments();
+        moments.push(moment);
+        // Keep last 100 moments max
+        const trimmed = moments.slice(-100);
+        localStorage.setItem(STORAGE_KEYS.moments, JSON.stringify(trimmed));
+    } catch (e) {
+        console.warn('Failed to save moment:', e);
+    }
+}
+
+/**
+ * Get all saved moments
+ * @returns {Array}
+ */
+export function getMoments() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.moments);
+        return raw ? JSON.parse(raw) : [];
+    } catch {
+        return [];
+    }
+}
+
+/**
+ * Check if a moment has been dismissed
+ * @param {string} momentId
+ * @returns {boolean}
+ */
+export function isDismissed(momentId) {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.momentsDismissed);
+        const dismissed = raw ? JSON.parse(raw) : [];
+        return dismissed.includes(momentId);
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Dismiss a moment (record it so it won't toast again)
+ * @param {string} momentId
+ */
+export function dismissMoment(momentId) {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEYS.momentsDismissed);
+        const dismissed = raw ? JSON.parse(raw) : [];
+        if (!dismissed.includes(momentId)) {
+            dismissed.push(momentId);
+            // Keep last 200 dismissals max
+            const trimmed = dismissed.slice(-200);
+            localStorage.setItem(STORAGE_KEYS.momentsDismissed, JSON.stringify(trimmed));
+        }
+    } catch (e) {
+        console.warn('Failed to dismiss moment:', e);
     }
 }
 

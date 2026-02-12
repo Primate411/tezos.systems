@@ -20,7 +20,7 @@ A single-page dashboard that pulls live data from TzKT and Tez.Capital APIs to d
 tezos.systems/
 ├── index.html                  # Single-page app entry
 ├── css/
-│   └── styles.css              # All styles (~6000 lines) — includes 7 theme variants
+│   └── styles.css              # All styles (~8000 lines) — includes 8 theme variants
 ├── js/
 │   ├── core/
 │   │   ├── app.js              # Main orchestrator — data fetching, rendering, modals
@@ -37,10 +37,11 @@ tezos.systems/
 │   │   ├── objkt.js / objkt-ui.js  # NFT profile integration (objkt.com)
 │   │   ├── price.js            # XTZ price ticker (CoinGecko)
 │   │   ├── sleeping-giants.js  # Large dormant account tracker
+│   │   ├── moments.js          # Network Moments — milestone detection + toasts + timeline
 │   │   ├── streak.js           # Baker streak tracking
 │   │   └── whales.js           # Whale transaction feed
 │   ├── ui/
-│   │   ├── theme.js            # Theme system — 7 themes, picker, first-visit modal
+│   │   ├── theme.js            # Theme system — 8 themes, picker, first-visit modal
 │   │   ├── share.js            # Screenshot/share captures (html2canvas)
 │   │   ├── animations.js       # Card flip animations on data update
 │   │   ├── gauge.js            # SVG gauge component (theme-aware staking ratio)
@@ -72,7 +73,7 @@ tezos.systems/
 
 ## Theme System
 
-Seven visual themes, selectable via the theme picker dropdown with color dot previews:
+Eight visual themes, selectable via the theme picker dropdown with color dot previews:
 
 | Theme | Vibe | Background |
 |-------|------|-----------|
@@ -82,16 +83,15 @@ Seven visual themes, selectable via the theme picker dropdown with color dot pre
 | **Signal** | Cool tech blue | Radar-style canvas |
 | **Clean** | Etherscan-inspired light | Pure white, no effects, compact layout |
 | **Dark** | Achromatic minimal | #1A1A1A bg, #222222 cards, #E8E8E8 text, no effects |
+| **Bubblegum** | Hot pink playful | Dark rose bg, floating bubble canvas |
 | **Default** | Refined dark blue | Subtle gradient, no canvas |
-
-> **Coming soon:** Bubblegum theme
 
 ### How Themes Work
 
 - CSS: `[data-theme="X"]` attribute on `<body>` drives all styling via CSS variable overrides
 - Variables defined in `:root` (default) and `[data-theme="X"]` blocks in `styles.css`
 - Canvas effects (matrix rain, particles) start/stop based on `themechange` events
-- **Clean & Dark themes** are data-focused — the `#ultra-canvas` element is hidden via CSS for these themes so canvas effects never render
+- **Clean & Dark themes** are data-focused — the `#ultra-canvas` element is hidden via CSS so canvas effects never render
 - **Clean theme** is the only light theme — has extensive `!important` overrides to force dark text, system fonts, and compact spacing
 - **Dark theme** is fully achromatic with no color accents, no glow/shadow effects, system fonts, and compact layout matching clean
 - Protocol history modals use **inline styles** in `app.js` (~line 860-1010) with theme ternaries for theme-aware colors
@@ -110,6 +110,8 @@ Several components dynamically adapt their colors based on the active theme via 
 
 - **Stake-O-Meter Gauge** (`js/ui/gauge.js`): Uses `getThemeColors()` to select arc and text colors per theme. Clean uses blue arc + dark text, dark uses gray arc + light text, matrix uses green, etc.
 - **Sparkline Charts** (`js/features/history.js`): Line colors adapt — gray strokes for dark theme, blue/red for clean, green for matrix. Each theme gets appropriate contrast and feel.
+- **Network Moments** (`js/features/moments.js`): Toast notifications and timeline section both use per-theme styling — green glow on matrix, pink on bubblegum, achromatic on dark, etc.
+- **Streak Badge & Deltas Panel**: Per-theme CSS overrides for colors, borders, and milestone glow animations.
 
 ### Adding a New Theme
 
@@ -119,8 +121,9 @@ Several components dynamically adapt their colors based on the active theme via 
 4. Add override rules at end of `styles.css` for any base styles that leak
 5. Add `isYourTheme` branches in `app.js` modal builder and `share.js` capture colors
 6. Add theme palette to `getThemeColors()` in `gauge.js` and sparkline color logic in `history.js`
-7. If it has canvas effects, add a class in `bg-effects.js` and register in `BG_THEMES`; if data-focused, add to the CSS rule that hides `#ultra-canvas`
-8. Add icon to `updateThemeIcon()` in `theme.js`
+7. Add moment toast/timeline theme overrides in the "Network Moments" CSS section
+8. If it has canvas effects, add a class in `bg-effects.js` and register in `BG_THEMES`; if data-focused, add to the CSS rule that hides `#ultra-canvas`
+9. Add icon to `updateThemeIcon()` in `theme.js`
 
 ## Key Sections
 
@@ -129,6 +132,9 @@ The horizontal A→T letter grid shows all 21 Tezos self-amendments. Clicking a 
 
 ### Stat Cards
 Each metric card has: label, big number (with sparkline trend chart), 7-day change badge, info (ℹ️) tooltip, and per-card share (📸) button.
+
+### Network Moments
+Live milestone detection system. When the network crosses a threshold (e.g. staking hits 28%, baker count passes 250, new cycle starts), a themed toast notification slides in with a pre-written share tweet. Dismissed moments are tracked in localStorage. A "Network Moments" timeline section shows the last 30 days of milestones, giving repeat visitors a "what did I miss" reason to return. 88 milestone rules covering staking %, baker count, BLS adoption, funded accounts, cycle changes, and XTZ burned.
 
 ### Toolbar Features (toggleable)
 - **My Baker** 🥐 — Enter a baker address to see performance
@@ -169,6 +175,14 @@ Push to `main` → GitHub Pages auto-deploys. Custom domain via CNAME file.
 
 **Cache busting:** Update `?v=` params in `index.html` script/link tags before deploying.
 
+## SEO & Discoverability
+
+- **robots.txt** — Explicitly allows AI crawlers (GPTBot, ClaudeBot, PerplexityBot, etc.)
+- **sitemap.xml** — Includes theme deep links (`/?theme=matrix`, etc.)
+- **JSON-LD** — WebApplication + Dataset structured data in `<head>`
+- **Meta tags** — Specific live stats in description, canonical URL, `twitter:site`, `robots` directives (`max-image-preview:large`)
+- **Theme-color meta** — Dynamic based on active theme
+
 ## Analytics
 
 GoatCounter (privacy-friendly, no cookies): `tezsys.goatcounter.com`
@@ -179,7 +193,7 @@ GoatCounter (privacy-friendly, no cookies): `tezsys.goatcounter.com`
 - **Share captures:** `share.js` has `html2canvas()` calls with hardcoded theme color maps. New themes need entries in these maps.
 - **Theme-aware components:** Gauge (`gauge.js`) and sparklines (`history.js`) read the active theme at render time. New themes need palette entries in `getThemeColors()` and sparkline color logic or they'll fall back to defaults.
 - **CSS specificity wars:** The clean theme uses `!important` heavily because base styles are very specific. This is intentional — the alternative was restructuring 6000 lines of CSS.
-- **Canvas effects:** Only matrix/void/ember/signal have canvas backgrounds. Clean, dark, and default have none. The `#ultra-canvas` is explicitly hidden via CSS for clean and dark themes.
+- **Canvas effects:** Matrix/void/ember/signal/bubblegum have canvas backgrounds. Clean, dark, and default have none. The `#ultra-canvas` is explicitly hidden via CSS for clean and dark themes.
 - **Word-spacing fix:** Mobile WebKit + small rem fonts + `text-rendering: optimizeLegibility` = words joining together. Fixed with `geometricPrecision` + absolute px word-spacing in share captures.
 
 ## Credits

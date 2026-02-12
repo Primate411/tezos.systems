@@ -31,6 +31,7 @@ import { initComparison, updateComparison } from '../features/comparison.js';
 import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js';
 import { initCalculator } from '../features/calculator.js';
 import { initObjkt } from '../features/objkt-ui.js';
+import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -90,6 +91,7 @@ async function init() {
     // Initialize Rewards Calculator
     initCalculator();
     initObjkt();
+    initMomentsTimeline();
     initComparisonToggle();
 
     // Setup event listeners
@@ -453,8 +455,16 @@ async function updateStats(newStats) {
             `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
     }
 
+    // Check for network moments (milestone detection)
+    const oldStats = state.currentStats;
+    
     // Store current stats
     state.currentStats = { ...newStats };
+
+    // Detect milestones by comparing old vs new
+    if (oldStats && Object.keys(oldStats).length > 0) {
+        checkMoments(oldStats, newStats);
+    }
 
     // Update about modal with live data
     const aboutApy = document.getElementById('about-apy');
