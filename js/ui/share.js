@@ -1571,7 +1571,7 @@ async function captureHistoricalData() {
 
         const fullHeight = modalContent.scrollHeight;
         const fullWidth = modalContent.scrollWidth;
-        const bgColors = { matrix: '#000800', void: '#06060f', ember: '#0f0806', signal: '#060a0f', bubblegum: '#1A0F22', default: '#08081a' };
+        const bgColors = { matrix: '#000800', void: '#06060f', ember: '#0f0806', signal: '#060a0f', bubblegum: '#1F0E18', default: '#08081a' };
         const restoreSpacing = await fixWordSpacing(modalContent);
         const canvas = await html2canvas(modalContent, {
             backgroundColor: bgColors[theme] || '#08081a',

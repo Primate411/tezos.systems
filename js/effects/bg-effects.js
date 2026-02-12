@@ -435,8 +435,8 @@ class BubblegumEffect {
             // Pink range: #FF69B4 to #FF85C8
             r = 255; g = 105 + Math.random() * 28; b = 180 + Math.random() * 20;
         } else if (colorRoll < 0.9) {
-            // Purple range: #C47AFF to #9B59D0
-            r = 155 + Math.random() * 41; g = 89 + Math.random() * 33; b = 208 + Math.random() * 47;
+            // Light pink range: #FF85C8 to #FF9ED2
+            r = 255; g = 133 + Math.random() * 25; b = 200 + Math.random() * 10;
         } else {
             // Mint: #7FFFBA
             r = 127; g = 255; b = 186;

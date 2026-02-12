@@ -16,7 +16,7 @@ const THEME_COLORS = {
     'clean': { bg: '#ffffff', accent: '#0784c3', text: '#1e2022' },
     'dark': { bg: '#1A1A1A', accent: '#C8C8C8', text: '#E8E8E8' },
     'default': { bg: '#0f0f1a', accent: '#00d4ff', text: '#b794f6' },
-    'bubblegum': { bg: '#1A0F22', accent: '#FF69B4', text: '#F0E0F6' }
+    'bubblegum': { bg: '#1F0E18', accent: '#FF69B4', text: '#F5E0EE' }
 };
 
 let currentPreviewTheme = null;
