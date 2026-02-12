@@ -2949,6 +2949,11 @@ body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-right {
     body.mobile-tabs-active .section-header {
         display: none;
     }
+
+    /* Keep titles visible for My Baker and Calculator sections */
+    body.mobile-tabs-active .my-baker-section .section-header {
+        display: flex;
+    }
     
     /* Adjust main content padding */
     body.mobile-tabs-active .main-content {
@@ -4258,7 +4263,27 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     justify-content: center;
     padding: 0.15rem 0.25rem !important;
     min-width: 110px;
-    overflow: hidden;
+    overflow: visible;
+    position: relative;
+}
+
+.stake-o-meter-info {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 18px !important;
+    height: 18px !important;
+    min-width: unset;
+    padding: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+    transition: opacity 0.2s ease;
+}
+
+.stake-o-meter-info:hover {
+    opacity: 1;
 }
 
 .stake-o-meter-badge canvas {

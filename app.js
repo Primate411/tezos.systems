@@ -556,6 +556,7 @@ function setupEventListeners() {
     }
 
     // Setup modals
+    setupModal('stake-o-meter-info-btn', 'stake-o-meter-modal', 'stake-o-meter-modal-close');
     setupModal('consensus-info-btn', 'consensus-modal', 'consensus-modal-close');
     setupModal('governance-info-btn', 'governance-modal', 'governance-modal-close');
     setupModal('economy-info-btn', 'economy-modal', 'economy-modal-close');

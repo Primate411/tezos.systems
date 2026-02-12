@@ -483,7 +483,7 @@ export function init() {
         let addr = raw;
         if (isTezDomain(raw)) {
             errorMsg.textContent = 'Resolving domain...';
-            const resolved = await resolveForwardDomain(raw);
+            const resolved = await resolveForwardDomain(raw.toLowerCase());
             if (!resolved) {
                 errorMsg.textContent = `Could not resolve "${raw}". Domain not found.`;
                 return;

@@ -188,6 +188,11 @@
                 <div class="upgrade-badges">
                     <div class="upgrade-badge stake-o-meter-badge" id="staking-gauge-container">
                         <canvas id="staking-gauge-canvas" width="100" height="60"></canvas>
+                        <button class="info-button stake-o-meter-info" id="stake-o-meter-info-btn" aria-label="About Adaptive Issuance" title="About Adaptive Issuance">
+                            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                            </svg>
+                        </button>
                     </div>
                     <div class="upgrade-badge">
                         <span class="badge-text">Zero Forks</span>
@@ -1143,6 +1148,36 @@
                 <div class="modal-links">
                     <a href="https://research-development.nomadic-labs.com/paris-announcement.html" target="_blank" rel="noopener">Nomadic Labs: Paris</a>
                     <a href="https://opentezos.com/tezos-basics/economics/" target="_blank" rel="noopener">OpenTezos: Economics</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stake-o-Meter / Adaptive Issuance Info Modal -->
+    <div class="modal-overlay" id="stake-o-meter-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="stake-o-meter-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Adaptive Issuance</h3>
+            <div class="modal-body">
+                <p>
+                    Tezos dynamically adjusts new XTZ issuance based on the <strong>staking ratio</strong> — 
+                    the percentage of total supply that is actively staked. The gauge shows the current ratio 
+                    relative to the <strong>50% target</strong>.
+                </p>
+                <ul>
+                    <li><strong>Below target</strong>: Issuance increases to incentivize more staking</li>
+                    <li><strong>Above target</strong>: Issuance decreases, reducing inflation for everyone</li>
+                    <li><strong>At target (~50%)</strong>: Optimal balance between network security and liquidity</li>
+                    <li><strong>Quadratic curve</strong>: Adjustments are smooth and gradual — no sudden jumps</li>
+                </ul>
+                <p>
+                    This mechanism replaced the old fixed-rate issuance, making Tezos one of the first blockchains 
+                    with a <strong>fully adaptive monetary policy</strong>. Bakers and stakers earn higher APY when 
+                    participation is low, naturally pulling the ratio back toward equilibrium.
+                </p>
+                <div class="modal-links">
+                    <a href="https://docs.tezos.com/architecture/governance#adaptive-issuance" target="_blank" rel="noopener">Tezos Docs: Adaptive Issuance</a>
+                    <a href="https://research-development.nomadic-labs.com/paris-announcement.html" target="_blank" rel="noopener">Nomadic Labs: Paris Announcement</a>
                 </div>
             </div>
         </div>

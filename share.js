@@ -962,20 +962,28 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
         }
     });
     
-    // Share on X/Twitter — copy image to clipboard first, then open X
-    modal.querySelector('#share-twitter').addEventListener('click', async () => {
+    // Share on X/Twitter — open X first (must be synchronous for mobile popup blocker),
+    // then try to copy image to clipboard in background
+    modal.querySelector('#share-twitter').addEventListener('click', () => {
         const selectedTweet = getSelectedTweet();
-        try {
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-            ]);
-            showNotification('Image copied! Paste it into your tweet (Ctrl+V / ⌘V)', 'success');
-        } catch (err) {
-            // Clipboard failed — still open X
-        }
         const text = encodeURIComponent(selectedTweet);
+        // Open X immediately to preserve user gesture (mobile Safari blocks async window.open)
         window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+        // Then try clipboard copy in background
+        try {
+            canvas.toBlob(async (blob) => {
+                try {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]);
+                    showNotification('Image copied! Paste it into your tweet (Ctrl+V / ⌘V)', 'success');
+                } catch (e) {
+                    // Clipboard not available — that's fine, X is already open
+                }
+            }, 'image/png');
+        } catch (err) {
+            // Canvas toBlob failed — X is already open, no problem
+        }
     });
     
     // Native share
