@@ -4,7 +4,7 @@
  */
 
 const THEME_KEY = 'tezos-systems-theme';
-const THEMES = ['default', 'matrix'];
+const THEMES = ['matrix', 'void', 'ember', 'signal', 'default'];
 const DEFAULT_THEME = 'matrix';
 
 /**
@@ -76,7 +76,10 @@ function updateThemeIcon(theme) {
         // Show icon based on current theme
         const icons = {
             'default': '🎨',
-            'matrix': '💚'
+            'matrix': '💚',
+            'void': '🕳️',
+            'ember': '🌋',
+            'signal': '📡'
         };
 
         icon.textContent = icons[theme] || '🎨';
