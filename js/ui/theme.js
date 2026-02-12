@@ -27,6 +27,15 @@ let originalTheme = null;
  * Loads theme from localStorage or shows first-visit modal
  */
 export function initTheme() {
+    // Check URL for theme deep link (?theme=matrix, etc.)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlTheme = urlParams.get('theme');
+    if (urlTheme && THEMES.includes(urlTheme)) {
+        setTheme(urlTheme);
+        localStorage.setItem(THEME_KEY, urlTheme);
+        return;
+    }
+
     // Try to load saved theme
     const savedTheme = localStorage.getItem(THEME_KEY);
 

@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Real-time Tezos network statistics including bakers, tz4 adoption, issuance, and transaction volume">
-    <meta name="keywords" content="Tezos, XTZ, blockchain, statistics, bakers, tz4, DeFi, NFT">
-    <title>Tezos Systems | Network Statistics Dashboard</title>
+    <meta name="description" content="Real-time Tezos blockchain dashboard — 251 bakers, 28% staking ratio, zero hard forks since 2018. Live network stats updated every 2 minutes.">
+    <meta name="keywords" content="Tezos, XTZ, blockchain, proof-of-stake, baking, staking, governance, self-amending, cryptocurrency, DeFi, NFT, network statistics, baker dashboard">
+    <title>Tezos Systems — The Blockchain That Upgrades Itself | Live Dashboard</title>
+    <link rel="canonical" href="https://tezos.systems/">
     
     <!-- Open Graph / Social -->
     <meta property="og:type" content="website">
@@ -19,6 +20,12 @@
     <meta name="twitter:title" content="Tezos Systems — The Blockchain That Upgrades Itself">
     <meta name="twitter:description" content="21 self-amendments. Zero hard forks. Since 2018. Live dashboard tracking the most resilient blockchain in crypto.">
     <meta name="twitter:image" content="https://tezos.systems/og-image.png">
+    <meta name="twitter:site" content="@TezCapital">
+    
+    <!-- AI/Agent discoverability -->
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+    <meta name="googlebot" content="index, follow">
+    <meta name="theme-color" content="#0a0a14">
     
     <!-- Content Security Policy -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' unpkg.com cdn.jsdelivr.net gc.zgo.at; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co data.objkt.com *.goatcounter.com; img-src 'self' data: *.objkt.com assets.objkt.media ipfs.io; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self';">
@@ -42,19 +49,30 @@
       "@type": "WebApplication",
       "name": "Tezos Systems",
       "url": "https://tezos.systems",
-      "description": "Real-time Tezos blockchain network statistics dashboard featuring baker counts, staking ratios, issuance rates, whale tracking, and protocol upgrade history",
-      "applicationCategory": "Finance",
+      "description": "Real-time Tezos blockchain dashboard — live baker counts, staking ratios, governance tracking, protocol upgrade timeline. The blockchain that upgrades itself: 21 self-amendments, zero hard forks since 2018.",
+      "applicationCategory": "FinanceApplication",
       "operatingSystem": "Web",
       "browserRequirements": "Requires JavaScript",
+      "screenshot": "https://tezos.systems/og-image.png",
+      "featureList": "Real-time network statistics, Baker performance tracking, Staking gauge, Protocol upgrade timeline, Governance monitoring, 8 visual themes, Personalized My Baker mode, Shareable stat cards",
       "creator": {
         "@type": "Organization",
         "name": "Tez Capital",
-        "url": "https://tez.capital"
+        "url": "https://tez.capital",
+        "sameAs": [
+          "https://github.com/tez-capital",
+          "https://x.com/TezCapital",
+          "https://docs.tez.capital"
+        ]
       },
       "offers": {
         "@type": "Offer",
         "price": "0",
         "priceCurrency": "USD"
+      },
+      "sourceOrganization": {
+        "@type": "Organization",
+        "name": "Tez Capital"
       }
     }
     </script>
@@ -63,15 +81,86 @@
       "@context": "https://schema.org",
       "@type": "Dataset",
       "name": "Tezos Network Statistics",
-      "description": "Real-time and historical Tezos blockchain metrics including baker counts, staking ratios, transaction volumes, and protocol upgrade history",
+      "description": "Real-time and historical Tezos blockchain metrics including baker counts, tz4/BLS adoption, staking ratios, issuance rates, transaction volumes, smart contract counts, and protocol upgrade history. Updated every 2 minutes from live network data.",
       "url": "https://tezos.systems",
       "license": "https://creativecommons.org/licenses/by/4.0/",
       "temporalCoverage": "2018-06-30/..",
+      "spatialCoverage": "Global",
+      "variableMeasured": [
+        "Total network bakers (validators)",
+        "tz4/BLS key adoption percentage",
+        "Staking ratio (% of supply staked)",
+        "Annual issuance rate",
+        "24-hour transaction volume",
+        "Smart contract count",
+        "Token count",
+        "Governance participation rate",
+        "Protocol upgrade count",
+        "Days since last hard fork (zero forks ever)",
+        "Funded account count",
+        "Total supply and burn metrics"
+      ],
+      "measurementTechnique": "Real-time API aggregation from TzKT indexer and Tez Capital endpoints",
+      "distribution": {
+        "@type": "DataDownload",
+        "contentUrl": "https://api.tzkt.io/v1/",
+        "encodingFormat": "application/json"
+      },
       "creator": {
         "@type": "Organization",
         "name": "Tez Capital",
         "url": "https://tez.capital"
+      },
+      "about": {
+        "@type": "Thing",
+        "name": "Tezos",
+        "description": "Self-amending proof-of-stake blockchain with on-chain governance. 21 protocol upgrades with zero hard forks since mainnet launch in June 2018.",
+        "url": "https://tezos.com",
+        "sameAs": [
+          "https://en.wikipedia.org/wiki/Tezos",
+          "https://www.coingecko.com/en/coins/tezos"
+        ]
       }
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Tezos?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Tezos is a self-amending proof-of-stake blockchain with on-chain governance. It has undergone 21 protocol upgrades since 2018 with zero hard forks — meaning the community votes on changes and the chain upgrades itself seamlessly."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How many Tezos bakers are there?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "There are currently approximately 251 active bakers (validators) securing the Tezos network. You can track the live count at tezos.systems."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the Tezos staking ratio?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Approximately 28% of the total Tezos supply is currently staked, working toward the protocol's 50% target. Live staking data is available at tezos.systems."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Has Tezos ever had a hard fork?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Tezos has had zero hard forks in over 2,784 days of operation since mainnet launch in June 2018. The self-amending governance mechanism allows protocol upgrades without chain splits."
+          }
+        }
+      ]
     }
     </script>
     <!-- GoatCounter Analytics -->
@@ -97,7 +186,7 @@
     </div>
 
     <!-- Header with controls -->
-    <header class="header">
+    <header class="header" role="banner">
         <div class="header-content">
             <div class="header-left">
                 <h1 class="title">Tezos Systems</h1>
@@ -424,7 +513,7 @@
     </div><!-- end optional-sections -->
 
     <!-- Main content -->
-    <main class="main-content">
+    <main class="main-content" role="main">
 
         <!-- Consensus Section -->
         <section class="stats-section">
@@ -1293,7 +1382,7 @@
     </div>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer" role="contentinfo">
         <div class="footer-content">
             <p class="update-info">
                 Last updated: <span id="last-update" class="highlight">Never</span>
