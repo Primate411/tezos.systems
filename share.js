@@ -1464,15 +1464,27 @@ async function captureHistoricalData() {
         const activeBtn = document.querySelector('.time-range-btn.active');
         const range = activeBtn ? activeBtn.textContent.trim() : '7 Days';
 
+        // Temporarily remove scroll constraints so html2canvas captures ALL charts
+        const origMaxHeight = modalContent.style.maxHeight;
+        const origOverflow = modalContent.style.overflow;
+        modalContent.style.maxHeight = 'none';
+        modalContent.style.overflow = 'visible';
+
         const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
         const canvas = await html2canvas(modalContent, {
             backgroundColor: isMatrix ? '#000800' : '#08081a',
             scale: CAPTURE_SCALE,
             useCORS: true,
             logging: false,
+            height: modalContent.scrollHeight,
+            windowHeight: modalContent.scrollHeight,
             width: modalContent.scrollWidth,
             windowWidth: modalContent.scrollWidth
         });
+
+        // Restore scroll constraints
+        modalContent.style.maxHeight = origMaxHeight;
+        modalContent.style.overflow = origOverflow;
 
         const suffix = '\n\nhttps://tezos.systems';
         const tweetOptions = [
