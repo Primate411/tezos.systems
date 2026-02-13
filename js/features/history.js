@@ -34,17 +34,15 @@ export function createSparkline(canvasId, data, metric) {
         lineColor = isPositive ? '#0784c3' : '#dc3545';
     } else if (currentThemeVal === 'bubblegum') {
         lineColor = isPositive ? '#FF69B4' : '#FF5E8A';
+    } else if (currentThemeVal === 'void') {
+        lineColor = isPositive ? '#a855f7' : '#7c3aed';
+    } else if (currentThemeVal === 'ember') {
+        lineColor = isPositive ? '#f97316' : '#dc2626';
+    } else if (currentThemeVal === 'signal') {
+        lineColor = isPositive ? '#22c55e' : '#ef4444';
     } else {
-        const positiveColor = '#00d4ff';
-        const negativeColor = '#ff6b9d';
-        const colorMap = {
-            tz4_percentage: isPositive ? positiveColor : negativeColor,
-            staking_ratio: isPositive ? positiveColor : negativeColor,
-            total_bakers: isPositive ? positiveColor : negativeColor,
-            current_issuance_rate: !isPositive ? positiveColor : negativeColor, // Lower is better
-            total_supply: positiveColor
-        };
-        lineColor = colorMap[metric] || positiveColor;
+        // default theme
+        lineColor = isPositive ? '#00d4ff' : '#ff6b9d';
     }
 
     const ctx = canvas.getContext('2d');
@@ -80,9 +78,9 @@ export function createSparkline(canvasId, data, metric) {
                     mode: 'index',
                     intersect: false,
                     backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                    titleColor: '#00ff41',
+                    titleColor: lineColor,
                     bodyColor: '#fff',
-                    borderColor: '#00ff41',
+                    borderColor: lineColor,
                     borderWidth: 1,
                     padding: 8,
                     displayColors: false,
@@ -160,15 +158,26 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
     }
 
     // Check theme for colors
-    const isMatrix = getCurrentTheme() === 'matrix';
-    const primaryColor = isMatrix ? '#00ff00' : '#00d4ff';
-    const glowColor = isMatrix ? 'rgba(0, 255, 0, 0.8)' : 'rgba(0, 212, 255, 0.8)';
+    const expandedTheme = getCurrentTheme();
+    const themeColorMap = {
+        matrix:    { primary: '#00ff00',  glow: 'rgba(0, 255, 0, 0.8)',    fill: [0.4, 0.15] },
+        dark:      { primary: '#999999',  glow: 'rgba(153, 153, 153, 0.8)', fill: [0.25, 0.08] },
+        clean:     { primary: '#0784c3',  glow: 'rgba(7, 132, 195, 0.8)',  fill: [0.3, 0.1] },
+        bubblegum: { primary: '#FF69B4',  glow: 'rgba(255, 105, 180, 0.8)', fill: [0.35, 0.12] },
+        void:      { primary: '#a855f7',  glow: 'rgba(168, 85, 247, 0.8)', fill: [0.35, 0.12] },
+        ember:     { primary: '#f97316',  glow: 'rgba(249, 115, 22, 0.8)', fill: [0.35, 0.12] },
+        signal:    { primary: '#22c55e',  glow: 'rgba(34, 197, 94, 0.8)',  fill: [0.35, 0.12] },
+        default:   { primary: '#00d4ff',  glow: 'rgba(0, 212, 255, 0.8)', fill: [0.4, 0.15] }
+    };
+    const tc = themeColorMap[expandedTheme] || themeColorMap.default;
+    const primaryColor = tc.primary;
+    const glowColor = tc.glow;
 
     // Gradient fill
     const ctx = canvas.getContext('2d');
     const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, isMatrix ? 'rgba(0, 255, 0, 0.4)' : 'rgba(0, 212, 255, 0.4)');
-    gradient.addColorStop(0.5, isMatrix ? 'rgba(0, 255, 0, 0.15)' : 'rgba(0, 212, 255, 0.15)');
+    gradient.addColorStop(0, primaryColor + Math.round(tc.fill[0] * 255).toString(16).padStart(2, '0'));
+    gradient.addColorStop(0.5, primaryColor + Math.round(tc.fill[1] * 255).toString(16).padStart(2, '0'));
     gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
     chartInstances[canvasId] = new Chart(ctx, {
@@ -245,11 +254,11 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
                         }
                     },
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.05)',
+                        color: expandedTheme === 'clean' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.05)',
                         drawBorder: false
                     },
                     ticks: {
-                        color: 'rgba(255, 255, 255, 0.5)',
+                        color: expandedTheme === 'clean' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)',
                         font: { size: 11 },
                         maxRotation: 0
                     }
@@ -257,11 +266,11 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
                 y: {
                     beginAtZero: false,
                     grid: {
-                        color: 'rgba(255, 255, 255, 0.05)',
+                        color: expandedTheme === 'clean' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.05)',
                         drawBorder: false
                     },
                     ticks: {
-                        color: 'rgba(255, 255, 255, 0.5)',
+                        color: expandedTheme === 'clean' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.5)',
                         font: { size: 11 },
                         callback: (value) => value.toLocaleString(undefined, {maximumFractionDigits: 1}) + unit,
                         padding: 10
