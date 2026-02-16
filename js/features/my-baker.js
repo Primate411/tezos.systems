@@ -109,6 +109,27 @@ async function fetchParticipation(bakerAddr) {
 }
 
 /**
+ * Fetch lifetime missed blocks/attestations from TzKT rights API
+ */
+async function fetchLifetimeMissed(bakerAddr) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+    try {
+        const [blocksResp, attestResp] = await Promise.all([
+            fetch(`${TZKT}/rights/count?baker=${encodeURIComponent(bakerAddr)}&status=missed&type=baking`, { signal: controller.signal }),
+            fetch(`${TZKT}/rights/count?baker=${encodeURIComponent(bakerAddr)}&status=missed&type=attestation`, { signal: controller.signal })
+        ]);
+        clearTimeout(timeout);
+        const blocks = blocksResp.ok ? parseInt(await blocksResp.text(), 10) : 0;
+        const attest = attestResp.ok ? parseInt(await attestResp.text(), 10) : 0;
+        return { blocks, attest };
+    } catch {
+        clearTimeout(timeout);
+        return null;
+    }
+}
+
+/**
  * Fetch DAL participation from Octez RPC
  */
 async function fetchDALParticipation(bakerAddr) {
@@ -122,9 +143,10 @@ async function fetchDALParticipation(bakerAddr) {
 /**
  * Create a stat item element
  */
-function createStatItem(label, value) {
+function createStatItem(label, value, tooltip) {
     const div = document.createElement('div');
     div.className = 'my-baker-stat';
+    if (tooltip) div.title = tooltip;
     const labelEl = document.createElement('span');
     labelEl.className = 'my-baker-stat-label';
     labelEl.textContent = label;
@@ -254,11 +276,12 @@ async function renderBakerData(address, container) {
         const participationAddr = bakerData ? address : account.delegate?.address;
 
         // Fetch APY, domain, and participation data in parallel
-        const [apy, delegateDomain, participation, dalParticipation] = await Promise.all([
+        const [apy, delegateDomain, participation, dalParticipation, lifetimeMissed] = await Promise.all([
             getStakingAPY(),
             account.delegate?.address ? resolveDomain(account.delegate.address) : Promise.resolve(null),
             participationAddr ? fetchParticipation(participationAddr) : Promise.resolve(null),
             participationAddr ? fetchDALParticipation(participationAddr) : Promise.resolve(null),
+            participationAddr ? fetchLifetimeMissed(participationAddr) : Promise.resolve(null),
         ]);
 
         container.innerHTML = '';
@@ -290,32 +313,35 @@ async function renderBakerData(address, container) {
 
         // Show delegate's baker stats for non-baker addresses
         if (!bakerData && delegateBakerData) {
-            grid.appendChild(createStatItem('Baker Stakers', formatNumber(delegateBakerData.stakersCount || 0, { decimals: 0, useAbbreviation: false })));
-            grid.appendChild(createStatItem('Baker Delegators', formatNumber(delegateBakerData.numDelegators || 0, { decimals: 0, useAbbreviation: false })));
-            grid.appendChild(createStatItem('Baker Staking Power', fmtXTZ(delegateBakerData.stakingBalance)));
+            grid.appendChild(createStatItem('Bkr Staking Power', fmtXTZ(delegateBakerData.stakingBalance)));
+            grid.appendChild(createStatItem('Bkr Stakers', formatNumber(delegateBakerData.stakersCount || 0, { decimals: 0, useAbbreviation: false })));
+            grid.appendChild(createStatItem('Bkr Delegators', formatNumber(delegateBakerData.numDelegators || 0, { decimals: 0, useAbbreviation: false })));
         }
 
         // If baker, show baker-specific stats
         if (bakerData) {
-            grid.appendChild(createStatItem('Baker Staking Power', fmtXTZ(bakerData.stakingBalance)));
-            grid.appendChild(createStatItem('External Staked', fmtXTZ(bakerData.externalStakedBalance)));
-            grid.appendChild(createStatItem('External Delegated', fmtXTZ(bakerData.externalDelegatedBalance)));
+            grid.appendChild(createStatItem('Staking Power', fmtXTZ(bakerData.stakingBalance)));
+            grid.appendChild(createStatItem('Ext. Staked', fmtXTZ(bakerData.externalStakedBalance)));
+            grid.appendChild(createStatItem('Ext. Delegated', fmtXTZ(bakerData.externalDelegatedBalance)));
             grid.appendChild(createStatItem('Stakers', formatNumber(bakerData.stakersCount || 0, { decimals: 0, useAbbreviation: false })));
             grid.appendChild(createStatItem('Delegators', formatNumber(bakerData.numDelegators || 0, { decimals: 0, useAbbreviation: false })));
-
-            const totalMissed = (bakerData.missedBlocks || 0) + (bakerData.missedEndorsements || 0);
-            grid.appendChild(createStatItem('Missed (Blocks/Attest)', `${bakerData.missedBlocks || 0} / ${bakerData.missedEndorsements || 0}`));
         }
 
-        // Participation indicators (for baker and delegator/staker views)
+        // Participation & missed stats (grouped together)
         if (participation) {
             const expected = participation.expected_cycle_activity || 0;
-            const missed = participation.missed_slots || 0;
-            const attested = expected - missed;
+            const missedSlots = participation.missed_slots || 0;
+            const missedLevels = participation.missed_levels || 0;
+            const attested = expected - missedSlots;
             const pct = expected > 0 ? ((attested / expected) * 100) : 0;
             const ok = pct >= 66.67;
             const icon = ok ? '✅' : '❌';
-            grid.appendChild(createStatItem('Attestation Rate', `${icon} ${pct.toFixed(2)}%`));
+            grid.appendChild(createStatItem('Attest Rate', `${icon} ${pct.toFixed(2)}%`, 'Consensus attestation rate for current cycle'));
+            grid.appendChild(createStatItem('Missed (Cycle)', `${missedLevels} / ${formatNumber(missedSlots, { decimals: 0, useAbbreviation: false })}`, 'Missed blocks / missed attestation slots this cycle'));
+        }
+
+        if (lifetimeMissed) {
+            grid.appendChild(createStatItem('Missed (Lifetime)', `${formatNumber(lifetimeMissed.blocks, { decimals: 0, useAbbreviation: false })} / ${formatNumber(lifetimeMissed.attest, { decimals: 0, useAbbreviation: false })}`, 'Missed blocks / missed attestations (all time)'));
         }
 
         if (dalParticipation) {
@@ -324,7 +350,7 @@ async function renderBakerData(address, container) {
             const attestable = dalParticipation.delegate_attestable_dal_slots || 0;
             const icon = ok ? '✅' : '❌';
             const ratio = attestable > 0 ? `${attested}/${attestable}` : 'N/A';
-            grid.appendChild(createStatItem('DAL Participation', `${icon} ${ratio} slots`));
+            grid.appendChild(createStatItem('DAL', `${icon} ${ratio} slots`));
         }
 
         // Estimated rewards based on staked balance or total balance
