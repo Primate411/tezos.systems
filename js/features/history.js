@@ -86,7 +86,7 @@ export function createSparkline(canvasId, data, metric) {
                     displayColors: false,
                     callbacks: {
                         title: (items) => {
-                            const date = new Date(items[0].label);
+                            const date = new Date(items[0].parsed.x);
                             return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                         },
                         label: (item) => item.formattedValue
@@ -232,7 +232,7 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
                             return `${val.toLocaleString(undefined, {maximumFractionDigits: 2})}${unit}`;
                         },
                         title: (contexts) => {
-                            const date = new Date(contexts[0].label);
+                            const date = new Date(contexts[0].parsed.x);
                             return date.toLocaleString('en-US', {
                                 weekday: 'short',
                                 month: 'short',
@@ -540,4 +540,141 @@ async function updateHistoryCharts(range) {
 export function destroyAllCharts() {
     Object.values(chartInstances).forEach(chart => chart.destroy());
     Object.keys(chartInstances).forEach(key => delete chartInstances[key]);
+}
+
+// Card-to-metric mapping for history feature
+const CARD_METRICS = {
+    'total-bakers': { metric: 'total_bakers', label: 'Total Bakers', unit: '' },
+    'tz4-adoption': { metric: 'tz4_percentage', label: 'tz4 Adoption', unit: '%' },
+    'issuance-rate': { metric: 'current_issuance_rate', label: 'Issuance Rate', unit: '%' },
+    'staking-ratio': { metric: 'staking_ratio', label: 'Staking Ratio', unit: '%' },
+    'total-supply': { metric: 'total_supply', label: 'Total Supply', unit: ' XTZ' },
+    'tx-volume': { metric: 'tx_volume_24h', label: 'TX Volume (24h)', unit: '' },
+    'contract-calls': { metric: 'contract_calls_24h', label: 'Contract Calls (24h)', unit: '' },
+    'funded-accounts': { metric: 'funded_accounts', label: 'Funded Accounts', unit: '' },
+    'smart-contracts': { metric: 'smart_contracts', label: 'Smart Contracts', unit: '' },
+    'tokens': { metric: 'tokens', label: 'Tokens', unit: '' },
+    'rollups': { metric: 'rollups', label: 'Rollups', unit: '' }
+};
+
+/**
+ * Add history buttons to stat cards with sparklines
+ */
+export function addCardHistoryButtons() {
+    Object.keys(CARD_METRICS).forEach(cardId => {
+        const card = document.querySelector(`[data-stat="${cardId}"]`);
+        if (!card) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'card-history-btn';
+        btn.innerHTML = '📊';
+        btn.title = 'View history';
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openCardHistoryModal(cardId);
+        });
+        card.appendChild(btn);
+    });
+}
+
+/**
+ * Open the card history modal for a specific metric
+ */
+async function openCardHistoryModal(cardId) {
+    const config = CARD_METRICS[cardId];
+    if (!config) return;
+
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('card-history-modal');
+    if (!modal) {
+        modal = createCardHistoryModal();
+        document.body.appendChild(modal);
+    }
+
+    // Update modal content
+    const title = modal.querySelector('.card-history-title');
+    const chartContainer = modal.querySelector('.card-history-chart');
+    
+    if (title) {
+        title.textContent = config.label;
+    }
+
+    // Show modal
+    modal.classList.add('active');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    // Load data and render chart
+    try {
+        const data = await fetchHistoricalData('30d');
+        
+        if (data.length === 0) {
+            chartContainer.innerHTML = `
+                <div style="text-align: center; padding: 60px 20px; color: rgba(255, 255, 255, 0.5);">
+                    <p>Historical data is being collected.</p>
+                    <p style="margin-top: 8px; font-size: 0.9em;">Charts will appear once data is available.</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Create canvas for the chart
+        const canvasId = 'card-history-canvas';
+        chartContainer.innerHTML = `<canvas id="${canvasId}"></canvas>`;
+        
+        // Render the chart
+        createFullChart(canvasId, data, config.metric, config.label, config.unit);
+    } catch (error) {
+        console.error('Failed to load card history:', error);
+        chartContainer.innerHTML = `
+            <div style="text-align: center; padding: 60px 20px; color: rgba(255, 107, 157, 0.8);">
+                <p>Failed to load historical data.</p>
+                <p style="margin-top: 8px; font-size: 0.9em;">Please try again later.</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Create the card history modal structure
+ */
+function createCardHistoryModal() {
+    const modal = document.createElement('div');
+    modal.id = 'card-history-modal';
+    modal.className = 'card-history-modal';
+    modal.setAttribute('aria-hidden', 'true');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+
+    modal.innerHTML = `
+        <div class="card-history-content">
+            <button class="card-history-close" id="card-history-close" aria-label="Close">×</button>
+            <h2 class="card-history-title"></h2>
+            <div class="card-history-chart"></div>
+        </div>
+    `;
+
+    // Close button handler
+    const closeBtn = modal.querySelector('.card-history-close');
+    const closeModal = () => {
+        modal.classList.remove('active');
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    
+    // Click backdrop to close
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // ESC key to close
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active')) {
+            closeModal();
+        }
+    });
+
+    return modal;
 }

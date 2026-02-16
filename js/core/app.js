@@ -16,7 +16,7 @@ import {
     escapeHtml
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
-import { initHistoryModal, updateSparklines } from '../features/history.js';
+import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
 import { initShare, initProtocolShare } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
@@ -69,6 +69,9 @@ async function init() {
     // Initialize share functionality
     initShare();
     initProtocolShare();
+    
+    // Initialize card history buttons
+    addCardHistoryButtons();
     
     // Initialize mobile tabs
     initTabs();

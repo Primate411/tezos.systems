@@ -676,8 +676,8 @@ async function doCaptureAndShare(selectedSections) {
             }
         }
         
-        // Remove card share buttons and info buttons from clone
-        clone.querySelectorAll('.card-share-btn, .card-info-btn, .card-tooltip').forEach(el => el.remove());
+        // Remove card share buttons, history buttons, and info buttons from clone
+        clone.querySelectorAll('.card-share-btn, .card-history-btn, .card-info-btn, .card-tooltip').forEach(el => el.remove());
         
         // Remove unselected sections from clone (upgrade-clock already handled above)
         if (!selectedNames.has('Protocols')) {
