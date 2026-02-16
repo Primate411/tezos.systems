@@ -111,32 +111,34 @@ async function fetchParticipation(bakerAddr) {
 /**
  * Fetch missed blocks/attestations from TzKT rights API (current cycle + lifetime)
  */
-async function fetchMissedRights(bakerAddr) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+async function fetchMissedRights(bakerAddr, cycle) {
+    const enc = encodeURIComponent(bakerAddr);
+    const safeFetch = async (url, retries = 2) => {
+        for (let i = 0; i <= retries; i++) {
+            try {
+                const r = await fetch(url);
+                if (r.status === 429) {
+                    await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+                    continue;
+                }
+                if (!r.ok) return 0;
+                const n = parseInt(await r.text(), 10);
+                return isNaN(n) ? 0 : n;
+            } catch { if (i === retries) return 0; }
+        }
+        return 0;
+    };
     try {
-        // Get current cycle
-        const headResp = await fetch(`${TZKT}/head`, { signal: controller.signal });
-        if (!headResp.ok) { clearTimeout(timeout); return null; }
-        const head = await headResp.json();
-        const cycle = head.cycle;
-
-        const enc = encodeURIComponent(bakerAddr);
-        const [ltBlocks, ltAttest, cyBlocks, cyAttest] = await Promise.all([
-            fetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=baking`, { signal: controller.signal }),
-            fetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=attestation`, { signal: controller.signal }),
-            fetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=baking&cycle=${cycle}`, { signal: controller.signal }),
-            fetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=attestation&cycle=${cycle}`, { signal: controller.signal }),
-        ]);
-        clearTimeout(timeout);
-
-        const parse = async (r) => r.ok ? parseInt(await r.text(), 10) : 0;
+        // Fetch sequentially to avoid TzKT rate limits (4 lightweight count calls)
+        const ltBlocks = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=baking`);
+        const ltAttest = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=attestation`);
+        const cyBlocks = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=baking&cycle=${cycle}`);
+        const cyAttest = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=attestation&cycle=${cycle}`);
         return {
-            cycle: { blocks: await parse(cyBlocks), attest: await parse(cyAttest) },
-            lifetime: { blocks: await parse(ltBlocks), attest: await parse(ltAttest) },
+            cycle: { blocks: cyBlocks, attest: cyAttest },
+            lifetime: { blocks: ltBlocks, attest: ltAttest },
         };
     } catch {
-        clearTimeout(timeout);
         return null;
     }
 }
@@ -287,13 +289,19 @@ async function renderBakerData(address, container) {
         // Determine baker address for participation lookups
         const participationAddr = bakerData ? address : account.delegate?.address;
 
-        // Fetch APY, domain, and participation data in parallel
-        const [apy, delegateDomain, participation, dalParticipation, missedRights] = await Promise.all([
+        // Get current cycle from Octez RPC (avoids TzKT rate limits)
+        let currentCycle = null;
+        try {
+            const lvlResp = await fetch(`${API_URLS.octez}/chains/main/blocks/head/helpers/current_level`);
+            if (lvlResp.ok) { const lvl = await lvlResp.json(); currentCycle = lvl.cycle; }
+        } catch { /* ignore */ }
+
+        // Fetch APY, domain, and participation data in parallel (missed rights deferred to avoid 429s)
+        const [apy, delegateDomain, participation, dalParticipation] = await Promise.all([
             getStakingAPY(),
             account.delegate?.address ? resolveDomain(account.delegate.address) : Promise.resolve(null),
             participationAddr ? fetchParticipation(participationAddr) : Promise.resolve(null),
             participationAddr ? fetchDALParticipation(participationAddr) : Promise.resolve(null),
-            participationAddr ? fetchMissedRights(participationAddr) : Promise.resolve(null),
         ]);
 
         container.innerHTML = '';
@@ -350,10 +358,14 @@ async function renderBakerData(address, container) {
             grid.appendChild(createStatItem('Attest Rate', `${icon} ${pct.toFixed(2)}%`, 'Consensus attestation rate for current cycle'));
         }
 
-        if (missedRights) {
-            const fmtN = (n) => formatNumber(n, { decimals: 0, useAbbreviation: false });
-            grid.appendChild(createStatItem('Missed (Cycle)', `${fmtN(missedRights.cycle.blocks)} / ${fmtN(missedRights.cycle.attest)}`, 'Missed blocks / missed attestations this cycle'));
-            grid.appendChild(createStatItem('Missed (Lifetime)', `${fmtN(missedRights.lifetime.blocks)} / ${fmtN(missedRights.lifetime.attest)}`, 'Missed blocks / missed attestations (all time)'));
+        // Missed rights: render placeholder cards, then fill async after TzKT rate limits settle
+        let missedCycleEl = null;
+        let missedLifetimeEl = null;
+        if (participationAddr && currentCycle) {
+            missedCycleEl = createStatItem('Missed (Cycle)', '…', 'Missed blocks / missed attestations this cycle');
+            missedLifetimeEl = createStatItem('Missed (Lifetime)', '…', 'Missed blocks / missed attestations (all time)');
+            grid.appendChild(missedCycleEl);
+            grid.appendChild(missedLifetimeEl);
         }
 
         if (dalParticipation) {
@@ -436,6 +448,21 @@ async function renderBakerData(address, container) {
         }
 
         container.appendChild(grid);
+
+        // Deferred: fetch missed rights after 2s to let TzKT rate limits settle
+        if (participationAddr && currentCycle && missedCycleEl && missedLifetimeEl) {
+            setTimeout(async () => {
+                const missedRights = await fetchMissedRights(participationAddr, currentCycle);
+                if (missedRights) {
+                    const fmtN = (n) => formatNumber(n, { decimals: 0, useAbbreviation: false });
+                    missedCycleEl.querySelector('.my-baker-stat-value').textContent = `${fmtN(missedRights.cycle.blocks)} / ${fmtN(missedRights.cycle.attest)}`;
+                    missedLifetimeEl.querySelector('.my-baker-stat-value').textContent = `${fmtN(missedRights.lifetime.blocks)} / ${fmtN(missedRights.lifetime.attest)}`;
+                } else {
+                    missedCycleEl.querySelector('.my-baker-stat-value').textContent = 'N/A';
+                    missedLifetimeEl.querySelector('.my-baker-stat-value').textContent = 'N/A';
+                }
+            }, 2000);
+        }
 
         // Sync address to Objkt section if it exists
         const objktInput = document.getElementById('objkt-input');
