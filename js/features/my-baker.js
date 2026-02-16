@@ -109,20 +109,32 @@ async function fetchParticipation(bakerAddr) {
 }
 
 /**
- * Fetch lifetime missed blocks/attestations from TzKT rights API
+ * Fetch missed blocks/attestations from TzKT rights API (current cycle + lifetime)
  */
-async function fetchLifetimeMissed(bakerAddr) {
+async function fetchMissedRights(bakerAddr) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
     try {
-        const [blocksResp, attestResp] = await Promise.all([
-            fetch(`${TZKT}/rights/count?baker=${encodeURIComponent(bakerAddr)}&status=missed&type=baking`, { signal: controller.signal }),
-            fetch(`${TZKT}/rights/count?baker=${encodeURIComponent(bakerAddr)}&status=missed&type=attestation`, { signal: controller.signal })
+        // Get current cycle
+        const headResp = await fetch(`${TZKT}/head`, { signal: controller.signal });
+        if (!headResp.ok) { clearTimeout(timeout); return null; }
+        const head = await headResp.json();
+        const cycle = head.cycle;
+
+        const enc = encodeURIComponent(bakerAddr);
+        const [ltBlocks, ltAttest, cyBlocks, cyAttest] = await Promise.all([
+            fetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=baking`, { signal: controller.signal }),
+            fetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=attestation`, { signal: controller.signal }),
+            fetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=baking&cycle=${cycle}`, { signal: controller.signal }),
+            fetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=attestation&cycle=${cycle}`, { signal: controller.signal }),
         ]);
         clearTimeout(timeout);
-        const blocks = blocksResp.ok ? parseInt(await blocksResp.text(), 10) : 0;
-        const attest = attestResp.ok ? parseInt(await attestResp.text(), 10) : 0;
-        return { blocks, attest };
+
+        const parse = async (r) => r.ok ? parseInt(await r.text(), 10) : 0;
+        return {
+            cycle: { blocks: await parse(cyBlocks), attest: await parse(cyAttest) },
+            lifetime: { blocks: await parse(ltBlocks), attest: await parse(ltAttest) },
+        };
     } catch {
         clearTimeout(timeout);
         return null;
@@ -276,12 +288,12 @@ async function renderBakerData(address, container) {
         const participationAddr = bakerData ? address : account.delegate?.address;
 
         // Fetch APY, domain, and participation data in parallel
-        const [apy, delegateDomain, participation, dalParticipation, lifetimeMissed] = await Promise.all([
+        const [apy, delegateDomain, participation, dalParticipation, missedRights] = await Promise.all([
             getStakingAPY(),
             account.delegate?.address ? resolveDomain(account.delegate.address) : Promise.resolve(null),
             participationAddr ? fetchParticipation(participationAddr) : Promise.resolve(null),
             participationAddr ? fetchDALParticipation(participationAddr) : Promise.resolve(null),
-            participationAddr ? fetchLifetimeMissed(participationAddr) : Promise.resolve(null),
+            participationAddr ? fetchMissedRights(participationAddr) : Promise.resolve(null),
         ]);
 
         container.innerHTML = '';
@@ -331,17 +343,17 @@ async function renderBakerData(address, container) {
         if (participation) {
             const expected = participation.expected_cycle_activity || 0;
             const missedSlots = participation.missed_slots || 0;
-            const missedLevels = participation.missed_levels || 0;
             const attested = expected - missedSlots;
             const pct = expected > 0 ? ((attested / expected) * 100) : 0;
             const ok = pct >= 66.67;
             const icon = ok ? '✅' : '❌';
             grid.appendChild(createStatItem('Attest Rate', `${icon} ${pct.toFixed(2)}%`, 'Consensus attestation rate for current cycle'));
-            grid.appendChild(createStatItem('Missed (Cycle)', `${missedLevels} / ${formatNumber(missedSlots, { decimals: 0, useAbbreviation: false })}`, 'Missed blocks / missed attestation slots this cycle'));
         }
 
-        if (lifetimeMissed) {
-            grid.appendChild(createStatItem('Missed (Lifetime)', `${formatNumber(lifetimeMissed.blocks, { decimals: 0, useAbbreviation: false })} / ${formatNumber(lifetimeMissed.attest, { decimals: 0, useAbbreviation: false })}`, 'Missed blocks / missed attestations (all time)'));
+        if (missedRights) {
+            const fmtN = (n) => formatNumber(n, { decimals: 0, useAbbreviation: false });
+            grid.appendChild(createStatItem('Missed (Cycle)', `${fmtN(missedRights.cycle.blocks)} / ${fmtN(missedRights.cycle.attest)}`, 'Missed blocks / missed attestations this cycle'));
+            grid.appendChild(createStatItem('Missed (Lifetime)', `${fmtN(missedRights.lifetime.blocks)} / ${fmtN(missedRights.lifetime.attest)}`, 'Missed blocks / missed attestations (all time)'));
         }
 
         if (dalParticipation) {
