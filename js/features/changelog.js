@@ -10,6 +10,7 @@ const CHANGELOG = [
             { type: '✨', text: 'Changelog — view full site history from ⚙️ settings' },
             { type: '✨', text: 'Per-card historical charts — click 📊 on any card with a sparkline' },
             { type: '🔧', text: 'My Baker: Fixed missed stats — now shows actual missed blocks/attestations for cycle and lifetime' },
+            { type: '🔧', text: 'My Baker: Deferred missed rights API calls to avoid TzKT rate limiting (429s)' },
             { type: '✨', text: 'Added LB (Liquid Baking) to issuance card' },
         ]
     },
