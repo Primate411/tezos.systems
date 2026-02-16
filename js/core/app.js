@@ -369,6 +369,21 @@ async function refresh() {
 }
 
 /**
+ * Update the issuance breakdown subtitle (Protocol · LB)
+ */
+function updateIssuanceBreakdown(protocolRate, lbRate) {
+    const el = document.getElementById('issuance-breakdown');
+    if (!el) return;
+    if (!protocolRate && !lbRate) {
+        el.textContent = '';
+        return;
+    }
+    const protocolStr = `${protocolRate.toFixed(2)}% Protocol`;
+    const lbStr = lbRate > 0 ? ` · ${lbRate.toFixed(2)}% LB` : '';
+    el.textContent = protocolStr + lbStr;
+}
+
+/**
  * Update displayed statistics
  */
 async function updateStats(newStats) {
@@ -399,6 +414,7 @@ async function updateStats(newStats) {
         
         // Economy
         updateStatInstant('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
+        updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate);
         updateStatInstant('staking-apy', newStats.delegateAPY, 
             (val) => `${val.toFixed(1)}% / ${newStats.stakeAPY.toFixed(1)}%`);
         updateStatInstant('staking-ratio', newStats.stakingRatio, formatPercentage);
@@ -434,6 +450,7 @@ async function updateStats(newStats) {
         }
         if (state.currentStats.currentIssuanceRate !== newStats.currentIssuanceRate) {
             updates.push({ cardId: 'issuance-rate', value: newStats.currentIssuanceRate, formatter: formatPercentage });
+            updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate);
         }
         if (state.currentStats.stakingRatio !== newStats.stakingRatio) {
             updates.push({ cardId: 'staking-ratio', value: newStats.stakingRatio, formatter: formatPercentage });

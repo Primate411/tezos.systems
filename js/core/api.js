@@ -248,28 +248,40 @@ async function fetchIssuance() {
         const pastStr = past.toISOString().split('T')[0];
         const nextDay = new Date(past.getTime() + 24 * 3600 * 1000).toISOString().split('T')[0];
         
-        const [currentStats, pastStats] = await Promise.all([
+        const [currentStats, pastStats, rpcRateRaw] = await Promise.allSettled([
             fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`),
-            fetchWithRetry(`${ENDPOINTS.tzkt.base}/statistics?timestamp.ge=${pastStr}T00:00:00Z&timestamp.lt=${nextDay}T00:00:00Z&limit=1`)
+            fetchWithRetry(`${ENDPOINTS.tzkt.base}/statistics?timestamp.ge=${pastStr}T00:00:00Z&timestamp.lt=${nextDay}T00:00:00Z&limit=1`),
+            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`)
         ]);
         
-        const pastStat = Array.isArray(pastStats) ? pastStats[0] : pastStats;
-        if (!pastStat || !pastStat.totalCreated || !currentStats.totalSupply) {
-            // Fallback to Octez RPC
-            const rateString = await fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`);
-            return parseFloat(rateString.replace(/"/g, ''));
+        // Protocol-only rate from Octez RPC (excludes LB subsidy)
+        const protocolRate = rpcRateRaw.status === 'fulfilled'
+            ? parseFloat(rpcRateRaw.value.replace(/"/g, ''))
+            : null;
+        
+        const current = currentStats.status === 'fulfilled' ? currentStats.value : null;
+        const pastStat = pastStats.status === 'fulfilled'
+            ? (Array.isArray(pastStats.value) ? pastStats.value[0] : pastStats.value)
+            : null;
+        
+        if (!pastStat || !pastStat.totalCreated || !current || !current.totalSupply) {
+            // Fallback to Octez RPC for total rate
+            return { total: protocolRate || 0, protocol: protocolRate || 0, lb: 0 };
         }
         
-        const createdDiff = currentStats.totalCreated - pastStat.totalCreated;
-        const burnedDiff = (currentStats.totalBurned || 0) - (pastStat.totalBurned || 0);
+        const createdDiff = current.totalCreated - pastStat.totalCreated;
+        const burnedDiff = (current.totalBurned || 0) - (pastStat.totalBurned || 0);
         const netIssuance = createdDiff - burnedDiff;
-        const avgSupply = (currentStats.totalSupply + pastStat.totalSupply) / 2;
+        const avgSupply = (current.totalSupply + pastStat.totalSupply) / 2;
         const annualized = (netIssuance / avgSupply) * (365.25 / daysBack) * 100;
         
-        return annualized;
+        // LB portion = total net issuance minus protocol-only rate
+        const lbRate = protocolRate != null ? Math.max(0, annualized - protocolRate) : 0;
+        
+        return { total: annualized, protocol: protocolRate || annualized, lb: lbRate };
     } catch (error) {
         console.error('Failed to fetch issuance:', error);
-        return 0;
+        return { total: 0, protocol: 0, lb: 0 };
     }
 }
 
@@ -482,7 +494,9 @@ export async function fetchAllStats() {
             participationDescription: gov.participationDescription || '',
             
             // Economy
-            currentIssuanceRate: issuance.status === 'fulfilled' ? issuance.value : 0,
+            currentIssuanceRate: issuance.status === 'fulfilled' ? issuance.value.total : 0,
+            protocolIssuanceRate: issuance.status === 'fulfilled' ? issuance.value.protocol : 0,
+            lbIssuanceRate: issuance.status === 'fulfilled' ? issuance.value.lb : 0,
             stakingRatio: staking.stakingRatio,
             delegatedRatio: staking.delegatedRatio,
             totalSupply: totalSupply.status === 'fulfilled' ? totalSupply.value : 0,
