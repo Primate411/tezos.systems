@@ -64,17 +64,31 @@ function createTabNav() {
 function setupSections() {
     const main = document.querySelector('.main-content');
     const upgradeSection = document.getElementById('upgrade-clock');
-    const sections = main.querySelectorAll('.stats-section');
     
     // Add data-tab attributes to sections
     if (upgradeSection) {
         upgradeSection.setAttribute('data-tab-panel', 'overview');
     }
     
-    const sectionIds = ['consensus', 'economy', 'governance', 'network', 'ecosystem'];
-    sections.forEach((section, index) => {
-        if (sectionIds[index]) {
-            section.setAttribute('data-tab-panel', sectionIds[index]);
+    // Map section titles to tab IDs explicitly to avoid index mismatches
+    // when non-dashboard sections (Moments, Compares, etc.) are present
+    const titleToTab = {
+        'Consensus':        'consensus',
+        'Economy':          'economy',
+        'Governance':       'governance',
+        'Network Activity': 'network',
+        'Ecosystem':        'ecosystem'
+    };
+    
+    const sections = main.querySelectorAll('.stats-section');
+    sections.forEach(section => {
+        const titleEl = section.querySelector('.section-title');
+        if (!titleEl) return;
+        // Strip emoji and collapse markers (▾) to get clean title
+        const clean = titleEl.textContent.replace(/[^\w\s]/g, '').trim();
+        const tabId = Object.keys(titleToTab).find(key => clean.includes(key));
+        if (tabId) {
+            section.setAttribute('data-tab-panel', titleToTab[tabId]);
         }
     });
 }
