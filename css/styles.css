@@ -8206,3 +8206,189 @@ body {
     border-color: rgba(255, 105, 180, 0.2);
     color: #ff69b4;
 }
+
+/* ==========================================
+   Changelog Modal
+   ========================================== */
+
+.changelog-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+}
+
+.changelog-modal[aria-hidden="false"] {
+    display: flex;
+}
+
+.changelog-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    animation: fadeIn 0.2s ease;
+}
+
+.changelog-modal-content {
+    position: relative;
+    z-index: 1;
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.changelog-modal-header {
+    padding: 2rem 2rem 1rem;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+.changelog-modal-header h2 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+
+.changelog-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 2rem;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: var(--transition);
+    line-height: 1;
+    padding: 0;
+}
+
+.changelog-modal-close:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.changelog-modal-body {
+    padding: 1.5rem 2rem 2rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.changelog-section {
+    margin-bottom: 2rem;
+}
+
+.changelog-section:last-child {
+    margin-bottom: 0;
+}
+
+.changelog-date {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.01em;
+}
+
+.changelog-entries {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.changelog-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.5rem 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.changelog-type {
+    font-size: 1.1rem;
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+}
+
+.changelog-text {
+    flex: 1;
+    font-size: 0.95rem;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .changelog-modal-content {
+        width: 100%;
+        max-width: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        border: none;
+    }
+    
+    .changelog-modal-header {
+        padding: 1.5rem 1.25rem 1rem;
+    }
+    
+    .changelog-modal-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .changelog-modal-body {
+        padding: 1rem 1.25rem 1.5rem;
+    }
+    
+    .changelog-date {
+        font-size: 1rem;
+    }
+    
+    .changelog-entry {
+        gap: 0.5rem;
+    }
+    
+    .changelog-type {
+        font-size: 1rem;
+    }
+    
+    .changelog-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* Scrollbar styling for changelog body */
+.changelog-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+
+.changelog-modal-body::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.changelog-modal-body::-webkit-scrollbar-thumb {
+    background: var(--glass-border);
+    border-radius: 4px;
+}
+
+.changelog-modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-cyan);
+}

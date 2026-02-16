@@ -32,6 +32,7 @@ import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-b
 import { initCalculator } from '../features/calculator.js';
 import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
+import { initChangelog } from '../features/changelog.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -69,6 +70,9 @@ async function init() {
     // Initialize share functionality
     initShare();
     initProtocolShare();
+    
+    // Initialize changelog modal
+    initChangelog();
     
     // Initialize card history buttons
     addCardHistoryButtons();

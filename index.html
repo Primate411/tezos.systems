@@ -260,6 +260,9 @@
                         <button id="share-btn" class="glass-button" aria-label="Share snapshot" title="Share snapshot">
                             <span class="share-icon">📸</span> <span class="dropdown-label">Share</span>
                         </button>
+                        <button id="changelog-btn" class="glass-button" aria-label="Changelog" title="Changelog">
+                            <span>📋</span> <span class="dropdown-label">Changelog</span>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -1474,6 +1477,20 @@
                     </div>
                     <canvas id="chart-supply"></canvas>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Changelog Modal -->
+    <div class="changelog-modal" id="changelog-modal" aria-hidden="true">
+        <div class="changelog-modal-backdrop"></div>
+        <div class="changelog-modal-content">
+            <div class="changelog-modal-header">
+                <h2>Changelog</h2>
+                <button class="changelog-modal-close" aria-label="Close">×</button>
+            </div>
+            <div class="changelog-modal-body" id="changelog-body">
+                <!-- Entries go here -->
             </div>
         </div>
     </div>
