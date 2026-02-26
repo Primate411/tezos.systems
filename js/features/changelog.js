@@ -11,6 +11,9 @@ const CHANGELOG = [
             { type: '⚡', text: 'Critical JS modules preloaded in parallel (modulepreload) — faster startup' },
             { type: '⚡', text: 'Sparkline refresh skipped when tab is backgrounded — fewer wasted API calls' },
             { type: '🔧', text: 'Protocol timeline tooltips now match theme after switching (no longer stale)' },
+            { type: '✨', text: 'Offline mode — Service Worker caches the dashboard for instant loads and offline viewing' },
+            { type: '✨', text: 'URL deep-linking — share links like #my-baker=tz1..., #compare, #theme=void, #history' },
+            { type: '✨', text: 'Keyboard shortcuts — press ? for the full list (r=refresh, t=theme, m=baker, h=history…)' },
         ]
     },
     {

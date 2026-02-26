@@ -156,6 +156,16 @@ async function init() {
     // Setup refresh interval
     startRefreshTimer();
 
+    // Register Service Worker for offline/PWA
+    registerServiceWorker();
+
+    // Setup URL deep-linking
+    applyDeepLink();
+    window.addEventListener('hashchange', applyDeepLink);
+
+    // Setup keyboard shortcuts
+    initKeyboardShortcuts();
+
     console.log('Dashboard initialized');
 }
 
@@ -1347,3 +1357,255 @@ function initPulseIndicators() {
 
 // Expose refresh function globally
 window.TezosStats = { refresh };
+
+// ==========================================
+// SERVICE WORKER REGISTRATION
+// ==========================================
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+            console.log('📦 Service Worker registered, scope:', reg.scope);
+        }).catch((err) => {
+            console.warn('SW registration failed:', err);
+        });
+    }
+}
+
+// ==========================================
+// URL DEEP-LINKING
+// ==========================================
+// Supported hash fragments:
+//   #my-baker=tz1...   → open My Baker with address
+//   #calculator        → open Rewards Calculator
+//   #compare           → show comparison section
+//   #whales            → show whale tracker
+//   #giants            → show sleeping giants
+//   #history           → open history modal
+//   #theme=dark        → switch to theme
+//   #section=consensus → scroll to section
+function applyDeepLink() {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+
+    const params = new URLSearchParams(hash);
+
+    // #my-baker=tz1... or #my-baker (just open it)
+    if (params.has('my-baker')) {
+        const addr = params.get('my-baker');
+        const toggle = document.getElementById('my-baker-toggle');
+        const section = document.getElementById('my-baker-section');
+        if (toggle && section && !section.classList.contains('visible')) {
+            toggle.click();
+        }
+        if (addr && addr.startsWith('tz')) {
+            setTimeout(() => {
+                const input = document.getElementById('my-baker-input');
+                const saveBtn = document.getElementById('my-baker-save');
+                if (input) { input.value = addr; }
+                if (saveBtn) { saveBtn.click(); }
+            }, 500);
+        }
+    }
+
+    // #calculator
+    if (params.has('calculator') || hash === 'calculator') {
+        const toggle = document.getElementById('calc-toggle');
+        const section = document.getElementById('calculator-section');
+        if (toggle && section && !section.classList.contains('visible')) {
+            toggle.click();
+        }
+    }
+
+    // #compare
+    if (params.has('compare') || hash === 'compare') {
+        const stored = localStorage.getItem('tezos-systems-comparison-visible');
+        if (stored !== 'true') {
+            const toggle = document.getElementById('comparison-toggle');
+            if (toggle) toggle.click();
+        }
+    }
+
+    // #whales
+    if (params.has('whales') || hash === 'whales') {
+        const toggle = document.getElementById('whale-toggle');
+        const section = document.getElementById('whale-section');
+        if (toggle && section && !section.classList.contains('visible')) {
+            toggle.click();
+        }
+    }
+
+    // #giants
+    if (params.has('giants') || hash === 'giants') {
+        const toggle = document.getElementById('giants-toggle');
+        const section = document.getElementById('giants-section');
+        if (toggle && section && !section.classList.contains('visible')) {
+            toggle.click();
+        }
+    }
+
+    // #history
+    if (params.has('history') || hash === 'history') {
+        const btn = document.getElementById('history-btn');
+        if (btn) btn.click();
+    }
+
+    // #theme=<name>
+    if (params.has('theme')) {
+        const themeName = params.get('theme');
+        const validThemes = ['matrix', 'dark', 'clean', 'bubblegum', 'void', 'ember', 'signal'];
+        if (validThemes.includes(themeName)) {
+            document.body.setAttribute('data-theme', themeName);
+            localStorage.setItem('tezos-systems-theme', themeName);
+        }
+    }
+
+    // #section=<id> — scroll to a section
+    if (params.has('section')) {
+        const sectionName = params.get('section');
+        // Map friendly names to section header text
+        const sectionMap = {
+            'consensus': '🛡️ Consensus',
+            'economy': '💰 Economy',
+            'governance': '🏛️ Governance',
+            'network': '📡 Network Activity',
+            'ecosystem': '🌿 Ecosystem'
+        };
+        const target = sectionMap[sectionName];
+        if (target) {
+            setTimeout(() => {
+                const headers = document.querySelectorAll('.section-title');
+                for (const h of headers) {
+                    if (h.textContent.includes(target.slice(2))) {
+                        h.closest('section')?.scrollIntoView({ behavior: 'smooth' });
+                        break;
+                    }
+                }
+            }, 800);
+        }
+    }
+}
+
+// ==========================================
+// KEYBOARD SHORTCUTS
+// ==========================================
+function initKeyboardShortcuts() {
+    // Build help overlay content
+    const shortcuts = [
+        { key: 'r', desc: 'Refresh data' },
+        { key: 't', desc: 'Cycle theme' },
+        { key: 'm', desc: 'Toggle My Baker' },
+        { key: 'c', desc: 'Toggle Calculator' },
+        { key: 'h', desc: 'Open History' },
+        { key: 'w', desc: 'Toggle Whales' },
+        { key: 'g', desc: 'Toggle Giants' },
+        { key: 'k', desc: 'Toggle Compare' },
+        { key: '?', desc: 'Show this help' },
+        { key: 'Esc', desc: 'Close modals/help' },
+    ];
+
+    let helpOverlay = null;
+
+    function showHelp() {
+        if (helpOverlay) { hideHelp(); return; }
+        helpOverlay = document.createElement('div');
+        helpOverlay.id = 'keyboard-help';
+        helpOverlay.className = 'keyboard-help-overlay';
+        helpOverlay.innerHTML = `
+            <div class="keyboard-help-card">
+                <h3>⌨️ Keyboard Shortcuts</h3>
+                <div class="keyboard-help-grid">
+                    ${shortcuts.map(s => `
+                        <div class="keyboard-help-row">
+                            <kbd>${s.key}</kbd>
+                            <span>${s.desc}</span>
+                        </div>
+                    `).join('')}
+                </div>
+                <p class="keyboard-help-hint">Press any key to dismiss</p>
+            </div>
+        `;
+        document.body.appendChild(helpOverlay);
+        requestAnimationFrame(() => helpOverlay.classList.add('visible'));
+    }
+
+    function hideHelp() {
+        if (!helpOverlay) return;
+        helpOverlay.classList.remove('visible');
+        setTimeout(() => { helpOverlay?.remove(); helpOverlay = null; }, 200);
+    }
+
+    const THEMES = ['matrix', 'dark', 'clean', 'bubblegum', 'void', 'ember', 'signal'];
+
+    document.addEventListener('keydown', (e) => {
+        // Ignore if typing in an input
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+        // Ignore if modifier keys are held (except shift for ?)
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+        const key = e.key.toLowerCase();
+
+        // Help overlay dismissal — any key
+        if (helpOverlay && key !== '?') {
+            hideHelp();
+            if (key === 'escape') return;
+            // Don't consume the key — let it fall through to shortcuts
+        }
+
+        switch (key) {
+            case 'r': {
+                e.preventDefault();
+                const refreshBtn = document.getElementById('refresh-btn');
+                if (refreshBtn) {
+                    refreshBtn.click();
+                    refreshBtn.classList.add('spinning');
+                    setTimeout(() => refreshBtn.classList.remove('spinning'), 1000);
+                }
+                break;
+            }
+            case 't': {
+                e.preventDefault();
+                const current = document.body.getAttribute('data-theme') || 'matrix';
+                const idx = THEMES.indexOf(current);
+                const next = THEMES[(idx + 1) % THEMES.length];
+                document.body.setAttribute('data-theme', next);
+                localStorage.setItem('tezos-systems-theme', next);
+                break;
+            }
+            case 'm': {
+                e.preventDefault();
+                document.getElementById('my-baker-toggle')?.click();
+                break;
+            }
+            case 'c': {
+                e.preventDefault();
+                document.getElementById('calc-toggle')?.click();
+                break;
+            }
+            case 'h': {
+                e.preventDefault();
+                document.getElementById('history-btn')?.click();
+                break;
+            }
+            case 'w': {
+                e.preventDefault();
+                document.getElementById('whale-toggle')?.click();
+                break;
+            }
+            case 'g': {
+                e.preventDefault();
+                document.getElementById('giants-toggle')?.click();
+                break;
+            }
+            case 'k': {
+                e.preventDefault();
+                document.getElementById('comparison-toggle')?.click();
+                break;
+            }
+            case '?': {
+                e.preventDefault();
+                showHelp();
+                break;
+            }
+        }
+    });
+}

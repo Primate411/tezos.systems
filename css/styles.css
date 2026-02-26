@@ -8392,3 +8392,83 @@ body {
 .changelog-modal-body::-webkit-scrollbar-thumb:hover {
     background: var(--accent-cyan);
 }
+
+/* ==========================================
+   KEYBOARD HELP OVERLAY
+   ========================================== */
+
+.keyboard-help-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10002;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    pointer-events: all;
+}
+
+.keyboard-help-overlay.visible {
+    opacity: 1;
+}
+
+.keyboard-help-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 28px 32px;
+    min-width: 280px;
+    max-width: 360px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.keyboard-help-card h3 {
+    color: var(--accent-cyan);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+    letter-spacing: 1px;
+}
+
+.keyboard-help-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.keyboard-help-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.keyboard-help-row kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 28px;
+    padding: 0 8px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    color: var(--accent-cyan);
+    font-family: 'IBM Plex Mono', 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.keyboard-help-row span {
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+}
+
+.keyboard-help-hint {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    text-align: center;
+    margin-top: 18px;
+}
