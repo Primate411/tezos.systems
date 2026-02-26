@@ -148,8 +148,10 @@ async function init() {
     initHistoryModal();
     updateSparklines(); // Don't await - let it load in background
 
-    // Setup sparkline refresh interval
-    setInterval(updateSparklines, REFRESH_INTERVALS.sparkline);
+    // Setup sparkline refresh interval (visibility-gated)
+    setInterval(() => {
+        if (document.visibilityState === 'visible') updateSparklines();
+    }, REFRESH_INTERVALS.sparkline);
 
     // Setup refresh interval
     startRefreshTimer();
@@ -885,24 +887,25 @@ async function initRichTooltips(protocols) {
     if (!tooltipEl) {
         tooltipEl = document.createElement('div');
         tooltipEl.id = 'timeline-tooltip';
-        const currentTheme = document.body.getAttribute('data-theme');
-        const isMatrix = currentTheme === 'matrix';
-        const isClean = currentTheme === 'clean';
-        const isDark = currentTheme === 'dark';
-        const isBubblegum = currentTheme === 'bubblegum';
         tooltipEl.style.cssText = `
             position: fixed; z-index: 10000; pointer-events: none;
             opacity: 0; visibility: hidden;
             transition: opacity 0.2s ease, visibility 0.2s ease;
-            background: ${isClean ? 'rgba(255, 255, 255, 0.98)' : isDark ? 'rgba(26, 26, 26, 0.98)' : isMatrix ? 'rgba(0, 10, 0, 0.98)' : isBubblegum ? 'rgba(26, 15, 34, 0.98)' : 'rgba(10, 10, 15, 0.98)'};
-            border: 1px solid ${isClean ? 'rgba(0, 0, 0, 0.1)' : isDark ? '#333333' : isMatrix ? 'rgba(0, 255, 0, 0.5)' : isBubblegum ? 'rgba(255, 105, 180, 0.4)' : 'rgba(0, 212, 255, 0.4)'};
             border-radius: 10px; padding: 14px 16px;
             width: 340px; max-width: 90vw;
-            box-shadow: ${isClean ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.6)'};
             font-size: 0.72rem; line-height: 1.5;
-            color: ${isClean ? '#1A1A2E' : isDark ? '#E8E8E8' : isMatrix ? '#00ff00' : isBubblegum ? '#F0E0F6' : 'var(--text-primary)'};
         `;
         document.body.appendChild(tooltipEl);
+    }
+
+    /** Apply theme-aware styles to the tooltip (called on each show) */
+    function applyTooltipTheme(el) {
+        const t = document.body.getAttribute('data-theme');
+        const isMatrix = t === 'matrix', isClean = t === 'clean', isDark = t === 'dark', isBubblegum = t === 'bubblegum';
+        el.style.background = isClean ? 'rgba(255, 255, 255, 0.98)' : isDark ? 'rgba(26, 26, 26, 0.98)' : isMatrix ? 'rgba(0, 10, 0, 0.98)' : isBubblegum ? 'rgba(26, 15, 34, 0.98)' : 'rgba(10, 10, 15, 0.98)';
+        el.style.border = `1px solid ${isClean ? 'rgba(0, 0, 0, 0.1)' : isDark ? '#333333' : isMatrix ? 'rgba(0, 255, 0, 0.5)' : isBubblegum ? 'rgba(255, 105, 180, 0.4)' : 'rgba(0, 212, 255, 0.4)'}`;
+        el.style.boxShadow = isClean ? '0 8px 32px rgba(0,0,0,0.12)' : '0 8px 32px rgba(0,0,0,0.6)';
+        el.style.color = isClean ? '#1A1A2E' : isDark ? '#E8E8E8' : isMatrix ? '#00ff00' : isBubblegum ? '#F0E0F6' : 'var(--text-primary)';
     }
 
     const items = document.querySelectorAll('.timeline-item');
@@ -912,6 +915,7 @@ async function initRichTooltips(protocols) {
         const richP = richMap[name];
 
         item.addEventListener('mouseenter', (e) => {
+            applyTooltipTheme(tooltipEl);
             const _theme = document.body.getAttribute('data-theme');
             const accent = _theme === 'clean' ? '#2563EB' : _theme === 'dark' ? '#C8C8C8' : _theme === 'matrix' ? '#00ff00' : '#00d4ff';
             const accentDim = _theme === 'clean' ? 'rgba(37,99,235,0.6)' : _theme === 'dark' ? 'rgba(200,200,200,0.6)' : _theme === 'matrix' ? 'rgba(0,255,0,0.6)' : 'rgba(0,212,255,0.6)';

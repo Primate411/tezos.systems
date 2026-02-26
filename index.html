@@ -46,6 +46,13 @@
 
     <link rel="stylesheet" href="css/styles.css?v=20260212d">
 
+    <!-- Modulepreload critical JS for parallel fetch -->
+    <link rel="modulepreload" href="js/core/app.js?v=20260212d">
+    <link rel="modulepreload" href="js/core/api.js">
+    <link rel="modulepreload" href="js/core/config.js">
+    <link rel="modulepreload" href="js/core/utils.js">
+    <link rel="modulepreload" href="js/ui/animations.js">
+
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
     {
@@ -1496,8 +1503,8 @@
     </div>
 
     <!-- Chart.js for visualizations -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
     <script type="module" src="js/core/app.js?v=20260212d"></script>
