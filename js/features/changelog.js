@@ -5,6 +5,15 @@
 
 const CHANGELOG = [
     {
+        date: '2026-02-26',
+        entries: [
+            { type: '⚡', text: 'Chart.js now loads with defer — no longer blocks initial render' },
+            { type: '⚡', text: 'Critical JS modules preloaded in parallel (modulepreload) — faster startup' },
+            { type: '⚡', text: 'Sparkline refresh skipped when tab is backgrounded — fewer wasted API calls' },
+            { type: '🔧', text: 'Protocol timeline tooltips now match theme after switching (no longer stale)' },
+        ]
+    },
+    {
         date: '2026-02-16',
         entries: [
             { type: '✨', text: 'Changelog — view full site history from ⚙️ settings' },
