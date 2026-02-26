@@ -17,7 +17,7 @@ export const API_URLS = {
 export const REFRESH_INTERVALS = {
   main: 7200000,        // 2 hours
   sparkline: 600000,    // 10 minutes
-  price: 60000          // 60 seconds
+  price: 1800000        // 30 minutes (matches price.js cache TTL)
 };
 
 // Cache TTLs (milliseconds)
@@ -42,7 +42,8 @@ export const THRESHOLDS = {
 export const STAKING_TARGET = 50;
 
 // Mainnet launch date
-export const MAINNET_LAUNCH = '2018-06-30T00:00:00Z';
+// Tezos mainnet launched Sep 17, 2018 (not Jun 30, which was the fundraiser genesis)
+export const MAINNET_LAUNCH = '2018-09-17T00:00:00Z';
 
 // History data start date
 export const HISTORY_START = '2024-01-01';
@@ -57,7 +58,7 @@ export const CHAIN_COMPARISON = {
         finality: '~13 min',
         finalityNote: '2 epochs',
         validators: '~2',
-        validatorsNote: 'entities for 50%',
+        validatorsNote: 'entities control 50% of stake',
         stakingPct: '~28%',
         annualIssuance: '~0.5%',
         selfAmendments: 0,

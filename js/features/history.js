@@ -407,8 +407,10 @@ export async function updateSparklines() {
     }
 }
 
-// Listen for theme changes to update sparkline colors
+// Listen for theme changes to update sparkline colors (skip initial theme set)
+let _themeInitialized = false;
 window.addEventListener('themechange', () => {
+    if (!_themeInitialized) { _themeInitialized = true; return; }
     updateSparklines();
 });
 

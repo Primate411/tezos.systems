@@ -477,7 +477,9 @@ async function pollForUpdates() {
  */
 function startPolling() {
     if (pollTimer) return;
-    pollTimer = setInterval(pollForUpdates, CONFIG.pollInterval);
+    pollTimer = setInterval(() => {
+        if (document.visibilityState === 'visible') pollForUpdates();
+    }, CONFIG.pollInterval);
 }
 
 /**

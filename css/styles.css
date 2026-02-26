@@ -3103,6 +3103,10 @@ body.mobile-tabs-active [data-tab-panel].tab-active {
     animation: tabFadeIn 0.3s ease;
 }
 
+body.mobile-tabs-active .mobile-overview-summary.tab-active {
+    display: grid;
+}
+
 @keyframes tabFadeIn {
     from {
         opacity: 0;
@@ -8471,4 +8475,135 @@ body {
     font-size: 0.7rem;
     text-align: center;
     margin-top: 18px;
+}
+
+/* ==========================================
+   LOADING SHIMMER / SKELETON
+   ========================================== */
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.stat-value.loading {
+    color: transparent !important;
+    background: linear-gradient(
+        90deg,
+        var(--glass-bg) 25%,
+        rgba(255, 255, 255, 0.06) 50%,
+        var(--glass-bg) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+    border-radius: 6px;
+    min-width: 80px;
+    min-height: 1.4em;
+}
+
+[data-theme="clean"] .stat-value.loading {
+    background: linear-gradient(
+        90deg,
+        #f0f1f3 25%,
+        #e0e2e6 50%,
+        #f0f1f3 75%
+    );
+    background-size: 200% 100%;
+}
+
+/* ==========================================
+   OFFLINE INDICATOR
+   ========================================== */
+
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10003;
+    text-align: center;
+    padding: 6px 12px;
+    font-size: 0.72rem;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 1px;
+    background: rgba(255, 107, 107, 0.15);
+    border-bottom: 1px solid rgba(255, 107, 107, 0.3);
+    color: #ff6b6b;
+    backdrop-filter: blur(8px);
+    transition: transform 0.3s ease;
+}
+
+.offline-banner.hidden {
+    transform: translateY(-100%);
+}
+
+/* ==========================================
+   MOBILE OVERVIEW SUMMARY
+   ========================================== */
+
+.mobile-overview-summary {
+    display: none; /* Only visible on mobile */
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 16px 16px;
+}
+
+.mobile-tabs-active .mobile-overview-summary {
+    display: grid;
+}
+
+/* Hide on non-overview tabs */
+.mobile-tabs-active [data-active-tab]:not([data-active-tab="overview"]) ~ .mobile-overview-summary,
+body:not([data-active-tab="overview"]) .mobile-overview-summary {
+    display: none;
+}
+
+body[data-active-tab="overview"] .mobile-overview-summary {
+    display: grid;
+}
+
+/* Only show when mobile tabs active AND overview tab selected */
+body:not(.mobile-tabs-active) .mobile-overview-summary {
+    display: none !important;
+}
+
+.overview-metric {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    text-align: center;
+}
+
+.overview-metric-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-family: 'Orbitron', monospace;
+}
+
+.overview-metric-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    font-family: 'Orbitron', monospace;
+}
+
+/* ==========================================
+   TIMELINE YEAR LABELS
+   ========================================== */
+
+.timeline-year {
+    position: absolute;
+    bottom: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.5rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0.6;
+    letter-spacing: 0.5px;
 }

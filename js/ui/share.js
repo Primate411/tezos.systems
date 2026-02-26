@@ -33,7 +33,7 @@ let _tweetsData = null;
 async function loadTweetsData() {
     if (_tweetsData) return _tweetsData;
     try {
-        const resp = await fetch('/data/tweets.json?v=' + Date.now());
+        const resp = await fetch('/data/tweets.json');
         _tweetsData = await resp.json();
         return _tweetsData;
     } catch (e) {

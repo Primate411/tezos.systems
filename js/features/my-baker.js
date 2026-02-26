@@ -35,7 +35,8 @@ async function resolveForwardDomain(name) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: `query { domain(name: "${name}") { address } }`
+                query: `query ResolveDomain($name: String!) { domain(name: $name) { address } }`,
+                variables: { name }
             })
         });
         const data = await resp.json();
@@ -62,7 +63,8 @@ async function resolveDomain(address) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: `query { reverseRecord(address: "${address}") { domain { name } } }`
+                query: `query ReverseLookup($address: String!) { reverseRecord(address: $address) { domain { name } } }`,
+                variables: { address }
             })
         });
         const data = await resp.json();

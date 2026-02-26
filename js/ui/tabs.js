@@ -59,6 +59,55 @@ function createTabNav() {
 }
 
 /**
+ * Create mobile overview summary with headline metrics
+ */
+function createOverviewSummary() {
+    const existing = document.getElementById('mobile-overview-summary');
+    if (existing) return;
+
+    const summary = document.createElement('div');
+    summary.id = 'mobile-overview-summary';
+    summary.className = 'mobile-overview-summary';
+    summary.innerHTML = `
+        <div class="overview-metric">
+            <div class="overview-metric-label">Bakers</div>
+            <div class="overview-metric-value" id="overview-bakers">...</div>
+        </div>
+        <div class="overview-metric">
+            <div class="overview-metric-label">Staking APY</div>
+            <div class="overview-metric-value" id="overview-apy">...</div>
+        </div>
+        <div class="overview-metric">
+            <div class="overview-metric-label">Staked</div>
+            <div class="overview-metric-value" id="overview-staked">...</div>
+        </div>
+        <div class="overview-metric">
+            <div class="overview-metric-label">Transactions</div>
+            <div class="overview-metric-value" id="overview-txns">...</div>
+        </div>
+    `;
+
+    // Insert after the upgrade clock section
+    const upgradeSection = document.getElementById('upgrade-clock');
+    if (upgradeSection) {
+        upgradeSection.after(summary);
+        summary.setAttribute('data-tab-panel', 'overview');
+    }
+}
+
+/**
+ * Update mobile overview summary with live data
+ */
+export function updateOverviewSummary(stats) {
+    if (!stats) return;
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    set('overview-bakers', stats.totalBakers?.toLocaleString() || '...');
+    set('overview-apy', stats.stakeAPY ? `${stats.stakeAPY.toFixed(1)}%` : '...');
+    set('overview-staked', stats.stakingRatio ? `${stats.stakingRatio.toFixed(1)}%` : '...');
+    set('overview-txns', stats.transactions ? (stats.transactions >= 1000 ? `${(stats.transactions / 1000).toFixed(1)}K` : stats.transactions.toString()) : '...');
+}
+
+/**
  * Wrap sections for tabbed view
  */
 function setupSections() {
@@ -212,6 +261,9 @@ export function initTabs() {
     
     // Setup section attributes
     setupSections();
+
+    // Create mobile overview summary
+    createOverviewSummary();
     
     // Check initial state
     toggleMobileMode();

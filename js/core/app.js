@@ -20,7 +20,7 @@ import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../fe
 import { initShare, initProtocolShare } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
-import { initTabs } from '../ui/tabs.js';
+import { initTabs, updateOverviewSummary } from '../ui/tabs.js';
 import { initWhaleTracker } from '../features/whales.js';
 import { initSleepingGiants } from '../features/sleeping-giants.js';
 import { initPriceBar } from '../features/price.js';
@@ -158,6 +158,9 @@ async function init() {
 
     // Register Service Worker for offline/PWA
     registerServiceWorker();
+
+    // Offline indicator
+    initOfflineIndicator();
 
     // Setup URL deep-linking
     applyDeepLink();
@@ -511,6 +514,9 @@ async function updateStats(newStats) {
 
     // Update page title with live stats
     updatePageTitle(state.currentStats);
+
+    // Update mobile overview summary
+    updateOverviewSummary(state.currentStats);
 }
 
 /**
@@ -734,15 +740,21 @@ function renderProtocolTimeline(protocols) {
     const timelineEl = document.getElementById('upgrade-timeline');
     if (!timelineEl || !protocols.length) return;
     
+    // Track which years to show labels for (first protocol of each year)
+    const yearSeen = new Set();
     const timelineHTML = `
         <div class="timeline-track">
             ${protocols.map(p => {
                 const contentious = CONTENTIOUS.has(p.name);
+                const year = p.date ? new Date(p.date).getFullYear() : null;
+                const showYear = year && !yearSeen.has(year);
+                if (year) yearSeen.add(year);
                 return `
                 <div class="timeline-item ${p.isCurrent ? 'current' : ''} ${contentious ? 'contentious' : ''}" 
                      data-protocol="${escapeHtml(p.name)}">
                     ${escapeHtml(p.name[0])}
                     ${contentious ? '<span class="contention-icon">⚔</span>' : ''}
+                    ${showYear ? `<span class="timeline-year">${year}</span>` : ''}
                 </div>
             `}).join('')}
         </div>
@@ -1008,15 +1020,15 @@ function showProtocolHistoryModal(history, protocolName) {
     let sectionsHtml = '';
     for (const section of history.sections) {
         if (section.type === 'timeline') {
-            sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
+            sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${escapeHtml(section.heading)}</h3>`;
             sectionsHtml += `<div class="history-timeline" style="position:relative; padding-left:24px; border-left:2px solid ${borderColor};">`;
             for (const ev of section.events) {
                 const sideColor = ev.side === 'quebec' ? '#ff6b6b' : ev.side === 'qena' ? '#4ecdc4' : (isClean ? 'rgba(0,0,0,0.4)' : isDark ? 'rgba(200,200,200,0.5)' : 'rgba(255,255,255,0.5)');
                 sectionsHtml += `
                     <div style="margin-bottom:16px; position:relative;">
                         <div style="position:absolute; left:-30px; top:4px; width:12px; height:12px; border-radius:50%; background:${sideColor}; box-shadow:${isClean || isDark ? 'none' : '0 0 8px ' + sideColor};"></div>
-                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'}; font-size:0.72rem; font-weight:600; margin-bottom:2px;">${ev.date}</div>
-                        <div style="color:${isClean ? 'rgba(0,0,0,0.8)' : isDark ? 'rgba(232,232,232,0.85)' : 'rgba(255,255,255,0.85)'}; font-size:0.82rem; line-height:1.5;">${ev.text}</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'}; font-size:0.72rem; font-weight:600; margin-bottom:2px;">${escapeHtml(ev.date)}</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.8)' : isDark ? 'rgba(232,232,232,0.85)' : 'rgba(255,255,255,0.85)'}; font-size:0.82rem; line-height:1.5;">${escapeHtml(ev.text)}</div>
                     </div>`;
             }
             sectionsHtml += `<div style="display:flex; gap:16px; margin-top:8px; font-size:0.68rem; color:${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'};">
@@ -1024,32 +1036,32 @@ function showProtocolHistoryModal(history, protocolName) {
                 <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ecdc4;margin-right:4px;"></span>Qena</span>
             </div></div>`;
         } else if (section.type === 'versus') {
-            sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
+            sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${escapeHtml(section.heading)}</h3>`;
             sectionsHtml += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">`;
             for (const side of [section.left, section.right]) {
                 const sideColor = side === section.left ? '#ff6b6b' : '#4ecdc4';
                 sectionsHtml += `
                     <div style="background:${isClean ? 'rgba(0,0,0,0.02)' : isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.03)'}; border:1px solid ${sideColor}30; border-radius:10px; padding:16px;">
-                        <div style="color:${sideColor}; font-weight:700; font-size:0.9rem; margin-bottom:4px;">${side.name}</div>
-                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'}; font-size:0.7rem; margin-bottom:8px;">${side.team}</div>
-                        <div style="color:${isClean ? 'rgba(0,0,0,0.75)' : isDark ? 'rgba(232,232,232,0.75)' : 'rgba(255,255,255,0.75)'}; font-size:0.8rem; line-height:1.5; margin-bottom:10px;">${side.position}</div>
-                        <div style="border-left:3px solid ${sideColor}40; padding-left:10px; color:${isClean ? 'rgba(0,0,0,0.6)' : isDark ? 'rgba(232,232,232,0.6)' : 'rgba(255,255,255,0.6)'}; font-style:italic; font-size:0.78rem; line-height:1.5;">"${side.quote}"</div>
+                        <div style="color:${sideColor}; font-weight:700; font-size:0.9rem; margin-bottom:4px;">${escapeHtml(side.name)}</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'}; font-size:0.7rem; margin-bottom:8px;">${escapeHtml(side.team)}</div>
+                        <div style="color:${isClean ? 'rgba(0,0,0,0.75)' : isDark ? 'rgba(232,232,232,0.75)' : 'rgba(255,255,255,0.75)'}; font-size:0.8rem; line-height:1.5; margin-bottom:10px;">${escapeHtml(side.position)}</div>
+                        <div style="border-left:3px solid ${sideColor}40; padding-left:10px; color:${isClean ? 'rgba(0,0,0,0.6)' : isDark ? 'rgba(232,232,232,0.6)' : 'rgba(255,255,255,0.6)'}; font-style:italic; font-size:0.78rem; line-height:1.5;">"${escapeHtml(side.quote)}"</div>
                     </div>`;
             }
             sectionsHtml += `</div>`;
         } else {
-            sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${section.heading}</h3>`;
+            sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${escapeHtml(section.heading)}</h3>`;
             const paras = section.content.split('\n\n');
             for (const p of paras) {
                 const textHigh = isClean ? 'rgba(0,0,0,0.75)' : isDark ? 'rgba(232,232,232,0.75)' : 'rgba(255,255,255,0.75)';
                 const textMid = isClean ? 'rgba(0,0,0,0.6)' : isDark ? 'rgba(232,232,232,0.6)' : 'rgba(255,255,255,0.6)';
                 const bgSubtle = isClean ? 'rgba(0,0,0,0.02)' : isDark ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.02)';
                 if (p.startsWith('•') || p.startsWith('- ')) {
-                    sectionsHtml += `<div style="color:${textHigh}; font-size:0.82rem; line-height:1.6; margin-bottom:6px; padding-left:12px;">${p}</div>`;
+                    sectionsHtml += `<div style="color:${textHigh}; font-size:0.82rem; line-height:1.6; margin-bottom:6px; padding-left:12px;">${escapeHtml(p)}</div>`;
                 } else if (p.startsWith('"') || p.startsWith('\u201c')) {
-                    sectionsHtml += `<blockquote style="border-left:3px solid ${borderColor}; padding:10px 14px; margin:10px 0; color:${textMid}; font-style:italic; font-size:0.82rem; line-height:1.6; background:${bgSubtle}; border-radius:0 8px 8px 0;">${p}</blockquote>`;
+                    sectionsHtml += `<blockquote style="border-left:3px solid ${borderColor}; padding:10px 14px; margin:10px 0; color:${textMid}; font-style:italic; font-size:0.82rem; line-height:1.6; background:${bgSubtle}; border-radius:0 8px 8px 0;">${escapeHtml(p)}</blockquote>`;
                 } else {
-                    sectionsHtml += `<p style="color:${textHigh}; font-size:0.82rem; line-height:1.7; margin-bottom:12px;">${p}</p>`;
+                    sectionsHtml += `<p style="color:${textHigh}; font-size:0.82rem; line-height:1.7; margin-bottom:12px;">${escapeHtml(p)}</p>`;
                 }
             }
         }
@@ -1087,9 +1099,9 @@ function showProtocolHistoryModal(history, protocolName) {
             </div>
             <div style="font-family:'Orbitron',sans-serif; color:${accent}; font-size:1.3rem; font-weight:700;
                 letter-spacing:2px; text-shadow:0 0 20px rgba(${accentRgb},0.4); margin-bottom:4px;">
-                ⚔ ${history.title}
+                ⚔ ${escapeHtml(history.title)}
             </div>
-            <div style="color:rgba(255,255,255,0.4); font-size:0.78rem; margin-bottom:20px;">${history.subtitle}</div>
+            <div style="color:rgba(255,255,255,0.4); font-size:0.78rem; margin-bottom:20px;">${escapeHtml(history.subtitle)}</div>
             ${sectionsHtml}
         </div>
     `;
@@ -1372,6 +1384,31 @@ function registerServiceWorker() {
 }
 
 // ==========================================
+// OFFLINE INDICATOR
+// ==========================================
+function initOfflineIndicator() {
+    let banner = null;
+
+    function show() {
+        if (banner) return;
+        banner = document.createElement('div');
+        banner.className = 'offline-banner';
+        banner.textContent = '📡 Offline — showing cached data';
+        document.body.prepend(banner);
+    }
+
+    function hide() {
+        if (!banner) return;
+        banner.classList.add('hidden');
+        setTimeout(() => { banner?.remove(); banner = null; }, 300);
+    }
+
+    window.addEventListener('online', hide);
+    window.addEventListener('offline', show);
+    if (!navigator.onLine) show();
+}
+
+// ==========================================
 // URL DEEP-LINKING
 // ==========================================
 // Supported hash fragments:
@@ -1535,6 +1572,10 @@ function initKeyboardShortcuts() {
     }
 
     const THEMES = ['matrix', 'dark', 'clean', 'bubblegum', 'void', 'ember', 'signal'];
+
+    // Wire up shortcuts button in settings menu
+    const shortcutsBtn = document.getElementById('shortcuts-btn');
+    if (shortcutsBtn) shortcutsBtn.addEventListener('click', showHelp);
 
     document.addEventListener('keydown', (e) => {
         // Ignore if typing in an input
