@@ -44,6 +44,26 @@ function isCacheValid(key) {
 }
 
 /**
+ * Shared statistics/current fetch — deduplicates concurrent requests
+ * Multiple functions need this endpoint; without dedup they'd all miss cache in parallel
+ */
+let _statsPromise = null;
+let _statsTimestamp = 0;
+async function fetchSharedStats() {
+    // Return in-flight promise if one exists (dedup concurrent calls)
+    if (_statsPromise && Date.now() - _statsTimestamp < 5000) return _statsPromise;
+    _statsTimestamp = Date.now();
+    _statsPromise = fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`);
+    try {
+        const result = await _statsPromise;
+        return result;
+    } finally {
+        // Allow re-fetch after resolution
+        setTimeout(() => { _statsPromise = null; }, 1000);
+    }
+}
+
+/**
  * Fetch with retry logic and caching
  */
 async function fetchWithRetry(url, options = {}, retries = 3) {
@@ -61,6 +81,15 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
                     ...options.headers
                 }
             });
+
+            if (response.status === 429) {
+                // Rate limited — respect Retry-After or use exponential backoff
+                const retryAfter = parseInt(response.headers.get('Retry-After') || '0');
+                const backoffMs = retryAfter > 0 ? retryAfter * 1000 : 2000 * Math.pow(2, i);
+                console.warn(`⚠️ Rate limited (429) on ${url}, backing off ${Math.round(backoffMs/1000)}s`);
+                await new Promise(r => setTimeout(r, backoffMs));
+                continue;
+            }
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -156,6 +185,18 @@ async function fetchCycleInfo() {
     const cycleUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.cycles}/${head.cycle}`;
     const cycle = await fetchWithRetry(cycleUrl);
 
+    // Fetch block time from RPC constants (don't hardcode 6s)
+    let blockTimeSec = 6; // safe fallback
+    try {
+        const constantsUrl = `${ENDPOINTS.octez.base}/chains/main/blocks/head/context/constants`;
+        const constants = await fetchWithRetry(constantsUrl);
+        if (constants.minimal_block_delay) {
+            blockTimeSec = parseInt(constants.minimal_block_delay);
+        }
+    } catch (e) {
+        // Use fallback
+    }
+
     const currentBlock = head.level;
     const cycleStartBlock = cycle.firstLevel;
     const cycleEndBlock = cycle.lastLevel;
@@ -171,7 +212,7 @@ async function fetchCycleInfo() {
         // Cycle is complete or past due
         timeRemaining = '< 1m left';
     } else {
-        const secondsRemaining = blocksRemaining * 6;
+        const secondsRemaining = blocksRemaining * blockTimeSec;
         const hoursRemaining = Math.floor(secondsRemaining / 3600);
         const minutesRemaining = Math.floor((secondsRemaining % 3600) / 60);
 
@@ -254,7 +295,7 @@ async function fetchIssuance() {
         const nextDay = new Date(past.getTime() + 24 * 3600 * 1000).toISOString().split('T')[0];
         
         const [currentStats, pastStats, rpcRateRaw] = await Promise.allSettled([
-            fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`),
+            fetchSharedStats(),
             fetchWithRetry(`${ENDPOINTS.tzkt.base}/statistics?timestamp.ge=${pastStr}T00:00:00Z&timestamp.lt=${nextDay}T00:00:00Z&limit=1`),
             fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`)
         ]);
@@ -324,8 +365,7 @@ async function fetchContractCalls() {
  */
 async function fetchStakingRatio() {
     try {
-        const statsUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`;
-        const stats = await fetchWithRetry(statsUrl);
+        const stats = await fetchSharedStats();
         
         const totalSupply = stats.totalSupply || 0;
         if (totalSupply === 0) return { stakingRatio: 0, delegatedRatio: 0 };
@@ -359,8 +399,7 @@ async function fetchTotalSupply() {
  */
 async function fetchTotalBurned() {
     try {
-        const statsUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`;
-        const stats = await fetchWithRetry(statsUrl);
+        const stats = await fetchSharedStats();
         return (stats.totalBurned || 0) / 1e6;
     } catch (error) {
         console.error('Failed to fetch burned:', error);
@@ -410,7 +449,7 @@ export async function fetchStakingAPY() {
         const netIssuance = parseFloat(rateString.replace(/"/g, ''));
         
         // Get staked/delegated percentages from TzKT
-        const stats = await fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`);
+        const stats = await fetchSharedStats();
         const supply = stats.totalSupply / 1e6;
         const staked = ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0)) / 1e6;
         const delegated = ((stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0)) / 1e6;

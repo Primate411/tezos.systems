@@ -19,6 +19,52 @@ import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js
 import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
 import { initShare, initProtocolShare } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
+
+/**
+ * Governance Countdown Banner
+ * Shows a prominent banner when there's an active governance vote
+ */
+function updateGovernanceBanner(stats, votingStatus) {
+    let banner = document.getElementById('gov-countdown-banner');
+    
+    // Only show during exploration, promotion, or active proposal periods with proposals
+    const activePeriods = ['exploration', 'promotion'];
+    const hasProposal = stats?.proposal && stats.proposal !== 'None' && stats.proposal !== 'N/A';
+    const isVotingActive = votingStatus && activePeriods.includes(votingStatus.kind);
+    
+    if (!isVotingActive && !hasProposal) {
+        if (banner) { banner.remove(); }
+        return;
+    }
+    
+    if (!banner) {
+        banner = document.createElement('div');
+        banner.id = 'gov-countdown-banner';
+        banner.className = 'gov-countdown-banner';
+        // Insert after price bar
+        const priceBar = document.getElementById('price-bar');
+        if (priceBar) {
+            priceBar.after(banner);
+        } else {
+            document.querySelector('.header')?.after(banner);
+        }
+    }
+    
+    const periodName = votingStatus ? getVotingPeriodName(votingStatus.kind) : 'Proposal';
+    const timeLeft = votingStatus?.endTime ? formatTimeRemaining(votingStatus.endTime) : '';
+    const participation = stats.participation ? `${stats.participation.toFixed(1)}% participation` : '';
+    const proposal = hasProposal ? stats.proposal : '';
+    
+    const isUrgent = votingStatus && (votingStatus.kind === 'exploration' || votingStatus.kind === 'promotion');
+    
+    banner.innerHTML = `
+        <span class="gov-banner-icon">${isUrgent ? '🗳️' : '📋'}</span>
+        <span class="gov-banner-text">
+            ${proposal ? `<strong>${proposal}</strong> — ` : ''}${periodName}${timeLeft ? ` · ${timeLeft}` : ''}${participation ? ` · ${participation}` : ''}
+        </span>
+    `;
+    banner.className = `gov-countdown-banner ${isUrgent ? 'urgent' : ''}`;
+}
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
 import { initTabs, updateOverviewSummary } from '../ui/tabs.js';
 import { initWhaleTracker } from '../features/whales.js';
@@ -26,7 +72,7 @@ import { initSleepingGiants } from '../features/sleeping-giants.js';
 import { initPriceBar } from '../features/price.js';
 import { initStreak } from '../features/streak.js';
 import { updatePageTitle } from '../ui/title.js';
-import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH } from './config.js';
+import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './config.js';
 import { initComparison, updateComparison } from '../features/comparison.js';
 import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js';
 import { initCalculator } from '../features/calculator.js';
@@ -517,6 +563,15 @@ async function updateStats(newStats) {
 
     // Update mobile overview summary
     updateOverviewSummary(state.currentStats);
+
+    // Update network health pulse
+    updateNetworkPulse();
+
+    // Update governance countdown banner
+    try {
+        const votingStatus = await fetchVotingStatus();
+        updateGovernanceBanner(state.currentStats, votingStatus);
+    } catch (e) { /* non-critical */ }
 }
 
 /**
@@ -1163,6 +1218,9 @@ async function updateUpgradeClock() {
             daysLiveEl.textContent = daysLive.toLocaleString();
             const aboutDays = document.getElementById('about-days');
             if (aboutDays) aboutDays.textContent = daysLive.toLocaleString();
+            // Update "fork-free days" badge
+            const forkFreeDays = document.getElementById('fork-free-days');
+            if (forkFreeDays) forkFreeDays.textContent = `${daysLive.toLocaleString()} days fork-free`;
         }
         
         // Update voting status if in active voting
@@ -1523,6 +1581,162 @@ function applyDeepLink() {
 }
 
 // ==========================================
+// NETWORK HEALTH PULSE
+// ==========================================
+async function updateNetworkPulse() {
+    let indicator = document.getElementById('network-pulse');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'network-pulse';
+        indicator.className = 'network-pulse';
+        indicator.title = 'Network health';
+        // Insert next to the refresh button
+        const refreshBtn = document.getElementById('refresh-btn');
+        if (refreshBtn) {
+            refreshBtn.parentElement.insertBefore(indicator, refreshBtn.nextSibling);
+        }
+    }
+    
+    try {
+        const response = await fetch(`${API_URLS.tzkt}/head`);
+        if (!response.ok) throw new Error('head fetch failed');
+        const head = await response.json();
+        
+        const blockTime = new Date(head.timestamp);
+        const now = new Date();
+        const ageSec = (now - blockTime) / 1000;
+        
+        // Green: <30s (normal), Yellow: 30-120s (slightly delayed), Red: >120s (issue)
+        let status, label;
+        if (ageSec < 30) {
+            status = 'healthy';
+            label = 'Network healthy — blocks on schedule';
+        } else if (ageSec < 120) {
+            status = 'delayed';
+            label = `Block ${Math.round(ageSec)}s old — slight delay`;
+        } else {
+            status = 'warning';
+            label = `Last block ${Math.round(ageSec)}s ago — possible issue`;
+        }
+        
+        indicator.className = `network-pulse ${status}`;
+        indicator.title = label;
+        indicator.innerHTML = `<span class="pulse-dot"></span>`;
+    } catch (e) {
+        indicator.className = 'network-pulse unknown';
+        indicator.title = 'Network status unknown';
+        indicator.innerHTML = `<span class="pulse-dot"></span>`;
+    }
+}
+
+// ==========================================
+// DATA EXPORT
+// ==========================================
+function showExportMenu() {
+    let overlay = document.getElementById('export-overlay');
+    if (overlay) { overlay.remove(); return; }
+
+    overlay = document.createElement('div');
+    overlay.id = 'export-overlay';
+    overlay.className = 'keyboard-help-overlay';
+    overlay.innerHTML = `
+        <div class="keyboard-help-card">
+            <h3>📥 Export Data</h3>
+            <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
+                <button class="glass-button export-option" data-format="json">📋 JSON — All current stats</button>
+                <button class="glass-button export-option" data-format="csv">📊 CSV — Spreadsheet-friendly</button>
+            </div>
+            <p class="keyboard-help-hint">Click to download</p>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.classList.add('visible'));
+
+    overlay.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-format]');
+        if (btn) {
+            const format = btn.dataset.format;
+            exportData(format);
+            overlay.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 200);
+        } else if (e.target === overlay) {
+            overlay.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 200);
+        }
+    });
+}
+
+function exportData(format) {
+    const stats = state.currentStats;
+    if (!stats) return;
+
+    const timestamp = new Date().toISOString();
+    const data = {
+        exported: timestamp,
+        source: 'tezos.systems',
+        consensus: {
+            totalBakers: stats.totalBakers,
+            tz4Bakers: stats.tz4Bakers,
+            tz4Percentage: stats.tz4Percentage,
+            currentCycle: stats.cycle,
+            cycleProgress: stats.cycleProgress
+        },
+        economy: {
+            issuanceRate: stats.currentIssuanceRate,
+            protocolIssuance: stats.protocolIssuanceRate,
+            lbIssuance: stats.lbIssuanceRate,
+            delegateAPY: stats.delegateAPY,
+            stakeAPY: stats.stakeAPY,
+            stakingRatio: stats.stakingRatio,
+            delegatedRatio: stats.delegatedRatio,
+            totalSupply: stats.totalSupply,
+            totalBurned: stats.totalBurned
+        },
+        governance: {
+            activeProposal: stats.proposal,
+            votingPeriod: stats.votingPeriod,
+            participation: stats.participation
+        },
+        network: {
+            transactions24h: stats.transactionVolume24h,
+            contractCalls24h: stats.contractCalls24h,
+            fundedAccounts: stats.fundedAccounts
+        },
+        ecosystem: {
+            smartContracts: stats.smartContracts,
+            tokens: stats.tokens,
+            smartRollups: stats.rollups
+        }
+    };
+
+    let blob, filename;
+
+    if (format === 'json') {
+        blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        filename = `tezos-systems-${timestamp.slice(0,10)}.json`;
+    } else {
+        // CSV
+        const rows = [['Category', 'Metric', 'Value']];
+        for (const [cat, metrics] of Object.entries(data)) {
+            if (cat === 'exported' || cat === 'source') continue;
+            for (const [key, val] of Object.entries(metrics)) {
+                rows.push([cat, key, val]);
+            }
+        }
+        const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+        blob = new Blob([csv], { type: 'text/csv' });
+        filename = `tezos-systems-${timestamp.slice(0,10)}.csv`;
+    }
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// ==========================================
 // KEYBOARD SHORTCUTS
 // ==========================================
 function initKeyboardShortcuts() {
@@ -1572,6 +1786,10 @@ function initKeyboardShortcuts() {
     }
 
     const THEMES = ['matrix', 'dark', 'clean', 'bubblegum', 'void', 'ember', 'signal'];
+
+    // Wire up export button
+    const exportBtn = document.getElementById('export-btn');
+    if (exportBtn) exportBtn.addEventListener('click', showExportMenu);
 
     // Wire up shortcuts button in settings menu
     const shortcutsBtn = document.getElementById('shortcuts-btn');

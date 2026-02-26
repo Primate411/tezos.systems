@@ -31,6 +31,16 @@ const CHANGELOG = [
             { type: '🔧', text: 'Clarified ETH comparison: "2 entities control 50% of stake" (was misleading)' },
             { type: '⚡', text: 'Removed cache-buster on tweets.json fetch — now properly cached by Service Worker' },
             { type: '🔧', text: 'Aligned dead price refresh config to 30min (matching actual cache TTL)' },
+            { type: '🔧', text: 'Meta description no longer hardcodes stale baker counts — now generic' },
+            { type: '🔧', text: 'Cycle time now fetched from RPC constants instead of hardcoded 6s' },
+            { type: '⚡', text: 'Deduplicated TzKT statistics endpoint — 4 concurrent calls reduced to 1' },
+            { type: '⚡', text: 'TzKT 429 rate-limit detection with exponential backoff' },
+            { type: '✨', text: '"Zero Forks" badge now shows the exact fork-free day count' },
+            { type: '✨', text: 'Governance countdown banner — shows active voting periods prominently' },
+            { type: '✨', text: 'Network health pulse — green/yellow/red dot showing if blocks are on schedule' },
+            { type: '✨', text: 'Data export — download all stats as JSON or CSV from ⚙️ → 📥 Export' },
+            { type: '✨', text: 'Branded 404 page — "This block was never baked"' },
+            { type: '🎨', text: 'Mobile tab labels shortened on small screens (Gov, Eco) to prevent clipping' },
         ]
     },
     {

@@ -8595,6 +8595,101 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
    TIMELINE YEAR LABELS
    ========================================== */
 
+/* ==========================================
+   NETWORK HEALTH PULSE
+   ========================================== */
+
+.network-pulse {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    cursor: help;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #666;
+    transition: background 0.5s ease;
+}
+
+.network-pulse.healthy .pulse-dot {
+    background: #00ff88;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.network-pulse.delayed .pulse-dot {
+    background: #ffaa00;
+    box-shadow: 0 0 8px rgba(255, 170, 0, 0.5);
+    animation: pulse-glow 1s ease-in-out infinite;
+}
+
+.network-pulse.warning .pulse-dot {
+    background: #ff4444;
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+    animation: pulse-glow 0.5s ease-in-out infinite;
+}
+
+.network-pulse.unknown .pulse-dot {
+    background: #666;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* ==========================================
+   GOVERNANCE COUNTDOWN BANNER
+   ========================================== */
+
+.gov-countdown-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.75rem;
+    font-family: 'Orbitron', monospace;
+    letter-spacing: 0.5px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    margin: 8px auto;
+    max-width: 800px;
+    color: var(--text-secondary);
+    transition: all 0.3s ease;
+}
+
+.gov-countdown-banner.urgent {
+    background: rgba(0, 212, 255, 0.08);
+    border-color: rgba(0, 212, 255, 0.3);
+    color: var(--accent-cyan);
+}
+
+.gov-banner-icon {
+    font-size: 1rem;
+}
+
+.gov-banner-text {
+    font-size: 0.72rem;
+}
+
+.gov-banner-text strong {
+    color: var(--accent-cyan);
+}
+
+@media (max-width: 768px) {
+    .gov-countdown-banner {
+        margin: 4px 12px;
+        font-size: 0.65rem;
+    }
+}
+
 .timeline-year {
     position: absolute;
     bottom: -16px;

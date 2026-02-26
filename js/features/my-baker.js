@@ -115,12 +115,15 @@ async function fetchParticipation(bakerAddr) {
  */
 async function fetchMissedRights(bakerAddr, cycle) {
     const enc = encodeURIComponent(bakerAddr);
-    const safeFetch = async (url, retries = 2) => {
+    const safeFetch = async (url, retries = 3) => {
         for (let i = 0; i <= retries; i++) {
             try {
-                const r = await fetch(url);
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout per query
+                const r = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeout);
                 if (r.status === 429) {
-                    await new Promise(res => setTimeout(res, 1000 * (i + 1)));
+                    await new Promise(res => setTimeout(res, 2000 * (i + 1)));
                     continue;
                 }
                 if (!r.ok) return 0;
@@ -131,14 +134,18 @@ async function fetchMissedRights(bakerAddr, cycle) {
         return 0;
     };
     try {
-        // Fetch sequentially to avoid TzKT rate limits (4 lightweight count calls)
-        const ltBlocks = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=baking`);
-        const ltAttest = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=attestation`);
+        // Current cycle misses are fast (small dataset) — fetch these first
         const cyBlocks = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=baking&cycle=${cycle}`);
         const cyAttest = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=attestation&cycle=${cycle}`);
+        
+        // Lifetime/all-time misses cause TzKT 504 timeouts for active bakers
+        // Use last 10 cycles (~10 days on Tallinn) — fast and actionable
+        const startCycle = Math.max(0, cycle - 10);
+        const recentBlocks = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=baking&cycle.ge=${startCycle}`);
+        const recentAttest = await safeFetch(`${TZKT}/rights/count?baker=${enc}&status=missed&type=attestation&cycle.ge=${startCycle}`);
         return {
             cycle: { blocks: cyBlocks, attest: cyAttest },
-            lifetime: { blocks: ltBlocks, attest: ltAttest },
+            recent: { blocks: recentBlocks, attest: recentAttest },
         };
     } catch {
         return null;
@@ -360,12 +367,12 @@ async function renderBakerData(address, container) {
             grid.appendChild(createStatItem('Attest Rate', `${icon} ${pct.toFixed(2)}%`, 'Consensus attestation rate for current cycle'));
         }
 
-        // Missed rights: render placeholder cards, then fill async after TzKT rate limits settle
+        // Missed rights: render placeholder cards, then fill async
         let missedCycleEl = null;
         let missedLifetimeEl = null;
         if (participationAddr && currentCycle) {
-            missedCycleEl = createStatItem('Missed (Cycle)', '…', 'Missed blocks / missed attestations this cycle');
-            missedLifetimeEl = createStatItem('Missed (Lifetime)', '…', 'Missed blocks / missed attestations (all time)');
+            missedCycleEl = createStatItem('Missed (Cycle)', 'Loading...', 'Missed blocks / missed attestations this cycle');
+            missedLifetimeEl = createStatItem('Missed (10d)', 'Loading...', 'Missed blocks / missed attestations (last ~10 days)');
             grid.appendChild(missedCycleEl);
             grid.appendChild(missedLifetimeEl);
         }
@@ -451,19 +458,35 @@ async function renderBakerData(address, container) {
 
         container.appendChild(grid);
 
-        // Deferred: fetch missed rights after 2s to let TzKT rate limits settle
+        // Fetch missed rights (no delay — sequential calls handle rate limits)
         if (participationAddr && currentCycle && missedCycleEl && missedLifetimeEl) {
-            setTimeout(async () => {
-                const missedRights = await fetchMissedRights(participationAddr, currentCycle);
-                if (missedRights) {
-                    const fmtN = (n) => formatNumber(n, { decimals: 0, useAbbreviation: false });
-                    missedCycleEl.querySelector('.my-baker-stat-value').textContent = `${fmtN(missedRights.cycle.blocks)} / ${fmtN(missedRights.cycle.attest)}`;
-                    missedLifetimeEl.querySelector('.my-baker-stat-value').textContent = `${fmtN(missedRights.lifetime.blocks)} / ${fmtN(missedRights.lifetime.attest)}`;
-                } else {
+            // Never leave placeholders stuck forever
+            const fallbackTimer = setTimeout(() => {
+                const cVal = missedCycleEl.querySelector('.my-baker-stat-value');
+                const lVal = missedLifetimeEl.querySelector('.my-baker-stat-value');
+                if (cVal && cVal.textContent === 'Loading...') cVal.textContent = 'N/A';
+                if (lVal && lVal.textContent === 'Loading...') lVal.textContent = 'N/A';
+            }, 20000);
+
+            // Run async without blocking the rest of the render
+            (async () => {
+                try {
+                    const missedRights = await fetchMissedRights(participationAddr, currentCycle);
+                    clearTimeout(fallbackTimer);
+                    if (missedRights) {
+                        const fmtN = (n) => formatNumber(n, { decimals: 0, useAbbreviation: false });
+                        missedCycleEl.querySelector('.my-baker-stat-value').textContent = `${fmtN(missedRights.cycle.blocks)} / ${fmtN(missedRights.cycle.attest)}`;
+                        missedLifetimeEl.querySelector('.my-baker-stat-value').textContent = `${fmtN(missedRights.recent.blocks)} / ${fmtN(missedRights.recent.attest)}`;
+                    } else {
+                        missedCycleEl.querySelector('.my-baker-stat-value').textContent = 'N/A';
+                        missedLifetimeEl.querySelector('.my-baker-stat-value').textContent = 'N/A';
+                    }
+                } catch {
+                    clearTimeout(fallbackTimer);
                     missedCycleEl.querySelector('.my-baker-stat-value').textContent = 'N/A';
                     missedLifetimeEl.querySelector('.my-baker-stat-value').textContent = 'N/A';
                 }
-            }, 2000);
+            })();
         }
 
         // Sync address to Objkt section if it exists

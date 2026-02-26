@@ -4,12 +4,12 @@
  */
 
 const TABS = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'consensus', label: 'Consensus', icon: '🔗' },
-    { id: 'economy', label: 'Economy', icon: '💰' },
-    { id: 'governance', label: 'Governance', icon: '🗳️' },
-    { id: 'network', label: 'Network', icon: '⚡' },
-    { id: 'ecosystem', label: 'Ecosystem', icon: '🌐' }
+    { id: 'overview', label: 'Overview', shortLabel: 'Overview', icon: '📊' },
+    { id: 'consensus', label: 'Consensus', shortLabel: 'Consensus', icon: '🔗' },
+    { id: 'economy', label: 'Economy', shortLabel: 'Economy', icon: '💰' },
+    { id: 'governance', label: 'Governance', shortLabel: 'Gov', icon: '🗳️' },
+    { id: 'network', label: 'Network', shortLabel: 'Network', icon: '⚡' },
+    { id: 'ecosystem', label: 'Ecosystem', shortLabel: 'Eco', icon: '🌐' }
 ];
 
 let currentTab = 0;
@@ -42,7 +42,8 @@ function createTabNav() {
         button.setAttribute('role', 'tab');
         button.setAttribute('aria-selected', index === 0);
         button.setAttribute('data-tab', tab.id);
-        button.innerHTML = `<span class="tab-icon">${tab.icon}</span><span class="tab-label">${tab.label}</span>`;
+        const displayLabel = window.innerWidth < 400 ? tab.shortLabel : tab.label;
+        button.innerHTML = `<span class="tab-icon">${tab.icon}</span><span class="tab-label">${displayLabel}</span>`;
         button.addEventListener('click', () => switchTab(index));
         tabList.appendChild(button);
     });

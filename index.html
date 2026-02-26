@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Real-time Tezos blockchain dashboard — 251 bakers, 28% staking ratio, zero hard forks since 2018. Live network stats updated every 2 minutes.">
+    <meta name="description" content="Real-time Tezos blockchain dashboard — live baker counts, staking ratios, protocol upgrades, governance tracking. Zero hard forks since 2018. Updated every 2 minutes.">
     <meta name="keywords" content="Tezos, XTZ, blockchain, proof-of-stake, baking, staking, governance, self-amending, cryptocurrency, DeFi, NFT, network statistics, baker dashboard">
     <title>Tezos Systems — The Blockchain That Upgrades Itself | Live Dashboard</title>
     <link rel="canonical" href="https://tezos.systems/">
@@ -69,7 +69,7 @@
       "operatingSystem": "Web",
       "browserRequirements": "Requires JavaScript",
       "screenshot": "https://tezos.systems/og-image.png",
-      "featureList": "Real-time network statistics, Baker performance tracking, Staking gauge, Protocol upgrade timeline, Governance monitoring, 8 visual themes, Personalized My Baker mode, Shareable stat cards",
+      "featureList": "Real-time network statistics, Baker performance tracking, Staking gauge, Protocol upgrade timeline, Governance monitoring, 7 visual themes, Personalized My Baker mode, Shareable stat cards",
       "creator": {
         "@type": "Organization",
         "name": "Tez Capital",
@@ -274,6 +274,9 @@
                         <button id="changelog-btn" class="glass-button" aria-label="Changelog" title="Changelog">
                             <span>📋</span> <span class="dropdown-label">Changelog</span>
                         </button>
+                        <button id="export-btn" class="glass-button" aria-label="Export data" title="Export data">
+                            <span>📥</span> <span class="dropdown-label">Export</span>
+                        </button>
                         <button id="shortcuts-btn" class="glass-button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">
                             <span>⌨️</span> <span class="dropdown-label">Shortcuts</span>
                         </button>
@@ -309,7 +312,7 @@
                     </div>
                     <div class="upgrade-badge" style="position:relative;">
                         <span class="badge-text">Zero Forks</span>
-                        <span class="badge-subtext">Self-amending blockchain</span>
+                        <span class="badge-subtext" id="fork-free-days">Self-amending blockchain</span>
                         <button class="info-button stake-o-meter-info" id="zero-forks-info-btn" aria-label="About Zero Forks" title="About Zero Forks">
                             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
