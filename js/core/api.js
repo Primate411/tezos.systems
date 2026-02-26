@@ -108,15 +108,20 @@ function calculatePercentage(part, total) {
 
 /**
  * Fetch baker data from TzKT API
+ * Optimized: uses /count endpoint + select fields (saves ~2-5MB vs full baker list)
  */
 async function fetchBakers() {
-    const bakersUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&limit=${FETCH_LIMITS.bakers}`;
-    const bakers = await fetchWithRetry(bakersUrl);
-    const total = bakers.length;
-    
-    const activeBakerAddresses = new Set(bakers.map(b => b.address));
+    // Get total active bakers via lightweight count endpoint (~10 bytes vs ~2-5MB)
+    const countUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}/count?active=true`;
+    const total = await fetchWithRetry(countUrl);
 
-    const opsUrl = `${ENDPOINTS.tzkt.base}/operations/update_consensus_key?limit=${FETCH_LIMITS.consensusOps}&sort.desc=id`;
+    // Get just baker addresses (select=address → ~10KB vs ~2-5MB full objects)
+    const addressUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&limit=${FETCH_LIMITS.bakers}&select=address`;
+    const addresses = await fetchWithRetry(addressUrl);
+    const activeBakerAddresses = new Set(addresses);
+
+    // Get consensus key ops with only the fields we need
+    const opsUrl = `${ENDPOINTS.tzkt.base}/operations/update_consensus_key?limit=${FETCH_LIMITS.consensusOps}&sort.desc=id&select=sender,publicKeyHash`;
     const operations = await fetchWithRetry(opsUrl);
 
     const bakerConsensusKeys = {};

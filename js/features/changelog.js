@@ -14,6 +14,10 @@ const CHANGELOG = [
             { type: '✨', text: 'Offline mode — Service Worker caches the dashboard for instant loads and offline viewing' },
             { type: '✨', text: 'URL deep-linking — share links like #my-baker=tz1..., #compare, #theme=void, #history' },
             { type: '✨', text: 'Keyboard shortcuts — press ? for the full list (r=refresh, t=theme, m=baker, h=history…)' },
+            { type: '⚡', text: 'Baker fetch optimized — uses /count + select=address (saves ~2-5MB per load)' },
+            { type: '⚡', text: 'CSS minified — 230KB → 159KB (31% smaller)' },
+            { type: '⚡', text: 'Theme fonts lazy-loaded — only Orbitron blocks initial render now' },
+            { type: '⚡', text: 'Images optimized to WebP — OG image 277KB → 57KB, icons 117KB → 19KB' },
         ]
     },
     {
