@@ -9393,7 +9393,7 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     display: flex;
     align-items: flex-start;
     gap: 16px;
-    min-height: 72px;
+
 }
 
 .brief-icon {
@@ -9495,6 +9495,38 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 .morning-brief-earnings .brief-title { color: var(--accent-cyan, #00d4ff); }
 .morning-brief-baker .brief-title { color: var(--color-success, #10b981); }
 .morning-brief-story .brief-title { color: #a78bfa; }
+
+/* Collapsed state */
+.brief-collapsed {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: 2px 0;
+    transition: opacity 0.3s;
+}
+
+.brief-collapsed:hover {
+    opacity: 0.8;
+}
+
+.brief-dots-collapsed {
+    display: flex;
+    gap: 6px;
+}
+
+.brief-dots-collapsed .brief-dot {
+    width: 6px;
+    height: 6px;
+    animation: brief-dot-settle 0.5s ease forwards;
+}
+
+@keyframes brief-dot-settle {
+    from { transform: translateX(100px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.brief-dots-collapsed .brief-dot:nth-child(2) { animation-delay: 0.1s; }
+.brief-dots-collapsed .brief-dot:nth-child(3) { animation-delay: 0.2s; }
 
 /* Mobile */
 @media (max-width: 768px) {

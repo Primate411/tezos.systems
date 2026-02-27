@@ -183,10 +183,18 @@ function buildMorningBrief(data) {
 
     // Card 1: Earnings summary
     const usdNote = data.xtzPrice ? ` That's $${(data.rewardsLastCycle * data.xtzPrice).toFixed(2)}.` : '';
-    const earningsLine = data.rewardsLastCycle > 0
-        ? `Your ${fmtCompact(data.staked || data.totalXTZ)} staked XTZ earned <strong>+${data.rewardsLastCycle.toFixed(2)} XTZ</strong> last cycle.${usdNote}`
-        : `You have <strong>${fmtCompact(data.totalXTZ)} XTZ</strong> on Tezos earning ~<strong>${data.apyRate}% APY</strong>.`;
-    const dailyLine = `That's ~${data.estDaily.toFixed(2)} XTZ/day${data.xtzPrice ? ` ($${(data.estDaily * data.xtzPrice).toFixed(2)})` : ''}.`;
+    const bakerInactive = data.bakerInactive;
+    let earningsLine, dailyLine;
+    if (bakerInactive) {
+        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} XTZ</strong> — <strong style="color:#ef4444">baker inactive, earning nothing</strong>`;
+        dailyLine = `<span style="color:#ef4444">⚠️ Re-delegate to start earning</span>`;
+    } else if (data.rewardsLastCycle > 0) {
+        earningsLine = `<strong>+${data.rewardsLastCycle.toFixed(2)} XTZ</strong> last cycle${usdNote}`;
+        dailyLine = `~${data.estDaily.toFixed(2)} XTZ/day · ${data.apyRate}% APY`;
+    } else {
+        earningsLine = `<strong>${fmtCompact(data.totalXTZ)} XTZ</strong> earning ~<strong>${data.apyRate}% APY</strong>`;
+        dailyLine = `~${data.estDaily.toFixed(2)} XTZ/day`;
+    }
     cards.push({
         icon: '💰',
         title: `${getGreeting()}.`,
@@ -196,11 +204,16 @@ function buildMorningBrief(data) {
 
     // Card 2: Baker health + streak
     const streakText = data.rewardStreak > 0
-        ? `Your baker has a <strong>${data.rewardStreak}-cycle reward streak</strong> 🔥.`
+        ? `<strong>${data.rewardStreak}-cycle streak</strong> 🔥`
         : '';
-    const healthText = data.healthScore !== null
-        ? `Baker health: <strong>${data.health.text}</strong> ${data.health.icon} — ${data.attestRate || '—'}% attestation rate.`
-        : `Your baker: <strong>${escapeHtml(data.bakerName)}</strong>.`;
+    let healthText;
+    if (data.bakerInactive) {
+        healthText = `<strong>${escapeHtml(data.bakerName)}</strong> — <strong style="color:#ef4444">inactive ⚠️</strong>`;
+    } else if (data.healthScore !== null && data.attestRate) {
+        healthText = `<strong>${escapeHtml(data.bakerName)}</strong> ${data.health.icon} ${data.attestRate}% attestation`;
+    } else {
+        healthText = `<strong>${escapeHtml(data.bakerName || 'No baker')}</strong>`;
+    }
     cards.push({
         icon: '🍞',
         title: 'Baker Status',
@@ -210,7 +223,7 @@ function buildMorningBrief(data) {
 
     // Card 3: Governance / Tezos Story teaser
     const storyText = data.story
-        ? `You joined Tezos under <strong>${data.story.joinedEra}</strong>. You've witnessed <strong>${data.story.upgradesSeen} protocol upgrades</strong> — zero hard forks.`
+        ? `Joined under <strong>${data.story.joinedEra}</strong> · <strong>${data.story.upgradesSeen} upgrades</strong> witnessed · zero forks`
         : 'Enter your address to see your Tezos Story.';
     const govText = data.activeProposal
         ? `<br><span class="brief-sub">Active governance: ${escapeHtml(data.activeProposal)}</span>`
@@ -671,6 +684,8 @@ async function renderMorningBrief(address, force = false) {
         const isBaker = account.type === 'delegate' || account.delegate?.address === address;
         const bakerAddr = isBaker ? address : account.delegate?.address;
         const bakerName = isBaker ? 'Self (Baker)' : (account.delegate?.alias || (bakerAddr ? bakerAddr.slice(0, 8) + '…' : 'None'));
+        const bakerActive = isBaker ? account.active !== false : account.delegate?.active !== false;
+        const bakerInactive = !bakerActive;
 
         const [participation, rewards, story] = await Promise.all([
             bakerAddr ? fetchParticipation(bakerAddr) : Promise.resolve(null),
@@ -723,7 +738,7 @@ async function renderMorningBrief(address, force = false) {
             fullAddress: address,
             totalXTZ, staked, xtzPrice, apyRate, estDaily, estAnnual,
             rewardsLastCycle, rewardStreak,
-            bakerName, healthScore, health, attestRate,
+            bakerName, bakerInactive, healthScore, health, attestRate,
             isStaker, story, activeProposal,
         };
 
@@ -759,6 +774,12 @@ async function renderMorningBrief(address, force = false) {
                     </div>
                 </div>
             `;
+
+            // Lock height to prevent layout shift
+            if (strip._briefHeight) {
+                const content = strip.querySelector('.brief-content');
+                if (content) content.style.minHeight = strip._briefHeight;
+            }
 
             // Wire dots for manual navigation
             strip.querySelectorAll('.brief-dot').forEach(dot => {
@@ -811,15 +832,90 @@ async function renderMorningBrief(address, force = false) {
             });
         }
 
+        let rotationCount = 0; // counts full cycles through all cards
+        const MAX_ROTATIONS = 3;
+
         function resetAutoRotate() {
             if (autoTimer) clearInterval(autoTimer);
             autoTimer = setInterval(() => {
                 currentCard = (currentCard + 1) % cards.length;
+                if (currentCard === 0) rotationCount++;
+                
+                if (rotationCount >= MAX_ROTATIONS) {
+                    clearInterval(autoTimer);
+                    collapseBrief();
+                    return;
+                }
                 renderCard(currentCard);
             }, 8000);
         }
 
-        // Initial render
+        function collapseBrief() {
+            if (autoTimer) clearInterval(autoTimer);
+            if (strip._pulseCleanup) strip._pulseCleanup();
+
+            // Animate content out, leave dots
+            const brief = strip.querySelector('.morning-brief');
+            if (brief) {
+                brief.style.transition = 'opacity 0.4s ease, max-height 0.5s ease';
+                brief.style.opacity = '0';
+                brief.style.maxHeight = '0';
+                brief.style.overflow = 'hidden';
+            }
+
+            setTimeout(() => {
+                strip.innerHTML = `
+                    <div class="brief-collapsed" id="brief-collapsed">
+                        <div class="brief-dots-collapsed">
+                            <span class="brief-dot active"></span>
+                            <span class="brief-dot active"></span>
+                            <span class="brief-dot active"></span>
+                        </div>
+                    </div>
+                `;
+                strip.style.padding = '8px 24px';
+
+                const collapsed = document.getElementById('brief-collapsed');
+                if (collapsed) {
+                    collapsed.addEventListener('click', () => {
+                        expandBrief();
+                    });
+                }
+            }, 500);
+        }
+
+        function expandBrief() {
+            strip.style.padding = '';
+            rotationCount = 0;
+            currentCard = 0;
+            renderCard(0);
+            resetAutoRotate();
+
+            // Re-init pulse
+            try {
+                if (strip._pulseCleanup) strip._pulseCleanup();
+                initPulseViz(strip, { stakersCount: data.story?.govCycles || 30 });
+            } catch (e) {}
+        }
+
+        // Expose expand for the My Tezos header button
+        strip._expandBrief = expandBrief;
+
+        // Measure tallest card and lock height
+        let maxH = 0;
+        for (let i = 0; i < cards.length; i++) {
+            renderCard(i);
+            const content = strip.querySelector('.brief-content');
+            if (content) {
+                content.style.minHeight = '';
+                maxH = Math.max(maxH, content.scrollHeight);
+            }
+        }
+        if (maxH > 0) {
+            strip._briefHeight = maxH + 'px';
+        }
+
+        // Initial render with locked height
         renderCard(0);
         resetAutoRotate();
 
@@ -955,6 +1051,9 @@ export function initMyTezos() {
     window.addEventListener('my-tezos-show-onboarding', () => {
         if (!localStorage.getItem(STORAGE_KEY)) {
             showOnboarding(strip);
+        } else if (strip._expandBrief) {
+            // Re-expand collapsed brief
+            strip._expandBrief();
         }
     });
 
