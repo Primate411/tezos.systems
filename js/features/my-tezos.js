@@ -1,6 +1,6 @@
 /**
- * My Tezos — Personalized homepage hero strip
- * Shows portfolio value, rewards, baker health, and personal deltas
+ * My Tezos — Morning Brief + Your Tezos Story
+ * Replaces the old hero strip with a rotating daily brief and personal timeline.
  * Persists address in localStorage. When active, this becomes the user's homepage.
  */
 
@@ -14,17 +14,39 @@ const REWARDS_HISTORY_KEY = 'tezos-systems-my-rewards-history';
 const LAST_PORTFOLIO_KEY = 'tezos-systems-my-last-portfolio';
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd';
 
-/**
- * Get XTZ price in USD (uses session cache from price module)
- */
+// Protocol eras — map block levels to protocol names
+const PROTOCOL_ERAS = [
+    { name: 'Genesis', level: 0, date: '2018-06-30' },
+    { name: 'Athens', level: 458753, date: '2019-05-30' },
+    { name: 'Babylon', level: 655361, date: '2019-10-18' },
+    { name: 'Carthage', level: 851969, date: '2020-03-05' },
+    { name: 'Delphi', level: 1212417, date: '2020-11-12' },
+    { name: 'Edo', level: 1343489, date: '2021-02-13' },
+    { name: 'Florence', level: 1466369, date: '2021-05-11' },
+    { name: 'Granada', level: 1589249, date: '2021-08-06' },
+    { name: 'Hangzhou', level: 1916929, date: '2021-12-04' },
+    { name: 'Ithaca', level: 2244609, date: '2022-04-01' },
+    { name: 'Jakarta', level: 2490369, date: '2022-06-18' },
+    { name: 'Kathmandu', level: 2736129, date: '2022-09-28' },
+    { name: 'Lima', level: 2981889, date: '2022-12-17' },
+    { name: 'Mumbai', level: 3268609, date: '2023-03-29' },
+    { name: 'Nairobi', level: 3760129, date: '2023-06-24' },
+    { name: 'Oxford', level: 4456449, date: '2023-12-05' },
+    { name: 'Paris', level: 5726209, date: '2024-06-04' },
+    { name: 'Quebec', level: 6422529, date: '2024-11-19' },
+    { name: 'Rio', level: 7118849, date: '2025-05-06' },
+    { name: 'Sao Paolo', level: 7815169, date: '2025-07-22' },
+    { name: 'Tallinn', level: 11468801, date: '2026-01-21' },
+];
+
+// ─── Helpers ─────────────────────────────────────────
+
 async function getXtzPrice() {
     try {
         const cached = sessionStorage.getItem('tezos_price_cache');
         if (cached) {
             const data = JSON.parse(cached);
-            if (Date.now() - data.timestamp < 30 * 60 * 1000) {
-                return data.data?.tezos?.usd || null;
-            }
+            if (Date.now() - data.timestamp < 30 * 60 * 1000) return data.data?.tezos?.usd || null;
         }
         const resp = await fetch(COINGECKO_URL);
         if (!resp.ok) return null;
@@ -33,9 +55,6 @@ async function getXtzPrice() {
     } catch { return null; }
 }
 
-/**
- * Fetch staking APY (reuse logic from my-baker)
- */
 async function getStakingAPY() {
     try {
         const [rateResp, statsResp] = await Promise.all([
@@ -58,14 +77,10 @@ async function getStakingAPY() {
     }
 }
 
-/**
- * Fetch recent rewards for an address (last 100 cycles for streak counting)
- */
 async function fetchRecentRewards(address) {
     try {
         const resp = await fetch(`${TZKT}/rewards/delegators/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
         if (!resp.ok) {
-            // Might be a baker — try baker rewards
             const bakerResp = await fetch(`${TZKT}/rewards/bakers/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
             if (!bakerResp.ok) return null;
             return await bakerResp.json();
@@ -74,30 +89,7 @@ async function fetchRecentRewards(address) {
     } catch { return null; }
 }
 
-/**
- * Calculate reward streak — consecutive cycles with non-zero rewards
- */
-function calcRewardStreak(rewards) {
-    if (!rewards || !rewards.length) return 0;
-    let streak = 0;
-    // Rewards sorted desc by cycle — walk forward checking consecutiveness
-    for (let i = 0; i < rewards.length; i++) {
-        const r = rewards[i];
-        // Check if this cycle had rewards
-        const earned = getRewardAmount(r);
-        if (earned <= 0) break;
-        // Check cycle is consecutive with previous
-        if (i > 0 && rewards[i-1].cycle - r.cycle !== 1) break;
-        streak++;
-    }
-    return streak;
-}
-
-/**
- * Get reward amount from a reward entry (works for both delegator and baker rewards)
- */
 function getRewardAmount(r) {
-    // Tallinn-era baker rewards (Adaptive Issuance fields)
     const blockRewards = (r.blockRewardsDelegated || 0) + (r.blockRewardsStakedOwn || 0) +
                          (r.blockRewardsStakedEdge || 0) + (r.blockRewardsStakedShared || 0);
     const attestRewards = (r.attestationRewardsDelegated || 0) + (r.attestationRewardsStakedOwn || 0) +
@@ -105,26 +97,27 @@ function getRewardAmount(r) {
     const dalRewards = (r.dalAttestationRewardsDelegated || 0) + (r.dalAttestationRewardsStakedOwn || 0) +
                        (r.dalAttestationRewardsStakedEdge || 0) + (r.dalAttestationRewardsStakedShared || 0);
     const actual = blockRewards + attestRewards + dalRewards + (r.blockFees || 0);
-
     if (actual > 0) return actual / 1e6;
-
-    // If cycle hasn't completed yet, use future (projected) rewards
-    const future = (r.futureBlockRewards || 0) + (r.futureAttestationRewards || 0) +
-                   (r.futureDalAttestationRewards || 0);
+    const future = (r.futureBlockRewards || 0) + (r.futureAttestationRewards || 0) + (r.futureDalAttestationRewards || 0);
     if (future > 0) return future / 1e6;
-
-    // Legacy pre-Tallinn fields
     if (r.ownBlockRewards !== undefined) {
         return ((r.ownBlockRewards || 0) + (r.ownEndorsementRewards || 0) +
                 (r.extraBlockRewards || 0) + (r.extraEndorsementRewards || 0)) / 1e6;
     }
-
     return 0;
 }
 
-/**
- * Fetch consensus participation for a baker
- */
+function calcRewardStreak(rewards) {
+    if (!rewards || !rewards.length) return 0;
+    let streak = 0;
+    for (let i = 0; i < rewards.length; i++) {
+        if (getRewardAmount(rewards[i]) <= 0) break;
+        if (i > 0 && rewards[i-1].cycle - rewards[i].cycle !== 1) break;
+        streak++;
+    }
+    return streak;
+}
+
 async function fetchParticipation(bakerAddr) {
     try {
         const resp = await fetch(`${OCTEZ}/chains/main/blocks/head/context/delegates/${bakerAddr}/participation`);
@@ -133,33 +126,12 @@ async function fetchParticipation(bakerAddr) {
     } catch { return null; }
 }
 
-/**
- * Format mutez to XTZ
- */
-function fmtXTZ(mutez, decimals = 2) {
-    const xtz = (mutez || 0) / 1e6;
-    return xtz.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-}
-
-/**
- * Compact XTZ format
- */
-function fmtCompact(xtz) {
-    if (xtz >= 1e6) return (xtz / 1e6).toFixed(2) + 'M';
-    if (xtz >= 1e3) return (xtz / 1e3).toFixed(1) + 'K';
-    return xtz.toFixed(2);
-}
-
-/**
- * Calculate baker health score (0-100)
- */
 function calcBakerHealth(participation) {
     if (!participation) return null;
     const expected = participation.expected_cycle_activity || 0;
     const missed = participation.missed_slots || 0;
     if (expected === 0) return 100;
     const rate = ((expected - missed) / expected) * 100;
-    // Score: 100 at perfect, drops fast below 95%
     if (rate >= 99) return 100;
     if (rate >= 97) return 95;
     if (rate >= 95) return 90;
@@ -176,12 +148,125 @@ function healthLabel(score) {
     return { text: 'At Risk', color: 'var(--color-error, #ef4444)', icon: '🔴' };
 }
 
+function fmtCompact(xtz) {
+    if (xtz >= 1e6) return (xtz / 1e6).toFixed(2) + 'M';
+    if (xtz >= 1e3) return (xtz / 1e3).toFixed(1) + 'K';
+    return xtz.toFixed(2);
+}
+
+function getGreeting() {
+    const h = new Date().getHours();
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    return 'Good evening';
+}
+
+function getProtocolEra(firstActivityLevel) {
+    let era = PROTOCOL_ERAS[0];
+    for (const p of PROTOCOL_ERAS) {
+        if (firstActivityLevel >= p.level) era = p;
+    }
+    return era;
+}
+
+function countUpgradesSince(firstActivityLevel) {
+    return PROTOCOL_ERAS.filter(p => p.level > firstActivityLevel).length;
+}
+
+// ─── Morning Brief ─────────────────────────────────────
+
 /**
- * Generate and share a cyberpunk staking stats card
+ * Build the Morning Brief — rotating card with 3 states
  */
-async function shareMyTezosCard(data) {
+function buildMorningBrief(data) {
+    const cards = [];
+
+    // Card 1: Earnings summary
+    const usdNote = data.xtzPrice ? ` That's $${(data.rewardsLastCycle * data.xtzPrice).toFixed(2)}.` : '';
+    const earningsLine = data.rewardsLastCycle > 0
+        ? `Your ${fmtCompact(data.staked || data.totalXTZ)} staked XTZ earned <strong>+${data.rewardsLastCycle.toFixed(2)} XTZ</strong> last cycle.${usdNote}`
+        : `You have <strong>${fmtCompact(data.totalXTZ)} XTZ</strong> on Tezos earning ~<strong>${data.apyRate}% APY</strong>.`;
+    const dailyLine = `That's ~${data.estDaily.toFixed(2)} XTZ/day${data.xtzPrice ? ` ($${(data.estDaily * data.xtzPrice).toFixed(2)})` : ''}.`;
+    cards.push({
+        icon: '💰',
+        title: `${getGreeting()}.`,
+        body: `${earningsLine}<br><span class="brief-sub">${dailyLine}</span>`,
+        accent: 'earnings',
+    });
+
+    // Card 2: Baker health + streak
+    const streakText = data.rewardStreak > 0
+        ? `Your baker has a <strong>${data.rewardStreak}-cycle reward streak</strong> 🔥.`
+        : '';
+    const healthText = data.healthScore !== null
+        ? `Baker health: <strong>${data.health.text}</strong> ${data.health.icon} — ${data.attestRate || '—'}% attestation rate.`
+        : `Your baker: <strong>${escapeHtml(data.bakerName)}</strong>.`;
+    cards.push({
+        icon: '🍞',
+        title: 'Baker Status',
+        body: `${streakText}${streakText ? '<br>' : ''}${healthText}`,
+        accent: 'baker',
+    });
+
+    // Card 3: Governance / Tezos Story teaser
+    const storyText = data.story
+        ? `You joined Tezos under <strong>${data.story.joinedEra}</strong>. You've witnessed <strong>${data.story.upgradesSeen} protocol upgrades</strong> — zero hard forks.`
+        : 'Enter your address to see your Tezos Story.';
+    const govText = data.activeProposal
+        ? `<br><span class="brief-sub">Active governance: ${escapeHtml(data.activeProposal)}</span>`
+        : '';
+    cards.push({
+        icon: '📜',
+        title: 'Your Tezos Story',
+        body: `${storyText}${govText}`,
+        accent: 'story',
+    });
+
+    return cards;
+}
+
+// ─── Tezos Story Card ──────────────────────────────────
+
+async function fetchTezosStory(address, account) {
+    const firstActivity = account.firstActivity;
+    const firstActivityTime = account.firstActivityTime;
+    if (!firstActivity) return null;
+
+    const joinedEra = getProtocolEra(firstActivity);
+    const upgradesSeen = countUpgradesSince(firstActivity);
+    const daysSinceJoin = Math.floor((Date.now() - new Date(firstActivityTime).getTime()) / 86400000);
+
+    // Fetch governance participation count
+    let govCycles = 0;
     try {
-        // Dynamically import share utilities if available
+        // Count voting periods since user's first activity
+        const resp = await fetch(`${TZKT}/voting/periods?limit=0&offset=0`);
+        if (resp.ok) {
+            // Use the count from the API (we only need the total)
+            const allPeriodsResp = await fetch(`${TZKT}/voting/periods?limit=1000&select=firstLevel,kind`);
+            if (allPeriodsResp.ok) {
+                const periods = await allPeriodsResp.json();
+                govCycles = periods.filter(p => p.firstLevel >= firstActivity).length;
+            }
+        }
+    } catch {}
+
+    return {
+        joinedEra: joinedEra.name,
+        joinedDate: joinedEra.date,
+        firstActivityTime,
+        upgradesSeen,
+        daysSinceJoin,
+        govCycles,
+        currentEra: PROTOCOL_ERAS[PROTOCOL_ERAS.length - 1].name,
+    };
+}
+
+/**
+ * Share Tezos Story as PNG card
+ */
+async function shareTezosStory(data) {
+    try {
         const { loadHtml2Canvas, showShareModal } = await import('../ui/share.js');
         await loadHtml2Canvas();
 
@@ -189,7 +274,116 @@ async function shareMyTezosCard(data) {
         const bgColor = isMatrix ? '#0a0a0a' : '#0a0a14';
         const brand = isMatrix ? '#00ff00' : '#00d4ff';
         const brandRgb = isMatrix ? '0,255,0' : '0,212,255';
-        const accent = isMatrix ? 'rgba(0,255,0,0.15)' : 'rgba(0,212,255,0.15)';
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = `
+            position: fixed; top: -9999px; left: -9999px;
+            width: 600px; height: 630px;
+            background: linear-gradient(135deg, ${bgColor} 0%, ${isMatrix ? '#0a120a' : '#0a0a1e'} 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+            color: white; overflow: hidden;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 48px;
+            box-sizing: border-box;
+        `;
+
+        // Build protocol badge trail
+        const badgeEras = PROTOCOL_ERAS.filter(p => p.name !== 'Genesis');
+        const joinIdx = badgeEras.findIndex(p => p.name === data.story.joinedEra);
+        const badgesHtml = badgeEras.map((p, i) => {
+            const isJoined = p.name === data.story.joinedEra;
+            const isCurrent = i === badgeEras.length - 1;
+            const isWitnessed = i >= joinIdx;
+            const opacity = isWitnessed ? 1 : 0.2;
+            const bg = isJoined ? brand : (isCurrent ? brand : `rgba(${brandRgb}, ${isWitnessed ? 0.15 : 0.05})`);
+            const color = (isJoined || isCurrent) ? bgColor : `rgba(255,255,255,${isWitnessed ? 0.7 : 0.2})`;
+            const border = isJoined ? `2px solid ${brand}` : `1px solid rgba(${brandRgb}, ${isWitnessed ? 0.3 : 0.1})`;
+            const shadow = isJoined ? `0 0 12px rgba(${brandRgb}, 0.5)` : 'none';
+            return `<div style="width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;
+                font-size:8px;font-weight:900;font-family:'Orbitron',sans-serif;
+                background:${bg};color:${color};border:${border};box-shadow:${shadow};opacity:${opacity};
+                flex-shrink:0;">${p.name[0]}</div>`;
+        }).join('');
+
+        wrapper.innerHTML = `
+            <div style="position:absolute;top:0;left:0;right:0;bottom:0;pointer-events:none;
+                background:radial-gradient(ellipse at 30% 20%, rgba(${brandRgb},0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(${brandRgb},0.04) 0%, transparent 50%);"></div>
+            <div style="position:absolute;top:12px;left:12px;right:12px;bottom:12px;
+                border:1px solid rgba(${brandRgb},0.15);border-radius:12px;pointer-events:none;"></div>
+
+            <div style="position:relative;z-index:1;text-align:center;">
+                <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:600;
+                    color:rgba(${brandRgb},0.5);letter-spacing:3px;text-transform:uppercase;margin-bottom:8px;">
+                    YOUR TEZOS STORY
+                </div>
+                <div style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;
+                    color:${brand};letter-spacing:3px;text-transform:uppercase;margin-bottom:24px;
+                    text-shadow:0 0 30px rgba(${brandRgb},0.5);">
+                    TEZOS SYSTEMS
+                </div>
+
+                <div style="width:200px;height:1px;background:linear-gradient(90deg,transparent,rgba(${brandRgb},0.4),transparent);margin:0 auto 32px;"></div>
+
+                <div style="font-size:48px;font-weight:900;font-family:'Orbitron',sans-serif;
+                    color:${brand};margin-bottom:8px;line-height:1;
+                    text-shadow:0 0 40px rgba(${brandRgb},0.4);">
+                    ${data.story.daysSinceJoin.toLocaleString()}
+                </div>
+                <div style="font-size:14px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:2px;margin-bottom:32px;">
+                    Days on Tezos
+                </div>
+
+                <div style="font-size:16px;color:rgba(255,255,255,0.7);line-height:1.8;margin-bottom:24px;">
+                    Joined under <span style="color:${brand};font-weight:700;">${data.story.joinedEra}</span><br>
+                    Witnessed <span style="color:${brand};font-weight:700;">${data.story.upgradesSeen} protocol upgrades</span><br>
+                    ${data.story.govCycles > 0 ? `Lived through <span style="color:${brand};font-weight:700;">${data.story.govCycles} governance cycles</span><br>` : ''}
+                    Zero hard forks. Ever.
+                </div>
+
+                <div style="display:flex;gap:3px;justify-content:center;flex-wrap:wrap;max-width:500px;margin:0 auto;">
+                    ${badgesHtml}
+                </div>
+            </div>
+
+            <div style="position:absolute;bottom:24px;left:40px;right:40px;display:flex;justify-content:space-between;align-items:center;z-index:1;">
+                <span style="font-size:13px;color:rgba(255,255,255,0.3);">${data.address}</span>
+                <span style="font-size:13px;color:${brand};font-weight:600;letter-spacing:1px;">tezos.systems</span>
+            </div>
+        `;
+
+        document.body.appendChild(wrapper);
+        const canvas = await html2canvas(wrapper, {
+            backgroundColor: bgColor, scale: 2, useCORS: true, logging: false,
+            width: 600, height: 630, windowWidth: 600
+        });
+        wrapper.remove();
+
+        const tweetOptions = [
+            { label: '📜 Story', text: `I've been on Tezos for ${data.story.daysSinceJoin.toLocaleString()} days. Joined under ${data.story.joinedEra}. Witnessed ${data.story.upgradesSeen} protocol upgrades. Zero hard forks.\n\nWhat's your Tezos story?\ntezos.systems` },
+            { label: '🏛️ OG', text: `${data.story.joinedEra} era. ${data.story.upgradesSeen} upgrades witnessed. ${data.story.daysSinceJoin.toLocaleString()} days and counting.\n\nTezos doesn't fork. It evolves.\ntezos.systems` },
+            { label: '📊 Data', text: `My Tezos Story:\n\n📅 ${data.story.daysSinceJoin.toLocaleString()} days on-chain\n🏛️ Joined: ${data.story.joinedEra}\n🔄 ${data.story.upgradesSeen} upgrades witnessed\n🔗 Zero forks\n\ntezos.systems` },
+        ];
+
+        showShareModal(canvas, tweetOptions, 'Your Tezos Story');
+    } catch (err) {
+        console.error('Story share error:', err);
+    }
+}
+
+/**
+ * Share Morning Brief as PNG
+ */
+async function shareMorningBrief(data) {
+    try {
+        const { loadHtml2Canvas, showShareModal } = await import('../ui/share.js');
+        await loadHtml2Canvas();
+
+        const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
+        const bgColor = isMatrix ? '#0a0a0a' : '#0a0a14';
+        const brand = isMatrix ? '#00ff00' : '#00d4ff';
+        const brandRgb = isMatrix ? '0,255,0' : '0,212,255';
 
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
@@ -201,7 +395,6 @@ async function shareMyTezosCard(data) {
             border: 1px solid rgba(${brandRgb}, 0.2);
         `;
 
-        // Use system font for values (ꜩ doesn't exist in Orbitron) — use "XTZ" instead
         const sysFont = "-apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif";
 
         wrapper.innerHTML = `
@@ -212,31 +405,29 @@ async function shareMyTezosCard(data) {
                 letter-spacing:2px; margin-bottom:24px;">tezos.systems</div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:24px;">
-                <div style="background:${accent}; border:1px solid rgba(${brandRgb},0.12); border-radius:12px; padding:18px 14px; text-align:center;">
+                <div style="background:rgba(${brandRgb},0.08); border:1px solid rgba(${brandRgb},0.12); border-radius:12px; padding:18px 14px; text-align:center;">
                     <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1.5px;">Portfolio</div>
-                    <div style="font-family:${sysFont}; font-size:22px; font-weight:800; color:white; margin-top:6px;">${data.totalXTZ} XTZ</div>
+                    <div style="font-family:${sysFont}; font-size:22px; font-weight:800; color:white; margin-top:6px;">${fmtCompact(data.totalXTZ)} XTZ</div>
                 </div>
-                <div style="background:${accent}; border:1px solid rgba(${brandRgb},0.12); border-radius:12px; padding:18px 14px; text-align:center;">
+                <div style="background:rgba(${brandRgb},0.08); border:1px solid rgba(${brandRgb},0.12); border-radius:12px; padding:18px 14px; text-align:center;">
                     <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1.5px;">Est. Annual Yield</div>
-                    <div style="font-family:${sysFont}; font-size:22px; font-weight:800; color:${brand}; margin-top:6px;">+${data.estAnnual} XTZ</div>
+                    <div style="font-family:${sysFont}; font-size:22px; font-weight:800; color:${brand}; margin-top:6px;">+${data.estAnnual.toFixed(1)} XTZ</div>
                 </div>
             </div>
 
-            <div style="display:grid; grid-template-columns:${data.streak > 0 ? '1fr 1fr 1fr' : '1fr 1fr'}; gap:14px; text-align:center;">
+            <div style="display:grid; grid-template-columns:${data.rewardStreak > 0 ? '1fr 1fr 1fr' : '1fr 1fr'}; gap:14px; text-align:center;">
                 <div>
                     <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:1px;">APY</div>
                     <div style="font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:${brand}; margin-top:4px;">${data.apyRate}%</div>
-                    <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px;">${data.isStaker ? 'Staker' : 'Delegator'}</div>
                 </div>
-                ${data.streak > 0 ? `
+                ${data.rewardStreak > 0 ? `
                 <div>
                     <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:1px;">Streak</div>
-                    <div style="font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:#f59e0b; margin-top:4px;">${data.streak}</div>
-                    <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px;">cycles</div>
+                    <div style="font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:#f59e0b; margin-top:4px;">${data.rewardStreak} 🔥</div>
                 </div>` : ''}
                 <div>
                     <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:1px;">Baker</div>
-                    <div style="font-family:${sysFont}; font-size:14px; font-weight:600; color:white; margin-top:6px;">${data.bakerName}</div>
+                    <div style="font-family:${sysFont}; font-size:14px; font-weight:600; color:white; margin-top:6px;">${escapeHtml(data.bakerName)}</div>
                 </div>
             </div>
 
@@ -254,10 +445,9 @@ async function shareMyTezosCard(data) {
         wrapper.remove();
 
         const tweetOptions = [
-            { label: 'Flex', text: `Staking ${data.totalXTZ} ꜩ on Tezos at ${data.apyRate}% APY${data.streak > 0 ? ` — ${data.streak} cycle reward streak 🔥` : ''}.\n\ntezos.systems` },
-            { label: 'Recruit', text: `Earning ~${data.estAnnual} ꜩ/year just by staking on Tezos. No lockup. Keep your keys.\n\nCheck your own stats:\ntezos.systems` },
-            { label: 'Data', text: `My Tezos staking dashboard:\n\n📊 ${data.totalXTZ} ꜩ portfolio\n📈 ${data.apyRate}% APY\n💰 ~${data.estAnnual} ꜩ/year est.\n${data.streak > 0 ? `🔥 ${data.streak} cycle streak\n` : ''}\ntezos.systems` },
-            { label: 'Casual', text: `Tezos staking rewards just keep coming in. Paste your address and see your stats:\n\ntezos.systems` },
+            { label: 'Flex', text: `Staking ${fmtCompact(data.totalXTZ)} XTZ on Tezos at ${data.apyRate}% APY${data.rewardStreak > 0 ? ` — ${data.rewardStreak} cycle reward streak 🔥` : ''}.\n\ntezos.systems` },
+            { label: 'Recruit', text: `Earning ~${data.estAnnual.toFixed(0)} XTZ/year just by staking on Tezos. No lockup. Keep your keys.\n\nCheck your own stats:\ntezos.systems` },
+            { label: 'Data', text: `My Tezos staking dashboard:\n\n📊 ${fmtCompact(data.totalXTZ)} XTZ portfolio\n📈 ${data.apyRate}% APY\n💰 ~${data.estAnnual.toFixed(0)} XTZ/year est.\n${data.rewardStreak > 0 ? `🔥 ${data.rewardStreak} cycle streak\n` : ''}\ntezos.systems` },
         ];
 
         showShareModal(canvas, tweetOptions, 'My Tezos Stats');
@@ -266,22 +456,16 @@ async function shareMyTezosCard(data) {
     }
 }
 
-/**
- * Build and render the My Tezos hero strip
- */
-async function renderHeroStrip(address) {
+// ─── Render ──────────────────────────────────────────
+
+async function renderMorningBrief(address) {
     const strip = document.getElementById('my-tezos-strip');
     if (!strip) return;
 
     strip.classList.add('visible');
-    strip.innerHTML = `
-        <div class="my-tezos-loading">
-            <span class="my-tezos-loading-text">Loading your Tezos…</span>
-        </div>
-    `;
+    strip.innerHTML = `<div class="my-tezos-loading"><span class="my-tezos-loading-text">Loading your Tezos…</span></div>`;
 
     try {
-        // Parallel fetch: account, price, APY
         const [accountResp, xtzPrice, apy] = await Promise.all([
             fetch(`${TZKT}/accounts/${encodeURIComponent(address)}`),
             getXtzPrice(),
@@ -294,175 +478,191 @@ async function renderHeroStrip(address) {
         const balance = (account.balance || 0) / 1e6;
         const staked = (account.stakedBalance || 0) / 1e6;
         const totalXTZ = balance;
-        const usdValue = xtzPrice ? totalXTZ * xtzPrice : null;
 
-        // Determine baker
         const isBaker = account.type === 'delegate' || account.delegate?.address === address;
         const bakerAddr = isBaker ? address : account.delegate?.address;
         const bakerName = isBaker ? 'Self (Baker)' : (account.delegate?.alias || (bakerAddr ? bakerAddr.slice(0, 8) + '…' : 'None'));
 
-        // Fetch baker participation + rewards in parallel
-        const [participation, rewards] = await Promise.all([
+        const [participation, rewards, story] = await Promise.all([
             bakerAddr ? fetchParticipation(bakerAddr) : Promise.resolve(null),
-            fetchRecentRewards(address)
+            fetchRecentRewards(address),
+            fetchTezosStory(address, account),
         ]);
 
-        // Baker health
         const healthScore = calcBakerHealth(participation);
         const health = healthLabel(healthScore);
 
-        // Reward calculations
         let rewardsLastCycle = 0;
-        let rewardsTotal = 0;
         let rewardStreak = 0;
         if (rewards && rewards.length) {
-            // Last cycle rewards
             rewardsLastCycle = getRewardAmount(rewards[0]);
-            // Total across all fetched cycles
-            rewards.forEach(r => { rewardsTotal += getRewardAmount(r); });
-            // Streak
             rewardStreak = calcRewardStreak(rewards);
         }
 
-        // Estimate daily/annual reward from APY
         const isStaker = staked > 0;
         const apyRate = isStaker ? apy.stakeAPY : apy.delegateAPY;
-        const estDailyReward = totalXTZ * (apyRate / 100) / 365.25;
-        const estAnnualReward = totalXTZ * (apyRate / 100);
-        const estDailyUsd = xtzPrice ? estDailyReward * xtzPrice : null;
-        const estAnnualUsd = xtzPrice ? estAnnualReward * xtzPrice : null;
+        const estDaily = totalXTZ * (apyRate / 100) / 365.25;
+        const estAnnual = totalXTZ * (apyRate / 100);
 
-        // Personal deltas: compare with last saved portfolio
-        let deltaHtml = '';
+        // Attestation rate
+        let attestRate = null;
+        if (participation) {
+            const expected = participation.expected_cycle_activity || 0;
+            const missed = participation.missed_slots || 0;
+            if (expected > 0) attestRate = (((expected - missed) / expected) * 100).toFixed(1);
+        }
+
+        // Active governance proposal
+        let activeProposal = null;
         try {
-            const last = JSON.parse(localStorage.getItem(LAST_PORTFOLIO_KEY));
-            if (last && last.address === address && last.balance) {
-                const diff = totalXTZ - last.balance;
-                const timeDiff = Date.now() - last.ts;
-                if (timeDiff > 3600000 && Math.abs(diff) > 0.01) { // >1hr, >0.01 XTZ change
-                    const sign = diff > 0 ? '+' : '';
-                    const color = diff > 0 ? 'var(--color-success, #10b981)' : 'var(--color-error, #ef4444)';
-                    const arrow = diff > 0 ? '↑' : '↓';
-                    const hours = Math.round(timeDiff / 3600000);
-                    const timeLabel = hours >= 24 ? `${Math.round(hours/24)}d ago` : `${hours}h ago`;
-                    deltaHtml = `<span class="my-tezos-delta" style="color:${color}">${arrow} ${sign}${diff.toFixed(2)} XTZ since ${timeLabel}</span>`;
+            const govResp = await fetch(`${TZKT}/voting/periods/current`);
+            if (govResp.ok) {
+                const period = await govResp.json();
+                if (period && period.kind !== 'proposal') {
+                    activeProposal = `${period.kind} phase — ${period.epoch?.proposal?.alias || 'Unknown'}`;
                 }
             }
-        } catch { /* ignore */ }
-
-        // Save current portfolio for next delta
-        try {
-            localStorage.setItem(LAST_PORTFOLIO_KEY, JSON.stringify({
-                address, balance: totalXTZ, ts: Date.now()
-            }));
         } catch {}
 
-        // Streak display
-        const streakHtml = rewardStreak > 0
-            ? `<div class="my-tezos-cell my-tezos-streak">
-                    <div class="my-tezos-label">Reward Streak 🔥</div>
-                    <div class="my-tezos-value">${rewardStreak}</div>
-                    <div class="my-tezos-sub">consecutive cycles</div>
-                </div>`
-            : '';
+        // Save portfolio for deltas
+        try {
+            localStorage.setItem(LAST_PORTFOLIO_KEY, JSON.stringify({ address, balance: totalXTZ, ts: Date.now() }));
+        } catch {}
 
-        // Share data for the card
-        const shareData = {
+        const data = {
             address: address.slice(0, 8) + '…' + address.slice(-4),
-            totalXTZ: fmtCompact(totalXTZ),
-            apyRate,
-            estAnnual: estAnnualReward.toFixed(2),
-            streak: rewardStreak,
-            bakerName,
-            isStaker,
+            fullAddress: address,
+            totalXTZ, staked, xtzPrice, apyRate, estDaily, estAnnual,
+            rewardsLastCycle, rewardStreak,
+            bakerName, healthScore, health, attestRate,
+            isStaker, story, activeProposal,
         };
 
-        // Render
-        strip.innerHTML = `
-            <div class="my-tezos-grid">
-                <div class="my-tezos-cell my-tezos-portfolio">
-                    <div class="my-tezos-label">My Portfolio</div>
-                    <div class="my-tezos-value">${fmtCompact(totalXTZ)} XTZ</div>
-                    ${usdValue !== null ? `<div class="my-tezos-sub">$${fmtCompact(usdValue)} USD</div>` : ''}
-                    ${deltaHtml}
-                </div>
-                <div class="my-tezos-cell my-tezos-staking">
-                    <div class="my-tezos-label">${isStaker ? 'Staked' : 'Delegated'}</div>
-                    <div class="my-tezos-value">${isStaker ? fmtCompact(staked) + ' XTZ' : fmtCompact(totalXTZ) + ' XTZ'}</div>
-                    <div class="my-tezos-sub">${apyRate}% APY (${isStaker ? 'staker' : 'delegator'})</div>
-                </div>
-                <div class="my-tezos-cell my-tezos-rewards">
-                    <div class="my-tezos-label">Est. Annual</div>
-                    <div class="my-tezos-value">+${estAnnualReward.toFixed(1)} XTZ</div>
-                    <div class="my-tezos-sub">~${estDailyReward.toFixed(2)}/day${estDailyUsd !== null ? ` · $${estDailyUsd.toFixed(2)}` : ''}</div>
-                </div>
-                ${streakHtml}
-                <div class="my-tezos-cell my-tezos-baker">
-                    <div class="my-tezos-label">Baker ${health.icon}</div>
-                    <div class="my-tezos-value my-tezos-baker-name">${escapeHtml(bakerName)}</div>
-                    <div class="my-tezos-sub" style="color:${health.color}">${health.text}${healthScore !== null ? ` (${healthScore})` : ''}</div>
-                </div>
-                <div class="my-tezos-cell my-tezos-last-cycle">
-                    <div class="my-tezos-label">Last Cycle</div>
-                    <div class="my-tezos-value">${rewardsLastCycle > 0 ? '+' + rewardsLastCycle.toFixed(2) + ' XTZ' : '—'}</div>
-                    <div class="my-tezos-sub">${rewards?.length ? rewards.length + ' cycles tracked' : ''}</div>
-                </div>
-            </div>
-            <div class="my-tezos-actions">
-                <button class="my-tezos-share" id="my-tezos-share" title="Share your staking stats">📸</button>
-                <button class="my-tezos-edit" id="my-tezos-edit" title="Change address">✏️</button>
-                <button class="my-tezos-close" id="my-tezos-close" title="Hide My Tezos">×</button>
-            </div>
-        `;
+        const cards = buildMorningBrief(data);
 
-        // Store share data for the share button
-        strip._shareData = shareData;
+        // Render the brief
+        let currentCard = 0;
+        let autoTimer = null;
 
-        // Wire share button
-        document.getElementById('my-tezos-share')?.addEventListener('click', () => {
-            shareMyTezosCard(strip._shareData);
-        });
+        function renderCard(idx) {
+            const card = cards[idx];
+            const dotsHtml = cards.map((_, i) =>
+                `<span class="brief-dot${i === idx ? ' active' : ''}" data-idx="${i}"></span>`
+            ).join('');
 
-        // Wire actions
-        document.getElementById('my-tezos-close').addEventListener('click', () => {
-            strip.classList.remove('visible');
-            localStorage.setItem('tezos-systems-my-tezos-hidden', '1');
-        });
+            strip.innerHTML = `
+                <div class="morning-brief morning-brief-${card.accent}">
+                    <div class="brief-content">
+                        <div class="brief-icon">${card.icon}</div>
+                        <div class="brief-text">
+                            <div class="brief-title">${card.title}</div>
+                            <div class="brief-body">${card.body}</div>
+                        </div>
+                    </div>
+                    <div class="brief-footer">
+                        <div class="brief-dots">${dotsHtml}</div>
+                        <div class="brief-actions">
+                            <button class="brief-action-btn" id="brief-share" title="Share">📸</button>
+                            <button class="brief-action-btn" id="brief-story" title="Your Tezos Story">📜</button>
+                            <button class="brief-action-btn" id="brief-edit" title="Change address">✏️</button>
+                            <button class="brief-action-btn brief-close" id="brief-close" title="Hide">×</button>
+                        </div>
+                    </div>
+                </div>
+            `;
 
-        document.getElementById('my-tezos-edit').addEventListener('click', () => {
-            // Open My Baker section and focus input
-            const toggle = document.getElementById('my-baker-toggle');
-            const section = document.getElementById('my-baker-section');
-            if (section && !section.classList.contains('visible') && toggle) toggle.click();
-            const input = document.getElementById('my-baker-input');
-            if (input) { input.focus(); input.select(); }
-            if (section) section.scrollIntoView({ behavior: 'smooth' });
-        });
+            // Wire dots for manual navigation
+            strip.querySelectorAll('.brief-dot').forEach(dot => {
+                dot.addEventListener('click', () => {
+                    currentCard = parseInt(dot.dataset.idx);
+                    renderCard(currentCard);
+                    resetAutoRotate();
+                });
+            });
+
+            // Tap on content to advance
+            strip.querySelector('.brief-content')?.addEventListener('click', () => {
+                currentCard = (currentCard + 1) % cards.length;
+                renderCard(currentCard);
+                resetAutoRotate();
+            });
+
+            // Wire buttons
+            document.getElementById('brief-share')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (currentCard === 2 && data.story) {
+                    shareTezosStory(data);
+                } else {
+                    shareMorningBrief(data);
+                }
+            });
+
+            document.getElementById('brief-story')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentCard = 2; // Jump to story card
+                renderCard(currentCard);
+                resetAutoRotate();
+            });
+
+            document.getElementById('brief-close')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                strip.classList.remove('visible');
+                localStorage.setItem('tezos-systems-my-tezos-hidden', '1');
+                if (autoTimer) clearInterval(autoTimer);
+            });
+
+            document.getElementById('brief-edit')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const toggle = document.getElementById('my-baker-toggle');
+                const section = document.getElementById('my-baker-section');
+                if (section && !section.classList.contains('visible') && toggle) toggle.click();
+                const input = document.getElementById('my-baker-input');
+                if (input) { input.focus(); input.select(); }
+                if (section) section.scrollIntoView({ behavior: 'smooth' });
+            });
+        }
+
+        function resetAutoRotate() {
+            if (autoTimer) clearInterval(autoTimer);
+            autoTimer = setInterval(() => {
+                currentCard = (currentCard + 1) % cards.length;
+                renderCard(currentCard);
+            }, 8000);
+        }
+
+        // Initial render
+        renderCard(0);
+        resetAutoRotate();
+
+        // Store data for external use
+        strip._briefData = data;
 
     } catch (err) {
-        console.warn('My Tezos strip error:', err);
+        console.warn('Morning Brief error:', err);
         strip.innerHTML = `
-            <div class="my-tezos-grid">
-                <div class="my-tezos-cell" style="grid-column: 1/-1; text-align:center;">
-                    <div class="my-tezos-sub">Could not load portfolio. <button id="my-tezos-retry" class="my-tezos-edit">Retry</button></div>
+            <div class="morning-brief">
+                <div class="brief-content">
+                    <div class="brief-icon">⚠️</div>
+                    <div class="brief-text">
+                        <div class="brief-title">Could not load your data</div>
+                        <div class="brief-body"><button id="brief-retry" class="brief-action-btn">Retry</button></div>
+                    </div>
                 </div>
             </div>
         `;
-        const retry = document.getElementById('my-tezos-retry');
-        if (retry) retry.addEventListener('click', () => renderHeroStrip(address));
+        document.getElementById('brief-retry')?.addEventListener('click', () => renderMorningBrief(address));
     }
 }
 
-/**
- * First-time onboarding prompt (shown when no address is saved)
- */
+// ─── Onboarding ──────────────────────────────────────
+
 function showOnboarding(strip) {
     strip.classList.add('visible', 'onboarding');
     strip.innerHTML = `
         <div class="my-tezos-onboard">
             <div class="my-tezos-onboard-text">
                 <span class="my-tezos-onboard-title">Make this your Tezos homepage</span>
-                <span class="my-tezos-onboard-sub">Paste your address to see portfolio, rewards & baker health</span>
+                <span class="my-tezos-onboard-sub">Paste your address to see your Morning Brief, rewards & Tezos Story</span>
             </div>
             <div class="my-tezos-onboard-input">
                 <input type="text" id="my-tezos-address-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
@@ -480,7 +680,6 @@ function showOnboarding(strip) {
         let addr = input.value.trim();
         if (!addr) return;
 
-        // Handle .tez domains
         if (addr.endsWith('.tez') && addr.length > 4) {
             try {
                 const resp = await fetch('https://api.tezos.domains/graphql', {
@@ -507,36 +706,31 @@ function showOnboarding(strip) {
         localStorage.removeItem('tezos-systems-my-tezos-hidden');
         localStorage.removeItem('tezos-systems-my-tezos-dismissed');
 
-        // Also sync to My Baker
         const bakerInput = document.getElementById('my-baker-input');
         const bakerSave = document.getElementById('my-baker-save');
         if (bakerInput) bakerInput.value = addr;
         if (bakerSave) bakerSave.click();
 
         strip.classList.remove('onboarding');
-        renderHeroStrip(addr);
+        renderMorningBrief(addr);
     }
 
     goBtn.addEventListener('click', handleGo);
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleGo(); });
-
     dismiss.addEventListener('click', () => {
         strip.classList.remove('visible', 'onboarding');
         localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
     });
 }
 
-/**
- * Initialize My Tezos hero strip
- */
+// ─── Init & Export ───────────────────────────────────
+
 export function initMyTezos() {
-    // Create the strip element if not in HTML
     let strip = document.getElementById('my-tezos-strip');
     if (!strip) {
         strip = document.createElement('div');
         strip.id = 'my-tezos-strip';
         strip.className = 'my-tezos-strip';
-        // Insert after price bar
         const priceBar = document.getElementById('price-bar');
         if (priceBar) {
             priceBar.after(strip);
@@ -548,21 +742,17 @@ export function initMyTezos() {
 
     const address = localStorage.getItem(STORAGE_KEY);
     const hidden = localStorage.getItem('tezos-systems-my-tezos-hidden') === '1';
-    const dismissed = localStorage.getItem('tezos-systems-my-tezos-dismissed') === '1';
 
-    // Listen for address changes from My Baker
     window.addEventListener('my-baker-updated', (e) => {
         const newAddr = e.detail?.address;
         if (newAddr) {
             localStorage.removeItem('tezos-systems-my-tezos-hidden');
-            renderHeroStrip(newAddr);
+            renderMorningBrief(newAddr);
         } else {
-            // Address cleared
             strip.classList.remove('visible');
         }
     });
 
-    // Listen for header button triggering onboarding
     window.addEventListener('my-tezos-show-onboarding', () => {
         if (!localStorage.getItem(STORAGE_KEY)) {
             showOnboarding(strip);
@@ -570,19 +760,14 @@ export function initMyTezos() {
     });
 
     if (address && !hidden) {
-        renderHeroStrip(address);
+        renderMorningBrief(address);
     }
-    // Onboarding is now triggered only by the 👤 My Tezos header button
-    // No more auto-popup — it was competing with the button for attention
 }
 
-/**
- * Refresh My Tezos strip (called on dashboard refresh)
- */
 export function refreshMyTezos() {
     const address = localStorage.getItem(STORAGE_KEY);
     const hidden = localStorage.getItem('tezos-systems-my-tezos-hidden') === '1';
     if (address && !hidden) {
-        renderHeroStrip(address);
+        renderMorningBrief(address);
     }
 }
