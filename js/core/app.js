@@ -80,6 +80,7 @@ import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initChangelog } from '../features/changelog.js';
 import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js';
+import { initBakerReportCard } from '../features/baker-report-card.js';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
 
@@ -152,6 +153,7 @@ async function init() {
     initCalculator();
     initObjkt();
     initLeaderboard();
+    initBakerReportCard();
     initMomentsTimeline();
     initComparisonToggle();
     initNavButtons();
