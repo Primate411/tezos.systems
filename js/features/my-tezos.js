@@ -345,7 +345,7 @@ async function renderHeroStrip(address) {
                     const arrow = diff > 0 ? '↑' : '↓';
                     const hours = Math.round(timeDiff / 3600000);
                     const timeLabel = hours >= 24 ? `${Math.round(hours/24)}d ago` : `${hours}h ago`;
-                    deltaHtml = `<span class="my-tezos-delta" style="color:${color}">${arrow} ${sign}${diff.toFixed(2)} ꜩ since ${timeLabel}</span>`;
+                    deltaHtml = `<span class="my-tezos-delta" style="color:${color}">${arrow} ${sign}${diff.toFixed(2)} XTZ since ${timeLabel}</span>`;
                 }
             }
         } catch { /* ignore */ }
@@ -382,18 +382,18 @@ async function renderHeroStrip(address) {
             <div class="my-tezos-grid">
                 <div class="my-tezos-cell my-tezos-portfolio">
                     <div class="my-tezos-label">My Portfolio</div>
-                    <div class="my-tezos-value">${fmtCompact(totalXTZ)} ꜩ</div>
+                    <div class="my-tezos-value">${fmtCompact(totalXTZ)} XTZ</div>
                     ${usdValue !== null ? `<div class="my-tezos-sub">$${fmtCompact(usdValue)} USD</div>` : ''}
                     ${deltaHtml}
                 </div>
                 <div class="my-tezos-cell my-tezos-staking">
                     <div class="my-tezos-label">${isStaker ? 'Staked' : 'Delegated'}</div>
-                    <div class="my-tezos-value">${isStaker ? fmtCompact(staked) + ' ꜩ' : fmtCompact(totalXTZ) + ' ꜩ'}</div>
+                    <div class="my-tezos-value">${isStaker ? fmtCompact(staked) + ' XTZ' : fmtCompact(totalXTZ) + ' XTZ'}</div>
                     <div class="my-tezos-sub">${apyRate}% APY (${isStaker ? 'staker' : 'delegator'})</div>
                 </div>
                 <div class="my-tezos-cell my-tezos-rewards">
                     <div class="my-tezos-label">Est. Annual</div>
-                    <div class="my-tezos-value">+${estAnnualReward.toFixed(1)} ꜩ</div>
+                    <div class="my-tezos-value">+${estAnnualReward.toFixed(1)} XTZ</div>
                     <div class="my-tezos-sub">~${estDailyReward.toFixed(2)}/day${estDailyUsd !== null ? ` · $${estDailyUsd.toFixed(2)}` : ''}</div>
                 </div>
                 ${streakHtml}
@@ -404,7 +404,7 @@ async function renderHeroStrip(address) {
                 </div>
                 <div class="my-tezos-cell my-tezos-last-cycle">
                     <div class="my-tezos-label">Last Cycle</div>
-                    <div class="my-tezos-value">${rewardsLastCycle > 0 ? '+' + rewardsLastCycle.toFixed(2) + ' ꜩ' : '—'}</div>
+                    <div class="my-tezos-value">${rewardsLastCycle > 0 ? '+' + rewardsLastCycle.toFixed(2) + ' XTZ' : '—'}</div>
                     <div class="my-tezos-sub">${rewards?.length ? rewards.length + ' cycles tracked' : ''}</div>
                 </div>
             </div>
@@ -542,7 +542,7 @@ export function initMyTezos() {
             priceBar.after(strip);
         } else {
             const header = document.querySelector('.header');
-            if (header) header.before(strip);
+            if (header) header.after(strip);
         }
     }
 

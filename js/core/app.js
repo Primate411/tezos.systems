@@ -791,8 +791,7 @@ function initComparisonToggle() {
 
     toggleBtn.addEventListener('click', () => {
         const stored = localStorage.getItem(COMPARISON_VISIBLE_KEY);
-        // Default is 'true' (visible) — if never set, it's visible
-        const isVisible = stored === null ? true : stored === 'true';
+        const isVisible = stored === 'true'; // null = false (default OFF)
         const newState = !isVisible;
         localStorage.setItem(COMPARISON_VISIBLE_KEY, String(newState));
         updateVis(newState);
@@ -820,16 +819,19 @@ function initUptimeClock() {
     const LAUNCH = new Date(MAINNET_LAUNCH).getTime();
     let lastBlockLevel = 0;
     let lastBlockTime = null;
+    let recentBlockTimes = []; // last N block timestamps for finality avg
 
     // Tick the uptime counter every second — fixed-width digits
     function tickUptime() {
         const now = Date.now();
         const diff = now - LAUNCH;
-        const days = Math.floor(diff / 86400000);
-        const hours = Math.floor((diff % 86400000) / 3600000);
-        const mins = Math.floor((diff % 3600000) / 60000);
-        const secs = Math.floor((diff % 60000) / 1000);
-        const str = `${days.toLocaleString()}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
+        const years = Math.floor(diff / (365.25 * 86400000));
+        const remAfterYears = diff - years * (365.25 * 86400000);
+        const days = Math.floor(remAfterYears / 86400000);
+        const hours = Math.floor((remAfterYears % 86400000) / 3600000);
+        const mins = Math.floor((remAfterYears % 3600000) / 60000);
+        const secs = Math.floor((remAfterYears % 60000) / 1000);
+        const str = `${years}y ${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
         // Wrap each character in a fixed-width span to prevent layout shift
         counterEl.innerHTML = str.split('').map(ch =>
             /\d/.test(ch) ? `<span class="uptime-digit">${ch}</span>` : `<span class="uptime-sep">${ch}</span>`
@@ -880,7 +882,20 @@ function initUptimeClock() {
             if (level && level !== lastBlockLevel) {
                 lastBlockLevel = level;
                 lastBlockTime = new Date(timestamp).getTime();
+                recentBlockTimes.push(lastBlockTime);
+                if (recentBlockTimes.length > 5) recentBlockTimes.shift(); // keep last 5
                 blockNumEl.textContent = level.toLocaleString();
+
+                // Update finality: Tenderbake = 2 confirmations on top of block
+                // So finality ≈ 2 × avg block time
+                const finalityEl = document.getElementById('uptime-finality');
+                if (finalityEl && recentBlockTimes.length >= 3) {
+                    const first = recentBlockTimes[0];
+                    const last = recentBlockTimes[recentBlockTimes.length - 1];
+                    const avgBlockTime = (last - first) / (recentBlockTimes.length - 1);
+                    const finality = Math.round((avgBlockTime * 2) / 1000);
+                    finalityEl.textContent = `${finality}s`;
+                }
 
                 // Flash the pulse dot
                 if (pulseDot) {

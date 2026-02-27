@@ -225,7 +225,7 @@
                             <span class="my-baker-toggle-icon">👤</span> <span class="dropdown-label">My Tezos</span>
                         </button>
                         <button id="comparison-toggle" class="glass-button" aria-label="Toggle Tezos vs Other Chains" title="Chains: ON">
-                            <span class="comparison-toggle-icon">⛓️</span> <span class="dropdown-label">Chains</span>
+                            <span class="comparison-toggle-icon">⛓️</span> <span class="dropdown-label">Vs Others</span>
                         </button>
                         <button id="leaderboard-toggle" class="glass-button" aria-label="Toggle Baker Leaderboard" title="Leaderboard: OFF">
                             <span class="leaderboard-toggle-icon">🏆</span> <span class="dropdown-label">Leaderboard</span>
@@ -319,8 +319,8 @@
                             <span class="uptime-metric-label">bakers</span>
                         </div>
                         <div class="uptime-metric">
-                            <span class="uptime-metric-value">6s</span>
-                            <span class="uptime-metric-label">blocks</span>
+                            <span class="uptime-metric-value" id="uptime-finality">12s</span>
+                            <span class="uptime-metric-label">finality</span>
                         </div>
                         <div class="uptime-metric">
                             <span class="uptime-metric-value" id="uptime-staked">—</span>
@@ -343,10 +343,10 @@
         </div>
     </section>
 
-    <!-- Optional Sections Container (reorderable) -->
-    <div id="optional-sections">
+    <!-- Main content -->
+    <main class="main-content" role="main">
 
-    <!-- Baker Leaderboard -->
+        <!-- Baker Leaderboard -->
     <section class="my-baker-section" id="leaderboard-section">
         <div class="section-header">
             <h2 class="section-title">🏆 Baker Leaderboard</h2>
@@ -365,7 +365,7 @@
     <!-- How Tezos Compares — defaults visible, toggleable from Features menu -->
     <section class="stats-section toggleable-section" id="comparison-section">
         <div class="section-header">
-            <h2 class="section-title">⛓️ Tezos vs Other Chains</h2>
+            <h2 class="section-title">⛓️ <span class="full-title">Tezos vs Other Chains</span><span class="short-title">Vs Others</span></h2>
             <button class="info-button" id="comparison-info-btn" aria-label="About comparison data" title="About comparison data">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -554,11 +554,6 @@
             <div id="objkt-results" class="my-baker-results"></div>
         </div>
     </section>
-
-    </div><!-- end optional-sections -->
-
-    <!-- Main content -->
-    <main class="main-content" role="main">
 
         <!-- Network Moments (milestone alerts) -->
         <section class="stats-section" id="moments-section" style="display:none;">

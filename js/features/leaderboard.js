@@ -159,7 +159,7 @@ function render(container) {
                     <tr>
                         <th class="lb-th lb-rank">#</th>
                         <th class="${headerClass('name')}" data-col="name">Baker${arrow('name')}</th>
-                        <th class="${headerClass('stake')}" data-col="stake">Staking Power${arrow('stake')}</th>
+                        <th class="${headerClass('stake')}" data-col="stake"><span class="full-title">Staking Power</span><span class="short-title">🍞 Power</span>${arrow('stake')}</th>
                         <th class="${headerClass('delegators')}" data-col="delegators">Delegators${arrow('delegators')}</th>
                         <th class="${headerClass('stakers')}" data-col="stakers">Stakers${arrow('stakers')}</th>
                         <th class="${headerClass('capacity')}" data-col="capacity">Capacity${arrow('capacity')}</th>

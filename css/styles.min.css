@@ -1084,6 +1084,17 @@ body::before {
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
+#features-dropdown {
+    right: auto;
+    left: 0;
+}
+
+.short-title { display: none; }
+@media (max-width: 480px) {
+    .full-title { display: none; }
+    .short-title { display: inline; }
+}
+
 .settings-dropdown.open {
     display: flex;
     flex-direction: column;
@@ -3187,14 +3198,14 @@ body.high-combo .stat-card {
         height: calc(100vh - 150px);
     }
 
-    /* Touch devices - buttons always visible */
+    /* Touch devices - buttons always visible but compact */
     .card-history-btn,
     .card-share-btn,
     .card-info-btn {
         opacity: 0.6;
-        width: 44px;
-        height: 44px;
-        font-size: 16px;
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
     }
 }
 
@@ -3629,7 +3640,7 @@ body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-right {
 /* Mobile responsive */
 @media (max-width: 768px) {
     .whale-section {
-        padding: 0 1rem;
+        padding: 0;
         margin-bottom: 1.5rem;
     }
     
@@ -3720,7 +3731,7 @@ body.mobile-tabs-active[data-active-tab="overview"] .my-baker-section.visible {
 /* Toggleable sections (hidden by default, shown with .visible) */
 .toggleable-section {
     display: none;
-    padding: 0 2rem;
+    padding: 0;
 }
 
 .toggleable-section.visible {
@@ -3774,7 +3785,8 @@ body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible 
     display: none;
     max-width: 1200px;
     margin: 0 auto 5rem;
-    padding: 0 2rem;
+    padding: 0;
+    transition: margin-bottom 0.3s ease;
 }
 
 .whale-section.visible,
@@ -4220,7 +4232,7 @@ body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible 
 /* Mobile responsive */
 @media (max-width: 768px) {
     .giants-section {
-        padding: 0 1rem;
+        padding: 0;
     }
     
     .giants-section-inner {
@@ -5964,7 +5976,8 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     display: none;
     max-width: 1200px;
     margin: 0 auto 5rem;
-    padding: 0 2rem;
+    padding: 0;
+    transition: margin-bottom 0.3s ease;
 }
 
 .my-baker-section.visible {
@@ -6005,7 +6018,7 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 
 @media (max-width: 768px) {
     .my-baker-section {
-        padding: 0 1rem;
+        padding: 0;
         margin-bottom: 1.5rem;
     }
 }
