@@ -1054,9 +1054,11 @@ body::before {
 .controls {
     display: flex;
     gap: 0.75rem;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
     align-items: center;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 /* ==========================================
@@ -2603,7 +2605,7 @@ body.high-combo .stat-card {
     flex-shrink: 0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
     .toolbar-cta-label,
     .toolbar-cta-ext {
         display: none;
@@ -2611,6 +2613,8 @@ body.high-combo .stat-card {
     .toolbar-separator {
         display: none;
     }
+    .controls { gap: 0.5rem; }
+    .nav-label { display: none; }
 }
 
 /* ==========================================
@@ -3844,6 +3848,17 @@ body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible 
     word-spacing: 0.15em !important;
     text-rendering: geometricPrecision;
     -webkit-text-size-adjust: 100%;
+}
+
+.history-versus-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+@media (max-width: 800px) {
+    .history-versus-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Matrix theme scrollbar */
@@ -5559,12 +5574,17 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     }
     .comparison-columns {
         grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: auto auto;
         gap: 4px;
     }
-    /* Show Tezos + 2 competitors on mobile, hide Cardano + Algorand */
-    .comparison-col-cardano,
+    /* Stack: Tezos/ETH/Solana top row, Cardano/Algorand bottom row centered */
+    .comparison-col-cardano {
+        grid-column: 1 / 2;
+        grid-row: 2;
+    }
     .comparison-col-algorand {
-        display: none;
+        grid-column: 2 / 3;
+        grid-row: 2;
     }
     .comparison-chain-value {
         font-size: 0.9rem;

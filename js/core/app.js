@@ -112,54 +112,57 @@ const state = {
 async function init() {
     console.log('Initializing Tezos Systems dashboard...');
 
+    // Safe init wrapper — one failing feature can't kill the rest
+    function safe(name, fn) {
+        try { fn(); } catch (e) { console.warn(`[init] ${name} failed:`, e); }
+    }
+
     // Initialize theme
-    initTheme();
+    safe('theme', initTheme);
 
     // Initialize arcade effects
-    initArcadeEffects();
+    safe('arcadeEffects', initArcadeEffects);
     
     // Initialize share functionality
-    initShare();
-    initProtocolShare();
+    safe('share', initShare);
+    safe('protocolShare', initProtocolShare);
     
     // Initialize changelog modal
-    initChangelog();
+    safe('changelog', initChangelog);
     
     // Initialize card history buttons
-    addCardHistoryButtons();
-    
-    // Mobile tabs disabled — single scrollable page on all viewports
-    // initTabs();
+    safe('cardHistory', addCardHistoryButtons);
     
     // Initialize whale tracker
-    initWhaleTracker();
+    safe('whaleTracker', initWhaleTracker);
     
     // Initialize sleeping giants
-    initSleepingGiants();
+    safe('sleepingGiants', initSleepingGiants);
 
     // Initialize price bar
-    initPriceBar();
+    safe('priceBar', initPriceBar);
 
     // Initialize My Tezos personal homepage strip
-    initMyTezos();
-    initMyTezosButton();
+    safe('myTezos', initMyTezos);
+    safe('myTezosButton', initMyTezosButton);
 
     // Initialize visit streak
-    initStreak();
+    safe('streak', initStreak);
 
     // Initialize My Baker
-    initMyBaker();
+    safe('myBaker', initMyBaker);
 
     // Initialize Rewards Calculator
-    initCalculator();
-    initObjkt();
-    initLeaderboard();
-    initBakerReportCard();
-    initMomentsTimeline();
-    initComparisonToggle();
-    initNavButtons();
-    initUptimeClock();
-    initTezosStatsToggle();
+    safe('calculator', initCalculator);
+    safe('objkt', initObjkt);
+    safe('leaderboard', initLeaderboard);
+    safe('bakerReportCard', initBakerReportCard);
+    safe('momentsTimeline', initMomentsTimeline);
+    safe('comparisonToggle', initComparisonToggle);
+    safe('comparison', () => initComparison({}));
+    safe('navButtons', initNavButtons);
+    safe('uptimeClock', initUptimeClock);
+    safe('tezosStatsToggle', initTezosStatsToggle);
 
     // Upgrade section share button
     const upgradeShareBtn = document.getElementById('upgrade-share-btn');
@@ -1407,7 +1410,7 @@ function showProtocolHistoryModal(history, protocolName) {
             </div></div>`;
         } else if (section.type === 'versus') {
             sectionsHtml += `<h3 style="color:${accent}; font-size:1rem; margin:24px 0 12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">${escapeHtml(section.heading)}</h3>`;
-            sectionsHtml += `<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">`;
+            sectionsHtml += `<div class="history-versus-grid">`;
             for (const side of [section.left, section.right]) {
                 const sideColor = side === section.left ? '#ff6b6b' : '#4ecdc4';
                 sectionsHtml += `
