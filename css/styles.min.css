@@ -9086,3 +9086,106 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     }
     .my-tezos-value { font-size: 0.9rem; }
 }
+
+/* ==========================================
+   UPGRADE EFFECT — Protocol Impact Chart
+   ========================================== */
+.upgrade-effect-panel {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    margin-top: 0;
+}
+
+.upgrade-effect-panel.expanded {
+    max-height: 450px;
+    opacity: 1;
+    margin-top: 16px;
+}
+
+.upgrade-effect-chart {
+    position: relative;
+    height: 280px;
+    margin-top: 8px;
+}
+
+.upgrade-effect-chart canvas {
+    width: 100% !important;
+    height: 280px !important;
+}
+
+.upgrade-effect-story {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-secondary, rgba(255,255,255,0.45));
+    margin: 4px 0 0;
+    font-style: italic;
+    letter-spacing: 0.3px;
+    transition: opacity 0.3s;
+}
+
+/* Metric selector pills */
+.upgrade-effect-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 4px 0;
+}
+
+.upgrade-effect-pill {
+    padding: 4px 12px;
+    border: 1px solid var(--border-color, rgba(255,255,255,0.1));
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+}
+
+.upgrade-effect-pill:hover {
+    border-color: var(--color-primary, rgba(0,212,255,0.4));
+    color: var(--text-primary, #fff);
+}
+
+.upgrade-effect-pill.active {
+    background: rgba(0, 212, 255, 0.12);
+    border-color: var(--color-primary, rgba(0,212,255,0.5));
+    color: var(--color-primary, #00d4ff);
+    font-weight: 600;
+}
+
+/* Theme overrides for pills */
+[data-theme="matrix"] .upgrade-effect-pill.active {
+    background: rgba(0, 255, 0, 0.1);
+    border-color: rgba(0, 255, 0, 0.4);
+    color: #00ff00;
+}
+
+[data-theme="clean"] .upgrade-effect-pill.active {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.4);
+    color: #2563EB;
+}
+
+[data-theme="bubblegum"] .upgrade-effect-pill.active {
+    background: rgba(255, 105, 180, 0.1);
+    border-color: rgba(255, 105, 180, 0.4);
+    color: #FF69B4;
+}
+
+/* Toggle button styling */
+.upgrade-effect-toggle-btn {
+    margin-left: 8px;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+    .upgrade-effect-chart { height: 200px; }
+    .upgrade-effect-chart canvas { height: 200px !important; }
+    .upgrade-effect-pill { padding: 3px 8px; font-size: 0.65rem; }
+}

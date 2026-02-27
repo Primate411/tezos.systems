@@ -81,6 +81,7 @@ import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initChangelog } from '../features/changelog.js';
 import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
+import { initUpgradeEffect } from '../features/upgrade-effect.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -832,6 +833,9 @@ function renderProtocolTimeline(protocols) {
     
     // Load protocol-data.json for rich tooltips, then attach JS tooltips
     initRichTooltips(protocols);
+    
+    // Initialize Upgrade Effect chart (toggle below timeline)
+    initUpgradeEffect();
     
     // Update count
     const countEl = document.getElementById('upgrade-count');
