@@ -97,17 +97,29 @@ function calcRewardStreak(rewards) {
  * Get reward amount from a reward entry (works for both delegator and baker rewards)
  */
 function getRewardAmount(r) {
-    if (r.stakingBalance !== undefined) {
-        // Baker rewards
+    // Tallinn-era baker rewards (Adaptive Issuance fields)
+    const blockRewards = (r.blockRewardsDelegated || 0) + (r.blockRewardsStakedOwn || 0) +
+                         (r.blockRewardsStakedEdge || 0) + (r.blockRewardsStakedShared || 0);
+    const attestRewards = (r.attestationRewardsDelegated || 0) + (r.attestationRewardsStakedOwn || 0) +
+                          (r.attestationRewardsStakedEdge || 0) + (r.attestationRewardsStakedShared || 0);
+    const dalRewards = (r.dalAttestationRewardsDelegated || 0) + (r.dalAttestationRewardsStakedOwn || 0) +
+                       (r.dalAttestationRewardsStakedEdge || 0) + (r.dalAttestationRewardsStakedShared || 0);
+    const actual = blockRewards + attestRewards + dalRewards + (r.blockFees || 0);
+
+    if (actual > 0) return actual / 1e6;
+
+    // If cycle hasn't completed yet, use future (projected) rewards
+    const future = (r.futureBlockRewards || 0) + (r.futureAttestationRewards || 0) +
+                   (r.futureDalAttestationRewards || 0);
+    if (future > 0) return future / 1e6;
+
+    // Legacy pre-Tallinn fields
+    if (r.ownBlockRewards !== undefined) {
         return ((r.ownBlockRewards || 0) + (r.ownEndorsementRewards || 0) +
                 (r.extraBlockRewards || 0) + (r.extraEndorsementRewards || 0)) / 1e6;
     }
-    // Delegator rewards — use the reward fields if available
-    if (r.futureBlockRewards !== undefined) {
-        return ((r.futureBlockRewards || 0) + (r.futureEndorsementRewards || 0)) / 1e6;
-    }
-    // Fallback: estimate from balance and APY
-    return (r.balance || 0) / 1e6 * 0.03 / 365;
+
+    return 0;
 }
 
 /**
