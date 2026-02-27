@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tezos Staking — Earn Rewards with XTZ | Live APY & Stats</title>
+    <meta name="description" content="Stake XTZ and earn ~9% APY. Learn how Tezos staking works, compare delegation vs direct staking, and track live staking statistics. No lockups required.">
+    <meta name="keywords" content="Tezos staking, XTZ staking, Tezos APY, delegation, baking, proof of stake rewards, liquid staking, Tezos yield">
+    <link rel="canonical" href="https://tezos.systems/staking">
+
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://tezos.systems/staking">
+    <meta property="og:title" content="Tezos Staking — Earn ~9% APY with XTZ">
+    <meta property="og:description" content="Learn how Tezos staking works. Compare delegation vs direct staking. Live APY and staking stats updated in real time.">
+    <meta property="og:image" content="https://tezos.systems/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Tezos Staking — Earn ~9% APY with XTZ">
+    <meta name="twitter:description" content="Learn how Tezos staking works. Compare delegation vs direct staking. Live APY and staking stats.">
+    <meta name="twitter:image" content="https://tezos.systems/og-image.png">
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/landing.css">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "How Tezos Staking Works — Earn Rewards with XTZ",
+        "description": "A complete guide to staking XTZ on Tezos. Learn about delegation, direct staking, APY rates, and how to get started.",
+        "url": "https://tezos.systems/staking",
+        "publisher": {
+            "@type": "Organization",
+            "name": "Tez Capital",
+            "url": "https://tez.capital"
+        },
+        "dateModified": "2026-02-26"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What is Tezos staking?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Tezos staking (called 'baking') lets you earn rewards by helping secure the network. You can delegate your XTZ to a baker or stake directly. No lockup is required for delegation."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How much APY can I earn staking Tezos?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Direct stakers currently earn approximately 8-10% APY. Delegators earn approximately 3-4% APY after baker fees. Rates are dynamic and adjust based on network participation."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is there a minimum amount to stake Tezos?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "There is no minimum to delegate XTZ. To run your own baker (validator), you need a minimum staking power of 6,000 XTZ."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Are my XTZ locked when staking?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Delegated XTZ are never locked — you maintain full custody and can transfer at any time. Direct staking involves a short unstaking period."
+                }
+            }
+        ]
+    }
+    </script>
+</head>
+<body>
+    <nav class="landing-nav">
+        <a href="/" class="landing-nav-logo">TEZOS SYSTEMS</a>
+        <ul class="landing-nav-links">
+            <li><a href="/staking" class="active">Staking</a></li>
+            <li><a href="/governance">Governance</a></li>
+            <li><a href="/bakers">Bakers</a></li>
+            <li><a href="/">Dashboard</a></li>
+        </ul>
+    </nav>
+
+    <header class="landing-hero">
+        <h1>Tezos Staking</h1>
+        <p class="subtitle">Earn rewards by securing one of the most resilient blockchains in crypto. No lockups. No minimum for delegation.</p>
+
+        <div class="live-stats-row">
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="staking-apy">~9%</span>
+                <span class="live-stat-label">Staking APY</span>
+            </div>
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="delegate-apy">~3%</span>
+                <span class="live-stat-label">Delegation APY</span>
+            </div>
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="staking-ratio">~50%</span>
+                <span class="live-stat-label">Staking Ratio</span>
+            </div>
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="total-bakers">~250</span>
+                <span class="live-stat-label">Active Bakers</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="landing-content">
+        <section class="landing-section">
+            <h2>What Is Tezos Staking?</h2>
+            <p>Tezos uses Liquid Proof-of-Stake, where validators (called <strong>bakers</strong>) create blocks and earn rewards. Unlike many blockchains, Tezos lets you participate without locking your tokens.</p>
+            <p>There are two ways to earn staking rewards:</p>
+
+            <div class="landing-cards">
+                <div class="landing-card">
+                    <h3>Delegation</h3>
+                    <div class="value" data-live="delegate-apy">~3%</div>
+                    <p style="margin-top:8px; font-size:0.85rem; color:var(--text-dim);">Keep full custody. No lockup. Point your XTZ at a baker and earn passively. Baker takes a small fee.</p>
+                </div>
+                <div class="landing-card">
+                    <h3>Direct Staking</h3>
+                    <div class="value" data-live="staking-apy">~9%</div>
+                    <p style="margin-top:8px; font-size:0.85rem; color:var(--text-dim);">Stake directly with a baker for higher rewards. XTZ is locked during staking with a short unstaking period.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-section">
+            <h2>How To Start Staking</h2>
+            <ul>
+                <li><strong>Get a wallet</strong> — Temple, Kukai, or Umami all support delegation</li>
+                <li><strong>Get XTZ</strong> — Buy on any major exchange and transfer to your wallet</li>
+                <li><strong>Choose a baker</strong> — Pick from <a href="/bakers" style="color:var(--accent);">250+ active bakers</a> based on reliability and fees</li>
+                <li><strong>Delegate</strong> — One click in your wallet. Rewards start after ~3 cycles (~3 days)</li>
+                <li><strong>Optional: Direct stake</strong> — For higher APY, stake directly with a baker that accepts external stakers</li>
+            </ul>
+        </section>
+
+        <section class="landing-section">
+            <h2>Live Staking Statistics</h2>
+            <div class="landing-cards">
+                <div class="landing-card">
+                    <h3>Issuance Rate</h3>
+                    <div class="value" data-live="issuance-rate">~3.5%</div>
+                </div>
+                <div class="landing-card">
+                    <h3>Staking Ratio</h3>
+                    <div class="value" data-live="staking-ratio">~50%</div>
+                </div>
+                <div class="landing-card">
+                    <h3>Total Staked</h3>
+                    <div class="value" data-live="total-staked">—</div>
+                </div>
+                <div class="landing-card">
+                    <h3>Total Delegated</h3>
+                    <div class="value" data-live="total-delegated">—</div>
+                </div>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-dim);">APY is dynamic — it adjusts based on how much XTZ is staked network-wide. The adaptive issuance system targets ~50% staking ratio.</p>
+        </section>
+
+        <section class="landing-section">
+            <h2>Delegation vs Direct Staking</h2>
+            <table class="landing-table">
+                <thead>
+                    <tr><th></th><th>Delegation</th><th>Direct Staking</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>APY</td><td data-live="delegate-apy">~3%</td><td data-live="staking-apy">~9%</td></tr>
+                    <tr><td>Minimum</td><td>None</td><td>None (baker sets limit)</td></tr>
+                    <tr><td>Lockup</td><td>None — fully liquid</td><td>Short unstaking period</td></tr>
+                    <tr><td>Custody</td><td>You keep your keys</td><td>You keep your keys</td></tr>
+                    <tr><td>Slashing risk</td><td>None</td><td>Minimal (shared with baker)</td></tr>
+                    <tr><td>Baker fee</td><td>~5-10%</td><td>~5-10%</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="landing-section">
+            <h2>Why Stake on Tezos?</h2>
+            <ul>
+                <li><strong>Self-amending</strong> — The protocol upgrades itself through on-chain governance. No hard forks since launch in 2018.</li>
+                <li><strong>Liquid delegation</strong> — Your XTZ are never locked when delegating. Transfer anytime.</li>
+                <li><strong>Low barrier</strong> — No minimum to delegate. Run a baker with 6,000 XTZ.</li>
+                <li><strong>Energy efficient</strong> — Proof-of-stake since day one. Negligible energy per transaction.</li>
+                <li><strong>Battle-tested</strong> — <span data-live="days-live">2,700+</span> days live. 21+ protocol upgrades. Zero downtime.</li>
+            </ul>
+        </section>
+
+        <section class="landing-section" style="text-align:center; padding-top:24px;">
+            <a href="/#calculator" class="landing-btn">Calculate Your Rewards →</a>
+            <div style="margin-top:16px;">
+                <a href="/bakers" style="color:var(--accent); font-size:0.9rem;">Browse bakers</a>
+                <span style="color:var(--text-dim); margin:0 12px;">·</span>
+                <a href="https://stake.tezos.com" style="color:var(--accent); font-size:0.9rem;">Start staking</a>
+                <span style="color:var(--text-dim); margin:0 12px;">·</span>
+                <a href="https://docs.tez.capital" style="color:var(--accent); font-size:0.9rem;">Run your own baker</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <a href="https://tez.capital">Powered by Tez Capital</a> · <a href="/">tezos.systems</a> · Data from TzKT &amp; Octez RPC
+    </footer>
+
+    <script type="module">
+        import { loadStakingData, loadBakerData } from '/js/landing/live-data.js';
+        loadStakingData();
+        loadBakerData(); // for total-bakers count
+    </script>
+</body>
+</html>

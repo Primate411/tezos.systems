@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tezos Governance — On-Chain Self-Amendment | Live Voting Status</title>
+    <meta name="description" content="Tezos upgrades itself through on-chain governance. 21+ protocol amendments, zero hard forks since 2018. Track live voting periods, proposals, and participation.">
+    <meta name="keywords" content="Tezos governance, on-chain governance, protocol upgrade, self-amending blockchain, Tezos voting, baker voting, protocol proposal">
+    <link rel="canonical" href="https://tezos.systems/governance">
+
+    <meta property="og:type" content="article">
+    <meta property="og:url" content="https://tezos.systems/governance">
+    <meta property="og:title" content="Tezos Governance — The Blockchain That Upgrades Itself">
+    <meta property="og:description" content="21+ protocol amendments. Zero hard forks. Learn how Tezos on-chain governance works and track live voting.">
+    <meta property="og:image" content="https://tezos.systems/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Tezos Governance — The Blockchain That Upgrades Itself">
+    <meta name="twitter:description" content="21+ protocol amendments. Zero hard forks. How Tezos on-chain governance works.">
+    <meta name="twitter:image" content="https://tezos.systems/og-image.png">
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/landing.css">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "How Tezos On-Chain Governance Works",
+        "description": "Tezos is the first blockchain to implement formal on-chain governance. Learn about the 5-period voting process, protocol upgrades, and why Tezos has never hard forked.",
+        "url": "https://tezos.systems/governance",
+        "publisher": {
+            "@type": "Organization",
+            "name": "Tez Capital",
+            "url": "https://tez.capital"
+        },
+        "dateModified": "2026-02-26"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "How does Tezos governance work?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Tezos uses a formal on-chain governance process with 5 periods: Proposal, Exploration, Cooldown, Promotion, and Adoption. Bakers vote on protocol upgrades, and approved changes are automatically applied — no hard fork required."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Has Tezos ever hard forked?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. Tezos has never hard forked since its mainnet launch in September 2018. All 21+ protocol upgrades have been applied through the on-chain governance process."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Who can vote on Tezos proposals?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Active bakers (validators) vote on proposals. Their voting power is proportional to their staking power. Delegators indirectly participate by choosing which baker to delegate to."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How long does a Tezos governance cycle take?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Each voting period lasts 5 cycles (~5 days on the current Tallinn protocol). A full governance cycle through all 5 periods takes approximately 25 days."
+                }
+            }
+        ]
+    }
+    </script>
+</head>
+<body>
+    <nav class="landing-nav">
+        <a href="/" class="landing-nav-logo">TEZOS SYSTEMS</a>
+        <ul class="landing-nav-links">
+            <li><a href="/staking">Staking</a></li>
+            <li><a href="/governance" class="active">Governance</a></li>
+            <li><a href="/bakers">Bakers</a></li>
+            <li><a href="/">Dashboard</a></li>
+        </ul>
+    </nav>
+
+    <header class="landing-hero">
+        <h1>Tezos Governance</h1>
+        <p class="subtitle">The first blockchain to upgrade itself through formal on-chain voting. 21+ protocol amendments. Zero hard forks. Since 2018.</p>
+
+        <div class="live-stats-row">
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="protocol-count">21</span>
+                <span class="live-stat-label">Protocol Upgrades</span>
+            </div>
+            <div class="live-stat">
+                <span class="live-stat-value">0</span>
+                <span class="live-stat-label">Hard Forks</span>
+            </div>
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="days-live">2,700+</span>
+                <span class="live-stat-label">Days Live</span>
+            </div>
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="current-protocol">Tallinn</span>
+                <span class="live-stat-label">Current Protocol</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="landing-content">
+        <section class="landing-section">
+            <h2>Current Voting Status</h2>
+            <div class="landing-cards">
+                <div class="landing-card">
+                    <h3>Voting Period</h3>
+                    <div class="value" data-live="voting-period">—</div>
+                </div>
+                <div class="landing-card">
+                    <h3>Time Remaining</h3>
+                    <div class="value" data-live="voting-time-left">—</div>
+                </div>
+            </div>
+            <p class="landing-cta"><a href="/#section=governance">View live governance dashboard →</a></p>
+        </section>
+
+        <section class="landing-section">
+            <h2>How It Works</h2>
+            <p>Tezos governance follows a structured 5-period voting cycle. Any baker can submit a protocol proposal, and all bakers vote proportionally to their staking power.</p>
+
+            <div class="landing-cards" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));">
+                <div class="landing-card" style="text-align:center;">
+                    <h3>1. Proposal</h3>
+                    <p style="font-size:0.8rem; color:var(--text-dim); margin-top:6px;">Bakers submit and upvote protocol proposals</p>
+                </div>
+                <div class="landing-card" style="text-align:center;">
+                    <h3>2. Exploration</h3>
+                    <p style="font-size:0.8rem; color:var(--text-dim); margin-top:6px;">Bakers vote Yay/Nay/Pass on the top proposal</p>
+                </div>
+                <div class="landing-card" style="text-align:center;">
+                    <h3>3. Cooldown</h3>
+                    <p style="font-size:0.8rem; color:var(--text-dim); margin-top:6px;">Testing period on a temporary test chain</p>
+                </div>
+                <div class="landing-card" style="text-align:center;">
+                    <h3>4. Promotion</h3>
+                    <p style="font-size:0.8rem; color:var(--text-dim); margin-top:6px;">Final vote to accept or reject</p>
+                </div>
+                <div class="landing-card" style="text-align:center;">
+                    <h3>5. Adoption</h3>
+                    <p style="font-size:0.8rem; color:var(--text-dim); margin-top:6px;">Nodes update automatically. No hard fork.</p>
+                </div>
+            </div>
+
+            <p>Supermajority threshold: <strong>80%</strong>. Each period lasts ~5 days (5 cycles). A full governance cycle takes approximately 25 days.</p>
+        </section>
+
+        <section class="landing-section">
+            <h2>Protocol Upgrade History</h2>
+            <p>Every major Tezos protocol upgrade, from Athens (2019) to the current protocol:</p>
+            <table class="landing-table">
+                <thead>
+                    <tr><th>Protocol</th><th>Year</th><th>Key Change</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Athens</td><td>2019</td><td>First on-chain upgrade — increased gas limit, reduced roll size to 8,000 ꜩ</td></tr>
+                    <tr><td>Babylon</td><td>2019</td><td>New consensus algorithm (Emmy+), improved smart contracts</td></tr>
+                    <tr><td>Carthage</td><td>2020</td><td>Gas optimizations, higher gas limits for complex contracts</td></tr>
+                    <tr><td>Delphi</td><td>2020</td><td>75% gas cost reduction — made DeFi viable on Tezos</td></tr>
+                    <tr><td>Edo</td><td>2021</td><td>Sapling (privacy), BLS12-381 curves, tickets</td></tr>
+                    <tr><td>Florence</td><td>2021</td><td>Depth-first execution, reduced gas consumption</td></tr>
+                    <tr><td>Granada</td><td>2021</td><td>Liquidity baking ⚔, Emmy* consensus, reduced block time to 30s</td></tr>
+                    <tr><td>Hangzhou</td><td>2021</td><td>Timelock, views, caching, global constants</td></tr>
+                    <tr><td>Ithaca</td><td>2022</td><td>Tenderbake consensus ⚔ — deterministic finality, 15s blocks</td></tr>
+                    <tr><td>Jakarta</td><td>2022</td><td>Transaction Optimistic Rollups (TORU) ⚔, Tickets improvements</td></tr>
+                    <tr><td>Kathmandu</td><td>2022</td><td>Pipelining validation, improved randomness</td></tr>
+                    <tr><td>Lima</td><td>2022</td><td>Pipelining refinements, consensus key</td></tr>
+                    <tr><td>Mumbai</td><td>2023</td><td>Smart Rollups, increased TPS via DAL groundwork</td></tr>
+                    <tr><td>Nairobi</td><td>2023</td><td>Improved rollups, faster finality</td></tr>
+                    <tr><td>Oxford</td><td>2023</td><td>Adaptive issuance ⚔, staking, DAL activation</td></tr>
+                    <tr><td>Paris</td><td>2024</td><td>10s blocks, DAL live, adaptive issuance activation</td></tr>
+                    <tr><td>Quebec</td><td>2024</td><td>6s blocks ⚔, tz4/BLS signatures, 6,000 ꜩ minimum stake</td></tr>
+                    <tr><td>Riyadh</td><td>2025</td><td>AI-assisted smart contracts, improved rollup framework</td></tr>
+                    <tr><td>Seoul</td><td>2025</td><td>Further tz4 adoption incentives, attestation improvements</td></tr>
+                    <tr><td>Tallinn</td><td>2025</td><td>Current protocol — refined consensus, DAL improvements</td></tr>
+                </tbody>
+            </table>
+            <p style="font-size:0.8rem; color:var(--text-dim);">⚔ marks protocols with significant governance contention.</p>
+            <p class="landing-cta"><a href="/">Explore the interactive protocol timeline →</a></p>
+        </section>
+
+        <section class="landing-section">
+            <h2>Why On-Chain Governance Matters</h2>
+            <ul>
+                <li><strong>No hard forks</strong> — The community never splits. One chain, one token, one community.</li>
+                <li><strong>Continuous evolution</strong> — Tezos has shipped 21+ upgrades since 2018. Block time went from 60s → 30s → 15s → 10s → 6s.</li>
+                <li><strong>Decentralized decision-making</strong> — Protocol changes require 80% supermajority from bakers.</li>
+                <li><strong>Future-proof</strong> — Can adopt any new technology (ZK proofs, new signature schemes, L2 scaling) through governance.</li>
+                <li><strong>Predictable upgrades</strong> — Each governance cycle has clear timelines, not "whenever core devs decide."</li>
+            </ul>
+        </section>
+
+        <section class="landing-section" style="text-align:center; padding-top:24px;">
+            <a href="/" class="landing-btn">View Live Dashboard →</a>
+            <div style="margin-top:16px;">
+                <a href="https://tzkt.io/governance" style="color:var(--accent); font-size:0.9rem;">Voting history on TzKT</a>
+                <span style="color:var(--text-dim); margin:0 12px;">·</span>
+                <a href="https://opentezos.com/tezos-basics/governance-on-chain/" style="color:var(--accent); font-size:0.9rem;">Learn more</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <a href="https://tez.capital">Powered by Tez Capital</a> · <a href="/">tezos.systems</a> · Data from TzKT &amp; Octez RPC
+    </footer>
+
+    <script type="module">
+        import { loadGovernanceData, loadBakerData } from '/js/landing/live-data.js';
+        loadGovernanceData();
+        loadBakerData();
+    </script>
+</body>
+</html>

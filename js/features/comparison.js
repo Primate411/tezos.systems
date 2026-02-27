@@ -21,6 +21,8 @@ const COMPARISON_TWEETS_FULL = [
     { label: 'Understated', text: 'We\'re not winning block time (Solana\'s faster). We\'re not winning fees (Solana\'s cheaper).\n\nBut we\'ve never forked and upgrade seamlessly.\n\ntezos.systems' },
     { label: 'Question', text: 'What\'s more decentralized: a chain where 2 entities control 50%, or one where governance has coordinated 21+ upgrades without a single fork?\n\ntezos.systems' },
     { label: 'Recruit', text: 'Climate-conscious devs: Tezos uses less energy per tx than any major PoS chain. Zero hard forks means zero wasted effort.\n\nBuild sustainably:\ntezos.systems' },
+    { label: '5-Chain', text: '5 chains. 1 comparison. Live data.\n\n🔹 Tezos: 21 upgrades, 0 forks\n🔹 Ethereum: Most TVL, slowest finality\n🔹 Solana: Fastest blocks, outage history\n🔹 Cardano: High staking %, slow blocks\n🔹 Algorand: Instant finality, centralized upgrades\n\ntezos.systems' },
+    { label: 'Governance', text: 'Self-amendment scoreboard:\n🏆 Tezos: 21+ on-chain upgrades\n❌ Ethereum: Hard forks only\n❌ Solana: No on-chain governance\n❌ Cardano: Voltaire still pending\n❌ Algorand: Foundation-controlled\n\nOnly one chain truly governs itself.\n\ntezos.systems' },
     { label: 'Data Drop', text: 'Self-amendment scoreboard:\n🏆 Tezos: 21+ successful upgrades\n❌ Ethereum: 0 (hard forks only)\n❌ Solana: 0 (no on-chain governance)\n\ntezos.systems' },
     { label: 'Flex', text: 'Don\'t choose between fast, cheap, or decentralized.\n\nChoose deterministic finality, self-amendment, and zero forks.\n\ntezos.systems' },
     { label: 'Dunk', text: 'Yes, Solana is faster and cheaper. Yes, Ethereum has more TVL.\n\nBut when they break (and they do), Tezos keeps building. 21 upgrades, 0 forks.\n\ntezos.systems' },
@@ -35,7 +37,7 @@ const COMPARISON_TWEETS_PER_METRIC = {
         { label: 'Competitive', text: '6-second blocks powering 21 seamless protocol upgrades without a single fork.\n\nStability has its own velocity.' },
     ],
     finality: [
-        { label: 'Data Drop', text: 'Finality:\n🏆 Tezos: 12s deterministic\n⏳ Ethereum: ~13 min (2 epochs)\n⚡ Solana: ~6.4s probabilistic\n\nDeterministic = guaranteed. No takebacks.' },
+        { label: 'Data Drop', text: 'Finality:\n⚡ Algorand: ~2.8s instant\n🟢 Tezos: 12s deterministic\n🟡 Solana: ~6.4s probabilistic\n⏳ Cardano: ~12 min\n🔴 Ethereum: ~13 min\n\nDeterministic = guaranteed. No takebacks.' },
         { label: 'Developer', text: 'Deterministic finality in 12 seconds. Not "probably final." Not "economically final."\n\nMathematically guaranteed finality.\n\nThis is what serious DeFi needs.' },
         { label: 'Dunk', text: 'Ethereum: "Final in 13 min... probably"\nSolana: "Final in 6s... we think"\nTezos: "Final in 12s. Guaranteed."\n\nDeterministic > probabilistic.' },
         { label: 'Business', text: 'Instant finality matters:\n• No transaction reversals\n• No reorg risk\n• No "economic finality" guesswork\n\nTezos: 12s deterministic finality. Every time.' },
@@ -64,7 +66,7 @@ const COMPARISON_TWEETS_PER_METRIC = {
         { label: 'Future', text: 'While others debate hard forks, Tezos just upgrades.\n\n21 amendments in. Infinite amendments possible. The only future-proof architecture.' },
     ],
     hardForks: [
-        { label: 'Zero', text: 'Hard fork count:\n🏆 Tezos: 0\n🔴 Ethereum: 14+\n🔴 Solana: Multiple outages\n\nZero forks. Zero splits. Evolution > revolution.' },
+        { label: 'Zero', text: 'Hard fork count:\n🏆 Tezos: 0\n🟡 Algorand: 0 (foundation-controlled)\n🔴 Cardano: 5+\n🔴 Ethereum: 14+\n🔴 Solana: Multiple outages\n\nZero forks. Zero splits.' },
         { label: 'Unity', text: '0 hard forks = 0 ecosystem splits.\n\nWhile other chains fragment their communities, Tezos keeps everyone together.' },
         { label: 'Stability', text: '14+ Ethereum hard forks. Multiple Solana outages. 0 Tezos forks.\n\nImagine building on a platform that never breaks backward compatibility.' },
         { label: 'Philosophical', text: '"Hard forks are a feature" 🤔\n\nTezos disagrees. 21 upgrades, 0 forks, 0 splits.\n\nMature governance > breaking changes.' },
@@ -74,6 +76,12 @@ const COMPARISON_TWEETS_PER_METRIC = {
         { label: 'Green', text: 'Building on Tezos = less energy per tx than any major PoS chain.\n\nYour dApp\'s carbon footprint matters. Choose sustainable infra.' },
         { label: 'Efficiency', text: '<0.001 kWh per transaction.\n\nThat\'s not just green — that\'s efficient. More throughput per watt than any major chain.' },
         { label: 'ESG', text: 'Corporate sustainability goals?\n\nTezos uses less energy per tx than Ethereum and Solana. Your CFO will thank you.' },
+    ],
+    slashing: [
+        { label: 'Safety', text: 'Slashing comparison:\n🟢 Tezos: Minimal (double-bake/attest only)\n🟢 Cardano: No slashing\n🟢 Solana: No slashing (jailing)\n🟢 Algorand: No slashing\n🔴 Ethereum: Up to full stake\n\nStake without fear.' },
+        { label: 'Honest', text: 'Ethereum can slash your entire stake. Tezos only penalizes provable double-baking/attesting — the minimum needed for security.\n\nMost chains skip slashing entirely. Tezos found the middle ground.' },
+        { label: 'Delegator', text: 'Delegating on Tezos? Your slashing risk is minimal — only triggered by provable double operations, not downtime.\n\nEthereum validators risk their entire 32 ETH. Different philosophy.' },
+        { label: 'Technical', text: 'Tezos slashing is surgical: only double-baking and double-attesting are penalized. No slashing for downtime, no cascading penalties.\n\nSecurity without the terror.' },
     ],
     avgTxFee: [
         { label: 'Honest', text: 'Transaction fees:\n🟢 Solana: ~$0.005\n🟡 Tezos: ~$0.01\n🔴 Ethereum: $1–5\n\nSolana wins cost. We\'re cheap but not cheapest. Middle ground has its place.' },
@@ -100,8 +108,8 @@ const METRICS = [
         icon: '✅',
         tezosLive: () => CHAIN_COMPARISON.tezosStatic.finality,
         tezosNote: () => CHAIN_COMPARISON.tezosStatic.finalityNote,
-        winner: 'tezos', // ~12s deterministic finality vs Solana probabilistic
-        winNote: 'Deterministic',
+        winner: 'algorand', // ~2.8s instant finality
+        winNote: 'Instant finality',
     },
     {
         key: 'validators',
@@ -119,6 +127,16 @@ const METRICS = [
         tezosLive: (stats) => stats.stakingRatio ? stats.stakingRatio.toFixed(1) + '%' : '—',
         winner: 'solana', // highest staking
         winNote: 'Highest participation',
+    },
+    {
+        key: 'slashing',
+        label: 'Slashing',
+        icon: '🔪',
+        tezosLive: () => CHAIN_COMPARISON.tezosStatic.slashing,
+        tezosNote: () => CHAIN_COMPARISON.tezosStatic.slashingNote,
+        winner: 'tezos',
+        winNote: 'Minimal risk',
+        lowerBetter: true,
     },
     {
         key: 'annualIssuance',
@@ -151,8 +169,8 @@ const METRICS = [
         label: 'Energy / Transaction',
         icon: '⚡',
         tezosLive: () => CHAIN_COMPARISON.tezosStatic.energyPerTx,
-        winner: 'tezos',
-        winNote: 'Most efficient',
+        winner: 'algorand',
+        winNote: 'Carbon negative',
         lowerBetter: true,
     },
     {
@@ -160,7 +178,7 @@ const METRICS = [
         label: 'Avg Transaction Fee',
         icon: '💰',
         tezosLive: (stats) => stats.avgTxFee || CHAIN_COMPARISON.tezosStatic.avgTxFee,
-        winner: 'solana',
+        winner: 'algorand',
         winNote: 'Cheapest',
         lowerBetter: true,
     },
@@ -225,10 +243,17 @@ function buildComparisonCard(metric, stats) {
     cols.className = 'comparison-columns';
 
     // Build each chain column
+    const adaValue = getStaticValue('cardano', metric.key);
+    const adaNote = getStaticNote('cardano', metric.key);
+    const algoValue = getStaticValue('algorand', metric.key);
+    const algoNote = getStaticNote('algorand', metric.key);
+
     const chains = [
         { name: 'Tezos', value: tezosValue, note: tezosNote, cls: 'tezos', isWinner: metric.winner === 'tezos' },
         { name: 'Ethereum', value: ethValue, note: ethNote, cls: 'ethereum', isWinner: metric.winner === 'ethereum' },
         { name: 'Solana', value: solValue, note: solNote, cls: 'solana', isWinner: metric.winner === 'solana' },
+        { name: 'Cardano', value: adaValue, note: adaNote, cls: 'cardano', isWinner: metric.winner === 'cardano' },
+        { name: 'Algorand', value: algoValue, note: algoNote, cls: 'algorand', isWinner: metric.winner === 'algorand' },
     ];
 
     for (const chain of chains) {
@@ -433,7 +458,7 @@ export function initComparison(stats) {
     const updatedEl = document.getElementById('comparison-last-updated');
     if (updatedEl) {
         const d = new Date(CHAIN_COMPARISON.lastUpdated + 'T00:00:00Z');
-        updatedEl.textContent = 'ETH/SOL data as of ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+        updatedEl.textContent = 'Comparison data as of ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
     }
 
     // Wire up section-level share button

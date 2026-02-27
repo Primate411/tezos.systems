@@ -1,0 +1,312 @@
+/* Landing page styles — lightweight, SEO-friendly */
+:root {
+    --bg: #0a0a14;
+    --text: #e8e8f0;
+    --text-dim: rgba(232, 232, 240, 0.6);
+    --accent: #00d4ff;
+    --accent-dim: rgba(0, 212, 255, 0.15);
+    --card-bg: rgba(255, 255, 255, 0.03);
+    --border: rgba(255, 255, 255, 0.08);
+    --green: #10b981;
+    --warning: #f59e0b;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.7;
+    min-height: 100vh;
+}
+
+/* Nav */
+.landing-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10, 10, 20, 0.95);
+    backdrop-filter: blur(12px);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.landing-nav-logo {
+    font-family: 'Orbitron', monospace;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--accent);
+    text-decoration: none;
+    letter-spacing: 2px;
+}
+
+.landing-nav-links {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+}
+
+.landing-nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.85rem;
+    transition: color 0.2s;
+}
+
+.landing-nav-links a:hover,
+.landing-nav-links a.active {
+    color: var(--accent);
+}
+
+/* Hero */
+.landing-hero {
+    text-align: center;
+    padding: 80px 24px 48px;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.landing-hero h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 2px;
+    text-shadow: 0 0 40px rgba(0, 212, 255, 0.2);
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+.landing-hero .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-dim);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Live stat badges in hero */
+.live-stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    margin-top: 32px;
+    flex-wrap: wrap;
+}
+
+.live-stat {
+    text-align: center;
+}
+
+.live-stat-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+}
+
+.live-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 4px;
+}
+
+/* Content sections */
+.landing-content {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+}
+
+.landing-section {
+    margin-bottom: 56px;
+}
+
+.landing-section h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    color: var(--accent);
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+}
+
+.landing-section p {
+    color: var(--text);
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+}
+
+.landing-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.landing-section li {
+    padding: 8px 0;
+    padding-left: 20px;
+    position: relative;
+    color: var(--text);
+    font-size: 0.95rem;
+}
+
+.landing-section li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+/* Cards grid */
+.landing-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+}
+
+.landing-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.2s;
+}
+
+.landing-card:hover {
+    border-color: rgba(0, 212, 255, 0.2);
+}
+
+.landing-card h3 {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.landing-card .value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
+/* Tables */
+.landing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    margin: 16px 0;
+}
+
+.landing-table th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+}
+
+.landing-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text);
+}
+
+.landing-table a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.landing-table a:hover {
+    text-decoration: underline;
+}
+
+.landing-table tbody tr:hover {
+    background: rgba(255,255,255,0.02);
+}
+
+/* CTAs */
+.landing-cta {
+    margin-top: 16px;
+    text-align: center;
+}
+
+.landing-cta a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.landing-cta a:hover {
+    text-decoration: underline;
+}
+
+.landing-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: var(--accent-dim);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 8px;
+    color: var(--accent);
+    text-decoration: none;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+}
+
+.landing-btn:hover {
+    background: rgba(0, 212, 255, 0.25);
+    box-shadow: 0 0 20px rgba(0, 212, 255, 0.15);
+}
+
+/* Live data shimmer before load */
+[data-live] {
+    transition: opacity 0.3s;
+}
+
+[data-live].live-loaded {
+    animation: live-flash 0.4s ease;
+}
+
+@keyframes live-flash {
+    0% { color: var(--accent); }
+    100% { color: inherit; }
+}
+
+/* Footer */
+.landing-footer {
+    text-align: center;
+    padding: 32px 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 0.75rem;
+}
+
+.landing-footer a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .landing-hero { padding: 48px 16px 32px; }
+    .landing-content { padding: 0 16px 48px; }
+    .live-stats-row { gap: 16px; }
+    .live-stat-value { font-size: 1.2rem; }
+    .landing-nav-links { gap: 12px; }
+    .landing-nav-links a { font-size: 0.75rem; }
+}

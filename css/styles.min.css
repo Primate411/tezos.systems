@@ -5104,13 +5104,13 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 
 @media (min-width: 640px) {
     .comparison-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(1, 1fr);
     }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 900px) {
     .comparison-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 
@@ -5173,8 +5173,8 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 
 .comparison-columns {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    gap: 8px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
 }
 
 .comparison-col {
@@ -5194,7 +5194,9 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 }
 
 .comparison-col-ethereum,
-.comparison-col-solana {
+.comparison-col-solana,
+.comparison-col-cardano,
+.comparison-col-algorand {
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.04);
 }
@@ -5212,7 +5214,9 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 }
 
 .comparison-col-ethereum .comparison-chain-name,
-.comparison-col-solana .comparison-chain-name {
+.comparison-col-solana .comparison-chain-name,
+.comparison-col-cardano .comparison-chain-name,
+.comparison-col-algorand .comparison-chain-name {
     color: rgba(255, 255, 255, 0.4);
 }
 
@@ -5229,7 +5233,9 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 }
 
 .comparison-col-ethereum .comparison-chain-value,
-.comparison-col-solana .comparison-chain-value {
+.comparison-col-solana .comparison-chain-value,
+.comparison-col-cardano .comparison-chain-value,
+.comparison-col-algorand .comparison-chain-value {
     color: rgba(255, 255, 255, 0.5);
 }
 
@@ -5302,14 +5308,39 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     box-shadow: 0 8px 32px rgba(0, 255, 0, 0.1);
 }
 
-/* Responsive */
+/* Responsive — 5 column comparison */
+@media (max-width: 900px) {
+    .comparison-columns {
+        grid-template-columns: repeat(5, 1fr);
+        gap: 4px;
+    }
+    .comparison-col { padding: 8px 4px; }
+    .comparison-chain-value { font-size: 0.85rem; }
+    .comparison-chain-name { font-size: 0.58rem; }
+}
+
 @media (max-width: 640px) {
     .comparison-card {
         padding: 1rem;
     }
+    .comparison-columns {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+    }
+    /* Show Tezos + 2 competitors on mobile, hide Cardano + Algorand */
+    .comparison-col-cardano,
+    .comparison-col-algorand {
+        display: none;
+    }
     .comparison-chain-value {
         font-size: 0.9rem;
     }
+}
+
+@media (max-width: 480px) {
+    .comparison-chain-value { font-size: 0.8rem; }
+    .comparison-chain-name { font-size: 0.55rem; }
+    .comparison-col { padding: 6px 3px; }
 }
 
 /* ==========================================
@@ -8837,4 +8868,221 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     .leaderboard-table th, .leaderboard-table td {
         padding: 6px 8px;
     }
+}
+
+/* ==========================================
+   MY TEZOS — Personal Homepage Hero Strip
+   ========================================== */
+.my-tezos-strip {
+    display: none;
+    position: relative;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.06) 0%, rgba(0, 212, 255, 0.02) 100%);
+    border-bottom: 1px solid rgba(0, 212, 255, 0.12);
+    backdrop-filter: blur(12px);
+}
+
+.my-tezos-strip.visible {
+    display: block;
+}
+
+.my-tezos-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.my-tezos-cell {
+    text-align: center;
+}
+
+.my-tezos-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+    margin-bottom: 4px;
+}
+
+.my-tezos-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary, #fff);
+    line-height: 1.3;
+}
+
+.my-tezos-sub {
+    font-size: 0.75rem;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+    margin-top: 2px;
+}
+
+.my-tezos-delta {
+    display: inline-block;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-top: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+}
+
+.my-tezos-baker-name {
+    font-size: 0.95rem !important;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin: 0 auto;
+}
+
+.my-tezos-actions {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    display: flex;
+    gap: 4px;
+}
+
+.my-tezos-edit,
+.my-tezos-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, rgba(255,255,255,0.4));
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.my-tezos-edit:hover,
+.my-tezos-close:hover {
+    color: var(--text-primary, #fff);
+    background: rgba(255,255,255,0.06);
+}
+
+.my-tezos-loading {
+    text-align: center;
+    padding: 8px;
+}
+
+.my-tezos-loading-text {
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    animation: my-tezos-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes my-tezos-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Onboarding state */
+.my-tezos-strip.onboarding {
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.08) 0%, rgba(0, 212, 255, 0.03) 100%);
+    border-bottom: 1px solid rgba(0, 212, 255, 0.15);
+}
+
+.my-tezos-onboard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 8px 0;
+    flex-wrap: wrap;
+}
+
+.my-tezos-onboard-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--color-primary, #00d4ff);
+    display: block;
+}
+
+.my-tezos-onboard-sub {
+    font-size: 0.78rem;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+    display: block;
+    margin-top: 2px;
+}
+
+.my-tezos-onboard-input {
+    display: flex;
+    gap: 8px;
+}
+
+.my-tezos-onboard-input input {
+    padding: 8px 14px;
+    border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+    border-radius: 6px;
+    background: rgba(255,255,255,0.04);
+    color: var(--text-primary, #fff);
+    font-size: 0.85rem;
+    width: 240px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.my-tezos-onboard-input input:focus {
+    border-color: var(--color-primary, #00d4ff);
+}
+
+.my-tezos-go-btn {
+    padding: 8px 18px;
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 6px;
+    color: var(--color-primary, #00d4ff);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 1px;
+}
+
+.my-tezos-go-btn:hover {
+    background: rgba(0, 212, 255, 0.25);
+    box-shadow: 0 0 15px rgba(0, 212, 255, 0.15);
+}
+
+.my-tezos-dismiss {
+    background: none;
+    border: none;
+    color: var(--text-secondary, rgba(255,255,255,0.3));
+    font-size: 0.72rem;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.my-tezos-dismiss:hover {
+    color: var(--text-primary, rgba(255,255,255,0.7));
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .my-tezos-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    .my-tezos-strip { padding: 12px 16px; }
+    .my-tezos-value { font-size: 1rem; }
+    .my-tezos-onboard { flex-direction: column; text-align: center; gap: 12px; }
+    .my-tezos-onboard-input input { width: 180px; }
+}
+
+@media (max-width: 480px) {
+    .my-tezos-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .my-tezos-value { font-size: 0.9rem; }
 }

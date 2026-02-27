@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tezos Bakers — Live Baker Directory & Leaderboard | Choose a Validator</title>
+    <meta name="description" content="Browse all active Tezos bakers (validators) ranked by staking power. Compare capacity, delegators, and tz4 status. Find the best baker for your XTZ delegation.">
+    <meta name="keywords" content="Tezos bakers, Tezos validators, baker directory, delegation, staking power, baker leaderboard, choose baker, XTZ baking">
+    <link rel="canonical" href="https://tezos.systems/bakers">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://tezos.systems/bakers">
+    <meta property="og:title" content="Tezos Bakers — Live Baker Directory">
+    <meta property="og:description" content="Browse all active Tezos bakers ranked by staking power. Find the best baker for your XTZ delegation.">
+    <meta property="og:image" content="https://tezos.systems/og-image.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Tezos Bakers — Live Baker Directory">
+    <meta name="twitter:description" content="Browse all active Tezos bakers. Compare capacity, delegators, and reliability.">
+    <meta name="twitter:image" content="https://tezos.systems/og-image.png">
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/landing.css">
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        "headline": "Tezos Baker Directory — Choose a Validator",
+        "description": "Live directory of all active Tezos bakers. Compare staking power, delegators, capacity, and tz4/BLS status.",
+        "url": "https://tezos.systems/bakers",
+        "publisher": {
+            "@type": "Organization",
+            "name": "Tez Capital",
+            "url": "https://tez.capital"
+        },
+        "dateModified": "2026-02-26"
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "What is a Tezos baker?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "A baker is a Tezos validator that creates new blocks, validates transactions, and participates in governance voting. Bakers earn rewards for securing the network and can accept delegations from other XTZ holders."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How do I choose a Tezos baker?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Look for bakers with high reliability (low missed attestations), reasonable fees, available capacity, and active governance participation. tz4/BLS bakers help the network prepare for future optimizations."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How many Tezos bakers are there?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "There are approximately 250 active bakers on Tezos. The minimum staking power to bake is 6,000 XTZ."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How do I become a Tezos baker?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "You need at least 6,000 XTZ and a server running the Tezos node software. Tools like tezbake from Tez Capital make setup straightforward. Visit docs.tez.capital for a step-by-step guide."
+                }
+            }
+        ]
+    }
+    </script>
+</head>
+<body>
+    <nav class="landing-nav">
+        <a href="/" class="landing-nav-logo">TEZOS SYSTEMS</a>
+        <ul class="landing-nav-links">
+            <li><a href="/staking">Staking</a></li>
+            <li><a href="/governance">Governance</a></li>
+            <li><a href="/bakers" class="active">Bakers</a></li>
+            <li><a href="/">Dashboard</a></li>
+        </ul>
+    </nav>
+
+    <header class="landing-hero">
+        <h1>Tezos Bakers</h1>
+        <p class="subtitle">All active Tezos validators ranked by staking power. Click any baker to view detailed stats.</p>
+
+        <div class="live-stats-row">
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="total-bakers">~250</span>
+                <span class="live-stat-label">Active Bakers</span>
+            </div>
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="staking-ratio">~50%</span>
+                <span class="live-stat-label">Staking Ratio</span>
+            </div>
+            <div class="live-stat">
+                <span class="live-stat-value" data-live="staking-apy">~9%</span>
+                <span class="live-stat-label">Staking APY</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="landing-content">
+        <section class="landing-section">
+            <h2>Top Bakers by Staking Power</h2>
+            <div id="top-bakers-list">
+                <p style="color:var(--text-dim); text-align:center; padding:24px;">Loading live baker data…</p>
+            </div>
+        </section>
+
+        <section class="landing-section">
+            <h2>What to Look For in a Baker</h2>
+            <div class="landing-cards">
+                <div class="landing-card">
+                    <h3>Reliability</h3>
+                    <p style="font-size:0.85rem; color:var(--text-dim); margin-top:6px;">Low missed blocks and attestations. Bakers below 67% attestation rate get deactivated.</p>
+                </div>
+                <div class="landing-card">
+                    <h3>Capacity</h3>
+                    <p style="font-size:0.85rem; color:var(--text-dim); margin-top:6px;">Bakers accept delegations up to 9x their own stake. Overdelegated bakers = lower rewards.</p>
+                </div>
+                <div class="landing-card">
+                    <h3>Fees</h3>
+                    <p style="font-size:0.85rem; color:var(--text-dim); margin-top:6px;">Baker fee (edge) typically 5-10%. Lower fee = more rewards for you.</p>
+                </div>
+                <div class="landing-card">
+                    <h3>tz4/BLS</h3>
+                    <p style="font-size:0.85rem; color:var(--text-dim); margin-top:6px;">tz4 bakers use BLS signatures enabling 63x bandwidth reduction. Supports network evolution.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="landing-section">
+            <h2>How Baking Works</h2>
+            <p>Bakers are the validators that secure the Tezos network. They:</p>
+            <ul>
+                <li><strong>Create blocks</strong> — Bakers are assigned block creation rights based on their staking power</li>
+                <li><strong>Attest blocks</strong> — Validate blocks created by other bakers (67% threshold for rewards)</li>
+                <li><strong>Vote on upgrades</strong> — Participate in on-chain <a href="/governance" style="color:var(--accent);">governance</a></li>
+                <li><strong>Earn rewards</strong> — Block rewards + attestation rewards, shared with delegators/stakers</li>
+            </ul>
+            <p>Minimum staking power: <strong>6,000 XTZ</strong>. Cycles are ~1 day (14,400 blocks at 6-second block time).</p>
+        </section>
+
+        <section class="landing-section">
+            <h2>Start Baking</h2>
+            <p>Want to run your own baker? Tez Capital's open-source tools make it straightforward:</p>
+            <ul>
+                <li><strong>tezbake</strong> — One-command baker setup and management</li>
+                <li><strong>TezPay</strong> — Automated reward distribution to delegators</li>
+                <li><strong>TezSign</strong> — Hardware signing for baker keys (Ledger support)</li>
+            </ul>
+            <div style="text-align:center; margin-top:24px;">
+                <a href="https://docs.tez.capital" class="landing-btn">Baker Setup Guide →</a>
+            </div>
+        </section>
+
+        <section class="landing-section" style="text-align:center; padding-top:24px;">
+            <a href="/#leaderboard" class="landing-btn">Full Interactive Leaderboard →</a>
+            <div style="margin-top:16px;">
+                <a href="/staking" style="color:var(--accent); font-size:0.9rem;">Learn about staking</a>
+                <span style="color:var(--text-dim); margin:0 12px;">·</span>
+                <a href="https://baking-bad.org" style="color:var(--accent); font-size:0.9rem;">Baking Bad ratings</a>
+            </div>
+        </section>
+    </main>
+
+    <footer class="landing-footer">
+        <a href="https://tez.capital">Powered by Tez Capital</a> · <a href="/">tezos.systems</a> · Data from TzKT &amp; Octez RPC
+    </footer>
+
+    <script type="module">
+        import { loadBakerData, loadStakingData } from '/js/landing/live-data.js';
+        loadBakerData();
+        loadStakingData();
+    </script>
+</body>
+</html>

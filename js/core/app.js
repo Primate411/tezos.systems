@@ -80,6 +80,7 @@ import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initChangelog } from '../features/changelog.js';
 import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js';
+import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -135,6 +136,9 @@ async function init() {
 
     // Initialize price bar
     initPriceBar();
+
+    // Initialize My Tezos personal homepage strip
+    initMyTezos();
 
     // Initialize visit streak
     initStreak();
@@ -400,6 +404,7 @@ async function refreshInBackground() {
         // Refresh My Baker data
         refreshMyBaker();
         refreshLeaderboard();
+        refreshMyTezos();
         
         resetCountdown();
     } catch (error) {
@@ -434,6 +439,7 @@ async function refresh() {
         resetCountdown();
         refreshMyBaker();
         refreshLeaderboard();
+        refreshMyTezos();
     } catch (error) {
         console.error('Failed to refresh stats:', error);
         showErrorState();
