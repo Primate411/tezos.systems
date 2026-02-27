@@ -554,16 +554,50 @@ export function init() {
     const input = document.getElementById('my-baker-input');
     const saveBtn = document.getElementById('my-baker-save');
     const clearBtn = document.getElementById('my-baker-clear');
+    const shareLinkBtn = document.getElementById('my-baker-share-link');
     const results = document.getElementById('my-baker-results');
     const errorMsg = document.getElementById('my-baker-error-msg');
 
     if (!input || !saveBtn || !clearBtn || !results) return;
+
+    function updateShareLink(addr) {
+        if (shareLinkBtn) {
+            shareLinkBtn.style.display = addr ? '' : 'none';
+            shareLinkBtn.onclick = () => {
+                const url = `https://tezos.systems/${addr}`;
+                function fallbackCopy(text) {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.cssText = 'position:fixed;opacity:0';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                }
+                if (navigator.clipboard?.writeText) {
+                    navigator.clipboard.writeText(url).then(() => {
+                        shareLinkBtn.textContent = '✓';
+                        setTimeout(() => { shareLinkBtn.textContent = '🔗'; }, 1500);
+                    }).catch(() => {
+                        fallbackCopy(url);
+                        shareLinkBtn.textContent = '✓';
+                        setTimeout(() => { shareLinkBtn.textContent = '🔗'; }, 1500);
+                    });
+                } else {
+                    fallbackCopy(url);
+                    shareLinkBtn.textContent = '✓';
+                    setTimeout(() => { shareLinkBtn.textContent = '🔗'; }, 1500);
+                }
+            };
+        }
+    }
 
     // Load saved address
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && isValidAddress(saved)) {
         input.value = saved;
         renderBakerData(saved, results);
+        updateShareLink(saved);
     }
 
     saveBtn.addEventListener('click', async () => {
@@ -589,6 +623,7 @@ export function init() {
         }
         localStorage.setItem(STORAGE_KEY, addr);
         renderBakerData(addr, results);
+        updateShareLink(addr);
     });
 
     // Allow Enter key
@@ -601,6 +636,7 @@ export function init() {
         input.value = '';
         results.innerHTML = '';
         errorMsg.textContent = '';
+        updateShareLink(null);
     });
 }
 

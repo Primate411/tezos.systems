@@ -48,7 +48,7 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=20260226a">
+    <link rel="stylesheet" href="css/styles.min.css?v=20260226b">
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/app.js?v=20260212d">
@@ -233,6 +233,9 @@
                         <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
                             <span class="objkt-toggle-icon">🖼️</span> <span class="dropdown-label">NFTs</span>
                         </button>
+                        <button id="leaderboard-toggle" class="glass-button" aria-label="Toggle Baker Leaderboard" title="Leaderboard: OFF">
+                            <span class="leaderboard-toggle-icon">🏆</span> <span class="dropdown-label">Leaderboard</span>
+                        </button>
                         <button id="whale-toggle" class="glass-button" aria-label="Toggle Mini Whale feed" title="Mini Whale: OFF">
                             <span class="whale-toggle-icon">🐬</span> <span class="dropdown-label">Whales</span>
                         </button>
@@ -342,6 +345,22 @@
     <!-- Optional Sections Container (reorderable) -->
     <div id="optional-sections">
 
+    <!-- Baker Leaderboard -->
+    <section class="my-baker-section" id="leaderboard-section">
+        <div class="section-header">
+            <h2 class="section-title">🏆 Baker Leaderboard</h2>
+            <button class="info-button" id="leaderboard-info-btn" aria-label="About Baker Leaderboard" title="About Baker Leaderboard">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
+        <div class="my-baker-section-inner">
+            <p class="my-baker-desc">All active Tezos bakers ranked by staking power. Click any row to view details in My Baker.</p>
+            <div id="leaderboard-results" class="leaderboard-results"></div>
+        </div>
+    </section>
+
     <!-- How Tezos Compares Section -->
     <section class="stats-section toggleable-section" id="comparison-section">
         <div class="section-header">
@@ -431,6 +450,7 @@
                 <input type="text" id="my-baker-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
                 <button id="my-baker-save" class="glass-button my-baker-btn" aria-label="Save baker address" title="Save baker address">Save</button>
                 <button id="my-baker-clear" class="glass-button my-baker-btn" aria-label="Clear baker address" title="Clear baker address">Clear</button>
+                <button id="my-baker-share-link" class="glass-button my-baker-btn" aria-label="Copy shareable link" title="Copy shareable link" style="display:none;">🔗</button>
             </div>
             <div id="my-baker-error-msg" class="my-baker-error"></div>
             <div id="my-baker-results" class="my-baker-results"></div>
@@ -1589,6 +1609,24 @@
     </div>
 
     <!-- Mini Whale Info Modal -->
+    <div class="modal-overlay" id="leaderboard-modal" aria-hidden="true">
+        <div class="modal-content">
+            <button class="modal-close" id="leaderboard-modal-close" aria-label="Close">&times;</button>
+            <h3 class="modal-title">Baker Leaderboard</h3>
+            <div class="modal-body">
+                <p>All active Tezos bakers ranked by staking power.</p>
+                <ul>
+                    <li><strong>Staking Power</strong>: Total XTZ backing this baker (own + external staked + delegated)</li>
+                    <li><strong>Delegators</strong>: Number of addresses delegating to this baker</li>
+                    <li><strong>Stakers</strong>: Number of addresses directly staking with this baker</li>
+                    <li><strong>Capacity</strong>: Delegation capacity usage (bakers can accept up to 9x their own stake)</li>
+                    <li><strong>tz4</strong>: Whether the baker uses BLS signatures (required for future network optimizations)</li>
+                </ul>
+                <p>Click any column header to sort. Click a row to view full details in My Baker.</p>
+            </div>
+        </div>
+    </div>
+
     <div class="modal-overlay" id="whale-modal" aria-hidden="true">
         <div class="modal-content">
             <button class="modal-close" id="whale-modal-close" aria-label="Close">&times;</button>

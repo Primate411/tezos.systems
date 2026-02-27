@@ -8702,3 +8702,139 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     opacity: 0.6;
     letter-spacing: 0.5px;
 }
+
+/* ==========================================
+   BAKER LEADERBOARD
+   ========================================== */
+.leaderboard-results {
+    margin-top: 12px;
+}
+
+.leaderboard-table-wrap {
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border-color, rgba(255,255,255,0.08));
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.leaderboard-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+.leaderboard-table th {
+    padding: 10px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+    background: var(--card-bg, rgba(255,255,255,0.03));
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08));
+    user-select: none;
+    transition: color 0.2s;
+}
+
+.leaderboard-table th.active {
+    color: var(--color-primary, #00d4ff);
+}
+
+.leaderboard-table th:hover {
+    color: var(--text-primary, #fff);
+}
+
+.leaderboard-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.04));
+    color: var(--text-primary, rgba(255,255,255,0.85));
+}
+
+.leaderboard-table tbody tr {
+    transition: background 0.15s;
+}
+
+.leaderboard-table tbody tr:hover {
+    background: var(--hover-bg, rgba(255,255,255,0.04));
+}
+
+.lb-rank {
+    width: 40px;
+    text-align: center !important;
+    color: var(--text-secondary, rgba(255,255,255,0.4)) !important;
+    font-size: 0.72rem;
+}
+
+.lb-name {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+.lb-num {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-tz4 {
+    text-align: center !important;
+    width: 50px;
+}
+
+.cap-warning {
+    color: var(--color-warning, #f59e0b) !important;
+}
+
+.cap-critical {
+    color: var(--color-error, #ef4444) !important;
+}
+
+.leaderboard-footer {
+    padding: 8px 12px;
+    font-size: 0.7rem;
+    color: var(--text-secondary, rgba(255,255,255,0.4));
+    text-align: center;
+}
+
+.leaderboard-loading,
+.leaderboard-error {
+    padding: 32px;
+    text-align: center;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+    font-size: 0.85rem;
+}
+
+.leaderboard-table-wrap {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+/* Leaderboard scrollbar (theme-aware) */
+.leaderboard-table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
+.leaderboard-table-wrap::-webkit-scrollbar-track { background: transparent; }
+.leaderboard-table-wrap::-webkit-scrollbar-thumb {
+    background: var(--color-primary, rgba(0, 212, 255, 0.3));
+    border-radius: 3px;
+}
+
+/* Mobile: hide less important columns */
+@media (max-width: 640px) {
+    .leaderboard-table th:nth-child(5),
+    .leaderboard-table td:nth-child(5),
+    .leaderboard-table th:nth-child(6),
+    .leaderboard-table td:nth-child(6) {
+        display: none;
+    }
+    .lb-name { max-width: 120px; }
+    .leaderboard-table th, .leaderboard-table td {
+        padding: 6px 8px;
+    }
+}

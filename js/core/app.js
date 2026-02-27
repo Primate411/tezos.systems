@@ -79,6 +79,7 @@ import { initCalculator } from '../features/calculator.js';
 import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initChangelog } from '../features/changelog.js';
+import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -144,6 +145,7 @@ async function init() {
     // Initialize Rewards Calculator
     initCalculator();
     initObjkt();
+    initLeaderboard();
     initMomentsTimeline();
     initComparisonToggle();
 
@@ -397,6 +399,7 @@ async function refreshInBackground() {
         
         // Refresh My Baker data
         refreshMyBaker();
+        refreshLeaderboard();
         
         resetCountdown();
     } catch (error) {
@@ -430,6 +433,7 @@ async function refresh() {
         await updateUpgradeClock(); // Update protocol + days live
         resetCountdown();
         refreshMyBaker();
+        refreshLeaderboard();
     } catch (error) {
         console.error('Failed to refresh stats:', error);
         showErrorState();
@@ -667,6 +671,7 @@ function setupEventListeners() {
     setupModal('my-baker-info-btn', 'my-baker-modal', 'my-baker-modal-close');
     setupModal('calc-info-btn', 'calc-modal', 'calc-modal-close');
     setupModal('objkt-info-btn', 'objkt-modal', 'objkt-modal-close');
+    setupModal('leaderboard-info-btn', 'leaderboard-modal', 'leaderboard-modal-close');
     setupModal('whale-info-btn', 'whale-modal', 'whale-modal-close');
     setupModal('giants-info-btn', 'giants-modal', 'giants-modal-close');
     setupModal('about-tezos-btn', 'about-tezos-modal', 'about-tezos-modal-close');
@@ -1520,6 +1525,15 @@ function applyDeepLink() {
         }
     }
 
+    // #leaderboard
+    if (params.has('leaderboard') || hash === 'leaderboard') {
+        const toggle = document.getElementById('leaderboard-toggle');
+        const section = document.getElementById('leaderboard-section');
+        if (toggle && section && !section.classList.contains('visible')) {
+            toggle.click();
+        }
+    }
+
     // #whales
     if (params.has('whales') || hash === 'whales') {
         const toggle = document.getElementById('whale-toggle');
@@ -1750,6 +1764,7 @@ function initKeyboardShortcuts() {
         { key: 'w', desc: 'Toggle Whales' },
         { key: 'g', desc: 'Toggle Giants' },
         { key: 'k', desc: 'Toggle Compare' },
+        { key: 'l', desc: 'Toggle Leaderboard' },
         { key: '?', desc: 'Show this help' },
         { key: 'Esc', desc: 'Close modals/help' },
     ];
@@ -1858,6 +1873,11 @@ function initKeyboardShortcuts() {
             case 'k': {
                 e.preventDefault();
                 document.getElementById('comparison-toggle')?.click();
+                break;
+            }
+            case 'l': {
+                e.preventDefault();
+                document.getElementById('leaderboard-toggle')?.click();
                 break;
             }
             case '?': {

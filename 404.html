@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 — Tezos Systems</title>
+    <script>
+        // Redirect /tz1.../tz2.../tz3.../tz4.../KT1... paths to dashboard with My Baker
+        (function() {
+            var path = window.location.pathname.replace(/^\//, '').replace(/\/$/, '');
+            if (/^(tz[1-4]|KT1)[a-zA-Z0-9]{33}$/.test(path)) {
+                window.location.replace('/#my-baker=' + path);
+            }
+        })();
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
