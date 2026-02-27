@@ -458,9 +458,198 @@ async function shareMorningBrief(data) {
 
 // ─── Render ──────────────────────────────────────────
 
-async function renderMorningBrief(address) {
+// ─── Pulse Visualization ─────────────────────────────
+
+/**
+ * Radial staking pulse — ambient canvas behind the Morning Brief
+ * Baker at center, user node orbiting, staker dots on rings
+ */
+function initPulseViz(strip, data) {
+    // Remove existing canvas if re-rendering
+    strip.querySelector('.pulse-canvas')?.remove();
+
+    const canvas = document.createElement('canvas');
+    canvas.className = 'pulse-canvas';
+    canvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;opacity:0.25;z-index:0;';
+    strip.style.position = 'relative';
+    strip.insertBefore(canvas, strip.firstChild);
+
+    // Ensure brief content is above canvas
+    const briefEl = strip.querySelector('.morning-brief');
+    if (briefEl) briefEl.style.position = 'relative';
+
+    const ctx = canvas.getContext('2d');
+    let animId = null;
+    let isVisible = true;
+
+    // Get theme color
+    function getAccentColor() {
+        const theme = document.body.getAttribute('data-theme') || 'matrix';
+        const colors = {
+            matrix: [0, 255, 0],
+            dark: [0, 212, 255],
+            clean: [59, 130, 246],
+            bubblegum: [255, 105, 180],
+            void: [139, 92, 246],
+            ember: [255, 159, 67],
+            signal: [0, 255, 200],
+        };
+        return colors[theme] || colors.matrix;
+    }
+
+    // Staker dots — random but seeded positions
+    const stakersCount = Math.min(data.stakersCount || 30, 60);
+    const stakers = [];
+    for (let i = 0; i < stakersCount; i++) {
+        stakers.push({
+            angle: (Math.PI * 2 * i / stakersCount) + (Math.random() * 0.3 - 0.15),
+            radius: 0.55 + Math.random() * 0.3, // 55-85% of max radius
+            speed: 0.0003 + Math.random() * 0.0004, // slow drift
+            size: 1 + Math.random() * 1.5,
+            brightness: 0.3 + Math.random() * 0.4,
+        });
+    }
+
+    // User node
+    const userNode = {
+        angle: 0,
+        radius: 0.45,
+        speed: 0.0008,
+        pulsePhase: 0,
+    };
+
+    // Block pulse effect
+    let blockPulse = 0;
+    window.addEventListener('block-pulse', () => { blockPulse = 1; });
+
+    function resize() {
+        const rect = strip.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        ctx.scale(dpr, dpr);
+    }
+
+    function draw(time) {
+        if (!isVisible) { animId = requestAnimationFrame(draw); return; }
+
+        const rect = strip.getBoundingClientRect();
+        const w = rect.width;
+        const h = rect.height;
+        const cx = w * 0.82; // offset right so it doesn't cover text
+        const cy = h * 0.5;
+        const maxR = Math.min(w * 0.35, h * 0.9);
+
+        const [r, g, b] = getAccentColor();
+
+        ctx.clearRect(0, 0, w, h);
+
+        // Orbit rings (subtle)
+        for (let ring = 0.3; ring <= 0.85; ring += 0.18) {
+            ctx.beginPath();
+            ctx.arc(cx, cy, maxR * ring, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(${r},${g},${b},0.04)`;
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+        }
+
+        // Baker node at center
+        const bakerGlow = 4 + Math.sin(time * 0.001) * 2;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r},${g},${b},0.8)`;
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(cx, cy, bakerGlow + 2, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r},${g},${b},0.1)`;
+        ctx.fill();
+
+        // Staker dots
+        for (const s of stakers) {
+            s.angle += s.speed;
+            const x = cx + Math.cos(s.angle) * maxR * s.radius;
+            const y = cy + Math.sin(s.angle) * maxR * s.radius;
+            ctx.beginPath();
+            ctx.arc(x, y, s.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${r},${g},${b},${s.brightness * 0.4})`;
+            ctx.fill();
+        }
+
+        // User node (brighter, larger)
+        userNode.angle += userNode.speed;
+        userNode.pulsePhase += 0.03;
+        const userPulse = 1 + Math.sin(userNode.pulsePhase) * 0.3;
+        const ux = cx + Math.cos(userNode.angle) * maxR * userNode.radius;
+        const uy = cy + Math.sin(userNode.angle) * maxR * userNode.radius;
+
+        // Connection line to baker
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(ux, uy);
+        ctx.strokeStyle = `rgba(${r},${g},${b},0.12)`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // User dot
+        const userSize = 3.5 * userPulse;
+        ctx.beginPath();
+        ctx.arc(ux, uy, userSize, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r},${g},${b},0.9)`;
+        ctx.fill();
+
+        // User glow
+        ctx.beginPath();
+        ctx.arc(ux, uy, userSize + 4, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${r},${g},${b},0.15)`;
+        ctx.fill();
+
+        // Block pulse — expanding ring from center
+        if (blockPulse > 0) {
+            const pulseR = maxR * (1 - blockPulse) * 0.8;
+            ctx.beginPath();
+            ctx.arc(cx, cy, pulseR, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(${r},${g},${b},${blockPulse * 0.3})`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            blockPulse -= 0.015;
+            if (blockPulse < 0) blockPulse = 0;
+        }
+
+        animId = requestAnimationFrame(draw);
+    }
+
+    // IntersectionObserver — pause when not in viewport
+    const observer = new IntersectionObserver(([entry]) => {
+        isVisible = entry.isIntersecting;
+    }, { threshold: 0.1 });
+    observer.observe(strip);
+
+    // Handle resize
+    window.addEventListener('resize', resize);
+    resize();
+    animId = requestAnimationFrame(draw);
+
+    // Cleanup function
+    strip._pulseCleanup = () => {
+        if (animId) cancelAnimationFrame(animId);
+        observer.disconnect();
+        window.removeEventListener('resize', resize);
+    };
+}
+
+let _briefRendering = false;
+let _briefRenderedAddr = null;
+
+async function renderMorningBrief(address, force = false) {
     const strip = document.getElementById('my-tezos-strip');
     if (!strip) return;
+    
+    // Prevent double-render of same address
+    if (!force && _briefRendering) return;
+    if (!force && _briefRenderedAddr === address && strip.classList.contains('visible') && strip.querySelector('.morning-brief')) return;
+    
+    _briefRendering = true;
+    _briefRenderedAddr = address;
 
     strip.classList.add('visible');
     strip.innerHTML = `<div class="my-tezos-loading"><span class="my-tezos-loading-text">Loading your Tezos…</span></div>`;
@@ -634,10 +823,20 @@ async function renderMorningBrief(address) {
         renderCard(0);
         resetAutoRotate();
 
+        // Initialize pulse visualization behind the brief
+        try {
+            if (strip._pulseCleanup) strip._pulseCleanup();
+            initPulseViz(strip, {
+                stakersCount: data.story?.govCycles || 30,
+            });
+        } catch (e) { console.warn('Pulse viz error:', e); }
+
         // Store data for external use
         strip._briefData = data;
+        _briefRendering = false;
 
     } catch (err) {
+        _briefRendering = false;
         console.warn('Morning Brief error:', err);
         strip.innerHTML = `
             <div class="morning-brief">

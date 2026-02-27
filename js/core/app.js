@@ -903,6 +903,9 @@ function initUptimeClock() {
                     void pulseDot.offsetWidth;
                     pulseDot.classList.add('flash');
                 }
+
+                // Notify pulse viz of new block
+                window.dispatchEvent(new Event('block-pulse'));
             }
         } catch (e) {
             // Silent fail — TzKT fallback via _updateUptimeClock still works
