@@ -3,7 +3,7 @@
  * Dashboard for Tezos network statistics
  */
 
-import { fetchAllStats, checkApiHealth } from './api.js';
+import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js';
 import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes5';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
@@ -66,7 +66,8 @@ function updateGovernanceBanner(stats, votingStatus) {
     banner.className = `gov-countdown-banner ${isUrgent ? 'urgent' : ''}`;
 }
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
-import { initTabs, updateOverviewSummary } from '../ui/tabs.js';
+// Mobile tabs disabled — single scrollable page
+// import { initTabs, updateOverviewSummary } from '../ui/tabs.js';
 import { initWhaleTracker } from '../features/whales.js';
 import { initSleepingGiants } from '../features/sleeping-giants.js';
 import { initPriceBar } from '../features/price.js';
@@ -127,8 +128,8 @@ async function init() {
     // Initialize card history buttons
     addCardHistoryButtons();
     
-    // Initialize mobile tabs
-    initTabs();
+    // Mobile tabs disabled — single scrollable page on all viewports
+    // initTabs();
     
     // Initialize whale tracker
     initWhaleTracker();
@@ -158,6 +159,23 @@ async function init() {
     initComparisonToggle();
     initNavButtons();
     initUptimeClock();
+    initTezosStatsToggle();
+
+    // Upgrade section share button
+    const upgradeShareBtn = document.getElementById('upgrade-share-btn');
+    if (upgradeShareBtn) {
+        upgradeShareBtn.addEventListener('click', async () => {
+            const section = document.querySelector('.upgrade-clock-content');
+            if (!section) return;
+            await loadHtml2Canvas();
+            const canvas = await window.html2canvas(section, { backgroundColor: '#0a0e1a', scale: 2 });
+            const tweetOptions = [
+                { label: '📜 Story', text: `21 protocol upgrades. Zero forks. Zero outages. 2,720+ days.\n\nTezos doesn't break. It evolves.\n\ntezos.systems` },
+                { label: '⚡ Stats', text: `Tezos network pulse:\n• 21 self-amendments\n• Zero contentious forks\n• Zero outages since 2018\n• 6-second blocks\n\ntezos.systems` },
+            ];
+            showShareModal(canvas, tweetOptions, 'Tezos Protocol History');
+        });
+    }
 
     // Setup event listeners
     setupEventListeners();
@@ -175,11 +193,13 @@ async function init() {
     const cachedStats = loadStats();
     const cachedProtocols = loadProtocols();
     
-    if (cachedStats) {
+    // Only render cached stats if Tezos Stats is visible
+    const statsWanted = localStorage.getItem(STATS_VISIBLE_KEY) === 'true';
+    if (cachedStats && statsWanted) {
         console.log('⚡ Rendering cached data instantly');
+        statsDataLoaded = true;
         await updateStats(cachedStats);
-        // updateStats already sets state.currentStats, just set lastUpdate
-        state.lastUpdate = new Date(); // Will be corrected after fresh fetch
+        state.lastUpdate = new Date();
         updateLastRefreshTime();
         
         // Show cache indicator briefly
@@ -187,7 +207,7 @@ async function init() {
         if (cacheAge) {
             showCacheIndicator(cacheAge);
         }
-    } else {
+    } else if (statsWanted) {
         showAllLoading();
     }
     
@@ -196,10 +216,18 @@ async function init() {
         renderProtocolTimeline(cachedProtocols);
     }
 
+    // Feed uptime clock with cached data if available
+    if (cachedStats && window._updateUptimeClock) {
+        window._updateUptimeClock({
+            activeBakers: cachedStats.totalBakers,
+            stakedRatio: cachedStats.stakingRatio,
+        });
+    }
+
     // Check API health (non-blocking)
     checkApiHealth().then(health => console.log('API Health:', health));
 
-    // Fetch fresh data in background
+    // Fetch hero data + conditional full stats
     refreshInBackground();
 
     // Initialize history features
@@ -384,38 +412,39 @@ async function refreshInBackground() {
     console.log('🔄 Fetching fresh data in background...');
     
     try {
-        const newStats = await fetchAllStats();
-        console.log('✅ Fresh stats received');
-        
-        // Check for deltas from last visit BEFORE saving new snapshot
-        const deltas = getVisitDeltas(newStats);
-        if (deltas) {
-            showDeltasPanel(deltas);
+        // Always update protocol/hero data
+        await updateUpgradeClock();
+        const heroStats = await fetchHeroStats();
+        if (window._updateUptimeClock) {
+            window._updateUptimeClock({
+                activeBakers: heroStats.totalBakers,
+                stakedRatio: heroStats.stakingRatio,
+            });
+        }
+
+        // Only fetch full stats if Tezos Stats sections are visible
+        const statsVisible = localStorage.getItem(STATS_VISIBLE_KEY);
+        if (statsVisible === 'true') {
+            const newStats = await fetchAllStats();
+            console.log('✅ Fresh stats received');
+            
+            const deltas = getVisitDeltas(newStats);
+            if (deltas) showDeltasPanel(deltas);
+            saveVisitSnapshot(newStats);
+            saveStats(newStats);
+            await updateStats(newStats);
+            state.lastUpdate = new Date();
+            updateLastRefreshTime();
         }
         
-        // Save visit snapshot for next time
-        saveVisitSnapshot(newStats);
-        
-        // Save to localStorage for next visit
-        saveStats(newStats);
-        
-        // Update display (will animate changes if different from cached)
-        await updateStats(newStats);
-        state.lastUpdate = new Date();
-        updateLastRefreshTime();
-        
-        // Also refresh protocol data
-        await updateUpgradeClock();
-        
-        // Refresh My Baker data
+        // Refresh My Baker/Leaderboard if visible
         refreshMyBaker();
         refreshLeaderboard();
         refreshMyTezos();
         
-        resetCountdown();
+        // resetCountdown();
     } catch (error) {
         console.error('Background refresh failed:', error);
-        // Don't show error state if we have cached data
         if (!state.currentStats || Object.keys(state.currentStats).length === 0) {
             showErrorState();
         }
@@ -442,7 +471,7 @@ async function refresh() {
         state.lastUpdate = new Date();
         updateLastRefreshTime();
         await updateUpgradeClock(); // Update protocol + days live
-        resetCountdown();
+        // resetCountdown();
         refreshMyBaker();
         refreshLeaderboard();
         refreshMyTezos();
@@ -593,8 +622,8 @@ async function updateStats(newStats) {
     // Update page title with live stats
     updatePageTitle(state.currentStats);
 
-    // Update mobile overview summary
-    updateOverviewSummary(state.currentStats);
+    // Mobile overview summary disabled (tabs removed)
+    // updateOverviewSummary(state.currentStats);
 
     // Update network health pulse
     updateNetworkPulse();
@@ -696,6 +725,57 @@ function initNavButtons() {
     // Placeholder — nav buttons removed, kept for call compatibility
 }
 
+// ==========================================
+// TEZOS STATS TOGGLE (5 metric sections)
+// ==========================================
+const STATS_VISIBLE_KEY = 'tezos-systems-stats-visible';
+
+let statsDataLoaded = false;
+
+function initTezosStatsToggle() {
+    const toggleBtn = document.getElementById('tezos-stats-toggle');
+    if (!toggleBtn) return;
+
+    const sections = document.querySelectorAll('.tezos-stats-section');
+
+    function updateVis(isVisible) {
+        sections.forEach(s => s.style.display = isVisible ? '' : 'none');
+        toggleBtn.classList.toggle('active', isVisible);
+        toggleBtn.title = `Tezos Stats: ${isVisible ? 'ON' : 'OFF'}`;
+    }
+
+    async function loadStatsIfNeeded() {
+        if (statsDataLoaded) return;
+        statsDataLoaded = true;
+        console.log('📊 Fetching Tezos Stats on demand...');
+        try {
+            const newStats = await fetchAllStats();
+            saveStats(newStats);
+            await updateStats(newStats);
+            state.lastUpdate = new Date();
+            updateLastRefreshTime();
+        } catch (e) {
+            console.error('Stats fetch failed:', e);
+            statsDataLoaded = false; // retry on next toggle
+        }
+    }
+
+    toggleBtn.addEventListener('click', async () => {
+        const stored = localStorage.getItem(STATS_VISIBLE_KEY);
+        const isVisible = stored === null ? false : stored === 'true';
+        const newState = !isVisible;
+        localStorage.setItem(STATS_VISIBLE_KEY, String(newState));
+        updateVis(newState);
+        if (newState) await loadStatsIfNeeded();
+    });
+
+    // Default OFF — only show if user explicitly enabled (lazy-load)
+    const stored = localStorage.getItem(STATS_VISIBLE_KEY);
+    const isVisible = stored === 'true'; // null = false
+    updateVis(isVisible);
+    if (isVisible) loadStatsIfNeeded();
+}
+
 const COMPARISON_VISIBLE_KEY = 'tezos-systems-comparison-visible';
 
 function initComparisonToggle() {
@@ -720,7 +800,7 @@ function initComparisonToggle() {
 
     // Default ON (visible) unless user explicitly hid it
     const stored = localStorage.getItem(COMPARISON_VISIBLE_KEY);
-    const isVisible = stored === null ? true : stored === 'true';
+    const isVisible = stored === 'true'; // null = false (default OFF)
     updateVis(isVisible);
 }
 
@@ -938,7 +1018,7 @@ function setupModal(triggerBtnId, modalId, closeBtnId) {
 function startRefreshTimer() {
     if (state.refreshTimer) clearInterval(state.refreshTimer);
     state.refreshTimer = setInterval(refresh, state.refreshInterval);
-    startCountdown();
+    // startCountdown();
 }
 
 /**
@@ -973,7 +1053,7 @@ function startCountdown() {
  * Reset countdown
  */
 function resetCountdown() {
-    startCountdown();
+    // startCountdown();
 }
 
 /**
@@ -998,7 +1078,7 @@ function handleVisibilityChange() {
                 refresh();
             }
         }
-        startCountdown();
+        // startCountdown();
     }
 }
 

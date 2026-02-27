@@ -531,6 +531,17 @@ body::before {
     margin-top: 2px;
 }
 
+.upgrade-share-btn {
+    font-size: 0.75rem;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+    vertical-align: middle;
+    margin-left: 4px;
+}
+.upgrade-share-btn:hover {
+    opacity: 1;
+}
+
 .upgrade-info {
     flex: 1 1 auto;
     min-width: 200px;
@@ -540,6 +551,12 @@ body::before {
     display: flex;
     flex-direction: column;
     gap: 4px;
+}
+
+.upgrade-current .current-name-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .current-label {
@@ -3717,6 +3734,14 @@ body.mobile-tabs-active .toggleable-section {
 
 body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible {
     display: block !important;
+}
+
+#tezos-stats-toggle {
+    opacity: 1;
+}
+
+#tezos-stats-toggle:not(.active) {
+    opacity: 0.5;
 }
 
 #comparison-toggle {

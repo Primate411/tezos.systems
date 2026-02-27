@@ -565,6 +565,30 @@ export async function fetchAllStats() {
 }
 
 /**
+ * Lightweight fetch for hero section only (upgrade clock + price bar)
+ * Only fetches baker count, staking ratio — block data comes from RPC poller
+ */
+export async function fetchHeroStats() {
+    try {
+        const [bakersData, stakingData] = await Promise.allSettled([
+            fetchBakers(),
+            fetchStakingRatio()
+        ]);
+
+        const bakers = bakersData.status === 'fulfilled' ? bakersData.value : { total: 0, tz4Count: 0, tz4Percentage: 0 };
+        const staking = stakingData.status === 'fulfilled' ? stakingData.value : { stakingRatio: 0, delegatedRatio: 0 };
+
+        return {
+            totalBakers: bakers.total,
+            stakingRatio: staking.stakingRatio,
+        };
+    } catch (error) {
+        console.error('Failed to fetch hero stats:', error);
+        return { totalBakers: 0, stakingRatio: 0 };
+    }
+}
+
+/**
  * Check API health
  */
 export async function checkApiHealth() {

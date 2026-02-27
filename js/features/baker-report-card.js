@@ -69,7 +69,8 @@ async function fetchBakerReport(bakerAddress) {
         if (abResp.ok) allBakers = await abResp.json();
     } catch {}
 
-    // Calculate rank
+    // Sort by staking balance descending, then find rank
+    allBakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0));
     const rank = allBakers.findIndex(b => b.address === bakerAddress) + 1;
     const totalBakers = allBakers.length;
 
@@ -86,7 +87,11 @@ async function fetchBakerReport(bakerAddress) {
 
     // 2. Fee competitiveness — 20% weight (lower fee = higher score, but 0% isn't necessarily best)
     // Most bakers charge 5-15%. Score: 0% = 90, 5% = 100, 10% = 85, 15% = 70, 20%+ = 50
-    const fee = (baker.stakingFee || 0) * 100; // convert to percentage
+    // Tallinn: fee is edgeOfBakingOverStaking in billionths (1B = 100%)
+    // Fallback to legacy stakingFee if present
+    const fee = baker.edgeOfBakingOverStaking != null
+        ? baker.edgeOfBakingOverStaking / 10_000_000  // billionths → percentage
+        : (baker.stakingFee || 0) * 100;
     let feeScore;
     if (fee <= 5) feeScore = 90 + (fee / 5) * 10; // 0% = 90, 5% = 100
     else if (fee <= 10) feeScore = 100 - (fee - 5) * 3; // 5% = 100, 10% = 85
@@ -103,10 +108,14 @@ async function fetchBakerReport(bakerAddress) {
     else growthScore = 50 + totalDelegators * 6;
 
     // 4. Capacity remaining — 20% weight (bakers near capacity are less attractive)
-    const stakingBalance = baker.stakingBalance || 0;
-    const frozenDeposit = baker.frozenDeposit || baker.balance || 0;
-    const maxCapacity = frozenDeposit * 9; // Tallinn: 9x leverage for external
-    const usedPct = maxCapacity > 0 ? (stakingBalance / maxCapacity) * 100 : 100;
+    // Tallinn: max external staked = baker's own staked × limitOfStakingOverBaking (in millionths)
+    const ownStaked = baker.stakedBalance || baker.balance || 0;
+    const limitMultiplier = baker.limitOfStakingOverBaking != null
+        ? baker.limitOfStakingOverBaking / 1_000_000  // millionths → multiplier (e.g. 9000000 = 9x)
+        : 0; // null = not accepting external stakers
+    const maxExternalStaked = ownStaked * limitMultiplier;
+    const externalStaked = baker.externalStakedBalance || 0;
+    const usedPct = maxExternalStaked > 0 ? (externalStaked / maxExternalStaked) * 100 : (limitMultiplier === 0 ? 100 : 0);
     let capacityScore;
     if (usedPct <= 50) capacityScore = 100;
     else if (usedPct <= 80) capacityScore = 100 - (usedPct - 50) * 0.5;

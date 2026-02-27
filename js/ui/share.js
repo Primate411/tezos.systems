@@ -907,7 +907,7 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
             ${pickerHtml}
             <div class="share-modal-actions">
                 <button class="share-action-btn" id="share-download">
-                    <span>💾</span> Download
+                    <span>💾</span> ${/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'Save' : 'Download'}
                 </button>
                 <button class="share-action-btn" id="share-copy">
                     <span>📋</span> Copy
@@ -980,27 +980,38 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
         if (e.target === modal) closeShareModal(modal);
     });
     
-    // Download
+    // Download / Save
     modal.querySelector('#share-download').addEventListener('click', async () => {
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const isApple = /iPhone|iPad|iPod|Mac/i.test(navigator.userAgent) && 'ontouchend' in document;
+        const isMobile = isApple || /Android/i.test(navigator.userAgent);
         
-        if (isMobile && navigator.canShare) {
-            // Mobile: use Web Share API to trigger native save/share
+        if (isMobile && navigator.share) {
+            // Mobile: always try Web Share API first — gives iOS "Save to Photos"
             try {
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
                 const file = new File([blob], `tezos-systems-${Date.now()}.png`, { type: 'image/png' });
                 await navigator.share({ files: [file] });
-                showNotification('Shared!', 'success');
+                showNotification('Saved!', 'success');
+                return;
             } catch (err) {
-                if (err.name !== 'AbortError') {
-                    // Fallback: open image in new tab for long-press save
-                    const dataUrl = canvas.toDataURL('image/png');
-                    const w = window.open();
-                    if (w) {
-                        w.document.write(`<img src="${dataUrl}" style="max-width:100%"><p style="text-align:center;font-family:sans-serif;color:#888;">Long-press the image to save</p>`);
-                    }
-                }
+                if (err.name === 'AbortError') return;
+                // Share failed — fall through to fallback
             }
+        }
+        
+        if (isMobile) {
+            // Fallback: overlay with long-press save
+            const dataUrl = canvas.toDataURL('image/png');
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;';
+            overlay.innerHTML = `
+                <p style="color:#aaa;font-family:sans-serif;font-size:14px;margin-bottom:16px;text-align:center;">Long-press the image → Save to Photos</p>
+                <img src="${dataUrl}" style="max-width:100%;max-height:75vh;border-radius:8px;">
+                <button style="margin-top:20px;padding:12px 32px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;border-radius:8px;font-size:16px;cursor:pointer;">Close</button>
+            `;
+            overlay.querySelector('button').addEventListener('click', () => overlay.remove());
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
         } else {
             // Desktop: standard download
             const link = document.createElement('a');

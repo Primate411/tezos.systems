@@ -218,6 +218,12 @@
                         <span>🧩</span> <span class="nav-label">Features</span>
                     </button>
                     <div class="settings-dropdown" id="features-dropdown">
+                        <button id="tezos-stats-toggle" class="glass-button" aria-label="Toggle Tezos Stats" title="Tezos Stats: ON">
+                            <span class="tezos-stats-toggle-icon">📊</span> <span class="dropdown-label">Tezos Stats</span>
+                        </button>
+                        <button id="my-baker-toggle" class="glass-button" aria-label="Toggle My Tezos" title="My Tezos: OFF">
+                            <span class="my-baker-toggle-icon">👤</span> <span class="dropdown-label">My Tezos</span>
+                        </button>
                         <button id="comparison-toggle" class="glass-button" aria-label="Toggle Tezos vs Other Chains" title="Chains: ON">
                             <span class="comparison-toggle-icon">⛓️</span> <span class="dropdown-label">Chains</span>
                         </button>
@@ -233,14 +239,11 @@
                         <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
                             <span class="objkt-toggle-icon">🖼️</span> <span class="dropdown-label">NFTs</span>
                         </button>
-                        <button id="my-baker-toggle" class="glass-button" aria-label="Toggle My Tezos" title="My Tezos: OFF">
-                            <span class="my-baker-toggle-icon">👤</span> <span class="dropdown-label">My Tezos</span>
+                        <button id="calc-toggle" class="glass-button" aria-label="Toggle Rewards Calculator" title="Calculator: OFF">
+                            <span class="calc-toggle-icon">🧮</span> <span class="dropdown-label">Calculator</span>
                         </button>
                         <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
                             <span>📈</span> <span class="dropdown-label">History</span>
-                        </button>
-                        <button id="calc-toggle" class="glass-button" aria-label="Toggle Rewards Calculator" title="Calculator: OFF">
-                            <span class="calc-toggle-icon">🧮</span> <span class="dropdown-label">Calculator</span>
                         </button>
                     </div>
                 </div>
@@ -302,7 +305,7 @@
                 <div class="upgrade-info">
                     <div class="upgrade-current">
                         <span class="current-label">Current Protocol</span>
-                        <span class="current-name" id="current-protocol">Loading...</span>
+                        <div class="current-name-row"><span class="current-name" id="current-protocol">Loading...</span> <button class="info-button upgrade-share-btn" id="upgrade-share-btn" aria-label="Share upgrade section" title="Share this section">📸</button></div>
                     </div>
                     <div class="upgrade-highlight" id="upgrade-highlight"></div>
                 </div>
@@ -569,7 +572,7 @@
         </section>
 
         <!-- Consensus Section -->
-        <section class="stats-section">
+        <section class="stats-section tezos-stats-section" style="display:none" id="consensus-section">
             <div class="section-header">
                 <h2 class="section-title">🛡️ Consensus</h2>
                 <button class="info-button" id="consensus-info-btn" aria-label="Learn about Tezos consensus" title="Learn about Tezos consensus">
@@ -679,7 +682,7 @@
         </section>
 
         <!-- Economy Section -->
-        <section class="stats-section">
+        <section class="stats-section tezos-stats-section" style="display:none" id="economy-section">
             <div class="section-header">
                 <h2 class="section-title">💰 Economy</h2>
                 <button class="info-button" id="economy-info-btn" aria-label="Learn about Tezos economics" title="Learn about Tezos economics">
@@ -887,7 +890,7 @@
         </section>
 
         <!-- Governance Section -->
-        <section class="stats-section">
+        <section class="stats-section tezos-stats-section" style="display:none" id="governance-section">
             <div class="section-header">
                 <h2 class="section-title">🏛️ Governance</h2>
                 <button class="info-button" id="governance-info-btn" aria-label="Learn about Tezos governance" title="Learn about Tezos governance">
@@ -997,7 +1000,7 @@
         </section>
 
         <!-- Network Activity Section -->
-        <section class="stats-section">
+        <section class="stats-section tezos-stats-section" style="display:none" id="network-activity-section">
             <div class="section-header">
                 <h2 class="section-title">📡 Network Activity</h2>
                 <button class="info-button" id="network-info-btn" aria-label="Learn about network activity" title="Learn about network activity">
@@ -1104,7 +1107,7 @@
         </section>
 
         <!-- Ecosystem Section -->
-        <section class="stats-section">
+        <section class="stats-section tezos-stats-section" style="display:none" id="ecosystem-section">
             <div class="section-header">
                 <h2 class="section-title">🌿 Ecosystem</h2>
                 <button class="info-button" id="ecosystem-info-btn" aria-label="Learn about Tezos ecosystem" title="Learn about Tezos ecosystem">
@@ -1440,12 +1443,7 @@
     <!-- Footer -->
     <footer class="footer" role="contentinfo">
         <div class="footer-content">
-            <p class="update-info">
-                Last updated: <span id="last-update" class="highlight">Never</span>
-            </p>
-            <p class="countdown-info">
-                Next update in: <span id="countdown" class="highlight">2:00:00</span>
-            </p>
+
         </div>
         <p class="powered-by">
             Powered by <a href="https://tez.capital" target="_blank" rel="noopener">Tez Capital</a>
