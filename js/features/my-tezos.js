@@ -854,15 +854,15 @@ async function renderMorningBrief(address, force = false) {
             if (autoTimer) clearInterval(autoTimer);
             if (strip._pulseCleanup) strip._pulseCleanup();
 
-            // Animate content out, leave dots
+            // Phase 1: fade content to 0
+            strip.style.transition = 'padding 0.6s ease, border-color 0.6s ease';
             const brief = strip.querySelector('.morning-brief');
             if (brief) {
-                brief.style.transition = 'opacity 0.4s ease, max-height 0.5s ease';
+                brief.style.transition = 'opacity 0.3s ease';
                 brief.style.opacity = '0';
-                brief.style.maxHeight = '0';
-                brief.style.overflow = 'hidden';
             }
 
+            // Phase 2: collapse the strip height smoothly
             setTimeout(() => {
                 strip.innerHTML = `
                     <div class="brief-collapsed" id="brief-collapsed">
@@ -873,19 +873,22 @@ async function renderMorningBrief(address, force = false) {
                         </div>
                     </div>
                 `;
-                strip.style.padding = '8px 24px';
+                strip.style.padding = '6px 16px';
+                strip.style.borderBottom = '1px solid transparent';
+                strip.style.background = 'transparent';
 
                 const collapsed = document.getElementById('brief-collapsed');
                 if (collapsed) {
-                    collapsed.addEventListener('click', () => {
-                        expandBrief();
-                    });
+                    collapsed.addEventListener('click', () => expandBrief());
                 }
-            }, 500);
+            }, 350);
         }
 
         function expandBrief() {
             strip.style.padding = '';
+            strip.style.borderBottom = '';
+            strip.style.background = '';
+            strip.style.transition = '';
             rotationCount = 0;
             currentCard = 0;
             renderCard(0);
