@@ -624,6 +624,8 @@ export function init() {
         localStorage.setItem(STORAGE_KEY, addr);
         renderBakerData(addr, results);
         updateShareLink(addr);
+        // Notify My Tezos strip to refresh with new address
+        window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr } }));
     });
 
     // Allow Enter key
@@ -637,6 +639,8 @@ export function init() {
         results.innerHTML = '';
         errorMsg.textContent = '';
         updateShareLink(null);
+        // Notify My Tezos strip
+        window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: null } }));
     });
 }
 

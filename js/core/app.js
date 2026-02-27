@@ -140,6 +140,7 @@ async function init() {
 
     // Initialize My Tezos personal homepage strip
     initMyTezos();
+    initMyTezosButton();
 
     // Initialize visit streak
     initStreak();
@@ -153,6 +154,7 @@ async function init() {
     initLeaderboard();
     initMomentsTimeline();
     initComparisonToggle();
+    initNavButtons();
 
     // Setup event listeners
     setupEventListeners();
@@ -613,31 +615,74 @@ function bringToTop(sectionId) {
     }
 }
 
-const COMPARISON_VISIBLE_KEY = 'tezos-systems-comparison-visible';
+// ==========================================
+// MY TEZOS HEADER BUTTON
+// ==========================================
+function initMyTezosButton() {
+    const btn = document.getElementById('my-tezos-btn');
+    if (!btn) return;
 
-function initComparisonToggle() {
-    const section = document.getElementById('comparison-section');
-    const toggleBtn = document.getElementById('comparison-toggle');
-    if (!section || !toggleBtn) return;
+    const STORAGE_KEY = 'tezos-systems-my-baker-address';
 
-    function updateVis(isVisible) {
-        section.classList.toggle('visible', isVisible);
-        toggleBtn.classList.toggle('active', isVisible);
-        toggleBtn.title = `Compare: ${isVisible ? 'ON' : 'OFF'}`;
+    function updateButtonState() {
+        const address = localStorage.getItem(STORAGE_KEY);
+        if (address) {
+            btn.classList.add('connected');
+            btn.classList.remove('nudge');
+            btn.title = 'My Tezos — click to scroll to your dashboard';
+        } else {
+            btn.classList.remove('connected');
+            btn.title = 'My Tezos — personalize your dashboard';
+        }
     }
 
-    toggleBtn.addEventListener('click', () => {
-        const isVisible = localStorage.getItem(COMPARISON_VISIBLE_KEY) === 'true';
-        const newState = !isVisible;
-        localStorage.setItem(COMPARISON_VISIBLE_KEY, String(newState));
-        updateVis(newState);
-        if (newState) bringToTop('comparison-section');
+    btn.addEventListener('click', () => {
+        const address = localStorage.getItem(STORAGE_KEY);
+        const strip = document.getElementById('my-tezos-strip');
+
+        if (address && strip) {
+            // Already connected — scroll to the strip
+            strip.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else if (strip) {
+            // Not connected — show onboarding in the strip area
+            // Trigger the onboarding by clearing dismissed state and re-showing
+            localStorage.removeItem('tezos-systems-my-tezos-dismissed');
+            localStorage.removeItem('tezos-systems-my-tezos-hidden');
+            // Fire a custom event that my-tezos.js can listen for
+            window.dispatchEvent(new CustomEvent('my-tezos-show-onboarding'));
+            strip.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     });
 
-    // Default off
-    const isVisible = localStorage.getItem(COMPARISON_VISIBLE_KEY) === 'true';
-    updateVis(isVisible);
+    // Listen for address changes
+    window.addEventListener('my-baker-updated', () => updateButtonState());
+    window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_KEY) updateButtonState();
+    });
+
+    // Initial state
+    updateButtonState();
+
+    // Nudge on first visit (no address, not dismissed)
+    const dismissed = localStorage.getItem('tezos-systems-my-tezos-dismissed') === '1';
+    if (!localStorage.getItem(STORAGE_KEY) && !dismissed) {
+        btn.classList.add('nudge');
+    }
 }
+
+// ==========================================
+// NAV INIT
+// ==========================================
+function initNavButtons() {
+    // Comparison section is now always visible — ensure it shows
+    const compSection = document.getElementById('comparison-section');
+    if (compSection) {
+        compSection.classList.add('visible');
+    }
+}
+
+// Legacy — comparison toggle no longer exists
+function initComparisonToggle() {}
 
 function setupEventListeners() {
     // Theme toggle
@@ -1400,8 +1445,8 @@ function initSmartDock() {
         d.addEventListener('click', (e) => e.stopPropagation());
     }
 
+    setupDropdown('features-gear', 'features-dropdown');
     setupDropdown('settings-gear', 'settings-dropdown');
-    setupDropdown('analytics-gear', 'analytics-dropdown');
 
     // Close all dropdowns on outside click
     document.addEventListener('click', () => {
@@ -1526,13 +1571,12 @@ function applyDeepLink() {
         }
     }
 
-    // #compare
-    if (params.has('compare') || hash === 'compare') {
-        const stored = localStorage.getItem('tezos-systems-comparison-visible');
-        if (stored !== 'true') {
-            const toggle = document.getElementById('comparison-toggle');
-            if (toggle) toggle.click();
-        }
+    // #compare or #history — scroll to history/comparison area
+    if (params.has('compare') || hash === 'compare' || params.has('history') || hash === 'history') {
+        setTimeout(() => {
+            const timeline = document.getElementById('upgrade-clock');
+            if (timeline) timeline.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 500);
     }
 
     // #leaderboard
@@ -1614,10 +1658,16 @@ async function updateNetworkPulse() {
         indicator.id = 'network-pulse';
         indicator.className = 'network-pulse';
         indicator.title = 'Network health';
-        // Insert next to the refresh button
-        const refreshBtn = document.getElementById('refresh-btn');
-        if (refreshBtn) {
-            refreshBtn.parentElement.insertBefore(indicator, refreshBtn.nextSibling);
+        // Place in the price bar (right side)
+        const priceContent = document.querySelector('.price-bar-content');
+        if (priceContent) {
+            priceContent.appendChild(indicator);
+        } else {
+            // Fallback: next to refresh button
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.parentElement.insertBefore(indicator, refreshBtn.nextSibling);
+            }
         }
     }
     
@@ -1645,11 +1695,12 @@ async function updateNetworkPulse() {
         
         indicator.className = `network-pulse ${status}`;
         indicator.title = label;
-        indicator.innerHTML = `<span class="pulse-dot"></span>`;
+        const statusText = status === 'healthy' ? 'Live' : status === 'delayed' ? 'Delayed' : 'Issue';
+        indicator.innerHTML = `<span class="pulse-dot"></span><span class="pulse-label">${statusText}</span>`;
     } catch (e) {
         indicator.className = 'network-pulse unknown';
         indicator.title = 'Network status unknown';
-        indicator.innerHTML = `<span class="pulse-dot"></span>`;
+        indicator.innerHTML = `<span class="pulse-dot"></span><span class="pulse-label">—</span>`;
     }
 }
 
@@ -1882,7 +1933,8 @@ function initKeyboardShortcuts() {
             }
             case 'k': {
                 e.preventDefault();
-                document.getElementById('comparison-toggle')?.click();
+                // Scroll to chain comparison section
+                document.getElementById('comparison-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 break;
             }
             case 'l': {

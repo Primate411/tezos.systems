@@ -205,34 +205,19 @@
         <div class="header-content">
             <div class="header-left">
                 <h1 class="title">Tezos Systems</h1>
-                <button id="about-tezos-btn" class="glass-button" aria-label="What is Tezos?" title="What is Tezos?">
-                    <span>?</span>
-                </button>
-                <button id="refresh-btn" class="glass-button" aria-label="Refresh data now" title="Refresh now">
-                    <span class="refresh-icon">↻</span>
-                </button>
             </div>
             <div class="controls">
-                <!-- Primary: always visible -->
-                <button id="my-baker-toggle" class="glass-button" aria-label="Toggle My Baker" title="My Baker: OFF">
-                    <span class="my-baker-toggle-icon">🥐</span>
-                </button>
-                <button id="calc-toggle" class="glass-button" aria-label="Toggle Rewards Calculator" title="Calculator: OFF">
-                    <span class="calc-toggle-icon">🧮</span>
+                <!-- My Tezos — the one button that changes state -->
+                <button id="my-tezos-btn" class="glass-button header-nav-btn" aria-label="My Tezos — personalize your dashboard" title="My Tezos">
+                    <span class="my-tezos-icon">👤</span> <span class="nav-label">My Tezos</span>
                 </button>
 
-                <!-- Analytics dropdown -->
+                <!-- Features dropdown -->
                 <div class="dock-settings-group">
-                    <button id="analytics-gear" class="glass-button" aria-label="Analytics tools" title="Analytics">
-                        <span>📊</span>
+                    <button id="features-gear" class="glass-button header-nav-btn" aria-label="Features" title="Features">
+                        <span>🧩</span> <span class="nav-label">Features</span>
                     </button>
-                    <div class="settings-dropdown" id="analytics-dropdown">
-                        <button id="comparison-toggle" class="glass-button" aria-label="Toggle How Tezos Compares" title="Compare: OFF">
-                            <span class="comparison-toggle-icon">⚔️</span> <span class="dropdown-label">Compare</span>
-                        </button>
-                        <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
-                            <span class="objkt-toggle-icon">🖼️</span> <span class="dropdown-label">NFTs</span>
-                        </button>
+                    <div class="settings-dropdown" id="features-dropdown">
                         <button id="leaderboard-toggle" class="glass-button" aria-label="Toggle Baker Leaderboard" title="Leaderboard: OFF">
                             <span class="leaderboard-toggle-icon">🏆</span> <span class="dropdown-label">Leaderboard</span>
                         </button>
@@ -242,22 +227,20 @@
                         <button id="giants-toggle" class="glass-button" aria-label="Toggle Sleeping Giants" title="Sleeping Giants: OFF">
                             <span class="giants-toggle-icon">😴</span> <span class="dropdown-label">Giants</span>
                         </button>
+                        <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
+                            <span class="objkt-toggle-icon">🖼️</span> <span class="dropdown-label">NFTs</span>
+                        </button>
+                        <button id="my-baker-toggle" class="glass-button" aria-label="Toggle My Baker" title="My Baker: OFF">
+                            <span class="my-baker-toggle-icon">🥐</span> <span class="dropdown-label">My Baker</span>
+                        </button>
                         <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
                             <span>📈</span> <span class="dropdown-label">History</span>
                         </button>
+                        <button id="calc-toggle" class="glass-button" aria-label="Toggle Rewards Calculator" title="Calculator: OFF">
+                            <span class="calc-toggle-icon">🧮</span> <span class="dropdown-label">Calculator</span>
+                        </button>
                     </div>
                 </div>
-
-                <!-- Toolbar separator -->
-                <span class="toolbar-separator"></span>
-
-                <!-- Tez Capital CTAs -->
-                <a href="https://docs.tez.capital" target="_blank" rel="noopener" class="glass-button toolbar-cta" title="Start baking on Tezos — docs.tez.capital">
-                    <span>🍞</span><span class="toolbar-cta-label">Bake</span><span class="toolbar-cta-ext">↗</span>
-                </a>
-                <a href="https://gov.tez.capital" target="_blank" rel="noopener" class="glass-button toolbar-cta" title="Stake your XTZ — gov.tez.capital">
-                    <span>🥩</span><span class="toolbar-cta-label">Stake</span><span class="toolbar-cta-ext">↗</span>
-                </a>
 
                 <!-- Settings dropdown -->
                 <div class="dock-settings-group">
@@ -271,20 +254,36 @@
                         <button id="ultra-toggle" class="glass-button" aria-label="Toggle Ultra mode" title="Ultra mode: OFF">
                             <span class="ultra-icon">⚡</span> <span class="dropdown-label">Ultra</span>
                         </button>
+                        <div class="dropdown-divider"></div>
                         <button id="share-btn" class="glass-button" aria-label="Share snapshot" title="Share snapshot">
                             <span class="share-icon">📸</span> <span class="dropdown-label">Share</span>
-                        </button>
-                        <button id="changelog-btn" class="glass-button" aria-label="Changelog" title="Changelog">
-                            <span>📋</span> <span class="dropdown-label">Changelog</span>
                         </button>
                         <button id="export-btn" class="glass-button" aria-label="Export data" title="Export data">
                             <span>📥</span> <span class="dropdown-label">Export</span>
                         </button>
+                        <div class="dropdown-divider"></div>
+                        <button id="about-tezos-btn" class="glass-button" aria-label="What is Tezos?" title="What is Tezos?">
+                            <span>❓</span> <span class="dropdown-label">About Tezos</span>
+                        </button>
                         <button id="shortcuts-btn" class="glass-button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">
                             <span>⌨️</span> <span class="dropdown-label">Shortcuts</span>
                         </button>
+                        <button id="changelog-btn" class="glass-button" aria-label="Changelog" title="Changelog">
+                            <span>📋</span> <span class="dropdown-label">Changelog</span>
+                        </button>
                     </div>
                 </div>
+
+                <!-- Separator -->
+                <span class="toolbar-separator"></span>
+
+                <!-- External CTAs — visually separated -->
+                <a href="https://gov.tez.capital" target="_blank" rel="noopener" class="glass-button toolbar-cta" title="Stake your XTZ — gov.tez.capital">
+                    <span>🥩</span><span class="toolbar-cta-label">Stake</span><span class="toolbar-cta-ext">↗</span>
+                </a>
+                <a href="https://docs.tez.capital" target="_blank" rel="noopener" class="glass-button toolbar-cta" title="Start baking on Tezos — docs.tez.capital">
+                    <span>🍞</span><span class="toolbar-cta-label">Bake</span><span class="toolbar-cta-ext">↗</span>
+                </a>
             </div>
         </div>
     </header>
@@ -361,10 +360,10 @@
         </div>
     </section>
 
-    <!-- How Tezos Compares Section -->
-    <section class="stats-section toggleable-section" id="comparison-section">
+    <!-- How Tezos Compares — permanently visible, part of History narrative -->
+    <section class="stats-section" id="comparison-section">
         <div class="section-header">
-            <h2 class="section-title">⚔️ How Tezos Compares</h2>
+            <h2 class="section-title">⛓️ Tezos vs Other Chains</h2>
             <button class="info-button" id="comparison-info-btn" aria-label="About comparison data" title="About comparison data">
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>

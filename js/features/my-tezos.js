@@ -189,45 +189,48 @@ async function shareMyTezosCard(data) {
             border: 1px solid rgba(${brandRgb}, 0.2);
         `;
 
+        // Use system font for values (ꜩ doesn't exist in Orbitron) — use "XTZ" instead
+        const sysFont = "-apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif";
+
         wrapper.innerHTML = `
-            <div style="font-family:'Orbitron',sans-serif; font-size:18px; font-weight:900;
+            <div style="font-family:'Orbitron',sans-serif; font-size:16px; font-weight:900;
                 color:${brand}; letter-spacing:3px; text-transform:uppercase; margin-bottom:2px;
                 text-shadow: 0 0 20px rgba(${brandRgb},0.5);">MY TEZOS</div>
-            <div style="font-size:10px; color:rgba(255,255,255,0.3); text-transform:uppercase;
-                letter-spacing:2px; margin-bottom:20px;">tezos.systems</div>
+            <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.3); text-transform:uppercase;
+                letter-spacing:2px; margin-bottom:24px;">tezos.systems</div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
-                <div style="background:${accent}; border-radius:10px; padding:14px; text-align:center;">
-                    <div style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1px;">Portfolio</div>
-                    <div style="font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:white; margin-top:4px;">${data.totalXTZ} ꜩ</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:24px;">
+                <div style="background:${accent}; border:1px solid rgba(${brandRgb},0.12); border-radius:12px; padding:18px 14px; text-align:center;">
+                    <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1.5px;">Portfolio</div>
+                    <div style="font-family:${sysFont}; font-size:22px; font-weight:800; color:white; margin-top:6px;">${data.totalXTZ} XTZ</div>
                 </div>
-                <div style="background:${accent}; border-radius:10px; padding:14px; text-align:center;">
-                    <div style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1px;">Est. Annual Yield</div>
-                    <div style="font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:${brand}; margin-top:4px;">+${data.estAnnual} ꜩ</div>
+                <div style="background:${accent}; border:1px solid rgba(${brandRgb},0.12); border-radius:12px; padding:18px 14px; text-align:center;">
+                    <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1.5px;">Est. Annual Yield</div>
+                    <div style="font-family:${sysFont}; font-size:22px; font-weight:800; color:${brand}; margin-top:6px;">+${data.estAnnual} XTZ</div>
                 </div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
-                <div style="text-align:center; flex:1;">
-                    <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase;">APY</div>
-                    <div style="font-family:'Orbitron',sans-serif; font-size:16px; font-weight:700; color:${brand};">${data.apyRate}%</div>
-                    <div style="font-size:9px; color:rgba(255,255,255,0.3);">${data.isStaker ? 'Staker' : 'Delegator'}</div>
+            <div style="display:grid; grid-template-columns:${data.streak > 0 ? '1fr 1fr 1fr' : '1fr 1fr'}; gap:14px; text-align:center;">
+                <div>
+                    <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:1px;">APY</div>
+                    <div style="font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:${brand}; margin-top:4px;">${data.apyRate}%</div>
+                    <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px;">${data.isStaker ? 'Staker' : 'Delegator'}</div>
                 </div>
                 ${data.streak > 0 ? `
-                <div style="text-align:center; flex:1;">
-                    <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase;">Streak 🔥</div>
-                    <div style="font-family:'Orbitron',sans-serif; font-size:16px; font-weight:700; color:#f59e0b;">${data.streak}</div>
-                    <div style="font-size:9px; color:rgba(255,255,255,0.3);">cycles</div>
+                <div>
+                    <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:1px;">Streak</div>
+                    <div style="font-family:'Orbitron',sans-serif; font-size:18px; font-weight:700; color:#f59e0b; margin-top:4px;">${data.streak}</div>
+                    <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.3); margin-top:2px;">cycles</div>
                 </div>` : ''}
-                <div style="text-align:center; flex:1;">
-                    <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase;">Baker</div>
-                    <div style="font-size:13px; font-weight:600; color:white; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px;">${data.bakerName}</div>
+                <div>
+                    <div style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:1px;">Baker</div>
+                    <div style="font-family:${sysFont}; font-size:14px; font-weight:600; color:white; margin-top:6px;">${data.bakerName}</div>
                 </div>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:12px; border-top:1px solid rgba(${brandRgb},0.1);">
-                <span style="font-size:10px; color:rgba(255,255,255,0.25);">${data.address}</span>
-                <span style="font-size:10px; color:rgba(255,255,255,0.25);">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:24px; padding-top:14px; border-top:1px solid rgba(${brandRgb},0.1);">
+                <span style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.25);">${data.address}</span>
+                <span style="font-family:${sysFont}; font-size:10px; color:rgba(255,255,255,0.25);">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             </div>
         `;
 
@@ -535,13 +538,30 @@ export function initMyTezos() {
     const hidden = localStorage.getItem('tezos-systems-my-tezos-hidden') === '1';
     const dismissed = localStorage.getItem('tezos-systems-my-tezos-dismissed') === '1';
 
+    // Listen for address changes from My Baker
+    window.addEventListener('my-baker-updated', (e) => {
+        const newAddr = e.detail?.address;
+        if (newAddr) {
+            localStorage.removeItem('tezos-systems-my-tezos-hidden');
+            renderHeroStrip(newAddr);
+        } else {
+            // Address cleared
+            strip.classList.remove('visible');
+        }
+    });
+
+    // Listen for header button triggering onboarding
+    window.addEventListener('my-tezos-show-onboarding', () => {
+        if (!localStorage.getItem(STORAGE_KEY)) {
+            showOnboarding(strip);
+        }
+    });
+
     if (address && !hidden) {
         renderHeroStrip(address);
-    } else if (!address && !dismissed) {
-        // Show onboarding prompt for first-time visitors
-        // Delay slightly so it doesn't compete with initial load
-        setTimeout(() => showOnboarding(strip), 2000);
     }
+    // Onboarding is now triggered only by the 👤 My Tezos header button
+    // No more auto-popup — it was competing with the button for attention
 }
 
 /**

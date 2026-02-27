@@ -325,7 +325,7 @@ async function shareAllComparisons() {
         const wrapper = document.createElement('div');
         wrapper.style.cssText = `
             position: fixed; top: -9999px; left: -9999px;
-            width: 600px; padding: 32px;
+            width: 700px; padding: 32px;
             background: ${bgColor};
             font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
             color: white;
@@ -344,16 +344,33 @@ async function shareAllComparisons() {
         subtitle.textContent = 'How Tezos Compares';
         wrapper.appendChild(subtitle);
 
-        // Clone all comparison cards
+        const sysFont = "-apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif";
+        const winColor = '#00ff88';
+
+        // Build each card with inline styles
         const cards = document.querySelectorAll('.comparison-card');
         const grid = document.createElement('div');
-        grid.style.cssText = 'display:flex; flex-direction:column; gap:12px;';
+        grid.style.cssText = 'display:flex; flex-direction:column; gap:16px;';
         cards.forEach(card => {
-            const clone = card.cloneNode(true);
-            const btn = clone.querySelector('.comparison-share-btn');
-            if (btn) btn.remove();
-            clone.style.margin = '0';
-            grid.appendChild(clone);
+            const data = extractCardData(card);
+            const row = document.createElement('div');
+            row.innerHTML = `
+                <div style="font-size:12px; font-weight:600; color:rgba(255,255,255,0.7); margin-bottom:8px;">${data.metricName}</div>
+                <div style="display:flex; gap:6px;">
+                    ${data.chains.map(c => {
+                        const valColor = c.isWinner ? winColor : c.isTezos ? brand : 'rgba(255,255,255,0.5)';
+                        const nameColor = c.isTezos ? brand : 'rgba(255,255,255,0.4)';
+                        return `<div style="flex:1; text-align:center; padding:8px 4px; border-radius:8px;
+                            background:${c.isTezos ? `rgba(${brandRgb},0.06)` : 'rgba(255,255,255,0.02)'};
+                            border:1px solid ${c.isTezos ? `rgba(${brandRgb},0.15)` : 'rgba(255,255,255,0.04)'};">
+                            <div style="font-size:8px; font-weight:600; text-transform:uppercase; color:${nameColor}; margin-bottom:4px;">${c.name}</div>
+                            <div style="font-size:13px; font-weight:700; color:${valColor};">${c.value}</div>
+                            ${c.badge ? `<div style="font-size:7px; color:${winColor}; margin-top:3px;">${c.badge}</div>` : ''}
+                        </div>`;
+                    }).join('')}
+                </div>
+            `;
+            grid.appendChild(row);
         });
         wrapper.appendChild(grid);
 
@@ -370,7 +387,7 @@ async function shareAllComparisons() {
         document.body.appendChild(wrapper);
         const canvas = await html2canvas(wrapper, {
             backgroundColor: bgColor, scale: COMPARISON_CAPTURE_SCALE, useCORS: true, logging: false,
-            width: 600, windowWidth: 600
+            width: 700, windowWidth: 700
         });
         wrapper.remove();
 
@@ -382,7 +399,26 @@ async function shareAllComparisons() {
 }
 
 /**
- * Capture a single comparison card as an image
+ * Extract chain data from a comparison card element for share image generation
+ */
+function extractCardData(cardEl) {
+    const metricName = cardEl.querySelector('.comparison-metric-name')?.textContent || '';
+    const cols = cardEl.querySelectorAll('.comparison-col');
+    const chains = [];
+    cols.forEach(col => {
+        const name = col.querySelector('.comparison-chain-name')?.textContent || '';
+        const value = col.querySelector('.comparison-chain-value')?.textContent || '';
+        const note = col.querySelector('.comparison-chain-note')?.textContent || '';
+        const badge = col.querySelector('.comparison-win-badge')?.textContent || '';
+        const isWinner = col.classList.contains('comparison-winner');
+        const isTezos = col.classList.contains('comparison-col-tezos');
+        chains.push({ name, value, note, badge, isWinner, isTezos });
+    });
+    return { metricName, chains };
+}
+
+/**
+ * Capture a single comparison card as an image — built with inline styles for reliable rendering
  */
 async function captureComparisonImage(cardEl, label) {
     await loadHtml2Canvas();
@@ -390,49 +426,67 @@ async function captureComparisonImage(cardEl, label) {
     const bgColor = isMatrix ? '#0a0a0a' : '#0a0a0f';
     const brand = isMatrix ? '#00ff00' : '#00d4ff';
     const brandRgb = isMatrix ? '0,255,0' : '0,212,255';
+    const winColor = '#00ff88';
+    const sysFont = "-apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif";
+
+    const data = extractCardData(cardEl);
 
     const wrapper = document.createElement('div');
     wrapper.style.cssText = `
         position: fixed; top: -9999px; left: -9999px;
-        width: 600px; padding: 32px;
+        width: 700px; padding: 32px;
         background: ${bgColor};
-        font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
+        font-family: ${sysFont};
         color: white;
     `;
 
-    const title = document.createElement('div');
-    title.style.cssText = `font-family:'Orbitron',sans-serif; font-size:20px; font-weight:900;
-        color:${brand}; letter-spacing:3px; text-transform:uppercase; margin-bottom:4px;
-        text-shadow: 0 0 20px rgba(${brandRgb},0.5);`;
-    title.textContent = 'TEZOS SYSTEMS';
-    wrapper.appendChild(title);
+    // Header
+    wrapper.innerHTML = `
+        <div style="font-family:'Orbitron',sans-serif; font-size:18px; font-weight:900;
+            color:${brand}; letter-spacing:3px; text-transform:uppercase; margin-bottom:2px;
+            text-shadow: 0 0 20px rgba(${brandRgb},0.5);">TEZOS SYSTEMS</div>
+        <div style="font-size:11px; color:rgba(255,255,255,0.35); text-transform:uppercase;
+            letter-spacing:2px; margin-bottom:24px;">How Tezos Compares</div>
 
-    const subtitle = document.createElement('div');
-    subtitle.style.cssText = `font-size:11px; color:rgba(255,255,255,0.4); text-transform:uppercase;
-        letter-spacing:2px; margin-bottom:20px;`;
-    subtitle.textContent = 'How Tezos Compares';
-    wrapper.appendChild(subtitle);
+        <div style="font-size:14px; font-weight:600; color:rgba(255,255,255,0.8); margin-bottom:16px;">
+            ${data.metricName}
+        </div>
 
-    const clone = cardEl.cloneNode(true);
-    const cloneBtn = clone.querySelector('.comparison-share-btn');
-    if (cloneBtn) cloneBtn.remove();
-    clone.style.margin = '0';
-    wrapper.appendChild(clone);
+        <div style="display:flex; gap:10px; margin-bottom:24px;">
+            ${data.chains.map(c => {
+                const valColor = c.isWinner ? winColor : c.isTezos ? brand : 'rgba(255,255,255,0.5)';
+                const nameColor = c.isTezos ? brand : 'rgba(255,255,255,0.4)';
+                const bg = c.isTezos
+                    ? `rgba(${brandRgb},0.08)`
+                    : 'rgba(255,255,255,0.03)';
+                const border = c.isTezos
+                    ? `rgba(${brandRgb},0.2)`
+                    : 'rgba(255,255,255,0.06)';
+                return `
+                <div style="flex:1; text-align:center; padding:14px 8px; border-radius:10px;
+                    background:${bg}; border:1px solid ${border};">
+                    <div style="font-size:10px; font-weight:600; text-transform:uppercase;
+                        letter-spacing:0.5px; color:${nameColor}; margin-bottom:8px;">${c.name}</div>
+                    <div style="font-size:18px; font-weight:700; color:${valColor};
+                        ${c.isWinner ? `text-shadow:0 0 12px rgba(0,255,136,0.4);` : ''}">${c.value}</div>
+                    ${c.note ? `<div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:4px;">${c.note}</div>` : ''}
+                    ${c.badge ? `<div style="font-size:9px; font-weight:700; text-transform:uppercase;
+                        letter-spacing:0.5px; color:${winColor}; background:rgba(0,255,136,0.1);
+                        padding:2px 8px; border-radius:4px; margin-top:8px; display:inline-block;">${c.badge}</div>` : ''}
+                </div>`;
+            }).join('')}
+        </div>
 
-    const footer = document.createElement('div');
-    footer.style.cssText = `display:flex; justify-content:space-between; margin-top:16px; font-size:12px; color:rgba(255,255,255,0.3);`;
-    const left = document.createElement('span');
-    left.textContent = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    const right = document.createElement('span');
-    right.textContent = 'tezos.systems';
-    footer.appendChild(left);
-    footer.appendChild(right);
-    wrapper.appendChild(footer);
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:rgba(255,255,255,0.25);">
+            <span>${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span>tezos.systems</span>
+        </div>
+    `;
 
     document.body.appendChild(wrapper);
     const canvas = await html2canvas(wrapper, {
         backgroundColor: bgColor, scale: COMPARISON_CAPTURE_SCALE, useCORS: true, logging: false,
-        width: 600, windowWidth: 600
+        width: 700, windowWidth: 700
     });
     wrapper.remove();
     return canvas;

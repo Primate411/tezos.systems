@@ -8633,19 +8633,32 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 .network-pulse {
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
+    gap: 6px;
     cursor: help;
+    margin-left: 8px;
+    padding-left: 10px;
+    border-left: 1px solid rgba(255,255,255,0.08);
 }
 
 .pulse-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: #666;
     transition: background 0.5s ease;
+    flex-shrink: 0;
 }
+
+.pulse-label {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.network-pulse.healthy .pulse-label { color: rgba(0, 255, 136, 0.7); }
+.network-pulse.delayed .pulse-label { color: rgba(255, 170, 0, 0.7); }
+.network-pulse.warning .pulse-label { color: rgba(255, 68, 68, 0.7); }
 
 .network-pulse.healthy .pulse-dot {
     background: #00ff88;
@@ -9204,4 +9217,104 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     .upgrade-effect-chart { height: 200px; }
     .upgrade-effect-chart canvas { height: 200px !important; }
     .upgrade-effect-pill { padding: 3px 8px; font-size: 0.65rem; }
+}
+
+/* ==========================================
+   HEADER REDESIGN — Nav labels & structure
+   ========================================== */
+.header-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    width: auto;
+    padding: 0 12px;
+    white-space: nowrap;
+    position: relative;
+}
+
+/* Active state indicator — 2px accent underline */
+.header-nav-btn.active {
+    border-color: var(--accent-color, rgba(0, 255, 136, 0.4));
+    color: var(--text-primary);
+}
+.header-nav-btn.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: var(--accent-color, #00ff88);
+    border-radius: 1px;
+}
+
+/* My Tezos connected — same active treatment as Compare */
+#my-tezos-btn.connected {
+    border-color: var(--accent-color, rgba(0, 255, 136, 0.4));
+    color: var(--text-primary);
+}
+#my-tezos-btn.connected::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 20%;
+    right: 20%;
+    height: 2px;
+    background: var(--accent-color, #00ff88);
+    border-radius: 1px;
+}
+
+/* My Tezos first-visit pulse */
+#my-tezos-btn.nudge {
+    animation: btn-nudge 2s ease-in-out 1;
+}
+@keyframes btn-nudge {
+    0%, 100% { box-shadow: none; }
+    50% { box-shadow: 0 0 12px rgba(0, 255, 136, 0.4); }
+}
+
+/* Dropdown section labels */
+.dropdown-section-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-secondary, rgba(255,255,255,0.35));
+    padding: 6px 12px 2px;
+    margin-top: 4px;
+    user-select: none;
+}
+.dropdown-section-label:first-child {
+    margin-top: 0;
+}
+
+.nav-label {
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+}
+
+.dropdown-caret {
+    font-size: 0.65rem;
+    opacity: 0.5;
+    transition: transform 0.15s ease;
+}
+
+.dock-settings-group.open .dropdown-caret {
+    transform: rotate(180deg);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-color, rgba(255,255,255,0.08));
+    margin: 4px 8px;
+}
+
+/* Mobile: hide text labels, show icons only */
+@media (max-width: 768px) {
+    .nav-label { display: none; }
+    .dropdown-caret { display: none; }
+    .toolbar-cta-label { display: none; }
+    .toolbar-cta-ext { display: none; }
+    .toolbar-separator { display: none; }
 }
