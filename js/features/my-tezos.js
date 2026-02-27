@@ -59,19 +59,55 @@ async function getStakingAPY() {
 }
 
 /**
- * Fetch recent rewards for an address (last 10 cycles)
+ * Fetch recent rewards for an address (last 100 cycles for streak counting)
  */
 async function fetchRecentRewards(address) {
     try {
-        const resp = await fetch(`${TZKT}/rewards/delegators/${encodeURIComponent(address)}?limit=10&sort.desc=cycle`);
+        const resp = await fetch(`${TZKT}/rewards/delegators/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
         if (!resp.ok) {
             // Might be a baker — try baker rewards
-            const bakerResp = await fetch(`${TZKT}/rewards/bakers/${encodeURIComponent(address)}?limit=10&sort.desc=cycle`);
+            const bakerResp = await fetch(`${TZKT}/rewards/bakers/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
             if (!bakerResp.ok) return null;
             return await bakerResp.json();
         }
         return await resp.json();
     } catch { return null; }
+}
+
+/**
+ * Calculate reward streak — consecutive cycles with non-zero rewards
+ */
+function calcRewardStreak(rewards) {
+    if (!rewards || !rewards.length) return 0;
+    let streak = 0;
+    // Rewards sorted desc by cycle — walk forward checking consecutiveness
+    for (let i = 0; i < rewards.length; i++) {
+        const r = rewards[i];
+        // Check if this cycle had rewards
+        const earned = getRewardAmount(r);
+        if (earned <= 0) break;
+        // Check cycle is consecutive with previous
+        if (i > 0 && rewards[i-1].cycle - r.cycle !== 1) break;
+        streak++;
+    }
+    return streak;
+}
+
+/**
+ * Get reward amount from a reward entry (works for both delegator and baker rewards)
+ */
+function getRewardAmount(r) {
+    if (r.stakingBalance !== undefined) {
+        // Baker rewards
+        return ((r.ownBlockRewards || 0) + (r.ownEndorsementRewards || 0) +
+                (r.extraBlockRewards || 0) + (r.extraEndorsementRewards || 0)) / 1e6;
+    }
+    // Delegator rewards — use the reward fields if available
+    if (r.futureBlockRewards !== undefined) {
+        return ((r.futureBlockRewards || 0) + (r.futureEndorsementRewards || 0)) / 1e6;
+    }
+    // Fallback: estimate from balance and APY
+    return (r.balance || 0) / 1e6 * 0.03 / 365;
 }
 
 /**
@@ -129,6 +165,93 @@ function healthLabel(score) {
 }
 
 /**
+ * Generate and share a cyberpunk staking stats card
+ */
+async function shareMyTezosCard(data) {
+    try {
+        // Dynamically import share utilities if available
+        const { loadHtml2Canvas, showShareModal } = await import('../ui/share.js');
+        await loadHtml2Canvas();
+
+        const isMatrix = document.body.getAttribute('data-theme') === 'matrix';
+        const bgColor = isMatrix ? '#0a0a0a' : '#0a0a14';
+        const brand = isMatrix ? '#00ff00' : '#00d4ff';
+        const brandRgb = isMatrix ? '0,255,0' : '0,212,255';
+        const accent = isMatrix ? 'rgba(0,255,0,0.15)' : 'rgba(0,212,255,0.15)';
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = `
+            position: fixed; top: -9999px; left: -9999px;
+            width: 500px; padding: 32px;
+            background: linear-gradient(135deg, ${bgColor} 0%, ${isMatrix ? '#0a120a' : '#0a0a1e'} 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+            color: white; border-radius: 16px;
+            border: 1px solid rgba(${brandRgb}, 0.2);
+        `;
+
+        wrapper.innerHTML = `
+            <div style="font-family:'Orbitron',sans-serif; font-size:18px; font-weight:900;
+                color:${brand}; letter-spacing:3px; text-transform:uppercase; margin-bottom:2px;
+                text-shadow: 0 0 20px rgba(${brandRgb},0.5);">MY TEZOS</div>
+            <div style="font-size:10px; color:rgba(255,255,255,0.3); text-transform:uppercase;
+                letter-spacing:2px; margin-bottom:20px;">tezos.systems</div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+                <div style="background:${accent}; border-radius:10px; padding:14px; text-align:center;">
+                    <div style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1px;">Portfolio</div>
+                    <div style="font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:white; margin-top:4px;">${data.totalXTZ} ꜩ</div>
+                </div>
+                <div style="background:${accent}; border-radius:10px; padding:14px; text-align:center;">
+                    <div style="font-size:10px; color:rgba(255,255,255,0.5); text-transform:uppercase; letter-spacing:1px;">Est. Annual Yield</div>
+                    <div style="font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700; color:${brand}; margin-top:4px;">+${data.estAnnual} ꜩ</div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                <div style="text-align:center; flex:1;">
+                    <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase;">APY</div>
+                    <div style="font-family:'Orbitron',sans-serif; font-size:16px; font-weight:700; color:${brand};">${data.apyRate}%</div>
+                    <div style="font-size:9px; color:rgba(255,255,255,0.3);">${data.isStaker ? 'Staker' : 'Delegator'}</div>
+                </div>
+                ${data.streak > 0 ? `
+                <div style="text-align:center; flex:1;">
+                    <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase;">Streak 🔥</div>
+                    <div style="font-family:'Orbitron',sans-serif; font-size:16px; font-weight:700; color:#f59e0b;">${data.streak}</div>
+                    <div style="font-size:9px; color:rgba(255,255,255,0.3);">cycles</div>
+                </div>` : ''}
+                <div style="text-align:center; flex:1;">
+                    <div style="font-size:10px; color:rgba(255,255,255,0.4); text-transform:uppercase;">Baker</div>
+                    <div style="font-size:13px; font-weight:600; color:white; margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:120px;">${data.bakerName}</div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; padding-top:12px; border-top:1px solid rgba(${brandRgb},0.1);">
+                <span style="font-size:10px; color:rgba(255,255,255,0.25);">${data.address}</span>
+                <span style="font-size:10px; color:rgba(255,255,255,0.25);">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            </div>
+        `;
+
+        document.body.appendChild(wrapper);
+        const canvas = await html2canvas(wrapper, {
+            backgroundColor: bgColor, scale: 2, useCORS: true, logging: false,
+            width: 500, windowWidth: 500
+        });
+        wrapper.remove();
+
+        const tweetOptions = [
+            { label: 'Flex', text: `Staking ${data.totalXTZ} ꜩ on Tezos at ${data.apyRate}% APY${data.streak > 0 ? ` — ${data.streak} cycle reward streak 🔥` : ''}.\n\ntezos.systems` },
+            { label: 'Recruit', text: `Earning ~${data.estAnnual} ꜩ/year just by staking on Tezos. No lockup. Keep your keys.\n\nCheck your own stats:\ntezos.systems` },
+            { label: 'Data', text: `My Tezos staking dashboard:\n\n📊 ${data.totalXTZ} ꜩ portfolio\n📈 ${data.apyRate}% APY\n💰 ~${data.estAnnual} ꜩ/year est.\n${data.streak > 0 ? `🔥 ${data.streak} cycle streak\n` : ''}\ntezos.systems` },
+            { label: 'Casual', text: `Tezos staking rewards just keep coming in. Paste your address and see your stats:\n\ntezos.systems` },
+        ];
+
+        showShareModal(canvas, tweetOptions, 'My Tezos Stats');
+    } catch (err) {
+        console.error('Share card error:', err);
+    }
+}
+
+/**
  * Build and render the My Tezos hero strip
  */
 async function renderHeroStrip(address) {
@@ -174,26 +297,25 @@ async function renderHeroStrip(address) {
         const health = healthLabel(healthScore);
 
         // Reward calculations
-        let rewardsThisCycle = 0;
-        let rewardsLast10 = 0;
-        let rewardCycles = 0;
+        let rewardsLastCycle = 0;
+        let rewardsTotal = 0;
+        let rewardStreak = 0;
         if (rewards && rewards.length) {
-            rewardsThisCycle = (rewards[0]?.stakingBalance ? rewards[0]?.ownBlockRewards + rewards[0]?.ownEndorsementRewards : rewards[0]?.balance) || 0;
-            rewardsThisCycle = rewardsThisCycle / 1e6 || 0;
-            rewards.forEach(r => {
-                const amt = r.stakingBalance
-                    ? ((r.ownBlockRewards || 0) + (r.ownEndorsementRewards || 0) + (r.extraBlockRewards || 0) + (r.extraEndorsementRewards || 0)) / 1e6
-                    : ((r.balance || 0) * (apy.delegateAPY / 100) / 365.25) || 0; // estimate if no direct rewards
-                rewardsLast10 += amt;
-            });
-            rewardCycles = rewards.length;
+            // Last cycle rewards
+            rewardsLastCycle = getRewardAmount(rewards[0]);
+            // Total across all fetched cycles
+            rewards.forEach(r => { rewardsTotal += getRewardAmount(r); });
+            // Streak
+            rewardStreak = calcRewardStreak(rewards);
         }
 
-        // Estimate daily reward from APY
+        // Estimate daily/annual reward from APY
         const isStaker = staked > 0;
         const apyRate = isStaker ? apy.stakeAPY : apy.delegateAPY;
         const estDailyReward = totalXTZ * (apyRate / 100) / 365.25;
+        const estAnnualReward = totalXTZ * (apyRate / 100);
         const estDailyUsd = xtzPrice ? estDailyReward * xtzPrice : null;
+        const estAnnualUsd = xtzPrice ? estAnnualReward * xtzPrice : null;
 
         // Personal deltas: compare with last saved portfolio
         let deltaHtml = '';
@@ -220,6 +342,26 @@ async function renderHeroStrip(address) {
             }));
         } catch {}
 
+        // Streak display
+        const streakHtml = rewardStreak > 0
+            ? `<div class="my-tezos-cell my-tezos-streak">
+                    <div class="my-tezos-label">Reward Streak 🔥</div>
+                    <div class="my-tezos-value">${rewardStreak}</div>
+                    <div class="my-tezos-sub">consecutive cycles</div>
+                </div>`
+            : '';
+
+        // Share data for the card
+        const shareData = {
+            address: address.slice(0, 8) + '…' + address.slice(-4),
+            totalXTZ: fmtCompact(totalXTZ),
+            apyRate,
+            estAnnual: estAnnualReward.toFixed(2),
+            streak: rewardStreak,
+            bakerName,
+            isStaker,
+        };
+
         // Render
         strip.innerHTML = `
             <div class="my-tezos-grid">
@@ -235,21 +377,36 @@ async function renderHeroStrip(address) {
                     <div class="my-tezos-sub">${apyRate}% APY (${isStaker ? 'staker' : 'delegator'})</div>
                 </div>
                 <div class="my-tezos-cell my-tezos-rewards">
-                    <div class="my-tezos-label">Est. Daily Reward</div>
-                    <div class="my-tezos-value">+${estDailyReward.toFixed(2)} ꜩ</div>
-                    ${estDailyUsd !== null ? `<div class="my-tezos-sub">≈ $${estDailyUsd.toFixed(2)}/day</div>` : ''}
+                    <div class="my-tezos-label">Est. Annual</div>
+                    <div class="my-tezos-value">+${estAnnualReward.toFixed(1)} ꜩ</div>
+                    <div class="my-tezos-sub">~${estDailyReward.toFixed(2)}/day${estDailyUsd !== null ? ` · $${estDailyUsd.toFixed(2)}` : ''}</div>
                 </div>
+                ${streakHtml}
                 <div class="my-tezos-cell my-tezos-baker">
                     <div class="my-tezos-label">Baker ${health.icon}</div>
                     <div class="my-tezos-value my-tezos-baker-name">${escapeHtml(bakerName)}</div>
                     <div class="my-tezos-sub" style="color:${health.color}">${health.text}${healthScore !== null ? ` (${healthScore})` : ''}</div>
                 </div>
+                <div class="my-tezos-cell my-tezos-last-cycle">
+                    <div class="my-tezos-label">Last Cycle</div>
+                    <div class="my-tezos-value">${rewardsLastCycle > 0 ? '+' + rewardsLastCycle.toFixed(2) + ' ꜩ' : '—'}</div>
+                    <div class="my-tezos-sub">${rewards?.length ? rewards.length + ' cycles tracked' : ''}</div>
+                </div>
             </div>
             <div class="my-tezos-actions">
+                <button class="my-tezos-share" id="my-tezos-share" title="Share your staking stats">📸</button>
                 <button class="my-tezos-edit" id="my-tezos-edit" title="Change address">✏️</button>
                 <button class="my-tezos-close" id="my-tezos-close" title="Hide My Tezos">×</button>
             </div>
         `;
+
+        // Store share data for the share button
+        strip._shareData = shareData;
+
+        // Wire share button
+        document.getElementById('my-tezos-share')?.addEventListener('click', () => {
+            shareMyTezosCard(strip._shareData);
+        });
 
         // Wire actions
         document.getElementById('my-tezos-close').addEventListener('click', () => {

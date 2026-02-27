@@ -8888,9 +8888,9 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 
 .my-tezos-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 24px;
-    max-width: 1200px;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 20px;
+    max-width: 1400px;
     margin: 0 auto;
 }
 
@@ -8939,6 +8939,12 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     margin: 0 auto;
 }
 
+/* Streak cell — fire glow */
+.my-tezos-streak .my-tezos-value {
+    color: #f59e0b;
+    text-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+}
+
 .my-tezos-actions {
     position: absolute;
     top: 8px;
@@ -8947,6 +8953,7 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     gap: 4px;
 }
 
+.my-tezos-share,
 .my-tezos-edit,
 .my-tezos-close {
     background: none;
@@ -8959,6 +8966,7 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     transition: all 0.2s;
 }
 
+.my-tezos-share:hover,
 .my-tezos-edit:hover,
 .my-tezos-close:hover {
     color: var(--text-primary, #fff);
@@ -9065,6 +9073,14 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 
 .my-tezos-dismiss:hover {
     color: var(--text-primary, rgba(255,255,255,0.7));
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+    .my-tezos-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
 }
 
 /* Mobile */
