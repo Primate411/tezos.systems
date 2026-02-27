@@ -5,6 +5,27 @@
 
 const CHANGELOG = [
     {
+        date: '2026-02-27',
+        entries: [
+            { type: '✨', text: 'Nav redesign — clean header: 👤 My Tezos | 🧩 Features | ⚙️ | Stake ↗ | Bake ↗' },
+            { type: '✨', text: 'Living Uptime Clock — real-time ticking counter (2,720d+), block pulse with heartbeat animation, network status dot' },
+            { type: '✨', text: 'Block updates via TzC RPC (eu.rpc.tez.capital) — real-time every 6s, dot turns red if stale >18s' },
+            { type: '✨', text: 'Baker Report Card — shareable monthly performance summary with letter grades (A+ to F), rank, stats, PNG export' },
+            { type: '🔧', text: 'Killed "Compare" button confusion — chain comparison is now a toggleable section ("Chains" in Features), defaults visible' },
+            { type: '🔧', text: 'Features & Settings split into separate dropdowns (features toggle content, settings configure)' },
+            { type: '🔧', text: 'My Baker section renamed to My Tezos — unified personalization branding' },
+            { type: '🔧', text: 'Removed redundant badges (Stake-o-meter gauge, Zero Forks, Days Live) — data now in uptime clock' },
+            { type: '🔧', text: 'Removed price bar network pulse indicator — uptime clock dot is the sole liveness indicator' },
+            { type: '🔧', text: 'Fixed Last Cycle rewards showing "—" — updated to Tallinn-era TzKT field names' },
+            { type: '🔧', text: 'Fixed Leaderboard toggle always appearing active when off' },
+            { type: '🔧', text: 'Fixed header button spacing and Compare emoji rendering' },
+            { type: '🎨', text: 'Uptime clock glass-morphism box with theme-aware colors (all 7 themes)' },
+            { type: '🎨', text: 'Fixed-width counter digits — no more layout shift on tick' },
+            { type: '🎨', text: 'My Tezos connected state: subtle inner glow instead of underline' },
+            { type: '🎨', text: 'Tighter upgrade section proportions — reduced height, better column balance' },
+        ]
+    },
+    {
         date: '2026-02-26',
         entries: [
             { type: '⚡', text: 'Chart.js now loads with defer — no longer blocks initial render' },

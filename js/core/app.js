@@ -157,6 +157,7 @@ async function init() {
     initMomentsTimeline();
     initComparisonToggle();
     initNavButtons();
+    initUptimeClock();
 
     // Setup event listeners
     setupEventListeners();
@@ -514,6 +515,14 @@ async function updateStats(newStats) {
         updateStatInstant('smart-contracts', newStats.smartContracts, formatLarge);
         updateStatInstant('tokens', newStats.tokens, formatLarge);
         updateStatInstant('rollups', newStats.rollups, formatCount);
+
+        // Feed uptime clock with baker/staking data
+        if (window._updateUptimeClock) {
+            window._updateUptimeClock({
+                activeBakers: newStats.totalBakers,
+                stakedRatio: newStats.stakingRatio,
+            });
+        }
     } else {
         // Animate changes
         const updates = [];
@@ -553,6 +562,14 @@ async function updateStats(newStats) {
         if (tz4Desc2) tz4Desc2.textContent = `${newStats.tz4Bakers} / ${tz4Target} bakers`;
         document.getElementById('cycle-description').textContent = 
             `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
+    }
+
+    // Feed uptime clock on every refresh
+    if (window._updateUptimeClock) {
+        window._updateUptimeClock({
+            activeBakers: newStats.totalBakers,
+            stakedRatio: newStats.stakingRatio,
+        });
     }
 
     // Check for network moments (milestone detection)
@@ -676,15 +693,153 @@ function initMyTezosButton() {
 // NAV INIT
 // ==========================================
 function initNavButtons() {
-    // Comparison section is now always visible — ensure it shows
-    const compSection = document.getElementById('comparison-section');
-    if (compSection) {
-        compSection.classList.add('visible');
-    }
+    // Placeholder — nav buttons removed, kept for call compatibility
 }
 
-// Legacy — comparison toggle no longer exists
-function initComparisonToggle() {}
+const COMPARISON_VISIBLE_KEY = 'tezos-systems-comparison-visible';
+
+function initComparisonToggle() {
+    const section = document.getElementById('comparison-section');
+    const toggleBtn = document.getElementById('comparison-toggle');
+    if (!section || !toggleBtn) return;
+
+    function updateVis(isVisible) {
+        section.classList.toggle('visible', isVisible);
+        toggleBtn.classList.toggle('active', isVisible);
+        toggleBtn.title = `Chains: ${isVisible ? 'ON' : 'OFF'}`;
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        const stored = localStorage.getItem(COMPARISON_VISIBLE_KEY);
+        // Default is 'true' (visible) — if never set, it's visible
+        const isVisible = stored === null ? true : stored === 'true';
+        const newState = !isVisible;
+        localStorage.setItem(COMPARISON_VISIBLE_KEY, String(newState));
+        updateVis(newState);
+    });
+
+    // Default ON (visible) unless user explicitly hid it
+    const stored = localStorage.getItem(COMPARISON_VISIBLE_KEY);
+    const isVisible = stored === null ? true : stored === 'true';
+    updateVis(isVisible);
+}
+
+// ==========================================
+// LIVING UPTIME CLOCK
+// ==========================================
+function initUptimeClock() {
+    const counterEl = document.getElementById('uptime-counter');
+    const blockNumEl = document.getElementById('uptime-block-number');
+    const blockAgeEl = document.getElementById('uptime-block-age');
+    const pulseDot = document.getElementById('uptime-pulse-dot');
+    const bakersEl = document.getElementById('uptime-bakers');
+    const stakedEl = document.getElementById('uptime-staked');
+
+    if (!counterEl) return;
+
+    const LAUNCH = new Date(MAINNET_LAUNCH).getTime();
+    let lastBlockLevel = 0;
+    let lastBlockTime = null;
+
+    // Tick the uptime counter every second — fixed-width digits
+    function tickUptime() {
+        const now = Date.now();
+        const diff = now - LAUNCH;
+        const days = Math.floor(diff / 86400000);
+        const hours = Math.floor((diff % 86400000) / 3600000);
+        const mins = Math.floor((diff % 3600000) / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        const str = `${days.toLocaleString()}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
+        // Wrap each character in a fixed-width span to prevent layout shift
+        counterEl.innerHTML = str.split('').map(ch =>
+            /\d/.test(ch) ? `<span class="uptime-digit">${ch}</span>` : `<span class="uptime-sep">${ch}</span>`
+        ).join('');
+    }
+
+    // Tick block age
+    function tickBlockAge() {
+        if (!lastBlockTime) return;
+        const ago = Math.floor((Date.now() - lastBlockTime) / 1000);
+        if (ago < 60) {
+            blockAgeEl.textContent = `${ago}s ago`;
+        } else {
+            blockAgeEl.textContent = `${Math.floor(ago / 60)}m ago`;
+        }
+        // Status based on block age
+        if (pulseDot) {
+            if (ago > 120) {
+                pulseDot.style.color = '#ff4444';
+                pulseDot.title = `Last block ${ago}s ago — possible issue`;
+                pulseDot.className = 'uptime-pulse-dot stale';
+            } else if (ago > 18) {
+                pulseDot.style.color = '#ff4444';
+                pulseDot.title = `Block ${ago}s old — slight delay`;
+                pulseDot.className = 'uptime-pulse-dot stale';
+            } else {
+                pulseDot.style.color = '';
+                pulseDot.title = 'Network healthy — blocks on schedule';
+                pulseDot.className = 'uptime-pulse-dot';
+            }
+        }
+    }
+
+    // Start ticking
+    tickUptime();
+    setInterval(tickUptime, 1000);
+    setInterval(tickBlockAge, 1000);
+
+    // Fast block poller via Octez RPC (real-time, every 6s)
+    async function pollBlock() {
+        try {
+            const resp = await fetch(`${API_URLS.octez}/chains/main/blocks/head/header`);
+            if (!resp.ok) return;
+            const header = await resp.json();
+            const level = header.level;
+            const timestamp = header.timestamp;
+
+            if (level && level !== lastBlockLevel) {
+                lastBlockLevel = level;
+                lastBlockTime = new Date(timestamp).getTime();
+                blockNumEl.textContent = level.toLocaleString();
+
+                // Flash the pulse dot
+                if (pulseDot) {
+                    pulseDot.classList.remove('flash');
+                    void pulseDot.offsetWidth;
+                    pulseDot.classList.add('flash');
+                }
+            }
+        } catch (e) {
+            // Silent fail — TzKT fallback via _updateUptimeClock still works
+        }
+    }
+
+    // Poll immediately then every 6 seconds (one block time)
+    pollBlock();
+    setInterval(pollBlock, 6000);
+
+    // Expose update function for baker/staking data from main refresh cycle
+    window._updateUptimeClock = function(data) {
+        // Block data now comes from RPC poller above — only use this for baker/staking metrics
+        if (data.blockLevel && data.blockLevel !== lastBlockLevel) {
+            lastBlockLevel = data.blockLevel;
+            lastBlockTime = data.blockTime ? new Date(data.blockTime).getTime() : Date.now();
+            blockNumEl.textContent = data.blockLevel.toLocaleString();
+
+            if (pulseDot) {
+                pulseDot.classList.remove('flash');
+                void pulseDot.offsetWidth;
+                pulseDot.classList.add('flash');
+            }
+        }
+        if (data.activeBakers && bakersEl) {
+            bakersEl.textContent = data.activeBakers.toLocaleString();
+        }
+        if (data.stakedRatio && stakedEl) {
+            stakedEl.textContent = data.stakedRatio.toFixed(1) + '%';
+        }
+    };
+}
 
 function setupEventListeners() {
     // Theme toggle
@@ -1654,55 +1809,21 @@ function applyDeepLink() {
 // NETWORK HEALTH PULSE
 // ==========================================
 async function updateNetworkPulse() {
-    let indicator = document.getElementById('network-pulse');
-    if (!indicator) {
-        indicator = document.createElement('div');
-        indicator.id = 'network-pulse';
-        indicator.className = 'network-pulse';
-        indicator.title = 'Network health';
-        // Place in the price bar (right side)
-        const priceContent = document.querySelector('.price-bar-content');
-        if (priceContent) {
-            priceContent.appendChild(indicator);
-        } else {
-            // Fallback: next to refresh button
-            const refreshBtn = document.getElementById('refresh-btn');
-            if (refreshBtn) {
-                refreshBtn.parentElement.insertBefore(indicator, refreshBtn.nextSibling);
-            }
-        }
-    }
-    
+    // Network liveness is now shown by the Living Uptime Clock (block pulse dot)
+    // This function just feeds block data as a TzKT fallback
     try {
         const response = await fetch(`${API_URLS.tzkt}/head`);
-        if (!response.ok) throw new Error('head fetch failed');
+        if (!response.ok) return;
         const head = await response.json();
-        
-        const blockTime = new Date(head.timestamp);
-        const now = new Date();
-        const ageSec = (now - blockTime) / 1000;
-        
-        // Green: <30s (normal), Yellow: 30-120s (slightly delayed), Red: >120s (issue)
-        let status, label;
-        if (ageSec < 30) {
-            status = 'healthy';
-            label = 'Network healthy — blocks on schedule';
-        } else if (ageSec < 120) {
-            status = 'delayed';
-            label = `Block ${Math.round(ageSec)}s old — slight delay`;
-        } else {
-            status = 'warning';
-            label = `Last block ${Math.round(ageSec)}s ago — possible issue`;
+
+        if (window._updateUptimeClock) {
+            window._updateUptimeClock({
+                blockLevel: head.level,
+                blockTime: head.timestamp,
+            });
         }
-        
-        indicator.className = `network-pulse ${status}`;
-        indicator.title = label;
-        const statusText = status === 'healthy' ? 'Live' : status === 'delayed' ? 'Delayed' : 'Issue';
-        indicator.innerHTML = `<span class="pulse-dot"></span><span class="pulse-label">${statusText}</span>`;
     } catch (e) {
-        indicator.className = 'network-pulse unknown';
-        indicator.title = 'Network status unknown';
-        indicator.innerHTML = `<span class="pulse-dot"></span><span class="pulse-label">—</span>`;
+        // Silent — RPC poller in uptime clock is the primary source
     }
 }
 

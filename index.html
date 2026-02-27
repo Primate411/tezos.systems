@@ -218,6 +218,9 @@
                         <span>🧩</span> <span class="nav-label">Features</span>
                     </button>
                     <div class="settings-dropdown" id="features-dropdown">
+                        <button id="comparison-toggle" class="glass-button" aria-label="Toggle Tezos vs Other Chains" title="Chains: ON">
+                            <span class="comparison-toggle-icon">⛓️</span> <span class="dropdown-label">Chains</span>
+                        </button>
                         <button id="leaderboard-toggle" class="glass-button" aria-label="Toggle Baker Leaderboard" title="Leaderboard: OFF">
                             <span class="leaderboard-toggle-icon">🏆</span> <span class="dropdown-label">Leaderboard</span>
                         </button>
@@ -263,7 +266,7 @@
                         </button>
                         <div class="dropdown-divider"></div>
                         <button id="about-tezos-btn" class="glass-button" aria-label="What is Tezos?" title="What is Tezos?">
-                            <span>❓</span> <span class="dropdown-label">About Tezos</span>
+                            <span>❓</span> <span class="dropdown-label">About</span>
                         </button>
                         <button id="shortcuts-btn" class="glass-button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts">
                             <span>⌨️</span> <span class="dropdown-label">Shortcuts</span>
@@ -303,32 +306,28 @@
                     </div>
                     <div class="upgrade-highlight" id="upgrade-highlight"></div>
                 </div>
-                <div class="upgrade-badges">
-                    <div class="upgrade-badge stake-o-meter-badge" id="staking-gauge-container">
-                        <canvas id="staking-gauge-canvas" width="100" height="60"></canvas>
-                        <button class="info-button stake-o-meter-info" id="stake-o-meter-info-btn" aria-label="About Adaptive Issuance" title="About Adaptive Issuance">
-                            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
+                <!-- Living Uptime Clock -->
+                <div class="uptime-clock" id="uptime-clock">
+                    <div class="uptime-counter" id="uptime-counter">—</div>
+                    <div class="uptime-tagline">LIVE · ZERO FORKS · ZERO OUTAGES</div>
+                    <div class="uptime-metrics">
+                        <div class="uptime-metric">
+                            <span class="uptime-metric-value" id="uptime-bakers">—</span>
+                            <span class="uptime-metric-label">bakers</span>
+                        </div>
+                        <div class="uptime-metric">
+                            <span class="uptime-metric-value">6s</span>
+                            <span class="uptime-metric-label">blocks</span>
+                        </div>
+                        <div class="uptime-metric">
+                            <span class="uptime-metric-value" id="uptime-staked">—</span>
+                            <span class="uptime-metric-label">staked</span>
+                        </div>
                     </div>
-                    <div class="upgrade-badge" style="position:relative;">
-                        <span class="badge-text">Zero Forks</span>
-                        <span class="badge-subtext" id="fork-free-days">Self-amending blockchain</span>
-                        <button class="info-button stake-o-meter-info" id="zero-forks-info-btn" aria-label="About Zero Forks" title="About Zero Forks">
-                            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="upgrade-badge" style="position:relative;">
-                        <span class="badge-text" id="days-live">—</span>
-                        <span class="badge-subtext">Days live • 0 outages</span>
-                        <button class="info-button stake-o-meter-info" id="days-live-info-btn" aria-label="About Tezos Uptime" title="About Tezos Uptime">
-                            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
-                        </button>
+                    <div class="uptime-block-pulse">
+                        <span>Block <span id="uptime-block-number">—</span></span>
+                        <span class="uptime-pulse-dot" id="uptime-pulse-dot" title="Network healthy — blocks on schedule"></span>
+                        <span id="uptime-block-age">—</span>
                     </div>
                 </div>
             </div>
@@ -360,8 +359,8 @@
         </div>
     </section>
 
-    <!-- How Tezos Compares — permanently visible, part of History narrative -->
-    <section class="stats-section" id="comparison-section">
+    <!-- How Tezos Compares — defaults visible, toggleable from Features menu -->
+    <section class="stats-section toggleable-section" id="comparison-section">
         <div class="section-header">
             <h2 class="section-title">⛓️ Tezos vs Other Chains</h2>
             <button class="info-button" id="comparison-info-btn" aria-label="About comparison data" title="About comparison data">
