@@ -334,6 +334,19 @@ body::before {
     opacity: 0.5;
 }
 
+.price-cta {
+    font-size: 0.72rem;
+    color: var(--text-secondary, rgba(255,255,255,0.5));
+    text-decoration: none;
+    opacity: 0.7;
+    transition: opacity 0.2s, color 0.2s;
+    white-space: nowrap;
+}
+.price-cta:hover {
+    opacity: 1;
+    color: var(--accent-cyan, #00d4ff);
+}
+
 @keyframes pricePulse {
     0% { text-shadow: 0 0 8px var(--accent-cyan); }
     100% { text-shadow: none; }
@@ -362,7 +375,8 @@ body::before {
     }
     .price-mcap,
     .price-alt,
-    .price-separator {
+    .price-separator,
+    .price-cta {
         display: none;
     }
 }
@@ -2606,13 +2620,6 @@ body.high-combo .stat-card {
 }
 
 @media (max-width: 1024px) {
-    .toolbar-cta-label,
-    .toolbar-cta-ext {
-        display: none;
-    }
-    .toolbar-separator {
-        display: none;
-    }
     .controls { gap: 0.5rem; }
     .nav-label { display: none; }
 }
@@ -9515,6 +9522,9 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 .morning-brief-earnings .brief-title { color: var(--accent-cyan, #00d4ff); }
 .morning-brief-baker .brief-title { color: var(--color-success, #10b981); }
 .morning-brief-story .brief-title { color: #a78bfa; }
+.morning-brief-overnight .brief-title { color: #f59e0b; }
+.overnight-bullets { display: flex; flex-direction: column; gap: 4px; }
+.overnight-bullet { font-size: 0.82rem; line-height: 1.5; }
 
 /* Collapsed state */
 .brief-collapsed {

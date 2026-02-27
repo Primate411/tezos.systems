@@ -12,6 +12,7 @@ const OCTEZ = API_URLS.octez;
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const REWARDS_HISTORY_KEY = 'tezos-systems-my-rewards-history';
 const LAST_PORTFOLIO_KEY = 'tezos-systems-my-last-portfolio';
+const OVERNIGHT_KEY = 'tezos-systems-overnight-snapshot';
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd';
 
 // Protocol eras — map block levels to protocol names
@@ -178,6 +179,107 @@ function countUpgradesSince(firstActivityLevel) {
 /**
  * Build the Morning Brief — rotating card with 3 states
  */
+// ─── Overnight Report ──────────────────────────────────
+
+function saveOvernightSnapshot(data) {
+    try {
+        localStorage.setItem(OVERNIGHT_KEY, JSON.stringify({
+            ts: Date.now(),
+            balance: data.totalXTZ,
+            staked: data.staked,
+            xtzPrice: data.xtzPrice,
+            usdValue: data.xtzPrice ? data.totalXTZ * data.xtzPrice : null,
+            rewardsLastCycle: data.rewardsLastCycle,
+            rewardStreak: data.rewardStreak,
+            bakerName: data.bakerName,
+            healthScore: data.healthScore,
+            attestRate: data.attestRate,
+            apyRate: data.apyRate,
+        }));
+    } catch {}
+}
+
+function getOvernightSnapshot() {
+    try {
+        const raw = localStorage.getItem(OVERNIGHT_KEY);
+        return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+}
+
+function formatTimeSince(ms) {
+    const hours = Math.floor(ms / 3600000);
+    const mins = Math.floor((ms % 3600000) / 60000);
+    if (hours >= 24) return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+    if (hours > 0) return `${hours}h ${mins}m`;
+    return `${mins}m`;
+}
+
+function buildOvernightCard(data, snapshot) {
+    if (!snapshot || !snapshot.ts) return null;
+    const elapsed = Date.now() - snapshot.ts;
+    if (elapsed < 3600000) return null; // Skip if < 1 hour
+
+    const bullets = [];
+
+    // Balance change
+    const balDelta = data.totalXTZ - (snapshot.balance || 0);
+    if (Math.abs(balDelta) >= 0.01) {
+        const sign = balDelta >= 0 ? '+' : '';
+        const color = balDelta >= 0 ? 'var(--color-success, #10b981)' : 'var(--color-error, #ef4444)';
+        bullets.push(`<span style="color:${color}"><strong>${sign}${balDelta.toFixed(2)} XTZ</strong></span> balance change`);
+    }
+
+    // USD delta
+    if (data.xtzPrice && snapshot.usdValue) {
+        const usdDelta = (data.totalXTZ * data.xtzPrice) - snapshot.usdValue;
+        if (Math.abs(usdDelta) >= 0.01) {
+            const sign = usdDelta >= 0 ? '+' : '';
+            const color = usdDelta >= 0 ? 'var(--color-success, #10b981)' : 'var(--color-error, #ef4444)';
+            bullets.push(`Portfolio <span style="color:${color}"><strong>${sign}$${Math.abs(usdDelta).toFixed(2)}</strong></span> in USD`);
+        }
+    }
+
+    // Price movement
+    if (data.xtzPrice && snapshot.xtzPrice) {
+        const pricePct = ((data.xtzPrice - snapshot.xtzPrice) / snapshot.xtzPrice) * 100;
+        if (Math.abs(pricePct) >= 0.5) {
+            const sign = pricePct >= 0 ? '+' : '';
+            const color = pricePct >= 0 ? 'var(--color-success, #10b981)' : 'var(--color-error, #ef4444)';
+            bullets.push(`XTZ price <span style="color:${color}"><strong>${sign}${pricePct.toFixed(1)}%</strong></span> ($${data.xtzPrice.toFixed(3)})`);
+        }
+    }
+
+    // Rewards
+    if (data.rewardsLastCycle > 0) {
+        const usd = data.xtzPrice ? ` ($${(data.rewardsLastCycle * data.xtzPrice).toFixed(2)})` : '';
+        bullets.push(`Earned <strong>+${data.rewardsLastCycle.toFixed(2)} XTZ</strong>${usd} last cycle`);
+    }
+
+    // Baker health change
+    if (snapshot.healthScore !== null && data.healthScore !== null && snapshot.healthScore !== data.healthScore) {
+        const better = data.healthScore > snapshot.healthScore;
+        const color = better ? 'var(--color-success, #10b981)' : 'var(--color-error, #ef4444)';
+        bullets.push(`Baker health <span style="color:${color}"><strong>${better ? 'improved' : 'declined'}</strong></span> — ${data.health.icon} ${data.attestRate || ''}%`);
+    }
+
+    // Streak milestone
+    if (data.rewardStreak > 0 && data.rewardStreak > (snapshot.rewardStreak || 0)) {
+        bullets.push(`Reward streak: <strong>${data.rewardStreak} cycles</strong> 🔥`);
+    }
+
+    // Calm fallback
+    if (bullets.length === 0) {
+        bullets.push(`Your <strong>${fmtCompact(data.totalXTZ)} XTZ</strong> is quietly compounding at <strong>${data.apyRate}%</strong>`);
+    }
+
+    return {
+        icon: '🌙',
+        title: `While you were away (${formatTimeSince(elapsed)})`,
+        body: `<div class="overnight-bullets">${bullets.map(b => `<span class="overnight-bullet">· ${b}</span>`).join('')}</div>`,
+        accent: 'overnight',
+    };
+}
+
 function buildMorningBrief(data) {
     const cards = [];
 
@@ -743,6 +845,11 @@ async function renderMorningBrief(address, force = false) {
         };
 
         const cards = buildMorningBrief(data);
+
+        // Overnight Report — prepend if returning user
+        const overnight = buildOvernightCard(data, getOvernightSnapshot());
+        if (overnight) cards.unshift(overnight);
+        saveOvernightSnapshot(data);
 
         // Render the brief
         let currentCard = 0;
