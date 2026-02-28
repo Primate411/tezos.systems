@@ -7,11 +7,12 @@
       },
       {
         "label": "📊 Standard",
-        "text": "{value} independent validators running Tezos consensus.\n\nNo permission needed. No minimum stake. Just bake."
+        "text": "{value} independent validators running Tezos consensus.\n\nNo permission needed. 6,000 XTZ minimum stake. Just bake.",
+        "_audit": "FIXED: removed 'No minimum stake' — min is 6,000 XTZ"
       },
       {
         "label": "📊 Standard",
-        "text": "Current Tezos baker count: {value}\n\nEvery single one ran by an independent operator. That's decentralization you can count."
+        "text": "Current Tezos baker count: {value}\n\nEvery single one run by an independent operator. That's decentralization you can count."
       },
       {
         "label": "🔥 Dunk",
@@ -19,7 +20,8 @@
       },
       {
         "label": "🔥 Dunk",
-        "text": "ETH requires 32 ETH (~$64K+) to solo validate.\nTezos requires... a Raspberry Pi and some XTZ.\n\n{value} bakers chose the permissionless option."
+        "text": "ETH requires 32 ETH to solo validate.\nTezos requires 6,000 XTZ and a Raspberry Pi.\n\n{value} bakers chose the permissionless option.",
+        "_audit": "FIXED: removed dollar amount (goes stale), added actual Tezos minimum"
       },
       {
         "label": "🔥 Dunk",
@@ -31,7 +33,8 @@
       },
       {
         "label": "💪 Flex",
-        "text": "{value} validators. No foundation permission. No expensive hardware requirement.\n\nThat's what permissionless actually looks like."
+        "text": "{value} validators. No foundation permission. 6,000 XTZ minimum. No expensive hardware.\n\nThat's what permissionless actually looks like.",
+        "_audit": "FIXED: added actual minimum stake"
       },
       {
         "label": "💪 Flex",
@@ -45,7 +48,8 @@
       {
         "label": "📢 Recruit",
         "textDown": "Fewer bakers = bigger slice of the pie. {value} and dropping.\n\nSeriously, if you hold XTZ and aren't baking, what are you doing?",
-        "textUp": "Every new baker makes Tezos stronger. Currently at {value}.\n\nNo lockup, no slashing, no $64K minimum. What's stopping you?"
+        "textUp": "Every new baker makes Tezos stronger. Currently at {value}.\n\nNo lockup, no slashing, 6,000 XTZ minimum. What's stopping you?",
+        "_audit": "FIXED: removed '$64K minimum' comparison, added actual Tezos minimum"
       },
       {
         "label": "❓ Question",
@@ -53,39 +57,47 @@
       },
       {
         "label": "❓ Question",
-        "text": "Genuine question: why would anyone stake on a chain with slashing risk when Tezos has {value} bakers earning yield with zero slashing?"
+        "text": "Genuine question: why would anyone stake on a chain with slashing risk when Tezos has {value} bakers earning yield with no slashing for downtime?"
       },
       {
         "label": "📈 Compare",
-        "text": "Validator accessibility:\n• Tezos: {value} bakers (anyone can join, low hardware)\n• ETH: ~1M validators (32 ETH minimum, ~$64K+)\n• SOL: ~1,800 (expensive hardware required)\n\nPermissionless means permissionless."
+        "text": "Validator accessibility:\n• Tezos: {value} bakers (6,000 XTZ min, low hardware)\n• ETH: ~1M validators (32 ETH minimum)\n• SOL: ~1,800 (expensive hardware required)\n\nPermissionless means permissionless.",
+        "_audit": "FIXED: added Tezos minimum, removed dollar amounts"
       },
       {
         "label": "💪 Flex",
-        "text": "250 independent bakers securing Tezos.\n\nNo permission needed. No minimum stake requirements. Just run a node and start baking."
+        "text": "{value} independent bakers securing Tezos.\n\nNo permission needed. 6,000 XTZ minimum stake. Just run a node and start baking.",
+        "_audit": "FIXED: was hardcoded '250', now uses {value}. Added correct minimum."
       },
       {
         "label": "📊 Standard",
-        "text": "Home bakers welcome: Tezos runs on Raspberry Pis, not data centers.\n\n250 validators proving decentralization works."
+        "text": "Home bakers welcome: Tezos runs on Raspberry Pis, not data centers.\n\n{value} validators proving decentralization works.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "📢 Recruit",
-        "text": "Want to become a Tezos baker? You need:\n• A computer\n• Internet\n• Some XTZ to stake\n\nThat's it. No foundation approval required."
+        "text": "Want to become a Tezos baker? You need:\n• A computer (even a Pi)\n• Internet\n• 6,000 XTZ to stake\n\nThat's it. No foundation approval required.",
+        "_audit": "FIXED: added actual minimum stake requirement"
       },
       {
         "label": "💪 Flex",
-        "text": "250 bakers. Zero gatekeepers.\n\nTezos: where permissionless actually means permissionless."
+        "text": "{value} bakers. Zero gatekeepers.\n\nTezos: where permissionless actually means permissionless.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "🔥 Dunk",
-        "text": "Other chains: 'Decentralized*'\n*21 validators, foundation-approved\n\nTezos: 250 independent bakers, anyone can join"
+        "text": "Other chains: 'Decentralized*'\n*21 validators, foundation-approved\n\nTezos: {value} independent bakers, anyone can join",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "❓ Question",
-        "text": "Why does Tezos have 250+ active bakers when other chains struggle with validator diversity?\n\nMaybe permissionless design actually matters."
+        "text": "Why does Tezos have {value} active bakers when other chains struggle with validator diversity?\n\nMaybe permissionless design actually matters.",
+        "_audit": "FIXED: was hardcoded '250+'"
       },
       {
         "label": "⚔️ Compare",
-        "text": "Ethereum: 900,000+ validators (mostly Lido)\nTezos: 250 independent bakers\n\nGuess which one has actual decentralization?"
+        "text": "Ethereum: 900,000+ validators (mostly Lido)\nTezos: {value} independent bakers\n\nGuess which one has actual decentralization?",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "🔥 Dunk",
@@ -93,15 +105,18 @@
       },
       {
         "label": "📊 Standard",
-        "text": "250 bakers keeping Tezos alive 24/7.\n\nSome run from bedrooms. Some from offices. All keeping the network permissionless."
+        "text": "{value} bakers keeping Tezos alive 24/7.\n\nSome run from bedrooms. Some from offices. All keeping the network permissionless.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "🔥 Dunk",
-        "text": "Tezos baker requirements:\n✅ Any computer\n✅ Basic tech skills\n✅ Some XTZ\n\nSolana validator requirements:\n❌ $100k+ server\n❌ Data center\n❌ Prayer circle"
+        "text": "Tezos baker requirements:\n✅ Any computer\n✅ Basic tech skills\n✅ 6,000 XTZ\n\nSolana validator requirements:\n❌ $100k+ server\n❌ Data center\n❌ Prayer circle",
+        "_audit": "FIXED: added actual XTZ minimum"
       },
       {
         "label": "💪 Flex",
-        "text": "250 active bakers prove that low barriers to entry create real decentralization.\n\nNot just in theory. In practice."
+        "text": "{value} active bakers prove that low barriers to entry create real decentralization.\n\nNot just in theory. In practice.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "⚔️ Compare",
@@ -109,11 +124,13 @@
       },
       {
         "label": "📢 Recruit",
-        "text": "Developer looking for a truly decentralized chain to build on?\n\nTezos: 250 independent bakers, no validator oligarchy"
+        "text": "Developer looking for a truly decentralized chain to build on?\n\nTezos: {value} independent bakers, no validator oligarchy",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "📊 Standard",
-        "text": "250 bakers. 250 different setups. 250 independent operators.\n\nThis is what decentralization looks like."
+        "text": "{value} bakers. {value} different setups. {value} independent operators.\n\nThis is what decentralization looks like.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "🔥 Dunk",
@@ -121,63 +138,128 @@
       },
       {
         "label": "📢 Recruit",
-        "text": "Want to secure a billion-dollar network?\n\nTezos makes it possible from your living room. 250 bakers already proving it works."
+        "text": "Want to secure a billion-dollar network?\n\nTezos makes it possible from your living room. {value} bakers already proving it works.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "💪 Flex",
-        "text": "250 independent bakers > 4 mining pools"
+        "text": "{value} independent bakers > 4 mining pools",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "📊 Standard",
-        "text": "Permissionless baking isn't just a buzzword on Tezos.\n\n250 active bakers prove anyone can participate in consensus."
+        "text": "Permissionless baking isn't just a buzzword on Tezos.\n\n{value} active bakers prove anyone can participate in consensus.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "❓ Question",
-        "text": "How many Tezos bakers does it take to secure a network?\n\n250 independent ones, apparently."
+        "text": "How many Tezos bakers does it take to secure a network?\n\n{value} independent ones, apparently.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "📢 Recruit",
-        "text": "Tezos: Come for the self-amendment, stay for the actual decentralization.\n\n250 bakers can't all be wrong."
+        "text": "Tezos: Come for the self-amendment, stay for the actual decentralization.\n\n{value} bakers can't all be wrong.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "📊 Standard",
-        "text": "Some chains have validators. Tezos has bakers.\n\nSemantics? Maybe. But 250 independent operators isn't."
+        "text": "Some chains have validators. Tezos has bakers.\n\nSemantics? Maybe. But {value} independent operators isn't.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "💪 Flex",
-        "text": "Blockchain trilemma solved:\n✅ Secure (250 bakers)\n✅ Decentralized (permissionless)\n✅ Scalable (6s blocks)\n\nTezos checked all boxes."
+        "text": "Blockchain trilemma solved:\n✅ Secure ({value} bakers)\n✅ Decentralized (permissionless)\n✅ Scalable (6s blocks)\n\nTezos checked all boxes.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "⚔️ Compare",
-        "text": "Why run a Tezos baker instead of an ETH validator?\n\n250 independent bakers > 900k Lido nodes"
+        "text": "Why run a Tezos baker instead of an ETH validator?\n\n{value} independent bakers > 900k Lido nodes",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "💪 Flex",
-        "text": "250 bakers keeping Tezos decentralized while other chains chase validator count statistics.\n\nQuality > quantity."
+        "text": "{value} bakers keeping Tezos decentralized while other chains chase validator count statistics.\n\nQuality > quantity.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "🔥 Dunk",
-        "text": "Decentralization speedrun:\n1. Make validation accessible\n2. Remove gatekeepers\n3. Wait for 250 independent bakers\n\nTezos any%"
+        "text": "Decentralization speedrun:\n1. Make validation accessible\n2. Remove gatekeepers\n3. Wait for {value} independent bakers\n\nTezos any%",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "📢 Recruit",
-        "text": "Building on a chain with actual validator diversity?\n\nTezos: 250 independent bakers, zero foundation control"
+        "text": "Building on a chain with actual validator diversity?\n\nTezos: {value} independent bakers, zero foundation control",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "📊 Standard",
-        "text": "250 Tezos bakers proving that decentralization doesn't require sacrificing performance or security."
+        "text": "{value} Tezos bakers proving that decentralization doesn't require sacrificing performance or security.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "📊 Standard",
-        "text": "Home baking: alive and well on Tezos.\n\n250 independent bakers, many running from bedrooms and basements."
+        "text": "Home baking: alive and well on Tezos.\n\n{value} independent bakers, many running from bedrooms and basements.",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "❓ Question",
-        "text": "Are 250 independent validators enough for decentralization, or do you need 900,000 controlled by one entity?"
+        "text": "Are {value} independent validators enough for decentralization, or do you need 900,000 controlled by one entity?",
+        "_audit": "FIXED: was hardcoded '250'"
       },
       {
         "label": "💪 Flex",
-        "text": "Tezos solved the validator centralization problem by making validation actually accessible.\n\n250 bakers and counting."
+        "text": "Tezos solved the validator centralization problem by making validation actually accessible.\n\n{value} bakers and counting.",
+        "_audit": "FIXED: was hardcoded '250'"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} bakers. 6-second blocks. 1-day cycles. Zero slashing.\n\nTallinn protocol keeping Tezos lean and fast.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "ETH slashes you for downtime. Tezos deactivates you at 67% missed attestations and lets you come back.\n\n{value} bakers sleep well at night.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} bakers earning 8-10% APY with adaptive issuance. No slashing. No lockups.\n\nThe economics just make sense.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "6,000 XTZ and a Raspberry Pi. That's your ticket to becoming one of {value} Tezos bakers.\n\nNo slashing risk. Start here → https://docs.tez.capital",
+        "_audit": "NEW"
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "32 ETH to validate Ethereum.\n6,000 XTZ to bake on Tezos.\n\nOne of these is accessible. {value} bakers already figured out which.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Tallinn protocol. {value} active bakers. 6-second finality. Adaptive issuance.\n\nTezos quietly running one of the most efficient PoS systems in crypto.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} bakers. Zero slashing events. Ever.\n\nTezos proves you don't need to punish validators to secure a network.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Solana needs $100K hardware.\nETH needs 32 ETH.\nTezos needs 6,000 XTZ and a computer you already own.\n\n{value} bakers made the obvious choice.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Tezos baking rewards adjust dynamically with adaptive issuance. More stakers = lower rate. Fewer = higher.\n\n{value} bakers. Room for more.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value} Tezos bakers upgrading protocols through on-chain governance while other chains wait for foundation permission.\n\nWhich model sounds more decentralized to you?",
+        "_audit": "NEW"
       }
     ],
     "tz4-adoption": [
@@ -263,7 +345,7 @@
       },
       {
         "label": "❓ Question",
-        "text": "Why use outdated cryptography when you can upgrade to tz4?\n\nBLS signatures aren't just faster—they're the future."
+        "text": "Why use outdated cryptography when you can upgrade to tz4?\n\nBLS signatures aren't just faster — they're the future."
       },
       {
         "label": "⚔️ Compare",
@@ -283,7 +365,7 @@
       },
       {
         "label": "📊 Standard",
-        "text": "tz4 addresses aren't just new—they're cryptographically superior.\n\nBLS signatures making Tezos consensus faster and smaller."
+        "text": "tz4 addresses aren't just new — they're cryptographically superior.\n\nBLS signatures making Tezos consensus faster and smaller."
       },
       {
         "label": "🔥 Dunk",
@@ -299,7 +381,7 @@
       },
       {
         "label": "📢 Recruit",
-        "text": "Building with modern cryptography matters.\n\ntz4 addresses bringing BLS signatures to Tezos—no waiting required."
+        "text": "Building with modern cryptography matters.\n\ntz4 addresses bringing BLS signatures to Tezos — no waiting required."
       },
       {
         "label": "💪 Flex",
@@ -307,7 +389,7 @@
       },
       {
         "label": "📊 Standard",
-        "text": "tz4 adoption showing that Tezos can upgrade anything—even its own cryptographic foundations."
+        "text": "tz4 adoption showing that Tezos can upgrade anything — even its own cryptographic foundations."
       },
       {
         "label": "📊 Standard",
@@ -340,12 +422,63 @@
       {
         "label": "💪 Flex",
         "text": "Migrating to tz4 addresses means joining Tezos's cryptographic future.\n\nBLS signatures: better math for better consensus."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "tz4 accounts now staking under Tallinn's adaptive issuance.\n\nBLS signatures aren't just for consensus keys anymore — they're powering the next era of Tezos staking.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Other chains need a committee vote to change a hash function.\n\nTezos bakers migrated to BLS signatures on their own. {value} and counting.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "💪 Flex",
+        "text": "tz4 adoption at {value}. Each migration makes consensus lighter for everyone.\n\nNetwork effects, but for cryptography.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Staking with a tz4 address on Tallinn means you're using BLS signatures, adaptive issuance, and zero-slashing consensus.\n\nThe most advanced PoS stack in crypto. Period.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "{value} tz4 adoption. 6-second blocks. 63× bandwidth savings.\n\nTezos consensus is getting faster while other chains add more hardware requirements.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "BLS signature migration at {value}.\n\nEvery tz4 baker reduces consensus bandwidth for the entire network. Collective improvement, no coordination needed.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tallinn + tz4 = consensus cryptography that upgrades without asking permission.\n\n{value} bakers already on the new standard.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "❓ Question",
+        "text": "If BLS signatures are objectively better — 63× smaller, aggregatable, faster to verify — why isn't {value} adoption 100% yet?\n\nMigrate already.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Ethereum validators: same ECDSA since 2015.\nTezos bakers: voluntarily migrating to BLS at {value} adoption.\n\nOne ecosystem evolves. The other waits for EIPs.",
+        "_audit": "NEW"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Setting up a new Tezos baker? Use a tz4 address from the start.\n\nBLS signatures, adaptive issuance rewards, future-proof cryptography.\nhttps://docs.tez.capital",
+        "_audit": "NEW"
       }
     ],
     "current-cycle": [
       {
         "label": "📊 Standard",
-        "text": "Tezos cycles: 8192 blocks of deterministic finality.\n\nTenderbake consensus making every block count."
+        "text": "Tezos cycles: 14,400 blocks of deterministic finality.\n\nTenderbake consensus making every block count.",
+        "note": "FIXED: 8192→14,400"
       },
       {
         "label": "💪 Flex",
@@ -357,7 +490,8 @@
       },
       {
         "label": "📊 Standard",
-        "text": "Tezos cycles: 8192 blocks, deterministic finality, zero reorganizations.\n\nTenderbake proving consensus can be predictable."
+        "text": "Tezos cycles: 14,400 blocks, deterministic finality, zero reorganizations.\n\nTenderbake proving consensus can be predictable.",
+        "note": "FIXED: 8192→14,400"
       },
       {
         "label": "📢 Recruit",
@@ -373,7 +507,8 @@
       },
       {
         "label": "💪 Flex",
-        "text": "8192 blocks per cycle, each one deterministically final.\n\nTezos showing how consensus should work."
+        "text": "14,400 blocks per cycle, each one deterministically final.\n\nTezos showing how consensus should work.",
+        "note": "FIXED: 8192→14,400"
       },
       {
         "label": "❓ Question",
@@ -401,21 +536,56 @@
       },
       {
         "label": "📊 Standard",
-        "text": "Current cycle: another 8192 blocks of guaranteed finality on Tezos.\n\nTenderbake making consensus boring in the best way."
+        "text": "Current cycle: another 14,400 blocks of guaranteed finality on Tezos.\n\nTenderbake making consensus boring in the best way.",
+        "note": "FIXED: 8192→14,400"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "~1 day per cycle on Tezos under Tallinn. 14,400 blocks of deterministic finality, every single day.\n\nGovernance, rewards, and consensus — all on a daily heartbeat."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Daily cycles on Tezos mean daily reward payouts, daily governance ticks, and 14,400 deterministically final blocks.\n\nThe protocol runs like clockwork."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Ethereum finality: 2 epochs (~13 minutes, probabilistic).\nTezos: every single block is final. 14,400 per cycle. ~1 day cycles.\n\nDeterministic finality isn't a roadmap item on Tezos. It shipped in 2022."
+      },
+      {
+        "label": "❓ Question",
+        "text": "Tezos cycles used to take ~3 days. Now they take ~1 day under Tallinn.\n\nFaster cycles = faster rewards = faster governance. Why would you want it any other way?"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Every Tezos cycle: 14,400 blocks baked, attested, and finalized. Zero reorgs since Tenderbake launched.\n\nThis is what deterministic consensus looks like in production."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Cycle {value} on Tezos. Each one tighter than the last.\n\nFrom multi-day cycles to daily cycles — the protocol keeps compressing without breaking."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Your chain: 'finality in ~15 minutes (probably)'\nTezos: 'finality in 12 seconds (mathematically guaranteed)'\n\n14,400 blocks per cycle. Every one final. Every day."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Need a chain where 'final' means final? Tezos cycles deliver 14,400 deterministically final blocks per day.\n\nNo reorgs. No rollbacks. No 'wait for more confirmations.'"
       }
     ],
     "block-times": [
       {
         "label": "📊 Standard",
-        "text": "Tezos block time evolution:\n30s → 15s → 10s → 8s → 6s\n\nTallinn upgrade proving iterative improvement works."
+        "text": "Tezos block time evolution:\n60s → 30s → 15s → 10s → 8s → 6s\n\nTallinn upgrade proving iterative improvement works.",
+        "note": "FIXED: Added 60s starting point"
       },
       {
         "label": "💪 Flex",
-        "text": "6-second blocks on Tezos.\n\nFrom 30 seconds to 6 seconds without breaking anything."
+        "text": "6-second blocks on Tezos.\n\nFrom 60 seconds to 6 seconds without breaking anything."
       },
       {
         "label": "📊 Standard",
-        "text": "Block time progression: 30→15→10→8→6 seconds.\n\nTezos getting faster while staying stable."
+        "text": "Block time progression: 60→30→15→10→8→6 seconds.\n\nTezos getting faster while staying stable.",
+        "note": "FIXED: Added 60s starting point"
       },
       {
         "label": "📊 Standard",
@@ -431,11 +601,12 @@
       },
       {
         "label": "⚔️ Compare",
-        "text": "6-second blocks vs 15-second blocks: Tezos vs Ethereum block times.\n\nGuess which one confirms faster?"
+        "text": "6-second blocks vs 12-second blocks: Tezos vs Ethereum block times.\n\nGuess which one confirms faster?"
       },
       {
         "label": "💪 Flex",
-        "text": "Block time optimization on Tezos: steady progress from 30s to 6s.\n\nNo dramatic rewrites. Just better engineering."
+        "text": "Block time optimization on Tezos: steady progress from 60s to 6s.\n\nNo dramatic rewrites. Just better engineering.",
+        "note": "FIXED: 30s→60s"
       },
       {
         "label": "❓ Question",
@@ -443,7 +614,8 @@
       },
       {
         "label": "📊 Standard",
-        "text": "Tallinn upgrade bringing 6-second blocks to Tezos.\n\nBecause waiting 30 seconds was so 2018."
+        "text": "Tallinn upgrade bringing 6-second blocks to Tezos.\n\nBecause waiting 60 seconds was so 2018.",
+        "note": "FIXED: 30→60"
       },
       {
         "label": "📢 Recruit",
@@ -451,11 +623,12 @@
       },
       {
         "label": "💪 Flex",
-        "text": "30s → 6s block times on Tezos.\n\n5x faster blocks, same reliability. This is how you optimize."
+        "text": "60s → 6s block times on Tezos.\n\n10x faster blocks, same reliability. This is how you optimize.",
+        "note": "FIXED: 30s→60s, 5x→10x"
       },
       {
         "label": "⚔️ Compare",
-        "text": "6-second deterministic finality on Tezos > 15-second probabilistic finality elsewhere."
+        "text": "6-second deterministic finality on Tezos > 12-second probabilistic finality elsewhere."
       },
       {
         "label": "📊 Standard",
@@ -463,11 +636,12 @@
       },
       {
         "label": "❓ Question",
-        "text": "Why wait 15 seconds for a block when you can wait 6?\n\nTallinn upgrade making Tezos the fastest deterministic chain."
+        "text": "Why wait 12 seconds for a block when you can wait 6?\n\nTallinn upgrade making Tezos the fastest deterministic chain."
       },
       {
         "label": "💪 Flex",
-        "text": "From half-minute blocks to 6-second blocks.\n\nTezos proving optimization doesn't require starting over."
+        "text": "From minute-long blocks to 6-second blocks.\n\nTezos proving optimization doesn't require starting over.",
+        "note": "FIXED: half-minute→minute-long"
       },
       {
         "label": "📊 Standard",
@@ -483,89 +657,174 @@
       },
       {
         "label": "❓ Question",
-        "text": "How do you reduce block times by 80% without breaking consensus?\n\nTezos: careful engineering and gradual optimization."
+        "text": "How do you reduce block times by 90% without breaking consensus?\n\nTezos: careful engineering and gradual optimization.",
+        "note": "FIXED: 80%→90% (60→6)"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "6-second blocks. 14,400 per cycle. Every single one deterministically final.\n\nTezos under Tallinn is a different beast."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "ETH block time: 12 seconds, unchanged since The Merge.\nTezos block time: 6 seconds, improved 5 times through governance.\n\nOne evolves. One doesn't."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "A new block every 6 seconds. 10 per minute. 14,400 per day.\n\nTezos under Tallinn is a machine that never stops."
+      },
+      {
+        "label": "❓ Question",
+        "text": "Tezos has improved its block time 5 times through on-chain governance.\n\nHas your chain ever improved block times through a vote? Even once?"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Tallinn protocol: 6-second blocks on a chain that's been live since June 2018.\n\n7+ years of continuous improvement, zero downtime."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Bitcoin: 10-minute blocks since 2009.\nEthereum: 12-second blocks since 2022.\nTezos: 6-second blocks, improved 5 times.\n\nSelf-amendment means never settling."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Every 6 seconds, a new deterministically final block on Tezos.\n\nNo reorgs. No probabilistic guessing. Just finality, on a loop."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Need fast confirmations without sacrificing decentralization?\n\n6-second blocks. 250 independent bakers. Deterministic finality. Tezos."
       }
     ],
     "zero-downtime": [
       {
         "label": "💪 Flex",
-        "text": "2,782 days of uptime.\n\nTezos: the chain that never sleeps, never stops, never fails."
+        "text": "{value} days of uptime.\n\nTezos: the chain that never sleeps, never stops, never fails.",
+        "note": "FIXED: replaced hardcoded 2,782 with {value}"
       },
       {
         "label": "📊 Standard",
-        "text": "Zero outages. Zero downtime. 2,782 days and counting.\n\nTezos proving reliability isn't negotiable."
+        "text": "Zero outages. Zero downtime. {value} days and counting.\n\nTezos proving reliability isn't negotiable.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "🔥 Dunk",
-        "text": "2,782 consecutive days live.\n\nSolana could never."
+        "text": "{value} consecutive days live.\n\nSolana could never.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "💪 Flex",
-        "text": "Uptime: 2,782 days\nDowntime: 0 days\n\nTezos making 99.999% look easy."
+        "text": "Uptime: {value} days\nDowntime: 0 days\n\nTezos making 100% look easy.",
+        "note": "FIXED: {value}, 99.999%→100%"
       },
       {
         "label": "📢 Recruit",
-        "text": "Building mission-critical applications?\n\nTezos: 2,782 days of perfect uptime speaks for itself."
+        "text": "Building mission-critical applications?\n\nTezos: {value} days of perfect uptime speaks for itself.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "⚔️ Compare",
-        "text": "Tezos uptime: 2,782 days\nSolana uptime: 'It's complicated'\n\nReliability matters."
+        "text": "Tezos uptime: {value} days\nSolana uptime: 'It's complicated'\n\nReliability matters.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "❓ Question",
-        "text": "How many blockchain outages have you lived through?\n\nTezos bakers: zero. Because 2,782 days of uptime."
+        "text": "How many blockchain outages have you lived through?\n\nTezos bakers: zero. Because {value} days of uptime.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "📊 Standard",
-        "text": "Some chains go down for maintenance.\n\nTezos just keeps baking blocks. 2,782 days straight."
+        "text": "Some chains go down for maintenance.\n\nTezos just keeps baking blocks. {value} days straight.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "💪 Flex",
-        "text": "Zero downtime in 2,782 days.\n\nEither Tezos bakers are really good, or the design actually works."
+        "text": "Zero downtime in {value} days.\n\nEither Tezos bakers are really good, or the design actually works.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "🔥 Dunk",
-        "text": "'Is Tezos down?' has never been a trending topic.\n\n2,782 days of uptime will do that."
+        "text": "'Is Tezos down?' has never been a trending topic.\n\n{value} days of uptime will do that.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "📢 Recruit",
-        "text": "Enterprise blockchain requirements:\n✅ Uptime: 2,782 days\n✅ Outages: 0\n✅ Reliability: Proven\n\nTezos checks all boxes."
+        "text": "Enterprise blockchain requirements:\n✅ Uptime: {value} days\n✅ Outages: 0\n✅ Reliability: Proven\n\nTezos checks all boxes.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "📊 Standard",
-        "text": "2,782 days without a single network outage.\n\nTezos: where 'always on' actually means always on."
+        "text": "{value} days without a single network outage.\n\nTezos: where 'always on' actually means always on.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "💪 Flex",
-        "text": "Perfect uptime for 2,782 days while upgrading protocols, cryptography, and block times.\n\nThis is what stability looks like."
+        "text": "Perfect uptime for {value} days while shipping 21 protocol upgrades.\n\nThis is what stability looks like.",
+        "note": "FIXED: {value}, added upgrade count"
       },
       {
         "label": "⚔️ Compare",
-        "text": "Tezos vs Solana uptime comparison:\nTezos: 100%\nSolana: 'We prefer not to discuss that'"
+        "text": "Tezos vs Solana uptime comparison:\nTezos: 100%\nSolana: 'We prefer not to discuss that'",
+        "note": "FIXED: removed hardcoded days"
       },
       {
         "label": "❓ Question",
-        "text": "Why hasn't Tezos had an outage in 2,782 days?\n\nMaybe because the validators aren't all running identical software."
+        "text": "Why hasn't Tezos had an outage in {value} days?\n\nMaybe because the protocol actually works.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "📊 Standard",
-        "text": "2,782 days of continuous operation.\n\nTezos proving that decentralized doesn't mean unreliable."
+        "text": "{value} days of continuous operation.\n\nTezos proving that decentralized doesn't mean unreliable.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "📢 Recruit",
-        "text": "Building on a chain that's never been down?\n\nTezos: 2,782 days of uptime, zero maintenance windows."
+        "text": "Building on a chain that's never been down?\n\nTezos: {value} days of uptime, zero maintenance windows.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "💪 Flex",
-        "text": "Some blockchains go offline for upgrades.\n\nTezos upgrades itself without skipping a beat. 2,782 days and counting."
+        "text": "Some blockchains go offline for upgrades.\n\nTezos upgrades itself without skipping a beat. {value} days and counting.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "📊 Standard",
-        "text": "Network outages: the one thing Tezos bakers refuse to deliver.\n\n2,782 days of perfect uptime."
+        "text": "Network outages: the one thing Tezos bakers refuse to deliver.\n\n{value} days of perfect uptime.",
+        "note": "FIXED: {value}"
       },
       {
         "label": "❓ Question",
-        "text": "How many consecutive days can a blockchain run without failure?\n\nTezos: 2,782 and counting."
+        "text": "How many consecutive days can a blockchain run without failure?\n\nTezos: {value} and counting.",
+        "note": "FIXED: {value}"
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "21 protocol upgrades. Zero forks. {value} days of uptime.\n\nTezos upgraded its consensus, block times, cryptography, and economic model — all without a single second of downtime."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Live since June 30, 2018. {value} days ago.\n\nNot a single outage. Not a single fork. Just blocks, every 6 seconds."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} days of uptime across 21 protocol upgrades, 5 block time reductions, and a complete consensus mechanism swap.\n\nName another chain that can say that."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Solana went down so many times there's a website tracking it.\n\nTezos has been up for {value} days. There's no tracker because there's nothing to track."
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value} days of perfect uptime while other chains make headlines for going offline.\n\nAt what point does reliability become a competitive advantage?"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "7+ years. 21 upgrades. Zero downtime. Zero forks.\n\nTezos is the most reliable smart contract platform in existence."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tezos swapped its consensus algorithm, halved block times 5 times, added rollups, changed its monetary policy — all live, all on-chain, {value} days without blinking."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "When your SLA requires 100% uptime, you need a chain with {value} days of proven track record.\n\nTezos. Not a single second of downtime since genesis."
       }
     ],
     "baking-economics": [
@@ -641,7 +900,7 @@
       },
       {
         "label": "🔥 Dunk",
-        "text": "Tezos staking: {value} APY. No lockups, no slashing surprises, no \"restaking\" ponzi needed.\n\nJust honest yield for securing the network."
+        "text": "Tezos staking: {value} APY. No lockups, no slashing for honest validators, no \"restaking\" ponzi needed.\n\nJust honest yield for securing the network."
       },
       {
         "label": "🔥 Dunk",
@@ -665,7 +924,7 @@
       },
       {
         "label": "❓ Question",
-        "text": "{value} staking APY with zero lockup and zero slashing risk.\n\nWhy would anyone choose a chain that punishes you for validating?"
+        "text": "{value} staking APY with zero lockup and no slashing for downtime.\n\nWhy would anyone choose a chain that punishes you for validating?"
       },
       {
         "label": "❓ Question",
@@ -953,93 +1212,85 @@
       },
       {
         "label": "📈 Compare",
-        "text": "Staking participation:\n• Tezos: {value} (native, liquid)\n• ETH: ~28% (largely via Lido/Coinbase)\n• SOL: ~65% (lockup required)\n• ATOM: ~63% (21-day unbonding)\n\nTezos: highest effective participation, zero lockup."
+        "text": "Staking participation:\n• Tezos: {value} (native, liquid)\n• ETH: ~28% (largely via Lido/Coinbase)\n• SOL: ~65% (lockup required)\n• ATOM: ~63% (21-day unbonding)\n\nTezos: native liquid staking, zero lockup."
       },
       {
         "label": "📊 Standard",
-        "text": "Tezos staking ratio: ~27.87% of supply actively securing the network. That's real skin in the game from people who believe in long-term network health."
-      },
-      {
-        "label": "⚔️ Compare",
-        "text": "Bitcoin hash rate varies wildly with price. Tezos has ~27.87% of supply consistently staking regardless of market conditions. Which feels more secure?"
+        "text": "Tezos staking at {value} — real skin in the game from people who believe in long-term network health."
       },
       {
         "label": "💪 Flex",
-        "text": "~27.87% staking ratio on Tezos means over 300 million XTZ committed to network security. That's not speculation - that's conviction in the protocol."
-      },
-      {
-        "label": "🔥 Dunk",
-        "text": "Other chains: \"Our staking ratio dropped because prices went down.\" Tezos: ~27.87% staying steady because people actually believe in the tech."
-      },
-      {
-        "label": "❓ Question",
-        "text": "What does ~27.87% staking ratio tell you about network participants? Maybe that they're not just here for quick flips but actual long-term value creation?"
+        "text": "{value} staking ratio means hundreds of millions of XTZ committed to network security. That's not speculation — that's conviction in the protocol."
       },
       {
         "label": "📢 Recruit",
-        "text": "Protocol developers: ~27.87% of Tezos supply is staking, showing real commitment from network participants. Build where people have skin in the game."
+        "text": "Protocol developers: {value} of Tezos supply is staking, showing real commitment from network participants. Build where people have skin in the game."
       },
       {
         "label": "📊 Standard",
-        "text": "Current Tezos staking ratio: ~27.87%. Nearly 28% of all XTZ is actively participating in network consensus. That's meaningful participation in governance."
-      },
-      {
-        "label": "⚔️ Compare",
-        "text": "Solana: staking ratio varies with validator performance. Cardano: ~70% but simpler delegation. Tezos: steady ~27.87% with active governance participation."
+        "text": "Current Tezos staking ratio: {value}. Active participation in network consensus and governance — not passive holding."
       },
       {
         "label": "💪 Flex",
-        "text": "~27.87% staking ratio represents hundreds of millions in XTZ committed to Tezos security and governance. These aren't passive holders - they're active participants."
-      },
-      {
-        "label": "🔥 Dunk",
-        "text": "Networks with 90%+ staking ratios: \"Look how popular we are!\" Tezos at ~27.87%: \"Our stakers chose conviction over forced participation.\" Quality matters."
-      },
-      {
-        "label": "❓ Question",
-        "text": "Is ~27.87% staking ratio too low or just right? What matters more - forced participation through token design or genuine conviction in the protocol?"
+        "text": "{value} staking ratio represents hundreds of millions in XTZ committed to Tezos security and governance. These aren't passive holders — they're active participants."
       },
       {
         "label": "📢 Recruit",
-        "text": "Enterprise adoption: ~27.87% of Tezos supply actively staking shows real network participation and long-term commitment from the community."
+        "text": "Enterprise adoption: {value} of Tezos supply actively staking shows real network participation and long-term commitment from the community."
       },
       {
         "label": "📊 Standard",
-        "text": "Tezos staking ratio: ~27.87% and growing steadily. No forced participation through token mechanics - people stake because they believe in the network."
-      },
-      {
-        "label": "⚔️ Compare",
-        "text": "Polkadot: complex parachain auctions for participation. Cosmos: varying rates across zones. Tezos: consistent ~27.87% staking from genuine conviction."
+        "text": "Tezos staking ratio: {value} and growing. No forced participation through token mechanics — people stake because the adaptive issuance rewards make it worth it."
       },
       {
         "label": "💪 Flex",
-        "text": "~27.87% staking ratio means real economic security on Tezos. These are network participants with actual skin in the game, not just yield farmers."
-      },
-      {
-        "label": "🔥 Dunk",
-        "text": "High staking ratios through forced mechanisms vs. Tezos' ~27.87% through genuine participation. One shows tokenomics, the other shows conviction."
-      },
-      {
-        "label": "❓ Question",
-        "text": "What makes ~27.87% staking ratio meaningful? It represents free choice to participate in Tezos governance and security without artificial incentives."
-      },
-      {
-        "label": "📢 Recruit",
-        "text": "Institutional research: ~27.87% Tezos staking ratio represents genuine network participation without forced lockup mechanisms. Quality over quantity."
+        "text": "{value} staking ratio means real economic security on Tezos. Adaptive issuance under Tallinn means the more that's staked, the higher the rewards. The incentives actually work."
       },
       {
         "label": "📊 Standard",
-        "text": "Network security through ~27.87% staking ratio: over 300 million XTZ committed to Tezos consensus. That's hundreds of millions in skin in the game."
+        "text": "Network security through {value} staking ratio: hundreds of millions of XTZ committed to Tezos consensus. Skin in the game at scale."
       },
       {
-        "label": "⚔️ Compare",
-        "text": "Ethereum 2.0: ~25% staking. Near: ~65% staking. Tezos: ~27.87% staking with liquid delegation. Sometimes less forced participation means more genuine commitment."
+        "label": "📊 Standard",
+        "text": "{value} of XTZ staked. Under Tallinn's adaptive issuance, staking rewards scale with participation.\n\nThe protocol literally pays you more as network security grows."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "{value} staked on Tezos. Natively. No wrappers, no liquid staking protocols taking a 10% cut.\n\nWhy is this so hard for other chains?"
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tallinn protocol + {value} staking ratio = adaptive issuance doing exactly what it was designed to do.\n\nMore stakers, better rewards, stronger network. The flywheel works."
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value} staking ratio with zero lockup and no slashing for downtime for delegators.\n\nWhy would you lock your tokens for 21 days on Cosmos when Tezos keeps them liquid?"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Not staking your XTZ? {value} of the supply already is.\n\nWith Tallinn's adaptive issuance, rewards increase as participation grows. Don't sit this one out."
+      },
+      {
+        "label": "📈 Compare",
+        "text": "Staking design philosophy:\n• SOL: 65% staked but locked\n• ATOM: 63% staked, 21-day unbonding\n• Tezos: {value} staked, fully liquid, adaptive rewards\n\nLiquidity matters. Ask anyone who needed their tokens during a crash."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} staking ratio. Every staker is also a voter in Tezos governance.\n\nNo separate governance token. No snapshot votes. Real on-chain power."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Chains with 90%+ staking ratios love to brag. But forced participation through inflationary penalties isn't conviction.\n\nTezos at {value}: voluntary, liquid, and still securing a network that's never gone down."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} staked under adaptive issuance. The protocol adjusts rewards dynamically — no central bank, no foundation decree, just math."
       }
     ],
     "total-burned": [
       {
         "label": "📊 Standard",
-        "text": "{value} XTZ burned and removed from circulation permanently.\n\nEvery smart contract call, every transaction — a little more gets burned."
+        "text": "{value} XTZ burned and removed from circulation permanently.\n\nStorage fees and origination costs — every contract deployment burns a little more."
       },
       {
         "label": "📊 Standard",
@@ -1047,7 +1298,7 @@
       },
       {
         "label": "🔥 Dunk",
-        "text": "{value} XTZ burned.\n\nETH needed EIP-1559 and years of debate to add fee burning. Tezos just... had it."
+        "text": "{value} XTZ burned.\n\nETH needed EIP-1559 and years of debate to add fee burning. Tezos has had burn mechanics since genesis."
       },
       {
         "label": "🔥 Dunk",
@@ -1059,7 +1310,7 @@
       },
       {
         "label": "💪 Flex",
-        "text": "Every smart contract call on Tezos burns XTZ. Total so far: {value}\n\nMore usage = more scarcity. The flywheel works."
+        "text": "Every contract deployment on Tezos burns XTZ through storage fees. Total so far: {value}\n\nMore usage = more scarcity. The flywheel works."
       },
       {
         "label": "❓ Question",
@@ -1071,67 +1322,79 @@
       },
       {
         "label": "📈 Compare",
-        "text": "Burn mechanics:\n• ETH: EIP-1559 base fee burn (since Aug 2021)\n• BTC: None\n• SOL: 50% of fees burned\n• XTZ: {value} burned via storage fees + operations\n\nTezos had fee burning before it was cool."
+        "text": "Burn mechanics:\n• ETH: EIP-1559 base fee burn (since Aug 2021)\n• BTC: None\n• SOL: 50% of fees burned\n• XTZ: {value} burned via storage fees + origination costs\n\nTezos had burn mechanics before it was cool."
       },
       {
         "label": "📊 Standard",
-        "text": "~2.19 million XTZ burned through transaction fees. That's deflationary pressure from actual network usage - tokens removed permanently through economic activity."
-      },
-      {
-        "label": "⚔️ Compare",
-        "text": "Ethereum burns ETH post-merge. Bitcoin has no burning mechanism. Tezos: 2.19M XTZ burned from fees since genesis. Deflationary through usage."
+        "text": "{value} XTZ burned permanently. Storage allocation fees and origination costs remove tokens from circulation with every contract deployed."
       },
       {
         "label": "💪 Flex",
-        "text": "2.19 million XTZ burned and gone forever. That's organic deflation from network usage, not artificial token mechanics. Real economic activity driving scarcity."
+        "text": "{value} XTZ burned and gone forever. That's organic deflation from network usage — real economic activity driving permanent scarcity."
       },
       {
         "label": "🔥 Dunk",
-        "text": "Buy-back-and-burn programs be like \"we'll create fake scarcity\" while Tezos has burned 2.19M XTZ through actual usage since 2018. Organic > artificial."
-      },
-      {
-        "label": "❓ Question",
-        "text": "What creates better deflationary pressure: artificial burning mechanisms or 2.19M XTZ burned through genuine network usage and economic activity?"
+        "text": "Buy-back-and-burn programs create fake scarcity. Tezos has burned {value} XTZ through actual protocol operations since 2018. Organic > artificial."
       },
       {
         "label": "📢 Recruit",
-        "text": "Tokenomics analysts: 2.19M XTZ permanently burned through transaction fees represents organic deflation from real economic activity, not artificial scarcity."
+        "text": "Tokenomics analysts: {value} XTZ permanently burned through storage fees and origination costs. Organic deflation from real economic activity, not artificial scarcity."
       },
       {
         "label": "📊 Standard",
-        "text": "Fee burning on Tezos: 2.19 million XTZ permanently removed from circulation. Deflationary mechanics that scale with actual network usage and adoption."
-      },
-      {
-        "label": "⚔️ Compare",
-        "text": "Polygon: fee burning with EIP-1559. BNB: quarterly burns by Binance. Tezos: 2.19M XTZ burned organically through four years of transaction fees."
+        "text": "Burn mechanics on Tezos: {value} XTZ permanently removed from circulation. Deflationary pressure that scales with contract deployment and storage usage."
       },
       {
         "label": "💪 Flex",
-        "text": "2.19 million XTZ burned through transaction fees since 2018. No artificial mechanisms, no governance votes to burn - just organic deflation from usage."
+        "text": "{value} XTZ burned through years of continuous operation. No artificial mechanisms — just sound protocol economics creating permanent scarcity."
       },
       {
         "label": "🔥 Dunk",
-        "text": "Protocols announcing \"we'll burn tokens to increase scarcity\" while Tezos quietly burned 2.19M XTZ through actual usage over four years. Results > announcements."
+        "text": "Protocols announcing \"we'll burn tokens to increase scarcity\" while Tezos quietly burned {value} XTZ through actual usage since genesis. Results > announcements."
       },
       {
         "label": "❓ Question",
-        "text": "Why are artificial token burns popular when 2.19M XTZ burned through real fees shows that organic deflation works? What's wrong with usage-based scarcity?"
-      },
-      {
-        "label": "📢 Recruit",
-        "text": "DeFi analysts: 2.19M XTZ burned represents deflationary pressure that scales with network adoption - fees creating scarcity through genuine economic activity."
+        "text": "Why are artificial token burns popular when {value} XTZ burned through real storage fees shows that organic deflation works?"
       },
       {
         "label": "📊 Standard",
-        "text": "Tezos burning mechanics: 2.19 million XTZ permanently destroyed through transaction fees. Deflation that increases with network usage and adoption."
+        "text": "{value} XTZ permanently destroyed. Storage fees, origination costs — every smart contract that lives on Tezos paid its toll in burned tokens."
       },
       {
-        "label": "⚔️ Compare",
-        "text": "Avalanche: fee burning on C-chain. Fantom: partial fee burning. Tezos: 2.19M XTZ burned through consistent fee burning since genesis. Steady deflation."
+        "label": "📢 Recruit",
+        "text": "DeFi analysts: {value} XTZ burned represents deflationary pressure that scales with network adoption — storage fees creating permanent scarcity."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Burned XTZ is gone. Not in a treasury. Not in a multisig. Gone.\n\n{value} XTZ permanently removed from the supply through storage fees and origination costs."
       },
       {
         "label": "💪 Flex",
-        "text": "2.19M XTZ burned over four years of operation shows that fee-based deflation works at scale. No artificial mechanisms needed - just sound tokenomics."
+        "text": "{value} XTZ burned since genesis. Combined with Tallinn's adaptive issuance, Tezos has both inflation control AND deflationary pressure.\n\nDual-mechanism monetary policy."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Every contract deployed on Tezos burns XTZ permanently. {value} gone so far.\n\nNo governance vote needed. No marketing campaign. Just protocol economics doing their job."
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value} XTZ burned permanently through storage fees.\n\nWhen was the last time you checked how much of your chain's supply has been permanently removed? Do you even know?"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Permanent burns on Tezos: {value} XTZ.\n\nStorage deposits aren't refundable. Origination costs aren't recoverable. Once burned, always burned."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Adaptive issuance controls the tap. Storage burns control the drain. {value} XTZ permanently removed.\n\nTezos monetary policy works from both ends."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Building on a chain with sound monetary policy? {value} XTZ burned through real usage. Adaptive issuance managing new supply. Both working as designed."
+      },
+      {
+        "label": "📈 Compare",
+        "text": "Deflationary mechanics:\n• BTC: No burns (fixed supply only)\n• ETH: Base fee burns (EIP-1559)\n• Tezos: {value} burned via storage + origination (since genesis)\n\nTezos had built-in deflation before anyone was talking about it."
       }
     ],
     "total-supply": [
@@ -1157,63 +1420,95 @@
       },
       {
         "label": "📊 Standard",
-        "text": "Tezos total supply: ~1.10 billion XTZ. With ~2.19M burned from fees and adaptive issuance responding to staking, it's deflationary pressure meets sound money."
+        "text": "Tezos total supply: {value}. With millions burned from storage fees and adaptive issuance responding to staking, it's deflationary pressure meets sound money."
       },
       {
         "label": "⚔️ Compare",
-        "text": "Bitcoin: 21M cap, deflationary. Ethereum: uncapped, now deflationary. Tezos: 1.10B supply with adaptive issuance and fee burning. Measured tokenomics."
+        "text": "Bitcoin: 21M cap, deflationary. Ethereum: uncapped, burn mechanics. Tezos: {value} supply with adaptive issuance and storage fee burning. Measured tokenomics."
       },
       {
         "label": "💪 Flex",
-        "text": "1.10 billion XTZ total supply with millions already burned and adaptive issuance keeping inflation in check. That's sophisticated monetary policy."
+        "text": "{value} XTZ total supply with millions already burned and adaptive issuance keeping inflation in check. That's sophisticated monetary policy."
       },
       {
         "label": "🔥 Dunk",
-        "text": "Infinite supply chains: \"Number go up forever!\" Tezos: 1.10B supply, adaptive issuance, fee burning. Turns out thoughtful tokenomics work better."
+        "text": "Infinite supply chains: \"Number go up forever!\" Tezos: {value} supply, adaptive issuance, storage fee burning. Thoughtful tokenomics actually work."
       },
       {
         "label": "❓ Question",
-        "text": "Is 1.10 billion XTZ the right supply? With millions burned and adaptive issuance adjusting inflation, what matters more: the number or the mechanics?"
+        "text": "Does total supply matter more, or the mechanics behind it? {value} XTZ with adaptive issuance and permanent burns — the mechanics are what count."
       },
       {
         "label": "📢 Recruit",
-        "text": "Financial modeling: 1.10B XTZ supply with deflationary pressure from burns and adaptive issuance. Clean tokenomics for institutional analysis."
+        "text": "Financial modeling: {value} XTZ supply with deflationary pressure from burns and adaptive issuance. Clean tokenomics for institutional analysis."
       },
       {
         "label": "📊 Standard",
-        "text": "1.10 billion XTZ total supply, but with fee burning and adaptive issuance creating deflationary pressure. Supply isn't fixed, but it's well-managed."
+        "text": "{value} XTZ total supply, with storage fee burning and adaptive issuance creating deflationary pressure. Supply isn't fixed, but it's well-managed."
       },
       {
         "label": "⚔️ Compare",
-        "text": "Solana: ~500M supply, high inflation. Cardano: 45B max supply. Tezos: 1.10B with adaptive issuance and burning. Goldilocks tokenomics."
+        "text": "Solana: ~580M supply, high inflation. Cardano: 45B max supply. Tezos: {value} with adaptive issuance and burning. Right-sized tokenomics."
       },
       {
         "label": "💪 Flex",
-        "text": "1.10B XTZ supply with millions burned through usage and adaptive issuance keeping inflation responsive. That's money that responds to actual economic activity."
+        "text": "{value} XTZ supply with millions burned through usage and adaptive issuance keeping inflation responsive. Money that responds to actual economic activity."
       },
       {
         "label": "🔥 Dunk",
-        "text": "Fixed supply advocates vs. infinite supply believers while Tezos sits at 1.10B with adaptive issuance and fee burning. Sometimes nuance wins."
+        "text": "Fixed supply advocates vs infinite supply believers. Tezos at {value} with adaptive issuance and storage fee burning. Sometimes nuance wins."
       },
       {
         "label": "❓ Question",
-        "text": "What makes 1.10B XTZ supply optimal? It's large enough for global scale but small enough that fee burning and adaptive issuance create meaningful effects."
+        "text": "What makes {value} XTZ supply work? Large enough for global scale, small enough that storage burns and adaptive issuance create meaningful effects."
       },
       {
         "label": "📢 Recruit",
-        "text": "Economic researchers: 1.10B XTZ supply with deflationary mechanisms from burns and adaptive issuance. Real monetary policy experimentation at scale."
+        "text": "Economic researchers: {value} XTZ supply with deflationary mechanisms from burns and adaptive issuance. Real monetary policy experimentation at scale."
       },
       {
         "label": "📊 Standard",
-        "text": "Total Tezos supply: 1.10 billion XTZ. Not too scarce to be useful, not too abundant to be worthless. Balanced tokenomics for a global settlement layer."
-      },
-      {
-        "label": "⚔️ Compare",
-        "text": "Near: ~1B supply, high staking inflation. Cosmos: varies by zone. Tezos: 1.10B supply with adaptive issuance and deflationary burning pressure."
+        "text": "Total Tezos supply: {value}. Not too scarce to be useful, not too abundant to lose value. Balanced tokenomics for a global settlement layer."
       },
       {
         "label": "💪 Flex",
-        "text": "1.10B XTZ supply creating the foundation for sophisticated monetary policy through adaptive issuance and fee burning. Sound money for the digital age."
+        "text": "{value} XTZ supply — the foundation for sophisticated monetary policy through adaptive issuance and permanent storage fee burns. Sound money for the digital age."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} XTZ. Fully auditable on-chain. No insider schedules, no cliff unlocks, no \"we'll announce the vesting later.\"\n\nJust transparent supply."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Know your chain's exact supply? Like, really know it?\n\nTezos: {value} XTZ. Verifiable in one RPC call. No hidden mints, no stealth emissions."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} XTZ total supply. Adaptive issuance adjusts new token creation based on staking participation. Burns remove tokens permanently.\n\nTwo forces, one balanced monetary policy."
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value} XTZ in circulation. Every single one traceable to genesis.\n\nCan you say the same about your chain's supply? All of it?"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Institutional due diligence starts with supply transparency. {value} XTZ — fully on-chain, adaptive issuance governed by protocol, no surprises."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Tezos supply: {value}. Under Tallinn's adaptive issuance, new XTZ creation responds to how much is staked.\n\nMore staking = adjusted issuance. The protocol manages itself."
+      },
+      {
+        "label": "⚔️ Compare",
+        "text": "Supply transparency:\n• BTC: 21M cap, fully predictable\n• ETH: Uncapped, burn-dependent\n• Tezos: {value}, adaptive issuance + permanent burns\n\nThree different approaches. Only one adapts to network conditions."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} XTZ. No mysterious foundation wallet about to dump. No team tokens unlocking next month.\n\nJust a supply managed by math, not insiders."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Half of crypto doesn't even know their real circulating supply because of locked tokens, vesting, and foundation reserves.\n\nTezos: {value}. That's it. That's the supply."
       }
     ],
     "delegated": [
@@ -1318,6 +1613,38 @@
       {
         "label": "❓ Question",
         "text": "Tezos is on cycle {value} with zero downtime ever.\n\nWhat's the uptime record for your L1?"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Cycle {value} on Tezos. 14,400 blocks per cycle under Tallinn. One cycle per day.\n\nRewards distributed, rights assigned, governance ticking. Like clockwork."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Cycle {value} and counting.\n\nEvery cycle is a day of baking, attesting, and governing. Tallinn's 6-second blocks mean 14,400 blocks per cycle. Relentless progress."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Cycle {value}.\n\nOther chains measure uptime in hours between outages. Tezos measures it in cycles — one per day, every day, since 2018."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Cycle {value} live on Tezos.\n\nDaily cycles mean daily rewards. 6-second blocks. 14,400 per cycle. Start baking and earn every single day."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Tezos cycle {value}.\n\nUnder Tallinn, governance periods span 5 cycles = ~5 days per period. The protocol evolves in real time, not geological time."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Cycle {value}. One cycle, one day. Tallinn compressed the timeline.\n\nFaster cycles mean faster governance, faster rewards, faster iteration. The protocol keeps accelerating."
+      },
+      {
+        "label": "❓ Question",
+        "text": "Cycle {value} on Tezos.\n\nHow many cycles has your chain completed without a single halt? Tezos hasn't missed one since genesis."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Cycle {value} rolling forward.\n\n21 protocol upgrades delivered across these cycles. Zero downtime. Zero forks. The self-amending ledger keeps its promise."
       }
     ],
     "proposal": [
@@ -1348,6 +1675,38 @@
       {
         "label": "📈 Compare",
         "text": "Governance models:\n• BTC: Mailing list arguments + miner signaling\n• ETH: Core dev calls (ACD)\n• SOL: Foundation decides\n• Tezos: {value} — on-chain binding votes\n\nOnly one is actually democratic."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value}\n\n21 successful upgrades through on-chain governance. Zero hard forks. Bakers vote with their staking power and the protocol obeys."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value}\n\n5 governance periods, ~25 days from proposal to activation. 80% supermajority required. This isn't a suggestion box — it's binding protocol law."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "{value}\n\nETH's governance: a Zoom call with 20 core devs. Tezos governance: every baker votes on-chain with their stake. One is democracy. The other is a meeting."
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value}\n\n80% supermajority + quorum to pass. When governance has real thresholds, bad proposals die on the vine. Can your chain reject upgrades?"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "{value}\n\nWant a voice in protocol development? On Tezos, every baker votes. No insider access required. Just stake and participate."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value}\n\nTezos governance survived contested proposals, community alternatives, and heated economic debates — all without a single fork. That's battle-tested democracy."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "{value}\n\nSolana's upgrade process: the foundation pushes it. Bitcoin's: years of mailing list wars ending in chain splits. Tezos: vote on-chain, activate, move on."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value}\n\nFrom Athens to Tallinn — 21 protocol upgrades, all governed on-chain. The longest track record of self-amendment in blockchain history."
       }
     ],
     "voting-period": [
@@ -1370,6 +1729,38 @@
       {
         "label": "❓ Question",
         "text": "{value}\n\nTezos has formalized on-chain governance with multiple voting rounds. Your chain has... a Discord poll?"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value}\n\n5 periods × 5 cycles each = ~25 days total. Every upgrade earns its place through structured deliberation, not rushed deployment."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value}\n\nThe cooldown period exists so bakers can test the upgrade before the promotion vote. Built-in safety. Not afterthought safety."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "{value}\n\nMost chains ship upgrades when the core team feels like it. Tezos has a 5-stage pipeline with mandatory voting at each gate. Governance, not vibes."
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value}\n\nDoes your chain have a cooldown period between voting rounds so validators can actually test upgrades before they go live? Tezos does."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "{value}\n\n5 governance stages ensure no upgrade ships without baker approval. Want to build on a chain where upgrades are deliberate, not dictated?"
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value}\n\n80% supermajority required to advance. That's not rubber-stamping — that's near-consensus governance with real teeth."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value}\n\n21 upgrades through this 5-stage pipeline. Proposals rejected. Alternatives submitted. Community debates settled by votes, not arguments. This is how governance scales."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "{value}\n\nBitcoin's block size debate caused a chain split. Tezos handles contested upgrades through 5 structured voting rounds. Civilization vs chaos."
       }
     ],
     "participation": [
@@ -1404,6 +1795,38 @@
       {
         "label": "📈 Compare",
         "text": "Governance participation:\n• Tezos: {value} (binding on-chain votes)\n• ETH: Coin votes on Snapshot (non-binding)\n• SOL: No formal governance mechanism\n• BTC: Miner signaling only\n\nTezos is the only L1 with real on-chain democracy."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} participation in Tezos governance.\n\nBakers vote proportionally to their staking power. No plutocratic governance tokens — just the same XTZ that secures the chain."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} turnout.\n\n21 upgrades and bakers still show up to vote every time. That's not apathy — that's a governance culture other chains wish they had."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "{value} participation.\n\nMost DAOs can barely hit 5% voter turnout with their governance tokens. Tezos bakers show up because their votes actually matter."
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value} of Tezos stake voted this period.\n\nQuorum + 80% supermajority required. When was the last time your chain required actual consensus to ship an upgrade?"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "{value} governance participation.\n\nOn Tezos, your stake IS your vote. No separate token to buy, no delegation to insiders. Bake and govern."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} voter turnout in the current governance period.\n\nTezos governance isn't optional — it's how the protocol evolves. Bakers take it seriously."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} participation rate.\n\nSix years of binding on-chain governance. Contested proposals. Community alternatives. And bakers still vote every round. That's democratic resilience."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "{value} voter participation.\n\nGovernance tokens with 2% turnout calling themselves \"decentralized.\" Meanwhile Tezos bakers actually show up and vote on real protocol changes."
       }
     ],
     "tx-volume": [
@@ -1656,84 +2079,84 @@
         "text": "{value} funded accounts on Tezos.\n\nJoining takes seconds. No gas wars. No failed transactions. Just a working blockchain."
       },
       {
-        "label": "📊 Standard",
-        "text": "3 million funded accounts on Tezos. That's 3 million people who chose financial sovereignty."
-      },
-      {
         "label": "💪 Flex",
-        "text": "3M wallets holding XTZ. Each one a vote of confidence in self-sovereign money."
+        "text": "{value} funded accounts. Each one a vote of confidence in self-sovereign money."
       },
       {
         "label": "⚔️ Compare",
-        "text": "While other chains count TVL, Tezos counts people: 3 million funded accounts and growing."
+        "text": "While other chains count TVL, Tezos counts people: {value} funded accounts and growing."
       },
       {
         "label": "📊 Standard",
-        "text": "3 million accounts funded on Tezos. Adoption that's measured in humans, not hype."
+        "text": "{value} accounts funded on Tezos. Adoption measured in humans, not hype."
       },
       {
         "label": "📢 Recruit",
-        "text": "Ready to join 3 million people who chose a blockchain that actually works? Your wallet is waiting."
+        "text": "Ready to join {value} people who chose a blockchain that actually works? Your wallet is waiting."
       },
       {
         "label": "❓ Question",
-        "text": "How many funded accounts does it take to prove real adoption? 3 million seems like a good start."
-      },
-      {
-        "label": "💪 Flex",
-        "text": "3 million funded accounts. No pre-mines, no insider allocations. Just people choosing Tezos."
+        "text": "How many funded accounts does it take to prove real adoption? {value} seems like a good start."
       },
       {
         "label": "🔥 Dunk",
-        "text": "'Is Tezos dead?' ask 3 million funded accounts that apparently didn't get the memo."
-      },
-      {
-        "label": "📊 Standard",
-        "text": "3M accounts holding XTZ because they discovered a blockchain that respects both their intelligence and wallet."
+        "text": "'Is Tezos dead?' ask {value} funded accounts that apparently didn't get the memo."
       },
       {
         "label": "💪 Flex",
-        "text": "Network effect in action: 3 million funded accounts choosing proven technology over promises."
+        "text": "Network effect in action: {value} funded accounts choosing proven technology over promises."
       },
       {
         "label": "📊 Standard",
-        "text": "From institutions to individuals: 3 million funded accounts represent real global adoption."
-      },
-      {
-        "label": "❓ Question",
-        "text": "Why do 3 million people keep XTZ in their wallets? Maybe they're onto something."
-      },
-      {
-        "label": "📢 Recruit",
-        "text": "3 million funded accounts can't all be wrong about mathematical precision and low fees."
+        "text": "From institutions to individuals: {value} funded accounts represent real global adoption on Tezos."
       },
       {
         "label": "⚔️ Compare",
-        "text": "Other chains measure success in dollars locked. Tezos measures it in people served: 3 million accounts."
+        "text": "Other chains measure success in dollars locked. Tezos measures it in people served: {value} accounts."
       },
       {
         "label": "💪 Flex",
-        "text": "3 million funded accounts prove that when you build it right, they will come and they will stay."
-      },
-      {
-        "label": "📊 Standard",
-        "text": "Blockchain adoption that's real: 3 million accounts funding their own financial future on Tezos."
+        "text": "{value} funded accounts prove that when you build it right, they will come and they will stay."
       },
       {
         "label": "🔥 Dunk",
-        "text": "3M accounts holding XTZ. Turns out people like blockchains that are secure, efficient, AND affordable."
-      },
-      {
-        "label": "📢 Recruit",
-        "text": "Want to be part of something bigger than hype? 3 million funded accounts suggest Tezos is that something."
-      },
-      {
-        "label": "❓ Question",
-        "text": "3 million people looked at all the blockchain options and chose Tezos. What do they know that you don't?"
+        "text": "{value} accounts holding XTZ. Turns out people like blockchains that are secure, efficient, AND affordable."
       },
       {
         "label": "📊 Standard",
-        "text": "Sustainable growth looks like 3 million funded accounts choosing technology over marketing."
+        "text": "Sustainable growth looks like {value} funded accounts choosing technology over marketing."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} funded accounts on Tezos. Sub-cent fees, 6-second finality, and a chain that's never gone down.\n\nThe value proposition sells itself."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} accounts with real XTZ balances. No points programs. No quest campaigns. Just a chain people actually use."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Some chains celebrate \"1M wallets\" that were created to claim an airdrop and never used again.\n\nTezos has {value} funded accounts with actual balances. Spot the difference."
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value} funded Tezos accounts, each one created by someone who paid sub-cent fees to get onboarded.\n\nHow much did your first on-chain transaction cost?"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "{value} funded accounts on a chain with deterministic finality, native delegation, and self-amending governance.\n\nWhat are you waiting for?"
+      },
+      {
+        "label": "⚔️ Compare",
+        "text": "Tezos: {value} funded accounts, zero downtime since genesis.\nSolana: millions of wallets, multiple major outages.\n\nReliability builds real adoption."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} funded accounts. Every one of them can delegate, vote on governance, and interact with smart contracts for fractions of a cent.\n\nThat's what an accessible L1 looks like."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} funded accounts across {value} isn't just a number — it's {value} people who can participate in on-chain governance just by holding XTZ.\n\nStaking IS voting on Tezos."
       }
     ],
     "smart-contracts": [
@@ -1762,84 +2185,88 @@
         "text": "{value} contracts deployed on Tezos.\n\nSmartPy makes it shockingly easy to write formally verifiable contracts. Solidity devs: you'd feel right at home."
       },
       {
-        "label": "📊 Standard",
-        "text": "259,000 smart contracts deployed on Tezos. Each one mathematically verified and economically viable."
-      },
-      {
         "label": "💪 Flex",
-        "text": "259K smart contracts where developers sleep well knowing formal verification caught their bugs."
+        "text": "{value} smart contracts where developers sleep well knowing formal verification caught their bugs."
       },
       {
         "label": "⚔️ Compare",
-        "text": "Other chains: 'Move fast and break things.' Tezos: 259K contracts that actually work as intended."
+        "text": "Other chains: 'Move fast and break things.' Tezos: {value} contracts that actually work as intended."
       },
       {
         "label": "📊 Standard",
-        "text": "259,000 deployed contracts. Each one proof that you can have both mathematical rigor and practical utility."
+        "text": "{value} deployed contracts. Each one proof that you can have both mathematical rigor and practical utility."
       },
       {
         "label": "📢 Recruit",
-        "text": "Ready to deploy contracts that won't drain user funds? 259K Tezos developers figured out how."
+        "text": "Ready to deploy contracts that won't drain user funds? {value} Tezos developers figured out how."
       },
       {
         "label": "❓ Question",
-        "text": "What's the point of deploying contracts if they're too expensive to use? 259K contracts have an answer."
+        "text": "What's the point of deploying contracts if they're too expensive to use? {value} contracts on Tezos have an answer."
       },
       {
         "label": "💪 Flex",
-        "text": "259,000 smart contracts deployed with Michelson precision. Code that means what it says."
-      },
-      {
-        "label": "🔥 Dunk",
-        "text": "Smart contracts so smart on Tezos, they check themselves before they wreck themselves. 259K and counting."
+        "text": "{value} smart contracts deployed with Michelson precision. Code that means what it says."
       },
       {
         "label": "📊 Standard",
-        "text": "259K contracts deployed where formal verification isn't optional - it's built into the development process."
+        "text": "{value} contracts deployed where formal verification isn't optional — it's built into the development process."
       },
       {
         "label": "💪 Flex",
-        "text": "From simple transfers to complex DeFi: 259,000 contracts proving Tezos handles every use case."
+        "text": "From simple transfers to complex DeFi: {value} contracts proving Tezos handles every use case."
       },
       {
         "label": "📊 Standard",
-        "text": "259K smart contracts where 'code is law' actually means something because the code is mathematically verified."
+        "text": "{value} smart contracts where 'code is law' actually means something because the code is mathematically verified."
       },
       {
         "label": "📢 Recruit",
-        "text": "Why debug in production when you can verify before deployment? 259K contracts show the Tezos way."
+        "text": "Why debug in production when you can verify before deployment? {value} contracts show the Tezos way."
       },
       {
         "label": "⚔️ Compare",
-        "text": "Smart contract bugs cost billions elsewhere. On Tezos: 259K contracts and counting, verified first."
+        "text": "Smart contract bugs cost billions elsewhere. On Tezos: {value} contracts and counting, verified first."
       },
       {
         "label": "💪 Flex",
-        "text": "259,000 deployed contracts. Each one a testament to the power of formal verification in practice."
-      },
-      {
-        "label": "❓ Question",
-        "text": "How many smart contracts can you deploy before one drains all user funds? On Tezos: at least 259K."
+        "text": "{value} deployed contracts. Each one a testament to the power of formal verification in practice."
       },
       {
         "label": "📊 Standard",
-        "text": "259K contracts deployed by developers who understand that 'secure by default' isn't just marketing."
+        "text": "{value} contracts deployed by developers who understand that 'secure by default' isn't just marketing."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} smart contracts on Tezos. Michelson compiles down to a stack-based VM that's designed for formal verification from the ground up.\n\nNot an afterthought. The whole point."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} contracts written in SmartPy, Ligo, or raw Michelson. Three languages, one target: provably correct execution.\n\nPick your syntax. Keep the guarantees."
       },
       {
         "label": "🔥 Dunk",
-        "text": "Smart contracts so reliable on Tezos, even the AI doesn't want to audit them. 259K and growing."
+        "text": "Solidity: Turing-complete, audit-dependent, billions lost to reentrancy.\nMichelson: stack-based, formally verifiable, {value} contracts deployed.\n\nDesign choices have consequences."
       },
       {
-        "label": "💪 Flex",
-        "text": "259,000 smart contracts where mathematical proof meets practical application meets affordable deployment."
+        "label": "❓ Question",
+        "text": "{value} smart contracts on Tezos, written in languages purpose-built for correctness.\n\nHow many Solidity audits does it take to match one formal proof?"
       },
       {
         "label": "📢 Recruit",
-        "text": "Building the future one verified contract at a time: 259K deployed and ready for real-world use."
+        "text": "Python dev? SmartPy. OCaml fan? Ligo. Want raw control? Michelson.\n\n{value} contracts deployed on Tezos — pick your language, ship your logic."
+      },
+      {
+        "label": "⚔️ Compare",
+        "text": "EVM: one language dominates, reentrancy everywhere.\nTezos: {value} contracts across Michelson, SmartPy, and Ligo — all formally verifiable by design."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "{value} contracts on a chain where the VM was designed for proofs first, execution second.\n\nMichelson doesn't have reentrancy bugs because the architecture makes them impossible."
       },
       {
         "label": "📊 Standard",
-        "text": "259K smart contracts prove that when you start with solid foundations, innovation builds naturally."
+        "text": "{value} Tezos contracts running on sub-cent execution costs under the Tallinn protocol.\n\n6-second finality. Formal verification. No gas auction drama."
       }
     ],
     "tokens": [
@@ -1864,64 +2291,80 @@
         "text": "{value} tokens on Tezos with sub-cent transfer fees.\n\nRemember when ETH gas was $50+ per swap? Those days may be over, but Tezos fees have been sub-cent since day one."
       },
       {
-        "label": "📊 Standard",
-        "text": "9.27 million tokens on Tezos. FA2 standard making tokenization simple, secure, and scalable."
-      },
-      {
         "label": "💪 Flex",
-        "text": "9.27M tokens proving that when you design standards right the first time, adoption follows."
+        "text": "{value} tokens proving that when you design standards right the first time, adoption follows."
       },
       {
         "label": "⚔️ Compare",
-        "text": "While other chains fragment with competing standards, Tezos unifies with FA2: 9.27M tokens and growing."
+        "text": "While other chains fragment with competing standards, Tezos unifies with FA2: {value} tokens and growing."
       },
       {
         "label": "📊 Standard",
-        "text": "From art to utility: 9.27 million tokens covering every conceivable use case on Tezos."
+        "text": "From art to utility: {value} tokens covering every conceivable use case on Tezos."
       },
       {
         "label": "📢 Recruit",
-        "text": "Ready to tokenize anything without breaking the bank? 9.27M tokens show the FA2 advantage."
+        "text": "Ready to tokenize anything without breaking the bank? {value} tokens show the FA2 advantage."
       },
       {
         "label": "❓ Question",
-        "text": "What happens when token standards are designed by mathematicians instead of marketers? 9.27M tokens."
+        "text": "What happens when token standards are designed by mathematicians instead of marketers? {value} tokens."
       },
       {
         "label": "💪 Flex",
-        "text": "9.27 million tokens where creators focus on value instead of gas optimization tricks."
-      },
-      {
-        "label": "🔥 Dunk",
-        "text": "Token standards so good on Tezos, even the failed projects work flawlessly. 9.27M and counting."
+        "text": "{value} tokens where creators focus on value instead of gas optimization tricks."
       },
       {
         "label": "📊 Standard",
-        "text": "FA2 standard enabling 9.27M tokens with efficiency that makes other chains look wasteful."
+        "text": "FA2 standard enabling {value} tokens with efficiency that makes other chains look wasteful."
       },
       {
         "label": "💪 Flex",
-        "text": "9.27M tokens proving tokenization can be accessible, affordable, and architecturally sound."
+        "text": "{value} tokens proving tokenization can be accessible, affordable, and architecturally sound."
       },
       {
         "label": "📊 Standard",
-        "text": "From NFTs to DeFi tokens: 9.27M assets showing the power of unified token standards."
+        "text": "From NFTs to DeFi tokens: {value} assets showing the power of unified token standards."
       },
       {
         "label": "📢 Recruit",
-        "text": "Why fight fragmented token standards when FA2 handles everything? 9.27M tokens agree."
-      },
-      {
-        "label": "⚔️ Compare",
-        "text": "9.27 million tokens where innovation focuses on utility instead of working around platform limitations."
+        "text": "Why fight fragmented token standards when FA2 handles everything? {value} tokens agree."
       },
       {
         "label": "💪 Flex",
-        "text": "Token economy in full bloom: 9.27M assets native to a blockchain that actually supports them."
+        "text": "Token economy in full bloom: {value} assets native to a blockchain that actually supports them."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} tokens on Tezos. FA2 lets you put fungible tokens, NFTs, and multi-asset collections in a single contract.\n\nOne deploy. One standard. Zero fragmentation."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "FA2 is what ERC-20 would look like if someone designed it knowing NFTs and multi-asset tokens would exist.\n\n{value} tokens on Tezos proving hindsight isn't required — just better engineering."
       },
       {
         "label": "🔥 Dunk",
-        "text": "9.27M tokens managed by smart contracts that won't accidentally burn your entire collection."
+        "text": "ERC-20 for fungible. ERC-721 for NFTs. ERC-1155 for multi-asset. Three standards, three attack surfaces.\n\nFA2 does all three. {value} tokens. One standard."
+      },
+      {
+        "label": "❓ Question",
+        "text": "{value} tokens on Tezos under FA2.\n\nWhy did Ethereum need three separate token standards when one well-designed interface handles everything?"
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Launching a token on Tezos costs fractions of a cent. FA2 gives you fungible, NFT, and multi-asset support out of the box.\n\n{value} tokens already live. Yours could be next."
+      },
+      {
+        "label": "⚔️ Compare",
+        "text": "Minting an NFT collection on ETH: gas optimization hell.\nMinting on Tezos: FA2, sub-cent fees, {value} tokens already proving it works."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} tokens operating under the FA2 standard on Tezos.\n\nBatch transfers native. Operator permissions built in. No approve/transferFrom footguns."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "FA2's operator model eliminates the infinite-approval attack vector that's drained millions from ERC-20 users.\n\n{value} tokens on Tezos, safer by design."
       }
     ],
     "rollups": [
@@ -1958,36 +2401,32 @@
         "text": "L2 architecture:\n• ETH: Mostly centralized sequencers + multisig admin keys\n• Tezos: {value} enshrined rollups, L1-verified, no admin keys\n\nOne is \"rollup\" in name. The other is rollup in design."
       },
       {
-        "label": "📊 Standard",
-        "text": "14 active Smart Rollups on Tezos. Enshrined L2 scaling without the fragmentation circus."
-      },
-      {
         "label": "⚔️ Compare",
-        "text": "While Ethereum juggles competing L2s, Tezos delivers unified scaling: 14 Smart Rollups, one ecosystem."
+        "text": "While Ethereum juggles competing L2s, Tezos delivers unified scaling: {value} smart rollups, one ecosystem."
       },
       {
         "label": "💪 Flex",
-        "text": "14 Smart Rollups proving that L2 scaling works best when it's built into the protocol, not bolted on."
+        "text": "{value} smart rollups proving that L2 scaling works best when it's built into the protocol, not bolted on."
       },
       {
         "label": "🔥 Dunk",
-        "text": "Smart Rollups: Tezos scaling that doesn't require a PhD in bridge economics to use safely."
+        "text": "Smart rollups: Tezos scaling that doesn't require a PhD in bridge economics to use safely."
       },
       {
         "label": "📊 Standard",
-        "text": "14 active Smart Rollups where developers can scale without fragmenting the user experience."
+        "text": "{value} active smart rollups where developers can scale without fragmenting the user experience."
       },
       {
         "label": "📢 Recruit",
-        "text": "Ready to scale without sacrificing security or composability? 14 Smart Rollups show the way."
+        "text": "Ready to scale without sacrificing security or composability? {value} smart rollups show the way."
       },
       {
         "label": "❓ Question",
-        "text": "What if L2 scaling actually worked with L1 instead of around it? 14 Smart Rollups provide the answer."
+        "text": "What if L2 scaling actually worked with L1 instead of around it? {value} smart rollups provide the answer."
       },
       {
         "label": "💪 Flex",
-        "text": "14 Smart Rollups delivering Web3 scaling without the Web2 complexity of external bridges."
+        "text": "{value} smart rollups delivering scaling without the complexity of external bridges."
       },
       {
         "label": "📊 Standard",
@@ -1995,27 +2434,267 @@
       },
       {
         "label": "🔥 Dunk",
-        "text": "L2 solutions so integrated on Tezos, users don't need to become bridge security experts. 14 rollups strong."
+        "text": "L2 solutions so integrated on Tezos, users don't need to become bridge security experts. {value} rollups strong."
       },
       {
         "label": "💪 Flex",
-        "text": "14 Smart Rollups where scaling means more throughput, not more complexity for users."
+        "text": "{value} smart rollups where scaling means more throughput, not more complexity for users."
       },
       {
         "label": "📊 Standard",
-        "text": "From gaming to DeFi: 14 Smart Rollups proving enshrined L2s serve every use case."
+        "text": "From gaming to DeFi: {value} smart rollups proving enshrined L2s serve every use case."
       },
       {
         "label": "📢 Recruit",
-        "text": "Why manage multiple L2 tokens when Smart Rollups scale with native XTZ? 14 active examples."
-      },
-      {
-        "label": "⚔️ Compare",
-        "text": "Smart Rollups: Tezos scaling where the hardest part is choosing which application to build."
+        "text": "Why manage multiple L2 tokens when smart rollups scale with native XTZ? {value} active examples."
       },
       {
         "label": "💪 Flex",
-        "text": "14 Smart Rollups delivering infinite scale with finite complexity. This is how L2 should work."
+        "text": "{value} smart rollups delivering scale with minimal complexity. This is how L2 should work."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Etherlink: a full EVM-compatible smart rollup on Tezos. Solidity devs get enshrined L2 security without rewriting a single line.\n\n{value} rollups live and the EVM crowd has a home."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tezos smart rollups support WASM and EVM runtimes. Etherlink runs full EVM compatibility enshrined in the L1.\n\n{value} rollups. Bring your own VM. The protocol verifies them all."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Arbitrum and Optimism: VC-funded L2s with centralized sequencers and upgrade keys.\nEtherlink: EVM rollup enshrined in the Tezos protocol. No admin keys. No multisig.\n\n{value} rollups doing L2 the right way."
+      },
+      {
+        "label": "❓ Question",
+        "text": "Why would a Solidity developer deploy on an L2 with a centralized sequencer when Etherlink gives them EVM compatibility enshrined in Tezos?\n\n{value} smart rollups. Zero admin keys."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "EVM developer? Etherlink is a full EVM smart rollup on Tezos — your Solidity contracts, enshrined L2 security, sub-cent fees.\n\n{value} rollups live. Deploy today."
+      },
+      {
+        "label": "⚔️ Compare",
+        "text": "ETH L2 stack: sequencer trust + bridge risk + admin keys.\nTezos smart rollups: WASM or EVM, L1-verified, enshrined.\n\n{value} rollups with zero external trust assumptions."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} smart rollups on Tezos running WASM and EVM workloads. The Data Availability Layer feeds them natively.\n\nNo Celestia. No third-party DA. Built into the protocol."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tezos smart rollups are enshrined — the L1 protocol itself verifies execution and provides data availability through the DAL.\n\n{value} rollups. No external dependencies. No trust assumptions beyond the L1."
+      }
+    ],
+    "formal-verification": [
+      {
+        "label": "💪 Flex",
+        "text": "Tezos smart contracts can be mathematically proven correct before deployment.\n\nNot \"audited.\" Not \"battle-tested.\" Formally verified. The same standard used for aircraft software."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Solidity devs: \"We got audited by 3 firms.\"\n\nMichelson devs: \"We mathematically proved it can't fail.\"\n\nDifferent league."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Michelson was designed from day one for formal verification — every contract has a clear, provable type system.\n\nBugs aren't found. They're made impossible."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Why does formal verification matter? Because \"move fast and break things\" shouldn't apply to protocols holding billions.\n\nTezos chose math over vibes."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Building financial infrastructure? Tezos is the only major L1 where smart contracts can be formally verified at the VM level.\n\nThat's not a feature. That's a requirement."
+      }
+    ],
+    "energy-efficiency": [
+      {
+        "label": "🔥 Dunk",
+        "text": "Bitcoin uses more electricity than Argentina.\n\nTezos uses less than a small apartment building.\n\nSame security guarantees. Different century of thinking."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "A single Tezos transaction uses roughly 0.001 kWh of energy.\n\nA single Bitcoin transaction uses ~700 kWh.\n\nThat's not a rounding error. That's a 700,000x difference."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "The entire Tezos network runs on less energy than 17 US households.\n\nProof of Stake isn't just better tech — it's responsible tech."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "\"Crypto is destroying the planet.\"\n\nBitcoin? Sure. Tezos bakers run on Raspberry Pis drawing 5 watts.\n\nDon't lump us in."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "ESG-conscious and want to build on blockchain? Tezos has been Proof of Stake since genesis — no energy-guzzling PoW phase to apologize for."
+      }
+    ],
+    "real-world-adoption": [
+      {
+        "label": "📊 Standard",
+        "text": "Société Générale issued a regulated security token on Tezos. Not a testnet demo. A real security, on mainnet, by Europe's 3rd largest bank."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "fxhash turned Tezos into the home of generative art. Thousands of artists chose it over Ethereum — not because of hype, but because of fees and culture."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "BNP Paribas explored tokenized funds on Tezos. When the world's 8th largest bank picks your chain, that's not a partnership announcement — that's validation."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "While other chains chased PFP rug pulls, Tezos built an actual art ecosystem.\n\nObjkt and fxhash proved NFTs could be about art, not gambling."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Manchester United, McLaren F1, Red Bull Racing — all explored fan engagement on Tezos.\n\nThe biggest sports brands don't pick chains randomly."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "The Tezos art ecosystem processes millions of transactions. Low fees made micro-patronage possible — collectors buying art for $1, not $50 in gas."
+      }
+    ],
+    "developer-experience": [
+      {
+        "label": "📢 Recruit",
+        "text": "Write Tezos smart contracts in:\n• SmartPy (Python)\n• LIGO (OCaml/JS/Pascal)\n• Archetype (formal spec)\n\nNo need to learn a new language. Just build."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tezos has multiple independent node implementations — Octez and Mavkit.\n\nClient diversity isn't a wish list item. It's shipped."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "\"Learn Solidity to build on Ethereum.\"\n\nOr just use Python (SmartPy) and deploy on Tezos in an afternoon. Your call."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "SmartPy lets you write and test Tezos smart contracts in Python with a full testing framework built in.\n\nFrom idea to deployed contract in hours, not weeks."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Tezos devs get: multiple languages, formal verification tools, on-chain governance (no hard forks), and sub-cent fees.\n\nThe DX nobody talks about."
+      }
+    ],
+    "etherlink": [
+      {
+        "label": "📊 Standard",
+        "text": "Etherlink: a fully EVM-compatible L2 rollup powered by Tezos.\n\nDeploy your Solidity contracts. Use your existing tools. Settled on Tezos."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Etherlink gives Tezos full EVM compatibility without compromising the L1.\n\nBest of both worlds: Solidity devs get onboarded, Tezos stays clean."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "\"Tezos doesn't have EVM.\"\n\nEtherlink is a full EVM L2 rollup running on Tezos right now. Next question."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Solidity developer? Etherlink lets you deploy on Tezos with zero rewrites.\n\nSame tooling. Same language. Better settlement layer."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Etherlink isn't a sidechain. It's a proper optimistic rollup — EVM execution with Tezos L1 security and data availability.\n\nArchitecture matters."
+      }
+    ],
+    "data-availability": [
+      {
+        "label": "💪 Flex",
+        "text": "Tezos is becoming a data availability layer for rollups.\n\nNot just running its own chain — providing infrastructure for others. That's a platform play."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Rollups need cheap, reliable data availability. Tezos L1 provides exactly that — low fees, high throughput, battle-tested consensus."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Celestia raised billions to be a DA layer.\n\nTezos just... added it. Through governance. No new token. No new chain. Just an upgrade."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tezos as DA means any rollup can post data to a chain with {value} cycles of proven uptime.\n\nZero downtime since genesis isn't just a flex — it's a reliability guarantee."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "The modular blockchain thesis says execution and data availability should separate.\n\nTezos agreed — and built both. L1 for DA, Smart Rollups for execution."
+      }
+    ],
+    "privacy": [
+      {
+        "label": "📊 Standard",
+        "text": "Tezos has native Sapling support — shielded transactions baked right into the protocol.\n\nPrivacy isn't a third-party add-on. It's a first-class feature."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Sapling on Tezos: zk-SNARK shielded transfers at the protocol level.\n\nNo mixer. No bridge to a privacy chain. Just native, optional privacy."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Most \"DeFi\" chains: every transaction visible to front-runners.\n\nTezos: Sapling-shielded transfers available natively.\n\nPrivacy shouldn't be an afterthought."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Optional privacy matters. Tezos gives you the choice — transparent when you want accountability, shielded when you need confidentiality.\n\nThat's how it should work."
+      }
+    ],
+    "interoperability": [
+      {
+        "label": "📊 Standard",
+        "text": "Wrapped assets, bridges, and cross-chain swaps — Tezos connects to the broader ecosystem without sacrificing sovereignty.\n\nInteroperability without dependency."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tezos doesn't need to be the only chain. It needs to be the best-connected one.\n\nBridges to Ethereum, wrapped BTC on Tezos, and L2 rollups expanding reach."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Moving assets to Tezos is easier than you think. Bridges exist. Wrapped tokens exist. The ecosystem is open.\n\nCome build where fees don't eat your users alive."
+      }
+    ],
+    "community": [
+      {
+        "label": "💪 Flex",
+        "text": "Tezos has no CEO. No kill switch. No foundation veto.\n\nJust builders who've been shipping through every market cycle since 2018. That's culture you can't buy."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "The Tezos community doesn't chase narratives. It builds infrastructure.\n\nOn-chain governance. Formal verification. Self-amendment. Boring? Maybe. Durable? Absolutely."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Some communities pump tokens. Tezos community upgrades protocols.\n\n{value} governance cycles completed. Zero contentious hard forks. Zero chain splits."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "6 years of continuous operation. No downtime. No emergency patches. No \"we'll decentralize later.\"\n\nTezos builders play the long game."
+      },
+      {
+        "label": "📢 Recruit",
+        "text": "Looking for a chain where your contribution actually matters? Tezos governance means every baker's vote counts.\n\nNo insider deals. No token-weighted plutocracy. Just stake and participate."
+      }
+    ],
+    "milestones": [
+      {
+        "label": "📊 Standard",
+        "text": "Tezos raised $232M in its 2017 ICO — one of the largest in crypto history.\n\nThen it actually delivered. Self-amending blockchain, live since 2018, zero downtime."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tezos was the first blockchain to upgrade itself through on-chain governance.\n\nNo hard fork. No chain split. Just a community vote and a seamless transition. That was 2019."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "{value} protocol upgrades and counting — every single one adopted through on-chain governance.\n\nNo other chain has this track record."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Ethereum needed a contentious hard fork over The DAO hack.\n\nTezos was literally designed so that never happens. On-chain governance from genesis."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "From Athens to Tallinn — Tezos has completed more successful on-chain governance upgrades than any other blockchain.\n\nSelf-amendment isn't theoretical. It's {value} upgrades deep."
       }
     ]
   },
@@ -2295,11 +2974,11 @@
     "Oxford": [
       {
         "label": "📊 Standard",
-        "text": "Oxford (Feb 2024): The first protocol proposal ever REJECTED by Tezos bakers.\n\nAdaptive Issuance was too complex. Bakers said no. Oxford 2 passed with AI disabled."
+        "text": "Oxford (Feb 2024): The first protocol proposal ever REJECTED by Tezos bakers at Exploration vote.\n\nAdaptive Issuance was too complex. Bakers said no. Oxford 2 passed with AI disabled."
       },
       {
         "label": "💪 Flex",
-        "text": "Oxford was the first rejected proposal in Tezos history. February 2024.\n\nBakers reviewed the economics, found issues, and voted it down. Then a fixed version passed. This is governance working exactly as designed."
+        "text": "Oxford was rejected at Exploration vote — a historic first. February 2024.\n\nBakers reviewed the economics, found issues, and voted it down. Then a fixed version passed. This is governance working exactly as designed."
       },
       {
         "label": "🔥 Dunk",
@@ -2436,6 +3115,38 @@
       {
         "label": "📈 Compare",
         "text": "Block time evolution:\n• Tezos: 60s → 30s → 15s → 10s → 8s → 6s (all governance-voted)\n• ETH: 12s (fixed since The Merge, Sep 2022)\n• BTC: 10 min (never changed)\n\nTezos keeps getting faster because governance works."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Tallinn is Protocol 24. 14,400 blocks per cycle. 6-second block times.\n\nTezos cycles now complete in ~1 day. Faster rewards, faster governance, faster everything."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "Tallinn dropped the minimum baking power to 6,000 XTZ.\n\nLowering barriers to entry while speeding up the chain. Decentralization AND performance — Tezos keeps proving you don't have to choose."
+      },
+      {
+        "label": "🔥 Dunk",
+        "text": "Tallinn: 6s blocks, adaptive issuance, 6K XTZ min baking power.\n\nSOL needs $100K+ hardware to validate. ETH needs 32 ETH (~$100K+). Tezos? A Pi and some XTZ."
+      },
+      {
+        "label": "📊 Standard",
+        "text": "Proto 24 — Tallinn — is Tezos' 21st successful self-amendment.\n\n21 upgrades. Zero downtime. Zero forks. The self-amending ledger keeps its promise."
+      },
+      {
+        "label": "💪 Flex",
+        "text": "With Tallinn, Tezos now produces a block every 6 seconds — 14,400 per cycle.\n\nAdaptive issuance adjusts inflation based on staking participation. Sound monetary policy, governed on-chain."
+      },
+      {
+        "label": "🗳️ Governance",
+        "text": "Tallinn was voted in by bakers and activated January 2026 with zero coordination drama.\n\nMost chains can't change a parameter without a Twitter war. Tezos changes its block time through democracy."
+      },
+      {
+        "label": "❓ Question",
+        "text": "Tallinn: 6,000 XTZ minimum to bake. 6-second blocks. 14,400 blocks per cycle.\n\nHow accessible is validation on your chain? Can regular people participate in consensus?"
+      },
+      {
+        "label": "📈 Compare",
+        "text": "Validator accessibility (Tallinn era):\n• Tezos: 6,000 XTZ min (~$6K), Raspberry Pi\n• ETH: 32 ETH (~$100K+), specialized hardware\n• SOL: $100K+ hardware, data center\n\nPermissionless isn't just a word on Tezos."
       }
     ]
   },
@@ -2463,6 +3174,26 @@
     {
       "label": "❓ Question",
       "text": "{name}: \"{headline}\"\n\nVoted on by bakers. Activated on-chain. No fork.\n\nUpgrade #{num} of {total}. Is any other L1 even close to this governance track record?"
+    },
+    {
+      "label": "📊 Standard",
+      "text": "{name} — upgrade #{num} of {total}.\n\n{headline}\n\nEvery Tezos upgrade follows the same path: propose, debate, vote, activate. No backdoors. No emergency committees."
+    },
+    {
+      "label": "🔥 Dunk",
+      "text": "Upgrade #{num}: {name}. Shipped through governance.\n\nMost chains need a hard fork and a prayer. Tezos just needs a supermajority vote from bakers. {total} times and counting."
+    },
+    {
+      "label": "💪 Flex",
+      "text": "{total} protocol upgrades. {total} on-chain votes. {total} seamless activations.\n\n{name} (#{num}): {headline}\n\nThe self-amending ledger doesn't just talk about governance. It does it."
+    },
+    {
+      "label": "🗳️ Governance",
+      "text": "{name} passed 5 governance stages: Proposal → Exploration → Cooldown → Promotion → Adoption.\n\nUpgrade #{num} of {total}. Every stage transparent. Every vote on-chain. Zero shortcuts."
+    },
+    {
+      "label": "❓ Question",
+      "text": "{total} upgrades through on-chain governance. Zero chain splits.\n\n{name} (#{num}): {headline}\n\nStill think on-chain governance is \"too slow\" or \"doesn't work\"?"
     }
   ],
   "TIMELINE_TWEET_OPTIONS": [
@@ -2513,6 +3244,26 @@
     {
       "label": "📈 Compare",
       "text": "Governance track record:\n• BTC: ~3 soft forks in 16 years\n• ETH: ~15 hard forks (including The DAO chain split)\n• Tezos: {total} self-amendments, zero forks\n\nOn-chain governance works. The data proves it."
+    },
+    {
+      "label": "📊 Standard",
+      "text": "Athens → Tallinn. {total} upgrades across 7 years.\n\nBlock times: 60s → 6s. Consensus: Emmy → Tenderbake. Scaling: L1-only → enshrined rollups + DAL.\n\nAll through on-chain governance. Zero downtime."
+    },
+    {
+      "label": "💪 Flex",
+      "text": "{total} upgrades and the chain has never stopped producing blocks.\n\nRejected proposals, contested votes, community alternatives — Tezos governance handles it all without missing a beat."
+    },
+    {
+      "label": "🔥 Dunk",
+      "text": "From Athens to Tallinn: privacy (Edo), deterministic finality (Ithaca), enshrined rollups (Mumbai), native DA (Paris), 6s blocks (Tallinn).\n\n{total} governance-voted upgrades. Other chains are still debating their first one."
+    },
+    {
+      "label": "❓ Question",
+      "text": "{total} protocol upgrades. Multiple rejected proposals. Community counter-proposals. Contested economic votes.\n\nTezos governance doesn't just approve — it debates, rejects, fixes, and ships. Does yours?"
+    },
+    {
+      "label": "📈 Compare",
+      "text": "7 years of Tezos governance:\n• {total} upgrades activated\n• 2 proposals rejected (Carthage 1, Oxford)\n• 1 contested economic battle (Quebec)\n• Zero chain splits\n\nStress-tested democracy at protocol scale."
     }
   ]
 }
