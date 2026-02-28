@@ -340,8 +340,36 @@ function injectStyles() {
       #daily-briefing-card { width: calc(100% - 1rem); }
     }
 
+    .briefing-lines, .briefing-footer {
+      overflow: hidden;
+      transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
+                  opacity 0.35s ease,
+                  transform 0.35s ease,
+                  margin 0.35s ease;
+      transform-origin: top;
+    }
     #daily-briefing-card.is-collapsed .briefing-lines,
-    #daily-briefing-card.is-collapsed .briefing-footer { display: none; }
+    #daily-briefing-card.is-collapsed .briefing-footer {
+      max-height: 0 !important;
+      opacity: 0;
+      transform: scaleY(0.95) translateY(-4px);
+      margin: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+      pointer-events: none;
+    }
+    #daily-briefing-card:not(.is-collapsed) .briefing-lines,
+    #daily-briefing-card:not(.is-collapsed) .briefing-footer {
+      opacity: 1;
+      transform: scaleY(1) translateY(0);
+    }
+    /* Subtle border glow flash on collapse */
+    #daily-briefing-card {
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+    #daily-briefing-card.is-collapsed {
+      border-color: color-mix(in srgb, var(--accent, #00d4ff) 25%, var(--border));
+    }
     .briefing-collapse { opacity: .7; font-size: 12px; margin-left: auto; }
 
   `;
@@ -384,15 +412,32 @@ function renderCard(cycle, sentences, showNew) {
   const hdr = card.querySelector('.briefing-header');
   const collapseBtn = card.querySelector('#briefing-collapse-btn');
   const toggle = () => {
-    card.classList.toggle('is-collapsed');
-    const collapsed = card.classList.contains('is-collapsed');
-    if (collapseBtn) collapseBtn.textContent = collapsed ? '[...]' : '[–]';
-    try { localStorage.setItem('tezos-systems-briefing-collapsed', collapsed ? '1' : '0'); } catch {}
-    if (collapsed) {
-      // Mark as seen — NEW badge won't show again until next cycle
+    const lines = card.querySelector('.briefing-lines');
+    const footer = card.querySelector('.briefing-footer');
+    const willCollapse = !card.classList.contains('is-collapsed');
+
+    if (willCollapse) {
+      // Snapshot heights, then collapse on next frame
+      [lines, footer].forEach(el => { if (el) el.style.maxHeight = el.scrollHeight + 'px'; });
+      requestAnimationFrame(() => {
+        card.classList.add('is-collapsed');
+        if (collapseBtn) collapseBtn.textContent = '[...]';
+      });
       const badge = card.querySelector('.briefing-badge-new');
       if (badge) badge.remove();
+      try { localStorage.setItem('tezos-systems-briefing-collapsed', '1'); } catch {}
       try { localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle)); } catch {}
+    } else {
+      // Expand: remove class, set max-height to scrollHeight, then clear
+      card.classList.remove('is-collapsed');
+      [lines, footer].forEach(el => {
+        if (el) {
+          el.style.maxHeight = el.scrollHeight + 'px';
+          setTimeout(() => { el.style.maxHeight = 'none'; }, 500);
+        }
+      });
+      if (collapseBtn) collapseBtn.textContent = '[–]';
+      try { localStorage.setItem('tezos-systems-briefing-collapsed', '0'); } catch {}
     }
   };
   collapseBtn?.addEventListener('click', toggle);
