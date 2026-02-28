@@ -3,7 +3,7 @@
  * Fetches data from TzKT API and Octez RPC
  */
 
-import { API_URLS, CACHE_TTLS, FETCH_LIMITS, HISTORY_START } from './config.js';
+import { API_URLS, CACHE_TTLS, FETCH_LIMITS, HISTORY_START } from './config.js?v=20260228a';
 
 // API endpoint configurations
 const ENDPOINTS = {

@@ -5,7 +5,7 @@
 
 const COMPARISON_CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
 
-import { CHAIN_COMPARISON, API_URLS } from '../core/config.js';
+import { CHAIN_COMPARISON, API_URLS } from '../core/config.js?v=20260228a';
 
 // --- Full comparison tweet options ---
 const COMPARISON_TWEETS_FULL = [
@@ -49,7 +49,7 @@ const COMPARISON_TWEETS_PER_METRIC = {
         { label: 'Realistic', text: 'Nakamoto coefficient: 4 for Tezos vs ~20 for Solana.\n\nWe\'re working on it. But we\'ve never halted, and our governance actually works.' },
     ],
     stakingPct: [
-        { label: 'Participation', text: 'Staking participation:\n🟢 Solana: ~65%\n🟡 Ethereum: ~28%\n🔄 Tezos: Live data\n\nHigh participation = strong security. Check tezos.systems for live numbers.' },
+        { label: 'Participation', text: 'Staking participation:\n🟢 Solana: ~65%\n🟡 Ethereum: ~34%\n🔄 Tezos: Live data\n\nHigh participation = strong security. Check tezos.systems for live numbers.' },
         { label: 'Governance', text: 'Our stakers don\'t just secure the network — they govern it.\n\n21 successful protocol votes. 0 contentious forks. That\'s engaged staking.' },
         { label: 'Quality', text: 'Staking isn\'t just about percentages — it\'s about quality.\n\nTezos stakers have voted through 21 protocol upgrades. Active governance, not passive yield farming.' },
     ],

@@ -50,7 +50,7 @@ export const HISTORY_START = '2024-01-01';
 
 // Static comparison data for other chains (updated periodically)
 export const CHAIN_COMPARISON = {
-    lastUpdated: '2026-02-27',
+    lastUpdated: '2026-02-28',
     ethereum: {
         name: 'Ethereum',
         symbol: 'ETH',
@@ -61,8 +61,8 @@ export const CHAIN_COMPARISON = {
         finalityNote: '2 epochs',
         validators: '~5–7',
         validatorsNote: 'entities for 50% of stake',
-        validatorsTooltip: 'Lido (~23%), Coinbase (~11%), Binance (~4%), Figment, Kiln, etc. No two entities reach 50% alone.',
-        stakingPct: '~28%',
+        validatorsTooltip: 'Lido (~23%), Coinbase (~8%), Binance (~5%), Kiln (~4%), Figment (~3%), etc.',
+        stakingPct: '~34%',
         annualIssuance: '~0.5%',
         annualIssuanceTooltip: 'Gross issuance. Net issuance is ~0% after EIP-1559 burn.',
         selfAmendments: 0,

@@ -73,7 +73,7 @@ import { initSleepingGiants } from '../features/sleeping-giants.js';
 import { initPriceBar } from '../features/price.js';
 import { initStreak } from '../features/streak.js';
 import { updatePageTitle } from '../ui/title.js';
-import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './config.js';
+import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './config.js?v=20260228a';
 import { initComparison, updateComparison } from '../features/comparison.js';
 import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js';
 import { initCalculator } from '../features/calculator.js';
