@@ -154,9 +154,13 @@ function calcLifetime(rewards) {
 
 function calcThisCycle(rewards, stats) {
   if (!rewards.length) return { estimatedMutez: 0, efficiency: 100, fullCycleMutez: 0 };
-  // Find current cycle (matches stats.cycle) or use most recent
+  // Find current cycle — the one with blocks already produced (not future)
   const currentCycle = stats?.cycle || 0;
-  const recent = rewards.find(r => r.cycle === currentCycle) || rewards[0];
+  let recent = rewards.find(r => r.cycle === currentCycle);
+  if (!recent) {
+    // Fall back: find the first cycle that has earned rewards or blocks
+    recent = rewards.find(r => (r._earnedRewards || 0) > 0) || rewards[0];
+  }
   
   const earnedSoFar = recent._earnedRewards || (recent.blockRewards || 0) + (recent.endorsementRewards || 0) + (recent.blockFees || 0);
   const futureEst = recent._futureRewards || 0;
@@ -403,7 +407,7 @@ function buildContainer(rewards, stats, xtzPrice) {
 
   // Calendar blocks — oldest first
   const calGrid = wrap.querySelector('#rt-cal-grid');
-  const calData = [...rewards].reverse();
+  const calData = [...rewards].slice(0, 30).reverse();
   if (calData.length) {
     for (const r of calData) {
       const block = document.createElement('div');
