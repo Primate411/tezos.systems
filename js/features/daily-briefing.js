@@ -393,8 +393,16 @@ function renderCard(cycle, sentences, showNew) {
   if (localStorage.getItem('tezos-systems-briefing-collapsed') === '1') {
     card.classList.add('is-collapsed');
     if (collapseBtn) collapseBtn.textContent = '[...]';
-  } else if (collapseBtn) {
-    collapseBtn.textContent = '[–]';
+  } else {
+    if (collapseBtn) collapseBtn.textContent = '[–]';
+    // Auto-collapse after 60 seconds
+    setTimeout(() => {
+      if (!card.classList.contains('is-collapsed')) {
+        card.classList.add('is-collapsed');
+        if (collapseBtn) collapseBtn.textContent = '[...]';
+        try { localStorage.setItem('tezos-systems-briefing-collapsed', '1'); } catch {}
+      }
+    }, 60000);
   }
 
   card.querySelector('#briefing-share-btn').addEventListener('click', () => captureCard(card, cycle));
