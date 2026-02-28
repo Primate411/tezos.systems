@@ -71,6 +71,26 @@ function injectStyles() {
       transition: width .8s ease;
       width: 0%;
     }
+    #${STRIP_ID} .cps-block {
+      font-variant-numeric: tabular-nums;
+    }
+    #${STRIP_ID} .cps-age {
+      font-variant-numeric: tabular-nums;
+      opacity: .7;
+    }
+    #${STRIP_ID} .uptime-pulse-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #0f0;
+      display: inline-block;
+      box-shadow: 0 0 4px #0f0;
+      animation: cps-pulse 2s ease-in-out infinite;
+      margin: 0 2px;
+    }
+    #${STRIP_ID} .uptime-pulse-dot.warn { background: #ff0; box-shadow: 0 0 4px #ff0; }
+    #${STRIP_ID} .uptime-pulse-dot.danger { background: #f00; box-shadow: 0 0 4px #f00; }
+    @keyframes cps-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     @media (max-width: 600px) {
       #${STRIP_ID} { font-size: 10px; gap: 4px; }
       #${STRIP_ID} .cps-bar { width: 80px; }
@@ -116,6 +136,10 @@ function createStrip() {
     <span class="cps-pct"></span>
     <span class="cps-sep">·</span>
     <span class="cps-time"></span>
+    <span class="cps-sep cps-block-sep">·</span>
+    <span class="cps-block">Block <span id="uptime-block-number">—</span></span>
+    <span class="uptime-pulse-dot" id="uptime-pulse-dot" title="Network healthy"></span>
+    <span class="cps-age" id="uptime-block-age">—</span>
   `;
   return el;
 }
