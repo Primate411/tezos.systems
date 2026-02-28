@@ -501,7 +501,6 @@ export async function initDailyBriefing(stats, xtzPrice) {
   const showNew  = briefing.cycle > lastSeen;
   const card     = renderCard(briefing.cycle, briefing.sentences, showNew);
   // Mark as seen only when user collapses (not on render)
-  }, 3000);
   return card;
 }
 
