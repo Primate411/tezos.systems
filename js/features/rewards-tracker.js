@@ -25,7 +25,7 @@ function getCacheKey(address) {
 }
 
 function parsePrice(xtzPrice) {
-  if (typeof xtzPrice === 'number') return xtzPrice;
+  if (typeof xtzPrice === 'number' && xtzPrice > 0) return xtzPrice;
   const raw = xtzPrice || document.querySelector('.price-value')?.textContent || '0';
   return parseFloat(String(raw).replace(/[^0-9.]/g, '')) || 0;
 }
