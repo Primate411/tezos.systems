@@ -1025,37 +1025,51 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     // Copy to clipboard
     modal.querySelector('#share-copy').addEventListener('click', async () => {
         try {
-            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
-            await navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob })
-            ]);
+            // Pass a Promise to ClipboardItem to preserve the user gesture context
+            // (required by Chrome — resolving the blob async loses the gesture)
+            const item = new ClipboardItem({
+                'image/png': new Promise((resolve) => {
+                    canvas.toBlob((blob) => resolve(blob), 'image/png');
+                })
+            });
+            await navigator.clipboard.write([item]);
             showNotification('Copied to clipboard!', 'success');
         } catch (err) {
-            showNotification('Clipboard not supported. Use download instead.', 'error');
+            // Fallback: try legacy canvas-to-clipboard via selection hack
+            try {
+                const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+                const data = [new ClipboardItem({ 'image/png': blob })];
+                await navigator.clipboard.write(data);
+                showNotification('Copied to clipboard!', 'success');
+            } catch (err2) {
+                // Final fallback: auto-download instead
+                const link = document.createElement('a');
+                link.download = `tezos-systems-${Date.now()}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                showNotification('Clipboard unavailable — image downloaded instead.', 'info');
+            }
         }
     });
     
     // Share on X/Twitter — open X first (must be synchronous for mobile popup blocker),
     // then try to copy image to clipboard in background
-    modal.querySelector('#share-twitter').addEventListener('click', () => {
+    modal.querySelector('#share-twitter').addEventListener('click', async () => {
         const selectedTweet = getSelectedTweet();
         const text = encodeURIComponent(selectedTweet);
         // Open X immediately to preserve user gesture (mobile Safari blocks async window.open)
         window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
-        // Then try clipboard copy in background
+        // Then try clipboard copy in background (use Promise-based ClipboardItem)
         try {
-            canvas.toBlob(async (blob) => {
-                try {
-                    await navigator.clipboard.write([
-                        new ClipboardItem({ 'image/png': blob })
-                    ]);
-                    showNotification('Image copied! Paste it into your tweet (Ctrl+V / ⌘V)', 'success');
-                } catch (e) {
-                    // Clipboard not available — that's fine, X is already open
-                }
-            }, 'image/png');
+            const item = new ClipboardItem({
+                'image/png': new Promise((resolve) => {
+                    canvas.toBlob((blob) => resolve(blob), 'image/png');
+                })
+            });
+            await navigator.clipboard.write([item]);
+            showNotification('Image copied! Paste it into your tweet (Ctrl+V / ⌘V)', 'success');
         } catch (err) {
-            // Canvas toBlob failed — X is already open, no problem
+            // Clipboard not available — that's fine, X is already open
         }
     });
     
