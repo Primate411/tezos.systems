@@ -26,7 +26,7 @@ function injectStyles() {
       justify-content: center;
       gap: 6px;
       height: 26px;
-      font-family: 'Orbitron', monospace;
+      font-family: 'Orbitron', 'SF Mono', 'Menlo', monospace;
       font-size: 11px;
       letter-spacing: .06em;
       color: var(--text-secondary);
@@ -37,6 +37,7 @@ function injectStyles() {
       padding: 0 12px;
       white-space: nowrap;
       overflow: hidden;
+      flex-wrap: nowrap;
     }
     #${STRIP_ID} .cps-cycle {
       color: var(--accent);
@@ -47,15 +48,17 @@ function injectStyles() {
       margin: 0 2px;
     }
     #${STRIP_ID} .cps-pct {
-      min-width: 44px;
+      min-width: 50px;
       text-align: right;
+      letter-spacing: 0;
       color: var(--text-primary);
       font-weight: 700;
       font-variant-numeric: tabular-nums;
     }
     #${STRIP_ID} .cps-time {
-      min-width: 80px;
+      min-width: 90px;
       text-align: right;
+      letter-spacing: 0;
       font-variant-numeric: tabular-nums;
     }
     #${STRIP_ID} .cps-bar {
@@ -77,14 +80,17 @@ function injectStyles() {
     }
     #${STRIP_ID} .cps-block {
       font-variant-numeric: tabular-nums;
-      min-width: 130px;
+      min-width: 150px;
       text-align: right;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
     }
     #${STRIP_ID} .cps-age {
       font-variant-numeric: tabular-nums;
       opacity: .7;
-      min-width: 42px;
+      min-width: 52px;
       text-align: left;
+      letter-spacing: 0;
     }
     #${STRIP_ID} .uptime-pulse-dot {
       width: 6px;
