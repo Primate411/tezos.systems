@@ -5,6 +5,14 @@
 
 const CHANGELOG = [
     {
+        date: '2026-02-28',
+        entries: [
+            { type: '🔧', text: 'Corrected ETH staking concentration copy: ~5–7 entities for 50% (Lido ~23%), not ~2' },
+            { type: '🔧', text: 'Fixed Chain Comparison live Tezos values when Stats section is collapsed — staking and issuance now populate on initial load' },
+            { type: '🔧', text: 'Comparison cards now treat 0 as a valid numeric value instead of rendering em dash' },
+        ]
+    },
+    {
         date: '2026-02-27',
         entries: [
             { type: '✨', text: 'Nav redesign — clean header: 👤 My Tezos | 🧩 Features | ⚙️ | Stake ↗ | Bake ↗' },

@@ -260,6 +260,8 @@ async function fetchGovernance() {
             day: 'numeric'
         }) : 'N/A';
         
+        const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
+
         return {
             proposal: proposalName,
             proposalDescription: voting.epoch?.proposal ? 'In progress' : 'No active proposal',
@@ -270,6 +272,8 @@ async function fetchGovernance() {
         };
     } catch (error) {
         console.error('Failed to fetch governance:', error);
+        const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
+
         return {
             proposal: 'N/A',
             proposalDescription: 'Error loading',
@@ -504,6 +508,7 @@ export async function fetchAllStats() {
             fetchTransactionVolume(),
             fetchContractCalls(),
             fetchStakingRatio(),
+            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`),
             fetchTotalSupply(),
             fetchTotalBurned(),
             fetchFundedAccounts(),
@@ -520,9 +525,12 @@ export async function fetchAllStats() {
         const staking = stakingData.status === 'fulfilled' ? stakingData.value : { stakingRatio: 0, delegatedRatio: 0 };
         const apy = stakingAPY.status === 'fulfilled' ? stakingAPY.value : { delegateAPY: 0, stakeAPY: 0 };
 
+        const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
+
         return {
             // Consensus
             totalBakers: bakers.total,
+            currentIssuanceRate: issuanceRate,
             tz4Bakers: bakers.tz4Count,
             tz4Percentage: bakers.tz4Percentage,
             cycle: cycle.cycle,
@@ -570,21 +578,25 @@ export async function fetchAllStats() {
  */
 export async function fetchHeroStats() {
     try {
-        const [bakersData, stakingData] = await Promise.allSettled([
+        const [bakersData, stakingData, issuanceData] = await Promise.allSettled([
             fetchBakers(),
-            fetchStakingRatio()
+            fetchStakingRatio(),
+            fetchIssuance()
         ]);
 
         const bakers = bakersData.status === 'fulfilled' ? bakersData.value : { total: 0, tz4Count: 0, tz4Percentage: 0 };
         const staking = stakingData.status === 'fulfilled' ? stakingData.value : { stakingRatio: 0, delegatedRatio: 0 };
 
+        const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
+
         return {
             totalBakers: bakers.total,
+            currentIssuanceRate: issuanceRate,
             stakingRatio: staking.stakingRatio,
         };
     } catch (error) {
         console.error('Failed to fetch hero stats:', error);
-        return { totalBakers: 0, stakingRatio: 0 };
+        return { totalBakers: 0, stakingRatio: 0, currentIssuanceRate: 0 };
     }
 }
 
@@ -598,6 +610,8 @@ export async function checkApiHealth() {
             fetch(`${ENDPOINTS.octez.base}/chains/main/blocks/head/header`)
         ]);
         
+        const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
+
         return {
             tzkt: tzktHealth.status === 'fulfilled' && tzktHealth.value.ok,
             octez: octezHealth.status === 'fulfilled' && octezHealth.value.ok

@@ -3,7 +3,7 @@
  * Dashboard for Tezos network statistics
  */
 
-import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js';
+import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js?v=20260228a';
 import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes5';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
@@ -439,6 +439,16 @@ async function refreshInBackground() {
             state.lastUpdate = new Date();
             updateLastRefreshTime();
         }
+
+        // Always update comparison section with whatever data we have
+        // (heroStats provides stakingRatio; full stats add issuance if available)
+        const comparisonStats = {
+            ...state.currentStats,
+            stakingRatio: heroStats.stakingRatio || state.currentStats?.stakingRatio,
+            currentIssuanceRate: heroStats.currentIssuanceRate || state.currentStats?.currentIssuanceRate,
+        };
+        updateComparison(comparisonStats);
+
         
         // Refresh My Baker/Leaderboard if visible
         refreshMyBaker();
