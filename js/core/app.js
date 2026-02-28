@@ -3,7 +3,7 @@
  * Dashboard for Tezos network statistics
  */
 
-import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js?v=20260228b';
+import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js?v=20260228c';
 import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes5';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
