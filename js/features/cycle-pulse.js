@@ -63,6 +63,7 @@ function injectStyles() {
       flex-shrink: 0;
     }
     #${STRIP_ID} .cps-bar-fill {
+      display: block;
       height: 100%;
       border-radius: 2px;
       background: #00d4ff;
