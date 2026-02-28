@@ -17,12 +17,12 @@ const COMPARISON_TWEETS_FULL = [
     { label: 'Recruit', text: 'Building on a chain that forks every upgrade? There\'s a better way.\n\n✅ Self-amending protocols\n✅ Deterministic finality\n✅ Zero breaking changes\n\ntezos.systems' },
     { label: 'Data Drop', text: 'Energy per transaction:\n🟢 Tezos: <0.001 kWh\n🟡 Ethereum: 0.003 kWh\n🔴 Solana: 0.00051 kWh\n\nEfficiency matters.\n\ntezos.systems' },
     { label: 'Flex', text: 'Deterministic finality in 12 seconds. Not "probabilistic eventually." Not "2 epochs."\n\nActual finality. Guaranteed.\n\ntezos.systems' },
-    { label: 'Dunk', text: '2 entities control 50% of Ethereum consensus 👀\n\nMeanwhile Tezos has governed 21 protocol upgrades via on-chain voting without a single contentious fork.\n\ntezos.systems' },
+    { label: 'Dunk', text: '2 entities control 50% of Ethereum stake 👀\n\nMeanwhile Tezos has governed 21 protocol upgrades via on-chain voting without a single contentious fork.\n\ntezos.systems' },
     { label: 'Understated', text: 'We\'re not winning block time (Solana\'s faster). We\'re not winning fees (Solana\'s cheaper).\n\nBut we\'ve never forked and upgrade seamlessly.\n\ntezos.systems' },
-    { label: 'Question', text: 'What\'s more decentralized: a chain where 2 entities control 50%, or one where governance has coordinated 21+ upgrades without a single fork?\n\ntezos.systems' },
+    { label: 'Question', text: 'What\'s more decentralized: a chain where 2 entities control 50% of stake, or one where governance has coordinated 21+ upgrades without a single fork?\n\ntezos.systems' },
     { label: 'Recruit', text: 'Climate-conscious devs: Tezos uses less energy per tx than any major PoS chain. Zero hard forks means zero wasted effort.\n\nBuild sustainably:\ntezos.systems' },
     { label: '5-Chain', text: '5 chains. 1 comparison. Live data.\n\n🔹 Tezos: 21 upgrades, 0 forks\n🔹 Ethereum: Most TVL, slowest finality\n🔹 Solana: Fastest blocks, outage history\n🔹 Cardano: High staking %, slow blocks\n🔹 Algorand: Instant finality, centralized upgrades\n\ntezos.systems' },
-    { label: 'Governance', text: 'Self-amendment scoreboard:\n🏆 Tezos: 21+ on-chain upgrades\n❌ Ethereum: Hard forks only\n❌ Solana: No on-chain governance\n❌ Cardano: Voltaire still pending\n❌ Algorand: Foundation-controlled\n\nOnly one chain truly governs itself.\n\ntezos.systems' },
+    { label: 'Governance', text: 'Self-amendment scoreboard:\n🏆 Tezos: 21+ on-chain upgrades\n❌ Ethereum: Hard forks only\n❌ Solana: No on-chain governance\n🟡 Cardano: 1 (CIP-1694, Sep 2024)\n❌ Algorand: Foundation-controlled\n\nOnly one chain truly governs itself.\n\ntezos.systems' },
     { label: 'Data Drop', text: 'Self-amendment scoreboard:\n🏆 Tezos: 21+ successful upgrades\n❌ Ethereum: 0 (hard forks only)\n❌ Solana: 0 (no on-chain governance)\n\ntezos.systems' },
     { label: 'Flex', text: 'Don\'t choose between fast, cheap, or decentralized.\n\nChoose deterministic finality, self-amendment, and zero forks.\n\ntezos.systems' },
     { label: 'Dunk', text: 'Yes, Solana is faster and cheaper. Yes, Ethereum has more TVL.\n\nBut when they break (and they do), Tezos keeps building. 21 upgrades, 0 forks.\n\ntezos.systems' },
@@ -43,7 +43,7 @@ const COMPARISON_TWEETS_PER_METRIC = {
         { label: 'Business', text: 'Instant finality matters:\n• No transaction reversals\n• No reorg risk\n• No "economic finality" guesswork\n\nTezos: 12s deterministic finality. Every time.' },
     ],
     validators: [
-        { label: 'Honest', text: 'Nakamoto Coefficient:\n🔴 Tezos: 4 bakers for 33%\n🟡 Ethereum: ~2 entities for 50%\n🟢 Solana: ~20 for 33%\n\nSolana\'s more distributed by this metric.' },
+        { label: 'Honest', text: 'Nakamoto Coefficient:\n🔴 Tezos: 4 bakers for 33%\n🟡 Ethereum: ~2 entities for 50% (Lido = 1)\n🟢 Solana: ~20 for 33%\n\nSolana\'s more distributed by this metric.' },
         { label: 'Context', text: 'Yes, Solana has a higher Nakamoto coefficient (~20 vs our 4). But they\'ve also had multiple outages.\n\nDecentralization isn\'t just validator count — it\'s reliability.' },
         { label: 'Governance', text: '4 bakers for 33% of Tezos validation. Room to improve.\n\nBut these validators have governed 21+ upgrades without a single contentious fork. That\'s coordination, not capture.' },
         { label: 'Realistic', text: 'Nakamoto coefficient: 4 for Tezos vs ~20 for Solana.\n\nWe\'re working on it. But we\'ve never halted, and our governance actually works.' },
@@ -66,7 +66,7 @@ const COMPARISON_TWEETS_PER_METRIC = {
         { label: 'Future', text: 'While others debate hard forks, Tezos just upgrades.\n\n21 amendments in. Infinite amendments possible. The only future-proof architecture.' },
     ],
     hardForks: [
-        { label: 'Zero', text: 'Hard fork count:\n🏆 Tezos: 0\n🟡 Algorand: 0 (foundation-controlled)\n🔴 Cardano: 5+\n🔴 Ethereum: 14+\n🔴 Solana: Multiple outages\n\nZero forks. Zero splits.' },
+        { label: 'Zero', text: 'Hard fork count:\n🏆 Tezos: 0\n🟡 Algorand: 0 (foundation-controlled)\n🔴 Cardano: 8+\n🔴 Ethereum: 17+\n🔴 Solana: Multiple outages\n\nZero forks. Zero splits.' },
         { label: 'Unity', text: '0 hard forks = 0 ecosystem splits.\n\nWhile other chains fragment their communities, Tezos keeps everyone together.' },
         { label: 'Stability', text: '14+ Ethereum hard forks. Multiple Solana outages. 0 Tezos forks.\n\nImagine building on a platform that never breaks backward compatibility.' },
         { label: 'Philosophical', text: '"Hard forks are a feature" 🤔\n\nTezos disagrees. 21 upgrades, 0 forks, 0 splits.\n\nMature governance > breaking changes.' },
@@ -203,6 +203,15 @@ function getStaticNote(chain, key) {
 }
 
 /**
+ * Get tooltip for a chain metric (if any)
+ */
+function getStaticTooltip(chain, key) {
+    const c = CHAIN_COMPARISON[chain];
+    if (!c) return '';
+    return c[key + 'Tooltip'] || '';
+}
+
+/**
  * Build a single comparison card element
  */
 function buildComparisonCard(metric, stats) {
@@ -248,12 +257,17 @@ function buildComparisonCard(metric, stats) {
     const algoValue = getStaticValue('algorand', metric.key);
     const algoNote = getStaticNote('algorand', metric.key);
 
+    const ethTooltip = getStaticTooltip('ethereum', metric.key);
+    const solTooltip = getStaticTooltip('solana', metric.key);
+    const adaTooltip = getStaticTooltip('cardano', metric.key);
+    const algoTooltip = getStaticTooltip('algorand', metric.key);
+
     const chains = [
-        { name: 'Tezos', value: tezosValue, note: tezosNote, cls: 'tezos', isWinner: metric.winner === 'tezos' },
-        { name: 'Ethereum', value: ethValue, note: ethNote, cls: 'ethereum', isWinner: metric.winner === 'ethereum' },
-        { name: 'Solana', value: solValue, note: solNote, cls: 'solana', isWinner: metric.winner === 'solana' },
-        { name: 'Cardano', value: adaValue, note: adaNote, cls: 'cardano', isWinner: metric.winner === 'cardano' },
-        { name: 'Algorand', value: algoValue, note: algoNote, cls: 'algorand', isWinner: metric.winner === 'algorand' },
+        { name: 'Tezos', value: tezosValue, note: tezosNote, tooltip: '', cls: 'tezos', isWinner: metric.winner === 'tezos' },
+        { name: 'Ethereum', value: ethValue, note: ethNote, tooltip: ethTooltip, cls: 'ethereum', isWinner: metric.winner === 'ethereum' },
+        { name: 'Solana', value: solValue, note: solNote, tooltip: solTooltip, cls: 'solana', isWinner: metric.winner === 'solana' },
+        { name: 'Cardano', value: adaValue, note: adaNote, tooltip: adaTooltip, cls: 'cardano', isWinner: metric.winner === 'cardano' },
+        { name: 'Algorand', value: algoValue, note: algoNote, tooltip: algoTooltip, cls: 'algorand', isWinner: metric.winner === 'algorand' },
     ];
 
     for (const chain of chains) {
@@ -276,6 +290,21 @@ function buildComparisonCard(metric, stats) {
             noteEl.className = 'comparison-chain-note';
             noteEl.textContent = chain.note;
             col.appendChild(noteEl);
+        }
+
+        if (chain.tooltip) {
+            const tipWrap = document.createElement('div');
+            tipWrap.className = 'comparison-tooltip-wrap';
+            const tipBtn = document.createElement('span');
+            tipBtn.className = 'comparison-tooltip-icon';
+            tipBtn.textContent = 'ⓘ';
+            tipBtn.setAttribute('tabindex', '0');
+            const tipText = document.createElement('div');
+            tipText.className = 'comparison-tooltip-text';
+            tipText.textContent = chain.tooltip;
+            tipWrap.appendChild(tipBtn);
+            tipWrap.appendChild(tipText);
+            col.appendChild(tipWrap);
         }
 
         if (chain.isWinner) {
