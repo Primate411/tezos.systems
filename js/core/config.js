@@ -62,7 +62,7 @@ export const CHAIN_COMPARISON = {
         validators: '~5–7',
         validatorsNote: 'entities for 50% of stake',
         validatorsTooltip: 'Lido (~23%), Coinbase (~8%), Binance (~5%), Kiln (~4%), Figment (~3%), etc.',
-        stakingPct: '~34%',
+        stakingPct: '~30%',
         annualIssuance: '~0.5%',
         annualIssuanceTooltip: 'Gross issuance. Net issuance is ~0% after EIP-1559 burn.',
         selfAmendments: 0,
