@@ -505,6 +505,7 @@ export async function fetchAllStats() {
             fetchCycleInfo(),
             fetchGovernance(),
             fetchIssuance(),
+            fetchCycleInfo(),
             fetchTransactionVolume(),
             fetchContractCalls(),
             fetchStakingRatio(),
@@ -578,10 +579,11 @@ export async function fetchAllStats() {
  */
 export async function fetchHeroStats() {
     try {
-        const [bakersData, stakingData, issuanceData] = await Promise.allSettled([
+        const [bakersData, stakingData, issuanceData, cycleData] = await Promise.allSettled([
             fetchBakers(),
             fetchStakingRatio(),
-            fetchIssuance()
+            fetchIssuance(),
+            fetchCycleInfo()
         ]);
 
         const bakers = bakersData.status === 'fulfilled' ? bakersData.value : { total: 0, tz4Count: 0, tz4Percentage: 0 };
@@ -589,14 +591,19 @@ export async function fetchHeroStats() {
 
         const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
 
+        const cycleInfo = cycleData.status === 'fulfilled' ? cycleData.value : { cycle: 0, progress: 0, timeRemaining: '—' };
+
         return {
             totalBakers: bakers.total,
             currentIssuanceRate: issuanceRate,
             stakingRatio: staking.stakingRatio,
+            cycle: cycleInfo.cycle,
+            cycleProgress: cycleInfo.progress,
+            cycleTimeRemaining: cycleInfo.timeRemaining,
         };
     } catch (error) {
         console.error('Failed to fetch hero stats:', error);
-        return { totalBakers: 0, stakingRatio: 0, currentIssuanceRate: 0 };
+        return { totalBakers: 0, stakingRatio: 0, currentIssuanceRate: 0, cycle: 0, cycleProgress: 0, cycleTimeRemaining: '—' };
     }
 }
 

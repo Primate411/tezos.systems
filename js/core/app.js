@@ -3,7 +3,7 @@
  * Dashboard for Tezos network statistics
  */
 
-import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js?v=20260228a';
+import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js?v=20260228b';
 import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes5';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
@@ -84,6 +84,9 @@ import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js'
 import { initBakerReportCard } from '../features/baker-report-card.js';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
+import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228a';
+import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228a';
+import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260228a';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -160,6 +163,14 @@ async function init() {
     safe('momentsTimeline', initMomentsTimeline);
     safe('comparisonToggle', initComparisonToggle);
     safe('comparison', () => initComparison({}));
+    safe('cyclePulse', () => initCyclePulse({}));
+    safe('dailyBriefing', () => initDailyBriefing({}, 0));
+    safe('rewardsTracker', () => {
+        if (localStorage.getItem('tezos-systems-my-baker-address')) {
+            const p = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
+            initRewardsTracker(state.currentStats || {}, p);
+        }
+    });
     safe('navButtons', initNavButtons);
     safe('uptimeClock', initUptimeClock);
     safe('tezosStatsToggle', initTezosStatsToggle);
@@ -446,8 +457,15 @@ async function refreshInBackground() {
             ...state.currentStats,
             stakingRatio: heroStats.stakingRatio || state.currentStats?.stakingRatio,
             currentIssuanceRate: heroStats.currentIssuanceRate || state.currentStats?.currentIssuanceRate,
+            cycle: heroStats.cycle || state.currentStats?.cycle,
+            cycleProgress: heroStats.cycleProgress ?? state.currentStats?.cycleProgress,
+            cycleTimeRemaining: heroStats.cycleTimeRemaining || state.currentStats?.cycleTimeRemaining,
         };
         updateComparison(comparisonStats);
+        updateCyclePulse(comparisonStats);
+        const bgXtzPrice = parseFloat(document.querySelector(".price-value")?.textContent?.replace(/[^0-9.]/g, "")) || 0;
+        updateDailyBriefing(comparisonStats, bgXtzPrice);
+        updateRewardsTracker(comparisonStats, bgXtzPrice);
 
         
         // Refresh My Baker/Leaderboard if visible
@@ -632,6 +650,12 @@ async function updateStats(newStats) {
     // Update comparison section with live Tezos data
     updateComparison(state.currentStats);
 
+    // Update new engagement features
+    updateCyclePulse(state.currentStats);
+    const xtzPrice = parseFloat(document.querySelector(".price-value")?.textContent?.replace(/[^0-9.]/g, "")) || 0;
+    updateDailyBriefing(state.currentStats, xtzPrice);
+    updateRewardsTracker(state.currentStats, xtzPrice);
+
     // Update page title with live stats
     updatePageTitle(state.currentStats);
 
@@ -716,7 +740,16 @@ function initMyTezosButton() {
     });
 
     // Listen for address changes
-    window.addEventListener('my-baker-updated', () => updateButtonState());
+    window.addEventListener('my-baker-updated', (e) => {
+        updateButtonState();
+        const addr = e.detail?.address;
+        if (addr) {
+            const p = parseFloat(document.querySelector(".price-value")?.textContent?.replace(/[^0-9.]/g, "")) || 0;
+            initRewardsTracker(state.currentStats || {}, p);
+        } else {
+            destroyRewardsTracker();
+        }
+    });
     window.addEventListener('storage', (e) => {
         if (e.key === STORAGE_KEY) updateButtonState();
     });
