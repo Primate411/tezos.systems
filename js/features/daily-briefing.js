@@ -246,8 +246,10 @@ function injectStyles() {
       border-radius: 8px;
       padding: 18px 20px 14px;
       margin: 22px auto 10px;
-      width: calc(100% - 4rem);
-      max-width: 1168px;
+      width: 100%;
+      max-width: 1200px;
+      padding-left: 2rem;
+      padding-right: 2rem;
       box-sizing: border-box;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
