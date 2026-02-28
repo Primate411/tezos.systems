@@ -84,9 +84,9 @@ import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js'
 import { initBakerReportCard } from '../features/baker-report-card.js';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
-import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228a';
-import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228a';
-import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260228a';
+import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228d';
+import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228b';
+import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260228c';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);

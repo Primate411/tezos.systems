@@ -245,7 +245,10 @@ function injectStyles() {
       border-left: 3px solid var(--accent, #00d4ff);
       border-radius: 8px;
       padding: 18px 20px 14px;
-      margin: 0 0 18px 0;
+      margin: 22px auto 10px;
+      width: calc(100% - 4rem);
+      max-width: 1168px;
+      box-sizing: border-box;
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
       box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
@@ -256,6 +259,7 @@ function injectStyles() {
       justify-content: space-between;
       margin-bottom: 12px;
       gap: 8px;
+      cursor: pointer;
     }
     .briefing-title {
       font-family: 'Orbitron', monospace;
@@ -330,6 +334,14 @@ function injectStyles() {
       border-color: var(--accent, #00d4ff);
       color: var(--accent, #00d4ff);
     }
+    @media (max-width: 700px) {
+      #daily-briefing-card { width: calc(100% - 1rem); }
+    }
+
+    #daily-briefing-card.is-collapsed .briefing-lines,
+    #daily-briefing-card.is-collapsed .briefing-footer { display: none; }
+    .briefing-collapse { opacity: .7; font-size: 12px; margin-left: auto; }
+
   `;
   document.head.appendChild(style);
 }
@@ -343,24 +355,17 @@ function renderCard(cycle, sentences, showNew) {
   if (!card) {
     card = document.createElement('div');
     card.id = 'daily-briefing-card';
-    // Insert after upgrade-clock section, before toggleable sections
-    const anchor =
-      document.getElementById('upgrade-clock') ||
-      document.querySelector('.upgrade-clock') ||
-      document.querySelector('[id$="-clock"]') ||
-      document.querySelector('.stats-section');
-    if (anchor && anchor.parentNode) {
-      anchor.parentNode.insertBefore(card, anchor.nextSibling);
-    } else {
-      const main = document.querySelector('main, .dashboard, .container, body');
-      if (main) main.prepend(card);
-    }
+    // Insert near bottom: as last content block in <main> (before footer)
+    const main = document.querySelector('main');
+    if (main) main.appendChild(card);
+    else document.body.appendChild(card);
   }
 
   card.innerHTML = `
     <div class="briefing-header">
       <span class="briefing-title">📰 Cycle ${cycle} Briefing</span>
       ${showNew ? '<span class="briefing-badge-new">NEW</span>' : ''}
+      <button class="briefing-btn" id="briefing-collapse-btn" title="Collapse briefing">[...]</button>
     </div>
     <ul class="briefing-lines">
       ${sentences.map(s => `<li>${s}</li>`).join('\n      ')}
@@ -373,6 +378,22 @@ function renderCard(cycle, sentences, showNew) {
       </div>
     </div>
   `;
+
+  const hdr = card.querySelector('.briefing-header');
+  const collapseBtn = card.querySelector('#briefing-collapse-btn');
+  const toggle = () => {
+    card.classList.toggle('is-collapsed');
+    if (collapseBtn) collapseBtn.textContent = card.classList.contains('is-collapsed') ? '[...]' : '[–]';
+    try { localStorage.setItem('tezos-systems-briefing-collapsed', card.classList.contains('is-collapsed') ? '1' : '0'); } catch {}
+  };
+  collapseBtn?.addEventListener('click', toggle);
+  hdr?.addEventListener('dblclick', toggle);
+  if (localStorage.getItem('tezos-systems-briefing-collapsed') === '1') {
+    card.classList.add('is-collapsed');
+    if (collapseBtn) collapseBtn.textContent = '[...]';
+  } else if (collapseBtn) {
+    collapseBtn.textContent = '[–]';
+  }
 
   card.querySelector('#briefing-share-btn').addEventListener('click', () => captureCard(card, cycle));
   card.querySelector('#briefing-tweet-btn').addEventListener('click', () => {
