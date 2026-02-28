@@ -65,7 +65,7 @@ function injectStyles() {
       height: 100%;
       width: 0%;
       border-radius: 4px;
-      background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 80%, white));
+      background: var(--accent, #00d4ff);
       box-shadow: 0 0 6px var(--accent);
       transition: width .8s ease;
       position: relative;
