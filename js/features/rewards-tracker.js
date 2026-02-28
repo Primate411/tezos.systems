@@ -60,7 +60,7 @@ async function fetchRewards(address) {
 
   // Try baker endpoint first (Tallinn-era fields), fall back to delegator
   let data;
-  const bakerUrl = `${API_URLS.tzkt}/rewards/bakers/${address}?sort.desc=id&limit=30`;
+  const bakerUrl = `${API_URLS.tzkt}/rewards/bakers/${address}?sort.desc=id&limit=10000`;
   const bakerRes = await fetch(bakerUrl);
   if (bakerRes.ok) {
     const raw = await bakerRes.json();
@@ -74,7 +74,7 @@ async function fetchRewards(address) {
       const future = (r.futureBlockRewards || 0) + (r.futureAttestationRewards || 0);
       return {
         cycle: r.cycle,
-        blockRewards: earned || future,  // use future estimate if nothing earned yet
+        blockRewards: earned,
         endorsementRewards: 0,
         blockFees: r.blockFees || 0,
         missedBlockRewards: missed,
@@ -142,21 +142,33 @@ function maybeSendCycleNotif(currentCycle) {
 function calcLifetime(rewards) {
   let totalMutez = 0;
   for (const r of rewards) {
-    totalMutez += (r.blockRewards || 0) + (r.endorsementRewards || 0) + (r.blockFees || 0);
+    // For baker data, _earnedRewards has the actual earned amount
+    if (r._earnedRewards !== undefined) {
+      totalMutez += r._earnedRewards + (r.blockFees || 0);
+    } else {
+      totalMutez += (r.blockRewards || 0) + (r.endorsementRewards || 0) + (r.blockFees || 0);
+    }
   }
   return totalMutez;
 }
 
 function calcThisCycle(rewards, stats) {
   if (!rewards.length) return { estimatedMutez: 0, efficiency: 100, fullCycleMutez: 0 };
-  const recent = rewards[0];
-  const earned = (recent.blockRewards || 0) + (recent.endorsementRewards || 0) + (recent.blockFees || 0);
+  // Find current cycle (matches stats.cycle) or use most recent
+  const currentCycle = stats?.cycle || 0;
+  const recent = rewards.find(r => r.cycle === currentCycle) || rewards[0];
+  
+  const earnedSoFar = recent._earnedRewards || (recent.blockRewards || 0) + (recent.endorsementRewards || 0) + (recent.blockFees || 0);
+  const futureEst = recent._futureRewards || 0;
   const missed = (recent.missedBlockRewards || 0) + (recent.missedEndorsementRewards || 0);
-  const total = earned + missed;
-  const efficiency = total > 0 ? Math.round((earned / total) * 100) : 100;
-  const progress = stats?.cycleProgress || 0;
-  const estimatedMutez = Math.round(earned * (progress / 100));
-  return { estimatedMutez, efficiency, fullCycleMutez: earned };
+  
+  // Full cycle estimate: earned so far + remaining future, or just future if nothing earned yet
+  const fullCycleMutez = earnedSoFar > 0 ? (earnedSoFar + futureEst) : futureEst;
+  
+  const total = earnedSoFar + missed;
+  const efficiency = total > 0 ? Math.round((earnedSoFar / total) * 100) : 100;
+  
+  return { estimatedMutez: earnedSoFar, efficiency, fullCycleMutez };
 }
 
 function cycleColor(r) {
