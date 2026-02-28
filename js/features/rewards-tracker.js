@@ -477,10 +477,64 @@ export async function initRewardsTracker(stats, xtzPrice) {
 }
 
 export function updateRewardsTracker(stats, xtzPrice) {
-  if (!document.getElementById(CONTAINER_ID)) return;
+  const container = document.getElementById(CONTAINER_ID);
+  if (!container) return;
   if (stats?.cycle != null) maybeSendCycleNotif(stats.cycle);
-  // Countdown self-updates via interval; restart if stats changed
   startCountdown(stats);
+
+  // Update cycle info in the countdown card
+  const cycleEl = container.querySelector('.rt-sub .rt-accent');
+  if (cycleEl && stats?.cycle) cycleEl.textContent = stats.cycle;
+  
+  // Update cycle progress text
+  const subs = container.querySelectorAll('.rt-sub');
+  for (const sub of subs) {
+    if (sub.textContent.includes('% complete') && stats?.cycleProgress != null) {
+      const accent = sub.querySelector('.rt-accent');
+      if (accent) accent.textContent = stats.cycle ?? '—';
+      sub.innerHTML = `Cycle <span class="rt-accent">${stats.cycle ?? '—'}</span>&nbsp;·&nbsp; ${fmt(stats.cycleProgress, 1)}% complete`;
+      break;
+    }
+  }
+
+  // Update blocks remaining
+  const blocksRemaining = Math.round(((100 - (stats?.cycleProgress || 0)) / 100) * 14400);
+  for (const sub of subs) {
+    if (sub.textContent.includes('blocks remaining')) {
+      sub.textContent = '~' + fmt(blocksRemaining, 0) + ' blocks remaining';
+      break;
+    }
+  }
+
+  // Update USD values if price now available
+  const price = parsePrice(xtzPrice);
+  if (price > 0) {
+    // This cycle USD
+    const thisCycleCard = container.querySelectorAll('.rt-card')[1];
+    if (thisCycleCard) {
+      const mutezText = thisCycleCard.querySelector('.rt-value')?.textContent;
+      const xtz = parseFloat(mutezText?.replace(/[^0-9.]/g, '')) || 0;
+      const usdSub = thisCycleCard.querySelector('.rt-sub');
+      if (usdSub && xtz > 0) usdSub.textContent = '≈ $' + fmt(xtz * price) + ' USD so far';
+      // Full cycle estimate USD
+      const estSub = thisCycleCard.querySelectorAll('.rt-sub')[1];
+      if (estSub) {
+        const match = estSub.textContent.match(/([\d,.]+)\s*XTZ/);
+        if (match) {
+          const fullXtz = parseFloat(match[1].replace(/,/g, '')) || 0;
+          estSub.innerHTML = 'Est. full cycle: <span class="rt-accent">' + fmt(fullXtz, 4) + ' XTZ</span>&nbsp;($' + fmt(fullXtz * price) + ')';
+        }
+      }
+    }
+    // Lifetime USD
+    const lifetimeCard = container.querySelectorAll('.rt-card')[2];
+    if (lifetimeCard) {
+      const ltText = lifetimeCard.querySelector('.rt-value')?.textContent;
+      const ltXtz = parseFloat(ltText?.replace(/[^0-9.]/g, '')) || 0;
+      const ltSub = lifetimeCard.querySelector('.rt-sub');
+      if (ltSub && ltXtz > 0) ltSub.textContent = '≈ $' + fmt(ltXtz * price) + ' USD total';
+    }
+  }
 }
 
 export function destroyRewardsTracker() {
