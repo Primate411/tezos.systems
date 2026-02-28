@@ -21,7 +21,7 @@ function getAddress() {
 }
 
 function getCacheKey(address) {
-  return `tezos-systems-rewards-cache-${address}`;
+  return `tezos-systems-rewards-v2-${address}`;
 }
 
 function parsePrice(xtzPrice) {
@@ -54,7 +54,7 @@ async function fetchRewards(address) {
   if (cached) {
     try {
       const { ts, data } = JSON.parse(cached);
-      if (Date.now() - ts < 5 * 60 * 1000) return data; // 5min cache
+      if (Date.now() - ts < 2 * 60 * 1000) return data; // 2min cache
     } catch (_) {}
   }
 

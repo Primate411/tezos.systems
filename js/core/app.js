@@ -85,7 +85,7 @@ import { initBakerReportCard } from '../features/baker-report-card.js';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228k';
-import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228e';
+import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228f';
 import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260228i';
 
 // Protocols with major governance contention (level 3+)
