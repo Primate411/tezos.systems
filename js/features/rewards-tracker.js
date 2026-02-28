@@ -96,7 +96,7 @@ async function fetchRewards(address) {
       `&select=cycle,stakingBalance,externalStakedBalance,delegatedBalance,blockRewards,` +
       `endorsementRewards,blockFees,missedBlockRewards,missedEndorsementRewards`;
     const delRes = await fetch(delUrl);
-    if (!delRes.ok) throw new Error(\`TzKT \${delRes.status}\`);
+    if (!delRes.ok) throw new Error(`TzKT ${delRes.status}`);
     data = await delRes.json();
   }
   localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data }));
