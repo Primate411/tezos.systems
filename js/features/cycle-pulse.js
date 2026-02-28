@@ -55,23 +55,24 @@ function injectStyles() {
       font-variant-numeric: tabular-nums;
     }
     #${STRIP_ID} .cps-bar {
-      width: 60px;
-      height: 4px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.1);
+      width: 120px;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.15);
       overflow: hidden;
       flex-shrink: 0;
     }
     #${STRIP_ID} .cps-bar-fill {
       height: 100%;
       border-radius: 2px;
-      background: var(--accent, #00d4ff);
+      background: #00d4ff;
+      box-shadow: 0 0 4px #00d4ff;
       transition: width .8s ease;
       width: 0%;
     }
     @media (max-width: 600px) {
       #${STRIP_ID} { font-size: 10px; gap: 4px; }
-      #${STRIP_ID} .cps-bar { width: 40px; }
+      #${STRIP_ID} .cps-bar { width: 80px; }
     }
   `;
   document.head.appendChild(s);
