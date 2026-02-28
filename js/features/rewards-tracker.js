@@ -58,13 +58,47 @@ async function fetchRewards(address) {
     } catch (_) {}
   }
 
-  const url = `${API_URLS.tzkt}/rewards/delegators/${address}?sort.desc=id&limit=30` +
-    `&select=cycle,stakingBalance,externalStakedBalance,delegatedBalance,blockRewards,` +
-    `endorsementRewards,blockFees,missedBlockRewards,missedEndorsementRewards`;
-
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`TzKT ${res.status}`);
-  const data = await res.json();
+  // Try baker endpoint first (Tallinn-era fields), fall back to delegator
+  let data;
+  const bakerUrl = `${API_URLS.tzkt}/rewards/bakers/${address}?sort.desc=id&limit=30`;
+  const bakerRes = await fetch(bakerUrl);
+  if (bakerRes.ok) {
+    const raw = await bakerRes.json();
+    // Normalize Tallinn baker fields to common shape
+    data = raw.map(r => {
+      const earned = (r.blockRewardsDelegated || 0) + (r.blockRewardsStakedOwn || 0) +
+        (r.blockRewardsStakedEdge || 0) + (r.blockRewardsStakedShared || 0) +
+        (r.attestationRewardsDelegated || 0) + (r.attestationRewardsStakedOwn || 0) +
+        (r.attestationRewardsStakedEdge || 0) + (r.attestationRewardsStakedShared || 0);
+      const missed = (r.missedBlockRewards || 0) + (r.missedAttestationRewards || 0);
+      const future = (r.futureBlockRewards || 0) + (r.futureAttestationRewards || 0);
+      return {
+        cycle: r.cycle,
+        blockRewards: earned || future,  // use future estimate if nothing earned yet
+        endorsementRewards: 0,
+        blockFees: r.blockFees || 0,
+        missedBlockRewards: missed,
+        missedEndorsementRewards: 0,
+        stakingBalance: r.ownStakedBalance || 0,
+        delegatedBalance: r.externalDelegatedBalance || 0,
+        _isBaker: true,
+        _futureRewards: future,
+        _earnedRewards: earned,
+        _blocks: r.blocks || 0,
+        _expectedBlocks: r.expectedBlocks || 0,
+        _attestations: r.attestations || 0,
+        _expectedAttestations: r.expectedAttestations || 0,
+      };
+    });
+  } else {
+    // Delegator fallback
+    const delUrl = `${API_URLS.tzkt}/rewards/delegators/${address}?sort.desc=id&limit=30` +
+      `&select=cycle,stakingBalance,externalStakedBalance,delegatedBalance,blockRewards,` +
+      `endorsementRewards,blockFees,missedBlockRewards,missedEndorsementRewards`;
+    const delRes = await fetch(delUrl);
+    if (!delRes.ok) throw new Error(\`TzKT \${delRes.status}\`);
+    data = await delRes.json();
+  }
   localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data }));
   return data;
 }
