@@ -181,7 +181,7 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
   } else {
     candidates.push({
       score: 30,
-      text: TEMPLATES.governance[2]({ name: stats.lastUpgradeName || 'Nairobi' }),
+      text: TEMPLATES.governance[2]({ name: stats.lastUpgradeName || 'Tallinn' }),
       category: 'governance',
     });
   }
