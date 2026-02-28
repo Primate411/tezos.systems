@@ -385,22 +385,34 @@ function renderCard(cycle, sentences, showNew) {
   const collapseBtn = card.querySelector('#briefing-collapse-btn');
   const toggle = () => {
     card.classList.toggle('is-collapsed');
-    if (collapseBtn) collapseBtn.textContent = card.classList.contains('is-collapsed') ? '[...]' : '[–]';
-    try { localStorage.setItem('tezos-systems-briefing-collapsed', card.classList.contains('is-collapsed') ? '1' : '0'); } catch {}
+    const collapsed = card.classList.contains('is-collapsed');
+    if (collapseBtn) collapseBtn.textContent = collapsed ? '[...]' : '[–]';
+    try { localStorage.setItem('tezos-systems-briefing-collapsed', collapsed ? '1' : '0'); } catch {}
+    if (collapsed) {
+      // Mark as seen — NEW badge won't show again until next cycle
+      const badge = card.querySelector('.briefing-badge-new');
+      if (badge) badge.remove();
+      try { localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle)); } catch {}
+    }
   };
   collapseBtn?.addEventListener('click', toggle);
   hdr?.addEventListener('dblclick', toggle);
-  if (localStorage.getItem('tezos-systems-briefing-collapsed') === '1') {
+  if (localStorage.getItem('tezos-systems-briefing-collapsed') === '1' && !showNew) {
     card.classList.add('is-collapsed');
     if (collapseBtn) collapseBtn.textContent = '[...]';
   } else {
     if (collapseBtn) collapseBtn.textContent = '[–]';
-    // Auto-collapse after 60 seconds
+    // Auto-collapse after 60 seconds (but mark as seen so NEW clears)
     setTimeout(() => {
       if (!card.classList.contains('is-collapsed')) {
         card.classList.add('is-collapsed');
         if (collapseBtn) collapseBtn.textContent = '[...]';
-        try { localStorage.setItem('tezos-systems-briefing-collapsed', '1'); } catch {}
+        const badge = card.querySelector('.briefing-badge-new');
+        if (badge) badge.remove();
+        try {
+          localStorage.setItem('tezos-systems-briefing-collapsed', '1');
+          localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle));
+        } catch {}
       }
     }, 60000);
   }
@@ -488,8 +500,7 @@ export async function initDailyBriefing(stats, xtzPrice) {
   const lastSeen = parseInt(localStorage.getItem(LS_LAST_SEEN) || '0', 10);
   const showNew  = briefing.cycle > lastSeen;
   const card     = renderCard(briefing.cycle, briefing.sentences, showNew);
-  if (showNew) setTimeout(() => {
-    try { localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle)); } catch { /* ignore */ }
+  // Mark as seen only when user collapses (not on render)
   }, 3000);
   return card;
 }
