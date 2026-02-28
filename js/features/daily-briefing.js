@@ -242,7 +242,7 @@ function injectStyles() {
       position: relative;
       background: var(--bg-card, rgba(10,10,20,0.85));
       border: 1px solid rgba(255,255,255,0.08);
-      border-left: 3px solid var(--accent, #00d4ff);
+      border-left: 2px solid rgba(0, 212, 255, 0.4);
       border-radius: 8px;
       padding: 18px 20px 14px;
       margin: 22px auto 10px;
@@ -368,7 +368,11 @@ function injectStyles() {
       transition: border-color 0.4s ease, box-shadow 0.4s ease;
     }
     #daily-briefing-card.is-collapsed {
-      border-color: color-mix(in srgb, var(--accent, #00d4ff) 25%, var(--border));
+      border: 1px solid rgba(255,255,255,0.06);
+      border-left: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255, 255, 255, 0.02);
+      box-shadow: none;
+      padding: 12px 2rem;
     }
     .briefing-collapse { opacity: .7; font-size: 12px; margin-left: auto; }
 
