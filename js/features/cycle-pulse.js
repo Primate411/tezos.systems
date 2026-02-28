@@ -47,11 +47,15 @@ function injectStyles() {
       margin: 0 2px;
     }
     #${STRIP_ID} .cps-pct {
+      min-width: 44px;
+      text-align: right;
       color: var(--text-primary);
       font-weight: 700;
       font-variant-numeric: tabular-nums;
     }
     #${STRIP_ID} .cps-time {
+      min-width: 80px;
+      text-align: right;
       font-variant-numeric: tabular-nums;
     }
     #${STRIP_ID} .cps-bar {
@@ -73,10 +77,14 @@ function injectStyles() {
     }
     #${STRIP_ID} .cps-block {
       font-variant-numeric: tabular-nums;
+      min-width: 130px;
+      text-align: right;
     }
     #${STRIP_ID} .cps-age {
       font-variant-numeric: tabular-nums;
       opacity: .7;
+      min-width: 42px;
+      text-align: left;
     }
     #${STRIP_ID} .uptime-pulse-dot {
       width: 6px;
