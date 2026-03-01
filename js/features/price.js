@@ -133,12 +133,12 @@ function updatePriceBar(data) {
     lastPrice = price;
 
     // Update 24h change
-    if (change != null) {
+    if (changeEl && change != null) {
         changeEl.textContent = formatChange(change);
         changeEl.className = 'price-change ' + (change >= 0 ? 'positive' : 'negative');
     }
 
-    // Update EUR
+    // Update EUR (removed from bar)
     if (eurEl && data.eur) {
         eurEl.textContent = formatEur(data.eur);
     }
