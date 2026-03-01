@@ -256,6 +256,7 @@ body::before {
     max-width: 100%;
     margin: 0;
     padding: 6px 20px 5px;
+    background: rgba(0, 0, 0, 0.85);
     opacity: 0;
     transition: opacity 0.4s ease;
     pointer-events: none;
@@ -269,8 +270,8 @@ body::before {
 .price-bar-content {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 16px;
+    justify-content: center;
+    gap: 10px;
     font-size: 0.85rem;
     color: var(--text-secondary);
 }
@@ -10130,9 +10131,10 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     align-items: center;
     gap: 5px;
     font-family: 'Orbitron', monospace;
-    font-size: 0.72rem;
-    font-weight: 600;
+    font-size: 0.68rem;
+    font-weight: 500;
     color: var(--text-secondary);
+    letter-spacing: 0.5px;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
 }
@@ -10169,8 +10171,8 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     left: 0;
     height: 2px;
     width: 0%;
-    background: var(--accent, #00d4ff);
-    box-shadow: 0 0 8px var(--accent, #00d4ff);
+    background: rgba(0, 212, 255, 0.15);
+    box-shadow: none;
     transition: width 1s ease;
     border-radius: 0 1px 1px 0;
 }
@@ -10208,4 +10210,12 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     font-variant-numeric: tabular-nums;
     letter-spacing: 0;
     min-width: 36px;
+}
+
+/* Price bar pipe dividers */
+.price-pipe {
+    color: rgba(255, 255, 255, 0.12);
+    font-size: 0.7rem;
+    user-select: none;
+    line-height: 1;
 }
