@@ -161,10 +161,13 @@ export function updateCyclePulse(stats) {
   lastCycle = cycle;
 
   // Update price bar cycle chip
+  const chipBlock = document.getElementById('cycle-chip-block');
   const chipLabel = document.getElementById('cycle-chip-label');
   const chipPct = document.getElementById('cycle-chip-pct');
   const progressBar = document.getElementById('price-bar-progress');
   if (chipLabel) chipLabel.textContent = `C${cycle || '—'}`;
   if (chipPct) chipPct.textContent = `${progress.toFixed(1)}%`;
+  const blockLevel = Number(stats?.blockLevel ?? stats?.currentStats?.blockLevel ?? 0);
+  if (chipBlock && blockLevel) chipBlock.textContent = blockLevel.toLocaleString();
   if (progressBar) progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
 }
