@@ -79,7 +79,7 @@ import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-b
 import { initCalculator } from '../features/calculator.js';
 import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
-import { initVibes } from '../effects/vibes.js?v=20260228a';
+import { initVibes } from '../effects/vibes.js?v=20260228b';
 import { initChangelog } from '../features/changelog.js';
 import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js';
 import { initBakerReportCard } from '../features/baker-report-card.js';
