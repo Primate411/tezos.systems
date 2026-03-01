@@ -40,11 +40,11 @@ const HenMode = (() => {
     function timeAgo(ts) {
         const diff = Date.now() - new Date(ts).getTime();
         const mins = Math.floor(diff / 60000);
-        if (mins < 1) return 'just now';
-        if (mins < 60) return mins + 'm ago';
+        if (mins < 1) return 'now';
+        if (mins < 60) return '+' + mins + 'm';
         const hrs = Math.floor(mins / 60);
-        if (hrs < 24) return hrs + 'h ago';
-        return Math.floor(hrs / 24) + 'd ago';
+        if (hrs < 24) return '+' + hrs + 'h';
+        return '+' + Math.floor(hrs / 24) + 'd';
     }
 
     function shortAddr(addr) {
@@ -176,7 +176,7 @@ const HenMode = (() => {
 
         card.innerHTML =
             '<div class="hen-card-thumb">' +
-                '<img src="' + thumbUrl + '" alt="' + (token.name || '') + '" loading="lazy" onerror="this.style.display=\'none\'">' +
+                '<img src="' + thumbUrl + '" alt="' + (token.name || '') + '" ' + (staggerIdx < 4 && offset === 0 ? '' : 'loading="lazy" ') + 'onerror="this.style.display=\'none\'">' +
                 (isVideo ? '<div class="hen-card-badge">▶ VIDEO</div>' : '') +
             '</div>' +
             '<div class="hen-card-info">' +
@@ -188,8 +188,13 @@ const HenMode = (() => {
             '</div>';
 
         if (isNew) {
-            card.classList.add('hen-card-new');
-            setTimeout(function() { card.classList.remove('hen-card-new'); }, 2000);
+            card.classList.add('hen-card-fresh');
+        }
+        // Fresh mint warm glow: mark cards < 60s old
+        var ageMs = Date.now() - new Date(token.timestamp).getTime();
+        if (ageMs < 300000) { // < 5 min
+            card.classList.add('hen-card-warm');
+            card.style.setProperty('--warm-opacity', Math.max(0.05, 1 - (ageMs / 300000)).toFixed(2));
         }
 
         setTimeout(function() { card.classList.add('visible'); }, staggerIdx * 50);
@@ -237,7 +242,7 @@ const HenMode = (() => {
                     (collName ? '<span>' + collName + '</span>' : '') +
                 '</div>' +
                 '<div class="hen-expanded-actions">' +
-                    '<a class="hen-expanded-collect" href="' + collectUrl(token) + '" target="_blank" rel="noopener">collect →</a>' +
+                    '<a class="hen-expanded-collect" href="' + collectUrl(token) + '" target="_blank" rel="noopener">collect</a>' +
                     '<button class="hen-expanded-share" title="Copy share link">⎘ share</button>' +
                 '</div>' +
                 '<div class="hen-artist-work" id="hen-artist-work">' +
@@ -298,7 +303,7 @@ const HenMode = (() => {
         try {
             var newTokens = await fetchTokens(PAGE_SIZE, offset);
             if (newTokens.length === 0) {
-                if (loader) loader.textContent = 'end of feed';
+                if (loader) loader.textContent = 'nothing here yet.';
                 return;
             }
             var g = grid();
@@ -373,11 +378,8 @@ const HenMode = (() => {
         b.classList.add('visible');
 
         var lines = [
-            '> initializing hen protocol...',
-            '> connecting to objkt marketplace',
-            '> indexing tezos NFT contracts',
-            '> resolving IPFS gateways',
-            '> loading art feed...',
+            '> connecting to objkt...',
+            '> indexing art feed...',
             ''
         ];
 
@@ -390,11 +392,11 @@ const HenMode = (() => {
                 div.textContent = lines[i];
             }
             b.appendChild(div);
-            await sleep(250);
+            await sleep(200);
             div.classList.add('show');
         }
 
-        await sleep(600);
+        await sleep(200);
         b.classList.remove('visible');
         await sleep(300);
         b.style.display = 'none';
@@ -456,7 +458,15 @@ const HenMode = (() => {
         }, 200);
     }
 
+    var cmdHistory = [];
+    var cmdHistoryIdx = -1;
+
     function handleCommand(cmd) {
+        if (cmd.trim()) {
+            cmdHistory.unshift(cmd.trim());
+            if (cmdHistory.length > 10) cmdHistory.pop();
+        }
+        cmdHistoryIdx = -1;
         var parts = cmd.trim().toLowerCase().split(/\s+/);
         var action = parts[0];
 
@@ -582,7 +592,11 @@ const HenMode = (() => {
         document.body.classList.add('hen-active');
 
         fetchXtzPrice();
-        await playBoot();
+        // Only play boot once per session
+        if (!HenMode._booted) {
+            HenMode._booted = true;
+            await playBoot();
+        }
         await loadPage();
         await openDeepLink();
 
@@ -635,19 +649,26 @@ const HenMode = (() => {
     function updateCount() {
         var mc = mintCount();
         if (!mc) return;
-        var maxId = 0;
-        tokens.forEach(function(t) {
-            var id = parseInt(t.token_id);
-            if (id > maxId) maxId = id;
-        });
-        var countText = tokens.length + ' tokens';
-        if (maxId > 0) countText += ' · OBJKT #' + maxId.toLocaleString();
-        mc.textContent = countText;
+        // Show block level instead of token count
+        if (!updateCount._blockFetched) {
+            updateCount._blockFetched = true;
+            fetch('https://api.tzkt.io/v1/head').then(function(r) { return r.json(); }).then(function(d) {
+                if (d && d.level) {
+                    updateCount._block = d.level;
+                    mc.textContent = 'block ' + d.level.toLocaleString();
+                }
+            }).catch(function() {
+                mc.textContent = 'now';
+            });
+        } else if (updateCount._block) {
+            mc.textContent = 'block ' + updateCount._block.toLocaleString();
+        } else {
+            mc.textContent = 'now';
+        }
     }
 
     function init() {
-        var closeBtn = document.querySelector('.hen-close');
-        if (closeBtn) closeBtn.addEventListener('click', deactivate);
+        // No close button — exit via 'exit' command or Escape
 
         var expClose = document.querySelector('.hen-expanded-close');
         if (expClose) expClose.addEventListener('click', function() {
@@ -666,6 +687,25 @@ const HenMode = (() => {
 
         var cli = cliInput();
         if (cli) cli.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (cmdHistory.length > 0 && cmdHistoryIdx < cmdHistory.length - 1) {
+                    cmdHistoryIdx++;
+                    cli.value = cmdHistory[cmdHistoryIdx];
+                }
+                return;
+            }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (cmdHistoryIdx > 0) {
+                    cmdHistoryIdx--;
+                    cli.value = cmdHistory[cmdHistoryIdx];
+                } else {
+                    cmdHistoryIdx = -1;
+                    cli.value = '';
+                }
+                return;
+            }
             if (e.key === 'Enter') handleCommand(e.target.value);
         });
 
