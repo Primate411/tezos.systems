@@ -382,6 +382,7 @@ function buildContainer(rewards, stats, xtzPrice) {
 
       <div class="rt-card" id="rt-lifetime-card">
         <div class="rt-card-title">🏆 Lifetime Rewards</div>
+        <div class="rt-sub" style="font-size:10px;opacity:0.5;margin-bottom:4px">Total baker rewards (incl. delegator share)</div>
         <div class="rt-value">${fmt(lifetimeXtz, 4)} <span style="font-size:0.9rem">XTZ</span></div>
         <div class="rt-sub">≈ $${fmt(lifetimeUsd)} USD total</div>
         <div class="rt-sub" style="margin-top:0.3rem">

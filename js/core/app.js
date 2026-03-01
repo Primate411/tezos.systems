@@ -86,7 +86,7 @@ import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228p';
 import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260228a';
-import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228j';
+import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228k';
 import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260228i';
 
 // Protocols with major governance contention (level 3+)
