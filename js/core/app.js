@@ -84,7 +84,7 @@ import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js'
 import { initBakerReportCard } from '../features/baker-report-card.js';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
-import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228n';
+import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228o';
 import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260228a';
 import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228j';
 import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260228i';

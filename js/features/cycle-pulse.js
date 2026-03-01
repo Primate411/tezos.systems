@@ -1,13 +1,12 @@
 /**
- * Cycle Pulse — Sticky micro-strip (Option B)
- * 24px tall, persistent context while scrolling.
- * Shows: Cycle #### · XX.X% · Xh Xm left
+ * Cycle Pulse — Integrated into protocol panel
+ * Shows: C#### · ──bar── · XX.X% · 🟢 Xs ago
  */
 
 import { API_URLS } from '../core/config.js?v=20260228a';
 
 const STREAK_KEY = 'tezos-systems-cycle-streak';
-const STRIP_ID  = 'cycle-pulse-strip';
+const STRIP_ID   = 'cycle-pulse-strip';
 
 let strip = null;
 let lastCycle = null;
@@ -18,23 +17,18 @@ function injectStyles() {
   s.id = 'cycle-pulse-styles';
   s.textContent = `
     #${STRIP_ID} {
-      position: sticky;
-      top: 32px; /* below price bar */
-      z-index: 99;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 6px;
-      height: 26px;
+      height: 24px;
       font-family: 'Orbitron', 'SF Mono', 'Menlo', monospace;
       font-size: 11px;
       letter-spacing: .06em;
       color: var(--text-secondary);
-      background: color-mix(in srgb, var(--bg-card) 92%, transparent);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-      padding: 0 12px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      margin-top: 8px;
+      padding-top: 8px;
       white-space: nowrap;
       overflow: hidden;
       flex-wrap: nowrap;
@@ -55,10 +49,6 @@ function injectStyles() {
       font-weight: 700;
       font-variant-numeric: tabular-nums;
     }
-    #${STRIP_ID} .cps-time {
-      display: none;
-      font-variant-numeric: tabular-nums;
-    }
     #${STRIP_ID} .cps-bar {
       width: 120px;
       height: 6px;
@@ -70,18 +60,11 @@ function injectStyles() {
     #${STRIP_ID} .cps-bar-fill {
       display: block;
       height: 100%;
-      border-radius: 2px;
+      border-radius: 3px;
       background: #00d4ff;
       box-shadow: 0 0 4px #00d4ff;
       transition: width .8s ease;
       width: 0%;
-    }
-    #${STRIP_ID} .cps-block {
-      font-variant-numeric: tabular-nums;
-      min-width: 150px;
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: 0;
     }
     #${STRIP_ID} .cps-age {
       font-variant-numeric: tabular-nums;
@@ -104,8 +87,10 @@ function injectStyles() {
     #${STRIP_ID} .uptime-pulse-dot.danger { background: #f00; box-shadow: 0 0 4px #f00; }
     @keyframes cps-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     @media (max-width: 600px) {
-      #${STRIP_ID} { font-size: 10px; gap: 4px; }
-      #${STRIP_ID} .cps-bar { width: 80px; }
+      #${STRIP_ID} { font-size: 10px; gap: 3px; }
+      #${STRIP_ID} .cps-bar { width: 40px; }
+      #${STRIP_ID} .cps-cycle { min-width: auto; }
+      #${STRIP_ID} .cps-pct { min-width: 36px; }
     }
   `;
   document.head.appendChild(s);
@@ -157,10 +142,15 @@ function createStrip() {
 export async function initCyclePulse(stats) {
   if (document.getElementById(STRIP_ID)) return;
   strip = createStrip();
-  // Insert after price bar (first child of body or after .price-bar)
-  const priceBar = document.querySelector('.price-bar');
-  if (priceBar) priceBar.after(strip);
-  else document.body.prepend(strip);
+  // Insert at bottom of protocol panel content
+  const panelContent = document.querySelector('#upgrade-clock .upgrade-clock-content');
+  if (panelContent) {
+    panelContent.appendChild(strip);
+  } else {
+    // Fallback: after upgrade-clock
+    const uc = document.getElementById('upgrade-clock');
+    if (uc) uc.appendChild(strip);
+  }
   updateCyclePulse(stats);
 }
 
@@ -168,7 +158,6 @@ export function updateCyclePulse(stats) {
   if (!strip) return;
   const cycle = Number(stats?.cycle ?? stats?.currentStats?.cycle ?? 0);
   const progress = Number(stats?.cycleProgress ?? stats?.currentStats?.cycleProgress ?? 0);
-  const timeRemaining = stats?.cycleTimeRemaining ?? stats?.currentStats?.cycleTimeRemaining ?? 0;
 
   if (lastCycle !== null && cycle > lastCycle) {
     updateStreak(cycle);
@@ -178,5 +167,4 @@ export function updateCyclePulse(stats) {
   strip.querySelector('.cps-cycle').textContent = `C${cycle || '—'}`;
   strip.querySelector('.cps-bar-fill').style.width = `${Math.min(100, Math.max(0, progress))}%`;
   strip.querySelector('.cps-pct').textContent = `${progress.toFixed(1)}%`;
-  // time display removed per design
 }
