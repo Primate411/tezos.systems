@@ -147,6 +147,7 @@ async function init() {
     // Initialize price bar
     safe('priceBar', initPriceBar);
     safe('vibes', initVibes);
+    safe('briefingToggle', initBriefingToggle);
     safe('priceIntelToggle', initPriceIntelToggle);
 
 
@@ -860,6 +861,37 @@ function initComparisonToggle() {
 }
 
 
+
+// ==========================================
+// DAILY BRIEFING TOGGLE
+// ==========================================
+const BRIEFING_TOGGLE_KEY = 'tezos-systems-briefing-enabled';
+
+function initBriefingToggle() {
+    const toggleBtn = document.getElementById('briefing-toggle');
+    if (!toggleBtn) return;
+
+    function updateVis(isVisible) {
+        const section = document.querySelector('.daily-briefing-section');
+        if (section) section.style.display = isVisible ? '' : 'none';
+        toggleBtn.classList.toggle('active', isVisible);
+        toggleBtn.title = 'Daily Briefing: ' + (isVisible ? 'ON' : 'OFF');
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        const stored = localStorage.getItem(BRIEFING_TOGGLE_KEY);
+        const isVisible = stored === null ? true : stored === 'true'; // default ON
+        const newState = !isVisible;
+        localStorage.setItem(BRIEFING_TOGGLE_KEY, String(newState));
+        updateVis(newState);
+    });
+
+    // Default ON unless user explicitly disabled
+    const stored = localStorage.getItem(BRIEFING_TOGGLE_KEY);
+    const isVisible = stored === null ? true : stored === 'true';
+    updateVis(isVisible);
+}
+
 // ==========================================
 // PRICE INTELLIGENCE TOGGLE
 // ==========================================
@@ -892,9 +924,10 @@ function initPriceIntelToggle() {
         updateVis(newState);
     });
 
-    // Default OFF
+    // Default OFF — always call updateVis to set initial opacity
     const stored = localStorage.getItem(PI_VISIBLE_KEY);
     const isVisible = stored === 'true';
+    updateVis(isVisible);
     if (isVisible) {
         setTimeout(async () => {
             const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
