@@ -181,7 +181,7 @@
         // Quick stats from Objkt
         (function() {
             var since = new Date(Date.now() - 86400000).toISOString();
-            var q = '{ token(where: {timestamp: {_gte: "' + since + '"}, fa: {collection_type: {_eq: "artist"}}, display_uri: {_like: "ipfs://%25"}}, limit: 200, order_by: {timestamp: desc}) { creators { creator_address } } }';
+            var q = '{ token(where: {timestamp: {_gte: "' + since + '"}, fa: {collection_type: {_eq: "artist"}}, display_uri: {_like: "ipfs://%"}}, limit: 200, order_by: {timestamp: desc}) { creators { creator_address } } }';
             fetch('https://data.objkt.com/v3/graphql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
