@@ -517,3 +517,156 @@ body.hen-active {
 .hen-expanded-inner {
     overflow-y: auto;
 }
+
+/* ═══ v3: Subtlety Pass ═══ */
+
+/* 1. Card hover border pulse */
+.hen-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid transparent;
+    transition: border-color 0.3s;
+    pointer-events: none;
+}
+.hen-card:hover::after {
+    border-color: rgba(0,212,255,0.25);
+    animation: hen-border-breathe 2s ease-in-out infinite;
+}
+@keyframes hen-border-breathe {
+    0%, 100% { border-color: rgba(0,212,255,0.15); }
+    50% { border-color: rgba(0,212,255,0.35); }
+}
+
+/* 4. Scanline overlay */
+.hen-overlay::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 10004;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0,0,0,0.03) 2px,
+        rgba(0,0,0,0.03) 4px
+    );
+}
+
+/* 5. Image loading shimmer */
+.hen-card-thumb {
+    background: #151515;
+    overflow: hidden;
+}
+.hen-card-thumb::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, #151515 25%, #1a1a1a 50%, #151515 75%);
+    background-size: 200% 100%;
+    animation: hen-shimmer 2s ease-in-out infinite;
+    z-index: 1;
+}
+.hen-card-thumb img,
+.hen-card-thumb video {
+    position: relative;
+    z-index: 2;
+}
+.hen-card-thumb img[src]:not([src=""]) ~ ::before,
+.hen-card.visible .hen-card-thumb::before {
+    animation-play-state: paused;
+}
+@keyframes hen-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 6. Pulsing CLI prompt */
+.hen-cli-prompt {
+    animation: hen-prompt-pulse 2.5s ease-in-out infinite;
+}
+@keyframes hen-prompt-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* 7. Boot text jitter */
+.hen-boot-line.show {
+    animation: hen-jitter 0.15s linear 1;
+}
+@keyframes hen-jitter {
+    0% { transform: translate(0.5px, 0); }
+    25% { transform: translate(-0.3px, 0.5px); }
+    50% { transform: translate(0.5px, -0.3px); }
+    75% { transform: translate(-0.5px, 0); }
+    100% { transform: translate(0); }
+}
+
+/* 2/3. Grid & expanded fade transitions */
+.hen-grid {
+    transition: opacity 0.2s;
+}
+.hen-grid.fading {
+    opacity: 0;
+}
+.hen-expanded-inner {
+    animation: hen-expand-in 0.25s ease-out;
+}
+@keyframes hen-expand-in {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+/* 3. Staggered artist thumbs */
+.hen-artist-thumb {
+    opacity: 0;
+    transform: translateY(4px);
+    transition: opacity 0.2s, transform 0.2s;
+}
+.hen-artist-thumb.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 9. Listening idle state */
+.hen-listening {
+    text-align: center;
+    font-size: 0.62rem;
+    color: #222;
+    padding: 4px 16px;
+    letter-spacing: 0.08em;
+    opacity: 0;
+    transition: opacity 1s;
+}
+.hen-listening.visible {
+    opacity: 1;
+}
+
+/* 10. Copy toast */
+.hen-copy-toast {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,212,255,0.9);
+    color: #111;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 6px 16px;
+    letter-spacing: 0.04em;
+    opacity: 0;
+    transition: opacity 0.3s;
+    z-index: 10005;
+    pointer-events: none;
+}
+.hen-copy-toast.visible {
+    opacity: 1;
+}
+
+/* 11. Keyboard nav highlight */
+.hen-card.hen-focused::after {
+    border-color: #00d4ff !important;
+    animation: none !important;
+}

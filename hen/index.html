@@ -171,6 +171,7 @@
     </div>
 
     <div class="boot-hint">tezos blockchain · objkt marketplace</div>
+    <div id="bg-art" style="position:fixed;inset:0;z-index:-1;opacity:0;transition:opacity 3s;background-size:cover;background-position:center;filter:blur(20px) brightness(0.3);"></div>
 
     <script>
         // Save theme so main page doesn't redirect to landing
@@ -201,6 +202,32 @@
                     document.getElementById('s-editions').textContent = editions > 999 ? Math.round(editions/1000) + 'k' : editions;
                 }
             }).catch(function(e) { console.warn('HEN stats:', e); });
+        })();
+
+        // Background art rotator
+        (function() {
+            var bgEl = document.getElementById('bg-art');
+            fetch('https://data.objkt.com/v3/graphql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: '{ token(where: {display_uri: {_like: "ipfs://%"}, fa: {collection_type: {_eq: "artist"}}, mime: {_like: "image/%"}}, limit: 10, order_by: {timestamp: desc}) { thumbnail_uri } }' })
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                var tokens = (d && d.data && d.data.token) || [];
+                if (tokens.length === 0) return;
+                var idx = 0;
+                function show() {
+                    var uri = tokens[idx].thumbnail_uri || '';
+                    if (uri.indexOf('ipfs://') === 0) uri = 'https://ipfs.io/ipfs/' + uri.slice(7);
+                    bgEl.style.opacity = '0';
+                    setTimeout(function() {
+                        bgEl.style.backgroundImage = 'url(' + uri + ')';
+                        bgEl.style.opacity = '0.06';
+                    }, 3000);
+                    idx = (idx + 1) % tokens.length;
+                }
+                show();
+                setInterval(show, 10000);
+            }).catch(function() {});
         })();
     </script>
 </body>
