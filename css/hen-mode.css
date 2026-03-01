@@ -390,3 +390,130 @@ body.hen-active {
     background: #111 !important;
     overflow: hidden !important;
 }
+
+/* ── v2: New card elements ── */
+.hen-card-collection {
+    font-size: 0.58rem;
+    color: #444;
+    letter-spacing: 0.03em;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-style: italic;
+}
+.hen-card-usd {
+    color: #555;
+    font-weight: 400;
+    font-size: 0.6rem;
+}
+.hen-card-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 3px;
+}
+.hen-card-objkt {
+    font-size: 0.58rem;
+    color: #333;
+    letter-spacing: 0.02em;
+}
+
+/* ── v2: New mint flash ── */
+.hen-card-new {
+    animation: hen-new-flash 1.5s ease-out;
+}
+@keyframes hen-new-flash {
+    0% { box-shadow: 0 0 20px rgba(0,212,255,0.4); }
+    100% { box-shadow: none; }
+}
+
+/* ── v2: Mint activity pulse ── */
+.hen-mint-pulse {
+    text-align: center;
+    font-size: 0.68rem;
+    color: #00d4ff;
+    padding: 6px 16px;
+    letter-spacing: 0.04em;
+    opacity: 0;
+    transition: opacity 0.5s;
+    background: rgba(0,212,255,0.03);
+    border-bottom: 1px solid #1a1a1a;
+}
+.hen-mint-pulse.visible {
+    opacity: 1;
+}
+
+/* ── v2: Expanded view additions ── */
+.hen-expanded-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 4px;
+}
+.hen-expanded-share {
+    background: none;
+    border: 1px solid #333;
+    color: #666;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    padding: 8px 20px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, border-color 0.15s;
+}
+.hen-expanded-share:hover {
+    color: #e0e0e0;
+    border-color: #555;
+}
+.hen-clickable-artist {
+    cursor: pointer;
+    transition: color 0.15s;
+}
+.hen-clickable-artist:hover {
+    color: #00ff88;
+    text-decoration: underline;
+}
+
+/* ── v2: Artist's other work ── */
+.hen-artist-work {
+    margin-top: 20px;
+    width: 100%;
+}
+.hen-artist-work-label {
+    font-size: 0.65rem;
+    color: #444;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+}
+.hen-artist-work-grid {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+}
+.hen-artist-thumb {
+    width: 72px;
+    height: 72px;
+    overflow: hidden;
+    cursor: pointer;
+    background: #151515;
+    transition: transform 0.2s;
+}
+.hen-artist-thumb:hover {
+    transform: scale(1.08);
+}
+.hen-artist-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* ── v2: Make expanded view scrollable ── */
+.hen-expanded {
+    overflow-y: auto;
+}
+.hen-expanded-inner {
+    overflow-y: auto;
+}
