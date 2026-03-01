@@ -872,7 +872,7 @@ function initBriefingToggle() {
     if (!toggleBtn) return;
 
     function updateVis(isVisible) {
-        const section = document.querySelector('.daily-briefing-section');
+        const section = document.getElementById('daily-briefing-card');
         if (section) section.style.display = isVisible ? '' : 'none';
         toggleBtn.classList.toggle('active', isVisible);
         toggleBtn.title = 'Daily Briefing: ' + (isVisible ? 'ON' : 'OFF');
