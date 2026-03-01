@@ -179,7 +179,7 @@ export function updateCyclePulse(stats) {
   }
   lastCycle = cycle;
 
-  strip.querySelector('.cps-cycle').textContent = `Cycle ${cycle || '—'}`;
+  strip.querySelector('.cps-cycle').textContent = `C${cycle || '—'}`;
   strip.querySelector('.cps-bar-fill').style.width = `${Math.min(100, Math.max(0, progress))}%`;
   strip.querySelector('.cps-pct').textContent = `${progress.toFixed(1)}%`;
   strip.querySelector('.cps-time').textContent = `${fmtTime(timeRemaining)} left`;
