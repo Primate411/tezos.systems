@@ -10184,3 +10184,25 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 .price-bar-content .cycle-chip { flex-shrink: 0; }
 .price-bar-content .price-cta:last-of-type { margin-right: 0; }
 .price-bar-content .price-cta { flex-shrink: 0; }
+
+/* Cycle chip: pulse dot + age in price bar */
+.cycle-chip .uptime-pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #0f0;
+    box-shadow: 0 0 6px #0f0;
+    display: inline-block;
+    animation: chipDotPulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+.cycle-chip .uptime-pulse-dot.stale { background: #ff0; box-shadow: 0 0 6px #ff0; }
+.cycle-chip .uptime-pulse-dot.danger { background: #f00; box-shadow: 0 0 6px #f00; }
+.cycle-chip-age {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    min-width: 36px;
+}
