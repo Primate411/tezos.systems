@@ -592,6 +592,7 @@ const HenMode = (() => {
         document.body.classList.add('hen-active');
 
         fetchXtzPrice();
+        startBlockPolling();
         // Only play boot once per session
         if (!HenMode._booted) {
             HenMode._booted = true;
@@ -627,6 +628,7 @@ const HenMode = (() => {
         if (!isActive) return;
         isActive = false;
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        stopBlockPolling();
         var exp = expanded();
         if (exp) exp.classList.remove('active');
         var ov = overlay();
@@ -646,25 +648,29 @@ const HenMode = (() => {
         if (grid()) grid().innerHTML = '';
     }
 
-    function updateCount() {
+    var blockTimer = null;
+
+    function fetchBlock() {
         var mc = mintCount();
         if (!mc) return;
-        // Show block level instead of token count
-        if (!updateCount._blockFetched) {
-            updateCount._blockFetched = true;
-            fetch('https://api.tzkt.io/v1/head').then(function(r) { return r.json(); }).then(function(d) {
-                if (d && d.level) {
-                    updateCount._block = d.level;
-                    mc.textContent = 'block ' + d.level.toLocaleString();
-                }
-            }).catch(function() {
-                mc.textContent = 'now';
-            });
-        } else if (updateCount._block) {
-            mc.textContent = 'block ' + updateCount._block.toLocaleString();
-        } else {
-            mc.textContent = 'now';
-        }
+        fetch('https://api.tzkt.io/v1/head').then(function(r) { return r.json(); }).then(function(d) {
+            if (d && d.level && mc) {
+                mc.textContent = 'block ' + d.level.toLocaleString();
+            }
+        }).catch(function() {});
+    }
+
+    function startBlockPolling() {
+        fetchBlock();
+        blockTimer = setInterval(fetchBlock, 10000);
+    }
+
+    function stopBlockPolling() {
+        if (blockTimer) { clearInterval(blockTimer); blockTimer = null; }
+    }
+
+    function updateCount() {
+        // Block polling handles the header now
     }
 
     function init() {
