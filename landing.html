@@ -489,8 +489,9 @@
             if (pe && price.tezos) pe.textContent = '$' + price.tezos.usd.toFixed(3);
             if (ce && head.cycle) ce.textContent = 'C' + head.cycle;
             if (be && bakerCount) be.textContent = bakerCount;
-            if (se && stats.totalBakingPower && stats.circulatingSupply) {
-                var pct = (stats.totalBakingPower / stats.circulatingSupply * 100).toFixed(1);
+            var staked = (stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0);
+            if (se && staked && stats.circulatingSupply) {
+                var pct = (staked / stats.circulatingSupply * 100).toFixed(1);
                 se.textContent = pct + '%';
             }
         }).catch(function(e) { console.warn('Landing data fetch:', e); });
