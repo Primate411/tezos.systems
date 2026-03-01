@@ -10115,3 +10115,59 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
         font-size: 1rem;
     }
 }
+
+/* ─── Cycle Chip in Price Bar ─── */
+.cycle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.cycle-chip-label {
+    color: var(--accent, #00d4ff);
+    letter-spacing: 0;
+}
+.cycle-chip-pct {
+    color: var(--text-primary);
+    min-width: 32px;
+    text-align: right;
+    letter-spacing: 0;
+}
+.cycle-chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #00ff88;
+    box-shadow: 0 0 6px #00ff88;
+    animation: chipDotPulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+.cycle-chip-dot.warn { background: #ffcc00; box-shadow: 0 0 6px #ffcc00; }
+.cycle-chip-dot.danger { background: #ff4466; box-shadow: 0 0 6px #ff4466; }
+@keyframes chipDotPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Price bar progress (bottom border fill) */
+.price-bar {
+    position: relative;
+}
+.price-bar-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 0%;
+    background: var(--accent, #00d4ff);
+    box-shadow: 0 0 8px var(--accent, #00d4ff);
+    transition: width 1s ease;
+    border-radius: 0 1px 1px 0;
+}
+
+@media (max-width: 600px) {
+    .cycle-chip { font-size: 0.65rem; gap: 3px; }
+    .price-bar-progress { height: 1.5px; }
+}

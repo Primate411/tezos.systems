@@ -21,7 +21,7 @@ function injectStyles() {
       align-items: center;
       justify-content: center;
       gap: 6px;
-      height: 24px;
+      height: 0; overflow: hidden; padding: 0; margin: 0; border: none;
       font-family: 'Orbitron', 'SF Mono', 'Menlo', monospace;
       font-size: 11px;
       letter-spacing: .06em;
@@ -174,4 +174,13 @@ export function updateCyclePulse(stats) {
   strip.querySelector('.cps-cycle').textContent = `Cycle ${cycle || '—'}`;
   strip.querySelector('.cps-bar-fill').style.width = `${Math.min(100, Math.max(0, progress))}%`;
   strip.querySelector('.cps-pct').textContent = `${progress.toFixed(1)}%`;
+
+  // Also update price bar cycle chip
+  const chipLabel = document.getElementById('cycle-chip-label');
+  const chipPct = document.getElementById('cycle-chip-pct');
+  const chipDot = document.getElementById('cycle-chip-dot');
+  const progressBar = document.getElementById('price-bar-progress');
+  if (chipLabel) chipLabel.textContent = `C${cycle || '—'}`;
+  if (chipPct) chipPct.textContent = `${progress.toFixed(1)}%`;
+  if (progressBar) progressBar.style.width = `${Math.min(100, Math.max(0, progress))}%`;
 }
