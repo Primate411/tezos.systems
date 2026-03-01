@@ -145,12 +145,8 @@ async function init() {
 
     // Initialize price bar
     safe('priceBar', initPriceBar);
+    safe('priceIntelToggle', initPriceIntelToggle);
 
-    // Initialize Price Intelligence (after a delay to let price bar load)
-    setTimeout(() => {
-      const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
-      safe('priceIntelligence', () => initPriceIntelligence(state.currentStats || {}, piPrice));
-    }, 3000);
 
     // Initialize My Tezos personal homepage strip
     safe('myTezos', initMyTezos);
@@ -1873,6 +1869,12 @@ function applyDeepLink() {
                 if (saveBtn) { saveBtn.click(); }
             }, 500);
         }
+    }
+
+    // #price
+    if (params.has('price') || hash === 'price') {
+        const toggle = document.getElementById('price-intel-toggle');
+        if (toggle) toggle.click();
     }
 
     // #calculator
