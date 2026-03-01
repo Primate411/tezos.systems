@@ -85,6 +85,7 @@ import { initBakerReportCard } from '../features/baker-report-card.js';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228n';
+import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260228a';
 import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228j';
 import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260228i';
 
@@ -144,6 +145,12 @@ async function init() {
 
     // Initialize price bar
     safe('priceBar', initPriceBar);
+
+    // Initialize Price Intelligence (after a delay to let price bar load)
+    setTimeout(() => {
+      const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
+      safe('priceIntelligence', () => initPriceIntelligence(state.currentStats || {}, piPrice));
+    }, 3000);
 
     // Initialize My Tezos personal homepage strip
     safe('myTezos', initMyTezos);
@@ -466,6 +473,7 @@ async function refreshInBackground() {
         const bgXtzPrice = parseFloat(document.querySelector(".price-value")?.textContent?.replace(/[^0-9.]/g, "")) || 0;
         updateDailyBriefing(comparisonStats, bgXtzPrice);
         updateRewardsTracker(comparisonStats, bgXtzPrice);
+        updatePriceIntelligence(comparisonStats, bgXtzPrice);
 
         
         // Refresh My Baker/Leaderboard if visible
@@ -502,6 +510,10 @@ async function refresh() {
         state.lastUpdate = new Date();
         updateLastRefreshTime();
         await updateUpgradeClock(); // Update protocol + days live
+
+        // Price Intelligence
+        const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
+        safe('priceIntelligence', () => initPriceIntelligence(state.currentStats, piPrice));
         // resetCountdown();
         refreshMyBaker();
         refreshLeaderboard();
