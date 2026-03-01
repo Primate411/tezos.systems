@@ -69,6 +69,8 @@ const THEME_VIBES = {
 function showFirstVisitPicker() {
     // First visit — redirect to landing page (unless already there)
     if (window.location.pathname === '/landing.html') return;
+    // Skip redirect for HEN mode deep link
+    if (new URLSearchParams(window.location.search).has('hen')) { setTheme(DEFAULT_THEME); return; }
     setTheme(DEFAULT_THEME);
     window.location.replace('/landing.html');
 }
@@ -101,6 +103,16 @@ export function openThemePicker() {
                     <span class="theme-checkmark" ${currentTheme === theme ? '' : 'style="display: none;"'}>✓</span>
                 </div>
             `).join('')}
+            <div style="border-top: 1px solid #333; margin: 4px 0;"></div>
+            <div class="theme-row hen-mode-row" data-theme="hen">
+                <div class="theme-dots">
+                    <span class="theme-dot" style="background-color: #111;"></span>
+                    <span class="theme-dot" style="background-color: #00d4ff;"></span>
+                    <span class="theme-dot" style="background-color: #00ff88;"></span>
+                </div>
+                <span class="theme-label" style="font-style: italic; opacity: 0.85;">hic et nunc</span>
+                <span class="theme-checkmark" style="display: none;">✓</span>
+            </div>
         </div>
     `;
 
@@ -128,7 +140,7 @@ export function openThemePicker() {
     const picker = document.getElementById('theme-picker-dropdown');
 
     // Add event listeners
-    const themeRows = picker.querySelectorAll('.theme-row');
+    const themeRows = picker.querySelectorAll('.theme-row:not(.hen-mode-row)');
 
     themeRows.forEach(row => {
         const theme = row.dataset.theme;
@@ -150,6 +162,16 @@ export function openThemePicker() {
             closeThemePicker();
         });
     });
+
+    // HEN mode entry
+    const henRow = picker.querySelector('.hen-mode-row');
+    if (henRow) {
+        henRow.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeThemePicker();
+            if (typeof HenMode !== 'undefined') HenMode.activate();
+        });
+    }
 
     // Hover out of picker - revert to original
     if (window.innerWidth >= 768) {

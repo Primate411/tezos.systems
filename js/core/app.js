@@ -4,7 +4,7 @@
  */
 
 import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js?v=20260228c';
-import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes5';
+import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes7';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
     formatCount,

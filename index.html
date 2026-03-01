@@ -49,9 +49,10 @@
     <link rel="manifest" href="site.webmanifest">
 
     <link rel="stylesheet" href="css/styles.min.css?v=20260301g">
+    <link rel="stylesheet" href="css/hen-mode.css?v=1">
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=20260228ar">
+    <link rel="modulepreload" href="js/core/app.js?v=20260301hen2">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -1558,7 +1559,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
-    <script type="module" src="js/core/app.js?v=20260228ar"></script>
+    <script src="js/features/hen-mode.js?v=2"></script>
+    <script type="module" src="js/core/app.js?v=20260301hen2"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
@@ -1723,5 +1725,28 @@
     <script type="module" src="js/features/comparison.js"></script>
     <!-- Moments Toast Container -->
     <div id="moments-toast-container"></div>
+
+    <!-- HEN Mode Overlay -->
+    <div id="hen-overlay" class="hen-overlay">
+        <div id="hen-boot" class="hen-boot"></div>
+        <div class="hen-header">
+            <div class="hen-logo"><span>hic</span> et nunc</div>
+            <div id="hen-mint-count" class="hen-mint-count"></div>
+            <button class="hen-close" title="Exit HEN mode">×</button>
+        </div>
+        <div id="hen-new-pill" class="hen-new-pill"></div>
+        <div class="hen-feed">
+            <div id="hen-grid" class="hen-grid"></div>
+            <div id="hen-loading" class="hen-loading">indexing...</div>
+        </div>
+        <div class="hen-cli">
+            <span class="hen-cli-prompt">></span>
+            <input id="hen-cli-input" class="hen-cli-input" type="text" placeholder="type help for commands" autocomplete="off" spellcheck="false">
+        </div>
+        <div id="hen-expanded" class="hen-expanded">
+            <button class="hen-expanded-close">×</button>
+            <div class="hen-expanded-inner"></div>
+        </div>
+    </div>
 </body>
 </html>

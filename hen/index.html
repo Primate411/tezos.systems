@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>hic et nunc — live Tezos art</title>
+    <meta name="description" content="Live feed of freshly minted art on Tezos. Discover, explore, collect.">
+    <meta property="og:title" content="hic et nunc — live Tezos art">
+    <meta property="og:description" content="Real-time feed of new art being minted on the Tezos blockchain.">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', monospace;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            max-width: 480px;
+            padding: 0 24px;
+        }
+
+        /* Icon */
+        .hen-icon {
+            font-size: 2.5rem;
+            color: #00d4ff;
+            margin-bottom: 24px;
+            animation: pulse 2.5s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* Title */
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            margin-bottom: 8px;
+            color: #e0e0e0;
+        }
+        h1 span { color: #00d4ff; }
+
+        .tagline {
+            font-size: 0.78rem;
+            color: #555;
+            letter-spacing: 0.08em;
+            margin-bottom: 40px;
+        }
+
+        /* Stats row */
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            margin-bottom: 40px;
+            font-size: 0.7rem;
+            color: #444;
+            letter-spacing: 0.05em;
+        }
+        .stat-val {
+            color: #00d4ff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: block;
+            margin-bottom: 2px;
+        }
+
+        /* Enter button */
+        .enter {
+            display: inline-block;
+            padding: 14px 48px;
+            border: 1px solid #00d4ff;
+            background: transparent;
+            color: #00d4ff;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .enter:hover {
+            background: #00d4ff;
+            color: #0a0a0a;
+            box-shadow: 0 0 40px rgba(0,212,255,0.2);
+        }
+
+        /* Subtle link back */
+        .back {
+            margin-top: 32px;
+            font-size: 0.65rem;
+            color: #333;
+            letter-spacing: 0.06em;
+        }
+        .back a {
+            color: #444;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .back a:hover { color: #00d4ff; }
+
+        /* Floating dots background */
+        .bg-dot {
+            position: fixed;
+            width: 2px;
+            height: 2px;
+            background: #00d4ff;
+            border-radius: 50%;
+            opacity: 0;
+            animation: drift 8s linear infinite;
+        }
+        @keyframes drift {
+            0% { opacity: 0; transform: translateY(100vh); }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { opacity: 0; transform: translateY(-20px); }
+        }
+
+        /* Boot text */
+        .boot-hint {
+            position: fixed;
+            bottom: 24px;
+            font-size: 0.6rem;
+            color: #222;
+            letter-spacing: 0.1em;
+        }
+    </style>
+</head>
+<body>
+    <!-- Floating background dots -->
+    <script>
+        for (var i = 0; i < 20; i++) {
+            var dot = document.createElement('div');
+            dot.className = 'bg-dot';
+            dot.style.left = Math.random() * 100 + '%';
+            dot.style.animationDelay = Math.random() * 8 + 's';
+            dot.style.animationDuration = (6 + Math.random() * 6) + 's';
+            document.body.appendChild(dot);
+        }
+    </script>
+
+    <div class="container">
+        <div class="hen-icon">◎</div>
+        <h1><span>hic</span> et nunc</h1>
+        <p class="tagline">live art on tezos</p>
+
+        <div class="stats">
+            <div><span class="stat-val" id="s-mints">—</span>mints today</div>
+            <div><span class="stat-val" id="s-artists">—</span>artists</div>
+            <div><span class="stat-val" id="s-collected">—</span>collected</div>
+        </div>
+
+        <a href="/?hen=1" class="enter" id="enter-hen">enter →</a>
+
+        <div class="back">
+            <a href="/">← tezos.systems dashboard</a>
+        </div>
+    </div>
+
+    <div class="boot-hint">tezos blockchain · objkt marketplace</div>
+
+    <script>
+        // Save theme so main page doesn't redirect to landing
+        if (!localStorage.getItem('tezos-systems-theme')) {
+            localStorage.setItem('tezos-systems-theme', 'matrix');
+        }
+
+        // Quick stats from Objkt
+        (function() {
+            var since = new Date(Date.now() - 86400000).toISOString();
+            var q = '{ token(where: {timestamp: {_gte: "' + since + '"}, fa: {collection_type: {_eq: "artist"}}, display_uri: {_like: "ipfs://%25"}}, limit: 200, order_by: {timestamp: desc}) { creators { creator_address } } }';
+            fetch('https://data.objkt.com/v3/graphql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: q })
+            }).then(function(r) { return r.json(); }).then(function(d) {
+                var tokens = (d && d.data && d.data.token) || [];
+                if (tokens.length > 0) {
+                    document.getElementById('s-mints').textContent = tokens.length + (tokens.length >= 200 ? '+' : '');
+                    var artists = {};
+                    tokens.forEach(function(t) {
+                        var addr = t.creators && t.creators[0] && t.creators[0].creator_address;
+                        if (addr) artists[addr] = true;
+                    });
+                    document.getElementById('s-artists').textContent = Object.keys(artists).length;
+                }
+            }).catch(function(e) { console.warn('HEN stats:', e); });
+        })();
+    </script>
+</body>
+</html>

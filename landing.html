@@ -98,6 +98,85 @@
             text-decoration: none;
             letter-spacing: 0.04em;
         }
+        .hen-sticker {
+            position: absolute;
+            top: 18%;
+            left: 50%;
+            margin-left: -75px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 14px 28px 12px;
+            margin-top: 20px;
+            background: #111;
+            border: 2px solid #00d4ff;
+            border-radius: 2px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s;
+            transform: rotate(-2deg);
+            box-shadow: 
+                0 0 0 1px rgba(0,212,255,0.15),
+                0 4px 20px rgba(0,0,0,0.5),
+                inset 0 0 30px rgba(0,212,255,0.03);
+            animation: hen-sticker-float 3s ease-in-out infinite;
+        }
+        .hen-sticker::before {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border: 1px solid rgba(0,212,255,0.15);
+            border-radius: 1px;
+            pointer-events: none;
+        }
+        .hen-sticker::after {
+            content: '↗';
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 0.6rem;
+            color: #00d4ff;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .hen-sticker:hover::after { opacity: 0.6; }
+        .hen-sticker:hover {
+            transform: rotate(0deg) scale(1.05);
+            border-color: #00ff88;
+            box-shadow: 
+                0 0 20px rgba(0,212,255,0.25),
+                0 0 60px rgba(0,255,136,0.1),
+                0 8px 30px rgba(0,0,0,0.4);
+        }
+        .hen-sticker-icon {
+            font-size: 1.4rem;
+            color: #00d4ff;
+            line-height: 1;
+            margin-bottom: 4px;
+            transition: color 0.3s;
+        }
+        .hen-sticker:hover .hen-sticker-icon { color: #00ff88; }
+        .hen-sticker-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #e0e0e0;
+            letter-spacing: 0.1em;
+            line-height: 1;
+        }
+        .hen-sticker-sub {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            color: #00d4ff;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-top: 4px;
+            opacity: 0.7;
+        }
+        @keyframes hen-sticker-float {
+            0%, 100% { transform: rotate(-2deg) translateY(0); }
+            50% { transform: rotate(-1deg) translateY(-6px); }
+        }
         .enter-btn:hover {
             transform: translateY(-3px);
             box-shadow: 0 0 40px var(--accent-glow), 0 8px 32px rgba(0,0,0,0.4);
@@ -314,6 +393,11 @@
 
     <!-- Hero -->
     <section class="hero">
+        <a href="/?hen=1" class="hen-sticker" id="hen-top">
+            <span class="hen-sticker-icon">◎</span>
+            <span class="hen-sticker-text">hic et nunc</span>
+            <span class="hen-sticker-sub">live art feed</span>
+        </a>
         <div class="hero-badge"><span class="dot"></span> Live · 7+ years uptime</div>
         <h1>The Bloomberg Terminal<br>for Tezos</h1>
         <p class="hero-sub">Free. Real-time. Beautiful. No account needed.</p>
@@ -471,6 +555,17 @@
                 if (!localStorage.getItem('tezos-systems-theme')) {
                     localStorage.setItem('tezos-systems-theme', 'matrix');
                 }
+            });
+        });
+
+        // HEN sticker — save theme and navigate
+        document.querySelectorAll('.hen-sticker').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (!localStorage.getItem('tezos-systems-theme')) {
+                    localStorage.setItem('tezos-systems-theme', 'matrix');
+                }
+                window.location.href = '/?hen=1';
             });
         });
 
