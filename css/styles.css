@@ -9865,15 +9865,27 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
    LANDING PAGE — Full scroll experience
    ========================================== */
 
-.fv-landing .first-visit-modal-content.fv-scroll {
-    max-width: 100%;
-    width: 100%;
-    max-height: 100vh;
-    height: 100vh;
+.first-visit-modal.fv-landing {
+    align-items: stretch;
+    justify-content: stretch;
+}
+.first-visit-modal.fv-landing .first-visit-modal-backdrop {
+    background: var(--bg, #0a0a1a);
+    backdrop-filter: none;
+}
+.first-visit-modal.fv-landing .first-visit-modal-content.fv-scroll {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 100vh !important;
+    height: 100vh !important;
     overflow-y: auto;
     overflow-x: hidden;
-    border-radius: 0;
-    padding: 0;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: var(--bg, #0a0a1a) !important;
+    backdrop-filter: none !important;
     scroll-behavior: smooth;
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,0.15) transparent;
