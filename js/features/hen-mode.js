@@ -14,6 +14,8 @@ const HenMode = (() => {
     let pollTimer = null;
     let newestTimestamp = null;
     let pendingNew = [];
+    let searchMode = null;
+    let artistMode = null;
     let isActive = false;
 
     // ── DOM refs ──
@@ -66,6 +68,8 @@ const HenMode = (() => {
             'fa: {collection_type: {_eq: "artist"}}'
         ];
         if (after) where.push(`timestamp: {_gt: "${after}"}`);
+        if (searchMode) where.push(`name: {_ilike: "%${searchMode}%"}`);
+        if (artistMode) where.push(`creators: {creator_address: {_eq: "${artistMode}"}}`);
 
         const query = `{
             token(
@@ -278,6 +282,30 @@ const HenMode = (() => {
     }
 
     // ── CLI commands ──
+    // Show CLI output in feed
+    function showCliOutput(lines) {
+        let output = document.getElementById('hen-cli-output');
+        if (!output) {
+            output = document.createElement('div');
+            output.id = 'hen-cli-output';
+            output.style.cssText = 'padding:20px 24px;font-size:0.75rem;color:#666;line-height:1.8;letter-spacing:0.03em;';
+            const feed = document.querySelector('.hen-feed');
+            feed.insertBefore(output, grid());
+        }
+        output.innerHTML = lines.map(l => {
+            if (l.startsWith('>')) return `<div style="color:#00d4ff">${l}</div>`;
+            if (l.startsWith('  ')) return `<div style="color:#555;padding-left:12px">${l}</div>`;
+            return `<div>${l}</div>`;
+        }).join('');
+        // Auto-clear after 8s
+        setTimeout(() => { if (output) output.innerHTML = ''; }, 8000);
+    }
+
+    function clearCliOutput() {
+        const output = document.getElementById('hen-cli-output');
+        if (output) output.innerHTML = '';
+    }
+
     function handleCommand(cmd) {
         const parts = cmd.trim().toLowerCase().split(/\s+/);
         const action = parts[0];
@@ -289,6 +317,7 @@ const HenMode = (() => {
                 deactivate();
                 break;
             case 'clear':
+                clearCliOutput();
                 tokens = [];
                 offset = 0;
                 pendingNew = [];
@@ -296,17 +325,56 @@ const HenMode = (() => {
                 grid().innerHTML = '';
                 loadPage();
                 break;
-            case 'search':
-                // TODO: filter by name
+            case 'search': {
+                const term = parts.slice(1).join(' ');
+                if (!term) {
+                    showCliOutput(['> usage: search <term>', '  searches token names']);
+                } else {
+                    clearCliOutput();
+                    tokens = [];
+                    offset = 0;
+                    grid().innerHTML = '';
+                    searchMode = term;
+                    loadPage();
+                }
                 break;
-            case 'artist':
-                // TODO: filter by creator address
+            }
+            case 'artist': {
+                const addr = parts[1];
+                if (!addr) {
+                    showCliOutput(['> usage: artist <tz1...>', '  shows all work by an artist']);
+                } else {
+                    clearCliOutput();
+                    tokens = [];
+                    offset = 0;
+                    grid().innerHTML = '';
+                    artistMode = addr;
+                    loadPage();
+                }
+                break;
+            }
+            case 'reset':
+                clearCliOutput();
+                searchMode = null;
+                artistMode = null;
+                tokens = [];
+                offset = 0;
+                grid().innerHTML = '';
+                loadPage();
                 break;
             case 'help':
-                console.log('[HEN] commands: exit, clear, search <term>, artist <tz1...>, help');
+                showCliOutput([
+                    '> commands',
+                    '  exit        — return to dashboard',
+                    '  clear       — reload the feed',
+                    '  search <term> — filter by name',
+                    '  artist <tz1...> — show artist\'s work',
+                    '  reset       — clear filters',
+                    '  help        — this message'
+                ]);
                 break;
             default:
-                console.log('[HEN] unknown command:', cmd);
+                showCliOutput([`> unknown command: ${cmd}`, '  type help for available commands']);
         }
 
         if (cliInput()) cliInput().value = '';
