@@ -56,9 +56,7 @@ function injectStyles() {
       font-variant-numeric: tabular-nums;
     }
     #${STRIP_ID} .cps-time {
-      min-width: 90px;
-      text-align: right;
-      letter-spacing: 0;
+      display: none;
       font-variant-numeric: tabular-nums;
     }
     #${STRIP_ID} .cps-bar {
@@ -149,9 +147,7 @@ function createStrip() {
     <span class="cps-bar"><span class="cps-bar-fill"></span></span>
     <span class="cps-pct"></span>
     <span class="cps-sep">·</span>
-    <span class="cps-time"></span>
-    <span class="cps-sep cps-block-sep">·</span>
-    <span class="cps-block">Block <span id="uptime-block-number">—</span></span>
+    <span id="uptime-block-number" style="display:none">—</span>
     <span class="uptime-pulse-dot" id="uptime-pulse-dot" title="Network healthy"></span>
     <span class="cps-age" id="uptime-block-age">—</span>
   `;
@@ -182,5 +178,5 @@ export function updateCyclePulse(stats) {
   strip.querySelector('.cps-cycle').textContent = `C${cycle || '—'}`;
   strip.querySelector('.cps-bar-fill').style.width = `${Math.min(100, Math.max(0, progress))}%`;
   strip.querySelector('.cps-pct').textContent = `${progress.toFixed(1)}%`;
-  strip.querySelector('.cps-time').textContent = `${fmtTime(timeRemaining)} left`;
+  // time display removed per design
 }
