@@ -67,10 +67,10 @@ const THEME_VIBES = {
 };
 
 function showFirstVisitPicker() {
-    // Redirect to landing page for first-time visitors
-    if (!window.location.pathname.includes('landing')) {
-        window.location.href = '/landing.html';
-    }
+    // First visit — set default theme and let them in
+    // Full landing experience available at /landing.html
+    setTheme(DEFAULT_THEME);
+    localStorage.setItem(THEME_KEY, DEFAULT_THEME);
 }
 
 
