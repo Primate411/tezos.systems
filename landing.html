@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tezos Systems — The Bloomberg Terminal for Tezos</title>
+    <meta name="description" content="Free, real-time Tezos blockchain dashboard. 18+ features: live stats, rewards tracker, chain comparisons, whale alerts, and more. Beautiful. Open. No account needed.">
+    <meta property="og:title" content="Tezos Systems — The Bloomberg Terminal for Tezos">
+    <meta property="og:description" content="Free, real-time Tezos blockchain dashboard with 18+ features.">
+    <meta property="og:image" content="https://tezos.systems/og-image.png">
+    <meta property="og:url" content="https://tezos.systems">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a1a;
+            --bg-card: rgba(255,255,255,0.04);
+            --bg-card-hover: rgba(255,255,255,0.07);
+            --accent: #00d4ff;
+            --accent-glow: rgba(0,212,255,0.15);
+            --purple: #a855f7;
+            --text-primary: #e0e0e0;
+            --text-secondary: #6b7280;
+            --border: rgba(255,255,255,0.06);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        /* ─── Hero ─── */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px 24px;
+            position: relative;
+        }
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 100px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+            letter-spacing: 0.05em;
+        }
+        .hero-badge .dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: #00ff88;
+            box-shadow: 0 0 6px #00ff88;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .hero h1 {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(2rem, 6vw, 3.5rem);
+            font-weight: 900;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-sub {
+            font-size: clamp(1rem, 2.5vw, 1.25rem);
+            color: var(--text-secondary);
+            margin-bottom: 36px;
+            max-width: 500px;
+        }
+        .enter-btn {
+            display: inline-block;
+            padding: 16px 40px;
+            border-radius: 12px;
+            border: none;
+            background: var(--accent);
+            color: #000;
+            font-family: 'Orbitron', monospace;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.25s;
+            text-decoration: none;
+            letter-spacing: 0.04em;
+        }
+        .enter-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 40px var(--accent-glow), 0 8px 32px rgba(0,0,0,0.4);
+        }
+        .scroll-hint {
+            position: absolute;
+            bottom: 32px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            opacity: 0.4;
+            animation: bounce 2s ease-in-out infinite;
+        }
+        @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
+
+        /* ─── Sections ─── */
+        section { padding: 80px 24px; }
+        .container { max-width: 960px; margin: 0 auto; }
+        .section-title {
+            font-family: 'Orbitron', monospace;
+            font-size: clamp(1.3rem, 3.5vw, 1.8rem);
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        .section-sub {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 48px;
+        }
+
+        /* ─── Live Stats ─── */
+        .live-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            max-width: 720px;
+            margin: 0 auto;
+        }
+        .live-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px 16px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .live-card:hover {
+            border-color: rgba(0,212,255,0.2);
+            background: var(--bg-card-hover);
+        }
+        .live-val {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 6px;
+        }
+        .live-label {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        /* ─── Features ─── */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .feat-cat {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 28px 24px;
+            transition: all 0.3s;
+        }
+        .feat-cat:hover {
+            border-color: rgba(255,255,255,0.12);
+            background: var(--bg-card-hover);
+            transform: translateY(-2px);
+        }
+        .feat-cat-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        .feat-cat-icon { font-size: 1.4rem; }
+        .feat-cat-name {
+            font-family: 'Orbitron', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--accent);
+            letter-spacing: 0.03em;
+        }
+        .feat-items { display: flex; flex-direction: column; gap: 12px; }
+        .feat-item {
+            padding-left: 12px;
+            border-left: 2px solid var(--border);
+            transition: border-color 0.2s;
+        }
+        .feat-item:hover { border-left-color: var(--accent); }
+        .feat-item-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+        .feat-item-desc {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        /* ─── Themes ─── */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 14px;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        .theme-card {
+            background: var(--bg-card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .theme-card:hover {
+            border-color: rgba(255,255,255,0.15);
+            transform: translateY(-2px);
+        }
+        .theme-card.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .theme-preview {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            margin: 0 auto 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        .theme-accent {
+            position: absolute;
+            bottom: 0; right: 0;
+            width: 50%; height: 50%;
+            border-radius: 50% 0 0 0;
+        }
+        .theme-name {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+        .theme-tagline {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--text-secondary);
+        }
+
+        /* ─── Final CTA ─── */
+        .final {
+            text-align: center;
+            padding: 60px 24px 40px;
+        }
+        .compare-links {
+            margin-top: 32px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+        }
+        .compare-links a {
+            padding: 8px 16px;
+            border-radius: 8px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+        .compare-links a:hover {
+            background: var(--bg-card-hover);
+            color: var(--text-primary);
+            border-color: rgba(255,255,255,0.12);
+        }
+        .footer {
+            text-align: center;
+            padding: 24px;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            opacity: 0.4;
+        }
+        .footer a { color: var(--accent); text-decoration: none; }
+
+        /* ─── Mobile ─── */
+        @media (max-width: 640px) {
+            .live-grid { grid-template-columns: repeat(2, 1fr); }
+            .features-grid { grid-template-columns: 1fr; }
+            .theme-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+            .theme-preview { width: 36px; height: 36px; }
+            section { padding: 60px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-badge"><span class="dot"></span> Live · 7+ years uptime</div>
+        <h1>The Bloomberg Terminal<br>for Tezos</h1>
+        <p class="hero-sub">Free. Real-time. Beautiful. No account needed.</p>
+        <a href="/" class="enter-btn" id="enter-top">Enter Dashboard →</a>
+        <div class="scroll-hint">↓ See what's inside</div>
+    </section>
+
+    <!-- Live Proof -->
+    <section>
+        <div class="container">
+            <div class="live-grid">
+                <div class="live-card">
+                    <div class="live-val" id="lp-price">$—</div>
+                    <div class="live-label">XTZ Price</div>
+                </div>
+                <div class="live-card">
+                    <div class="live-val" id="lp-staked">—%</div>
+                    <div class="live-label">Staked</div>
+                </div>
+                <div class="live-card">
+                    <div class="live-val" id="lp-bakers">—</div>
+                    <div class="live-label">Active Bakers</div>
+                </div>
+                <div class="live-card">
+                    <div class="live-val" id="lp-cycle">—</div>
+                    <div class="live-label">Current Cycle</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section>
+        <div class="container">
+            <h2 class="section-title">Everything you need. Nothing you don't.</h2>
+            <p class="section-sub">18+ features. Toggle what matters to you.</p>
+            <div class="features-grid">
+                <div class="feat-cat">
+                    <div class="feat-cat-head">
+                        <span class="feat-cat-icon">📡</span>
+                        <span class="feat-cat-name">Network Intelligence</span>
+                    </div>
+                    <div class="feat-items">
+                        <div class="feat-item"><div class="feat-item-name">Live Stats</div><div class="feat-item-desc">18 real-time metrics across economy, consensus, market, protocol, and network</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Protocol Timeline</div><div class="feat-item-desc">21 upgrades visualized — tap any to see its impact</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Daily Briefing</div><div class="feat-item-desc">Auto-generated narrative that updates every cycle</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Cycle Pulse</div><div class="feat-item-desc">Live progress with block-by-block health monitoring</div></div>
+                    </div>
+                </div>
+                <div class="feat-cat">
+                    <div class="feat-cat-head">
+                        <span class="feat-cat-icon">💼</span>
+                        <span class="feat-cat-name">Your Portfolio</span>
+                    </div>
+                    <div class="feat-items">
+                        <div class="feat-item"><div class="feat-item-name">My Tezos</div><div class="feat-item-desc">Enter your address — see baker, rewards, delegation, .tez domain</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Rewards Tracker</div><div class="feat-item-desc">This-cycle earnings, lifetime totals, 30-cycle heatmap</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Staking Calculator</div><div class="feat-item-desc">Estimate returns with live APY data</div></div>
+                    </div>
+                </div>
+                <div class="feat-cat">
+                    <div class="feat-cat-head">
+                        <span class="feat-cat-icon">🔍</span>
+                        <span class="feat-cat-name">Market & Discovery</span>
+                    </div>
+                    <div class="feat-items">
+                        <div class="feat-item"><div class="feat-item-name">Price Intelligence</div><div class="feat-item-desc">Per-cycle prediction game, price alerts, market context</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Chain Comparison</div><div class="feat-item-desc">Tezos vs ETH, SOL, ADA, ALGO — live side-by-side</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Baker Leaderboard</div><div class="feat-item-desc">Top bakers ranked by power and efficiency</div></div>
+                    </div>
+                </div>
+                <div class="feat-cat">
+                    <div class="feat-cat-head">
+                        <span class="feat-cat-icon">📖</span>
+                        <span class="feat-cat-name">On-Chain Stories</span>
+                    </div>
+                    <div class="feat-items">
+                        <div class="feat-item"><div class="feat-item-name">Whale Tracker</div><div class="feat-item-desc">Live feed of transfers over 1,000 XTZ</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Sleeping Giants</div><div class="feat-item-desc">Dormant wallets waking after months of silence</div></div>
+                        <div class="feat-item"><div class="feat-item-name">NFT Profile</div><div class="feat-item-desc">Your Objkt.com creator and collector stats</div></div>
+                    </div>
+                </div>
+                <div class="feat-cat">
+                    <div class="feat-cat-head">
+                        <span class="feat-cat-icon">✨</span>
+                        <span class="feat-cat-name">The Vibes</span>
+                    </div>
+                    <div class="feat-items">
+                        <div class="feat-item"><div class="feat-item-name">7 Themes</div><div class="feat-item-desc">Matrix, Dark, Clean, Bubblegum, Void, Ember, Signal — three with animations</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Social Sharing</div><div class="feat-item-desc">Per-card screenshots + 767 pre-written tweets</div></div>
+                        <div class="feat-item"><div class="feat-item-name">Arcade Mode</div><div class="feat-item-desc">Konami code. Easter eggs everywhere.</div></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Theme Picker -->
+    <section>
+        <div class="container">
+            <h2 class="section-title">Choose Your Vibe</h2>
+            <p class="section-sub">Pick a theme. You can change it anytime.</p>
+            <div class="theme-grid" id="theme-grid"></div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="final">
+        <a href="/" class="enter-btn" id="enter-bottom" style="font-size:1.1rem;padding:18px 48px;">Enter Dashboard →</a>
+        <div class="compare-links">
+            <a href="/compare/tezos-vs-ethereum.html">Tezos vs Ethereum</a>
+            <a href="/compare/tezos-vs-solana.html">Tezos vs Solana</a>
+            <a href="/compare/tezos-vs-cardano.html">Tezos vs Cardano</a>
+            <a href="/compare/tezos-vs-algorand.html">Tezos vs Algorand</a>
+        </div>
+    </section>
+
+    <div class="footer">
+        Powered by <a href="https://tez.capital" target="_blank">Tez Capital</a> · Data from <a href="https://api.tzkt.io" target="_blank">TzKT</a> & <a href="https://coingecko.com" target="_blank">CoinGecko</a>
+    </div>
+
+    <script>
+        // Theme data
+        var THEMES = {
+            matrix:    { bg: '#0a0f0a', accent: '#00ff00', name: 'Matrix',     tag: 'Code the Future' },
+            default:   { bg: '#0f0f1a', accent: '#00d4ff', name: 'Default',    tag: 'Refined Discovery' },
+            void:      { bg: '#0a0a14', accent: '#8b5cf6', name: 'Void',       tag: 'Deep Space' },
+            ember:     { bg: '#0f0a08', accent: '#ff6b2b', name: 'Ember',      tag: 'Phoenix Rising' },
+            signal:    { bg: '#0a0f0e', accent: '#00ffc8', name: 'Signal',     tag: 'Decode the Data' },
+            clean:     { bg: '#ffffff', accent: '#0784c3', name: 'Clean',      tag: 'Pure Analytics' },
+            dark:      { bg: '#1A1A1A', accent: '#C8C8C8', name: 'Dark',       tag: 'Zero Distractions' },
+            bubblegum: { bg: '#1F0E18', accent: '#FF69B4', name: 'Bubblegum',  tag: 'Sweet Simplicity' }
+        };
+
+        // Render theme cards
+        var grid = document.getElementById('theme-grid');
+        var selected = localStorage.getItem('tezos-systems-theme') || '';
+        Object.keys(THEMES).forEach(function(key) {
+            var t = THEMES[key];
+            var card = document.createElement('div');
+            card.className = 'theme-card' + (selected === key ? ' selected' : '');
+            card.innerHTML = '<div class="theme-preview" style="background:' + t.bg + '"><div class="theme-accent" style="background:' + t.accent + '"></div></div>' +
+                '<span class="theme-name">' + t.name + '</span><span class="theme-tagline">' + t.tag + '</span>';
+            card.addEventListener('click', function() {
+                localStorage.setItem('tezos-systems-theme', key);
+                grid.querySelectorAll('.theme-card').forEach(function(c) { c.classList.remove('selected'); });
+                card.classList.add('selected');
+            });
+            grid.appendChild(card);
+        });
+
+        // Enter dashboard buttons — save theme if none selected, go to index
+        document.querySelectorAll('.enter-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                if (!localStorage.getItem('tezos-systems-theme')) {
+                    localStorage.setItem('tezos-systems-theme', 'matrix');
+                }
+            });
+        });
+
+        // Fetch live data
+        Promise.all([
+            fetch('https://api.tzkt.io/v1/head').then(function(r) { return r.json(); }),
+            fetch('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd').then(function(r) { return r.json(); })
+        ]).then(function(data) {
+            var head = data[0], price = data[1];
+            var p = document.getElementById('lp-price');
+            var s = document.getElementById('lp-staked');
+            var b = document.getElementById('lp-bakers');
+            var c = document.getElementById('lp-cycle');
+            if (p && price.tezos) p.textContent = '$' + price.tezos.usd.toFixed(3);
+            if (s && head.stakingPercentage) s.textContent = head.stakingPercentage.toFixed(1) + '%';
+            if (b && head.activeBakers) b.textContent = head.activeBakers;
+            if (c && head.cycle) c.textContent = 'C' + head.cycle;
+        }).catch(function() {});
+    </script>
+</body>
+</html>
