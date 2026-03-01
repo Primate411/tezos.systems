@@ -50,7 +50,7 @@ function injectStyles() {
       font-variant-numeric: tabular-nums;
     }
     #${STRIP_ID} .cps-bar {
-      width: 120px;
+      width: 160px;
       height: 6px;
       border-radius: 3px;
       background: rgba(255,255,255,0.15);
@@ -85,10 +85,17 @@ function injectStyles() {
     }
     #${STRIP_ID} .uptime-pulse-dot.warn { background: #ff0; box-shadow: 0 0 4px #ff0; }
     #${STRIP_ID} .uptime-pulse-dot.danger { background: #f00; box-shadow: 0 0 4px #f00; }
+    #cycle-pulse-strip .cps-block {
+      font-variant-numeric: tabular-nums;
+      min-width: 90px;
+      text-align: right;
+      letter-spacing: 0;
+    }
     @keyframes cps-pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     @media (max-width: 600px) {
       #${STRIP_ID} { font-size: 10px; gap: 3px; }
-      #${STRIP_ID} .cps-bar { width: 40px; }
+      #${STRIP_ID} .cps-bar { width: 60px; }
+      #${STRIP_ID} .cps-block { display: none; }
       #${STRIP_ID} .cps-cycle { min-width: auto; }
       #${STRIP_ID} .cps-pct { min-width: 36px; }
     }
@@ -132,7 +139,7 @@ function createStrip() {
     <span class="cps-bar"><span class="cps-bar-fill"></span></span>
     <span class="cps-pct"></span>
     <span class="cps-sep">·</span>
-    <span id="uptime-block-number" style="display:none">—</span>
+    <span class="cps-block" id="uptime-block-number">—</span>
     <span class="uptime-pulse-dot" id="uptime-pulse-dot" title="Network healthy"></span>
     <span class="cps-age" id="uptime-block-age">—</span>
   `;
@@ -164,7 +171,7 @@ export function updateCyclePulse(stats) {
   }
   lastCycle = cycle;
 
-  strip.querySelector('.cps-cycle').textContent = `C${cycle || '—'}`;
+  strip.querySelector('.cps-cycle').textContent = `Cycle ${cycle || '—'}`;
   strip.querySelector('.cps-bar-fill').style.width = `${Math.min(100, Math.max(0, progress))}%`;
   strip.querySelector('.cps-pct').textContent = `${progress.toFixed(1)}%`;
 }
