@@ -67,73 +67,153 @@ const THEME_VIBES = {
 };
 
 function showFirstVisitPicker() {
-    // Remove any existing modal
     const existingModal = document.getElementById('first-visit-modal');
-    if (existingModal) {
-        existingModal.remove();
-    }
+    if (existingModal) existingModal.remove();
 
-    // Create modal HTML with hero + vibe picker
-    const modalHTML = `
-        <div id="first-visit-modal" class="first-visit-modal">
-            <div class="first-visit-modal-backdrop"></div>
-            <div class="first-visit-modal-content">
-                <div class="hero-section">
-                    <h1 class="hero-title">21 Upgrades. Zero Forks.</h1>
-                    <p class="hero-subtitle">The blockchain that evolves itself — live.</p>
-                    <div class="hero-stats">
-                        <span class="hero-stat"><span class="hero-stat-dot"></span>Live</span>
-                        <span class="hero-stat-divider">·</span>
-                        <span class="hero-stat">2,784+ days uptime</span>
-                        <span class="hero-stat-divider">·</span>
-                        <span class="hero-stat">Since 2018</span>
-                    </div>
-                </div>
-                <div class="vibe-section">
-                    <h2 class="vibe-heading">Choose Your Vibe</h2>
-                    <div class="theme-grid">
-                        ${THEMES.map(theme => `
-                            <div class="theme-card" data-theme="${theme}">
-                                <div class="theme-preview" style="background: ${THEME_COLORS[theme].bg};">
-                                    <div class="theme-accent" style="background: ${THEME_COLORS[theme].accent};"></div>
-                                </div>
-                                <span class="theme-name">${capitalizeTheme(theme)}</span>
-                                <span class="theme-tagline">${THEME_VIBES[theme].tagline}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                    <button class="hero-skip" id="hero-skip-btn">Just show me the data →</button>
-                </div>
-            </div>
-        </div>
-    `;
+    const features = [
+        { cat: 'Network Intelligence', icon: '\u{1F4E1}', items: [
+            { name: 'Live Stats', desc: '18 real-time metrics across economy, consensus, market, protocol, and network' },
+            { name: 'Protocol Timeline', desc: '21 upgrades visualized — tap any to see its impact on the network' },
+            { name: 'Daily Briefing', desc: 'Auto-generated narrative summary that updates every cycle' },
+            { name: 'Cycle Pulse', desc: 'Live cycle progress with block-by-block chain health monitoring' },
+        ]},
+        { cat: 'Your Portfolio', icon: '\u{1F4BC}', items: [
+            { name: 'My Tezos', desc: 'Enter your address \u2014 see your baker, rewards, delegation, and .tez domain' },
+            { name: 'Rewards Tracker', desc: 'This-cycle earnings, lifetime totals, 30-cycle heatmap, baker efficiency' },
+            { name: 'Staking Calculator', desc: 'Estimate your staking and baking returns with live APY data' },
+        ]},
+        { cat: 'Market & Discovery', icon: '\u{1F50D}', items: [
+            { name: 'Price Intelligence', desc: 'Per-cycle prediction game, price alerts, and market context' },
+            { name: 'Chain Comparison', desc: 'Tezos vs Ethereum, Solana, Cardano, Algorand \u2014 live side-by-side data' },
+            { name: 'Baker Leaderboard', desc: 'Top bakers ranked by staking power and operational efficiency' },
+        ]},
+        { cat: 'On-Chain Stories', icon: '\u{1F4D6}', items: [
+            { name: 'Whale Tracker', desc: 'Live feed of transfers over 1,000 XTZ \u2014 see the big moves as they happen' },
+            { name: 'Sleeping Giants', desc: 'Dormant wallets waking up after months or years of silence' },
+            { name: 'NFT Profile', desc: 'Your Objkt.com creator and collector stats, beautifully rendered' },
+        ]},
+        { cat: 'The Vibes', icon: '\u{2728}', items: [
+            { name: '7 Themes', desc: 'Matrix, Dark, Clean, Bubblegum, Void, Ember, Signal \u2014 three with live animations' },
+            { name: 'Social Sharing', desc: 'Per-card screenshots with 767 pre-written tweets ready to share' },
+            { name: 'Arcade Mode', desc: 'Konami code unlocks it. Easter eggs hidden everywhere.' },
+        ]},
+    ];
 
-    // Add to page
+    // Build feature sections HTML
+    let featuresHTML = '';
+    features.forEach(function(cat) {
+        let itemsHTML = '';
+        cat.items.forEach(function(item) {
+            itemsHTML += '<div class="fv-feature-item"><div class="fv-feature-name">' + item.name + '</div><div class="fv-feature-desc">' + item.desc + '</div></div>';
+        });
+        featuresHTML += '<div class="fv-feature-cat"><div class="fv-cat-header"><span class="fv-cat-icon">' + cat.icon + '</span><span class="fv-cat-name">' + cat.cat + '</span></div><div class="fv-cat-items">' + itemsHTML + '</div></div>';
+    });
+
+    // Build theme cards
+    let themeCardsHTML = '';
+    THEMES.forEach(function(theme) {
+        themeCardsHTML += '<div class="theme-card" data-theme="' + theme + '">' +
+            '<div class="theme-preview" style="background: ' + THEME_COLORS[theme].bg + ';">' +
+            '<div class="theme-accent" style="background: ' + THEME_COLORS[theme].accent + ';"></div></div>' +
+            '<span class="theme-name">' + capitalizeTheme(theme) + '</span>' +
+            '<span class="theme-tagline">' + THEME_VIBES[theme].tagline + '</span></div>';
+    });
+
+    const modalHTML = '<div id="first-visit-modal" class="first-visit-modal fv-landing">' +
+        '<div class="first-visit-modal-backdrop"></div>' +
+        '<div class="first-visit-modal-content fv-scroll">' +
+
+        // Section 1: Hero
+        '<section class="fv-hero">' +
+        '<h1 class="hero-title">The Bloomberg Terminal<br>for Tezos</h1>' +
+        '<p class="hero-subtitle">Free. Real-time. Beautiful.</p>' +
+        '<button class="fv-enter-btn" id="fv-enter-top">Enter Dashboard \u2192</button>' +
+        '<div class="fv-scroll-hint">\u2193 See what\'s inside</div>' +
+        '</section>' +
+
+        // Section 2: Live Proof
+        '<section class="fv-live">' +
+        '<div class="fv-live-grid">' +
+        '<div class="fv-live-card"><div class="fv-live-value" id="fv-price">$\u2014</div><div class="fv-live-label">XTZ Price</div></div>' +
+        '<div class="fv-live-card"><div class="fv-live-value" id="fv-staked">\u2014</div><div class="fv-live-label">Staked</div></div>' +
+        '<div class="fv-live-card"><div class="fv-live-value" id="fv-bakers">\u2014</div><div class="fv-live-label">Active Bakers</div></div>' +
+        '<div class="fv-live-card"><div class="fv-live-value" id="fv-cycle">\u2014</div><div class="fv-live-label">Current Cycle</div></div>' +
+        '</div></section>' +
+
+        // Section 3: Features
+        '<section class="fv-features">' +
+        '<h2 class="fv-section-title">18+ Features. Zero Clutter.</h2>' +
+        '<p class="fv-section-sub">Toggle what you need. Hide what you don\'t.</p>' +
+        '<div class="fv-features-grid">' + featuresHTML + '</div>' +
+        '</section>' +
+
+        // Section 4: Theme Picker
+        '<section class="fv-themes">' +
+        '<h2 class="fv-section-title">Choose Your Vibe</h2>' +
+        '<div class="theme-grid">' + themeCardsHTML + '</div>' +
+        '</section>' +
+
+        // Section 5: Final CTA
+        '<section class="fv-final">' +
+        '<button class="fv-enter-btn fv-enter-big" id="fv-enter-bottom">Enter Dashboard \u2192</button>' +
+        '<div class="fv-compare-links">' +
+        '<a href="/compare/tezos-vs-ethereum.html">Tezos vs Ethereum</a>' +
+        '<a href="/compare/tezos-vs-solana.html">Tezos vs Solana</a>' +
+        '<a href="/compare/tezos-vs-cardano.html">Tezos vs Cardano</a>' +
+        '<a href="/compare/tezos-vs-algorand.html">Tezos vs Algorand</a>' +
+        '</div></section>' +
+
+        '</div></div>';
+
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-    // Add event listeners
     const modal = document.getElementById('first-visit-modal');
-    const themeCards = modal.querySelectorAll('.theme-card');
 
-    themeCards.forEach(card => {
-        card.addEventListener('click', (e) => {
-            const theme = card.dataset.theme;
+    // Fetch live data for the proof section
+    fetchLandingData();
+
+    // Theme card clicks
+    modal.querySelectorAll('.theme-card').forEach(function(card) {
+        card.addEventListener('click', function() {
+            var theme = card.dataset.theme;
             setTheme(theme);
             localStorage.setItem(THEME_KEY, theme);
-            modal.classList.add('closing');
-            setTimeout(() => modal.remove(), 300);
+            // Visual feedback
+            modal.querySelectorAll('.theme-card').forEach(function(c) { c.classList.remove('selected'); });
+            card.classList.add('selected');
         });
     });
 
-    // Skip button — use default theme
-    const skipBtn = document.getElementById('hero-skip-btn');
-    if (skipBtn) {
-        skipBtn.addEventListener('click', () => {
-            setTheme(DEFAULT_THEME);
+    // Enter buttons
+    function enterDashboard() {
+        if (!localStorage.getItem(THEME_KEY)) {
             localStorage.setItem(THEME_KEY, DEFAULT_THEME);
-            modal.classList.add('closing');
-            setTimeout(() => modal.remove(), 300);
-        });
+        }
+        modal.classList.add('closing');
+        setTimeout(function() { modal.remove(); }, 300);
+    }
+    var topBtn = document.getElementById('fv-enter-top');
+    var bottomBtn = document.getElementById('fv-enter-bottom');
+    if (topBtn) topBtn.addEventListener('click', enterDashboard);
+    if (bottomBtn) bottomBtn.addEventListener('click', enterDashboard);
+}
+
+async function fetchLandingData() {
+    try {
+        var [head, price] = await Promise.all([
+            fetch('https://api.tzkt.io/v1/head').then(function(r) { return r.json(); }),
+            fetch('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd').then(function(r) { return r.json(); }),
+        ]);
+        var priceEl = document.getElementById('fv-price');
+        var stakedEl = document.getElementById('fv-staked');
+        var bakersEl = document.getElementById('fv-bakers');
+        var cycleEl = document.getElementById('fv-cycle');
+        if (priceEl && price.tezos) priceEl.textContent = '$' + price.tezos.usd.toFixed(3);
+        if (stakedEl && head.stakingPercentage) stakedEl.textContent = head.stakingPercentage.toFixed(1) + '%';
+        if (bakersEl && head.activeBakers) bakersEl.textContent = head.activeBakers;
+        if (cycleEl && head.cycle) cycleEl.textContent = 'C' + head.cycle;
+    } catch(e) {
+        console.warn('Landing data fetch failed:', e);
     }
 }
 
