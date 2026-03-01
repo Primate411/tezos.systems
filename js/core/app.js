@@ -1019,7 +1019,7 @@ function initUptimeClock() {
                 lastBlockTime = new Date(timestamp).getTime();
                 recentBlockTimes.push(lastBlockTime);
                 if (recentBlockTimes.length > 5) recentBlockTimes.shift(); // keep last 5
-                blockNumEl.textContent = level.toLocaleString();
+                if (blockNumEl) blockNumEl.textContent = level.toLocaleString();
                 const cb = document.getElementById('cycle-chip-block');
                 if (cb) cb.textContent = level.toLocaleString();
 
@@ -1059,7 +1059,7 @@ function initUptimeClock() {
         if (data.blockLevel && data.blockLevel !== lastBlockLevel) {
             lastBlockLevel = data.blockLevel;
             lastBlockTime = data.blockTime ? new Date(data.blockTime).getTime() : Date.now();
-            blockNumEl.textContent = data.blockLevel.toLocaleString();
+            if (blockNumEl) blockNumEl.textContent = data.blockLevel.toLocaleString();
             const cb2 = document.getElementById('cycle-chip-block');
             if (cb2) cb2.textContent = data.blockLevel.toLocaleString();
 
