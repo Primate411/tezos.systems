@@ -490,8 +490,8 @@
             if (ce && head.cycle) ce.textContent = 'C' + head.cycle;
             if (be && bakerCount) be.textContent = bakerCount;
             var staked = (stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0);
-            if (se && staked && stats.circulatingSupply) {
-                var pct = (staked / stats.circulatingSupply * 100).toFixed(1);
+            if (se && staked && stats.totalSupply) {
+                var pct = (staked / stats.totalSupply * 100).toFixed(1);
                 se.textContent = pct + '%';
             }
         }).catch(function(e) { console.warn('Landing data fetch:', e); });
