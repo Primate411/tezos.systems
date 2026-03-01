@@ -160,7 +160,7 @@
         <div class="stats">
             <div><span class="stat-val" id="s-mints">—</span>mints today</div>
             <div><span class="stat-val" id="s-artists">—</span>artists</div>
-            <div><span class="stat-val" id="s-collected">—</span>collected</div>
+            <div><span class="stat-val" id="s-editions">—</span>editions</div>
         </div>
 
         <a href="/?hen=1" class="enter" id="enter-hen">enter →</a>
@@ -181,7 +181,7 @@
         // Quick stats from Objkt
         (function() {
             var since = new Date(Date.now() - 86400000).toISOString();
-            var q = '{ token(where: {timestamp: {_gte: "' + since + '"}, fa: {collection_type: {_eq: "artist"}}, display_uri: {_like: "ipfs://%"}}, limit: 200, order_by: {timestamp: desc}) { creators { creator_address } } }';
+            var q = '{ token(where: {timestamp: {_gte: "' + since + '"}, fa: {collection_type: {_eq: "artist"}}, display_uri: {_like: "ipfs://%"}}, limit: 200, order_by: {timestamp: desc}) { supply creators { creator_address } } }';
             fetch('https://data.objkt.com/v3/graphql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -196,6 +196,9 @@
                         if (addr) artists[addr] = true;
                     });
                     document.getElementById('s-artists').textContent = Object.keys(artists).length;
+                    var editions = 0;
+                    tokens.forEach(function(t) { editions += parseInt(t.supply) || 0; });
+                    document.getElementById('s-editions').textContent = editions > 999 ? Math.round(editions/1000) + 'k' : editions;
                 }
             }).catch(function(e) { console.warn('HEN stats:', e); });
         })();
