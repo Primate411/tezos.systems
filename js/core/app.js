@@ -1020,6 +1020,8 @@ function initUptimeClock() {
                 recentBlockTimes.push(lastBlockTime);
                 if (recentBlockTimes.length > 5) recentBlockTimes.shift(); // keep last 5
                 blockNumEl.textContent = level.toLocaleString();
+                const cb = document.getElementById('cycle-chip-block');
+                if (cb) cb.textContent = level.toLocaleString();
 
                 // Update finality: Tenderbake = 2 confirmations on top of block
                 // So finality ≈ 2 × avg block time
@@ -1058,6 +1060,8 @@ function initUptimeClock() {
             lastBlockLevel = data.blockLevel;
             lastBlockTime = data.blockTime ? new Date(data.blockTime).getTime() : Date.now();
             blockNumEl.textContent = data.blockLevel.toLocaleString();
+            const cb2 = document.getElementById('cycle-chip-block');
+            if (cb2) cb2.textContent = data.blockLevel.toLocaleString();
 
             if (pulseDot) {
                 pulseDot.classList.remove('flash');
