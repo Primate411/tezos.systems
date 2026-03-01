@@ -653,7 +653,7 @@ const HenMode = (() => {
     function fetchBlock() {
         var mc = mintCount();
         if (!mc) return;
-        fetch('https://api.tzkt.io/v1/head').then(function(r) { return r.json(); }).then(function(d) {
+        fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/header').then(function(r) { return r.json(); }).then(function(d) {
             if (d && d.level && mc) {
                 mc.textContent = 'block ' + d.level.toLocaleString();
             }
