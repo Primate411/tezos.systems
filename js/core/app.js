@@ -857,6 +857,52 @@ function initComparisonToggle() {
     updateVis(isVisible);
 }
 
+
+// ==========================================
+// PRICE INTELLIGENCE TOGGLE
+// ==========================================
+const PI_VISIBLE_KEY = 'tezos-systems-pi-visible';
+
+function initPriceIntelToggle() {
+    const toggleBtn = document.getElementById('price-intel-toggle');
+    if (!toggleBtn) return;
+
+    let piInitialized = false;
+
+    function updateVis(isVisible) {
+        const section = document.getElementById('price-intelligence');
+        if (section) section.style.display = isVisible ? '' : 'none';
+        toggleBtn.classList.toggle('active', isVisible);
+        toggleBtn.title = `Price Intel: ${isVisible ? 'ON' : 'OFF'}`;
+    }
+
+    toggleBtn.addEventListener('click', async () => {
+        const stored = localStorage.getItem(PI_VISIBLE_KEY);
+        const isVisible = stored === 'true';
+        const newState = !isVisible;
+        localStorage.setItem(PI_VISIBLE_KEY, String(newState));
+
+        if (newState && !piInitialized) {
+            const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
+            await initPriceIntelligence(state.currentStats || {}, piPrice);
+            piInitialized = true;
+        }
+        updateVis(newState);
+    });
+
+    // Default OFF
+    const stored = localStorage.getItem(PI_VISIBLE_KEY);
+    const isVisible = stored === 'true';
+    if (isVisible) {
+        setTimeout(async () => {
+            const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
+            await initPriceIntelligence(state.currentStats || {}, piPrice);
+            piInitialized = true;
+            updateVis(true);
+        }, 3000);
+    }
+}
+
 // ==========================================
 // LIVING UPTIME CLOCK
 // ==========================================
