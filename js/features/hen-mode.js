@@ -87,7 +87,7 @@ const HenMode = (() => {
                 })
             });
             const json = await res.json();
-            const name = (json.data && json.data.reverseRecord && json.data.reverseRecord[0] && json.data.reverseRecord[0].domain) ? json.data.reverseRecord[0].domain.name : null;
+            var name = (json.data && json.data.reverseRecord && json.data.reverseRecord.domain) ? json.data.reverseRecord.domain.name : null;
             tezNameCache[addr] = name;
             return name;
         } catch (e) {
