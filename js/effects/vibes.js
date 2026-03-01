@@ -246,17 +246,16 @@ function injectStyles() {
         // 2. Uptime clock scanline + animated border pulse
         '.uptime-clock{overflow:hidden}',
         '.uptime-clock::after{content:\'\';position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.015) 2px,rgba(255,255,255,0.015) 4px);pointer-events:none;z-index:1}',
-        '.uptime-live-pulse{position:absolute;top:-1px;left:-1px;right:-1px;bottom:-1px;border-radius:12px;border:1px solid var(--accent,#00d4ff);opacity:0;animation:uptimePulse 3s ease-in-out infinite;pointer-events:none}',
-        '@keyframes uptimePulse{0%,100%{opacity:0}50%{opacity:0.15}}',
+
+
 
         // 3. Stake/Bake CTA buttons — more prominent
         '.price-cta{opacity:1!important;padding:3px 10px!important;border:1px solid rgba(var(--accent-rgb,0,212,255),0.3)!important;border-radius:4px!important;font-weight:600!important;color:var(--accent,#00d4ff)!important;transition:all 0.25s!important;font-size:0.72rem!important}',
         '.price-cta:hover{background:rgba(var(--accent-rgb,0,212,255),0.15)!important;box-shadow:0 0 12px rgba(var(--accent-rgb,0,212,255),0.2)!important;transform:translateY(-1px)!important}',
 
-        // 4. Matrix rain glass interaction — brightness bloom at card edges
-        '.upgrade-clock,.daily-briefing-section,.uptime-clock{box-shadow:0 0 30px rgba(0,255,65,0.03) inset,0 4px 24px rgba(0,0,0,0.4)}',
-        '[data-theme="matrix"] .upgrade-clock::before{content:\'\';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent 10%,rgba(0,255,65,0.08) 50%,transparent 90%);z-index:2;pointer-events:none;animation:rainPoolGlow 4s ease-in-out infinite}',
-        '@keyframes rainPoolGlow{0%,100%{opacity:0.3}50%{opacity:0.8}}',
+        // 4. Matrix rain glass interaction — removed (caused halo artifacts)
+
+
         ].join('\n');
     document.head.appendChild(s);
 }
