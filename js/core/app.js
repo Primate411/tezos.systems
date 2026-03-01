@@ -79,7 +79,6 @@ import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-b
 import { initCalculator } from '../features/calculator.js';
 import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
-import { initMorningBrief } from '../features/morning-brief.js?v=20260228a';
 import { initChangelog } from '../features/changelog.js';
 import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js';
 import { initBakerReportCard } from '../features/baker-report-card.js';
@@ -146,7 +145,6 @@ async function init() {
 
     // Initialize price bar
     safe('priceBar', initPriceBar);
-    safe('morningBrief', initMorningBrief);
     safe('priceIntelToggle', initPriceIntelToggle);
 
 
