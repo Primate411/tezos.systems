@@ -477,18 +477,23 @@
         // Fetch live data
         Promise.all([
             fetch('https://api.tzkt.io/v1/head').then(function(r) { return r.json(); }),
-            fetch('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd').then(function(r) { return r.json(); })
+            fetch('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd').then(function(r) { return r.json(); }),
+            fetch('https://api.tzkt.io/v1/statistics/current').then(function(r) { return r.json(); }),
+            fetch('https://api.tzkt.io/v1/delegates/count?active=true').then(function(r) { return r.json(); })
         ]).then(function(data) {
-            var head = data[0], price = data[1];
-            var p = document.getElementById('lp-price');
-            var s = document.getElementById('lp-staked');
-            var b = document.getElementById('lp-bakers');
-            var c = document.getElementById('lp-cycle');
-            if (p && price.tezos) p.textContent = '$' + price.tezos.usd.toFixed(3);
-            if (s && head.stakingPercentage) s.textContent = head.stakingPercentage.toFixed(1) + '%';
-            if (b && head.activeBakers) b.textContent = head.activeBakers;
-            if (c && head.cycle) c.textContent = 'C' + head.cycle;
-        }).catch(function() {});
+            var head = data[0], price = data[1], stats = data[2], bakerCount = data[3];
+            var pe = document.getElementById('lp-price');
+            var se = document.getElementById('lp-staked');
+            var be = document.getElementById('lp-bakers');
+            var ce = document.getElementById('lp-cycle');
+            if (pe && price.tezos) pe.textContent = '$' + price.tezos.usd.toFixed(3);
+            if (ce && head.cycle) ce.textContent = 'C' + head.cycle;
+            if (be && bakerCount) be.textContent = bakerCount;
+            if (se && stats.totalBakingPower && stats.circulatingSupply) {
+                var pct = (stats.totalBakingPower / stats.circulatingSupply * 100).toFixed(1);
+                se.textContent = pct + '%';
+            }
+        }).catch(function(e) { console.warn('Landing data fetch:', e); });
     </script>
 </body>
 </html>
