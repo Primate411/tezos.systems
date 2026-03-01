@@ -269,7 +269,7 @@ body::before {
 .price-bar-content {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 16px;
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -3759,6 +3759,22 @@ body.mobile-tabs-active[data-active-tab="overview"] .my-baker-section.visible {
 
 #calc-toggle.active {
     opacity: 1;
+}
+
+#briefing-toggle.active {
+    opacity: 1 !important;
+}
+
+#briefing-toggle:not(.active) {
+    opacity: 0.5 !important;
+}
+
+#price-intel-toggle.active {
+    opacity: 1 !important;
+}
+
+#price-intel-toggle:not(.active) {
+    opacity: 0.5 !important;
 }
 
 #objkt-toggle {
@@ -9851,4 +9867,345 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 }
 @media (max-width: 768px) {
     .comparison-tooltip-wrap { display: none; }
+}
+
+/* ==========================================
+   LANDING PAGE — Full scroll experience
+   ========================================== */
+
+.first-visit-modal.fv-landing {
+    align-items: stretch;
+    justify-content: stretch;
+}
+.first-visit-modal.fv-landing .first-visit-modal-backdrop {
+    background: var(--bg, #0a0a1a);
+    backdrop-filter: none;
+}
+.first-visit-modal.fv-landing .first-visit-modal-content.fv-scroll {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 100vh !important;
+    height: 100vh !important;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: var(--bg, #0a0a1a) !important;
+    backdrop-filter: none !important;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+/* Hero Section */
+.fv-hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 20px;
+    position: relative;
+}
+.fv-hero .hero-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--accent, #00d4ff), #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.fv-hero .hero-subtitle {
+    font-size: clamp(1rem, 2.5vw, 1.3rem);
+    color: var(--text-secondary, #8888aa);
+    margin-bottom: 32px;
+    font-weight: 300;
+}
+.fv-enter-btn {
+    display: inline-block;
+    padding: 14px 32px;
+    border-radius: 10px;
+    border: none;
+    background: var(--accent, #00d4ff);
+    color: #000;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.25s;
+    letter-spacing: 0.03em;
+}
+.fv-enter-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 0 30px var(--accent, #00d4ff);
+}
+.fv-enter-big {
+    font-size: 1.1rem;
+    padding: 18px 48px;
+}
+.fv-scroll-hint {
+    position: absolute;
+    bottom: 24px;
+    color: var(--text-secondary, #8888aa);
+    font-size: 0.85rem;
+    opacity: 0.5;
+    animation: fvBounce 2s ease-in-out infinite;
+}
+@keyframes fvBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(8px); }
+}
+
+/* Live Proof Section */
+.fv-live {
+    padding: 60px 20px;
+    display: flex;
+    justify-content: center;
+}
+.fv-live-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    max-width: 700px;
+    width: 100%;
+}
+.fv-live-card {
+    background: var(--bg-card, #12122a);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 20px 16px;
+    text-align: center;
+    transition: border-color 0.3s;
+}
+.fv-live-card:hover {
+    border-color: var(--accent, #00d4ff);
+}
+.fv-live-value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent, #00d4ff);
+    margin-bottom: 4px;
+}
+.fv-live-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary, #8888aa);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Features Section */
+.fv-features {
+    padding: 60px 20px 40px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+.fv-section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(1.2rem, 3vw, 1.6rem);
+    text-align: center;
+    margin-bottom: 8px;
+    color: var(--text-primary, #e0e0e0);
+}
+.fv-section-sub {
+    text-align: center;
+    color: var(--text-secondary, #8888aa);
+    font-size: 0.9rem;
+    margin-bottom: 32px;
+}
+.fv-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+}
+.fv-feature-cat {
+    background: var(--bg-card, #12122a);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    transition: border-color 0.3s;
+}
+.fv-feature-cat:hover {
+    border-color: rgba(255,255,255,0.12);
+}
+.fv-cat-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.fv-cat-icon {
+    font-size: 1.2rem;
+}
+.fv-cat-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent, #00d4ff);
+}
+.fv-cat-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.fv-feature-item {
+    padding-left: 8px;
+    border-left: 2px solid rgba(255,255,255,0.06);
+}
+.fv-feature-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary, #e0e0e0);
+    margin-bottom: 2px;
+}
+.fv-feature-desc {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #8888aa);
+    line-height: 1.4;
+}
+
+/* Themes Section */
+.fv-themes {
+    padding: 40px 20px 60px;
+    max-width: 700px;
+    margin: 0 auto;
+}
+.fv-themes .theme-grid {
+    justify-content: center;
+}
+.fv-themes .theme-card.selected {
+    border-color: var(--accent, #00d4ff);
+    box-shadow: 0 0 15px rgba(0,212,255,0.3);
+}
+
+/* Final CTA Section */
+.fv-final {
+    padding: 40px 20px 60px;
+    text-align: center;
+}
+.fv-compare-links {
+    margin-top: 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+.fv-compare-links a {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-secondary, #8888aa);
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+}
+.fv-compare-links a:hover {
+    background: rgba(255,255,255,0.1);
+    color: var(--text-primary, #e0e0e0);
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+    .fv-live-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .fv-features-grid {
+        grid-template-columns: 1fr;
+    }
+    .fv-live-value {
+        font-size: 1rem;
+    }
+}
+
+/* ─── Cycle Chip in Price Bar ─── */
+.cycle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.cycle-chip-label {
+    color: var(--accent, #00d4ff);
+    letter-spacing: 0;
+}
+.cycle-chip-pct {
+    color: var(--text-primary);
+    min-width: 32px;
+    text-align: right;
+    letter-spacing: 0;
+}
+.cycle-chip-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #00ff88;
+    box-shadow: 0 0 6px #00ff88;
+    animation: chipDotPulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+.cycle-chip-dot.warn { background: #ffcc00; box-shadow: 0 0 6px #ffcc00; }
+.cycle-chip-dot.danger { background: #ff4466; box-shadow: 0 0 6px #ff4466; }
+@keyframes chipDotPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+/* Price bar progress (bottom border fill) */
+.price-bar {
+    position: relative;
+}
+.price-bar-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 0%;
+    background: var(--accent, #00d4ff);
+    box-shadow: 0 0 8px var(--accent, #00d4ff);
+    transition: width 1s ease;
+    border-radius: 0 1px 1px 0;
+}
+
+@media (max-width: 600px) {
+    .cycle-chip { font-size: 0.65rem; gap: 3px; }
+    .price-bar-progress { height: 1.5px; }
+}
+
+/* Price bar 3-zone layout: cycle | price | CTAs */
+.price-bar-content .cycle-chip { flex-shrink: 0; }
+.price-bar-content .price-cta:last-of-type { margin-right: 0; }
+.price-bar-content .price-cta { flex-shrink: 0; }
+
+/* Cycle chip: pulse dot + age in price bar */
+.cycle-chip .uptime-pulse-dot,
+[data-theme] .cycle-chip .uptime-pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #00ff88 !important;
+    box-shadow: 0 0 6px #00ff88 !important;
+    display: inline-block;
+    animation: chipDotPulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+.cycle-chip .uptime-pulse-dot.stale { background: #ff0; box-shadow: 0 0 6px #ff0; }
+.cycle-chip .uptime-pulse-dot.danger { background: #f00; box-shadow: 0 0 6px #f00; }
+.cycle-chip-age {
+    font-size: 0.65rem;
+    min-width: 46px;
+    text-align: right;
+    color: var(--text-secondary);
+    opacity: 0.7;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+    min-width: 36px;
 }
