@@ -458,6 +458,21 @@ export async function initRewardsTracker(stats, xtzPrice) {
     console.warn('[rewards-tracker] fetch failed:', e);
   }
 
+  // Self-fetch cycle data if stats is missing it
+  if (!stats?.cycle || !stats?.cycleProgress) {
+    try {
+      const head = await fetch('https://api.tzkt.io/v1/head').then(r => r.json());
+      if (head) {
+        stats = {
+          ...stats,
+          cycle: head.cycle,
+          cycleProgress: ((head.level % 14400) / 14400) * 100,
+          cycleTimeRemaining: Math.round((14400 - (head.level % 14400)) * 6),
+        };
+      }
+    } catch (_) {}
+  }
+
   const target = document.getElementById('my-baker-results');
   if (!target) return;
 
