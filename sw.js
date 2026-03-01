@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v29';
+const CACHE_NAME = 'tezos-systems-v30';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -68,6 +68,34 @@ self.addEventListener('activate', (event) => {
                 keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
             );
         }).then(() => self.clients.claim())
+    );
+});
+
+// Morning Brief push notification from main thread
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'MORNING_BRIEF') {
+        self.registration.showNotification(event.data.title, {
+            body: event.data.body,
+            icon: '/favicon-48.png',
+            badge: '/favicon-48.png',
+            tag: 'morning-brief',
+            data: { url: event.data.url || '/' }
+        });
+    }
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    var url = (event.notification.data && event.notification.data.url) || '/';
+    event.waitUntil(
+        clients.matchAll({ type: 'window' }).then((windowClients) => {
+            for (var client of windowClients) {
+                if (client.url.includes('tezos.systems') && 'focus' in client) {
+                    return client.focus();
+                }
+            }
+            return clients.openWindow(url);
+        })
     );
 });
 
