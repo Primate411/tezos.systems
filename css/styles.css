@@ -10227,3 +10227,18 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     font-variant-numeric: tabular-nums;
     letter-spacing: 0;
 }
+
+/* Mobile price bar: cycle + block/age + CTAs only */
+@media (max-width: 600px) {
+    .price-bar-content .price-link,
+    .price-bar-content .price-separator,
+    .price-bar-content .price-alt,
+    .price-bar-content .price-mcap,
+    .price-bar-content .price-pipe,
+    .price-bar-content .cycle-chip-pct {
+        display: none !important;
+    }
+    .price-bar-content {
+        justify-content: space-between !important;
+    }
+}
