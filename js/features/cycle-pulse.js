@@ -147,22 +147,11 @@ function createStrip() {
 }
 
 export async function initCyclePulse(stats) {
-  if (document.getElementById(STRIP_ID)) return;
-  strip = createStrip();
-  // Insert at bottom of protocol panel content
-  const panelContent = document.querySelector('#upgrade-clock .upgrade-clock-content');
-  if (panelContent) {
-    panelContent.appendChild(strip);
-  } else {
-    // Fallback: after upgrade-clock
-    const uc = document.getElementById('upgrade-clock');
-    if (uc) uc.appendChild(strip);
-  }
+  // Cycle info now lives in price bar chip — no strip rendered
   updateCyclePulse(stats);
 }
 
 export function updateCyclePulse(stats) {
-  if (!strip) return;
   const cycle = Number(stats?.cycle ?? stats?.currentStats?.cycle ?? 0);
   const progress = Number(stats?.cycleProgress ?? stats?.currentStats?.cycleProgress ?? 0);
 
@@ -171,14 +160,9 @@ export function updateCyclePulse(stats) {
   }
   lastCycle = cycle;
 
-  strip.querySelector('.cps-cycle').textContent = `Cycle ${cycle || '—'}`;
-  strip.querySelector('.cps-bar-fill').style.width = `${Math.min(100, Math.max(0, progress))}%`;
-  strip.querySelector('.cps-pct').textContent = `${progress.toFixed(1)}%`;
-
-  // Also update price bar cycle chip
+  // Update price bar cycle chip
   const chipLabel = document.getElementById('cycle-chip-label');
   const chipPct = document.getElementById('cycle-chip-pct');
-  const chipDot = document.getElementById('cycle-chip-dot');
   const progressBar = document.getElementById('price-bar-progress');
   if (chipLabel) chipLabel.textContent = `C${cycle || '—'}`;
   if (chipPct) chipPct.textContent = `${progress.toFixed(1)}%`;
