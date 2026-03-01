@@ -440,7 +440,11 @@ if (document.readyState === 'loading') {
         const url = new URL(window.location);
         url.searchParams.delete('hen');
         history.replaceState(null, '', url.pathname + url.search);
-        // Activate after a brief delay for DOM to be ready
-        setTimeout(() => HenMode.activate(), 500);
+        // Activate as soon as DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => HenMode.activate());
+        } else {
+            HenMode.activate();
+        }
     }
 })();

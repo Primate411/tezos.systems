@@ -49,10 +49,17 @@
     <link rel="manifest" href="site.webmanifest">
 
     <link rel="stylesheet" href="css/styles.min.css?v=20260301g">
-    <link rel="stylesheet" href="css/hen-mode.css?v=1">
+    <link rel="stylesheet" href="css/hen-mode.css?v=2">
+    <script>
+    // Instant blackout for HEN mode — prevents dashboard flash
+    if (new URLSearchParams(window.location.search).has('hen')) {
+        document.documentElement.style.background = '#111';
+        document.write('<style>body>*:not(.hen-overlay){display:none!important}body{background:#111!important}</style>');
+    }
+    </script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=20260301hen2">
+    <link rel="modulepreload" href="js/core/app.js?v=20260301hen3">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -1559,8 +1566,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
-    <script src="js/features/hen-mode.js?v=2"></script>
-    <script type="module" src="js/core/app.js?v=20260301hen2"></script>
+    <script src="js/features/hen-mode.js?v=3"></script>
+    <script type="module" src="js/core/app.js?v=20260301hen3"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
