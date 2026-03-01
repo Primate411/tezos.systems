@@ -403,6 +403,9 @@ function updateFeed(newTxs) {
         const el = createTransactionElement(tx);
         el.classList.add('whale-tx-new');
         
+        // Dispatch whale alert event for vibes system
+        window.dispatchEvent(new CustomEvent('whale-alert', { detail: tx }));
+        
         if (container.firstChild) {
             container.insertBefore(el, container.firstChild);
         } else {
