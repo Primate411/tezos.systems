@@ -269,7 +269,7 @@ body::before {
 .price-bar-content {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 16px;
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -10179,3 +10179,8 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     .cycle-chip { font-size: 0.65rem; gap: 3px; }
     .price-bar-progress { height: 1.5px; }
 }
+
+/* Price bar 3-zone layout: cycle | price | CTAs */
+.price-bar-content .cycle-chip { flex-shrink: 0; }
+.price-bar-content .price-cta:last-of-type { margin-right: 0; }
+.price-bar-content .price-cta { flex-shrink: 0; }
