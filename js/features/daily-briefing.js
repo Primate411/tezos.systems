@@ -407,7 +407,8 @@ function renderCard(cycle, sentences, showNew) {
     <div class="briefing-footer">
       <span class="briefing-next">Next briefing when cycle ${cycle + 1} completes</span>
       <div class="briefing-actions">
-        <button class="briefing-btn" id="briefing-share-btn" title="Screenshot briefing">📸</button>
+        <button class="briefing-share-cta" id="briefing-share-cta" title="Share this briefing">📸 Share</button>
+        <button class="briefing-btn" id="briefing-tweet-btn" title="Tweet briefing">🐦</button>
         <button class="briefing-btn" id="briefing-tweet-btn" title="Post to X">🐦</button>
       </div>
     </div>
@@ -466,7 +467,12 @@ function renderCard(cycle, sentences, showNew) {
     }, 60000);
   }
 
-  card.querySelector('#briefing-share-btn').addEventListener('click', () => captureCard(card, cycle));
+  card.querySelector('#briefing-share-cta').addEventListener('click', () => captureCard(card, cycle));
+  card.querySelector('#briefing-tweet-btn').addEventListener('click', () => {
+    const lines = [...card.querySelectorAll('.briefing-line')].map(l => l.textContent.trim()).join('\n');
+    const text = '📰 Tezos Cycle ' + cycle + ' Briefing\n\n' + lines + '\n\nhttps://tezos.systems';
+    window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text), '_blank', 'width=550,height=420');
+  });
   card.querySelector('#briefing-tweet-btn').addEventListener('click', () => {
     const topLine = sentences[0] || `Cycle ${cycle} on Tezos.`;
     const text = `${topLine}\n\nhttps://tezos.systems`;
@@ -479,7 +485,7 @@ function renderCard(cycle, sentences, showNew) {
 // ─── Screenshot ───────────────────────────────────────────────────────────────
 
 async function captureCard(card, cycle) {
-  const btn = card.querySelector('#briefing-share-btn');
+  const btn = card.querySelector('#briefing-share-cta');
   if (btn) btn.textContent = '⏳';
   try {
     const shareModule = await import('../ui/share.js').catch(() => null);

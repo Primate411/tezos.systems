@@ -335,11 +335,16 @@ export function initBakerReportCard() {
                 btn.className = 'report-card-btn glass-button';
                 btn.innerHTML = '📋 <span class="dropdown-label">Baker Report Card</span>';
                 btn.title = 'Generate shareable baker report card';
-                btn.style.cssText = 'margin-top:12px;width:auto;padding:8px 16px;gap:6px;display:inline-flex;align-items:center;';
+                btn.style.cssText = 'margin-top:8px;width:auto;padding:10px 20px;gap:8px;display:inline-flex;align-items:center;font-size:0.85rem;';
                 btn.addEventListener('click', () => showBakerReportCard(bakerAddr));
 
-                // Insert after the grid
-                grid.after(btn);
+                // Insert prominently — after controls, before the stats grid
+                const controls = section.querySelector('.my-baker-controls');
+                if (controls) {
+                    controls.after(btn);
+                } else {
+                    grid.after(btn);
+                }
             }
         }
     });

@@ -10314,3 +10314,68 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     transition: all 0.2s;
 }
 .tour-next:hover { filter: brightness(1.2); transform: scale(1.05); }
+
+/* Prediction Result Toast */
+.pi-result-toast {
+    position: fixed;
+    bottom: -120px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    transition: bottom 0.4s cubic-bezier(0.2, 0.9, 0.3, 1);
+    font-family: 'JetBrains Mono', monospace;
+}
+.pi-result-toast.visible { bottom: 24px; }
+.pi-result-inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(10, 15, 25, 0.95);
+    border: 1px solid var(--accent-color, #00ff88);
+    border-radius: 12px;
+    padding: 14px 18px;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 0 30px rgba(var(--accent-rgb, 0,255,136), 0.15), 0 8px 32px rgba(0,0,0,0.5);
+    max-width: 480px;
+}
+.pi-result-icon { font-size: 1.8rem; }
+.pi-result-text { flex: 1; font-size: 0.78rem; line-height: 1.5; color: rgba(255,255,255,0.85); }
+.pi-result-text strong { color: var(--accent-color, #00ff88); display: block; margin-bottom: 2px; }
+.pi-result-share {
+    background: var(--accent-color, #00ff88);
+    color: #000; border: none; border-radius: 8px;
+    padding: 8px 14px; font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem; font-weight: 700; cursor: pointer;
+    white-space: nowrap; transition: filter 0.2s;
+}
+.pi-result-share:hover { filter: brightness(1.2); }
+.pi-result-close {
+    background: none; border: none; color: rgba(255,255,255,0.3);
+    font-size: 1.2rem; cursor: pointer; padding: 4px;
+}
+.pi-result-close:hover { color: rgba(255,255,255,0.7); }
+@media (max-width: 600px) {
+    .pi-result-inner { max-width: calc(100vw - 32px); padding: 10px 14px; gap: 8px; }
+    .pi-result-text { font-size: 0.72rem; }
+}
+
+/* Daily Briefing Share CTA */
+.briefing-share-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(var(--accent-rgb, 0,255,136), 0.12);
+    border: 1px solid rgba(var(--accent-rgb, 0,255,136), 0.3);
+    border-radius: 8px;
+    padding: 6px 14px;
+    color: var(--accent-color, #00ff88);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.briefing-share-cta:hover {
+    background: rgba(var(--accent-rgb, 0,255,136), 0.2);
+    border-color: var(--accent-color, #00ff88);
+}

@@ -101,8 +101,61 @@ function resolvePredictions(cycle, currentPriceNow) {
   if (changed) {
     savePredictions(preds);
     saveStats(stats);
+    // Show resolved prediction result with share option
+    const lastResolved = preds.filter(p => p.resolved).sort((a,b) => b.ts - a.ts)[0];
+    if (lastResolved) {
+      setTimeout(() => showPredictionResult(lastResolved, stats, currentPriceNow), 2000);
+    }
   }
   return stats;
+}
+
+function showPredictionResult(pred, stats, nowPrice) {
+  // Don't show if already shown this session
+  if (window._predResultShown) return;
+  window._predResultShown = true;
+
+  const accuracy = stats.total > 0 ? Math.round(stats.correct / stats.total * 100) : 0;
+  const toast = document.createElement('div');
+  toast.className = 'pi-result-toast';
+  toast.innerHTML = 
+    '<div class="pi-result-inner">' +
+      '<div class="pi-result-icon">' + (pred.correct ? '✅' : '❌') + '</div>' +
+      '<div class="pi-result-text">' +
+        '<strong>C' + pred.cycle + ' prediction: ' + (pred.correct ? 'Correct!' : 'Wrong') + '</strong>' +
+        '<div>You said ' + pred.direction + ' at $' + fmt(pred.priceAt, 3) + ' → now $' + fmt(nowPrice, 3) + '</div>' +
+        '<div>Accuracy: ' + accuracy + '% (' + stats.correct + '/' + stats.total + ')' +
+          (stats.streak > 1 ? ' · 🔥' + stats.streak + ' streak' : '') + '</div>' +
+      '</div>' +
+      '<button class="pi-result-share">Share</button>' +
+      '<button class="pi-result-close">×</button>' +
+    '</div>';
+
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('visible'));
+
+  toast.querySelector('.pi-result-close').addEventListener('click', () => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 300);
+  });
+
+  toast.querySelector('.pi-result-share').addEventListener('click', () => {
+    const text = (pred.correct ? '✅' : '❌') + ' My C' + pred.cycle + ' XTZ prediction was ' + (pred.correct ? 'right' : 'wrong') + '!\n' +
+      'Called ' + pred.direction + ' at $' + fmt(pred.priceAt, 3) + ' → $' + fmt(nowPrice, 3) + '\n' +
+      'Overall: ' + accuracy + '% accuracy (' + stats.correct + '/' + stats.total + ')' +
+      (stats.streak > 1 ? ' 🔥' + stats.streak + ' streak' : '') +
+      '\n\nhttps://tezos.systems';
+    const url = 'https://x.com/intent/tweet?text=' + encodeURIComponent(text);
+    window.open(url, '_blank', 'width=550,height=420');
+  });
+
+  // Auto-dismiss after 15s
+  setTimeout(() => {
+    if (toast.parentNode) {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 300);
+    }
+  }, 15000);
 }
 
 // ─── Alert Check ──────────────────────────────────────────────────────────────
