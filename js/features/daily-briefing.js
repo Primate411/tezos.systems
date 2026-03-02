@@ -523,10 +523,17 @@ async function captureCard(card, cycle) {
 async function generate(stats, xtzPrice) {
   const cycle = stats.cycle ?? 0;
 
-  // Return cached briefing if it's for the current cycle
+  // Return cached briefing if it's recent and data hasn't changed much
   try {
     const cached = JSON.parse(localStorage.getItem(LS_BRIEFING) || 'null');
-    if (cached?.cycle === cycle) return cached;
+    if (cached?.cycle === cycle && cached.generatedAt) {
+      const ageMs = Date.now() - cached.generatedAt;
+      const ageHrs = ageMs / 3600000;
+      // Regenerate if: >4 hours old, OR price shifted >2%, OR different visit session
+      const priceDrift = cached.priceAt && xtzPrice ? Math.abs(xtzPrice - cached.priceAt) / cached.priceAt : 0;
+      const isStale = ageHrs > 4 || priceDrift > 0.02;
+      if (!isStale) return cached;
+    }
   } catch { /* ignore */ }
 
   const baseline = (() => { try { return JSON.parse(localStorage.getItem(LS_BASELINE) || 'null'); } catch { return null; } })();
@@ -537,7 +544,7 @@ async function generate(stats, xtzPrice) {
   ]);
 
   const sentences = buildSentences(stats, xtzPrice, baseline, whales, bakerStats);
-  const briefing  = { cycle, sentences, generatedAt: Date.now() };
+  const briefing  = { cycle, sentences, generatedAt: Date.now(), priceAt: xtzPrice };
 
   try {
     localStorage.setItem(LS_BRIEFING,  JSON.stringify(briefing));

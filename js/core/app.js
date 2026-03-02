@@ -89,7 +89,7 @@ import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228s';
 import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260301';
 import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228k';
-import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260301';
+import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260301b';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
