@@ -83,6 +83,7 @@ import { initVibes } from '../effects/vibes.js?v=20260228b';
 import { initChangelog } from '../features/changelog.js';
 import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js';
 import { initBakerReportCard } from '../features/baker-report-card.js?v=20260301';
+import { initWalletConnect } from '../features/wallet-connect.js?v=1';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228s';
@@ -166,6 +167,7 @@ async function init() {
     safe('objkt', initObjkt);
     safe('leaderboard', initLeaderboard);
     safe('bakerReportCard', initBakerReportCard);
+    safe('walletConnect', initWalletConnect);
     safe('momentsTimeline', initMomentsTimeline);
     safe('comparisonToggle', initComparisonToggle);
     safe('comparison', () => initComparison({}));
