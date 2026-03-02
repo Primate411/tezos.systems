@@ -2055,14 +2055,15 @@ async function updateNetworkPulse() {
     // Network liveness is now shown by the Living Uptime Clock (block pulse dot)
     // This function just feeds block data as a TzKT fallback
     try {
-        const response = await fetch(`${API_URLS.tzkt}/head`);
+        // Use Octez RPC instead of TzKT
+        const response = await fetch(`${API_URLS.octez}/chains/main/blocks/head/header`);
         if (!response.ok) return;
-        const head = await response.json();
+        const header = await response.json();
 
         if (window._updateUptimeClock) {
             window._updateUptimeClock({
-                blockLevel: head.level,
-                blockTime: head.timestamp,
+                blockLevel: header.level,
+                blockTime: header.timestamp,
             });
         }
     } catch (e) {

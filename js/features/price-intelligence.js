@@ -376,8 +376,9 @@ export async function initPriceIntelligence(stats, xtzPrice) {
   let cycle = stats?.cycle || 0;
   if (!cycle) {
     try {
-      const head = await fetch(`${API_URLS.tzkt}/head`).then(r => r.json());
-      cycle = head?.cycle || 0;
+      // Use Octez RPC instead of TzKT
+      const meta = await fetch(`${API_URLS.octez}/chains/main/blocks/head/metadata`).then(r => r.json());
+      cycle = meta?.level_info?.cycle || 0;
     } catch (_) {}
   }
 

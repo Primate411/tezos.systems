@@ -140,13 +140,19 @@ function calculatePercentage(part, total) {
  * Optimized: uses /count endpoint + select fields (saves ~2-5MB vs full baker list)
  */
 async function fetchBakers() {
-    // Get total active bakers via lightweight count endpoint (~10 bytes vs ~2-5MB)
-    const countUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}/count?active=true`;
-    const total = await fetchWithRetry(countUrl);
-
-    // Get just baker addresses (select=address → ~10KB vs ~2-5MB full objects)
-    const addressUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&limit=${FETCH_LIMITS.bakers}&select=address`;
-    const addresses = await fetchWithRetry(addressUrl);
+    // Get active baker addresses from Octez RPC (replaces TzKT count + address list)
+    let addresses = [];
+    let total = 0;
+    try {
+        addresses = await fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/context/delegates?active=true&with_minimal_stake=true`);
+        total = addresses.length;
+    } catch (e) {
+        // Fallback to TzKT if RPC fails
+        const countUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}/count?active=true`;
+        total = await fetchWithRetry(countUrl);
+        const addressUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&limit=${FETCH_LIMITS.bakers}&select=address`;
+        addresses = await fetchWithRetry(addressUrl);
+    }
     const activeBakerAddresses = new Set(addresses);
 
     // Get consensus key ops with only the fields we need
@@ -179,33 +185,49 @@ async function fetchBakers() {
  * Fetch cycle info from TzKT
  */
 async function fetchCycleInfo() {
-    const headUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.head}`;
-    const head = await fetchWithRetry(headUrl);
+    // Use Octez RPC instead of TzKT for head + cycle info
+    const [header, metadata] = await Promise.all([
+        fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/header`),
+        fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/metadata`)
+    ]);
+    const levelInfo = metadata.level_info || {};
+    const head = {
+        level: header.level,
+        timestamp: header.timestamp,
+        cycle: levelInfo.cycle
+    };
 
-    const cycleUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.cycles}/${head.cycle}`;
-    const cycle = await fetchWithRetry(cycleUrl);
+    // Compute cycle boundaries from metadata (no TzKT /cycles needed)
+    const cyclePosition = levelInfo.cycle_position || 0;
+    const cycleStartBlock = header.level - cyclePosition;
 
     // Fetch block time from RPC constants (don't hardcode 6s)
     let blockTimeSec = 6; // safe fallback
+    let actualBlocksPerCycle = 14400; // safe fallback
     try {
         const constantsUrl = `${ENDPOINTS.octez.base}/chains/main/blocks/head/context/constants`;
         const constants = await fetchWithRetry(constantsUrl);
         if (constants.minimal_block_delay) {
             blockTimeSec = parseInt(constants.minimal_block_delay);
         }
+        if (constants.blocks_per_cycle) {
+            actualBlocksPerCycle = parseInt(constants.blocks_per_cycle);
+        }
     } catch (e) {
         // Use fallback
     }
+    // Recompute with actual blocks_per_cycle from constants
+    const cycleEndBlockActual = cycleStartBlock + actualBlocksPerCycle - 1;
 
     const currentBlock = head.level;
-    const cycleStartBlock = cycle.firstLevel;
-    const cycleEndBlock = cycle.lastLevel;
-    const blocksPerCycle = cycleEndBlock - cycleStartBlock;
+    // cycleStartBlock computed above from RPC metadata
+    const blocksPerCycle = 14400; // Will be overridden by constants below if available
+    const cycleEndBlock = cycleStartBlock + blocksPerCycle - 1;
     const blocksIntoCycle = currentBlock - cycleStartBlock;
-    const progress = (blocksIntoCycle / blocksPerCycle) * 100;
+    const progress = (blocksIntoCycle / actualBlocksPerCycle) * 100;
 
     // Calculate time remaining
-    const blocksRemaining = cycleEndBlock - currentBlock;
+    const blocksRemaining = cycleEndBlockActual - currentBlock;
     let timeRemaining;
 
     if (blocksRemaining <= 0) {
@@ -617,8 +639,6 @@ export async function checkApiHealth() {
             fetch(`${ENDPOINTS.octez.base}/chains/main/blocks/head/header`)
         ]);
         
-        const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
-
         return {
             tzkt: tzktHealth.status === 'fulfilled' && tzktHealth.value.ok,
             octez: octezHealth.status === 'fulfilled' && octezHealth.value.ok

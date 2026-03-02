@@ -462,13 +462,18 @@ export async function initRewardsTracker(stats, xtzPrice) {
   // Self-fetch cycle data if stats is missing it
   if (!stats?.cycle || !stats?.cycleProgress) {
     try {
-      const head = await fetch('https://api.tzkt.io/v1/head').then(r => r.json());
-      if (head) {
+      // Use Octez RPC instead of TzKT
+      const [header, meta] = await Promise.all([
+        fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/header').then(r => r.json()),
+        fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/metadata').then(r => r.json())
+      ]);
+      if (header && meta?.level_info) {
+        const cyclePos = meta.level_info.cycle_position || 0;
         stats = {
           ...stats,
-          cycle: head.cycle,
-          cycleProgress: ((head.level % 14400) / 14400) * 100,
-          cycleTimeRemaining: Math.round((14400 - (head.level % 14400)) * 6),
+          cycle: meta.level_info.cycle,
+          cycleProgress: (cyclePos / 14400) * 100,
+          cycleTimeRemaining: Math.round((14400 - cyclePos) * 6),
         };
       }
     } catch (_) {}

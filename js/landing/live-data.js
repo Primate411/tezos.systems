@@ -59,11 +59,12 @@ export async function loadGovernanceData() {
         const [votingResp, protocolsResp, headResp] = await Promise.all([
             fetch(`${TZKT}/voting/periods/current`),
             fetch(`${TZKT}/protocols?sort.desc=firstLevel&limit=30`),
-            fetch(`${TZKT}/head`)
+            fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/metadata')
         ]);
         const voting = await votingResp.json();
         const protocols = await protocolsResp.json();
-        const head = await headResp.json();
+        const headMeta = await headResp.json();
+        const head = { cycle: headMeta?.level_info?.cycle, level: headMeta?.level_info?.level };
 
         // Current period
         const periodNames = {
@@ -112,10 +113,11 @@ export async function loadBakerData() {
     try {
         const [bakersResp, statsResp] = await Promise.all([
             fetch(`${TZKT}/delegates?active=true&stakingBalance.gt=0&select=address,alias,stakingBalance,numDelegators,stakersCount&sort.desc=stakingBalance&limit=10`),
-            fetch(`${TZKT}/delegates/count?active=true&stakingBalance.gt=0`)
+            fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/context/delegates?active=true&with_minimal_stake=true')
         ]);
         const topBakers = await bakersResp.json();
-        const totalBakers = await statsResp.json();
+        const bakerAddresses = await statsResp.json();
+        const totalBakers = Array.isArray(bakerAddresses) ? bakerAddresses.length : 0;
 
         inject('total-bakers', totalBakers.toString());
 
