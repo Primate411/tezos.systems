@@ -144,6 +144,11 @@ export const CHAIN_COMPARISON = {
     },
     tezosStatic: {
         // Fallback values when live data isn't available yet
+        stakingPct: '~27.8%',
+        annualIssuance: '~3.52%',
+        annualIssuanceNote: 'Octez RPC (adaptive issuance)',
+        validators: '6',
+        validatorsNote: 'entities for 33% of stake (248 total)',
         slashing: 'Minimal',
         slashingNote: 'Double-bake/attest only',
         blockTime: '~6s',

@@ -10271,3 +10271,46 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
         justify-content: space-between !important;
     }
 }
+
+/* Tooltip Tour */
+.tour-tooltip {
+    max-width: 320px;
+    background: rgba(10, 15, 25, 0.95);
+    border: 1px solid var(--accent-color, #00ff88);
+    border-radius: 10px;
+    padding: 16px 20px;
+    color: rgba(255,255,255,0.9);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 0 30px rgba(var(--accent-rgb, 0,255,136), 0.15), 0 8px 32px rgba(0,0,0,0.5);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.tour-text { margin-bottom: 12px; }
+.tour-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.tour-progress {
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.4);
+}
+.tour-actions { display: flex; gap: 8px; }
+.tour-skip {
+    background: none; border: none; color: rgba(255,255,255,0.4);
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    cursor: pointer; padding: 4px 8px;
+}
+.tour-skip:hover { color: rgba(255,255,255,0.7); }
+.tour-next {
+    background: var(--accent-color, #00ff88); color: #000;
+    border: none; border-radius: 6px; padding: 6px 14px;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+}
+.tour-next:hover { filter: brightness(1.2); transform: scale(1.05); }

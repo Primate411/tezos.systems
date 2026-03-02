@@ -6,7 +6,7 @@
  * auto-generates narrative, shareable OG cards.
  */
 
-import { CHAIN_COMPARISON, API_URLS } from '../core/config.js?v=20260228a';
+import { CHAIN_COMPARISON, API_URLS } from '../core/config.js?v=20260301';
 
 const METRICS = [
   { key: 'blockTime',       label: 'Block Time',        icon: '⏱️', lower: true },
@@ -23,16 +23,25 @@ const METRICS = [
 
 async function fetchLiveTezosData() {
   try {
-    const [head, supply] = await Promise.all([
-      fetch(API_URLS.TZKT_HEAD).then(r => r.json()),
-      fetch('https://api.tzkt.io/v1/protocols/current').then(r => r.json()),
+    // Use Octez RPC for staking data
+  const [totalStake, totalSupply] = await Promise.all([
+      fetch(API_URLS.octez + '/chains/main/blocks/head/context/total_frozen_stake').then(r => r.json()),
+      fetch(API_URLS.octez + '/chains/main/blocks/head/context/total_supply').then(r => r.json()),
     ]);
+    const stakePct = totalStake && totalSupply ? ((parseInt(totalStake) / parseInt(totalSupply)) * 100).toFixed(1) : '27.8';
     return {
-      stakingPct: head.stakingPercentage ? '~' + head.stakingPercentage.toFixed(1) + '%' : null,
+      stakingPct: '~' + stakePct + '%',
+      annualIssuance: '~3.52%',
+      validators: '6',
+      validatorsNote: 'entities for 33% of stake (248 total)',
       blockTime: '~6s',
       finality: '~12s',
       selfAmendments: 21,
       hardForks: '0',
+      energyPerTx: '<0.001 kWh',
+      avgTxFee: '~$0.01',
+      slashing: 'Minimal',
+      slashingNote: 'Double-bake/attest only',
     };
   } catch(e) {
     return {};
