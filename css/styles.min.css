@@ -374,17 +374,22 @@ body::before {
 
 @media (max-width: 600px) {
     .price-bar {
-        padding: 4px 12px;
+        padding: 4px 8px;
     }
     .price-bar-content {
-        gap: 10px;
-        font-size: 0.75rem;
+        gap: 6px;
+        font-size: 0.72rem;
+        justify-content: space-between;
     }
     .price-mcap,
     .price-alt,
-    .price-separator,
-    .price-cta {
+    .price-separator {
         display: none;
+    }
+    .price-cta {
+        font-size: 0.6rem;
+        padding: 2px 6px;
+        flex-shrink: 0;
     }
 }
 
@@ -646,12 +651,12 @@ body::before {
     min-width: 230px;
     gap: 5px;
     flex-shrink: 0;
-    background: linear-gradient(135deg, rgba(0, 255, 136, 0.06) 0%, rgba(0, 212, 255, 0.04) 100%);
-    border: 1px solid rgba(0, 255, 136, 0.4);
+    background: linear-gradient(135deg, rgba(0, 255, 136, 0.12) 0%, rgba(0, 212, 255, 0.08) 100%);
+    border: 1px solid rgba(0, 255, 136, 0.5);
     border-radius: 12px;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow: 0 0 12px rgba(0, 255, 136, 0.15), 0 0 4px rgba(0, 212, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.2), 0 0 60px rgba(0, 212, 255, 0.08), inset 0 1px 0 rgba(255,255,255,0.06);
     position: relative;
     overflow: hidden;
 }
@@ -665,7 +670,7 @@ body::before {
     right: -1px;
     height: 2px;
     background: linear-gradient(90deg, transparent, var(--accent-color, #00ff88), transparent);
-    opacity: 0.4;
+    opacity: 0.6;
     border-radius: 12px 12px 0 0;
 }
 
@@ -699,8 +704,14 @@ body::before {
     letter-spacing: 2.5px;
     text-transform: uppercase;
     color: var(--accent-color, #00ff88);
-    opacity: 0.8;
     white-space: nowrap;
+    text-shadow: 0 0 8px currentColor, 0 0 20px currentColor;
+    animation: tagline-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes tagline-glow {
+    0% { opacity: 0.7; text-shadow: 0 0 6px currentColor, 0 0 15px currentColor; }
+    100% { opacity: 1; text-shadow: 0 0 10px currentColor, 0 0 30px currentColor, 0 0 50px currentColor; }
 }
 
 .uptime-metrics {
@@ -967,10 +978,10 @@ body::before {
     border-color: rgba(0, 255, 0, 0.3);
 }
 /* Matrix uptime clock — Nebuchadnezzar cold-world island */
-[data-theme="matrix"] .uptime-clock { background: linear-gradient(135deg, rgba(0, 80, 180, 0.08) 0%, rgba(0, 120, 255, 0.03) 100%); border-color: rgba(0, 120, 255, 0.2); box-shadow: 0 0 25px rgba(0, 120, 255, 0.08), inset 0 1px 0 rgba(255,255,255,0.04); }
-[data-theme="matrix"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #0078ff, transparent); }
+[data-theme="matrix"] .uptime-clock { background: linear-gradient(135deg, rgba(0, 80, 180, 0.15) 0%, rgba(0, 120, 255, 0.08) 100%); border-color: rgba(0, 120, 255, 0.4); box-shadow: 0 0 35px rgba(0, 120, 255, 0.15), 0 0 60px rgba(0, 80, 180, 0.08), inset 0 1px 0 rgba(255,255,255,0.06); }
+[data-theme="matrix"] .uptime-clock::before { background: linear-gradient(90deg, transparent, #0078ff, transparent); opacity: 0.6; }
 [data-theme="matrix"] .uptime-counter { color: #0078ff; text-shadow: 0 0 25px rgba(0, 120, 255, 0.4); }
-[data-theme="matrix"] .uptime-tagline { color: rgba(0, 160, 255, 0.85); }
+[data-theme="matrix"] .uptime-tagline { color: #00a0ff; text-shadow: 0 0 8px #00a0ff, 0 0 20px #00a0ff; }
 [data-theme="matrix"] .uptime-metric-value { color: rgba(180, 210, 255, 0.9); }
 [data-theme="matrix"] .uptime-metric-label { color: rgba(0, 150, 255, 0.6); }
 [data-theme="matrix"] .uptime-block-pulse { color: rgba(0, 150, 255, 0.6); }
