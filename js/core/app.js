@@ -1694,19 +1694,53 @@ async function updateUpgradeClock() {
                 const now = new Date();
                 const progress = ((now - startTime) / (endTime - startTime)) * 100;
                 
+                // Fetch vote tally for exploration/promotion
+                let tallyHtml = '';
+                if (votingStatus.kind === 'exploration' || votingStatus.kind === 'promotion') {
+                    try {
+                        const vResp = await fetch('https://api.tzkt.io/v1/voting/periods/current/voters?status.ne=none&limit=10000&select=status,votingPower');
+                        if (vResp.ok) {
+                            const votes = await vResp.json();
+                            let yay = 0, nay = 0, pass = 0;
+                            for (const v of votes) {
+                                if (v.status === 'yay') yay += v.votingPower || 0;
+                                else if (v.status === 'nay') nay += v.votingPower || 0;
+                                else if (v.status === 'pass') pass += v.votingPower || 0;
+                            }
+                            const total = yay + nay + pass;
+                            const eligible = votingStatus.totalVotingPower || votingStatus.topVotingPower || 1;
+                            const participation = ((total / eligible) * 100).toFixed(1);
+                            const yayOfYayNay = (yay + nay) > 0 ? ((yay / (yay + nay)) * 100).toFixed(1) : '0.0';
+                            const smMet = parseFloat(yayOfYayNay) >= 80;
+                            const smColor = smMet ? 'var(--color-success, #10b981)' : parseFloat(yayOfYayNay) >= 60 ? 'var(--color-warning, #f59e0b)' : 'var(--color-error, #ef4444)';
+                            tallyHtml = `
+                                <div class="voting-tally">
+                                    <div class="voting-tally-row"><span class="tally-label">Yay</span><span class="tally-bar"><span class="tally-fill tally-yay" style="width:${total > 0 ? (yay/total*100) : 0}%"></span></span><span class="tally-pct" style="color:${smColor}">${yayOfYayNay}%</span></div>
+                                    <div class="voting-tally-row"><span class="tally-label">Nay</span><span class="tally-bar"><span class="tally-fill tally-nay" style="width:${total > 0 ? (nay/total*100) : 0}%"></span></span><span class="tally-pct">${(yay+nay) > 0 ? ((nay/(yay+nay))*100).toFixed(1) : '0.0'}%</span></div>
+                                    <div class="voting-tally-row"><span class="tally-label">Pass</span><span class="tally-bar"><span class="tally-fill tally-pass" style="width:${total > 0 ? (pass/total*100) : 0}%"></span></span><span class="tally-pct">${total > 0 ? ((pass/total)*100).toFixed(1) : '0.0'}%</span></div>
+                                    <div class="voting-tally-summary">${participation}% participation • ${smMet ? '✅' : '⚠️'} ${yayOfYayNay}% supermajority ${smMet ? 'met' : '(needs 80%)'}</div>
+                                </div>`;
+                        }
+                    } catch {}
+                }
+                
+                const proposalName = votingStatus.epoch?.proposal?.alias;
+                const proposalLabel = proposalName ? `<span class="voting-proposal-name">${proposalName}</span>` : '';
+                
                 statusEl.innerHTML = `
                     <div class="voting-status">
                         <div class="voting-period">
                             <span class="voting-dot"></span>
                             <span class="voting-period-name">${getVotingPeriodName(votingStatus.kind)}</span>
+                            ${proposalLabel}
                         </div>
                         <div class="voting-time">${formatTimeRemaining(votingStatus.endTime)}</div>
                         <div class="voting-progress">
                             <div class="voting-progress-bar" style="width: ${Math.min(progress, 100)}%"></div>
                         </div>
+                        ${tallyHtml}
                     </div>
                 `;
-            } else {
                 statusEl.classList.remove('active');
             }
         }

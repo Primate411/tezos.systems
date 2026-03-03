@@ -10397,3 +10397,72 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     border-color: var(--accent-color, #00ff88) !important;
 }
 .beacon-icon { font-size: 0.9rem; }
+
+/* ─── Vote Tally (Governance) ──────────────────────── */
+.voting-status {
+    flex-direction: column;
+    align-items: stretch;
+}
+.voting-status > :first-child {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.voting-tally {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.voting-tally-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.tally-label {
+    width: 32px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.tally-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+.tally-fill {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+.tally-yay { background: var(--color-success, #10b981); }
+.tally-nay { background: var(--color-error, #ef4444); }
+.tally-pass { background: var(--text-dim, #666); }
+.tally-pct {
+    width: 40px;
+    text-align: right;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+.voting-tally-summary {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: space-between;
+}
+.voting-proposal-name {
+    font-size: 0.85rem;
+    color: var(--accent-cyan);
+    font-weight: 500;
+}

@@ -173,8 +173,10 @@ export function checkMoments(prevStats, newStats) {
         if (rule.dynamic && rule.metric === 'govPeriodKind') {
             const periodNames = { proposal: 'Proposal', exploration: 'Exploration Vote', cooldown: 'Cooldown', promotion: 'Promotion Vote', adoption: 'Adoption' };
             const periodName = periodNames[curr] || curr;
-            title = `Governance: ${periodName} Phase!`;
-            tweet = `Tezos governance just entered the ${periodName} phase. On-chain democracy in action.
+            const pName = newStats.govProposalName || '';
+            title = pName ? `${pName}: ${periodName} Phase!` : `Governance: ${periodName} Phase!`;
+            const actionHint = (curr === 'exploration' || curr === 'promotion') ? ' Bakers — time to vote!' : '';
+            tweet = `Tezos governance${pName ? ': ' + pName : ''} just entered the ${periodName} phase.${actionHint} On-chain democracy in action.
 
 Watch it live →`;
         }

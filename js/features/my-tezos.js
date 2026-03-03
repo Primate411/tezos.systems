@@ -155,26 +155,74 @@ async function fetchParticipation(bakerAddr) {
 
 async function fetchBakerVoteStatus(bakerAddr) {
     try {
-        // Check if there's an active non-proposal voting period
         const periodResp = await fetch(`${TZKT}/voting/periods/current`);
         if (!periodResp.ok) return null;
         const period = await periodResp.json();
         
-        // Only check votes during exploration or promotion (when bakers actually vote)
-        if (period.kind !== 'exploration' && period.kind !== 'promotion') return null;
-        
-        const proposalName = period.epoch?.proposal?.alias || 'Unknown';
-        
-        // Check if this baker voted in current period
-        const voteResp = await fetch(`${TZKT}/voting/periods/current/voters?address=${encodeURIComponent(bakerAddr)}`);
-        if (!voteResp.ok) return { period: period.kind, proposal: proposalName, voted: false };
-        const voters = await voteResp.json();
-        const bakerVote = voters.find(v => v.delegate?.address === bakerAddr);
-        
-        if (bakerVote) {
-            return { period: period.kind, proposal: proposalName, voted: true, vote: bakerVote.vote };
+        // Calculate time urgency (0–1, where 1 = period almost over)
+        let urgency = 0;
+        if (period.startTime && period.endTime) {
+            const elapsed = Date.now() - new Date(period.startTime).getTime();
+            const total = new Date(period.endTime).getTime() - new Date(period.startTime).getTime();
+            urgency = Math.min(1, Math.max(0, elapsed / total));
         }
-        return { period: period.kind, proposal: proposalName, voted: false };
+        
+        const base = { periodKind: period.kind, urgency, startTime: period.startTime, endTime: period.endTime };
+        
+        // Proposal period — check if baker upvoted any proposal
+        if (period.kind === 'proposal') {
+            const proposalsCount = period.proposalsCount || 0;
+            if (proposalsCount === 0) return null;
+            try {
+                const upvoteResp = await fetch(`${TZKT}/voting/periods/current/voters?address=${encodeURIComponent(bakerAddr)}`);
+                if (upvoteResp.ok) {
+                    const voters = await upvoteResp.json();
+                    const entry = voters.find(v => v.delegate?.address === bakerAddr);
+                    const hasUpvoted = entry && entry.status !== 'none';
+                    return { ...base, proposal: `${proposalsCount} proposal${proposalsCount > 1 ? 's' : ''} injected`, voted: !!hasUpvoted, voteType: 'upvote', proposalsCount };
+                }
+            } catch {}
+            return { ...base, proposal: `${proposalsCount} proposal${proposalsCount > 1 ? 's' : ''}`, voted: false, voteType: 'upvote', proposalsCount };
+        }
+        
+        // Exploration / promotion — check yay/nay/pass + tally
+        if (period.kind === 'exploration' || period.kind === 'promotion') {
+            const proposalName = period.epoch?.proposal?.alias || 'Unknown';
+            let quorumPct = null, yayPct = null;
+            
+            try {
+                const totalEligible = period.totalVotingPower || 0;
+                const summaryResp = await fetch(`${TZKT}/voting/periods/current/voters?status.ne=none&limit=10000&select=status,votingPower`);
+                if (summaryResp.ok) {
+                    const allVotes = await summaryResp.json();
+                    let yayPower = 0, nayPower = 0, passPower = 0;
+                    for (const v of allVotes) {
+                        if (v.status === 'yay') yayPower += v.votingPower || 0;
+                        else if (v.status === 'nay') nayPower += v.votingPower || 0;
+                        else if (v.status === 'pass') passPower += v.votingPower || 0;
+                    }
+                    const totalVoted = yayPower + nayPower + passPower;
+                    quorumPct = totalEligible > 0 ? ((totalVoted / totalEligible) * 100) : 0;
+                    const yayNay = yayPower + nayPower;
+                    yayPct = yayNay > 0 ? ((yayPower / yayNay) * 100) : 0;
+                }
+            } catch {}
+            
+            // Check this baker's vote
+            let voted = false, vote = null;
+            try {
+                const voteResp = await fetch(`${TZKT}/voting/periods/current/voters?address=${encodeURIComponent(bakerAddr)}`);
+                if (voteResp.ok) {
+                    const voters = await voteResp.json();
+                    const entry = voters.find(v => v.delegate?.address === bakerAddr);
+                    if (entry && entry.status !== 'none') { voted = true; vote = entry.status; }
+                }
+            } catch {}
+            
+            return { ...base, proposal: proposalName, voted, vote, voteType: 'ballot', quorumPct, yayPct };
+        }
+        
+        return null; // cooldown/adoption — no vote needed
     } catch { return null; }
 }
 
@@ -211,6 +259,15 @@ function getGreeting() {
     if (h < 12) return 'Good morning';
     if (h < 17) return 'Good afternoon';
     return 'Good evening';
+}
+
+function formatGovTimeLeft(endTime) {
+    const diff = new Date(endTime) - Date.now();
+    if (diff <= 0) return 'ending now';
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h`;
 }
 
 function getProtocolEra(firstActivityLevel) {
@@ -367,14 +424,40 @@ function buildMorningBrief(data) {
     } else {
         healthText = `<strong>${escapeHtml(data.bakerName || 'No baker')}</strong>`;
     }
-    // Baker governance vote indicator
+    // Baker governance vote indicator with urgency + quorum context
     let voteText = '';
     if (data.bakerVote) {
-        if (data.bakerVote.voted) {
-            const voteEmoji = data.bakerVote.vote === 'yay' ? '✅' : data.bakerVote.vote === 'nay' ? '❌' : '⏸️';
-            voteText = `<br><span class="brief-sub">${voteEmoji} Voted <strong>${data.bakerVote.vote}</strong> on ${escapeHtml(data.bakerVote.proposal)}</span>`;
+        const v = data.bakerVote;
+        const urgency = v.urgency || 0;
+        
+        if (v.voted) {
+            if (v.voteType === 'upvote') {
+                voteText = `<br><span class="brief-sub">✅ Upvoted proposals this period</span>`;
+            } else {
+                const voteEmoji = v.vote === 'yay' ? '✅' : v.vote === 'nay' ? '❌' : '⏸️';
+                voteText = `<br><span class="brief-sub">${voteEmoji} Voted <strong>${v.vote}</strong> on ${escapeHtml(v.proposal)}</span>`;
+            }
         } else {
-            voteText = `<br><span class="brief-sub" style="color:var(--color-warning, #f59e0b)">⚠️ <strong>Hasn't voted</strong> on ${escapeHtml(data.bakerVote.proposal)} (${data.bakerVote.period})</span>`;
+            // Time-weighted urgency: gentle early, red alert late
+            const isLate = urgency > 0.7;
+            const isUrgent = urgency > 0.85;
+            const color = isUrgent ? 'var(--color-error, #ef4444)' : isLate ? 'var(--color-warning, #f59e0b)' : 'var(--text-dim, #888)';
+            const icon = isUrgent ? '🚨' : '⚠️';
+            const timeLeft = v.endTime ? formatGovTimeLeft(v.endTime) : '';
+            const urgencyNote = isUrgent ? ' — TIME RUNNING OUT' : isLate ? ' — period ending soon' : '';
+            
+            if (v.voteType === 'upvote') {
+                voteText = `<br><span class="brief-sub" style="color:${color}">${icon} <strong>No proposal upvotes</strong> this period${urgencyNote}${timeLeft ? ' (' + timeLeft + ' left)' : ''}</span>`;
+            } else {
+                voteText = `<br><span class="brief-sub" style="color:${color}">${icon} <strong>Hasn't voted</strong> on ${escapeHtml(v.proposal)}${urgencyNote}${timeLeft ? ' (' + timeLeft + ' left)' : ''}</span>`;
+            }
+        }
+        
+        // Quorum/supermajority context (exploration/promotion only)
+        if (v.quorumPct !== null && v.quorumPct !== undefined) {
+            const qColor = v.quorumPct < 50 ? 'var(--color-warning, #f59e0b)' : 'var(--text-dim, #888)';
+            const supermajority = v.yayPct !== null ? ` • ${v.yayPct.toFixed(1)}% yay (needs 80%)` : '';
+            voteText += `<br><span class="brief-sub" style="font-size:0.85em;color:${qColor}">🗳️ Participation: ${v.quorumPct.toFixed(1)}%${supermajority}</span>`;
         }
     }
     cards.push({

@@ -14,6 +14,11 @@ const CHANGELOG = [
             { type: '🔧', text: 'Protocol timeline (PROTOCOL_ERAS) now auto-extends from TzKT for future upgrades' },
             { type: '🔧', text: 'Comparison page narrative and tweet templates use dynamic upgrade count' },
             { type: '🔧', text: 'Protocol data cached with 5-minute TTL to reduce redundant API calls' },
+            { type: '✨', text: 'Vote tally breakdown during exploration/promotion — yay/nay/pass bars + supermajority progress' },
+            { type: '✨', text: 'Proposal period upvote tracking — flags if baker has not upvoted any proposals' },
+            { type: '✨', text: 'Time-weighted vote urgency — gentle reminder early, red alert when period ending' },
+            { type: '✨', text: 'Quorum + supermajority context in My Tezos baker card during active votes' },
+            { type: '✨', text: 'Proposal name shown in governance period change toasts' },
         ]
     },
     {
