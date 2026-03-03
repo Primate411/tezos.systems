@@ -11281,3 +11281,103 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
         margin: 0 auto;
     }
 }
+
+/* Chamber P2: Voter filters */
+.voters-filters {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.voter-filter-btn {
+    padding: 4px 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.voter-filter-btn:hover {
+    background: rgba(0, 212, 255, 0.08);
+    border-color: rgba(0, 212, 255, 0.3);
+    color: var(--text-primary);
+}
+
+.voter-filter-btn.active {
+    background: rgba(0, 212, 255, 0.12);
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+}
+
+/* Chamber P2: Share button */
+.chamber-share-btn {
+    margin-top: 8px;
+    padding: 6px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(0, 212, 255, 0.1);
+    border: 1px solid rgba(0, 212, 255, 0.3);
+    border-radius: 20px;
+    color: var(--accent-cyan);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.chamber-share-btn:hover {
+    background: rgba(0, 212, 255, 0.2);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.2);
+}
+
+/* Chamber P2: Error state */
+.chamber-error {
+    text-align: center;
+    padding: 60px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.error-icon {
+    font-size: 2.5rem;
+}
+
+.error-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    color: var(--accent-pink);
+    font-weight: 700;
+}
+
+.error-detail {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #888);
+    max-width: 400px;
+}
+
+.chamber-retry-btn {
+    margin-top: 8px;
+    padding: 8px 24px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(255, 107, 157, 0.1);
+    border: 1px solid rgba(255, 107, 157, 0.3);
+    border-radius: 20px;
+    color: var(--accent-pink);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+
+.chamber-retry-btn:hover {
+    background: rgba(255, 107, 157, 0.2);
+    border-color: var(--accent-pink);
+}

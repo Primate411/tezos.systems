@@ -315,16 +315,71 @@ function renderTopVoters(voters) {
     if (!voters?.length) return '';
     const top20 = [...voters].sort((a, b) => b.votingPower - a.votingPower).slice(0, 20);
     
-    const rows = top20.map((v, i) => {
-        let icon = '⬜', cls = 'none';
-        if (v.status === 'voted_yay') { icon = '🟢'; cls = 'yay'; }
-        else if (v.status === 'voted_nay') { icon = '🔴'; cls = 'nay'; }
-        else if (v.status === 'voted_pass') { icon = '🟡'; cls = 'pass'; }
-        const name = v.delegate.alias || v.delegate.address.slice(0, 12) + '…';
-        return `<div class="voter-row"><span class="voter-rank">${i + 1}</span><span class="voter-name" title="${v.delegate.address}">${name}</span><span class="voter-power">${fmtPower(v.votingPower)}</span><span class="voter-vote ${cls}">${icon}</span></div>`;
-    }).join('');
+    function buildRows(list) {
+        return list.map((v, i) => {
+            let icon = '⬜', cls = 'none';
+            if (v.status === 'voted_yay') { icon = '🟢'; cls = 'yay'; }
+            else if (v.status === 'voted_nay') { icon = '🔴'; cls = 'nay'; }
+            else if (v.status === 'voted_pass') { icon = '🟡'; cls = 'pass'; }
+            const name = v.delegate.alias || v.delegate.address.slice(0, 12) + '…';
+            return `<div class="voter-row"><span class="voter-rank">${i + 1}</span><span class="voter-name" title="${v.delegate.address}">${name}</span><span class="voter-power">${fmtPower(v.votingPower)}</span><span class="voter-vote ${cls}">${icon}</span></div>`;
+        }).join('');
+    }
     
-    return `<div class="chamber-voters"><div class="voters-title">Top 20 Bakers by Stake</div><div class="chamber-tooltip-hint" style="margin-bottom:8px">All voting data is public on-chain. Baker identities are pseudonymous blockchain addresses.</div><div class="voters-list">${rows}</div></div>`;
+    const filters = `
+        <div class="voters-filters">
+            <button class="voter-filter-btn active" data-filter="all">All</button>
+            <button class="voter-filter-btn" data-filter="voted_yay">🟢 Yay</button>
+            <button class="voter-filter-btn" data-filter="voted_nay">🔴 Nay</button>
+            <button class="voter-filter-btn" data-filter="voted_pass">🟡 Pass</button>
+            <button class="voter-filter-btn" data-filter="none">⬜ Abstain</button>
+        </div>
+    `;
+    
+    const html = `<div class="chamber-voters">
+        <div class="voters-title">Top 20 Bakers by Stake</div>
+        <div class="chamber-tooltip-hint" style="margin-bottom:8px">All voting data is public on-chain. Baker identities are pseudonymous blockchain addresses.</div>
+        ${filters}
+        <div class="voters-list" id="chamber-voters-list">${buildRows(top20)}</div>
+    </div>`;
+    
+    // Store voters data for filtering (attached after render via initVoterFilters)
+    window._chamberVoters = voters;
+    
+    return html;
+}
+
+function initVoterFilters() {
+    const container = document.querySelector('.chamber-voters');
+    if (!container || !window._chamberVoters) return;
+    
+    container.querySelectorAll('.voter-filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            container.querySelectorAll('.voter-filter-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const filter = btn.dataset.filter;
+            const voters = window._chamberVoters;
+            let filtered = [...voters].sort((a, b) => b.votingPower - a.votingPower);
+            
+            if (filter !== 'all') {
+                filtered = filtered.filter(v => v.status === filter);
+            }
+            
+            const top = filtered.slice(0, 20);
+            const list = document.getElementById('chamber-voters-list');
+            if (list) {
+                list.innerHTML = top.map((v, i) => {
+                    let icon = '⬜', cls = 'none';
+                    if (v.status === 'voted_yay') { icon = '🟢'; cls = 'yay'; }
+                    else if (v.status === 'voted_nay') { icon = '🔴'; cls = 'nay'; }
+                    else if (v.status === 'voted_pass') { icon = '🟡'; cls = 'pass'; }
+                    const name = v.delegate.alias || v.delegate.address.slice(0, 12) + '…';
+                    return `<div class="voter-row"><span class="voter-rank">${i + 1}</span><span class="voter-name" title="${v.delegate.address}">${name}</span><span class="voter-power">${fmtPower(v.votingPower)}</span><span class="voter-vote ${cls}">${icon}</span></div>`;
+                }).join('');
+            }
+        });
+    });
 }
 
 function extractProtoName(hash) {
@@ -387,13 +442,33 @@ export async function openChamber() {
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
     
-    const data = await fetchChamberData();
+    let data;
+    try {
+        data = await fetchChamberData();
+    } catch (err) {
+        console.error('Chamber fetch error:', err);
+    }
     if (!data) {
-        overlay.querySelector('.chamber-body').innerHTML = '<div class="chamber-error">Failed to load governance data.</div>';
+        overlay.querySelector('.chamber-body').innerHTML = `
+            <div class="chamber-error">
+                <div class="error-icon">⚠️</div>
+                <div class="error-title">Couldn't reach governance data</div>
+                <div class="error-detail">TzKT API may be temporarily unavailable. Try again in a moment.</div>
+                <button class="chamber-retry-btn" onclick="document.getElementById('chamber-modal').classList.remove('active'); document.body.style.overflow=''; setTimeout(() => document.querySelector('.chamber-entry-card')?.click(), 300);">Retry</button>
+            </div>
+        `;
         return;
     }
     
     renderChamber(data, overlay.querySelector('.chamber-body'));
+    initVoterFilters();
+    
+    // Register share handler
+    window._chamberShareVote = (bakerName, vote) => {
+        const text = `My baker ${bakerName} voted ${vote} on the latest Tezos governance proposal 🗳️\n\nTrack live governance at tezos.systems`;
+        const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank', 'width=550,height=420');
+    };
 }
 
 export function closeChamber() {
