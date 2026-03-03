@@ -19,6 +19,7 @@ import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js
 import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
 import { initShare, initProtocolShare } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
+import { initChamber } from '../features/chamber.js';
 
 /**
  * Governance Countdown Banner
@@ -132,6 +133,9 @@ async function init() {
     // Initialize share functionality
     safe('share', initShare);
     safe('protocolShare', initProtocolShare);
+    
+    // Initialize The Chamber governance modal
+    safe('chamber', initChamber);
     
     // Initialize changelog modal
     safe('changelog', initChangelog);
