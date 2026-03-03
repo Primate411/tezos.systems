@@ -42,20 +42,40 @@ const PROTOCOL_DEBATES = {
     'Quebec': 'Tezos\' first economic governance crisis. Original Qena won Proposal but got 77% in Exploration — 3% short of the 80% supermajority. Qena42 won the next Proposal vote (59.9%) but died from no quorum in Exploration after a core developer bug advisory. Q3NA offered compromise. Quebec B ultimately activated after a 6-month battle over adaptive issuance economics.'
 };
 
+// Cache for protocol list (avoid redundant fetches within a session)
+let _protocolsCache = null;
+let _protocolsCacheTime = 0;
+const PROTOCOLS_CACHE_TTL = 300000; // 5 minutes
+
+/**
+ * Build a fallback highlight for unknown protocols from TzKT data
+ */
+function buildFallbackHighlight(protocol) {
+    let dateStr = '';
+    if (protocol.startTime) {
+        const d = new Date(protocol.startTime);
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        dateStr = ` • ${months[d.getMonth()]} ${d.getFullYear()}`;
+    }
+    return `Protocol upgrade #${protocol.code - 3}${dateStr}`;
+}
+
 /**
  * Fetch all protocol upgrades
  */
 export async function fetchProtocols() {
+    if (_protocolsCache && (Date.now() - _protocolsCacheTime) < PROTOCOLS_CACHE_TTL) {
+        return _protocolsCache;
+    }
     try {
         const response = await fetch(`${TZKT_BASE}/protocols`);
         const protocols = await response.json();
         
-        // Filter to named protocols only (Athens onwards, code >= 4)
         const namedProtocols = protocols.filter(p => 
             p.code >= 4 && p.extras?.alias
         );
         
-        return namedProtocols.map(p => {
+        const result = namedProtocols.map(p => {
             const name = p.extras?.alias || `Protocol ${p.code}`;
             return {
                 code: p.code,
@@ -63,15 +83,19 @@ export async function fetchProtocols() {
                 hash: p.hash,
                 firstLevel: p.firstLevel,
                 lastLevel: p.lastLevel,
-                startTime: null,
-                highlight: UPGRADE_HIGHLIGHTS[name] || 'Network upgrade',
+                startTime: p.startTime || null,
+                highlight: UPGRADE_HIGHLIGHTS[name] || buildFallbackHighlight(p),
                 debate: PROTOCOL_DEBATES[name] || null,
                 isCurrent: !p.lastLevel
             };
         });
+
+        _protocolsCache = result;
+        _protocolsCacheTime = Date.now();
+        return result;
     } catch (error) {
         console.error('Failed to fetch protocols:', error);
-        return [];
+        return _protocolsCache || [];
     }
 }
 

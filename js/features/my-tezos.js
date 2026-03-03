@@ -40,6 +40,32 @@ const PROTOCOL_ERAS = [
     { name: 'Tallinn', level: 11468801, date: '2026-01-21' },
 ];
 
+// Dynamically extend PROTOCOL_ERAS from TzKT on first load
+let _erasLoaded = false;
+async function ensureProtocolEras() {
+    if (_erasLoaded) return;
+    _erasLoaded = true;
+    try {
+        const resp = await fetch(TZKT + '/protocols?sort.asc=code');
+        if (!resp.ok) return;
+        const protocols = await resp.json();
+        const named = protocols.filter(p => p.code >= 4 && p.extras?.alias);
+        for (const p of named) {
+            const name = p.extras.alias;
+            const exists = PROTOCOL_ERAS.find(e => e.name === name);
+            if (!exists) {
+                PROTOCOL_ERAS.push({
+                    name,
+                    level: p.firstLevel,
+                    date: p.startTime ? p.startTime.split('T')[0] : null
+                });
+            }
+        }
+        // Sort by level
+        PROTOCOL_ERAS.sort((a, b) => a.level - b.level);
+    } catch {}
+}
+
 // ─── Helpers ─────────────────────────────────────────
 
 async function getXtzPrice() {
@@ -124,6 +150,31 @@ async function fetchParticipation(bakerAddr) {
         const resp = await fetch(`${OCTEZ}/chains/main/blocks/head/context/delegates/${bakerAddr}/participation`);
         if (!resp.ok) return null;
         return await resp.json();
+    } catch { return null; }
+}
+
+async function fetchBakerVoteStatus(bakerAddr) {
+    try {
+        // Check if there's an active non-proposal voting period
+        const periodResp = await fetch(`${TZKT}/voting/periods/current`);
+        if (!periodResp.ok) return null;
+        const period = await periodResp.json();
+        
+        // Only check votes during exploration or promotion (when bakers actually vote)
+        if (period.kind !== 'exploration' && period.kind !== 'promotion') return null;
+        
+        const proposalName = period.epoch?.proposal?.alias || 'Unknown';
+        
+        // Check if this baker voted in current period
+        const voteResp = await fetch(`${TZKT}/voting/periods/current/voters?address=${encodeURIComponent(bakerAddr)}`);
+        if (!voteResp.ok) return { period: period.kind, proposal: proposalName, voted: false };
+        const voters = await voteResp.json();
+        const bakerVote = voters.find(v => v.delegate?.address === bakerAddr);
+        
+        if (bakerVote) {
+            return { period: period.kind, proposal: proposalName, voted: true, vote: bakerVote.vote };
+        }
+        return { period: period.kind, proposal: proposalName, voted: false };
     } catch { return null; }
 }
 
@@ -304,7 +355,7 @@ function buildMorningBrief(data) {
         accent: 'earnings',
     });
 
-    // Card 2: Baker health + streak
+    // Card 2: Baker health + streak + governance vote status
     const streakText = data.rewardStreak > 0
         ? `<strong>${data.rewardStreak}-cycle streak</strong> 🔥`
         : '';
@@ -316,10 +367,20 @@ function buildMorningBrief(data) {
     } else {
         healthText = `<strong>${escapeHtml(data.bakerName || 'No baker')}</strong>`;
     }
+    // Baker governance vote indicator
+    let voteText = '';
+    if (data.bakerVote) {
+        if (data.bakerVote.voted) {
+            const voteEmoji = data.bakerVote.vote === 'yay' ? '✅' : data.bakerVote.vote === 'nay' ? '❌' : '⏸️';
+            voteText = `<br><span class="brief-sub">${voteEmoji} Voted <strong>${data.bakerVote.vote}</strong> on ${escapeHtml(data.bakerVote.proposal)}</span>`;
+        } else {
+            voteText = `<br><span class="brief-sub" style="color:var(--color-warning, #f59e0b)">⚠️ <strong>Hasn't voted</strong> on ${escapeHtml(data.bakerVote.proposal)} (${data.bakerVote.period})</span>`;
+        }
+    }
     cards.push({
         icon: '🍞',
         title: 'Baker Status',
-        body: `${streakText}${streakText ? '<br>' : ''}${healthText}`,
+        body: `${streakText}${streakText ? '<br>' : ''}${healthText}${voteText}`,
         accent: 'baker',
     });
 
@@ -343,6 +404,7 @@ function buildMorningBrief(data) {
 // ─── Tezos Story Card ──────────────────────────────────
 
 async function fetchTezosStory(address, account) {
+    await ensureProtocolEras();
     const firstActivity = account.firstActivity;
     const firstActivityTime = account.firstActivityTime;
     if (!firstActivity) return null;
@@ -789,10 +851,11 @@ async function renderMorningBrief(address, force = false) {
         const bakerActive = isBaker ? account.active !== false : account.delegate?.active !== false;
         const bakerInactive = !bakerActive;
 
-        const [participation, rewards, story] = await Promise.all([
+        const [participation, rewards, story, bakerVote] = await Promise.all([
             bakerAddr ? fetchParticipation(bakerAddr) : Promise.resolve(null),
             fetchRecentRewards(address),
             fetchTezosStory(address, account),
+            bakerAddr ? fetchBakerVoteStatus(bakerAddr) : Promise.resolve(null),
         ]);
 
         const healthScore = calcBakerHealth(participation);
@@ -841,7 +904,7 @@ async function renderMorningBrief(address, force = false) {
             totalXTZ, staked, xtzPrice, apyRate, estDaily, estAnnual,
             rewardsLastCycle, rewardStreak,
             bakerName, bakerInactive, healthScore, health, attestRate,
-            isStaker, story, activeProposal,
+            isStaker, story, activeProposal, bakerVote,
         };
 
         const cards = buildMorningBrief(data);

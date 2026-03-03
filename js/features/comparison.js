@@ -7,16 +7,32 @@ const COMPARISON_CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.user
 
 import { CHAIN_COMPARISON, API_URLS } from '../core/config.js?v=20260228a';
 
+// Dynamic upgrade count — initialized on first use
+let _upgradeCount = null;
+async function getUpgradeCount() {
+    if (_upgradeCount) return _upgradeCount;
+    try {
+        const chips = document.querySelectorAll('.upgrade-chip');
+        if (chips.length > 0) { _upgradeCount = chips.length; return _upgradeCount; }
+        const resp = await fetch('https://api.tzkt.io/v1/protocols');
+        const p = await resp.json();
+        _upgradeCount = p.filter(x => x.code >= 4 && x.extras?.alias).length;
+        return _upgradeCount;
+    } catch { return 21; }
+}
+
 // --- Full comparison tweet options ---
-const COMPARISON_TWEETS_FULL = [
+function getComparisonTweets() {
+  const upgradeCount = document.querySelectorAll('.upgrade-chip').length || 21;
+  return [
   { label: "Data Drop", text: `The blockchain trilemma, quantified:
 
-🔹 Tezos: 0 hard forks, 21 upgrades, deterministic finality
+🔹 Tezos: 0 hard forks, ${upgradeCount} upgrades, deterministic finality
 🔹 Ethereum: 17+ forks, ~13min finality
 🔹 Solana: Fast blocks, but multiple outages
 
 tezos.systems` },
-  { label: "Flex", text: `21 seamless protocol upgrades. Zero network splits. Deterministic 12s finality.
+  { label: "Flex", text: `${upgradeCount} seamless protocol upgrades. Zero network splits. Deterministic 12s finality.
 
 While others fork and fragment, Tezos evolves.
 
@@ -35,7 +51,7 @@ Sometimes steady wins.
 tezos.systems` },
   { label: "Question", text: `Your chain has had how many hard forks again? 🤔
 
-Tezos: 21 protocol upgrades, 0 network splits.
+Tezos: ${upgradeCount} protocol upgrades, 0 network splits.
 
 tezos.systems` },
   { label: "Recruit", text: `Building on a chain that forks every upgrade? There's a better way.
@@ -60,7 +76,7 @@ Actual finality. Guaranteed.
 tezos.systems` },
   { label: "Dunk", text: `6 entities control 50% of Ethereum stake 👀
 
-Meanwhile Tezos has governed 21 protocol upgrades via on-chain voting without a single contentious fork.
+Meanwhile Tezos has governed ${upgradeCount} protocol upgrades via on-chain voting without a single contentious fork.
 
 tezos.systems` },
   { label: "Understated", text: `We're not winning block time (Solana's faster). We're not winning fees (Solana's cheaper).
@@ -68,7 +84,7 @@ tezos.systems` },
 But we've never forked and upgrade seamlessly.
 
 tezos.systems` },
-  { label: "Question", text: `What's more decentralized: a chain where 6 entities control 50% of stake, or one where governance has coordinated 21+ upgrades without a single fork?
+  { label: "Question", text: `What's more decentralized: a chain where 6 entities control 50% of stake, or one where governance has coordinated ${upgradeCount}+ upgrades without a single fork?
 
 tezos.systems` },
   { label: "Recruit", text: `Climate-conscious devs: Tezos uses less energy per tx than any major PoS chain. Zero hard forks means zero wasted effort.
@@ -77,7 +93,7 @@ Build sustainably:
 tezos.systems` },
   { label: "5-Chain", text: `5 chains. 1 comparison. Live data.
 
-🔹 Tezos: 21 upgrades, 0 forks
+🔹 Tezos: ${upgradeCount} upgrades, 0 forks
 🔹 Ethereum: Most TVL, slowest finality
 🔹 Solana: Fastest blocks, outage history
 🔹 Cardano: High staking %, slow blocks
@@ -85,7 +101,7 @@ tezos.systems` },
 
 tezos.systems` },
   { label: "Governance", text: `Self-amendment scoreboard:
-🏆 Tezos: 21+ on-chain upgrades
+🏆 Tezos: ${upgradeCount}+ on-chain upgrades
 ❌ Ethereum: Hard forks only
 ❌ Solana: No on-chain governance
 🟡 Cardano: 1 (CIP-1694, Sep 2024)
@@ -95,7 +111,7 @@ Only one chain truly governs itself.
 
 tezos.systems` },
   { label: "Data Drop", text: `Self-amendment scoreboard:
-🏆 Tezos: 21+ successful upgrades
+🏆 Tezos: ${upgradeCount}+ successful upgrades
 ❌ Ethereum: 0 (hard forks only)
 ❌ Solana: 0 (no on-chain governance)
 
@@ -107,7 +123,7 @@ Choose deterministic finality, self-amendment, and zero forks.
 tezos.systems` },
   { label: "Dunk", text: `Yes, Solana is faster and cheaper. Yes, Ethereum has more TVL.
 
-But when they break (and they do), Tezos keeps building. 21 upgrades, 0 forks.
+But when they break (and they do), Tezos keeps building. ${upgradeCount} upgrades, 0 forks.
 
 tezos.systems` },
   { label: "Barrier", text: `To validate on Ethereum you need 32 ETH (~$100K+).
@@ -125,7 +141,7 @@ tezos.systems` },
 Ethereum: Beacon chain close calls
 Tezos: Zero downtime. Ever.
 
-21 protocol upgrades without a single second of unplanned downtime.
+${upgradeCount} protocol upgrades without a single second of unplanned downtime.
 
 tezos.systems` },
   { label: "Self-Amend", text: `Ethereum needs social consensus + hard fork to change anything.
@@ -150,7 +166,7 @@ Smaller, leaner, greener.
 tezos.systems` },
   { label: "Evolution", text: `Other chains ship a roadmap. Tezos ships a process.
 
-21 upgrades through on-chain governance. The protocol evolves itself. No foundation decree. No hard fork drama.
+${upgradeCount} upgrades through on-chain governance. The protocol evolves itself. No foundation decree. No hard fork drama.
 
 tezos.systems` },
   { label: "Builder", text: `Why formal verification matters:
@@ -163,9 +179,12 @@ Security isn't a feature. It's the foundation.
 
 tezos.systems` }
 ];
+}
 
 // --- Per-metric tweet options ---
-const COMPARISON_TWEETS_PER_METRIC = {
+function getPerMetricTweets() {
+  const upgradeCount = document.querySelectorAll('.upgrade-chip').length || 21;
+  return {
   blockTime: [
     { label: "Honest", text: `Block time:
 🔴 Tezos: ~6s
@@ -178,7 +197,7 @@ Solana blocks: 0.4 seconds, finalized in ~12.8s.
 
 Consistent finality > raw speed.` },
     { label: "Technical", text: `We're not the fastest at ~6s blocks. But every block is guaranteed final within 12s. No reorgs, no "eventual consistency."` },
-    { label: "Competitive", text: `6-second blocks powering 21 seamless protocol upgrades without a single fork.
+    { label: "Competitive", text: `6-second blocks powering ${upgradeCount} seamless protocol upgrades without a single fork.
 
 Stability has its own velocity.` },
     { label: "Perspective", text: `Solana: 0.4s blocks, ~12.8s to finality
@@ -224,7 +243,7 @@ Solana's more distributed by this metric.` },
 Decentralization isn't just validator count — it's reliability.` },
     { label: "Governance", text: `4 bakers for 33% of Tezos validation. Room to improve.
 
-But these validators have governed 21+ upgrades without a single contentious fork. That's coordination, not capture.` },
+But these validators have governed ${upgradeCount}+ upgrades without a single contentious fork. That's coordination, not capture.` },
     { label: "Realistic", text: `Nakamoto coefficient: 4 for Tezos vs ~20 for Solana.
 
 We're working on it. But we've never halted, and our governance actually works.` },
@@ -241,10 +260,10 @@ Ethereum? 32 ETH minimum (~$100K+). No wonder Lido controls 30%.` }
 High participation = strong security. Check tezos.systems for live numbers.` },
     { label: "Governance", text: `Our stakers don't just secure the network — they govern it.
 
-21 successful protocol votes. 0 contentious forks. That's engaged staking.` },
+${upgradeCount} successful protocol votes. 0 contentious forks. That's engaged staking.` },
     { label: "Quality", text: `Staking isn't just about percentages — it's about quality.
 
-Tezos stakers have voted through 21 protocol upgrades. Active governance, not passive yield farming.` }
+Tezos stakers have voted through ${upgradeCount} protocol upgrades. Active governance, not passive yield farming.` }
   ],
   annualIssuance: [
     { label: "Data Drop", text: `Annual issuance:
@@ -255,19 +274,19 @@ Tezos stakers have voted through 21 protocol upgrades. Active governance, not pa
 ETH wins lowest inflation. But deflationary isn't always better — networks need incentives.` },
     { label: "Sustainable", text: `Low inflation sounds good until your network can't fund development.
 
-Tezos adaptive issuance funds both security AND evolution. That's how we ship 21 upgrades.` },
+Tezos adaptive issuance funds both security AND evolution. That's how we ship ${upgradeCount} upgrades.` },
     { label: "Honest", text: `Ethereum's ~0.5% issuance wins the inflation game.
 
 Tezos trades higher issuance (~3.52%) for sustainable protocol development and baker incentives. Different priorities.` }
   ],
   selfAmendments: [
     { label: "Victory", text: `Self-amendment scoreboard:
-🏆 Tezos: 21+ upgrades
+🏆 Tezos: ${upgradeCount}+ upgrades
 ❌ Ethereum: 0 (hard forks only)
 ❌ Solana: 0
 
 Only one chain evolves without breaking.` },
-    { label: "Evolution", text: `21 protocol amendments. Zero network splits. Zero community drama.
+    { label: "Evolution", text: `${upgradeCount} protocol amendments. Zero network splits. Zero community drama.
 
 This is what evolution looks like when your blockchain can actually evolve.` },
     { label: "Developer", text: `Self-amending protocols mean:
@@ -275,8 +294,8 @@ This is what evolution looks like when your blockchain can actually evolve.` },
 ✅ No ecosystem splits
 ✅ Continuous improvement
 
-21 upgrades and counting.` },
-    { label: "Governance", text: `21 successful protocol votes. 100% implementation rate. 0 contentious forks.
+${upgradeCount} upgrades and counting.` },
+    { label: "Governance", text: `${upgradeCount} successful protocol votes. 100% implementation rate. 0 contentious forks.
 
 Functional blockchain governance exists. It's called Tezos.` },
     { label: "Future", text: `While others debate hard forks, Tezos just upgrades.
@@ -308,7 +327,7 @@ While other chains fragment their communities, Tezos keeps everyone together.` }
 Imagine building on a platform that never breaks backward compatibility.` },
     { label: "Philosophical", text: `"Hard forks are a feature" 🤔
 
-Tezos disagrees. 21 upgrades, 0 forks, 0 splits.
+Tezos disagrees. ${upgradeCount} upgrades, 0 forks, 0 splits.
 
 Mature governance > breaking changes.` }
   ],
@@ -374,6 +393,7 @@ Yes, we cost a bit more. But we've never had a network outage. Reliability is wo
 Affordable enough for real apps, expensive enough to prevent spam. The sweet spot for sustainable economics.` }
   ]
 };
+}
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 
 // Metric definitions: key, label, tezosLive getter, winner logic
@@ -613,7 +633,7 @@ async function shareComparisonCard(cardEl, metric) {
     if (btn) { btn.textContent = '⏳'; btn.style.opacity = '1'; }
     try {
         const canvas = await captureComparisonImage(cardEl, metric.label);
-        const tweetOptions = COMPARISON_TWEETS_PER_METRIC[metric.key] || [
+        const tweetOptions = getPerMetricTweets()[metric.key] || [
             { label: 'Standard', text: `Tezos vs the field — ${metric.label}\n\ntezos.systems` }
         ];
         showShareModal(canvas, tweetOptions, `Comparison: ${metric.label}`);
@@ -704,7 +724,7 @@ async function shareAllComparisons() {
         });
         wrapper.remove();
 
-        const tweetOptions = COMPARISON_TWEETS_FULL;
+        const tweetOptions = getComparisonTweets();
         showShareModal(canvas, tweetOptions, 'How Tezos Compares');
     } catch (err) {
         console.error('All comparisons share failed:', err);

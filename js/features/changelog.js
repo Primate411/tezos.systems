@@ -5,6 +5,18 @@
 
 const CHANGELOG = [
     {
+        date: '2026-03-02',
+        entries: [
+            { type: '✨', text: 'Governance moments — toast notifications for new proposals, period changes, and protocol activations' },
+            { type: '✨', text: 'Baker vote status in My Tezos — shows whether your baker voted during active governance periods' },
+            { type: '🔧', text: 'Dynamic upgrade count — all hardcoded "21 upgrades" now pulled live from TzKT protocols API' },
+            { type: '🔧', text: 'UPGRADE_HIGHLIGHTS graceful fallback — unknown future protocols get auto-generated highlights instead of generic text' },
+            { type: '🔧', text: 'Protocol timeline (PROTOCOL_ERAS) now auto-extends from TzKT for future upgrades' },
+            { type: '🔧', text: 'Comparison page narrative and tweet templates use dynamic upgrade count' },
+            { type: '🔧', text: 'Protocol data cached with 5-minute TTL to reduce redundant API calls' },
+        ]
+    },
+    {
         date: '2026-02-28',
         entries: [
             { type: '🔧', text: 'Corrected ETH staking concentration copy: ~5–7 entities for 50% (Lido ~23%), not ~2' },

@@ -191,9 +191,13 @@ async function init() {
             if (!section) return;
             await loadHtml2Canvas();
             const canvas = await window.html2canvas(section, { backgroundColor: '#0a0e1a', scale: 2 });
+            // Dynamic upgrade count from timeline chips
+            const upgradeChips = document.querySelectorAll('.upgrade-chip');
+            const upgradeCount = upgradeChips.length || 21;
+            const daysLive = Math.floor((Date.now() - new Date('2018-09-17').getTime()) / 86400000);
             const tweetOptions = [
-                { label: '📜 Story', text: `21 protocol upgrades. Zero forks. Zero outages. 2,720+ days.\n\nTezos doesn't break. It evolves.\n\ntezos.systems` },
-                { label: '⚡ Stats', text: `Tezos network pulse:\n• 21 self-amendments\n• Zero contentious forks\n• Zero outages since 2018\n• 6-second blocks\n\ntezos.systems` },
+                { label: '📜 Story', text: `${upgradeCount} protocol upgrades. Zero forks. Zero outages. ${daysLive.toLocaleString()}+ days.\n\nTezos doesn't break. It evolves.\n\ntezos.systems` },
+                { label: '⚡ Stats', text: `Tezos network pulse:\n• ${upgradeCount} self-amendments\n• Zero contentious forks\n• Zero outages since 2018\n• 6-second blocks\n\ntezos.systems` },
             ];
             showShareModal(canvas, tweetOptions, 'Tezos Protocol History');
         });

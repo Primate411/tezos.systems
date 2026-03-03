@@ -71,7 +71,39 @@ const MILESTONE_RULES = [
         title: `${((i + 1) * 500 / 1000).toFixed(1)}M XTZ Burned!`,
         emoji: '🔥',
         tweet: `Over ${((i + 1) * 500000).toLocaleString()} XTZ permanently burned on Tezos. Deflationary pressure building.\n\nReal-time stats →`
-    }))
+    })),
+
+    // ─── Governance Moments ─────────────────────────────
+    // Governance period transitions
+    {
+        id: 'gov-period-change',
+        metric: 'govPeriodKind',
+        direction: 'change',
+        title: 'Governance Period Changed!',
+        emoji: '🏛️',
+        dynamic: true
+    },
+
+    // New proposal injected
+    {
+        id: 'gov-new-proposal',
+        metric: 'govProposalCount',
+        direction: 'change',
+        title: 'New Proposal Injected!',
+        emoji: '📜',
+        dynamic: true
+    },
+
+    // Protocol upgrade activated
+    {
+        id: 'protocol-upgrade',
+        metric: 'upgradeCount',
+        direction: 'change',
+        title: 'Protocol Upgrade Activated!',
+        emoji: '🚀',
+        dynamic: true
+    }
+
 ];
 
 // ─── Detection Logic ─────────────────────────────────────────────
@@ -135,6 +167,29 @@ export function checkMoments(prevStats, newStats) {
         if (rule.dynamic && rule.metric === 'cycle') {
             title = `Cycle ${newStats.cycle} Started!`;
             tweet = `Tezos just entered Cycle ${newStats.cycle}. The network never stops.\n\nReal-time stats →`;
+        }
+
+        // Dynamic governance moments
+        if (rule.dynamic && rule.metric === 'govPeriodKind') {
+            const periodNames = { proposal: 'Proposal', exploration: 'Exploration Vote', cooldown: 'Cooldown', promotion: 'Promotion Vote', adoption: 'Adoption' };
+            const periodName = periodNames[curr] || curr;
+            title = `Governance: ${periodName} Phase!`;
+            tweet = `Tezos governance just entered the ${periodName} phase. On-chain democracy in action.
+
+Watch it live →`;
+        }
+        if (rule.dynamic && rule.metric === 'govProposalCount') {
+            title = `New Governance Proposal!${newStats.govProposalName ? ' ' + newStats.govProposalName : ''}`;
+            tweet = `A new protocol proposal just landed on Tezos.${newStats.govProposalName ? ' ' + newStats.govProposalName + ' is' : " It's"} entering the governance pipeline.
+
+Track it live →`;
+        }
+        if (rule.dynamic && rule.metric === 'upgradeCount') {
+            const name = newStats.currentProtocolName || 'New protocol';
+            title = `${name} is Live! Upgrade #${curr}`;
+            tweet = `Tezos just completed its ${curr}th self-amendment! ${name} is now active. Zero forks. Ever.
+
+Explore →`;
         }
 
         const moment = {
