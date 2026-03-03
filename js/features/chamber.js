@@ -129,6 +129,28 @@ async function fetchRecentEpochs(count = 5) {
     } catch { return []; }
 }
 
+
+async function fetchBallotTimeline(periodIndex) {
+    // Fetch all ballot operations for a period, sorted by time
+    // TzKT returns max 10000 per call, paginate if needed
+    const allBallots = [];
+    let offset = 0;
+    const limit = 1000;
+    
+    while (true) {
+        const url = `${TZKT}/operations/ballots?period=${periodIndex}&sort.asc=id&limit=${limit}&offset=${offset}`;
+        const batch = await (await fetch(url)).json();
+        if (!batch.length) break;
+        allBallots.push(...batch);
+        if (batch.length < limit) break;
+        offset += limit;
+        // Safety: cap at 10k ballots
+        if (offset >= 10000) break;
+    }
+    
+    return allBallots;
+}
+
 function fmtPower(mutez) {
     const xtz = mutez / 1e6;
     if (xtz >= 1e6) return `${(xtz / 1e6).toFixed(1)}M`;
@@ -345,29 +367,7 @@ function renderMomentumSparkline(voters, isLive, votePeriod) {
     const voted = voters.filter(v => v.status !== 'none');
     const total = voters.length;
     const totalPower = voters.reduce((s, v) => s + v.votingPower, 0);
-    
-    const sorted = [...voted].sort((a, b) => b.votingPower - a.votingPower);
-    const points = [];
-    let cumPower = 0;
-    
-    for (const v of sorted) {
-        cumPower += v.votingPower;
-        points.push(cumPower / totalPower * 100);
-    }
-    
-    if (points.length < 2) return '';
-    
-    const w = 300, h = 60;
-    const stepX = w / (points.length - 1);
-    const pathD = points.map((y, i) => `${i === 0 ? 'M' : 'L'} ${(i * stepX).toFixed(1)} ${(h - y / 100 * h).toFixed(1)}`).join(' ');
-    const areaD = pathD + ` L ${((points.length - 1) * stepX).toFixed(1)} ${h} L 0 ${h} Z`;
-    
-    let pathLen = 0;
-    for (let i = 1; i < points.length; i++) {
-        const dx = stepX;
-        const dy = (points[i] - points[i-1]) / 100 * h;
-        pathLen += Math.sqrt(dx * dx + dy * dy);
-    }
+    const cumPower = voted.reduce((s, v) => s + v.votingPower, 0);
     
     let projectionHtml = '';
     if (isLive && votePeriod?.endTime) {
@@ -389,34 +389,137 @@ function renderMomentumSparkline(voters, isLive, votePeriod) {
             
             projectionHtml = `
                 <div class="chamber-projection ${projClass}">
-                    <span class="proj-label">⚡ Projected</span>
+                    <span class="proj-label">\u26a1 Projected</span>
                     <span class="proj-value">${projStatus}</span>
-                    <span class="proj-detail">${projPct}% participation by period end · ${Math.round((1 - pctElapsed) * 100)}% time remaining</span>
+                    <span class="proj-detail">${projPct}% participation by period end \u00b7 ${Math.round((1 - pctElapsed) * 100)}% time remaining</span>
                 </div>
             `;
         }
     }
     
+    // Render placeholder, then async-fill with time-ordered ballot data
+    const periodIdx = votePeriod?.index;
+    const startTime = votePeriod?.startTime;
+    const endTime = votePeriod?.endTime;
+    
+    // Schedule async ballot fetch after render
+    if (periodIdx) {
+        setTimeout(() => fillMomentumTimeline(periodIdx, totalPower, startTime, endTime), 100);
+    }
+    
     return `
         <div class="chamber-momentum chamber-anim-fade" style="animation-delay:500ms">
             <div class="momentum-title">Vote Momentum</div>
-            <div class="momentum-subtitle">${voted.length} of ${total} bakers · ${(cumPower / totalPower * 100).toFixed(1)}% of stake</div>
-            <svg viewBox="-30 -8 ${w + 35} ${h + 20}" class="momentum-svg" preserveAspectRatio="none">
-                <defs>
-                    <linearGradient id="momentumGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent-cyan)"/><stop offset="100%" stop-color="transparent"/></linearGradient>
-                </defs>
-                <text x="-4" y="4" fill="var(--text-tertiary, #555)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace">100%</text>
-                <text x="-4" y="${h/2 + 2}" fill="var(--text-tertiary, #555)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace">50%</text>
-                <text x="-4" y="${h + 2}" fill="var(--text-tertiary, #555)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace">0%</text>
-                <text x="0" y="${h + 12}" fill="var(--text-tertiary, #555)" font-size="7" font-family="JetBrains Mono, monospace">Largest baker</text>
-                <text x="${w}" y="${h + 12}" fill="var(--text-tertiary, #555)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace">Smallest</text>
-                <line x1="0" y1="${h/2}" x2="${w}" y2="${h/2}" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
-                <path d="${areaD}" fill="url(#momentumGrad)" opacity="0.3" class="momentum-area-anim"/>
-                <path d="${pathD}" fill="none" stroke="var(--accent-cyan)" stroke-width="2" class="momentum-line-anim" style="stroke-dasharray:${pathLen.toFixed(0)};stroke-dashoffset:${pathLen.toFixed(0)}"/>
-            </svg>
+            <div class="momentum-subtitle">${voted.length} of ${total} bakers \u00b7 ${(cumPower / totalPower * 100).toFixed(1)}% of stake</div>
+            <div id="momentum-chart-container" style="position:relative;min-height:80px">
+                <div class="momentum-loading" id="momentum-loading">Loading timeline\u2026</div>
+                <svg viewBox="-30 -8 335 80" class="momentum-svg" id="momentum-svg" preserveAspectRatio="none" style="display:none">
+                    <defs>
+                        <linearGradient id="momentumGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="var(--accent-cyan)"/><stop offset="100%" stop-color="transparent"/></linearGradient>
+                    </defs>
+                    <text x="-4" y="4" fill="var(--text-tertiary, #555)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace">100%</text>
+                    <text x="-4" y="32" fill="var(--text-tertiary, #555)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace">50%</text>
+                    <text x="-4" y="62" fill="var(--text-tertiary, #555)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace">0%</text>
+                    <text x="0" y="72" fill="var(--text-tertiary, #555)" font-size="7" font-family="JetBrains Mono, monospace" id="momentum-x-start"></text>
+                    <text x="300" y="72" fill="var(--text-tertiary, #555)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace" id="momentum-x-end"></text>
+                    <line x1="0" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+                    <path id="momentum-area" fill="url(#momentumGrad)" opacity="0.3"/>
+                    <path id="momentum-line" fill="none" stroke="var(--accent-cyan)" stroke-width="2"/>
+                </svg>
+            </div>
             ${projectionHtml}
         </div>
     `;
+}
+
+async function fillMomentumTimeline(periodIndex, totalPower, startTime, endTime) {
+    const loading = document.getElementById('momentum-loading');
+    const svg = document.getElementById('momentum-svg');
+    if (!svg) return;
+    
+    try {
+        const ballots = await fetchBallotTimeline(periodIndex);
+        if (!ballots.length) {
+            if (loading) loading.textContent = 'No ballot data';
+            return;
+        }
+        
+        const start = new Date(startTime).getTime();
+        const end = new Date(endTime).getTime();
+        const duration = end - start;
+        
+        // Build cumulative power over time
+        let cumPower = 0;
+        const timePoints = [{ t: 0, pct: 0 }]; // start at 0
+        
+        for (const b of ballots) {
+            cumPower += b.votingPower;
+            const t = (new Date(b.timestamp).getTime() - start) / duration;
+            timePoints.push({ t: Math.min(t, 1), pct: cumPower / totalPower * 100 });
+        }
+        
+        // Downsample to ~100 points for smooth rendering
+        const maxPoints = 100;
+        let sampled = timePoints;
+        if (timePoints.length > maxPoints) {
+            const step = Math.floor(timePoints.length / maxPoints);
+            sampled = [];
+            for (let i = 0; i < timePoints.length; i += step) {
+                sampled.push(timePoints[i]);
+            }
+            // Always include the last point
+            if (sampled[sampled.length - 1] !== timePoints[timePoints.length - 1]) {
+                sampled.push(timePoints[timePoints.length - 1]);
+            }
+        }
+        
+        const w = 300, h = 60;
+        const pathD = sampled.map((p, i) => {
+            const x = (p.t * w).toFixed(1);
+            const y = (h - p.pct / 100 * h).toFixed(1);
+            return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+        }).join(' ');
+        
+        const lastPt = sampled[sampled.length - 1];
+        const areaD = pathD + ` L ${(lastPt.t * w).toFixed(1)} ${h} L 0 ${h} Z`;
+        
+        // Calculate path length for draw animation
+        let pathLen = 0;
+        for (let i = 1; i < sampled.length; i++) {
+            const dx = (sampled[i].t - sampled[i-1].t) * w;
+            const dy = (sampled[i].pct - sampled[i-1].pct) / 100 * h;
+            pathLen += Math.sqrt(dx * dx + dy * dy);
+        }
+        
+        // Set X axis labels
+        const startDate = new Date(startTime);
+        const endDate = new Date(endTime);
+        const fmt = (d) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        document.getElementById('momentum-x-start').textContent = fmt(startDate);
+        document.getElementById('momentum-x-end').textContent = fmt(endDate);
+        
+        // Set paths
+        document.getElementById('momentum-area').setAttribute('d', areaD);
+        const line = document.getElementById('momentum-line');
+        line.setAttribute('d', pathD);
+        line.style.strokeDasharray = pathLen.toFixed(0);
+        line.style.strokeDashoffset = pathLen.toFixed(0);
+        
+        // Show SVG, hide loading
+        if (loading) loading.style.display = 'none';
+        svg.style.display = '';
+        
+        // Trigger draw animation
+        requestAnimationFrame(() => {
+            line.style.transition = 'stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1)';
+            line.style.strokeDashoffset = '0';
+        });
+        
+    } catch (err) {
+        console.error('Momentum timeline fetch failed:', err);
+        if (loading) loading.textContent = 'Timeline unavailable';
+    }
 }
 
 // ─── My Baker ───
