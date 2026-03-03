@@ -19,7 +19,7 @@ import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js
 import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
 import { initShare, initProtocolShare } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
-import { initChamber } from '../features/chamber.js';
+import { initChamber } from '../features/chamber.js?v=20260303b';
 
 /**
  * Governance Countdown Banner

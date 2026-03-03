@@ -11696,3 +11696,35 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     position: relative;
     z-index: 1;
 }
+
+/* Fix v3: ambient via overlay pseudo-elements, not DOM children */
+.chamber-scanlines,
+.chamber-particle-layer {
+    display: none !important;
+}
+
+.chamber-overlay.active::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9998;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+    );
+    opacity: 0.4;
+}
+
+[data-theme="matrix"] .chamber-overlay.active::before {
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 0, 0.012) 2px,
+        rgba(0, 255, 0, 0.012) 4px
+    );
+}

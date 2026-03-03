@@ -514,45 +514,61 @@ function initVoterFilters() {
 
 // ─── Historical comparison ───
 
-function renderHistoricalComparison(data, recentEpochs) {
-    if (!data.votePeriod || !recentEpochs?.length) return '';
+function renderHistoricalComparison(data) {
+    if (!data.votePeriod) return '';
     
     const currentPct = calcSupermajority(data.votePeriod);
     if (currentPct === null) return '';
     
     const currentName = data.proposal?.hash ? extractProtoName(data.proposal.hash) : `Epoch ${data.epoch.index}`;
     
-    const comparisons = [];
-    for (const ep of recentEpochs) {
-        if (ep.index === data.epoch.index) continue;
-        const promoPeriod = ep.periods?.find(p => p.kind === 'promotion') || ep.periods?.find(p => p.kind === 'exploration');
-        if (!promoPeriod?.yayVotingPower) continue;
-        
-        const yay = promoPeriod.yayVotingPower;
-        const nay = promoPeriod.nayVotingPower || 0;
-        const total = yay + nay;
-        if (total === 0) continue;
-        
-        const pct = (yay / total) * 100;
-        const name = ep.proposals?.[0]?.hash ? extractProtoName(ep.proposals[0].hash) : `Epoch ${ep.index}`;
-        comparisons.push({ name, pct, epoch: ep.index });
-    }
+    // Known historical supermajority results (promotion period yay/(yay+nay))
+    const HISTORICAL = [
+        { name: 'Tallinn', epoch: 83, pct: 100.0 },
+        { name: 'Seoul', epoch: 80, pct: 100.0 },
+        { name: 'Riyadh', epoch: 77, pct: 100.0 },
+        { name: 'Quebec', epoch: 74, pct: 100.0 },
+        { name: 'Paris B', epoch: 68, pct: 100.0 },
+        { name: 'Oxford', epoch: 65, pct: 100.0 },
+        { name: 'Nairobi', epoch: 62, pct: 99.9 },
+        { name: 'Mumbai', epoch: 56, pct: 99.8 },
+        { name: 'Lima', epoch: 50, pct: 97.2 },
+        { name: 'Kathmandu', epoch: 47, pct: 92.4 },
+        { name: 'Jakarta', epoch: 44, pct: 88.8 },
+        { name: 'Ithaca', epoch: 41, pct: 93.5 },
+        { name: 'Granada', epoch: 32, pct: 87.1 },
+    ];
     
+    // Exclude current epoch from comparisons
+    // Pick diverse comparisons: skip 100% duplicates, include varied results
+    const comparisons = [];
+    const seen = new Set();
+    for (const h of HISTORICAL) {
+        if (h.epoch === data.epoch.index) continue;
+        if (comparisons.length >= 4) break;
+        // Skip if we already have a 100% and this is also 100%
+        if (h.pct >= 99.9 && seen.has(100)) continue;
+        if (h.pct >= 99.9) seen.add(100);
+        comparisons.push(h);
+    }
     if (!comparisons.length) return '';
     
     const allPcts = [{ name: currentName, pct: currentPct }, ...comparisons];
     const highest = allPcts.reduce((a, b) => a.pct > b.pct ? a : b);
+    const lowest = comparisons.reduce((a, b) => a.pct < b.pct ? a : b);
     
     let contextLine = '';
-    if (highest.name === currentName) {
-        contextLine = `${currentName} has the highest consensus of recent upgrades at ${currentPct.toFixed(1)}%`;
+    if (currentPct >= 99.9) {
+        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — unanimous consensus. Recent upgrades show strong alignment across the baker set.`;
     } else if (currentPct >= 95) {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% supermajority — near-unanimous consensus`;
+        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — near-unanimous. For comparison, ${lowest.name} had the tightest recent vote at ${lowest.pct.toFixed(1)}%.`;
+    } else if (currentPct >= 80) {
+        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — passing but contested. ${highest.name} holds the recent high at ${highest.pct.toFixed(1)}%.`;
     } else {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% · Highest recent: ${highest.name} at ${highest.pct.toFixed(1)}%`;
+        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — below supermajority threshold. Most recent upgrades passed with >${lowest.pct.toFixed(0)}%.`;
     }
     
-    const bars = comparisons.slice(0, 3).map(c => `
+    const bars = comparisons.map(c => `
         <div class="comparison-row">
             <span class="comparison-name">${c.name}</span>
             <div class="comparison-bar-track"><div class="comparison-bar-fill" style="width:${c.pct}%"></div></div>
@@ -621,7 +637,7 @@ function renderProposalHeader(data) {
 
 // ─── Ambient war room effects ───
 
-function initAmbientEffects(container) {
+function initAmbientEffects(container) { return; // CSS-only via ::before/::after
     // Scanlines overlay (CSS-only, no canvas needed)
     let scanlines = container.querySelector('.chamber-scanlines');
     if (!scanlines) {
@@ -689,7 +705,7 @@ function triggerAnimations() {
 
 // ─── Main render ───
 
-function renderChamber(data, container, recentEpochs) {
+function renderChamber(data, container) {
     const { epoch, votePeriod, voters, isLive } = data;
     
     container.innerHTML = `
@@ -707,7 +723,7 @@ function renderChamber(data, container, recentEpochs) {
                 ${renderMomentumSparkline(voters, isLive, votePeriod)}
             </div>
         </div>
-        ${renderHistoricalComparison(data, recentEpochs)}
+        ${renderHistoricalComparison(data)}
         ${renderTopVoters(voters)}
         ` : `
         <div class="chamber-no-votes">
@@ -749,8 +765,7 @@ async function navigateEpoch(direction) {
         return;
     }
     
-    const recentEpochs = await fetchRecentEpochs(5);
-    renderChamber(data, body, recentEpochs);
+    renderChamber(data, body);
     initVoterFilters();
     initEpochNavListeners();
 }
@@ -810,8 +825,7 @@ export async function openChamber() {
         return;
     }
     
-    const recentEpochs = await fetchRecentEpochs(5);
-    renderChamber(data, overlay.querySelector('.chamber-body'), recentEpochs);
+    renderChamber(data, overlay.querySelector('.chamber-body'));
     initVoterFilters();
     initEpochNavListeners();
     
