@@ -268,6 +268,9 @@ function createMatrixLoader() {
  */
 async function renderBakerData(address, container) {
     container.innerHTML = '';
+    // Remove stale report card button so MutationObserver recreates with fresh address
+    const section = container.closest('#my-baker-section');
+    if (section) { const oldBtn = section.querySelector('.report-card-btn'); if (oldBtn) oldBtn.remove(); }
     const loadingEl = createMatrixLoader();
     container.appendChild(loadingEl);
 
