@@ -122,12 +122,18 @@ async function fetchBakerReport(bakerAddress) {
     else if (usedPct <= 95) capacityScore = 85 - (usedPct - 80) * 2;
     else capacityScore = Math.max(20, 55 - (usedPct - 95) * 5);
 
+    // 5. BLS key (tz4) — 10% weight (rewards modern consensus key adoption)
+    const hasTz4 = baker.address?.startsWith('tz4')
+        || baker.consensusAddress?.startsWith('tz4');
+    const tz4Score = hasTz4 ? 100 : 0;
+
     // Weighted overall score
     const overallScore = Math.round(
-        uptimeScore * 0.40 +
-        feeScore * 0.20 +
+        uptimeScore * 0.35 +
+        feeScore * 0.15 +
         growthScore * 0.20 +
-        capacityScore * 0.20
+        capacityScore * 0.20 +
+        tz4Score * 0.10
     );
 
     return {
@@ -141,6 +147,7 @@ async function fetchBakerReport(bakerAddress) {
             fee: Math.round(feeScore),
             growth: Math.round(growthScore),
             capacity: Math.round(capacityScore),
+            tz4: tz4Score,
         },
         stats: {
             stakingBalance: baker.stakingBalance,
@@ -149,6 +156,7 @@ async function fetchBakerReport(bakerAddress) {
             fee: fee,
             uptimePct: uptimeScore,
             usedCapacityPct: usedPct,
+            hasTz4,
         }
     };
 }
@@ -196,10 +204,11 @@ function buildReportCardDOM(report) {
 
             <!-- Score bars -->
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
-                ${buildScoreBar('Uptime', scores.uptime, '40%')}
-                ${buildScoreBar('Fee Score', scores.fee, '20%')}
+                ${buildScoreBar('Uptime', scores.uptime, '35%')}
+                ${buildScoreBar('Fee Score', scores.fee, '15%')}
                 ${buildScoreBar('Community', scores.growth, '20%')}
                 ${buildScoreBar('Capacity', scores.capacity, '20%')}
+                ${buildScoreBar('BLS Key (tz4)', scores.tz4, '10%')}
             </div>
 
             <!-- Stats grid -->
