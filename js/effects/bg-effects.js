@@ -890,9 +890,9 @@ class AbyssEffect {
         this.ctx = ctx;
         this.spores = [];
         this.blooms = [];
-        this.maxSpores = 80;
+        this.maxSpores = 140;
         this.bloomTimer = 0;
-        this.nextBloom = 3000 + Math.random() * 5000;
+        this.nextBloom = 1500 + Math.random() * 3000;
         this.animationId = null;
     }
 
@@ -921,14 +921,14 @@ class AbyssEffect {
         this.spores.push({
             x: Math.random() * w,
             y: Math.random() * h,
-            size: 1.5 + Math.random() * 2.5,
+            size: 2 + Math.random() * 4,
             r, g, b,
-            opacity: 0.05 + Math.random() * 0.12,
-            maxOpacity: 0.05 + Math.random() * 0.12,
-            vx: (Math.random() - 0.5) * 0.15,
-            vy: -0.05 - Math.random() * 0.15,
+            opacity: 0.15 + Math.random() * 0.25,
+            maxOpacity: 0.15 + Math.random() * 0.25,
+            vx: (Math.random() - 0.5) * 0.2,
+            vy: -0.08 - Math.random() * 0.2,
             pulsePhase: Math.random() * Math.PI * 2,
-            pulseSpeed: 0.0008 + Math.random() * 0.0012,
+            pulseSpeed: 0.001 + Math.random() * 0.002,
             life,
             age: randomAge ? Math.random() * life : 0
         });
@@ -942,12 +942,12 @@ class AbyssEffect {
         this.bloomTimer += dt;
         if (this.bloomTimer > this.nextBloom) {
             this.bloomTimer = 0;
-            this.nextBloom = 3000 + Math.random() * 5000;
+            this.nextBloom = 1500 + Math.random() * 3000;
             this.blooms.push({
                 x: Math.random() * w,
-                y: h * 0.3 + Math.random() * h * 0.5,
-                maxRadius: 60 + Math.random() * 80,
-                life: 2500 + Math.random() * 1500,
+                y: h * 0.2 + Math.random() * h * 0.6,
+                maxRadius: 80 + Math.random() * 120,
+                life: 3000 + Math.random() * 2000,
                 age: 0
             });
         }
@@ -1022,38 +1022,39 @@ class AbyssEffect {
         for (const bloom of this.blooms) {
             const frac = bloom.age / bloom.life;
             const radius = bloom.maxRadius * Math.min(frac * 2, 1);
-            const alpha = frac < 0.5 ? 0.08 * (frac / 0.5) : 0.08 * (1 - frac) / 0.5;
+            const alpha = frac < 0.5 ? 0.25 * (frac / 0.5) : 0.25 * (1 - frac) / 0.5;
 
             // Outer glow ring
             ctx.beginPath();
             ctx.arc(bloom.x, bloom.y, radius, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(0, 229, 255, ${alpha})`;
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = `rgba(0, 229, 255, ${alpha * 1.5})`;
+            ctx.lineWidth = 2.5;
             ctx.shadowColor = '#00E5FF';
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = 35;
             ctx.stroke();
             ctx.shadowBlur = 0;
 
             // Inner fill
             const fillGrad = ctx.createRadialGradient(bloom.x, bloom.y, 0, bloom.x, bloom.y, radius);
-            fillGrad.addColorStop(0, `rgba(0, 229, 255, ${alpha * 0.5})`);
+            fillGrad.addColorStop(0, `rgba(0, 229, 255, ${alpha * 0.8})`);
+            fillGrad.addColorStop(0.5, `rgba(0, 180, 220, ${alpha * 0.3})`);
             fillGrad.addColorStop(1, 'rgba(0, 229, 255, 0)');
             ctx.fillStyle = fillGrad;
             ctx.fill();
         }
 
         // Connecting filaments between nearby spores
-        ctx.lineWidth = 0.5;
+        ctx.lineWidth = 0.8;
         for (let i = 0; i < this.spores.length; i++) {
             for (let j = i + 1; j < this.spores.length; j++) {
                 const a = this.spores[i];
                 const b = this.spores[j];
                 const dx = a.x - b.x;
                 const dy = a.y - b.y;
-                if (Math.abs(dx) < 60 && Math.abs(dy) < 60) {
+                if (Math.abs(dx) < 80 && Math.abs(dy) < 80) {
                     const d = Math.sqrt(dx * dx + dy * dy);
-                    if (d < 60) {
-                        const alpha = (1 - d / 60) * Math.min(a.opacity, b.opacity) * 0.8;
+                    if (d < 80) {
+                        const alpha = (1 - d / 80) * Math.min(a.opacity, b.opacity) * 1.2;
                         ctx.strokeStyle = `rgba(0, 229, 255, ${alpha})`;
                         ctx.beginPath();
                         ctx.moveTo(a.x, a.y);
@@ -1070,7 +1071,7 @@ class AbyssEffect {
             ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(${Math.round(s.r)}, ${Math.round(s.g)}, ${Math.round(s.b)}, ${s.opacity})`;
             ctx.shadowColor = `rgb(${Math.round(s.r)}, ${Math.round(s.g)}, ${Math.round(s.b)})`;
-            ctx.shadowBlur = 8;
+            ctx.shadowBlur = 15;
             ctx.fill();
             ctx.shadowBlur = 0;
         }
@@ -1086,9 +1087,9 @@ class MossEffect {
         this.canvas = canvas;
         this.ctx = ctx;
         this.branches = [];
-        this.maxBranches = 200;
+        this.maxBranches = 300;
         this.spawnTimer = 0;
-        this.spawnInterval = 800;
+        this.spawnInterval = 400;
         this.nodes = [];
         this.animationId = null;
     }
@@ -1122,9 +1123,9 @@ class MossEffect {
         }
 
         const angle = Math.random() * Math.PI * 2;
-        const speed = 0.02 + Math.random() * 0.03;
-        const life = 6000 + Math.random() * 8000;
-        const branchChance = 0.001 + Math.random() * 0.002;
+        const speed = 0.03 + Math.random() * 0.04;
+        const life = 8000 + Math.random() * 10000;
+        const branchChance = 0.002 + Math.random() * 0.003;
 
         this.branches.push({
             points: [{ x, y }],
@@ -1133,10 +1134,10 @@ class MossEffect {
             turnRate: (Math.random() - 0.5) * 0.003,
             life,
             age: 0,
-            maxOpacity: 0.06 + Math.random() * 0.06,
+            maxOpacity: 0.15 + Math.random() * 0.15,
             branchChance,
-            // Color: 80% green, 20% warm brown
-            isWarm: Math.random() > 0.8,
+            // Color: 75% green, 25% warm brown
+            isWarm: Math.random() > 0.75,
             segmentTimer: 0
         });
     }
@@ -1220,7 +1221,7 @@ class MossEffect {
         const h = this.canvas.height;
 
         // Semi-transparent clear for trail effect
-        ctx.fillStyle = 'rgba(10, 15, 8, 0.04)';
+        ctx.fillStyle = 'rgba(6, 13, 4, 0.03)';
         ctx.fillRect(0, 0, w, h);
 
         // Draw branches
@@ -1233,11 +1234,11 @@ class MossEffect {
                           b.maxOpacity;
 
             if (b.isWarm) {
-                ctx.strokeStyle = `rgba(196, 149, 106, ${alpha})`;
+                ctx.strokeStyle = `rgba(212, 160, 80, ${alpha})`;
             } else {
-                ctx.strokeStyle = `rgba(124, 205, 124, ${alpha})`;
+                ctx.strokeStyle = `rgba(100, 224, 100, ${alpha})`;
             }
-            ctx.lineWidth = 0.8;
+            ctx.lineWidth = 1.2;
             ctx.beginPath();
             ctx.moveTo(b.points[0].x, b.points[0].y);
             for (let j = 1; j < b.points.length; j++) {
@@ -1249,15 +1250,15 @@ class MossEffect {
             if (lifeFrac < 0.8) {
                 const tip = b.points[b.points.length - 1];
                 ctx.beginPath();
-                ctx.arc(tip.x, tip.y, 2, 0, Math.PI * 2);
+                ctx.arc(tip.x, tip.y, 3, 0, Math.PI * 2);
                 if (b.isWarm) {
-                    ctx.fillStyle = `rgba(196, 149, 106, ${alpha * 2})`;
-                    ctx.shadowColor = '#C4956A';
+                    ctx.fillStyle = `rgba(212, 160, 80, ${Math.min(alpha * 3, 0.6)})`;
+                    ctx.shadowColor = '#D4A050';
                 } else {
-                    ctx.fillStyle = `rgba(124, 205, 124, ${alpha * 2})`;
-                    ctx.shadowColor = '#7CCD7C';
+                    ctx.fillStyle = `rgba(100, 224, 100, ${Math.min(alpha * 3, 0.6)})`;
+                    ctx.shadowColor = '#66E066';
                 }
-                ctx.shadowBlur = 6;
+                ctx.shadowBlur = 12;
                 ctx.fill();
                 ctx.shadowBlur = 0;
             }
@@ -1266,13 +1267,13 @@ class MossEffect {
         // Draw nodes (branch points) as small glowing dots
         for (const node of this.nodes) {
             const nodeFrac = node.age / node.life;
-            const nodeAlpha = nodeFrac < 0.1 ? 0.15 * (nodeFrac / 0.1) :
-                              nodeFrac > 0.6 ? 0.15 * (1 - nodeFrac) / 0.4 : 0.15;
+            const nodeAlpha = nodeFrac < 0.1 ? 0.35 * (nodeFrac / 0.1) :
+                              nodeFrac > 0.6 ? 0.35 * (1 - nodeFrac) / 0.4 : 0.35;
             ctx.beginPath();
-            ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(168, 216, 168, ${nodeAlpha})`;
-            ctx.shadowColor = '#7CCD7C';
-            ctx.shadowBlur = 10;
+            ctx.arc(node.x, node.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(100, 224, 100, ${nodeAlpha})`;
+            ctx.shadowColor = '#66E066';
+            ctx.shadowBlur = 18;
             ctx.fill();
             ctx.shadowBlur = 0;
         }
@@ -1290,10 +1291,10 @@ class WarzoneEffect {
         this.radarAngle = 0;
         this.gridPulsePhase = 0;
         this.targets = [];
-        this.maxTargets = 12;
+        this.maxTargets = 18;
         this.scanLines = [];
         this.alertTimer = 0;
-        this.nextAlert = 2000 + Math.random() * 4000;
+        this.nextAlert = 1500 + Math.random() * 3000;
         this.animationId = null;
     }
 
@@ -1314,11 +1315,11 @@ class WarzoneEffect {
 
         // Horizontal scan lines at random positions
         this.scanLines = [];
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 4; i++) {
             this.scanLines.push({
                 y: Math.random() * h,
                 speed: 0.03 + Math.random() * 0.04,
-                opacity: 0.03 + Math.random() * 0.02
+                opacity: 0.06 + Math.random() * 0.04
             });
         }
     }
@@ -1384,7 +1385,7 @@ class WarzoneEffect {
         const pulse = 0.5 + 0.5 * Math.sin(this.gridPulsePhase);
 
         // === Layer 1: Tactical grid ===
-        ctx.strokeStyle = `rgba(255, 184, 0, ${0.02 + pulse * 0.01})`;
+        ctx.strokeStyle = `rgba(255, 192, 0, ${0.05 + pulse * 0.03})`;
         ctx.lineWidth = 0.5;
         const gridSize = 80;
         for (let x = 0; x < w; x += gridSize) {
@@ -1418,18 +1419,18 @@ class WarzoneEffect {
         // Radar circle
         ctx.beginPath();
         ctx.arc(cx, cy, rr, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 184, 0, 0.12)';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 192, 0, 0.3)';
+        ctx.lineWidth = 1.5;
         ctx.stroke();
 
         // Inner rings
         ctx.beginPath();
         ctx.arc(cx, cy, rr * 0.5, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255, 184, 0, 0.06)';
+        ctx.strokeStyle = 'rgba(255, 192, 0, 0.15)';
         ctx.stroke();
 
         // Crosshairs
-        ctx.strokeStyle = 'rgba(255, 184, 0, 0.08)';
+        ctx.strokeStyle = 'rgba(255, 192, 0, 0.2)';
         ctx.beginPath();
         ctx.moveTo(cx - rr, cy);
         ctx.lineTo(cx + rr, cy);
@@ -1450,13 +1451,13 @@ class WarzoneEffect {
         ctx.arc(cx, cy, rr, this.radarAngle - 0.5, this.radarAngle);
         ctx.closePath();
         const sweepGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
-        sweepGrad.addColorStop(0, 'rgba(255, 184, 0, 0.08)');
-        sweepGrad.addColorStop(1, 'rgba(255, 184, 0, 0)');
+        sweepGrad.addColorStop(0, 'rgba(255, 192, 0, 0.2)');
+        sweepGrad.addColorStop(1, 'rgba(255, 192, 0, 0)');
         ctx.fillStyle = sweepGrad;
         ctx.fill();
 
         // Beam line
-        ctx.strokeStyle = 'rgba(255, 184, 0, 0.2)';
+        ctx.strokeStyle = 'rgba(255, 192, 0, 0.5)';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
@@ -1467,9 +1468,9 @@ class WarzoneEffect {
         const now = time;
         for (const t of this.targets) {
             const age = now - t.revealTime;
-            if (age < 4000) {
-                const alpha = 0.2 * (1 - age / 4000);
-                const color = t.type === 'hostile' ? '255, 45, 45' : '255, 184, 0';
+            if (age < 5000) {
+                const alpha = 0.5 * (1 - age / 5000);
+                const color = t.type === 'hostile' ? '255, 48, 48' : '255, 192, 0';
 
                 // Diamond marker
                 const s = t.size;
@@ -1494,8 +1495,8 @@ class WarzoneEffect {
         // === Layer 5: Corner brackets (HUD frame) ===
         const bracketSize = 30;
         const bracketInset = 15;
-        ctx.strokeStyle = 'rgba(255, 184, 0, 0.1)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = 'rgba(255, 192, 0, 0.25)';
+        ctx.lineWidth = 2;
 
         // Top-left
         ctx.beginPath();
@@ -1597,6 +1598,14 @@ function startEffect(themeName) {
     }
 
     if (currentEffect) {
+        // Per-theme canvas opacity — new themes need more visibility
+        const canvasOpacity = {
+            'abyss': 0.85,
+            'moss': 0.9,
+            'warzone': 0.85
+        };
+        canvas.style.opacity = canvasOpacity[themeName] || '0.5';
+
         currentEffect.init();
         lastTime = performance.now();
         animationId = requestAnimationFrame(animate);
