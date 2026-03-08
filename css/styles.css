@@ -206,6 +206,57 @@
     --transition: all 0.15s ease;
 }
 
+/* --- Abyss: Bioluminescent deep ocean --- */
+[data-theme="abyss"] {
+    --bg-primary: #050510;
+    --bg-secondary: #0A0A1A;
+    --bg-tertiary: #0E1025;
+    --glass-bg: rgba(8, 8, 25, 0.7);
+    --glass-border: rgba(0, 229, 255, 0.08);
+    --text-primary: #B8D4E3;
+    --text-secondary: #5A8A9A;
+    --text-tertiary: #3A6878;
+    --text-muted: #1E4858;
+    --accent-cyan: #00E5FF;
+    --accent-purple: #00B8D4;
+    --accent-pink: #FF6B8A;
+    --accent-blue: #0091EA;
+}
+
+/* --- Moss: Organic living network --- */
+[data-theme="moss"] {
+    --bg-primary: #0A0F08;
+    --bg-secondary: #121A0F;
+    --bg-tertiary: #1A2416;
+    --glass-bg: rgba(14, 22, 12, 0.7);
+    --glass-border: rgba(124, 205, 124, 0.08);
+    --text-primary: #D4E4D0;
+    --text-secondary: #8AAA82;
+    --text-tertiary: #5E7E58;
+    --text-muted: #3A5436;
+    --accent-cyan: #7CCD7C;
+    --accent-purple: #C4956A;
+    --accent-pink: #A8D8A8;
+    --accent-blue: #5CAA5C;
+}
+
+/* --- Warzone: Military HUD command --- */
+[data-theme="warzone"] {
+    --bg-primary: #0C0E08;
+    --bg-secondary: #141810;
+    --bg-tertiary: #1C2218;
+    --glass-bg: rgba(16, 18, 10, 0.75);
+    --glass-border: rgba(255, 184, 0, 0.1);
+    --text-primary: #D4D8C4;
+    --text-secondary: #8A8E78;
+    --text-tertiary: #626856;
+    --text-muted: #3E4234;
+    --accent-cyan: #FFB800;
+    --accent-purple: #FF2D2D;
+    --accent-pink: #FF6B35;
+    --accent-blue: #FFD54F;
+}
+
 /* ==========================================
    Reset & Base
    ========================================== */
@@ -7116,6 +7167,29 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     color: var(--accent-cyan);
     font-size: 0.9rem;
     font-weight: bold;
+}
+
+.theme-group-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 6px 12px 2px;
+    user-select: none;
+}
+
+.theme-tagline-hint {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-left: auto;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.theme-row:hover .theme-tagline-hint {
+    opacity: 1;
 }
 
 /* Mobile bottom sheet */

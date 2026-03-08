@@ -65,6 +65,12 @@ function getColors() {
             return { primary: '#C8C8C8', secondary: '#888888', tertiary: '#444444', glow: 'rgba(200,200,200,0.1)', bg: '#0a0a0a' };
         case 'bubblegum':
             return { primary: '#FF69B4', secondary: '#FF85C8', tertiary: '#cc3587', glow: 'rgba(255,105,180,0.3)', bg: '#120a10' };
+        case 'abyss':
+            return { primary: '#00E5FF', secondary: '#00B8D4', tertiary: '#006080', glow: 'rgba(0,229,255,0.3)', bg: '#030308' };
+        case 'moss':
+            return { primary: '#7CCD7C', secondary: '#5CAA5C', tertiary: '#3A7A3A', glow: 'rgba(124,205,124,0.3)', bg: '#080c06' };
+        case 'warzone':
+            return { primary: '#FFB800', secondary: '#FF8C00', tertiary: '#995200', glow: 'rgba(255,184,0,0.3)', bg: '#080a04' };
         default:
             return { primary: '#00d4ff', secondary: '#b794f6', tertiary: '#ff6b9d', glow: 'rgba(0,212,255,0.3)', bg: '#0a0a0f' };
     }

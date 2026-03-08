@@ -5,6 +5,14 @@
 
 const CHANGELOG = [
     {
+        date: '2026-03-08',
+        entries: [
+            { type: '✨', text: '3 new animated themes: Abyss (deep ocean bioluminescence), Moss (organic mycelium network), Warzone (military HUD radar)' },
+            { type: '🎨', text: 'Theme picker redesign — grouped into ✦ Animated and ◆ Classic with tagline hints on hover' },
+            { type: '🎨', text: 'Landing page updated to 12 themes with all new entries in the theme grid' },
+        ]
+    },
+    {
         date: '2026-03-02',
         entries: [
             { type: '✨', text: 'Governance moments — toast notifications for new proposals, period changes, and protocol activations' },

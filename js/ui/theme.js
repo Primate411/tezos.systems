@@ -4,7 +4,7 @@
  */
 
 const THEME_KEY = 'tezos-systems-theme';
-const THEMES = ['matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum'];
+const THEMES = ['matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
 const DEFAULT_THEME = 'matrix';
 
 // Theme color definitions for the picker dots
@@ -17,7 +17,10 @@ const THEME_COLORS = {
     'clean': { bg: '#ffffff', accent: '#0784c3', text: '#1e2022' },
     'dark': { bg: '#1A1A1A', accent: '#C8C8C8', text: '#E8E8E8' },
     'default': { bg: '#0f0f1a', accent: '#00d4ff', text: '#b794f6' },
-    'bubblegum': { bg: '#1F0E18', accent: '#FF69B4', text: '#F5E0EE' }
+    'bubblegum': { bg: '#1F0E18', accent: '#FF69B4', text: '#F5E0EE' },
+    'abyss': { bg: '#050510', accent: '#00E5FF', text: '#B8D4E3' },
+    'moss': { bg: '#0A0F08', accent: '#7CCD7C', text: '#D4E4D0' },
+    'warzone': { bg: '#0C0E08', accent: '#FFB800', text: '#D4D8C4' }
 };
 
 let currentPreviewTheme = null;
@@ -65,7 +68,10 @@ const THEME_VIBES = {
     'nerv': { tagline: 'Operations Console', icon: '⚡' },
     'clean': { tagline: 'Pure Analytics', icon: '📊' },
     'dark': { tagline: 'Zero Distractions', icon: '🌑' },
-    'bubblegum': { tagline: 'Sweet Simplicity', icon: '🫧' }
+    'bubblegum': { tagline: 'Sweet Simplicity', icon: '🫧' },
+    'abyss': { tagline: 'Deep Signal', icon: '🌊' },
+    'moss': { tagline: 'Living Network', icon: '🌿' },
+    'warzone': { tagline: 'Command & Control', icon: '⚔️' }
 };
 
 function showFirstVisitPicker() {
@@ -91,21 +97,33 @@ export function openThemePicker() {
     const currentTheme = getCurrentTheme();
     originalTheme = currentTheme;
 
+    // Theme categories for organized picker
+    const ANIMATED_THEMES = ['matrix', 'void', 'ember', 'signal', 'abyss', 'moss', 'warzone', 'nerv', 'bubblegum'];
+    const CLASSIC_THEMES = ['default', 'dark', 'clean'];
+
+    function renderThemeRow(theme) {
+        const vibe = THEME_VIBES[theme] || {};
+        return `
+            <div class="theme-row" data-theme="${theme}">
+                <div class="theme-dots">
+                    <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].bg};"></span>
+                    <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].accent};"></span>
+                    <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].text};"></span>
+                </div>
+                <span class="theme-label">${capitalizeTheme(theme)}</span>
+                <span class="theme-tagline-hint">${vibe.tagline || ''}</span>
+                <span class="theme-checkmark" ${currentTheme === theme ? '' : 'style="display: none;"'}>✓</span>
+            </div>`;
+    }
+
     // Create picker HTML
     const pickerHTML = `
         <div id="theme-picker-dropdown" class="theme-picker-dropdown">
-            ${THEMES.map(theme => `
-                <div class="theme-row" data-theme="${theme}">
-                    <div class="theme-dots">
-                        <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].bg};"></span>
-                        <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].accent};"></span>
-                        <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].text};"></span>
-                    </div>
-                    <span class="theme-label">${capitalizeTheme(theme)}</span>
-                    <span class="theme-checkmark" ${currentTheme === theme ? '' : 'style="display: none;"'}>✓</span>
-                </div>
-            `).join('')}
-            <div style="border-top: 1px solid #333; margin: 4px 0;"></div>
+            <div class="theme-group-label">✦ Animated</div>
+            ${ANIMATED_THEMES.map(renderThemeRow).join('')}
+            <div class="theme-group-label">◆ Classic</div>
+            ${CLASSIC_THEMES.map(renderThemeRow).join('')}
+            <div style="border-top: 1px solid var(--glass-border); margin: 4px 0;"></div>
             <div class="theme-row hen-mode-row" data-theme="hen">
                 <div class="theme-dots">
                     <span class="theme-dot" style="background-color: #111;"></span>
@@ -290,7 +308,10 @@ function updateThemeIcon(theme) {
             'clean': '📊',
             'dark': '🌑',
             'nerv': '⚡',
-            'bubblegum': '🫧'
+            'bubblegum': '🫧',
+            'abyss': '🌊',
+            'moss': '🌿',
+            'warzone': '⚔️'
         };
 
         icon.textContent = icons[theme] || '🎨';

@@ -3,7 +3,7 @@
  * Shares the same canvas pattern as matrix-effects.js
  */
 
-const BG_THEMES = ['void', 'ember', 'signal', 'bubblegum', 'nerv'];
+const BG_THEMES = ['void', 'ember', 'signal', 'bubblegum', 'nerv', 'abyss', 'moss', 'warzone'];
 
 class VoidEffect {
     constructor(canvas, ctx) {
@@ -881,6 +881,657 @@ class NervEffect {
 }
 
 // ============================================
+// ABYSS — Bioluminescent deep ocean
+// ============================================
+
+class AbyssEffect {
+    constructor(canvas, ctx) {
+        this.canvas = canvas;
+        this.ctx = ctx;
+        this.spores = [];
+        this.blooms = [];
+        this.maxSpores = 80;
+        this.bloomTimer = 0;
+        this.nextBloom = 3000 + Math.random() * 5000;
+        this.animationId = null;
+    }
+
+    init() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        this.spores = [];
+        for (let i = 0; i < this.maxSpores; i++) {
+            this.spawnSpore(w, h, true);
+        }
+        this.blooms = [];
+    }
+
+    spawnSpore(w, h, randomAge) {
+        const life = 8000 + Math.random() * 8000;
+        // Color: 70% cyan-blue, 20% teal, 10% coral-pink
+        const colorRoll = Math.random();
+        let r, g, b;
+        if (colorRoll < 0.7) {
+            r = 0; g = 180 + Math.random() * 75; b = 255;
+        } else if (colorRoll < 0.9) {
+            r = 0; g = 200 + Math.random() * 55; b = 200 + Math.random() * 30;
+        } else {
+            r = 255; g = 107 + Math.random() * 30; b = 138 + Math.random() * 30;
+        }
+        this.spores.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            size: 1.5 + Math.random() * 2.5,
+            r, g, b,
+            opacity: 0.05 + Math.random() * 0.12,
+            maxOpacity: 0.05 + Math.random() * 0.12,
+            vx: (Math.random() - 0.5) * 0.15,
+            vy: -0.05 - Math.random() * 0.15,
+            pulsePhase: Math.random() * Math.PI * 2,
+            pulseSpeed: 0.0008 + Math.random() * 0.0012,
+            life,
+            age: randomAge ? Math.random() * life : 0
+        });
+    }
+
+    update(dt) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Bloom events
+        this.bloomTimer += dt;
+        if (this.bloomTimer > this.nextBloom) {
+            this.bloomTimer = 0;
+            this.nextBloom = 3000 + Math.random() * 5000;
+            this.blooms.push({
+                x: Math.random() * w,
+                y: h * 0.3 + Math.random() * h * 0.5,
+                maxRadius: 60 + Math.random() * 80,
+                life: 2500 + Math.random() * 1500,
+                age: 0
+            });
+        }
+
+        // Update blooms
+        for (let i = this.blooms.length - 1; i >= 0; i--) {
+            this.blooms[i].age += dt;
+            if (this.blooms[i].age > this.blooms[i].life) {
+                this.blooms.splice(i, 1);
+            }
+        }
+
+        // Update spores
+        for (let i = this.spores.length - 1; i >= 0; i--) {
+            const s = this.spores[i];
+            s.age += dt;
+            if (s.age > s.life) {
+                this.spores.splice(i, 1);
+                this.spawnSpore(w, h, false);
+                continue;
+            }
+
+            // Gentle drift
+            s.x += s.vx;
+            s.y += s.vy;
+
+            // Bloom attraction — spores near a bloom pulse brighter and drift toward it
+            for (const bloom of this.blooms) {
+                const dx = bloom.x - s.x;
+                const dy = bloom.y - s.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const bloomFrac = bloom.age / bloom.life;
+                if (dist < bloom.maxRadius * 2 && bloomFrac < 0.5) {
+                    const strength = 0.02 * (1 - dist / (bloom.maxRadius * 2));
+                    s.vx += (dx / dist) * strength;
+                    s.vy += (dy / dist) * strength;
+                }
+            }
+
+            // Damping
+            s.vx *= 0.995;
+            s.vy *= 0.995;
+
+            // Pulse opacity
+            const pulse = 0.7 + 0.3 * Math.sin(s.age * s.pulseSpeed + s.pulsePhase);
+            const lifeFrac = s.age / s.life;
+            const fade = lifeFrac < 0.1 ? lifeFrac / 0.1 : lifeFrac > 0.8 ? (1 - lifeFrac) / 0.2 : 1;
+            s.opacity = s.maxOpacity * pulse * fade;
+
+            // Wrap
+            if (s.x < -10) s.x += w + 20;
+            if (s.x > w + 10) s.x -= w + 20;
+            if (s.y < -10) s.y += h + 20;
+            if (s.y > h + 10) s.y -= h + 20;
+        }
+    }
+
+    draw(time) {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        // Depth gradient — subtle dark blue at bottom
+        const depthGrad = ctx.createLinearGradient(0, 0, 0, h);
+        depthGrad.addColorStop(0, 'rgba(0, 20, 40, 0)');
+        depthGrad.addColorStop(1, 'rgba(0, 10, 30, 0.15)');
+        ctx.fillStyle = depthGrad;
+        ctx.fillRect(0, 0, w, h);
+
+        // Bloom pulse rings
+        for (const bloom of this.blooms) {
+            const frac = bloom.age / bloom.life;
+            const radius = bloom.maxRadius * Math.min(frac * 2, 1);
+            const alpha = frac < 0.5 ? 0.08 * (frac / 0.5) : 0.08 * (1 - frac) / 0.5;
+
+            // Outer glow ring
+            ctx.beginPath();
+            ctx.arc(bloom.x, bloom.y, radius, 0, Math.PI * 2);
+            ctx.strokeStyle = `rgba(0, 229, 255, ${alpha})`;
+            ctx.lineWidth = 2;
+            ctx.shadowColor = '#00E5FF';
+            ctx.shadowBlur = 20;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+
+            // Inner fill
+            const fillGrad = ctx.createRadialGradient(bloom.x, bloom.y, 0, bloom.x, bloom.y, radius);
+            fillGrad.addColorStop(0, `rgba(0, 229, 255, ${alpha * 0.5})`);
+            fillGrad.addColorStop(1, 'rgba(0, 229, 255, 0)');
+            ctx.fillStyle = fillGrad;
+            ctx.fill();
+        }
+
+        // Connecting filaments between nearby spores
+        ctx.lineWidth = 0.5;
+        for (let i = 0; i < this.spores.length; i++) {
+            for (let j = i + 1; j < this.spores.length; j++) {
+                const a = this.spores[i];
+                const b = this.spores[j];
+                const dx = a.x - b.x;
+                const dy = a.y - b.y;
+                if (Math.abs(dx) < 60 && Math.abs(dy) < 60) {
+                    const d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < 60) {
+                        const alpha = (1 - d / 60) * Math.min(a.opacity, b.opacity) * 0.8;
+                        ctx.strokeStyle = `rgba(0, 229, 255, ${alpha})`;
+                        ctx.beginPath();
+                        ctx.moveTo(a.x, a.y);
+                        ctx.lineTo(b.x, b.y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        // Spores
+        for (const s of this.spores) {
+            ctx.beginPath();
+            ctx.arc(s.x, s.y, s.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${Math.round(s.r)}, ${Math.round(s.g)}, ${Math.round(s.b)}, ${s.opacity})`;
+            ctx.shadowColor = `rgb(${Math.round(s.r)}, ${Math.round(s.g)}, ${Math.round(s.b)})`;
+            ctx.shadowBlur = 8;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+}
+
+// ============================================
+// MOSS — Organic mycelium network
+// ============================================
+
+class MossEffect {
+    constructor(canvas, ctx) {
+        this.canvas = canvas;
+        this.ctx = ctx;
+        this.branches = [];
+        this.maxBranches = 200;
+        this.spawnTimer = 0;
+        this.spawnInterval = 800;
+        this.nodes = [];
+        this.animationId = null;
+    }
+
+    init() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        this.branches = [];
+        this.nodes = [];
+
+        // Seed a few initial growth points
+        for (let i = 0; i < 5; i++) {
+            this._spawnBranch(w, h);
+        }
+    }
+
+    _spawnBranch(w, h) {
+        // Start from edges or existing nodes
+        let x, y;
+        if (this.nodes.length > 3 && Math.random() < 0.4) {
+            const node = this.nodes[Math.floor(Math.random() * this.nodes.length)];
+            x = node.x;
+            y = node.y;
+        } else {
+            // Edge spawn
+            const edge = Math.floor(Math.random() * 4);
+            if (edge === 0) { x = Math.random() * w; y = 0; }
+            else if (edge === 1) { x = w; y = Math.random() * h; }
+            else if (edge === 2) { x = Math.random() * w; y = h; }
+            else { x = 0; y = Math.random() * h; }
+        }
+
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.02 + Math.random() * 0.03;
+        const life = 6000 + Math.random() * 8000;
+        const branchChance = 0.001 + Math.random() * 0.002;
+
+        this.branches.push({
+            points: [{ x, y }],
+            angle,
+            speed,
+            turnRate: (Math.random() - 0.5) * 0.003,
+            life,
+            age: 0,
+            maxOpacity: 0.06 + Math.random() * 0.06,
+            branchChance,
+            // Color: 80% green, 20% warm brown
+            isWarm: Math.random() > 0.8,
+            segmentTimer: 0
+        });
+    }
+
+    update(dt) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Spawn new branches periodically
+        this.spawnTimer += dt;
+        if (this.spawnTimer > this.spawnInterval && this.branches.length < this.maxBranches) {
+            this.spawnTimer = 0;
+            this._spawnBranch(w, h);
+        }
+
+        for (let i = this.branches.length - 1; i >= 0; i--) {
+            const b = this.branches[i];
+            b.age += dt;
+
+            if (b.age > b.life) {
+                this.branches.splice(i, 1);
+                continue;
+            }
+
+            // Grow tip
+            b.segmentTimer += dt;
+            if (b.segmentTimer > 60) {
+                b.segmentTimer = 0;
+                const tip = b.points[b.points.length - 1];
+
+                // Organic wandering
+                b.angle += b.turnRate + (Math.random() - 0.5) * 0.08;
+                const newX = tip.x + Math.cos(b.angle) * b.speed * dt;
+                const newY = tip.y + Math.sin(b.angle) * b.speed * dt;
+
+                // Keep in bounds
+                if (newX > -20 && newX < w + 20 && newY > -20 && newY < h + 20) {
+                    b.points.push({ x: newX, y: newY });
+
+                    // Cap points to prevent memory issues
+                    if (b.points.length > 150) {
+                        b.points.shift();
+                    }
+
+                    // Chance to branch
+                    if (Math.random() < b.branchChance && this.branches.length < this.maxBranches) {
+                        const forkAngle = b.angle + (Math.random() > 0.5 ? 1 : -1) * (0.3 + Math.random() * 0.8);
+                        this.branches.push({
+                            points: [{ x: newX, y: newY }],
+                            angle: forkAngle,
+                            speed: b.speed * (0.7 + Math.random() * 0.3),
+                            turnRate: (Math.random() - 0.5) * 0.004,
+                            life: b.life * 0.5,
+                            age: 0,
+                            maxOpacity: b.maxOpacity * 0.7,
+                            branchChance: b.branchChance * 0.5,
+                            isWarm: Math.random() > 0.85,
+                            segmentTimer: 0
+                        });
+
+                        // Node at branch point
+                        this.nodes.push({ x: newX, y: newY, age: 0, life: b.life * 0.6 });
+                        if (this.nodes.length > 50) this.nodes.shift();
+                    }
+                }
+            }
+        }
+
+        // Age nodes
+        for (let i = this.nodes.length - 1; i >= 0; i--) {
+            this.nodes[i].age += dt;
+            if (this.nodes[i].age > this.nodes[i].life) {
+                this.nodes.splice(i, 1);
+            }
+        }
+    }
+
+    draw(time) {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Semi-transparent clear for trail effect
+        ctx.fillStyle = 'rgba(10, 15, 8, 0.04)';
+        ctx.fillRect(0, 0, w, h);
+
+        // Draw branches
+        for (const b of this.branches) {
+            if (b.points.length < 2) continue;
+
+            const lifeFrac = b.age / b.life;
+            const alpha = lifeFrac < 0.1 ? b.maxOpacity * (lifeFrac / 0.1) :
+                          lifeFrac > 0.7 ? b.maxOpacity * (1 - lifeFrac) / 0.3 :
+                          b.maxOpacity;
+
+            if (b.isWarm) {
+                ctx.strokeStyle = `rgba(196, 149, 106, ${alpha})`;
+            } else {
+                ctx.strokeStyle = `rgba(124, 205, 124, ${alpha})`;
+            }
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(b.points[0].x, b.points[0].y);
+            for (let j = 1; j < b.points.length; j++) {
+                ctx.lineTo(b.points[j].x, b.points[j].y);
+            }
+            ctx.stroke();
+
+            // Glow on tip
+            if (lifeFrac < 0.8) {
+                const tip = b.points[b.points.length - 1];
+                ctx.beginPath();
+                ctx.arc(tip.x, tip.y, 2, 0, Math.PI * 2);
+                if (b.isWarm) {
+                    ctx.fillStyle = `rgba(196, 149, 106, ${alpha * 2})`;
+                    ctx.shadowColor = '#C4956A';
+                } else {
+                    ctx.fillStyle = `rgba(124, 205, 124, ${alpha * 2})`;
+                    ctx.shadowColor = '#7CCD7C';
+                }
+                ctx.shadowBlur = 6;
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        // Draw nodes (branch points) as small glowing dots
+        for (const node of this.nodes) {
+            const nodeFrac = node.age / node.life;
+            const nodeAlpha = nodeFrac < 0.1 ? 0.15 * (nodeFrac / 0.1) :
+                              nodeFrac > 0.6 ? 0.15 * (1 - nodeFrac) / 0.4 : 0.15;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(168, 216, 168, ${nodeAlpha})`;
+            ctx.shadowColor = '#7CCD7C';
+            ctx.shadowBlur = 10;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+}
+
+// ============================================
+// WARZONE — Military HUD / radar
+// ============================================
+
+class WarzoneEffect {
+    constructor(canvas, ctx) {
+        this.canvas = canvas;
+        this.ctx = ctx;
+        this.radarAngle = 0;
+        this.gridPulsePhase = 0;
+        this.targets = [];
+        this.maxTargets = 12;
+        this.scanLines = [];
+        this.alertTimer = 0;
+        this.nextAlert = 2000 + Math.random() * 4000;
+        this.animationId = null;
+    }
+
+    init() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        this.targets = [];
+        for (let i = 0; i < this.maxTargets; i++) {
+            this.targets.push({
+                x: Math.random() * w,
+                y: Math.random() * h,
+                size: 3 + Math.random() * 4,
+                revealTime: -10000,
+                type: Math.random() > 0.7 ? 'hostile' : 'friendly'
+            });
+        }
+
+        // Horizontal scan lines at random positions
+        this.scanLines = [];
+        for (let i = 0; i < 3; i++) {
+            this.scanLines.push({
+                y: Math.random() * h,
+                speed: 0.03 + Math.random() * 0.04,
+                opacity: 0.03 + Math.random() * 0.02
+            });
+        }
+    }
+
+    update(dt) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Radar sweep — full rotation every 6 seconds
+        this.radarAngle += (Math.PI * 2 / 6000) * dt;
+        if (this.radarAngle > Math.PI * 2) this.radarAngle -= Math.PI * 2;
+
+        // Grid pulse
+        this.gridPulsePhase += dt * 0.0008;
+
+        // Radar center
+        const cx = w * 0.85;
+        const cy = h * 0.15;
+        const radarRadius = Math.min(w, h) * 0.12;
+
+        // Reveal targets near radar sweep
+        const now = performance.now();
+        const beamAngle = this.radarAngle;
+        for (const t of this.targets) {
+            const dx = t.x - cx;
+            const dy = t.y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < radarRadius * 3) {
+                const tAngle = Math.atan2(dy, dx);
+                let diff = tAngle - beamAngle;
+                while (diff > Math.PI) diff -= Math.PI * 2;
+                while (diff < -Math.PI) diff += Math.PI * 2;
+                if (Math.abs(diff) < 0.15) {
+                    t.revealTime = now;
+                }
+            }
+        }
+
+        // Scan lines
+        for (const line of this.scanLines) {
+            line.y += line.speed * dt;
+            if (line.y > h + 10) line.y = -10;
+        }
+
+        // Random target repositioning
+        this.alertTimer += dt;
+        if (this.alertTimer > this.nextAlert) {
+            this.alertTimer = 0;
+            this.nextAlert = 2000 + Math.random() * 4000;
+            const idx = Math.floor(Math.random() * this.targets.length);
+            this.targets[idx].x = Math.random() * w;
+            this.targets[idx].y = Math.random() * h;
+            this.targets[idx].revealTime = now;
+        }
+    }
+
+    draw(time) {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+        ctx.clearRect(0, 0, w, h);
+
+        const pulse = 0.5 + 0.5 * Math.sin(this.gridPulsePhase);
+
+        // === Layer 1: Tactical grid ===
+        ctx.strokeStyle = `rgba(255, 184, 0, ${0.02 + pulse * 0.01})`;
+        ctx.lineWidth = 0.5;
+        const gridSize = 80;
+        for (let x = 0; x < w; x += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+        }
+        for (let y = 0; y < h; y += gridSize) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+        }
+
+        // === Layer 2: Horizontal scan lines ===
+        for (const line of this.scanLines) {
+            const grad = ctx.createLinearGradient(0, line.y - 4, 0, line.y + 4);
+            grad.addColorStop(0, 'rgba(255, 184, 0, 0)');
+            grad.addColorStop(0.5, `rgba(255, 184, 0, ${line.opacity})`);
+            grad.addColorStop(1, 'rgba(255, 184, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, line.y - 4, w, 8);
+        }
+
+        // === Layer 3: Mini radar (top-right) ===
+        const cx = w * 0.85;
+        const cy = h * 0.15;
+        const rr = Math.min(w, h) * 0.08;
+
+        // Radar circle
+        ctx.beginPath();
+        ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 184, 0, 0.12)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Inner rings
+        ctx.beginPath();
+        ctx.arc(cx, cy, rr * 0.5, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 184, 0, 0.06)';
+        ctx.stroke();
+
+        // Crosshairs
+        ctx.strokeStyle = 'rgba(255, 184, 0, 0.08)';
+        ctx.beginPath();
+        ctx.moveTo(cx - rr, cy);
+        ctx.lineTo(cx + rr, cy);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - rr);
+        ctx.lineTo(cx, cy + rr);
+        ctx.stroke();
+
+        // Sweep beam
+        const beamLen = rr;
+        const beamX = cx + Math.cos(this.radarAngle) * beamLen;
+        const beamY = cy + Math.sin(this.radarAngle) * beamLen;
+
+        // Sweep trail (arc fill)
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, rr, this.radarAngle - 0.5, this.radarAngle);
+        ctx.closePath();
+        const sweepGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
+        sweepGrad.addColorStop(0, 'rgba(255, 184, 0, 0.08)');
+        sweepGrad.addColorStop(1, 'rgba(255, 184, 0, 0)');
+        ctx.fillStyle = sweepGrad;
+        ctx.fill();
+
+        // Beam line
+        ctx.strokeStyle = 'rgba(255, 184, 0, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.lineTo(beamX, beamY);
+        ctx.stroke();
+
+        // === Layer 4: Target markers across full screen ===
+        const now = time;
+        for (const t of this.targets) {
+            const age = now - t.revealTime;
+            if (age < 4000) {
+                const alpha = 0.2 * (1 - age / 4000);
+                const color = t.type === 'hostile' ? '255, 45, 45' : '255, 184, 0';
+
+                // Diamond marker
+                const s = t.size;
+                ctx.save();
+                ctx.translate(t.x, t.y);
+                ctx.rotate(Math.PI / 4);
+                ctx.strokeStyle = `rgba(${color}, ${alpha})`;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-s / 2, -s / 2, s, s);
+                ctx.restore();
+
+                // Range ring
+                if (t.type === 'hostile') {
+                    ctx.beginPath();
+                    ctx.arc(t.x, t.y, s * 2, 0, Math.PI * 2);
+                    ctx.strokeStyle = `rgba(255, 45, 45, ${alpha * 0.5})`;
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // === Layer 5: Corner brackets (HUD frame) ===
+        const bracketSize = 30;
+        const bracketInset = 15;
+        ctx.strokeStyle = 'rgba(255, 184, 0, 0.1)';
+        ctx.lineWidth = 1.5;
+
+        // Top-left
+        ctx.beginPath();
+        ctx.moveTo(bracketInset, bracketInset + bracketSize);
+        ctx.lineTo(bracketInset, bracketInset);
+        ctx.lineTo(bracketInset + bracketSize, bracketInset);
+        ctx.stroke();
+        // Top-right
+        ctx.beginPath();
+        ctx.moveTo(w - bracketInset - bracketSize, bracketInset);
+        ctx.lineTo(w - bracketInset, bracketInset);
+        ctx.lineTo(w - bracketInset, bracketInset + bracketSize);
+        ctx.stroke();
+        // Bottom-left
+        ctx.beginPath();
+        ctx.moveTo(bracketInset, h - bracketInset - bracketSize);
+        ctx.lineTo(bracketInset, h - bracketInset);
+        ctx.lineTo(bracketInset + bracketSize, h - bracketInset);
+        ctx.stroke();
+        // Bottom-right
+        ctx.beginPath();
+        ctx.moveTo(w - bracketInset - bracketSize, h - bracketInset);
+        ctx.lineTo(w - bracketInset, h - bracketInset);
+        ctx.lineTo(w - bracketInset, h - bracketInset - bracketSize);
+        ctx.stroke();
+
+        // === Layer 6: Subtle vignette ===
+        const vig = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.6);
+        vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vig.addColorStop(1, 'rgba(0, 0, 0, 0.2)');
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, w, h);
+    }
+}
+
+// ============================================
 // MANAGER
 // ============================================
 
@@ -937,6 +1588,12 @@ function startEffect(themeName) {
         currentEffect = new BubblegumEffect(canvas, ctx);
     } else if (themeName === 'nerv') {
         currentEffect = new NervEffect(canvas, ctx);
+    } else if (themeName === 'abyss') {
+        currentEffect = new AbyssEffect(canvas, ctx);
+    } else if (themeName === 'moss') {
+        currentEffect = new MossEffect(canvas, ctx);
+    } else if (themeName === 'warzone') {
+        currentEffect = new WarzoneEffect(canvas, ctx);
     }
 
     if (currentEffect) {
