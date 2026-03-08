@@ -168,6 +168,25 @@
     --accent-blue: #FF69B4;
 }
 
+/* --- NERV: Evangelion Operations Console --- */
+[data-theme="nerv"] {
+    --bg-primary: #000000;
+    --bg-secondary: #0A0A08;
+    --bg-tertiary: #111110;
+    --glass-bg: rgba(10, 10, 8, 0.85);
+    --glass-border: rgba(255, 152, 48, 0.15);
+    --text-primary: #E0E0D8;
+    --text-secondary: #9A9A90;
+    --text-tertiary: #6A6A60;
+    --text-muted: #3A3A35;
+    --accent-cyan: #20F0FF;
+    --accent-purple: #FF9830;
+    --accent-pink: #FF4840;
+    --accent-blue: #50FF50;
+    --blur-amount: 0px;
+    --transition: all 0.15s ease;
+}
+
 /* --- Dark: Achromatic zen theme --- */
 [data-theme="dark"] {
     --bg-primary: #1A1A1A;
@@ -11737,4 +11756,297 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     padding: 20px 0;
     font-style: italic;
     letter-spacing: 0.5px;
+}
+
+/* ==========================================
+   NERV Theme — Evangelion Operations Console
+   The screen is off until data demands it.
+   ========================================== */
+
+/* Kill the ambient gradient — pure void */
+[data-theme="nerv"]::before,
+body[data-theme="nerv"]::before {
+    display: none !important;
+}
+
+/* ── Global: zero radius, zero blur, zero mercy ── */
+[data-theme="nerv"] * {
+    border-radius: 0 !important;
+}
+[data-theme="nerv"] .glass,
+[data-theme="nerv"] .card,
+[data-theme="nerv"] .glass-card,
+[data-theme="nerv"] .stat-card,
+[data-theme="nerv"] .comparison-card,
+[data-theme="nerv"] .chain-comparison-table,
+[data-theme="nerv"] .my-baker-card,
+[data-theme="nerv"] .whale-item,
+[data-theme="nerv"] .timeline-item,
+[data-theme="nerv"] .changelog-modal,
+[data-theme="nerv"] .modal-content,
+[data-theme="nerv"] .settings-dropdown,
+[data-theme="nerv"] .theme-picker-dropdown,
+[data-theme="nerv"] .notification-banner,
+[data-theme="nerv"] .collapsible-section,
+[data-theme="nerv"] .sparkline-container,
+[data-theme="nerv"] .capacity-bar,
+[data-theme="nerv"] .capacity-bar-fill,
+[data-theme="nerv"] .cycle-bar,
+[data-theme="nerv"] input,
+[data-theme="nerv"] button,
+[data-theme="nerv"] .btn,
+[data-theme="nerv"] .badge {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border-radius: 0 !important;
+}
+
+/* ── Typography: monospace dominates ── */
+[data-theme="nerv"] .stat-value,
+[data-theme="nerv"] .metric-value,
+[data-theme="nerv"] .uptime-counter,
+[data-theme="nerv"] .chain-value,
+[data-theme="nerv"] .comparison-value,
+[data-theme="nerv"] .baker-stat-value,
+[data-theme="nerv"] .cycle-number,
+[data-theme="nerv"] .reward-amount {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+    color: #50FF50 !important;
+    text-shadow: 0 0 12px rgba(80, 255, 80, 0.4), 0 0 30px rgba(80, 255, 80, 0.15);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+/* Stat labels: dim orange, uppercase, spaced — institutional */
+[data-theme="nerv"] .stat-label,
+[data-theme="nerv"] .metric-label,
+[data-theme="nerv"] .chain-label,
+[data-theme="nerv"] .comparison-label,
+[data-theme="nerv"] .baker-stat-label {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+    color: #D08028 !important;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.65rem !important;
+    font-weight: 400;
+}
+
+/* Section headers: orange, institutional authority */
+[data-theme="nerv"] .section-title,
+[data-theme="nerv"] .section-header h2,
+[data-theme="nerv"] h2 {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #FF9830 !important;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+/* ── Cards: instrument panels ── */
+[data-theme="nerv"] .stat-card {
+    border: 1px solid rgba(255, 152, 48, 0.18);
+    border-top: 2px solid rgba(255, 152, 48, 0.5);
+    background: rgba(8, 8, 6, 0.92);
+    box-shadow: inset 0 1px 0 rgba(255, 152, 48, 0.08);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+[data-theme="nerv"] .stat-card:hover {
+    border-color: rgba(255, 152, 48, 0.5);
+    border-top-color: #FF9830;
+    box-shadow: 0 0 25px rgba(255, 152, 48, 0.12), inset 0 1px 0 rgba(255, 152, 48, 0.15);
+    transform: none;
+}
+
+/* Chain name badges in comparison cards */
+[data-theme="nerv"] .chain-name,
+[data-theme="nerv"] .comparison-chain {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* ── Color coding: function, not decoration ── */
+/* Green = nominal data */
+[data-theme="nerv"] .price-change.positive {
+    color: #50FF50 !important;
+    text-shadow: 0 0 8px rgba(80, 255, 80, 0.35);
+}
+/* Red = alert only */
+[data-theme="nerv"] .price-change.negative {
+    color: #FF4840 !important;
+    text-shadow: 0 0 8px rgba(255, 72, 64, 0.35);
+}
+/* Cyan = spatial/structural */
+[data-theme="nerv"] .whale-address,
+[data-theme="nerv"] .whale-alias,
+[data-theme="nerv"] a:not(.hero-cta-primary) {
+    color: #20F0FF !important;
+}
+
+/* ── Header / Title: NERV institutional ── */
+[data-theme="nerv"] .site-title,
+[data-theme="nerv"] .header-title,
+[data-theme="nerv"] h1 {
+    font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+    color: #FF9830 !important;
+    text-shadow: 0 0 15px rgba(255, 152, 48, 0.5), 0 0 40px rgba(255, 152, 48, 0.15);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+}
+
+/* ── Scrollbar: orange on void ── */
+[data-theme="nerv"] ::-webkit-scrollbar-thumb {
+    background: rgba(255, 152, 48, 0.35);
+    border: 1px solid rgba(255, 152, 48, 0.2);
+}
+[data-theme="nerv"] ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 152, 48, 0.55);
+    box-shadow: 0 0 8px rgba(255, 152, 48, 0.3);
+}
+[data-theme="nerv"] ::-webkit-scrollbar-track {
+    background: #060604;
+}
+
+/* ── Timeline: orange accent ── */
+[data-theme="nerv"] .timeline-item.current {
+    border-color: rgba(255, 152, 48, 0.5);
+    border-top: 2px solid #FF9830;
+    box-shadow: 0 0 20px rgba(255, 152, 48, 0.15);
+}
+[data-theme="nerv"] .timeline-item:hover {
+    border-color: rgba(255, 152, 48, 0.45);
+    box-shadow: 0 0 15px rgba(255, 152, 48, 0.1);
+}
+[data-theme="nerv"] .contention-icon {
+    color: #FF4840;
+    text-shadow: 0 0 10px rgba(255, 72, 64, 0.6);
+}
+[data-theme="nerv"] .upgrade-number {
+    color: #FF9830;
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+[data-theme="nerv"] .upgrade-badge {
+    border-color: rgba(255, 152, 48, 0.35);
+}
+
+/* ── Uptime clock: NERV instrument panel ── */
+[data-theme="nerv"] .uptime-clock {
+    background: rgba(8, 8, 6, 0.95);
+    border: 1px solid rgba(255, 152, 48, 0.25);
+    border-top: 2px solid rgba(255, 152, 48, 0.6);
+    box-shadow: 0 0 30px rgba(255, 152, 48, 0.08), inset 0 1px 0 rgba(255, 152, 48, 0.1);
+}
+[data-theme="nerv"] .uptime-clock::before {
+    background: linear-gradient(90deg, transparent, rgba(255, 152, 48, 0.4), transparent);
+    opacity: 0.3;
+}
+[data-theme="nerv"] .uptime-tagline {
+    color: #FF9830;
+    text-shadow: 0 0 10px rgba(255, 152, 48, 0.5);
+    font-family: 'IBM Plex Mono', monospace !important;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+[data-theme="nerv"] .uptime-metric-value {
+    color: #E0E0D8;
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+[data-theme="nerv"] .uptime-metric-label {
+    color: rgba(255, 152, 48, 0.5);
+    font-family: 'IBM Plex Mono', monospace !important;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+[data-theme="nerv"] .uptime-pulse-dot {
+    color: #FF9830;
+    background: #FF9830;
+    box-shadow: 0 0 8px rgba(255, 152, 48, 0.7);
+}
+
+/* ── Hero CTA: outlined, institutional ── */
+[data-theme="nerv"] .hero-cta-primary {
+    border: 1px solid #FF9830 !important;
+    background: transparent !important;
+    color: #FF9830 !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+}
+[data-theme="nerv"] .hero-cta-primary:hover {
+    background: rgba(255, 152, 48, 0.1) !important;
+    box-shadow: 0 0 15px rgba(255, 152, 48, 0.15);
+}
+
+/* ── Gear dropdown ── */
+[data-theme="nerv"] .settings-dropdown {
+    border: 1px solid rgba(255, 152, 48, 0.25);
+    background: #080806;
+}
+
+/* ── Disable matrix-specific card effects ── */
+[data-theme="nerv"] .stat-card.hex-active::before { display: none; }
+[data-theme="nerv"] .stat-card.scanline-active::after { display: none; }
+[data-theme="nerv"] .stat-card.bracket-locked::before,
+[data-theme="nerv"] .stat-card.bracket-locked::after { display: none; }
+[data-theme="nerv"] .stat-card.pulse-active { animation: none; }
+
+/* ── Notification bar: ops console header ── */
+[data-theme="nerv"] .notification-banner,
+[data-theme="nerv"] .visit-notification {
+    background: rgba(8, 8, 6, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 152, 48, 0.2) !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+/* ── Cycle bars: green fill on void ── */
+[data-theme="nerv"] .capacity-bar-fill,
+[data-theme="nerv"] .cycle-bar-fill {
+    background: linear-gradient(90deg, #50FF50, #30BB30) !important;
+    box-shadow: 0 0 8px rgba(80, 255, 80, 0.3);
+}
+[data-theme="nerv"] .capacity-bar,
+[data-theme="nerv"] .cycle-bar {
+    background: rgba(80, 255, 80, 0.06) !important;
+    border: 1px solid rgba(80, 255, 80, 0.15) !important;
+}
+
+/* ── Briefing card: institutional feel ── */
+[data-theme="nerv"] .briefing-card,
+[data-theme="nerv"] .daily-briefing {
+    background: rgba(8, 8, 6, 0.95) !important;
+    border: 1px solid rgba(255, 152, 48, 0.2) !important;
+    border-top: 2px solid rgba(255, 152, 48, 0.5) !important;
+    font-family: 'IBM Plex Mono', monospace !important;
+}
+
+/* ── Footer: muted, institutional ── */
+[data-theme="nerv"] footer,
+[data-theme="nerv"] .footer {
+    font-family: 'IBM Plex Mono', monospace !important;
+    font-size: 0.65rem;
+    letter-spacing: 0.06em;
+}
+
+/* ── Canvas background: more visible for NERV ── */
+[data-theme="nerv"] #bg-effects-canvas {
+    opacity: 0.75 !important;
+}
+
+/* ── CRT overlay on body (CSS-only scanlines + vignette) ── */
+[data-theme="nerv"]::after,
+body[data-theme="nerv"]::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.04) 2px,
+        rgba(0, 0, 0, 0.04) 4px
+    );
+    pointer-events: none;
+    z-index: 9999;
 }

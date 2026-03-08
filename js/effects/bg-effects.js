@@ -3,7 +3,7 @@
  * Shares the same canvas pattern as matrix-effects.js
  */
 
-const BG_THEMES = ['void', 'ember', 'signal', 'bubblegum'];
+const BG_THEMES = ['void', 'ember', 'signal', 'bubblegum', 'nerv'];
 
 class VoidEffect {
     constructor(canvas, ctx) {
@@ -523,6 +523,363 @@ class BubblegumEffect {
     }
 }
 
+class NervEffect {
+    constructor(canvas, ctx) {
+        this.canvas = canvas;
+        this.ctx = ctx;
+        this.scanlineOffset = 0;
+        this.hexCells = [];
+        this.nextAlert = 4000 + Math.random() * 6000;
+        this.alertTimer = 0;
+        this.flickerPhase = 0;
+        this.scanBeamY = 0;
+        this.scanBeamSpeed = 0.06; // pixels per ms
+        this.dataStreams = [];
+        this.glitchTimer = 0;
+        this.nextGlitch = 5000 + Math.random() * 10000;
+        this.glitchActive = false;
+        this.glitchDuration = 0;
+        this.glitchElapsed = 0;
+        this.animationId = null;
+    }
+
+    init() {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Dense hex grid — more cells, tighter spacing
+        this.hexCells = [];
+        const hexSize = 32;
+        const hexH = hexSize * 1.1547;
+        const cols = Math.ceil(w / (hexSize + 3)) + 2;
+        const rows = Math.ceil(h / (hexH * 0.75)) + 2;
+        for (let row = 0; row < rows; row++) {
+            for (let col = 0; col < cols; col++) {
+                const x = col * (hexSize + 3) + (row % 2 ? (hexSize + 3) / 2 : 0);
+                const y = row * hexH * 0.75;
+                // 40% visible — denser than v1
+                if (Math.random() < 0.4) {
+                    this.hexCells.push({
+                        x, y, size: hexSize,
+                        baseOpacity: 0.025 + Math.random() * 0.04,
+                        opacity: 0,
+                        alert: false,
+                        alertAge: 0,
+                        pulsePhase: Math.random() * Math.PI * 2,
+                        revealed: false,
+                        revealTime: 0
+                    });
+                }
+            }
+        }
+
+        // Vertical data streams (like matrix rain but orange text fragments)
+        this.dataStreams = [];
+        const streamCount = Math.floor(w / 120);
+        for (let i = 0; i < streamCount; i++) {
+            this.dataStreams.push({
+                x: 40 + Math.random() * (w - 80),
+                y: -Math.random() * h,
+                speed: 0.015 + Math.random() * 0.03,
+                chars: this._genDataString(),
+                opacity: 0.03 + Math.random() * 0.04,
+                charSize: 8 + Math.random() * 2
+            });
+        }
+
+        this.scanBeamY = 0;
+    }
+
+    _genDataString() {
+        // Mix of hex addresses, numbers, and status codes
+        const fragments = [
+            'FF9830', '50FF50', '20F0FF', 'E0E0D8',
+            '00:00:00', '127.0.0.1', 'SYNC OK',
+            'PATTERN BLUE', 'LCL NOMINAL', 'AT FIELD',
+            '0x7F3A', 'ACK', 'MAGI-01', 'CASPER',
+            'BALTHASAR', 'MELCHIOR', '>>>',
+            '作戦', '警告', '認証', '緊急',
+            '====', '----', '||||', '▓▓▓▓'
+        ];
+        let s = '';
+        const len = 3 + Math.floor(Math.random() * 5);
+        for (let i = 0; i < len; i++) {
+            s += fragments[Math.floor(Math.random() * fragments.length)] + ' ';
+        }
+        return s;
+    }
+
+    update(dt) {
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        // Scanline phase
+        this.scanlineOffset = (this.scanlineOffset + dt * 0.015) % 4;
+
+        // Phosphor flicker
+        this.flickerPhase += dt;
+
+        // Scan beam sweeps top to bottom every ~12 seconds
+        this.scanBeamY += this.scanBeamSpeed * dt;
+        if (this.scanBeamY > h + 100) this.scanBeamY = -100;
+
+        // Reveal hex cells as scan beam passes
+        for (const cell of this.hexCells) {
+            if (!cell.revealed && Math.abs(cell.y - this.scanBeamY) < 30) {
+                cell.revealed = true;
+                cell.revealTime = performance.now();
+            }
+            // Fade revealed cells
+            if (cell.revealed) {
+                const age = performance.now() - cell.revealTime;
+                if (age < 500) {
+                    cell.opacity = cell.baseOpacity * (age / 500);
+                } else if (age > 8000) {
+                    cell.opacity = cell.baseOpacity * Math.max(0, 1 - (age - 8000) / 2000);
+                    if (age > 10000) {
+                        cell.revealed = false;
+                        cell.opacity = 0;
+                    }
+                } else {
+                    // Subtle pulse while visible
+                    const pulse = 1 + 0.3 * Math.sin(performance.now() * 0.001 + cell.pulsePhase);
+                    cell.opacity = cell.baseOpacity * pulse;
+                }
+            }
+        }
+
+        // Random hex cell alerts
+        this.alertTimer += dt;
+        if (this.alertTimer > this.nextAlert) {
+            this.alertTimer = 0;
+            this.nextAlert = 4000 + Math.random() * 6000;
+            const count = 1 + Math.floor(Math.random() * 4);
+            for (let i = 0; i < count; i++) {
+                if (this.hexCells.length > 0) {
+                    const idx = Math.floor(Math.random() * this.hexCells.length);
+                    this.hexCells[idx].alert = true;
+                    this.hexCells[idx].alertAge = 0;
+                    this.hexCells[idx].revealed = true;
+                    this.hexCells[idx].revealTime = performance.now();
+                }
+            }
+        }
+
+        for (const cell of this.hexCells) {
+            if (cell.alert) {
+                cell.alertAge += dt;
+                if (cell.alertAge > 3000) {
+                    cell.alert = false;
+                    cell.alertAge = 0;
+                }
+            }
+        }
+
+        // Data streams scroll down
+        for (const stream of this.dataStreams) {
+            stream.y += stream.speed * dt;
+            if (stream.y > h + 200) {
+                stream.y = -200 - Math.random() * 300;
+                stream.x = 40 + Math.random() * (w - 80);
+                stream.chars = this._genDataString();
+            }
+        }
+
+        // Glitch events — brief horizontal displacement
+        this.glitchTimer += dt;
+        if (!this.glitchActive && this.glitchTimer > this.nextGlitch) {
+            this.glitchActive = true;
+            this.glitchDuration = 50 + Math.random() * 150;
+            this.glitchElapsed = 0;
+            this.glitchTimer = 0;
+            this.nextGlitch = 5000 + Math.random() * 10000;
+        }
+        if (this.glitchActive) {
+            this.glitchElapsed += dt;
+            if (this.glitchElapsed > this.glitchDuration) {
+                this.glitchActive = false;
+            }
+        }
+    }
+
+    _drawHex(ctx, cx, cy, size) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i - Math.PI / 6;
+            const x = cx + (size / 2) * Math.cos(angle);
+            const y = cy + (size / 2) * Math.sin(angle);
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+    }
+
+    draw(time) {
+        const ctx = this.ctx;
+        const w = this.canvas.width;
+        const h = this.canvas.height;
+
+        ctx.clearRect(0, 0, w, h);
+
+        // Global phosphor flicker
+        const flicker = 0.96 + 0.04 * Math.sin(this.flickerPhase * 0.08);
+        ctx.globalAlpha = flicker;
+
+        // === Layer 1: Measurement grid (always visible, very faint) ===
+        ctx.strokeStyle = 'rgba(224, 224, 216, 0.02)';
+        ctx.lineWidth = 0.5;
+        for (let x = 0; x < w; x += 60) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+        }
+        for (let y = 0; y < h; y += 60) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+        }
+        // Major grid lines every 300px
+        ctx.strokeStyle = 'rgba(255, 152, 48, 0.025)';
+        ctx.lineWidth = 0.8;
+        for (let x = 0; x < w; x += 300) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+        }
+        for (let y = 0; y < h; y += 300) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+        }
+
+        // === Layer 2: Hex grid with scan-reveal ===
+        for (const cell of this.hexCells) {
+            if (cell.opacity <= 0.001) continue;
+            this._drawHex(ctx, cell.x, cell.y, cell.size);
+            if (cell.alert) {
+                const fade = 1 - (cell.alertAge / 3000);
+                const pulse = 0.5 + 0.5 * Math.sin(cell.alertAge * 0.01);
+                ctx.strokeStyle = `rgba(255, 72, 64, ${(0.2 + pulse * 0.15) * fade})`;
+                ctx.fillStyle = `rgba(255, 72, 64, ${0.06 * fade})`;
+                ctx.lineWidth = 1.2;
+                ctx.fill();
+                ctx.stroke();
+                // Glow
+                ctx.shadowColor = '#FF4840';
+                ctx.shadowBlur = 8 * fade;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.strokeStyle = `rgba(32, 240, 255, ${cell.opacity})`;
+                ctx.lineWidth = 0.6;
+                ctx.stroke();
+            }
+        }
+
+        // === Layer 3: Scan beam ===
+        const beamGrad = ctx.createLinearGradient(0, this.scanBeamY - 40, 0, this.scanBeamY + 40);
+        beamGrad.addColorStop(0, 'rgba(32, 240, 255, 0)');
+        beamGrad.addColorStop(0.3, 'rgba(32, 240, 255, 0.02)');
+        beamGrad.addColorStop(0.5, 'rgba(32, 240, 255, 0.06)');
+        beamGrad.addColorStop(0.7, 'rgba(32, 240, 255, 0.02)');
+        beamGrad.addColorStop(1, 'rgba(32, 240, 255, 0)');
+        ctx.fillStyle = beamGrad;
+        ctx.fillRect(0, this.scanBeamY - 40, w, 80);
+        // Bright center line
+        ctx.strokeStyle = 'rgba(32, 240, 255, 0.08)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, this.scanBeamY);
+        ctx.lineTo(w, this.scanBeamY);
+        ctx.stroke();
+
+        // === Layer 4: Vertical data streams ===
+        ctx.font = '8px monospace';
+        for (const stream of this.dataStreams) {
+            const chars = stream.chars.split('');
+            for (let i = 0; i < chars.length; i++) {
+                const cy = stream.y + i * (stream.charSize + 1);
+                if (cy < -20 || cy > h + 20) continue;
+                // Fade at edges
+                const edgeFade = Math.min(1, Math.min(cy + 20, h + 20 - cy) / 100);
+                ctx.fillStyle = `rgba(255, 152, 48, ${stream.opacity * edgeFade})`;
+                ctx.fillText(chars[i], stream.x, cy);
+            }
+        }
+
+        // === Layer 5: CRT scanlines (more visible) ===
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.055)';
+        for (let y = this.scanlineOffset; y < h; y += 3) {
+            ctx.fillRect(0, y, w, 1.5);
+        }
+
+        // === Layer 6: Heavy vignette ===
+        const vig = ctx.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.25, w / 2, h / 2, Math.max(w, h) * 0.65);
+        vig.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vig.addColorStop(0.7, 'rgba(0, 0, 0, 0.1)');
+        vig.addColorStop(1, 'rgba(0, 0, 0, 0.4)');
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, w, h);
+
+        // === Layer 7: Registration marks / crosshairs ===
+        const markSize = 16;
+        const markInset = 24;
+        ctx.lineWidth = 1;
+        const corners = [
+            [markInset, markInset],
+            [w - markInset, markInset],
+            [markInset, h - markInset],
+            [w - markInset, h - markInset]
+        ];
+        for (const [cx, cy] of corners) {
+            // Orange crosshair
+            ctx.strokeStyle = 'rgba(255, 152, 48, 0.12)';
+            ctx.beginPath();
+            ctx.moveTo(cx - markSize, cy);
+            ctx.lineTo(cx + markSize, cy);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - markSize);
+            ctx.lineTo(cx, cy + markSize);
+            ctx.stroke();
+            // Small circle
+            ctx.beginPath();
+            ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        // Scale markers along bottom edge
+        ctx.fillStyle = 'rgba(255, 152, 48, 0.06)';
+        ctx.font = '7px monospace';
+        for (let x = 60; x < w; x += 120) {
+            ctx.fillRect(x, h - 8, 1, 6);
+            ctx.fillText(x.toString(), x + 3, h - 3);
+        }
+
+        // === Layer 8: Glitch displacement ===
+        if (this.glitchActive) {
+            const sliceH = 2 + Math.random() * 6;
+            const sliceY = Math.random() * h;
+            const shift = (Math.random() - 0.5) * 20;
+            const imgData = ctx.getImageData(0, sliceY, w, sliceH);
+            ctx.putImageData(imgData, shift, sliceY);
+            // Red glitch line
+            ctx.strokeStyle = 'rgba(255, 72, 64, 0.15)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, sliceY);
+            ctx.lineTo(w, sliceY);
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = 1;
+    }
+}
+
 // ============================================
 // MANAGER
 // ============================================
@@ -578,6 +935,8 @@ function startEffect(themeName) {
         currentEffect = new SignalEffect(canvas, ctx);
     } else if (themeName === 'bubblegum') {
         currentEffect = new BubblegumEffect(canvas, ctx);
+    } else if (themeName === 'nerv') {
+        currentEffect = new NervEffect(canvas, ctx);
     }
 
     if (currentEffect) {

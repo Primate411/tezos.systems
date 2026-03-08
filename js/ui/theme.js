@@ -4,7 +4,7 @@
  */
 
 const THEME_KEY = 'tezos-systems-theme';
-const THEMES = ['matrix', 'default', 'void', 'ember', 'signal', 'clean', 'dark', 'bubblegum'];
+const THEMES = ['matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum'];
 const DEFAULT_THEME = 'matrix';
 
 // Theme color definitions for the picker dots
@@ -13,6 +13,7 @@ const THEME_COLORS = {
     'void': { bg: '#0a0a14', accent: '#8b5cf6', text: '#a78bfa' },
     'ember': { bg: '#0f0a08', accent: '#ff6b2b', text: '#ff9f43' },
     'signal': { bg: '#0a0f0e', accent: '#00ffc8', text: '#00d4ff' },
+    'nerv': { bg: '#000000', accent: '#FF9830', text: '#50FF50' },
     'clean': { bg: '#ffffff', accent: '#0784c3', text: '#1e2022' },
     'dark': { bg: '#1A1A1A', accent: '#C8C8C8', text: '#E8E8E8' },
     'default': { bg: '#0f0f1a', accent: '#00d4ff', text: '#b794f6' },
@@ -61,6 +62,7 @@ const THEME_VIBES = {
     'void': { tagline: 'Deep Space', icon: '🔮' },
     'ember': { tagline: 'Phoenix Rising', icon: '🔥' },
     'signal': { tagline: 'Decode the Data', icon: '📡' },
+    'nerv': { tagline: 'Operations Console', icon: '⚡' },
     'clean': { tagline: 'Pure Analytics', icon: '📊' },
     'dark': { tagline: 'Zero Distractions', icon: '🌑' },
     'bubblegum': { tagline: 'Sweet Simplicity', icon: '🫧' }
@@ -287,6 +289,7 @@ function updateThemeIcon(theme) {
             'signal': '📡',
             'clean': '📊',
             'dark': '🌑',
+            'nerv': '⚡',
             'bubblegum': '🫧'
         };
 
