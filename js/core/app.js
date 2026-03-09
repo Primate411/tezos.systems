@@ -28,10 +28,11 @@ import { initChamber } from '../features/chamber.js?v=20260303c';
 function updateGovernanceBanner(stats, votingStatus) {
     let banner = document.getElementById('gov-countdown-banner');
     
-    // Show during ANY governance phase with an active proposal
+    // Only show when there's an actual proposal — not during empty proposal periods
     const hasProposal = stats?.proposal && stats.proposal !== 'None' && stats.proposal !== 'N/A';
     const kind = votingStatus?.kind || '';
-    const isVotingActive = hasProposal || ['proposal', 'exploration', 'cooldown', 'promotion', 'adoption'].includes(kind);
+    const isVotingPhase = ['exploration', 'cooldown', 'promotion', 'adoption'].includes(kind);
+    const isVotingActive = hasProposal || isVotingPhase;
     
     if (!isVotingActive) {
         if (banner) { banner.remove(); }
