@@ -302,6 +302,24 @@ async function collectData() {
 
     console.log('Collected data:', dataPoint);
 
+    // Sanity check: reject snapshots with critical fields at zero
+    // These fields should NEVER be zero on a live network
+    const criticalFields = {
+      total_supply: dataPoint.total_supply,
+      staking_ratio: dataPoint.staking_ratio,
+      total_bakers: dataPoint.total_bakers,
+      current_issuance_rate: dataPoint.current_issuance_rate
+    };
+
+    const zeroFields = Object.entries(criticalFields)
+      .filter(([_, v]) => !v || v === 0)
+      .map(([k]) => k);
+
+    if (zeroFields.length > 0) {
+      console.error(`ABORT: Critical fields are zero: ${zeroFields.join(', ')}. Likely RPC failure — skipping snapshot to avoid corrupting sparkline data.`);
+      process.exit(1);
+    }
+
     // Store in Supabase
     const supabaseUrl = process.env.SUPABASE_URL;
     const supabaseKey = process.env.SUPABASE_KEY;
