@@ -282,8 +282,6 @@ async function fetchGovernance() {
             day: 'numeric'
         }) : 'N/A';
         
-        const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
-
         return {
             proposal: proposalName,
             proposalDescription: voting.epoch?.proposal ? 'In progress' : 'No active proposal',
@@ -294,7 +292,6 @@ async function fetchGovernance() {
         };
     } catch (error) {
         console.error('Failed to fetch governance:', error);
-        const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
 
         return {
             proposal: 'N/A',
@@ -527,11 +524,9 @@ export async function fetchAllStats() {
             fetchCycleInfo(),
             fetchGovernance(),
             fetchIssuance(),
-            fetchCycleInfo(),
             fetchTransactionVolume(),
             fetchContractCalls(),
             fetchStakingRatio(),
-            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`),
             fetchTotalSupply(),
             fetchTotalBurned(),
             fetchFundedAccounts(),
@@ -548,12 +543,9 @@ export async function fetchAllStats() {
         const staking = stakingData.status === 'fulfilled' ? stakingData.value : { stakingRatio: 0, delegatedRatio: 0 };
         const apy = stakingAPY.status === 'fulfilled' ? stakingAPY.value : { delegateAPY: 0, stakeAPY: 0 };
 
-        const issuanceRate = issuanceData.status === "fulfilled" ? (issuanceData.value.total || 0) : 0;
-
         return {
             // Consensus
             totalBakers: bakers.total,
-            currentIssuanceRate: issuanceRate,
             tz4Bakers: bakers.tz4Count,
             tz4Percentage: bakers.tz4Percentage,
             cycle: cycle.cycle,
@@ -569,7 +561,7 @@ export async function fetchAllStats() {
             participationDescription: gov.participationDescription || '',
             
             // Economy
-            currentIssuanceRate: issuance.status === 'fulfilled' ? issuance.value.total : 0,
+            currentIssuanceRate: issuance.status === 'fulfilled' ? (issuance.value.total || 0) : 0,
             protocolIssuanceRate: issuance.status === 'fulfilled' ? issuance.value.protocol : 0,
             lbIssuanceRate: issuance.status === 'fulfilled' ? issuance.value.lb : 0,
             stakingRatio: staking.stakingRatio,

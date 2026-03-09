@@ -581,7 +581,7 @@ async function updateStats(newStats) {
         updateStatInstant('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
         updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate);
         updateStatInstant('staking-apy', newStats.delegateAPY, 
-            (val) => `${val.toFixed(1)}% / ${newStats.stakeAPY.toFixed(1)}%`);
+            (val) => `${(val || 0).toFixed(1)}% / ${(newStats.stakeAPY || 0).toFixed(1)}%`);
         updateStatInstant('staking-ratio', newStats.stakingRatio, formatPercentage);
         updateStatInstant('delegated', newStats.delegatedRatio, formatPercentage);
         updateStatInstant('total-supply', newStats.totalSupply, formatSupply);
@@ -666,7 +666,7 @@ async function updateStats(newStats) {
 
     // Update about modal with live data
     const aboutApy = document.getElementById('about-apy');
-    if (aboutApy) aboutApy.textContent = `~${newStats.stakeAPY.toFixed(1)}%`;
+    if (aboutApy) aboutApy.textContent = `~${(newStats.stakeAPY || 0).toFixed(1)}%`;
 
     // Update comparison section with live Tezos data
     updateComparison(state.currentStats);
