@@ -79,7 +79,7 @@ function updateGovernanceBanner(stats, votingStatus) {
             <span class="gov-live-label">${label}</span>
         </div>
         <div class="gov-live-detail">
-            ${proposal ? `<span class="gov-live-proposal">${proposal}</span>` : ''}
+            ${proposal ? `<span class="gov-live-proposal">${escapeHtml(proposal)}</span>` : ''}
             <span class="gov-live-phase">${periodName}${timeLeft ? ` · ${timeLeft}` : ''}</span>
         </div>
         <div class="gov-live-cta">${cta}</div>
@@ -1749,7 +1749,7 @@ async function updateUpgradeClock() {
                 }
                 
                 const proposalName = votingStatus.epoch?.proposal?.alias;
-                const proposalLabel = proposalName ? `<span class="voting-proposal-name">${proposalName}</span>` : '';
+                const proposalLabel = proposalName ? `<span class="voting-proposal-name">${escapeHtml(proposalName)}</span>` : '';
                 
                 statusEl.innerHTML = `
                     <div class="voting-status">

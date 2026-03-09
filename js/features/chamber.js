@@ -11,6 +11,8 @@
  * Falls back to last complete epoch when no active proposal exists.
  */
 
+import { escapeHtml } from '../core/utils.js';
+
 const TZKT = 'https://api.tzkt.io/v1';
 
 const STAGES = [
@@ -325,7 +327,7 @@ function renderBakerHeatmap(voters) {
         if (v.status === 'voted_yay') colorClass = 'voted-yay';
         else if (v.status === 'voted_nay') colorClass = 'voted-nay';
         else if (v.status === 'voted_pass') colorClass = 'voted-pass';
-        const name = v.delegate.alias || v.delegate.address.slice(0, 8) + '…';
+        const name = escapeHtml(v.delegate.alias || v.delegate.address.slice(0, 8) + '…');
         const delay = 300 + idx * 30;
         
         return `<div class="heatmap-cell ${colorClass} heatmap-cascade" style="width:${size}px;height:${size}px;animation-delay:${delay}ms" title="${name}: ${fmtPower(v.votingPower)} ꜩ — ${v.status === 'none' ? 'NOT VOTED' : v.status.replace('voted_', '').toUpperCase()}">
@@ -536,7 +538,7 @@ function renderMyBakerVote(voters) {
     const voteType = baker.status.replace('voted_', '').toUpperCase();
     return `
         <div class="chamber-my-baker ${voted ? 'voted' : 'not-voted'} chamber-anim-fade" style="animation-delay:500ms">
-            <div class="my-baker-name">${baker.delegate.alias || baker.delegate.address.slice(0, 12) + '…'}</div>
+            <div class="my-baker-name">${escapeHtml(baker.delegate.alias || baker.delegate.address.slice(0, 12) + '…')}</div>
             <div class="my-baker-badge ${voted ? 'voted' : 'alert'}">${voted ? `✅ Voted ${voteType}` : '⚠️ NOT YET VOTED'}</div>
             <div class="my-baker-power">${fmtPower(baker.votingPower)} ꜩ</div>
             ${!voted ? '<div class="my-baker-cta">Your baker votes on your behalf — your delegated stake carries their decision</div>' : ''}
@@ -556,8 +558,8 @@ function renderTopVoters(voters) {
             if (v.status === 'voted_yay') { icon = '🟢'; cls = 'yay'; }
             else if (v.status === 'voted_nay') { icon = '🔴'; cls = 'nay'; }
             else if (v.status === 'voted_pass') { icon = '🟡'; cls = 'pass'; }
-            const name = v.delegate.alias || v.delegate.address.slice(0, 12) + '…';
-            return `<div class="voter-row"><span class="voter-rank">${i + 1}</span><span class="voter-name" title="${v.delegate.address}">${name}</span><span class="voter-power">${fmtPower(v.votingPower)}</span><span class="voter-vote ${cls}">${icon}</span></div>`;
+            const name = escapeHtml(v.delegate.alias || v.delegate.address.slice(0, 12) + '…');
+            return `<div class="voter-row"><span class="voter-rank">${i + 1}</span><span class="voter-name" title="${escapeHtml(v.delegate.address)}">${name}</span><span class="voter-power">${fmtPower(v.votingPower)}</span><span class="voter-vote ${cls}">${icon}</span></div>`;
         }).join('');
     }
     
@@ -607,8 +609,8 @@ function initVoterFilters() {
                     if (v.status === 'voted_yay') { icon = '🟢'; cls = 'yay'; }
                     else if (v.status === 'voted_nay') { icon = '🔴'; cls = 'nay'; }
                     else if (v.status === 'voted_pass') { icon = '🟡'; cls = 'pass'; }
-                    const name = v.delegate.alias || v.delegate.address.slice(0, 12) + '…';
-                    return `<div class="voter-row"><span class="voter-rank">${i + 1}</span><span class="voter-name" title="${v.delegate.address}">${name}</span><span class="voter-power">${fmtPower(v.votingPower)}</span><span class="voter-vote ${cls}">${icon}</span></div>`;
+                    const name = escapeHtml(v.delegate.alias || v.delegate.address.slice(0, 12) + '…');
+                    return `<div class="voter-row"><span class="voter-rank">${i + 1}</span><span class="voter-name" title="${escapeHtml(v.delegate.address)}">${name}</span><span class="voter-power">${fmtPower(v.votingPower)}</span><span class="voter-vote ${cls}">${icon}</span></div>`;
                 }).join('');
             }
         });
@@ -729,9 +731,9 @@ function renderProposalHeader(data) {
         <div class="chamber-header chamber-anim-fade">
             <div class="chamber-title-row"><h2 class="chamber-title">🏛️ The Chamber</h2>${badge}</div>
             <div class="chamber-proposal-info">
-                <div class="proposal-name">${proposalName}</div>
-                ${proposalHash ? `<div class="proposal-hash" title="${proposalHash}">${proposalHash.slice(0, 24)}…</div>` : ''}
-                ${submitter ? `<div class="proposal-submitter">by <strong>${submitter}</strong>${submitterPower ? ` · ${submitterPower}` : ''}</div>` : ''}
+                <div class="proposal-name">${escapeHtml(proposalName)}</div>
+                ${proposalHash ? `<div class="proposal-hash" title="${escapeHtml(proposalHash)}">${escapeHtml(proposalHash.slice(0, 24))}…</div>` : ''}
+                ${submitter ? `<div class="proposal-submitter">by <strong>${escapeHtml(submitter)}</strong>${submitterPower ? ` · ${escapeHtml(submitterPower)}` : ''}</div>` : ''}
             </div>
             ${renderEpochNav(epoch.index, isLive)}
         </div>
