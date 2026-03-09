@@ -10,17 +10,17 @@ const DEFAULT_THEME = 'matrix';
 // Theme color definitions for the picker dots
 const THEME_COLORS = {
     'matrix': { bg: '#0a0f0a', accent: '#00ff00', text: '#00ff41' },
-    'void': { bg: '#0a0a14', accent: '#8b5cf6', text: '#a78bfa' },
-    'ember': { bg: '#0f0a08', accent: '#ff6b2b', text: '#ff9f43' },
-    'signal': { bg: '#0a0f0e', accent: '#00ffc8', text: '#00d4ff' },
-    'nerv': { bg: '#000000', accent: '#FF9830', text: '#50FF50' },
-    'clean': { bg: '#ffffff', accent: '#0784c3', text: '#1e2022' },
-    'dark': { bg: '#1A1A1A', accent: '#C8C8C8', text: '#E8E8E8' },
-    'default': { bg: '#0f0f1a', accent: '#00d4ff', text: '#b794f6' },
+    'void': { bg: '#06060C', accent: '#8B5CF6', text: '#D8D0FF' },
+    'ember': { bg: '#0D0806', accent: '#FF9F43', text: '#FFE8D6' },
+    'signal': { bg: '#060A08', accent: '#00E4A0', text: '#C8F0E0' },
+    'nerv': { bg: '#000000', accent: '#FF9830', text: '#F0D8B0' },
+    'clean': { bg: '#F8F9FC', accent: '#2563EB', text: '#1A1D26' },
+    'dark': { bg: '#161616', accent: '#D0D0D0', text: '#F0F0F0' },
+    'default': { bg: '#0A0E1A', accent: '#5B8DEF', text: '#D8E0F0' },
     'bubblegum': { bg: '#1F0E18', accent: '#FF69B4', text: '#F5E0EE' },
-    'abyss': { bg: '#050510', accent: '#00E5FF', text: '#B8D4E3' },
-    'moss': { bg: '#0A0F08', accent: '#7CCD7C', text: '#D4E4D0' },
-    'warzone': { bg: '#0C0E08', accent: '#FFB800', text: '#D4D8C4' }
+    'abyss': { bg: '#020A1E', accent: '#00E5FF', text: '#A8D8FF' },
+    'moss': { bg: '#040C02', accent: '#50E850', text: '#D0E8B8' },
+    'warzone': { bg: '#080A02', accent: '#FFC000', text: '#E0D8A0' }
 };
 
 let currentPreviewTheme = null;
@@ -61,7 +61,7 @@ export function initTheme() {
  */
 const THEME_VIBES = {
     'matrix': { tagline: 'Code the Future', icon: '🟢' },
-    'default': { tagline: 'Refined Discovery', icon: '💎' },
+    'default': { tagline: 'Midnight Premium', icon: '💎' },
     'void': { tagline: 'Deep Space', icon: '🔮' },
     'ember': { tagline: 'Phoenix Rising', icon: '🔥' },
     'signal': { tagline: 'Decode the Data', icon: '📡' },

@@ -10,6 +10,11 @@ const CHANGELOG = [
             { type: '✨', text: '3 new animated themes: Abyss (deep ocean bioluminescence), Moss (organic mycelium network), Warzone (military HUD radar)' },
             { type: '🎨', text: 'Theme picker redesign — grouped into ✦ Animated and ◆ Classic with tagline hints on hover' },
             { type: '🎨', text: 'Landing page updated to 12 themes with all new entries in the theme grid' },
+            { type: '🎨', text: 'All themes upgraded to monochrome commitment — every theme now has total color identity' },
+            { type: '🎨', text: 'Default renamed to Midnight — refined blue monochrome premium feel' },
+            { type: '🎨', text: 'Void → purple monochrome, Signal → warm teal-green, NERV → orange monochrome' },
+            { type: '🎨', text: 'Clean theme refined with Apple Finance aesthetic, better card shadows' },
+            { type: '🎨', text: 'Component overrides added for all 12 themes — uptime clock, cards, modals, buttons' },
         ]
     },
     {

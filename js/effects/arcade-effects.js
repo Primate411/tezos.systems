@@ -58,21 +58,23 @@ function getColors() {
         case 'ember':
             return { primary: '#ff9f43', secondary: '#FF6B00', tertiary: '#993f00', glow: 'rgba(255,159,67,0.3)', bg: '#0f0a05' };
         case 'signal':
-            return { primary: '#00ffc8', secondary: '#00BFA5', tertiary: '#007a6a', glow: 'rgba(0,255,200,0.3)', bg: '#050f0d' };
+            return { primary: '#00E4A0', secondary: '#00B880', tertiary: '#006848', glow: 'rgba(0,228,160,0.3)', bg: '#060A08' };
+        case 'nerv':
+            return { primary: '#FF9830', secondary: '#D07020', tertiary: '#804010', glow: 'rgba(255,152,48,0.3)', bg: '#040300' };
         case 'clean':
-            return { primary: '#0784c3', secondary: '#055a85', tertiary: '#033b57', glow: 'rgba(7,132,195,0.15)', bg: '#f0f0f0' };
+            return { primary: '#2563EB', secondary: '#1D4ED8', tertiary: '#1E3A8A', glow: 'rgba(37,99,235,0.15)', bg: '#F8F9FC' };
         case 'dark':
-            return { primary: '#C8C8C8', secondary: '#888888', tertiary: '#444444', glow: 'rgba(200,200,200,0.1)', bg: '#0a0a0a' };
+            return { primary: '#D0D0D0', secondary: '#888888', tertiary: '#444444', glow: 'rgba(200,200,200,0.1)', bg: '#161616' };
         case 'bubblegum':
             return { primary: '#FF69B4', secondary: '#FF85C8', tertiary: '#cc3587', glow: 'rgba(255,105,180,0.3)', bg: '#120a10' };
         case 'abyss':
             return { primary: '#00E5FF', secondary: '#00B8D4', tertiary: '#006080', glow: 'rgba(0,229,255,0.3)', bg: '#030308' };
         case 'moss':
-            return { primary: '#7CCD7C', secondary: '#5CAA5C', tertiary: '#3A7A3A', glow: 'rgba(124,205,124,0.3)', bg: '#080c06' };
+            return { primary: '#50E850', secondary: '#38B838', tertiary: '#207020', glow: 'rgba(80,232,80,0.3)', bg: '#040C02' };
         case 'warzone':
             return { primary: '#FFB800', secondary: '#FF8C00', tertiary: '#995200', glow: 'rgba(255,184,0,0.3)', bg: '#080a04' };
         default:
-            return { primary: '#00d4ff', secondary: '#b794f6', tertiary: '#ff6b9d', glow: 'rgba(0,212,255,0.3)', bg: '#0a0a0f' };
+            return { primary: '#5B8DEF', secondary: '#3A6AD0', tertiary: '#2050A0', glow: 'rgba(91,141,239,0.3)', bg: '#0A0E1A' };
     }
 }
 
