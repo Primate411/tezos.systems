@@ -9599,10 +9599,207 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 }
 
 /* ==========================================
-   GOVERNANCE COUNTDOWN BANNER
+   GOVERNANCE LIVE EVENT BAR
    ========================================== */
 
-.gov-countdown-banner {
+.gov-countdown-banner.gov-live {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 24px;
+    font-family: 'Orbitron', monospace;
+    background: rgba(0, 20, 40, 0.85);
+    border: 1px solid rgba(0, 212, 255, 0.2);
+    border-radius: 0;
+    margin: 0;
+    max-width: 100%;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(12px);
+}
+
+/* Subtle animated border glow */
+.gov-countdown-banner.gov-live::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid transparent;
+    background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent) border-box;
+    mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    opacity: 0.4;
+    animation: govBorderSweep 3s linear infinite;
+}
+
+@keyframes govBorderSweep {
+    0% { opacity: 0.2; }
+    50% { opacity: 0.6; }
+    100% { opacity: 0.2; }
+}
+
+.gov-countdown-banner.gov-live:hover {
+    background: rgba(0, 30, 60, 0.95);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 30px rgba(0, 212, 255, 0.15), inset 0 0 30px rgba(0, 212, 255, 0.03);
+}
+
+/* Live indicator — dot + label */
+.gov-live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.gov-live-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    box-shadow: 0 0 8px var(--accent-cyan), 0 0 16px var(--accent-cyan);
+    animation: govPulse 2s ease-in-out infinite;
+}
+
+.gov-live-dot.hot {
+    background: #00ff65;
+    box-shadow: 0 0 10px #00ff65, 0 0 24px #00ff65;
+    animation: govPulseHot 1s ease-in-out infinite;
+}
+
+@keyframes govPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes govPulseHot {
+    0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 10px #00ff65, 0 0 24px #00ff65; }
+    50% { opacity: 0.7; transform: scale(0.85); box-shadow: 0 0 16px #00ff65, 0 0 40px #00ff65; }
+}
+
+.gov-live-label {
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    text-shadow: 0 0 10px var(--accent-cyan);
+}
+
+/* Detail — proposal name + phase + countdown */
+.gov-live-detail {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.gov-live-proposal {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gov-live-phase {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* CTA */
+.gov-live-cta {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+    white-space: nowrap;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.gov-countdown-banner.gov-live:hover .gov-live-cta {
+    opacity: 1;
+}
+
+/* Phase-specific styling */
+.gov-phase-exploration,
+.gov-phase-promotion {
+    border-color: rgba(0, 255, 100, 0.3);
+}
+
+.gov-phase-exploration .gov-live-label,
+.gov-phase-promotion .gov-live-label {
+    color: #00ff65;
+    text-shadow: 0 0 12px rgba(0, 255, 100, 0.6);
+}
+
+.gov-phase-exploration .gov-live-cta,
+.gov-phase-promotion .gov-live-cta {
+    color: #00ff65;
+}
+
+.gov-phase-promotion {
+    border-color: rgba(0, 255, 100, 0.4);
+    animation: govUrgentBg 2s ease-in-out infinite;
+}
+
+@keyframes govUrgentBg {
+    0%, 100% { background: rgba(0, 20, 40, 0.85); }
+    50% { background: rgba(0, 40, 20, 0.85); }
+}
+
+.gov-phase-adoption {
+    border-color: rgba(255, 192, 0, 0.3);
+}
+
+.gov-phase-adoption .gov-live-label {
+    color: #FFC000;
+    text-shadow: 0 0 12px rgba(255, 192, 0, 0.5);
+}
+
+.gov-phase-adoption .gov-live-dot {
+    background: #FFC000;
+    box-shadow: 0 0 8px #FFC000, 0 0 16px #FFC000;
+}
+
+.gov-phase-cooldown {
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.gov-phase-cooldown .gov-live-label {
+    color: var(--text-secondary);
+    text-shadow: none;
+}
+
+.gov-phase-cooldown .gov-live-dot {
+    background: var(--text-secondary);
+    box-shadow: none;
+    animation: govPulse 3s ease-in-out infinite;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .gov-countdown-banner.gov-live {
+        padding: 8px 16px;
+        gap: 10px;
+    }
+    .gov-live-phase { display: none; }
+    .gov-live-cta { display: none; }
+    .gov-live-proposal { font-size: 0.72rem; }
+    .gov-live-label { font-size: 0.6rem; }
+}
+
+/* Legacy fallback for non-live banner */
+.gov-countdown-banner:not(.gov-live) {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -9617,32 +9814,6 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     margin: 8px auto;
     max-width: 800px;
     color: var(--text-secondary);
-    transition: all 0.3s ease;
-}
-
-.gov-countdown-banner.urgent {
-    background: rgba(0, 212, 255, 0.08);
-    border-color: rgba(0, 212, 255, 0.3);
-    color: var(--accent-cyan);
-}
-
-.gov-banner-icon {
-    font-size: 1rem;
-}
-
-.gov-banner-text {
-    font-size: 0.72rem;
-}
-
-.gov-banner-text strong {
-    color: var(--accent-cyan);
-}
-
-@media (max-width: 768px) {
-    .gov-countdown-banner {
-        margin: 4px 12px;
-        font-size: 0.65rem;
-    }
 }
 
 .timeline-year {
@@ -12202,7 +12373,7 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 
 .chamber-content {
     position: relative;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .chamber-body {
@@ -12624,4 +12795,43 @@ body[data-theme="nerv"]::after {
     );
     pointer-events: none;
     z-index: 9999;
+}
+
+/* ==========================================
+   TITLE GRADIENT OVERRIDES — Themes missing .title color
+   These themes were falling through to the default cyan→purple→pink gradient.
+   ========================================== */
+
+/* NERV: Orange institutional — matches #FF9830 accent */
+[data-theme="nerv"] .title {
+    background-image: none !important;
+    -webkit-text-fill-color: #FF9830 !important;
+    color: #FF9830 !important;
+    text-shadow: 0 0 15px rgba(255, 152, 48, 0.5), 0 0 40px rgba(255, 152, 48, 0.15);
+    font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+    letter-spacing: 0.2em;
+}
+
+/* Abyss: Monochrome cyan — matches #00E5FF accent */
+[data-theme="abyss"] .title {
+    background-image: none !important;
+    -webkit-text-fill-color: #00E5FF !important;
+    color: #00E5FF !important;
+    text-shadow: 0 0 20px rgba(0, 229, 255, 0.5), 0 0 50px rgba(0, 229, 255, 0.15);
+}
+
+/* Moss: Organic green — matches #50E850 accent */
+[data-theme="moss"] .title {
+    background-image: none !important;
+    -webkit-text-fill-color: #50E850 !important;
+    color: #50E850 !important;
+    text-shadow: 0 0 20px rgba(80, 232, 80, 0.4), 0 0 50px rgba(80, 232, 80, 0.12);
+}
+
+/* Warzone: Amber HUD — matches #FFC000 accent */
+[data-theme="warzone"] .title {
+    background-image: none !important;
+    -webkit-text-fill-color: #FFC000 !important;
+    color: #FFC000 !important;
+    text-shadow: 0 0 20px rgba(255, 192, 0, 0.5), 0 0 50px rgba(255, 192, 0, 0.15);
 }

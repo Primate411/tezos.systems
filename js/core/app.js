@@ -28,12 +28,12 @@ import { initChamber } from '../features/chamber.js?v=20260303c';
 function updateGovernanceBanner(stats, votingStatus) {
     let banner = document.getElementById('gov-countdown-banner');
     
-    // Only show during exploration, promotion, or active proposal periods with proposals
-    const activePeriods = ['exploration', 'promotion'];
+    // Show during ANY governance phase with an active proposal
     const hasProposal = stats?.proposal && stats.proposal !== 'None' && stats.proposal !== 'N/A';
-    const isVotingActive = votingStatus && activePeriods.includes(votingStatus.kind);
+    const kind = votingStatus?.kind || '';
+    const isVotingActive = hasProposal || ['proposal', 'exploration', 'cooldown', 'promotion', 'adoption'].includes(kind);
     
-    if (!isVotingActive && !hasProposal) {
+    if (!isVotingActive) {
         if (banner) { banner.remove(); }
         return;
     }
@@ -41,7 +41,6 @@ function updateGovernanceBanner(stats, votingStatus) {
     if (!banner) {
         banner = document.createElement('div');
         banner.id = 'gov-countdown-banner';
-        banner.className = 'gov-countdown-banner';
         // Insert after price bar
         const priceBar = document.getElementById('price-bar');
         if (priceBar) {
@@ -49,22 +48,42 @@ function updateGovernanceBanner(stats, votingStatus) {
         } else {
             document.querySelector('.header')?.after(banner);
         }
+        // Click opens The Chamber
+        banner.style.cursor = 'pointer';
+        banner.addEventListener('click', async () => {
+            const { openChamber } = await import('../features/chamber.js?v=20260303c');
+            openChamber();
+        });
     }
     
     const periodName = votingStatus ? getVotingPeriodName(votingStatus.kind) : 'Proposal';
     const timeLeft = votingStatus?.endTime ? formatTimeRemaining(votingStatus.endTime) : '';
-    const participation = stats.participation ? `${stats.participation.toFixed(1)}% participation` : '';
     const proposal = hasProposal ? stats.proposal : '';
     
-    const isUrgent = votingStatus && (votingStatus.kind === 'exploration' || votingStatus.kind === 'promotion');
+    // Phase-specific intensity
+    let phase = 'proposal';
+    let icon = '📋';
+    let label = 'PROPOSAL';
+    let cta = 'View Proposal →';
+    if (kind === 'exploration') { phase = 'exploration'; icon = '🗳️'; label = 'VOTE LIVE'; cta = 'Enter The Chamber →'; }
+    else if (kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'COOLDOWN'; cta = 'View Results →'; }
+    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = 'Enter The Chamber →'; }
+    else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'View Adoption →'; }
+    
+    const isHot = kind === 'exploration' || kind === 'promotion';
     
     banner.innerHTML = `
-        <span class="gov-banner-icon">${isUrgent ? '🗳️' : '📋'}</span>
-        <span class="gov-banner-text">
-            ${proposal ? `<strong>${proposal}</strong> — ` : ''}${periodName}${timeLeft ? ` · ${timeLeft}` : ''}${participation ? ` · ${participation}` : ''}
-        </span>
+        <div class="gov-live-indicator">
+            <span class="gov-live-dot ${isHot ? 'hot' : ''}"></span>
+            <span class="gov-live-label">${label}</span>
+        </div>
+        <div class="gov-live-detail">
+            ${proposal ? `<span class="gov-live-proposal">${proposal}</span>` : ''}
+            <span class="gov-live-phase">${periodName}${timeLeft ? ` · ${timeLeft}` : ''}</span>
+        </div>
+        <div class="gov-live-cta">${cta}</div>
     `;
-    banner.className = `gov-countdown-banner ${isUrgent ? 'urgent' : ''}`;
+    banner.className = `gov-countdown-banner gov-live gov-phase-${phase}`;
 }
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
 // Mobile tabs disabled — single scrollable page
