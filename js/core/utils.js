@@ -232,18 +232,4 @@ export const formatters = {
     timestamp: (date) => formatTimestamp(date)
 };
 
-/**
- * Escape HTML special characters to prevent XSS when inserting
- * untrusted strings (API data, baker aliases, proposal names) into innerHTML.
- * @param {string} str - Untrusted string
- * @returns {string} Safe HTML-escaped string
- */
-export function escapeHtml(str) {
-    if (typeof str !== 'string') return '';
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-}
+
