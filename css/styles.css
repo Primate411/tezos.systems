@@ -5143,6 +5143,24 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     letter-spacing: 0.5px;
 }
 
+/* Mobile: stack input full-width above buttons */
+@media (max-width: 600px) {
+    .my-baker-controls {
+        flex-wrap: wrap;
+    }
+    .my-baker-controls .my-baker-input {
+        flex: unset;
+        width: 100%;
+        min-width: 0;
+    }
+    .my-baker-controls .my-baker-btn,
+    .my-baker-controls .beacon-btn {
+        flex: 1;
+        min-width: 0;
+        padding: 10px 12px;
+    }
+}
+
 .my-baker-error {
     color: #ff6b6b;
     font-size: 0.8rem;
