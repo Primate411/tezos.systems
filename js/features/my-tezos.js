@@ -329,8 +329,9 @@ function buildOvernightCard(data, snapshot) {
 
     const bullets = [];
 
-    // Balance change
-    const balDelta = data.totalXTZ - (snapshot.balance || 0);
+    // Balance change (only show if we have a real previous balance to compare)
+    const prevBalance = snapshot.balance;
+    const balDelta = prevBalance != null && prevBalance > 0 ? data.totalXTZ - prevBalance : 0;
     if (Math.abs(balDelta) >= 0.01) {
         const sign = balDelta >= 0 ? '+' : '';
         const color = balDelta >= 0 ? 'var(--color-success, #10b981)' : 'var(--color-error, #ef4444)';
