@@ -14,6 +14,7 @@ const CHANGELOG = [
             { type: '🔧', text: 'Fixed My Tezos "While you were away" showing full balance as delta on first visit' },
             { type: '🔒', text: 'XSS hardening — all TzKT API data (proposal names, baker aliases) now escaped before innerHTML injection' },
             { type: '🔒', text: 'Sparkline data guard — collector now aborts snapshot if critical fields are zero (prevents bad data points)' },
+            { type: '🔧', text: 'Fixed sparkline tooltips showing 1969 dates — was reading chart index instead of actual timestamp' },
         ]
     },
     {

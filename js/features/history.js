@@ -86,7 +86,9 @@ export function createSparkline(canvasId, data, metric) {
                     displayColors: false,
                     callbacks: {
                         title: (items) => {
-                            const date = new Date(items[0].parsed.x);
+                            const idx = items[0].dataIndex;
+                            const date = timestamps[idx];
+                            if (!date || isNaN(date.getTime())) return '';
                             return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                         },
                         label: (item) => item.formattedValue
