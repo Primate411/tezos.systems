@@ -28,7 +28,9 @@
         {
             target: '#theme-toggle',
             title: '🐔 HEN MODE',
-            text: 'Open the theme picker and find it at the bottom. A full-screen NFT art gallery powered by Objkt. Try it.',
+            text: 'A full-screen NFT art gallery powered by Objkt — hidden inside the theme picker.',
+            action: function () { if (typeof HenMode !== 'undefined') HenMode.activate(); },
+            actionLabel: 'launch HEN mode 🐔',
         },
     ];
 
@@ -54,6 +56,7 @@
                 '<span class="tour-progress"></span>' +
                 '<div class="tour-actions">' +
                     '<button class="tour-skip">skip</button>' +
+                    '<button class="tour-action" style="display:none"></button>' +
                     '<button class="tour-next">next →</button>' +
                 '</div>' +
             '</div>';
@@ -92,8 +95,20 @@
         tooltip.querySelector('.tour-title').textContent = step.title;
         tooltip.querySelector('.tour-text').textContent = step.text;
         tooltip.querySelector('.tour-progress').textContent = (index + 1) + ' / ' + steps.length;
-        tooltip.querySelector('.tour-next').textContent =
-            index === steps.length - 1 ? 'dive in ✓' : 'next →';
+
+        // Show action button if step has one, otherwise show next/dive-in
+        var actionBtn = tooltip.querySelector('.tour-action');
+        var nextBtn = tooltip.querySelector('.tour-next');
+        if (step.action) {
+            nextBtn.style.display = 'none';
+            actionBtn.style.display = '';
+            actionBtn.textContent = step.actionLabel || 'try it';
+            actionBtn.onclick = function () { end(); step.action(); };
+        } else {
+            nextBtn.style.display = '';
+            actionBtn.style.display = 'none';
+            nextBtn.textContent = index === steps.length - 1 ? 'dive in ✓' : 'next →';
+        }
 
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
