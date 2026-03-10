@@ -5,6 +5,18 @@
 
 const CHANGELOG = [
     {
+        date: '2026-03-09',
+        entries: [
+            { type: '✨', text: 'Governance Live Vote bar — full-width event indicator during active votes, click to open The Chamber directly' },
+            { type: '✨', text: 'Phase-specific intensity: pulsing dot, green glow during exploration/promotion, amber during adoption' },
+            { type: '🔧', text: 'Fixed 4 theme title colors (NERV, Abyss, Moss, Warzone) — were showing default gradient instead of theme accent' },
+            { type: '🔧', text: 'Fixed Chamber modal scroll — content was cut off by overflow:hidden, now scrollable' },
+            { type: '🔧', text: 'Fixed My Tezos "While you were away" showing full balance as delta on first visit' },
+            { type: '🔒', text: 'XSS hardening — all TzKT API data (proposal names, baker aliases) now escaped before innerHTML injection' },
+            { type: '🔒', text: 'Sparkline data guard — collector now aborts snapshot if critical fields are zero (prevents bad data points)' },
+        ]
+    },
+    {
         date: '2026-03-08',
         entries: [
             { type: '✨', text: '3 new animated themes: Abyss (deep ocean bioluminescence), Moss (organic mycelium network), Warzone (military HUD radar)' },
