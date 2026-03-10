@@ -479,11 +479,18 @@ export async function initRewardsTracker(stats, xtzPrice) {
     } catch (_) {}
   }
 
-  const target = document.getElementById('my-baker-results');
-  if (!target) return;
+  // Insert into drawer-rewards container, fallback to before my-baker-results
+  const drawerTarget = document.getElementById('drawer-rewards');
+  const fallbackTarget = document.getElementById('my-baker-results');
+  if (!drawerTarget && !fallbackTarget) return;
 
   const container = buildContainer(rewards, stats, xtzPrice);
-  target.parentNode.insertBefore(container, target);
+  if (drawerTarget) {
+    drawerTarget.innerHTML = '';
+    drawerTarget.appendChild(container);
+  } else {
+    fallbackTarget.parentNode.insertBefore(container, fallbackTarget);
+  }
 
   document.getElementById('rt-notif-btn')
     ?.addEventListener('click', e => toggleNotifications(e.currentTarget));

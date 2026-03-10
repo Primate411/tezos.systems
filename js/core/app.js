@@ -96,21 +96,21 @@ import { initStreak } from '../features/streak.js';
 import { updatePageTitle } from '../ui/title.js';
 import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './config.js?v=20260228a';
 import { initComparison, updateComparison } from '../features/comparison.js';
-import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js';
+import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js?v=20260309a';
 import { initCalculator } from '../features/calculator.js';
 import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initVibes } from '../effects/vibes.js?v=20260228b';
 import { initChangelog } from '../features/changelog.js';
-import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js';
-import { initBakerReportCard } from '../features/baker-report-card.js?v=20260301';
-import { initWalletConnect } from '../features/wallet-connect.js?v=1';
-import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
+import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260309a';
+import { initBakerReportCard } from '../features/baker-report-card.js?v=20260309a';
+import { initWalletConnect } from '../features/wallet-connect.js?v=20260309a';
+import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260309a';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228s';
 import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260301';
-import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260228k';
-import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260301b';
+import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260309a';
+import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260309a';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -172,7 +172,7 @@ async function init() {
     // Initialize price bar
     safe('priceBar', initPriceBar);
     safe('vibes', initVibes);
-    safe('briefingToggle', initBriefingToggle);
+    // briefingToggle removed — briefing now in drawer
     safe('priceIntelToggle', initPriceIntelToggle);
 
 
@@ -763,20 +763,21 @@ function initMyTezosButton() {
     }
 
     btn.addEventListener('click', () => {
-        const address = localStorage.getItem(STORAGE_KEY);
-        const strip = document.getElementById('my-tezos-strip');
-
-        if (address && strip) {
-            // Already connected — scroll to the strip
-            strip.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else if (strip) {
-            // Not connected — show onboarding in the strip area
-            // Trigger the onboarding by clearing dismissed state and re-showing
-            localStorage.removeItem('tezos-systems-my-tezos-dismissed');
-            localStorage.removeItem('tezos-systems-my-tezos-hidden');
-            // Fire a custom event that my-tezos.js can listen for
-            window.dispatchEvent(new CustomEvent('my-tezos-show-onboarding'));
-            strip.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const drawer = document.getElementById('my-tezos-drawer');
+        const scrim = document.getElementById('my-tezos-drawer-scrim');
+        if (drawer && scrim) {
+            const isOpen = drawer.classList.contains('open');
+            drawer.classList.toggle('open', !isOpen);
+            scrim.classList.toggle('open', !isOpen);
+            if (!isOpen) {
+                // Show correct state
+                const address = localStorage.getItem(STORAGE_KEY);
+                const emptyState = document.getElementById('drawer-empty-state');
+                const connectedState = document.getElementById('drawer-connected');
+                if (emptyState) emptyState.style.display = address ? 'none' : '';
+                if (connectedState) connectedState.style.display = address ? '' : 'none';
+            }
+            document.body.style.overflow = !isOpen ? 'hidden' : '';
         }
     });
 
@@ -802,6 +803,19 @@ function initMyTezosButton() {
     const dismissed = localStorage.getItem('tezos-systems-my-tezos-dismissed') === '1';
     if (!localStorage.getItem(STORAGE_KEY) && !dismissed) {
         btn.classList.add('nudge');
+    }
+
+    // Drawer close handlers
+    document.getElementById('drawer-close')?.addEventListener('click', closeDrawer);
+    document.getElementById('my-tezos-drawer-scrim')?.addEventListener('click', closeDrawer);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeDrawer();
+    });
+
+    function closeDrawer() {
+        document.getElementById('my-tezos-drawer')?.classList.remove('open');
+        document.getElementById('my-tezos-drawer-scrim')?.classList.remove('open');
+        document.body.style.overflow = '';
     }
 }
 
@@ -893,34 +907,8 @@ function initComparisonToggle() {
 
 
 // ==========================================
-// DAILY BRIEFING TOGGLE
+// DAILY BRIEFING TOGGLE (removed — briefing now in drawer)
 // ==========================================
-const BRIEFING_TOGGLE_KEY = 'tezos-systems-briefing-enabled';
-
-function initBriefingToggle() {
-    const toggleBtn = document.getElementById('briefing-toggle');
-    if (!toggleBtn) return;
-
-    function updateVis(isVisible) {
-        const section = document.getElementById('daily-briefing-card');
-        if (section) section.style.display = isVisible ? '' : 'none';
-        toggleBtn.classList.toggle('active', isVisible);
-        toggleBtn.title = 'Daily Briefing: ' + (isVisible ? 'ON' : 'OFF');
-    }
-
-    toggleBtn.addEventListener('click', () => {
-        const stored = localStorage.getItem(BRIEFING_TOGGLE_KEY);
-        const isVisible = stored === null ? true : stored === 'true'; // default ON
-        const newState = !isVisible;
-        localStorage.setItem(BRIEFING_TOGGLE_KEY, String(newState));
-        updateVis(newState);
-    });
-
-    // Default ON unless user explicitly disabled
-    const stored = localStorage.getItem(BRIEFING_TOGGLE_KEY);
-    const isVisible = stored === null ? true : stored === 'true';
-    updateVis(isVisible);
-}
 
 // ==========================================
 // PRICE INTELLIGENCE TOGGLE
@@ -2005,10 +1993,19 @@ function applyDeepLink() {
     // #my-baker=tz1... or #my-baker (just open it)
     if (params.has('my-baker')) {
         const addr = params.get('my-baker');
-        const toggle = document.getElementById('my-baker-toggle');
-        const section = document.getElementById('my-baker-section');
-        if (toggle && section && !section.classList.contains('visible')) {
-            toggle.click();
+        // Open drawer
+        const drawer = document.getElementById('my-tezos-drawer');
+        const scrim = document.getElementById('my-tezos-drawer-scrim');
+        if (drawer && scrim) {
+            drawer.classList.add('open');
+            scrim.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            // Show correct state
+            const address = addr || localStorage.getItem('tezos-systems-my-baker-address');
+            const emptyState = document.getElementById('drawer-empty-state');
+            const connectedState = document.getElementById('drawer-connected');
+            if (emptyState) emptyState.style.display = address ? 'none' : '';
+            if (connectedState) connectedState.style.display = address ? '' : 'none';
         }
         if (addr && addr.startsWith('tz')) {
             setTimeout(() => {
@@ -2339,7 +2336,9 @@ function initKeyboardShortcuts() {
             }
             case 'm': {
                 e.preventDefault();
-                document.getElementById('my-baker-toggle')?.click();
+                document.getElementById('my-tezos-drawer')?.classList.add('open');
+                document.getElementById('my-tezos-drawer-scrim')?.classList.add('open');
+                document.body.style.overflow = 'hidden';
                 break;
             }
             case 'c': {

@@ -8,7 +8,6 @@ import { escapeHtml, formatNumber } from '../core/utils.js';
 // objkt.js moved to standalone section
 
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
-const TOGGLE_KEY = 'tezos-systems-my-baker-visible';
 const TZKT = API_URLS.tzkt;
 
 /**
@@ -269,7 +268,7 @@ function createMatrixLoader() {
 async function renderBakerData(address, container) {
     container.innerHTML = '';
     // Remove stale report card button so MutationObserver recreates with fresh address
-    const section = container.closest('#my-baker-section');
+    const section = container.closest('#drawer-baker') || container.closest('#my-baker-section');
     if (section) { const oldBtn = section.querySelector('.report-card-btn'); if (oldBtn) oldBtn.remove(); }
     const loadingEl = createMatrixLoader();
     container.appendChild(loadingEl);
@@ -512,47 +511,10 @@ async function renderBakerData(address, container) {
 /**
  * Toggle visibility of My Baker section (independent of calculator)
  */
-function updateBakerVisibility(isVisible) {
-    const bakerSection = document.getElementById('my-baker-section');
-    const toggleBtn = document.getElementById('my-baker-toggle');
-
-    if (bakerSection) bakerSection.classList.toggle('visible', isVisible);
-    if (toggleBtn) {
-        toggleBtn.classList.toggle('active', isVisible);
-        toggleBtn.title = `My Baker: ${isVisible ? 'ON' : 'OFF'}`;
-    }
-}
-
-function bringToTop(sectionId) {
-    const container = document.getElementById('optional-sections');
-    const section = document.getElementById(sectionId);
-    if (container && section && section.parentElement === container) {
-        container.prepend(section);
-    }
-}
-
-function toggleMyBaker() {
-    const isVisible = localStorage.getItem(TOGGLE_KEY) === 'true';
-    const newState = !isVisible;
-    localStorage.setItem(TOGGLE_KEY, String(newState));
-    updateBakerVisibility(newState);
-    if (newState) bringToTop('my-baker-section');
-}
+// updateBakerVisibility, bringToTop, toggleMyBaker removed — content now lives in drawer
 
 export function init() {
-    const section = document.getElementById('my-baker-section');
-    if (!section) return;
-
-    // Setup toggle button
-    const toggleBtn = document.getElementById('my-baker-toggle');
-    if (toggleBtn) {
-        toggleBtn.addEventListener('click', toggleMyBaker);
-    }
-
-    // Restore visibility preference (default: off)
-    const stored = localStorage.getItem(TOGGLE_KEY);
-    const isVisible = stored === 'true';
-    updateBakerVisibility(isVisible);
+    // Elements now live inside the My Tezos drawer
 
     const input = document.getElementById('my-baker-input');
     const saveBtn = document.getElementById('my-baker-save');
@@ -644,7 +606,33 @@ export function init() {
         updateShareLink(null);
         // Notify My Tezos strip
         window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: null } }));
+        // Switch drawer back to empty state
+        const emptyState = document.getElementById('drawer-empty-state');
+        const connectedState = document.getElementById('drawer-connected');
+        if (emptyState) emptyState.style.display = '';
+        if (connectedState) connectedState.style.display = 'none';
     });
+
+    // Drawer empty-state connect button
+    const drawerConnectBtn = document.getElementById('drawer-connect-btn');
+    const drawerAddressInput = document.getElementById('drawer-address-input');
+    if (drawerConnectBtn && drawerAddressInput) {
+        drawerConnectBtn.addEventListener('click', async () => {
+            const raw = drawerAddressInput.value.trim();
+            if (!raw) return;
+            // Copy to main input and trigger save
+            input.value = raw;
+            saveBtn.click();
+            // Switch to connected state
+            const emptyState = document.getElementById('drawer-empty-state');
+            const connectedState = document.getElementById('drawer-connected');
+            if (emptyState) emptyState.style.display = 'none';
+            if (connectedState) connectedState.style.display = '';
+        });
+        drawerAddressInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') drawerConnectBtn.click();
+        });
+    }
 }
 
 /**

@@ -7,6 +7,10 @@ const CHANGELOG = [
     {
         date: '2026-03-09',
         entries: [
+            { type: '✨', text: 'My Tezos drawer redesign — right-side slideout replaces the old inline My Baker section' },
+            { type: '✨', text: 'Connected flow rebuilt inside drawer: rewards tracker → baker stats → tabbed Morning Brief → Network Context' },
+            { type: '✨', text: 'New My Tezos mini-bar under the price bar — one-click reopen with address, balance, and baker status' },
+            { type: '🔧', text: 'Removed standalone Daily Briefing card and Features toggles for My Tezos/Briefing; personalization now centralized in drawer UI' },
             { type: '✨', text: 'Governance Live Vote bar — full-width event indicator during active votes, click to open The Chamber directly' },
             { type: '✨', text: 'Phase-specific intensity: pulsing dot, green glow during exploration/promotion, amber during adoption' },
             { type: '🔧', text: 'Fixed 4 theme title colors (NERV, Abyss, Moss, Warzone) — were showing default gradient instead of theme accent' },

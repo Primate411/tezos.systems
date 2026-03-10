@@ -214,19 +214,22 @@ function render(container) {
             // Populate My Baker input and trigger save
             const input = document.getElementById('my-baker-input');
             const saveBtn = document.getElementById('my-baker-save');
-            const toggleBtn = document.getElementById('my-baker-toggle');
-            const section = document.getElementById('my-baker-section');
-            
+            const drawer = document.getElementById('my-tezos-drawer');
+            const scrim = document.getElementById('my-tezos-drawer-scrim');
+            const emptyState = document.getElementById('drawer-empty-state');
+            const connectedState = document.getElementById('drawer-connected');
+
             if (input) input.value = addr;
             if (saveBtn) saveBtn.click();
-            
-            // Open My Baker if closed
-            if (section && !section.classList.contains('visible') && toggleBtn) {
-                toggleBtn.click();
+
+            // Open My Tezos drawer in connected state
+            if (drawer && scrim) {
+                drawer.classList.add('open');
+                scrim.classList.add('open');
+                document.body.style.overflow = 'hidden';
+                if (emptyState) emptyState.style.display = 'none';
+                if (connectedState) connectedState.style.display = '';
             }
-            
-            // Scroll to My Baker
-            if (section) section.scrollIntoView({ behavior: 'smooth' });
         });
     });
 }

@@ -59,7 +59,7 @@
     </script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=20260303c">
+    <link rel="modulepreload" href="js/core/app.js?v=20260309b">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -256,10 +256,7 @@
                             <span class="tezos-stats-toggle-icon">📊</span> <span class="dropdown-label">Tezos Stats</span>
                             <span class="dropdown-hint">Live network metrics — economy, consensus, market</span>
                         </button>
-                        <button id="my-baker-toggle" class="glass-button" aria-label="Toggle My Tezos" title="My Tezos: OFF">
-                            <span class="my-baker-toggle-icon">👤</span> <span class="dropdown-label">My Tezos</span>
-                            <span class="dropdown-hint">Your baker, rewards, delegation details</span>
-                        </button>
+                        <!-- My Tezos toggle removed — now opens drawer via My Tezos button -->
                         <button id="comparison-toggle" class="glass-button" aria-label="Toggle Tezos vs Other Chains" title="Chains: ON">
                             <span class="comparison-toggle-icon">⛓️</span> <span class="dropdown-label">Vs Others</span>
                             <span class="dropdown-hint">Tezos vs Ethereum, Solana, Cardano, Algorand</span>
@@ -284,10 +281,7 @@
                             <span class="calc-toggle-icon">🧮</span> <span class="dropdown-label">Calculator</span>
                             <span class="dropdown-hint">Estimate staking & baking rewards</span>
                         </button>
-                        <button id="briefing-toggle" class="glass-button active" aria-label="Toggle Daily Briefing" title="Daily Briefing: ON">
-                            <span class="briefing-toggle-icon">📰</span> <span class="dropdown-label">Briefing</span>
-                            <span class="dropdown-hint">Daily cycle narrative summary</span>
-                        </button>
+                        <!-- Briefing toggle removed — now in drawer -->
                         <button id="price-intel-toggle" class="glass-button" aria-label="Toggle Price Intelligence" title="Price Intel: OFF">
                             <span class="price-intel-toggle-icon">💰</span> <span class="dropdown-label">Price Intel</span>
                             <span class="dropdown-hint">Live price, predictions, alerts</span>
@@ -473,28 +467,7 @@
         </div>
     </section>
 
-    <!-- My Baker Section (hidden by default, toggled via header button) -->
-    <section class="my-baker-section" id="my-baker-section">
-        <div class="section-header">
-            <h2 class="section-title">👤 My Tezos</h2>
-            <button class="info-button" id="my-baker-info-btn" aria-label="About My Tezos" title="About My Tezos">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                </svg>
-            </button>
-        </div>
-        <div class="my-baker-section-inner">
-            <p class="my-baker-desc">Paste any Tezos address — baker or delegator — to see balance, rewards, and baker stats.</p>
-            <div class="my-baker-controls">
-                <input type="text" id="my-baker-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
-                <button id="my-baker-save" class="glass-button my-baker-btn" aria-label="Save baker address" title="Save baker address">Save</button>
-                <button id="my-baker-clear" class="glass-button my-baker-btn" aria-label="Clear baker address" title="Clear baker address">Clear</button>
-                <button id="my-baker-share-link" class="glass-button my-baker-btn" aria-label="Copy shareable link" title="Copy shareable link" style="display:none;">🔗</button>
-            </div>
-            <div id="my-baker-error-msg" class="my-baker-error"></div>
-            <div id="my-baker-results" class="my-baker-results"></div>
-        </div>
-    </section>
+    <!-- My Baker Section removed — content now lives in the My Tezos drawer -->
 
     <!-- Rewards Calculator (hidden by default, shown with My Baker) -->
     <section class="my-baker-section" id="calculator-section">
@@ -1561,13 +1534,69 @@
         </div>
     </div>
 
+    <!-- My Tezos Drawer -->
+    <div id="my-tezos-drawer-scrim" class="drawer-scrim"></div>
+    <aside id="my-tezos-drawer" class="my-tezos-drawer" aria-label="My Tezos">
+      <div class="drawer-header">
+        <h2 class="drawer-title">👤 My Tezos</h2>
+        <button id="drawer-close" class="drawer-close" aria-label="Close drawer">✕</button>
+      </div>
+      <div class="drawer-body" id="drawer-body">
+        <!-- Empty state (shown when no address) -->
+        <div id="drawer-empty-state" class="drawer-empty-state">
+          <div class="empty-state-content">
+            <p class="empty-headline">Connect your Tezos address to unlock:</p>
+            <ul class="empty-features">
+              <li>📊 Live baker performance &amp; APY</li>
+              <li>⏱ Reward tracking &amp; cycle timeline</li>
+              <li>📰 Your personal Morning Brief</li>
+              <li>🌐 Network Pulse — daily context</li>
+            </ul>
+            <div class="my-baker-controls drawer-controls">
+              <input type="text" id="drawer-address-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
+              <button id="drawer-connect-btn" class="glass-button my-baker-btn">Connect</button>
+            </div>
+          </div>
+          <div class="empty-preview-blur"></div>
+        </div>
+
+        <!-- Connected state (shown when address is set) -->
+        <div id="drawer-connected" class="drawer-connected" style="display:none">
+          <!-- Address bar -->
+          <div class="drawer-section drawer-address-bar">
+            <div class="my-baker-controls drawer-controls">
+              <input type="text" id="my-baker-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
+              <button id="my-baker-save" class="glass-button my-baker-btn">Save</button>
+              <button id="my-baker-clear" class="glass-button my-baker-btn">Clear</button>
+              <button id="my-baker-share-link" class="glass-button my-baker-btn" style="display:none;">🔗</button>
+            </div>
+            <div id="my-baker-error-msg" class="my-baker-error"></div>
+          </div>
+
+          <!-- Rewards Tracker (FIRST — "when do I get paid?") -->
+          <div class="drawer-section" id="drawer-rewards"></div>
+
+          <!-- Baker Stats -->
+          <div class="drawer-section" id="drawer-baker">
+            <div id="my-baker-results" class="my-baker-results"></div>
+          </div>
+
+          <!-- Morning Brief (tabbed pills, NOT carousel) -->
+          <div class="drawer-section" id="drawer-brief"></div>
+
+          <!-- Network Context (daily briefing, separated) -->
+          <div class="drawer-section" id="drawer-network"></div>
+        </div>
+      </div>
+    </aside>
+
     <!-- Chart.js for visualizations -->
     <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=11"></script>
-    <script type="module" src="js/core/app.js?v=20260303c"></script>
+    <script type="module" src="js/core/app.js?v=20260309b"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

@@ -86,16 +86,17 @@ function hydrateMyTezos(address) {
     const saveBtn = document.getElementById('my-baker-save');
     if (saveBtn) saveBtn.click();
 
-    // Open My Tezos section if collapsed
-    const toggle = document.getElementById('my-baker-toggle');
-    const section = document.getElementById('my-baker-section');
-    if (toggle && section && !section.classList.contains('visible')) {
-        toggle.click();
-    }
-
-    // Scroll to it
-    if (section) {
-        setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 300);
+    // Open My Tezos drawer in connected state
+    const drawer = document.getElementById('my-tezos-drawer');
+    const scrim = document.getElementById('my-tezos-drawer-scrim');
+    const emptyState = document.getElementById('drawer-empty-state');
+    const connectedState = document.getElementById('drawer-connected');
+    if (drawer && scrim) {
+        drawer.classList.add('open');
+        scrim.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        if (emptyState) emptyState.style.display = 'none';
+        if (connectedState) connectedState.style.display = '';
     }
 }
 
@@ -103,7 +104,7 @@ function hydrateMyTezos(address) {
  * Add wallet connect button to My Tezos section
  */
 export function initWalletConnect() {
-    const controls = document.querySelector('#my-baker-section .my-baker-controls');
+    const controls = document.querySelector('#drawer-connected .my-baker-controls');
     if (!controls) return;
 
     // Create connect button

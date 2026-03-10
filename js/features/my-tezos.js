@@ -901,19 +901,76 @@ function initPulseViz(strip, data) {
 let _briefRendering = false;
 let _briefRenderedAddr = null;
 
-async function renderMorningBrief(address, force = false) {
-    const strip = document.getElementById('my-tezos-strip');
-    if (!strip) return;
+function renderBriefTabs(cards) {
+    const container = document.getElementById('drawer-brief');
+    if (!container) return;
     
+    const tabsHtml = cards.map((card, i) => 
+        `<button class="drawer-tab${i === 0 ? ' active' : ''}" data-tab="${i}">${card.icon} ${card.title}</button>`
+    ).join('');
+    
+    const panelsHtml = cards.map((card, i) => 
+        `<div class="drawer-tab-panel${i === 0 ? ' active' : ''}" data-tab="${i}">
+            <div class="brief-body">${card.body}</div>
+        </div>`
+    ).join('');
+    
+    container.innerHTML = `
+        <div class="drawer-tabs">${tabsHtml}</div>
+        ${panelsHtml}
+    `;
+    
+    container.querySelectorAll('.drawer-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            container.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
+            container.querySelectorAll('.drawer-tab-panel').forEach(p => p.classList.remove('active'));
+            tab.classList.add('active');
+            container.querySelector(`.drawer-tab-panel[data-tab="${tab.dataset.tab}"]`)?.classList.add('active');
+        });
+    });
+}
+
+function createMinibar() {
+    let bar = document.getElementById('my-tezos-minibar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'my-tezos-minibar';
+        bar.className = 'my-tezos-minibar';
+        const priceBar = document.getElementById('price-bar');
+        if (priceBar) priceBar.after(bar);
+    }
+    bar.addEventListener('click', () => {
+        document.getElementById('my-tezos-drawer')?.classList.add('open');
+        document.getElementById('my-tezos-drawer-scrim')?.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    });
+    return bar;
+}
+
+function updateMinibar(data) {
+    const bar = document.getElementById('my-tezos-minibar');
+    if (!bar || !data) return;
+    const addr = data.fullAddress || data.address || '';
+    const short = addr.length > 10 ? addr.slice(0, 6) + '…' + addr.slice(-4) : addr;
+    const balStr = data.totalXTZ ? data.totalXTZ.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' XTZ' : '';
+    const bakerOk = data.bakerInactive ? '⚠️' : '✅';
+    const bakerName = data.bakerName ? escapeHtml(data.bakerName) : '';
+    bar.innerHTML = `
+        <span class="minibar-address">${short}</span>
+        <span class="minibar-balance">${balStr}</span>
+        <span class="minibar-baker">${bakerOk} ${bakerName}</span>
+        <span class="minibar-expand">↗</span>
+    `;
+    bar.classList.add('visible');
+}
+
+async function renderMorningBrief(address, force = false) {
     // Prevent double-render of same address
     if (!force && _briefRendering) return;
-    if (!force && _briefRenderedAddr === address && strip.classList.contains('visible') && strip.querySelector('.morning-brief')) return;
+    if (!force && _briefRenderedAddr === address) return;
     
     _briefRendering = true;
     _briefRenderedAddr = address;
-
-    strip.classList.add('visible');
-    strip.innerHTML = `<div class="my-tezos-loading"><span class="my-tezos-loading-text">Loading your Tezos…</span></div>`;
 
     try {
         const [accountResp, xtzPrice, apy] = await Promise.all([
@@ -998,331 +1055,74 @@ async function renderMorningBrief(address, force = false) {
         if (overnight) cards.unshift(overnight);
         saveOvernightSnapshot(data);
 
-        // Render the brief
-        let currentCard = 0;
-        let autoTimer = null;
+        // Render morning brief as tabbed pills in drawer
+        renderBriefTabs(cards);
 
-        function renderCard(idx) {
-            const card = cards[idx];
-            const dotsHtml = cards.map((_, i) =>
-                `<span class="brief-dot${i === idx ? ' active' : ''}" data-idx="${i}"></span>`
-            ).join('');
-
-            strip.innerHTML = `
-                <div class="morning-brief morning-brief-${card.accent}">
-                    <div class="brief-content">
-                        <div class="brief-icon">${card.icon}</div>
-                        <div class="brief-text">
-                            <div class="brief-title">${card.title}</div>
-                            <div class="brief-body">${card.body}</div>
-                        </div>
-                    </div>
-                    <div class="brief-footer">
-                        <div class="brief-dots">${dotsHtml}</div>
-                        <div class="brief-actions">
-                            <button class="brief-action-btn" id="brief-share" title="Share">📸</button>
-                            <button class="brief-action-btn" id="brief-story" title="Your Tezos Story">📜</button>
-                            <button class="brief-action-btn" id="brief-edit" title="Change address">✏️</button>
-                            <button class="brief-action-btn brief-close" id="brief-close" title="Hide">×</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            // Lock height to prevent layout shift
-            if (strip._briefHeight) {
-                const content = strip.querySelector('.brief-content');
-                if (content) content.style.minHeight = strip._briefHeight;
-            }
-
-            // Wire dots for manual navigation
-            strip.querySelectorAll('.brief-dot').forEach(dot => {
-                dot.addEventListener('click', () => {
-                    currentCard = parseInt(dot.dataset.idx);
-                    renderCard(currentCard);
-                    resetAutoRotate();
-                });
-            });
-
-            // Tap on content to advance
-            strip.querySelector('.brief-content')?.addEventListener('click', () => {
-                currentCard = (currentCard + 1) % cards.length;
-                renderCard(currentCard);
-                resetAutoRotate();
-            });
-
-            // Wire buttons
-            document.getElementById('brief-share')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (currentCard === 2 && data.story) {
-                    shareTezosStory(data);
-                } else {
-                    shareMorningBrief(data);
-                }
-            });
-
-            document.getElementById('brief-story')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                currentCard = 2; // Jump to story card
-                renderCard(currentCard);
-                resetAutoRotate();
-            });
-
-            document.getElementById('brief-close')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                strip.classList.remove('visible');
-                localStorage.setItem('tezos-systems-my-tezos-hidden', '1');
-                if (autoTimer) clearInterval(autoTimer);
-            });
-
-            document.getElementById('brief-edit')?.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const toggle = document.getElementById('my-baker-toggle');
-                const section = document.getElementById('my-baker-section');
-                if (section && !section.classList.contains('visible') && toggle) toggle.click();
-                const input = document.getElementById('my-baker-input');
-                if (input) { input.focus(); input.select(); }
-                if (section) section.scrollIntoView({ behavior: 'smooth' });
-            });
-        }
-
-        let rotationCount = 0; // counts full cycles through all cards
-        const MAX_ROTATIONS = 3;
-
-        function resetAutoRotate() {
-            if (autoTimer) clearInterval(autoTimer);
-            autoTimer = setInterval(() => {
-                currentCard = (currentCard + 1) % cards.length;
-                if (currentCard === 0) rotationCount++;
-                
-                if (rotationCount >= MAX_ROTATIONS) {
-                    clearInterval(autoTimer);
-                    collapseBrief();
-                    return;
-                }
-                renderCard(currentCard);
-            }, 8000);
-        }
-
-        function collapseBrief() {
-            if (autoTimer) clearInterval(autoTimer);
-            if (strip._pulseCleanup) strip._pulseCleanup();
-
-            // Phase 1: fade content to 0
-            strip.style.transition = 'padding 0.6s ease, border-color 0.6s ease';
-            const brief = strip.querySelector('.morning-brief');
-            if (brief) {
-                brief.style.transition = 'opacity 0.3s ease';
-                brief.style.opacity = '0';
-            }
-
-            // Phase 2: collapse the strip height smoothly
-            setTimeout(() => {
-                strip.innerHTML = `
-                    <div class="brief-collapsed" id="brief-collapsed">
-                        <div class="brief-dots-collapsed">
-                            <span class="brief-dot active"></span>
-                            <span class="brief-dot active"></span>
-                            <span class="brief-dot active"></span>
-                        </div>
-                    </div>
-                `;
-                strip.style.padding = '6px 16px';
-                strip.style.borderBottom = '1px solid transparent';
-                strip.style.background = 'transparent';
-
-                const collapsed = document.getElementById('brief-collapsed');
-                if (collapsed) {
-                    collapsed.addEventListener('click', () => expandBrief());
-                }
-            }, 350);
-        }
-
-        function expandBrief() {
-            strip.style.padding = '';
-            strip.style.borderBottom = '';
-            strip.style.background = '';
-            strip.style.transition = '';
-            rotationCount = 0;
-            currentCard = 0;
-            renderCard(0);
-            resetAutoRotate();
-
-            // Re-init pulse
-            try {
-                if (strip._pulseCleanup) strip._pulseCleanup();
-                initPulseViz(strip, { stakersCount: data.story?.govCycles || 30 });
-            } catch (e) {}
-        }
-
-        // Expose expand for the My Tezos header button
-        strip._expandBrief = expandBrief;
-
-        // Measure tallest card and lock height
-        let maxH = 0;
-        for (let i = 0; i < cards.length; i++) {
-            renderCard(i);
-            const content = strip.querySelector('.brief-content');
-            if (content) {
-                content.style.minHeight = '';
-                maxH = Math.max(maxH, content.scrollHeight);
-            }
-        }
-        if (maxH > 0) {
-            strip._briefHeight = maxH + 'px';
-        }
-
-        // Initial render with locked height
-        renderCard(0);
-        resetAutoRotate();
-
-        // Initialize pulse visualization behind the brief
-        try {
-            if (strip._pulseCleanup) strip._pulseCleanup();
-            initPulseViz(strip, {
-                stakersCount: data.story?.govCycles || 30,
-            });
-        } catch (e) { console.warn('Pulse viz error:', e); }
+        // Update minibar on main page
+        updateMinibar(data);
 
         // Store data for external use
-        strip._briefData = data;
+        window._myTezosData = data;
         _briefRendering = false;
 
     } catch (err) {
         _briefRendering = false;
         console.warn('Morning Brief error:', err);
-        strip.innerHTML = `
-            <div class="morning-brief">
-                <div class="brief-content">
-                    <div class="brief-icon">⚠️</div>
-                    <div class="brief-text">
-                        <div class="brief-title">Could not load your data</div>
-                        <div class="brief-body"><button id="brief-retry" class="brief-action-btn">Retry</button></div>
-                    </div>
-                </div>
-            </div>
-        `;
-        document.getElementById('brief-retry')?.addEventListener('click', () => renderMorningBrief(address));
-    }
-}
-
-// ─── Onboarding ──────────────────────────────────────
-
-function showOnboarding(strip) {
-    strip.classList.add('visible', 'onboarding');
-    strip.innerHTML = `
-        <div class="my-tezos-onboard">
-            <div class="my-tezos-onboard-text">
-                <span class="my-tezos-onboard-title">Make this your Tezos homepage</span>
-                <span class="my-tezos-onboard-sub">Paste your address to see your Morning Brief, rewards & Tezos Story</span>
-            </div>
-            <div class="my-tezos-onboard-input">
-                <input type="text" id="my-tezos-address-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
-                <button id="my-tezos-go" class="my-tezos-go-btn">Go →</button>
-            </div>
-            <button id="my-tezos-dismiss" class="my-tezos-dismiss">Not now</button>
-        </div>
-    `;
-
-    const input = document.getElementById('my-tezos-address-input');
-    const goBtn = document.getElementById('my-tezos-go');
-    const dismiss = document.getElementById('my-tezos-dismiss');
-
-    async function handleGo() {
-        let addr = input.value.trim();
-        if (!addr) return;
-
-        if (addr.endsWith('.tez') && addr.length > 4) {
-            try {
-                const resp = await fetch('https://api.tezos.domains/graphql', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        query: `query ResolveDomain($name: String!) { domain(name: $name) { address } }`,
-                        variables: { name: addr.toLowerCase() }
-                    })
-                });
-                const data = await resp.json();
-                const resolved = data?.data?.domain?.address;
-                if (resolved) addr = resolved;
-            } catch {}
+        const container = document.getElementById('drawer-brief');
+        if (container) {
+            container.innerHTML = `<div style="color:var(--text-dim);font-size:0.85rem;">⚠️ Could not load data. <button id="brief-retry" style="background:none;border:none;color:var(--accent);cursor:pointer;">Retry</button></div>`;
+            document.getElementById('brief-retry')?.addEventListener('click', () => renderMorningBrief(address, true));
         }
-
-        if (!/^(tz[1-4]|KT1)[a-zA-Z0-9]{33}$/.test(addr)) {
-            input.style.borderColor = 'var(--color-error, #ef4444)';
-            setTimeout(() => { input.style.borderColor = ''; }, 2000);
-            return;
-        }
-
-        localStorage.setItem(STORAGE_KEY, addr);
-        localStorage.removeItem('tezos-systems-my-tezos-hidden');
-        localStorage.removeItem('tezos-systems-my-tezos-dismissed');
-
-        const bakerInput = document.getElementById('my-baker-input');
-        const bakerSave = document.getElementById('my-baker-save');
-        if (bakerInput) bakerInput.value = addr;
-        if (bakerSave) bakerSave.click();
-
-        strip.classList.remove('onboarding');
-        renderMorningBrief(addr);
     }
-
-    goBtn.addEventListener('click', handleGo);
-    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleGo(); });
-    dismiss.addEventListener('click', () => {
-        strip.classList.remove('visible', 'onboarding');
-        localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
-    });
 }
 
 // ─── Init & Export ───────────────────────────────────
 
 export function initMyTezos() {
-    let strip = document.getElementById('my-tezos-strip');
-    if (!strip) {
-        strip = document.createElement('div');
-        strip.id = 'my-tezos-strip';
-        strip.className = 'my-tezos-strip';
-        const priceBar = document.getElementById('price-bar');
-        if (priceBar) {
-            priceBar.after(strip);
-        } else {
-            const header = document.querySelector('.header');
-            if (header) header.after(strip);
-        }
-    }
+    // Create minibar under price bar
+    createMinibar();
 
     const address = localStorage.getItem(STORAGE_KEY);
-    const hidden = localStorage.getItem('tezos-systems-my-tezos-hidden') === '1';
 
     window.addEventListener('my-baker-updated', (e) => {
         const newAddr = e.detail?.address;
         if (newAddr) {
-            localStorage.removeItem('tezos-systems-my-tezos-hidden');
-            renderMorningBrief(newAddr);
+            renderMorningBrief(newAddr, true);
         } else {
-            strip.classList.remove('visible');
+            // Clear minibar
+            const bar = document.getElementById('my-tezos-minibar');
+            if (bar) { bar.classList.remove('visible'); bar.innerHTML = ''; }
+            // Clear drawer sections
+            ['drawer-brief', 'drawer-network', 'drawer-rewards'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
         }
     });
 
     window.addEventListener('my-tezos-show-onboarding', () => {
-        if (!localStorage.getItem(STORAGE_KEY)) {
-            showOnboarding(strip);
-        } else if (strip._expandBrief) {
-            // Re-expand collapsed brief
-            strip._expandBrief();
+        // Open drawer in empty state
+        const drawer = document.getElementById('my-tezos-drawer');
+        const scrim = document.getElementById('my-tezos-drawer-scrim');
+        if (drawer && scrim) {
+            drawer.classList.add('open');
+            scrim.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            const emptyState = document.getElementById('drawer-empty-state');
+            const connectedState = document.getElementById('drawer-connected');
+            if (emptyState) emptyState.style.display = '';
+            if (connectedState) connectedState.style.display = 'none';
         }
     });
 
-    if (address && !hidden) {
+    if (address) {
         renderMorningBrief(address);
     }
 }
 
 export function refreshMyTezos() {
     const address = localStorage.getItem(STORAGE_KEY);
-    const hidden = localStorage.getItem('tezos-systems-my-tezos-hidden') === '1';
-    if (address && !hidden) {
-        renderMorningBrief(address);
+    if (address) {
+        renderMorningBrief(address, true);
     }
 }

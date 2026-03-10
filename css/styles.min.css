@@ -12835,3 +12835,155 @@ body[data-theme="nerv"]::after {
     color: #FFC000 !important;
     text-shadow: 0 0 20px rgba(255, 192, 0, 0.5), 0 0 50px rgba(255, 192, 0, 0.15);
 }
+
+/* ─── My Tezos Drawer ─── */
+.drawer-scrim {
+  position: fixed; inset: 0; z-index: 9998;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.drawer-scrim.open { opacity: 1; pointer-events: auto; }
+
+.my-tezos-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 420px; max-width: 100vw; z-index: 9999;
+  background: rgba(10, 10, 20, 0.92);
+  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  border-left: 1px solid rgba(0, 212, 255, 0.15);
+  box-shadow: -8px 0 32px rgba(0,0,0,0.5);
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.my-tezos-drawer.open { transform: translateX(0); }
+
+.drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+.drawer-title {
+  font-family: 'Orbitron', sans-serif; font-size: 1.1rem;
+  color: var(--text-primary, #e0e0e0); margin: 0;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+.drawer-close {
+  background: none; border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-primary, #ccc); font-size: 1.2rem;
+  width: 32px; height: 32px; border-radius: 6px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+}
+.drawer-close:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+
+.drawer-body {
+  flex: 1; overflow-y: auto; padding: 16px 20px;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.drawer-section { margin-bottom: 16px; }
+.drawer-section:last-child { margin-bottom: 0; }
+
+/* Empty state */
+.drawer-empty-state { text-align: center; padding: 32px 0; }
+.empty-headline {
+  font-size: 1rem; color: var(--text-primary, #e0e0e0);
+  margin-bottom: 16px; font-weight: 600;
+}
+.empty-features {
+  list-style: none; padding: 0; margin: 0 0 24px 0; text-align: left;
+}
+.empty-features li {
+  padding: 6px 0; color: var(--text-dim, #888);
+  font-size: 0.9rem; line-height: 1.5;
+}
+.empty-preview-blur {
+  height: 120px; margin-top: 16px;
+  background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(183,148,246,0.05));
+  border-radius: 8px; filter: blur(6px); opacity: 0.5;
+}
+
+/* Connected state controls */
+.drawer-controls { display: flex; gap: 6px; margin-bottom: 8px; }
+.drawer-controls .my-baker-input { flex: 1; min-width: 0; }
+.drawer-address-bar { padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+
+/* Tabbed pills for morning brief */
+.drawer-tabs {
+  display: flex; gap: 4px; margin-bottom: 12px;
+  overflow-x: auto; scrollbar-width: none;
+  padding-bottom: 2px;
+}
+.drawer-tabs::-webkit-scrollbar { display: none; }
+.drawer-tab {
+  padding: 6px 12px; border-radius: 16px; font-size: 0.78rem;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-dim, #888); cursor: pointer; white-space: nowrap;
+  transition: all 0.2s;
+}
+.drawer-tab:hover { background: rgba(255,255,255,0.08); color: var(--text-primary, #ccc); }
+.drawer-tab.active {
+  background: rgba(0, 212, 255, 0.12); border-color: rgba(0, 212, 255, 0.3);
+  color: var(--accent, #00d4ff);
+}
+.drawer-tab-panel { display: none; }
+.drawer-tab-panel.active { display: block; }
+.drawer-tab-panel .brief-body {
+  font-size: 0.88rem; line-height: 1.6;
+  color: var(--text-primary, #ccc);
+}
+.drawer-tab-panel .brief-sub { color: var(--text-dim, #888); font-size: 0.82rem; }
+
+/* Network context divider */
+.network-context-header {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--text-dim, #666); font-size: 0.75rem;
+  text-transform: uppercase; letter-spacing: 1.5px;
+  margin: 4px 0 12px 0;
+}
+.network-context-header::before, .network-context-header::after {
+  content: ''; flex: 1; height: 1px;
+  background: rgba(255,255,255,0.06);
+}
+.network-context-list {
+  list-style: none; padding: 0; margin: 0;
+}
+.network-context-list li {
+  padding: 4px 0; font-size: 0.85rem; line-height: 1.5;
+  color: var(--text-dim, #999);
+}
+.network-context-list li::before {
+  content: '›'; color: var(--accent, #00d4ff);
+  margin-right: 8px; opacity: 0.5;
+}
+
+/* Mini-bar (main page, under price bar) */
+.my-tezos-minibar {
+  display: none; padding: 8px 16px;
+  background: rgba(0, 212, 255, 0.04);
+  border-bottom: 1px solid rgba(0, 212, 255, 0.08);
+  font-size: 0.82rem; color: var(--text-dim, #aaa);
+  cursor: pointer; transition: background 0.2s;
+  align-items: center; gap: 12px;
+  white-space: nowrap; overflow: hidden;
+}
+.my-tezos-minibar.visible { display: flex; }
+.my-tezos-minibar:hover { background: rgba(0, 212, 255, 0.08); }
+.minibar-address { color: var(--text-primary, #ccc); font-family: monospace; font-size: 0.78rem; }
+.minibar-balance { color: var(--accent, #00d4ff); font-weight: 600; }
+.minibar-delta { font-size: 0.78rem; }
+.minibar-delta.positive { color: var(--color-success, #10b981); }
+.minibar-delta.negative { color: var(--color-error, #ef4444); }
+.minibar-next { color: var(--text-dim, #888); }
+.minibar-baker { font-size: 0.78rem; }
+.minibar-expand { margin-left: auto; opacity: 0.5; font-size: 0.9rem; }
+
+/* Mobile drawer */
+@media (max-width: 768px) {
+  .my-tezos-drawer { width: 100vw; }
+  .drawer-tabs { flex-wrap: nowrap; }
+  .my-tezos-minibar { font-size: 0.75rem; padding: 6px 12px; }
+}

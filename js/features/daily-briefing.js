@@ -233,290 +233,7 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-function injectStyles() {
-  if (document.getElementById('daily-briefing-styles')) return;
-  const style = document.createElement('style');
-  style.id = 'daily-briefing-styles';
-  style.textContent = `
-    #daily-briefing-card {
-      position: relative;
-      background: var(--bg-card, rgba(10,10,20,0.85));
-      border: 1px solid rgba(255,255,255,0.08);
-      border-left: 2px solid rgba(0, 212, 255, 0.4);
-      border-radius: 8px;
-      padding: 18px 20px 14px;
-      margin: 22px auto 10px;
-      width: 100%;
-      max-width: 1200px;
-      padding-left: 2rem;
-      padding-right: 2rem;
-      box-sizing: border-box;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: 0 4px 24px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
-    }
-    .briefing-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-      gap: 8px;
-      cursor: pointer;
-    }
-    .briefing-title {
-      font-family: 'Orbitron', monospace;
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 0.15em;
-      color: var(--accent, #00d4ff);
-      text-transform: uppercase;
-    }
-    .briefing-badge-new {
-      background: var(--accent, #00d4ff);
-      color: #000;
-      font-family: 'Orbitron', monospace;
-      font-size: 0.55rem;
-      font-weight: 900;
-      padding: 2px 7px;
-      border-radius: 3px;
-      letter-spacing: 0.1em;
-      animation: briefing-pulse 1.5s ease-in-out infinite;
-      flex-shrink: 0;
-    }
-    @keyframes briefing-pulse {
-      0%,100% { opacity: 1; } 50% { opacity: 0.55; }
-    }
-    .briefing-lines {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 14px 0;
-    }
-    .briefing-lines li {
-      font-family: var(--font-mono, 'Share Tech Mono', 'Courier New', monospace);
-      font-size: 0.82rem;
-      color: var(--text-primary, #e0e0e0);
-      line-height: 1.65;
-      padding: 4px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-    }
-    .briefing-lines li:last-child { border-bottom: none; }
-    .briefing-lines li::before {
-      content: '›';
-      color: var(--accent, #00d4ff);
-      margin-right: 8px;
-      opacity: 0.65;
-    }
-    .briefing-footer {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .briefing-next {
-      font-family: var(--font-mono, 'Share Tech Mono', monospace);
-      font-size: 0.65rem;
-      color: var(--text-secondary, #888);
-      opacity: 0.65;
-    }
-    .briefing-actions { display: flex; gap: 6px; }
-    .briefing-btn {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 4px;
-      color: var(--text-secondary, #aaa);
-      cursor: pointer;
-      font-size: 0.75rem;
-      padding: 4px 10px;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
-      line-height: 1.4;
-    }
-    .briefing-btn:hover {
-      background: rgba(0, 212, 255, 0.12);
-      border-color: var(--accent, #00d4ff);
-      color: var(--accent, #00d4ff);
-    }
-    @media (max-width: 700px) {
-      #daily-briefing-card { width: calc(100% - 1rem); }
-    }
-
-    .briefing-lines, .briefing-footer {
-      overflow: hidden;
-      transition: max-height 0.45s cubic-bezier(0.4, 0, 0.2, 1),
-                  opacity 0.35s ease,
-                  transform 0.35s ease,
-                  margin 0.35s ease;
-      transform-origin: top;
-    }
-    #daily-briefing-card.is-collapsed .briefing-lines,
-    #daily-briefing-card.is-collapsed .briefing-footer {
-      max-height: 0 !important;
-      opacity: 0;
-      transform: scaleY(0.95) translateY(-4px);
-      margin: 0;
-      padding-top: 0;
-      padding-bottom: 0;
-      pointer-events: none;
-    }
-    #daily-briefing-card:not(.is-collapsed) .briefing-lines,
-    #daily-briefing-card:not(.is-collapsed) .briefing-footer {
-      opacity: 1;
-      transform: scaleY(1) translateY(0);
-    }
-    /* Subtle border glow flash on collapse */
-    #daily-briefing-card {
-      transition: border-color 0.4s ease, box-shadow 0.4s ease;
-    }
-    #daily-briefing-card.is-collapsed {
-      border: 1px solid rgba(255,255,255,0.06);
-      border-left: 1px solid rgba(255,255,255,0.06);
-      background: rgba(255, 255, 255, 0.02);
-      box-shadow: none;
-      padding: 12px 2rem;
-    }
-    .briefing-collapse { opacity: .7; font-size: 12px; margin-left: auto; }
-
-  `;
-  document.head.appendChild(style);
-}
-
-// ─── Card Rendering ───────────────────────────────────────────────────────────
-
-function renderCard(cycle, sentences, showNew) {
-  injectStyles();
-
-  let card = document.getElementById('daily-briefing-card');
-  if (!card) {
-    card = document.createElement('div');
-    card.id = 'daily-briefing-card';
-    // Insert near bottom: as last content block in <main> (before footer)
-    const main = document.querySelector('main');
-    if (main) main.appendChild(card);
-    else document.body.appendChild(card);
-  }
-
-  card.innerHTML = `
-    <div class="briefing-header">
-      <span class="briefing-title">📰 Cycle ${cycle} Briefing</span>
-      ${showNew ? '<span class="briefing-badge-new">NEW</span>' : ''}
-      <button class="briefing-btn" id="briefing-collapse-btn" title="Collapse briefing">[...]</button>
-    </div>
-    <ul class="briefing-lines">
-      ${sentences.map(s => `<li>${s}</li>`).join('\n      ')}
-    </ul>
-    <div class="briefing-footer">
-      <span class="briefing-next">Next briefing when cycle ${cycle + 1} completes</span>
-      <div class="briefing-actions">
-        <button class="briefing-share-cta" id="briefing-share-cta" title="Share this briefing">📸 Share</button>
-        <button class="briefing-btn" id="briefing-tweet-btn" title="Tweet briefing">🐦</button>
-        <button class="briefing-btn" id="briefing-tweet-btn" title="Post to X">🐦</button>
-      </div>
-    </div>
-  `;
-
-  const hdr = card.querySelector('.briefing-header');
-  const collapseBtn = card.querySelector('#briefing-collapse-btn');
-  const toggle = () => {
-    const lines = card.querySelector('.briefing-lines');
-    const footer = card.querySelector('.briefing-footer');
-    const willCollapse = !card.classList.contains('is-collapsed');
-
-    if (willCollapse) {
-      // Snapshot heights, then collapse on next frame
-      [lines, footer].forEach(el => { if (el) el.style.maxHeight = el.scrollHeight + 'px'; });
-      requestAnimationFrame(() => {
-        card.classList.add('is-collapsed');
-        if (collapseBtn) collapseBtn.textContent = '[...]';
-      });
-      const badge = card.querySelector('.briefing-badge-new');
-      if (badge) badge.remove();
-      try { localStorage.setItem('tezos-systems-briefing-collapsed', '1'); } catch {}
-      try { localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle)); } catch {}
-    } else {
-      // Expand: remove class, set max-height to scrollHeight, then clear
-      card.classList.remove('is-collapsed');
-      [lines, footer].forEach(el => {
-        if (el) {
-          el.style.maxHeight = el.scrollHeight + 'px';
-          setTimeout(() => { el.style.maxHeight = 'none'; }, 500);
-        }
-      });
-      if (collapseBtn) collapseBtn.textContent = '[–]';
-      try { localStorage.setItem('tezos-systems-briefing-collapsed', '0'); } catch {}
-    }
-  };
-  collapseBtn?.addEventListener('click', toggle);
-  hdr?.addEventListener('dblclick', toggle);
-  if (localStorage.getItem('tezos-systems-briefing-collapsed') === '1' && !showNew) {
-    card.classList.add('is-collapsed');
-    if (collapseBtn) collapseBtn.textContent = '[...]';
-  } else {
-    if (collapseBtn) collapseBtn.textContent = '[–]';
-    // Auto-collapse after 60 seconds (but mark as seen so NEW clears)
-    setTimeout(() => {
-      if (!card.classList.contains('is-collapsed')) {
-        card.classList.add('is-collapsed');
-        if (collapseBtn) collapseBtn.textContent = '[...]';
-        const badge = card.querySelector('.briefing-badge-new');
-        if (badge) badge.remove();
-        try {
-          localStorage.setItem('tezos-systems-briefing-collapsed', '1');
-          localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle));
-        } catch {}
-      }
-    }, 60000);
-  }
-
-  card.querySelector('#briefing-share-cta').addEventListener('click', () => captureCard(card, cycle));
-  card.querySelector('#briefing-tweet-btn').addEventListener('click', () => {
-    const lines = [...card.querySelectorAll('.briefing-line')].map(l => l.textContent.trim()).join('\n');
-    const text = '📰 Tezos Cycle ' + cycle + ' Briefing\n\n' + lines + '\n\nhttps://tezos.systems';
-    window.open('https://x.com/intent/tweet?text=' + encodeURIComponent(text), '_blank', 'width=550,height=420');
-  });
-  card.querySelector('#briefing-tweet-btn').addEventListener('click', () => {
-    const topLine = sentences[0] || `Cycle ${cycle} on Tezos.`;
-    const text = `${topLine}\n\nhttps://tezos.systems`;
-    window.open(`https://x.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
-  });
-
-  return card;
-}
-
-// ─── Screenshot ───────────────────────────────────────────────────────────────
-
-async function captureCard(card, cycle) {
-  const btn = card.querySelector('#briefing-share-cta');
-  if (btn) btn.textContent = '⏳';
-  try {
-    const shareModule = await import('../ui/share.js').catch(() => null);
-    if (shareModule?.loadHtml2Canvas) {
-      await shareModule.loadHtml2Canvas();
-    } else {
-      await new Promise((res, rej) => {
-        if (window.html2canvas) return res();
-        const s = document.createElement('script');
-        s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
-        s.onload = res; s.onerror = rej;
-        document.head.appendChild(s);
-      });
-    }
-    const scale  = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
-    const canvas = await window.html2canvas(card, { scale, backgroundColor: null, useCORS: true, logging: false });
-    const tweetText = `Tezos Cycle ${cycle} Briefing\n\nhttps://tezos.systems`;
-    if (shareModule?.showShareModal) {
-      shareModule.showShareModal(canvas, tweetText, `Cycle ${cycle} Briefing`);
-    } else {
-      const a = document.createElement('a');
-      a.href = canvas.toDataURL('image/png');
-      a.download = `tezos-cycle-${cycle}-briefing.png`;
-      a.click();
-    }
-  } catch (e) {
-    console.error('[daily-briefing] capture failed', e);
-  } finally {
-    if (btn) btn.textContent = '📸';
-  }
-}
+// Legacy standalone card rendering removed — drawer handles presentation.
 
 // ─── Core Generate ────────────────────────────────────────────────────────────
 
@@ -556,14 +273,28 @@ async function generate(stats, xtzPrice) {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+export async function getBriefingSentences(stats, xtzPrice) {
+  if (!stats?.cycle) return { cycle: 0, sentences: [] };
+  const briefing = await generate(stats, xtzPrice);
+  return { cycle: briefing.cycle, sentences: briefing.sentences || [] };
+}
+
+function renderToDrawer(cycle, sentences) {
+  const container = document.getElementById('drawer-network');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="network-context-header">🌐 Network Context · Cycle ${cycle}</div>
+    <ul class="network-context-list">
+      ${sentences.map(s => `<li>${s}</li>`).join('')}
+    </ul>
+  `;
+}
+
 export async function initDailyBriefing(stats, xtzPrice) {
   if (!stats?.cycle) return;
   const briefing = await generate(stats, xtzPrice);
-  const lastSeen = parseInt(localStorage.getItem(LS_LAST_SEEN) || '0', 10);
-  const showNew  = briefing.cycle > lastSeen;
-  const card     = renderCard(briefing.cycle, briefing.sentences, showNew);
-  // Mark as seen only when user collapses (not on render)
-  return card;
+  renderToDrawer(briefing.cycle, briefing.sentences);
+  try { localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle)); } catch {}
 }
 
 export async function updateDailyBriefing(stats, xtzPrice) {
@@ -571,11 +302,10 @@ export async function updateDailyBriefing(stats, xtzPrice) {
   try {
     const cached = JSON.parse(localStorage.getItem(LS_BRIEFING) || 'null');
     if (cached?.cycle === stats.cycle) {
-      // Same cycle — but if card isn't in the DOM, render from cache
-      if (!document.getElementById('daily-briefing-card') && cached.sentences?.length) {
-        const lastSeen = parseInt(localStorage.getItem(LS_LAST_SEEN) || '0', 10);
-        renderCard(cached.cycle, cached.sentences, cached.cycle > lastSeen);
-        localStorage.setItem(LS_LAST_SEEN, String(cached.cycle));
+      // Same cycle — render from cache if drawer section is empty
+      const container = document.getElementById('drawer-network');
+      if (container && !container.innerHTML.trim()) {
+        renderToDrawer(cached.cycle, cached.sentences);
       }
       return;
     }

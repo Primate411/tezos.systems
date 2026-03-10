@@ -316,7 +316,7 @@ export async function showBakerReportCard(bakerAddress) {
 export function initBakerReportCard() {
     // Listen for baker data being rendered — add report card button
     const observer = new MutationObserver(() => {
-        const section = document.getElementById('my-baker-section');
+        const section = document.getElementById('drawer-baker') || document.getElementById('my-baker-section');
         if (!section) return;
 
         // Check if baker data is loaded and button doesn't exist yet
@@ -359,12 +359,17 @@ export function initBakerReportCard() {
                     if (addr) showBakerReportCard(addr);
                 });
 
-                // Insert prominently — after controls, before the stats grid
-                const controls = section.querySelector('.my-baker-controls');
-                if (controls) {
-                    controls.after(btn);
+                // Insert into drawer-baker before the results grid
+                const results = section.querySelector('#my-baker-results');
+                if (results) {
+                    results.parentNode.insertBefore(btn, results);
                 } else {
-                    grid.after(btn);
+                    const controls = section.querySelector('.my-baker-controls');
+                    if (controls) {
+                        controls.after(btn);
+                    } else {
+                        grid.after(btn);
+                    }
                 }
             }
         }
