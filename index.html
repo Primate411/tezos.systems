@@ -48,7 +48,7 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=20260309c">
+    <link rel="stylesheet" href="css/styles.min.css?v=20260309d">
     <link rel="stylesheet" href="css/hen-mode.css?v=6">
     <script>
     // Instant blackout for HEN mode — prevents dashboard flash
@@ -59,7 +59,7 @@
     </script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=20260309c">
+    <link rel="modulepreload" href="js/core/app.js?v=20260309d">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -1557,7 +1557,21 @@
               <button id="drawer-connect-btn" class="glass-button my-baker-btn">Connect</button>
             </div>
           </div>
-          <div class="empty-preview-blur"></div>
+          <div class="empty-preview-blur">
+            <div style="padding:16px;opacity:0.15;filter:blur(2px);">
+              <div style="background:rgba(255,255,255,0.1);height:14px;width:60%;border-radius:4px;margin-bottom:12px;"></div>
+              <div style="display:flex;gap:12px;">
+                <div style="background:rgba(0,212,255,0.1);height:48px;flex:1;border-radius:6px;"></div>
+                <div style="background:rgba(0,212,255,0.1);height:48px;flex:1;border-radius:6px;"></div>
+              </div>
+              <div style="background:rgba(255,255,255,0.06);height:14px;width:40%;border-radius:4px;margin-top:12px;"></div>
+              <div style="display:flex;gap:8px;margin-top:12px;">
+                <div style="background:rgba(255,255,255,0.05);height:24px;width:80px;border-radius:12px;"></div>
+                <div style="background:rgba(255,255,255,0.05);height:24px;width:80px;border-radius:12px;"></div>
+                <div style="background:rgba(255,255,255,0.05);height:24px;width:80px;border-radius:12px;"></div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Connected state (shown when address is set) -->
@@ -1571,6 +1585,7 @@
               <button id="my-baker-share-link" class="glass-button my-baker-btn" style="display:none;">🔗</button>
             </div>
             <div id="my-baker-error-msg" class="my-baker-error"></div>
+            <div id="drawer-saved-addresses" class="drawer-saved-addresses"></div>
           </div>
 
           <!-- Rewards Tracker (FIRST — "when do I get paid?") -->
@@ -1586,6 +1601,16 @@
 
           <!-- Network Context (daily briefing, separated) -->
           <div class="drawer-section" id="drawer-network"></div>
+
+          <!-- Share stats (Feature 5) -->
+          <div class="drawer-section drawer-share-section">
+            <button id="drawer-share-btn" class="glass-button drawer-share-btn">📸 Share My Stats</button>
+          </div>
+
+          <!-- Freshness indicator (Feature 10) -->
+          <div class="drawer-section drawer-footer">
+            <div id="drawer-freshness" class="drawer-freshness"></div>
+          </div>
         </div>
       </div>
     </aside>
@@ -1596,7 +1621,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=11"></script>
-    <script type="module" src="js/core/app.js?v=20260309c"></script>
+    <script type="module" src="js/core/app.js?v=20260309d"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

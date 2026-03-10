@@ -12901,9 +12901,24 @@ body[data-theme="nerv"]::after {
   font-size: 0.9rem; line-height: 1.5;
 }
 .empty-preview-blur {
-  height: 120px; margin-top: 16px;
-  background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(183,148,246,0.05));
-  border-radius: 8px; filter: blur(6px); opacity: 0.5;
+  height: 200px; margin-top: 20px; position: relative;
+  background: linear-gradient(135deg, rgba(0,212,255,0.03), rgba(183,148,246,0.03));
+  border: 1px solid rgba(255,255,255,0.04); border-radius: 10px;
+  overflow: hidden;
+}
+.empty-preview-blur::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(10,10,20,0.8) 100%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 1px, transparent 1px, transparent 28px);
+  filter: blur(3px);
+}
+.empty-preview-blur::after {
+  content: '🔒 Connect to unlock';
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  font-size: 0.75rem; color: var(--text-dim, #666);
+  letter-spacing: 1px; text-transform: uppercase;
 }
 
 /* Connected state controls */
@@ -12980,6 +12995,85 @@ body[data-theme="nerv"]::after {
 .minibar-next { color: var(--text-dim, #888); }
 .minibar-baker { font-size: 0.78rem; }
 .minibar-expand { margin-left: auto; opacity: 0.5; font-size: 0.9rem; }
+
+/* Share button in drawer (Feature 5) */
+.drawer-share-section { text-align: center; padding: 12px 0; }
+.drawer-share-btn {
+  width: 100%; padding: 10px; font-size: 0.82rem;
+  background: rgba(0, 212, 255, 0.06); border: 1px solid rgba(0, 212, 255, 0.15);
+  color: var(--accent, #00d4ff); cursor: pointer; border-radius: 8px;
+  transition: all 0.2s;
+}
+.drawer-share-btn:hover { background: rgba(0, 212, 255, 0.12); }
+
+/* Baker health grade in drawer (Feature 6) */
+.drawer-baker-grade {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; margin-bottom: 12px;
+  background: rgba(255,255,255,0.03); border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.grade-letter {
+  font-family: 'Orbitron', sans-serif; font-size: 1.8rem; font-weight: 900;
+  line-height: 1;
+}
+.grade-label { font-size: 0.72rem; color: var(--text-dim, #888); text-transform: uppercase; letter-spacing: 1px; }
+.grade-score { font-size: 0.72rem; color: var(--text-dim, #666); margin-left: auto; }
+
+/* Rewards sparkline (Feature 7) */
+.drawer-rewards-spark {
+  margin-top: 12px; padding: 8px 0;
+}
+.spark-label {
+  font-size: 0.72rem; color: var(--text-dim, #666);
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;
+}
+#drawer-rewards-sparkline { width: 100%; height: 60px; }
+
+/* Non-baker CTA (Feature 8) */
+.drawer-no-baker {
+  text-align: center; padding: 16px 12px;
+  color: var(--text-dim, #999); font-size: 0.85rem; line-height: 1.6;
+}
+.drawer-no-baker .glass-button {
+  display: inline-block; margin-top: 8px;
+  padding: 8px 16px; font-size: 0.82rem;
+}
+
+/* Multi-address list (Feature 9) */
+.drawer-saved-addresses {
+  display: flex; flex-wrap: wrap; gap: 4px;
+  margin-top: 6px;
+}
+.saved-addr {
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text-dim, #aaa); font-size: 0.72rem; padding: 4px 10px;
+  border-radius: 12px; cursor: pointer; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.saved-addr:hover { background: rgba(255,255,255,0.08); }
+.saved-addr.active {
+  background: rgba(0, 212, 255, 0.1); border-color: rgba(0, 212, 255, 0.3);
+  color: var(--accent, #00d4ff);
+}
+.saved-addr-remove {
+  opacity: 0.4; font-size: 0.65rem; cursor: pointer;
+}
+.saved-addr-remove:hover { opacity: 1; color: var(--color-error, #ef4444); }
+
+/* Freshness indicator (Feature 10) */
+.drawer-freshness {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.72rem; color: var(--text-dim, #555);
+}
+.freshness-refresh {
+  background: none; border: 1px solid rgba(255,255,255,0.08);
+  color: var(--accent, #00d4ff); font-size: 0.72rem;
+  padding: 3px 10px; border-radius: 10px; cursor: pointer;
+  transition: background 0.2s;
+}
+.freshness-refresh:hover { background: rgba(0, 212, 255, 0.08); }
 
 /* Mobile drawer */
 @media (max-width: 768px) {

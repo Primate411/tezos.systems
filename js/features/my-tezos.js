@@ -6,6 +6,7 @@
 
 import { API_URLS } from '../core/config.js';
 import { formatNumber, escapeHtml } from '../core/utils.js';
+import { letterGrade } from './baker-report-card.js?v=20260309d';
 
 const TZKT = API_URLS.tzkt;
 const OCTEZ = API_URLS.octez;
@@ -1058,11 +1059,73 @@ async function renderMorningBrief(address, force = false) {
         // Render morning brief as tabbed pills in drawer
         renderBriefTabs(cards);
 
+        // Feature 6: Baker health grade in drawer
+        if (healthScore !== null) {
+            const gradeInfo = letterGrade(healthScore);
+            const gradeContainer = document.getElementById('drawer-baker');
+            if (gradeContainer) {
+                // Remove old grade if re-rendering
+                gradeContainer.querySelector('.drawer-baker-grade')?.remove();
+                const gradeEl = document.createElement('div');
+                gradeEl.className = 'drawer-baker-grade';
+                gradeEl.innerHTML = `
+                    <span class="grade-letter" style="color:${gradeInfo.color}">${gradeInfo.grade}</span>
+                    <span class="grade-label">Baker Grade</span>
+                    <span class="grade-score">${healthScore}/100</span>
+                `;
+                gradeContainer.insertBefore(gradeEl, gradeContainer.firstChild);
+            }
+        }
+
+        // Feature 7: Historical rewards sparkline
+        if (rewards && rewards.length > 1) {
+            const rewardsSection = document.getElementById('drawer-rewards');
+            if (rewardsSection) {
+                // Remove old sparkline
+                rewardsSection.querySelector('.drawer-rewards-spark')?.remove();
+                const sparkContainer = document.createElement('div');
+                sparkContainer.className = 'drawer-rewards-spark';
+                sparkContainer.innerHTML = `
+                    <div class="spark-label">Earnings Trend (${rewards.length} cycles)</div>
+                    <canvas id="drawer-rewards-sparkline" width="500" height="60"></canvas>
+                `;
+                rewardsSection.appendChild(sparkContainer);
+
+                const values = rewards.map(r => getRewardAmount(r)).reverse();
+                const ctx = document.getElementById('drawer-rewards-sparkline')?.getContext('2d');
+                if (ctx && window.Chart) {
+                    new Chart(ctx, {
+                        type: 'line',
+                        data: { labels: values.map((_, i) => i), datasets: [{ data: values, borderColor: 'rgba(0,212,255,0.8)', borderWidth: 1.5, fill: true, backgroundColor: 'rgba(0,212,255,0.08)', pointRadius: 0, tension: 0.3 }] },
+                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false, grace: '20%' } } }
+                    });
+                }
+            }
+        }
+
+        // Feature 8: Non-baker conditional CTA
+        if (!bakerAddr && !isBaker) {
+            const bakerResults = document.getElementById('my-baker-results');
+            if (bakerResults) {
+                bakerResults.innerHTML = `
+                    <div class="drawer-no-baker">
+                        <p>💡 This address isn't delegated or staking.</p>
+                        <p>Delegate to a baker to start earning ~${apy.delegateAPY}% APY on your ${balance.toLocaleString()} XTZ.</p>
+                        <a href="https://gov.tez.capital" target="_blank" class="glass-button" style="margin-top:8px;">🥩 Browse Bakers</a>
+                    </div>
+                `;
+            }
+        }
+
+        // Feature 10: Freshness indicator
+        updateFreshness();
+
         // Update minibar on main page
         updateMinibar(data);
 
         // Store data for external use
         window._myTezosData = data;
+        window.dispatchEvent(new Event('my-tezos-data-ready'));
         _briefRendering = false;
 
     } catch (err) {
@@ -1074,6 +1137,21 @@ async function renderMorningBrief(address, force = false) {
             document.getElementById('brief-retry')?.addEventListener('click', () => renderMorningBrief(address, true));
         }
     }
+}
+
+// Feature 10: Freshness indicator
+function updateFreshness() {
+    const el = document.getElementById('drawer-freshness');
+    if (!el) return;
+    const now = new Date();
+    el.innerHTML = `
+        <span class="freshness-time">Updated ${now.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
+        <button id="drawer-refresh" class="freshness-refresh">↻ Refresh</button>
+    `;
+    document.getElementById('drawer-refresh')?.addEventListener('click', () => {
+        const addr = localStorage.getItem(STORAGE_KEY);
+        if (addr) renderMorningBrief(addr, true);
+    });
 }
 
 // ─── Init & Export ───────────────────────────────────
@@ -1118,6 +1196,17 @@ export function initMyTezos() {
     if (address) {
         renderMorningBrief(address);
     }
+
+    // Feature 5: Share button in drawer
+    document.getElementById('drawer-share-btn')?.addEventListener('click', async () => {
+        const data = window._myTezosData;
+        if (!data) return;
+        try {
+            await shareMorningBrief(data);
+        } catch (e) {
+            console.warn('Share failed:', e);
+        }
+    });
 }
 
 export function refreshMyTezos() {

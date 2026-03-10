@@ -7,6 +7,16 @@ const CHANGELOG = [
     {
         date: '2026-03-09',
         entries: [
+            { type: '✨', text: 'Smart header button — shows truncated address + pending rewards when connected' },
+            { type: '✨', text: 'Blurred preview empty state — redacted stats teaser with "Connect to unlock" overlay' },
+            { type: '✨', text: 'Keyboard shortcut — press M to toggle the My Tezos drawer' },
+            { type: '✨', text: 'Copy-to-clipboard on address — Save button becomes Copy after connecting' },
+            { type: '✨', text: 'Share My Stats button in drawer — one-click PNG + tweet export' },
+            { type: '✨', text: 'Baker health grade in drawer — letter grade (A+ to F) from report card scoring' },
+            { type: '✨', text: 'Historical rewards sparkline — per-cycle earnings trend chart in drawer' },
+            { type: '✨', text: 'Non-baker conditional — CTA to delegate instead of empty baker fields' },
+            { type: '✨', text: 'Multi-address support — save up to 10 addresses, switch between them instantly' },
+            { type: '✨', text: 'Refresh/freshness indicator — last updated timestamp + manual refresh button in drawer' },
             { type: '✨', text: 'My Tezos drawer redesign — right-side slideout replaces the old inline My Baker section' },
             { type: '✨', text: 'Connected flow rebuilt inside drawer: rewards tracker → baker stats → tabbed Morning Brief → Network Context' },
             { type: '✨', text: 'New My Tezos mini-bar under the price bar — one-click reopen with address, balance, and baker status' },

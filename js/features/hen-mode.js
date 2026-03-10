@@ -31,6 +31,11 @@ const HenMode = (() => {
     const mintCount = () => el('hen-mint-count');
     const loadingEl = () => el('hen-loading');
 
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     function resolveUri(uri) {
         if (!uri) return '';
         if (uri.startsWith('ipfs://')) return IPFS_GW + uri.slice(7);
@@ -176,13 +181,13 @@ const HenMode = (() => {
 
         card.innerHTML =
             '<div class="hen-card-thumb">' +
-                '<img src="' + thumbUrl + '" alt="' + (token.name || '') + '" ' + (staggerIdx < 4 && offset === 0 ? '' : 'loading="lazy" ') + 'onerror="this.style.display=\'none\'">' +
+                '<img src="' + thumbUrl + '" alt="' + escapeHtml(token.name || '') + '" ' + (staggerIdx < 4 && offset === 0 ? '' : 'loading="lazy" ') + 'onerror="this.style.display=\'none\'">' +
                 (isVideo ? '<div class="hen-card-badge">▶ VIDEO</div>' : '') +
             '</div>' +
             '<div class="hen-card-info">' +
                 '<div class="hen-card-creator">' + shortAddr(creator) + '</div>' +
-                '<div class="hen-card-title">' + (token.name || 'untitled') + '</div>' +
-                (showColl ? '<div class="hen-card-collection">' + collName + '</div>' : '') +
+                '<div class="hen-card-title">' + escapeHtml(token.name || 'untitled') + '</div>' +
+                (showColl ? '<div class="hen-card-collection">' + escapeHtml(collName) + '</div>' : '') +
                 '<div class="hen-card-meta">' + priceHtml + '<span class="hen-card-editions">×' + token.supply + '</span></div>' +
                 '<div class="hen-card-bottom"><span class="hen-card-time">' + timeAgo(token.timestamp) + '</span><span class="hen-card-objkt">#' + token.token_id + '</span></div>' +
             '</div>';
@@ -227,19 +232,19 @@ const HenMode = (() => {
 
         var mediaHtml = isVideo
             ? '<video class="hen-expanded-media" src="' + mediaUrl + '" autoplay loop muted playsinline></video>'
-            : '<img class="hen-expanded-media" src="' + mediaUrl + '" alt="' + (token.name || '') + '">';
+            : '<img class="hen-expanded-media" src="' + mediaUrl + '" alt="' + escapeHtml(token.name || '') + '">';
 
         exp.querySelector('.hen-expanded-inner').innerHTML =
             mediaHtml +
             '<div class="hen-expanded-info">' +
-                '<div class="hen-expanded-title">' + (token.name || 'untitled') + '</div>' +
-                '<div class="hen-expanded-creator hen-clickable-artist" data-addr="' + creator + '">' + displayName + '</div>' +
+                '<div class="hen-expanded-title">' + escapeHtml(token.name || 'untitled') + '</div>' +
+                '<div class="hen-expanded-creator hen-clickable-artist" data-addr="' + escapeHtml(creator) + '">' + escapeHtml(displayName) + '</div>' +
                 '<div class="hen-expanded-details">' +
                     (price ? '<span class="hen-card-price">' + price + ' ꜩ' + (usd ? ' (' + usd + ')' : '') + '</span>' : '') +
                     '<span>×' + token.supply + '</span>' +
                     '<span>' + timeAgo(token.timestamp) + '</span>' +
                     '<span>#' + token.token_id + '</span>' +
-                    (collName ? '<span>' + collName + '</span>' : '') +
+                    (collName ? '<span>' + escapeHtml(collName) + '</span>' : '') +
                 '</div>' +
                 '<div class="hen-expanded-actions">' +
                     '<a class="hen-expanded-collect" href="' + collectUrl(token) + '" target="_blank" rel="noopener">collect</a>' +
@@ -266,7 +271,7 @@ const HenMode = (() => {
             offset = 0;
             grid().innerHTML = '';
             clearCliOutput();
-            showCliOutput(['> showing work by ' + displayName]);
+            showCliOutput(['> showing work by ' + escapeHtml(displayName)]);
             loadPage();
         });
 
@@ -278,7 +283,7 @@ const HenMode = (() => {
             if (workGrid && otherWork.length > 0) {
                 workGrid.innerHTML = otherWork.map(function(t) {
                     var thumb = resolveUri(t.thumbnail_uri || t.display_uri);
-                    return '<div class="hen-artist-thumb" data-contract="' + t.fa_contract + '" data-token="' + t.token_id + '"><img src="' + thumb + '" alt="' + (t.name || '') + '" loading="lazy"></div>';
+                    return '<div class="hen-artist-thumb" data-contract="' + escapeHtml(t.fa_contract) + '" data-token="' + escapeHtml(t.token_id) + '"><img src="' + thumb + '" alt="' + escapeHtml(t.name || '') + '" loading="lazy"></div>';
                 }).join('');
                 workGrid.querySelectorAll('.hen-artist-thumb').forEach(function(thumbEl, i) {
                     thumbEl.addEventListener('click', function(e) {
@@ -497,7 +502,7 @@ const HenMode = (() => {
                     offset = 0;
                     grid().innerHTML = '';
                     searchMode = term;
-                    showCliOutput(['> searching: "' + term + '"']);
+                    showCliOutput(['> searching: "' + escapeHtml(term) + '"']);
                     loadPage();
                 }
                 break;
@@ -512,7 +517,7 @@ const HenMode = (() => {
                     offset = 0;
                     grid().innerHTML = '';
                     artistMode = addr;
-                    showCliOutput(['> artist: ' + addr]);
+                    showCliOutput(['> artist: ' + escapeHtml(addr)]);
                     loadPage();
                 }
                 break;
@@ -551,7 +556,7 @@ const HenMode = (() => {
                 ]);
                 break;
             default:
-                showCliOutput(['> unknown: ' + cmd, '  type help for commands']);
+                showCliOutput(['> unknown: ' + escapeHtml(cmd), '  type help for commands']);
         }
         if (cliInput()) cliInput().value = '';
     }

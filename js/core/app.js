@@ -96,21 +96,21 @@ import { initStreak } from '../features/streak.js';
 import { updatePageTitle } from '../ui/title.js';
 import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './config.js?v=20260228a';
 import { initComparison, updateComparison } from '../features/comparison.js';
-import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js?v=20260309c';
+import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js?v=20260309d';
 import { initCalculator } from '../features/calculator.js';
 import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initVibes } from '../effects/vibes.js?v=20260228b';
 import { initChangelog } from '../features/changelog.js';
-import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260309c';
-import { initBakerReportCard } from '../features/baker-report-card.js?v=20260309c';
-import { initWalletConnect } from '../features/wallet-connect.js?v=20260309c';
-import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260309c';
+import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260309d';
+import { initBakerReportCard } from '../features/baker-report-card.js?v=20260309d';
+import { initWalletConnect } from '../features/wallet-connect.js?v=20260309d';
+import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260309d';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228s';
 import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260301';
-import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260309c';
-import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260309c';
+import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260309d';
+import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260309d';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -753,10 +753,21 @@ function initMyTezosButton() {
     function updateButtonState() {
         const address = localStorage.getItem(STORAGE_KEY);
         if (address) {
+            const short = address.slice(0, 6) + '…' + address.slice(-4);
+            const data = window._myTezosData;
+            const due = data?.rewardsLastCycle ? ` · ${data.rewardsLastCycle.toFixed(1)} ꜩ` : '';
+            const iconEl = btn.querySelector('.my-tezos-icon');
+            const labelEl = btn.querySelector('.nav-label');
+            if (iconEl) iconEl.textContent = '👤';
+            if (labelEl) labelEl.textContent = short + due;
             btn.classList.add('connected');
             btn.classList.remove('nudge');
             btn.title = 'My Tezos — click to scroll to your dashboard';
         } else {
+            const iconEl = btn.querySelector('.my-tezos-icon');
+            const labelEl = btn.querySelector('.nav-label');
+            if (iconEl) iconEl.textContent = '👤';
+            if (labelEl) labelEl.textContent = 'My Tezos';
             btn.classList.remove('connected');
             btn.title = 'My Tezos — personalize your dashboard';
         }
@@ -817,6 +828,18 @@ function initMyTezosButton() {
         document.getElementById('my-tezos-drawer-scrim')?.classList.remove('open');
         document.body.style.overflow = '';
     }
+
+    // Refresh button text when data loads (Feature 1: Smart Header Button)
+    window.addEventListener('my-tezos-data-ready', () => updateButtonState());
+
+    // Feature 3: Keyboard shortcut — M key toggles drawer
+    document.addEventListener('keydown', (e) => {
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+        if (e.key === 'm' || e.key === 'M') {
+            e.preventDefault();
+            btn.click();
+        }
+    });
 }
 
 // ==========================================
@@ -2247,7 +2270,7 @@ function initKeyboardShortcuts() {
     const shortcuts = [
         { key: 'r', desc: 'Refresh data' },
         { key: 't', desc: 'Cycle theme' },
-        { key: 'm', desc: 'Toggle My Baker' },
+        { key: 'm', desc: 'Toggle My Tezos drawer' },
         { key: 'c', desc: 'Toggle Calculator' },
         { key: 'h', desc: 'Open History' },
         { key: 'w', desc: 'Toggle Whales' },
@@ -2336,9 +2359,7 @@ function initKeyboardShortcuts() {
             }
             case 'm': {
                 e.preventDefault();
-                document.getElementById('my-tezos-drawer')?.classList.add('open');
-                document.getElementById('my-tezos-drawer-scrim')?.classList.add('open');
-                document.body.style.overflow = 'hidden';
+                // Toggle handled by initMyTezosButton M-key listener
                 break;
             }
             case 'c': {

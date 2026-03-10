@@ -8,6 +8,7 @@ import { escapeHtml, formatNumber } from '../core/utils.js';
 // objkt.js moved to standalone section
 
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
+const SAVED_ADDRESSES_KEY = 'tezos-systems-saved-addresses';
 const TZKT = API_URLS.tzkt;
 
 /**
@@ -525,6 +526,83 @@ export function init() {
 
     if (!input || !saveBtn || !clearBtn || !results) return;
 
+    // Feature 4: Copy-to-clipboard mode — after save, button becomes Copy
+    const _originalSaveHandler = () => saveBtn.click();
+    function showCopyMode(address) {
+        saveBtn.textContent = '📋 Copy';
+        saveBtn.onclick = async (e) => {
+            e.preventDefault();
+            try {
+                await navigator.clipboard.writeText(address);
+                saveBtn.textContent = '✅ Copied';
+                setTimeout(() => { saveBtn.textContent = '📋 Copy'; }, 1500);
+            } catch {
+                // Fallback
+                const ta = document.createElement('textarea');
+                ta.value = address; ta.style.cssText = 'position:fixed;opacity:0';
+                document.body.appendChild(ta); ta.select();
+                document.execCommand('copy'); document.body.removeChild(ta);
+                saveBtn.textContent = '✅ Copied';
+                setTimeout(() => { saveBtn.textContent = '📋 Copy'; }, 1500);
+            }
+        };
+    }
+    function restoreSaveMode() {
+        saveBtn.textContent = 'Save';
+        saveBtn.onclick = null; // Will fall through to the addEventListener below
+    }
+
+    // Feature 9: Multi-address support
+    function addToSavedAddresses(addr) {
+        const saved = JSON.parse(localStorage.getItem(SAVED_ADDRESSES_KEY) || '[]');
+        // Don't duplicate
+        if (saved.find(s => s.address === addr)) {
+            renderSavedAddresses();
+            return;
+        }
+        saved.unshift({ address: addr, label: null, addedAt: Date.now() });
+        // Max 10
+        if (saved.length > 10) saved.pop();
+        localStorage.setItem(SAVED_ADDRESSES_KEY, JSON.stringify(saved));
+        renderSavedAddresses();
+    }
+
+    function renderSavedAddresses() {
+        const container = document.getElementById('drawer-saved-addresses');
+        if (!container) return;
+        const saved = JSON.parse(localStorage.getItem(SAVED_ADDRESSES_KEY) || '[]');
+        const active = localStorage.getItem(STORAGE_KEY);
+        if (saved.length <= 1) { container.innerHTML = ''; return; }
+
+        container.innerHTML = saved.map(s => {
+            const short = s.address.slice(0, 8) + '…' + s.address.slice(-4);
+            const isActive = s.address === active;
+            return `<button class="saved-addr ${isActive ? 'active' : ''}" data-addr="${escapeHtml(s.address)}">
+                ${isActive ? '●' : '○'} ${escapeHtml(s.label || short)}
+                ${!isActive ? '<span class="saved-addr-remove" data-addr="' + escapeHtml(s.address) + '">✕</span>' : ''}
+            </button>`;
+        }).join('');
+
+        container.querySelectorAll('.saved-addr').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                if (e.target.classList.contains('saved-addr-remove')) {
+                    const addr = e.target.dataset.addr;
+                    const newSaved = saved.filter(s => s.address !== addr);
+                    localStorage.setItem(SAVED_ADDRESSES_KEY, JSON.stringify(newSaved));
+                    renderSavedAddresses();
+                    return;
+                }
+                const addr = btn.dataset.addr;
+                localStorage.setItem(STORAGE_KEY, addr);
+                input.value = addr;
+                renderBakerData(addr, results);
+                showCopyMode(addr);
+                window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr } }));
+                renderSavedAddresses();
+            });
+        });
+    }
+
     function updateShareLink(addr) {
         if (shareLinkBtn) {
             shareLinkBtn.style.display = addr ? '' : 'none';
@@ -563,7 +641,9 @@ export function init() {
         input.value = saved;
         renderBakerData(saved, results);
         updateShareLink(saved);
+        showCopyMode(saved);
     }
+    renderSavedAddresses();
 
     saveBtn.addEventListener('click', async () => {
         const raw = input.value.trim();
@@ -589,6 +669,8 @@ export function init() {
         localStorage.setItem(STORAGE_KEY, addr);
         renderBakerData(addr, results);
         updateShareLink(addr);
+        showCopyMode(addr);
+        addToSavedAddresses(addr);
         // Notify My Tezos strip to refresh with new address
         window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr } }));
     });
@@ -604,6 +686,7 @@ export function init() {
         results.innerHTML = '';
         errorMsg.textContent = '';
         updateShareLink(null);
+        restoreSaveMode();
         // Notify My Tezos strip
         window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: null } }));
         // Switch drawer back to empty state

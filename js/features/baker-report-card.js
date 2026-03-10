@@ -5,7 +5,7 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { formatNumber } from '../core/utils.js';
+import { formatNumber, escapeHtml } from '../core/utils.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 
 const TZKT = API_URLS.tzkt;
@@ -13,7 +13,7 @@ const TZKT = API_URLS.tzkt;
 /**
  * Calculate letter grade from a 0-100 score
  */
-function letterGrade(score) {
+export function letterGrade(score) {
     if (score >= 97) return { grade: 'A+', color: '#00ff88' };
     if (score >= 93) return { grade: 'A',  color: '#00ff88' };
     if (score >= 90) return { grade: 'A-', color: '#00ff88' };
@@ -167,8 +167,8 @@ async function fetchBakerReport(bakerAddress) {
 function buildReportCardDOM(report) {
     const { baker, rank, totalBakers, scores, stats } = report;
     const overall = letterGrade(scores.overall);
-    const name = baker.alias || baker.address.slice(0, 12) + '…';
-    const addr = baker.address.slice(0, 8) + '…' + baker.address.slice(-4);
+    const name = escapeHtml(baker.alias || baker.address.slice(0, 12) + '…');
+    const addr = escapeHtml(baker.address.slice(0, 8) + '…' + baker.address.slice(-4));
 
     const card = document.createElement('div');
     card.style.cssText = `
