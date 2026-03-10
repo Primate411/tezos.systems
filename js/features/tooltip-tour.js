@@ -1,4 +1,4 @@
-// Guided tour — 6 steps through the best parts of tezos.systems
+// Guided tour — 5 steps through the best parts of tezos.systems
 (function () {
     const TOUR_KEY = 'tezos-toured';
     const WELCOMED_KEY = 'tezos-welcomed'; // respect welcome-terminal key too
@@ -24,11 +24,6 @@
             target: '#settings-gear',
             title: 'Customize Everything',
             text: '7 themes, Ultra mode with canvas animations, social sharing, export your data.',
-        },
-        {
-            target: '#daily-briefing-card',
-            title: 'Your Daily Briefing',
-            text: 'Auto-generated narrative each cycle. What happened on-chain, told like a story — not a spreadsheet.',
         },
         {
             target: '#theme-toggle',
