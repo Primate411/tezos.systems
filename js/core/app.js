@@ -96,21 +96,21 @@ import { initStreak } from '../features/streak.js';
 import { updatePageTitle } from '../ui/title.js';
 import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './config.js?v=20260228a';
 import { initComparison, updateComparison } from '../features/comparison.js';
-import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js?v=20260309a';
+import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js?v=20260309c';
 import { initCalculator } from '../features/calculator.js';
 import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initVibes } from '../effects/vibes.js?v=20260228b';
 import { initChangelog } from '../features/changelog.js';
-import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260309a';
-import { initBakerReportCard } from '../features/baker-report-card.js?v=20260309a';
-import { initWalletConnect } from '../features/wallet-connect.js?v=20260309a';
-import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260309a';
+import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260309c';
+import { initBakerReportCard } from '../features/baker-report-card.js?v=20260309c';
+import { initWalletConnect } from '../features/wallet-connect.js?v=20260309c';
+import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260309c';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228s';
 import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260301';
-import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260309a';
-import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260309a';
+import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260309c';
+import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260309c';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
