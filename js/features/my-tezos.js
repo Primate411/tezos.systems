@@ -1085,9 +1085,12 @@ async function renderMorningBrief(address, force = false) {
                 rewardsSection.querySelector('.drawer-rewards-spark')?.remove();
                 const sparkContainer = document.createElement('div');
                 sparkContainer.className = 'drawer-rewards-spark';
+                sparkContainer.style.cssText = 'position:relative;width:100%;height:80px;margin-top:12px;';
                 sparkContainer.innerHTML = `
-                    <div class="spark-label">Earnings Trend (${rewards.length} cycles)</div>
-                    <canvas id="drawer-rewards-sparkline" width="500" height="60"></canvas>
+                    <div class="spark-label" style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">Earnings Trend (${rewards.length} cycles)</div>
+                    <div style="position:relative;height:60px;">
+                        <canvas id="drawer-rewards-sparkline"></canvas>
+                    </div>
                 `;
                 rewardsSection.appendChild(sparkContainer);
 

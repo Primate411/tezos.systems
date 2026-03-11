@@ -207,7 +207,7 @@ function buildCSS() {
   const style = document.createElement('style');
   style.id = 'rewards-tracker-style';
   style.textContent = `
-    #rewards-tracker-container { margin-bottom: 1.2rem; }
+    #rewards-tracker-container { margin-bottom: 1.2rem; overflow: hidden; }
     .rt-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
