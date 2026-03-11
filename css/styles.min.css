@@ -12924,6 +12924,11 @@ body[data-theme="nerv"]::after {
 /* Connected state controls */
 .drawer-controls { display: flex; gap: 6px; margin-bottom: 8px; }
 .drawer-controls .my-baker-input { flex: 1; min-width: 0; }
+@media (max-width: 600px) {
+  .drawer-controls .my-baker-input { flex: 0 0 100%; min-width: 0; font-size: 16px; }
+  .drawer-controls .my-baker-btn,
+  .drawer-controls .beacon-btn { flex: 1; min-width: 0; padding: 10px 12px; }
+}
 .drawer-address-bar { padding-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
 
 /* Tabbed pills for morning brief */

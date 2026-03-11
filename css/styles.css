@@ -5165,15 +5165,16 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     letter-spacing: 0.5px;
 }
 
-/* Mobile: stack input full-width above buttons */
+/* Mobile: input on its own row, buttons below */
 @media (max-width: 600px) {
     .my-baker-controls {
         flex-wrap: wrap;
     }
     .my-baker-controls .my-baker-input {
-        flex: unset;
-        width: 100%;
-        min-width: 0;
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        font-size: 16px; /* prevents iOS Safari auto-zoom on focus */
     }
     .my-baker-controls .my-baker-btn,
     .my-baker-controls .beacon-btn {
