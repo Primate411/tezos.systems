@@ -37,6 +37,7 @@ async function getClient() {
     dAppClient = new sdk.DAppClient({
         name: 'tezos.systems',
         preferredNetwork: sdk.NetworkType.MAINNET,
+        enableMetrics: false,
     });
     return dAppClient;
 }
