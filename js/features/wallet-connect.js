@@ -1,26 +1,29 @@
 /**
- * Wallet Connect — Beacon SDK integration for tezos.systems
- * Lazy-loads Beacon SDK only when user clicks Connect.
+ * Wallet Connect — octez.connect SDK integration for tezos.systems
+ * Lazy-loads octez.connect SDK only when user clicks Connect.
  * Auto-hydrates My Tezos with the connected address.
+ *
+ * Migrated from Beacon SDK → octez.connect (Beacon fork by Trilitech)
+ * https://github.com/trilitech/octez.connect
  */
 
-const BEACON_CDN = 'https://unpkg.com/@airgap/beacon-sdk@4.3.0/dist/walletbeacon.min.js';
-const LS_WALLET = 'tezos-systems-beacon-address';
+const OCTEZ_CONNECT_CDN = 'https://unpkg.com/@tezos-x/octez.connect-sdk@5.0.0-beta.5/dist/walletbeacon.min.js';
+const LS_WALLET = 'tezos-systems-beacon-address'; // keep same key for backward compat
 let dAppClient = null;
 
 /**
- * Lazy-load Beacon SDK
+ * Lazy-load octez.connect SDK
  */
-function loadBeaconSDK() {
+function loadSDK() {
     return new Promise((resolve, reject) => {
         if (window.beacon) return resolve(window.beacon);
         const s = document.createElement('script');
-        s.src = BEACON_CDN;
+        s.src = OCTEZ_CONNECT_CDN;
         s.onload = () => {
-            // beacon-sdk exposes window.beacon
+            // octez.connect-sdk exposes window.beacon (same as Beacon)
             resolve(window.beacon);
         };
-        s.onerror = () => reject(new Error('Failed to load Beacon SDK'));
+        s.onerror = () => reject(new Error('Failed to load octez.connect SDK'));
         document.head.appendChild(s);
     });
 }
@@ -30,7 +33,7 @@ function loadBeaconSDK() {
  */
 async function getClient() {
     if (dAppClient) return dAppClient;
-    const sdk = await loadBeaconSDK();
+    const sdk = await loadSDK();
     dAppClient = new sdk.DAppClient({
         name: 'tezos.systems',
         preferredNetwork: sdk.NetworkType.MAINNET,
@@ -111,7 +114,7 @@ export function initWalletConnect() {
     const btn = document.createElement('button');
     btn.id = 'beacon-connect-btn';
     btn.className = 'glass-button my-baker-btn beacon-btn';
-    btn.title = 'Connect wallet via Beacon';
+    btn.title = 'Connect wallet via octez.connect';
     btn.innerHTML = '<span class="beacon-icon">\u{1F4F1}</span> Connect';
     btn.style.cssText = 'gap:4px;display:inline-flex;align-items:center;white-space:nowrap;';
 
@@ -125,13 +128,13 @@ export function initWalletConnect() {
                 await disconnectWallet();
                 connected = false;
                 btn.innerHTML = '<span class="beacon-icon">\u{1F4F1}</span> Connect';
-                btn.title = 'Connect wallet via Beacon';
+                btn.title = 'Connect wallet via octez.connect';
                 btn.classList.remove('beacon-connected');
                 // Clear the address
                 const clearBtn = document.getElementById('my-baker-clear');
                 if (clearBtn) clearBtn.click();
             } catch (e) {
-                console.error('[beacon] disconnect error:', e);
+                console.error('[octez.connect] disconnect error:', e);
                 btn.innerHTML = '<span class="beacon-icon">\u{1F4F1}</span> Connect';
             }
             return;
@@ -149,7 +152,7 @@ export function initWalletConnect() {
                 hydrateMyTezos(address);
             }
         } catch (e) {
-            console.error('[beacon] connect error:', e);
+            console.error('[octez.connect] connect error:', e);
             btn.innerHTML = '<span class="beacon-icon">\u{1F4F1}</span> Connect';
             // Show brief error
             const err = document.getElementById('my-baker-error-msg');
