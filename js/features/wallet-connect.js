@@ -38,6 +38,10 @@ async function getClient() {
         name: 'tezos.systems',
         preferredNetwork: sdk.NetworkType.MAINNET,
         enableMetrics: false,
+        walletConnectOptions: {
+            projectId: '24469fd0a06df227b6e5f7dc7de0ff4f', // default octez.connect project ID
+            relayUrl: 'wss://relay.walletconnect.com',
+        },
     });
     return dAppClient;
 }
