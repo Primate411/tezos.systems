@@ -31,6 +31,9 @@ function loadSDK() {
 /**
  * Initialize DAppClient
  */
+// Resolves when wallet connects; set by subscribeToEvent callback
+let activeAccountResolve = null;
+
 async function getClient() {
     if (dAppClient) return dAppClient;
     const sdk = await loadSDK();
@@ -43,6 +46,16 @@ async function getClient() {
             relayUrl: 'wss://relay.walletconnect.com',
         },
     });
+
+    // MANDATORY since Beacon 4.2.0 / octez.connect: subscribe to active account changes
+    dAppClient.subscribeToEvent(sdk.BeaconEvent.ACTIVE_ACCOUNT_SET, (account) => {
+        console.log('[octez.connect] active account set:', account?.address);
+        if (account && activeAccountResolve) {
+            activeAccountResolve(account.address);
+            activeAccountResolve = null;
+        }
+    });
+
     return dAppClient;
 }
 
@@ -56,9 +69,19 @@ async function connectWallet() {
     if (active) {
         return active.address;
     }
+
+    // Create a promise that resolves when ACTIVE_ACCOUNT_SET fires
+    const accountPromise = new Promise((resolve) => {
+        activeAccountResolve = resolve;
+        // Timeout after 2 minutes
+        setTimeout(() => { activeAccountResolve = null; resolve(null); }, 120000);
+    });
+
     // Request permissions (v5: network is set on DAppClient, not requestPermissions)
-    const permissions = await client.requestPermissions();
-    return permissions.address;
+    await client.requestPermissions();
+
+    // Wait for the event subscription to fire with the address
+    return accountPromise;
 }
 
 /**
