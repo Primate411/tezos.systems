@@ -103,58 +103,60 @@ function hydrateMyTezos(address) {
     }
 }
 
-/**
- * Add wallet connect button to My Tezos section
- */
-export function initWalletConnect() {
-    const controls = document.querySelector('#drawer-connected .my-baker-controls');
-    if (!controls) return;
+// Shared state across all wallet connect buttons
+let connected = false;
+const allButtons = [];
 
-    // Create connect button
+function updateAllButtons(html, title, isConnected) {
+    connected = isConnected;
+    allButtons.forEach(btn => {
+        btn.innerHTML = html;
+        btn.title = title;
+        if (isConnected) btn.classList.add('beacon-connected');
+        else btn.classList.remove('beacon-connected');
+    });
+}
+
+const ICON_CONNECT = '<span class="beacon-icon">\u{1F4F1}</span> Connect';
+const TITLE_CONNECT = 'Connect wallet via octez.connect';
+
+function createWalletButton() {
     const btn = document.createElement('button');
-    btn.id = 'beacon-connect-btn';
     btn.className = 'glass-button my-baker-btn beacon-btn';
-    btn.title = 'Connect wallet via octez.connect';
-    btn.innerHTML = '<span class="beacon-icon">\u{1F4F1}</span> Connect';
+    btn.title = TITLE_CONNECT;
+    btn.innerHTML = ICON_CONNECT;
     btn.style.cssText = 'gap:4px;display:inline-flex;align-items:center;white-space:nowrap;';
-
-    let connected = false;
 
     btn.addEventListener('click', async () => {
         if (connected) {
-            // Disconnect flow
-            btn.innerHTML = '\u23f3';
+            updateAllButtons('\u23f3', 'Disconnecting...', true);
             try {
                 await disconnectWallet();
-                connected = false;
-                btn.innerHTML = '<span class="beacon-icon">\u{1F4F1}</span> Connect';
-                btn.title = 'Connect wallet via octez.connect';
-                btn.classList.remove('beacon-connected');
-                // Clear the address
+                updateAllButtons(ICON_CONNECT, TITLE_CONNECT, false);
                 const clearBtn = document.getElementById('my-baker-clear');
                 if (clearBtn) clearBtn.click();
             } catch (e) {
                 console.error('[octez.connect] disconnect error:', e);
-                btn.innerHTML = '<span class="beacon-icon">\u{1F4F1}</span> Connect';
+                updateAllButtons(ICON_CONNECT, TITLE_CONNECT, false);
             }
             return;
         }
 
-        btn.innerHTML = '\u23f3 Loading...';
-        btn.disabled = true;
+        updateAllButtons('\u23f3 Loading...', 'Connecting...', false);
+        allButtons.forEach(b => b.disabled = true);
         try {
             const address = await connectWallet();
             if (address) {
-                connected = true;
-                btn.innerHTML = '\u2705 ' + address.slice(0, 6) + '...' + address.slice(-4);
-                btn.title = 'Connected: ' + address + '. Click to disconnect.';
-                btn.classList.add('beacon-connected');
+                const short = '\u2705 ' + address.slice(0, 6) + '...' + address.slice(-4);
+                const tip = 'Connected: ' + address + '. Click to disconnect.';
+                updateAllButtons(short, tip, true);
                 hydrateMyTezos(address);
+            } else {
+                updateAllButtons(ICON_CONNECT, TITLE_CONNECT, false);
             }
         } catch (e) {
             console.error('[octez.connect] connect error:', e);
-            btn.innerHTML = '<span class="beacon-icon">\u{1F4F1}</span> Connect';
-            // Show brief error
+            updateAllButtons(ICON_CONNECT, TITLE_CONNECT, false);
             const err = document.getElementById('my-baker-error-msg');
             if (err) {
                 err.textContent = 'Wallet connection cancelled or failed';
@@ -162,24 +164,41 @@ export function initWalletConnect() {
                 setTimeout(() => { err.style.display = 'none'; }, 3000);
             }
         } finally {
-            btn.disabled = false;
+            allButtons.forEach(b => b.disabled = false);
         }
     });
 
-    // Insert before the Save button
-    const saveBtn = controls.querySelector('#my-baker-save');
-    if (saveBtn) {
-        controls.insertBefore(btn, saveBtn);
-    } else {
-        controls.appendChild(btn);
+    allButtons.push(btn);
+    return btn;
+}
+
+/**
+ * Add wallet connect buttons to My Tezos section (both empty + connected states)
+ */
+export function initWalletConnect() {
+    // Add to empty state (first screen)
+    const emptyControls = document.querySelector('#drawer-empty-state .my-baker-controls');
+    if (emptyControls) {
+        const emptyBtn = createWalletButton();
+        const connectBtn = emptyControls.querySelector('#drawer-connect-btn');
+        if (connectBtn) connectBtn.after(emptyBtn);
+        else emptyControls.appendChild(emptyBtn);
     }
 
-    // On page load, check for saved Beacon address and auto-reconnect
+    // Add to connected state
+    const connectedControls = document.querySelector('#drawer-connected .my-baker-controls');
+    if (connectedControls) {
+        const connBtn = createWalletButton();
+        const saveBtn = connectedControls.querySelector('#my-baker-save');
+        if (saveBtn) connectedControls.insertBefore(connBtn, saveBtn);
+        else connectedControls.appendChild(connBtn);
+    }
+
+    // On page load, check for saved address and auto-show connected state
     const savedAddr = localStorage.getItem(LS_WALLET);
     if (savedAddr) {
-        connected = true;
-        btn.innerHTML = '\u2705 ' + savedAddr.slice(0, 6) + '...' + savedAddr.slice(-4);
-        btn.title = 'Connected: ' + savedAddr + '. Click to disconnect.';
-        btn.classList.add('beacon-connected');
+        const short = '\u2705 ' + savedAddr.slice(0, 6) + '...' + savedAddr.slice(-4);
+        const tip = 'Connected: ' + savedAddr + '. Click to disconnect.';
+        updateAllButtons(short, tip, true);
     }
 }
