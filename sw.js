@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v29';
+const CACHE_NAME = 'tezos-systems-v30';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -88,7 +88,7 @@ self.addEventListener('fetch', (event) => {
                     }
                     return response;
                 })
-                .catch(() => caches.match(event.request))
+                .catch(() => caches.match(event.request).then((r) => r || new Response('Offline', { status: 503, statusText: 'Service Unavailable' })))
         );
         return;
     }
@@ -103,7 +103,7 @@ self.addEventListener('fetch', (event) => {
                         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
                     }
                     return response;
-                });
+                }).catch(() => new Response('', { status: 504 }));
             })
         );
         return;
@@ -119,9 +119,9 @@ self.addEventListener('fetch', (event) => {
                         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
                     }
                     return response;
-                }).catch(() => cached);
+                }).catch(() => null);
 
-                return cached || fetchPromise;
+                return cached || fetchPromise.then((r) => r || new Response('Offline', { status: 503, statusText: 'Service Unavailable' }));
             })
         );
     }
