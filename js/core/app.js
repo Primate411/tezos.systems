@@ -1793,12 +1793,23 @@ if (document.readyState === 'loading') {
     init();
 }
 
-// Build version stamp
-fetch('version.json').then(r => r.ok ? r.json() : null).then(v => {
-    if (!v) return;
+// Build version stamp — fetch latest commit from GitHub for accurate hash
+(async () => {
     const el = document.getElementById('build-version');
-    if (el) el.textContent = `build ${v.build} · ${v.commit} · ${v.date}`;
-}).catch(() => {});
+    if (!el) return;
+    try {
+        const [vRes, ghRes] = await Promise.all([
+            fetch('version.json').then(r => r.ok ? r.json() : null),
+            fetch('https://api.github.com/repos/Primate411/tezos.systems/commits/main', {
+                headers: { 'Accept': 'application/vnd.github.v3+json' }
+            }).then(r => r.ok ? r.json() : null).catch(() => null)
+        ]);
+        const build = vRes?.build || '?';
+        const hash = ghRes?.sha?.slice(0, 7) || vRes?.commit || '?';
+        const date = vRes?.date || '';
+        el.textContent = `build ${build} · ${hash} · ${date}`;
+    } catch { /* silent */ }
+})();
 
 // Collapsible sections — works on ALL section types
 function initCollapsibleSections() {
