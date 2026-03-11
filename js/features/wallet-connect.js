@@ -51,10 +51,8 @@ async function connectWallet() {
     if (active) {
         return active.address;
     }
-    // Request permissions
-    const permissions = await client.requestPermissions({
-        network: { type: 'mainnet' }
-    });
+    // Request permissions (v5: network is set on DAppClient, not requestPermissions)
+    const permissions = await client.requestPermissions();
     return permissions.address;
 }
 
