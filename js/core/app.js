@@ -1793,6 +1793,13 @@ if (document.readyState === 'loading') {
     init();
 }
 
+// Build version stamp
+fetch('version.json').then(r => r.ok ? r.json() : null).then(v => {
+    if (!v) return;
+    const el = document.getElementById('build-version');
+    if (el) el.textContent = `build ${v.build} · ${v.commit} · ${v.date}`;
+}).catch(() => {});
+
 // Collapsible sections — works on ALL section types
 function initCollapsibleSections() {
     document.querySelectorAll('.section-header').forEach(header => {
