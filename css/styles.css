@@ -2051,16 +2051,25 @@ body::before {
 }
 
 .build-version {
-    font-size: 0.55rem;
-    color: rgba(128, 128, 128, 0.12);
+    font-size: 0.45rem;
+    color: transparent;
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0.04);
     font-family: 'SF Mono', 'Fira Code', monospace;
     margin-top: 1.5rem;
     letter-spacing: 0.5px;
     user-select: all;
-    transition: color 0.3s;
+    mix-blend-mode: screen;
+    transition: text-shadow 0.4s;
 }
 .build-version:hover {
-    color: rgba(128, 128, 128, 0.45);
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0.35);
+}
+[data-theme="clean"] .build-version {
+    text-shadow: 0 0 0 rgba(0, 0, 0, 0.04);
+    mix-blend-mode: multiply;
+}
+[data-theme="clean"] .build-version:hover {
+    text-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
 }
 
 .error-message {

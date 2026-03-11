@@ -13081,3 +13081,26 @@ body[data-theme="nerv"]::after {
   .drawer-tabs { flex-wrap: nowrap; }
   .my-tezos-minibar { font-size: 0.75rem; padding: 6px 12px; }
 }
+
+/* Build version ghost stamp */
+.build-version {
+    font-size: 0.45rem;
+    color: transparent;
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0.04);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    margin-top: 1.5rem;
+    letter-spacing: 0.5px;
+    user-select: all;
+    mix-blend-mode: screen;
+    transition: text-shadow 0.4s;
+}
+.build-version:hover {
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0.35);
+}
+[data-theme="clean"] .build-version {
+    text-shadow: 0 0 0 rgba(0, 0, 0, 0.04);
+    mix-blend-mode: multiply;
+}
+[data-theme="clean"] .build-version:hover {
+    text-shadow: 0 0 0 rgba(0, 0, 0, 0.3);
+}
