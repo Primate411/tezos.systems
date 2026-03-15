@@ -481,6 +481,7 @@ function buildMorningBrief(data) {
         title: 'Your Tezos Story',
         body: `${storyText}${govText}`,
         accent: 'story',
+        shareBtn: !!data.story,
     });
 
     return cards;
@@ -913,6 +914,7 @@ function renderBriefTabs(cards) {
     const panelsHtml = cards.map((card, i) => 
         `<div class="drawer-tab-panel${i === 0 ? ' active' : ''}" data-tab="${i}">
             <div class="brief-body">${card.body}</div>
+            ${card.shareBtn ? `<button class="glass-button drawer-share-btn story-share-btn" style="margin-top:12px;width:100%;">📸 Share Your Story</button>` : ''}
         </div>`
     ).join('');
     
@@ -927,6 +929,13 @@ function renderBriefTabs(cards) {
             container.querySelectorAll('.drawer-tab-panel').forEach(p => p.classList.remove('active'));
             tab.classList.add('active');
             container.querySelector(`.drawer-tab-panel[data-tab="${tab.dataset.tab}"]`)?.classList.add('active');
+        });
+    });
+
+    container.querySelectorAll('.story-share-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const d = window._myTezosData;
+            if (d) shareTezosStory(d);
         });
     });
 }

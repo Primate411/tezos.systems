@@ -17,7 +17,7 @@ import {
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
-import { initShare, initProtocolShare } from '../ui/share.js';
+import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js?v=20260303c';
 
@@ -105,7 +105,7 @@ import { initChangelog } from '../features/changelog.js';
 import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260309d';
 import { initBakerReportCard } from '../features/baker-report-card.js?v=20260309d';
 import { initWalletConnect } from '../features/wallet-connect.js?v=20260309d';
-import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260309d';
+import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260315a';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228s';
 import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260301';
