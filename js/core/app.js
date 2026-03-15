@@ -111,6 +111,7 @@ import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=2
 import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260301';
 import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260309d';
 import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260309d';
+import { initStateOfTezos } from '../features/state-of-tezos.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -191,6 +192,7 @@ async function init() {
     safe('objkt', initObjkt);
     safe('leaderboard', initLeaderboard);
     safe('bakerReportCard', initBakerReportCard);
+    safe('stateOfTezos', initStateOfTezos);
     safe('walletConnect', initWalletConnect);
     safe('momentsTimeline', initMomentsTimeline);
     safe('comparisonToggle', initComparisonToggle);

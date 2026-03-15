@@ -5,6 +5,8 @@
 
 import { API_URLS } from '../core/config.js';
 import { formatNumber, escapeHtml } from '../core/utils.js';
+import { letterGrade } from '../features/baker-report-card.js';
+import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 
 const TZKT = API_URLS.tzkt;
 const TOGGLE_KEY = 'tezos-systems-leaderboard-visible';
@@ -140,6 +142,127 @@ function sortBakers(bakers, col, dir) {
 }
 
 /**
+ * Build a stat cell for the ranking card (inline-styled for html2canvas)
+ */
+function buildRankStatCell(label, value) {
+    return `
+        <div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:10px 12px;text-align:center;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:rgba(255,255,255,0.35);margin-bottom:4px;">${label}</div>
+            <div style="font-size:16px;font-weight:600;color:#fff;">${value}</div>
+        </div>
+    `;
+}
+
+/**
+ * Build the ranking card DOM for a baker (inline-styled for html2canvas)
+ */
+function buildRankingCardDOM(baker, rank, total) {
+    const rankScore = Math.max(1, Math.round(100 - ((rank - 1) / total) * 100));
+    const { grade, color } = letterGrade(rankScore);
+    const name = escapeHtml(baker.name);
+    const addr = escapeHtml(baker.address.slice(0, 8) + '…' + baker.address.slice(-4));
+    const topPct = Math.max(1, Math.ceil((rank / total) * 100));
+
+    const card = document.createElement('div');
+    card.style.cssText = `
+        width: 680px; padding: 32px; background: #0a0e1a;
+        border: 1px solid rgba(0,255,136,0.2); border-radius: 16px;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #e0e0e0; position: relative; overflow: hidden;
+    `;
+
+    card.innerHTML = `
+        <div style="position:absolute;inset:0;background:linear-gradient(rgba(0,255,136,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.02) 1px,transparent 1px);background-size:20px 20px;pointer-events:none;"></div>
+
+        <div style="position:relative;z-index:1;">
+            <!-- Header -->
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+                <div>
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:rgba(0,255,136,0.5);margin-bottom:4px;">Baker Ranking</div>
+                    <div style="font-size:24px;font-weight:700;color:#fff;">${name}</div>
+                    <div style="font-size:12px;color:rgba(255,255,255,0.4);font-family:monospace;margin-top:2px;">${addr}</div>
+                </div>
+                <div style="text-align:center;">
+                    <div style="font-size:56px;font-weight:900;color:${color};line-height:1;text-shadow:0 0 20px ${color}40;">${grade}</div>
+                    <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;">${rankScore}/100</div>
+                </div>
+            </div>
+
+            <!-- Rank banner -->
+            <div style="background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.12);border-radius:8px;padding:10px 16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:13px;color:rgba(255,255,255,0.6);">Leaderboard Rank</span>
+                <span style="font-size:18px;font-weight:700;color:#00ff88;">#${rank} <span style="font-size:12px;color:rgba(255,255,255,0.3);">of ${total}</span></span>
+            </div>
+
+            <!-- Stats grid -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
+                ${buildRankStatCell('Staking Power', fmtXTZ(baker.stakingBalance) + ' XTZ')}
+                ${buildRankStatCell('Delegators', String(baker.delegators))}
+                ${buildRankStatCell('Stakers', String(baker.stakers))}
+                ${buildRankStatCell('Capacity', baker.delegationUsage.toFixed(0) + '%')}
+                ${buildRankStatCell('tz4 Key', baker.tz4 ? '✅ Yes' : '— No')}
+                ${buildRankStatCell('Rank Percentile', 'Top ' + topPct + '%')}
+            </div>
+
+            <!-- Footer -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+                <span style="font-size:11px;color:rgba(255,255,255,0.25);">tezos.systems</span>
+                <span style="font-size:11px;color:rgba(255,255,255,0.25);">${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
+/**
+ * Generate and show a shareable ranking card for a baker
+ */
+async function showBakerRankingCard(baker, rank, total) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;
+        display:flex;align-items:center;justify-content:center;
+        backdrop-filter:blur(4px);
+    `;
+    overlay.innerHTML = '<div style="color:#00ff88;font-size:16px;">Generating ranking card…</div>';
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    try {
+        const card = buildRankingCardDOM(baker, rank, total);
+        card.style.position = 'fixed';
+        card.style.left = '-9999px';
+        document.body.appendChild(card);
+
+        await loadHtml2Canvas();
+        const canvas = await window.html2canvas(card, {
+            backgroundColor: '#0a0e1a',
+            scale: 2,
+            useCORS: true,
+        });
+
+        card.remove();
+        overlay.remove();
+
+        const name = escapeHtml(baker.name);
+        const statsLine = `${fmtXTZ(baker.stakingBalance)} XTZ | ${baker.delegators} delegators | ${baker.stakers} stakers`;
+        const tweetOptions = [
+            { label: '🍞 My Baker', text: `My baker ${name} is ranked #${rank} of ${total} on Tezos 🍞 Check yours at tezos.systems` },
+            { label: '📊 Stats', text: `${name} — #${rank} baker on Tezos by staking power.\n${statsLine}\ntezos.systems` },
+            { label: '❓ Challenge', text: `How does your Tezos baker rank? tezos.systems` },
+        ];
+
+        showShareModal(canvas, tweetOptions, `Baker Ranking: ${name}`);
+    } catch (err) {
+        overlay.innerHTML = `<div style="color:#ff4444;font-size:14px;text-align:center;padding:20px;">
+            Failed to generate ranking card<br><span style="font-size:12px;color:rgba(255,255,255,0.4);">${err.message}</span>
+        </div>`;
+        setTimeout(() => overlay.remove(), 3000);
+    }
+}
+
+/**
  * Render the leaderboard table
  */
 function render(container) {
@@ -164,6 +287,7 @@ function render(container) {
                         <th class="${headerClass('stakers')}" data-col="stakers">Stakers${arrow('stakers')}</th>
                         <th class="${headerClass('capacity')}" data-col="capacity">Capacity${arrow('capacity')}</th>
                         <th class="${headerClass('tz4')}" data-col="tz4">tz4${arrow('tz4')}</th>
+                        <th class="lb-th lb-share-col"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -180,6 +304,7 @@ function render(container) {
                 <td class="lb-num">${b.stakers}</td>
                 <td class="lb-num ${capacityClass}">${b.delegationUsage.toFixed(0)}%</td>
                 <td class="lb-tz4">${b.tz4 ? '✅' : '—'}</td>
+                <td class="lb-share-cell"><button class="lb-share-btn" title="Share ranking card">📸</button></td>
             </tr>
         `;
     });
@@ -202,6 +327,20 @@ function render(container) {
             }
             try { localStorage.setItem(SORT_KEY, JSON.stringify(currentSort)); } catch {}
             render(container);
+        });
+    });
+
+    // Wire share buttons → generate ranking card
+    container.querySelectorAll('.lb-share-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const row = btn.closest('.lb-row');
+            const addr = row?.dataset.address;
+            if (!addr) return;
+            const rank = parseInt(row.querySelector('.lb-rank')?.textContent, 10);
+            const bakerData = sorted.find(b => b.address === addr);
+            if (!bakerData || !rank) return;
+            showBakerRankingCard(bakerData, rank, sorted.length);
         });
     });
 
