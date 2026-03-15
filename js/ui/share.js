@@ -68,8 +68,8 @@ async function getProtocolTweetOptions(protocol, num, total) {
     }));
 }
 
-const TWEET_SUFFIX = '\n\nhttps://tezos.systems';
-const DASHBOARD_TWEET = 'Real-time Tezos network stats — bakers, staking, governance, burns, and more.\n\nhttps://tezos.systems';
+const TWEET_SUFFIX = '\n\ntezos.systems';
+const DASHBOARD_TWEET = 'Real-time Tezos network stats — bakers, staking, governance, burns, and more.\n\ntezos.systems';
 
 /**
  * Load html2canvas dynamically
@@ -167,7 +167,7 @@ async function getTweetOptions(card) {
     }
     const label = card.querySelector('.stat-label');
     const labelText = label ? label.textContent.trim() : 'Tezos stats';
-    return [{ label: '📊 Standard', text: `${labelText}: ${value}\n\nhttps://tezos.systems` }];
+    return [{ label: '📊 Standard', text: `${labelText}: ${value}\n\ntezos.systems` }];
 }
 
 /**
@@ -1298,7 +1298,7 @@ export async function captureProtocol(protocol) {
         restoreSpacing();
         wrapper.remove();
 
-        const suffix = '\n\nhttps://tezos.systems';
+        const suffix = '\n\ntezos.systems';
         const protoOptions = await getProtocolTweetOptions(protocol, num, total);
         const allOptions = protoOptions.map(o => ({
             ...o,
@@ -1395,7 +1395,7 @@ export async function captureTimeline(allProtocols) {
         restoreSpacing();
         wrapper.remove();
 
-        const suffix = '\n\nhttps://tezos.systems';
+        const suffix = '\n\ntezos.systems';
         const tweetsData = await loadTweetsData();
         const timelineTemplates = tweetsData?.TIMELINE_TWEET_OPTIONS || [];
         const allOptions = timelineTemplates.map(o => ({
@@ -1508,7 +1508,7 @@ async function captureProtocolHistory(protocolName) {
         restoreSpacing();
 
         // Get tweet options for this protocol
-        const suffix = '\n\nhttps://tezos.systems';
+        const suffix = '\n\ntezos.systems';
         let allOptions;
         if (protocol) {
             const protoOpts = await getProtocolTweetOptions(protocol, num, total);
@@ -1623,7 +1623,7 @@ async function captureHistoricalData() {
         if (shareBtn) shareBtn.style.display = '';
         if (modalTitle) modalTitle.style.cssText = origTitleStyle;
 
-        const suffix = '\n\nhttps://tezos.systems';
+        const suffix = '\n\ntezos.systems';
         const tweetOptions = [
             { label: '📊 Standard', text: `Tezos historical data — ${range} view${suffix}` }
         ];

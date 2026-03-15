@@ -126,7 +126,7 @@ tezos.systems` },
 But when they break (and they do), Tezos keeps building. ${upgradeCount} upgrades, 0 forks.
 
 tezos.systems` },
-  { label: "Barrier", text: `To validate on Ethereum you need 32 ETH (~$100K+).
+  { label: "Barrier", text: `To validate on Ethereum you need 32 ETH (tens of thousands of dollars).
 To bake on Tezos you need 6,000 XTZ.
 
 One of these is accessible. The other created Lido.
@@ -148,7 +148,7 @@ tezos.systems` },
 Solana needs a feature gate + validator restart.
 Tezos? On-chain proposal → vote → automatic activation.
 
-21 times and counting.
+${upgradeCount} times and counting.
 
 tezos.systems` },
   { label: "Lido Problem", text: `Lido controls ~30% of all staked ETH. One protocol, one point of failure.
@@ -158,7 +158,7 @@ Tezos doesn't need liquid staking middlemen — delegation is native, permission
 tezos.systems` },
   { label: "Energy Flex", text: `Proof of Stake isn't all equal.
 
-Tezos: <0.001 kWh/tx, ~248 bakers, 6s blocks
+Tezos: <0.001 kWh/tx, hundreds of independent bakers, 6s blocks
 Ethereum: ~0.003 kWh/tx, 802 entities, 12s blocks
 
 Smaller, leaner, greener.
@@ -247,9 +247,9 @@ But these validators have governed ${upgradeCount}+ upgrades without a single co
     { label: "Realistic", text: `Nakamoto coefficient: 4 for Tezos vs ~20 for Solana.
 
 We're working on it. But we've never halted, and our governance actually works.` },
-    { label: "Entry", text: `~248 bakers secure Tezos. Anyone with 6,000 XTZ can join.
+    { label: "Entry", text: `Hundreds of independent bakers secure Tezos. Anyone with 6,000 XTZ can join.
 
-Ethereum? 32 ETH minimum (~$100K+). No wonder Lido controls 30%.` }
+Ethereum? 32 ETH minimum (tens of thousands of dollars). No wonder Lido controls 30%.` }
   ],
   stakingPct: [
     { label: "Participation", text: `Staking participation:
@@ -300,7 +300,7 @@ ${upgradeCount} upgrades and counting.` },
 Functional blockchain governance exists. It's called Tezos.` },
     { label: "Future", text: `While others debate hard forks, Tezos just upgrades.
 
-21 amendments in. Infinite amendments possible. The only future-proof architecture.` },
+${upgradeCount} amendments in. Infinite amendments possible. The only future-proof architecture.` },
     { label: "Process", text: `How Tezos upgrades:
 1. Developer submits proposal
 2. Bakers vote (80% supermajority needed)
@@ -308,7 +308,7 @@ Functional blockchain governance exists. It's called Tezos.` },
 
 No social consensus wars. No emergency calls. Just math.
 
-21 times so far.` }
+${upgradeCount} times so far.` }
   ],
   hardForks: [
     { label: "Zero", text: `Hard fork count:
@@ -352,7 +352,7 @@ Tezos uses less energy per tx than Ethereum and Solana. Your CFO will thank you.
 Tezos: <0.001 kWh
 Ethereum: ~0.003 kWh (3x more)
 
-~248 bakers vs 802 entities. Lean consensus, lean energy.` }
+Hundreds of Tezos bakers vs 802 Ethereum entities. Lean consensus, lean energy.` }
   ],
   slashing: [
     { label: "Safety", text: `Slashing comparison:

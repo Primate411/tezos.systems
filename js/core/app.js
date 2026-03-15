@@ -220,7 +220,7 @@ async function init() {
             // Dynamic upgrade count from timeline chips
             const upgradeChips = document.querySelectorAll('.upgrade-chip');
             const upgradeCount = upgradeChips.length || 21;
-            const daysLive = Math.floor((Date.now() - new Date('2018-09-17').getTime()) / 86400000);
+            const daysLive = Math.floor((Date.now() - new Date('2018-06-30').getTime()) / 86400000);
             const tweetOptions = [
                 { label: '📜 Story', text: `${upgradeCount} protocol upgrades. Zero forks. Zero outages. ${daysLive.toLocaleString()}+ days.\n\nTezos doesn't break. It evolves.\n\ntezos.systems` },
                 { label: '⚡ Stats', text: `Tezos network pulse:\n• ${upgradeCount} self-amendments\n• Zero contentious forks\n• Zero outages since 2018\n• 6-second blocks\n\ntezos.systems` },
