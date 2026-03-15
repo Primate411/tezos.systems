@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Staking Ratio — tezos.systems</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0A0E1A;--accent:#5B8DEF;--text:#D8E0F0;--glass:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08)}
+  html,body{width:100%;height:100%;overflow:hidden}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,sans-serif;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    min-height:100vh;transition:background 0.3s,color 0.3s;
+  }
+  .widget{
+    width:100%;height:100%;padding:10px 14px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:2px;background:var(--glass);border:1px solid var(--border);
+    border-radius:12px;position:relative;overflow:hidden;
+  }
+  .widget::before{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(ellipse at 50% 0%,rgba(255,255,255,0.03) 0%,transparent 70%);
+    pointer-events:none;
+  }
+  .label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.55;font-weight:500}
+  .gauge-wrap{position:relative;display:flex;align-items:center;justify-content:center;margin:4px 0}
+  svg.gauge{overflow:visible}
+  .gauge-bg{fill:none;stroke:rgba(255,255,255,0.08);stroke-linecap:round}
+  .gauge-fill{fill:none;stroke:var(--accent);stroke-linecap:round;transition:stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1)}
+  .gauge-fill.loading{animation:spin-load 1.4s ease-in-out infinite;opacity:0.4}
+  .gauge-text{
+    position:absolute;top:50%;left:50%;transform:translate(-50%,-44%);
+    font-family:'Courier New',monospace;font-size:clamp(18px,5vw,30px);font-weight:700;
+    color:var(--accent);text-align:center;line-height:1;
+  }
+  .gauge-pct{font-size:0.45em;opacity:0.7}
+  .target-label{font-size:9px;opacity:0.35;margin-top:-2px}
+  .sub{font-size:10px;opacity:0.4}
+  .footer{position:absolute;bottom:5px;right:8px;font-size:9px;opacity:0.2;text-decoration:none;color:inherit;transition:opacity 0.2s}
+  .footer:hover{opacity:0.5}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:4px;vertical-align:middle;animation:blink 2s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+  @keyframes spin-load{0%,100%{stroke-dashoffset:220}50%{stroke-dashoffset:160}}
+</style>
+</head>
+<body>
+<div class="widget">
+  <div class="label"><span class="dot"></span>XTZ Staked</div>
+  <div class="gauge-wrap">
+    <svg class="gauge" id="gauge-svg" width="120" height="70" viewBox="0 0 120 70">
+      <path class="gauge-bg" id="gauge-bg" d="" stroke-width="8"/>
+      <path class="gauge-fill loading" id="gauge-fill" d="" stroke-width="8" stroke-dasharray="220" stroke-dashoffset="220"/>
+    </svg>
+    <div class="gauge-text" id="gauge-val">—<span class="gauge-pct">%</span></div>
+  </div>
+  <div class="target-label">Target: 50% · Current: <span id="sub-val">loading…</span></div>
+  <a class="footer" href="https://tezos.systems" target="_blank" rel="noopener">tezos.systems</a>
+</div>
+<script>
+(function(){
+  const THEMES={
+    matrix:{bg:'#0a0f0a',accent:'#00ff00',text:'#00ff41'},
+    default:{bg:'#0A0E1A',accent:'#5B8DEF',text:'#D8E0F0'},
+    void:{bg:'#06060C',accent:'#8B5CF6',text:'#D8D0FF'},
+    ember:{bg:'#0D0806',accent:'#FF9F43',text:'#FFE8D6'},
+    signal:{bg:'#060A08',accent:'#00E4A0',text:'#C8F0E0'},
+    nerv:{bg:'#000000',accent:'#FF9830',text:'#F0D8B0'},
+    clean:{bg:'#F8F9FC',accent:'#2563EB',text:'#1A1D26'},
+    dark:{bg:'#161616',accent:'#D0D0D0',text:'#F0F0F0'},
+    bubblegum:{bg:'#1F0E18',accent:'#FF69B4',text:'#F5E0EE'},
+    abyss:{bg:'#020A1E',accent:'#00E5FF',text:'#A8D8FF'},
+    moss:{bg:'#040C02',accent:'#50E850',text:'#D0E8B8'},
+    warzone:{bg:'#080A02',accent:'#FFC000',text:'#E0D8A0'},
+    light:{bg:'#F8F9FC',accent:'#2563EB',text:'#1A1D26'},
+    transparent:{bg:'transparent',accent:'#ffffff',text:'#ffffff'}
+  };
+  THEMES['dark-theme']=THEMES.dark;
+
+  const p=new URLSearchParams(location.search);
+  const tn=p.get('theme')||'default';
+  const accent=p.get('accent');
+  const refresh=parseInt(p.get('refresh')||'60',10)*1000;
+  const t=THEMES[tn]||THEMES.default;
+  const r=document.documentElement;
+  r.style.setProperty('--bg',t.bg);
+  r.style.setProperty('--accent',accent?'#'+accent.replace('#',''):t.accent);
+  r.style.setProperty('--text',t.text);
+
+  // Semi-circle gauge path
+  // Center: 60,65, radius 48, from 180deg to 0deg (left to right across bottom)
+  const cx=60,cy=65,rad=48;
+  function arcPath(startDeg,endDeg){
+    const s=startDeg*Math.PI/180,e=endDeg*Math.PI/180;
+    const x1=cx+rad*Math.cos(s),y1=cy+rad*Math.sin(s);
+    const x2=cx+rad*Math.cos(e),y2=cy+rad*Math.sin(e);
+    const large=Math.abs(endDeg-startDeg)>180?1:0;
+    return `M ${x1} ${y1} A ${rad} ${rad} 0 ${large} 1 ${x2} ${y2}`;
+  }
+  const bgArc=arcPath(180,0);
+  const totalLen=Math.PI*rad; // half circle circumference
+  document.getElementById('gauge-bg').setAttribute('d',bgArc);
+  const fill=document.getElementById('gauge-fill');
+  fill.setAttribute('d',bgArc);
+  fill.setAttribute('stroke-dasharray',totalLen);
+  fill.setAttribute('stroke-dashoffset',totalLen);
+
+  const valEl=document.getElementById('gauge-val');
+  const subEl=document.getElementById('sub-val');
+
+  function setGauge(pct){
+    const clamped=Math.max(0,Math.min(100,pct));
+    const offset=totalLen*(1-clamped/100);
+    fill.style.strokeDashoffset=offset;
+    fill.classList.remove('loading');
+    valEl.innerHTML=clamped.toFixed(1)+'<span class="gauge-pct">%</span>';
+    subEl.textContent=(clamped/100*t.text?'':(clamped<50?'below':'above')+' target');
+    subEl.textContent=clamped.toFixed(1)+'% staked';
+  }
+
+  async function fetchData(){
+    try{
+      const res=await fetch('https://api.tzkt.io/v1/statistics/current');
+      const d=await res.json();
+      if(d.totalOwnStaked!=null&&d.totalSupply){
+        const staked=(d.totalOwnStaked||0)+(d.totalExternalStaked||0);
+        const pct=(staked/d.totalSupply)*100;
+        setGauge(pct);
+      }
+    }catch(e){valEl.innerHTML='—<span class="gauge-pct">%</span>'}
+  }
+
+  fetchData();
+  setInterval(fetchData,refresh);
+})();
+</script>
+</body>
+</html>

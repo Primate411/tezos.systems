@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Governance — tezos.systems</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--bg:#0A0E1A;--accent:#5B8DEF;--text:#D8E0F0;--glass:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08)}
+  html,body{width:100%;height:100%;overflow:hidden}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:system-ui,-apple-system,sans-serif;
+    display:flex;align-items:center;justify-content:center;
+    min-height:100vh;transition:background 0.3s,color 0.3s;
+  }
+  .widget{
+    width:100%;height:100%;padding:12px 16px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:5px;background:var(--glass);border:1px solid var(--border);
+    border-radius:12px;position:relative;overflow:hidden;
+  }
+  .widget::before{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(ellipse at 50% 0%,rgba(255,255,255,0.03) 0%,transparent 70%);
+    pointer-events:none;
+  }
+  .label{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.55;font-weight:500}
+  .period{
+    font-family:'Courier New',monospace;
+    font-size:clamp(14px,4.5vw,24px);
+    font-weight:700;color:var(--accent);line-height:1;
+    letter-spacing:0.02em;
+  }
+  .period.loading{opacity:0.3;animation:pulse 1.4s ease-in-out infinite}
+  .progress-wrap{width:80%;max-width:180px;margin:2px 0}
+  .progress-bar{
+    height:4px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;background:var(--accent);border-radius:2px;
+    transition:width 0.8s cubic-bezier(0.4,0,0.2,1);width:0%;
+  }
+  .progress-label{font-size:9px;opacity:0.4;margin-top:2px;display:flex;justify-content:space-between}
+  .period-badge{
+    font-size:10px;opacity:0.55;
+    background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);
+    border-radius:5px;padding:1px 6px;
+  }
+  .sub{font-size:9px;opacity:0.35}
+  .footer{position:absolute;bottom:5px;right:8px;font-size:9px;opacity:0.2;text-decoration:none;color:inherit;transition:opacity 0.2s}
+  .footer:hover{opacity:0.5}
+  .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:4px;vertical-align:middle;animation:blink 2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:0.3}50%{opacity:0.6}}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+</style>
+</head>
+<body>
+<div class="widget">
+  <div class="label"><span class="dot"></span>Governance</div>
+  <div class="period loading" id="period">Loading…</div>
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+    <div class="progress-label"><span id="prog-start">0%</span><span id="prog-end">100%</span></div>
+  </div>
+  <div class="period-badge" id="cycle-info">Cycle —</div>
+  <a class="footer" href="https://tezos.systems" target="_blank" rel="noopener">tezos.systems</a>
+</div>
+<script>
+(function(){
+  const THEMES={
+    matrix:{bg:'#0a0f0a',accent:'#00ff00',text:'#00ff41'},
+    default:{bg:'#0A0E1A',accent:'#5B8DEF',text:'#D8E0F0'},
+    void:{bg:'#06060C',accent:'#8B5CF6',text:'#D8D0FF'},
+    ember:{bg:'#0D0806',accent:'#FF9F43',text:'#FFE8D6'},
+    signal:{bg:'#060A08',accent:'#00E4A0',text:'#C8F0E0'},
+    nerv:{bg:'#000000',accent:'#FF9830',text:'#F0D8B0'},
+    clean:{bg:'#F8F9FC',accent:'#2563EB',text:'#1A1D26'},
+    dark:{bg:'#161616',accent:'#D0D0D0',text:'#F0F0F0'},
+    bubblegum:{bg:'#1F0E18',accent:'#FF69B4',text:'#F5E0EE'},
+    abyss:{bg:'#020A1E',accent:'#00E5FF',text:'#A8D8FF'},
+    moss:{bg:'#040C02',accent:'#50E850',text:'#D0E8B8'},
+    warzone:{bg:'#080A02',accent:'#FFC000',text:'#E0D8A0'},
+    light:{bg:'#F8F9FC',accent:'#2563EB',text:'#1A1D26'},
+    transparent:{bg:'transparent',accent:'#ffffff',text:'#ffffff'}
+  };
+  THEMES['dark-theme']=THEMES.dark;
+
+  const p=new URLSearchParams(location.search);
+  const tn=p.get('theme')||'default';
+  const accent=p.get('accent');
+  const refresh=parseInt(p.get('refresh')||'60',10)*1000;
+  const t=THEMES[tn]||THEMES.default;
+  const r=document.documentElement;
+  r.style.setProperty('--bg',t.bg);
+  r.style.setProperty('--accent',accent?'#'+accent.replace('#',''):t.accent);
+  r.style.setProperty('--text',t.text);
+
+  const periodEl=document.getElementById('period');
+  const progressEl=document.getElementById('progress');
+  const progStartEl=document.getElementById('prog-start');
+  const progEndEl=document.getElementById('prog-end');
+  const cycleInfoEl=document.getElementById('cycle-info');
+
+  const PERIOD_NAMES={
+    proposal:'Proposal',
+    exploration:'Exploration Vote',
+    cooldown:'Cooldown',
+    promotion:'Promotion Vote',
+    adoption:'Adoption'
+  };
+
+  async function fetchData(){
+    try{
+      const res=await fetch('https://api.tzkt.io/v1/voting/periods/current');
+      if(!res.ok)throw new Error('not ok');
+      const d=await res.json();
+      if(d&&d.kind){
+        const name=PERIOD_NAMES[d.kind]||d.kind.charAt(0).toUpperCase()+d.kind.slice(1);
+        periodEl.textContent=name;
+        periodEl.classList.remove('loading');
+        // Progress within period
+        if(d.firstLevel!=null&&d.lastLevel!=null){
+          const head=await fetch('https://api.tzkt.io/v1/head').then(r=>r.json());
+          const total=d.lastLevel-d.firstLevel;
+          const done=(head.level||d.firstLevel)-d.firstLevel;
+          const pct=total>0?Math.min(100,Math.max(0,(done/total)*100)):0;
+          progressEl.style.width=pct.toFixed(1)+'%';
+          progStartEl.textContent=pct.toFixed(0)+'%';
+          progEndEl.textContent='Ends Epoch '+d.epoch;
+        }
+        cycleInfoEl.textContent='Epoch '+(d.epoch||'—')+' · Period '+(d.index||'—');
+      }
+    }catch(e){
+      try{
+        const h=await fetch('https://api.tzkt.io/v1/head');
+        const hd=await h.json();
+        periodEl.textContent='No Active Vote';
+        periodEl.classList.remove('loading');
+        cycleInfoEl.textContent='Cycle '+(hd.cycle||'—');
+      }catch(e2){periodEl.textContent='—';periodEl.classList.remove('loading')}
+    }
+  }
+
+  fetchData();
+  setInterval(fetchData,refresh);
+})();
+</script>
+</body>
+</html>

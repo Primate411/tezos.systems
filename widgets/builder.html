@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Widget Builder — tezos.systems</title>
+<meta name="description" content="Build and embed live Tezos blockchain widgets — baker count, staking ratio, block height, price, and more.">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0A0E1A;--surface:#111827;--surface2:#1a2235;
+  --accent:#5B8DEF;--text:#D8E0F0;--text-dim:#8896aa;
+  --border:rgba(255,255,255,0.08);--glass:rgba(255,255,255,0.04);
+  --radius:12px;--transition:0.2s ease;
+}
+html{font-size:14px}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:system-ui,-apple-system,sans-serif;
+  min-height:100vh;line-height:1.5;
+}
+
+/* Nav */
+.nav{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 24px;
+  border-bottom:1px solid var(--border);
+  background:rgba(10,14,26,0.85);
+  backdrop-filter:blur(12px);
+  position:sticky;top:0;z-index:100;
+}
+.nav-brand{
+  font-family:'Orbitron',monospace;font-size:15px;font-weight:700;
+  color:var(--accent);text-decoration:none;display:flex;align-items:center;gap:8px;
+}
+.nav-brand span{opacity:0.5;font-weight:400}
+.nav-back{
+  font-size:12px;color:var(--text-dim);text-decoration:none;
+  display:flex;align-items:center;gap:5px;
+  padding:5px 10px;border-radius:6px;
+  border:1px solid var(--border);
+  transition:color var(--transition),border-color var(--transition);
+}
+.nav-back:hover{color:var(--text);border-color:rgba(255,255,255,0.2)}
+
+/* Layout */
+.container{display:grid;grid-template-columns:320px 1fr;gap:0;min-height:calc(100vh - 53px)}
+@media(max-width:900px){.container{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
+
+/* Panel */
+.panel{
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:20px;
+  overflow-y:auto;
+  display:flex;flex-direction:column;gap:20px;
+}
+.panel-section{display:flex;flex-direction:column;gap:10px}
+.section-title{
+  font-size:10px;letter-spacing:0.1em;text-transform:uppercase;
+  color:var(--text-dim);font-weight:600;padding-bottom:4px;
+  border-bottom:1px solid var(--border);
+}
+
+/* Widget type cards */
+.widget-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.widget-type-btn{
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:8px;padding:8px 10px;cursor:pointer;
+  transition:all var(--transition);text-align:left;color:var(--text);
+  font-size:11px;font-family:inherit;
+}
+.widget-type-btn:hover{background:rgba(91,141,239,0.08);border-color:rgba(91,141,239,0.3)}
+.widget-type-btn.active{background:rgba(91,141,239,0.12);border-color:var(--accent);color:var(--accent)}
+.widget-type-icon{font-size:16px;display:block;margin-bottom:3px}
+.widget-type-name{font-weight:600;display:block}
+.widget-type-desc{font-size:9px;opacity:0.5;display:block;margin-top:1px}
+
+/* Theme picker */
+.theme-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.theme-btn{
+  border-radius:7px;padding:6px 4px;cursor:pointer;border:2px solid transparent;
+  transition:all var(--transition);display:flex;flex-direction:column;align-items:center;gap:3px;
+  background:var(--glass);font-family:inherit;
+}
+.theme-btn:hover{border-color:rgba(255,255,255,0.2)}
+.theme-btn.active{border-color:var(--accent)}
+.theme-dots{display:flex;gap:2px;justify-content:center}
+.theme-dot{width:8px;height:8px;border-radius:50%;display:block}
+.theme-name{font-size:8px;color:var(--text-dim);letter-spacing:0.04em}
+.theme-btn.active .theme-name{color:var(--text)}
+
+/* Form controls */
+.form-row{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:10px;color:var(--text-dim);letter-spacing:0.04em;text-transform:uppercase}
+.form-input{
+  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  border-radius:6px;padding:7px 10px;color:var(--text);font-family:inherit;font-size:12px;
+  outline:none;transition:border-color var(--transition);width:100%;
+}
+.form-input:focus{border-color:rgba(91,141,239,0.5)}
+.form-input::placeholder{color:var(--text-dim);opacity:0.5}
+
+.size-presets{display:flex;gap:5px}
+.size-preset{
+  flex:1;background:var(--glass);border:1px solid var(--border);
+  border-radius:6px;padding:5px 4px;cursor:pointer;text-align:center;
+  font-size:9px;color:var(--text-dim);font-family:inherit;
+  transition:all var(--transition);
+}
+.size-preset:hover{border-color:rgba(255,255,255,0.2);color:var(--text)}
+.size-preset.active{border-color:var(--accent);color:var(--accent);background:rgba(91,141,239,0.08)}
+
+.input-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+
+.range-wrap{display:flex;align-items:center;gap:8px}
+.range-input{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border);outline:none}
+.range-input::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--accent);cursor:pointer}
+.range-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);min-width:36px;text-align:right}
+
+.checkboxes{display:flex;flex-wrap:wrap;gap:5px}
+.checkbox-label{
+  display:flex;align-items:center;gap:5px;cursor:pointer;
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:5px;padding:3px 8px;font-size:10px;
+  transition:all var(--transition);
+}
+.checkbox-label:hover{border-color:rgba(255,255,255,0.2)}
+.checkbox-label input{accent-color:var(--accent)}
+
+.color-row{display:flex;align-items:center;gap:8px}
+.color-input{
+  width:32px;height:32px;padding:2px;border-radius:6px;border:1px solid var(--border);
+  background:none;cursor:pointer;
+}
+.color-hex{flex:1}
+
+/* Preview pane */
+.preview-pane{
+  display:flex;flex-direction:column;background:var(--bg);
+  padding:24px;gap:20px;
+}
+.preview-header{display:flex;align-items:center;justify-content:space-between}
+.preview-title{font-family:'Orbitron',monospace;font-size:13px;color:var(--text-dim);letter-spacing:0.06em}
+.preview-bg-toggle{display:flex;gap:5px}
+.bg-btn{
+  padding:4px 10px;border-radius:5px;font-size:10px;cursor:pointer;
+  border:1px solid var(--border);background:var(--glass);color:var(--text-dim);
+  font-family:inherit;transition:all var(--transition);
+}
+.bg-btn.active{background:rgba(255,255,255,0.1);color:var(--text);border-color:rgba(255,255,255,0.2)}
+
+.preview-stage{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius);border:1px solid var(--border);
+  background:repeating-conic-gradient(rgba(255,255,255,0.03) 0% 25%,transparent 0% 50%) 0 0/20px 20px;
+  min-height:200px;position:relative;overflow:hidden;
+  transition:background 0.3s;
+}
+.preview-stage.dark-bg{background:#000}
+.preview-stage.light-bg{background:#fff}
+.preview-iframe{
+  border:none;display:block;
+  box-shadow:0 4px 24px rgba(0,0,0,0.4);
+  border-radius:8px;
+  overflow:hidden;
+  transition:width 0.2s,height 0.2s;
+}
+
+/* Code output */
+.code-section{display:flex;flex-direction:column;gap:10px}
+.code-tabs{display:flex;gap:4px}
+.code-tab{
+  padding:5px 12px;border-radius:5px;font-size:11px;cursor:pointer;
+  border:1px solid var(--border);background:var(--glass);color:var(--text-dim);
+  font-family:inherit;transition:all var(--transition);
+}
+.code-tab.active{background:rgba(91,141,239,0.15);color:var(--accent);border-color:rgba(91,141,239,0.4)}
+.code-block{
+  background:rgba(0,0,0,0.3);border:1px solid var(--border);
+  border-radius:8px;padding:12px 14px;position:relative;
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  line-height:1.6;color:#a8c8ff;overflow-x:auto;
+  white-space:pre;word-break:break-all;white-space:pre-wrap;
+  max-height:120px;overflow-y:auto;
+}
+.copy-btn{
+  position:absolute;top:8px;right:8px;
+  padding:3px 10px;border-radius:4px;font-size:10px;cursor:pointer;
+  border:1px solid var(--border);background:rgba(255,255,255,0.07);
+  color:var(--text-dim);font-family:inherit;
+  transition:all var(--transition);
+}
+.copy-btn:hover{background:rgba(255,255,255,0.12);color:var(--text)}
+.copy-btn.copied{color:#22c55e;border-color:rgba(34,197,94,0.3)}
+
+/* URL bar */
+.url-bar{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,0.2);border:1px solid var(--border);
+  border-radius:8px;padding:6px 12px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);
+  overflow:hidden;
+}
+.url-bar-text{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.url-copy-btn{
+  flex-shrink:0;padding:2px 8px;border-radius:4px;font-size:9px;cursor:pointer;
+  border:1px solid var(--border);background:var(--glass);color:var(--text-dim);
+  font-family:inherit;transition:all var(--transition);
+}
+.url-copy-btn:hover{color:var(--text)}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="../index.html">⬡ Tezos Systems <span>/ Widgets</span></a>
+  <a class="nav-back" href="../index.html">← Back to Dashboard</a>
+</nav>
+
+<div class="container">
+  <!-- Config Panel -->
+  <div class="panel">
+
+    <!-- Widget Type -->
+    <div class="panel-section">
+      <div class="section-title">Widget Type</div>
+      <div class="widget-grid" id="widget-type-grid">
+        <button class="widget-type-btn active" data-type="baker-count">
+          <span class="widget-type-icon">🥐</span>
+          <span class="widget-type-name">Baker Count</span>
+          <span class="widget-type-desc">Active bakers</span>
+        </button>
+        <button class="widget-type-btn" data-type="price">
+          <span class="widget-type-icon">💰</span>
+          <span class="widget-type-name">XTZ Price</span>
+          <span class="widget-type-desc">Price + 24h change</span>
+        </button>
+        <button class="widget-type-btn" data-type="block-height">
+          <span class="widget-type-icon">⛓️</span>
+          <span class="widget-type-name">Block Height</span>
+          <span class="widget-type-desc">Live ticker</span>
+        </button>
+        <button class="widget-type-btn" data-type="staking-ratio">
+          <span class="widget-type-icon">🔒</span>
+          <span class="widget-type-name">Staking Ratio</span>
+          <span class="widget-type-desc">Gauge chart</span>
+        </button>
+        <button class="widget-type-btn" data-type="protocol">
+          <span class="widget-type-icon">⚡</span>
+          <span class="widget-type-name">Protocol</span>
+          <span class="widget-type-desc">Current protocol</span>
+        </button>
+        <button class="widget-type-btn" data-type="governance">
+          <span class="widget-type-icon">🗳️</span>
+          <span class="widget-type-name">Governance</span>
+          <span class="widget-type-desc">Voting period</span>
+        </button>
+        <button class="widget-type-btn" data-type="baker-card">
+          <span class="widget-type-icon">📋</span>
+          <span class="widget-type-name">Baker Card</span>
+          <span class="widget-type-desc">Baker report</span>
+        </button>
+        <button class="widget-type-btn" data-type="combo">
+          <span class="widget-type-icon">📊</span>
+          <span class="widget-type-name">Combo Strip</span>
+          <span class="widget-type-desc">Multi-stat</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Theme -->
+    <div class="panel-section">
+      <div class="section-title">Theme</div>
+      <div class="theme-grid" id="theme-grid"></div>
+      <div class="form-row" style="margin-top:6px">
+        <label class="form-label">Custom Accent Color</label>
+        <div class="color-row">
+          <input type="color" class="color-input" id="accent-picker" value="#5B8DEF">
+          <input type="text" class="form-input color-hex" id="accent-hex" placeholder="#5B8DEF" maxlength="7">
+          <button style="padding:5px 8px;border-radius:5px;border:1px solid var(--border);background:var(--glass);color:var(--text-dim);cursor:pointer;font-family:inherit;font-size:10px" id="accent-clear">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Size -->
+    <div class="panel-section">
+      <div class="section-title">Size</div>
+      <div class="size-presets">
+        <button class="size-preset" data-w="200" data-h="80">Small<br><span style="opacity:0.5">200×80</span></button>
+        <button class="size-preset active" data-w="300" data-h="120">Medium<br><span style="opacity:0.5">300×120</span></button>
+        <button class="size-preset" data-w="400" data-h="160">Large<br><span style="opacity:0.5">400×160</span></button>
+        <button class="size-preset" data-w="320" data-h="200">Tall<br><span style="opacity:0.5">320×200</span></button>
+      </div>
+      <div class="input-row" style="margin-top:6px">
+        <div class="form-row">
+          <label class="form-label">Width (px)</label>
+          <input type="number" class="form-input" id="width-input" value="300" min="120" max="800">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Height (px)</label>
+          <input type="number" class="form-input" id="height-input" value="120" min="60" max="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- Refresh -->
+    <div class="panel-section">
+      <div class="section-title">Refresh Interval</div>
+      <div class="range-wrap">
+        <input type="range" class="range-input" id="refresh-range" min="10" max="300" value="60" step="5">
+        <div class="range-val"><span id="refresh-val">60</span>s</div>
+      </div>
+    </div>
+
+    <!-- Baker Card Options -->
+    <div class="panel-section" id="baker-options" style="display:none">
+      <div class="section-title">Baker Address</div>
+      <div class="form-row">
+        <input type="text" class="form-input" id="baker-addr" placeholder="tz1… or tz2… or tz3…">
+      </div>
+    </div>
+
+    <!-- Combo Options -->
+    <div class="panel-section" id="combo-options" style="display:none">
+      <div class="section-title">Stats to Show</div>
+      <div class="checkboxes">
+        <label class="checkbox-label"><input type="checkbox" value="bakers" checked> Bakers</label>
+        <label class="checkbox-label"><input type="checkbox" value="price" checked> Price</label>
+        <label class="checkbox-label"><input type="checkbox" value="blocks" checked> Blocks</label>
+        <label class="checkbox-label"><input type="checkbox" value="staking"> Staking</label>
+        <label class="checkbox-label"><input type="checkbox" value="protocol"> Protocol</label>
+        <label class="checkbox-label"><input type="checkbox" value="cycle"> Cycle</label>
+      </div>
+    </div>
+
+  </div><!-- /panel -->
+
+  <!-- Preview + Code -->
+  <div class="preview-pane">
+    <div class="preview-header">
+      <div class="preview-title">LIVE PREVIEW</div>
+      <div class="preview-bg-toggle">
+        <button class="bg-btn active" data-bg="checker">Grid</button>
+        <button class="bg-btn" data-bg="dark">Dark</button>
+        <button class="bg-btn" data-bg="light">Light</button>
+      </div>
+    </div>
+
+    <div class="preview-stage" id="preview-stage">
+      <iframe class="preview-iframe" id="preview-frame"
+        width="300" height="120" frameborder="0"
+        style="border-radius:8px"></iframe>
+    </div>
+
+    <div class="url-bar">
+      <span style="color:var(--accent);opacity:0.5;font-size:9px;flex-shrink:0">URL</span>
+      <span class="url-bar-text" id="url-display">—</span>
+      <button class="url-copy-btn" id="url-copy-btn">Copy</button>
+    </div>
+
+    <div class="code-section">
+      <div class="code-tabs">
+        <button class="code-tab active" data-tab="iframe">Iframe</button>
+        <button class="code-tab" data-tab="markdown">Markdown</button>
+      </div>
+      <div class="code-block" id="code-output">
+        <button class="copy-btn" id="copy-code-btn">Copy</button>
+        <span id="code-text">—</span>
+      </div>
+    </div>
+
+  </div><!-- /preview-pane -->
+</div>
+
+<script>
+(function(){
+  const THEMES={
+    matrix:{bg:'#0a0f0a',accent:'#00ff00',text:'#00ff41'},
+    default:{bg:'#0A0E1A',accent:'#5B8DEF',text:'#D8E0F0'},
+    void:{bg:'#06060C',accent:'#8B5CF6',text:'#D8D0FF'},
+    ember:{bg:'#0D0806',accent:'#FF9F43',text:'#FFE8D6'},
+    signal:{bg:'#060A08',accent:'#00E4A0',text:'#C8F0E0'},
+    nerv:{bg:'#000000',accent:'#FF9830',text:'#F0D8B0'},
+    clean:{bg:'#F8F9FC',accent:'#2563EB',text:'#1A1D26'},
+    dark:{bg:'#161616',accent:'#D0D0D0',text:'#F0F0F0'},
+    bubblegum:{bg:'#1F0E18',accent:'#FF69B4',text:'#F5E0EE'},
+    abyss:{bg:'#020A1E',accent:'#00E5FF',text:'#A8D8FF'},
+    moss:{bg:'#040C02',accent:'#50E850',text:'#D0E8B8'},
+    warzone:{bg:'#080A02',accent:'#FFC000',text:'#E0D8A0'}
+  };
+  const THEME_NAMES=Object.keys(THEMES);
+
+  // State
+  let state={
+    type:'baker-count',theme:'default',width:300,height:120,
+    refresh:60,accentOverride:null,baker:'',
+    comboStats:['bakers','price','blocks'],activeTab:'iframe'
+  };
+
+  // Render theme grid
+  const themeGrid=document.getElementById('theme-grid');
+  THEME_NAMES.forEach(name=>{
+    const t=THEMES[name];
+    const btn=document.createElement('button');
+    btn.className='theme-btn'+(name===state.theme?' active':'');
+    btn.dataset.theme=name;
+    btn.innerHTML=`
+      <div class="theme-dots">
+        <span class="theme-dot" style="background:${t.bg};border:1px solid rgba(255,255,255,0.2)"></span>
+        <span class="theme-dot" style="background:${t.accent}"></span>
+        <span class="theme-dot" style="background:${t.text}"></span>
+      </div>
+      <div class="theme-name">${name.charAt(0).toUpperCase()+name.slice(1)}</div>
+    `;
+    btn.addEventListener('click',()=>{
+      state.theme=name;
+      state.accentOverride=null;
+      document.getElementById('accent-picker').value=THEMES[name].accent;
+      document.getElementById('accent-hex').value='';
+      document.querySelectorAll('.theme-btn').forEach(b=>b.classList.toggle('active',b.dataset.theme===name));
+      updatePreview();
+    });
+    themeGrid.appendChild(btn);
+  });
+
+  // Widget type
+  document.querySelectorAll('.widget-type-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      state.type=btn.dataset.type;
+      document.querySelectorAll('.widget-type-btn').forEach(b=>b.classList.toggle('active',b.dataset.type===state.type));
+      document.getElementById('baker-options').style.display=state.type==='baker-card'?'flex':'none';
+      document.getElementById('combo-options').style.display=state.type==='combo'?'flex':'none';
+      updatePreview();
+    });
+  });
+
+  // Size presets
+  document.querySelectorAll('.size-preset').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.size-preset').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      state.width=parseInt(btn.dataset.w);
+      state.height=parseInt(btn.dataset.h);
+      document.getElementById('width-input').value=state.width;
+      document.getElementById('height-input').value=state.height;
+      updatePreview();
+    });
+  });
+
+  document.getElementById('width-input').addEventListener('input',e=>{
+    state.width=parseInt(e.target.value)||300;
+    document.querySelectorAll('.size-preset').forEach(b=>b.classList.remove('active'));
+    updatePreview();
+  });
+  document.getElementById('height-input').addEventListener('input',e=>{
+    state.height=parseInt(e.target.value)||120;
+    document.querySelectorAll('.size-preset').forEach(b=>b.classList.remove('active'));
+    updatePreview();
+  });
+
+  // Refresh
+  const refreshRange=document.getElementById('refresh-range');
+  const refreshVal=document.getElementById('refresh-val');
+  refreshRange.addEventListener('input',()=>{
+    state.refresh=parseInt(refreshRange.value);
+    refreshVal.textContent=state.refresh;
+    updatePreview();
+  });
+
+  // Baker address
+  document.getElementById('baker-addr').addEventListener('input',e=>{
+    state.baker=e.target.value.trim();
+    updatePreview();
+  });
+
+  // Combo checkboxes
+  document.querySelectorAll('#combo-options input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change',()=>{
+      state.comboStats=[];
+      document.querySelectorAll('#combo-options input[type=checkbox]:checked').forEach(c=>{
+        state.comboStats.push(c.value);
+      });
+      updatePreview();
+    });
+  });
+
+  // Accent color
+  const accentPicker=document.getElementById('accent-picker');
+  const accentHex=document.getElementById('accent-hex');
+  accentPicker.addEventListener('input',e=>{
+    state.accentOverride=e.target.value;
+    accentHex.value=e.target.value;
+    updatePreview();
+  });
+  accentHex.addEventListener('input',e=>{
+    const v=e.target.value;
+    if(/^#[0-9a-fA-F]{6}$/.test(v)){
+      state.accentOverride=v;
+      accentPicker.value=v;
+      updatePreview();
+    }
+  });
+  document.getElementById('accent-clear').addEventListener('click',()=>{
+    state.accentOverride=null;
+    accentHex.value='';
+    accentPicker.value=THEMES[state.theme].accent;
+    updatePreview();
+  });
+
+  // Preview background toggle
+  document.querySelectorAll('.bg-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.bg-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const stage=document.getElementById('preview-stage');
+      stage.className='preview-stage';
+      if(btn.dataset.bg==='dark')stage.classList.add('dark-bg');
+      if(btn.dataset.bg==='light')stage.classList.add('light-bg');
+    });
+  });
+
+  // Code tabs
+  document.querySelectorAll('.code-tab').forEach(tab=>{
+    tab.addEventListener('click',()=>{
+      state.activeTab=tab.dataset.tab;
+      document.querySelectorAll('.code-tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===state.activeTab));
+      updateCode();
+    });
+  });
+
+  // Copy buttons
+  function copyText(text,btn){
+    navigator.clipboard.writeText(text).then(()=>{
+      btn.textContent='✓ Copied';
+      btn.classList.add('copied');
+      setTimeout(()=>{btn.textContent='Copy';btn.classList.remove('copied')},1800);
+    });
+  }
+  document.getElementById('copy-code-btn').addEventListener('click',()=>{
+    copyText(document.getElementById('code-text').textContent.trim(),document.getElementById('copy-code-btn'));
+  });
+  document.getElementById('url-copy-btn').addEventListener('click',()=>{
+    copyText(document.getElementById('url-display').textContent.trim(),document.getElementById('url-copy-btn'));
+  });
+
+  // Build URL
+  function buildUrl(){
+    const base=location.origin+'/widgets/'+state.type+'.html';
+    const params=new URLSearchParams();
+    params.set('theme',state.theme);
+    if(state.refresh!==60)params.set('refresh',state.refresh);
+    if(state.accentOverride)params.set('accent',state.accentOverride.replace('#',''));
+    if(state.type==='baker-card'&&state.baker)params.set('baker',state.baker);
+    if(state.type==='combo'&&state.comboStats.length)params.set('stats',state.comboStats.join(','));
+    return base+'?'+params.toString();
+  }
+
+  function buildIframe(url){
+    return `<iframe src="${url}"\n  width="${state.width}" height="${state.height}" frameborder="0"\n  style="border-radius: 8px; overflow: hidden;">\n</iframe>`;
+  }
+
+  function buildMarkdown(url){
+    return `[![Tezos ${state.type} widget](${url})](https://tezos.systems)`;
+  }
+
+  function updateCode(){
+    const url=buildUrl();
+    const code=state.activeTab==='iframe'?buildIframe(url):buildMarkdown(url);
+    document.getElementById('code-text').textContent=code;
+  }
+
+  let previewTimeout=null;
+  function updatePreview(){
+    const url=buildUrl();
+    const frame=document.getElementById('preview-frame');
+    frame.width=state.width;
+    frame.height=state.height;
+
+    // Debounce URL updates slightly
+    clearTimeout(previewTimeout);
+    previewTimeout=setTimeout(()=>{
+      if(frame.src!==url)frame.src=url;
+    },200);
+
+    document.getElementById('url-display').textContent=url;
+    updateCode();
+  }
+
+  // Initial render
+  updatePreview();
+})();
+</script>
+</body>
+</html>
