@@ -48,8 +48,8 @@ async function fetchLiveTezosData() {
       hardForks: '0',
       energyPerTx: '<0.001 kWh',
       avgTxFee: '~$0.01',
-      slashing: 'Minimal',
-      slashingNote: 'Double-bake/attest only',
+      slashing: 'Adaptive',
+      slashingNote: 'Scales with offense severity',
     };
   } catch(e) {
     return {};

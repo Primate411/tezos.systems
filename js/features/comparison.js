@@ -268,16 +268,16 @@ Tezos stakers have voted through ${upgradeCount} protocol upgrades. Active gover
   annualIssuance: [
     { label: "Data Drop", text: `Annual issuance:
 🟢 Ethereum: ~0.5%
-🔄 Tezos: ~3.52% (adaptive)
+🔄 Tezos: ~3.52% (adaptive — adjusts to staking participation)
 🔴 Solana: ~4.2%
 
 ETH wins lowest inflation. But deflationary isn't always better — networks need incentives.` },
     { label: "Sustainable", text: `Low inflation sounds good until your network can't fund development.
 
-Tezos adaptive issuance funds both security AND evolution. That's how we ship ${upgradeCount} upgrades.` },
+Tezos adaptive issuance automatically adjusts based on staking ratio vs 50% target — funding both security AND evolution. That's how we ship ${upgradeCount} upgrades.` },
     { label: "Honest", text: `Ethereum's ~0.5% issuance wins the inflation game.
 
-Tezos trades higher issuance (~3.52%) for sustainable protocol development and baker incentives. Different priorities.` }
+Tezos adaptive issuance (~3.52%) auto-adjusts to staking participation — when participation rises above 50%, issuance decreases. Sustainable by design.` }
   ],
   selfAmendments: [
     { label: "Victory", text: `Self-amendment scoreboard:
@@ -356,22 +356,22 @@ Hundreds of Tezos bakers vs 802 Ethereum entities. Lean consensus, lean energy.`
   ],
   slashing: [
     { label: "Safety", text: `Slashing comparison:
-🟢 Tezos: Minimal (double-bake/attest only)
+🟡 Tezos: Adaptive (scales with offense)
 🟢 Cardano: No slashing
 🟢 Solana: No slashing (delinquency)
 🟢 Algorand: No slashing
 🔴 Ethereum: Up to full stake
 
-Stake without fear.` },
-    { label: "Honest", text: `Ethereum can slash your entire 32 ETH stake. Tezos only penalizes provable double-baking/attesting — the minimum needed for security.
+Tezos penalizes bad behavior proportionally — never for downtime.` },
+    { label: "Honest", text: `Ethereum can slash your entire 32 ETH stake. Tezos uses adaptive slashing — penalties scale with offense severity, never triggered by downtime.
 
-Most chains skip slashing entirely. Tezos found the middle ground.` },
-    { label: "Delegator", text: `Delegating on Tezos? Your slashing risk is minimal — only triggered by provable double operations, not downtime.
+Proportional accountability, not punitive terror.` },
+    { label: "Delegator", text: `Delegating on Tezos? No slashing for downtime — ever. Double-baking/attesting carries adaptive penalties proportional to the offense.
 
 Ethereum validators risk their entire 32 ETH. Different philosophy.` },
-    { label: "Technical", text: `Tezos slashing is surgical: only double-baking and double-attesting are penalized. No slashing for downtime, no cascading penalties.
+    { label: "Technical", text: `Tezos adaptive slashing: penalties scale with offense severity. Double-bake/attest IS penalized proportionally. Downtime is never slashed.
 
-Security without the terror.` }
+Security without the binary punishment model.` }
   ],
   avgTxFee: [
     { label: "Honest", text: `Transaction fees:
