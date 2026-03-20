@@ -9,6 +9,19 @@ let html2canvasLoaded = false;
 const CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
 
 /**
+ * Escape HTML special characters for safe injection into innerHTML
+ */
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
  * Fix html2canvas word-spacing bug: force explicit word-spacing on text elements
  * before capture, returns a restore function to call after.
  */
@@ -1478,13 +1491,238 @@ export async function initProtocolShare() {
 }
 
 /**
+ * Build a purpose-built 1200×630px share card DOM element for a protocol history
+ */
+function buildProtocolHistoryCardDOM(protocol, num) {
+    const theme = document.body.getAttribute('data-theme') || 'default';
+    const accentColors = {
+        matrix: '#00ff41',
+        void: '#8B5CF6',
+        ember: '#FF9F43',
+        signal: '#00FFC8',
+        bubblegum: '#FF69B4',
+        default: '#00d4ff'
+    };
+    const bgColors = {
+        matrix: '#000800',
+        void: '#06060f',
+        ember: '#0f0806',
+        signal: '#060a0f',
+        bubblegum: '#1F0E18',
+        default: '#0a0e1a'
+    };
+    const accent = accentColors[theme] || '#00d4ff';
+    const bg = bgColors[theme] || '#0a0e1a';
+    const accent10 = accent + '1a';
+    const accent30 = accent + '4d';
+
+    const card = document.createElement('div');
+    card.style.cssText = `
+        width: 1200px; height: 630px; background: ${bg};
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        color: #e0e0e0; position: fixed; left: -9999px; top: 0;
+        overflow: hidden; box-sizing: border-box;
+    `;
+
+    const history = protocol.history;
+    const hasHistory = history && history.sections && history.sections.length > 0;
+
+    let bodyHTML = '';
+
+    if (hasHistory) {
+        // Find interesting sections
+        const versusSection = history.sections.find(s => s.type === 'versus');
+        const timelineSection = history.sections.find(s => s.type === 'timeline');
+        const textSections = history.sections.filter(s => !s.type || s.type === 'text');
+
+        // Extract a key quote from text sections
+        let keyQuote = null;
+        for (const ts of textSections) {
+            if (ts.content) {
+                const quoteMatch = ts.content.match(/"([^"]{40,200})"/);
+                if (quoteMatch) {
+                    keyQuote = quoteMatch[1].length > 160
+                        ? quoteMatch[1].slice(0, 157) + '…'
+                        : quoteMatch[1];
+                    break;
+                }
+            }
+        }
+
+        if (versusSection) {
+            // Versus layout: two sides side by side
+            const L = versusSection.left || {};
+            const R = versusSection.right || {};
+            const truncate = (str, max) => str && str.length > max ? str.slice(0, max - 1) + '…' : (str || '');
+
+            bodyHTML = `
+                <div style="display:flex;gap:16px;height:100%;">
+                    <!-- Left side -->
+                    <div style="flex:1;background:${accent10};border:1px solid ${accent30};border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px;">
+                        <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:${accent};opacity:0.7;">Team</div>
+                        <div style="font-size:18px;font-weight:700;color:#fff;">${escapeHtml(L.name || '')}</div>
+                        <div style="font-size:11px;color:rgba(255,255,255,0.45);">${escapeHtml(L.team || '')}</div>
+                        <div style="flex:1;font-size:13px;color:rgba(255,255,255,0.75);line-height:1.55;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">${escapeHtml(truncate(L.position, 220))}</div>
+                        ${L.quote ? `<div style="font-size:12px;font-style:italic;color:${accent};opacity:0.85;border-left:3px solid ${accent};padding-left:10px;line-height:1.4;">"${escapeHtml(truncate(L.quote, 150))}"</div>` : ''}
+                    </div>
+                    <!-- VS divider -->
+                    <div style="display:flex;align-items:center;justify-content:center;flex:0 0 48px;">
+                        <div style="font-size:20px;font-weight:900;color:${accent};opacity:0.5;text-shadow:0 0 12px ${accent}80;">VS</div>
+                    </div>
+                    <!-- Right side -->
+                    <div style="flex:1;background:rgba(255,80,80,0.08);border:1px solid rgba(255,80,80,0.2);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px;">
+                        <div style="font-size:11px;text-transform:uppercase;letter-spacing:2px;color:#ff8080;opacity:0.7;">Team</div>
+                        <div style="font-size:18px;font-weight:700;color:#fff;">${escapeHtml(R.name || '')}</div>
+                        <div style="font-size:11px;color:rgba(255,255,255,0.45);">${escapeHtml(R.team || '')}</div>
+                        <div style="flex:1;font-size:13px;color:rgba(255,255,255,0.75);line-height:1.55;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">${escapeHtml(truncate(R.position, 220))}</div>
+                        ${R.quote ? `<div style="font-size:12px;font-style:italic;color:#ff8080;border-left:3px solid #ff8080;padding-left:10px;line-height:1.4;">"${escapeHtml(truncate(R.quote, 150))}"</div>` : ''}
+                    </div>
+                </div>
+            `;
+        } else if (timelineSection && timelineSection.events && timelineSection.events.length > 0) {
+            // Timeline layout: pick 4 representative events
+            const events = timelineSection.events;
+            let picks = [];
+            if (events.length <= 4) {
+                picks = events;
+            } else {
+                const mid1 = Math.floor(events.length / 3);
+                const mid2 = Math.floor(2 * events.length / 3);
+                picks = [events[0], events[mid1], events[mid2], events[events.length - 1]];
+            }
+
+            const dotColor = (side) => {
+                if (!side || side === 'neutral') return accent;
+                if (side === 'left' || side === 'quebec') return accent;
+                return '#ff8080';
+            };
+
+            const truncate = (str, max) => str && str.length > max ? str.slice(0, max - 1) + '…' : (str || '');
+
+            const eventItems = picks.map(ev => `
+                <div style="display:flex;gap:14px;align-items:flex-start;">
+                    <div style="flex:0 0 auto;display:flex;flex-direction:column;align-items:center;">
+                        <div style="width:10px;height:10px;border-radius:50%;background:${dotColor(ev.side)};box-shadow:0 0 6px ${dotColor(ev.side)}80;margin-top:3px;"></div>
+                        <div style="width:1px;flex:1;background:rgba(255,255,255,0.1);min-height:20px;"></div>
+                    </div>
+                    <div style="flex:1;padding-bottom:14px;">
+                        <div style="font-size:10px;font-family:'JetBrains Mono',monospace;color:${accent};opacity:0.7;margin-bottom:3px;">${escapeHtml(ev.date || '')}</div>
+                        <div style="font-size:13px;color:rgba(255,255,255,0.85);line-height:1.4;">${escapeHtml(truncate(ev.text, 140))}</div>
+                    </div>
+                </div>
+            `).join('');
+
+            bodyHTML = `
+                <div style="display:flex;flex-direction:column;gap:0;height:100%;overflow:hidden;">
+                    ${eventItems}
+                    ${keyQuote ? `
+                    <div style="margin-top:auto;padding:14px;background:${accent10};border-left:3px solid ${accent};border-radius:0 8px 8px 0;">
+                        <div style="font-size:12px;font-style:italic;color:rgba(255,255,255,0.8);line-height:1.45;">"${escapeHtml(keyQuote)}"</div>
+                    </div>` : ''}
+                </div>
+            `;
+        } else if (keyQuote) {
+            // Quote + debate fallback
+            const debate = protocol.debate ? protocol.debate.slice(0, 280) : '';
+            bodyHTML = `
+                <div style="display:flex;flex-direction:column;gap:20px;height:100%;justify-content:center;">
+                    <div style="padding:20px;background:${accent10};border-left:4px solid ${accent};border-radius:0 12px 12px 0;">
+                        <div style="font-size:15px;font-style:italic;color:rgba(255,255,255,0.9);line-height:1.55;">"${escapeHtml(keyQuote)}"</div>
+                    </div>
+                    ${debate ? `<div style="font-size:13px;color:rgba(255,255,255,0.55);line-height:1.5;">${escapeHtml(debate.slice(0, 280))}${protocol.debate && protocol.debate.length > 280 ? '…' : ''}</div>` : ''}
+                </div>
+            `;
+        } else {
+            // Generic history: show features + debate
+            bodyHTML = buildProtocolFeaturesBody(protocol, accent, accent10);
+        }
+    } else {
+        // No detailed history — show features + debate
+        bodyHTML = buildProtocolFeaturesBody(protocol, accent, accent10);
+    }
+
+    const titleText = hasHistory ? escapeHtml(history.title) : escapeHtml(`${protocol.name} Protocol`);
+    const subtitleText = hasHistory
+        ? escapeHtml(history.subtitle)
+        : escapeHtml(protocol.headline || '');
+
+    const gridLine = `rgba(${accent === '#00d4ff' ? '0,212,255' : accent === '#00ff41' ? '0,255,65' : '255,255,255'},0.03)`;
+
+    card.innerHTML = `
+        <!-- Grid overlay -->
+        <div style="position:absolute;inset:0;background:linear-gradient(${gridLine} 1px,transparent 1px),linear-gradient(90deg,${gridLine} 1px,transparent 1px);background-size:30px 30px;pointer-events:none;z-index:0;"></div>
+        <!-- Top accent bar -->
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,${accent},${accent}00);z-index:1;"></div>
+
+        <div style="position:relative;z-index:1;display:flex;flex-direction:column;height:100%;padding:36px 44px 28px;box-sizing:border-box;gap:0;">
+
+            <!-- Header -->
+            <div style="margin-bottom:18px;flex:0 0 auto;">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:2.5px;color:${accent};opacity:0.65;font-family:'JetBrains Mono',monospace;">Protocol ${num !== '?' ? '#' + num : ''} · Tezos Governance</div>
+                    ${protocol.contention ? `<div style="font-size:10px;background:rgba(255,80,80,0.15);border:1px solid rgba(255,80,80,0.3);color:#ff8080;padding:2px 8px;border-radius:20px;letter-spacing:1px;">CONTESTED</div>` : ''}
+                </div>
+                <div style="font-size:28px;font-weight:800;color:#fff;line-height:1.2;margin-bottom:6px;max-width:820px;">${titleText}</div>
+                <div style="font-size:14px;color:rgba(255,255,255,0.5);line-height:1.4;max-width:780px;">${subtitleText}</div>
+            </div>
+
+            <!-- Divider -->
+            <div style="height:1px;background:linear-gradient(90deg,${accent}40,transparent);margin-bottom:18px;flex:0 0 auto;"></div>
+
+            <!-- Body -->
+            <div style="flex:1;overflow:hidden;min-height:0;">
+                ${bodyHTML}
+            </div>
+
+            <!-- Footer -->
+            <div style="flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);margin-top:14px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div style="font-size:13px;font-weight:600;color:${accent};letter-spacing:0.5px;">tezos.systems</div>
+                </div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.25);font-family:'JetBrains Mono',monospace;">${escapeHtml(protocol.name)} · ${protocol.date ? protocol.date.slice(0, 7) : ''}</div>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
+/**
+ * Build the body HTML for protocols without detailed history
+ */
+function buildProtocolFeaturesBody(protocol, accent, accent10) {
+    const changes = (protocol.changes || []).slice(0, 6);
+    const debate = protocol.debate || '';
+
+    const featureItems = changes.map(c => `
+        <div style="display:flex;align-items:flex-start;gap:10px;">
+            <div style="flex:0 0 6px;height:6px;width:6px;border-radius:50%;background:${accent};margin-top:6px;box-shadow:0 0 4px ${accent}80;"></div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.8);line-height:1.45;">${escapeHtml(c)}</div>
+        </div>
+    `).join('');
+
+    return `
+        <div style="display:flex;flex-direction:column;gap:16px;height:100%;overflow:hidden;">
+            ${changes.length > 0 ? `
+            <div>
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:${accent};opacity:0.6;margin-bottom:10px;">Key Changes</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">${featureItems}</div>
+            </div>` : ''}
+            ${debate ? `
+            <div style="margin-top:auto;padding:14px 16px;background:${accent10};border-left:3px solid ${accent};border-radius:0 8px 8px 0;overflow:hidden;">
+                <div style="font-size:10px;text-transform:uppercase;letter-spacing:2px;color:${accent};opacity:0.6;margin-bottom:6px;">Governance Note</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.7);line-height:1.5;">${escapeHtml(debate.slice(0, 220))}${debate.length > 220 ? '…' : ''}</div>
+            </div>` : ''}
+        </div>
+    `;
+}
+
+/**
  * Capture the protocol history modal as a shareable image
  */
 async function captureProtocolHistory(protocolName) {
     try {
         await loadHtml2Canvas();
-        const modalContent = document.querySelector('#protocol-history-modal .modal-large');
-        if (!modalContent) return;
 
         const data = await getProtocolData();
         const protocols = data?.protocols || [];
@@ -1492,33 +1730,38 @@ async function captureProtocolHistory(protocolName) {
         const total = data?.meta?.totalUpgrades || 21;
         const num = protocol ? protocol.number - 3 : '?';
 
-        // Fix html2canvas word-spacing bug
-        const restoreSpacing = await fixWordSpacing(modalContent);
+        if (!protocol) {
+            showNotification('Protocol data not found.', 'error');
+            return;
+        }
 
-        // Capture the modal content directly
-        const canvas = await html2canvas(modalContent, {
-            backgroundColor: document.body.getAttribute('data-theme') === 'dark' ? '#1A1A1A' : document.body.getAttribute('data-theme') === 'matrix' ? '#000800' : '#08081a',
-            scale: CAPTURE_SCALE,
+        // Build the purpose-built 1200×630 card
+        const card = buildProtocolHistoryCardDOM(protocol, num);
+        document.body.appendChild(card);
+
+        // Allow layout to settle
+        await new Promise(r => setTimeout(r, 100));
+
+        const canvas = await html2canvas(card, {
+            backgroundColor: null,
+            scale: 1,
             useCORS: true,
             logging: false,
-            width: modalContent.scrollWidth,
-            windowWidth: modalContent.scrollWidth
+            width: 1200,
+            height: 630,
+            windowWidth: 1200,
+            windowHeight: 630
         });
 
-        restoreSpacing();
+        document.body.removeChild(card);
 
         // Get tweet options for this protocol
         const suffix = '\n\ntezos.systems';
-        let allOptions;
-        if (protocol) {
-            const protoOpts = await getProtocolTweetOptions(protocol, num, total);
-            allOptions = protoOpts.map(o => ({
-                ...o,
-                text: o.text + suffix
-            }));
-        } else {
-            allOptions = [{ label: '📊 Standard', text: `The ${protocolName} protocol — a chapter in Tezos governance history.${suffix}` }];
-        }
+        const protoOpts = await getProtocolTweetOptions(protocol, num, total);
+        const allOptions = protoOpts.map(o => ({
+            ...o,
+            text: o.text + suffix
+        }));
         const displayOptions = pickRandomOptions(allOptions, 4);
         showShareModal(canvas, displayOptions, `⚔ ${protocolName} History`, allOptions);
     } catch (error) {
