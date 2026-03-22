@@ -153,7 +153,7 @@ async function getIssuanceRate() {
     console.log(`Total issuance rate: ${totalRate.toFixed(2)}%`);
 
     return {
-      rate: parseFloat(totalRate.toFixed(2)),
+      rate: parseFloat(totalRate.toFixed(4)),
       totalSupply: totalSupplyXTZ,
       workingRPC
     };

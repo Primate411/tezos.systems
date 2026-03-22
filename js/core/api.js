@@ -305,49 +305,43 @@ async function fetchGovernance() {
 }
 
 /**
- * Fetch current yearly issuance rate including LB subsidy
+ * Fetch current yearly issuance rate including LB subsidy.
+ * Uses Octez RPC for protocol rate + formula-based LB subsidy (matches TzKT display).
  */
 async function fetchIssuance() {
     try {
-        // Compute actual issuance rate from TzKT statistics (matches TzKT.io display)
-        // Compare totalCreated from 30 days ago vs now, annualize
-        const now = new Date();
-        const daysBack = 30;
-        const past = new Date(now.getTime() - daysBack * 24 * 3600 * 1000);
-        const pastStr = past.toISOString().split('T')[0];
-        const nextDay = new Date(past.getTime() + 24 * 3600 * 1000).toISOString().split('T')[0];
-        
-        const [currentStats, pastStats, rpcRateRaw] = await Promise.allSettled([
-            fetchSharedStats(),
-            fetchWithRetry(`${ENDPOINTS.tzkt.base}/statistics?timestamp.ge=${pastStr}T00:00:00Z&timestamp.lt=${nextDay}T00:00:00Z&limit=1`),
-            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`)
+        const [rpcRateRaw, constantsRaw, supplyRaw] = await Promise.allSettled([
+            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`),
+            fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/context/constants`),
+            fetchText(`${ENDPOINTS.octez.base}/chains/main/blocks/head/context/total_supply`)
         ]);
-        
-        // Protocol-only rate from Octez RPC (excludes LB subsidy)
+
+        // Protocol-only rate from Octez RPC
         const protocolRate = rpcRateRaw.status === 'fulfilled'
             ? parseFloat(rpcRateRaw.value.replace(/"/g, ''))
             : null;
-        
-        const current = currentStats.status === 'fulfilled' ? currentStats.value : null;
-        const pastStat = pastStats.status === 'fulfilled'
-            ? (Array.isArray(pastStats.value) ? pastStats.value[0] : pastStats.value)
-            : null;
-        
-        if (!pastStat || !pastStat.totalCreated || !current || !current.totalSupply) {
-            // Fallback to Octez RPC for total rate
-            return { total: protocolRate || 0, protocol: protocolRate || 0, lb: 0 };
+
+        if (protocolRate == null) {
+            return { total: 0, protocol: 0, lb: 0 };
         }
-        
-        const createdDiff = current.totalCreated - pastStat.totalCreated;
-        const burnedDiff = (current.totalBurned || 0) - (pastStat.totalBurned || 0);
-        const netIssuance = createdDiff - burnedDiff;
-        const avgSupply = (current.totalSupply + pastStat.totalSupply) / 2;
-        const annualized = (netIssuance / avgSupply) * (365.25 / daysBack) * 100;
-        
-        // LB portion = total net issuance minus protocol-only rate
-        const lbRate = protocolRate != null ? Math.max(0, annualized - protocolRate) : 0;
-        
-        return { total: annualized, protocol: protocolRate || annualized, lb: lbRate };
+
+        // LB subsidy: constant is per-block but denominated for ~1 min blocks.
+        // Treat as XTZ-per-minute to match TzKT methodology.
+        let lbRate = 0;
+        const constants = constantsRaw.status === 'fulfilled' ? constantsRaw.value : null;
+        const supplyMutez = supplyRaw.status === 'fulfilled'
+            ? parseInt(supplyRaw.value.replace(/"/g, ''))
+            : null;
+
+        if (constants && supplyMutez && supplyMutez > 0) {
+            const lbSubsidy = parseInt(constants.liquidity_baking_subsidy) || 0;
+            const minutesPerYear = 365.25 * 24 * 60;
+            const lbXTZPerYear = (lbSubsidy / 1e6) * minutesPerYear;
+            const totalSupplyXTZ = supplyMutez / 1e6;
+            lbRate = (lbXTZPerYear / totalSupplyXTZ) * 100;
+        }
+
+        return { total: protocolRate + lbRate, protocol: protocolRate, lb: lbRate };
     } catch (error) {
         console.error('Failed to fetch issuance:', error);
         return { total: 0, protocol: 0, lb: 0 };
