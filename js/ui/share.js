@@ -55,13 +55,37 @@ async function loadTweetsData() {
     }
 }
 
+// Live APY values — updated by app.js via setLiveAPY()
+let _liveAPY = { delegateAPY: null, bakerAPY: null };
+
 /**
- * Substitute placeholders in tweet text
+ * Set live APY values for tweet template substitution.
+ * Called by app.js when staking data is fetched.
+ * @param {number} delegateAPY - delegation APY (e.g. 3.1)
+ * @param {number} bakerAPY - baker/staker APY (e.g. 9.2)
+ */
+export function setLiveAPY(delegateAPY, bakerAPY) {
+    _liveAPY = { delegateAPY, bakerAPY };
+}
+
+/**
+ * Substitute placeholders in tweet text.
+ * Merges live APY values into replacements automatically.
  */
 function substituteTweet(template, replacements) {
+    // Build APY strings (e.g. "3.1" or "~3.1")
+    const apyReplacements = {};
+    if (_liveAPY.delegateAPY !== null) {
+        apyReplacements.delegateAPY = _liveAPY.delegateAPY.toFixed(1);
+    }
+    if (_liveAPY.bakerAPY !== null) {
+        apyReplacements.bakerAPY = _liveAPY.bakerAPY.toFixed(1);
+    }
+
+    const allReplacements = { ...apyReplacements, ...replacements };
     let text = template;
-    for (const [key, val] of Object.entries(replacements)) {
-        text = text.replace(new RegExp("\{" + key + "\}", "g"), val);
+    for (const [key, val] of Object.entries(allReplacements)) {
+        text = text.replace(new RegExp("\\{" + key + "\\}", "g"), val);
     }
     return text;
 }

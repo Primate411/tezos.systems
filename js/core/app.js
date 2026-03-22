@@ -17,7 +17,7 @@ import {
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
-import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal } from '../ui/share.js';
+import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js?v=20260303c';
 
@@ -604,6 +604,10 @@ async function updateStats(newStats) {
         updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate);
         updateStatInstant('staking-apy', newStats.delegateAPY, 
             (val) => `${(val || 0).toFixed(1)}% / ${(newStats.stakeAPY || 0).toFixed(1)}%`);
+        // Update live APY values for tweet template substitution
+        if (newStats.delegateAPY && newStats.stakeAPY) {
+            setLiveAPY(newStats.delegateAPY, newStats.stakeAPY);
+        }
         updateStatInstant('staking-ratio', newStats.stakingRatio, formatPercentage);
         updateStatInstant('delegated', newStats.delegatedRatio, formatPercentage);
         updateStatInstant('total-supply', newStats.totalSupply, formatSupply);

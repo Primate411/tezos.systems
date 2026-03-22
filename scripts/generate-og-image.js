@@ -10,8 +10,13 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 async function fetchStats() {
-    const resp = await fetch('https://api.tzkt.io/v1/statistics/current');
-    const stats = await resp.json();
+    const [statsResp, protocolResp] = await Promise.all([
+        fetch('https://api.tzkt.io/v1/statistics/current'),
+        fetch('https://api.tzkt.io/v1/protocols/current')
+    ]);
+    const stats = await statsResp.json();
+    const protocolData = await protocolResp.json();
+    const protocolName = protocolData?.extras?.alias || 'Current';
 
     const supply = stats.totalSupply / 1e6;
     const ownStaked = (stats.totalOwnStaked || 0) / 1e6;
@@ -44,7 +49,7 @@ async function fetchStats() {
     const tz4Pct = bakers > 0 ? ((tz4Bakers / bakers) * 100).toFixed(1) : '0';
     const supplyB = (supply / 1e9).toFixed(2) + 'B';
 
-    return { bakers, tz4Bakers, tz4Pct, stakingRatio, supply: supplyB };
+    return { bakers, tz4Bakers, tz4Pct, stakingRatio, supply: supplyB, protocolName };
 }
 
 function generateMatrixChars() {
@@ -154,7 +159,7 @@ function buildHTML(stats) {
     <div class="header">
       <div>
         <div class="title">TEZOS SYSTEMS</div>
-        <div class="subtitle">Real-time Tezos network intelligence · Tallinn protocol</div>
+        <div class="subtitle">Real-time Tezos network intelligence · ${stats.protocolName} protocol</div>
       </div>
       <div class="live-badge"><div class="live-dot"></div>LIVE DATA</div>
     </div>
@@ -181,7 +186,7 @@ function buildHTML(stats) {
       </div>
       <div class="stat-card">
         <div class="stat-label">Protocol</div>
-        <div class="stat-value" style="font-size: 32px;">Tallinn</div>
+        <div class="stat-value" style="font-size: 32px;">${stats.protocolName}</div>
       </div>
     </div>
     <div class="footer">
