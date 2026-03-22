@@ -1801,12 +1801,18 @@ body::before {
 }
 
 .issuance-breakdown {
-    font-size: 0.75rem;
+    position: absolute;
+    top: 2px;
+    left: 0;
+    font-size: 0.62rem;
     color: var(--text-secondary);
     font-weight: 400;
-    margin-top: 0.25rem;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
+    opacity: 0.65;
     white-space: nowrap;
+    z-index: 1;
+    pointer-events: none;
+    line-height: 1;
 }
 
 /* Loading state */
