@@ -49,8 +49,8 @@ export function computeBakerScores(baker, participation) {
     // 1. Uptime score (attestation rate) — 35% weight
     let uptimeScore = 95; // default if no data
     if (participation) {
-        const expected = participation.expectedEndorsements || participation.expected_cycle_activity || 0;
-        const missed = participation.missedEndorsements || participation.missed_slots || 0;
+        const expected = participation.expectedAttestations || participation.expectedEndorsements || participation.expected_cycle_activity || 0;
+        const missed = participation.missedAttestations || participation.missedEndorsements || participation.missed_slots || 0;
         const attested = expected - missed;
         const rate = expected > 0 ? (attested / expected) * 100 : 100;
         uptimeScore = Math.min(100, rate);
@@ -126,18 +126,15 @@ async function fetchBakerReport(bakerAddress) {
     if (!bakerResp.ok) throw new Error('Baker not found');
     const baker = await bakerResp.json();
 
-    // Fetch participation (latest cycle)
+    // Fetch participation (latest completed cycle from rewards endpoint)
     let participation = null;
     try {
-        const pResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}`);
-        if (pResp.ok) {
-            // Participation data is embedded in the delegate response — use separate endpoint
-            const partResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}/participation`);
-            if (partResp.ok) {
-                const partData = await partResp.json();
-                if (Array.isArray(partData) && partData.length > 0) {
-                    participation = partData[partData.length - 1]; // latest cycle
-                }
+        const partResp = await fetch(`${TZKT}/rewards/bakers/${encodeURIComponent(bakerAddress)}?limit=5&sort.desc=cycle&select=cycle,expectedBlocks,blocks,missedBlocks,expectedAttestations,attestations,missedAttestations`);
+        if (partResp.ok) {
+            const partData = await partResp.json();
+            // Find first cycle with actual activity (skip future cycles where everything is 0)
+            if (Array.isArray(partData)) {
+                participation = partData.find(c => c.expectedAttestations > 0 && (c.attestations > 0 || c.missedAttestations > 0)) || null;
             }
         }
     } catch {}

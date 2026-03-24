@@ -534,14 +534,14 @@ export async function openBakerProfile(address) {
         // Enrich the baker
         const enriched = enrichBaker(baker, consensusKeys);
 
-        // Fetch participation data for accurate uptime scoring
+        // Fetch participation data for accurate uptime scoring (rewards endpoint, skip future cycles)
         let participation = null;
         try {
-            const partResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(address)}/participation`);
+            const partResp = await fetch(`${TZKT}/rewards/bakers/${encodeURIComponent(address)}?limit=5&sort.desc=cycle&select=cycle,expectedBlocks,blocks,missedBlocks,expectedAttestations,attestations,missedAttestations`);
             if (partResp.ok) {
                 const partData = await partResp.json();
-                if (Array.isArray(partData) && partData.length > 0) {
-                    participation = partData[partData.length - 1];
+                if (Array.isArray(partData)) {
+                    participation = partData.find(c => c.expectedAttestations > 0 && (c.attestations > 0 || c.missedAttestations > 0)) || null;
                 }
             }
         } catch {}
