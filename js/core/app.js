@@ -102,7 +102,7 @@ import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initVibes } from '../effects/vibes.js?v=20260228b';
 import { initChangelog } from '../features/changelog.js';
-import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260309d';
+import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260324a';
 import { initBakerReportCard } from '../features/baker-report-card.js?v=20260309d';
 import { initWalletConnect } from '../features/wallet-connect.js?v=20260309d';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260315a';
@@ -2090,9 +2090,10 @@ function applyDeepLink() {
     if (params.has('baker')) {
         const addr = params.get('baker');
         if (addr && (addr.startsWith('tz') || addr.endsWith('.tez'))) {
-            import('../features/leaderboard.js?v=20260309d').then(mod => {
+            import('../features/leaderboard.js?v=20260324a').then(mod => {
                 if (mod.openBakerProfile) mod.openBakerProfile(addr);
-            });
+                else console.warn('[deep-link] openBakerProfile not found in leaderboard module');
+            }).catch(err => console.error('[deep-link] baker import failed:', err));
         }
     }
 
