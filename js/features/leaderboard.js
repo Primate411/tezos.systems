@@ -519,48 +519,27 @@ export async function openBakerProfile(address) {
             throw new Error('Baker is not currently active');
         }
 
-        // Fetch consensus key for this baker (targeted query, not the full 10K dump)
-        const consensusKeys = {};
-        try {
-            const ckResp = await fetch(`${TZKT}/operations/update_consensus_key?sender=${encodeURIComponent(address)}&sort.desc=id&limit=1&select=publicKeyHash`);
-            if (ckResp.ok) {
-                const ckOps = await ckResp.json();
-                if (ckOps.length > 0 && ckOps[0].publicKeyHash) {
-                    consensusKeys[address] = ckOps[0].publicKeyHash;
-                }
-            }
-        } catch { /* tz4 detection is best-effort */ }
-
-        // Enrich the baker
-        const enriched = enrichBaker(baker, consensusKeys);
-
-        // Fetch participation data for accurate uptime scoring (rewards endpoint, skip future cycles)
-        let participation = null;
-        try {
-            const partResp = await fetch(`${TZKT}/rewards/bakers/${encodeURIComponent(address)}?limit=5&sort.desc=cycle&select=cycle,expectedBlocks,blocks,missedBlocks,expectedAttestations,attestations,missedAttestations`);
-            if (partResp.ok) {
-                const partData = await partResp.json();
-                if (Array.isArray(partData)) {
-                    participation = partData.find(c => c.expectedAttestations > 0 && (c.attestations > 0 || c.missedAttestations > 0)) || null;
-                }
-            }
-        } catch {}
-
-        // Compute rank and total in parallel
-        const [rankCount, total] = await Promise.all([
-            fetch(`${TZKT}/delegates/count?active=true&stakingBalance.gt=${baker.stakingBalance}`).then(r => r.json()),
-            fetch(`${TZKT}/delegates/count?active=true&stakingBalance.gt=0`).then(r => r.json()),
-        ]);
-        const rank = rankCount + 1;
-
-        // Compute quality-based scores
-        const scores = computeBakerScores(baker, participation);
-
         // Remove loading overlay
         overlay.remove();
 
-        // Show the ranking card
-        await showBakerRankingCard(enriched, rank, total, scores);
+        // Populate My Baker and open drawer (same as row click)
+        const input = document.getElementById('my-baker-input');
+        const saveBtn = document.getElementById('my-baker-save');
+        const drawer = document.getElementById('my-tezos-drawer');
+        const scrim = document.getElementById('my-tezos-drawer-scrim');
+        const emptyState = document.getElementById('drawer-empty-state');
+        const connectedState = document.getElementById('drawer-connected');
+
+        if (input) input.value = address;
+        if (saveBtn) saveBtn.click();
+
+        if (drawer && scrim) {
+            drawer.classList.add('open');
+            scrim.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            if (emptyState) emptyState.style.display = 'none';
+            if (connectedState) connectedState.style.display = '';
+        }
     } catch (err) {
         overlay.innerHTML = `
             <div style="background:#0a0e1a;border:1px solid rgba(255,68,68,0.3);border-radius:16px;padding:32px;max-width:400px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
