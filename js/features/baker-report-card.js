@@ -38,44 +38,15 @@ function fmtXTZ(mutez) {
 }
 
 /**
- * Fetch all data needed for a baker report card
+ * Compute quality-based scores for a baker.
+ * Works with raw TzKT baker objects.
+ *
+ * @param {object} baker       - TzKT delegate object
+ * @param {object|null} participation - latest participation cycle data (or null)
+ * @returns {{ overall, uptime, fee, growth, capacity, tz4 }} scores (0-100 integers)
  */
-async function fetchBakerReport(bakerAddress) {
-    // Fetch baker data
-    const bakerResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}`);
-    if (!bakerResp.ok) throw new Error('Baker not found');
-    const baker = await bakerResp.json();
-
-    // Fetch participation (latest cycle)
-    let participation = null;
-    try {
-        const pResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}`);
-        if (pResp.ok) {
-            // Participation data is embedded in the delegate response — use separate endpoint
-            const partResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}/participation`);
-            if (partResp.ok) {
-                const partData = await partResp.json();
-                if (Array.isArray(partData) && partData.length > 0) {
-                    participation = partData[partData.length - 1]; // latest cycle
-                }
-            }
-        }
-    } catch {}
-
-    // Fetch all active bakers for ranking (minimal fields)
-    let allBakers = [];
-    try {
-        const abResp = await fetch(`${TZKT}/delegates?active=true&limit=10000&select=address,stakingBalance&sort.desc=id`);
-        if (abResp.ok) allBakers = await abResp.json();
-    } catch {}
-
-    // Sort by staking balance descending, then find rank
-    allBakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0));
-    const rank = allBakers.findIndex(b => b.address === bakerAddress) + 1;
-    const totalBakers = allBakers.length;
-
-    // Calculate scores
-    // 1. Uptime score (attestation rate) — 40% weight
+export function computeBakerScores(baker, participation) {
+    // 1. Uptime score (attestation rate) — 35% weight
     let uptimeScore = 95; // default if no data
     if (participation) {
         const expected = participation.expectedEndorsements || participation.expected_cycle_activity || 0;
@@ -85,7 +56,7 @@ async function fetchBakerReport(bakerAddress) {
         uptimeScore = Math.min(100, rate);
     }
 
-    // 2. Fee competitiveness — 20% weight (lower fee = higher score, but 0% isn't necessarily best)
+    // 2. Fee competitiveness — 15% weight (lower fee = higher score, but 0% isn't necessarily best)
     // Most bakers charge 5-15%. Score: 0% = 90, 5% = 100, 10% = 85, 15% = 70, 20%+ = 50
     // Tallinn: fee is edgeOfBakingOverStaking in billionths (1B = 100%)
     // Fallback to legacy stakingFee if present
@@ -98,7 +69,7 @@ async function fetchBakerReport(bakerAddress) {
     else if (fee <= 15) feeScore = 85 - (fee - 10) * 3; // 10% = 85, 15% = 70
     else feeScore = Math.max(30, 70 - (fee - 15) * 4);
 
-    // 3. Delegator growth — 20% weight (based on staker + delegator count)
+    // 3. Community (delegator + staker count) — 20% weight
     const totalDelegators = (baker.numDelegators || 0) + (baker.stakersCount || 0);
     // Score: 1-5 = 60, 5-20 = 75, 20-50 = 85, 50+ = 95
     let growthScore;
@@ -137,24 +108,80 @@ async function fetchBakerReport(bakerAddress) {
     );
 
     return {
+        overall: overallScore,
+        uptime: Math.round(uptimeScore),
+        fee: Math.round(feeScore),
+        growth: Math.round(growthScore),
+        capacity: Math.round(capacityScore),
+        tz4: tz4Score,
+    };
+}
+
+/**
+ * Fetch all data needed for a baker report card
+ */
+async function fetchBakerReport(bakerAddress) {
+    // Fetch baker data
+    const bakerResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}`);
+    if (!bakerResp.ok) throw new Error('Baker not found');
+    const baker = await bakerResp.json();
+
+    // Fetch participation (latest cycle)
+    let participation = null;
+    try {
+        const pResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}`);
+        if (pResp.ok) {
+            // Participation data is embedded in the delegate response — use separate endpoint
+            const partResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(bakerAddress)}/participation`);
+            if (partResp.ok) {
+                const partData = await partResp.json();
+                if (Array.isArray(partData) && partData.length > 0) {
+                    participation = partData[partData.length - 1]; // latest cycle
+                }
+            }
+        }
+    } catch {}
+
+    // Fetch all active bakers for ranking (minimal fields)
+    let allBakers = [];
+    try {
+        const abResp = await fetch(`${TZKT}/delegates?active=true&limit=10000&select=address,stakingBalance&sort.desc=id`);
+        if (abResp.ok) allBakers = await abResp.json();
+    } catch {}
+
+    // Sort by staking balance descending, then find rank
+    allBakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0));
+    const rank = allBakers.findIndex(b => b.address === bakerAddress) + 1;
+    const totalBakers = allBakers.length;
+
+    // Calculate scores using shared scoring function
+    const scores = computeBakerScores(baker, participation);
+
+    // Derive stats for display (fee and usedPct need to be re-derived for stats block)
+    const fee = baker.edgeOfBakingOverStaking != null
+        ? baker.edgeOfBakingOverStaking / 10_000_000
+        : (baker.stakingFee || 0) * 100;
+    const ownStaked = baker.stakedBalance || baker.balance || 0;
+    const limitMultiplier = baker.limitOfStakingOverBaking != null
+        ? baker.limitOfStakingOverBaking / 1_000_000
+        : 0;
+    const maxExternalStaked = ownStaked * limitMultiplier;
+    const externalStaked = baker.externalStakedBalance || 0;
+    const usedPct = maxExternalStaked > 0 ? (externalStaked / maxExternalStaked) * 100 : (limitMultiplier === 0 ? 100 : 0);
+    const hasTz4 = baker.address?.startsWith('tz4') || baker.consensusAddress?.startsWith('tz4');
+
+    return {
         baker,
         participation,
         rank,
         totalBakers,
-        scores: {
-            overall: overallScore,
-            uptime: Math.round(uptimeScore),
-            fee: Math.round(feeScore),
-            growth: Math.round(growthScore),
-            capacity: Math.round(capacityScore),
-            tz4: tz4Score,
-        },
+        scores,
         stats: {
             stakingBalance: baker.stakingBalance,
             delegators: baker.numDelegators || 0,
             stakers: baker.stakersCount || 0,
-            fee: fee,
-            uptimePct: uptimeScore,
+            fee,
+            uptimePct: scores.uptime,
             usedCapacityPct: usedPct,
             hasTz4,
         }

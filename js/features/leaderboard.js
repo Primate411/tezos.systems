@@ -5,7 +5,7 @@
 
 import { API_URLS } from '../core/config.js';
 import { formatNumber, escapeHtml } from '../core/utils.js';
-import { letterGrade } from '../features/baker-report-card.js';
+import { letterGrade, computeBakerScores } from './baker-report-card.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 
 const TZKT = API_URLS.tzkt;
@@ -156,9 +156,8 @@ function buildRankStatCell(label, value) {
 /**
  * Build the ranking card DOM for a baker (inline-styled for html2canvas)
  */
-function buildRankingCardDOM(baker, rank, total) {
-    const rankScore = Math.max(1, Math.round(100 - ((rank - 1) / total) * 100));
-    const { grade, color } = letterGrade(rankScore);
+function buildRankingCardDOM(baker, rank, total, scores) {
+    const { grade, color } = letterGrade(scores.overall);
     const name = escapeHtml(baker.name);
     const addr = escapeHtml(baker.address.slice(0, 8) + '…' + baker.address.slice(-4));
     const topPct = Math.max(1, Math.ceil((rank / total) * 100));
@@ -184,7 +183,7 @@ function buildRankingCardDOM(baker, rank, total) {
                 </div>
                 <div style="text-align:center;">
                     <div style="font-size:56px;font-weight:900;color:${color};line-height:1;text-shadow:0 0 20px ${color}40;">${grade}</div>
-                    <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;">${rankScore}/100</div>
+                    <div style="font-size:11px;color:rgba(255,255,255,0.4);margin-top:4px;">${scores.overall}/100</div>
                 </div>
             </div>
 
@@ -218,7 +217,7 @@ function buildRankingCardDOM(baker, rank, total) {
 /**
  * Generate and show a shareable ranking card for a baker
  */
-async function showBakerRankingCard(baker, rank, total) {
+async function showBakerRankingCard(baker, rank, total, scores) {
     const overlay = document.createElement('div');
     overlay.style.cssText = `
         position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;
@@ -230,7 +229,7 @@ async function showBakerRankingCard(baker, rank, total) {
     document.body.appendChild(overlay);
 
     try {
-        const card = buildRankingCardDOM(baker, rank, total);
+        const card = buildRankingCardDOM(baker, rank, total, scores);
         card.style.position = 'fixed';
         card.style.left = '-9999px';
         document.body.appendChild(card);
@@ -340,7 +339,8 @@ function render(container) {
             const rank = parseInt(row.querySelector('.lb-rank')?.textContent, 10);
             const bakerData = sorted.find(b => b.address === addr);
             if (!bakerData || !rank) return;
-            showBakerRankingCard(bakerData, rank, sorted.length);
+            const scores = computeBakerScores(bakerData, null);
+            showBakerRankingCard(bakerData, rank, sorted.length, scores);
         });
     });
 
@@ -449,5 +449,130 @@ export function refreshLeaderboard() {
     const section = document.getElementById('leaderboard-section');
     if (section?.classList.contains('visible')) {
         loadLeaderboard(container);
+    }
+}
+
+/**
+ * Open a baker profile modal by address (used for #baker=ADDRESS deep link)
+ */
+export async function openBakerProfile(address) {
+    // Resolve .tez domains to tz addresses
+    if (address.endsWith('.tez')) {
+        try {
+            const domainResp = await fetch('https://api.tezos.domains/graphql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: `{ domain(name: "${address}") { address } }` }),
+            });
+            const domainData = await domainResp.json();
+            const resolved = domainData?.data?.domain?.address;
+            if (!resolved) throw new Error(`Domain "${address}" not found`);
+            address = resolved;
+        } catch (err) {
+            // Show error immediately for domain resolution failures
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);`;
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+            overlay.innerHTML = `
+                <div style="background:#0a0e1a;border:1px solid rgba(255,68,68,0.3);border-radius:16px;padding:32px;max-width:400px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+                    <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+                    <div style="font-size:16px;font-weight:600;color:#ff4444;margin-bottom:8px;">Domain Not Found</div>
+                    <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;">${escapeHtml(err.message)}</div>
+                    <div style="margin-top:20px;">
+                        <button onclick="this.closest('[style*=fixed]').remove()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;padding:8px 20px;cursor:pointer;font-size:13px;">Close</button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            setTimeout(() => overlay.remove(), 8000);
+            return;
+        }
+    }
+
+    // Show loading overlay immediately
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+        position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;
+        display:flex;align-items:center;justify-content:center;
+        backdrop-filter:blur(4px);
+    `;
+    overlay.innerHTML = '<div style="color:#00ff88;font-size:16px;">Loading baker profile…</div>';
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+
+    // Also ensure leaderboard section is open
+    const section = document.getElementById('leaderboard-section');
+    const toggleBtn = document.getElementById('leaderboard-toggle');
+    if (section && toggleBtn && !section.classList.contains('visible')) {
+        localStorage.setItem(TOGGLE_KEY, 'true');
+        section.classList.add('visible');
+        toggleBtn.classList.add('active');
+    }
+
+    try {
+        // Fetch baker data from TzKT
+        const resp = await fetch(`${TZKT}/delegates/${encodeURIComponent(address)}`);
+        if (!resp.ok || resp.status === 204) throw new Error(`Baker not found (${resp.status})`);
+        const baker = await resp.json();
+
+        // Validate baker is active
+        if (!baker || !baker.active) {
+            throw new Error('Baker is not currently active');
+        }
+
+        // Fetch consensus key for this baker (targeted query, not the full 10K dump)
+        const consensusKeys = {};
+        try {
+            const ckResp = await fetch(`${TZKT}/operations/update_consensus_key?sender=${encodeURIComponent(address)}&sort.desc=id&limit=1&select=publicKeyHash`);
+            if (ckResp.ok) {
+                const ckOps = await ckResp.json();
+                if (ckOps.length > 0 && ckOps[0].publicKeyHash) {
+                    consensusKeys[address] = ckOps[0].publicKeyHash;
+                }
+            }
+        } catch { /* tz4 detection is best-effort */ }
+
+        // Enrich the baker
+        const enriched = enrichBaker(baker, consensusKeys);
+
+        // Fetch participation data for accurate uptime scoring
+        let participation = null;
+        try {
+            const partResp = await fetch(`${TZKT}/delegates/${encodeURIComponent(address)}/participation`);
+            if (partResp.ok) {
+                const partData = await partResp.json();
+                if (Array.isArray(partData) && partData.length > 0) {
+                    participation = partData[partData.length - 1];
+                }
+            }
+        } catch {}
+
+        // Compute rank and total in parallel
+        const [rankCount, total] = await Promise.all([
+            fetch(`${TZKT}/delegates/count?active=true&stakingBalance.gt=${baker.stakingBalance}`).then(r => r.json()),
+            fetch(`${TZKT}/delegates/count?active=true&stakingBalance.gt=0`).then(r => r.json()),
+        ]);
+        const rank = rankCount + 1;
+
+        // Compute quality-based scores
+        const scores = computeBakerScores(baker, participation);
+
+        // Remove loading overlay
+        overlay.remove();
+
+        // Show the ranking card
+        await showBakerRankingCard(enriched, rank, total, scores);
+    } catch (err) {
+        overlay.innerHTML = `
+            <div style="background:#0a0e1a;border:1px solid rgba(255,68,68,0.3);border-radius:16px;padding:32px;max-width:400px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+                <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
+                <div style="font-size:16px;font-weight:600;color:#ff4444;margin-bottom:8px;">Baker Not Found</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;font-family:monospace;word-break:break-all;">${escapeHtml(address)}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:12px;">${escapeHtml(err.message)}</div>
+                <div style="margin-top:20px;">
+                    <button onclick="this.closest('[style*=fixed]').remove()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;padding:8px 20px;cursor:pointer;font-size:13px;">Close</button>
+                </div>
+            </div>
+        `;
+        setTimeout(() => overlay.remove(), 8000);
     }
 }

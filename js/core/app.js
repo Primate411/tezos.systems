@@ -2013,6 +2013,7 @@ function initOfflineIndicator() {
 // ==========================================
 // Supported hash fragments:
 //   #my-baker=tz1...   → open My Baker with address
+//   #baker=tz1...      → open Baker profile modal
 //   #calculator        → open Rewards Calculator
 //   #compare           → show comparison section
 //   #whales            → show whale tracker
@@ -2082,6 +2083,16 @@ function applyDeepLink() {
         const section = document.getElementById('leaderboard-section');
         if (toggle && section && !section.classList.contains('visible')) {
             toggle.click();
+        }
+    }
+
+    // #baker=tz1... or #baker=name.tez — open baker profile modal
+    if (params.has('baker')) {
+        const addr = params.get('baker');
+        if (addr && (addr.startsWith('tz') || addr.endsWith('.tez'))) {
+            import('../features/leaderboard.js?v=20260309d').then(mod => {
+                if (mod.openBakerProfile) mod.openBakerProfile(addr);
+            });
         }
     }
 
