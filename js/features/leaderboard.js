@@ -5,7 +5,7 @@
 
 import { API_URLS } from '../core/config.js';
 import { formatNumber, escapeHtml } from '../core/utils.js';
-import { letterGrade, computeBakerScores } from './baker-report-card.js';
+import { letterGrade, computeBakerScores } from './baker-report-card.js?v=20260324a';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 
 const TZKT = API_URLS.tzkt;
