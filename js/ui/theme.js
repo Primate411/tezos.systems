@@ -79,6 +79,8 @@ function showFirstVisitPicker() {
     if (window.location.pathname === '/landing.html') return;
     // Skip redirect for HEN mode deep link
     if (new URLSearchParams(window.location.search).has('hen')) { setTheme(DEFAULT_THEME); return; }
+    // Skip redirect for any hash deep link (#baker=, #my-baker=, #calculator, etc.)
+    if (window.location.hash && window.location.hash.length > 1) { setTheme(DEFAULT_THEME); return; }
     setTheme(DEFAULT_THEME);
     window.location.replace('/landing.html');
 }

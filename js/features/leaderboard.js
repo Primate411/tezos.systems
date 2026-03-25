@@ -453,10 +453,47 @@ export function refreshLeaderboard() {
 }
 
 /**
- * Open a baker profile modal by address (used for #baker=ADDRESS deep link)
+ * Open My Tezos drawer by address (used for #baker=ADDRESS deep link)
  */
 export async function openBakerProfile(address) {
-    // Resolve .tez domains to tz addresses
+    const openDrawer = () => {
+        const drawer = document.getElementById('my-tezos-drawer');
+        const scrim = document.getElementById('my-tezos-drawer-scrim');
+        const emptyState = document.getElementById('drawer-empty-state');
+        const connectedState = document.getElementById('drawer-connected');
+        if (drawer && scrim) {
+            drawer.classList.add('open');
+            scrim.classList.add('open');
+            document.body.style.overflow = 'hidden';
+            if (emptyState) emptyState.style.display = 'none';
+            if (connectedState) connectedState.style.display = '';
+        }
+    };
+
+    const setAddressInput = (value) => {
+        const myBakerInput = document.getElementById('my-baker-input');
+        const drawerInput = document.getElementById('drawer-address-input');
+        if (myBakerInput) myBakerInput.value = value;
+        if (drawerInput) drawerInput.value = value;
+    };
+
+    const saveBtn = document.getElementById('my-baker-save') || document.getElementById('drawer-connect-btn');
+
+    // Ensure drawer-focused UX immediately for deep links
+    openDrawer();
+
+    // Also ensure leaderboard section is open
+    const section = document.getElementById('leaderboard-section');
+    const toggleBtn = document.getElementById('leaderboard-toggle');
+    if (section && toggleBtn && !section.classList.contains('visible')) {
+        localStorage.setItem(TOGGLE_KEY, 'true');
+        section.classList.add('visible');
+        toggleBtn.classList.add('active');
+    }
+
+    const originalAddress = address;
+
+    // Resolve .tez domains to tz addresses (silently; keep drawer open either way)
     if (address.endsWith('.tez')) {
         try {
             const domainResp = await fetch('https://api.tezos.domains/graphql', {
@@ -469,89 +506,22 @@ export async function openBakerProfile(address) {
             if (!resolved) throw new Error(`Domain "${address}" not found`);
             address = resolved;
         } catch (err) {
-            // Show error immediately for domain resolution failures
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);`;
-            overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-            overlay.innerHTML = `
-                <div style="background:#0a0e1a;border:1px solid rgba(255,68,68,0.3);border-radius:16px;padding:32px;max-width:400px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-                    <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
-                    <div style="font-size:16px;font-weight:600;color:#ff4444;margin-bottom:8px;">Domain Not Found</div>
-                    <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;">${escapeHtml(err.message)}</div>
-                    <div style="margin-top:20px;">
-                        <button onclick="this.closest('[style*=fixed]').remove()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;padding:8px 20px;cursor:pointer;font-size:13px;">Close</button>
-                    </div>
-                </div>`;
-            document.body.appendChild(overlay);
-            setTimeout(() => overlay.remove(), 8000);
+            console.warn('[deep-link] domain resolve failed:', err?.message || err);
+            setAddressInput(originalAddress);
             return;
         }
     }
 
-    // Show loading overlay immediately
-    const overlay = document.createElement('div');
-    overlay.style.cssText = `
-        position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;
-        display:flex;align-items:center;justify-content:center;
-        backdrop-filter:blur(4px);
-    `;
-    overlay.innerHTML = '<div style="color:#00ff88;font-size:16px;">Loading baker profile…</div>';
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-    document.body.appendChild(overlay);
-
-    // Also ensure leaderboard section is open
-    const section = document.getElementById('leaderboard-section');
-    const toggleBtn = document.getElementById('leaderboard-toggle');
-    if (section && toggleBtn && !section.classList.contains('visible')) {
-        localStorage.setItem(TOGGLE_KEY, 'true');
-        section.classList.add('visible');
-        toggleBtn.classList.add('active');
-    }
-
     try {
-        // Fetch baker data from TzKT
         const resp = await fetch(`${TZKT}/delegates/${encodeURIComponent(address)}`);
         if (!resp.ok || resp.status === 204) throw new Error(`Baker not found (${resp.status})`);
         const baker = await resp.json();
+        if (!baker || !baker.active) throw new Error('Baker is not currently active');
 
-        // Validate baker is active
-        if (!baker || !baker.active) {
-            throw new Error('Baker is not currently active');
-        }
-
-        // Remove loading overlay
-        overlay.remove();
-
-        // Populate My Baker and open drawer (same as row click)
-        const input = document.getElementById('my-baker-input');
-        const saveBtn = document.getElementById('my-baker-save');
-        const drawer = document.getElementById('my-tezos-drawer');
-        const scrim = document.getElementById('my-tezos-drawer-scrim');
-        const emptyState = document.getElementById('drawer-empty-state');
-        const connectedState = document.getElementById('drawer-connected');
-
-        if (input) input.value = address;
+        setAddressInput(address);
         if (saveBtn) saveBtn.click();
-
-        if (drawer && scrim) {
-            drawer.classList.add('open');
-            scrim.classList.add('open');
-            document.body.style.overflow = 'hidden';
-            if (emptyState) emptyState.style.display = 'none';
-            if (connectedState) connectedState.style.display = '';
-        }
     } catch (err) {
-        overlay.innerHTML = `
-            <div style="background:#0a0e1a;border:1px solid rgba(255,68,68,0.3);border-radius:16px;padding:32px;max-width:400px;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-                <div style="font-size:32px;margin-bottom:12px;">⚠️</div>
-                <div style="font-size:16px;font-weight:600;color:#ff4444;margin-bottom:8px;">Baker Not Found</div>
-                <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:4px;font-family:monospace;word-break:break-all;">${escapeHtml(address)}</div>
-                <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:12px;">${escapeHtml(err.message)}</div>
-                <div style="margin-top:20px;">
-                    <button onclick="this.closest('[style*=fixed]').remove()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#fff;padding:8px 20px;cursor:pointer;font-size:13px;">Close</button>
-                </div>
-            </div>
-        `;
-        setTimeout(() => overlay.remove(), 8000);
+        console.warn('[deep-link] baker lookup failed:', err?.message || err);
+        setAddressInput(address || originalAddress);
     }
 }

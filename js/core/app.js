@@ -4,7 +4,7 @@
  */
 
 import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js?v=20260228c';
-import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes7';
+import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes8';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
     formatCount,
@@ -102,7 +102,7 @@ import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initVibes } from '../effects/vibes.js?v=20260228b';
 import { initChangelog } from '../features/changelog.js';
-import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260324a';
+import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260325a';
 import { initBakerReportCard } from '../features/baker-report-card.js?v=20260309d';
 import { initWalletConnect } from '../features/wallet-connect.js?v=20260309d';
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260315a';
@@ -2090,7 +2090,7 @@ function applyDeepLink() {
     if (params.has('baker')) {
         const addr = params.get('baker');
         if (addr && (addr.startsWith('tz') || addr.endsWith('.tez'))) {
-            import('../features/leaderboard.js?v=20260324a').then(mod => {
+            import('../features/leaderboard.js?v=20260325a').then(mod => {
                 if (mod.openBakerProfile) mod.openBakerProfile(addr);
                 else console.warn('[deep-link] openBakerProfile not found in leaderboard module');
             }).catch(err => console.error('[deep-link] baker import failed:', err));
