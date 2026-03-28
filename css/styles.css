@@ -2369,7 +2369,7 @@ body.high-combo .stat-card {
 .sparkline-chart {
     width: 100%;
     height: 100%;
-    opacity: 0.7;
+    opacity: 0.85;
     transition: opacity 0.3s ease;
 }
 
@@ -2382,16 +2382,15 @@ body.high-combo .stat-card {
     display: inline-flex;
     align-items: center;
     gap: 2px;
-    font-size: 0.65rem;
+    font-size: 0.8rem;
     font-weight: 600;
     padding: 2px 5px;
     border-radius: 3px;
     position: absolute;
     bottom: 6px;
     right: 6px;
-    background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
-    opacity: 0.85;
+    opacity: 1.0;
     transition: opacity 0.3s ease;
 }
 
@@ -12668,3 +12667,64 @@ body[data-theme="nerv"]::after {
     pointer-events: none;
     z-index: 9999;
 }
+
+/* ── Drawer styles ── */
+.my-tezos-drawer {
+    position: fixed;
+    top: 0;
+    right: -420px;
+    width: 400px;
+    height: 100vh;
+    z-index: 5000;
+    overflow-y: auto;
+    transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
+}
+.my-tezos-drawer.open { right: 0; }
+.drawer-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 4999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+.drawer-scrim.open { opacity: 1; pointer-events: auto; }
+.drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.drawer-body { padding: 1rem 1.25rem; }
+.drawer-connected { display: flex; align-items: center; gap: 0.5rem; }
+.drawer-empty-state {
+    text-align: center;
+    padding: 2rem 1rem;
+    opacity: 0.6;
+}
+.drawer-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    opacity: 0.7;
+    transition: opacity 0.2s ease;
+}
+.drawer-close:hover { opacity: 1; }
+
+/* ── Clean theme scrollbar ── */
+[data-theme="clean"] ::-webkit-scrollbar-track { background: rgba(0,0,50,0.05); }
+[data-theme="clean"] ::-webkit-scrollbar-thumb { background: rgba(37,99,235,0.3); }
+[data-theme="clean"] .about-tezos-stats { background: rgba(37,99,235,0.05); }
+
+/* ── 4-column grid at 1400px+ ── */
+@media (min-width: 1400px) {
+    .stats-grid { grid-template-columns: repeat(4, 1fr); }
+    .stat-card { height: 180px; }
+}
+
+/* ── Focus-visible styles ── */
+.glass-button:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
+.stat-card:focus-within { border-color: var(--accent-cyan); }

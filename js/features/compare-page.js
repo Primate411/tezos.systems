@@ -6,11 +6,11 @@
  * auto-generates narrative, shareable OG cards.
  */
 
-import { CHAIN_COMPARISON, API_URLS } from '../core/config.js?v=20260301';
+import { CHAIN_COMPARISON, API_URLS } from '../core/config.js';
 
 async function fetchUpgradeCount() {
     try {
-        const resp = await fetch('https://api.tzkt.io/v1/protocols');
+        const resp = await fetch(API_URLS.tzkt + '/protocols');
         const protocols = await resp.json();
         return protocols.filter(p => p.code >= 4 && p.extras?.alias).length;
     } catch { return 21; }

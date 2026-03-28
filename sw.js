@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v32';
+const CACHE_NAME = 'tezos-systems-v33';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -43,7 +43,6 @@ const SHELL_ASSETS = [
     '/data/tweets.json',
     '/favicon.svg',
     '/favicon-48.png',
-    '/og-image.png',
     '/site.webmanifest'
 ];
 

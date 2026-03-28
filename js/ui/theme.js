@@ -345,6 +345,21 @@ export function getAvailableThemes() {
 }
 
 /**
+ * Get theme color palette for the current (or specified) theme.
+ * Returns { accent, bg, textPrimary, textSecondary } for use in Chart.js and canvas effects.
+ */
+export function getThemeColors(theme) {
+    const t = theme || document.body.getAttribute('data-theme') || 'matrix';
+    const colors = THEME_COLORS[t] || THEME_COLORS['matrix'];
+    return {
+        accent: colors.accent,
+        bg: colors.bg,
+        textPrimary: colors.text,
+        textSecondary: colors.text + '99' // 60% opacity variant
+    };
+}
+
+/**
  * Clear saved theme preference
  * Will revert to default theme
  */

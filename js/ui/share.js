@@ -506,17 +506,8 @@ async function captureCard(card) {
                 </svg>
             `;
         } else {
-            // Decorative bar chart as fallback
-            const barCount = 20;
-            const sparkColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
-            let barsHtml = '';
-            for (let i = 0; i < barCount; i++) {
-                // Create a wave pattern
-                const height = 10 + Math.sin((i / barCount) * Math.PI * 2 + (trendClass === 'up' ? 0.5 : trendClass === 'down' ? 2.5 : 1.5)) * 15 + Math.random() * 8;
-                const opacity = 0.15 + (i / barCount) * 0.25;
-                barsHtml += `<div style="width: 12px; height: ${height}px; background: ${sparkColor}; opacity: ${opacity}; border-radius: 2px;"></div>`;
-            }
-            sparkContainer.innerHTML = `<div style="display: flex; align-items: flex-end; justify-content: center; gap: 4px; height: 100%;">${barsHtml}</div>`;
+            // Fallback when no sparkline data available
+            sparkContainer.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:12px;color:${isClean ? 'rgba(0,0,0,0.25)' : 'rgba(255,255,255,0.25)'};letter-spacing:1px;text-transform:uppercase;">Historical trend</div>`;
         }
         content.appendChild(sparkContainer);
         
@@ -530,9 +521,9 @@ async function captureCard(card) {
             z-index: 1;
         `;
         footer.innerHTML = `
-            <span style="font-size: 13px; color: rgba(255,255,255,0.3);">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+            <span style="font-size: 13px; color: ${isClean ? 'rgba(0,0,0,0.35)' : isDark ? 'rgba(200,200,200,0.4)' : 'rgba(255,255,255,0.3)'};">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
             <span style="font-size: 13px; color: ${brandColor}; font-weight: 600; letter-spacing: 1px;">tezos.systems</span>
-            <span style="font-size: 13px; color: rgba(255,255,255,0.35); letter-spacing: 0.5px;">Powered by <span style="color: ${brandColor}; font-weight: 600;">Tez Capital</span></span>
+            <span style="font-size: 13px; color: ${isClean ? 'rgba(0,0,0,0.35)' : isDark ? 'rgba(200,200,200,0.4)' : 'rgba(255,255,255,0.35)'}; letter-spacing: 0.5px;">Powered by <span style="color: ${brandColor}; font-weight: 600;">Tez Capital</span></span>
         `;
         wrapper.appendChild(footer);
         
@@ -1221,10 +1212,11 @@ function getThemeColors() {
     const currentTheme = document.body.getAttribute('data-theme');
     const isMatrix = currentTheme === 'matrix';
     const isDark = currentTheme === 'dark';
-    const brand = isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : '#00d4ff';
-    const bg = isDark ? '#1A1A1A' : isMatrix ? '#0a0a0a' : '#0a0a0f';
-    const brandRgb = isDark ? '200,200,200' : isMatrix ? '0,255,0' : '0,212,255';
-    return { isMatrix, isDark, brand, bg, brandRgb };
+    const isClean = currentTheme === 'clean';
+    const brand = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : '#00d4ff';
+    const bg = isClean ? '#F8F9FA' : isDark ? '#1A1A1A' : isMatrix ? '#0a0a0a' : '#0a0a0f';
+    const brandRgb = isClean ? '37,99,235' : isDark ? '200,200,200' : isMatrix ? '0,255,0' : '0,212,255';
+    return { isMatrix, isDark, isClean, brand, bg, brandRgb };
 }
 
 function createBaseWrapper(bg, brandRgb) {
@@ -1260,16 +1252,17 @@ function createBaseWrapper(bg, brandRgb) {
     return wrapper;
 }
 
-function addFooter(wrapper, brand, leftText) {
+function addFooter(wrapper, brand, leftText, { isClean = false, isDark = false } = {}) {
     const footer = document.createElement('div');
     footer.style.cssText = `
         position: absolute; bottom: 24px; left: 40px; right: 40px;
         display: flex; justify-content: space-between; align-items: center; z-index: 1;
     `;
+    const textColor = isClean ? 'rgba(0,0,0,0.35)' : isDark ? 'rgba(200,200,200,0.4)' : 'rgba(255,255,255,0.35)';
     footer.innerHTML = `
-        <span style="font-size: 13px; color: rgba(255,255,255,0.35);">${leftText}</span>
+        <span style="font-size: 13px; color: ${textColor};">${leftText}</span>
         <span style="font-size: 13px; color: ${brand}; font-weight: 600; letter-spacing: 1px;">tezos.systems</span>
-        <span style="font-size: 13px; color: rgba(255,255,255,0.35); letter-spacing: 0.5px;">Powered by <span style="color: ${brand}; font-weight: 600;">Tez Capital</span></span>
+        <span style="font-size: 13px; color: ${textColor}; letter-spacing: 0.5px;">Powered by <span style="color: ${brand}; font-weight: 600;">Tez Capital</span></span>
     `;
     wrapper.appendChild(footer);
 }
@@ -1280,7 +1273,7 @@ function addFooter(wrapper, brand, leftText) {
 export async function captureProtocol(protocol) {
     try {
         await loadHtml2Canvas();
-        const { brand, bg, brandRgb } = getThemeColors();
+        const { brand, bg, brandRgb, isClean, isDark } = getThemeColors();
         const data = await getProtocolData();
         const total = data?.meta?.totalUpgrades || 21;
 
@@ -1342,7 +1335,7 @@ export async function captureProtocol(protocol) {
         }
 
         wrapper.appendChild(content);
-        addFooter(wrapper, brand, `${total} upgrades • Zero forks`);
+        addFooter(wrapper, brand, `${total} upgrades • Zero forks`, { isClean, isDark });
         document.body.appendChild(wrapper);
         const restoreSpacing = await fixWordSpacing(wrapper);
 
@@ -1372,7 +1365,7 @@ export async function captureProtocol(protocol) {
 export async function captureTimeline(allProtocols) {
     try {
         await loadHtml2Canvas();
-        const { brand, bg, brandRgb } = getThemeColors();
+        const { brand, bg, brandRgb, isClean, isDark } = getThemeColors();
         const total = allProtocols.length;
 
         const wrapper = createBaseWrapper(bg, brandRgb);
@@ -1439,7 +1432,7 @@ export async function captureTimeline(allProtocols) {
         `;
 
         wrapper.appendChild(content);
-        addFooter(wrapper, brand, new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }));
+        addFooter(wrapper, brand, new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), { isClean, isDark });
         document.body.appendChild(wrapper);
         const restoreSpacing = await fixWordSpacing(wrapper);
 

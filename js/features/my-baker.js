@@ -5,6 +5,7 @@
 
 import { API_URLS } from '../core/config.js';
 import { escapeHtml, formatNumber } from '../core/utils.js';
+import { fetchSharedStats } from '../core/api.js';
 // objkt.js moved to standalone section
 
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
@@ -79,12 +80,11 @@ async function resolveDomain(address) {
  */
 async function getStakingAPY() {
     try {
-        const [rateResp, statsResp] = await Promise.all([
+        const [rateResp, stats] = await Promise.all([
             fetch(`${API_URLS.octez}/chains/main/blocks/head/context/issuance/current_yearly_rate`),
-            fetch(`${TZKT}/statistics/current`)
+            fetchSharedStats()
         ]);
         const rateText = await rateResp.text();
-        const stats = await statsResp.json();
         const netIssuance = parseFloat(rateText.replace(/"/g, ''));
         const supply = stats.totalSupply / 1e6;
         const staked = ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0)) / 1e6;

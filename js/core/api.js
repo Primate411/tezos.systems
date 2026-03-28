@@ -3,7 +3,8 @@
  * Fetches data from TzKT API and Octez RPC
  */
 
-import { API_URLS, CACHE_TTLS, FETCH_LIMITS, HISTORY_START } from './config.js?v=20260228a';
+import { API_URLS, CACHE_TTLS, FETCH_LIMITS, HISTORY_START } from './config.js';
+import { calculatePercentage } from './utils.js';
 
 // API endpoint configurations
 const ENDPOINTS = {
@@ -49,7 +50,7 @@ function isCacheValid(key) {
  */
 let _statsPromise = null;
 let _statsTimestamp = 0;
-async function fetchSharedStats() {
+export async function fetchSharedStats() {
     // Return in-flight promise if one exists (dedup concurrent calls)
     if (_statsPromise && Date.now() - _statsTimestamp < 5000) return _statsPromise;
     _statsTimestamp = Date.now();
@@ -127,12 +128,32 @@ async function fetchText(url) {
     return text;
 }
 
+// ─── Shared dedup fetchers ─────────────────────────────────────────────────────
+
 /**
- * Calculate percentage
+ * Deduplicated fetch for /context/constants (used by fetchCycleInfo + fetchIssuance)
  */
-function calculatePercentage(part, total) {
-    if (!total || total === 0) return 0;
-    return (part / total) * 100;
+let _constantsPromise = null;
+let _constantsTime = 0;
+function fetchSharedConstants() {
+    if (_constantsPromise && Date.now() - _constantsTime < 5000) return _constantsPromise;
+    _constantsTime = Date.now();
+    _constantsPromise = fetchWithRetry(`${API_URLS.octez}/chains/main/blocks/head/context/constants`)
+        .catch(() => { _constantsPromise = null; return null; });
+    return _constantsPromise;
+}
+
+/**
+ * Deduplicated fetch for /issuance/current_yearly_rate (used by fetchIssuance + fetchStakingAPY)
+ */
+let _yearlyRatePromise = null;
+let _yearlyRateTime = 0;
+function fetchSharedYearlyRate() {
+    if (_yearlyRatePromise && Date.now() - _yearlyRateTime < 5000) return _yearlyRatePromise;
+    _yearlyRateTime = Date.now();
+    _yearlyRatePromise = fetchText(`${API_URLS.octez}/chains/main/blocks/head/context/issuance/current_yearly_rate`)
+        .catch(() => { _yearlyRatePromise = null; return null; });
+    return _yearlyRatePromise;
 }
 
 /**
@@ -205,12 +226,11 @@ async function fetchCycleInfo() {
     let blockTimeSec = 6; // safe fallback
     let actualBlocksPerCycle = 14400; // safe fallback
     try {
-        const constantsUrl = `${ENDPOINTS.octez.base}/chains/main/blocks/head/context/constants`;
-        const constants = await fetchWithRetry(constantsUrl);
-        if (constants.minimal_block_delay) {
+        const constants = await fetchSharedConstants();
+        if (constants && constants.minimal_block_delay) {
             blockTimeSec = parseInt(constants.minimal_block_delay);
         }
-        if (constants.blocks_per_cycle) {
+        if (constants && constants.blocks_per_cycle) {
             actualBlocksPerCycle = parseInt(constants.blocks_per_cycle);
         }
     } catch (e) {
@@ -311,14 +331,14 @@ async function fetchGovernance() {
 async function fetchIssuance() {
     try {
         const [rpcRateRaw, constantsRaw, supplyRaw] = await Promise.allSettled([
-            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`),
-            fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/context/constants`),
+            fetchSharedYearlyRate(),
+            fetchSharedConstants(),
             fetchText(`${ENDPOINTS.octez.base}/chains/main/blocks/head/context/total_supply`)
         ]);
 
         // Protocol-only rate from Octez RPC
-        const protocolRate = rpcRateRaw.status === 'fulfilled'
-            ? parseFloat(rpcRateRaw.value.replace(/"/g, ''))
+        const protocolRate = rpcRateRaw.status === 'fulfilled' && rpcRateRaw.value != null
+            ? parseFloat(String(rpcRateRaw.value).replace(/"/g, ''))
             : null;
 
         if (protocolRate == null) {
@@ -462,8 +482,8 @@ async function fetchRollups() {
 export async function fetchStakingAPY() {
     try {
         // Get net issuance rate from Octez RPC (this is what TzKT uses for APY calc)
-        const rateString = await fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.issuance}`);
-        const netIssuance = parseFloat(rateString.replace(/"/g, ''));
+        const rateString = await fetchSharedYearlyRate();
+        const netIssuance = parseFloat(String(rateString || '0').replace(/"/g, ''));
         
         // Get staked/delegated percentages from TzKT
         const stats = await fetchSharedStats();

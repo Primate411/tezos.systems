@@ -5,7 +5,7 @@
  *
  * DEPLOY TO: js/features/rewards-tracker.js
  */
-import { API_URLS } from '../core/config.js?v=20260228a';
+import { API_URLS } from '../core/config.js';
 
 
 const CONTAINER_ID = 'rewards-tracker-container';

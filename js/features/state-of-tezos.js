@@ -8,6 +8,7 @@ import { API_URLS } from '../core/config.js';
 import { escapeHtml, formatNumber } from '../core/utils.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 import { fetchVotingStatus } from '../features/governance.js';
+import { fetchSharedStats } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
 const MAINNET_LAUNCH = new Date('2018-09-17T00:00:00Z');
@@ -104,9 +105,8 @@ async function fetchSnapshotData() {
 
     // 3. Staking ratio from /statistics/current
     try {
-        const statsResp = await fetch(`${TZKT}/statistics/current`);
-        if (statsResp.ok) {
-            const stats = await statsResp.json();
+        const stats = await fetchSharedStats();
+        if (stats) {
             const total = stats.totalSupply ?? stats.totalBootstrapped ?? 0;
             const staked = stats.totalFrozen ?? stats.frozenDeposits ?? stats.totalStaked ?? 0;
             if (total > 0 && staked > 0) {

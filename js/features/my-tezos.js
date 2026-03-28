@@ -6,7 +6,9 @@
 
 import { API_URLS } from '../core/config.js';
 import { formatNumber, escapeHtml } from '../core/utils.js';
-import { letterGrade } from './baker-report-card.js?v=20260309d';
+import { fetchSharedStats } from '../core/api.js';
+import { fetchXTZPrice } from './price.js';
+import { letterGrade } from './baker-report-card.js';
 
 const TZKT = API_URLS.tzkt;
 const OCTEZ = API_URLS.octez;
@@ -14,8 +16,6 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const REWARDS_HISTORY_KEY = 'tezos-systems-my-rewards-history';
 const LAST_PORTFOLIO_KEY = 'tezos-systems-my-last-portfolio';
 const OVERNIGHT_KEY = 'tezos-systems-overnight-snapshot';
-const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd';
-
 // Protocol eras — map block levels to protocol names
 const PROTOCOL_ERAS = [
     { name: 'Genesis', level: 0, date: '2018-06-30' },
@@ -71,26 +71,18 @@ async function ensureProtocolEras() {
 
 async function getXtzPrice() {
     try {
-        const cached = sessionStorage.getItem('tezos_price_cache');
-        if (cached) {
-            const data = JSON.parse(cached);
-            if (Date.now() - data.timestamp < 30 * 60 * 1000) return data.data?.tezos?.usd || null;
-        }
-        const resp = await fetch(COINGECKO_URL);
-        if (!resp.ok) return null;
-        const data = await resp.json();
-        return data?.tezos?.usd || null;
+        const data = await fetchXTZPrice();
+        return (data && data.usd) ? data.usd : null;
     } catch { return null; }
 }
 
 async function getStakingAPY() {
     try {
-        const [rateResp, statsResp] = await Promise.all([
+        const [rateResp, stats] = await Promise.all([
             fetch(`${OCTEZ}/chains/main/blocks/head/context/issuance/current_yearly_rate`),
-            fetch(`${TZKT}/statistics/current`)
+            fetchSharedStats()
         ]);
         const rateText = await rateResp.text();
-        const stats = await statsResp.json();
         const netIssuance = parseFloat(rateText.replace(/"/g, ''));
         const supply = stats.totalSupply / 1e6;
         const staked = ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0)) / 1e6;
@@ -1106,7 +1098,8 @@ async function renderMorningBrief(address, force = false) {
                 const values = rewards.map(r => getRewardAmount(r)).reverse();
                 const ctx = document.getElementById('drawer-rewards-sparkline')?.getContext('2d');
                 if (ctx && window.Chart) {
-                    new Chart(ctx, {
+                    if (window._drawerRewardsChart) window._drawerRewardsChart.destroy();
+                    window._drawerRewardsChart = new Chart(ctx, {
                         type: 'line',
                         data: { labels: values.map((_, i) => i), datasets: [{ data: values, borderColor: 'rgba(0,212,255,0.8)', borderWidth: 1.5, fill: true, backgroundColor: 'rgba(0,212,255,0.08)', pointRadius: 0, tension: 0.3 }] },
                         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false, grace: '20%' } } }

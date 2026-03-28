@@ -3,7 +3,7 @@
  * Pure JS, no AI. ~50 sentence templates, data-driven selection.
  */
 
-import { API_URLS } from '../core/config.js?v=20260228a';
+import { API_URLS } from '../core/config.js';
 
 const LS_BASELINE  = 'tezos-systems-briefing-baseline';
 const LS_BRIEFING  = 'tezos-systems-briefing-cache';

@@ -6,7 +6,7 @@
 
 import { REFRESH_INTERVALS } from '../core/config.js';
 
-const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd,eur,btc&include_24hr_change=true&include_market_cap=true';
+const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd,eur,btc&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true';
 const COINGECKO_PAGE = 'https://www.coingecko.com/en/coins/tezos';
 const CACHE_KEY = 'tezos_price_cache';
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
@@ -59,12 +59,43 @@ async function fetchPrice() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         const priceData = data.tezos || null;
-        if (priceData) setCachedPrice(priceData);
+        if (priceData) {
+            setCachedPrice(priceData);
+            lastPrice = priceData.usd ?? lastPrice;
+        }
         return priceData;
     } catch (e) {
         console.warn('Price fetch failed:', e.message);
         return null;
     }
+}
+
+/**
+ * Fetch XTZ price (superset CoinGecko data) — shared, 60s TTL, deduplicated.
+ * Exported for use by calculator.js, hen-mode.js, my-tezos.js, price-intelligence.js.
+ */
+let _xtzPricePromise = null;
+let _xtzPriceTime = 0;
+const XTZ_PRICE_TTL = 60 * 1000; // 60 seconds
+export async function fetchXTZPrice() {
+    // Return session-cached data if fresh enough
+    const cached = getCachedPrice();
+    if (cached) return cached;
+    // Dedup concurrent callers
+    if (_xtzPricePromise && Date.now() - _xtzPriceTime < 5000) return _xtzPricePromise;
+    _xtzPriceTime = Date.now();
+    _xtzPricePromise = fetchPrice().finally(() => { _xtzPricePromise = null; });
+    return _xtzPricePromise;
+}
+
+/**
+ * Get the current cached XTZ/USD price (no fetch).
+ * Returns 0 if price not yet loaded.
+ */
+export function getCurrentPrice() {
+    const cached = getCachedPrice();
+    if (cached && cached.usd) return cached.usd;
+    return lastPrice || 0;
 }
 
 /**
@@ -160,6 +191,7 @@ function updatePriceBar(data) {
  * Fetch and update price
  */
 async function refreshPrice() {
+    if (document.visibilityState !== 'visible') return;
     const data = await fetchPrice();
     if (data) {
         updatePriceBar(data);

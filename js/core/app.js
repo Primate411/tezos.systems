@@ -3,8 +3,8 @@
  * Dashboard for Tezos network statistics
  */
 
-import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js?v=20260228c';
-import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js?v=themes8';
+import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js';
+import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
     formatCount,
@@ -17,9 +17,9 @@ import {
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
-import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js?v=20260328a';
+import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
-import { initChamber } from '../features/chamber.js?v=20260303c';
+import { initChamber } from '../features/chamber.js';
 
 /**
  * Governance Countdown Banner
@@ -52,7 +52,7 @@ function updateGovernanceBanner(stats, votingStatus) {
         // Click opens The Chamber
         banner.style.cursor = 'pointer';
         banner.addEventListener('click', async () => {
-            const { openChamber } = await import('../features/chamber.js?v=20260303c');
+            const { openChamber } = await import('../features/chamber.js');
             openChamber();
         });
     }
@@ -94,23 +94,23 @@ import { initSleepingGiants } from '../features/sleeping-giants.js';
 import { initPriceBar } from '../features/price.js';
 import { initStreak } from '../features/streak.js';
 import { updatePageTitle } from '../ui/title.js';
-import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './config.js?v=20260228a';
+import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './config.js';
 import { initComparison, updateComparison } from '../features/comparison.js';
-import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js?v=20260309d';
+import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js';
 import { initCalculator } from '../features/calculator.js';
 import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
-import { initVibes } from '../effects/vibes.js?v=20260228b';
+import { initVibes } from '../effects/vibes.js';
 import { initChangelog } from '../features/changelog.js';
-import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js?v=20260325a';
-import { initBakerReportCard } from '../features/baker-report-card.js?v=20260309d';
-import { initWalletConnect } from '../features/wallet-connect.js?v=20260309d';
-import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js?v=20260315a';
+import { initLeaderboard, refreshLeaderboard } from '../features/leaderboard.js';
+import { initBakerReportCard } from '../features/baker-report-card.js';
+import { initWalletConnect } from '../features/wallet-connect.js';
+import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
 import { initUpgradeEffect } from '../features/upgrade-effect.js';
-import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js?v=20260228s';
-import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js?v=20260301';
-import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js?v=20260309d';
-import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js?v=20260309d';
+import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js';
+import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js';
+import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js';
+import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js';
 import { initStateOfTezos } from '../features/state-of-tezos.js';
 
 // Protocols with major governance contention (level 3+)
@@ -131,7 +131,6 @@ const state = {
     lastUpdate: null,
     refreshInterval: REFRESH_INTERVALS.main,
     refreshTimer: null,
-    countdownTimer: null
 };
 
 /**
@@ -1049,8 +1048,8 @@ function initUptimeClock() {
 
     // Start ticking
     tickUptime();
-    setInterval(tickUptime, 1000);
-    setInterval(tickBlockAge, 1000);
+    setInterval(() => { if (document.visibilityState !== 'visible') return; tickUptime(); }, 1000);
+    setInterval(() => { if (document.visibilityState !== 'visible') return; tickBlockAge(); }, 1000);
 
     // Fast block poller via Octez RPC (real-time, every 6s)
     async function pollBlock() {
@@ -1222,41 +1221,6 @@ function setupModal(triggerBtnId, modalId, closeBtnId) {
 function startRefreshTimer() {
     if (state.refreshTimer) clearInterval(state.refreshTimer);
     state.refreshTimer = setInterval(refresh, state.refreshInterval);
-    // startCountdown();
-}
-
-/**
- * Start countdown display
- */
-function startCountdown() {
-    if (state.countdownTimer) clearInterval(state.countdownTimer);
-    
-    let remaining = state.refreshInterval / 1000;
-    
-    const updateCountdown = () => {
-        const hours = Math.floor(remaining / 3600);
-        const minutes = Math.floor((remaining % 3600) / 60);
-        const seconds = remaining % 60;
-        
-        const display = hours > 0 
-            ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-            : `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        
-        const el = document.getElementById('countdown');
-        if (el) el.textContent = display;
-        
-        remaining--;
-        if (remaining < 0) remaining = state.refreshInterval / 1000;
-    };
-    
-    updateCountdown();
-    state.countdownTimer = setInterval(updateCountdown, 1000);
-}
-
-/**
- * Reset countdown
- */
-function resetCountdown() {
     // startCountdown();
 }
 
@@ -1447,7 +1411,7 @@ let _protocolDataCache = null;
 async function loadProtocolData() {
     if (_protocolDataCache) return _protocolDataCache;
     try {
-        const resp = await fetch('/data/protocol-data.json?v=' + Date.now());
+        const resp = await fetch('/data/protocol-data.json?v=1');
         _protocolDataCache = await resp.json();
         return _protocolDataCache;
     } catch (e) { return null; }
@@ -2090,7 +2054,7 @@ function applyDeepLink() {
     if (params.has('baker')) {
         const addr = params.get('baker');
         if (addr && (addr.startsWith('tz') || addr.endsWith('.tez'))) {
-            import('../features/leaderboard.js?v=20260325a').then(mod => {
+            import('../features/leaderboard.js').then(mod => {
                 if (mod.openBakerProfile) mod.openBakerProfile(addr);
                 else console.warn('[deep-link] openBakerProfile not found in leaderboard module');
             }).catch(err => console.error('[deep-link] baker import failed:', err));

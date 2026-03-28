@@ -5,7 +5,7 @@
 
 const COMPARISON_CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
 
-import { CHAIN_COMPARISON, API_URLS } from '../core/config.js?v=20260228a';
+import { CHAIN_COMPARISON, API_URLS } from '../core/config.js';
 
 // Dynamic upgrade count — initialized on first use
 let _upgradeCount = null;
@@ -14,7 +14,7 @@ async function getUpgradeCount() {
     try {
         const chips = document.querySelectorAll('.upgrade-chip');
         if (chips.length > 0) { _upgradeCount = chips.length; return _upgradeCount; }
-        const resp = await fetch('https://api.tzkt.io/v1/protocols');
+        const resp = await fetch(API_URLS.tzkt + '/protocols');
         const p = await resp.json();
         _upgradeCount = p.filter(x => x.code >= 4 && x.extras?.alias).length;
         return _upgradeCount;

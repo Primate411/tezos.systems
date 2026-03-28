@@ -4,16 +4,14 @@
  */
 
 import { fetchStakingAPY } from '../core/api.js';
+import { fetchXTZPrice } from './price.js';
 
 const STORAGE_KEY = 'tezos-calc-state';
-const COINGECKO_PRICE_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd';
 const DEBOUNCE_MS = 300;
 
 let debounceTimer = null;
 let cachedAPY = null;
-let cachedPrice = null;
 let apyFetchedAt = 0;
-let priceFetchedAt = 0;
 const CACHE_TTL = 120000; // 2 min
 
 let currentMode = 'delegate';
@@ -25,23 +23,13 @@ function debounce(fn, ms) {
     };
 }
 
-async function fetchXTZPrice() {
-    if (cachedPrice && Date.now() - priceFetchedAt < CACHE_TTL) return cachedPrice;
-    const priceEl = document.querySelector('.price-value');
-    if (priceEl) {
-        const parsed = parseFloat(priceEl.textContent.replace(/[^0-9.]/g, ''));
-        if (parsed > 0) { cachedPrice = parsed; priceFetchedAt = Date.now(); return cachedPrice; }
-    }
+async function getXTZPrice() {
     try {
-        const res = await fetch(COINGECKO_PRICE_URL);
-        if (!res.ok) throw new Error('CoinGecko fetch failed');
-        const data = await res.json();
-        cachedPrice = data.tezos.usd;
-        priceFetchedAt = Date.now();
-        return cachedPrice;
+        const data = await fetchXTZPrice();
+        return (data && data.usd) ? data.usd : 0;
     } catch (err) {
         console.error('Failed to fetch XTZ price:', err);
-        return cachedPrice || 0;
+        return 0;
     }
 }
 
@@ -187,7 +175,7 @@ async function updateResults() {
     removeBreakdown();
     if (amount <= 0) { clearResults(); return; }
 
-    const [apy, price] = await Promise.all([getAPY(), fetchXTZPrice()]);
+    const [apy, price] = await Promise.all([getAPY(), getXTZPrice()]);
     const apyPct = currentMode === 'stake' ? apy.stakeAPY : apy.delegateAPY;
 
     setResult('calc-apy-display', formatNum(apyPct, 1) + '%');
@@ -211,7 +199,7 @@ async function updateBakerResults(ownStake) {
 
     if (ownStake <= 0 && extStaked <= 0 && extDelegated <= 0) { clearResults(); return; }
 
-    const [apy, price] = await Promise.all([getAPY(), fetchXTZPrice()]);
+    const [apy, price] = await Promise.all([getAPY(), getXTZPrice()]);
     const income = calcBakerIncome(ownStake, extStaked, stakingFee, extDelegated, delegPayout, apy.stakeAPY, apy.delegateAPY);
 
     // Show effective APY relative to own stake (if any)

@@ -3,7 +3,8 @@
  * Compact, elegant, not crowding the page.
  */
 
-import { API_URLS } from '../core/config.js?v=20260228a';
+import { API_URLS } from '../core/config.js';
+import { fetchXTZPrice } from './price.js';
 
 const LS_PREDICTIONS = 'tezos-systems-predictions';
 const LS_PRED_STATS  = 'tezos-systems-pred-stats';
@@ -403,27 +404,21 @@ function buildSection(price, change24h, marketCap, volume, stats, cycle) {
 export async function initPriceIntelligence(stats, xtzPrice) {
   if (document.getElementById(SECTION_ID)) return;
 
-  // Get price data from CoinGecko if not provided
+  // Get price data from CoinGecko (via shared price.js cache)
   let price = xtzPrice;
   let change24h = 0;
   let marketCap = 0;
   let volume = 0;
 
   try {
-    const cg = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true');
-    const data = await cg.json();
-    if (data.tezos) {
-      price = data.tezos.usd || price;
-      change24h = data.tezos.usd_24h_change || 0;
-      marketCap = data.tezos.usd_market_cap || 0;
-      volume = data.tezos.usd_24h_vol || 0;
+    const data = await fetchXTZPrice();
+    if (data) {
+      price = data.usd || price;
+      change24h = data.usd_24h_change || 0;
+      marketCap = data.usd_market_cap || 0;
+      volume = data.usd_24h_vol || 0;
     }
   } catch (_) {}
-
-  if (!price) {
-    const el = document.querySelector('.price-value');
-    price = parseFloat(el?.textContent?.replace(/[^0-9.]/g, '')) || 0;
-  }
 
   // Get cycle
   let cycle = stats?.cycle || 0;

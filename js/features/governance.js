@@ -3,7 +3,9 @@
  * Fetches protocol history and current voting status
  */
 
-const TZKT_BASE = 'https://api.tzkt.io/v1';
+import { API_URLS } from '../core/config.js';
+
+const TZKT_BASE = API_URLS.tzkt;
 
 // Human-readable upgrade summaries with activation dates
 // Research sources: TzKT, Tezos docs, Agora discussions, Nomadic Labs

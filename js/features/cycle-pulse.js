@@ -3,7 +3,7 @@
  * Shows: C#### · ──bar── · XX.X% · 🟢 Xs ago
  */
 
-import { API_URLS } from '../core/config.js?v=20260228a';
+import { API_URLS } from '../core/config.js';
 
 const STREAK_KEY = 'tezos-systems-cycle-streak';
 const STRIP_ID   = 'cycle-pulse-strip';

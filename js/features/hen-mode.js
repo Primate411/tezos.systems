@@ -116,10 +116,25 @@ const HenMode = (() => {
     }
 
     async function fetchXtzPrice() {
+        // Check price.js sessionStorage cache first (avoids duplicate CoinGecko requests)
         try {
-            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd');
+            const raw = sessionStorage.getItem('tezos_price_cache');
+            if (raw) {
+                const cached = JSON.parse(raw);
+                if (Date.now() - cached.timestamp < 60 * 1000 && cached.data && cached.data.usd) {
+                    xtzUsd = cached.data.usd;
+                    return;
+                }
+            }
+        } catch (_) {}
+        try {
+            const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd,eur,btc&include_24hr_change=true&include_market_cap=true');
             const json = await res.json();
             xtzUsd = (json.tezos && json.tezos.usd) ? json.tezos.usd : null;
+            // Populate the shared sessionStorage cache so other modules benefit
+            if (json.tezos) {
+                try { sessionStorage.setItem('tezos_price_cache', JSON.stringify({ timestamp: Date.now(), data: json.tezos })); } catch (_) {}
+            }
         } catch (e) { xtzUsd = null; }
     }
 

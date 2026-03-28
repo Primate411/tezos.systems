@@ -12,8 +12,9 @@
  */
 
 import { escapeHtml } from '../core/utils.js';
+import { API_URLS } from '../core/config.js';
 
-const TZKT = 'https://api.tzkt.io/v1';
+const TZKT = API_URLS.tzkt;
 
 const STAGES = [
     { key: 'proposal', label: 'Proposal', icon: '📜' },
@@ -527,7 +528,7 @@ async function fillMomentumTimeline(periodIndex, totalPower, startTime, endTime)
 // ─── My Baker ───
 
 function renderMyBakerVote(voters) {
-    const myBaker = localStorage.getItem('myBakerAddress');
+    const myBaker = localStorage.getItem('tezos-systems-my-baker-address');
     if (!myBaker || !voters?.length) {
         return `<div class="chamber-my-baker chamber-anim-fade" style="animation-delay:500ms"><div class="my-baker-prompt"><a href="/#my-baker" class="set-baker-link">Set your baker</a> to track their vote</div></div>`;
     }
