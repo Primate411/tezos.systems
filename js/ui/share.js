@@ -290,6 +290,10 @@ async function captureCard(card) {
         const trendText = trendEl ? trendEl.textContent.trim() : '';
         const trendClass = trendEl ? (trendEl.classList.contains('up') ? 'up' : trendEl.classList.contains('down') ? 'down' : 'neutral') : '';
         
+        // Check for issuance breakdown subtitle (e.g. "3.18% Protocol · 0.24% LB")
+        const breakdownEl = card.querySelector('.issuance-breakdown');
+        const breakdownText = breakdownEl ? breakdownEl.textContent.trim() : '';
+        
         // Get section name
         const section = card.closest('.stats-section');
         const sectionName = section?.querySelector('.section-title')?.textContent.trim() || '';
@@ -432,6 +436,19 @@ async function captureCard(card) {
         }
         valueEl.textContent = statValue;
         content.appendChild(valueEl);
+        
+        // Issuance breakdown subtitle (Protocol · LB)
+        if (breakdownText) {
+            const breakdownDiv = document.createElement('div');
+            breakdownDiv.style.cssText = `
+                font-size: 18px; font-weight: 500;
+                color: ${isClean ? 'rgba(0,0,0,0.45)' : isDark ? 'rgba(232,232,232,0.45)' : 'rgba(255,255,255,0.45)'};
+                margin-bottom: 12px;
+                letter-spacing: 0.5px;
+            `;
+            breakdownDiv.textContent = breakdownText;
+            content.appendChild(breakdownDiv);
+        }
         
         // Trend indicator
         if (trendText) {
