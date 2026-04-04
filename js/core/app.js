@@ -245,7 +245,7 @@ async function init() {
     const cachedProtocols = loadProtocols();
     
     // Only render cached stats if Tezos Stats is visible
-    const statsWanted = localStorage.getItem(STATS_VISIBLE_KEY) === 'true';
+    const statsWanted = localStorage.getItem(STATS_VISIBLE_KEY) !== 'false';
     if (cachedStats && statsWanted) {
         console.log('⚡ Rendering cached data instantly');
         statsDataLoaded = true;
@@ -475,7 +475,7 @@ async function refreshInBackground() {
 
         // Only fetch full stats if Tezos Stats sections are visible
         const statsVisible = localStorage.getItem(STATS_VISIBLE_KEY);
-        if (statsVisible === 'true') {
+        if (statsVisible !== 'false') {
             const newStats = await fetchAllStats();
             console.log('✅ Fresh stats received');
             
@@ -919,7 +919,7 @@ function initTezosStatsToggle() {
 
     toggleBtn.addEventListener('click', async () => {
         const stored = localStorage.getItem(STATS_VISIBLE_KEY);
-        const isVisible = stored === null ? false : stored === 'true';
+        const isVisible = stored !== 'false';
         const newState = !isVisible;
         localStorage.setItem(STATS_VISIBLE_KEY, String(newState));
         updateVis(newState);
@@ -928,7 +928,7 @@ function initTezosStatsToggle() {
 
     // Default OFF — only show if user explicitly enabled (lazy-load)
     const stored = localStorage.getItem(STATS_VISIBLE_KEY);
-    const isVisible = stored === 'true'; // null = false
+    const isVisible = stored !== 'false'; // null = true (default ON)
     updateVis(isVisible);
     if (isVisible) loadStatsIfNeeded();
 }
