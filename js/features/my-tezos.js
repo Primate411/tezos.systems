@@ -899,30 +899,15 @@ function renderBriefTabs(cards) {
     const container = document.getElementById('drawer-brief');
     if (!container) return;
     
-    const tabsHtml = cards.map((card, i) => 
-        `<button class="drawer-tab${i === 0 ? ' active' : ''}" data-tab="${i}">${card.icon} ${card.title}</button>`
-    ).join('');
-    
-    const panelsHtml = cards.map((card, i) => 
-        `<div class="drawer-tab-panel${i === 0 ? ' active' : ''}" data-tab="${i}">
+    const sectionsHtml = cards.map(card => 
+        `<div class="brief-section">
+            <h4 class="brief-section-title">${card.icon} ${card.title}</h4>
             <div class="brief-body">${card.body}</div>
             ${card.shareBtn ? `<button class="glass-button drawer-share-btn story-share-btn" style="margin-top:12px;width:100%;">📸 Share Your Story</button>` : ''}
         </div>`
     ).join('');
     
-    container.innerHTML = `
-        <div class="drawer-tabs">${tabsHtml}</div>
-        ${panelsHtml}
-    `;
-    
-    container.querySelectorAll('.drawer-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            container.querySelectorAll('.drawer-tab').forEach(t => t.classList.remove('active'));
-            container.querySelectorAll('.drawer-tab-panel').forEach(p => p.classList.remove('active'));
-            tab.classList.add('active');
-            container.querySelector(`.drawer-tab-panel[data-tab="${tab.dataset.tab}"]`)?.classList.add('active');
-        });
-    });
+    container.innerHTML = sectionsHtml;
 
     container.querySelectorAll('.story-share-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -1153,9 +1138,21 @@ function updateFreshness() {
         <span class="freshness-time">Updated ${now.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
         <button id="drawer-refresh" class="freshness-refresh">↻ Refresh</button>
     `;
-    document.getElementById('drawer-refresh')?.addEventListener('click', () => {
+    document.getElementById('drawer-refresh')?.addEventListener('click', (e) => {
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        btn.textContent = '↻ Refreshing…';
         const addr = localStorage.getItem(STORAGE_KEY);
-        if (addr) renderMorningBrief(addr, true);
+        if (addr) {
+            _briefRenderedAddr = null;
+            renderMorningBrief(addr, true).finally(() => {
+                btn.disabled = false;
+                btn.textContent = '↻ Refresh';
+            });
+        } else {
+            btn.disabled = false;
+            btn.textContent = '↻ Refresh';
+        }
     });
 }
 
