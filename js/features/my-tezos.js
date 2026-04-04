@@ -895,7 +895,7 @@ function initPulseViz(strip, data) {
 let _briefRendering = false;
 let _briefRenderedAddr = null;
 
-function renderBriefTabs(cards) {
+function renderBriefTabs(cards, data) {
     const container = document.getElementById('drawer-brief');
     if (!container) return;
     
@@ -911,11 +911,11 @@ function renderBriefTabs(cards) {
 
     container.querySelectorAll('.story-share-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            const d = window._myTezosData;
-            if (d && d.story) {
-                shareTezosStory(d);
+            if (data && data.story) {
+                shareTezosStory(data);
             } else {
-                console.warn('Story share: no data available', { hasData: !!d, hasStory: d?.story });
+                const d = window._myTezosData;
+                if (d && d.story) shareTezosStory(d);
             }
         });
     });
@@ -1046,8 +1046,8 @@ async function renderMorningBrief(address, force = false) {
         if (overnight) cards.unshift(overnight);
         saveOvernightSnapshot(data);
 
-        // Render morning brief as tabbed pills in drawer
-        renderBriefTabs(cards);
+        // Render morning brief sections in drawer
+        renderBriefTabs(cards, data);
 
         // Feature 6: Baker health grade in drawer
         if (healthScore !== null) {
