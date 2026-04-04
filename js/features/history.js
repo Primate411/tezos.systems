@@ -105,6 +105,13 @@ export function createSparkline(canvasId, data, metric) {
             interaction: { mode: 'index', intersect: false }
         }
     });
+
+    // Force resize after creation to fix layout timing issues
+    requestAnimationFrame(() => {
+        if (chartInstances[canvasId]) {
+            chartInstances[canvasId].resize();
+        }
+    });
 }
 
 // Calculate stats for a metric
