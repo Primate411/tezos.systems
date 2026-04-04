@@ -755,19 +755,46 @@ function initMyTezosButton() {
 
     const STORAGE_KEY = 'tezos-systems-my-baker-address';
 
-    function updateButtonState() {
+    // Cache for .tez domain lookups
+    const _tezDomainCache = {};
+
+    async function resolveTezDomain(address) {
+        if (_tezDomainCache[address] !== undefined) return _tezDomainCache[address];
+        try {
+            const resp = await fetch('https://api.tezos.domains/graphql', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ query: `query{reverseRecord(address:"${address}"){domain{name}}}` })
+            });
+            if (resp.ok) {
+                const json = await resp.json();
+                const name = json?.data?.reverseRecord?.domain?.name || null;
+                _tezDomainCache[address] = name;
+                return name;
+            }
+        } catch {}
+        _tezDomainCache[address] = null;
+        return null;
+    }
+
+    async function updateButtonState() {
         const address = localStorage.getItem(STORAGE_KEY);
         if (address) {
-            const short = address.slice(0, 6) + '…' + address.slice(-4);
-            const data = window._myTezosData;
-            const due = data?.rewardsLastCycle ? ` · ${data.rewardsLastCycle.toFixed(1)} ꜩ` : '';
             const iconEl = btn.querySelector('.my-tezos-icon');
             const labelEl = btn.querySelector('.nav-label');
             if (iconEl) iconEl.textContent = '👤';
-            if (labelEl) labelEl.textContent = short + due;
             btn.classList.add('connected');
             btn.classList.remove('nudge');
-            btn.title = 'My Tezos — click to scroll to your dashboard';
+            btn.title = 'My Tezos — click to open your dashboard';
+
+            // Build label: .tez name or short address + balance
+            const tezName = await resolveTezDomain(address);
+            const data = window._myTezosData;
+            const displayName = tezName || (address.slice(0, 6) + '…' + address.slice(-4));
+            const balance = data?.totalXTZ != null
+                ? data.totalXTZ.toLocaleString(undefined, { maximumFractionDigits: 0 }) + ' XTZ'
+                : null;
+            if (labelEl) labelEl.textContent = balance ? `${displayName} · ${balance}` : displayName;
         } else {
             const iconEl = btn.querySelector('.my-tezos-icon');
             const labelEl = btn.querySelector('.nav-label');
@@ -811,6 +838,7 @@ function initMyTezosButton() {
     window.addEventListener('storage', (e) => {
         if (e.key === STORAGE_KEY) updateButtonState();
     });
+    window.addEventListener('my-tezos-data-ready', () => updateButtonState());
 
     // Initial state
     updateButtonState();
