@@ -462,9 +462,18 @@ function buildMorningBrief(data) {
     });
 
     // Card 3: Governance / Tezos Story teaser
-    const storyText = data.story
-        ? `Joined under <strong>${data.story.joinedEra}</strong> · <strong>${data.story.upgradesSeen} upgrades</strong> witnessed · zero forks`
-        : 'No on-chain history found for this address yet.';
+    let storyText;
+    if (data.story) {
+        storyText = `Joined under <strong>${data.story.joinedEra}</strong> · <strong>${data.story.upgradesSeen} upgrades</strong> witnessed · zero forks`;
+        if (data.story.proposalsInjected > 0) {
+            storyText += `<br>📜 Injected <strong>${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''}</strong>`;
+            if (data.story.proposalNames.length <= 4) {
+                storyText += `: ${data.story.proposalNames.join(', ')}`;
+            }
+        }
+    } else {
+        storyText = 'No on-chain history found for this address yet.';
+    }
     const govText = data.activeProposal
         ? `<br><span class="brief-sub">Active governance: ${escapeHtml(data.activeProposal)}</span>`
         : '';
@@ -481,7 +490,7 @@ function buildMorningBrief(data) {
 
 // ─── Tezos Story Card ──────────────────────────────────
 
-async function fetchTezosStory(address, account) {
+async function fetchTezosStory(address, account, bakerAddress) {
     await ensureProtocolEras();
     const firstActivity = account.firstActivity;
     const firstActivityTime = account.firstActivityTime;
@@ -491,18 +500,28 @@ async function fetchTezosStory(address, account) {
     const upgradesSeen = countUpgradesSince(firstActivity);
     const daysSinceJoin = Math.floor((Date.now() - new Date(firstActivityTime).getTime()) / 86400000);
 
-    // Fetch governance participation count
+    // Fetch governance participation count + proposals injected
     let govCycles = 0;
+    let proposalsInjected = 0;
+    let proposalNames = [];
     try {
-        // Count voting periods since user's first activity
-        const resp = await fetch(`${TZKT}/voting/periods?limit=0&offset=0`);
-        if (resp.ok) {
-            // Use the count from the API (we only need the total)
-            const allPeriodsResp = await fetch(`${TZKT}/voting/periods?limit=1000&select=firstLevel,kind`);
-            if (allPeriodsResp.ok) {
-                const periods = await allPeriodsResp.json();
-                govCycles = periods.filter(p => p.firstLevel >= firstActivity).length;
-            }
+        const allPeriodsResp = await fetch(`${TZKT}/voting/periods?limit=1000&select=firstLevel,kind`);
+        if (allPeriodsResp.ok) {
+            const periods = await allPeriodsResp.json();
+            govCycles = periods.filter(p => p.firstLevel >= firstActivity).length;
+        }
+    } catch {}
+
+    // Check if this address or their baker injected any accepted proposals
+    const checkAddrs = new Set([address]);
+    if (bakerAddress) checkAddrs.add(bakerAddress);
+    try {
+        const proposalsResp = await fetch(`${TZKT}/voting/proposals?limit=200`);
+        if (proposalsResp.ok) {
+            const allProposals = await proposalsResp.json();
+            const accepted = allProposals.filter(p => p.status === 'accepted' && checkAddrs.has(p.initiator?.address));
+            proposalsInjected = accepted.length;
+            proposalNames = accepted.map(p => (p.extras?.alias) || p.hash.slice(0, 8)).filter(Boolean);
         }
     } catch {}
 
@@ -513,6 +532,8 @@ async function fetchTezosStory(address, account) {
         upgradesSeen,
         daysSinceJoin,
         govCycles,
+        proposalsInjected,
+        proposalNames,
         currentEra: PROTOCOL_ERAS[PROTOCOL_ERAS.length - 1].name,
     };
 }
@@ -594,6 +615,7 @@ async function shareTezosStory(data) {
                     Joined under <span style="color:${brand};font-weight:700;">${data.story.joinedEra}</span><br>
                     Witnessed <span style="color:${brand};font-weight:700;">${data.story.upgradesSeen} protocol upgrades</span><br>
                     ${data.story.govCycles > 0 ? `Lived through <span style="color:${brand};font-weight:700;">${data.story.govCycles} governance cycles</span><br>` : ''}
+                    ${data.story.proposalsInjected > 0 ? `Injected <span style="color:${brand};font-weight:700;">${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''}</span><br>` : ''}
                     Zero hard forks. Ever.
                 </div>
 
@@ -615,10 +637,13 @@ async function shareTezosStory(data) {
         });
         wrapper.remove();
 
+        const injectedLine = data.story.proposalsInjected > 0
+            ? `\n📜 ${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''} injected`
+            : '';
         const tweetOptions = [
-            { label: '📜 Story', text: `I've been on Tezos for ${data.story.daysSinceJoin.toLocaleString()} days. Joined under ${data.story.joinedEra}. Witnessed ${data.story.upgradesSeen} protocol upgrades. Zero hard forks.\n\nWhat's your Tezos story?\ntezos.systems` },
-            { label: '🏛️ OG', text: `${data.story.joinedEra} era. ${data.story.upgradesSeen} upgrades witnessed. ${data.story.daysSinceJoin.toLocaleString()} days and counting.\n\nTezos doesn't fork. It evolves.\ntezos.systems` },
-            { label: '📊 Data', text: `My Tezos Story:\n\n📅 ${data.story.daysSinceJoin.toLocaleString()} days on-chain\n🏛️ Joined: ${data.story.joinedEra}\n🔄 ${data.story.upgradesSeen} upgrades witnessed\n🔗 Zero forks\n\ntezos.systems` },
+            { label: '📜 Story', text: `I've been on Tezos for ${data.story.daysSinceJoin.toLocaleString()} days. Joined under ${data.story.joinedEra}. Witnessed ${data.story.upgradesSeen} protocol upgrades.${data.story.proposalsInjected > 0 ? ` Injected ${data.story.proposalsInjected} accepted proposals.` : ''} Zero hard forks.\n\nWhat's your Tezos story?\ntezos.systems` },
+            { label: '🏛️ OG', text: `${data.story.joinedEra} era. ${data.story.upgradesSeen} upgrades witnessed. ${data.story.daysSinceJoin.toLocaleString()} days and counting.${data.story.proposalsInjected > 0 ? ` ${data.story.proposalsInjected} proposals that became Tezos law.` : ''}\n\nTezos doesn't fork. It evolves.\ntezos.systems` },
+            { label: '📊 Data', text: `My Tezos Story:\n\n📅 ${data.story.daysSinceJoin.toLocaleString()} days on-chain\n🏛️ Joined: ${data.story.joinedEra}\n🔄 ${data.story.upgradesSeen} upgrades witnessed${injectedLine}\n🔗 Zero forks\n\ntezos.systems` },
         ];
 
         showShareModal(canvas, tweetOptions, 'Your Tezos Story');
@@ -986,7 +1011,7 @@ async function renderMorningBrief(address, force = false) {
         const [participation, rewards, story, bakerVote] = await Promise.all([
             bakerAddr ? fetchParticipation(bakerAddr) : Promise.resolve(null),
             fetchRecentRewards(address),
-            fetchTezosStory(address, account),
+            fetchTezosStory(address, account, bakerAddr),
             bakerAddr ? fetchBakerVoteStatus(bakerAddr) : Promise.resolve(null),
         ]);
 
