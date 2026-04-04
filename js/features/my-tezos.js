@@ -464,7 +464,7 @@ function buildMorningBrief(data) {
     // Card 3: Governance / Tezos Story teaser
     const storyText = data.story
         ? `Joined under <strong>${data.story.joinedEra}</strong> · <strong>${data.story.upgradesSeen} upgrades</strong> witnessed · zero forks`
-        : 'Enter your address to see your Tezos Story.';
+        : 'No on-chain history found for this address yet.';
     const govText = data.activeProposal
         ? `<br><span class="brief-sub">Active governance: ${escapeHtml(data.activeProposal)}</span>`
         : '';
@@ -912,7 +912,11 @@ function renderBriefTabs(cards) {
     container.querySelectorAll('.story-share-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const d = window._myTezosData;
-            if (d) shareTezosStory(d);
+            if (d && d.story) {
+                shareTezosStory(d);
+            } else {
+                console.warn('Story share: no data available', { hasData: !!d, hasStory: d?.story });
+            }
         });
     });
 }
