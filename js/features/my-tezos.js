@@ -946,39 +946,9 @@ function renderBriefTabs(cards, data) {
     });
 }
 
-function createMinibar() {
-    let bar = document.getElementById('my-tezos-minibar');
-    if (!bar) {
-        bar = document.createElement('div');
-        bar.id = 'my-tezos-minibar';
-        bar.className = 'my-tezos-minibar';
-        const priceBar = document.getElementById('price-bar');
-        if (priceBar) priceBar.after(bar);
-    }
-    bar.addEventListener('click', () => {
-        document.getElementById('my-tezos-drawer')?.classList.add('open');
-        document.getElementById('my-tezos-drawer-scrim')?.classList.add('open');
-        document.body.style.overflow = 'hidden';
-    });
-    return bar;
-}
-
-function updateMinibar(data) {
-    const bar = document.getElementById('my-tezos-minibar');
-    if (!bar || !data) return;
-    const addr = data.fullAddress || data.address || '';
-    const short = addr.length > 10 ? addr.slice(0, 6) + '…' + addr.slice(-4) : addr;
-    const balStr = data.totalXTZ ? data.totalXTZ.toLocaleString(undefined, {maximumFractionDigits: 0}) + ' XTZ' : '';
-    const bakerOk = data.bakerInactive ? '⚠️' : '✅';
-    const bakerName = data.bakerName ? escapeHtml(data.bakerName) : '';
-    bar.innerHTML = `
-        <span class="minibar-address">${short}</span>
-        <span class="minibar-balance">${balStr}</span>
-        <span class="minibar-baker">${bakerOk} ${bakerName}</span>
-        <span class="minibar-expand">↗</span>
-    `;
-    bar.classList.add('visible');
-}
+// Minibar removed — address shown in nav button, details in drawer
+function createMinibar() {}
+function updateMinibar() {}
 
 async function renderMorningBrief(address, force = false) {
     // Prevent double-render of same address
@@ -1198,9 +1168,6 @@ export function initMyTezos() {
         if (newAddr) {
             renderMorningBrief(newAddr, true);
         } else {
-            // Clear minibar
-            const bar = document.getElementById('my-tezos-minibar');
-            if (bar) { bar.classList.remove('visible'); bar.innerHTML = ''; }
             // Clear drawer sections
             ['drawer-brief', 'drawer-network', 'drawer-rewards'].forEach(id => {
                 const el = document.getElementById(id);
