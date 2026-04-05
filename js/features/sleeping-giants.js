@@ -114,7 +114,7 @@ function formatXTZ(mutez) {
 }
 
 // Tezos mainnet launch date
-const MAINNET_LAUNCH = new Date('2018-06-30T00:00:00Z').getTime();
+const MAINNET_LAUNCH = new Date('2018-09-17T00:00:00Z').getTime();
 
 /**
  * Calculate days since a timestamp (capped at mainnet launch)

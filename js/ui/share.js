@@ -3,6 +3,7 @@
  */
 
 let html2canvasLoaded = false;
+let _html2canvasPromise = null;
 
 // Mobile devices have strict canvas size limits (iOS Safari ~16MP)
 // Use scale 1 on mobile to avoid OOM failures
@@ -113,17 +114,37 @@ const DASHBOARD_TWEET = 'Real-time Tezos network stats — bakers, staking, gove
  */
 export async function loadHtml2Canvas() {
     if (html2canvasLoaded) return;
+    if (_html2canvasPromise) return _html2canvasPromise;
     
-    return new Promise((resolve, reject) => {
+    _html2canvasPromise = new Promise((resolve, reject) => {
+        // Check if script is already in DOM (loading or errored)
+        const existing = document.querySelector('script[src*="html2canvas"]');
+        if (existing) {
+            // Already added to DOM — wait for it or reuse
+            if (html2canvasLoaded) {
+                resolve();
+                return;
+            }
+            existing.addEventListener('load', () => { html2canvasLoaded = true; resolve(); }, { once: true });
+            existing.addEventListener('error', reject, { once: true });
+            return;
+        }
+
         const script = document.createElement('script');
         script.src = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
         script.onload = () => {
             html2canvasLoaded = true;
+            _html2canvasPromise = null;
             resolve();
         };
-        script.onerror = reject;
+        script.onerror = () => {
+            _html2canvasPromise = null;
+            reject(new Error('Failed to load html2canvas'));
+        };
         document.head.appendChild(script);
     });
+
+    return _html2canvasPromise;
 }
 
 /**

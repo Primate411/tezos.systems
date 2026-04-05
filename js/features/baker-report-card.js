@@ -141,15 +141,21 @@ async function fetchBakerReport(bakerAddress) {
 
     // Fetch all active bakers for ranking (minimal fields)
     let allBakers = [];
+    let allBakersFailed = false;
     try {
         const abResp = await fetch(`${TZKT}/delegates?active=true&limit=10000&select=address,stakingBalance&sort.desc=id`);
         if (abResp.ok) allBakers = await abResp.json();
-    } catch {}
+    } catch {
+        allBakers = [];
+        allBakersFailed = true;
+    }
 
     // Sort by staking balance descending, then find rank
-    allBakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0));
-    const rank = allBakers.findIndex(b => b.address === bakerAddress) + 1;
-    const totalBakers = allBakers.length;
+    if (!allBakersFailed) {
+        allBakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0));
+    }
+    const rank = allBakersFailed ? null : allBakers.findIndex(b => b.address === bakerAddress) + 1;
+    const totalBakers = allBakersFailed ? null : allBakers.length;
 
     // Calculate scores using shared scoring function
     const scores = computeBakerScores(baker, participation);
@@ -223,7 +229,7 @@ function buildReportCardDOM(report) {
             <!-- Rank banner -->
             <div style="background:rgba(0,255,136,0.06);border:1px solid rgba(0,255,136,0.12);border-radius:8px;padding:10px 16px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;">
                 <span style="font-size:13px;color:rgba(255,255,255,0.6);">Rank</span>
-                <span style="font-size:18px;font-weight:700;color:#00ff88;">#${rank} <span style="font-size:12px;color:rgba(255,255,255,0.3);">of ${totalBakers}</span></span>
+                <span style="font-size:18px;font-weight:700;color:#00ff88;">${rank != null ? '#' + rank + ' <span style="font-size:12px;color:rgba(255,255,255,0.3);">of ' + totalBakers + '</span>' : 'N/A'}</span>
             </div>
 
             <!-- Score bars -->
@@ -319,8 +325,8 @@ export async function showBakerReportCard(bakerAddress) {
         const name = report.baker.alias || report.baker.address.slice(0, 12) + '…';
         const grade = letterGrade(report.scores.overall).grade;
         const tweetOptions = [
-            { label: '📋 Report Card', text: `${name} scores ${grade} on their Baker Report Card — #${report.rank} of ${report.totalBakers} bakers on Tezos\n\nCheck any baker at tezos.systems` },
-            { label: '📊 Stats', text: `Baker Report Card: ${name}\nGrade: ${grade} | Rank: #${report.rank}/${report.totalBakers}\nUptime: ${report.stats.uptimePct.toFixed(1)}% | Fee: ${report.stats.fee.toFixed(1)}%\n\ntezos.systems` },
+            { label: '📋 Report Card', text: `${name} scores ${grade} on their Baker Report Card — ${report.rank != null ? '#' + report.rank + ' of ' + report.totalBakers : 'N/A'} bakers on Tezos\n\nCheck any baker at tezos.systems` },
+            { label: '📊 Stats', text: `Baker Report Card: ${name}\nGrade: ${grade} | Rank: ${report.rank != null ? '#' + report.rank + '/' + report.totalBakers : 'N/A'}\nUptime: ${report.stats.uptimePct.toFixed(1)}% | Fee: ${report.stats.fee.toFixed(1)}%\n\ntezos.systems` },
             { label: '🏆 Challenge', text: `How does your Tezos baker stack up? ${name} earned a ${grade}\n\ntezos.systems` },
         ];
 
@@ -395,6 +401,9 @@ export function initBakerReportCard() {
                         grid.after(btn);
                     }
                 }
+
+                // Found the target — stop observing to prevent further callbacks
+                observer.disconnect();
             }
         }
     });

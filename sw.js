@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v48';
+const CACHE_NAME = 'tezos-systems-v49';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -25,8 +25,6 @@ const SHELL_ASSETS = [
     '/js/features/whales.js',
     '/js/features/moments.js',
     '/js/features/my-baker.js',
-    '/js/features/objkt-ui.js',
-    '/js/features/objkt.js',
     '/js/features/sleeping-giants.js',
     '/js/features/governance.js',
     '/js/features/history.js',
@@ -39,6 +37,22 @@ const SHELL_ASSETS = [
     '/js/effects/audio.js',
     '/js/effects/matrix-effects.js',
     '/js/effects/bg-effects.js',
+    '/js/effects/vibes.js',
+    '/js/features/baker-report-card.js',
+    '/js/features/chamber.js',
+    '/js/features/compare-page.js',
+    '/js/features/cycle-pulse.js',
+    '/js/features/daily-briefing.js',
+    '/js/features/hen-mode.js',
+    '/js/features/leaderboard.js',
+    '/js/features/my-tezos.js',
+    '/js/features/price-intelligence.js',
+    '/js/features/rewards-tracker.js',
+    '/js/features/state-of-tezos.js',
+    '/js/features/tooltip-tour.js',
+    '/js/features/upgrade-effect.js',
+    '/js/features/wallet-connect.js',
+    '/js/landing/live-data.js',
     '/data/protocol-data.json',
     '/data/tweets.json',
     '/favicon.svg',

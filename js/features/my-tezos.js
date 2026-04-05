@@ -919,6 +919,7 @@ function initPulseViz(strip, data) {
 
 let _briefRendering = false;
 let _briefRenderedAddr = null;
+let _pendingBriefAddr = null;
 
 function renderBriefTabs(cards, data) {
     const container = document.getElementById('drawer-brief');
@@ -952,7 +953,10 @@ function updateMinibar() {}
 
 async function renderMorningBrief(address, force = false) {
     // Prevent double-render of same address
-    if (!force && _briefRendering) return;
+    if (!force && _briefRendering) {
+        _pendingBriefAddr = address; // queue new address for after current render
+        return;
+    }
     if (!force && _briefRenderedAddr === address) return;
     
     _briefRendering = true;
@@ -1116,6 +1120,11 @@ async function renderMorningBrief(address, force = false) {
         window._myTezosData = data;
         window.dispatchEvent(new Event('my-tezos-data-ready'));
         _briefRendering = false;
+        const pending = _pendingBriefAddr;
+        _pendingBriefAddr = null;
+        if (pending && pending !== _briefRenderedAddr) {
+            renderMorningBrief(pending, true).catch(() => {});
+        }
 
     } catch (err) {
         _briefRendering = false;

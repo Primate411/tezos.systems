@@ -554,7 +554,14 @@ export function init() {
 
     // Feature 9: Multi-address support
     function addToSavedAddresses(addr) {
-        const saved = JSON.parse(localStorage.getItem(SAVED_ADDRESSES_KEY) || '[]');
+        let saved;
+        try {
+            saved = JSON.parse(localStorage.getItem(SAVED_ADDRESSES_KEY) || '[]');
+            if (!Array.isArray(saved)) throw new Error('not an array');
+        } catch {
+            saved = [];
+            localStorage.setItem(SAVED_ADDRESSES_KEY, '[]');
+        }
         // Don't duplicate
         if (saved.find(s => s.address === addr)) {
             renderSavedAddresses();
