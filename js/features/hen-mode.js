@@ -184,7 +184,7 @@ const HenMode = (() => {
         card.dataset.creator = creator;
 
         var isVideo = token.mime && token.mime.startsWith('video/');
-        var thumbUrl = resolveUri(token.thumbnail_uri || token.display_uri);
+        var thumbUrl = escapeHtml(resolveUri(token.thumbnail_uri || token.display_uri));
         var price = formatPrice(token.lowest_ask);
         var usd = formatUsd(token.lowest_ask);
         var collName = (token.fa && token.fa.name) ? token.fa.name : '';
@@ -232,7 +232,7 @@ const HenMode = (() => {
 
     async function expandToken(token) {
         var exp = expanded();
-        var mediaUrl = resolveUri(token.display_uri);
+        var mediaUrl = escapeHtml(resolveUri(token.display_uri));
         var isVideo = token.mime && token.mime.startsWith('video/');
         var creator = (token.creators && token.creators[0]) ? token.creators[0].creator_address : '';
         var price = formatPrice(token.lowest_ask);
@@ -247,7 +247,7 @@ const HenMode = (() => {
 
         var mediaHtml = isVideo
             ? '<video class="hen-expanded-media" src="' + mediaUrl + '" autoplay loop muted playsinline></video>'
-            : '<img class="hen-expanded-media" src="' + mediaUrl + '" alt="' + escapeHtml(token.name || '') + '">';
+            : '<img class="hen-expanded-media" src="' + mediaUrl + '" alt="' + escapeHtml(token.name || '') + '"> ';
 
         exp.querySelector('.hen-expanded-inner').innerHTML =
             mediaHtml +
@@ -297,7 +297,7 @@ const HenMode = (() => {
             var workGrid = document.getElementById('hen-artist-work-grid');
             if (workGrid && otherWork.length > 0) {
                 workGrid.innerHTML = otherWork.map(function(t) {
-                    var thumb = resolveUri(t.thumbnail_uri || t.display_uri);
+                    var thumb = escapeHtml(resolveUri(t.thumbnail_uri || t.display_uri));
                     return '<div class="hen-artist-thumb" data-contract="' + escapeHtml(t.fa_contract) + '" data-token="' + escapeHtml(t.token_id) + '"><img src="' + thumb + '" alt="' + escapeHtml(t.name || '') + '" loading="lazy"></div>';
                 }).join('');
                 workGrid.querySelectorAll('.hen-artist-thumb').forEach(function(thumbEl, i) {
