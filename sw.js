@@ -51,7 +51,6 @@ const SHELL_ASSETS = [
     '/js/features/state-of-tezos.js',
     '/js/features/tooltip-tour.js',
     '/js/features/upgrade-effect.js',
-    '/js/features/wallet-connect.js',
     '/js/landing/live-data.js',
     '/data/protocol-data.json',
     '/data/tweets.json',

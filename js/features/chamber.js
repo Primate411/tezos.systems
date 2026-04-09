@@ -886,6 +886,13 @@ function initEpochNavListeners() {
 
 // ─── Open / Close ───
 
+function handleChamberEscape(e) {
+    if (e.key === 'Escape') {
+        const overlay = document.getElementById('chamber-modal');
+        if (overlay && overlay.classList.contains('active')) closeChamber();
+    }
+}
+
 export async function openChamber() {
     let overlay = document.getElementById('chamber-modal');
     if (!overlay) {
@@ -907,8 +914,8 @@ export async function openChamber() {
         
         overlay.querySelector('.chamber-close').addEventListener('click', closeChamber);
         overlay.addEventListener('click', e => { if (e.target === overlay) closeChamber(); });
-        document.addEventListener('keydown', e => { if (e.key === 'Escape' && overlay.classList.contains('active')) closeChamber(); });
     }
+    document.addEventListener('keydown', handleChamberEscape);
     
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
@@ -944,6 +951,7 @@ export async function openChamber() {
 
 export function closeChamber() {
     stopAmbientEffects();
+    document.removeEventListener('keydown', handleChamberEscape);
     const overlay = document.getElementById('chamber-modal');
     if (overlay) { overlay.classList.remove('active'); document.body.style.overflow = ''; }
 }

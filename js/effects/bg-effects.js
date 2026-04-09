@@ -1656,7 +1656,7 @@ function handleThemeChange() {
 window.addEventListener('themechange', handleThemeChange);
 
 document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(handleThemeChange, 150);
+    setTimeout(handleThemeChange, 0);
 });
 
 console.log('Background effects module loaded');

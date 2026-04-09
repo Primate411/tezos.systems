@@ -296,13 +296,7 @@ async function captureCard(card) {
     try {
         await loadHtml2Canvas();
         
-        const _shareTheme = document.body.getAttribute('data-theme');
-        const isMatrix = _shareTheme === 'matrix';
-        const isClean = _shareTheme === 'clean';
-        const isDark = _shareTheme === 'dark';
-        const isBubblegum = _shareTheme === 'bubblegum';
-        const brandColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
-        const bgColor = isClean ? '#F8F9FA' : isDark ? '#1A1A1A' : isMatrix ? '#0a0a0a' : isBubblegum ? '#1A0F22' : '#0a0a0f';
+        const { brand: brandColor, bg: bgColor } = getThemeColors();
         
         // Read data from the card
         const statLabel = card.querySelector('.stat-label')?.textContent.trim() || '';
@@ -809,7 +803,7 @@ async function doCaptureAndShare(selectedSections) {
         const isClean = _secTheme === 'clean';
         const isDark = _secTheme === 'dark';
         const isBubblegum = _secTheme === 'bubblegum';
-        const brandColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
+        const { brand: brandColor } = getThemeColors();
         
         header.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">

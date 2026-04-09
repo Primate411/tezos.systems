@@ -530,6 +530,7 @@ export function init() {
     const _originalSaveHandler = () => saveBtn.click();
     function showCopyMode(address) {
         saveBtn.textContent = '📋 Copy';
+        saveBtn.dataset.mode = 'copy';
         saveBtn.onclick = async (e) => {
             e.preventDefault();
             try {
@@ -549,6 +550,7 @@ export function init() {
     }
     function restoreSaveMode() {
         saveBtn.textContent = 'Save';
+        delete saveBtn.dataset.mode;
         saveBtn.onclick = null; // Will fall through to the addEventListener below
     }
 
@@ -653,6 +655,7 @@ export function init() {
     renderSavedAddresses();
 
     saveBtn.addEventListener('click', async () => {
+        if (saveBtn.dataset.mode === 'copy') return;
         const raw = input.value.trim();
         errorMsg.textContent = '';
 

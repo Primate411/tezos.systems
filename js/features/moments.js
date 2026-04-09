@@ -5,6 +5,16 @@
 
 import { saveMoment, getMoments, isDismissed, dismissMoment } from '../core/storage.js';
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // ─── Milestone Rules ─────────────────────────────────────────────
 
 const MILESTONE_RULES = [
@@ -249,7 +259,7 @@ function showNextToast() {
         <div class="moment-toast-header">
             <span class="moment-toast-label">${moment.emoji} Network Moment</span>
         </div>
-        <div class="moment-toast-title">${moment.title}</div>
+        <div class="moment-toast-title">${escapeHtml(moment.title)}</div>
         <div class="moment-toast-actions">
             <button class="moment-toast-share">Share</button>
             <button class="moment-toast-dismiss">Dismiss</button>
@@ -346,7 +356,7 @@ function renderMomentsTimeline() {
         <div class="moment-item">
             <span class="moment-item-emoji">${m.emoji}</span>
             <div class="moment-item-info">
-                <span class="moment-item-title">${m.title}</span>
+                <span class="moment-item-title">${escapeHtml(m.title)}</span>
                 <span class="moment-item-time">${formatRelativeTime(m.timestamp)}</span>
             </div>
             ${m.tweet ? `<button class="moment-item-share" data-tweet="${encodeURIComponent(m.tweet + '\n\nhttps://tezos.systems')}" title="Share on X">𝕏</button>` : ''}

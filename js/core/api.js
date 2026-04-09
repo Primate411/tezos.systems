@@ -108,6 +108,7 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
             await new Promise(r => setTimeout(r, 1000 * (i + 1)));
         }
     }
+    throw new Error('Max retries exceeded');
 }
 
 /**
@@ -160,7 +161,16 @@ function fetchSharedYearlyRate() {
  * Fetch baker data from TzKT API
  * Optimized: uses /count endpoint + select fields (saves ~2-5MB vs full baker list)
  */
+// ─── fetchBakers dedup ─────────────────────────────────────────────────────
+let _bakersPromise = null;
 async function fetchBakers() {
+    if (_bakersPromise) return _bakersPromise;
+    _bakersPromise = _doFetchBakers();
+    try { return await _bakersPromise; }
+    finally { _bakersPromise = null; }
+}
+
+async function _doFetchBakers() {
     // Get active baker addresses from Octez RPC (replaces TzKT count + address list)
     let addresses = [];
     let total = 0;
@@ -549,6 +559,13 @@ export async function fetchAllStats() {
             fetchRollups(),
             fetchStakingAPY()
         ]);
+
+        // Log warning if multiple API categories failed
+        const allResults = [bakersData, cycleInfo, governance, issuance, txVolume, contractCalls, stakingData, totalSupply, totalBurned, fundedAccounts, smartContracts, tokens, rollups, stakingAPY];
+        const failedCount = allResults.filter(r => r.status === 'rejected').length;
+        if (failedCount >= 2) {
+            console.warn('Multiple API categories failed, showing cached/stale data');
+        }
 
         // Extract results with fallbacks
         const bakers = bakersData.status === 'fulfilled' ? bakersData.value : { total: 0, tz4Count: 0, tz4Percentage: 0 };
