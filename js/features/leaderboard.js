@@ -4,7 +4,7 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { formatNumber, escapeHtml } from '../core/utils.js';
+import { formatNumber, escapeHtml, formatMutez } from '../core/utils.js';
 import { letterGrade, computeBakerScores } from './baker-report-card.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 
@@ -85,15 +85,6 @@ function isTz4(addr, consensusKeys) {
 }
 
 /**
- * Format XTZ amount (compact)
- */
-function fmtXTZ(mutez) {
-    const xtz = (mutez || 0) / 1e6;
-    if (xtz >= 1e6) return (xtz / 1e6).toFixed(2) + 'M';
-    if (xtz >= 1e3) return (xtz / 1e3).toFixed(1) + 'K';
-    return xtz.toFixed(0);
-}
-
 /**
  * Compute derived fields for sorting
  */
@@ -195,7 +186,7 @@ function buildRankingCardDOM(baker, rank, total, scores) {
 
             <!-- Stats grid -->
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
-                ${buildRankStatCell('Staking Power', fmtXTZ(baker.stakingBalance) + ' XTZ')}
+                ${buildRankStatCell('Staking Power', formatMutez(baker.stakingBalance) + ' XTZ')}
                 ${buildRankStatCell('Delegators', String(baker.delegators))}
                 ${buildRankStatCell('Stakers', String(baker.stakers))}
                 ${buildRankStatCell('Capacity', baker.delegationUsage.toFixed(0) + '%')}
@@ -245,7 +236,7 @@ async function showBakerRankingCard(baker, rank, total, scores) {
         overlay.remove();
 
         const name = escapeHtml(baker.name);
-        const statsLine = `${fmtXTZ(baker.stakingBalance)} XTZ | ${baker.delegators} delegators | ${baker.stakers} stakers`;
+        const statsLine = `${formatMutez(baker.stakingBalance)} XTZ | ${baker.delegators} delegators | ${baker.stakers} stakers`;
         const tweetOptions = [
             { label: '🍞 My Baker', text: `My baker ${name} is ranked #${rank} of ${total} on Tezos 🍞 Check yours at tezos.systems` },
             { label: '📊 Stats', text: `${name} — #${rank} baker on Tezos by staking power.\n${statsLine}\ntezos.systems` },
@@ -298,7 +289,7 @@ function render(container) {
             <tr class="lb-row" data-address="${escapeHtml(b.address)}">
                 <td class="lb-rank">${i + 1}</td>
                 <td class="lb-name" title="${escapeHtml(b.address)}">${escapeHtml(b.name)}</td>
-                <td class="lb-num">${fmtXTZ(b.stakingBalance)}</td>
+                <td class="lb-num">${formatMutez(b.stakingBalance)}</td>
                 <td class="lb-num">${b.delegators}</td>
                 <td class="lb-num">${b.stakers}</td>
                 <td class="lb-num ${capacityClass}">${b.delegationUsage.toFixed(0)}%</td>

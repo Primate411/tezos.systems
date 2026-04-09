@@ -56,6 +56,19 @@ export function formatXTZ(amount) {
 }
 
 /**
+ * Format mutez as compact XTZ string (e.g. "98.43M", "12.5K", "0")
+ * Used for table displays where space is constrained.
+ * @param {number} mutez - Amount in mutez (1 XTZ = 1e6 mutez)
+ * @returns {string} Compact formatted XTZ string (no ꜩ symbol)
+ */
+export function formatMutez(mutez) {
+    const xtz = (mutez || 0) / 1e6;
+    if (xtz >= 1e6) return (xtz / 1e6).toFixed(2) + 'M';
+    if (xtz >= 1e3) return (xtz / 1e3).toFixed(1) + 'K';
+    return xtz.toFixed(0);
+}
+
+/**
  * Format percentage values
  * @param {number} value - The percentage value
  * @param {number} decimals - Number of decimal places (default: 2)

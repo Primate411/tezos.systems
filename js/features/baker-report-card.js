@@ -5,7 +5,7 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { formatNumber, escapeHtml } from '../core/utils.js';
+import { formatNumber, escapeHtml, formatMutez } from '../core/utils.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 
 const TZKT = API_URLS.tzkt;
@@ -25,16 +25,6 @@ export function letterGrade(score) {
     if (score >= 70) return { grade: 'C-', color: '#ffcc00' };
     if (score >= 60) return { grade: 'D',  color: '#ff8800' };
     return { grade: 'F', color: '#ff3333' };
-}
-
-/**
- * Format mutez to XTZ with compact notation
- */
-function fmtXTZ(mutez) {
-    const xtz = mutez / 1_000_000;
-    if (xtz >= 1_000_000) return (xtz / 1_000_000).toFixed(2) + 'M';
-    if (xtz >= 1_000) return (xtz / 1_000).toFixed(1) + 'K';
-    return xtz.toFixed(0);
 }
 
 /**
@@ -81,12 +71,20 @@ export function computeBakerScores(baker, participation) {
     // 4. Capacity remaining — 20% weight (bakers near capacity are less attractive)
     // Tallinn: max external staked = baker's own staked × limitOfStakingOverBaking (in millionths)
     const ownStaked = baker.stakedBalance || baker.balance || 0;
+    const externalDelegated = baker.externalDelegatedBalance || 0;
     const limitMultiplier = baker.limitOfStakingOverBaking != null
         ? baker.limitOfStakingOverBaking / 1_000_000  // millionths → multiplier (e.g. 9000000 = 9x)
         : 0; // null = not accepting external stakers
-    const maxExternalStaked = ownStaked * limitMultiplier;
-    const externalStaked = baker.externalStakedBalance || 0;
-    const usedPct = maxExternalStaked > 0 ? (externalStaked / maxExternalStaked) * 100 : (limitMultiplier === 0 ? 100 : 0);
+    let maxExternalStaked, usedPct;
+    if (baker.limitOfStakingOverBaking == null && externalDelegated > 0) {
+        // Legacy 9x delegation model
+        maxExternalStaked = ownStaked * 9;
+        usedPct = maxExternalStaked > 0 ? (externalDelegated / maxExternalStaked) * 100 : 100;
+    } else {
+        maxExternalStaked = ownStaked * limitMultiplier;
+        const externalStaked = baker.externalStakedBalance || 0;
+        usedPct = maxExternalStaked > 0 ? (externalStaked / maxExternalStaked) * 100 : (limitMultiplier === 0 ? 100 : 0);
+    }
     let capacityScore;
     if (usedPct <= 50) capacityScore = 100;
     else if (usedPct <= 80) capacityScore = 100 - (usedPct - 50) * 0.5;
@@ -243,7 +241,7 @@ function buildReportCardDOM(report) {
 
             <!-- Stats grid -->
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;">
-                ${buildStatCell('Staking Power', fmtXTZ(stats.stakingBalance) + ' XTZ')}
+                ${buildStatCell('Staking Power', formatMutez(stats.stakingBalance) + ' XTZ')}
                 ${buildStatCell('Delegators', stats.delegators.toString())}
                 ${buildStatCell('Stakers', stats.stakers.toString())}
                 ${buildStatCell('Fee', stats.fee.toFixed(1) + '%')}

@@ -114,24 +114,6 @@ export function getCacheAge() {
 }
 
 /**
- * Clear all cached data
- */
-export function clearCache() {
-    Object.values(STORAGE_KEYS).forEach(key => {
-        localStorage.removeItem(key);
-    });
-    console.log('🗑️ Cache cleared');
-}
-
-/**
- * Check if we have valid cached data
- * @returns {boolean}
- */
-export function hasCachedData() {
-    return loadStats() !== null;
-}
-
-/**
  * Save visit snapshot for delta comparison
  * Only saves if enough time has passed since last snapshot
  * @param {Object} stats - Current stats to snapshot
