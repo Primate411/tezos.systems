@@ -470,9 +470,6 @@ export async function openBakerProfile(address) {
 
     const saveBtn = document.getElementById('my-baker-save') || document.getElementById('drawer-connect-btn');
 
-    // Ensure drawer-focused UX immediately for deep links
-    openDrawer();
-
     // Also ensure leaderboard section is open
     const section = document.getElementById('leaderboard-section');
     const toggleBtn = document.getElementById('leaderboard-toggle');
@@ -499,6 +496,7 @@ export async function openBakerProfile(address) {
         } catch (err) {
             console.warn('[deep-link] domain resolve failed:', err?.message || err);
             setAddressInput(originalAddress);
+            openDrawer();
             return;
         }
     }
@@ -509,10 +507,21 @@ export async function openBakerProfile(address) {
         const baker = await resp.json();
         if (!baker || !baker.active) throw new Error('Baker is not currently active');
 
+        // CRITICAL: set localStorage BEFORE clicking save and opening drawer.
+        // This ensures refreshMyTezos (triggered by my-baker-updated) renders the correct baker.
+        localStorage.setItem('tezos-systems-my-baker-address', address);
         setAddressInput(address);
+
+        // Trigger save handler to render baker data + dispatch my-baker-updated
         if (saveBtn) saveBtn.click();
+
+        // Now open drawer — it will show the correct baker immediately
+        openDrawer();
     } catch (err) {
         console.warn('[deep-link] baker lookup failed:', err?.message || err);
+        localStorage.setItem('tezos-systems-my-baker-address', address || originalAddress);
         setAddressInput(address || originalAddress);
+        if (saveBtn) saveBtn.click();
+        openDrawer();
     }
 }

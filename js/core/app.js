@@ -2022,9 +2022,14 @@ function applyDeepLink() {
     // #my-baker=tz1... or #my-baker (just open it)
     if (params.has('my-baker')) {
         const addr = params.get('my-baker');
-        // Open drawer
         const drawer = document.getElementById('my-tezos-drawer');
         const scrim = document.getElementById('my-tezos-drawer-scrim');
+        if (addr && addr.startsWith('tz')) {
+            // CRITICAL: set localStorage BEFORE opening drawer and clicking save.
+            // This prevents the drawer from briefly showing the old baker while loading.
+            localStorage.setItem('tezos-systems-my-baker-address', addr);
+        }
+        // Open drawer
         if (drawer && scrim) {
             drawer.classList.add('open');
             scrim.classList.add('open');
@@ -2042,7 +2047,7 @@ function applyDeepLink() {
                 const saveBtn = document.getElementById('my-baker-save');
                 if (input) { input.value = addr; }
                 if (saveBtn) { saveBtn.click(); }
-            }, 500);
+            }, 100);
         }
     }
 
