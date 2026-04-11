@@ -120,6 +120,8 @@
     return n.toLocaleString();
   }
 
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({&:'&amp;',<:'&lt;',>:'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+
   function shortAddr(addr){
     if(!addr)return'—';
     return addr.slice(0,6)+'…'+addr.slice(-4);
@@ -138,7 +140,7 @@
         contentEl.innerHTML='<div class="no-baker">Baker not found</div>';
         return;
       }
-      const name=d.alias||shortAddr(d.address);
+      const name=esc(d.alias)||shortAddr(d.address);
       const staking=d.stakingBalance?d.stakingBalance/1e6:null;
       const delegators=d.numDelegators??null;
       const votingPower=d.votingPower!=null?(d.votingPower/1e6):null;
@@ -148,8 +150,8 @@
         <div class="header">
           <div class="avatar">${name.charAt(0).toUpperCase()}</div>
           <div class="baker-info">
-            <div class="baker-name">${name}</div>
-            <div class="baker-addr">${d.address}</div>
+            <div class="baker-name">${esc(name)}</div>
+            <div class="baker-addr">${esc(d.address)}</div>
           </div>
           <div class="status-dot ${active?'':'inactive'}"></div>
         </div>

@@ -111,13 +111,15 @@
     const div=document.createElement('div');
     div.className='stat-card';
     div.innerHTML=`
-      <div class="stat-val loading" id="val-${s}">—</div>
-      <div class="stat-lbl">${meta.label}</div>
-      ${meta.sub?`<div class="stat-sub">${meta.sub}</div>`:''}
+      <div class="stat-val loading" id="val-${esc(s)}">—</div>
+      <div class="stat-lbl">${esc(meta.label)}</div>
+      ${meta.sub?`<div class="stat-sub">${esc(meta.sub)}</div>`:''}
     `;
     strip.appendChild(div);
     cards[s]=document.getElementById('val-'+s);
   });
+
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({&:'&amp;',<:'&lt;',>:'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
   function setVal(key,val,classes=''){
     const el=cards[key];
