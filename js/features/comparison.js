@@ -6,6 +6,7 @@
 const COMPARISON_CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
 
 import { CHAIN_COMPARISON, API_URLS } from '../core/config.js';
+import { escapeHtml } from '../core/utils.js';
 
 // Dynamic upgrade count — initialized on first use
 let _upgradeCount = null;
@@ -688,7 +689,7 @@ async function shareAllComparisons() {
             const data = extractCardData(card);
             const row = document.createElement('div');
             row.innerHTML = `
-                <div style="font-size:12px; font-weight:600; color:rgba(255,255,255,0.7); margin-bottom:8px;">${data.metricName}</div>
+                <div style="font-size:12px; font-weight:600; color:rgba(255,255,255,0.7); margin-bottom:8px;">${escapeHtml(data.metricName)}</div>
                 <div style="display:flex; gap:6px;">
                     ${data.chains.map(c => {
                         const valColor = c.isWinner ? winColor : c.isTezos ? brand : 'rgba(255,255,255,0.5)';
@@ -696,9 +697,9 @@ async function shareAllComparisons() {
                         return `<div style="flex:1; text-align:center; padding:8px 4px; border-radius:8px;
                             background:${c.isTezos ? `rgba(${brandRgb},0.06)` : 'rgba(255,255,255,0.02)'};
                             border:1px solid ${c.isTezos ? `rgba(${brandRgb},0.15)` : 'rgba(255,255,255,0.04)'};">
-                            <div style="font-size:8px; font-weight:600; text-transform:uppercase; color:${nameColor}; margin-bottom:4px;">${c.name}</div>
-                            <div style="font-size:13px; font-weight:700; color:${valColor};">${c.value}</div>
-                            ${c.badge ? `<div style="font-size:7px; color:${winColor}; margin-top:3px;">${c.badge}</div>` : ''}
+                            <div style="font-size:8px; font-weight:600; text-transform:uppercase; color:${nameColor}; margin-bottom:4px;">${escapeHtml(c.name)}</div>
+                            <div style="font-size:13px; font-weight:700; color:${valColor};">${escapeHtml(c.value)}</div>
+                            ${c.badge ? `<div style="font-size:7px; color:${winColor}; margin-top:3px;">${escapeHtml(c.badge)}</div>` : ''}
                         </div>`;
                     }).join('')}
                 </div>
@@ -782,7 +783,7 @@ async function captureComparisonImage(cardEl, label) {
             letter-spacing:2px; margin-bottom:24px;">How Tezos Compares</div>
 
         <div style="font-size:14px; font-weight:600; color:rgba(255,255,255,0.8); margin-bottom:16px;">
-            ${data.metricName}
+            ${escapeHtml(data.metricName)}
         </div>
 
         <div style="display:flex; gap:10px; margin-bottom:24px;">
@@ -799,13 +800,13 @@ async function captureComparisonImage(cardEl, label) {
                 <div style="flex:1; text-align:center; padding:14px 8px; border-radius:10px;
                     background:${bg}; border:1px solid ${border};">
                     <div style="font-size:10px; font-weight:600; text-transform:uppercase;
-                        letter-spacing:0.5px; color:${nameColor}; margin-bottom:8px;">${c.name}</div>
+                        letter-spacing:0.5px; color:${nameColor}; margin-bottom:8px;">${escapeHtml(c.name)}</div>
                     <div style="font-size:18px; font-weight:700; color:${valColor};
-                        ${c.isWinner ? `text-shadow:0 0 12px rgba(0,255,136,0.4);` : ''}">${c.value}</div>
-                    ${c.note ? `<div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:4px;">${c.note}</div>` : ''}
+                        ${c.isWinner ? `text-shadow:0 0 12px rgba(0,255,136,0.4);` : ''}">${escapeHtml(c.value)}</div>
+                    ${c.note ? `<div style="font-size:10px; color:rgba(255,255,255,0.3); margin-top:4px;">${escapeHtml(c.note)}</div>` : ''}
                     ${c.badge ? `<div style="font-size:9px; font-weight:700; text-transform:uppercase;
                         letter-spacing:0.5px; color:${winColor}; background:rgba(0,255,136,0.1);
-                        padding:2px 8px; border-radius:4px; margin-top:8px; display:inline-block;">${c.badge}</div>` : ''}
+                        padding:2px 8px; border-radius:4px; margin-top:8px; display:inline-block;">${escapeHtml(c.badge)}</div>` : ''}
                 </div>`;
             }).join('')}
         </div>

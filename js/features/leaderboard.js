@@ -7,6 +7,7 @@ import { API_URLS } from '../core/config.js';
 import { formatNumber, escapeHtml, formatMutez } from '../core/utils.js';
 import { letterGrade, computeBakerScores } from './baker-report-card.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
+import { isValidAddress } from './my-baker.js';
 
 const TZKT = API_URLS.tzkt;
 const TOGGLE_KEY = 'tezos-systems-leaderboard-visible';
@@ -487,7 +488,10 @@ export async function openBakerProfile(address) {
             const domainResp = await fetch('https://api.tezos.domains/graphql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: `{ domain(name: "${address}") { address } }` }),
+                body: JSON.stringify({ 
+                    query: `query ResolveDomain($name: String!) { domain(name: $name) { address } }`,
+                    variables: { name: address }
+                }),
             });
             const domainData = await domainResp.json();
             const resolved = domainData?.data?.domain?.address;
@@ -499,6 +503,14 @@ export async function openBakerProfile(address) {
             openDrawer();
             return;
         }
+    }
+
+    // Validate resolved address
+    if (!isValidAddress(address)) {
+        console.warn('[deep-link] invalid baker address:', address);
+        setAddressInput(originalAddress);
+        openDrawer();
+        return;
     }
 
     try {

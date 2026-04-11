@@ -15,7 +15,7 @@ const TZKT = API_URLS.tzkt;
 /**
  * Validate a Tezos address
  */
-function isValidAddress(addr) {
+export function isValidAddress(addr) {
     if (!addr || addr.length !== 36) return false;
     return /^(tz[1-4]|KT1)[a-zA-Z0-9]{33}$/.test(addr);
 }
@@ -24,7 +24,7 @@ function isValidAddress(addr) {
  * Check if input looks like a Tezos domain
  */
 function isTezDomain(input) {
-    return input && input.endsWith('.tez') && input.length > 4;
+    return input && /^[^.]+\.tez$/.test(input);
 }
 
 /**

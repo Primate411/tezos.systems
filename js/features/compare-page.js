@@ -142,13 +142,13 @@ export function initComparePage(chainKey) {
       '<div class="cp-scoreboard">' +
         '<div class="cp-score cp-tezos-score"><span class="cp-score-num">' + tezWins + '</span><span class="cp-score-label">Tezos</span></div>' +
         '<div class="cp-vs">vs</div>' +
-        '<div class="cp-score cp-other-score"><span class="cp-score-num">' + otherWins + '</span><span class="cp-score-label">' + chain.name + '</span></div>' +
+        '<div class="cp-score cp-other-score"><span class="cp-score-num">' + otherWins + '</span><span class="cp-score-label">' + escapeHtml(chain.name) + '</span></div>' +
       '</div>' +
       '<div class="cp-table">' +
         '<div class="cp-header">' +
           '<div class="cp-metric">Metric</div>' +
           '<div class="cp-val"><img src="/favicon-48.png" alt="Tezos" width="20" height="20"> Tezos</div>' +
-          '<div class="cp-val">' + chain.name + '</div>' +
+          '<div class="cp-val">' + escapeHtml(chain.name) + '</div>' +
         '</div>' +
         rows.join('') +
       '</div>' +

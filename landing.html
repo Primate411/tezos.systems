@@ -521,6 +521,11 @@
 
     <script>
         // Theme data
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, function(c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
         var THEMES = {
             matrix:    { bg: '#0a0f0a', accent: '#00ff00', name: 'Matrix',     tag: 'Code the Future' },
             default:   { bg: '#0A0E1A', accent: '#5B8DEF', name: 'Midnight',   tag: 'Midnight Premium' },
@@ -544,7 +549,7 @@
             var card = document.createElement('div');
             card.className = 'theme-card' + (selected === key ? ' selected' : '');
             card.innerHTML = '<div class="theme-preview" style="background:' + t.bg + '"><div class="theme-accent" style="background:' + t.accent + '"></div></div>' +
-                '<span class="theme-name">' + t.name + '</span><span class="theme-tagline">' + t.tag + '</span>';
+                '<span class="theme-name">' + escapeHtml(t.name) + '</span><span class="theme-tagline">' + escapeHtml(t.tag) + '</span>';
             card.addEventListener('click', function() {
                 localStorage.setItem('tezos-systems-theme', key);
                 grid.querySelectorAll('.theme-card').forEach(function(c) { c.classList.remove('selected'); });

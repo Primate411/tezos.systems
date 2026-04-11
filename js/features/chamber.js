@@ -736,7 +736,7 @@ function renderProposalHeader(data) {
                 ${proposalHash ? `<div class="proposal-hash" title="${escapeHtml(proposalHash)}">${escapeHtml(proposalHash.slice(0, 24))}…</div>` : ''}
                 ${submitter ? `<div class="proposal-submitter">by <strong>${escapeHtml(submitter)}</strong>${submitterPower ? ` · ${escapeHtml(submitterPower)}` : ''}</div>` : ''}
             </div>
-            ${renderEpochNav(epoch.index, isLive)}
+            ${renderEpochNav(escapeHtml(String(epoch.index)), isLive)}
         </div>
     `;
 }
@@ -863,11 +863,11 @@ async function navigateEpoch(direction) {
     const body = document.querySelector('.chamber-body');
     if (!body) return;
     
-    body.innerHTML = `<div class="chamber-loading"><div class="chamber-loading-text">Loading Epoch ${newIndex}…</div><div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div></div>`;
+    body.innerHTML = `<div class="chamber-loading"><div class="chamber-loading-text">Loading Epoch ${escapeHtml(String(newIndex))}…</div><div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div></div>`;
     
     const data = await fetchChamberData(newIndex);
     if (!data) {
-        body.innerHTML = `<div class="chamber-error"><div class="error-icon">⚠️</div><div class="error-title">Epoch ${newIndex} not found</div><button class="chamber-retry-btn" onclick="window._chamberNav(${-direction})">Go back</button></div>`;
+        body.innerHTML = `<div class="chamber-error"><div class="error-icon">⚠️</div><div class="error-title">Epoch ${escapeHtml(String(newIndex))} not found</div><button class="chamber-retry-btn" onclick="window._chamberNav(${-direction})">Go back</button></div>`;
         return;
     }
     
