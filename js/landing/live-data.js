@@ -2,7 +2,6 @@
  * Live data injection for SEO landing pages
  * Lightweight — only fetches what the page needs
  */
-
 const TZKT = 'https://api.tzkt.io/v1';
 const OCTEZ = 'https://eu.rpc.tez.capital';
 
@@ -43,9 +42,9 @@ export async function loadStakingData() {
         inject('delegate-apy', `~${delegateAPY.toFixed(1)}%`);
         inject('staking-ratio', `${stakingRatio.toFixed(1)}%`);
         inject('issuance-rate', `${(netIssuance).toFixed(2)}%`);
-        inject('total-supply', `${(supply / 1e6).toFixed(2)}B`);
-        inject('total-staked', `${(staked / 1e6).toFixed(2)}B`);
-        inject('total-delegated', `${(delegated / 1e6).toFixed(2)}B`);
+        inject('total-supply', `${(supply / 1e9).toFixed(2)}B`);
+        inject('total-staked', `${(staked / 1e9).toFixed(2)}B`);
+        inject('total-delegated', `${(delegated / 1e9).toFixed(2)}B`);
     } catch (e) {
         console.warn('Live staking data unavailable:', e);
     }
@@ -112,10 +111,14 @@ export async function loadGovernanceData() {
 export async function loadBakerData() {
     try {
         const [bakersResp, statsResp] = await Promise.all([
-            fetch(`${TZKT}/delegates?active=true&stakingBalance.gt=0&select=address,alias,stakingBalance,numDelegators,stakersCount&sort.desc=stakingBalance&limit=10`),
+            fetch(`${TZKT}/delegates?active=true&stakingBalance.gt=0&select=address,alias,stakingBalance,numDelegators,stakersCount&limit=1000`),
             fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/context/delegates?active=true&with_minimal_stake=true')
         ]);
-        const topBakers = await bakersResp.json();
+        if (!bakersResp.ok) throw new Error(`TzKT delegates request failed: ${bakersResp.status}`);
+        const bakers = await bakersResp.json();
+        const topBakers = Array.isArray(bakers)
+            ? bakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0)).slice(0, 10)
+            : [];
         const bakerAddresses = await statsResp.json();
         const totalBakers = Array.isArray(bakerAddresses) ? bakerAddresses.length : 0;
 

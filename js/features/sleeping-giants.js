@@ -431,7 +431,7 @@ function updateAwakeningsLog() {
         const timeAgo = formatTimeAgo(a.timestamp || a.awakenedAt);
         
         return `
-            <div class="awakening-log-item" onclick="window.open('https://tzkt.io/${a.address}', '_blank')">
+            <div class="awakening-log-item" data-address="${escapeHtml(a.address)}" role="button" tabindex="0">
                 <div class="log-item-main">
                     <span class="log-balance">${balance} ꜩ</span>
                     <span class="log-dormancy">slept ${dormancy}</span>
@@ -443,6 +443,20 @@ function updateAwakeningsLog() {
             </div>
         `;
     }).join('');
+
+    logContainer.querySelectorAll('.awakening-log-item').forEach(item => {
+        const openAddress = () => {
+            const address = item.dataset.address;
+            if (address) window.open(`https://tzkt.io/${address}`, '_blank');
+        };
+        item.addEventListener('click', openAddress);
+        item.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openAddress();
+            }
+        });
+    });
 }
 
 /**

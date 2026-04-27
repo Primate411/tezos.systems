@@ -867,7 +867,9 @@ async function navigateEpoch(direction) {
     
     const data = await fetchChamberData(newIndex);
     if (!data) {
-        body.innerHTML = `<div class="chamber-error"><div class="error-icon">⚠️</div><div class="error-title">Epoch ${escapeHtml(String(newIndex))} not found</div><button class="chamber-retry-btn" onclick="window._chamberNav(${-direction})">Go back</button></div>`;
+        body.innerHTML = `<div class="chamber-error"><div class="error-icon">⚠️</div><div class="error-title">Epoch ${escapeHtml(String(newIndex))} not found</div><button class="chamber-retry-btn" data-chamber-nav="${-direction}">Go back</button></div>`;
+        const retryBtn = body.querySelector('[data-chamber-nav]');
+        if (retryBtn) retryBtn.addEventListener('click', () => navigateEpoch(Number(retryBtn.dataset.chamberNav)));
         return;
     }
     
@@ -932,9 +934,16 @@ export async function openChamber() {
                 <div class="error-icon">⚠️</div>
                 <div class="error-title">Couldn't reach governance data</div>
                 <div class="error-detail">TzKT API may be temporarily unavailable. Try again in a moment.</div>
-                <button class="chamber-retry-btn" onclick="document.getElementById('chamber-modal').classList.remove('active'); document.body.style.overflow=''; setTimeout(() => document.querySelector('.chamber-entry-card')?.click(), 300);">Retry</button>
+                <button class="chamber-retry-btn" id="chamber-retry-open">Retry</button>
             </div>
         `;
+        const retryBtn = overlay.querySelector('#chamber-retry-open');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', () => {
+                closeChamber();
+                setTimeout(() => document.querySelector('.chamber-entry-card')?.click(), 300);
+            });
+        }
         return;
     }
     

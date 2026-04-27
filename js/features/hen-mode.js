@@ -196,7 +196,7 @@ const HenMode = (() => {
 
         card.innerHTML =
             '<div class="hen-card-thumb">' +
-                '<img src="' + thumbUrl + '" alt="' + escapeHtml(token.name || '') + '" ' + (staggerIdx < 4 && offset === 0 ? '' : 'loading="lazy" ') + 'onerror="this.style.display=\'none\'">' +
+                '<img src="' + thumbUrl + '" alt="' + escapeHtml(token.name || '') + '" ' + (staggerIdx < 4 && offset === 0 ? '' : 'loading="lazy" ') + '>' +
                 (isVideo ? '<div class="hen-card-badge">▶ VIDEO</div>' : '') +
             '</div>' +
             '<div class="hen-card-info">' +
@@ -206,6 +206,13 @@ const HenMode = (() => {
                 '<div class="hen-card-meta">' + priceHtml + '<span class="hen-card-editions">×' + token.supply + '</span></div>' +
                 '<div class="hen-card-bottom"><span class="hen-card-time">' + timeAgo(token.timestamp) + '</span><span class="hen-card-objkt">#' + token.token_id + '</span></div>' +
             '</div>';
+
+        var img = card.querySelector('img');
+        if (img) {
+            img.addEventListener('error', function() {
+                img.style.display = 'none';
+            });
+        }
 
         if (isNew) {
             card.classList.add('hen-card-fresh');
