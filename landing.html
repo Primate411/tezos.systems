@@ -579,26 +579,39 @@
         });
 
         // Fetch live data
-        Promise.all([
-            fetch('https://api.tzkt.io/v1/head').then(function(r) { return r.json(); }),
-            fetch('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd').then(function(r) { return r.json(); }),
-            fetch('https://api.tzkt.io/v1/statistics/current').then(function(r) { return r.json(); }),
-            fetch('https://api.tzkt.io/v1/delegates/count?active=true').then(function(r) { return r.json(); })
-        ]).then(function(data) {
-            var head = data[0], price = data[1], stats = data[2], bakerCount = data[3];
+        function fetchJson(url) {
+            return fetch(url).then(function(r) {
+                if (!r.ok) throw new Error(url + ' failed: ' + r.status);
+                return r.json();
+            });
+        }
+
+        Promise.allSettled([
+            fetchJson('https://api.tzkt.io/v1/head'),
+            fetchJson('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd'),
+            fetchJson('https://api.tzkt.io/v1/statistics/current'),
+            fetchJson('https://api.tzkt.io/v1/delegates/count?active=true')
+        ]).then(function(results) {
+            var head = results[0].status === 'fulfilled' ? results[0].value : null;
+            var price = results[1].status === 'fulfilled' ? results[1].value : null;
+            var stats = results[2].status === 'fulfilled' ? results[2].value : null;
+            var bakerCount = results[3].status === 'fulfilled' ? results[3].value : null;
             var pe = document.getElementById('lp-price');
             var se = document.getElementById('lp-staked');
             var be = document.getElementById('lp-bakers');
             var ce = document.getElementById('lp-cycle');
-            if (pe && price.tezos) pe.textContent = '$' + price.tezos.usd.toFixed(3);
-            if (ce && head.cycle) ce.textContent = 'C' + head.cycle;
+            if (pe && price && price.tezos) pe.textContent = '$' + price.tezos.usd.toFixed(3);
+            if (ce && head && head.cycle) ce.textContent = 'C' + head.cycle;
             if (be && bakerCount) be.textContent = bakerCount;
-            var staked = (stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0);
+            var staked = stats ? (stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0) : 0;
             if (se && staked && stats.totalSupply) {
                 var pct = (staked / stats.totalSupply * 100).toFixed(1);
                 se.textContent = pct + '%';
             }
-        }).catch(function(e) { console.warn('Landing data fetch:', e); });
+            results.forEach(function(result) {
+                if (result.status === 'rejected') console.warn('Landing data fetch:', result.reason);
+            });
+        });
     </script>
 </body>
 </html>

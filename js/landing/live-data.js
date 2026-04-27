@@ -2,8 +2,22 @@
  * Live data injection for SEO landing pages
  * Lightweight — only fetches what the page needs
  */
+import { escapeHtml } from '../core/utils.js';
+
 const TZKT = 'https://api.tzkt.io/v1';
 const OCTEZ = 'https://eu.rpc.tez.capital';
+
+async function fetchJson(url) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`${url} failed: ${resp.status}`);
+    return resp.json();
+}
+
+async function fetchText(url) {
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`${url} failed: ${resp.status}`);
+    return resp.text();
+}
 
 /**
  * Inject text into elements by data-live attribute
@@ -21,12 +35,10 @@ function inject(key, value) {
  */
 export async function loadStakingData() {
     try {
-        const [rateResp, statsResp] = await Promise.all([
-            fetch(`${OCTEZ}/chains/main/blocks/head/context/issuance/current_yearly_rate`),
-            fetch(`${TZKT}/statistics/current`)
+        const [rateText, stats] = await Promise.all([
+            fetchText(`${OCTEZ}/chains/main/blocks/head/context/issuance/current_yearly_rate`),
+            fetchJson(`${TZKT}/statistics/current`)
         ]);
-        const rateText = await rateResp.text();
-        const stats = await statsResp.json();
 
         const netIssuance = parseFloat(rateText.replace(/"/g, ''));
         const supply = stats.totalSupply / 1e6;
@@ -55,14 +67,11 @@ export async function loadStakingData() {
  */
 export async function loadGovernanceData() {
     try {
-        const [votingResp, protocolsResp, headResp] = await Promise.all([
-            fetch(`${TZKT}/voting/periods/current`),
-            fetch(`${TZKT}/protocols?sort.desc=firstLevel&limit=30`),
-            fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/metadata')
+        const [voting, protocols, headMeta] = await Promise.all([
+            fetchJson(`${TZKT}/voting/periods/current`),
+            fetchJson(`${TZKT}/protocols?sort.desc=firstLevel&limit=30`),
+            fetchJson('https://eu.rpc.tez.capital/chains/main/blocks/head/metadata')
         ]);
-        const voting = await votingResp.json();
-        const protocols = await protocolsResp.json();
-        const headMeta = await headResp.json();
         const head = { cycle: headMeta?.level_info?.cycle, level: headMeta?.level_info?.level };
 
         // Current period
@@ -92,7 +101,7 @@ export async function loadGovernanceData() {
         // Current protocol
         const current = activeProtocols[0];
         if (current) {
-            inject('current-protocol', current.metadata?.alias || 'Unknown');
+            inject('current-protocol', current.extras?.alias || current.metadata?.alias || 'Unknown');
         }
 
         // Days live
@@ -110,16 +119,13 @@ export async function loadGovernanceData() {
  */
 export async function loadBakerData() {
     try {
-        const [bakersResp, statsResp] = await Promise.all([
-            fetch(`${TZKT}/delegates?active=true&stakingBalance.gt=0&select=address,alias,stakingBalance,numDelegators,stakersCount&limit=1000`),
-            fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/context/delegates?active=true&with_minimal_stake=true')
+        const [bakers, bakerAddresses] = await Promise.all([
+            fetchJson(`${TZKT}/delegates?active=true&stakingBalance.gt=0&select=address,alias,stakingBalance,numDelegators,stakersCount&limit=1000`),
+            fetchJson('https://eu.rpc.tez.capital/chains/main/blocks/head/context/delegates?active=true&with_minimal_stake=true')
         ]);
-        if (!bakersResp.ok) throw new Error(`TzKT delegates request failed: ${bakersResp.status}`);
-        const bakers = await bakersResp.json();
         const topBakers = Array.isArray(bakers)
             ? bakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0)).slice(0, 10)
             : [];
-        const bakerAddresses = await statsResp.json();
         const totalBakers = Array.isArray(bakerAddresses) ? bakerAddresses.length : 0;
 
         inject('total-bakers', totalBakers.toString());
@@ -136,7 +142,8 @@ export async function loadBakerData() {
             let html = '<table class="landing-table"><thead><tr><th>#</th><th>Baker</th><th>Staking Power</th><th>Delegators</th></tr></thead><tbody>';
             topBakers.forEach((b, i) => {
                 const name = b.alias || (b.address.slice(0, 10) + '…');
-                html += `<tr><td>${i + 1}</td><td><a href="/${b.address}">${name}</a></td><td>${fmtXTZ(b.stakingBalance)} ꜩ</td><td>${b.numDelegators || 0}</td></tr>`;
+                const address = b.address || '';
+                html += `<tr><td>${i + 1}</td><td><a href="/#baker=${encodeURIComponent(address)}">${escapeHtml(name)}</a></td><td>${fmtXTZ(b.stakingBalance)} ꜩ</td><td>${b.numDelegators || 0}</td></tr>`;
             });
             html += '</tbody></table>';
             html += `<p class="landing-cta"><a href="/#leaderboard">View all ${totalBakers} bakers →</a></p>`;
