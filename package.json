@@ -5,7 +5,10 @@
   "main": "sw.js",
   "scripts": {
     "install-hooks": "git config core.hooksPath .githooks",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:static && npm run test:smoke",
+    "test:static": "node tests/static-checks.mjs",
+    "test:smoke": "node tests/smoke.mjs",
+    "serve": "python3 -m http.server 9000"
   },
   "repository": {
     "type": "git",

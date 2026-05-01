@@ -21,6 +21,7 @@ const CHANGELOG = [
             { type: '🎨', text: 'Mobile Stake and Bake shortcuts now stay grouped together in the price bar' },
             { type: '🔧', text: 'Keyboard shortcuts overlay now closes on outside click as well as keyboard input' },
             { type: '🔧', text: 'Added AGENTS.md repo map and maintenance rules for future agents' },
+            { type: '🔧', text: 'Added repeatable QA checks for static assets, browser smoke flows, pages, and widgets' },
         ]
     },
     {
