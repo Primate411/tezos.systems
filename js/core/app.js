@@ -2448,6 +2448,9 @@ function initKeyboardShortcuts() {
             </div>
         `;
         document.body.appendChild(helpOverlay);
+        helpOverlay.addEventListener('click', (e) => {
+            if (e.target === helpOverlay) hideHelp();
+        });
         requestAnimationFrame(() => helpOverlay.classList.add('visible'));
     }
 

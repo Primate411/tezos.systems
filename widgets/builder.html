@@ -22,6 +22,7 @@ body{
   background:var(--bg);color:var(--text);
   font-family:system-ui,-apple-system,sans-serif;
   min-height:100vh;line-height:1.5;
+  overflow-x:hidden;
 }
 
 /* Nav */
@@ -49,6 +50,7 @@ body{
 
 /* Layout */
 .container{display:grid;grid-template-columns:320px 1fr;gap:0;min-height:calc(100vh - 53px)}
+.container > *{min-width:0}
 @media(max-width:900px){.container{grid-template-columns:1fr;grid-template-rows:auto 1fr}}
 
 /* Panel */
@@ -57,7 +59,9 @@ body{
   border-right:1px solid var(--border);
   padding:20px;
   overflow-y:auto;
+  overflow-x:hidden;
   display:flex;flex-direction:column;gap:20px;
+  min-width:0;
 }
 .panel-section{display:flex;flex-direction:column;gap:10px}
 .section-title{
@@ -143,6 +147,7 @@ body{
 .preview-pane{
   display:flex;flex-direction:column;background:var(--bg);
   padding:24px;gap:20px;
+  min-width:0;
 }
 .preview-header{display:flex;align-items:center;justify-content:space-between}
 .preview-title{font-family:'Orbitron',monospace;font-size:13px;color:var(--text-dim);letter-spacing:0.06em}
@@ -218,6 +223,18 @@ body{
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:3px}
+
+@media(max-width:520px){
+  .nav{padding:12px 14px;gap:10px}
+  .nav-brand span{display:none}
+  .panel{padding:16px}
+  .widget-grid{grid-template-columns:1fr}
+  .theme-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .input-row{grid-template-columns:1fr}
+  .preview-pane{padding:16px}
+  .preview-header{align-items:flex-start;flex-direction:column;gap:10px}
+  .preview-iframe{max-width:100%}
+}
 </style>
 </head>
 <body>

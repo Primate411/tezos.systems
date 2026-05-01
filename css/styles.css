@@ -464,6 +464,7 @@ body::before {
 @media (max-width: 600px) {
     .price-bar {
         padding: 4px 8px;
+        overflow: hidden;
     }
     .price-bar-content {
         gap: 6px;
@@ -479,6 +480,40 @@ body::before {
         font-size: 0.6rem;
         padding: 2px 6px;
         flex-shrink: 0;
+    }
+}
+
+@media (max-width: 420px) {
+    .price-bar {
+        padding: 4px;
+    }
+    .price-bar-content {
+        gap: 4px;
+        min-width: 0;
+    }
+    .price-bar-content .cycle-chip {
+        min-width: 0;
+    }
+    .price-cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 24px;
+        padding: 0;
+        border: 1px solid var(--glass-border);
+        border-radius: 5px;
+        font-size: 0;
+    }
+    .price-cta[title="Stake XTZ"]::before {
+        content: '🥩';
+        font-size: 0.72rem;
+        line-height: 1;
+    }
+    .price-cta[title="Bake on Tezos"]::before {
+        content: '🍞';
+        font-size: 0.72rem;
+        line-height: 1;
     }
 }
 
