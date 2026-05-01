@@ -97,11 +97,11 @@ Current verified intervals in `js/core/config.js`:
 - Memory cache TTL: 1 minute
 - Storage cache TTL: 4 hours
 
-Current verified cache/build details:
+Cache/build details to verify when relevant:
 
 - Service worker cache name: `tezos-systems-v53`
-- `version.json`: build `335`, commit `5d4ce47`, date `2026-04-27`
-- Current inspected local HEAD: `0848b45 Harden landing page live data`
+- `version.json` contains the served build stamp.
+- `git log -1 --oneline` shows the local current commit.
 
 ## Version and Footer Sanity Check
 
@@ -114,9 +114,9 @@ It combines:
 - the exact latest `main` commit fetched from GitHub at runtime via
   `https://api.github.com/repos/Primate411/tezos.systems/commits/main`
 
-Current display shape:
+Display shape:
 
-- `build 335 · latest 0848b45 · stamp 5d4ce47 · 2026-04-27`
+- `build <build> · latest <github-main-sha> · stamp <version-json-sha> · <date>`
 
 This split is deliberate. A committed file cannot reliably contain its own
 final commit SHA because changing the file changes the commit hash. The exact
@@ -143,15 +143,15 @@ Important model:
 - Treat `commit` as a breadcrumb to the parent/pre-commit `HEAD`, not the exact
   deployed commit.
 
-Current verified example:
+Illustrative verified example from the first footer implementation commit:
 
-- `version.json` says `{"build":335,"commit":"5d4ce47","date":"2026-04-27"}`.
-- Current local `HEAD` is `0848b45`.
-- Current `git rev-list --count HEAD` is `335`.
-- This is consistent with version metadata stamped before commit `0848b45`,
-  when `HEAD` still pointed at `5d4ce47`.
-- If the stamp script ran before a new commit from this state, it would stamp
-  build `336` and commit `0848b45`.
+- `version.json` says `{"build":336,"commit":"0848b45","date":"2026-05-01"}`.
+- Local `HEAD` after that commit was `e94e7de`.
+- `git rev-list --count HEAD` after that commit was `336`.
+- This is consistent with version metadata stamped before commit `e94e7de`,
+  when `HEAD` still pointed at `0848b45`.
+- On the next normal commit from that state, the script would stamp build `337`
+  and commit `e94e7de`.
 
 Frontend rendering:
 
@@ -242,6 +242,20 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
 - `data/protocol-data.json`: protocol timeline from Athens through Tallinn.
 - `data/protocol-debates.json`: debate and rejection narratives.
 - `data/tweets.json`: share-copy templates used by the share system.
+
+## Version History Log
+
+- `js/features/changelog.js` contains the in-app version history shown from the
+  Changelog button.
+- Any time an agent fixes, adds, removes, or materially changes behavior, update
+  the `CHANGELOG` array in `js/features/changelog.js` in the same change set.
+- Add the newest date section at the top of the array, or append entries to the
+  current date section if one already exists.
+- Keep entries concise and user-facing. Use the existing `type` conventions:
+  `✨` for features, `🔧` for fixes/behavior changes, `🎨` for visual work,
+  `⚡` for performance/caching, and `🔒` for security.
+- Do not use `version.json` as the human changelog. `version.json` is only the
+  build/footer sanity metadata.
 
 ## Widgets and Standalone Pages
 

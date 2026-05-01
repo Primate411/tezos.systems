@@ -5,6 +5,16 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-01',
+        entries: [
+            { type: '✨', text: 'Footer version sanity check — faint build marker now shows served build metadata plus latest GitHub main commit' },
+            { type: '⚡', text: 'Service worker cache bumped and shell assets switched network-first so front-page JS and version metadata stay fresh' },
+            { type: '🔧', text: 'Git version stamping made reproducible with tracked .githooks pre-commit setup and install-hooks script' },
+            { type: '🔧', text: 'Fixed deep links for newer themes and comparison/calculator navigation' },
+            { type: '🔧', text: 'Added AGENTS.md repo map and maintenance rules for future agents' },
+        ]
+    },
+    {
         date: '2026-03-09',
         entries: [
             { type: '✨', text: 'Smart header button — shows truncated address + pending rewards when connected' },
