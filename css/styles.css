@@ -469,7 +469,7 @@ body::before {
     .price-bar-content {
         gap: 6px;
         font-size: 0.72rem;
-        justify-content: space-between;
+        justify-content: flex-start;
     }
     .price-mcap,
     .price-alt,
@@ -480,6 +480,9 @@ body::before {
         font-size: 0.6rem;
         padding: 2px 6px;
         flex-shrink: 0;
+    }
+    .price-bar-content .cycle-chip {
+        margin-right: auto;
     }
 }
 
@@ -10976,7 +10979,7 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
         display: none !important;
     }
     .price-bar-content {
-        justify-content: space-between !important;
+        justify-content: flex-start !important;
     }
 }
 

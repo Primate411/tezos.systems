@@ -18,6 +18,7 @@ const CHANGELOG = [
             { type: '🎨', text: 'Feature dropdown rows now keep long labels aligned without wrapping' },
             { type: '🎨', text: 'Data export choices and CSV labels now use clearer formatting' },
             { type: '🎨', text: 'Mobile QA pass tightened price-bar and widget builder layouts' },
+            { type: '🎨', text: 'Mobile Stake and Bake shortcuts now stay grouped together in the price bar' },
             { type: '🔧', text: 'Keyboard shortcuts overlay now closes on outside click as well as keyboard input' },
             { type: '🔧', text: 'Added AGENTS.md repo map and maintenance rules for future agents' },
         ]
