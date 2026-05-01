@@ -4,7 +4,7 @@
  */
 
 import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js';
-import { initTheme, toggleTheme, openThemePicker } from '../ui/theme.js';
+import { initTheme, toggleTheme, openThemePicker, setTheme, getAvailableThemes } from '../ui/theme.js';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
     formatCount,
@@ -1791,12 +1791,67 @@ if (document.readyState === 'loading') {
     init();
 }
 
-// Build version stamp — version.json is the source of truth (deployed with the site)
-fetch('version.json').then(r => r.ok ? r.json() : null).then(v => {
-    if (!v) return;
+const GITHUB_MAIN_COMMIT_URL = 'https://api.github.com/repos/Primate411/tezos.systems/commits/main';
+
+async function fetchBuildMetadata() {
+    try {
+        const response = await fetch('version.json', { cache: 'no-store' });
+        return response.ok ? response.json() : null;
+    } catch (_) {
+        return null;
+    }
+}
+
+async function fetchLatestMainCommit() {
+    try {
+        const response = await fetch(GITHUB_MAIN_COMMIT_URL, {
+            cache: 'no-store',
+            headers: { 'Accept': 'application/vnd.github+json' }
+        });
+        if (!response.ok) return null;
+        const data = await response.json();
+        return {
+            sha: data?.sha || '',
+            date: data?.commit?.committer?.date || '',
+            url: data?.html_url || ''
+        };
+    } catch (_) {
+        return null;
+    }
+}
+
+function shortSha(sha) {
+    return sha ? sha.slice(0, 7) : '';
+}
+
+// Footer sanity check. `version.json` is served metadata; GitHub gives the exact
+// latest main commit because a committed file cannot contain its own final SHA.
+async function renderBuildVersion() {
     const el = document.getElementById('build-version');
-    if (el) el.textContent = `build ${v.build} · ${v.commit} · ${v.date}`;
-}).catch(() => {});
+    if (!el) return;
+
+    const [version, latest] = await Promise.all([
+        fetchBuildMetadata(),
+        fetchLatestMainCommit()
+    ]);
+
+    const parts = [];
+    if (version?.build) parts.push(`build ${version.build}`);
+    if (latest?.sha) parts.push(`latest ${shortSha(latest.sha)}`);
+    if (version?.commit) parts.push(`stamp ${version.commit}`);
+    if (version?.date) parts.push(version.date);
+
+    if (!parts.length) return;
+
+    el.textContent = parts.join(' · ');
+    const titleParts = [];
+    if (latest?.sha) titleParts.push(`Latest main commit: ${latest.sha}`);
+    if (version?.commit) titleParts.push(`Stamped parent commit: ${version.commit}`);
+    if (latest?.date) titleParts.push(`Latest commit date: ${new Date(latest.date).toISOString().slice(0, 10)}`);
+    el.title = titleParts.join(' · ');
+}
+
+renderBuildVersion();
 
 // Collapsible sections — works on ALL section types
 function initCollapsibleSections() {
@@ -2066,8 +2121,20 @@ function applyDeepLink() {
         }
     }
 
-    // #compare or #history — scroll to history/comparison area
-    if (params.has('compare') || hash === 'compare' || params.has('history') || hash === 'history') {
+    // #compare — reveal and scroll to comparison section
+    if (params.has('compare') || hash === 'compare') {
+        setTimeout(() => {
+            const toggle = document.getElementById('comparison-toggle');
+            const section = document.getElementById('comparison-section');
+            if (toggle && section && !section.classList.contains('visible')) {
+                toggle.click();
+            }
+            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 500);
+    }
+
+    // #history — scroll to protocol/history area
+    if (params.has('history') || hash === 'history') {
         setTimeout(() => {
             const timeline = document.getElementById('upgrade-clock');
             if (timeline) timeline.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2121,9 +2188,8 @@ function applyDeepLink() {
     // #theme=<name>
     if (params.has('theme')) {
         const themeName = params.get('theme');
-        const validThemes = ['matrix', 'dark', 'clean', 'bubblegum', 'void', 'ember', 'signal'];
-        if (validThemes.includes(themeName)) {
-            document.body.setAttribute('data-theme', themeName);
+        if (getAvailableThemes().includes(themeName)) {
+            setTheme(themeName);
             localStorage.setItem('tezos-systems-theme', themeName);
         }
     }
@@ -2334,7 +2400,7 @@ function initKeyboardShortcuts() {
         setTimeout(() => { helpOverlay?.remove(); helpOverlay = null; }, 200);
     }
 
-    const THEMES = ['matrix', 'dark', 'clean', 'bubblegum', 'void', 'ember', 'signal'];
+    const THEMES = getAvailableThemes();
 
     // Wire up export button
     const exportBtn = document.getElementById('export-btn');
@@ -2375,7 +2441,7 @@ function initKeyboardShortcuts() {
                 const current = document.body.getAttribute('data-theme') || 'matrix';
                 const idx = THEMES.indexOf(current);
                 const next = THEMES[(idx + 1) % THEMES.length];
-                document.body.setAttribute('data-theme', next);
+                setTheme(next);
                 localStorage.setItem('tezos-systems-theme', next);
                 break;
             }
@@ -2407,7 +2473,12 @@ function initKeyboardShortcuts() {
             case 'k': {
                 e.preventDefault();
                 // Scroll to chain comparison section
-                document.getElementById('comparison-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                const toggle = document.getElementById('comparison-toggle');
+                const section = document.getElementById('comparison-section');
+                if (toggle && section && !section.classList.contains('visible')) {
+                    toggle.click();
+                }
+                if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 break;
             }
             case 'l': {

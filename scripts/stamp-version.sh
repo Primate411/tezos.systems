@@ -1,6 +1,6 @@
 #!/bin/sh
 # Stamp build info into version.json
-# Installed as pre-commit hook: .git/hooks/pre-commit → ../../scripts/stamp-version.sh
+# Installed via tracked hooks: git config core.hooksPath .githooks
 #
 # The commit hash will be one-behind (HEAD at pre-commit time), but the build
 # number is what matters for identifying deployed versions. The hash is a bonus.

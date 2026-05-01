@@ -156,7 +156,7 @@ export function initComparePage(chainKey) {
       '<div class="cp-narrative">' + narrative.map(function(p) { return '<p>' + p + '</p>'; }).join('') + '</div>' +
       '<div class="cp-cta">' +
         '<a href="/" class="cp-cta-btn">Explore the full dashboard →</a>' +
-        '<a href="/?calculator" class="cp-cta-btn cp-cta-secondary">Calculate staking rewards →</a>' +
+        '<a href="/#calculator" class="cp-cta-btn cp-cta-secondary">Calculate staking rewards →</a>' +
       '</div>' +
       '<div class="cp-footer">' +
         '<p>Data updates live from <a href="https://api.tzkt.io" target="_blank">TzKT</a>. Last verified: ' + CHAIN_COMPARISON.lastUpdated + '</p>' +

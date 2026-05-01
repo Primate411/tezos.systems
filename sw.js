@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v52';
+const CACHE_NAME = 'tezos-systems-v53';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -89,6 +89,22 @@ self.addEventListener('fetch', (event) => {
     // Skip non-GET
     if (event.request.method !== 'GET') return;
 
+    // Version metadata must stay fresh for the footer sanity check.
+    if (url.origin === self.location.origin && url.pathname === '/version.json') {
+        event.respondWith(
+            fetch(event.request, { cache: 'no-store' })
+                .then((response) => {
+                    if (response.ok) {
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then((cache) => cache.put('/version.json', clone));
+                    }
+                    return response;
+                })
+                .catch(() => caches.match('/version.json').then((r) => r || new Response('Version unavailable', { status: 503, statusText: 'Service Unavailable' })))
+        );
+        return;
+    }
+
     // API requests: network-first, cache fallback
     if (API_HOSTS.some((h) => url.hostname === h)) {
         event.respondWith(
@@ -121,20 +137,21 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Shell assets: cache-first with network update
+    // Shell assets: network-first with cache fallback so version sanity checks
+    // and front-page JS do not lag behind deployed code.
     if (url.origin === self.location.origin) {
         event.respondWith(
-            caches.match(event.request).then((cached) => {
-                const fetchPromise = fetch(event.request).then((response) => {
+            fetch(event.request, { cache: 'no-cache' })
+                .then((response) => {
                     if (response.ok) {
                         const clone = response.clone();
                         caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
                     }
                     return response;
-                }).catch(() => null);
-
-                return cached || fetchPromise.then((r) => r || new Response('Offline', { status: 503, statusText: 'Service Unavailable' }));
-            })
+                })
+                .catch(() => caches.match(event.request)
+                    .then((r) => r || caches.match(url.pathname))
+                    .then((r) => r || new Response('Offline', { status: 503, statusText: 'Service Unavailable' })))
         );
     }
 });
