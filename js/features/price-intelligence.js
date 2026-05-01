@@ -10,6 +10,7 @@ const LS_PREDICTIONS = 'tezos-systems-predictions';
 const LS_PRED_STATS  = 'tezos-systems-pred-stats';
 const LS_ALERTS      = 'tezos-systems-price-alerts';
 const SECTION_ID     = 'price-intelligence';
+const PRICE_FETCH_TIMEOUT_MS = 2500;
 
 // ─── State ────────────────────────────────────────────────────────────────────
 let currentPrice = 0;
@@ -19,6 +20,17 @@ let currentCycle = 0;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function fmt(n, d = 2) {
   return Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
+function hasPositiveNumber(n) {
+  return Number.isFinite(Number(n)) && Number(n) > 0;
+}
+
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(null), timeoutMs))
+  ]);
 }
 
 function loadPredictions() {
@@ -48,13 +60,14 @@ function saveAlerts(a) { localStorage.setItem(LS_ALERTS, JSON.stringify(a.slice(
 function generateNarrative(price, change, stats) {
   const dir = change >= 0 ? 'up' : 'down';
   const abs = Math.abs(change).toFixed(1);
+  const signed = `${change >= 0 ? '+' : '-'}${abs}`;
   const attestRate = stats?.attestRate || 99;
   const stakingRatio = stats?.stakingRatio || 27.8;
   const bakers = stats?.totalBakers || 248;
 
   const templates = [
     `XTZ is ${dir} ${abs}% to $${fmt(price, 3)} with ${bakers} bakers maintaining ${fmt(attestRate, 1)}% attestation.`,
-    `Trading at $${fmt(price, 3)} (${change >= 0 ? '+' : ''}${abs}%). ${fmt(stakingRatio, 1)}% of supply staked across ${bakers} bakers.`,
+    `Trading at $${fmt(price, 3)} (${signed}%). ${fmt(stakingRatio, 1)}% of supply staked across ${bakers} bakers.`,
     `$${fmt(price, 3)} XTZ — ${dir} ${abs}% this session. Network health: ${fmt(attestRate, 1)}% attestation, ${bakers} active bakers.`,
     `XTZ moves ${dir} ${abs}% to $${fmt(price, 3)}. Staking ratio holds at ${fmt(stakingRatio, 1)}% — the network keeps building.`,
   ];
@@ -318,31 +331,42 @@ function buildSection(price, change24h, marketCap, volume, stats, cycle) {
   const section = document.createElement('section');
   section.id = SECTION_ID;
 
+  const hasPrice = hasPositiveNumber(price);
   const changeClass = change24h >= 0 ? 'up' : 'down';
   const changeSign = change24h >= 0 ? '+' : '';
-  const narrative = generateNarrative(price, change24h, stats);
+  const narrative = hasPrice
+    ? generateNarrative(price, change24h, stats)
+    : 'Live price data is unavailable right now. Network metrics remain current.';
   const existingPred = getCurrentPrediction(cycle);
   const predStats = loadStats();
   const streakEmoji = predStats.streak >= 7 ? '🔥🔥' : predStats.streak >= 3 ? '🔥' : '';
   const alerts = loadAlerts();
+  const canPredict = hasPrice && cycle;
+  const apy = stats?.apy ?? stats?.stakeAPY ?? stats?.delegateAPY;
+  const marketCapText = hasPositiveNumber(marketCap)
+    ? (marketCap >= 1e9 ? fmt(marketCap/1e9, 2) + 'B' : fmt(marketCap/1e6, 0) + 'M')
+    : '—';
+  const volumeText = hasPositiveNumber(volume) ? '$' + fmt(volume/1e6, 1) + 'M' : '—';
+  const stakingText = hasPositiveNumber(stats?.stakingRatio) ? fmt(stats.stakingRatio, 1) + '%' : '—';
+  const apyText = hasPositiveNumber(apy) ? '~' + fmt(apy, 1) + '%' : '—';
 
   section.innerHTML = `
     <div class="pi-card">
       <div class="pi-header">
-        <span class="pi-price">$${fmt(price, 3)}</span>
-        <span class="pi-change ${changeClass}">${changeSign}${fmt(change24h, 1)}%</span>
+        <span class="pi-price">${hasPrice ? '$' + fmt(price, 3) : 'Price unavailable'}</span>
+        <span class="pi-change ${changeClass}">${hasPrice ? changeSign + fmt(change24h, 1) + '%' : '—'}</span>
       </div>
       <div class="pi-stats-row">
-        <span><span class="pi-label">MCap</span>$${marketCap >= 1e9 ? fmt(marketCap/1e9, 2) + 'B' : fmt(marketCap/1e6, 0) + 'M'}</span>
-        <span><span class="pi-label">24h Vol</span>$${fmt(volume/1e6, 1)}M</span>
-        <span><span class="pi-label">Staking</span>${fmt(stats?.stakingRatio || 0, 1)}%</span>
-        <span><span class="pi-label">APY</span>~${fmt(stats?.apy || 8.5, 1)}%</span>
+        <span><span class="pi-label">MCap</span>${marketCapText}</span>
+        <span><span class="pi-label">24h Vol</span>${volumeText}</span>
+        <span><span class="pi-label">Staking</span>${stakingText}</span>
+        <span><span class="pi-label">APY</span>${apyText}</span>
       </div>
       <div class="pi-narrative">${narrative}</div>
       <div class="pi-predict">
-        <span class="pi-predict-label">C${cycle} prediction:</span>
-        <button class="pi-btn${existingPred?.direction === 'higher' ? ' active-higher' : ''}" id="pi-btn-higher">📈 Higher</button>
-        <button class="pi-btn${existingPred?.direction === 'lower' ? ' active-lower' : ''}" id="pi-btn-lower">📉 Lower</button>
+        <span class="pi-predict-label">${cycle ? 'C' + cycle : 'Cycle'} prediction:</span>
+        <button class="pi-btn${existingPred?.direction === 'higher' ? ' active-higher' : ''}" id="pi-btn-higher" ${canPredict ? '' : 'disabled'}>📈 Higher</button>
+        <button class="pi-btn${existingPred?.direction === 'lower' ? ' active-lower' : ''}" id="pi-btn-lower" ${canPredict ? '' : 'disabled'}>📉 Lower</button>
         <span class="pi-streak">
           ${predStats.total > 0 ? `${predStats.correct}/${predStats.total} (${Math.round(predStats.correct/predStats.total*100)}%)` : ''}
           ${streakEmoji ? `<span class="fire">${streakEmoji} ${predStats.streak}</span>` : ''}
@@ -350,8 +374,8 @@ function buildSection(price, change24h, marketCap, volume, stats, cycle) {
       </div>
       <div class="pi-alert-row">
         <span class="pi-predict-label" style="font-size:10px">Alert at $</span>
-        <input class="pi-alert-input" type="number" step="0.01" placeholder="0.00" id="pi-alert-price">
-        <button class="pi-btn" id="pi-alert-set" style="padding:4px 10px;font-size:10px">Set</button>
+        <input class="pi-alert-input" type="number" step="0.01" placeholder="0.00" id="pi-alert-price" ${hasPrice ? '' : 'disabled'}>
+        <button class="pi-btn" id="pi-alert-set" style="padding:4px 10px;font-size:10px" ${hasPrice ? '' : 'disabled'}>Set</button>
         <span class="pi-alert-count">${alerts.length}/5 active</span>
       </div>
     </div>
@@ -363,7 +387,7 @@ function buildSection(price, change24h, marketCap, volume, stats, cycle) {
   const btnAlert = section.querySelector('#pi-alert-set');
   const alertInput = section.querySelector('#pi-alert-price');
 
-  if (!existingPred) {
+  if (!existingPred && canPredict) {
     btnHigher.addEventListener('click', () => {
       if (makePrediction(cycle, 'higher', price)) {
         btnHigher.classList.add('active-higher');
@@ -378,13 +402,14 @@ function buildSection(price, change24h, marketCap, volume, stats, cycle) {
         btnHigher.style.pointerEvents = 'none';
       }
     });
-  } else {
+  } else if (existingPred) {
     // Already predicted — dim the other button
     if (existingPred.direction === 'higher') { btnLower.style.opacity = '0.3'; btnLower.style.pointerEvents = 'none'; }
     else { btnHigher.style.opacity = '0.3'; btnHigher.style.pointerEvents = 'none'; }
   }
 
   btnAlert.addEventListener('click', () => {
+    if (!hasPrice) return;
     const target = parseFloat(alertInput.value);
     if (!target || target <= 0) return;
     const alerts = loadAlerts();
@@ -405,13 +430,13 @@ export async function initPriceIntelligence(stats, xtzPrice) {
   if (document.getElementById(SECTION_ID)) return;
 
   // Get price data from CoinGecko (via shared price.js cache)
-  let price = xtzPrice;
+  let price = Number(xtzPrice) || 0;
   let change24h = 0;
   let marketCap = 0;
   let volume = 0;
 
   try {
-    const data = await fetchXTZPrice();
+    const data = await withTimeout(fetchXTZPrice(), PRICE_FETCH_TIMEOUT_MS);
     if (data) {
       price = data.usd || price;
       change24h = data.usd_24h_change || 0;

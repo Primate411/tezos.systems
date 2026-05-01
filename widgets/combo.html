@@ -119,7 +119,7 @@
     cards[s]=document.getElementById('val-'+s);
   });
 
-  function esc(s){return String(s).replace(/[&<>"']/g,c=>({&:'&amp;',<:'&lt;',>:'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
   function setVal(key,val,classes=''){
     const el=cards[key];

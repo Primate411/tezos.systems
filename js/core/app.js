@@ -989,13 +989,18 @@ function initPriceIntelToggle() {
         const isVisible = stored === 'true';
         const newState = !isVisible;
         localStorage.setItem(PI_VISIBLE_KEY, String(newState));
+        updateVis(newState);
 
         if (newState && !piInitialized) {
             const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
-            await initPriceIntelligence(state.currentStats || {}, piPrice);
-            piInitialized = true;
+            try {
+                await initPriceIntelligence(state.currentStats || {}, piPrice);
+                piInitialized = true;
+            } catch (err) {
+                console.warn('[price-intel] failed to initialize:', err);
+            }
         }
-        updateVis(newState);
+        updateVis(localStorage.getItem(PI_VISIBLE_KEY) === 'true');
     });
 
     // Default OFF — always call updateVis to set initial opacity
@@ -1004,10 +1009,15 @@ function initPriceIntelToggle() {
     updateVis(isVisible);
     if (isVisible) {
         setTimeout(async () => {
+            if (localStorage.getItem(PI_VISIBLE_KEY) !== 'true') return;
             const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
-            await initPriceIntelligence(state.currentStats || {}, piPrice);
-            piInitialized = true;
-            updateVis(true);
+            try {
+                await initPriceIntelligence(state.currentStats || {}, piPrice);
+                piInitialized = true;
+            } catch (err) {
+                console.warn('[price-intel] failed to initialize:', err);
+            }
+            updateVis(localStorage.getItem(PI_VISIBLE_KEY) === 'true');
         }, 3000);
     }
 }

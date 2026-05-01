@@ -120,7 +120,7 @@
     return n.toLocaleString();
   }
 
-  function esc(s){return String(s).replace(/[&<>"']/g,c=>({&:'&amp;',<:'&lt;',>:'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+  function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
   function shortAddr(addr){
     if(!addr)return'—';

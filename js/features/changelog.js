@@ -10,6 +10,10 @@ const CHANGELOG = [
             { type: '✨', text: 'Footer version sanity check — faint build marker now shows served build metadata plus latest GitHub main commit' },
             { type: '⚡', text: 'Service worker cache bumped and shell assets switched network-first so front-page JS and version metadata stay fresh' },
             { type: '🔧', text: 'Git version stamping made reproducible with tracked .githooks pre-commit setup and install-hooks script' },
+            { type: '🔧', text: 'Price Intel toggle now opens immediately and gracefully handles slow live price data' },
+            { type: '🎨', text: 'Theme variable aliases restored for dynamically injected feature panels and hover states' },
+            { type: '⚡', text: 'Front-page CSS and app module paths now carry explicit cache-busting stamps' },
+            { type: '🔧', text: 'Standalone baker-card and combo widgets no longer throw on load' },
             { type: '🔧', text: 'Fixed deep links for newer themes and comparison/calculator navigation' },
             { type: '🔧', text: 'Added AGENTS.md repo map and maintenance rules for future agents' },
         ]
