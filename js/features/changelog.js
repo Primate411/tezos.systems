@@ -15,6 +15,8 @@ const CHANGELOG = [
             { type: '⚡', text: 'Front-page CSS and app module paths now carry explicit cache-busting stamps' },
             { type: '🔧', text: 'Standalone baker-card and combo widgets no longer throw on load' },
             { type: '🔧', text: 'Fixed deep links for newer themes and comparison/calculator navigation' },
+            { type: '🎨', text: 'Feature dropdown rows now keep long labels aligned without wrapping' },
+            { type: '🎨', text: 'Data export choices and CSV labels now use clearer formatting' },
             { type: '🔧', text: 'Added AGENTS.md repo map and maintenance rules for future agents' },
         ]
     },

@@ -2262,15 +2262,27 @@ function showExportMenu() {
 
     overlay = document.createElement('div');
     overlay.id = 'export-overlay';
-    overlay.className = 'keyboard-help-overlay';
+    overlay.className = 'keyboard-help-overlay export-overlay';
     overlay.innerHTML = `
-        <div class="keyboard-help-card">
+        <div class="keyboard-help-card export-card" role="dialog" aria-label="Export data">
             <h3>📥 Export Data</h3>
-            <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px;">
-                <button class="glass-button export-option" data-format="json">📋 JSON — All current stats</button>
-                <button class="glass-button export-option" data-format="csv">📊 CSV — Spreadsheet-friendly</button>
+            <div class="export-options">
+                <button class="export-option" data-format="json">
+                    <span class="export-option-icon">📋</span>
+                    <span class="export-option-copy">
+                        <strong>JSON</strong>
+                        <span>All current stats</span>
+                    </span>
+                </button>
+                <button class="export-option" data-format="csv">
+                    <span class="export-option-icon">📊</span>
+                    <span class="export-option-copy">
+                        <strong>CSV</strong>
+                        <span>Spreadsheet-friendly rows</span>
+                    </span>
+                </button>
             </div>
-            <p class="keyboard-help-hint">Click to download</p>
+            <p class="keyboard-help-hint export-hint">Choose a format to download</p>
         </div>
     `;
     document.body.appendChild(overlay);
@@ -2339,16 +2351,51 @@ function exportData(format) {
         blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         filename = `tezos-systems-${timestamp.slice(0,10)}.json`;
     } else {
-        // CSV
-        const rows = [['Category', 'Metric', 'Value']];
+        const formatMetricLabel = (key) => ({
+            totalBakers: 'Total Bakers',
+            tz4Bakers: 'TZ4 Bakers',
+            tz4Percentage: 'TZ4 Percentage',
+            currentCycle: 'Current Cycle',
+            cycleProgress: 'Cycle Progress',
+            issuanceRate: 'Issuance Rate',
+            protocolIssuance: 'Protocol Issuance',
+            lbIssuance: 'LB Issuance',
+            delegateAPY: 'Delegate APY',
+            stakeAPY: 'Stake APY',
+            stakingRatio: 'Staking Ratio',
+            delegatedRatio: 'Delegated Ratio',
+            totalSupply: 'Total Supply',
+            totalBurned: 'Total Burned',
+            activeProposal: 'Active Proposal',
+            votingPeriod: 'Voting Period',
+            participation: 'Participation',
+            transactions24h: 'Transactions 24h',
+            contractCalls24h: 'Contract Calls 24h',
+            fundedAccounts: 'Funded Accounts',
+            smartContracts: 'Smart Contracts',
+            tokens: 'Tokens',
+            smartRollups: 'Smart Rollups'
+        }[key] || String(key).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase()));
+        const formatCategoryLabel = (category) => String(category).replace(/^./, c => c.toUpperCase());
+        const escapeCsvField = (value) => {
+            if (value === null || value === undefined) return '';
+            const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
+            return `"${text.replace(/"/g, '""')}"`;
+        };
+
+        const rows = [
+            ['Category', 'Metric', 'Value'],
+            ['Metadata', 'Generated At', timestamp],
+            ['Metadata', 'Source', data.source]
+        ];
         for (const [cat, metrics] of Object.entries(data)) {
             if (cat === 'exported' || cat === 'source') continue;
             for (const [key, val] of Object.entries(metrics)) {
-                rows.push([cat, key, val]);
+                rows.push([formatCategoryLabel(cat), formatMetricLabel(key), val]);
             }
         }
-        const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-        blob = new Blob([csv], { type: 'text/csv' });
+        const csv = rows.map(r => r.map(escapeCsvField).join(',')).join('\n');
+        blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
         filename = `tezos-systems-${timestamp.slice(0,10)}.csv`;
     }
 
