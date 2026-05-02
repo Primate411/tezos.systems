@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Real-time Tezos blockchain dashboard — live baker counts, staking ratios, protocol upgrades, governance tracking. Zero hard forks since 2018. Updated every 2 minutes.">
+    <meta name="description" content="Live Tezos blockchain dashboard — baker counts, staking ratios, protocol upgrades, governance tracking, price intelligence, widgets, and shareable historical data.">
     <meta name="keywords" content="Tezos, XTZ, blockchain, proof-of-stake, baking, staking, governance, self-amending, cryptocurrency, DeFi, NFT, network statistics, baker dashboard">
     <title>Tezos Systems — The Blockchain That Upgrades Itself | Live Dashboard</title>
     <link rel="canonical" href="https://tezos.systems/">
@@ -49,12 +49,12 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=59">
+    <link rel="stylesheet" href="css/styles.min.css?v=62">
     <link rel="stylesheet" href="css/hen-mode.css">
     <script src="js/core/hen-init.js" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=59">
+    <link rel="modulepreload" href="js/core/app.js?v=62">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -78,7 +78,7 @@
       "operatingSystem": "Web",
       "browserRequirements": "Requires JavaScript",
       "screenshot": "https://tezos.systems/og-image.png",
-      "featureList": "Real-time network statistics, Baker performance tracking, Staking gauge, Protocol upgrade timeline, Governance monitoring, 7 visual themes, Personalized My Baker mode, Shareable stat cards",
+      "featureList": "Live network statistics, Baker performance tracking, Staking gauge, Protocol upgrade timeline, Governance monitoring, 12 visual themes, Personalized My Tezos mode, Shareable stat cards, Embeddable widgets",
       "creator": {
         "@type": "Organization",
         "name": "Tez Capital",
@@ -105,7 +105,7 @@
       "@context": "https://schema.org",
       "@type": "Dataset",
       "name": "Tezos Network Statistics",
-      "description": "Real-time and historical Tezos blockchain metrics including baker counts, tz4/BLS adoption, staking ratios, issuance rates, transaction volumes, smart contract counts, and protocol upgrade history. Updated every 2 minutes from live network data.",
+      "description": "Live and historical Tezos blockchain metrics including baker counts, tz4/BLS adoption, staking ratios, issuance rates, transaction volumes, smart contract counts, and protocol upgrade history. Dashboard data shows freshness in the interface and refreshes on a slower live-data cadence to avoid noisy API churn.",
       "url": "https://tezos.systems",
       "license": "https://creativecommons.org/licenses/by/4.0/",
       "temporalCoverage": "2018-06-30/..",
@@ -247,58 +247,118 @@
                     <span class="my-tezos-icon">👤</span> <span class="nav-label">My Tezos</span>
                 </button>
 
-                <!-- Features dropdown -->
+                <!-- Feature launcher -->
                 <div class="dock-settings-group">
-                    <button id="features-gear" class="glass-button header-nav-btn" aria-label="Features" title="Features">
-                        <span>🧩</span> <span class="nav-label">Features</span>
+                    <button id="features-gear" class="glass-button header-nav-btn" aria-label="Open feature launcher" title="Explore Tezos Systems tools">
+                        <span>🧭</span> <span class="nav-label">Explore</span>
                     </button>
-                    <div class="settings-dropdown" id="features-dropdown">
-                        <button id="tezos-stats-toggle" class="glass-button" aria-label="Toggle Tezos Stats" title="Tezos Stats: ON">
-                            <span class="tezos-stats-toggle-icon">📊</span> <span class="dropdown-label">Tezos Stats</span>
-                            <span class="dropdown-hint">Live network metrics — economy, consensus, market</span>
-                        </button>
-                        <!-- My Tezos toggle removed — now opens drawer via My Tezos button -->
-                        <button id="comparison-toggle" class="glass-button" aria-label="Toggle Tezos vs Other Chains" title="Chains: ON">
-                            <span class="comparison-toggle-icon">⛓️</span> <span class="dropdown-label">Vs Others</span>
-                            <span class="dropdown-hint">Tezos vs Ethereum, Solana, Cardano, Algorand</span>
-                        </button>
-                        <button id="leaderboard-toggle" class="glass-button" aria-label="Toggle Baker Leaderboard" title="Leaderboard: OFF">
-                            <span class="leaderboard-toggle-icon">🏆</span> <span class="dropdown-label">Leaderboard</span>
-                            <span class="dropdown-hint">Top bakers ranked by stake and efficiency</span>
-                        </button>
-                        <button id="whale-toggle" class="glass-button" aria-label="Toggle Mini Whale feed" title="Mini Whale: OFF">
-                            <span class="whale-toggle-icon">🐬</span> <span class="dropdown-label">Whales</span>
-                            <span class="dropdown-hint">Live feed of large XTZ transfers (>1K)</span>
-                        </button>
-                        <button id="giants-toggle" class="glass-button" aria-label="Toggle Sleeping Giants" title="Sleeping Giants: OFF">
-                            <span class="giants-toggle-icon">😴</span> <span class="dropdown-label">Giants</span>
-                            <span class="dropdown-hint">Dormant wallets that just woke up</span>
-                        </button>
-                        <button id="objkt-toggle" class="glass-button" aria-label="Toggle NFT Profile" title="NFT Profile: OFF">
-                            <span class="objkt-toggle-icon">🖼️</span> <span class="dropdown-label">NFTs</span>
-                            <span class="dropdown-hint">Your NFT creator & collector profile from Objkt</span>
-                        </button>
-                        <button id="calc-toggle" class="glass-button" aria-label="Toggle Rewards Calculator" title="Calculator: OFF">
-                            <span class="calc-toggle-icon">🧮</span> <span class="dropdown-label">Calculator</span>
-                            <span class="dropdown-hint">Estimate staking & baking rewards</span>
-                        </button>
-                        <!-- Briefing toggle removed — now in drawer -->
-                        <button id="state-of-tezos-btn" class="glass-button" aria-label="State of Tezos Snapshot" title="State of Tezos">
-                            <span>📊</span> <span class="dropdown-label">State of Tezos</span>
-                            <span class="dropdown-hint">Shareable weekly network snapshot</span>
-                        </button>
-                        <button id="price-intel-toggle" class="glass-button" aria-label="Toggle Price Intelligence" title="Price Intel: OFF">
-                            <span class="price-intel-toggle-icon">💰</span> <span class="dropdown-label">Price Intel</span>
-                            <span class="dropdown-hint">Live price, predictions, alerts</span>
-                        </button>
-                        <button id="history-btn" class="glass-button" aria-label="View historical data" title="Historical data">
-                            <span>📈</span> <span class="dropdown-label">History</span>
-                            <span class="dropdown-hint">Historical sparklines for any metric card</span>
-                        </button>
-                        <a href="/widgets/builder.html" class="glass-button" style="text-decoration:none;display:flex;align-items:center;gap:8px;padding:8px 12px" aria-label="Embeddable Widgets" title="Embed Widgets">
-                            <span>🧩</span> <span class="dropdown-label">Widgets</span>
-                            <span class="dropdown-hint">Embeddable live stats for any site</span>
-                        </a>
+                    <div class="settings-dropdown feature-launcher" id="features-dropdown" aria-label="Feature launcher">
+                        <div class="feature-launcher-intro">
+                            <strong>Explore by goal</strong>
+                            <span>Open a tool, then pin what you want on the dashboard.</span>
+                        </div>
+
+                        <div class="feature-launcher-group">
+                            <div class="dropdown-section-label">Network Now</div>
+                            <div class="feature-launcher-row">
+                                <button id="tezos-stats-toggle" class="glass-button feature-launcher-item" aria-label="Show or hide live Tezos network stats" title="Tezos Stats: ON">
+                                    <span class="tezos-stats-toggle-icon">📊</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Network Stats</span><span class="dropdown-hint">Economy, consensus, market, ecosystem</span></span>
+                                    <span class="feature-status">Pinned</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#section=consensus" aria-label="Copy Network Stats link" title="Copy direct link">🔗</button>
+                            </div>
+                            <div class="feature-launcher-row">
+                                <button id="price-intel-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Price Intelligence" title="Price Intel: OFF">
+                                    <span class="price-intel-toggle-icon">💰</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Price Intel</span><span class="dropdown-hint">Live price, predictions, alerts</span></span>
+                                    <span class="feature-status">Tool</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#price" aria-label="Copy Price Intel link" title="Copy direct link">🔗</button>
+                            </div>
+                            <div class="feature-launcher-row">
+                                <button id="comparison-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Tezos chain comparisons" title="Chains: ON">
+                                    <span class="comparison-toggle-icon">⛓️</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Compare Chains</span><span class="dropdown-hint">Tezos vs Ethereum, Solana, Cardano, Algorand</span></span>
+                                    <span class="feature-status">Tool</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#compare" aria-label="Copy Compare Chains link" title="Copy direct link">🔗</button>
+                            </div>
+                        </div>
+
+                        <div class="feature-launcher-group">
+                            <div class="dropdown-section-label">Bakers & Staking</div>
+                            <div class="feature-launcher-row">
+                                <button id="leaderboard-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Baker Leaderboard" title="Leaderboard: OFF">
+                                    <span class="leaderboard-toggle-icon">🏆</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Leaderboard</span><span class="dropdown-hint">Top bakers ranked by stake and capacity</span></span>
+                                    <span class="feature-status">Tool</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#leaderboard" aria-label="Copy Leaderboard link" title="Copy direct link">🔗</button>
+                            </div>
+                            <div class="feature-launcher-row">
+                                <button id="calc-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Rewards Calculator" title="Calculator: OFF">
+                                    <span class="calc-toggle-icon">🧮</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Rewards Calculator</span><span class="dropdown-hint">Estimate delegation, staking, and baking rewards</span></span>
+                                    <span class="feature-status">Tool</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#calculator" aria-label="Copy Rewards Calculator link" title="Copy direct link">🔗</button>
+                            </div>
+                        </div>
+
+                        <div class="feature-launcher-group">
+                            <div class="dropdown-section-label">Activity & Culture</div>
+                            <div class="feature-launcher-row">
+                                <button id="whale-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Mini Whale feed" title="Mini Whale: OFF">
+                                    <span class="whale-toggle-icon">🐬</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Whales</span><span class="dropdown-hint">Live feed of large XTZ transfers over 1K</span></span>
+                                    <span class="feature-status">Feed</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#whales" aria-label="Copy Whales link" title="Copy direct link">🔗</button>
+                            </div>
+                            <div class="feature-launcher-row">
+                                <button id="giants-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Sleeping Giants" title="Sleeping Giants: OFF">
+                                    <span class="giants-toggle-icon">😴</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Sleeping Giants</span><span class="dropdown-hint">Dormant large wallets that just woke up</span></span>
+                                    <span class="feature-status">Feed</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#giants" aria-label="Copy Sleeping Giants link" title="Copy direct link">🔗</button>
+                            </div>
+                            <div class="feature-launcher-row">
+                                <button id="objkt-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide NFT Profile" title="NFT Profile: OFF">
+                                    <span class="objkt-toggle-icon">🖼️</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">NFT Profile</span><span class="dropdown-hint">Creator and collector profile from Objkt</span></span>
+                                    <span class="feature-status">Tool</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#nfts" aria-label="Copy NFT Profile link" title="Copy direct link">🔗</button>
+                            </div>
+                        </div>
+
+                        <div class="feature-launcher-group">
+                            <div class="dropdown-section-label">Story & Sharing</div>
+                            <div class="feature-launcher-row">
+                                <button id="history-btn" class="glass-button feature-launcher-item" aria-label="Open historical data" title="Historical data">
+                                    <span>📈</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">History</span><span class="dropdown-hint">Historical charts for core metrics</span></span>
+                                    <span class="feature-status">Modal</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#history" aria-label="Copy History link" title="Copy direct link">🔗</button>
+                            </div>
+                            <div class="feature-launcher-row">
+                                <button id="state-of-tezos-btn" class="glass-button feature-launcher-item" aria-label="Create State of Tezos Snapshot" title="State of Tezos">
+                                    <span>📊</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">State of Tezos</span><span class="dropdown-hint">Shareable weekly network snapshot</span></span>
+                                    <span class="feature-status">Share</span>
+                                </button>
+                            </div>
+                            <div class="feature-launcher-row">
+                                <a href="/widgets/builder.html" class="glass-button feature-launcher-item feature-launcher-link" aria-label="Open embeddable widget builder" title="Open embed builder">
+                                    <span>🧩</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Embed Builder</span><span class="dropdown-hint">Configured live-stat iframes for sites and docs</span></span>
+                                    <span class="feature-status">Utility</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -574,6 +634,31 @@
             <div id="objkt-results" class="my-baker-results"></div>
         </div>
     </section>
+
+        <!-- Embeddable Widgets Utility -->
+        <section class="stats-section widget-utility-section toggleable-section" id="widgets-gallery">
+            <div class="section-header">
+                <h2 class="section-title">🧩 Embed Builder</h2>
+                <a class="section-link-cta" href="/widgets/builder.html" aria-label="Open embed builder">Open builder</a>
+            </div>
+            <div class="widget-utility-panel">
+                <div class="widget-utility-copy">
+                    <span class="widget-utility-kicker">For site owners</span>
+                    <p>Build a configured iframe with live Tezos stats, then place it on a baker site, docs page, community dashboard, or status page.</p>
+                    <div class="widget-utility-chips" aria-label="Available embed types">
+                        <span>Combo strip</span>
+                        <span>Protocol</span>
+                        <span>Governance</span>
+                        <span>Price</span>
+                        <span>Baker card</span>
+                    </div>
+                </div>
+                <div class="widget-utility-actions">
+                    <a class="widget-utility-primary" href="/widgets/builder.html">Open builder</a>
+                    <span class="widget-utility-note">Raw widget URLs are embed endpoints, not dashboard pages.</span>
+                </div>
+            </div>
+        </section>
 
         <!-- Network Moments (milestone alerts) -->
         <section class="stats-section" id="moments-section" style="display:none;">
@@ -1556,12 +1641,12 @@
         <!-- Empty state (shown when no address) -->
         <div id="drawer-empty-state" class="drawer-empty-state">
           <div class="empty-state-content">
-            <p class="empty-headline">Connect your Tezos address to unlock:</p>
+            <p class="empty-headline">Connect once. My Tezos becomes your home for:</p>
             <ul class="empty-features">
               <li>📊 Live baker performance &amp; APY</li>
               <li>⏱ Reward tracking &amp; cycle timeline</li>
               <li>📰 Your personal Morning Brief</li>
-              <li>🌐 Network Pulse — daily context</li>
+              <li>🔔 Saved addresses, alerts, and share cards</li>
             </ul>
             <div class="my-baker-controls drawer-controls">
               <input type="text" id="drawer-address-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
@@ -1632,7 +1717,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js"></script>
-    <script type="module" src="js/core/app.js?v=59"></script>
+    <script type="module" src="js/core/app.js?v=62"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

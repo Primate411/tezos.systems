@@ -5,6 +5,17 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-02',
+        entries: [
+            { type: '✨', text: 'Explore launcher groups tools by goal with direct-link copy buttons for major features' },
+            { type: '🎨', text: 'Clean theme contrast pass for uptime clock, comparison cards, share picker, and onboarding surfaces' },
+            { type: '🔧', text: 'Widget Gallery demoted into a hidden builder-led embed utility so raw widget endpoints no longer occupy the default dashboard' },
+            { type: '🔧', text: 'First-visit tour now starts from a non-blocking prompt instead of covering the dashboard immediately' },
+            { type: '🔧', text: 'Deep links now reveal and scroll to calculator, comparison, leaderboard, whales, giants, NFTs, price intel, and widgets more reliably' },
+            { type: '🔧', text: 'Smoke tests now cover the Explore launcher, copy-link controls, Clean theme contrast, widget gallery, and the gentler tour prompt' },
+        ]
+    },
+    {
         date: '2026-05-01',
         entries: [
             { type: '✨', text: 'Footer version sanity check — faint build marker now shows served build metadata plus latest GitHub main commit' },

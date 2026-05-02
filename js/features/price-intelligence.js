@@ -204,6 +204,12 @@ function injectStyles() {
       margin: 0 auto 1.5rem;
       padding: 0 2rem;
     }
+    #${SECTION_ID} .section-header {
+      margin-bottom: 10px;
+    }
+    #${SECTION_ID} .section-title {
+      margin: 0;
+    }
     .pi-card {
       background: rgba(255, 255, 255, 0.02);
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -351,6 +357,9 @@ function buildSection(price, change24h, marketCap, volume, stats, cycle) {
   const apyText = hasPositiveNumber(apy) ? '~' + fmt(apy, 1) + '%' : '—';
 
   section.innerHTML = `
+    <div class="section-header">
+      <h2 class="section-title">💰 Price Intelligence</h2>
+    </div>
     <div class="pi-card">
       <div class="pi-header">
         <span class="pi-price">${hasPrice ? '$' + fmt(price, 3) : 'Price unavailable'}</span>

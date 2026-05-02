@@ -237,6 +237,9 @@ async function init() {
     // Initialize Smart Dock (gear dropdown)
     initSmartDock();
 
+    // Add copyable deep-link affordances to major feature surfaces
+    safe('deepLinkAffordances', initDeepLinkAffordances);
+
     // Start pulse indicator checks
     initPulseIndicators();
 
@@ -1973,13 +1976,20 @@ function initSmartDock() {
         const g = document.getElementById(gearId);
         const d = document.getElementById(dropdownId);
         if (!g || !d) return;
+        g.setAttribute('aria-expanded', 'false');
+        g.setAttribute('aria-controls', dropdownId);
         g.addEventListener('click', (e) => {
             e.stopPropagation();
             // Close other dropdowns first
             document.querySelectorAll('.settings-dropdown.open').forEach(el => {
-                if (el !== d) el.classList.remove('open');
+                if (el !== d) {
+                    el.classList.remove('open');
+                    const owner = document.querySelector(`[aria-controls="${el.id}"]`);
+                    if (owner) owner.setAttribute('aria-expanded', 'false');
+                }
             });
             d.classList.toggle('open');
+            g.setAttribute('aria-expanded', d.classList.contains('open') ? 'true' : 'false');
         });
         d.addEventListener('click', (e) => e.stopPropagation());
     }
@@ -1989,8 +1999,103 @@ function initSmartDock() {
 
     // Close all dropdowns on outside click
     document.addEventListener('click', () => {
-        document.querySelectorAll('.settings-dropdown.open').forEach(el => el.classList.remove('open'));
+        document.querySelectorAll('.settings-dropdown.open').forEach(el => {
+            el.classList.remove('open');
+            const owner = document.querySelector(`[aria-controls="${el.id}"]`);
+            if (owner) owner.setAttribute('aria-expanded', 'false');
+        });
     });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('.settings-dropdown.open').forEach(el => {
+            el.classList.remove('open');
+            const owner = document.querySelector(`[aria-controls="${el.id}"]`);
+            if (owner) owner.setAttribute('aria-expanded', 'false');
+        });
+    });
+}
+
+function initDeepLinkAffordances() {
+    const headerLinks = [
+        { selector: '#upgrade-clock .current-name-row', hash: '#history', label: 'protocol history' },
+        { selector: '#leaderboard-section .section-header', hash: '#leaderboard', label: 'leaderboard' },
+        { selector: '#comparison-section .section-header', hash: '#compare', label: 'chain comparison' },
+        { selector: '#whale-section .section-header', hash: '#whales', label: 'whale feed' },
+        { selector: '#giants-section .section-header', hash: '#giants', label: 'sleeping giants' },
+        { selector: '#calculator-section .section-header', hash: '#calculator', label: 'rewards calculator' },
+        { selector: '#objkt-section .section-header', hash: '#nfts', label: 'NFT profile' },
+        { selector: '#price-intelligence .section-header', hash: '#price', label: 'price intelligence' },
+        { selector: '#widgets-gallery .section-header', hash: '#widgets', label: 'embed builder' },
+        { selector: '#consensus-section .section-header', hash: '#section=consensus', label: 'consensus stats' },
+        { selector: '#economy-section .section-header', hash: '#section=economy', label: 'economy stats' },
+        { selector: '#governance-section .section-header', hash: '#section=governance', label: 'governance stats' },
+        { selector: '#network-activity-section .section-header', hash: '#section=network', label: 'network stats' },
+        { selector: '#ecosystem-section .section-header', hash: '#section=ecosystem', label: 'ecosystem stats' },
+    ];
+
+    function makeUrl(hash) {
+        return `${window.location.origin}${window.location.pathname}${hash}`;
+    }
+
+    function markCopied(button) {
+        const original = button.textContent;
+        button.classList.add('copied');
+        button.textContent = '✓';
+        setTimeout(() => {
+            button.classList.remove('copied');
+            button.textContent = original || '🔗';
+        }, 1200);
+    }
+
+    async function copyHash(hash, button) {
+        const url = makeUrl(hash);
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(url);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = url;
+                textarea.setAttribute('readonly', '');
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                textarea.remove();
+            }
+            if (button) markCopied(button);
+        } catch (error) {
+            console.warn('[deep-link] copy failed:', error);
+        }
+    }
+
+    function attachHeaderButtons() {
+        headerLinks.forEach(({ selector, hash, label }) => {
+            const header = document.querySelector(selector);
+            if (!header || header.querySelector(`.section-copy-link[data-copy-hash="${hash}"]`)) return;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'section-copy-link';
+            button.dataset.copyHash = hash;
+            button.setAttribute('aria-label', `Copy ${label} link`);
+            button.title = `Copy ${label} link`;
+            button.textContent = '🔗';
+            header.appendChild(button);
+        });
+    }
+
+    document.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-copy-hash]');
+        if (!button) return;
+        event.preventDefault();
+        event.stopPropagation();
+        copyHash(button.dataset.copyHash, button);
+    }, true);
+
+    attachHeaderButtons();
+    const observer = new MutationObserver(() => attachHeaderButtons());
+    observer.observe(document.body, { childList: true, subtree: true });
 }
 
 // ==========================================
@@ -2084,6 +2189,33 @@ function applyDeepLink() {
 
     const params = new URLSearchParams(hash);
 
+    const showToggleSection = (toggleId, sectionId, options = {}) => {
+        const toggle = document.getElementById(toggleId);
+        const section = document.getElementById(sectionId);
+        const isVisible = section && (
+            section.classList.contains('visible') ||
+            (section.style.display !== 'none' && getComputedStyle(section).display !== 'none')
+        );
+        if (toggle && !isVisible) toggle.click();
+        setTimeout(() => {
+            const target = document.getElementById(sectionId);
+            if (target && options.scroll !== false) {
+                target.scrollIntoView({ behavior: 'smooth', block: options.block || 'start' });
+            }
+        }, options.delay || 300);
+    };
+
+    const revealStaticSection = (sectionId, options = {}) => {
+        const section = document.getElementById(sectionId);
+        if (section) section.classList.add('visible');
+        setTimeout(() => {
+            const target = document.getElementById(sectionId);
+            if (target && options.scroll !== false) {
+                target.scrollIntoView({ behavior: 'smooth', block: options.block || 'start' });
+            }
+        }, options.delay || 300);
+    };
+
     // #my-baker=tz1... or #my-baker (just open it)
     if (params.has('my-baker')) {
         const addr = params.get('my-baker');
@@ -2118,29 +2250,17 @@ function applyDeepLink() {
 
     // #price
     if (params.has('price') || hash === 'price') {
-        const toggle = document.getElementById('price-intel-toggle');
-        if (toggle) toggle.click();
+        showToggleSection('price-intel-toggle', 'price-intelligence', { delay: 800 });
     }
 
     // #calculator
     if (params.has('calculator') || hash === 'calculator') {
-        const toggle = document.getElementById('calc-toggle');
-        const section = document.getElementById('calculator-section');
-        if (toggle && section && !section.classList.contains('visible')) {
-            toggle.click();
-        }
+        showToggleSection('calc-toggle', 'calculator-section');
     }
 
     // #compare — reveal and scroll to comparison section
     if (params.has('compare') || hash === 'compare') {
-        setTimeout(() => {
-            const toggle = document.getElementById('comparison-toggle');
-            const section = document.getElementById('comparison-section');
-            if (toggle && section && !section.classList.contains('visible')) {
-                toggle.click();
-            }
-            if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 500);
+        showToggleSection('comparison-toggle', 'comparison-section', { delay: 500 });
     }
 
     // #history — scroll to protocol/history area
@@ -2153,11 +2273,7 @@ function applyDeepLink() {
 
     // #leaderboard
     if (params.has('leaderboard') || hash === 'leaderboard') {
-        const toggle = document.getElementById('leaderboard-toggle');
-        const section = document.getElementById('leaderboard-section');
-        if (toggle && section && !section.classList.contains('visible')) {
-            toggle.click();
-        }
+        showToggleSection('leaderboard-toggle', 'leaderboard-section');
     }
 
     // #baker=tz1... or #baker=name.tez — open baker profile modal
@@ -2173,20 +2289,22 @@ function applyDeepLink() {
 
     // #whales
     if (params.has('whales') || hash === 'whales') {
-        const toggle = document.getElementById('whale-toggle');
-        const section = document.getElementById('whale-section');
-        if (toggle && section && !section.classList.contains('visible')) {
-            toggle.click();
-        }
+        showToggleSection('whale-toggle', 'whale-section');
     }
 
     // #giants
     if (params.has('giants') || hash === 'giants') {
-        const toggle = document.getElementById('giants-toggle');
-        const section = document.getElementById('giants-section');
-        if (toggle && section && !section.classList.contains('visible')) {
-            toggle.click();
-        }
+        showToggleSection('giants-toggle', 'giants-section');
+    }
+
+    // #nfts
+    if (params.has('nfts') || hash === 'nfts') {
+        showToggleSection('objkt-toggle', 'objkt-section');
+    }
+
+    // #widgets
+    if (params.has('widgets') || hash === 'widgets') {
+        revealStaticSection('widgets-gallery');
     }
 
     // #history

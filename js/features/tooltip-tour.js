@@ -24,13 +24,13 @@
         },
         {
             target: '#features-gear',
-            title: 'Pick Your Modules',
-            text: 'Whale tracker, baker leaderboard, NFT profile, rewards calculator — toggle what you want to see.',
+            title: 'Explore By Goal',
+            text: 'Open market, baker, activity, history, and widget tools from one launcher. Pin only what you need.',
         },
         {
             target: '#settings-gear',
             title: 'Customize Everything',
-            text: '7 themes, Ultra mode with canvas animations, social sharing, export your data.',
+            text: '12 themes, Ultra mode with canvas animations, social sharing, export your data.',
         },
         {
             target: '#theme-toggle',
@@ -45,6 +45,7 @@
     let overlay = null;
     let tooltip = null;
     let backdrop = null;
+    let nudge = null;
 
     function create() {
         overlay = document.createElement('div');
@@ -180,12 +181,41 @@
             overlay.style.opacity = '0';
             setTimeout(function () { overlay.remove(); overlay = null; }, 300);
         }
+        if (nudge) {
+            nudge.remove();
+            nudge = null;
+        }
     }
 
-    // Launch after page settles
-    setTimeout(function () {
-        if (window.scrollY > 300) return;
+    function startTour() {
+        if (nudge) {
+            nudge.remove();
+            nudge = null;
+        }
         create();
         show(0);
+    }
+
+    function createNudge() {
+        nudge = document.createElement('div');
+        nudge.className = 'tour-nudge';
+        nudge.innerHTML =
+            '<div>' +
+                '<strong>Want the 60-second tour?</strong>' +
+                '<span>The dashboard is ready. Take the quick tour when you want it.</span>' +
+            '</div>' +
+            '<div class="tour-nudge-actions">' +
+                '<button class="tour-dismiss" type="button">Skip</button>' +
+                '<button class="tour-start" type="button">Start</button>' +
+            '</div>';
+        document.body.appendChild(nudge);
+        nudge.querySelector('.tour-start').addEventListener('click', startTour);
+        nudge.querySelector('.tour-dismiss').addEventListener('click', end);
+    }
+
+    // Offer the tour after page settles without blocking the dashboard.
+    setTimeout(function () {
+        if (window.scrollY > 300) return;
+        createNudge();
     }, 2500);
 })();

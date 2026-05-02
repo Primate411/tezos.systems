@@ -600,40 +600,37 @@ async function captureAndShare() {
     const existing = document.getElementById('section-picker-modal');
     if (existing) existing.remove();
     
-    const _pickerTheme = document.body.getAttribute('data-theme');
-    const isMatrix = _pickerTheme === 'matrix';
-    const isClean = _pickerTheme === 'clean';
-    const isDark = _pickerTheme === 'dark';
-    const isBubblegum = _pickerTheme === 'bubblegum';
-    const accentColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
-    
     const modal = document.createElement('div');
     modal.id = 'section-picker-modal';
     modal.className = 'share-modal-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'section-picker-title');
     modal.innerHTML = `
-        <div class="share-modal-content" style="max-width: 420px;">
+        <div class="share-modal-content" style="max-width: 460px;">
             <div class="share-modal-header">
-                <h3>Select Sections to Capture</h3>
-                <button class="share-modal-close">×</button>
+                <h3 id="section-picker-title">Select Sections to Capture</h3>
+                <button class="share-modal-close" aria-label="Close section picker">×</button>
             </div>
-            <div style="padding: 20px;">
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 12px;">
-                    <button id="section-toggle-all" style="background: none; border: 1px solid rgba(255,255,255,0.15); color: ${accentColor}; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.2s;">Deselect All</button>
+            <div class="section-picker-body">
+                <div class="section-picker-toolbar">
+                    <span class="section-picker-note">Preview exactly what will become the share image.</span>
+                    <button id="section-toggle-all" class="section-picker-toggle" type="button">Deselect All</button>
                 </div>
-                <div id="section-checkboxes" style="display: flex; flex-direction: column; gap: 10px;">
+                <div id="section-checkboxes" class="section-picker-list">
                     ${sections.map((s, i) => `
-                        <label style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; cursor: pointer; transition: all 0.2s;">
-                            <input type="checkbox" checked data-section-idx="${i}" style="accent-color: ${accentColor}; width: 18px; height: 18px; cursor: pointer;">
-                            <span style="color: var(--text-primary); font-size: 0.9rem; font-weight: 500;">${s.name}</span>
+                        <label class="section-picker-option">
+                            <input type="checkbox" checked data-section-idx="${i}">
+                            <span class="section-picker-label">${s.name}</span>
                         </label>
                     `).join('')}
                 </div>
             </div>
-            <div style="padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); display: flex; gap: 12px;">
-                <button id="section-capture-btn" class="share-action-btn" style="flex: 1; background: rgba(${isClean ? '37,99,235' : isDark ? '200,200,200' : isMatrix ? '0,255,0' : '0,212,255'},0.15); border-color: ${accentColor}; color: ${accentColor}; font-weight: 600;">
+            <div class="section-picker-actions">
+                <button id="section-capture-btn" class="share-action-btn" style="flex: 1;">
                     <span>📸</span> Capture
                 </button>
-                <button id="section-cancel-btn" class="share-action-btn" style="flex: 0 0 auto;">
+                <button id="section-cancel-btn" class="share-action-btn" style="flex: 0 0 auto;" type="button">
                     Cancel
                 </button>
             </div>

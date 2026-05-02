@@ -246,6 +246,7 @@ async function checkSelectorContracts() {
     'price-bar',
     'features-gear',
     'features-dropdown',
+    'widgets-gallery',
     'settings-gear',
     'settings-dropdown',
     'my-tezos-btn',
@@ -263,6 +264,34 @@ async function checkSelectorContracts() {
     if (!index.includes(`id="${id}"`)) fail(`index.html missing required QA selector #${id}`);
   }
   pass(`required QA selectors checked: ${requiredIds.length}`);
+
+  const requiredSnippets = [
+    ['feature launcher grouped menu', 'class="settings-dropdown feature-launcher"'],
+    ['direct feature copy links', 'data-copy-hash="#compare"'],
+    ['widget embed utility panel', 'class="widget-utility-panel"'],
+    ['widget embed utility hidden by default', 'class="stats-section widget-utility-section toggleable-section"'],
+    ['widget builder CTA', 'href="/widgets/builder.html"'],
+    ['share picker styles hook', 'section-picker-note']
+  ];
+
+  for (const [label, snippet] of requiredSnippets) {
+    if (!index.includes(snippet) && !(await readText('js/ui/share.js')).includes(snippet)) {
+      fail(`missing selector contract: ${label}`);
+    }
+  }
+  pass(`new UX selector contracts checked: ${requiredSnippets.length}`);
+
+  const rawWidgetLinks = [
+    'href="/widgets/price.html"',
+    'href="/widgets/baker-card.html"',
+    'href="/widgets/staking-ratio.html"',
+    'href="/widgets/governance.html"',
+    'href="/widgets/combo.html"'
+  ];
+  for (const rawLink of rawWidgetLinks) {
+    if (index.includes(rawLink)) fail(`dashboard should not link directly to raw widget endpoint: ${rawLink}`);
+  }
+  pass('dashboard widget utility avoids raw widget endpoint links');
 }
 
 async function checkStylesheetFreshness() {

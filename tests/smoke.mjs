@@ -29,6 +29,7 @@ const allowedWarningPatterns = [
   /goatcounter/i,
   /Price fetch failed/i,
   /Rate limited \(429\)/i,
+  /status of 429/i,
   /Landing data fetch/i,
   /Failed to fetch/i,
   /CORS policy/i,
@@ -233,6 +234,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
     viewport,
     serviceWorkers: 'block'
   });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
   await context.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
     localStorage.setItem('tezos-toured', '1');
@@ -253,6 +255,13 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, '.stat-card', 18, label);
   await expectCount(page, '.card-share-btn, #share-btn, #upgrade-share-btn, #comparison-share-all-btn', 5, label);
   await expectCount(page, '#build-version', 1, label);
+  await expectCount(page, '#widgets-gallery', 1, label);
+  assert(!(await page.locator('#widgets-gallery').isVisible()), `${label}: Embed Builder utility should be hidden by default`);
+  await expectCount(page, '#widgets-gallery .widget-utility-panel', 1, label);
+  await expectCount(page, '#widgets-gallery a[href="/widgets/builder.html"]', 1, label);
+  assert(await page.locator('#widgets-gallery .widget-preview-card').count() === 0, `${label}: raw widget preview cards should be demoted out of dashboard`);
+  assert(await page.locator('#widgets-gallery a[href^="/widgets/"]:not([href="/widgets/builder.html"])').count() === 0, `${label}: dashboard widget utility should not link to raw widget endpoints`);
+  await expectCount(page, '.section-copy-link', 6, label);
 
   await openDropdown(page, '#settings-gear', '#settings-dropdown');
   await page.locator('#changelog-btn').click();
@@ -268,6 +277,12 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await page.keyboard.press('Escape');
 
   await openDropdown(page, '#features-gear', '#features-dropdown');
+  await expectCount(page, '#features-dropdown.feature-launcher', 1, label);
+  await expectCount(page, '#features-dropdown .feature-launcher-group', 4, label);
+  await expectCount(page, '#features-dropdown .feature-copy-link', 8, label);
+  assert((await page.locator('#features-dropdown a[href="/widgets/builder.html"]').innerText()).includes('Embed Builder'), `${label}: launcher should point widgets to Embed Builder`);
+  await page.locator('.feature-copy-link[data-copy-hash="#compare"]').click();
+  await page.waitForFunction(() => document.querySelector('.feature-copy-link[data-copy-hash="#compare"]')?.textContent?.trim() === '✓', null, { timeout: 3000 });
   await page.locator('#calc-toggle').click();
   await expectClassContains(page.locator('#calculator-section'), 'visible', `${label} #calculator-section`);
   await page.locator('#calc-amount').fill('10000');
@@ -285,7 +300,8 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await openDropdown(page, '#settings-gear', '#settings-dropdown');
   await page.locator('#share-btn').click();
   await page.locator('#section-picker-modal').waitFor({ state: 'visible', timeout: 5000 });
-  await expectCount(page, '#section-picker-modal input[type="checkbox"]', 4, label);
+  await expectCount(page, '#section-picker-modal input[type="checkbox"]', 8, label);
+  await expectCount(page, '#section-picker-modal .section-picker-note', 1, label);
   await page.locator('#section-picker-modal .share-modal-close').click();
   await page.locator('#section-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
 
@@ -311,7 +327,13 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `first visit tour: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-  await page.locator('#tour-overlay').waitFor({ state: 'attached', timeout: 6000 });
+  await page.locator('#tour-overlay').waitFor({ state: 'detached', timeout: 2000 }).catch(() => {
+    throw new Error('first visit tour: tour overlay should not block first paint before Start');
+  });
+  await page.locator('.tour-nudge').waitFor({ state: 'visible', timeout: 6000 });
+  await assertLocatorCount(page.locator('.tour-nudge .tour-start'), 1, 'first visit tour start');
+  await page.locator('.tour-nudge .tour-start').click();
+  await page.locator('#tour-overlay').waitFor({ state: 'visible', timeout: 6000 });
   await assertLocatorCount(page.locator('#tour-overlay .tour-skip'), 1, 'first visit tour skip');
   await page.locator('#tour-overlay .tour-skip').click();
   await page.locator('#tour-overlay').waitFor({ state: 'detached', timeout: 5000 });
@@ -319,6 +341,74 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   await context.close();
   assert(issues.length === 0, `first visit tour browser issues:\n${issues.join('\n')}`);
   log('ok - first visit tour smoke');
+}
+
+async function smokeUxChanges(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1366, height: 900 },
+    serviceWorkers: 'block'
+  });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'clean');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-comparison-visible', 'false');
+    localStorage.setItem('tezos-systems-pi-visible', 'false');
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'ux changes', issues);
+
+  let response = await page.goto(`${baseUrl}/?theme=clean#compare`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `ux changes: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('#comparison-section.visible').waitFor({ state: 'visible', timeout: 10000 });
+  await expectCount(page, '#comparison-section .section-copy-link[data-copy-hash="#compare"]', 1, 'ux compare copy link');
+
+  const cleanContrast = await page.evaluate(() => {
+    const uptime = getComputedStyle(document.querySelector('.uptime-metric-value')).color;
+    const comparison = getComputedStyle(document.querySelector('.comparison-col-ethereum .comparison-chain-value')).color;
+    const shareContent = document.querySelector('.share-modal-content');
+    return {
+      uptime,
+      comparison,
+      hasShareContent: Boolean(shareContent)
+    };
+  });
+  assert(!/255,\s*255,\s*255/.test(cleanContrast.uptime), `ux changes: clean uptime metric still white (${cleanContrast.uptime})`);
+  assert(!/255,\s*255,\s*255/.test(cleanContrast.comparison), `ux changes: clean comparison value still white (${cleanContrast.comparison})`);
+
+  await openDropdown(page, '#settings-gear', '#settings-dropdown');
+  await page.locator('#share-btn').click();
+  await page.locator('#section-picker-modal').waitFor({ state: 'visible', timeout: 5000 });
+  const pickerColors = await page.evaluate(() => {
+    const label = document.querySelector('#section-picker-modal .section-picker-label');
+    const content = document.querySelector('#section-picker-modal .share-modal-content');
+    return {
+      label: getComputedStyle(label).color,
+      bg: getComputedStyle(content).backgroundColor
+    };
+  });
+  assert(!/255,\s*255,\s*255/.test(pickerColors.label), `ux changes: clean share picker label still white (${pickerColors.label})`);
+  assert(/255,\s*255,\s*255/.test(pickerColors.bg), `ux changes: clean share picker background not white (${pickerColors.bg})`);
+  await page.locator('#section-picker-modal .share-modal-close').click();
+
+  await page.goto(`${baseUrl}/?theme=clean#nfts`, { waitUntil: 'domcontentloaded' });
+  await page.locator('#objkt-section.visible').waitFor({ state: 'visible', timeout: 10000 });
+
+  await page.goto(`${baseUrl}/?theme=clean#price`, { waitUntil: 'domcontentloaded' });
+  await page.locator('#price-intelligence').waitFor({ state: 'visible', timeout: 12000 });
+  await expectCount(page, '#price-intelligence .section-copy-link[data-copy-hash="#price"]', 1, 'ux price copy link');
+
+  await page.goto(`${baseUrl}/?theme=clean#widgets`, { waitUntil: 'domcontentloaded' });
+  await page.locator('#widgets-gallery').waitFor({ state: 'visible', timeout: 5000 });
+  await expectCount(page, '#widgets-gallery .widget-utility-panel', 1, 'ux widget utility');
+  await expectCount(page, '#widgets-gallery a[href="/widgets/builder.html"]', 1, 'ux widget utility builder link');
+  assert(await page.locator('#widgets-gallery .widget-preview-card').count() === 0, 'ux widget utility: raw preview cards should not render');
+
+  await context.close();
+  assert(issues.length === 0, `ux changes browser issues:\n${issues.join('\n')}`);
+  log('ok - UX changes smoke');
 }
 
 async function crawlRoutes(browser, baseUrl) {
@@ -355,6 +445,7 @@ async function main() {
     await smokeFirstVisitTour(browser, server.baseUrl);
     await smokeDashboard(browser, server.baseUrl, { width: 1440, height: 1000 }, 'desktop');
     await smokeDashboard(browser, server.baseUrl, { width: 390, height: 844 }, 'mobile');
+    await smokeUxChanges(browser, server.baseUrl);
     await crawlRoutes(browser, server.baseUrl);
   } finally {
     if (browser) await browser.close();
