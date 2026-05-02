@@ -252,7 +252,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, 'header.header', 1, label);
   await expectCount(page, '#price-bar', 1, label);
   await expectCount(page, '#upgrade-clock', 1, label);
-  await expectCount(page, '.stat-card', 18, label);
+  await expectCount(page, '.stat-card', 19, label);
   await expectCount(page, '.card-share-btn, #share-btn, #upgrade-share-btn, #comparison-share-all-btn', 5, label);
   await expectCount(page, '#build-version', 1, label);
   await expectCount(page, '#widgets-gallery', 1, label);

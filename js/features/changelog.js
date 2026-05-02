@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-05-02',
         entries: [
+            { type: '✨', text: 'Network Health card added to Consensus with last 5 block attestation power and 24h/7d/31d health windows' },
             { type: '✨', text: 'Explore launcher groups tools by goal with direct-link copy buttons for major features' },
             { type: '🎨', text: 'Clean theme contrast pass for uptime clock, comparison cards, share picker, and onboarding surfaces' },
             { type: '🔧', text: 'Widget Gallery demoted into a hidden builder-led embed utility so raw widget endpoints no longer occupy the default dashboard' },

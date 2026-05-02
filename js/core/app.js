@@ -17,7 +17,7 @@ import {
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
-import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
+import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js?v=65';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js';
 
@@ -112,6 +112,7 @@ import { initPriceIntelligence, updatePriceIntelligence } from '../features/pric
 import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js';
 import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js';
 import { initStateOfTezos } from '../features/state-of-tezos.js';
+import { initNetworkHealth, refreshNetworkHealth } from '../features/network-health.js';
 
 // Protocols with major governance contention (level 3+)
 const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
@@ -207,6 +208,7 @@ async function init() {
     safe('navButtons', initNavButtons);
     safe('uptimeClock', initUptimeClock);
     safe('tezosStatsToggle', initTezosStatsToggle);
+    safe('networkHealth', initNetworkHealth);
 
     // Upgrade section share button
     const upgradeShareBtn = document.getElementById('upgrade-share-btn');
@@ -513,6 +515,7 @@ async function refreshInBackground() {
         refreshMyBaker();
         refreshLeaderboard();
         refreshMyTezos();
+        refreshNetworkHealth({ force: true });
         
         // resetCountdown();
     } catch (error) {
@@ -551,6 +554,7 @@ async function refresh() {
         refreshMyBaker();
         refreshLeaderboard();
         refreshMyTezos();
+        refreshNetworkHealth({ force: true });
     } catch (error) {
         console.error('Failed to refresh stats:', error);
         showErrorState();
@@ -927,6 +931,7 @@ function initTezosStatsToggle() {
         localStorage.setItem(STATS_VISIBLE_KEY, String(newState));
         updateVis(newState);
         if (newState) await loadStatsIfNeeded();
+        if (newState) refreshNetworkHealth({ force: true });
     });
 
     // Default OFF — only show if user explicitly enabled (lazy-load)

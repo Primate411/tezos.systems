@@ -296,7 +296,14 @@ async function captureCard(card) {
     try {
         await loadHtml2Canvas();
         
-        const { brand: brandColor, bg: bgColor } = getThemeColors();
+        const {
+            brand: brandColor,
+            bg: bgColor,
+            isClean,
+            isDark,
+            isMatrix,
+            isBubblegum
+        } = getThemeColors();
         
         // Read data from the card
         const statLabel = card.querySelector('.stat-label')?.textContent.trim() || '';
@@ -1225,10 +1232,11 @@ function getThemeColors() {
     const isMatrix = currentTheme === 'matrix';
     const isDark = currentTheme === 'dark';
     const isClean = currentTheme === 'clean';
+    const isBubblegum = currentTheme === 'bubblegum';
     const brand = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : '#00d4ff';
     const bg = isClean ? '#F8F9FA' : isDark ? '#1A1A1A' : isMatrix ? '#0a0a0a' : '#0a0a0f';
     const brandRgb = isClean ? '37,99,235' : isDark ? '200,200,200' : isMatrix ? '0,255,0' : '0,212,255';
-    return { isMatrix, isDark, isClean, brand, bg, brandRgb };
+    return { isMatrix, isDark, isClean, isBubblegum, brand, bg, brandRgb };
 }
 
 function createBaseWrapper(bg, brandRgb) {
