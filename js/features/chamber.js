@@ -56,6 +56,24 @@ let _currentEpochIndex = null;
 let _latestEpochIndex = null;
 let _earliestEpochIndex = 1;
 let _chamberAnimFrame = null;
+let _savedBodyOverflow = null;
+let _savedHtmlOverflow = null;
+
+function lockPageScrollForChamber() {
+    if (_savedBodyOverflow !== null) return;
+    _savedBodyOverflow = document.body.style.overflow;
+    _savedHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+}
+
+function unlockPageScrollForChamber() {
+    if (_savedBodyOverflow === null) return;
+    document.body.style.overflow = _savedBodyOverflow;
+    document.documentElement.style.overflow = _savedHtmlOverflow || '';
+    _savedBodyOverflow = null;
+    _savedHtmlOverflow = null;
+}
 
 async function fetchEpochData(epochIndex) {
     const epoch = await (await fetch(`${TZKT}/voting/epochs/${epochIndex}`)).json();
@@ -920,7 +938,9 @@ export async function openChamber() {
     document.addEventListener('keydown', handleChamberEscape);
     
     overlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    lockPageScrollForChamber();
+    const content = overlay.querySelector('.chamber-content');
+    if (content) content.scrollTop = 0;
     
     let data;
     try {
@@ -962,7 +982,8 @@ export function closeChamber() {
     stopAmbientEffects();
     document.removeEventListener('keydown', handleChamberEscape);
     const overlay = document.getElementById('chamber-modal');
-    if (overlay) { overlay.classList.remove('active'); document.body.style.overflow = ''; }
+    if (overlay) overlay.classList.remove('active');
+    unlockPageScrollForChamber();
 }
 
 // ─── Entry card with live mini-status ───

@@ -11963,6 +11963,17 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     border: 1px solid rgba(0, 212, 255, 0.15) !important;
     box-shadow: 0 0 80px rgba(0, 212, 255, 0.1), 0 0 120px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255,255,255,0.04) !important;
     padding: 2rem 2.5rem !important;
+    max-height: calc(100vh - 4rem) !important;
+    max-height: calc(100dvh - 4rem) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+.chamber-overlay.active {
+    overflow: hidden;
+    overscroll-behavior: contain;
 }
 
 .chamber-loading {
@@ -12644,7 +12655,11 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 
 /* Responsive */
 @media (max-width: 768px) {
-    .chamber-content { padding: 1.5rem !important; }
+    .chamber-content {
+        padding: 1.5rem !important;
+        max-height: calc(100vh - 2rem) !important;
+        max-height: calc(100dvh - 2rem) !important;
+    }
     .chamber-grid { grid-template-columns: 1fr; }
     .chamber-pipeline { flex-wrap: wrap; gap: 4px; }
     .stage-connector { width: 16px; }
@@ -13086,7 +13101,8 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 
 .chamber-content {
     position: relative;
-    overflow: hidden;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
 }
 
 .chamber-body {
