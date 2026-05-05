@@ -663,18 +663,11 @@ function renderHistoricalComparison(data) {
         { name: 'Granada', epoch: 32, pct: 87.1 },
     ];
     
-    // Exclude current epoch from comparisons
-    // Pick diverse comparisons: skip 100% duplicates, include varied results
-    const comparisons = [];
-    const seen = new Set();
-    for (const h of HISTORICAL) {
-        if (h.epoch === data.epoch.index) continue;
-        if (comparisons.length >= 4) break;
-        // Skip if we already have a 100% and this is also 100%
-        if (h.pct >= 99.9 && seen.has(100)) continue;
-        if (h.pct >= 99.9) seen.add(100);
-        comparisons.push(h);
-    }
+    // Show the most recent previous upgrades in chain order.
+    const comparisons = HISTORICAL
+        .filter(h => h.epoch !== data.epoch.index)
+        .sort((a, b) => b.epoch - a.epoch)
+        .slice(0, 4);
     if (!comparisons.length) return '';
     
     const allPcts = [{ name: currentName, pct: currentPct }, ...comparisons];
@@ -683,13 +676,13 @@ function renderHistoricalComparison(data) {
     
     let contextLine = '';
     if (currentPct >= 99.9) {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — unanimous consensus. Recent upgrades show strong alignment across the baker set.`;
+        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — unanimous consensus. Recent previous votes are shown newest first.`;
     } else if (currentPct >= 95) {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — near-unanimous. For comparison, ${lowest.name} had the tightest recent vote at ${lowest.pct.toFixed(1)}%.`;
+        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — near-unanimous. Among the recent votes shown, ${lowest.name} was the tightest at ${lowest.pct.toFixed(1)}%.`;
     } else if (currentPct >= 80) {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — passing but contested. ${highest.name} holds the recent high at ${highest.pct.toFixed(1)}%.`;
+        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — passing but contested. Recent previous votes are shown newest first.`;
     } else {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — below supermajority threshold. Most recent upgrades passed with >${lowest.pct.toFixed(0)}%.`;
+        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — below supermajority threshold. Recent previous votes are shown newest first.`;
     }
     
     const bars = comparisons.map(c => `
