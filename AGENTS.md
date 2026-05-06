@@ -47,7 +47,8 @@ the highest-risk gotchas.
 - `js/core/utils.js`: formatters, debounce/throttle, sanitization helpers.
 - `sw.js`: static/API cache logic.
 - `version.json`: build metadata.
-- `data/*.json`: protocol history, protocol debates, and tweet/share templates.
+- `data/*.json`: protocol history, governance refresh artifacts, protocol
+  debates, and tweet/share templates.
 - `widgets/*.html`: standalone embeddable widgets.
 
 ## Data Sources
@@ -241,6 +242,11 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
 
 - `data/protocol-data.json`: protocol timeline from Athens through Tallinn.
 - `data/protocol-debates.json`: debate and rejection narratives.
+- `data/governance-votes.json`: generated TzKT voting epochs plus
+  Exploration/Promotion vote rows, including failed windows.
+- `data/governance-refresh-report.json`: generated stale-data audit with live
+  current protocol/period, lore coverage, active proposal watch notes, and
+  blocker/warning status.
 - `data/tweets.json`: share-copy templates used by the share system.
 
 ## Version History Log
@@ -276,9 +282,36 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
   currently every 2 hours.
 - `.github/scripts/collect-data.js`: collects TzKT/Octez stats and writes to
   Supabase, with guardrails against critical zero values.
+- `scripts/refresh-governance-data.mjs`: canonical governance refresh entry
+  point. It updates generated governance vote artifacts from TzKT and fails when
+  an accepted/current protocol is missing curated lore in
+  `data/protocol-data.json`.
+- `scripts/update-governance-votes.mjs`: compatibility wrapper around
+  `scripts/refresh-governance-data.mjs`.
 - `scripts/stamp-version.sh`: updates `version.json` and stages it.
 - `scripts/generate-og-image.js`: uses Playwright to generate OG imagery from
   live data.
+
+## Governance Stale-Data Control
+
+- Use `npm run refresh:governance` as the single command before touching
+  governance/protocol data. It refreshes `data/governance-votes.json` and
+  `data/governance-refresh-report.json`.
+- The tracked `.githooks/pre-commit` runs
+  `scripts/refresh-governance-data.mjs --stage` before version stamping, so
+  generated governance artifacts are refreshed on every normal commit.
+- `npm run update:governance-votes` remains as an alias for older instructions,
+  but new work should name `refresh:governance`.
+- If Exploration or Promotion fails, the generated vote history should pick it
+  up automatically from TzKT and The Chamber should show it in historical
+  context.
+- If a proposal reaches Adoption or becomes the current protocol and
+  `data/protocol-data.json` does not have lore for it, the refresh report should
+  block the commit. Add a balanced, sourced protocol entry before proceeding.
+- For accepted protocol lore, use official Octez/changelog docs for technical
+  facts, then steelman the TezosAgora and X/community debate on both sides.
+  Keep `headline`, `changes`, `debate`, `contention`, and `history` aligned so
+  the front page, tooltips, share cards, and Chamber names do not drift.
 
 ## Known Stale or Risky Claims
 

@@ -143,6 +143,7 @@ async function checkRequiredFiles() {
     'sw.js',
     'version.json',
     'data/governance-votes.json',
+    'data/governance-refresh-report.json',
     'data/protocol-data.json',
     'data/protocol-debates.json',
     'data/tweets.json'
@@ -166,8 +167,22 @@ async function checkJsonFiles() {
   }
 }
 
+function hoursSince(iso) {
+  const time = new Date(iso).getTime();
+  if (!Number.isFinite(time)) return Number.POSITIVE_INFINITY;
+  return (Date.now() - time) / 36e5;
+}
+
+function protocolHashMatches(hash, prefix) {
+  if (!hash || !prefix) return false;
+  return hash.startsWith(prefix) || hash.startsWith(prefix.slice(0, 8)) || prefix.startsWith(hash.slice(0, 8));
+}
+
 async function checkGovernanceVotes() {
   const data = JSON.parse(await readText('data/governance-votes.json'));
+  const report = JSON.parse(await readText('data/governance-refresh-report.json'));
+  const protocolData = JSON.parse(await readText('data/protocol-data.json'));
+  const protocols = Array.isArray(protocolData.protocols) ? protocolData.protocols : [];
   const votes = Array.isArray(data.periodVotes) ? data.periodVotes : [];
   const failed = votes.filter((vote) => ['no_quorum', 'no_supermajority'].includes(vote.status));
   const namedFailures = new Set(failed.map((vote) => vote.displayName));
@@ -187,6 +202,33 @@ async function checkGovernanceVotes() {
   for (const expected of ['Brest A', 'Ithaca', 'Oxford', 'Qena', 'Qena42']) {
     if (!namedFailures.has(expected)) fail(`governance-votes missing failed proposal ${expected}`);
   }
+
+  if (hoursSince(data.generatedAt) > 72) {
+    fail('governance-votes is older than 72 hours; run npm run refresh:governance');
+  }
+  if (hoursSince(report.generatedAt) > 72) {
+    fail('governance refresh report is older than 72 hours; run npm run refresh:governance');
+  }
+  if (report.status === 'blocked' || report.blockers?.length) {
+    fail(`governance refresh report has blockers: ${(report.blockers || []).map((b) => b.code).join(', ')}`);
+  }
+  if (report.singleEntryPoint !== 'scripts/refresh-governance-data.mjs') {
+    fail('governance refresh report must name scripts/refresh-governance-data.mjs as the single entry point');
+  }
+
+  const currentProtocol = report.currentProtocol;
+  const currentLore = currentProtocol
+    ? protocols.find((p) => p.name === currentProtocol.name || protocolHashMatches(currentProtocol.hash, p.hash))
+    : null;
+  if (currentProtocol && !currentLore) {
+    fail(`current protocol ${currentProtocol.name} is missing from data/protocol-data.json`);
+  }
+
+  const missingAccepted = report.coverage?.activatedProtocolLore?.missing || [];
+  if (missingAccepted.length) {
+    fail(`accepted protocol lore missing: ${missingAccepted.map((p) => p.name || p.hash).join(', ')}`);
+  }
+
   pass(`governance vote history checked: ${votes.length} vote periods, ${failed.length} failures`);
 }
 

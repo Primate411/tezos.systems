@@ -27,32 +27,6 @@ const STAGES = [
     { key: 'adoption', label: 'Adoption', icon: '🚀' }
 ];
 
-const PROTO_MAP = {
-    PtTALLiN: { name: 'Tallinn', num: 24 },
-    PtSeouLo: { name: 'Seoul', num: 23 },
-    PsRiotum: { name: 'Rio', num: 22 },
-    PsQuebec: { name: 'Quebec', num: 21 },
-    PsParisC: { name: 'Paris C', num: 20 },
-    PtParisB: { name: 'Paris', num: 19 },
-    Proxford: { name: 'Oxford', num: 18 },
-    PtNairob: { name: 'Nairobi', num: 17 },
-    PtMumbai: { name: 'Mumbai', num: 16 },
-    PtLimaPt: { name: 'Lima', num: 15 },
-    PtKathma: { name: 'Kathmandu', num: 14 },
-    PtJakart: { name: 'Jakarta', num: 13 },
-    Psithaca: { name: 'Ithaca', num: 12 },
-    PtHangz2: { name: 'Hangzhou', num: 11 },
-    PtGRANAD: { name: 'Granada', num: 10 },
-    PsFLoren: { name: 'Florence', num: 9 },
-    PtEdoTez: { name: 'Edo', num: 8 },
-    PtEdo2Zk: { name: 'Edo', num: 8 },
-    PsDELPH1: { name: 'Delphi', num: 7 },
-    PsCARTHA: { name: 'Carthage', num: 6 },
-    PsBabyM1: { name: 'Babylon', num: 5 },
-    PsBABY11: { name: 'Babylon', num: 5 },
-    Pt24m4xi: { name: 'Athens', num: 4 },
-};
-
 let _chamberCache = {};
 let _chamberCacheTime = {};
 const CACHE_TTL = 60000;
@@ -101,7 +75,10 @@ function unlockPageScrollForChamber() {
 }
 
 async function fetchEpochData(epochIndex) {
-    const epoch = await (await fetch(`${TZKT}/voting/epochs/${epochIndex}`)).json();
+    const [epoch, protocols] = await Promise.all([
+        (await fetch(`${TZKT}/voting/epochs/${epochIndex}`)).json(),
+        loadProtocolHistory()
+    ]);
     let proposal = epoch.proposals?.[0] || null;
     
     let votePeriod = epoch.periods.find(p => p.kind === 'promotion')
@@ -112,7 +89,7 @@ async function fetchEpochData(epochIndex) {
         voters = await (await fetch(`${TZKT}/voting/periods/${votePeriod.index}/voters?sort.desc=votingPower&limit=250`)).json();
     }
     
-    return { epoch, proposal, votePeriod, voters };
+    return { epoch, proposal, votePeriod, voters, protocols };
 }
 
 async function fetchChamberData(epochIndex) {
@@ -237,9 +214,6 @@ function protocolHashMatches(hash, prefix) {
 function protocolFromHash(hash, protocols = []) {
     const fromData = protocols.find(p => protocolHashMatches(hash, p.hash));
     if (fromData) return fromData;
-    for (const [k, v] of Object.entries(PROTO_MAP)) {
-        if (protocolHashMatches(hash, k)) return v;
-    }
     return null;
 }
 
@@ -822,7 +796,7 @@ function renderHistoricalComparison(data) {
     const currentPct = calcSupermajority(data.votePeriod);
     if (currentPct === null) return '';
     
-    const currentName = data.proposal?.hash ? extractProtoName(data.proposal.hash) : `Epoch ${data.epoch.index}`;
+    const currentName = data.proposal?.hash ? extractProtoName(data.proposal.hash, data.protocols || []) : `Epoch ${data.epoch.index}`;
     
     return `
         <div class="chamber-comparison chamber-anim-fade" id="chamber-historical-context" style="animation-delay:700ms">
@@ -843,7 +817,7 @@ async function hydrateHistoricalComparison(data) {
     if (!container) return;
 
     const currentPct = calcSupermajority(data.votePeriod);
-    const currentName = data.proposal?.hash ? extractProtoName(data.proposal.hash) : `Epoch ${data.epoch.index}`;
+    const currentName = data.proposal?.hash ? extractProtoName(data.proposal.hash, data.protocols || []) : `Epoch ${data.epoch.index}`;
     const context = container.querySelector('.comparison-context');
     const rowsEl = container.querySelector('.comparison-rows');
 
@@ -902,7 +876,7 @@ function renderProposalHeader(data) {
     let proposalName = 'No Active Proposal', proposalHash = '', submitter = '', submitterPower = '';
     
     if (proposal) {
-        proposalName = proposal.hash?.startsWith('Pt') ? extractProtoName(proposal.hash) : (proposal.hash?.slice(0, 12) + '…');
+        proposalName = extractProtoName(proposal.hash, data.protocols || []);
         proposalHash = proposal.hash || '';
         submitter = proposal.initiator?.alias || (proposal.initiator?.address?.slice(0, 10) + '…') || '';
         if (proposal.upvotes) submitterPower = `${proposal.upvotes} upvotes`;

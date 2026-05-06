@@ -114,8 +114,9 @@ import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefi
 import { initStateOfTezos } from '../features/state-of-tezos.js';
 import { initNetworkHealth, refreshNetworkHealth } from '../features/network-health.js';
 
-// Protocols with major governance contention (level 3+)
-const CONTENTIOUS = new Set(['Granada', 'Ithaca', 'Jakarta', 'Oxford', 'Quebec']);
+function isContentiousProtocol(protocol, lore = null) {
+    return Boolean(protocol?.contention || lore?.contention || lore?.history);
+}
 
 // All stat card IDs (used for loading/error states)
 const ALL_CARD_IDS = [
@@ -1308,7 +1309,7 @@ function renderProtocolTimeline(protocols) {
     const timelineHTML = `
         <div class="timeline-track">
             ${protocols.map(p => {
-                const contentious = CONTENTIOUS.has(p.name);
+                const contentious = isContentiousProtocol(p);
                 const year = p.date ? new Date(p.date).getFullYear() : null;
                 const showYear = year && !yearSeen.has(year);
                 if (year) yearSeen.add(year);
@@ -1395,9 +1396,9 @@ async function renderInfographic(protocols, timelineEl) {
     
     let rowsHTML = '';
     protocols.forEach((p, i) => {
-        const contentious = CONTENTIOUS.has(p.name);
         const isCurrent = p.isCurrent || i === protocols.length - 1;
         const rich = richMap[p.name];
+        const contentious = isContentiousProtocol(p, rich);
         const dateStr = rich?.date
             ? new Date(rich.date + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' })
             : '';
@@ -1457,7 +1458,7 @@ let _protocolDataCache = null;
 async function loadProtocolData() {
     if (_protocolDataCache) return _protocolDataCache;
     try {
-        const resp = await fetch('/data/protocol-data.json?v=1');
+        const resp = await fetch('/data/protocol-data.json?v=2', { cache: 'no-store' });
         _protocolDataCache = await resp.json();
         return _protocolDataCache;
     } catch (e) { return null; }
@@ -1754,9 +1755,10 @@ async function updateUpgradeClock() {
                             const votes = await vResp.json();
                             let yay = 0, nay = 0, pass = 0;
                             for (const v of votes) {
-                                if (v.status === 'yay') yay += v.votingPower || 0;
-                                else if (v.status === 'nay') nay += v.votingPower || 0;
-                                else if (v.status === 'pass') pass += v.votingPower || 0;
+                                const status = String(v.status || '').replace('voted_', '');
+                                if (status === 'yay') yay += v.votingPower || 0;
+                                else if (status === 'nay') nay += v.votingPower || 0;
+                                else if (status === 'pass') pass += v.votingPower || 0;
                             }
                             const total = yay + nay + pass;
                             const eligible = votingStatus.totalVotingPower || votingStatus.topVotingPower || 1;
@@ -1775,7 +1777,12 @@ async function updateUpgradeClock() {
                     } catch {}
                 }
                 
-                const proposalName = votingStatus.epoch?.proposal?.alias;
+                const proposal = votingStatus.proposal || votingStatus.epoch?.proposal || null;
+                const proposalName = votingStatus.proposalName
+                    || proposal?.alias
+                    || proposal?.extras?.alias
+                    || proposal?.metadata?.alias
+                    || (proposal?.hash ? `${proposal.hash.slice(0, 8)}...` : '');
                 const proposalLabel = proposalName ? `<span class="voting-proposal-name">${escapeHtml(proposalName)}</span>` : '';
                 
                 statusEl.innerHTML = `

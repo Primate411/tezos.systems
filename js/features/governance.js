@@ -6,48 +6,70 @@
 import { API_URLS } from '../core/config.js';
 
 const TZKT_BASE = API_URLS.tzkt;
-
-// Human-readable upgrade summaries with activation dates
-// Research sources: TzKT, Tezos docs, Agora discussions, Nomadic Labs
-// Key debates: Oslo vs Oxford (AI parameters), Quebec A vs B (delegation weight)
-const UPGRADE_HIGHLIGHTS = {
-    'Athens': 'First ever self-amendment • Baking threshold 10k→8k tez • May 2019',
-    'Babylon': 'Emmy+ consensus • Entrypoints • Direct delegation • Oct 2019',
-    'Carthage': '+30% gas capacity • Improved reward formula • Mar 2020',
-    'Delphi': '4× cheaper storage (1→0.25 tez/KB) • Gas revolution • Nov 2020',
-    'Edo': 'Sapling privacy • Tickets for L2 • 5th voting period • Feb 2021',
-    'Florence': 'Depth-first execution • 32KB ops • Baking Accounts removed • May 2021',
-    'Granada': '2× faster (30s blocks) • Liquidity Baking introduced ⚔️ • Aug 2021',
-    'Hangzhou': 'Timelocks • On-chain views • Global constants • Dec 2021',
-    'Ithaca': 'Tenderbake: deterministic finality • LB extension wars ⚔️ • Apr 2022',
-    'Jakarta': 'Transaction rollups • LB Toggle Vote ⚔️ • tz4 addresses • Jun 2022',
-    'Kathmandu': 'Contract events • VDF randomness • SCORU prep • Sep 2022',
-    'Lima': 'Consensus keys • Timelocks disabled (security) • Dec 2022',
-    'Mumbai': '2× faster (15s blocks) • Smart Rollups live • TORU removed • Mar 2023',
-    'Nairobi': 'Smart Rollups production • Precise signature gas • Jun 2023',
-    'Oxford': 'REJECTED at Promotion ⚔️ • Oslo vs Oxford economics war • First rejection ever • Feb 2024',
-    'Paris': '1.5× faster (10s blocks) • DAL launched • AI voting enabled • Jun 2024',
-    'Paris C': 'DAL activation follow-up • Quick patch • Jun 2024',
-    'Quebec': '8s blocks • Adaptive Maximum issuance • Quebec vs Qena economic governance battle ⚔️ • Jan 2025',
-    'Rio': 'DAL rewards • Daily cycles (~1 day) • May 2025',
-    'Seoul': 'Attestation aggregation • BLS proof-of-possession • Sep 2025',
-    'Tallinn': '1.33× faster (6s blocks) • All Bakers Attest prep • Jan 2026'
-};
-
-// Protocol debates for expanded tooltips
-const PROTOCOL_DEBATES = {
-    'Granada': 'First major governance crisis. Introduced Liquidity Baking — a forced 2.5 tez/block subsidy to tzBTC/XTZ pool. Critics called it protocol-level market manipulation. Supporters said it was essential for tez liquidity. The "original sin" that turned Tezos governance from technical into economic warfare.',
-    'Ithaca': 'Extended controversial Liquidity Baking sunset by ~10 months while lowering escape hatch threshold from 50% to 33%. Community torn between "valuable liquidity infrastructure" and "inappropriate subsidy" camps. The LB wars continued.',
-    'Jakarta': 'Redesigned LB "Escape Hatch" into a Toggle Vote system with On/Off/Pass options, making deactivation reversible. Technically elegant but further entrenched the contentious LB mechanism into protocol governance.',
-    'Lima': 'Timelocks disabled after security vulnerability found — adversary could forge proofs.',
-    'Oxford': 'First protocol REJECTION in Tezos history. Oslo challenged Oxford over Adaptive Issuance parameters — 7.5% max issuance vs 5%, different economic philosophies. Oxford was rejected at Promotion stage, then resubmitted with AI disabled. Proved the community could say no to core developers.',
-    'Quebec': 'Tezos\' first economic governance crisis. Original Qena won Proposal but got 77% in Exploration — 3% short of the 80% supermajority. Qena42 won the next Proposal vote (59.9%) but died from no quorum in Exploration after a core developer bug advisory. Q3NA offered compromise. Quebec B ultimately activated after a 6-month battle over adaptive issuance economics.'
-};
+const PROTOCOL_DATA_URL = '/data/protocol-data.json';
+const GOVERNANCE_REPORT_URL = '/data/governance-refresh-report.json';
 
 // Cache for protocol list (avoid redundant fetches within a session)
 let _protocolsCache = null;
 let _protocolsCacheTime = 0;
 const PROTOCOLS_CACHE_TTL = 300000; // 5 minutes
+let _protocolLoreCache = null;
+let _protocolLoreCacheTime = 0;
+let _governanceReportCache = null;
+let _governanceReportCacheTime = 0;
+
+async function loadProtocolLore() {
+    if (_protocolLoreCache && (Date.now() - _protocolLoreCacheTime) < PROTOCOLS_CACHE_TTL) {
+        return _protocolLoreCache;
+    }
+
+    try {
+        const response = await fetch(`${PROTOCOL_DATA_URL}?v=2`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        _protocolLoreCache = Array.isArray(data.protocols) ? data.protocols : [];
+        _protocolLoreCacheTime = Date.now();
+        return _protocolLoreCache;
+    } catch (error) {
+        console.warn('Failed to load protocol lore:', error);
+        return _protocolLoreCache || [];
+    }
+}
+
+async function loadGovernanceReport() {
+    if (_governanceReportCache && (Date.now() - _governanceReportCacheTime) < PROTOCOLS_CACHE_TTL) {
+        return _governanceReportCache;
+    }
+
+    try {
+        const response = await fetch(`${GOVERNANCE_REPORT_URL}?v=1`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        _governanceReportCache = await response.json();
+        _governanceReportCacheTime = Date.now();
+        return _governanceReportCache;
+    } catch (_) {
+        return _governanceReportCache || null;
+    }
+}
+
+function protocolHashMatches(hash, prefix) {
+    if (!hash || !prefix) return false;
+    return hash.startsWith(prefix) || hash.startsWith(prefix.slice(0, 8)) || prefix.startsWith(hash.slice(0, 8));
+}
+
+function findProtocolLore(protocol, lore) {
+    return lore.find(p => p.name === protocol.name)
+        || lore.find(p => protocolHashMatches(protocol.hash, p.hash))
+        || null;
+}
+
+function formatProtocolDate(lore, protocol) {
+    const raw = lore?.date || protocol.startTime;
+    if (!raw) return '';
+    const d = new Date(raw.includes('T') ? raw : `${raw}T00:00:00Z`);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
 
 /**
  * Build a fallback highlight for unknown protocols from TzKT data
@@ -62,6 +84,53 @@ function buildFallbackHighlight(protocol) {
     return `Protocol upgrade #${protocol.code - 3}${dateStr}`;
 }
 
+function buildLoreHighlight(lore, protocol) {
+    const dateStr = formatProtocolDate(lore, protocol);
+    if (lore?.headline) return `${lore.headline}${dateStr ? ` • ${dateStr}` : ''}`;
+    if (lore?.changes?.length) {
+        const summary = lore.changes.slice(0, 2).join(' • ');
+        return `${summary}${dateStr ? ` • ${dateStr}` : ''}`;
+    }
+    return buildFallbackHighlight(protocol);
+}
+
+function chooseEpochProposal(period, epoch) {
+    const proposals = epoch?.proposals || [];
+    const scoped = proposals.filter(proposal => {
+        const first = proposal.firstPeriod ?? Number.NEGATIVE_INFINITY;
+        const last = proposal.lastPeriod ?? Number.POSITIVE_INFINITY;
+        return first <= period.index && period.index <= last;
+    });
+
+    return scoped.find(proposal => proposal.status === 'active')
+        || scoped.find(proposal => ['accepted', 'rejected'].includes(proposal.status))
+        || scoped[0]
+        || proposals.find(proposal => proposal.status === 'accepted')
+        || proposals[0]
+        || null;
+}
+
+function proposalDisplayName(proposal, report = null) {
+    if (!proposal) return null;
+    if (report?.currentGovernance?.proposalHash === proposal.hash && report.currentGovernance.proposalName) {
+        return report.currentGovernance.proposalName;
+    }
+    return proposal.alias
+        || proposal.extras?.alias
+        || proposal.metadata?.alias
+        || (proposal.hash ? `${proposal.hash.slice(0, 8)}...` : null);
+}
+
+async function fetchVotingEpoch(epochIndex) {
+    if (epochIndex === undefined || epochIndex === null) return null;
+    try {
+        const response = await fetch(`${TZKT_BASE}/voting/epochs/${epochIndex}`);
+        return response.ok ? response.json() : null;
+    } catch (_) {
+        return null;
+    }
+}
+
 /**
  * Fetch all protocol upgrades
  */
@@ -70,7 +139,10 @@ export async function fetchProtocols() {
         return _protocolsCache;
     }
     try {
-        const response = await fetch(`${TZKT_BASE}/protocols`);
+        const [response, lore] = await Promise.all([
+            fetch(`${TZKT_BASE}/protocols`),
+            loadProtocolLore()
+        ]);
         const protocols = await response.json();
         
         const namedProtocols = protocols.filter(p => 
@@ -79,15 +151,18 @@ export async function fetchProtocols() {
         
         const result = namedProtocols.map(p => {
             const name = p.extras?.alias || `Protocol ${p.code}`;
+            const loreEntry = findProtocolLore({ name, hash: p.hash }, lore);
             return {
                 code: p.code,
                 name,
                 hash: p.hash,
                 firstLevel: p.firstLevel,
                 lastLevel: p.lastLevel,
-                startTime: p.startTime || null,
-                highlight: UPGRADE_HIGHLIGHTS[name] || buildFallbackHighlight(p),
-                debate: PROTOCOL_DEBATES[name] || null,
+                startTime: p.startTime || loreEntry?.date || null,
+                date: loreEntry?.date || p.startTime || null,
+                highlight: buildLoreHighlight(loreEntry, p),
+                debate: loreEntry?.debate || null,
+                contention: Boolean(loreEntry?.contention || loreEntry?.history),
                 isCurrent: !p.lastLevel
             };
         });
@@ -108,16 +183,33 @@ export async function fetchVotingStatus() {
     try {
         const response = await fetch(`${TZKT_BASE}/voting/periods/current`);
         const period = await response.json();
+        const [epoch, report] = await Promise.all([
+            fetchVotingEpoch(period.epoch),
+            loadGovernanceReport()
+        ]);
+        const proposal = chooseEpochProposal(period, epoch);
         
         return {
             kind: period.kind, // proposal, exploration, cooldown, promotion, adoption
             status: period.status,
             startTime: period.startTime,
             endTime: period.endTime,
-            epoch: period.epoch,
+            epoch: epoch ? {
+                index: epoch.index,
+                status: epoch.status,
+                proposal
+            } : period.epoch,
+            proposal,
+            proposalName: proposalDisplayName(proposal, report),
             totalBakers: period.totalBakers,
+            totalVotingPower: period.totalVotingPower,
             topVotingPower: period.topVotingPower,
-            proposalsCount: period.proposalsCount
+            proposalsCount: period.proposalsCount,
+            yayVotingPower: period.yayVotingPower,
+            nayVotingPower: period.nayVotingPower,
+            passVotingPower: period.passVotingPower,
+            ballotsQuorum: period.ballotsQuorum,
+            supermajority: period.supermajority
         };
     } catch (error) {
         console.error('Failed to fetch voting status:', error);

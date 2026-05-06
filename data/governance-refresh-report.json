@@ -1,0 +1,235 @@
+{
+  "generatedAt": "2026-05-06T11:25:10.076Z",
+  "status": "warning",
+  "source": {
+    "tzktEpochs": "https://api.tzkt.io/v1/voting/epochs?limit=1000&sort.asc=index",
+    "tzktCurrentPeriod": "https://api.tzkt.io/v1/voting/periods/current",
+    "tzktProtocols": "https://api.tzkt.io/v1/protocols?sort.asc=code",
+    "tezosAgoraSearch": "https://forum.tezosagora.org/search.json"
+  },
+  "singleEntryPoint": "scripts/refresh-governance-data.mjs",
+  "generatedFiles": [
+    "data/governance-votes.json",
+    "data/governance-refresh-report.json"
+  ],
+  "currentProtocol": {
+    "code": 24,
+    "name": "Tallinn",
+    "hash": "PtTALLiNtPec7mE7yY4m3k26J8Qukef3E3ehzhfXgFZKGtDdAXu",
+    "firstLevel": 11640289,
+    "lastLevel": null,
+    "startTime": null,
+    "blockTime": 6,
+    "docs": "https://octez.tezos.com/docs/protocols/024_tallinn.html",
+    "isCurrent": true
+  },
+  "currentGovernance": {
+    "epoch": 90,
+    "epochStatus": "voting",
+    "period": 173,
+    "kind": "exploration",
+    "status": "active",
+    "startTime": "2026-05-04T05:45:19Z",
+    "endTime": "2026-05-18T06:01:46Z",
+    "proposalHash": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
+    "proposalName": "Ushuaia",
+    "proposalStatus": "active",
+    "proposalAccepted": false,
+    "proposalHasLore": false,
+    "proposalAgoraTopic": {
+      "title": "Ushuaia (PsUshuai9)",
+      "name": "Ushuaia",
+      "url": "https://forum.tezosagora.org/t/ushuaia-psushuai9/7045",
+      "createdAt": "2026-04-22T20:09:30.359Z"
+    },
+    "initiator": {
+      "alias": "La Boulange",
+      "address": "tz1aJHKKUWrwfsuoftdmwNBbBctjSWchMWZY"
+    },
+    "upvotes": 59,
+    "votingPower": 175035626966796,
+    "tally": {
+      "yayVotingPower": 8672750746198,
+      "nayVotingPower": 0,
+      "passVotingPower": 168034072711215,
+      "yayPct": 100,
+      "participationPct": 27.07,
+      "ballotsQuorum": 49.94,
+      "supermajority": 80
+    }
+  },
+  "coverage": {
+    "activatedProtocolLore": {
+      "ok": true,
+      "missing": []
+    },
+    "activeProposalLore": {
+      "ok": false,
+      "missing": [
+        {
+          "name": "Ushuaia",
+          "hash": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
+          "status": "active",
+          "periodKind": "exploration"
+        }
+      ]
+    },
+    "voteHistory": {
+      "epochCount": 91,
+      "periodVoteCount": 47,
+      "failedVoteCount": 5,
+      "failedVotes": [
+        {
+          "epoch": 11,
+          "period": 15,
+          "kind": "exploration",
+          "status": "no_quorum",
+          "displayName": "Brest A",
+          "proposalHash": "PtdRxBHvc91c2ea2evV6wkoqnzW7TadTg9aqS9jAn2GbcPGtumD",
+          "yayPct": 0.26,
+          "participationPct": 36.67
+        },
+        {
+          "epoch": 34,
+          "period": 63,
+          "kind": "exploration",
+          "status": "no_supermajority",
+          "displayName": "Ithaca",
+          "proposalHash": "PsiThaCaT47Zboaw71QWScM8sXeMM7bbQFncK9FLqYc6EKdpjVP",
+          "yayPct": 77.88,
+          "participationPct": 71.77
+        },
+        {
+          "epoch": 50,
+          "period": 106,
+          "kind": "promotion",
+          "status": "no_supermajority",
+          "displayName": "Oxford",
+          "proposalHash": "ProxfordSW2S7fvchT1Zgj2avb5UES194neRyYVXoaDGvF9egt8",
+          "yayPct": 57.65,
+          "participationPct": 57.73
+        },
+        {
+          "epoch": 67,
+          "period": 132,
+          "kind": "exploration",
+          "status": "no_supermajority",
+          "displayName": "Qena",
+          "proposalHash": "PsqenaVwjhUUm1JJXbrZTB1T5RVyQHBGDricbLPXjcZkxogDeTJ",
+          "yayPct": 77.34,
+          "participationPct": 63.58
+        },
+        {
+          "epoch": 68,
+          "period": 134,
+          "kind": "exploration",
+          "status": "no_quorum",
+          "displayName": "Qena42",
+          "proposalHash": "PsQEna427TJJ2dYatjWS12qKihty5huvBDmNHNAgCeTzWCpF673",
+          "yayPct": 60.55,
+          "participationPct": 44.53
+        }
+      ]
+    }
+  },
+  "updatePolicy": {
+    "preCommit": "The tracked .githooks/pre-commit hook runs this script before scripts/stamp-version.sh.",
+    "acceptedProtocolGate": "Commits should fail when TzKT has an accepted/current named protocol that is missing from data/protocol-data.json.",
+    "failedWindowRefresh": "Exploration and Promotion failures are pulled from TzKT epochs and included in governance-votes.json.",
+    "researchStandard": "For new accepted protocol lore, use official changelogs/docs plus TezosAgora debate threads and X/community discussion; present steelmanned pro and con arguments."
+  },
+  "researchChecklist": [
+    "TzKT protocol and governance endpoints for objective state, dates, hashes, and period outcomes.",
+    "Tezos Agora proposal thread and related heads-up/research threads for proponents, tradeoffs, and unresolved questions.",
+    "Official Octez changelog and protocol documentation for technical facts and breaking changes.",
+    "X/community search for baker and ecosystem reactions, especially concerns not captured in the proposal post.",
+    "Update data/protocol-data.json headline, changes, debate/contention, and history before the accepted protocol becomes the front-page current protocol."
+  ],
+  "staleDataSurfaces": [
+    {
+      "surface": "Generated vote history",
+      "files": [
+        "data/governance-votes.json"
+      ],
+      "update": "Generated from TzKT epochs on every governance refresh. Exploration and Promotion failures must appear here."
+    },
+    {
+      "surface": "Governance refresh report",
+      "files": [
+        "data/governance-refresh-report.json"
+      ],
+      "update": "Generated audit of live period, current protocol, active proposal, lore coverage, blockers, and warnings."
+    },
+    {
+      "surface": "Front-page protocol lore",
+      "files": [
+        "data/protocol-data.json"
+      ],
+      "update": "Human-edited source of protocol headlines, change bullets, contention flags, and balanced long-form history."
+    },
+    {
+      "surface": "Front-page upgrade clock",
+      "files": [
+        "js/features/governance.js",
+        "js/core/app.js",
+        "js/core/api.js"
+      ],
+      "update": "Must resolve live TzKT proposal epochs, use protocol-data for lore, and avoid stale hardcoded protocol maps."
+    },
+    {
+      "surface": "The Chamber",
+      "files": [
+        "js/features/chamber.js"
+      ],
+      "update": "Uses local vote history plus protocol-data names for failed and active governance context."
+    },
+    {
+      "surface": "Static governance/SEO pages",
+      "files": [
+        "governance/index.html",
+        "index.html",
+        "robots.txt",
+        "README.md"
+      ],
+      "update": "Check protocol counts, current protocol names, amendment history claims, and governance period wording when a protocol activates."
+    },
+    {
+      "surface": "Widgets",
+      "files": [
+        "widgets/governance.html",
+        "widgets/protocol.html",
+        "widgets/combo.html"
+      ],
+      "update": "Confirm widget labels still match live TzKT period/protocol behavior after voting periods advance."
+    },
+    {
+      "surface": "Cache and build metadata",
+      "files": [
+        "sw.js",
+        "index.html",
+        "version.json"
+      ],
+      "update": "Bump service worker/cache stamps after JS/CSS/data dependency changes; version.json is stamped by the pre-commit hook."
+    },
+    {
+      "surface": "Human changelog",
+      "files": [
+        "js/features/changelog.js"
+      ],
+      "update": "Add concise user-facing entries for governance data controls, lore, and front-page behavior changes."
+    }
+  ],
+  "warnings": [
+    {
+      "code": "active-proposal-needs-research-watch",
+      "message": "Active proposal is not in protocol-data.json yet. Track TezosAgora, X, and official docs now; add balanced lore if it reaches Adoption/current protocol.",
+      "proposal": {
+        "name": "Ushuaia",
+        "hash": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
+        "status": "active",
+        "periodKind": "exploration"
+      }
+    }
+  ],
+  "blockers": []
+}

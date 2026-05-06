@@ -1,3 +1,8 @@
 #!/bin/sh
 
-exec "$(git rev-parse --show-toplevel)/scripts/stamp-version.sh"
+set -e
+
+ROOT="$(git rev-parse --show-toplevel)"
+
+node "$ROOT/scripts/refresh-governance-data.mjs" --stage
+exec "$ROOT/scripts/stamp-version.sh"

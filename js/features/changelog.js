@@ -7,6 +7,9 @@ const CHANGELOG = [
     {
         date: '2026-05-06',
         entries: [
+            { type: '⚡', text: 'Governance data now has one refresh command that updates vote history and stale-data audit artifacts before commits' },
+            { type: '🔧', text: 'Protocol timeline highlights now read from protocol-data lore instead of duplicate hardcoded JavaScript maps' },
+            { type: '🔧', text: 'Live governance cards now resolve active proposal epochs from TzKT and normalize Yay/Nay/Pass vote statuses' },
             { type: '🔧', text: 'The Chamber historical context now uses local governance vote history and includes every failed exploration and promotion vote' },
             { type: '✨', text: 'The Chamber now shows a 20-row governance vote view with passed, active, and failed period outcomes' },
         ]

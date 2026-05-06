@@ -285,23 +285,73 @@ async function fetchCycleInfo() {
 /**
  * Fetch governance/voting info
  */
+function chooseVotingProposal(period, epoch) {
+    const proposals = epoch?.proposals || [];
+    const scoped = proposals.filter(proposal => {
+        const first = proposal.firstPeriod ?? Number.NEGATIVE_INFINITY;
+        const last = proposal.lastPeriod ?? Number.POSITIVE_INFINITY;
+        return first <= period.index && period.index <= last;
+    });
+
+    return scoped.find(proposal => proposal.status === 'active')
+        || scoped.find(proposal => ['accepted', 'rejected'].includes(proposal.status))
+        || scoped[0]
+        || proposals.find(proposal => proposal.status === 'accepted')
+        || proposals[0]
+        || null;
+}
+
+function proposalDisplayName(proposal) {
+    return proposal?.alias
+        || proposal?.extras?.alias
+        || proposal?.metadata?.alias
+        || (proposal?.hash ? `${proposal.hash.slice(0, 8)}...` : null);
+}
+
+let _governanceReportPromise = null;
+async function fetchGovernanceReport() {
+    if (!_governanceReportPromise) {
+        _governanceReportPromise = fetch('/data/governance-refresh-report.json?v=1', { cache: 'no-store' })
+            .then((response) => response.ok ? response.json() : null)
+            .catch(() => null);
+    }
+    return _governanceReportPromise;
+}
+
+function proposalDisplayNameWithReport(proposal, report) {
+    if (report?.currentGovernance?.proposalHash === proposal?.hash && report.currentGovernance.proposalName) {
+        return report.currentGovernance.proposalName;
+    }
+    return proposalDisplayName(proposal);
+}
+
 async function fetchGovernance() {
     try {
         const votingUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.voting}`;
-        const voting = await fetchWithRetry(votingUrl);
-        
-        // Get proposal info if available
-        let proposalName = 'None';
-        if (voting.epoch?.proposal) {
-            proposalName = voting.epoch.proposal.alias || 
-                          voting.epoch.proposal.hash?.slice(0, 8) + '...' ||
-                          'Unknown';
+        const [voting, report] = await Promise.all([
+            fetchWithRetry(votingUrl),
+            fetchGovernanceReport()
+        ]);
+        let epoch = null;
+        if (voting.epoch !== undefined && voting.epoch !== null) {
+            try {
+                epoch = await fetchWithRetry(`${ENDPOINTS.tzkt.base}/voting/epochs/${voting.epoch}`);
+            } catch (_) {
+                epoch = null;
+            }
         }
         
+        // Get proposal info if available
+        const proposal = chooseVotingProposal(voting, epoch);
+        const proposalName = proposalDisplayNameWithReport(proposal, report) || 'None';
+        
         // Calculate participation
-        const participation = voting.totalVoters && voting.totalBakers 
-            ? calculatePercentage(voting.totalVoters, voting.totalBakers)
-            : 0;
+        const participatedPower = (voting.yayVotingPower || 0) + (voting.nayVotingPower || 0) + (voting.passVotingPower || 0);
+        const participation = voting.totalVotingPower
+            ? calculatePercentage(participatedPower, voting.totalVotingPower)
+            : voting.totalVoters && voting.totalBakers
+                ? calculatePercentage(voting.totalVoters, voting.totalBakers)
+                : 0;
         
         // Format period kind
         const periodKind = voting.kind?.charAt(0).toUpperCase() + voting.kind?.slice(1) || 'Unknown';
@@ -314,11 +364,13 @@ async function fetchGovernance() {
         
         return {
             proposal: proposalName,
-            proposalDescription: voting.epoch?.proposal ? 'In progress' : 'No active proposal',
+            proposalDescription: proposal ? 'In progress' : 'No active proposal',
             period: periodKind,
             periodDescription: `Ends ${endDate}`,
             participation: participation,
-            participationDescription: `${voting.totalVoters || 0} voters`
+            participationDescription: voting.yayBallots !== undefined
+                ? `${(voting.yayBallots || 0) + (voting.nayBallots || 0) + (voting.passBallots || 0)} ballots`
+                : `${voting.totalVoters || 0} voters`
         };
     } catch (error) {
         console.error('Failed to fetch governance:', error);
