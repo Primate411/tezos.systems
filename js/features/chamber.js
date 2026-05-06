@@ -15,6 +15,7 @@ import { escapeHtml } from '../core/utils.js';
 import { API_URLS } from '../core/config.js';
 
 const TZKT = API_URLS.tzkt;
+const PROTOCOL_DATA_URL = '/data/protocol-data.json';
 
 const STAGES = [
     { key: 'proposal', label: 'Proposal', icon: '📜' },
@@ -26,14 +27,14 @@ const STAGES = [
 
 const PROTO_MAP = {
     PtTALLiN: { name: 'Tallinn', num: 24 },
-    PtSeoul: { name: 'Seoul', num: 23 },
-    PtRiyadh: { name: 'Riyadh', num: 22 },
-    PtQuebeC: { name: 'Quebec', num: 21 },
-    PtParisCQ: { name: 'Paris C', num: 20 },
-    PtParisBx: { name: 'Paris B', num: 19 },
+    PtSeouLo: { name: 'Seoul', num: 23 },
+    PsRiotum: { name: 'Rio', num: 22 },
+    PsQuebec: { name: 'Quebec', num: 21 },
+    PsParisC: { name: 'Paris C', num: 20 },
+    PtParisB: { name: 'Paris', num: 19 },
     Proxford: { name: 'Oxford', num: 18 },
-    PtNairobi: { name: 'Nairobi', num: 17 },
-    PtMumbai2: { name: 'Mumbai', num: 16 },
+    PtNairob: { name: 'Nairobi', num: 17 },
+    PtMumbai: { name: 'Mumbai', num: 16 },
     PtLimaPt: { name: 'Lima', num: 15 },
     PtKathma: { name: 'Kathmandu', num: 14 },
     PtJakart: { name: 'Jakarta', num: 13 },
@@ -42,6 +43,7 @@ const PROTO_MAP = {
     PtGRANAD: { name: 'Granada', num: 10 },
     PsFLoren: { name: 'Florence', num: 9 },
     PtEdoTez: { name: 'Edo', num: 8 },
+    PtEdo2Zk: { name: 'Edo', num: 8 },
     PsDELPH1: { name: 'Delphi', num: 7 },
     PsCARTHA: { name: 'Carthage', num: 6 },
     PsBabyM1: { name: 'Babylon', num: 5 },
@@ -58,21 +60,41 @@ let _earliestEpochIndex = 1;
 let _chamberAnimFrame = null;
 let _savedBodyOverflow = null;
 let _savedHtmlOverflow = null;
+let _savedBodyPosition = null;
+let _savedBodyTop = null;
+let _savedBodyWidth = null;
+let _savedScrollY = 0;
+let _protocolHistoryPromise = null;
 
 function lockPageScrollForChamber() {
     if (_savedBodyOverflow !== null) return;
+    _savedScrollY = window.scrollY || document.documentElement.scrollTop || 0;
     _savedBodyOverflow = document.body.style.overflow;
     _savedHtmlOverflow = document.documentElement.style.overflow;
+    _savedBodyPosition = document.body.style.position;
+    _savedBodyTop = document.body.style.top;
+    _savedBodyWidth = document.body.style.width;
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${_savedScrollY}px`;
+    document.body.style.width = '100%';
 }
 
 function unlockPageScrollForChamber() {
     if (_savedBodyOverflow === null) return;
     document.body.style.overflow = _savedBodyOverflow;
     document.documentElement.style.overflow = _savedHtmlOverflow || '';
+    document.body.style.position = _savedBodyPosition || '';
+    document.body.style.top = _savedBodyTop || '';
+    document.body.style.width = _savedBodyWidth || '';
+    window.scrollTo(0, _savedScrollY);
     _savedBodyOverflow = null;
     _savedHtmlOverflow = null;
+    _savedBodyPosition = null;
+    _savedBodyTop = null;
+    _savedBodyWidth = null;
+    _savedScrollY = 0;
 }
 
 async function fetchEpochData(epochIndex) {
@@ -204,11 +226,37 @@ function calcQuorum(period, voters) {
     return period.totalVotingPower > 0 ? (votedPower / period.totalVotingPower) * 100 : 0;
 }
 
-function extractProtoName(hash) {
+function protocolHashMatches(hash, prefix) {
+    if (!hash || !prefix) return false;
+    return hash.startsWith(prefix) || hash.startsWith(prefix.slice(0, 8)) || prefix.startsWith(hash.slice(0, 8));
+}
+
+function protocolFromHash(hash, protocols = []) {
+    const fromData = protocols.find(p => protocolHashMatches(hash, p.hash));
+    if (fromData) return fromData;
     for (const [k, v] of Object.entries(PROTO_MAP)) {
-        if (hash.startsWith(k)) return v.name;
+        if (protocolHashMatches(hash, k)) return v;
     }
+    return null;
+}
+
+function extractProtoName(hash, protocols = []) {
+    const protocol = protocolFromHash(hash, protocols);
+    if (protocol?.name) return protocol.name;
     return hash.slice(0, 12) + '…';
+}
+
+async function loadProtocolHistory() {
+    if (!_protocolHistoryPromise) {
+        _protocolHistoryPromise = fetch(PROTOCOL_DATA_URL, { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : Promise.reject(new Error(`protocol data HTTP ${r.status}`)))
+            .then(data => Array.isArray(data.protocols) ? data.protocols : [])
+            .catch(err => {
+                console.warn('Chamber: protocol history unavailable', err);
+                return [];
+            });
+    }
+    return _protocolHistoryPromise;
 }
 
 // ─── Pipeline with staggered animation ───
@@ -638,6 +686,41 @@ function initVoterFilters() {
 
 // ─── Historical comparison ───
 
+function acceptedProposal(epoch) {
+    return epoch?.proposals?.find(p => p.status === 'accepted') || null;
+}
+
+function governanceVotePeriod(epoch) {
+    return epoch?.periods?.find(p => p.kind === 'promotion' && p.yayVotingPower !== undefined)
+        || epoch?.periods?.find(p => p.kind === 'exploration' && p.yayVotingPower !== undefined)
+        || null;
+}
+
+async function fetchHistoricalComparisons(data) {
+    const [protocols, epochs] = await Promise.all([
+        loadProtocolHistory(),
+        fetch(`${TZKT}/voting/epochs?status=completed&sort.desc=index&limit=30`).then(r => r.json())
+    ]);
+
+    return epochs
+        .map(epoch => {
+            const proposal = acceptedProposal(epoch);
+            const protocol = proposal ? protocolFromHash(proposal.hash, protocols) : null;
+            const votePeriod = governanceVotePeriod(epoch);
+            const pct = calcSupermajority(votePeriod);
+            if (!proposal || !protocol || pct === null || epoch.index === data.epoch.index) return null;
+            return {
+                name: protocol.name,
+                epoch: epoch.index,
+                pct,
+                hash: proposal.hash
+            };
+        })
+        .filter(Boolean)
+        .sort((a, b) => b.epoch - a.epoch)
+        .slice(0, 4);
+}
+
 function renderHistoricalComparison(data) {
     if (!data.votePeriod) return '';
     
@@ -646,65 +729,59 @@ function renderHistoricalComparison(data) {
     
     const currentName = data.proposal?.hash ? extractProtoName(data.proposal.hash) : `Epoch ${data.epoch.index}`;
     
-    // Known historical supermajority results (promotion period yay/(yay+nay))
-    const HISTORICAL = [
-        { name: 'Tallinn', epoch: 83, pct: 100.0 },
-        { name: 'Seoul', epoch: 80, pct: 100.0 },
-        { name: 'Riyadh', epoch: 77, pct: 100.0 },
-        { name: 'Quebec', epoch: 74, pct: 100.0 },
-        { name: 'Paris B', epoch: 68, pct: 100.0 },
-        { name: 'Oxford', epoch: 65, pct: 100.0 },
-        { name: 'Nairobi', epoch: 62, pct: 99.9 },
-        { name: 'Mumbai', epoch: 56, pct: 99.8 },
-        { name: 'Lima', epoch: 50, pct: 97.2 },
-        { name: 'Kathmandu', epoch: 47, pct: 92.4 },
-        { name: 'Jakarta', epoch: 44, pct: 88.8 },
-        { name: 'Ithaca', epoch: 41, pct: 93.5 },
-        { name: 'Granada', epoch: 32, pct: 87.1 },
-    ];
-    
-    // Show the most recent previous upgrades in chain order.
-    const comparisons = HISTORICAL
-        .filter(h => h.epoch !== data.epoch.index)
-        .sort((a, b) => b.epoch - a.epoch)
-        .slice(0, 4);
-    if (!comparisons.length) return '';
-    
-    const allPcts = [{ name: currentName, pct: currentPct }, ...comparisons];
-    const highest = allPcts.reduce((a, b) => a.pct > b.pct ? a : b);
-    const lowest = comparisons.reduce((a, b) => a.pct < b.pct ? a : b);
-    
-    let contextLine = '';
-    if (currentPct >= 99.9) {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — unanimous consensus. Recent previous votes are shown newest first.`;
-    } else if (currentPct >= 95) {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — near-unanimous. Among the recent votes shown, ${lowest.name} was the tightest at ${lowest.pct.toFixed(1)}%.`;
-    } else if (currentPct >= 80) {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — passing but contested. Recent previous votes are shown newest first.`;
-    } else {
-        contextLine = `${currentName}: ${currentPct.toFixed(1)}% — below supermajority threshold. Recent previous votes are shown newest first.`;
-    }
-    
-    const bars = comparisons.map(c => `
-        <div class="comparison-row">
-            <span class="comparison-name">${c.name}</span>
-            <div class="comparison-bar-track"><div class="comparison-bar-fill" style="width:${c.pct}%"></div></div>
-            <span class="comparison-pct">${c.pct.toFixed(0)}%</span>
-        </div>
-    `).join('');
-    
     return `
-        <div class="chamber-comparison chamber-anim-fade" style="animation-delay:700ms">
+        <div class="chamber-comparison chamber-anim-fade" id="chamber-historical-context" style="animation-delay:700ms">
             <div class="comparison-title">Historical Context</div>
-            <div class="comparison-context">${contextLine}</div>
+            <div class="comparison-context">Loading recent governance history from TzKT…</div>
             <div class="comparison-current">
                 <span class="comparison-name current">${currentName}</span>
                 <div class="comparison-bar-track"><div class="comparison-bar-fill current" style="width:${currentPct}%"></div></div>
                 <span class="comparison-pct current">${currentPct.toFixed(0)}%</span>
             </div>
-            ${bars}
+            <div class="comparison-rows"></div>
         </div>
     `;
+}
+
+async function hydrateHistoricalComparison(data) {
+    const container = document.getElementById('chamber-historical-context');
+    if (!container) return;
+
+    const currentPct = calcSupermajority(data.votePeriod);
+    const currentName = data.proposal?.hash ? extractProtoName(data.proposal.hash) : `Epoch ${data.epoch.index}`;
+    const context = container.querySelector('.comparison-context');
+    const rowsEl = container.querySelector('.comparison-rows');
+
+    try {
+        const comparisons = await fetchHistoricalComparisons(data);
+        if (!comparisons.length) {
+            context.textContent = 'Recent governance history is unavailable right now.';
+            return;
+        }
+
+        const lowest = comparisons.reduce((a, b) => a.pct < b.pct ? a : b);
+        if (currentPct >= 99.9) {
+            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — unanimous consensus. Recent previous votes are loaded from TzKT and shown newest first.`;
+        } else if (currentPct >= 95) {
+            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — near-unanimous. Among the recent votes shown, ${lowest.name} was the tightest at ${lowest.pct.toFixed(1)}%.`;
+        } else if (currentPct >= 80) {
+            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — passing but contested. Recent previous votes are loaded from TzKT and shown newest first.`;
+        } else {
+            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — below supermajority threshold. Recent previous votes are loaded from TzKT and shown newest first.`;
+        }
+
+        rowsEl.innerHTML = comparisons.map(c => `
+            <div class="comparison-row">
+                <span class="comparison-name">${escapeHtml(c.name)}</span>
+                <div class="comparison-bar-track"><div class="comparison-bar-fill" style="width:${c.pct}%"></div></div>
+                <span class="comparison-pct">${c.pct.toFixed(0)}%</span>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.warn('Chamber: historical context failed', err);
+        context.textContent = 'Recent governance history is unavailable right now.';
+        if (rowsEl) rowsEl.innerHTML = '';
+    }
 }
 
 // ─── Epoch navigation ───
@@ -862,6 +939,7 @@ function renderChamber(data, container) {
     const content = container.closest('.chamber-content');
     if (content) initAmbientEffects(content);
     
+    hydrateHistoricalComparison(data);
     requestAnimationFrame(() => requestAnimationFrame(triggerAnimations));
 }
 
@@ -914,7 +992,7 @@ export async function openChamber() {
         overlay.className = 'modal-overlay chamber-overlay';
         overlay.innerHTML = `
             <div class="modal-content modal-large chamber-content">
-                <button class="modal-close chamber-close" aria-label="Close">&times;</button>
+                <button class="modal-close chamber-close" aria-label="Close" style="z-index:3">&times;</button>
                 <div class="chamber-body">
                     <div class="chamber-loading">
                         <div class="chamber-loading-text">Entering The Chamber…</div>

@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-05-05',
         entries: [
+            { type: '🔧', text: 'The Chamber historical context now loads recent governance votes from TzKT and protocol-data instead of hardcoded labels' },
+            { type: '🔧', text: 'The Chamber now pins and restores page scroll while its modal is open so wheel gestures stay inside the war room' },
             { type: '🎨', text: 'The Chamber motion now uses calmer breathing glows and gentler panel animations' },
             { type: '🔧', text: 'Historical Context now lists recent previous governance votes newest first' },
             { type: '🔧', text: 'The Chamber modal now keeps scrolling inside the war room instead of moving the page behind it' },
