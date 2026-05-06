@@ -13082,6 +13082,61 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     font-weight: 700;
 }
 
+.vote-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vote-history-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.8fr) minmax(90px, 1fr) 44px minmax(180px, 1.4fr);
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0;
+    padding: 4px 0;
+}
+
+.vote-history-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.vote-history-status {
+    font-size: 0.68rem;
+    color: var(--text-tertiary, #555);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vote-history-row.vote-failed .vote-history-name,
+.vote-history-row.vote-failed .vote-history-pct,
+.vote-history-row.vote-failed .vote-history-status {
+    color: #ff6b80;
+}
+
+.vote-history-row.vote-active .vote-history-name,
+.vote-history-row.vote-active .vote-history-pct,
+.vote-history-row.vote-active .vote-history-status {
+    color: var(--accent-cyan);
+}
+
+@media (max-width: 640px) {
+    .vote-history-row {
+        grid-template-columns: minmax(0, 1fr) 44px;
+        gap: 5px 8px;
+        padding: 6px 0;
+    }
+
+    .vote-history-row .comparison-bar-track,
+    .vote-history-status {
+        grid-column: 1 / -1;
+    }
+}
+
 /* ─── Chamber v2: Ambient effects ─── */
 .chamber-scanlines {
     position: absolute;

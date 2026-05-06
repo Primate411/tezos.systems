@@ -142,6 +142,7 @@ async function checkRequiredFiles() {
     'js/core/config.js',
     'sw.js',
     'version.json',
+    'data/governance-votes.json',
     'data/protocol-data.json',
     'data/protocol-debates.json',
     'data/tweets.json'
@@ -163,6 +164,30 @@ async function checkJsonFiles() {
       fail(`invalid JSON in ${file}: ${error.message}`);
     }
   }
+}
+
+async function checkGovernanceVotes() {
+  const data = JSON.parse(await readText('data/governance-votes.json'));
+  const votes = Array.isArray(data.periodVotes) ? data.periodVotes : [];
+  const failed = votes.filter((vote) => ['no_quorum', 'no_supermajority'].includes(vote.status));
+  const namedFailures = new Set(failed.map((vote) => vote.displayName));
+
+  if (!Array.isArray(data.epochs) || data.epochs.length !== data.epochCount) {
+    fail('governance-votes epochCount must match epochs length');
+  }
+  if (votes.length !== data.periodVoteCount) {
+    fail('governance-votes periodVoteCount must match periodVotes length');
+  }
+  if (votes.length < 20) {
+    fail('governance-votes must contain enough exploration/promotion votes for Chamber historical context');
+  }
+  if (failed.length !== data.failedVoteCount) {
+    fail('governance-votes failedVoteCount must match failed period rows');
+  }
+  for (const expected of ['Brest A', 'Ithaca', 'Oxford', 'Qena', 'Qena42']) {
+    if (!namedFailures.has(expected)) fail(`governance-votes missing failed proposal ${expected}`);
+  }
+  pass(`governance vote history checked: ${votes.length} vote periods, ${failed.length} failures`);
 }
 
 async function checkLocalReferences() {
@@ -309,6 +334,7 @@ async function checkStylesheetFreshness() {
 async function main() {
   await checkRequiredFiles();
   await checkJsonFiles();
+  await checkGovernanceVotes();
   await checkLocalReferences();
   await checkCacheBustAlignment();
   await checkCsp();

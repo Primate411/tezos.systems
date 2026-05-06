@@ -5,6 +5,13 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-06',
+        entries: [
+            { type: '🔧', text: 'The Chamber historical context now uses local governance vote history and includes every failed exploration and promotion vote' },
+            { type: '✨', text: 'The Chamber now shows a 20-row governance vote view with passed, active, and failed period outcomes' },
+        ]
+    },
+    {
         date: '2026-05-05',
         entries: [
             { type: '🔧', text: 'The Chamber historical context now loads recent governance votes from TzKT and protocol-data instead of hardcoded labels' },

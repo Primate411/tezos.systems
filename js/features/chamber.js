@@ -16,6 +16,8 @@ import { API_URLS } from '../core/config.js';
 
 const TZKT = API_URLS.tzkt;
 const PROTOCOL_DATA_URL = '/data/protocol-data.json';
+const GOVERNANCE_VOTES_URL = '/data/governance-votes.json';
+const HISTORY_CONTEXT_ROWS = 20;
 
 const STAGES = [
     { key: 'proposal', label: 'Proposal', icon: '📜' },
@@ -65,6 +67,7 @@ let _savedBodyTop = null;
 let _savedBodyWidth = null;
 let _savedScrollY = 0;
 let _protocolHistoryPromise = null;
+let _governanceVotesPromise = null;
 
 function lockPageScrollForChamber() {
     if (_savedBodyOverflow !== null) return;
@@ -257,6 +260,18 @@ async function loadProtocolHistory() {
             });
     }
     return _protocolHistoryPromise;
+}
+
+async function loadGovernanceVotes() {
+    if (!_governanceVotesPromise) {
+        _governanceVotesPromise = fetch(GOVERNANCE_VOTES_URL, { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : Promise.reject(new Error(`governance votes HTTP ${r.status}`)))
+            .catch(err => {
+                console.warn('Chamber: local governance vote history unavailable', err);
+                return null;
+            });
+    }
+    return _governanceVotesPromise;
 }
 
 // ─── Pipeline with staggered animation ───
@@ -686,39 +701,119 @@ function initVoterFilters() {
 
 // ─── Historical comparison ───
 
-function acceptedProposal(epoch) {
-    return epoch?.proposals?.find(p => p.status === 'accepted') || null;
+function isFailedVote(vote) {
+    return ['no_quorum', 'no_supermajority'].includes(vote?.status);
 }
 
-function governanceVotePeriod(epoch) {
-    return epoch?.periods?.find(p => p.kind === 'promotion' && p.yayVotingPower !== undefined)
-        || epoch?.periods?.find(p => p.kind === 'exploration' && p.yayVotingPower !== undefined)
-        || null;
+function voteKey(vote) {
+    return `${vote.epoch}:${vote.period}:${vote.kind}`;
 }
 
-async function fetchHistoricalComparisons(data) {
-    const [protocols, epochs] = await Promise.all([
-        loadProtocolHistory(),
-        fetch(`${TZKT}/voting/epochs?status=completed&sort.desc=index&limit=30`).then(r => r.json())
-    ]);
+function currentVoteKey(data) {
+    if (!data?.votePeriod) return null;
+    return `${data.epoch.index}:${data.votePeriod.index}:${data.votePeriod.kind}`;
+}
 
-    return epochs
-        .map(epoch => {
-            const proposal = acceptedProposal(epoch);
-            const protocol = proposal ? protocolFromHash(proposal.hash, protocols) : null;
-            const votePeriod = governanceVotePeriod(epoch);
-            const pct = calcSupermajority(votePeriod);
-            if (!proposal || !protocol || pct === null || epoch.index === data.epoch.index) return null;
-            return {
-                name: protocol.name,
-                epoch: epoch.index,
-                pct,
-                hash: proposal.hash
-            };
-        })
-        .filter(Boolean)
-        .sort((a, b) => b.epoch - a.epoch)
-        .slice(0, 4);
+function statusLabel(status) {
+    const labels = {
+        success: 'passed',
+        active: 'active',
+        no_quorum: 'failed quorum',
+        no_supermajority: 'failed supermajority',
+        no_proposals: 'no proposal',
+        failed: 'failed',
+        rejected: 'rejected'
+    };
+    return labels[status] || status || 'unknown';
+}
+
+function kindLabel(kind) {
+    return kind === 'promotion' ? 'Promotion' : 'Exploration';
+}
+
+function voteDisplayName(vote, protocols = []) {
+    const protocol = vote.proposalHash ? protocolFromHash(vote.proposalHash, protocols) : null;
+    return protocol?.name
+        || vote.protocolName
+        || vote.displayName
+        || vote.proposalAlias
+        || (vote.proposalHash ? `${vote.proposalHash.slice(0, 8)}...` : `Epoch ${vote.epoch}`);
+}
+
+function pctText(value) {
+    return Number.isFinite(value) ? `${value.toFixed(0)}%` : 'n/a';
+}
+
+function precisePctText(value) {
+    return Number.isFinite(value) ? `${value.toFixed(1)}%` : 'n/a';
+}
+
+function voteTone(vote) {
+    if (vote.status === 'active') return 'active';
+    if (isFailedVote(vote)) return 'failed';
+    if (vote.status === 'success') return 'passed';
+    return 'neutral';
+}
+
+function voteFillStyle(vote) {
+    if (vote.status === 'active') return 'background:linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));';
+    if (isFailedVote(vote)) return 'background:linear-gradient(90deg, rgba(255, 80, 110, 0.85), rgba(255, 145, 70, 0.7));';
+    return 'background:rgba(255,255,255,0.18);';
+}
+
+function chooseHistoricalVotes(data, history) {
+    const votes = Array.isArray(history?.periodVotes) ? history.periodVotes : [];
+    const ordered = votes
+        .filter(v => ['exploration', 'promotion'].includes(v.kind))
+        .filter(v => v.yayPct !== null || v.status === 'active' || isFailedVote(v))
+        .sort((a, b) => (b.epoch - a.epoch) || (b.period - a.period));
+
+    const currentKey = currentVoteKey(data);
+    const selected = new Map();
+
+    for (const vote of ordered.filter(isFailedVote)) {
+        selected.set(voteKey(vote), vote);
+    }
+
+    for (const vote of ordered) {
+        if (voteKey(vote) === currentKey) continue;
+        if (selected.size >= HISTORY_CONTEXT_ROWS && !isFailedVote(vote)) continue;
+        selected.set(voteKey(vote), vote);
+        if (selected.size >= HISTORY_CONTEXT_ROWS) break;
+    }
+
+    if (selected.size < HISTORY_CONTEXT_ROWS) {
+        for (const vote of ordered) {
+            if (voteKey(vote) === currentKey) continue;
+            selected.set(voteKey(vote), vote);
+            if (selected.size >= HISTORY_CONTEXT_ROWS) break;
+        }
+    }
+
+    return [...selected.values()]
+        .sort((a, b) => (b.epoch - a.epoch) || (b.period - a.period));
+}
+
+function renderVoteHistoryRow(vote, protocols) {
+    const tone = voteTone(vote);
+    const name = voteDisplayName(vote, protocols);
+    const yay = typeof vote.yayPct === 'number' ? vote.yayPct : Number.NaN;
+    const width = Number.isFinite(yay) ? Math.max(0, Math.min(100, yay)) : 0;
+    const status = statusLabel(vote.status);
+    const participation = typeof vote.participationPct === 'number' ? vote.participationPct : Number.NaN;
+    const quorumRequirement = typeof vote.ballotsQuorum === 'number' ? vote.ballotsQuorum : Number.NaN;
+    const quorum = precisePctText(participation);
+    const required = precisePctText(quorumRequirement);
+    const title = `Epoch ${vote.epoch} ${kindLabel(vote.kind)}: ${name} ${status}. Yay ${precisePctText(yay)}; participation ${quorum}; quorum ${required}.`;
+
+    return `
+        <div class="comparison-row vote-history-row vote-${tone}" title="${escapeHtml(title)}">
+            <span class="comparison-name vote-history-name">E${escapeHtml(String(vote.epoch))} ${escapeHtml(name)}</span>
+            <div class="comparison-bar-track"><div class="comparison-bar-fill" style="width:${width}%;${voteFillStyle(vote)}"></div></div>
+            <span class="comparison-pct vote-history-pct">${pctText(yay)}</span>
+            <span class="vote-history-status">${kindLabel(vote.kind)} · ${escapeHtml(status)} · quorum ${quorum}/${required}</span>
+        </div>
+    `;
 }
 
 function renderHistoricalComparison(data) {
@@ -732,13 +827,13 @@ function renderHistoricalComparison(data) {
     return `
         <div class="chamber-comparison chamber-anim-fade" id="chamber-historical-context" style="animation-delay:700ms">
             <div class="comparison-title">Historical Context</div>
-            <div class="comparison-context">Loading recent governance history from TzKT…</div>
+            <div class="comparison-context">Loading local governance vote history…</div>
             <div class="comparison-current">
                 <span class="comparison-name current">${currentName}</span>
                 <div class="comparison-bar-track"><div class="comparison-bar-fill current" style="width:${currentPct}%"></div></div>
                 <span class="comparison-pct current">${currentPct.toFixed(0)}%</span>
             </div>
-            <div class="comparison-rows"></div>
+            <div class="comparison-rows vote-history-list"></div>
         </div>
     `;
 }
@@ -753,33 +848,34 @@ async function hydrateHistoricalComparison(data) {
     const rowsEl = container.querySelector('.comparison-rows');
 
     try {
-        const comparisons = await fetchHistoricalComparisons(data);
-        if (!comparisons.length) {
-            context.textContent = 'Recent governance history is unavailable right now.';
+        const [history, protocols] = await Promise.all([
+            loadGovernanceVotes(),
+            loadProtocolHistory()
+        ]);
+        const votes = chooseHistoricalVotes(data, history);
+        if (!votes.length) {
+            context.textContent = 'Local governance vote history is unavailable right now.';
             return;
         }
 
-        const lowest = comparisons.reduce((a, b) => a.pct < b.pct ? a : b);
+        const failedCount = votes.filter(isFailedVote).length;
+        const totalFailures = history?.failedVoteCount ?? failedCount;
+        const coveredPeriods = history?.periodVoteCount ?? votes.length;
+        const coveredEpochs = history?.epochCount ?? 0;
         if (currentPct >= 99.9) {
-            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — unanimous consensus. Recent previous votes are loaded from TzKT and shown newest first.`;
+            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — unanimous consensus. Local history covers ${coveredPeriods} exploration/promotion votes across ${coveredEpochs} epochs; all ${totalFailures} failed votes are included below.`;
         } else if (currentPct >= 95) {
-            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — near-unanimous. Among the recent votes shown, ${lowest.name} was the tightest at ${lowest.pct.toFixed(1)}%.`;
+            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — near-unanimous. This 20-row view includes every failed exploration/promotion vote plus recent passed or active periods.`;
         } else if (currentPct >= 80) {
-            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — passing but contested. Recent previous votes are loaded from TzKT and shown newest first.`;
+            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — passing but contested. This 20-row view includes every failed exploration/promotion vote plus recent passed or active periods.`;
         } else {
-            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — below supermajority threshold. Recent previous votes are loaded from TzKT and shown newest first.`;
+            context.textContent = `${currentName}: ${currentPct.toFixed(1)}% — below supermajority threshold. This 20-row view includes every failed exploration/promotion vote plus recent passed or active periods.`;
         }
 
-        rowsEl.innerHTML = comparisons.map(c => `
-            <div class="comparison-row">
-                <span class="comparison-name">${escapeHtml(c.name)}</span>
-                <div class="comparison-bar-track"><div class="comparison-bar-fill" style="width:${c.pct}%"></div></div>
-                <span class="comparison-pct">${c.pct.toFixed(0)}%</span>
-            </div>
-        `).join('');
+        rowsEl.innerHTML = votes.map(vote => renderVoteHistoryRow(vote, protocols)).join('');
     } catch (err) {
         console.warn('Chamber: historical context failed', err);
-        context.textContent = 'Recent governance history is unavailable right now.';
+        context.textContent = 'Local governance vote history is unavailable right now.';
         if (rowsEl) rowsEl.innerHTML = '';
     }
 }
