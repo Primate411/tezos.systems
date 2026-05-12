@@ -90,7 +90,7 @@ function generateNarrative(chain, tezos, other, wins) {
   lines.push('Tezos has completed ' + tezos.selfAmendments + ' on-chain protocol upgrades without a single hard fork or network split — a track record unmatched by any major blockchain. Its deterministic 12-second finality means transactions are irreversible in two blocks, with no probabilistic waiting period.');
 
   if (chain.name === 'Ethereum') {
-    lines.push('Ethereum dominates in TVL and ecosystem size, but its reliance on hard forks for upgrades and the concentration of stake among a handful of liquid staking providers (6 entities control 50% of stake) raises centralization concerns that Tezos\'s on-chain governance model avoids.');
+    lines.push('Ethereum dominates in TVL and ecosystem size, but its reliance on hard forks for upgrades and the concentration of stake among a handful of liquid staking providers raise centralization concerns that Tezos\'s on-chain governance model avoids.');
   } else if (chain.name === 'Solana') {
     lines.push('Solana offers faster raw block times, but its history of network outages and lack of on-chain governance contrast with Tezos\'s 7+ years of uninterrupted operation and community-driven protocol evolution.');
   } else if (chain.name === 'Cardano') {

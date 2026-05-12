@@ -29,7 +29,16 @@ function updateGovernanceBanner(stats, votingStatus) {
     let banner = document.getElementById('gov-countdown-banner');
     
     // Only show when there's an actual proposal — not during empty proposal periods
-    const hasProposal = stats?.proposal && stats.proposal !== 'None' && stats.proposal !== 'N/A';
+    const statusProposal = votingStatus?.proposalName
+        || votingStatus?.proposal?.alias
+        || votingStatus?.proposal?.extras?.alias
+        || votingStatus?.proposal?.metadata?.alias
+        || (votingStatus?.proposal?.hash ? `${votingStatus.proposal.hash.slice(0, 8)}...` : '');
+    const statProposal = stats?.proposal && stats.proposal !== 'None' && stats.proposal !== 'N/A'
+        ? stats.proposal
+        : '';
+    const proposal = statusProposal || statProposal;
+    const hasProposal = Boolean(proposal);
     const kind = votingStatus?.kind || '';
     const isVotingPhase = ['exploration', 'cooldown', 'promotion', 'adoption'].includes(kind);
     const isVotingActive = hasProposal || isVotingPhase;
@@ -59,32 +68,42 @@ function updateGovernanceBanner(stats, votingStatus) {
     
     const periodName = votingStatus ? getVotingPeriodName(votingStatus.kind) : 'Proposal';
     const timeLeft = votingStatus?.endTime ? formatTimeRemaining(votingStatus.endTime) : '';
-    const proposal = hasProposal ? stats.proposal : '';
+    const spotlight = ['exploration', 'promotion'].includes(kind);
     
     // Phase-specific intensity
     let phase = 'proposal';
     let icon = '📋';
     let label = 'PROPOSAL';
     let cta = 'View Proposal →';
-    if (kind === 'exploration') { phase = 'exploration'; icon = '🗳️'; label = 'VOTE LIVE'; cta = 'Enter The Chamber →'; }
-    else if (kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'COOLDOWN'; cta = 'View Results →'; }
-    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = 'Enter The Chamber →'; }
-    else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'View Adoption →'; }
+    let meta = timeLeft ? `${escapeHtml(timeLeft)} · 🗳️ Public baker ballots · 📊 Quorum watch` : '🗳️ Public baker ballots · 📊 Quorum watch';
+    let explainer = 'A Tezos proposal is moving through on-chain governance.';
+    if (kind === 'exploration') {
+        phase = 'exploration';
+        icon = '🗳️';
+        label = 'VOTE LIVE';
+        cta = '🏛️ Watch The Chamber →';
+        explainer = 'A protocol proposal cleared Proposal. Bakers are voting on-chain now.';
+        meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority';
+    }
+    else if (kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'VOTE PASSED'; cta = 'View Results →'; explainer = 'The proposal cleared its vote and is in the governance cooldown period.'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · Cooling down before the final stretch` : 'Cooling down before the final stretch'; }
+    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = '🏛️ Watch The Chamber →'; explainer = 'This is the final baker vote before adoption. The sausage is being made in public.'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority'; }
+    else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'View Adoption →'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · Activation runway` : 'Activation runway'; }
     
     const isHot = kind === 'exploration' || kind === 'promotion';
     
     banner.innerHTML = `
         <div class="gov-live-indicator">
             <span class="gov-live-dot ${isHot ? 'hot' : ''}"></span>
-            <span class="gov-live-label">${label}</span>
+            <span class="gov-live-label">${icon} ${label}</span>
         </div>
         <div class="gov-live-detail">
-            ${proposal ? `<span class="gov-live-proposal">${escapeHtml(proposal)}</span>` : ''}
-            <span class="gov-live-phase">${periodName}${timeLeft ? ` · ${timeLeft}` : ''}</span>
+            <span class="gov-live-title">${proposal ? `${escapeHtml(proposal)} ${escapeHtml(periodName)}` : escapeHtml(periodName)}</span>
+            <span class="gov-live-phase">${escapeHtml(explainer)}</span>
+            <span class="gov-live-meta">${meta}</span>
         </div>
         <div class="gov-live-cta">${cta}</div>
     `;
-    banner.className = `gov-countdown-banner gov-live gov-phase-${phase}`;
+    banner.className = `gov-countdown-banner gov-live gov-phase-${phase}${spotlight ? ' gov-vote-spotlight' : ''}`;
 }
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
 // Mobile tabs disabled — single scrollable page
@@ -1799,7 +1818,9 @@ async function updateUpgradeClock() {
                         ${tallyHtml}
                     </div>
                 `;
+            } else {
                 statusEl.classList.remove('active');
+                statusEl.innerHTML = '';
             }
         }
         

@@ -1166,6 +1166,7 @@ async function loadEntryCardStatus() {
     try {
         const mini = document.getElementById('chamber-entry-mini');
         if (!mini) return;
+        const card = mini.closest('.chamber-entry-card');
         
         const currentPeriod = await (await fetch(`${TZKT}/voting/periods/current`)).json();
         const isActive = currentPeriod.status === 'active' && currentPeriod.kind !== 'proposal';
@@ -1173,10 +1174,13 @@ async function loadEntryCardStatus() {
         if (isActive) {
             const pct = calcSupermajority(currentPeriod);
             const stageName = currentPeriod.kind.charAt(0).toUpperCase() + currentPeriod.kind.slice(1);
-            mini.innerHTML = `<span class="entry-live-dot"></span> ${stageName} · ${pct !== null ? pct.toFixed(0) + '% Yay' : 'Active'}`;
+            mini.innerHTML = `<span class="entry-live-dot"></span> Live ${stageName} vote · ${pct !== null ? pct.toFixed(0) + '% Yay' : 'open ballots'}`;
             mini.classList.add('live');
+            card?.classList.add('chamber-entry-live');
         } else {
             mini.innerHTML = 'No active vote';
+            mini.classList.remove('live');
+            card?.classList.remove('chamber-entry-live');
         }
     } catch {
         // Silent fail

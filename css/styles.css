@@ -10401,27 +10401,174 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
    ========================================== */
 
 .gov-countdown-banner {
-    display: flex;
+    --gov-accent: var(--accent-cyan, #00d4ff);
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 8px 16px;
-    font-size: 0.75rem;
+    gap: 14px;
+    padding: 11px 18px;
+    font-size: 0.78rem;
     font-family: 'Orbitron', monospace;
     letter-spacing: 0.5px;
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 8px;
-    margin: 8px auto;
-    max-width: 800px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--gov-accent) 13%, transparent), rgba(255,255,255,0.025)),
+        var(--glass-bg);
+    border: 1px solid color-mix(in srgb, var(--gov-accent) 45%, var(--glass-border));
+    border-radius: 10px;
+    margin: 10px auto 16px;
+    max-width: 1180px;
+    width: calc(100% - 48px);
     color: var(--text-secondary);
     transition: all 0.3s ease;
+    box-shadow: 0 0 28px color-mix(in srgb, var(--gov-accent) 14%, transparent);
+    isolation: isolate;
+    position: relative;
+    overflow: hidden;
 }
 
-.gov-countdown-banner.urgent {
-    background: rgba(0, 212, 255, 0.08);
-    border-color: rgba(0, 212, 255, 0.3);
-    color: var(--accent-cyan);
+.gov-countdown-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gov-accent) 12%, transparent), transparent);
+    opacity: 0.34;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.gov-countdown-banner::after {
+    content: '';
+    position: absolute;
+    left: 18px;
+    right: 18px;
+    bottom: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--gov-accent), transparent);
+    opacity: 0.48;
+    pointer-events: none;
+}
+
+.gov-countdown-banner:hover {
+    border-color: var(--gov-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 0 38px color-mix(in srgb, var(--gov-accent) 22%, transparent);
+}
+
+.gov-countdown-banner.gov-phase-exploration,
+.gov-countdown-banner.gov-phase-promotion {
+    --gov-accent: #00ff88;
+}
+
+.gov-countdown-banner.gov-phase-cooldown {
+    --gov-accent: #f5b942;
+}
+
+.gov-countdown-banner.gov-phase-adoption {
+    --gov-accent: #5b8def;
+}
+
+[data-theme="clean"] .gov-countdown-banner.gov-phase-exploration,
+[data-theme="clean"] .gov-countdown-banner.gov-phase-promotion {
+    --gov-accent: #16a34a;
+}
+
+.gov-countdown-banner.gov-vote-spotlight {
+    padding: 16px 22px;
+    border-width: 2px;
+    color: var(--text-primary);
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--gov-accent) 14%, transparent),
+        0 0 42px color-mix(in srgb, var(--gov-accent) 22%, transparent),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.gov-live-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 120px;
+    color: var(--gov-accent);
+    white-space: nowrap;
+}
+
+.gov-live-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--gov-accent);
+    box-shadow: 0 0 12px var(--gov-accent);
+    flex: 0 0 auto;
+    animation: voting-pulse 2.4s ease-in-out infinite;
+}
+
+.gov-live-dot.hot {
+    animation: gov-hot-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes gov-hot-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 0 12px var(--gov-accent), 0 0 0 0 color-mix(in srgb, var(--gov-accent) 24%, transparent);
+    }
+    50% {
+        opacity: 0.72;
+        transform: scale(1.18);
+        box-shadow: 0 0 16px var(--gov-accent), 0 0 0 8px transparent;
+    }
+}
+
+.gov-live-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--gov-accent) 32%, transparent);
+}
+
+.gov-live-detail {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.gov-live-title {
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+
+.gov-vote-spotlight .gov-live-title {
+    font-size: clamp(1.08rem, 1.9vw, 1.48rem);
+}
+
+.gov-live-phase,
+.gov-live-meta {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.01em;
+    color: var(--text-secondary);
+    line-height: 1.35;
+}
+
+.gov-live-meta {
+    color: color-mix(in srgb, var(--gov-accent) 72%, var(--text-secondary));
+    font-size: 0.72rem;
+}
+
+.gov-live-cta {
+    justify-self: end;
+    color: #050805;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--gov-accent) 92%, white), var(--gov-accent));
+    border: 1px solid color-mix(in srgb, var(--gov-accent) 60%, white);
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    white-space: nowrap;
+    box-shadow: 0 0 18px color-mix(in srgb, var(--gov-accent) 22%, transparent);
 }
 
 .gov-banner-icon {
@@ -10438,8 +10585,23 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 
 @media (max-width: 768px) {
     .gov-countdown-banner {
-        margin: 4px 12px;
-        font-size: 0.65rem;
+        grid-template-columns: 1fr;
+        align-items: stretch;
+        gap: 10px;
+        margin: 8px 12px 14px;
+        width: auto;
+        padding: 14px;
+        font-size: 0.68rem;
+    }
+
+    .gov-live-indicator,
+    .gov-live-cta {
+        justify-self: start;
+    }
+
+    .gov-live-cta {
+        width: 100%;
+        text-align: center;
     }
 }
 
@@ -13199,6 +13361,19 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     border-color: var(--accent-cyan) !important;
     box-shadow: 0 0 20px rgba(0, 212, 255, 0.1), 0 0 42px rgba(0, 212, 255, 0.03) !important;
     transform: translateY(-1px);
+}
+
+.chamber-entry-card.chamber-entry-live {
+    border-color: #00ff88 !important;
+    background:
+        linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(0, 212, 255, 0.035)),
+        var(--glass-bg, rgba(255,255,255,0.03));
+    box-shadow: 0 0 24px rgba(0, 255, 136, 0.12), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+}
+
+.chamber-entry-card.chamber-entry-live::before {
+    opacity: 0.18;
+    border-color: #00ff88;
 }
 
 .chamber-entry-status {

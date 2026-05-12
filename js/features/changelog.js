@@ -5,8 +5,17 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-12',
+        entries: [
+            { type: '✨', text: 'Active Exploration and Promotion votes now take center stage with a larger front-page governance spotlight' },
+            { type: '🎨', text: 'Governance vote spotlight now has tighter visual polish and compact emoji cues for ballots, quorum, and supermajority' },
+            { type: '🔧', text: 'Upgrade Clock vote details stay visible during active governance so quorum and supermajority context is easier to find' },
+        ]
+    },
+    {
         date: '2026-05-06',
         entries: [
+            { type: '🔧', text: 'Share tweet templates now cover Network Health, use live stat values, and avoid stale comparison claims' },
             { type: '⚡', text: 'Governance data now has one refresh command that updates vote history and stale-data audit artifacts before commits' },
             { type: '🔧', text: 'Protocol timeline highlights now read from protocol-data lore instead of duplicate hardcoded JavaScript maps' },
             { type: '🔧', text: 'Live governance cards now resolve active proposal epochs from TzKT and normalize Yay/Nay/Pass vote statuses' },
