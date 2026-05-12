@@ -82,7 +82,7 @@ function updateGovernanceBanner(stats, votingStatus) {
         icon = '🗳️';
         label = 'VOTE LIVE';
         cta = '🏛️ Watch The Chamber →';
-        explainer = 'A protocol proposal cleared Proposal. Bakers are voting on-chain now.';
+        explainer = 'A protocol proposal advanced from the Proposal period. Bakers are voting on-chain now.';
         meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority';
     }
     else if (kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'VOTE PASSED'; cta = 'View Results →'; explainer = 'The proposal cleared its vote and is in the governance cooldown period.'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · Cooling down before the final stretch` : 'Cooling down before the final stretch'; }
