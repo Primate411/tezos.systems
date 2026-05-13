@@ -3,6 +3,117 @@
    ═══════════════════════════════════════════════════ */
 
 /* ── Base Layer ── */
+.hen-launcher {
+    position: fixed;
+    top: 10px;
+    left: 14px;
+    z-index: 120;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(0, 212, 255, 0.24);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.14), transparent 28%),
+        rgba(17, 17, 17, 0.62);
+    color: #e0e0e0;
+    text-decoration: none;
+    cursor: pointer;
+    isolation: isolate;
+    box-shadow:
+        0 0 0 1px rgba(0, 255, 136, 0.08),
+        0 8px 24px rgba(0, 0, 0, 0.28),
+        0 0 22px rgba(0, 212, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.hen-launcher::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: conic-gradient(from 160deg, transparent, rgba(0, 212, 255, 0.22), transparent 34%, rgba(0, 255, 136, 0.18), transparent 68%);
+    opacity: 0.48;
+    filter: blur(8px);
+    z-index: -1;
+    animation: hen-launcher-aura 6s linear infinite;
+}
+
+.hen-launcher::after {
+    content: '';
+    position: absolute;
+    top: 7px;
+    right: 7px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #00ff88;
+    box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
+    opacity: 0.72;
+}
+
+.hen-launcher span {
+    display: block;
+    font-size: 1.08rem;
+    line-height: 1;
+    transform: translateY(1px);
+    filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.5));
+    animation: hen-launcher-bob 4.8s ease-in-out infinite;
+}
+
+.hen-launcher:hover,
+.hen-launcher:focus-visible {
+    transform: translateY(-1px) rotate(4deg) scale(1.06);
+    border-color: rgba(0, 255, 136, 0.58);
+    background:
+        radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.18), transparent 30%),
+        rgba(17, 17, 17, 0.82);
+    box-shadow:
+        0 0 0 1px rgba(0, 255, 136, 0.16),
+        0 10px 28px rgba(0, 0, 0, 0.32),
+        0 0 28px rgba(0, 212, 255, 0.2);
+}
+
+.hen-launcher:focus-visible {
+    outline: 2px solid rgba(0, 255, 136, 0.8);
+    outline-offset: 3px;
+}
+
+@keyframes hen-launcher-bob {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-3px) rotate(2deg); }
+}
+
+@keyframes hen-launcher-aura {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+    .hen-launcher {
+        top: 42px;
+        left: 12px;
+        width: 32px;
+        height: 32px;
+    }
+
+    body:not(.hen-active) .header-content {
+        padding-left: 44px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hen-launcher,
+    .hen-launcher::before,
+    .hen-launcher span {
+        animation: none;
+    }
+}
+
 .hen-overlay {
     display: none;
     position: fixed;
@@ -688,7 +799,7 @@ body.hen-active {
     transition: box-shadow 60s linear;
 }
 
-/* 4. No close button */
+/* 4. Keep the escape hatch visible */
 .hen-close {
-    display: none;
+    display: flex;
 }

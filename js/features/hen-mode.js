@@ -701,7 +701,15 @@ const HenMode = (() => {
     }
 
     function init() {
-        // No close button — exit via 'exit' command or Escape
+        var launcher = document.getElementById('hen-launcher');
+        if (launcher) launcher.addEventListener('click', function(e) {
+            e.preventDefault();
+            history.replaceState(null, '', '/?hen=1');
+            activate();
+        });
+
+        var closeBtn = document.querySelector('.hen-close');
+        if (closeBtn) closeBtn.addEventListener('click', deactivate);
 
         var expClose = document.querySelector('.hen-expanded-close');
         if (expClose) expClose.addEventListener('click', function() {

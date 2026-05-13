@@ -35,7 +35,7 @@
         {
             target: '#theme-toggle',
             title: '🐔 HEN MODE',
-            text: 'A full-screen NFT art gallery powered by Objkt — hidden inside the theme picker.',
+            text: 'A full-screen NFT art gallery powered by Objkt — launch it from the little HEN button or the theme picker.',
             action: function () { if (typeof HenMode !== 'undefined') HenMode.activate(); },
             actionLabel: 'launch HEN mode 🐔',
         },

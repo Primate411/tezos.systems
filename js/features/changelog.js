@@ -5,6 +5,13 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-13',
+        entries: [
+            { type: '✨', text: 'Tiny HEN launcher added to the top-left corner for immediate live art mode access' },
+            { type: '🔧', text: 'HEN mode close control now exits the gallery directly' },
+        ]
+    },
+    {
         date: '2026-05-12',
         entries: [
             { type: '✨', text: 'Active Exploration and Promotion votes now take center stage with a larger front-page governance spotlight' },
