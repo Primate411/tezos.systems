@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-14',
+        entries: [
+            { type: '🔧', text: 'My Tezos baker vote status now reads current TzKT voter rows directly and reports live governance participation correctly' },
+        ]
+    },
+    {
         date: '2026-05-13',
         entries: [
             { type: '✨', text: 'Tiny HEN launcher added to the top-left corner for immediate live art mode access' },

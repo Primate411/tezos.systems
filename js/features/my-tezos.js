@@ -9,6 +9,7 @@ import { formatNumber, escapeHtml } from '../core/utils.js';
 import { fetchSharedStats } from '../core/api.js';
 import { fetchXTZPrice } from './price.js';
 import { letterGrade } from './baker-report-card.js';
+import { fetchVotingStatus } from './governance.js';
 
 const TZKT = API_URLS.tzkt;
 const OCTEZ = API_URLS.octez;
@@ -146,11 +147,29 @@ async function fetchParticipation(bakerAddr) {
     } catch { return null; }
 }
 
+function normalizeBallotStatus(status) {
+    if (!status || status === 'none') return null;
+    return String(status).replace(/^voted_/, '');
+}
+
+function isCastVote(status) {
+    return Boolean(normalizeBallotStatus(status));
+}
+
+async function fetchCurrentVoter(bakerAddr) {
+    try {
+        const resp = await fetch(`${TZKT}/voting/periods/current/voters/${encodeURIComponent(bakerAddr)}`);
+        if (!resp.ok) return null;
+        return await resp.json();
+    } catch {
+        return null;
+    }
+}
+
 async function fetchBakerVoteStatus(bakerAddr) {
     try {
-        const periodResp = await fetch(`${TZKT}/voting/periods/current`);
-        if (!periodResp.ok) return null;
-        const period = await periodResp.json();
+        const period = await fetchVotingStatus();
+        if (!period) return null;
         
         // Calculate time urgency (0–1, where 1 = period almost over)
         let urgency = 0;
@@ -167,49 +186,31 @@ async function fetchBakerVoteStatus(bakerAddr) {
             const proposalsCount = period.proposalsCount || 0;
             if (proposalsCount === 0) return null;
             try {
-                const upvoteResp = await fetch(`${TZKT}/voting/periods/current/voters?address=${encodeURIComponent(bakerAddr)}`);
-                if (upvoteResp.ok) {
-                    const voters = await upvoteResp.json();
-                    const entry = voters.find(v => v.delegate?.address === bakerAddr);
-                    const hasUpvoted = entry && entry.status !== 'none';
-                    return { ...base, proposal: `${proposalsCount} proposal${proposalsCount > 1 ? 's' : ''} injected`, voted: !!hasUpvoted, voteType: 'upvote', proposalsCount };
-                }
+                const entry = await fetchCurrentVoter(bakerAddr);
+                const hasUpvoted = entry && isCastVote(entry.status);
+                return { ...base, proposal: `${proposalsCount} proposal${proposalsCount > 1 ? 's' : ''} injected`, voted: !!hasUpvoted, voteType: 'upvote', proposalsCount };
             } catch {}
             return { ...base, proposal: `${proposalsCount} proposal${proposalsCount > 1 ? 's' : ''}`, voted: false, voteType: 'upvote', proposalsCount };
         }
         
         // Exploration / promotion — check yay/nay/pass + tally
         if (period.kind === 'exploration' || period.kind === 'promotion') {
-            const proposalName = period.epoch?.proposal?.alias || 'Unknown';
-            let quorumPct = null, yayPct = null;
-            
-            try {
-                const totalEligible = period.totalVotingPower || 0;
-                const summaryResp = await fetch(`${TZKT}/voting/periods/current/voters?status.ne=none&limit=10000&select=status,votingPower`);
-                if (summaryResp.ok) {
-                    const allVotes = await summaryResp.json();
-                    let yayPower = 0, nayPower = 0, passPower = 0;
-                    for (const v of allVotes) {
-                        if (v.status === 'yay') yayPower += v.votingPower || 0;
-                        else if (v.status === 'nay') nayPower += v.votingPower || 0;
-                        else if (v.status === 'pass') passPower += v.votingPower || 0;
-                    }
-                    const totalVoted = yayPower + nayPower + passPower;
-                    quorumPct = totalEligible > 0 ? ((totalVoted / totalEligible) * 100) : 0;
-                    const yayNay = yayPower + nayPower;
-                    yayPct = yayNay > 0 ? ((yayPower / yayNay) * 100) : 0;
-                }
-            } catch {}
+            const proposalName = period.proposalName || period.proposal?.alias || period.proposal?.hash?.slice(0, 8) || 'Unknown';
+            const yayPower = period.yayVotingPower || 0;
+            const nayPower = period.nayVotingPower || 0;
+            const passPower = period.passVotingPower || 0;
+            const totalVoted = yayPower + nayPower + passPower;
+            const totalEligible = period.totalVotingPower || 0;
+            const quorumPct = totalEligible > 0 ? ((totalVoted / totalEligible) * 100) : null;
+            const yayNay = yayPower + nayPower;
+            const yayPct = yayNay > 0 ? ((yayPower / yayNay) * 100) : null;
             
             // Check this baker's vote
             let voted = false, vote = null;
             try {
-                const voteResp = await fetch(`${TZKT}/voting/periods/current/voters?address=${encodeURIComponent(bakerAddr)}`);
-                if (voteResp.ok) {
-                    const voters = await voteResp.json();
-                    const entry = voters.find(v => v.delegate?.address === bakerAddr);
-                    if (entry && entry.status !== 'none') { voted = true; vote = entry.status; }
-                }
+                const entry = await fetchCurrentVoter(bakerAddr);
+                vote = normalizeBallotStatus(entry?.status);
+                voted = Boolean(vote);
             } catch {}
             
             return { ...base, proposal: proposalName, voted, vote, voteType: 'ballot', quorumPct, yayPct };
@@ -1014,15 +1015,17 @@ async function renderMorningBrief(address, force = false) {
 
         // Active governance proposal
         let activeProposal = null;
-        try {
-            const govResp = await fetch(`${TZKT}/voting/periods/current`);
-            if (govResp.ok) {
-                const period = await govResp.json();
+        if (bakerVote?.proposal && bakerVote.periodKind && bakerVote.periodKind !== 'proposal') {
+            activeProposal = `${bakerVote.periodKind} phase — ${bakerVote.proposal}`;
+        } else {
+            try {
+                const period = await fetchVotingStatus();
                 if (period && period.kind !== 'proposal') {
-                    activeProposal = `${period.kind} phase — ${period.epoch?.proposal?.alias || 'Unknown'}`;
+                    const proposal = period.proposalName || period.proposal?.alias || period.proposal?.hash?.slice(0, 8) || 'Unknown';
+                    activeProposal = `${period.kind} phase — ${proposal}`;
                 }
-            }
-        } catch {}
+            } catch {}
+        }
 
         // Save portfolio for deltas
         try {
