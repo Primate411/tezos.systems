@@ -949,8 +949,8 @@ body::before {
 }
 
 .upgrade-status {
-    margin-top: 20px;
-    padding-top: 20px;
+    margin-top: 12px;
+    padding-top: 12px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     display: none;
 }
@@ -960,16 +960,29 @@ body::before {
 }
 
 .voting-status {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(360px, 1.3fr) minmax(300px, 0.7fr);
+    align-items: start;
+    gap: 14px 18px;
+}
+
+.voting-live-summary {
+    min-width: 0;
+}
+
+.voting-time-row {
+    display: grid;
+    grid-template-columns: auto minmax(160px, 1fr);
     align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 8px;
 }
 
 .voting-period {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .voting-dot {
@@ -996,8 +1009,8 @@ body::before {
 }
 
 .voting-progress {
-    flex: 1;
-    min-width: 200px;
+    width: 100%;
+    min-width: 0;
     height: 6px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 3px;
@@ -1023,6 +1036,7 @@ body::before {
     display: flex;
     gap: 2px;
     flex-wrap: nowrap;
+    padding-top: 17px;
     padding-bottom: 9px;
 }
 
@@ -1065,7 +1079,8 @@ body::before {
 
 .contention-icon {
     position: absolute;
-    bottom: -16px;
+    top: -15px;
+    bottom: auto;
     left: 50%;
     transform: translateX(-50%);
     font-size: 0.95rem;
@@ -1176,12 +1191,22 @@ body::before {
         margin-left: 0;
     }
 
+    .voting-status {
+        grid-template-columns: 1fr;
+    }
+
+    .voting-time-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
     .contention-icon {
         font-size: 0.75rem;
-        bottom: -12px;
+        top: -11px;
     }
 
     .timeline-track {
+        padding-top: 14px;
         padding-bottom: 14px;
     }
 }
@@ -12040,17 +12065,10 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 
 /* ─── Vote Tally (Governance) ──────────────────────── */
 .voting-status {
-    flex-direction: column;
-    align-items: stretch;
-}
-.voting-status > :first-child {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
+    align-items: start;
 }
 .voting-tally {
-    margin-top: 10px;
+    margin-top: 8px;
     padding: 10px 12px;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 8px;
@@ -12100,11 +12118,183 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     color: var(--text-secondary);
     display: flex;
     justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 .voting-proposal-name {
     font-size: 0.85rem;
     color: var(--accent-cyan);
     font-weight: 500;
+}
+
+.governance-process-card {
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    min-width: 0;
+}
+
+.governance-process-head,
+.governance-next-step {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.process-title,
+.process-phase {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+}
+
+.process-title {
+    color: var(--accent-cyan);
+}
+
+.process-phase {
+    color: var(--text-tertiary);
+}
+
+.governance-stage-bars {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 5px;
+    margin: 10px 0;
+}
+
+.governance-stage {
+    display: grid;
+    grid-template-columns: minmax(86px, 0.34fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.governance-stage-labels {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 4px;
+    margin-bottom: 0;
+}
+
+.governance-stage-labels span,
+.governance-stage-labels small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.governance-stage-labels span {
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.governance-stage-labels small {
+    font-size: 0.52rem;
+    color: var(--text-tertiary);
+}
+
+.governance-stage-track {
+    height: 6px;
+    background: rgba(255, 255, 255, 0.07);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.governance-stage-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.governance-stage-complete .governance-stage-fill {
+    background: linear-gradient(90deg, var(--accent-cyan), rgba(0, 255, 136, 0.75));
+}
+
+.governance-stage-active .governance-stage-labels span {
+    color: var(--accent-cyan);
+}
+
+.governance-stage-active .governance-stage-fill {
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.governance-stage-future {
+    opacity: 0.48;
+}
+
+.governance-quick-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.governance-quick-stat {
+    min-width: 0;
+    padding: 7px 8px;
+    background: rgba(0, 0, 0, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    border-radius: 6px;
+}
+
+.governance-quick-stat span,
+.governance-next-step span {
+    display: block;
+    font-size: 0.58rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    white-space: nowrap;
+}
+
+.governance-quick-stat strong,
+.governance-next-step strong {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.7rem;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.governance-next-step {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+@media (max-width: 768px) {
+    .governance-stage {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .governance-stage-labels {
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .governance-quick-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .governance-process-head,
+    .governance-next-step {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
 }
 
 /* ==========================================

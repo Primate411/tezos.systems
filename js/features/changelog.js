@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-05-14',
         entries: [
+            { type: '🎨', text: 'Active governance spotlight now uses its empty right side for a compact five-stage process rail and live Chamber summary stats' },
             { type: '🔧', text: 'My Tezos baker vote status now reads current TzKT voter rows directly and reports live governance participation correctly' },
         ]
     },

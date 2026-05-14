@@ -1724,6 +1724,88 @@ function positionTooltip(e, tooltipEl) {
     tooltipEl.style.top = y + 'px';
 }
 
+const GOVERNANCE_FLOW = [
+    { key: 'proposal', label: 'Proposal', detail: 'Upvotes' },
+    { key: 'exploration', label: 'Exploration', detail: '1st vote' },
+    { key: 'cooldown', label: 'Cooldown', detail: 'Review' },
+    { key: 'promotion', label: 'Promotion', detail: 'Final vote' },
+    { key: 'adoption', label: 'Adoption', detail: 'Activation' }
+];
+
+function normalizeGovernanceKind(kind) {
+    return kind === 'testing' ? 'cooldown' : kind;
+}
+
+function clampPercent(value) {
+    if (!Number.isFinite(value)) return 0;
+    return Math.max(0, Math.min(100, value));
+}
+
+function normalizeThreshold(value, fallback) {
+    if (!Number.isFinite(value)) return fallback;
+    return value > 100 ? value / 100 : value;
+}
+
+function renderGovernanceProcessSummary(votingStatus, progress, tally) {
+    const currentKind = normalizeGovernanceKind(votingStatus.kind);
+    const flowIndex = GOVERNANCE_FLOW.findIndex(stage => stage.key === currentKind);
+    const currentIndex = flowIndex >= 0 ? flowIndex : 0;
+    const phaseNumber = currentIndex + 1;
+    const currentProgress = clampPercent(progress);
+    const nextStage = GOVERNANCE_FLOW[currentIndex + 1];
+    const epochIndex = typeof votingStatus.epoch === 'object' ? votingStatus.epoch?.index : votingStatus.epoch;
+    const threshold = normalizeThreshold(votingStatus.supermajority, 80);
+    const quorumRequired = normalizeThreshold(votingStatus.ballotsQuorum, 0);
+    const nextText = nextStage ? `${nextStage.label} if this phase clears` : 'Protocol activation';
+    const metrics = tally ? [
+        { label: 'Quorum', value: `${tally.participation.toFixed(1)} / ${quorumRequired.toFixed(1)}%` },
+        { label: 'Supermajority', value: `${tally.supermajority.toFixed(1)} / ${threshold.toFixed(0)}%` },
+        { label: 'Ballots', value: `${tally.voterCount.toLocaleString()} cast` }
+    ] : [
+        { label: 'Phase', value: `${phaseNumber} / ${GOVERNANCE_FLOW.length}` },
+        { label: 'Elapsed', value: `${Math.round(currentProgress)}%` },
+        { label: 'Next', value: nextStage ? nextStage.label : 'Activation' }
+    ];
+
+    return `
+        <aside class="governance-process-card" aria-label="Tezos governance process">
+            <div class="governance-process-head">
+                <span class="process-title">Governance Path</span>
+                <span class="process-phase">Phase ${phaseNumber}/${GOVERNANCE_FLOW.length}</span>
+            </div>
+            <div class="governance-stage-bars">
+                ${GOVERNANCE_FLOW.map((stage, index) => {
+                    const state = index < currentIndex ? 'complete' : index === currentIndex ? 'active' : 'future';
+                    const fill = state === 'complete' ? 100 : state === 'active' ? currentProgress : 0;
+                    return `
+                        <div class="governance-stage governance-stage-${state}">
+                            <div class="governance-stage-labels">
+                                <span>${escapeHtml(stage.label)}</span>
+                                <small>${escapeHtml(stage.detail)}</small>
+                            </div>
+                            <div class="governance-stage-track">
+                                <span class="governance-stage-fill" style="width:${fill}%"></span>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+            <div class="governance-quick-stats">
+                ${metrics.map(metric => `
+                    <div class="governance-quick-stat">
+                        <span>${escapeHtml(metric.label)}</span>
+                        <strong>${escapeHtml(metric.value)}</strong>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="governance-next-step">
+                <span>${epochIndex ? `Epoch ${escapeHtml(String(epochIndex))}` : 'Live governance'}</span>
+                <strong>${escapeHtml(nextText)}</strong>
+            </div>
+        </aside>
+    `;
+}
+
 /**
  * Update the Upgrade Clock section
  */
@@ -1767,6 +1849,7 @@ async function updateUpgradeClock() {
                 
                 // Fetch vote tally for exploration/promotion
                 let tallyHtml = '';
+                let tally = null;
                 if (votingStatus.kind === 'exploration' || votingStatus.kind === 'promotion') {
                     try {
                         const vResp = await fetch('https://api.tzkt.io/v1/voting/periods/current/voters?status.ne=none&limit=10000&select=status,votingPower');
@@ -1781,16 +1864,29 @@ async function updateUpgradeClock() {
                             }
                             const total = yay + nay + pass;
                             const eligible = votingStatus.totalVotingPower || votingStatus.topVotingPower || 1;
-                            const participation = ((total / eligible) * 100).toFixed(1);
-                            const yayOfYayNay = (yay + nay) > 0 ? ((yay / (yay + nay)) * 100).toFixed(1) : '0.0';
-                            const smMet = parseFloat(yayOfYayNay) >= 80;
+                            const participationValue = (total / eligible) * 100;
+                            const participation = participationValue.toFixed(1);
+                            const yayOfYayNayValue = (yay + nay) > 0 ? (yay / (yay + nay)) * 100 : 0;
+                            const yayOfYayNay = yayOfYayNayValue.toFixed(1);
+                            const quorumRequired = normalizeThreshold(votingStatus.ballotsQuorum, 0);
+                            const supermajorityRequired = normalizeThreshold(votingStatus.supermajority, 80);
+                            const quorumMet = participationValue >= quorumRequired;
+                            const smMet = yayOfYayNayValue >= supermajorityRequired;
                             const smColor = smMet ? 'var(--color-success, #10b981)' : parseFloat(yayOfYayNay) >= 60 ? 'var(--color-warning, #f59e0b)' : 'var(--color-error, #ef4444)';
+                            tally = {
+                                participation: participationValue,
+                                supermajority: yayOfYayNayValue,
+                                voterCount: votes.length
+                            };
                             tallyHtml = `
                                 <div class="voting-tally">
                                     <div class="voting-tally-row"><span class="tally-label">Yay</span><span class="tally-bar"><span class="tally-fill tally-yay" style="width:${total > 0 ? (yay/total*100) : 0}%"></span></span><span class="tally-pct" style="color:${smColor}">${yayOfYayNay}%</span></div>
                                     <div class="voting-tally-row"><span class="tally-label">Nay</span><span class="tally-bar"><span class="tally-fill tally-nay" style="width:${total > 0 ? (nay/total*100) : 0}%"></span></span><span class="tally-pct">${(yay+nay) > 0 ? ((nay/(yay+nay))*100).toFixed(1) : '0.0'}%</span></div>
                                     <div class="voting-tally-row"><span class="tally-label">Pass</span><span class="tally-bar"><span class="tally-fill tally-pass" style="width:${total > 0 ? (pass/total*100) : 0}%"></span></span><span class="tally-pct">${total > 0 ? ((pass/total)*100).toFixed(1) : '0.0'}%</span></div>
-                                    <div class="voting-tally-summary">${participation}% participation • ${smMet ? '✅' : '⚠️'} ${yayOfYayNay}% supermajority ${smMet ? 'met' : '(needs 80%)'}</div>
+                                    <div class="voting-tally-summary">
+                                        <span>${participation}% participation ${quorumMet ? 'met' : `needs ${quorumRequired.toFixed(1)}%`}</span>
+                                        <span>${smMet ? '✅' : '⚠️'} ${yayOfYayNay}% supermajority ${smMet ? 'met' : `(needs ${supermajorityRequired.toFixed(0)}%)`}</span>
+                                    </div>
                                 </div>`;
                         }
                     } catch {}
@@ -1805,17 +1901,22 @@ async function updateUpgradeClock() {
                 const proposalLabel = proposalName ? `<span class="voting-proposal-name">${escapeHtml(proposalName)}</span>` : '';
                 
                 statusEl.innerHTML = `
-                    <div class="voting-status">
-                        <div class="voting-period">
-                            <span class="voting-dot"></span>
-                            <span class="voting-period-name">${getVotingPeriodName(votingStatus.kind)}</span>
-                            ${proposalLabel}
+                    <div class="voting-status voting-status-grid">
+                        <div class="voting-live-summary">
+                            <div class="voting-period">
+                                <span class="voting-dot"></span>
+                                <span class="voting-period-name">${getVotingPeriodName(votingStatus.kind)}</span>
+                                ${proposalLabel}
+                            </div>
+                            <div class="voting-time-row">
+                                <div class="voting-time">${formatTimeRemaining(votingStatus.endTime)}</div>
+                                <div class="voting-progress" aria-label="Current voting period progress">
+                                    <div class="voting-progress-bar" style="width: ${clampPercent(progress)}%"></div>
+                                </div>
+                            </div>
+                            ${tallyHtml}
                         </div>
-                        <div class="voting-time">${formatTimeRemaining(votingStatus.endTime)}</div>
-                        <div class="voting-progress">
-                            <div class="voting-progress-bar" style="width: ${Math.min(progress, 100)}%"></div>
-                        </div>
-                        ${tallyHtml}
+                        ${renderGovernanceProcessSummary(votingStatus, progress, tally)}
                     </div>
                 `;
             } else {
