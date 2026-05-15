@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-15',
+        entries: [
+            { type: '✨', text: 'Network Activity and Ecosystem now include New Accounts and Active Contracts cards for fresher usage signals' },
+        ]
+    },
+    {
         date: '2026-05-14',
         entries: [
             { type: '🎨', text: 'Active governance spotlight now uses its empty right side for a compact five-stage process rail and live Chamber summary stats' },

@@ -142,8 +142,8 @@ const ALL_CARD_IDS = [
     'total-bakers', 'tz4-adoption', 'cycle-progress',
     'proposal', 'voting-period', 'participation',
     'issuance-rate', 'staking-apy', 'staking-ratio', 'delegated', 'total-supply', 'total-burned',
-    'tx-volume', 'contract-calls', 'funded-accounts',
-    'smart-contracts', 'tokens', 'rollups'
+    'tx-volume', 'contract-calls', 'funded-accounts', 'new-accounts',
+    'smart-contracts', 'tokens', 'rollups', 'active-contracts'
 ];
 
 // Application state
@@ -643,11 +643,13 @@ async function updateStats(newStats) {
         updateStatInstant('tx-volume', newStats.transactionVolume24h, formatLarge);
         updateStatInstant('contract-calls', newStats.contractCalls24h, formatLarge);
         updateStatInstant('funded-accounts', newStats.fundedAccounts, formatLarge);
+        updateStatInstant('new-accounts', newStats.newAccounts24h, formatLarge);
         
         // Ecosystem
         updateStatInstant('smart-contracts', newStats.smartContracts, formatLarge);
         updateStatInstant('tokens', newStats.tokens, formatLarge);
         updateStatInstant('rollups', newStats.rollups, formatCount);
+        updateStatInstant('active-contracts', newStats.activeContracts24h, formatLarge);
 
         // Feed uptime clock with baker/staking data
         if (window._updateUptimeClock) {
@@ -682,6 +684,27 @@ async function updateStats(newStats) {
         }
         if (state.currentStats.transactionVolume24h !== newStats.transactionVolume24h) {
             updates.push({ cardId: 'tx-volume', value: newStats.transactionVolume24h, formatter: formatLarge });
+        }
+        if (state.currentStats.contractCalls24h !== newStats.contractCalls24h) {
+            updates.push({ cardId: 'contract-calls', value: newStats.contractCalls24h, formatter: formatLarge });
+        }
+        if (state.currentStats.fundedAccounts !== newStats.fundedAccounts) {
+            updates.push({ cardId: 'funded-accounts', value: newStats.fundedAccounts, formatter: formatLarge });
+        }
+        if (state.currentStats.newAccounts24h !== newStats.newAccounts24h) {
+            updates.push({ cardId: 'new-accounts', value: newStats.newAccounts24h, formatter: formatLarge });
+        }
+        if (state.currentStats.smartContracts !== newStats.smartContracts) {
+            updates.push({ cardId: 'smart-contracts', value: newStats.smartContracts, formatter: formatLarge });
+        }
+        if (state.currentStats.tokens !== newStats.tokens) {
+            updates.push({ cardId: 'tokens', value: newStats.tokens, formatter: formatLarge });
+        }
+        if (state.currentStats.rollups !== newStats.rollups) {
+            updates.push({ cardId: 'rollups', value: newStats.rollups, formatter: formatCount });
+        }
+        if (state.currentStats.activeContracts24h !== newStats.activeContracts24h) {
+            updates.push({ cardId: 'active-contracts', value: newStats.activeContracts24h, formatter: formatLarge });
         }
 
         // Apply updates with animations
@@ -2588,10 +2611,12 @@ function exportData(format) {
         network: {
             transactions24h: stats.transactionVolume24h,
             contractCalls24h: stats.contractCalls24h,
-            fundedAccounts: stats.fundedAccounts
+            fundedAccounts: stats.fundedAccounts,
+            newAccounts24h: stats.newAccounts24h
         },
         ecosystem: {
             smartContracts: stats.smartContracts,
+            activeContracts24h: stats.activeContracts24h,
             tokens: stats.tokens,
             smartRollups: stats.rollups
         }
@@ -2624,7 +2649,9 @@ function exportData(format) {
             transactions24h: 'Transactions 24h',
             contractCalls24h: 'Contract Calls 24h',
             fundedAccounts: 'Funded Accounts',
+            newAccounts24h: 'New Accounts 24h',
             smartContracts: 'Smart Contracts',
+            activeContracts24h: 'Active Contracts 24h',
             tokens: 'Tokens',
             smartRollups: 'Smart Rollups'
         }[key] || String(key).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, c => c.toUpperCase()));

@@ -205,6 +205,41 @@ async function getContractCalls24h() {
   }
 }
 
+let activityCutoffLevelPromise = null;
+async function getActivityCutoffLevel() {
+  if (!activityCutoffLevelPromise) {
+    activityCutoffLevelPromise = (async () => {
+      const head = await fetchWithRetry(`${TZKT_API}/head`);
+      let blockDelaySeconds = 6;
+      try {
+        const constants = await fetchWithRetry(`${OCTEZ_RPC}/chains/main/blocks/head/context/constants`);
+        const parsedDelay = parseInt(constants?.minimal_block_delay, 10);
+        if (Number.isFinite(parsedDelay) && parsedDelay > 0) {
+          blockDelaySeconds = parsedDelay;
+        }
+      } catch (error) {
+        console.warn(`Using 6 second block delay fallback: ${error.message}`);
+      }
+      const recentBlocks = Math.ceil((24 * 60 * 60) / blockDelaySeconds);
+      return Math.max(0, (head?.level || 0) - recentBlocks);
+    })();
+  }
+  return activityCutoffLevelPromise;
+}
+
+// Fetch accounts first seen in the last 24h
+async function getNewAccounts24h() {
+  try {
+    const cutoffLevel = await getActivityCutoffLevel();
+    const count = await fetchWithRetry(`${TZKT_API}/accounts/count?firstActivity.gt=${cutoffLevel}`);
+    console.log(`New accounts 24h: ${count}`);
+    return count || 0;
+  } catch (error) {
+    console.error('Failed to fetch new accounts:', error.message);
+    return 0;
+  }
+}
+
 // Fetch funded accounts
 async function getFundedAccounts() {
   try {
@@ -225,6 +260,19 @@ async function getSmartContracts() {
     return count || 0;
   } catch (error) {
     console.error('Failed to fetch smart contracts:', error.message);
+    return 0;
+  }
+}
+
+// Fetch smart contracts active in the last 24h
+async function getActiveContracts24h() {
+  try {
+    const cutoffLevel = await getActivityCutoffLevel();
+    const count = await fetchWithRetry(`${TZKT_API}/contracts/count?lastActivity.gt=${cutoffLevel}`);
+    console.log(`Active contracts 24h: ${count}`);
+    return count || 0;
+  } catch (error) {
+    console.error('Failed to fetch active contracts:', error.message);
     return 0;
   }
 }
@@ -262,7 +310,7 @@ async function collectData() {
     const issuanceData = await getIssuanceRate();
 
     // Now fetch everything else in parallel, passing total supply and RPC to staking
-    const [cycle, tz4Stats, stakingData, totalBurned, txVolume, contractCalls, fundedAccounts, smartContracts, tokens, rollups] = await Promise.all([
+    const [cycle, tz4Stats, stakingData, totalBurned, txVolume, contractCalls, fundedAccounts, newAccounts, smartContracts, activeContracts, tokens, rollups] = await Promise.all([
       getCurrentCycle(),
       getTz4Stats(),
       getStakingData(issuanceData.totalSupply, issuanceData.workingRPC),
@@ -270,7 +318,9 @@ async function collectData() {
       getTxVolume24h(),
       getContractCalls24h(),
       getFundedAccounts(),
+      getNewAccounts24h(),
       getSmartContracts(),
+      getActiveContracts24h(),
       getTokens(),
       getRollups()
     ]);
@@ -295,7 +345,9 @@ async function collectData() {
       tx_volume_24h: txVolume || 0,
       contract_calls_24h: contractCalls || 0,
       funded_accounts: fundedAccounts || 0,
+      new_accounts_24h: newAccounts || 0,
       smart_contracts: smartContracts || 0,
+      active_contracts_24h: activeContracts || 0,
       tokens: tokens || 0,
       rollups: rollups || 0
     };
@@ -328,7 +380,7 @@ async function collectData() {
       throw new Error('Supabase credentials not configured');
     }
 
-    const response = await fetch(`${supabaseUrl}/rest/v1/tezos_history`, {
+    const postHistory = async (payload) => fetch(`${supabaseUrl}/rest/v1/tezos_history`, {
       method: 'POST',
       headers: {
         'apikey': supabaseKey,
@@ -336,12 +388,25 @@ async function collectData() {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify(dataPoint)
+      body: JSON.stringify(payload)
     });
 
+    let response = await postHistory(dataPoint);
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Supabase error: ${response.status} - ${error}`);
+      if (error.includes('new_accounts_24h') || error.includes('active_contracts_24h')) {
+        console.warn('Supabase schema is missing new activity columns; retrying legacy payload.');
+        const legacyDataPoint = { ...dataPoint };
+        delete legacyDataPoint.new_accounts_24h;
+        delete legacyDataPoint.active_contracts_24h;
+        response = await postHistory(legacyDataPoint);
+        if (!response.ok) {
+          const retryError = await response.text();
+          throw new Error(`Supabase error: ${response.status} - ${retryError}`);
+        }
+      } else {
+        throw new Error(`Supabase error: ${response.status} - ${error}`);
+      }
     }
 
     console.log('Data stored successfully in Supabase');

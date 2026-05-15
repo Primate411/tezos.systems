@@ -49,12 +49,12 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=75">
-    <link rel="stylesheet" href="css/hen-mode.css?v=75">
+    <link rel="stylesheet" href="css/styles.min.css?v=76">
+    <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=75">
+    <link rel="modulepreload" href="js/core/app.js?v=76">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -1246,6 +1246,37 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- New Accounts Card -->
+                <div class="stat-card" data-stat="new-accounts">
+                    <div class="card-info-btn" data-tooltip="new-accounts">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-new-accounts">
+                        <div class="tooltip-content">
+                            <h4>New Accounts</h4>
+                            <p>Accounts whose first on-chain activity appeared in the last 24 hours. A live pulse of new wallet, contract, and account creation.</p>
+                            <a href="https://tzkt.io/accounts" target="_blank" rel="noopener">Browse accounts →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">New Accounts</h2>
+                            <div class="stat-value" id="new-accounts-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <div class="sparkline-container"><canvas id="new-accounts-sparkline" class="sparkline-chart"></canvas><span class="trend-arrow" id="new-accounts-trend"></span></div>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">New Accounts</h2>
+                            <div class="stat-value" id="new-accounts-back">
+                                <span class="loading">...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -1348,6 +1379,37 @@
                         <div class="card-back" aria-hidden="true">
                             <h2 class="stat-label">Smart Rollups</h2>
                             <div class="stat-value" id="rollups-back">
+                                <span class="loading">...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Contracts Card -->
+                <div class="stat-card" data-stat="active-contracts">
+                    <div class="card-info-btn" data-tooltip="active-contracts">
+                        <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="card-tooltip" id="tooltip-active-contracts">
+                        <div class="tooltip-content">
+                            <h4>Active Contracts</h4>
+                            <p>Smart contracts with activity in the last 24 hours. This shows which deployed contracts are being used right now.</p>
+                            <a href="https://tzkt.io/contracts" target="_blank" rel="noopener">Browse contracts →</a>
+                        </div>
+                    </div>
+                    <div class="card-inner">
+                        <div class="card-front">
+                            <h2 class="stat-label">Active Contracts</h2>
+                            <div class="stat-value" id="active-contracts-front">
+                                <span class="loading">...</span>
+                            </div>
+                            <div class="sparkline-container"><canvas id="active-contracts-sparkline" class="sparkline-chart"></canvas><span class="trend-arrow" id="active-contracts-trend"></span></div>
+                        </div>
+                        <div class="card-back" aria-hidden="true">
+                            <h2 class="stat-label">Active Contracts</h2>
+                            <div class="stat-value" id="active-contracts-back">
                                 <span class="loading">...</span>
                             </div>
                         </div>
@@ -1548,6 +1610,7 @@
                 <ul>
                     <li><strong>Transactions</strong>: XTZ transfers, delegations, reveals</li>
                     <li><strong>Contract calls</strong>: DeFi, NFTs, dApps interactions</li>
+                    <li><strong>New accounts</strong>: Accounts first seen in the last 24 hours</li>
                     <li><strong>Low fees</strong>: Typically under $0.01 per transaction</li>
                     <li><strong>Fast blocks</strong>: ~6 second block times</li>
                 </ul>
@@ -1573,6 +1636,7 @@
                     <li><strong>DeFi</strong>: Plenty, Youves, Ctez - trading & lending</li>
                     <li><strong>Gaming</strong>: Tezotopia, Emergents TCG</li>
                     <li><strong>Etherlink</strong>: EVM L2 for Ethereum compatibility</li>
+                    <li><strong>Active contracts</strong>: Smart contracts with recent on-chain usage</li>
                 </ul>
                 <div class="modal-links">
                     <a href="https://tezos.com/ecosystem" target="_blank" rel="noopener">Tezos Ecosystem</a>
@@ -1760,8 +1824,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
-    <script src="js/features/hen-mode.js?v=75"></script>
-    <script type="module" src="js/core/app.js?v=75"></script>
+    <script src="js/features/hen-mode.js?v=76"></script>
+    <script type="module" src="js/core/app.js?v=76"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

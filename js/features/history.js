@@ -13,8 +13,13 @@ export function createSparkline(canvasId, data, metric) {
     if (!canvas) return;
 
     // Extract values and timestamps
-    const values = data.map(d => d[metric]);
-    const timestamps = data.map(d => new Date(d.timestamp));
+    const points = data
+        .map(d => ({ value: Number(d[metric]), timestamp: new Date(d.timestamp) }))
+        .filter(point => Number.isFinite(point.value) && !isNaN(point.timestamp.getTime()));
+    if (points.length < 2) return;
+
+    const values = points.map(point => point.value);
+    const timestamps = points.map(point => point.timestamp);
 
     // Determine color based on trend and theme
     const firstValue = values[0];
@@ -116,7 +121,7 @@ export function createSparkline(canvasId, data, metric) {
 
 // Calculate stats for a metric
 function calculateStats(data, metric) {
-    const values = data.map(d => d[metric]).filter(v => v != null);
+    const values = data.map(d => Number(d[metric])).filter(Number.isFinite);
     if (values.length === 0) return null;
     
     const current = values[values.length - 1];
@@ -139,8 +144,13 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
     }
 
     // Extract values and timestamps
-    const values = data.map(d => d[metric]);
-    const timestamps = data.map(d => new Date(d.timestamp));
+    const points = data
+        .map(d => ({ value: Number(d[metric]), timestamp: new Date(d.timestamp) }))
+        .filter(point => Number.isFinite(point.value) && !isNaN(point.timestamp.getTime()));
+    if (points.length < 2) return;
+
+    const values = points.map(point => point.value);
+    const timestamps = points.map(point => point.timestamp);
     
     // Calculate stats for this metric
     const stats = calculateStats(data, metric);
@@ -322,20 +332,24 @@ function calculateTrend(data, metric) {
     const now = Date.now();
     const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
     
+    const points = data
+        .map(d => ({ value: Number(d[metric]), timestamp: new Date(d.timestamp).getTime() }))
+        .filter(point => Number.isFinite(point.value) && Number.isFinite(point.timestamp));
+    if (points.length < 2) return null;
+
     // Get current value (latest)
-    const currentValue = data[data.length - 1][metric];
+    const currentValue = points[points.length - 1].value;
     
     // Find value closest to 7 days ago
-    let weekAgoValue = data[0][metric]; // fallback to oldest
-    for (let i = data.length - 1; i >= 0; i--) {
-        const timestamp = new Date(data[i].timestamp).getTime();
-        if (timestamp <= sevenDaysAgo) {
-            weekAgoValue = data[i][metric];
+    let weekAgoValue = points[0].value; // fallback to oldest
+    for (let i = points.length - 1; i >= 0; i--) {
+        if (points[i].timestamp <= sevenDaysAgo) {
+            weekAgoValue = points[i].value;
             break;
         }
     }
     
-    if (weekAgoValue === 0) return null;
+    if (!Number.isFinite(currentValue) || !Number.isFinite(weekAgoValue) || weekAgoValue === 0) return null;
     
     const change = ((currentValue - weekAgoValue) / weekAgoValue) * 100;
     return change;
@@ -398,10 +412,12 @@ export async function updateSparklines() {
             { canvasId: 'tx-volume-sparkline', metric: 'tx_volume_24h', trendId: 'tx-volume-trend' },
             { canvasId: 'contract-calls-sparkline', metric: 'contract_calls_24h', trendId: 'contract-calls-trend' },
             { canvasId: 'funded-accounts-sparkline', metric: 'funded_accounts', trendId: 'funded-accounts-trend' },
+            { canvasId: 'new-accounts-sparkline', metric: 'new_accounts_24h', trendId: 'new-accounts-trend' },
             // Ecosystem
             { canvasId: 'smart-contracts-sparkline', metric: 'smart_contracts', trendId: 'smart-contracts-trend' },
             { canvasId: 'tokens-sparkline', metric: 'tokens', trendId: 'tokens-trend' },
-            { canvasId: 'rollups-sparkline', metric: 'rollups', trendId: 'rollups-trend' }
+            { canvasId: 'rollups-sparkline', metric: 'rollups', trendId: 'rollups-trend' },
+            { canvasId: 'active-contracts-sparkline', metric: 'active_contracts_24h', trendId: 'active-contracts-trend' }
         ];
 
         sparklines.forEach(({ canvasId, metric, trendId, inverted }) => {
@@ -563,9 +579,11 @@ const CARD_METRICS = {
     'tx-volume': { metric: 'tx_volume_24h', label: 'TX Volume (24h)', unit: '' },
     'contract-calls': { metric: 'contract_calls_24h', label: 'Contract Calls (24h)', unit: '' },
     'funded-accounts': { metric: 'funded_accounts', label: 'Funded Accounts', unit: '' },
+    'new-accounts': { metric: 'new_accounts_24h', label: 'New Accounts (24h)', unit: '' },
     'smart-contracts': { metric: 'smart_contracts', label: 'Smart Contracts', unit: '' },
     'tokens': { metric: 'tokens', label: 'Tokens', unit: '' },
-    'rollups': { metric: 'rollups', label: 'Rollups', unit: '' }
+    'rollups': { metric: 'rollups', label: 'Rollups', unit: '' },
+    'active-contracts': { metric: 'active_contracts_24h', label: 'Active Contracts (24h)', unit: '' }
 };
 
 /**
@@ -619,7 +637,8 @@ async function openCardHistoryModal(cardId) {
     try {
         const data = await fetchHistoricalData('30d');
         
-        if (data.length === 0) {
+        const metricPoints = data.filter(row => Number.isFinite(Number(row[config.metric])));
+        if (data.length === 0 || metricPoints.length < 2) {
             chartContainer.innerHTML = `
                 <div style="text-align: center; padding: 60px 20px; color: rgba(255, 255, 255, 0.5);">
                     <p>Historical data is being collected.</p>

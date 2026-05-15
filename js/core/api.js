@@ -458,6 +458,34 @@ async function fetchContractCalls() {
     return count;
 }
 
+let _recentActivityCutoffPromise = null;
+let _recentActivityCutoffTimestamp = 0;
+async function fetchRecentActivityCutoffLevel() {
+    if (_recentActivityCutoffPromise && Date.now() - _recentActivityCutoffTimestamp < 5000) {
+        return _recentActivityCutoffPromise;
+    }
+
+    _recentActivityCutoffTimestamp = Date.now();
+    _recentActivityCutoffPromise = (async () => {
+        const head = await fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.head}`);
+        let blockDelaySeconds = 6;
+        try {
+            const constants = await fetchSharedConstants();
+            const parsedDelay = parseInt(constants?.minimal_block_delay, 10);
+            if (Number.isFinite(parsedDelay) && parsedDelay > 0) {
+                blockDelaySeconds = parsedDelay;
+            }
+        } catch (error) {
+            // The 6 second fallback matches current Tezos mainnet timing.
+        }
+
+        const recentBlocks = Math.ceil((24 * 60 * 60) / blockDelaySeconds);
+        return Math.max(0, (head?.level || 0) - recentBlocks);
+    })();
+
+    return _recentActivityCutoffPromise;
+}
+
 /**
  * Fetch staking ratio and delegated percentage
  * Uses TzKT statistics for consistency with TzKT.io displayed values
@@ -515,10 +543,28 @@ async function fetchFundedAccounts() {
 }
 
 /**
+ * Fetch accounts first seen in the last 24h
+ */
+async function fetchNewAccounts() {
+    const cutoffLevel = await fetchRecentActivityCutoffLevel();
+    const url = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.accounts}?firstActivity.gt=${cutoffLevel}`;
+    return await fetchWithRetry(url);
+}
+
+/**
  * Fetch smart contracts count
  */
 async function fetchSmartContracts() {
     const url = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.contracts}`;
+    return await fetchWithRetry(url);
+}
+
+/**
+ * Fetch smart contracts active in the last 24h
+ */
+async function fetchActiveContracts() {
+    const cutoffLevel = await fetchRecentActivityCutoffLevel();
+    const url = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.contracts}?lastActivity.gt=${cutoffLevel}`;
     return await fetchWithRetry(url);
 }
 
@@ -591,7 +637,9 @@ export async function fetchAllStats() {
             totalSupply,
             totalBurned,
             fundedAccounts,
+            newAccounts,
             smartContracts,
+            activeContracts,
             tokens,
             rollups,
             stakingAPY
@@ -606,14 +654,16 @@ export async function fetchAllStats() {
             fetchTotalSupply(),
             fetchTotalBurned(),
             fetchFundedAccounts(),
+            fetchNewAccounts(),
             fetchSmartContracts(),
+            fetchActiveContracts(),
             fetchTokens(),
             fetchRollups(),
             fetchStakingAPY()
         ]);
 
         // Log warning if multiple API categories failed
-        const allResults = [bakersData, cycleInfo, governance, issuance, txVolume, contractCalls, stakingData, totalSupply, totalBurned, fundedAccounts, smartContracts, tokens, rollups, stakingAPY];
+        const allResults = [bakersData, cycleInfo, governance, issuance, txVolume, contractCalls, stakingData, totalSupply, totalBurned, fundedAccounts, newAccounts, smartContracts, activeContracts, tokens, rollups, stakingAPY];
         const failedCount = allResults.filter(r => r.status === 'rejected').length;
         if (failedCount >= 2) {
             console.warn('Multiple API categories failed, showing cached/stale data');
@@ -658,9 +708,11 @@ export async function fetchAllStats() {
             transactionVolume24h: txVolume.status === 'fulfilled' ? txVolume.value : 0,
             contractCalls24h: contractCalls.status === 'fulfilled' ? contractCalls.value : 0,
             fundedAccounts: fundedAccounts.status === 'fulfilled' ? fundedAccounts.value : 0,
+            newAccounts24h: newAccounts.status === 'fulfilled' ? newAccounts.value : 0,
             
             // Ecosystem
             smartContracts: smartContracts.status === 'fulfilled' ? smartContracts.value : 0,
+            activeContracts24h: activeContracts.status === 'fulfilled' ? activeContracts.value : 0,
             tokens: tokens.status === 'fulfilled' ? tokens.value : 0,
             rollups: rollups.status === 'fulfilled' ? rollups.value : 0
         };
