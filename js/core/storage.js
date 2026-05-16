@@ -170,6 +170,8 @@ export function getVisitDeltas(currentStats) {
             { key: 'totalBakers', label: 'Bakers', format: 'count' },
             { key: 'tz4Bakers', label: 'BLS Bakers', format: 'count' },
             { key: 'stakingRatio', label: 'Staking', format: 'percent' },
+            { key: 'bakingPower', label: 'Baking Power', format: 'supply' },
+            { key: 'rewardAccounts', label: 'Reward Accounts', format: 'count' },
             { key: 'totalSupply', label: 'Supply', format: 'supply' },
             { key: 'totalBurned', label: 'Burned', format: 'supply' },
             { key: 'fundedAccounts', label: 'Accounts', format: 'count' }

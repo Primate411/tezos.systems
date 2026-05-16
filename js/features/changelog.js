@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-16',
+        entries: [
+            { type: '✨', text: 'Economy now includes Baking Power and Reward Accounts tiles for consensus weight and staking participation' },
+        ]
+    },
+    {
         date: '2026-05-15',
         entries: [
             { type: '✨', text: 'Network Activity and Ecosystem now include New Accounts and Active Contracts cards for fresher usage signals' },

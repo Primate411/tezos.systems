@@ -495,7 +495,16 @@ async function fetchStakingRatio() {
         const stats = await fetchSharedStats();
         
         const totalSupply = stats.totalSupply || 0;
-        if (totalSupply === 0) return { stakingRatio: 0, delegatedRatio: 0 };
+        if (totalSupply === 0) {
+            return {
+                stakingRatio: 0,
+                delegatedRatio: 0,
+                bakingPower: 0,
+                totalDelegators: 0,
+                totalStakers: 0,
+                rewardAccounts: 0
+            };
+        }
         
         // Staking = own staked + external staked (matches TzKT.io display)
         const totalStaked = (stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0);
@@ -505,10 +514,27 @@ async function fetchStakingRatio() {
         const totalDelegated = (stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0);
         const delegatedRatio = (totalDelegated / totalSupply) * 100;
 
-        return { stakingRatio, delegatedRatio };
+        const totalDelegators = stats.totalDelegators || 0;
+        const totalStakers = stats.totalStakers || 0;
+
+        return {
+            stakingRatio,
+            delegatedRatio,
+            bakingPower: (stats.totalBakingPower || 0) / 1e6,
+            totalDelegators,
+            totalStakers,
+            rewardAccounts: totalDelegators + totalStakers
+        };
     } catch (error) {
         console.error('Failed to fetch staking ratio:', error);
-        return { stakingRatio: 0, delegatedRatio: 0 };
+        return {
+            stakingRatio: 0,
+            delegatedRatio: 0,
+            bakingPower: 0,
+            totalDelegators: 0,
+            totalStakers: 0,
+            rewardAccounts: 0
+        };
     }
 }
 
@@ -673,7 +699,9 @@ export async function fetchAllStats() {
         const bakers = bakersData.status === 'fulfilled' ? bakersData.value : { total: 0, tz4Count: 0, tz4Percentage: 0 };
         const cycle = cycleInfo.status === 'fulfilled' ? cycleInfo.value : { cycle: 0, progress: 0, timeRemaining: 'N/A' };
         const gov = governance.status === 'fulfilled' ? governance.value : {};
-        const staking = stakingData.status === 'fulfilled' ? stakingData.value : { stakingRatio: 0, delegatedRatio: 0 };
+        const staking = stakingData.status === 'fulfilled'
+            ? stakingData.value
+            : { stakingRatio: 0, delegatedRatio: 0, bakingPower: 0, totalDelegators: 0, totalStakers: 0, rewardAccounts: 0 };
         const apy = stakingAPY.status === 'fulfilled' ? stakingAPY.value : { delegateAPY: 0, stakeAPY: 0 };
 
         return {
@@ -699,6 +727,10 @@ export async function fetchAllStats() {
             lbIssuanceRate: issuance.status === 'fulfilled' ? issuance.value.lb : 0,
             stakingRatio: staking.stakingRatio,
             delegatedRatio: staking.delegatedRatio,
+            bakingPower: staking.bakingPower,
+            totalDelegators: staking.totalDelegators,
+            totalStakers: staking.totalStakers,
+            rewardAccounts: staking.rewardAccounts,
             totalSupply: totalSupply.status === 'fulfilled' ? totalSupply.value : 0,
             totalBurned: totalBurned.status === 'fulfilled' ? totalBurned.value : 0,
             delegateAPY: apy.delegateAPY,

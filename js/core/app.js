@@ -142,6 +142,7 @@ const ALL_CARD_IDS = [
     'total-bakers', 'tz4-adoption', 'cycle-progress',
     'proposal', 'voting-period', 'participation',
     'issuance-rate', 'staking-apy', 'staking-ratio', 'delegated', 'total-supply', 'total-burned',
+    'baking-power', 'reward-accounts',
     'tx-volume', 'contract-calls', 'funded-accounts', 'new-accounts',
     'smart-contracts', 'tokens', 'rollups', 'active-contracts'
 ];
@@ -596,6 +597,16 @@ function updateIssuanceBreakdown(protocolRate, lbRate) {
     el.textContent = protocolStr + lbStr;
 }
 
+function updateRewardAccountsBreakdown(totalDelegators, totalStakers) {
+    const el = document.getElementById('reward-accounts-description');
+    if (!el) return;
+    if (!totalDelegators && !totalStakers) {
+        el.textContent = 'Delegators + stakers';
+        return;
+    }
+    el.textContent = `${formatLarge(totalDelegators)} delegators · ${formatLarge(totalStakers)} stakers`;
+}
+
 /**
  * Update displayed statistics
  */
@@ -638,6 +649,9 @@ async function updateStats(newStats) {
         updateStatInstant('delegated', newStats.delegatedRatio, formatPercentage);
         updateStatInstant('total-supply', newStats.totalSupply, formatSupply);
         updateStatInstant('total-burned', newStats.totalBurned, formatSupply);
+        updateStatInstant('baking-power', newStats.bakingPower, formatSupply);
+        updateStatInstant('reward-accounts', newStats.rewardAccounts, formatLarge);
+        updateRewardAccountsBreakdown(newStats.totalDelegators, newStats.totalStakers);
         
         // Network Activity
         updateStatInstant('tx-volume', newStats.transactionVolume24h, formatLarge);
@@ -682,6 +696,12 @@ async function updateStats(newStats) {
         if (state.currentStats.stakingRatio !== newStats.stakingRatio) {
             updates.push({ cardId: 'staking-ratio', value: newStats.stakingRatio, formatter: formatPercentage });
         }
+        if (state.currentStats.bakingPower !== newStats.bakingPower) {
+            updates.push({ cardId: 'baking-power', value: newStats.bakingPower, formatter: formatSupply });
+        }
+        if (state.currentStats.rewardAccounts !== newStats.rewardAccounts) {
+            updates.push({ cardId: 'reward-accounts', value: newStats.rewardAccounts, formatter: formatLarge });
+        }
         if (state.currentStats.transactionVolume24h !== newStats.transactionVolume24h) {
             updates.push({ cardId: 'tx-volume', value: newStats.transactionVolume24h, formatter: formatLarge });
         }
@@ -718,6 +738,7 @@ async function updateStats(newStats) {
         if (tz4Desc2) tz4Desc2.textContent = `${newStats.tz4Bakers} / ${tz4Target} bakers`;
         document.getElementById('cycle-description').textContent = 
             `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
+        updateRewardAccountsBreakdown(newStats.totalDelegators, newStats.totalStakers);
     }
 
     // Feed uptime clock on every refresh
@@ -2600,6 +2621,10 @@ function exportData(format) {
             stakeAPY: stats.stakeAPY,
             stakingRatio: stats.stakingRatio,
             delegatedRatio: stats.delegatedRatio,
+            bakingPower: stats.bakingPower,
+            rewardAccounts: stats.rewardAccounts,
+            totalDelegators: stats.totalDelegators,
+            totalStakers: stats.totalStakers,
             totalSupply: stats.totalSupply,
             totalBurned: stats.totalBurned
         },
@@ -2641,6 +2666,10 @@ function exportData(format) {
             stakeAPY: 'Stake APY',
             stakingRatio: 'Staking Ratio',
             delegatedRatio: 'Delegated Ratio',
+            bakingPower: 'Baking Power',
+            rewardAccounts: 'Reward Accounts',
+            totalDelegators: 'Total Delegators',
+            totalStakers: 'Total Stakers',
             totalSupply: 'Total Supply',
             totalBurned: 'Total Burned',
             activeProposal: 'Active Proposal',
