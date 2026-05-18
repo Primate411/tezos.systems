@@ -325,6 +325,30 @@ function proposalDisplayNameWithReport(proposal, report) {
     return proposalDisplayName(proposal);
 }
 
+function isBallotPeriod(kind) {
+    return kind === 'exploration' || kind === 'promotion';
+}
+
+function governancePeriodLabel(kind) {
+    const labels = {
+        proposal: 'Proposal',
+        exploration: 'Exploration',
+        testing: 'Cooldown',
+        cooldown: 'Cooldown',
+        promotion: 'Promotion',
+        adoption: 'Adoption'
+    };
+    return labels[kind] || (kind ? kind.charAt(0).toUpperCase() + kind.slice(1) : 'Unknown');
+}
+
+function governanceProposalDescription(kind, hasProposal) {
+    if (!hasProposal) return 'No active proposal';
+    if (kind === 'testing' || kind === 'cooldown') return 'Testing and review before final vote';
+    if (kind === 'adoption') return 'Activation preparation period';
+    if (kind === 'proposal') return 'Proposal selection in progress';
+    return 'In progress';
+}
+
 async function fetchGovernance() {
     try {
         const votingUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.voting}`;
@@ -345,16 +369,19 @@ async function fetchGovernance() {
         const proposal = chooseVotingProposal(voting, epoch);
         const proposalName = proposalDisplayNameWithReport(proposal, report) || 'None';
         
-        // Calculate participation
-        const participatedPower = (voting.yayVotingPower || 0) + (voting.nayVotingPower || 0) + (voting.passVotingPower || 0);
-        const participation = voting.totalVotingPower
+        // Calculate ballot participation only during Exploration and Promotion.
+        const hasBallots = isBallotPeriod(voting.kind);
+        const participatedPower = hasBallots
+            ? (voting.yayVotingPower || 0) + (voting.nayVotingPower || 0) + (voting.passVotingPower || 0)
+            : 0;
+        const participation = hasBallots && voting.totalVotingPower
             ? calculatePercentage(participatedPower, voting.totalVotingPower)
-            : voting.totalVoters && voting.totalBakers
+            : hasBallots && voting.totalVoters && voting.totalBakers
                 ? calculatePercentage(voting.totalVoters, voting.totalBakers)
-                : 0;
+                : null;
         
         // Format period kind
-        const periodKind = voting.kind?.charAt(0).toUpperCase() + voting.kind?.slice(1) || 'Unknown';
+        const periodKind = governancePeriodLabel(voting.kind);
         
         // Calculate end date
         const endDate = voting.endTime ? new Date(voting.endTime).toLocaleDateString('en-US', {
@@ -364,13 +391,15 @@ async function fetchGovernance() {
         
         return {
             proposal: proposalName,
-            proposalDescription: proposal ? 'In progress' : 'No active proposal',
+            proposalDescription: governanceProposalDescription(voting.kind, Boolean(proposal)),
             period: periodKind,
             periodDescription: `Ends ${endDate}`,
             participation: participation,
-            participationDescription: voting.yayBallots !== undefined
+            participationDescription: hasBallots && voting.yayBallots !== undefined
                 ? `${(voting.yayBallots || 0) + (voting.nayBallots || 0) + (voting.passBallots || 0)} ballots`
-                : `${voting.totalVoters || 0} voters`
+                : hasBallots
+                    ? `${voting.totalVoters || 0} voters`
+                    : `No ballots during ${periodKind}`
         };
     } catch (error) {
         console.error('Failed to fetch governance:', error);
@@ -718,7 +747,7 @@ export async function fetchAllStats() {
             proposalDescription: gov.proposalDescription || '',
             votingPeriod: gov.period || 'N/A',
             votingDescription: gov.periodDescription || '',
-            participation: gov.participation || 0,
+            participation: gov.participation ?? null,
             participationDescription: gov.participationDescription || '',
             
             // Economy

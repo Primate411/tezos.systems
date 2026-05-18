@@ -17,7 +17,7 @@ import {
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
-import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js?v=65';
+import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js';
 
@@ -40,7 +40,7 @@ function updateGovernanceBanner(stats, votingStatus) {
     const proposal = statusProposal || statProposal;
     const hasProposal = Boolean(proposal);
     const kind = votingStatus?.kind || '';
-    const isVotingPhase = ['exploration', 'cooldown', 'promotion', 'adoption'].includes(kind);
+    const isVotingPhase = ['exploration', 'testing', 'cooldown', 'promotion', 'adoption'].includes(kind);
     const isVotingActive = hasProposal || isVotingPhase;
     
     if (!isVotingActive) {
@@ -85,7 +85,7 @@ function updateGovernanceBanner(stats, votingStatus) {
         explainer = 'A protocol proposal advanced from the Proposal period. Bakers are voting on-chain now.';
         meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority';
     }
-    else if (kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'VOTE PASSED'; cta = 'View Results →'; explainer = 'The proposal cleared its vote and is in the governance cooldown period.'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · Cooling down before the final stretch` : 'Cooling down before the final stretch'; }
+    else if (kind === 'testing' || kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'TESTING'; cta = 'View Results →'; explainer = 'The proposal cleared Exploration and is in Cooldown for testing and review before the final vote.'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · No ballots open · Testing and review` : 'No ballots open · Testing and review'; }
     else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = '🏛️ Watch The Chamber →'; explainer = 'This is the final baker vote before adoption. The sausage is being made in public.'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority'; }
     else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'View Adoption →'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · Activation runway` : 'Activation runway'; }
     
@@ -1771,7 +1771,7 @@ function positionTooltip(e, tooltipEl) {
 const GOVERNANCE_FLOW = [
     { key: 'proposal', label: 'Proposal', detail: 'Upvotes' },
     { key: 'exploration', label: 'Exploration', detail: '1st vote' },
-    { key: 'cooldown', label: 'Cooldown', detail: 'Review' },
+    { key: 'cooldown', label: 'Cooldown', detail: 'Testing' },
     { key: 'promotion', label: 'Promotion', detail: 'Final vote' },
     { key: 'adoption', label: 'Adoption', detail: 'Activation' }
 ];
@@ -1790,6 +1790,25 @@ function normalizeThreshold(value, fallback) {
     return value > 100 ? value / 100 : value;
 }
 
+function governanceNextStepText(kind, nextStage, tally, quorumRequired = 0, supermajorityRequired = 80) {
+    if (kind === 'proposal') return 'Exploration if a proposal is selected';
+    if (kind === 'exploration') {
+        if (!tally) return 'Cooldown if the vote passes';
+        return tally.participation >= quorumRequired && tally.supermajority >= supermajorityRequired
+            ? 'Cooldown is next'
+            : 'Needs quorum and supermajority';
+    }
+    if (kind === 'cooldown') return 'Promotion vote opens after testing';
+    if (kind === 'promotion') {
+        if (!tally) return 'Adoption if the vote passes';
+        return tally.participation >= quorumRequired && tally.supermajority >= supermajorityRequired
+            ? 'Adoption is next'
+            : 'Needs quorum and supermajority';
+    }
+    if (kind === 'adoption') return 'Protocol activation';
+    return nextStage ? `${nextStage.label} next` : 'Protocol activation';
+}
+
 function renderGovernanceProcessSummary(votingStatus, progress, tally) {
     const currentKind = normalizeGovernanceKind(votingStatus.kind);
     const flowIndex = GOVERNANCE_FLOW.findIndex(stage => stage.key === currentKind);
@@ -1800,7 +1819,7 @@ function renderGovernanceProcessSummary(votingStatus, progress, tally) {
     const epochIndex = typeof votingStatus.epoch === 'object' ? votingStatus.epoch?.index : votingStatus.epoch;
     const threshold = normalizeThreshold(votingStatus.supermajority, 80);
     const quorumRequired = normalizeThreshold(votingStatus.ballotsQuorum, 0);
-    const nextText = nextStage ? `${nextStage.label} if this phase clears` : 'Protocol activation';
+    const nextText = governanceNextStepText(currentKind, nextStage, tally, quorumRequired, threshold);
     const metrics = tally ? [
         { label: 'Quorum', value: `${tally.participation.toFixed(1)} / ${quorumRequired.toFixed(1)}%` },
         { label: 'Supermajority', value: `${tally.supermajority.toFixed(1)} / ${threshold.toFixed(0)}%` },
@@ -1866,7 +1885,7 @@ async function updateUpgradeClock() {
         // Render timeline
         renderProtocolTimeline(protocols);
         
-        // Update days live (mainnet launched June 30, 2018)
+        // Update days live from the canonical mainnet launch date.
         const daysLiveEl = document.getElementById('days-live');
         if (daysLiveEl) {
             const mainnetLaunch = new Date(MAINNET_LAUNCH);

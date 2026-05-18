@@ -5,8 +5,18 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-18',
+        entries: [
+            { type: '🔧', text: 'Testing/Cooldown governance now shows completed Exploration results without pretending a live ballot is still open' },
+        ]
+    },
+    {
         date: '2026-05-16',
         entries: [
+            { type: '🔧', text: 'Comparison share cards now reuse the same screenshot module instance as dashboard and card sharing' },
+            { type: '🔧', text: 'HEN mode startup no longer uses document.write, removing the browser warning on direct HEN links' },
+            { type: '🔧', text: 'User-facing launch-date copy now uses Sep 17, 2018 consistently across uptime, schema, and share templates' },
+            { type: '🔧', text: 'Static and smoke tests now guard more individual feature workflows from regressing' },
             { type: '✨', text: 'Economy now includes Baking Power and Reward Accounts tiles for consensus weight and staking participation' },
         ]
     },

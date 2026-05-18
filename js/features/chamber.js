@@ -27,6 +27,42 @@ const STAGES = [
     { key: 'adoption', label: 'Adoption', icon: '🚀' }
 ];
 
+function isBallotPeriod(periodOrKind) {
+    const kind = typeof periodOrKind === 'string' ? periodOrKind : periodOrKind?.kind;
+    return kind === 'exploration' || kind === 'promotion';
+}
+
+function periodTitle(kind) {
+    const labels = {
+        proposal: 'Proposal',
+        exploration: 'Exploration',
+        testing: 'Cooldown',
+        cooldown: 'Cooldown',
+        promotion: 'Promotion',
+        adoption: 'Adoption'
+    };
+    return labels[kind] || kind || 'Unknown';
+}
+
+function votePeriodTitle(period) {
+    return period?.kind === 'promotion' ? 'Promotion' : 'Exploration';
+}
+
+function isSamePeriod(a, b) {
+    return a?.index !== undefined && b?.index !== undefined && a.index === b.index;
+}
+
+function chooseVotePeriod(epoch, currentPeriod = null) {
+    const periods = epoch?.periods || [];
+    if (currentPeriod?.status === 'active' && isBallotPeriod(currentPeriod)) {
+        return periods.find(p => p.index === currentPeriod.index) || currentPeriod;
+    }
+
+    return [...periods]
+        .filter(isBallotPeriod)
+        .sort((a, b) => (b.index || 0) - (a.index || 0))[0] || null;
+}
+
 let _chamberCache = {};
 let _chamberCacheTime = {};
 const CACHE_TTL = 60000;
@@ -74,15 +110,14 @@ function unlockPageScrollForChamber() {
     _savedScrollY = 0;
 }
 
-async function fetchEpochData(epochIndex) {
+async function fetchEpochData(epochIndex, currentPeriod = null) {
     const [epoch, protocols] = await Promise.all([
         (await fetch(`${TZKT}/voting/epochs/${epochIndex}`)).json(),
         loadProtocolHistory()
     ]);
     let proposal = epoch.proposals?.[0] || null;
     
-    let votePeriod = epoch.periods.find(p => p.kind === 'promotion')
-        || epoch.periods.find(p => p.kind === 'exploration');
+    let votePeriod = chooseVotePeriod(epoch, currentPeriod);
     
     let voters = [];
     if (votePeriod) {
@@ -121,8 +156,9 @@ async function fetchChamberData(epochIndex) {
             }
             
             epochIndex = activeEpoch;
-            const data = await fetchEpochData(epochIndex);
+            const data = await fetchEpochData(epochIndex, currentPeriod);
             data.isLive = isLive;
+            data.isLiveVote = isLive && isBallotPeriod(currentPeriod) && isSamePeriod(currentPeriod, data.votePeriod);
             data.currentPeriod = currentPeriod;
             
             _chamberCache[epochIndex] = data;
@@ -133,6 +169,7 @@ async function fetchChamberData(epochIndex) {
         
         const data = await fetchEpochData(epochIndex);
         data.isLive = false;
+        data.isLiveVote = false;
         data.currentPeriod = null;
         
         _chamberCache[epochIndex] = data;
@@ -293,7 +330,7 @@ function renderPipeline(epoch, isLive) {
 
 // ─── Supermajority gauge with sweep animation ───
 
-function renderSupermajorityGauge(period) {
+function renderSupermajorityGauge(period, data = {}) {
     const pct = calcSupermajority(period);
     if (pct === null) return '<div class="chamber-gauge-empty">No vote data</div>';
     
@@ -302,6 +339,15 @@ function renderSupermajorityGauge(period) {
     const pass = period.passVotingPower || 0;
     const threshold = 80;
     const passed = pct >= threshold;
+    const isLiveVote = Boolean(data.isLiveVote && isSamePeriod(data.currentPeriod, period));
+    const resultLabel = `${votePeriodTitle(period)} ${isLiveVote ? 'live vote' : 'result'}`;
+    const contextLabel = isLiveVote
+        ? 'Ballots are open now'
+        : data.currentPeriod?.kind === 'testing'
+            ? 'No ballots are open during Cooldown'
+            : period.status === 'success'
+                ? 'Completed on-chain vote'
+                : 'Recorded on-chain vote';
     
     const radius = 80, cx = 100, cy = 100;
     const startAngle = -180;
@@ -322,16 +368,18 @@ function renderSupermajorityGauge(period) {
     
     return `
         <div class="chamber-gauge chamber-anim-fade" style="animation-delay:200ms">
+            <div class="gauge-context-label">${escapeHtml(resultLabel)}</div>
+            <div class="gauge-context-meta">${escapeHtml(contextLabel)}</div>
             <svg viewBox="0 0 200 115" class="gauge-svg">
                 <path d="${arc(startAngle, 0)}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="14" stroke-linecap="round"/>
                 <path d="${arc(startAngle, valAngle)}" fill="none" stroke="${passed ? 'var(--accent-cyan)' : 'var(--accent-pink)'}" stroke-width="14" stroke-linecap="round" class="gauge-arc ${passed ? 'passed' : 'failing'} gauge-sweep" style="stroke-dasharray:${arcLength};stroke-dashoffset:${arcLength}"/>
                 <line x1="${thrPos.x}" y1="${thrPos.y - 10}" x2="${thrPos.x}" y2="${thrPos.y + 10}" stroke="var(--accent-purple)" stroke-width="2.5" opacity="0.9"/>
-                <text x="${thrPos.x}" y="${thrPos.y - 14}" fill="var(--accent-purple)" font-size="8" text-anchor="middle" font-family="Orbitron, sans-serif" opacity="0.8">80%</text>
             </svg>
             <div class="gauge-center">
                 <div class="gauge-value ${passed ? 'passed' : 'failing'}" data-target="${pct.toFixed(1)}">0.0%</div>
                 <div class="gauge-sublabel">Supermajority</div>
             </div>
+            <div class="gauge-threshold-note">80% threshold · Yay / (Yay + Nay)</div>
             <div class="gauge-legend">
                 <span class="legend-yay">🟢 YAY ${fmtPower(yay)}</span>
                 <span class="legend-nay">🔴 NAY ${fmtPower(nay)}</span>
@@ -354,7 +402,7 @@ function renderQuorumBar(period, voters) {
     return `
         <div class="chamber-quorum chamber-anim-fade" style="animation-delay:400ms">
             <div class="quorum-header">
-                <span class="quorum-title">Quorum</span>
+                <span class="quorum-title">${escapeHtml(votePeriodTitle(period))} Quorum</span>
                 <span class="quorum-value ${passed ? 'passed' : 'failing'}">${quorum.toFixed(1)}% / ${required.toFixed(1)}% required</span>
             </div>
             <div class="quorum-bar-track">
@@ -420,7 +468,7 @@ function renderBakerHeatmap(voters) {
 
 // ─── Momentum sparkline with projection ───
 
-function renderMomentumSparkline(voters, isLive, votePeriod) {
+function renderMomentumSparkline(voters, isLiveVote, votePeriod) {
     if (!voters?.length) return '';
     const voted = voters.filter(v => v.status !== 'none');
     const total = voters.length;
@@ -428,7 +476,7 @@ function renderMomentumSparkline(voters, isLive, votePeriod) {
     const cumPower = voted.reduce((s, v) => s + v.votingPower, 0);
     
     let projectionHtml = '';
-    if (isLive && votePeriod?.endTime) {
+    if (isLiveVote && votePeriod?.endTime) {
         const now = new Date();
         const start = new Date(votePeriod.startTime);
         const end = new Date(votePeriod.endTime);
@@ -582,7 +630,7 @@ async function fillMomentumTimeline(periodIndex, totalPower, startTime, endTime)
 
 // ─── My Baker ───
 
-function renderMyBakerVote(voters) {
+function renderMyBakerVote(voters, votePeriod) {
     const myBaker = localStorage.getItem('tezos-systems-my-baker-address');
     if (!myBaker || !voters?.length) {
         return `<div class="chamber-my-baker chamber-anim-fade" style="animation-delay:500ms"><div class="my-baker-prompt"><a href="/#my-baker" class="set-baker-link">Set your baker</a> to track their vote</div></div>`;
@@ -592,12 +640,14 @@ function renderMyBakerVote(voters) {
     
     const voted = baker.status !== 'none';
     const voteType = baker.status.replace('voted_', '').toUpperCase();
+    const activeBallot = votePeriod?.status === 'active';
+    const missingVoteText = activeBallot ? '⚠️ NOT YET VOTED' : 'DID NOT VOTE';
     return `
         <div class="chamber-my-baker ${voted ? 'voted' : 'not-voted'} chamber-anim-fade" style="animation-delay:500ms">
             <div class="my-baker-name">${escapeHtml(baker.delegate.alias || baker.delegate.address.slice(0, 12) + '…')}</div>
-            <div class="my-baker-badge ${voted ? 'voted' : 'alert'}">${voted ? `✅ Voted ${voteType}` : '⚠️ NOT YET VOTED'}</div>
+            <div class="my-baker-badge ${voted ? 'voted' : 'alert'}">${voted ? `✅ Voted ${voteType}` : missingVoteText}</div>
             <div class="my-baker-power">${fmtPower(baker.votingPower)} ꜩ</div>
-            ${!voted ? '<div class="my-baker-cta">Your baker votes on your behalf — your delegated stake carries their decision</div>' : ''}
+            ${!voted && activeBallot ? '<div class="my-baker-cta">Your baker votes on your behalf — your delegated stake carries their decision</div>' : ''}
         </div>
     `;
 }
@@ -796,7 +846,8 @@ function renderHistoricalComparison(data) {
     const currentPct = calcSupermajority(data.votePeriod);
     if (currentPct === null) return '';
     
-    const currentName = data.proposal?.hash ? extractProtoName(data.proposal.hash, data.protocols || []) : `Epoch ${data.epoch.index}`;
+    const proposalName = data.proposal?.hash ? extractProtoName(data.proposal.hash, data.protocols || []) : `Epoch ${data.epoch.index}`;
+    const currentName = data.isLiveVote ? proposalName : `${proposalName} ${votePeriodTitle(data.votePeriod)} result`;
     
     return `
         <div class="chamber-comparison chamber-anim-fade" id="chamber-historical-context" style="animation-delay:700ms">
@@ -817,7 +868,8 @@ async function hydrateHistoricalComparison(data) {
     if (!container) return;
 
     const currentPct = calcSupermajority(data.votePeriod);
-    const currentName = data.proposal?.hash ? extractProtoName(data.proposal.hash, data.protocols || []) : `Epoch ${data.epoch.index}`;
+    const proposalName = data.proposal?.hash ? extractProtoName(data.proposal.hash, data.protocols || []) : `Epoch ${data.epoch.index}`;
+    const currentName = data.isLiveVote ? proposalName : `${proposalName} ${votePeriodTitle(data.votePeriod)} result`;
     const context = container.querySelector('.comparison-context');
     const rowsEl = container.querySelector('.comparison-rows');
 
@@ -872,7 +924,7 @@ function renderEpochNav(epochIndex, isLive) {
 // ─── Proposal header ───
 
 function renderProposalHeader(data) {
-    const { epoch, proposal, isLive } = data;
+    const { epoch, proposal, isLive, isLiveVote, currentPeriod } = data;
     let proposalName = 'No Active Proposal', proposalHash = '', submitter = '', submitterPower = '';
     
     if (proposal) {
@@ -882,9 +934,13 @@ function renderProposalHeader(data) {
         if (proposal.upvotes) submitterPower = `${proposal.upvotes} upvotes`;
     }
     
-    const badge = isLive
-        ? '<span class="chamber-badge live">⚡ LIVE</span>'
-        : '<span class="chamber-badge historical">📁 HISTORICAL</span>';
+    let badge = '<span class="chamber-badge historical">📁 HISTORICAL</span>';
+    if (isLiveVote) {
+        badge = '<span class="chamber-badge live">⚡ LIVE VOTE</span>';
+    } else if (isLive && currentPeriod) {
+        const tone = currentPeriod.kind === 'testing' ? 'cooldown' : currentPeriod.kind === 'adoption' ? 'adoption' : 'current';
+        badge = `<span class="chamber-badge ${tone}">${escapeHtml(periodTitle(currentPeriod.kind))}</span>`;
+    }
     
     return `
         <div class="chamber-header chamber-anim-fade">
@@ -970,7 +1026,12 @@ function triggerAnimations() {
 // ─── Main render ───
 
 function renderChamber(data, container) {
-    const { epoch, votePeriod, voters, isLive } = data;
+    const { epoch, votePeriod, voters, isLive, isLiveVote, currentPeriod } = data;
+    const footerNote = !isLive
+        ? 'Showing last completed cycle'
+        : !isLiveVote && votePeriod
+            ? `Current ${periodTitle(currentPeriod?.kind)} period; showing latest ${votePeriodTitle(votePeriod)} result`
+            : '';
     
     container.innerHTML = `
         ${renderProposalHeader(data)}
@@ -978,13 +1039,13 @@ function renderChamber(data, container) {
         ${votePeriod ? `
         <div class="chamber-grid">
             <div class="chamber-col-left">
-                ${renderSupermajorityGauge(votePeriod)}
+                ${renderSupermajorityGauge(votePeriod, data)}
                 ${renderQuorumBar(votePeriod, voters)}
-                ${renderMyBakerVote(voters)}
+                ${renderMyBakerVote(voters, votePeriod)}
             </div>
             <div class="chamber-col-right">
                 ${renderBakerHeatmap(voters)}
-                ${renderMomentumSparkline(voters, isLive, votePeriod)}
+                ${renderMomentumSparkline(voters, isLiveVote, votePeriod)}
             </div>
         </div>
         ${renderHistoricalComparison(data)}
@@ -1002,7 +1063,7 @@ function renderChamber(data, container) {
             <a href="https://www.tezosagora.org" target="_blank" rel="noopener">Agora →</a>
             <span class="chamber-footer-sep">·</span>
             <span class="chamber-epoch">Epoch ${epoch.index}</span>
-            ${!isLive ? '<span class="chamber-footer-sep">·</span><span class="chamber-historical-note">Showing last completed cycle</span>' : ''}
+            ${footerNote ? `<span class="chamber-footer-sep">·</span><span class="chamber-historical-note">${escapeHtml(footerNote)}</span>` : ''}
         </div>
     `;
     
@@ -1170,13 +1231,24 @@ async function loadEntryCardStatus() {
         
         const currentPeriod = await (await fetch(`${TZKT}/voting/periods/current`)).json();
         const isActive = currentPeriod.status === 'active' && currentPeriod.kind !== 'proposal';
+        const isLiveVote = isActive && isBallotPeriod(currentPeriod);
         
-        if (isActive) {
+        if (isLiveVote) {
             const pct = calcSupermajority(currentPeriod);
-            const stageName = currentPeriod.kind.charAt(0).toUpperCase() + currentPeriod.kind.slice(1);
+            const stageName = periodTitle(currentPeriod.kind);
             mini.innerHTML = `<span class="entry-live-dot"></span> Live ${stageName} vote · ${pct !== null ? pct.toFixed(0) + '% Yay' : 'open ballots'}`;
             mini.classList.add('live');
             card?.classList.add('chamber-entry-live');
+        } else if (isActive) {
+            const stageName = periodTitle(currentPeriod.kind);
+            const detail = currentPeriod.kind === 'testing'
+                ? 'testing and review'
+                : currentPeriod.kind === 'adoption'
+                    ? 'activation runway'
+                    : 'no ballots open';
+            mini.innerHTML = `${stageName} · ${detail}`;
+            mini.classList.remove('live');
+            card?.classList.remove('chamber-entry-live');
         } else {
             mini.innerHTML = 'No active vote';
             mini.classList.remove('live');

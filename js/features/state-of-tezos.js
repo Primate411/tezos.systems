@@ -7,7 +7,7 @@
 import { API_URLS } from '../core/config.js';
 import { escapeHtml, formatNumber } from '../core/utils.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
-import { fetchVotingStatus } from '../features/governance.js';
+import { fetchVotingStatus, getVotingPeriodName } from '../features/governance.js';
 import { fetchSharedStats } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
@@ -149,14 +149,7 @@ async function fetchSnapshotData() {
     try {
         const voting = await fetchVotingStatus();
         if (voting && voting.kind) {
-            const kindMap = {
-                proposal: 'Proposal Period',
-                exploration: 'Exploration Vote',
-                cooldown: 'Cooldown Period',
-                promotion: 'Promotion Vote',
-                adoption: 'Adoption Period',
-            };
-            const label = kindMap[voting.kind] || voting.kind;
+            const label = getVotingPeriodName(voting.kind);
             const proposal = voting.epoch?.proposal?.alias || voting.proposal || '';
             data.governanceStatus = proposal ? `${label}: ${proposal}` : label;
         } else {

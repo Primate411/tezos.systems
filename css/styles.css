@@ -3898,8 +3898,8 @@ body.high-combo .stat-card {
 /* Per-card share button */
 .card-share-btn {
     position: absolute;
-    top: calc(1rem + 30px);
-    right: 1rem;
+    top: 1rem;
+    right: calc(1rem + 32px);
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-tertiary);
@@ -3922,8 +3922,8 @@ body.high-combo .stat-card {
 /* Per-card history button */
 .card-history-btn {
     position: absolute;
-    top: calc(1rem + 60px);
-    right: 1rem;
+    top: 1rem;
+    right: calc(1rem + 64px);
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: var(--text-tertiary);
@@ -12436,6 +12436,14 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     animation: chamberBreathe 4.8s ease-in-out infinite;
 }
 
+.chamber-badge.cooldown,
+.chamber-badge.adoption,
+.chamber-badge.current {
+    background: rgba(0, 212, 255, 0.08);
+    border: 1px solid rgba(0, 212, 255, 0.22);
+    color: var(--accent-cyan);
+}
+
 .chamber-badge.historical {
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.15);
@@ -12593,6 +12601,21 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     border: 1px solid rgba(255,255,255,0.04);
 }
 
+.gauge-context-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    letter-spacing: 1.4px;
+}
+
+.gauge-context-meta {
+    margin-top: 4px;
+    font-size: 0.72rem;
+    color: var(--text-tertiary, #555);
+}
+
 .gauge-svg {
     width: 100%;
     max-width: 240px;
@@ -12629,6 +12652,12 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     text-transform: uppercase;
     letter-spacing: 2px;
     margin-top: 2px;
+}
+
+.gauge-threshold-note {
+    margin-top: 6px;
+    font-size: 0.68rem;
+    color: var(--text-tertiary, #555);
 }
 
 .gauge-legend {

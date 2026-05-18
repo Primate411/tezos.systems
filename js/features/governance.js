@@ -121,6 +121,18 @@ function proposalDisplayName(proposal, report = null) {
         || (proposal.hash ? `${proposal.hash.slice(0, 8)}...` : null);
 }
 
+function governancePeriodName(kind) {
+    const names = {
+        proposal: 'Proposal Period',
+        exploration: 'Exploration Vote',
+        testing: 'Cooldown Period',
+        cooldown: 'Cooldown Period',
+        promotion: 'Promotion Vote',
+        adoption: 'Adoption Period'
+    };
+    return names[kind] || kind || 'Unknown';
+}
+
 async function fetchVotingEpoch(epochIndex) {
     if (epochIndex === undefined || epochIndex === null) return null;
     try {
@@ -190,7 +202,7 @@ export async function fetchVotingStatus() {
         const proposal = chooseEpochProposal(period, epoch);
         
         return {
-            kind: period.kind, // proposal, exploration, cooldown, promotion, adoption
+            kind: period.kind, // proposal, exploration, testing/cooldown, promotion, adoption
             status: period.status,
             startTime: period.startTime,
             endTime: period.endTime,
@@ -254,12 +266,5 @@ export function formatTimeRemaining(endTime) {
  * Get voting period display name
  */
 export function getVotingPeriodName(kind) {
-    const names = {
-        'proposal': 'Proposal Period',
-        'exploration': 'Exploration Vote',
-        'cooldown': 'Cooldown Period',
-        'promotion': 'Promotion Vote',
-        'adoption': 'Adoption Period'
-    };
-    return names[kind] || kind;
+    return governancePeriodName(kind);
 }

@@ -181,7 +181,7 @@ export function checkMoments(prevStats, newStats) {
 
         // Dynamic governance moments
         if (rule.dynamic && rule.metric === 'govPeriodKind') {
-            const periodNames = { proposal: 'Proposal', exploration: 'Exploration Vote', cooldown: 'Cooldown', promotion: 'Promotion Vote', adoption: 'Adoption' };
+            const periodNames = { proposal: 'Proposal', exploration: 'Exploration Vote', testing: 'Cooldown', cooldown: 'Cooldown', promotion: 'Promotion Vote', adoption: 'Adoption' };
             const periodName = periodNames[curr] || curr;
             const pName = newStats.govProposalName || '';
             title = pName ? `${pName}: ${periodName} Phase!` : `Governance: ${periodName} Phase!`;

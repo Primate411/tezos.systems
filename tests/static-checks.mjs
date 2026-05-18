@@ -361,6 +361,61 @@ async function checkSelectorContracts() {
   pass('dashboard widget utility avoids raw widget endpoint links');
 }
 
+async function checkMainnetLaunchCopy() {
+  const config = await readText('js/core/config.js');
+  if (!config.includes("MAINNET_LAUNCH = '2018-09-17T00:00:00Z'")) {
+    fail('js/core/config.js must keep MAINNET_LAUNCH at 2018-09-17T00:00:00Z');
+  }
+
+  const userFacingFiles = [
+    'index.html',
+    'data/tweets.json',
+    'js/core/app.js',
+    'js/features/state-of-tezos.js',
+    'js/landing/live-data.js'
+  ];
+  const stalePatterns = [
+    /June 30, 2018/i,
+    /mainnet launch in June 2018/i,
+    /since June 2018/i,
+    /Proof of Stake from genesis\s+—\s+June 2018/i,
+    /already PoS since genesis\.\s+June 2018/i,
+    /temporalCoverage["']?\s*:\s*["']2018-06-30\/\.\./i,
+    /mainnet launched June 30, 2018/i
+  ];
+
+  for (const file of userFacingFiles) {
+    const text = await readText(file);
+    for (const pattern of stalePatterns) {
+      if (pattern.test(text)) {
+        fail(`${file} contains stale June 2018 mainnet launch wording (${pattern})`);
+      }
+    }
+  }
+
+  const index = await readText('index.html');
+  if (!index.includes('September 17, 2018')) {
+    fail('index.html should spell out the canonical September 17, 2018 mainnet launch date');
+  }
+
+  pass('mainnet launch copy uses Sep 17, 2018 in user-facing surfaces');
+}
+
+async function checkModuleImportVersions() {
+  const jsFiles = await walk('js', (file) => file.endsWith('.js'));
+  const versionedImportPattern = /\b(?:import|export)\s+(?:[^'"]+\s+from\s+)?["']\.\.?\/[^"']+\?v=\d+["']/;
+  const dynamicVersionedImportPattern = /\bimport\(["']\.\.?\/[^"']+\?v=\d+["']\)/;
+
+  for (const file of jsFiles) {
+    const source = await readText(file);
+    if (versionedImportPattern.test(source) || dynamicVersionedImportPattern.test(source)) {
+      fail(`${file} imports a local ES module with a ?v= query; use a single module specifier so shared state is not duplicated`);
+    }
+  }
+
+  pass('local ES module imports avoid cache-busting query strings');
+}
+
 async function checkStylesheetFreshness() {
   const source = await statOrNull('css/styles.css');
   const minified = await statOrNull('css/styles.min.css');
@@ -381,6 +436,8 @@ async function main() {
   await checkCacheBustAlignment();
   await checkCsp();
   await checkSelectorContracts();
+  await checkMainnetLaunchCopy();
+  await checkModuleImportVersions();
   await checkStylesheetFreshness();
 
   for (const message of passes) console.log(`ok - ${message}`);

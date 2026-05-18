@@ -9,7 +9,7 @@ import { formatNumber, escapeHtml } from '../core/utils.js';
 import { fetchSharedStats } from '../core/api.js';
 import { fetchXTZPrice } from './price.js';
 import { letterGrade } from './baker-report-card.js';
-import { fetchVotingStatus } from './governance.js';
+import { fetchVotingStatus, getVotingPeriodName } from './governance.js';
 
 const TZKT = API_URLS.tzkt;
 const OCTEZ = API_URLS.octez;
@@ -154,6 +154,10 @@ function normalizeBallotStatus(status) {
 
 function isCastVote(status) {
     return Boolean(normalizeBallotStatus(status));
+}
+
+function governancePhaseName(kind) {
+    return getVotingPeriodName(kind).replace(/\s+(Period|Vote)$/i, '').toLowerCase();
 }
 
 async function fetchCurrentVoter(bakerAddr) {
@@ -1016,13 +1020,13 @@ async function renderMorningBrief(address, force = false) {
         // Active governance proposal
         let activeProposal = null;
         if (bakerVote?.proposal && bakerVote.periodKind && bakerVote.periodKind !== 'proposal') {
-            activeProposal = `${bakerVote.periodKind} phase — ${bakerVote.proposal}`;
+            activeProposal = `${governancePhaseName(bakerVote.periodKind)} phase — ${bakerVote.proposal}`;
         } else {
             try {
                 const period = await fetchVotingStatus();
                 if (period && period.kind !== 'proposal') {
                     const proposal = period.proposalName || period.proposal?.alias || period.proposal?.hash?.slice(0, 8) || 'Unknown';
-                    activeProposal = `${period.kind} phase — ${proposal}`;
+                    activeProposal = `${governancePhaseName(period.kind)} phase — ${proposal}`;
                 }
             } catch {}
         }
