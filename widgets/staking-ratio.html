@@ -49,7 +49,7 @@
 </head>
 <body>
 <div class="widget">
-  <div class="label"><span class="dot"></span>XTZ Staked</div>
+  <div class="label"><span class="dot"></span>Frozen Stake</div>
   <div class="gauge-wrap">
     <svg class="gauge" id="gauge-svg" width="120" height="70" viewBox="0 0 120 70">
       <path class="gauge-bg" id="gauge-bg" d="" stroke-width="8"/>
@@ -118,16 +118,20 @@
     fill.classList.remove('loading');
     valEl.innerHTML=clamped.toFixed(1)+'<span class="gauge-pct">%</span>';
     subEl.textContent=(clamped/100*t.text?'':(clamped<50?'below':'above')+' target');
-    subEl.textContent=clamped.toFixed(1)+'% staked';
+    subEl.textContent=clamped.toFixed(1)+'% frozen';
   }
 
   async function fetchData(){
     try{
-      const res=await fetch('https://api.tzkt.io/v1/statistics/current');
-      const d=await res.json();
-      if(d.totalOwnStaked!=null&&d.totalSupply){
-        const staked=(d.totalOwnStaked||0)+(d.totalExternalStaked||0);
-        const pct=(staked/d.totalSupply)*100;
+      const [stakeRes,supplyRes]=await Promise.all([
+        fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/context/total_frozen_stake'),
+        fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/context/total_supply')
+      ]);
+      const [stakeRaw,supplyRaw]=await Promise.all([stakeRes.text(),supplyRes.text()]);
+      const staked=parseInt(String(stakeRaw).replace(/"/g,''),10);
+      const supply=parseInt(String(supplyRaw).replace(/"/g,''),10);
+      if(staked&&supply){
+        const pct=(staked/supply)*100;
         setGauge(pct);
       }
     }catch(e){valEl.innerHTML='—<span class="gauge-pct">%</span>'}

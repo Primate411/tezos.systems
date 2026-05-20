@@ -19,6 +19,11 @@ async function fetchText(url) {
     return resp.text();
 }
 
+function parseMutez(value) {
+    const parsed = parseInt(String(value ?? '').replace(/"/g, ''), 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 /**
  * Inject text into elements by data-live attribute
  * <span data-live="staking-apy">~9%</span> → replaced with real value
@@ -35,16 +40,22 @@ function inject(key, value) {
  */
 export async function loadStakingData() {
     try {
-        const [rateText, stats] = await Promise.all([
+        const [rateText, frozenStakeText, supplyText, stats] = await Promise.all([
             fetchText(`${OCTEZ}/chains/main/blocks/head/context/issuance/current_yearly_rate`),
+            fetchText(`${OCTEZ}/chains/main/blocks/head/context/total_frozen_stake`),
+            fetchText(`${OCTEZ}/chains/main/blocks/head/context/total_supply`),
             fetchJson(`${TZKT}/statistics/current`)
         ]);
 
         const netIssuance = parseFloat(rateText.replace(/"/g, ''));
-        const supply = stats.totalSupply / 1e6;
-        const staked = ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0)) / 1e6;
+        const supplyMutez = parseMutez(supplyText) || stats.totalSupply || 0;
+        const frozenStakeMutez = parseMutez(frozenStakeText)
+            || stats.totalFrozen
+            || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
+        const supply = supplyMutez / 1e6;
+        const staked = frozenStakeMutez / 1e6;
         const delegated = ((stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0)) / 1e6;
-        const stakingRatio = ((staked + delegated) / supply * 100);
+        const stakingRatio = (staked / supply * 100);
         const edge = 2;
         const effective = (staked / supply) + (delegated / supply) / (1 + edge);
         const stakeAPY = (netIssuance / 100) / effective * 100;

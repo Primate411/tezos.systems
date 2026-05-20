@@ -171,11 +171,14 @@
 
     if(needs.has('staking')){
       fetches.push(
-        fetch('https://api.tzkt.io/v1/statistics/current')
-          .then(r=>r.json())
-          .then(d=>{
-            const staked=(d.totalOwnStaked||0)+(d.totalExternalStaked||0);
-            const pct=d.totalSupply?(staked/d.totalSupply*100).toFixed(1):'—';
+        Promise.all([
+          fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/context/total_frozen_stake').then(r=>r.text()),
+          fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/context/total_supply').then(r=>r.text())
+        ])
+          .then(([stakeRaw,supplyRaw])=>{
+            const staked=parseInt(String(stakeRaw).replace(/"/g,''),10);
+            const supply=parseInt(String(supplyRaw).replace(/"/g,''),10);
+            const pct=staked&&supply?(staked/supply*100).toFixed(1):'—';
             setVal('staking',pct!=='—'?pct+'%':'—');
           })
           .catch(()=>setVal('staking','—'))

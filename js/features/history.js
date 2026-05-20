@@ -120,7 +120,7 @@ export function createSparkline(canvasId, data, metric) {
 }
 
 // Calculate stats for a metric
-function calculateStats(data, metric) {
+function calculateStats(data, metric, unit = '') {
     const values = data.map(d => Number(d[metric])).filter(Number.isFinite);
     if (values.length === 0) return null;
     
@@ -128,9 +128,12 @@ function calculateStats(data, metric) {
     const first = values[0];
     const high = Math.max(...values);
     const low = Math.min(...values);
-    const change = first !== 0 ? ((current - first) / first) * 100 : 0;
+    const change = unit === '%'
+        ? current - first
+        : first !== 0 ? ((current - first) / first) * 100 : 0;
+    const changeUnit = unit === '%' ? 'pp' : '%';
     
-    return { current, high, low, change };
+    return { current, high, low, change, changeUnit };
 }
 
 // Create detailed line chart for history modal
@@ -153,7 +156,7 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
     const timestamps = points.map(point => point.timestamp);
     
     // Calculate stats for this metric
-    const stats = calculateStats(data, metric);
+    const stats = calculateStats(data, metric, unit);
     
     // Update stats display if element exists
     const statsEl = document.getElementById(`stats-${canvasId}`);
@@ -163,7 +166,7 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
         statsEl.innerHTML = `
             <span class="stat-item">
                 <span class="stat-label">Change</span>
-                <span class="stat-value ${changeClass}">${changeArrow} ${Math.abs(stats.change).toFixed(2)}%</span>
+                <span class="stat-value ${changeClass}">${changeArrow} ${Math.abs(stats.change).toFixed(2)}${stats.changeUnit}</span>
             </span>
             <span class="stat-item">
                 <span class="stat-label">High</span>
@@ -326,7 +329,7 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
 }
 
 // Calculate 7-day trend from data
-function calculateTrend(data, metric) {
+function calculateTrend(data, metric, mode = 'relative') {
     if (data.length < 2) return null;
     
     const now = Date.now();
@@ -351,12 +354,14 @@ function calculateTrend(data, metric) {
     
     if (!Number.isFinite(currentValue) || !Number.isFinite(weekAgoValue) || weekAgoValue === 0) return null;
     
-    const change = ((currentValue - weekAgoValue) / weekAgoValue) * 100;
+    const change = mode === 'points'
+        ? currentValue - weekAgoValue
+        : ((currentValue - weekAgoValue) / weekAgoValue) * 100;
     return change;
 }
 
 // Update trend arrow element
-function updateTrendArrow(trendId, change, inverted = false) {
+function updateTrendArrow(trendId, change, inverted = false, unit = '%') {
     const el = document.getElementById(trendId);
     if (!el) return;
     
@@ -375,14 +380,15 @@ function updateTrendArrow(trendId, change, inverted = false) {
     if (absChange < 0.1) {
         text = '→ flat';
     } else if (absChange < 1) {
-        text = `${arrow}${absChange.toFixed(2)}%`;
+        text = `${arrow}${absChange.toFixed(2)}${unit}`;
     } else {
-        text = `${arrow}${absChange.toFixed(1)}%`;
+        text = `${arrow}${absChange.toFixed(1)}${unit}`;
     }
     
     el.textContent = text;
     el.className = `trend-arrow ${direction}${inverted ? ' inverted' : ''}`;
-    el.title = `7-day change: ${change > 0 ? '+' : ''}${change.toFixed(2)}%`;
+    const titleUnit = unit === 'pp' ? ' percentage points' : '%';
+    el.title = `7-day change: ${change > 0 ? '+' : ''}${change.toFixed(2)}${titleUnit}`;
 }
 
 // Update all sparklines on the page
@@ -403,10 +409,10 @@ export async function updateSparklines() {
 
         // Update sparklines for priority metrics
         const sparklines = [
-            { canvasId: 'tz4-sparkline', metric: 'tz4_percentage', trendId: 'tz4-trend' },
-            { canvasId: 'staking-sparkline', metric: 'staking_ratio', trendId: 'staking-trend' },
+            { canvasId: 'tz4-sparkline', metric: 'tz4_percentage', trendId: 'tz4-trend', changeMode: 'points' },
+            { canvasId: 'staking-sparkline', metric: 'staking_ratio', trendId: 'staking-trend', changeMode: 'points' },
             { canvasId: 'bakers-sparkline', metric: 'total_bakers', trendId: 'bakers-trend' },
-            { canvasId: 'issuance-sparkline', metric: 'current_issuance_rate', trendId: 'issuance-trend', inverted: true },
+            { canvasId: 'issuance-sparkline', metric: 'current_issuance_rate', trendId: 'issuance-trend', inverted: true, changeMode: 'points' },
             { canvasId: 'supply-sparkline', metric: 'total_supply', trendId: 'supply-trend' },
             // Network Activity
             { canvasId: 'tx-volume-sparkline', metric: 'tx_volume_24h', trendId: 'tx-volume-trend' },
@@ -420,10 +426,10 @@ export async function updateSparklines() {
             { canvasId: 'active-contracts-sparkline', metric: 'active_contracts_24h', trendId: 'active-contracts-trend' }
         ];
 
-        sparklines.forEach(({ canvasId, metric, trendId, inverted }) => {
+        sparklines.forEach(({ canvasId, metric, trendId, inverted, changeMode }) => {
             createSparkline(canvasId, data, metric);
-            const trend = calculateTrend(data, metric);
-            updateTrendArrow(trendId, trend, inverted);
+            const trend = calculateTrend(data, metric, changeMode);
+            updateTrendArrow(trendId, trend, inverted, changeMode === 'points' ? 'pp' : '%');
         });
 
         console.log(`Updated ${sparklines.length} sparklines with ${data.length} data points`);

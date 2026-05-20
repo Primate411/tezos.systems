@@ -8,7 +8,6 @@ import { API_URLS } from '../core/config.js';
 import { escapeHtml, formatNumber } from '../core/utils.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 import { fetchVotingStatus, getVotingPeriodName } from '../features/governance.js';
-import { fetchSharedStats } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
 const MAINNET_LAUNCH = new Date('2018-09-17T00:00:00Z');
@@ -103,16 +102,18 @@ async function fetchSnapshotData() {
         }
     } catch { /* graceful fallback */ }
 
-    // 3. Staking ratio from /statistics/current
+    // 3. Staking ratio from protocol-frozen stake. Pending unstakes count until finalized.
     try {
-        const stats = await fetchSharedStats();
-        if (stats) {
-            const total = stats.totalSupply ?? stats.totalBootstrapped ?? 0;
-            const staked = stats.totalFrozen ?? stats.frozenDeposits ?? stats.totalStaked ?? 0;
+        const [stakeResp, supplyResp] = await Promise.all([
+            fetch(`${API_URLS.octez}/chains/main/blocks/head/context/total_frozen_stake`),
+            fetch(`${API_URLS.octez}/chains/main/blocks/head/context/total_supply`)
+        ]);
+        if (stakeResp.ok && supplyResp.ok) {
+            const [stakeText, supplyText] = await Promise.all([stakeResp.text(), supplyResp.text()]);
+            const staked = parseInt(String(stakeText).replace(/"/g, ''), 10);
+            const total = parseInt(String(supplyText).replace(/"/g, ''), 10);
             if (total > 0 && staked > 0) {
-                // Values are in mutez — convert to XTZ ratio
-                const ratio = (staked / total) * 100;
-                data.stakingRatio = `${ratio.toFixed(1)}%`;
+                data.stakingRatio = `${((staked / total) * 100).toFixed(1)}%`;
             }
         }
     } catch { /* graceful fallback */ }

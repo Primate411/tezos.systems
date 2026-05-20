@@ -10,19 +10,26 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 async function fetchStats() {
-    const [statsResp, protocolResp] = await Promise.all([
+    const [statsResp, protocolResp, frozenStakeResp, supplyResp] = await Promise.all([
         fetch('https://api.tzkt.io/v1/statistics/current'),
-        fetch('https://api.tzkt.io/v1/protocols/current')
+        fetch('https://api.tzkt.io/v1/protocols/current'),
+        fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/context/total_frozen_stake'),
+        fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/context/total_supply')
     ]);
     const stats = await statsResp.json();
     const protocolData = await protocolResp.json();
+    const [frozenStakeText, supplyText] = await Promise.all([
+        frozenStakeResp.text(),
+        supplyResp.text()
+    ]);
     const protocolName = protocolData?.extras?.alias || 'Current';
 
-    const supply = stats.totalSupply / 1e6;
-    const ownStaked = (stats.totalOwnStaked || 0) / 1e6;
-    const extStaked = (stats.totalExternalStaked || 0) / 1e6;
-    const totalStaked = ownStaked + extStaked;
-    const stakingRatio = ((totalStaked / supply) * 100).toFixed(1);
+    const supplyMutez = parseInt(String(supplyText).replace(/"/g, ''), 10) || stats.totalSupply || 0;
+    const frozenStakeMutez = parseInt(String(frozenStakeText).replace(/"/g, ''), 10)
+        || stats.totalFrozen
+        || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
+    const supply = supplyMutez / 1e6;
+    const stakingRatio = ((frozenStakeMutez / supplyMutez) * 100).toFixed(1);
     const bakers = stats.totalBakers || 0;
 
     // Get tz4 adoption

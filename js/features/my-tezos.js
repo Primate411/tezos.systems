@@ -79,14 +79,24 @@ async function getXtzPrice() {
 
 async function getStakingAPY() {
     try {
-        const [rateResp, stats] = await Promise.all([
+        const [rateResp, stakeResp, supplyResp, stats] = await Promise.all([
             fetch(`${OCTEZ}/chains/main/blocks/head/context/issuance/current_yearly_rate`),
+            fetch(`${OCTEZ}/chains/main/blocks/head/context/total_frozen_stake`),
+            fetch(`${OCTEZ}/chains/main/blocks/head/context/total_supply`),
             fetchSharedStats()
         ]);
-        const rateText = await rateResp.text();
+        const [rateText, stakeText, supplyText] = await Promise.all([
+            rateResp.text(),
+            stakeResp.text(),
+            supplyResp.text()
+        ]);
         const netIssuance = parseFloat(rateText.replace(/"/g, ''));
-        const supply = stats.totalSupply / 1e6;
-        const staked = ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0)) / 1e6;
+        const supplyMutez = parseInt(String(supplyText).replace(/"/g, ''), 10) || stats.totalSupply || 0;
+        const stakedMutez = parseInt(String(stakeText).replace(/"/g, ''), 10)
+            || stats.totalFrozen
+            || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
+        const supply = supplyMutez / 1e6;
+        const staked = stakedMutez / 1e6;
         const delegated = ((stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0)) / 1e6;
         const edge = 2;
         const effective = (staked / supply) + (delegated / supply) / (1 + edge);

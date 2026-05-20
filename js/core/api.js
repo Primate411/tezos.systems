@@ -129,6 +129,11 @@ async function fetchText(url) {
     return text;
 }
 
+function parseMutezText(value) {
+    const parsed = parseInt(String(value ?? '').replace(/"/g, ''), 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 // ─── Shared dedup fetchers ─────────────────────────────────────────────────────
 
 /**
@@ -517,13 +522,20 @@ async function fetchRecentActivityCutoffLevel() {
 
 /**
  * Fetch staking ratio and delegated percentage
- * Uses TzKT statistics for consistency with TzKT.io displayed values
+ * Counts protocol-frozen stake so pending unstakes remain included until they finalize.
  */
 async function fetchStakingRatio() {
     try {
-        const stats = await fetchSharedStats();
+        const [statsResult, frozenStakeResult, supplyResult] = await Promise.allSettled([
+            fetchSharedStats(),
+            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalFrozenStake}`),
+            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`)
+        ]);
+
+        const stats = statsResult.status === 'fulfilled' ? statsResult.value : {};
+        const rpcSupply = supplyResult.status === 'fulfilled' ? parseMutezText(supplyResult.value) : 0;
+        const totalSupply = rpcSupply || stats.totalSupply || 0;
         
-        const totalSupply = stats.totalSupply || 0;
         if (totalSupply === 0) {
             return {
                 stakingRatio: 0,
@@ -535,9 +547,13 @@ async function fetchStakingRatio() {
             };
         }
         
-        // Staking = own staked + external staked (matches TzKT.io display)
-        const totalStaked = (stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0);
-        const stakingRatio = (totalStaked / totalSupply) * 100;
+        const rpcFrozenStake = frozenStakeResult.status === 'fulfilled'
+            ? parseMutezText(frozenStakeResult.value)
+            : 0;
+        const fallbackFrozenStake = stats.totalFrozen
+            || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
+        const totalFrozenStake = rpcFrozenStake || fallbackFrozenStake || 0;
+        const stakingRatio = (totalFrozenStake / totalSupply) * 100;
         
         // Delegated = own delegated + external delegated (not locked/staked)
         const totalDelegated = (stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0);
@@ -573,7 +589,7 @@ async function fetchStakingRatio() {
 async function fetchTotalSupply() {
     const url = `${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`;
     const supplyMutez = await fetchText(url);
-    return parseInt(supplyMutez.replace(/"/g, '')) / 1e6;
+    return parseMutezText(supplyMutez) / 1e6;
 }
 
 /**
@@ -648,10 +664,18 @@ export async function fetchStakingAPY() {
         const rateString = await fetchSharedYearlyRate();
         const netIssuance = parseFloat(String(rateString || '0').replace(/"/g, ''));
         
-        // Get staked/delegated percentages from TzKT
-        const stats = await fetchSharedStats();
-        const supply = stats.totalSupply / 1e6;
-        const staked = ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0)) / 1e6;
+        // Get finalized/frozen stake from RPC so APY uses the same ratio shown on the dashboard.
+        const [stats, frozenStakeRaw, supplyRaw] = await Promise.all([
+            fetchSharedStats(),
+            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalFrozenStake}`),
+            fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`)
+        ]);
+        const supplyMutez = parseMutezText(supplyRaw) || stats.totalSupply || 0;
+        const frozenStakeMutez = parseMutezText(frozenStakeRaw)
+            || stats.totalFrozen
+            || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
+        const supply = supplyMutez / 1e6;
+        const staked = frozenStakeMutez / 1e6;
         const delegated = ((stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0)) / 1e6;
         
         const s = staked / supply;

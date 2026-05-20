@@ -261,9 +261,9 @@ async function installFeatureMocks(context) {
       if (url.includes('/statistics/current')) {
         return fulfillJson(route, {
           totalSupply: 1050000000000000,
-          totalFrozen: 305000000000000,
-          totalOwnStaked: 200000000000000,
-          totalExternalStaked: 105000000000000,
+          totalFrozen: 295000000000000,
+          totalOwnStaked: 190000000000000,
+          totalExternalStaked: 100000000000000,
           totalOwnDelegated: 80000000000000,
           totalExternalDelegated: 170000000000000,
           burnedSupply: 600000000000,
@@ -843,6 +843,9 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `feature workflows: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction(() => document.querySelector('#staking-ratio-front')?.textContent?.trim() === '29.05%', null, { timeout: 10000 });
+  await page.waitForFunction(() => /pp$/.test(document.querySelector('#staking-trend')?.textContent?.trim() || ''), null, { timeout: 10000 });
+  log('ok - staking ratio uses finalized/frozen stake and pp trend');
 
   await clickFeatureLauncher(page, '#leaderboard-toggle');
   await page.locator('#leaderboard-section.visible').waitFor({ state: 'visible', timeout: 10000 });

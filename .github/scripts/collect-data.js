@@ -48,7 +48,7 @@ async function getStakingData(totalSupplyFromRPC, workingRPC) {
     const totalSupply = totalSupplyFromRPC || 0;
     console.log(`Using total supply: ${totalSupply} XTZ`);
 
-    // Get total frozen stake from RPC (same as frontend)
+    // Use protocol-frozen stake so pending unstakes stay counted until finalized.
     const stakeResponse = await fetch(`${workingRPC}/chains/main/blocks/head/context/total_frozen_stake`);
     if (!stakeResponse.ok) {
       console.error(`Frozen stake fetch failed: ${stakeResponse.status}`);

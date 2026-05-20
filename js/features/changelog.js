@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-20',
+        entries: [
+            { type: '🔧', text: 'Staking ratio now counts XTZ still frozen in staking until unstakes finalize, and historical deltas use percentage points' },
+        ]
+    },
+    {
         date: '2026-05-18',
         entries: [
             { type: '🔧', text: 'Testing/Cooldown governance now shows completed Exploration results without pretending a live ballot is still open' },
