@@ -416,6 +416,18 @@ async function checkModuleImportVersions() {
   pass('local ES module imports avoid cache-busting query strings');
 }
 
+async function checkHistoricalPagination() {
+  const api = await readText('js/core/api.js');
+  if (!api.includes('HISTORICAL_PAGE_SIZE')) {
+    fail('fetchHistoricalData must page Supabase history results; default REST responses are capped at 1,000 rows');
+  }
+  if (!api.includes('&limit=${HISTORICAL_PAGE_SIZE}&offset=${offset}')) {
+    fail('fetchHistoricalData must request paged Supabase results so all-time charts include recent rows');
+  }
+
+  pass('historical data fetch paginates Supabase rows');
+}
+
 async function checkStylesheetFreshness() {
   const source = await statOrNull('css/styles.css');
   const minified = await statOrNull('css/styles.min.css');
@@ -438,6 +450,7 @@ async function main() {
   await checkSelectorContracts();
   await checkMainnetLaunchCopy();
   await checkModuleImportVersions();
+  await checkHistoricalPagination();
   await checkStylesheetFreshness();
 
   for (const message of passes) console.log(`ok - ${message}`);

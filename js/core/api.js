@@ -37,6 +37,8 @@ const cache = {
     ttl: CACHE_TTLS.memory
 };
 
+const HISTORICAL_PAGE_SIZE = 1000;
+
 /**
  * Check if cached data is still valid
  */
@@ -886,20 +888,30 @@ export async function fetchHistoricalData(range = '7d') {
     }
 
     const url = `${SUPABASE_CONFIG.url}/rest/v1/tezos_history?timestamp=gte.${startTime.toISOString()}&order=timestamp.asc`;
+    const headers = {
+        'apikey': SUPABASE_CONFIG.key,
+        'Authorization': `Bearer ${SUPABASE_CONFIG.key}`
+    };
+    const allRows = [];
 
     try {
-        const response = await fetch(url, {
-            headers: {
-                'apikey': SUPABASE_CONFIG.key,
-                'Authorization': `Bearer ${SUPABASE_CONFIG.key}`
-            }
-        });
+        for (let offset = 0; ; offset += HISTORICAL_PAGE_SIZE) {
+            const response = await fetch(`${url}&limit=${HISTORICAL_PAGE_SIZE}&offset=${offset}`, { headers });
 
-        if (!response.ok) {
-            throw new Error(`Supabase fetch failed: ${response.status}`);
+            if (!response.ok) {
+                throw new Error(`Supabase fetch failed: ${response.status}`);
+            }
+
+            const rows = await response.json();
+            if (!Array.isArray(rows)) {
+                throw new Error('Supabase fetch returned a non-array response');
+            }
+
+            allRows.push(...rows);
+            if (rows.length < HISTORICAL_PAGE_SIZE) break;
         }
 
-        return await response.json();
+        return allRows;
     } catch (error) {
         console.error('Failed to fetch historical data:', error);
         return [];

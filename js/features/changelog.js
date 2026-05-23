@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-23',
+        entries: [
+            { type: '🔧', text: 'All-time history charts now page through Supabase results instead of stopping after the first 1,000 snapshots' },
+        ]
+    },
+    {
         date: '2026-05-20',
         entries: [
             { type: '🔧', text: 'Staking ratio now counts XTZ still frozen in staking until unstakes finalize, and historical deltas use percentage points' },
