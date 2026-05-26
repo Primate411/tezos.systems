@@ -28,8 +28,7 @@ export const CACHE_TTLS = {
 
 // Fetch limits
 export const FETCH_LIMITS = {
-  bakers: 10000,
-  consensusOps: 2000
+  bakers: 10000
 };
 
 // Whale/giant thresholds (in mutez)

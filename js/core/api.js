@@ -178,37 +178,18 @@ async function fetchBakers() {
 }
 
 async function _doFetchBakers() {
-    // Get active baker addresses from Octez RPC (replaces TzKT count + address list)
-    let addresses = [];
-    let total = 0;
-    try {
-        addresses = await fetchWithRetry(`${ENDPOINTS.octez.base}/chains/main/blocks/head/context/delegates?active=true&with_minimal_stake=true`);
-        total = addresses.length;
-    } catch (e) {
-        // Fallback to TzKT if RPC fails
-        const countUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}/count?active=true`;
-        total = await fetchWithRetry(countUrl);
-        const addressUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&limit=${FETCH_LIMITS.bakers}&select=address`;
-        addresses = await fetchWithRetry(addressUrl);
-    }
-    const activeBakerAddresses = new Set(addresses);
+    // Match the All Bakers Attest activation set: funded bakers with positive
+    // current baking power. TzKT exposes the active consensus key directly;
+    // historical update_consensus_key ops can include keys that are still pending.
+    const bakerUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.bakers}?active=true&select=address,consensusAddress,bakingPower&limit=${FETCH_LIMITS.bakers}`;
+    const delegates = await fetchWithRetry(bakerUrl);
+    const fundedBakers = delegates.filter((baker) => Number(baker.bakingPower || 0) > 0);
+    const total = fundedBakers.length;
 
-    // Get consensus key ops with only the fields we need
-    const opsUrl = `${ENDPOINTS.tzkt.base}/operations/update_consensus_key?limit=${FETCH_LIMITS.consensusOps}&sort.desc=id&select=sender,publicKeyHash`;
-    const operations = await fetchWithRetry(opsUrl);
-
-    const bakerConsensusKeys = {};
-    for (const op of operations) {
-        const baker = op.sender?.address;
-        const keyHash = op.publicKeyHash || '';
-        if (baker && !bakerConsensusKeys[baker] && activeBakerAddresses.has(baker)) {
-            bakerConsensusKeys[baker] = keyHash;
-        }
-    }
-
-    const tz4Count = Object.values(bakerConsensusKeys).filter(key =>
-        key.startsWith('tz4')
-    ).length;
+    const tz4Count = fundedBakers.filter((baker) => {
+        const consensusAddress = baker.consensusAddress || baker.address || '';
+        return consensusAddress.startsWith('tz4');
+    }).length;
 
     const percentage = calculatePercentage(tz4Count, total);
 

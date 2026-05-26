@@ -137,12 +137,16 @@ async function fetchBakerReport(bakerAddress) {
         }
     } catch {}
 
-    // Fetch all active bakers for ranking (minimal fields)
+    // Rank against funded bakers with current baking power, matching the main
+    // baker count and All Bakers Attest activation population.
     let allBakers = [];
     let allBakersFailed = false;
     try {
-        const abResp = await fetch(`${TZKT}/delegates?active=true&limit=10000&select=address,stakingBalance&sort.desc=id`);
-        if (abResp.ok) allBakers = await abResp.json();
+        const abResp = await fetch(`${TZKT}/delegates?active=true&limit=10000&select=address,stakingBalance,bakingPower&sort.desc=id`);
+        if (abResp.ok) {
+            const bakerRows = await abResp.json();
+            allBakers = bakerRows.filter((row) => Number(row.bakingPower || 0) > 0);
+        }
     } catch {
         allBakers = [];
         allBakersFailed = true;
@@ -152,7 +156,8 @@ async function fetchBakerReport(bakerAddress) {
     if (!allBakersFailed) {
         allBakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0));
     }
-    const rank = allBakersFailed ? null : allBakers.findIndex(b => b.address === bakerAddress) + 1;
+    const rankIndex = allBakersFailed ? -1 : allBakers.findIndex(b => b.address === bakerAddress);
+    const rank = rankIndex >= 0 ? rankIndex + 1 : null;
     const totalBakers = allBakersFailed ? null : allBakers.length;
 
     // Calculate scores using shared scoring function

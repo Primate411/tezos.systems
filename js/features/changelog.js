@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-05-26',
+        entries: [
+            { type: '🔧', text: 'Baker count and tz4 adoption now use current baking-power bakers and active consensus keys, matching All Bakers Attest activation math' },
+        ]
+    },
+    {
         date: '2026-05-23',
         entries: [
             { type: '🔧', text: 'All-time history charts now page through Supabase results instead of stopping after the first 1,000 snapshots' },

@@ -106,10 +106,11 @@
 
   async function fetchData(){
     try{
-      const res=await fetch('https://api.tzkt.io/v1/delegates/count?active=true');
-      const count=await res.json();
-      if(count!=null){
-        valEl.textContent=parseInt(count).toLocaleString();
+      const res=await fetch('https://api.tzkt.io/v1/delegates?active=true&select=address,bakingPower&limit=10000');
+      const bakers=await res.json();
+      if(Array.isArray(bakers)){
+        const count=bakers.filter(b=>Number(b.bakingPower||0)>0).length;
+        valEl.textContent=count.toLocaleString();
         valEl.classList.remove('loading');
         subEl.textContent='Active on Tezos mainnet';
       }

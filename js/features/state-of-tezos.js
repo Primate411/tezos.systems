@@ -95,10 +95,13 @@ async function fetchSnapshotData() {
 
     // 2. Active bakers count
     try {
-        const bakersResp = await fetch(`${TZKT}/delegates/count?active=true`);
+        const bakersResp = await fetch(`${TZKT}/delegates?active=true&select=address,bakingPower&limit=10000`);
         if (bakersResp.ok) {
-            const count = await bakersResp.json();
-            data.activeBakers = Number(count).toLocaleString();
+            const bakers = await bakersResp.json();
+            const fundedBakers = Array.isArray(bakers)
+                ? bakers.filter((baker) => Number(baker.bakingPower || 0) > 0).length
+                : 0;
+            data.activeBakers = fundedBakers.toLocaleString();
         }
     } catch { /* graceful fallback */ }
 

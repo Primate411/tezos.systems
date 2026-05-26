@@ -133,9 +133,9 @@
 
     if(needs.has('bakers')){
       fetches.push(
-        fetch('https://api.tzkt.io/v1/delegates/count?active=true')
+        fetch('https://api.tzkt.io/v1/delegates?active=true&select=address,bakingPower&limit=10000')
           .then(r=>r.json())
-          .then(c=>setVal('bakers',parseInt(c).toLocaleString()))
+          .then(bakers=>setVal('bakers',bakers.filter(b=>Number(b.bakingPower||0)>0).length.toLocaleString()))
           .catch(()=>setVal('bakers','—'))
       );
     }

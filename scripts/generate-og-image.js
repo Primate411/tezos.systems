@@ -30,27 +30,14 @@ async function fetchStats() {
         || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
     const supply = supplyMutez / 1e6;
     const stakingRatio = ((frozenStakeMutez / supplyMutez) * 100).toFixed(1);
-    const bakers = stats.totalBakers || 0;
-
-    // Get tz4 adoption
+    let bakers = stats.totalBakers || 0;
     let tz4Bakers = 0;
     try {
-        const bakersResp = await fetch('https://api.tzkt.io/v1/delegates?active=true&limit=10000&select=address');
+        const bakersResp = await fetch('https://api.tzkt.io/v1/delegates?active=true&limit=10000&select=address,consensusAddress,bakingPower');
         const allBakersList = await bakersResp.json();
-        const activeBakers = new Set(allBakersList.map(b => typeof b === 'string' ? b : b.address));
-
-        const opsResp = await fetch('https://api.tzkt.io/v1/operations/update_consensus_key?limit=10000&sort.desc=id');
-        const ops = await opsResp.json();
-
-        const bakerKeys = {};
-        for (const op of ops) {
-            const baker = op.sender?.address;
-            const keyHash = op.publicKeyHash || '';
-            if (baker && !bakerKeys[baker] && activeBakers.has(baker)) {
-                bakerKeys[baker] = keyHash;
-            }
-        }
-        tz4Bakers = Object.values(bakerKeys).filter(k => k.startsWith('tz4')).length;
+        const fundedBakers = allBakersList.filter(b => Number(b.bakingPower || 0) > 0);
+        bakers = fundedBakers.length || bakers;
+        tz4Bakers = fundedBakers.filter(b => String(b.consensusAddress || b.address || '').startsWith('tz4')).length;
     } catch(e) { console.error('tz4 fetch error:', e); }
 
     const tz4Pct = bakers > 0 ? ((tz4Bakers / bakers) * 100).toFixed(1) : '0';

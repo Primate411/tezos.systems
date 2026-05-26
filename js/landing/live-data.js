@@ -130,14 +130,14 @@ export async function loadGovernanceData() {
  */
 export async function loadBakerData() {
     try {
-        const [bakers, bakerAddresses] = await Promise.all([
-            fetchJson(`${TZKT}/delegates?active=true&stakingBalance.gt=0&select=address,alias,stakingBalance,numDelegators,stakersCount&limit=1000`),
-            fetchJson('https://eu.rpc.tez.capital/chains/main/blocks/head/context/delegates?active=true&with_minimal_stake=true')
-        ]);
-        const topBakers = Array.isArray(bakers)
-            ? bakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0)).slice(0, 10)
+        const bakers = await fetchJson(`${TZKT}/delegates?active=true&select=address,alias,stakingBalance,bakingPower,numDelegators,stakersCount&limit=10000`);
+        const fundedBakers = Array.isArray(bakers)
+            ? bakers.filter((b) => Number(b.bakingPower || 0) > 0)
             : [];
-        const totalBakers = Array.isArray(bakerAddresses) ? bakerAddresses.length : 0;
+        const topBakers = fundedBakers.length
+            ? fundedBakers.sort((a, b) => (b.stakingBalance || 0) - (a.stakingBalance || 0)).slice(0, 10)
+            : [];
+        const totalBakers = fundedBakers.length;
 
         inject('total-bakers', totalBakers.toString());
 

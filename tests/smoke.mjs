@@ -79,6 +79,8 @@ const sampleBakers = [
     numDelegators: 42,
     stakersCount: 12,
     stakedBalance: 700000000000,
+    bakingPower: 950000000000,
+    consensusAddress: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQa',
     balance: 900000000000,
     software: 'Octez'
   },
@@ -91,6 +93,8 @@ const sampleBakers = [
     numDelegators: 35,
     stakersCount: 9,
     stakedBalance: 500000000000,
+    bakingPower: 650000000000,
+    consensusAddress: null,
     balance: 600000000000,
     software: 'Octez'
   }
@@ -283,8 +287,8 @@ async function installFeatureMocks(context) {
         ]);
       }
       if (url.includes('/delegates/count?active=true')) return fulfillJson(route, sampleBakers.length);
+      if (url.includes('/delegates?active=true') && url.includes('select=') && url.includes('bakingPower')) return fulfillJson(route, sampleBakers);
       if (url.includes('/delegates?active=true&limit=')) return fulfillJson(route, sampleBakers.map((b) => b.address));
-      if (url.includes('/delegates?active=true&stakingBalance.gt=0')) return fulfillJson(route, sampleBakers);
       if (url.includes('/operations/update_consensus_key')) {
         return fulfillJson(route, [{ sender: { address: SAMPLE_ADDRESS }, publicKeyHash: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQa' }]);
       }

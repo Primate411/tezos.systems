@@ -7,13 +7,17 @@ import { CACHE_TTLS } from './config.js';
 
 const STORAGE_KEYS = {
     stats: 'tezos-systems-stats',
+    statsVersion: 'tezos-systems-stats-version',
     protocols: 'tezos-systems-protocols',
     timestamp: 'tezos-systems-lastUpdate',
     lastVisit: 'tezos-systems-lastVisit',
+    lastVisitVersion: 'tezos-systems-lastVisitVersion',
     lastVisitStats: 'tezos-systems-lastVisitStats',
     moments: 'tezos-systems-moments',
     momentsDismissed: 'tezos-systems-moments-dismissed'
 };
+
+const STATS_CACHE_VERSION = 'baking-power-v1';
 
 // Cache TTL from config
 const CACHE_TTL = CACHE_TTLS.storage;
@@ -28,6 +32,7 @@ const DELTA_MIN_GAP = 60 * 60 * 1000;
 export function saveStats(stats) {
     try {
         localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(stats));
+        localStorage.setItem(STORAGE_KEYS.statsVersion, STATS_CACHE_VERSION);
         localStorage.setItem(STORAGE_KEYS.timestamp, Date.now().toString());
         console.log('💾 Stats cached to localStorage');
     } catch (error) {
@@ -44,8 +49,13 @@ export function loadStats() {
     try {
         const timestamp = localStorage.getItem(STORAGE_KEYS.timestamp);
         const stats = localStorage.getItem(STORAGE_KEYS.stats);
+        const version = localStorage.getItem(STORAGE_KEYS.statsVersion);
         
         if (!timestamp || !stats) {
+            return null;
+        }
+        if (version !== STATS_CACHE_VERSION) {
+            console.log('📦 Cached stats version changed');
             return null;
         }
         
@@ -95,6 +105,7 @@ export function loadProtocols() {
  */
 export function getCacheAge() {
     try {
+        if (localStorage.getItem(STORAGE_KEYS.statsVersion) !== STATS_CACHE_VERSION) return null;
         const timestamp = localStorage.getItem(STORAGE_KEYS.timestamp);
         if (!timestamp) return null;
         
@@ -127,6 +138,7 @@ export function saveVisitSnapshot(stats) {
         if (!lastVisit || (now - parseInt(lastVisit)) > DELTA_MIN_GAP) {
             localStorage.setItem(STORAGE_KEYS.lastVisitStats, JSON.stringify(stats));
             localStorage.setItem(STORAGE_KEYS.lastVisit, now.toString());
+            localStorage.setItem(STORAGE_KEYS.lastVisitVersion, STATS_CACHE_VERSION);
             console.log('📸 Visit snapshot saved');
         }
     } catch (error) {
@@ -143,8 +155,12 @@ export function getVisitDeltas(currentStats) {
     try {
         const lastVisit = localStorage.getItem(STORAGE_KEYS.lastVisit);
         const lastStats = localStorage.getItem(STORAGE_KEYS.lastVisitStats);
+        const lastVisitVersion = localStorage.getItem(STORAGE_KEYS.lastVisitVersion);
         
         if (!lastVisit || !lastStats) {
+            return null;
+        }
+        if (lastVisitVersion !== STATS_CACHE_VERSION) {
             return null;
         }
         

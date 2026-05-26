@@ -12,7 +12,7 @@ import { isValidAddress } from './my-baker.js';
 const TZKT = API_URLS.tzkt;
 const TOGGLE_KEY = 'tezos-systems-leaderboard-visible';
 const SORT_KEY = 'tezos-systems-leaderboard-sort';
-const CACHE_KEY = 'tezos-systems-leaderboard-cache';
+const CACHE_KEY = 'tezos-systems-leaderboard-cache-v2';
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 let bakersData = [];
@@ -26,7 +26,7 @@ async function fetchBakers() {
     try {
         const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
         if (cached && Date.now() - cached.ts < CACHE_TTL) {
-            return cached.data;
+            return cached.data.filter((baker) => Number(baker.bakingPower || 0) > 0);
         }
     } catch { /* ignore */ }
 
@@ -34,10 +34,11 @@ async function fetchBakers() {
     let offset = 0;
     let all = [];
 
-    // Fetch active bakers with staking balance > 0
+    // Fetch active delegates, then keep the same funded-baker set used for
+    // All Bakers Attest activation: positive current baking power.
     while (true) {
         const resp = await fetch(
-            `${TZKT}/delegates?active=true&stakingBalance.gt=0&select=address,alias,stakingBalance,externalStakedBalance,externalDelegatedBalance,numDelegators,stakersCount,stakedBalance,balance,software&sort.desc=id&limit=${limit}&offset=${offset}`
+            `${TZKT}/delegates?active=true&select=address,alias,stakingBalance,bakingPower,consensusAddress,externalStakedBalance,externalDelegatedBalance,numDelegators,stakersCount,stakedBalance,balance,software&sort.desc=id&limit=${limit}&offset=${offset}`
         );
         if (!resp.ok) throw new Error('Failed to fetch bakers');
         const batch = await resp.json();
@@ -46,50 +47,28 @@ async function fetchBakers() {
         offset += limit;
     }
 
+    const fundedBakers = all.filter((baker) => Number(baker.bakingPower || 0) > 0);
+
     // Cache it
     try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: all }));
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: fundedBakers }));
     } catch { /* quota */ }
 
-    return all;
-}
-
-/**
- * Fetch consensus key map: baker address → latest consensus key hash
- */
-async function fetchConsensusKeys(bakerAddresses) {
-    const map = {};
-    try {
-        const resp = await fetch(
-            `${TZKT}/operations/update_consensus_key?limit=10000&sort.desc=id&select=sender,publicKeyHash`
-        );
-        if (!resp.ok) return map;
-        const ops = await resp.json();
-        const addrSet = new Set(bakerAddresses);
-        for (const op of ops) {
-            const baker = op.sender?.address;
-            const keyHash = op.publicKeyHash || '';
-            if (baker && !map[baker] && addrSet.has(baker)) {
-                map[baker] = keyHash;
-            }
-        }
-    } catch { /* fail silently */ }
-    return map;
+    return fundedBakers;
 }
 
 /**
  * Determine if baker has tz4 consensus key
  */
-function isTz4(addr, consensusKeys) {
-    if (addr && addr.startsWith('tz4')) return true;
-    return consensusKeys[addr]?.startsWith('tz4') || false;
+function isTz4(addr, consensusAddress) {
+    return (consensusAddress || addr || '').startsWith('tz4');
 }
 
 /**
 /**
  * Compute derived fields for sorting
  */
-function enrichBaker(b, consensusKeys) {
+function enrichBaker(b) {
     const stake = (b.stakingBalance || 0) / 1e6;
     const ownStake = (b.stakedBalance || 0) / 1e6;
     const extStaked = (b.externalStakedBalance || 0) / 1e6;
@@ -107,7 +86,7 @@ function enrichBaker(b, consensusKeys) {
         extDelegated,
         delegators,
         stakers,
-        tz4: isTz4(b.address, consensusKeys),
+        tz4: isTz4(b.address, b.consensusAddress),
         delegationUsage: Math.min(delegationUsage, 100),
         name: b.alias || (b.address.slice(0, 8) + '…'),
     };
@@ -373,8 +352,7 @@ async function loadLeaderboard(container) {
     
     try {
         const raw = await fetchBakers();
-        const consensusKeys = await fetchConsensusKeys(raw.map(b => b.address));
-        bakersData = raw.map(b => enrichBaker(b, consensusKeys));
+        bakersData = raw.map(b => enrichBaker(b));
         render(container);
     } catch (err) {
         container.innerHTML = '<div class="leaderboard-error">Failed to load baker data. Try again later.</div>';

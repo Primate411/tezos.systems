@@ -596,14 +596,17 @@
             fetchJson('https://api.tzkt.io/v1/head'),
             fetchJson('https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd'),
             fetchJson('https://api.tzkt.io/v1/statistics/current'),
-            fetchJson('https://api.tzkt.io/v1/delegates/count?active=true'),
+            fetchJson('https://api.tzkt.io/v1/delegates?active=true&select=address,bakingPower&limit=10000'),
             fetchText('https://eu.rpc.tez.capital/chains/main/blocks/head/context/total_frozen_stake'),
             fetchText('https://eu.rpc.tez.capital/chains/main/blocks/head/context/total_supply')
         ]).then(function(results) {
             var head = results[0].status === 'fulfilled' ? results[0].value : null;
             var price = results[1].status === 'fulfilled' ? results[1].value : null;
             var stats = results[2].status === 'fulfilled' ? results[2].value : null;
-            var bakerCount = results[3].status === 'fulfilled' ? results[3].value : null;
+            var bakerRows = results[3].status === 'fulfilled' ? results[3].value : null;
+            var bakerCount = Array.isArray(bakerRows)
+                ? bakerRows.filter(function(baker) { return Number(baker.bakingPower || 0) > 0; }).length
+                : null;
             var frozenStake = results[4].status === 'fulfilled' ? parseInt(String(results[4].value).replace(/"/g, ''), 10) : 0;
             var rpcSupply = results[5].status === 'fulfilled' ? parseInt(String(results[5].value).replace(/"/g, ''), 10) : 0;
             var pe = document.getElementById('lp-price');
