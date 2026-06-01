@@ -630,6 +630,8 @@ function stopLiquidityBakingLiveRefresh() {
 }
 
 export async function openLiquidityBakingMonitor() {
+    // Dismiss the entry card's info tooltip so it doesn't linger behind the modal
+    document.getElementById('tooltip-liquidity-baking')?.classList.remove('is-open');
     let overlay = document.getElementById('liquidity-baking-modal');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -679,6 +681,8 @@ export function closeLiquidityBakingMonitor() {
     stopLiquidityBakingLiveRefresh();
     const overlay = document.getElementById('liquidity-baking-modal');
     if (overlay) overlay.classList.remove('active');
+    // Clear the entry card's info tooltip too, so it isn't left stuck on screen
+    document.getElementById('tooltip-liquidity-baking')?.classList.remove('is-open');
     unlockPageScroll();
 }
 
@@ -734,6 +738,16 @@ export function initLiquidityBaking() {
         tooltip?.classList.toggle('is-open');
     });
     tooltip?.addEventListener('click', (event) => event.stopPropagation());
+    // Dismiss on outside click or Escape — previously it could only be closed
+    // by re-clicking the info button, so it got stuck (e.g. behind the modal).
+    document.addEventListener('click', (event) => {
+        if (!tooltip?.classList.contains('is-open')) return;
+        if (infoBtn?.contains(event.target) || tooltip.contains(event.target)) return;
+        tooltip.classList.remove('is-open');
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') tooltip?.classList.remove('is-open');
+    });
     const openTarget = card.querySelector('.lb-entry-open-target');
     openTarget?.addEventListener('click', (event) => {
         event.stopPropagation();

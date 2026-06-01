@@ -3963,7 +3963,9 @@ body.high-combo .stat-card {
     height: 24px;
     border-radius: 50%;
     cursor: pointer;
-    opacity: 0;
+    /* Subtly visible at rest so it's discoverable which cards have these tools;
+       brightens on card hover, full on button hover. */
+    opacity: 0.3;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10;
     display: flex;
@@ -3971,7 +3973,7 @@ body.high-combo .stat-card {
     justify-content: center;
     padding: 0;
 }
-.stat-card:hover .card-share-btn { opacity: 0.6; }
+.stat-card:hover .card-share-btn { opacity: 0.75; }
 .card-share-btn:hover { opacity: 1 !important; background: rgba(0, 212, 255, 0.15); border-color: var(--accent-cyan); color: var(--accent-cyan); transform: scale(1.15); box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
 
 /* Per-card history button */
@@ -3987,7 +3989,9 @@ body.high-combo .stat-card {
     height: 24px;
     border-radius: 50%;
     cursor: pointer;
-    opacity: 0;
+    /* Visible at rest: this is the main "detailed view" affordance, so it
+       signals which cards open a history chart. */
+    opacity: 0.3;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10;
     display: flex;
@@ -3995,7 +3999,7 @@ body.high-combo .stat-card {
     justify-content: center;
     padding: 0;
 }
-.stat-card:hover .card-history-btn { opacity: 0.6; }
+.stat-card:hover .card-history-btn { opacity: 0.75; }
 .card-history-btn:hover { opacity: 1 !important; background: rgba(0, 212, 255, 0.15); border-color: var(--accent-cyan); color: var(--accent-cyan); transform: scale(1.15); box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
 
 /* Card history modal */
