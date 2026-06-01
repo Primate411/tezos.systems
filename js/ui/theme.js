@@ -5,7 +5,8 @@
 
 const THEME_KEY = 'tezos-systems-theme';
 const THEMES = ['matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
-const DEFAULT_THEME = 'matrix';
+// Calm, legible "Midnight" palette is the default; Matrix stays opt-in.
+const DEFAULT_THEME = 'default';
 
 // Theme color definitions for the picker dots
 const THEME_COLORS = {

@@ -9,6 +9,7 @@
     "test:static": "node tests/static-checks.mjs",
     "test:smoke": "node tests/smoke.mjs",
     "serve": "python3 -m http.server 9000",
+    "build:css": "cleancss -O1 -o css/styles.min.css css/styles.css",
     "refresh:governance": "node scripts/refresh-governance-data.mjs",
     "update:governance-votes": "node scripts/update-governance-votes.mjs"
   },
@@ -28,6 +29,7 @@
     "playwright": "^1.58.2"
   },
   "devDependencies": {
+    "clean-css-cli": "^5.6.3",
     "knip": "^6.3.1"
   }
 }

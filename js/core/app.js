@@ -494,6 +494,11 @@ async function refreshInBackground() {
         // Always update protocol/hero data
         await updateUpgradeClock();
         const heroStats = await fetchHeroStats();
+        // Silent failure (rate-limit / network): keep the last good UI, flag it.
+        if (looksEmptyStats(heroStats)) {
+            reportDataProblem();
+            return;
+        }
         if (window._updateUptimeClock) {
             window._updateUptimeClock({
                 activeBakers: heroStats.totalBakers,
@@ -539,10 +544,12 @@ async function refreshInBackground() {
         refreshLeaderboard();
         refreshMyTezos();
         refreshNetworkHealth({ force: true });
-        
+
+        reportDataHealthy();
         // resetCountdown();
     } catch (error) {
         console.error('Background refresh failed:', error);
+        reportDataProblem();
         if (!state.currentStats || Object.keys(state.currentStats).length === 0) {
             showErrorState();
         }
@@ -558,7 +565,13 @@ async function refresh() {
     try {
         const newStats = await fetchAllStats();
         console.log('Stats received:', newStats);
-        
+
+        // Silent failure (rate-limit / network): keep the last good UI, flag it.
+        if (looksEmptyStats(newStats)) {
+            reportDataProblem();
+            return;
+        }
+
         // Save to localStorage for instant load next time
         saveStats(newStats);
 
@@ -578,8 +591,11 @@ async function refresh() {
         refreshLeaderboard();
         refreshMyTezos();
         refreshNetworkHealth({ force: true });
+
+        reportDataHealthy();
     } catch (error) {
         console.error('Failed to refresh stats:', error);
+        reportDataProblem();
         showErrorState();
     }
 }
@@ -811,6 +827,51 @@ function showAllLoading() {
  */
 function showErrorState() {
     ALL_CARD_IDS.forEach(id => showError(id, 'Error'));
+}
+
+/**
+ * Heuristic: did a stats fetch silently come back empty?
+ * fetchHeroStats/fetchAllStats use Promise.allSettled and return zeros on
+ * failure (they don't throw), so we detect that here instead of relying on catch.
+ */
+function looksEmptyStats(stats) {
+    if (!stats) return true;
+    return (Number(stats.totalBakers) || 0) === 0 && (Number(stats.cycle) || 0) === 0;
+}
+
+/**
+ * Show/hide the data status banner.
+ * @param {('stale'|'error'|null)} kind - null hides the banner
+ * @param {string} [message]
+ */
+function setDataStatus(kind, message) {
+    const bar = document.getElementById('data-status');
+    if (!bar) return;
+    if (!kind) { bar.hidden = true; return; }
+    bar.classList.toggle('error', kind === 'error');
+    const txt = bar.querySelector('.data-status-text');
+    if (txt) txt.textContent = message || '';
+    bar.hidden = false;
+}
+
+/** A refresh attempt failed or returned empty — surface it without nuking cached UI. */
+function reportDataProblem() {
+    const hasData = state.currentStats && Object.keys(state.currentStats).length > 0;
+    if (hasData) {
+        const since = state.lastUpdate
+            ? Math.max(1, Math.round((Date.now() - state.lastUpdate.getTime()) / 60000))
+            : null;
+        setDataStatus('stale', since
+            ? `Live data delayed — showing values from ~${since}m ago`
+            : 'Live data delayed — showing last known values');
+    } else {
+        setDataStatus('error', "Can't reach the Tezos network right now — retrying…");
+    }
+}
+
+/** A refresh succeeded — clear any status banner. */
+function reportDataHealthy() {
+    setDataStatus(null);
 }
 
 /**
@@ -1245,6 +1306,15 @@ function initUptimeClock() {
 }
 
 function setupEventListeners() {
+    // Data status banner — Retry
+    const dataStatusRetry = document.getElementById('data-status-retry');
+    if (dataStatusRetry) {
+        dataStatusRetry.addEventListener('click', () => {
+            setDataStatus('stale', 'Retrying…');
+            refreshInBackground();
+        });
+    }
+
     // Theme toggle
     const themeToggle = document.getElementById('theme-toggle');
     if (themeToggle) {

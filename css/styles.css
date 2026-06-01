@@ -521,6 +521,48 @@ body::before {
 }
 
 /* ==========================================
+   DATA STATUS BANNER (delayed / unavailable live data)
+   ========================================== */
+.data-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 7px 16px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.3;
+    text-align: center;
+    background: rgba(245, 158, 11, 0.12);
+    color: #f59e0b;
+    border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+}
+.data-status[hidden] { display: none; }
+.data-status.error {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ff6b6b;
+    border-bottom-color: rgba(239, 68, 68, 0.35);
+}
+.data-status-text::before {
+    content: '⚠';
+    margin-right: 7px;
+}
+.data-status-retry {
+    flex-shrink: 0;
+    font-family: inherit;
+    font-size: 0.72rem;
+    color: inherit;
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 6px;
+    padding: 3px 12px;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 0.2s, background 0.2s;
+}
+.data-status-retry:hover { opacity: 1; background: rgba(255, 255, 255, 0.08); }
+
+/* ==========================================
    ABOUT TEZOS MODAL & CTA BUTTONS
    ========================================== */
 
@@ -2040,7 +2082,9 @@ body::before {
 .stat-label {
     font-size: 0.75rem;
     font-weight: 600;
-    color: var(--text-tertiary);
+    /* Secondary (not tertiary): these labels identify each metric and must
+       clear WCAG AA — tertiary was ~3:1 at this size. */
+    color: var(--text-secondary);
     margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
@@ -2141,7 +2185,8 @@ body::before {
 }
 
 .stat-card[data-stat="tokens"] .stat-value {
-    color: #f59e0b;
+    /* Orange is reserved for destructive/burn metrics; tokens is just a count */
+    color: var(--accent-pink);
 }
 
 .stat-card[data-stat="rollups"] .stat-value {
@@ -2695,10 +2740,15 @@ body::before {
 }
 
 @media (max-width: 640px) {
+    /* Tighter vertical rhythm on mobile — base padding (2rem/2rem/3rem) left
+       a large empty gap between the header and the first card. */
+    .header {
+        padding: 1.5rem 1.5rem 1.75rem;
+    }
     .header-content {
         flex-direction: column;
         align-items: flex-start;
-        gap: 1.5rem;
+        gap: 1rem;
     }
 
     .stat-card {
@@ -2822,7 +2872,8 @@ body.arcade-mode::before {
 
 .stat-card:hover .stat-value {
     transform: scale(1.05);
-    text-shadow: 0 0 20px currentColor;
+    /* Soft halo instead of a full-opacity 20px bloom that smears the digits */
+    text-shadow: 0 0 10px color-mix(in srgb, currentColor 35%, transparent);
 }
 
 /* Loading animation enhancement */
@@ -3000,6 +3051,9 @@ body.high-combo .stat-card {
 
 .trend-arrow.neutral {
     color: #888;
+    /* Flat = no signal; recede so up/down badges stand out instead of a wall of "flat" */
+    opacity: 0.5;
+    font-weight: 500;
 }
 
 /* Issuance: lower is better, so invert colors */
@@ -3284,7 +3338,8 @@ body.high-combo .stat-card {
 /* Matrix green glow for all stat values in matrix theme */
 [data-theme="matrix"] .stat-value {
     color: #00ff00 !important;
-    text-shadow: 0 0 10px rgba(0, 255, 0, 0.7), 0 0 20px rgba(0, 255, 0, 0.4) !important;
+    /* Toned down from a 10px+20px double bloom so the digits stay legible */
+    text-shadow: 0 0 8px rgba(0, 255, 0, 0.45) !important;
 }
 
 /* Matrix green for stat labels */
@@ -7957,7 +8012,7 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 
 /* Stat display */
 [data-theme="clean"] .stat-value { color: #1A1A2E; }
-[data-theme="clean"] .stat-label { color: #718096; }
+[data-theme="clean"] .stat-label { color: #586275; } /* was #718096 (~3.6:1 on light) → AA */
 [data-theme="clean"] .stat-description { color: #4A5568; }
 [data-theme="clean"] .title {
     background: none !important;
@@ -11807,19 +11862,44 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     letter-spacing: 0;
 }
 
-/* Mobile price bar: cycle + block/age + CTAs only */
+/* Mobile price bar: cycle + health + price + CTAs (fits without clipping) */
 @media (max-width: 600px) {
-    .price-bar-content .price-link,
+    /* Drop the least-essential items; keep cycle, health dot, age, price, CTAs */
     .price-bar-content .price-separator,
     .price-bar-content .price-alt,
     .price-bar-content .price-mcap,
     .price-bar-content .price-pipe,
-    .price-bar-content .cycle-chip-pct {
+    .price-bar-content .cycle-chip-pct,
+    .price-bar-content .cycle-chip-block,
+    .price-bar-content .cycle-chip-sep {
         display: none !important;
     }
     .price-bar-content {
         justify-content: flex-start !important;
+        gap: 8px;
     }
+    /* Cycle chip yields space (was flex-shrink:0) so the row never overflows */
+    .price-bar-content .cycle-chip {
+        flex-shrink: 1;
+        min-width: 0;
+        overflow: hidden;
+    }
+    /* Keep the XTZ price visible on mobile — it's the point of the bar */
+    .price-bar-content .price-link {
+        display: flex !important;
+        flex-shrink: 0;
+    }
+    /* Compact, labelled Stake/Bake. Higher specificity than the .price-cta
+       icon-collapse below, whose font-size:0 was unreliable and let the labels
+       overflow a 30px box. There's room for labels now, so just show them. */
+    .price-bar-content .price-cta {
+        width: auto;
+        height: auto;
+        padding: 3px 8px;
+        font-size: 0.62rem;
+        white-space: nowrap;
+    }
+    .price-bar-content .price-cta::before { content: none !important; }
 }
 
 /* Tooltip Tour */

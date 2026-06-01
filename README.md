@@ -20,7 +20,7 @@ A single-page dashboard that pulls live data from TzKT and Tez.Capital APIs to d
 tezos.systems/
 ├── index.html                  # Single-page app entry
 ├── css/
-│   └── styles.css              # All styles (~8000 lines) — includes 8 theme variants
+│   └── styles.css              # All styles (~15000 lines) — includes 12 theme variants
 ├── js/
 │   ├── core/
 │   │   ├── app.js              # Main orchestrator — data fetching, rendering, modals
@@ -41,7 +41,7 @@ tezos.systems/
 │   │   ├── streak.js           # Baker streak tracking
 │   │   └── whales.js           # Whale transaction feed
 │   ├── ui/
-│   │   ├── theme.js            # Theme system — 8 themes, picker, first-visit modal
+│   │   ├── theme.js            # Theme system — 12 themes, picker, first-visit modal
 │   │   ├── share.js            # Screenshot/share captures (html2canvas)
 │   │   ├── animations.js       # Card flip animations on data update
 │   │   ├── gauge.js            # SVG gauge component (theme-aware staking ratio)
@@ -73,18 +73,22 @@ tezos.systems/
 
 ## Theme System
 
-Eight visual themes, selectable via the theme picker dropdown with color dot previews:
+Twelve visual themes, selectable via the theme picker dropdown with color dot previews. **Default** ("Midnight") is the calm, legible default; Matrix is opt-in.
 
 | Theme | Vibe | Background |
 |-------|------|-----------|
+| **Default** ("Midnight") | Refined dark blue — the default | Subtle gradient, no canvas |
 | **Matrix** | Green terminal hacker | Digital rain canvas, monospace accents |
 | **Void** | Deep space purple | Particle field canvas |
 | **Ember** | Volcanic fire | Warm particle canvas |
 | **Signal** | Cool tech blue | Radar-style canvas |
+| **NERV** | Institutional orange ops console | Pure black, IBM Plex Mono accents |
 | **Clean** | Etherscan-inspired light | Pure white, no effects, compact layout |
 | **Dark** | Achromatic minimal | #1A1A1A bg, #222222 cards, #E8E8E8 text, no effects |
 | **Bubblegum** | Hot pink playful | Dark rose bg, floating bubble canvas |
-| **Default** | Refined dark blue | Subtle gradient, no canvas |
+| **Abyss** | Deep-ocean cyan | Dark navy, cyan accents |
+| **Moss** | Living-network green | Near-black green, organic accents |
+| **Warzone** | Command & control amber | Dark olive, amber accents |
 
 ### How Themes Work
 

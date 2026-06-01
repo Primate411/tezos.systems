@@ -562,7 +562,7 @@
         document.querySelectorAll('.enter-btn').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 if (!localStorage.getItem('tezos-systems-theme')) {
-                    localStorage.setItem('tezos-systems-theme', 'matrix');
+                    localStorage.setItem('tezos-systems-theme', 'default');
                 }
             });
         });
@@ -572,7 +572,7 @@
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 if (!localStorage.getItem('tezos-systems-theme')) {
-                    localStorage.setItem('tezos-systems-theme', 'matrix');
+                    localStorage.setItem('tezos-systems-theme', 'default');
                 }
                 window.location.href = '/?hen=1';
             });

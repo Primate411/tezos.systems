@@ -45,8 +45,16 @@ export function createSparkline(canvasId, data, metric) {
         lineColor = isPositive ? '#f97316' : '#dc2626';
     } else if (currentThemeVal === 'signal') {
         lineColor = isPositive ? '#22c55e' : '#ef4444';
+    } else if (currentThemeVal === 'nerv') {
+        lineColor = isPositive ? '#FF9830' : '#E0533C';
+    } else if (currentThemeVal === 'abyss') {
+        lineColor = isPositive ? '#00E5FF' : '#FF5277';
+    } else if (currentThemeVal === 'moss') {
+        lineColor = isPositive ? '#50E850' : '#E05050';
+    } else if (currentThemeVal === 'warzone') {
+        lineColor = isPositive ? '#FFC000' : '#E0533C';
     } else {
-        // default theme
+        // default (Midnight) theme
         lineColor = isPositive ? '#00d4ff' : '#ff6b9d';
     }
 
@@ -189,6 +197,10 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
         void:      { primary: '#a855f7',  glow: 'rgba(168, 85, 247, 0.8)', fill: [0.35, 0.12] },
         ember:     { primary: '#f97316',  glow: 'rgba(249, 115, 22, 0.8)', fill: [0.35, 0.12] },
         signal:    { primary: '#22c55e',  glow: 'rgba(34, 197, 94, 0.8)',  fill: [0.35, 0.12] },
+        nerv:      { primary: '#FF9830',  glow: 'rgba(255, 152, 48, 0.8)', fill: [0.35, 0.12] },
+        abyss:     { primary: '#00E5FF',  glow: 'rgba(0, 229, 255, 0.8)',  fill: [0.4, 0.15] },
+        moss:      { primary: '#50E850',  glow: 'rgba(80, 232, 80, 0.8)',  fill: [0.35, 0.12] },
+        warzone:   { primary: '#FFC000',  glow: 'rgba(255, 192, 0, 0.8)',  fill: [0.35, 0.12] },
         default:   { primary: '#00d4ff',  glow: 'rgba(0, 212, 255, 0.8)', fill: [0.4, 0.15] }
     };
     const tc = themeColorMap[expandedTheme] || themeColorMap.default;
