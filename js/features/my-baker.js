@@ -6,6 +6,7 @@
 import { API_URLS } from '../core/config.js';
 import { escapeHtml, formatNumber } from '../core/utils.js';
 import { fetchSharedStats } from '../core/api.js';
+import { fetchBakerLiquidityBakingVote } from './liquidity-baking.js';
 // objkt.js moved to standalone section
 
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
@@ -191,6 +192,18 @@ function createStatItem(label, value, tooltip) {
     return div;
 }
 
+function formatLiquidityBakingVote(vote) {
+    if (!vote) return 'N/A';
+    if (!vote.found) return vote.label || 'Unavailable';
+    return `${vote.icon || ''} ${vote.label}`.trim();
+}
+
+function liquidityBakingVoteTooltip(vote) {
+    if (!vote?.found) return 'Latest Liquidity Baking vote was not available from recent TzKT block data';
+    const status = vote.subsidyDisabled ? 'subsidy disabled' : 'subsidy active';
+    return `Latest block produced by this baker: ${vote.level?.toLocaleString?.('en-US') || vote.level} (${vote.age}). EMA ${vote.emaPct.toFixed(1)}%; ${status}.`;
+}
+
 /**
  * Create a capacity bar card showing used vs max capacity
  */
@@ -319,11 +332,12 @@ async function renderBakerData(address, container) {
         } catch { /* ignore */ }
 
         // Fetch APY, domain, and participation data in parallel (missed rights deferred to avoid 429s)
-        const [apy, delegateDomain, participation, dalParticipation] = await Promise.all([
+        const [apy, delegateDomain, participation, dalParticipation, lbVote] = await Promise.all([
             getStakingAPY(),
             account.delegate?.address ? resolveDomain(account.delegate.address) : Promise.resolve(null),
             participationAddr ? fetchParticipation(participationAddr) : Promise.resolve(null),
             participationAddr ? fetchDALParticipation(participationAddr) : Promise.resolve(null),
+            participationAddr ? fetchBakerLiquidityBakingVote(participationAddr) : Promise.resolve(null),
         ]);
 
         container.innerHTML = '';
@@ -358,6 +372,14 @@ async function renderBakerData(address, container) {
             grid.appendChild(createStatItem('Bkr Staking Power', fmtXTZ(delegateBakerData.stakingBalance)));
             grid.appendChild(createStatItem('Bkr Stakers', formatNumber(delegateBakerData.stakersCount || 0, { decimals: 0, useAbbreviation: false })));
             grid.appendChild(createStatItem('Bkr Delegators', formatNumber(delegateBakerData.numDelegators || 0, { decimals: 0, useAbbreviation: false })));
+        }
+
+        if (lbVote) {
+            grid.appendChild(createStatItem(
+                bakerData ? 'LB Vote' : 'Bkr LB Vote',
+                formatLiquidityBakingVote(lbVote),
+                liquidityBakingVoteTooltip(lbVote)
+            ));
         }
 
         // If baker, show baker-specific stats

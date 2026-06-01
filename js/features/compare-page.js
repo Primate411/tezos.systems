@@ -9,12 +9,28 @@
 import { CHAIN_COMPARISON, API_URLS } from '../core/config.js';
 import { escapeHtml } from '../core/utils.js';
 
+const LB_EMA_DISABLE_THRESHOLD = 1_000_000_000;
+const LB_MINUTES_PER_YEAR = 365.25 * 24 * 60;
+
 async function fetchUpgradeCount() {
     try {
         const resp = await fetch(API_URLS.tzkt + '/protocols');
         const protocols = await resp.json();
         return protocols.filter(p => p.code >= 4 && p.extras?.alias).length;
     } catch { return 21; }
+}
+
+function parseMutez(value) {
+  var parsed = parseInt(String(value ?? '').replace(/"/g, ''), 10);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function calculateLbIssuance(constants, supplyMutez, lbDisabled) {
+  if (lbDisabled || !constants || !supplyMutez) return 0;
+  var subsidyMutez = parseMutez(constants.liquidity_baking_subsidy);
+  var supply = supplyMutez / 1e6;
+  if (!subsidyMutez || !supply) return 0;
+  return (((subsidyMutez / 1e6) * LB_MINUTES_PER_YEAR) / supply) * 100;
 }
 
 const METRICS = [
@@ -33,14 +49,25 @@ const METRICS = [
 async function fetchLiveTezosData() {
   try {
     // Use Octez RPC for staking data
-  const [totalStake, totalSupply] = await Promise.all([
+  const [totalStake, totalSupply, issuanceText, constants, lbBlocks] = await Promise.all([
       fetch(API_URLS.octez + '/chains/main/blocks/head/context/total_frozen_stake').then(r => r.json()),
       fetch(API_URLS.octez + '/chains/main/blocks/head/context/total_supply').then(r => r.json()),
+      fetch(API_URLS.octez + '/chains/main/blocks/head/context/issuance/current_yearly_rate').then(r => r.text()),
+      fetch(API_URLS.octez + '/chains/main/blocks/head/context/constants').then(r => r.json()),
+      fetch(API_URLS.tzkt + '/blocks?sort.desc=level&limit=1&select=level,lbToggleEma').then(r => r.json()),
     ]);
+    const supplyMutez = parseMutez(totalSupply);
+    const protocolIssuance = parseFloat(String(issuanceText).replace(/"/g, ''));
+    const latestLbBlock = Array.isArray(lbBlocks) ? lbBlocks[0] : null;
+    const lbEma = Number(latestLbBlock?.lbToggleEma);
+    const lbDisabled = Number.isFinite(lbEma) && lbEma >= LB_EMA_DISABLE_THRESHOLD;
+    const lbIssuance = calculateLbIssuance(constants, supplyMutez, lbDisabled);
+    const totalIssuance = Number.isFinite(protocolIssuance) ? protocolIssuance + lbIssuance : NaN;
     const stakePct = totalStake && totalSupply ? ((parseInt(totalStake) / parseInt(totalSupply)) * 100).toFixed(1) : '27.8';
     return {
       stakingPct: '~' + stakePct + '%',
-      annualIssuance: '~3.52%',
+      annualIssuance: Number.isFinite(totalIssuance) ? '~' + totalIssuance.toFixed(2) + '%' : CHAIN_COMPARISON.tezosStatic.annualIssuance,
+      annualIssuanceNote: lbDisabled ? 'Adaptive + LB 0% (disabled)' : 'Adaptive + active LB',
       validators: '6',
       validatorsNote: 'entities for 33% of stake (248 total)',
       blockTime: '~6s',

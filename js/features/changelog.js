@@ -5,6 +5,20 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-01',
+        entries: [
+            { type: '✨', text: 'Liquidity Baking Monitor added with live EMA status, recent block votes, and baker latest-vote filters' },
+            { type: '✨', text: 'Liquidity Baking Monitor now auto-refreshes while open and links baker names to Tezos.Systems and TzKT' },
+            { type: '🎨', text: 'Liquidity Baking Monitor visual treatment softened with a cleaner Tezos.Systems header and calmer panels' },
+            { type: '🔧', text: 'Liquidity Baking EMA status now explains the 50% disable threshold instead of showing the raw protocol accumulator' },
+            { type: '🎨', text: 'Liquidity Baking live refresh now updates dials and rows in place instead of repainting the whole monitor' },
+            { type: '🔧', text: 'Liquidity Baking dashboard card EMA now refreshes every minute while the page is visible' },
+            { type: '🔧', text: 'My Baker lookup now shows the baker latest Liquidity Baking toggle vote from their most recent block' },
+            { type: '🔧', text: 'Issuance card now excludes Liquidity Baking when the LB subsidy is disabled and labels LB as 0%' },
+            { type: '🔧', text: 'Issuance references, exports, landing stats, and historical snapshots now reflect whether the Liquidity Baking subsidy is active' },
+        ]
+    },
+    {
         date: '2026-05-26',
         entries: [
             { type: '🔧', text: 'Baker count and tz4 adoption now use current baking-power bakers and active consensus keys, matching All Bakers Attest activation math' },

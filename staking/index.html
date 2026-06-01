@@ -151,7 +151,8 @@
             <div class="landing-cards">
                 <div class="landing-card">
                     <h3>Issuance Rate</h3>
-                    <div class="value" data-live="issuance-rate">~3.5%</div>
+                    <div class="value" data-live="issuance-rate">—</div>
+                    <div class="value-detail" data-live="issuance-breakdown">Protocol + active LB</div>
                 </div>
                 <div class="landing-card">
                     <h3>Staking Ratio</h3>
@@ -214,7 +215,7 @@
     </footer>
 
     <script type="module">
-        import { loadStakingData, loadBakerData } from '/js/landing/live-data.js';
+        import { loadStakingData, loadBakerData } from '/js/landing/live-data.js?v=20260601';
         loadStakingData();
         loadBakerData(); // for total-bakers count
     </script>

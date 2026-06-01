@@ -144,8 +144,8 @@ export const CHAIN_COMPARISON = {
     tezosStatic: {
         // Fallback values when live data isn't available yet
         stakingPct: '~27.8%',
-        annualIssuance: '~3.52%',
-        annualIssuanceNote: 'Adaptive — adjusts to staking participation',
+        annualIssuance: 'Live',
+        annualIssuanceNote: 'Protocol issuance plus active LB when enabled',
         validators: '6',
         validatorsNote: 'entities for 33% of stake (248 total)',
         slashing: 'Adaptive',

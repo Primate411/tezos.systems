@@ -3,6 +3,7 @@
 
 const TZKT_API = 'https://api.tzkt.io/v1';
 const OCTEZ_RPC = 'https://eu.rpc.tez.capital'; // Better for GitHub Actions
+const LB_EMA_DISABLE_THRESHOLD = 1000000000;
 
 // Fetch with retry logic
 async function fetchWithRetry(url, options = {}, retries = 3) {
@@ -86,6 +87,23 @@ async function getStakingData(totalSupplyFromRPC, workingRPC) {
 }
 
 // Fetch issuance rate using alternative RPC (also returns total supply and working RPC)
+async function getLiquidityBakingSubsidyState() {
+  try {
+    const blocks = await fetchWithRetry(`${TZKT_API}/blocks?sort.desc=level&limit=1&select=level,lbToggleEma`);
+    const latest = Array.isArray(blocks) ? blocks[0] : null;
+    const ema = Number(latest?.lbToggleEma);
+    const known = Number.isFinite(ema);
+    const disabled = known && ema >= LB_EMA_DISABLE_THRESHOLD;
+    console.log(known
+      ? `Liquidity Baking EMA: ${ema} (${disabled ? 'subsidy disabled' : 'subsidy active'})`
+      : 'Liquidity Baking EMA unavailable');
+    return { disabled, ema: known ? ema : null, known };
+  } catch (error) {
+    console.warn(`Liquidity Baking EMA fetch failed: ${error.message}; assuming subsidy active for snapshot compatibility`);
+    return { disabled: false, ema: null, known: false };
+  }
+}
+
 async function getIssuanceRate() {
   try {
     console.log('Fetching issuance rate...');
@@ -142,18 +160,23 @@ async function getIssuanceRate() {
       return { rate: 0, totalSupply: 0, workingRPC: null };
     }
 
-    // Calculate LB subsidy rate
+    const lbState = await getLiquidityBakingSubsidyState();
+
+    // Calculate LB subsidy rate only while the chain subsidy is active.
     const lbSubsidyPerMinute = constants ? (parseInt(constants.liquidity_baking_subsidy) || 0) : 0;
     const minutesPerYear = 365.25 * 24 * 60;
     const lbXTZPerYear = (lbSubsidyPerMinute / 1e6) * minutesPerYear;
-    const lbRate = totalSupplyXTZ > 0 ? (lbXTZPerYear / totalSupplyXTZ) * 100 : 0;
+    const lbRate = !lbState.disabled && totalSupplyXTZ > 0 ? (lbXTZPerYear / totalSupplyXTZ) * 100 : 0;
 
     // Total rate
     const totalRate = adaptiveRate + lbRate;
-    console.log(`Total issuance rate: ${totalRate.toFixed(2)}%`);
+    console.log(`Total issuance rate: ${totalRate.toFixed(2)}% (${adaptiveRate.toFixed(2)}% adaptive + ${lbRate.toFixed(2)}% LB${lbState.disabled ? ' disabled' : ''})`);
 
     return {
       rate: parseFloat(totalRate.toFixed(4)),
+      protocolRate: adaptiveRate,
+      lbRate,
+      lbSubsidyDisabled: lbState.disabled,
       totalSupply: totalSupplyXTZ,
       workingRPC
     };

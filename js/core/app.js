@@ -20,6 +20,7 @@ import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../fe
 import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js';
+import { initLiquidityBaking } from '../features/liquidity-baking.js';
 
 /**
  * Governance Countdown Banner
@@ -178,6 +179,7 @@ async function init() {
     
     // Initialize The Chamber governance modal
     safe('chamber', initChamber);
+    safe('liquidityBaking', initLiquidityBaking);
     
     // Initialize changelog modal
     safe('changelog', initChangelog);
@@ -585,15 +587,17 @@ async function refresh() {
 /**
  * Update the issuance breakdown subtitle (Protocol · LB)
  */
-function updateIssuanceBreakdown(protocolRate, lbRate) {
+function updateIssuanceBreakdown(protocolRate, lbRate, lbDisabled = false) {
     const el = document.getElementById('issuance-breakdown');
     if (!el) return;
-    if (!protocolRate && !lbRate) {
+    if (!protocolRate && !lbRate && !lbDisabled) {
         el.textContent = '';
         return;
     }
-    const protocolStr = `${protocolRate.toFixed(2)}% Protocol`;
-    const lbStr = lbRate > 0 ? ` · ${lbRate.toFixed(2)}% LB` : '';
+    const safeProtocolRate = Number.isFinite(protocolRate) ? protocolRate : 0;
+    const safeLbRate = Number.isFinite(lbRate) ? lbRate : 0;
+    const protocolStr = `${safeProtocolRate.toFixed(2)}% Protocol`;
+    const lbStr = lbDisabled ? ' · 0.00% LB (disabled)' : (safeLbRate > 0 ? ` · ${safeLbRate.toFixed(2)}% LB` : '');
     el.textContent = protocolStr + lbStr;
 }
 
@@ -638,7 +642,7 @@ async function updateStats(newStats) {
         
         // Economy
         updateStatInstant('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
-        updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate);
+        updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate, newStats.lbSubsidyDisabled);
         updateStatInstant('staking-apy', newStats.delegateAPY, 
             (val) => `${(val || 0).toFixed(1)}% / ${(newStats.stakeAPY || 0).toFixed(1)}%`);
         // Update live APY values for tweet template substitution
@@ -691,7 +695,13 @@ async function updateStats(newStats) {
         }
         if (state.currentStats.currentIssuanceRate !== newStats.currentIssuanceRate) {
             updates.push({ cardId: 'issuance-rate', value: newStats.currentIssuanceRate, formatter: formatPercentage });
-            updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate);
+        }
+        if (
+            state.currentStats.protocolIssuanceRate !== newStats.protocolIssuanceRate ||
+            state.currentStats.lbIssuanceRate !== newStats.lbIssuanceRate ||
+            state.currentStats.lbSubsidyDisabled !== newStats.lbSubsidyDisabled
+        ) {
+            updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate, newStats.lbSubsidyDisabled);
         }
         if (state.currentStats.stakingRatio !== newStats.stakingRatio) {
             updates.push({ cardId: 'staking-ratio', value: newStats.stakingRatio, formatter: formatPercentage });
@@ -2378,6 +2388,7 @@ function initOfflineIndicator() {
 //   #whales            → show whale tracker
 //   #giants            → show sleeping giants
 //   #history           → open history modal
+//   #lb                → open Liquidity Baking monitor
 //   #theme=dark        → switch to theme
 //   #section=consensus → scroll to section
 function applyDeepLink() {
@@ -2448,6 +2459,13 @@ function applyDeepLink() {
     // #price
     if (params.has('price') || hash === 'price') {
         showToggleSection('price-intel-toggle', 'price-intelligence', { delay: 800 });
+    }
+
+    // #lb / #liquidity-baking
+    if (params.has('lb') || hash === 'lb' || params.has('liquidity-baking') || hash === 'liquidity-baking') {
+        import('../features/liquidity-baking.js')
+            .then(({ openLiquidityBakingMonitor }) => openLiquidityBakingMonitor())
+            .catch((error) => console.warn('Failed to open Liquidity Baking monitor', error));
     }
 
     // #calculator
@@ -2636,6 +2654,9 @@ function exportData(format) {
             issuanceRate: stats.currentIssuanceRate,
             protocolIssuance: stats.protocolIssuanceRate,
             lbIssuance: stats.lbIssuanceRate,
+            lbSubsidyStatus: stats.lbSubsidyDisabled ? 'Disabled' : 'Active',
+            lbSubsidyDisabled: Boolean(stats.lbSubsidyDisabled),
+            lbEmaPct: stats.lbEmaPct,
             delegateAPY: stats.delegateAPY,
             stakeAPY: stats.stakeAPY,
             stakingRatio: stats.stakingRatio,
@@ -2681,6 +2702,9 @@ function exportData(format) {
             issuanceRate: 'Issuance Rate',
             protocolIssuance: 'Protocol Issuance',
             lbIssuance: 'LB Issuance',
+            lbSubsidyStatus: 'LB Subsidy Status',
+            lbSubsidyDisabled: 'LB Subsidy Disabled',
+            lbEmaPct: 'LB EMA',
             delegateAPY: 'Delegate APY',
             stakeAPY: 'Stake APY',
             stakingRatio: 'Staking Ratio',

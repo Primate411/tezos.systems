@@ -6,6 +6,8 @@ import { escapeHtml } from '../core/utils.js';
 
 const TZKT = 'https://api.tzkt.io/v1';
 const OCTEZ = 'https://eu.rpc.tez.capital';
+const LB_EMA_DISABLE_THRESHOLD = 1_000_000_000;
+const LB_MINUTES_PER_YEAR = 365.25 * 24 * 60;
 
 async function fetchJson(url) {
     const resp = await fetch(url);
@@ -24,6 +26,41 @@ function parseMutez(value) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
+async function fetchLiquidityBakingSubsidyState() {
+    try {
+        const blocks = await fetchJson(`${TZKT}/blocks?sort.desc=level&limit=1&select=level,lbToggleEma`);
+        const latest = Array.isArray(blocks) ? blocks[0] : null;
+        const ema = Number(latest?.lbToggleEma);
+        const known = Number.isFinite(ema);
+        return {
+            disabled: known && ema >= LB_EMA_DISABLE_THRESHOLD,
+            known,
+            ema: known ? ema : null
+        };
+    } catch (e) {
+        console.warn('Liquidity Baking subsidy state unavailable:', e);
+        return { disabled: false, known: false, ema: null };
+    }
+}
+
+async function fetchProtocolConstants() {
+    try {
+        return await fetchJson(`${OCTEZ}/chains/main/blocks/head/context/constants`);
+    } catch (e) {
+        console.warn('Protocol constants unavailable:', e);
+        return null;
+    }
+}
+
+function calculateLbIssuanceRate(constants, supplyMutez, lbDisabled) {
+    if (lbDisabled || !constants || !supplyMutez) return 0;
+    const lbSubsidyPerMinute = parseMutez(constants.liquidity_baking_subsidy);
+    const supply = supplyMutez / 1e6;
+    if (!lbSubsidyPerMinute || !supply) return 0;
+    const lbXTZPerYear = (lbSubsidyPerMinute / 1e6) * LB_MINUTES_PER_YEAR;
+    return (lbXTZPerYear / supply) * 100;
+}
+
 /**
  * Inject text into elements by data-live attribute
  * <span data-live="staking-apy">~9%</span> → replaced with real value
@@ -40,31 +77,41 @@ function inject(key, value) {
  */
 export async function loadStakingData() {
     try {
-        const [rateText, frozenStakeText, supplyText, stats] = await Promise.all([
+        const [rateText, frozenStakeText, supplyText, stats, constants, lbState] = await Promise.all([
             fetchText(`${OCTEZ}/chains/main/blocks/head/context/issuance/current_yearly_rate`),
             fetchText(`${OCTEZ}/chains/main/blocks/head/context/total_frozen_stake`),
             fetchText(`${OCTEZ}/chains/main/blocks/head/context/total_supply`),
-            fetchJson(`${TZKT}/statistics/current`)
+            fetchJson(`${TZKT}/statistics/current`),
+            fetchProtocolConstants(),
+            fetchLiquidityBakingSubsidyState()
         ]);
 
-        const netIssuance = parseFloat(rateText.replace(/"/g, ''));
+        const parsedProtocolIssuance = parseFloat(rateText.replace(/"/g, ''));
+        const protocolIssuance = Number.isFinite(parsedProtocolIssuance) ? parsedProtocolIssuance : 0;
         const supplyMutez = parseMutez(supplyText) || stats.totalSupply || 0;
         const frozenStakeMutez = parseMutez(frozenStakeText)
             || stats.totalFrozen
             || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
+        const canEstimateLb = Boolean(constants && supplyMutez);
+        const lbIssuance = calculateLbIssuanceRate(constants, supplyMutez, lbState.disabled);
+        const totalIssuance = protocolIssuance + lbIssuance;
         const supply = supplyMutez / 1e6;
         const staked = frozenStakeMutez / 1e6;
         const delegated = ((stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0)) / 1e6;
-        const stakingRatio = (staked / supply * 100);
+        const stakingRatio = supply > 0 ? (staked / supply * 100) : 0;
         const edge = 2;
-        const effective = (staked / supply) + (delegated / supply) / (1 + edge);
-        const stakeAPY = (netIssuance / 100) / effective * 100;
+        const effective = supply > 0 ? (staked / supply) + (delegated / supply) / (1 + edge) : 0;
+        const stakeAPY = effective > 0 ? (protocolIssuance / 100) / effective * 100 : 0;
         const delegateAPY = stakeAPY / (1 + edge);
+        const lbBreakdown = lbState.disabled
+            ? '0.00% LB (disabled)'
+            : canEstimateLb ? `${lbIssuance.toFixed(2)}% LB` : 'LB active';
 
         inject('staking-apy', `~${stakeAPY.toFixed(1)}%`);
         inject('delegate-apy', `~${delegateAPY.toFixed(1)}%`);
         inject('staking-ratio', `${stakingRatio.toFixed(1)}%`);
-        inject('issuance-rate', `${(netIssuance).toFixed(2)}%`);
+        inject('issuance-rate', `${totalIssuance.toFixed(2)}%`);
+        inject('issuance-breakdown', `${protocolIssuance.toFixed(2)}% protocol · ${lbBreakdown}`);
         inject('total-supply', `${(supply / 1e9).toFixed(2)}B`);
         inject('total-staked', `${(staked / 1e9).toFixed(2)}B`);
         inject('total-delegated', `${(delegated / 1e9).toFixed(2)}B`);

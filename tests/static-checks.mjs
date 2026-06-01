@@ -428,6 +428,38 @@ async function checkHistoricalPagination() {
   pass('historical data fetch paginates Supabase rows');
 }
 
+async function checkLiquidityBakingIssuanceState() {
+  const surfaces = [
+    ['dashboard API', 'js/core/api.js'],
+    ['landing live data', 'js/landing/live-data.js'],
+    ['historical collector', '.github/scripts/collect-data.js'],
+    ['compare page', 'js/features/compare-page.js']
+  ];
+
+  for (const [label, file] of surfaces) {
+    const text = await readText(file);
+    if (!text.includes('lbToggleEma') || !text.includes('LB_EMA_DISABLE_THRESHOLD')) {
+      fail(`${label} must use live Liquidity Baking EMA state for issuance calculations`);
+    }
+  }
+
+  const landing = await readText('staking/index.html');
+  if (/data-live="issuance-rate">~\d/.test(landing)) {
+    fail('staking page should not hardcode a numeric issuance fallback; live data must provide LB-aware issuance');
+  }
+
+  const tweets = JSON.parse(await readText('data/tweets.json'));
+  const issuanceTemplates = (tweets.TWEET_OPTIONS?.['issuance-rate'] || []).map((item) => item.text).join('\n');
+  if (/~3\.[56]/.test(issuanceTemplates) || /adaptive issuance at \{value\}/i.test(issuanceTemplates)) {
+    fail('issuance share templates must not hardcode stale rates or describe total issuance as protocol-only adaptive issuance');
+  }
+  if (!/Liquidity Baking|LB/.test(issuanceTemplates)) {
+    fail('issuance share templates should mention that the displayed rate reflects Liquidity Baking state');
+  }
+
+  pass('issuance surfaces account for Liquidity Baking active/disabled state');
+}
+
 async function checkStylesheetFreshness() {
   const source = await statOrNull('css/styles.css');
   const minified = await statOrNull('css/styles.min.css');
@@ -451,6 +483,7 @@ async function main() {
   await checkMainnetLaunchCopy();
   await checkModuleImportVersions();
   await checkHistoricalPagination();
+  await checkLiquidityBakingIssuanceState();
   await checkStylesheetFreshness();
 
   for (const message of passes) console.log(`ok - ${message}`);

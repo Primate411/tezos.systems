@@ -136,6 +136,7 @@ function fulfillText(route, body, contentType = 'text/plain') {
 }
 
 async function installFeatureMocks(context) {
+  let lbBlocksHead = 12345678;
   await context.route('**/*', async (route) => {
     const request = route.request();
     const url = request.url();
@@ -276,6 +277,16 @@ async function installFeatureMocks(context) {
       }
       if (url.includes('/head')) {
         return fulfillJson(route, { level: 12345678, cycle: 1143, protocol: 'PtTALLiNQATEST' });
+      }
+      if (url.includes('/blocks?')) {
+        const now = Date.now();
+        const head = lbBlocksHead++;
+        return fulfillJson(route, [
+          { level: head, timestamp: new Date(now).toISOString(), producer: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }, lbToggle: false, lbToggleEma: 1030000000 },
+          { level: head - 1, timestamp: new Date(now - 6000).toISOString(), producer: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }, lbToggle: true, lbToggleEma: 1029500000 },
+          { level: head - 2, timestamp: new Date(now - 12000).toISOString(), producer: { address: 'tz1PassPassPassPassPassPassPassPassP', alias: 'Pass Baker' }, lbToggle: null, lbToggleEma: 1029000000 },
+          { level: head - 3, timestamp: new Date(now - 18000).toISOString(), producer: { address: 'tz1OffOffOffOffOffOffOffOffOffOf', alias: 'Off Baker' }, lbToggle: false, lbToggleEma: 1028500000 }
+        ]);
       }
       if (url.includes('/protocols/current')) {
         return fulfillJson(route, { code: 21, alias: 'Tallinn', metadata: { alias: 'Tallinn' } });
@@ -597,7 +608,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, 'header.header', 1, label);
   await expectCount(page, '#price-bar', 1, label);
   await expectCount(page, '#upgrade-clock', 1, label);
-  await expectCount(page, '.stat-card', 19, label);
+  await expectCount(page, '.stat-card', 20, label);
   await expectCount(page, '.card-share-btn, #share-btn, #upgrade-share-btn, #comparison-share-all-btn', 5, label);
   await expectCount(page, '#build-version', 1, label);
   await expectCount(page, '#widgets-gallery', 1, label);
@@ -624,7 +635,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await openDropdown(page, '#features-gear', '#features-dropdown');
   await expectCount(page, '#features-dropdown.feature-launcher', 1, label);
   await expectCount(page, '#features-dropdown .feature-launcher-group', 4, label);
-  await expectCount(page, '#features-dropdown .feature-copy-link', 8, label);
+  await expectCount(page, '#features-dropdown .feature-copy-link', 9, label);
   assert((await page.locator('#features-dropdown a[href="/widgets/builder.html"]').innerText()).includes('Embed Builder'), `${label}: launcher should point widgets to Embed Builder`);
   await page.locator('.feature-copy-link[data-copy-hash="#compare"]').click();
   await page.waitForFunction(() => document.querySelector('.feature-copy-link[data-copy-hash="#compare"]')?.textContent?.trim() === '✓', null, { timeout: 3000 });
@@ -663,6 +674,13 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   });
   await installFeatureMocks(context);
   await context.addInitScript(() => {
+    window.__tezosSystemsIntervals = [];
+    const originalSetInterval = window.setInterval.bind(window);
+    window.setInterval = (handler, timeout, ...args) => {
+      const id = originalSetInterval(handler, timeout, ...args);
+      window.__tezosSystemsIntervals.push({ handler, id, timeout });
+      return id;
+    };
     localStorage.setItem('tezos-systems-theme', 'matrix');
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
@@ -674,6 +692,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `governance testing period: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('#gov-countdown-banner.gov-phase-cooldown').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction(() => {
+    const breakdown = document.querySelector('#issuance-breakdown')?.textContent?.trim() || '';
+    return /LB/.test(breakdown);
+  }, null, { timeout: 10000 });
+  await page.locator('#lb-entry-card[data-lb-live="true"][data-lb-refresh-interval="60000"]').waitFor({ state: 'visible', timeout: 10000 });
 
   const dashboardState = await page.evaluate(() => ({
     banner: document.querySelector('#gov-countdown-banner')?.innerText || '',
@@ -681,7 +704,15 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     votingPeriod: document.querySelector('#voting-period-front')?.textContent?.trim() || '',
     participation: document.querySelector('#participation-front')?.textContent?.trim() || '',
     participationDescription: document.querySelector('#participation-description')?.textContent?.trim() || '',
-    entryMini: document.querySelector('#chamber-entry-mini')?.textContent?.trim() || ''
+    entryMini: document.querySelector('#chamber-entry-mini')?.textContent?.trim() || '',
+    issuance: document.querySelector('#issuance-rate-front')?.textContent?.trim() || '',
+    issuanceBreakdown: document.querySelector('#issuance-breakdown')?.textContent?.trim() || '',
+    lbEntryEma: document.querySelector('#lb-entry-ema')?.textContent?.trim() || '',
+    lbEntryDescription: document.querySelector('#lb-entry-description')?.textContent?.trim() || '',
+    lbEntryLive: document.querySelector('#lb-entry-card')?.dataset.lbLive || '',
+    lbEntryRefreshInterval: document.querySelector('#lb-entry-card')?.dataset.lbRefreshInterval || '',
+    lbEntryRefreshedAt: document.querySelector('#lb-entry-card')?.dataset.lbRefreshedAt || '',
+    intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
   }));
   assert(/TESTING/.test(dashboardState.banner), `governance testing period: banner should say TESTING, saw ${dashboardState.banner}`);
   assert(/No ballots open/.test(dashboardState.banner), `governance testing period: banner should say no ballots are open, saw ${dashboardState.banner}`);
@@ -690,6 +721,15 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.participation === '---', `governance testing period: participation should be empty-state dashes, saw ${dashboardState.participation}`);
   assert(/No ballots during Cooldown/.test(dashboardState.participationDescription), `governance testing period: participation description mismatch: ${dashboardState.participationDescription}`);
   assert(/Cooldown/.test(dashboardState.entryMini) && /testing and review/.test(dashboardState.entryMini), `governance testing period: Chamber entry status mismatch: ${dashboardState.entryMini}`);
+  assert(dashboardState.issuance === '4.50%', `governance testing period: disabled LB should be excluded from total issuance, saw ${dashboardState.issuance}`);
+  assert(/4\.50% Protocol/.test(dashboardState.issuanceBreakdown), `governance testing period: protocol issuance breakdown mismatch: ${dashboardState.issuanceBreakdown}`);
+  assert(/0\.00% LB \(disabled\)/.test(dashboardState.issuanceBreakdown), `governance testing period: disabled LB breakdown missing, saw ${dashboardState.issuanceBreakdown}`);
+  assert(dashboardState.lbEntryEma === '51.5%', `governance testing period: LB entry EMA mismatch: ${dashboardState.lbEntryEma}`);
+  assert(/Subsidy disabled/.test(dashboardState.lbEntryDescription), `governance testing period: LB entry description mismatch: ${dashboardState.lbEntryDescription}`);
+  assert(dashboardState.lbEntryLive === 'true', `governance testing period: LB entry should have live refresh enabled, saw ${dashboardState.lbEntryLive}`);
+  assert(dashboardState.lbEntryRefreshInterval === '60000', `governance testing period: LB entry refresh interval mismatch: ${dashboardState.lbEntryRefreshInterval}`);
+  assert(Number(dashboardState.lbEntryRefreshedAt) > 0, `governance testing period: LB entry refreshed timestamp missing: ${dashboardState.lbEntryRefreshedAt}`);
+  assert(dashboardState.intervalDelays.includes(60000), `governance testing period: LB entry 60s refresh timer was not registered: ${dashboardState.intervalDelays.join(', ')}`);
 
   await page.locator('#gov-countdown-banner').click();
   await page.locator('.chamber-overlay.active .chamber-content').waitFor({ state: 'visible', timeout: 10000 });
@@ -711,6 +751,75 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/80% threshold/.test(chamberState.thresholdNote), `governance testing period: missing threshold note, saw ${chamberState.thresholdNote}`);
   assert(chamberState.svgTextCount === 0, 'governance testing period: threshold label should not be drawn over the gauge arc');
   assert(/Current Cooldown period; showing latest Exploration result/.test(chamberState.footer), `governance testing period: footer mismatch: ${chamberState.footer}`);
+
+  await page.locator('.chamber-overlay.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#chamber-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.evaluate(() => { window.location.hash = 'lb'; });
+  await page.locator('#liquidity-baking-modal.active .lb-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#lb-baker-vote-list .lb-table-row').length >= 4, null, { timeout: 10000 });
+  const lbState = await page.evaluate(() => ({
+    title: document.querySelector('#liquidity-baking-modal .chamber-title')?.textContent || '',
+    ema: document.querySelector('.lb-ema-value')?.textContent || '',
+    status: document.querySelector('.lb-status-banner')?.textContent || '',
+    live: document.querySelector('#liquidity-baking-modal')?.dataset.lbLive || '',
+    refreshState: document.querySelector('#lb-refresh-state')?.textContent || '',
+    recentRows: document.querySelectorAll('.lb-recent-table .lb-table-row').length,
+    bakerRows: document.querySelectorAll('#lb-baker-vote-list .lb-table-row').length,
+    filters: document.querySelectorAll('.lb-filter-btn').length,
+    recentSystemLinks: document.querySelectorAll('.lb-recent-table .lb-baker-name-link[href^="#baker="]').length,
+    recentTzktLinks: document.querySelectorAll('.lb-recent-table .lb-baker-source-link[href^="https://tzkt.io/"]').length,
+    bakerSystemLinks: document.querySelectorAll('#lb-baker-vote-list .lb-baker-name-link[href^="#baker="]').length,
+    bakerTzktLinks: document.querySelectorAll('#lb-baker-vote-list .lb-baker-source-link[href^="https://tzkt.io/"]').length,
+    firstSystemHref: document.querySelector('.lb-recent-table .lb-baker-name-link')?.getAttribute('href') || '',
+    firstTzktHref: document.querySelector('.lb-recent-table .lb-baker-source-link')?.getAttribute('href') || '',
+    systemBrand: document.querySelector('.lb-system-brand')?.textContent?.trim() || '',
+    emaMeta: document.querySelector('#lb-ema-meta')?.textContent?.trim() || '',
+    intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
+  }));
+  assert(/Liquidity Baking Monitor/.test(lbState.title), `governance testing period: LB modal title mismatch: ${lbState.title}`);
+  assert(lbState.ema === '51.5%', `governance testing period: LB EMA should show mocked value, saw ${lbState.ema}`);
+  assert(/SUBSIDY DISABLED/.test(lbState.status), `governance testing period: LB status mismatch: ${lbState.status}`);
+  assert(lbState.live === 'true', `governance testing period: LB live refresh should be active, saw ${lbState.live}`);
+  assert(/auto-refresh 8s/.test(lbState.refreshState), `governance testing period: LB refresh label mismatch: ${lbState.refreshState}`);
+  assert(lbState.recentRows >= 4, `governance testing period: LB recent rows missing, saw ${lbState.recentRows}`);
+  assert(lbState.bakerRows >= 4, `governance testing period: LB baker rows missing, saw ${lbState.bakerRows}`);
+  assert(lbState.filters === 4, `governance testing period: LB filter count mismatch: ${lbState.filters}`);
+  assert(lbState.recentSystemLinks >= lbState.recentRows, `governance testing period: LB recent Tezos.Systems links missing, saw ${lbState.recentSystemLinks}`);
+  assert(lbState.recentTzktLinks >= lbState.recentRows, `governance testing period: LB recent TzKT links missing, saw ${lbState.recentTzktLinks}`);
+  assert(lbState.bakerSystemLinks >= lbState.bakerRows, `governance testing period: LB baker Tezos.Systems links missing, saw ${lbState.bakerSystemLinks}`);
+  assert(lbState.bakerTzktLinks >= lbState.bakerRows, `governance testing period: LB baker TzKT links missing, saw ${lbState.bakerTzktLinks}`);
+  assert(lbState.firstSystemHref.includes(SAMPLE_ADDRESS), `governance testing period: LB baker profile href mismatch: ${lbState.firstSystemHref}`);
+  assert(lbState.firstTzktHref.includes(SAMPLE_ADDRESS), `governance testing period: LB TzKT href mismatch: ${lbState.firstTzktHref}`);
+  assert(lbState.systemBrand === 'Tezos.Systems', `governance testing period: LB systems brand strip missing, saw ${lbState.systemBrand}`);
+  assert(/50% disable threshold/.test(lbState.emaMeta), `governance testing period: LB EMA threshold copy mismatch: ${lbState.emaMeta}`);
+  assert(!/1,000,000,000/.test(lbState.emaMeta), `governance testing period: LB EMA meta should not show raw protocol threshold: ${lbState.emaMeta}`);
+  assert(lbState.intervalDelays.includes(8000), `governance testing period: LB modal 8s refresh timer was not registered: ${lbState.intervalDelays.join(', ')}`);
+
+  const smoothRefreshStart = await page.evaluate(() => {
+    window.__lbBodyNode = document.querySelector('#liquidity-baking-modal .lb-body');
+    window.__lbHeaderNode = document.querySelector('#liquidity-baking-modal .lb-header');
+    const timer = (window.__tezosSystemsIntervals || []).find((item) => item.timeout === 8000);
+    const beforeLevel = document.querySelector('#lb-recent-block-list .lb-table-row')?.dataset.lbLevel || '';
+    timer?.handler();
+    return { beforeLevel, hasTimer: Boolean(timer) };
+  });
+  assert(smoothRefreshStart.hasTimer, 'governance testing period: LB smooth refresh timer handler missing');
+  await page.waitForFunction((beforeLevel) => {
+    const top = document.querySelector('#lb-recent-block-list .lb-table-row')?.dataset.lbLevel || '';
+    return top && top !== beforeLevel;
+  }, smoothRefreshStart.beforeLevel, { timeout: 5000 });
+  const smoothRefreshState = await page.evaluate(() => ({
+    sameBody: window.__lbBodyNode === document.querySelector('#liquidity-baking-modal .lb-body'),
+    sameHeader: window.__lbHeaderNode === document.querySelector('#liquidity-baking-modal .lb-header'),
+    topLevel: document.querySelector('#lb-recent-block-list .lb-table-row')?.dataset.lbLevel || '',
+    newRows: document.querySelectorAll('#lb-recent-block-list .lb-row-new').length,
+    recentRows: document.querySelectorAll('#lb-recent-block-list .lb-table-row').length
+  }));
+  assert(smoothRefreshState.sameBody, 'governance testing period: LB refresh should preserve the modal body node');
+  assert(smoothRefreshState.sameHeader, 'governance testing period: LB refresh should preserve the header node');
+  assert(Number(smoothRefreshState.topLevel) > Number(smoothRefreshStart.beforeLevel), `governance testing period: LB top row should advance, saw ${smoothRefreshStart.beforeLevel} -> ${smoothRefreshState.topLevel}`);
+  assert(smoothRefreshState.newRows > 0, 'governance testing period: LB refresh should mark newly inserted rows');
+  assert(smoothRefreshState.recentRows <= 12, `governance testing period: LB recent rows should stay capped, saw ${smoothRefreshState.recentRows}`);
 
   await context.close();
   assert(issues.length === 0, `governance testing period browser issues:\n${issues.join('\n')}`);
@@ -931,7 +1040,7 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
 
   await page.locator('[data-stat="total-bakers"]').scrollIntoViewIfNeeded();
   await page.locator('[data-stat="total-bakers"]').hover();
-  await page.locator('[data-stat="total-bakers"] .card-share-btn').click();
+  await page.evaluate(() => document.querySelector('[data-stat="total-bakers"] .card-share-btn')?.click());
   await expectShareModal(page, 'feature workflows card share', issues);
   log('ok - feature workflow: card share');
 

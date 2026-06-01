@@ -38,6 +38,8 @@ const cache = {
 };
 
 const HISTORICAL_PAGE_SIZE = 1000;
+const LB_EMA_DISABLE_THRESHOLD = 1_000_000_000;
+const LB_EMA_DENOMINATOR = 2_000_000_000;
 
 /**
  * Check if cached data is still valid
@@ -129,6 +131,18 @@ async function fetchText(url) {
     cache.timestamps[url] = Date.now();
     
     return text;
+}
+
+async function fetchLiquidityBakingSubsidyState() {
+    const blocks = await fetchWithRetry(`${ENDPOINTS.tzkt.base}/blocks?sort.desc=level&limit=1&select=level,lbToggleEma`);
+    const latest = Array.isArray(blocks) ? blocks[0] : null;
+    const ema = Number(latest?.lbToggleEma);
+    const hasEma = Number.isFinite(ema);
+    return {
+        disabled: hasEma && ema >= LB_EMA_DISABLE_THRESHOLD,
+        ema: hasEma ? ema : null,
+        emaPct: hasEma ? (ema / LB_EMA_DENOMINATOR) * 100 : null
+    };
 }
 
 function parseMutezText(value) {
@@ -404,21 +418,23 @@ async function fetchGovernance() {
 }
 
 /**
- * Fetch current yearly issuance rate including LB subsidy.
- * Uses Octez RPC for protocol rate + formula-based LB subsidy (matches TzKT display).
+ * Fetch current yearly issuance rate.
+ * Uses Octez RPC for protocol rate plus active LB subsidy when the EMA has not disabled it.
  */
 async function fetchIssuance() {
     try {
-        const [rpcRateRaw, constantsRaw, supplyRaw] = await Promise.allSettled([
+        const [rpcRateRaw, constantsRaw, supplyRaw, lbStateRaw] = await Promise.allSettled([
             fetchSharedYearlyRate(),
             fetchSharedConstants(),
-            fetchText(`${ENDPOINTS.octez.base}/chains/main/blocks/head/context/total_supply`)
+            fetchText(`${ENDPOINTS.octez.base}/chains/main/blocks/head/context/total_supply`),
+            fetchLiquidityBakingSubsidyState()
         ]);
 
         // Protocol-only rate from Octez RPC
-        const protocolRate = rpcRateRaw.status === 'fulfilled' && rpcRateRaw.value != null
+        const parsedProtocolRate = rpcRateRaw.status === 'fulfilled' && rpcRateRaw.value != null
             ? parseFloat(String(rpcRateRaw.value).replace(/"/g, ''))
-            : null;
+            : NaN;
+        const protocolRate = Number.isFinite(parsedProtocolRate) ? parsedProtocolRate : null;
 
         if (protocolRate == null) {
             return { total: 0, protocol: 0, lb: 0 };
@@ -431,8 +447,12 @@ async function fetchIssuance() {
         const supplyMutez = supplyRaw.status === 'fulfilled'
             ? parseInt(supplyRaw.value.replace(/"/g, ''))
             : null;
+        const lbState = lbStateRaw.status === 'fulfilled'
+            ? lbStateRaw.value
+            : { disabled: false, ema: null, emaPct: null };
+        const lbDisabled = Boolean(lbState.disabled);
 
-        if (constants && supplyMutez && supplyMutez > 0) {
+        if (!lbDisabled && constants && supplyMutez && supplyMutez > 0) {
             const lbSubsidy = parseInt(constants.liquidity_baking_subsidy) || 0;
             const minutesPerYear = 365.25 * 24 * 60;
             const lbXTZPerYear = (lbSubsidy / 1e6) * minutesPerYear;
@@ -440,7 +460,14 @@ async function fetchIssuance() {
             lbRate = (lbXTZPerYear / totalSupplyXTZ) * 100;
         }
 
-        return { total: protocolRate + lbRate, protocol: protocolRate, lb: lbRate };
+        return {
+            total: protocolRate + lbRate,
+            protocol: protocolRate,
+            lb: lbRate,
+            lbDisabled,
+            lbEma: lbState.ema,
+            lbEmaPct: lbState.emaPct
+        };
     } catch (error) {
         console.error('Failed to fetch issuance:', error);
         return { total: 0, protocol: 0, lb: 0 };
@@ -761,6 +788,8 @@ export async function fetchAllStats() {
             currentIssuanceRate: issuance.status === 'fulfilled' ? (issuance.value.total || 0) : 0,
             protocolIssuanceRate: issuance.status === 'fulfilled' ? issuance.value.protocol : 0,
             lbIssuanceRate: issuance.status === 'fulfilled' ? issuance.value.lb : 0,
+            lbSubsidyDisabled: issuance.status === 'fulfilled' ? Boolean(issuance.value.lbDisabled) : false,
+            lbEmaPct: issuance.status === 'fulfilled' ? issuance.value.lbEmaPct : null,
             stakingRatio: staking.stakingRatio,
             delegatedRatio: staking.delegatedRatio,
             bakingPower: staking.bakingPower,
