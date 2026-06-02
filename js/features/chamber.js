@@ -1214,6 +1214,7 @@ export function initChamber() {
                     <div class="chamber-entry-status" id="chamber-entry-mini"></div>
                 </div>
             </div>
+            <span class="chamber-expand-cue" title="Opens a full window" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h5v5"/><path d="M9 20H4v-5"/><path d="M20 4l-7 7"/><path d="M4 20l7-7"/></svg></span>
         `;
         card.style.cursor = 'pointer';
         card.addEventListener('click', openChamber);
