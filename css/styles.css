@@ -10856,7 +10856,7 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 }
 
 .leaderboard-table th.active {
-    color: var(--color-primary, #00d4ff);
+    color: var(--accent-cyan, #00d4ff);
 }
 
 .leaderboard-table th:hover {
@@ -10933,7 +10933,7 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 .leaderboard-table-wrap::-webkit-scrollbar { width: 6px; height: 6px; }
 .leaderboard-table-wrap::-webkit-scrollbar-track { background: transparent; }
 .leaderboard-table-wrap::-webkit-scrollbar-thumb {
-    background: var(--color-primary, rgba(0, 212, 255, 0.3));
+    background: var(--accent-cyan, rgba(0, 212, 255, 0.3));
     border-radius: 3px;
 }
 
@@ -11093,7 +11093,7 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     font-family: 'Orbitron', monospace;
     font-size: 0.9rem;
     font-weight: 700;
-    color: var(--color-primary, #00d4ff);
+    color: var(--accent-cyan, #00d4ff);
     display: block;
 }
 
@@ -11122,15 +11122,15 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 }
 
 .my-tezos-onboard-input input:focus {
-    border-color: var(--color-primary, #00d4ff);
+    border-color: var(--accent-cyan, #00d4ff);
 }
 
 .my-tezos-go-btn {
     padding: 8px 18px;
-    background: rgba(0, 212, 255, 0.15);
-    border: 1px solid rgba(0, 212, 255, 0.3);
+    background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 32%, transparent);
     border-radius: 6px;
-    color: var(--color-primary, #00d4ff);
+    color: var(--accent-cyan, #00d4ff);
     font-family: 'Orbitron', monospace;
     font-size: 0.8rem;
     font-weight: 600;
@@ -11412,14 +11412,14 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 }
 
 .upgrade-effect-pill:hover {
-    border-color: var(--color-primary, rgba(0,212,255,0.4));
+    border-color: var(--accent-cyan, rgba(0,212,255,0.4));
     color: var(--text-primary, #fff);
 }
 
 .upgrade-effect-pill.active {
-    background: rgba(0, 212, 255, 0.12);
-    border-color: var(--color-primary, rgba(0,212,255,0.5));
-    color: var(--color-primary, #00d4ff);
+    background: color-mix(in srgb, var(--accent-cyan) 14%, transparent);
+    border-color: var(--accent-cyan, rgba(0,212,255,0.5));
+    color: var(--accent-cyan, #00d4ff);
     font-weight: 600;
 }
 
@@ -12374,10 +12374,12 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 
 .governance-stage-labels {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 4px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
     margin-bottom: 0;
+    min-width: 0;
 }
 
 .governance-stage-labels span,
