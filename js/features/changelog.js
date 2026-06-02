@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-02',
+        entries: [
+            { type: '🔧', text: 'Protocol timeline now falls back to local governance metadata and expires old browser protocol caches' },
+        ]
+    },
+    {
         date: '2026-06-01',
         entries: [
             { type: '✨', text: 'Liquidity Baking Monitor added with live EMA status, recent block votes, and baker latest-vote filters' },

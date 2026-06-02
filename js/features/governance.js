@@ -94,6 +94,54 @@ function buildLoreHighlight(lore, protocol) {
     return buildFallbackHighlight(protocol);
 }
 
+function isReportCurrentProtocol(protocol, currentProtocol) {
+    if (!currentProtocol) return !protocol.lastLevel;
+    return protocol.code === currentProtocol.code
+        || protocol.name === currentProtocol.name
+        || protocolHashMatches(protocol.hash, currentProtocol.hash);
+}
+
+function normalizeProtocol(protocol, loreEntry, currentProtocol = null) {
+    const code = protocol.code ?? protocol.number;
+    const name = protocol.name || protocol.extras?.alias || `Protocol ${code}`;
+    return {
+        code,
+        name,
+        hash: protocol.hash,
+        firstLevel: protocol.firstLevel ?? protocol.block ?? null,
+        lastLevel: protocol.lastLevel ?? null,
+        startTime: protocol.startTime || loreEntry?.date || protocol.date || null,
+        date: loreEntry?.date || protocol.date || protocol.startTime || null,
+        highlight: buildLoreHighlight(loreEntry, { ...protocol, code, name }),
+        debate: loreEntry?.debate || null,
+        contention: Boolean(loreEntry?.contention || loreEntry?.history),
+        isCurrent: isReportCurrentProtocol({ ...protocol, code, name }, currentProtocol)
+    };
+}
+
+async function buildStaticProtocolFallback(lore = null, report = null) {
+    const [protocolLore, governanceReport] = await Promise.all([
+        lore ? Promise.resolve(lore) : loadProtocolLore(),
+        report ? Promise.resolve(report) : loadGovernanceReport()
+    ]);
+    const currentProtocol = governanceReport?.currentProtocol || null;
+    const protocols = protocolLore.map((entry, index) => {
+        const protocol = normalizeProtocol(entry, entry, currentProtocol);
+        if (!currentProtocol) protocol.isCurrent = index === protocolLore.length - 1;
+        return protocol;
+    });
+
+    if (protocols.length && currentProtocol && !protocols.some(p => p.isCurrent)) {
+        protocols[protocols.length - 1].isCurrent = true;
+    }
+
+    if (!protocols.length && currentProtocol) {
+        protocols.push(normalizeProtocol(currentProtocol, null, currentProtocol));
+    }
+
+    return protocols;
+}
+
 function chooseEpochProposal(period, epoch) {
     const proposals = epoch?.proposals || [];
     const scoped = proposals.filter(proposal => {
@@ -151,32 +199,24 @@ export async function fetchProtocols() {
         return _protocolsCache;
     }
     try {
-        const [response, lore] = await Promise.all([
-            fetch(`${TZKT_BASE}/protocols`),
-            loadProtocolLore()
+        const [response, lore, report] = await Promise.all([
+            fetch(`${TZKT_BASE}/protocols?sort.asc=code`, { cache: 'no-store' }),
+            loadProtocolLore(),
+            loadGovernanceReport()
         ]);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const protocols = await response.json();
+        if (!Array.isArray(protocols)) throw new Error('Unexpected protocols response');
         
         const namedProtocols = protocols.filter(p => 
             p.code >= 4 && p.extras?.alias
         );
+        if (!namedProtocols.length) throw new Error('No named protocols in response');
         
         const result = namedProtocols.map(p => {
             const name = p.extras?.alias || `Protocol ${p.code}`;
             const loreEntry = findProtocolLore({ name, hash: p.hash }, lore);
-            return {
-                code: p.code,
-                name,
-                hash: p.hash,
-                firstLevel: p.firstLevel,
-                lastLevel: p.lastLevel,
-                startTime: p.startTime || loreEntry?.date || null,
-                date: loreEntry?.date || p.startTime || null,
-                highlight: buildLoreHighlight(loreEntry, p),
-                debate: loreEntry?.debate || null,
-                contention: Boolean(loreEntry?.contention || loreEntry?.history),
-                isCurrent: !p.lastLevel
-            };
+            return normalizeProtocol({ ...p, name }, loreEntry, report?.currentProtocol || null);
         });
 
         _protocolsCache = result;
@@ -184,8 +224,48 @@ export async function fetchProtocols() {
         return result;
     } catch (error) {
         console.error('Failed to fetch protocols:', error);
+        const fallback = await buildStaticProtocolFallback();
+        if (fallback.length) {
+            console.warn('Using local protocol fallback');
+            _protocolsCache = fallback;
+            _protocolsCacheTime = Date.now();
+            return fallback;
+        }
         return _protocolsCache || [];
     }
+}
+
+function buildVotingStatusFromReport(report) {
+    const gov = report?.currentGovernance;
+    if (!gov) return null;
+    const proposal = gov.proposalHash ? {
+        hash: gov.proposalHash,
+        alias: gov.proposalName,
+        status: gov.proposalStatus
+    } : null;
+
+    return {
+        kind: gov.kind,
+        status: gov.status,
+        startTime: gov.startTime,
+        endTime: gov.endTime,
+        epoch: {
+            index: gov.epoch,
+            status: gov.epochStatus,
+            proposal
+        },
+        proposal,
+        proposalName: gov.proposalName || null,
+        totalBakers: null,
+        totalVotingPower: gov.votingPower || null,
+        topVotingPower: gov.votingPower || null,
+        proposalsCount: proposal ? 1 : 0,
+        yayVotingPower: gov.tally?.yayVotingPower || 0,
+        nayVotingPower: gov.tally?.nayVotingPower || 0,
+        passVotingPower: gov.tally?.passVotingPower || 0,
+        ballotsQuorum: gov.tally?.ballotsQuorum,
+        supermajority: gov.tally?.supermajority
+    };
 }
 
 /**
@@ -194,6 +274,7 @@ export async function fetchProtocols() {
 export async function fetchVotingStatus() {
     try {
         const response = await fetch(`${TZKT_BASE}/voting/periods/current`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const period = await response.json();
         const [epoch, report] = await Promise.all([
             fetchVotingEpoch(period.epoch),
@@ -225,7 +306,7 @@ export async function fetchVotingStatus() {
         };
     } catch (error) {
         console.error('Failed to fetch voting status:', error);
-        return null;
+        return buildVotingStatusFromReport(await loadGovernanceReport());
     }
 }
 

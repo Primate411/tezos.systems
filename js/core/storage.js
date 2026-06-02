@@ -18,6 +18,7 @@ const STORAGE_KEYS = {
 };
 
 const STATS_CACHE_VERSION = 'baking-power-v1';
+const PROTOCOLS_CACHE_VERSION = 'protocols-v2';
 
 // Cache TTL from config
 const CACHE_TTL = CACHE_TTLS.storage;
@@ -80,7 +81,11 @@ export function loadStats() {
  */
 export function saveProtocols(protocols) {
     try {
-        localStorage.setItem(STORAGE_KEYS.protocols, JSON.stringify(protocols));
+        localStorage.setItem(STORAGE_KEYS.protocols, JSON.stringify({
+            version: PROTOCOLS_CACHE_VERSION,
+            timestamp: Date.now(),
+            data: protocols
+        }));
     } catch (error) {
         console.warn('Failed to cache protocols:', error);
     }
@@ -93,7 +98,23 @@ export function saveProtocols(protocols) {
 export function loadProtocols() {
     try {
         const protocols = localStorage.getItem(STORAGE_KEYS.protocols);
-        return protocols ? JSON.parse(protocols) : null;
+        if (!protocols) return null;
+
+        const parsed = JSON.parse(protocols);
+        if (Array.isArray(parsed)) {
+            console.log('📦 Legacy protocol cache ignored');
+            return null;
+        }
+        if (parsed.version !== PROTOCOLS_CACHE_VERSION || !Array.isArray(parsed.data)) {
+            console.log('📦 Protocol cache version changed');
+            return null;
+        }
+        const age = Date.now() - Number(parsed.timestamp || 0);
+        if (age > CACHE_TTL) {
+            console.log('📦 Protocol cache expired');
+            return null;
+        }
+        return parsed.data;
     } catch (error) {
         return null;
     }
