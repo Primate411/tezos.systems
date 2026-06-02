@@ -527,6 +527,7 @@
             });
         }
         var THEMES = {
+            aurora:    { bg: '#070B1A', accent: '#45E0C8', name: 'Aurora',     tag: 'Liquid Aurora' },
             matrix:    { bg: '#0a0f0a', accent: '#00ff00', name: 'Matrix',     tag: 'Code the Future' },
             default:   { bg: '#0A0E1A', accent: '#5B8DEF', name: 'Midnight',   tag: 'Midnight Premium' },
             void:      { bg: '#06060C', accent: '#8B5CF6', name: 'Void',       tag: 'Deep Space' },
@@ -562,7 +563,7 @@
         document.querySelectorAll('.enter-btn').forEach(function(btn) {
             btn.addEventListener('click', function(e) {
                 if (!localStorage.getItem('tezos-systems-theme')) {
-                    localStorage.setItem('tezos-systems-theme', 'default');
+                    localStorage.setItem('tezos-systems-theme', 'aurora');
                 }
             });
         });
@@ -572,7 +573,7 @@
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 if (!localStorage.getItem('tezos-systems-theme')) {
-                    localStorage.setItem('tezos-systems-theme', 'default');
+                    localStorage.setItem('tezos-systems-theme', 'aurora');
                 }
                 window.location.href = '/?hen=1';
             });

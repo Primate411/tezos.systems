@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v101';
+const CACHE_NAME = 'tezos-systems-v102';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -12,6 +12,7 @@ const SHELL_ASSETS = [
     '/css/styles.css',
     '/css/styles.min.css',
     '/css/hen-mode.css',
+    '/js/core/theme-preload.js',
     '/js/core/app.js',
     '/js/core/api.js',
     '/js/core/config.js',

@@ -85,6 +85,17 @@ function getThemeColors() {
                 glowEnabled: true,
                 font: "'Orbitron', monospace",
             };
+        case 'aurora':
+            return {
+                textColor: '#8FE9DC',
+                subColor: 'rgba(170,184,236,0.5)',
+                bgArc: 'rgba(124,140,255,0.08)',
+                tickColor: 'rgba(124,140,255,0.15)',
+                lowColor: { r: 244, g: 114, b: 182 },
+                highColor: { r: 64, g: 224, b: 200 },
+                glowEnabled: true,
+                font: "'Orbitron', monospace",
+            };
         default:
             return {
                 textColor: '#00d4ff',

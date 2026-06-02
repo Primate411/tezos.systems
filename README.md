@@ -20,7 +20,7 @@ A single-page dashboard that pulls live data from TzKT and Tez.Capital APIs to d
 tezos.systems/
 ├── index.html                  # Single-page app entry
 ├── css/
-│   └── styles.css              # All styles (~15000 lines) — includes 12 theme variants
+│   └── styles.css              # All styles (~15000 lines) — includes 13 theme variants
 ├── js/
 │   ├── core/
 │   │   ├── app.js              # Main orchestrator — data fetching, rendering, modals
@@ -41,7 +41,7 @@ tezos.systems/
 │   │   ├── streak.js           # Baker streak tracking
 │   │   └── whales.js           # Whale transaction feed
 │   ├── ui/
-│   │   ├── theme.js            # Theme system — 12 themes, picker, first-visit modal
+│   │   ├── theme.js            # Theme system — 13 themes, picker, first-visit modal
 │   │   ├── share.js            # Screenshot/share captures (html2canvas)
 │   │   ├── animations.js       # Card flip animations on data update
 │   │   ├── gauge.js            # SVG gauge component (theme-aware staking ratio)
@@ -73,11 +73,12 @@ tezos.systems/
 
 ## Theme System
 
-Twelve visual themes, selectable via the theme picker dropdown with color dot previews. **Default** ("Midnight") is the calm, legible default; Matrix is opt-in.
+Thirteen visual themes, selectable via the theme picker dropdown with color dot previews. **Aurora** is the animated default (CSS-only northern-lights background — no JS canvas); every other theme is one click away.
 
 | Theme | Vibe | Background |
 |-------|------|-----------|
-| **Default** ("Midnight") | Refined dark blue — the default | Subtle gradient, no canvas |
+| **Aurora** | Animated northern-lights — the default | Drifting CSS aurora glow, full-spectrum accents |
+| **Default** ("Midnight") | Refined dark blue | Subtle gradient, no canvas |
 | **Matrix** | Green terminal hacker | Digital rain canvas, monospace accents |
 | **Void** | Deep space purple | Particle field canvas |
 | **Ember** | Volcanic fire | Warm particle canvas |

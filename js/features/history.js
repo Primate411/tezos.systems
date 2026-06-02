@@ -53,6 +53,8 @@ export function createSparkline(canvasId, data, metric) {
         lineColor = isPositive ? '#50E850' : '#E05050';
     } else if (currentThemeVal === 'warzone') {
         lineColor = isPositive ? '#FFC000' : '#E0533C';
+    } else if (currentThemeVal === 'aurora') {
+        lineColor = isPositive ? '#45E0C8' : '#F472B6';
     } else {
         // default (Midnight) theme
         lineColor = isPositive ? '#00d4ff' : '#ff6b9d';
@@ -201,6 +203,7 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
         abyss:     { primary: '#00E5FF',  glow: 'rgba(0, 229, 255, 0.8)',  fill: [0.4, 0.15] },
         moss:      { primary: '#50E850',  glow: 'rgba(80, 232, 80, 0.8)',  fill: [0.35, 0.12] },
         warzone:   { primary: '#FFC000',  glow: 'rgba(255, 192, 0, 0.8)',  fill: [0.35, 0.12] },
+        aurora:    { primary: '#45E0C8',  glow: 'rgba(64, 224, 200, 0.8)', fill: [0.4, 0.15] },
         default:   { primary: '#00d4ff',  glow: 'rgba(0, 212, 255, 0.8)', fill: [0.4, 0.15] }
     };
     const tc = themeColorMap[expandedTheme] || themeColorMap.default;

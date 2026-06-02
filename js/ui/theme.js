@@ -4,12 +4,13 @@
  */
 
 const THEME_KEY = 'tezos-systems-theme';
-const THEMES = ['matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
-// Calm, legible "Midnight" palette is the default; Matrix stays opt-in.
-const DEFAULT_THEME = 'default';
+const THEMES = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
+// Aurora — bespoke animated default; striking but legible.
+const DEFAULT_THEME = 'aurora';
 
 // Theme color definitions for the picker dots
 const THEME_COLORS = {
+    'aurora': { bg: '#070B1A', accent: '#45E0C8', text: '#EAF0FF' },
     'matrix': { bg: '#0a0f0a', accent: '#00ff00', text: '#00ff41' },
     'void': { bg: '#06060C', accent: '#8B5CF6', text: '#D8D0FF' },
     'ember': { bg: '#0D0806', accent: '#FF9F43', text: '#FFE8D6' },
@@ -61,6 +62,7 @@ export function initTheme() {
  * Show first-visit theme picker modal
  */
 const THEME_VIBES = {
+    'aurora': { tagline: 'Liquid Aurora', icon: '🌌' },
     'matrix': { tagline: 'Code the Future', icon: '🟢' },
     'default': { tagline: 'Midnight Premium', icon: '💎' },
     'void': { tagline: 'Deep Space', icon: '🔮' },
@@ -101,7 +103,7 @@ export function openThemePicker() {
     originalTheme = currentTheme;
 
     // Theme categories for organized picker
-    const ANIMATED_THEMES = ['matrix', 'void', 'ember', 'signal', 'abyss', 'moss', 'warzone', 'nerv', 'bubblegum'];
+    const ANIMATED_THEMES = ['aurora', 'matrix', 'void', 'ember', 'signal', 'abyss', 'moss', 'warzone', 'nerv', 'bubblegum'];
     const CLASSIC_THEMES = ['default', 'dark', 'clean'];
 
     function renderThemeRow(theme) {

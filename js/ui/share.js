@@ -1550,6 +1550,7 @@ export async function initProtocolShare() {
 function buildProtocolHistoryCardDOM(protocol, num) {
     const theme = document.body.getAttribute('data-theme') || 'default';
     const accentColors = {
+        aurora: '#45E0C8',
         matrix: '#00ff41',
         void: '#8B5CF6',
         ember: '#FF9F43',
@@ -1558,6 +1559,7 @@ function buildProtocolHistoryCardDOM(protocol, num) {
         default: '#00d4ff'
     };
     const bgColors = {
+        aurora: '#070B1A',
         matrix: '#000800',
         void: '#06060f',
         ember: '#0f0806',
@@ -1852,7 +1854,7 @@ async function captureHistoricalData() {
         const modalTitle = modalContent.querySelector('.modal-title');
         const origTitleStyle = modalTitle ? modalTitle.style.cssText : '';
         if (modalTitle) {
-            const accentColors = { matrix: '#00ff41', void: '#8B5CF6', ember: '#FF9F43', signal: '#00FFC8', bubblegum: '#FF69B4', default: '#00d4ff' };
+            const accentColors = { aurora: '#45E0C8', matrix: '#00ff41', void: '#8B5CF6', ember: '#FF9F43', signal: '#00FFC8', bubblegum: '#FF69B4', default: '#00d4ff' };
             const titleColor = accentColors[theme] || '#00d4ff';
             modalTitle.style.background = 'none';
             modalTitle.style.webkitBackgroundClip = 'unset';
@@ -1893,7 +1895,7 @@ async function captureHistoricalData() {
 
         const fullHeight = modalContent.scrollHeight;
         const fullWidth = modalContent.scrollWidth;
-        const bgColors = { matrix: '#000800', void: '#06060f', ember: '#0f0806', signal: '#060a0f', bubblegum: '#1F0E18', default: '#08081a' };
+        const bgColors = { aurora: '#070B1A', matrix: '#000800', void: '#06060f', ember: '#0f0806', signal: '#060a0f', bubblegum: '#1F0E18', default: '#08081a' };
         const restoreSpacing = await fixWordSpacing(modalContent);
         const canvas = await html2canvas(modalContent, {
             backgroundColor: bgColors[theme] || '#08081a',
