@@ -3904,6 +3904,8 @@ body.high-combo .stat-card {
     font-weight: 600;
     color: var(--text-primary);
     margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
 }
 
 .share-modal-close {
@@ -4218,7 +4220,12 @@ body.high-combo .stat-card {
 
 @media (max-width: 600px) {
     .share-modal-actions {
-        flex-direction: column;
+        grid-template-columns: 1fr;
+    }
+
+    .share-modal-content {
+        width: calc(100% - 24px);
+        max-height: calc(100vh - 24px);
     }
 }
 

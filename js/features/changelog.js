@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-02',
         entries: [
+            { type: '🔧', text: 'Share modals now sanitize picker text, clean up failed captures, and render reliably across mobile and newer themes' },
+            { type: '🔧', text: 'State of Tezos snapshots now resolve active proposal names and current XTZ price correctly' },
             { type: '🔧', text: 'Protocol timeline now falls back to local governance metadata and expires old browser protocol caches' },
         ]
     },

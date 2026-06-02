@@ -239,17 +239,30 @@ async function init() {
         upgradeShareBtn.addEventListener('click', async () => {
             const section = document.querySelector('.upgrade-clock-content');
             if (!section) return;
-            await loadHtml2Canvas();
-            const canvas = await window.html2canvas(section, { backgroundColor: '#0a0e1a', scale: 2 });
-            // Dynamic upgrade count from timeline chips
-            const upgradeChips = document.querySelectorAll('.upgrade-chip');
-            const upgradeCount = upgradeChips.length || 21;
-            const daysLive = Math.floor((Date.now() - new Date(MAINNET_LAUNCH).getTime()) / 86400000);
-            const tweetOptions = [
-                { label: '📜 Story', text: `${upgradeCount} protocol upgrades. Zero forks. Zero outages. ${daysLive.toLocaleString()}+ days.\n\nTezos doesn't break. It evolves.\n\ntezos.systems` },
-                { label: '⚡ Stats', text: `Tezos network pulse:\n• ${upgradeCount} self-amendments\n• Zero contentious forks\n• Zero outages since 2018\n• 6-second blocks\n\ntezos.systems` },
-            ];
-            showShareModal(canvas, tweetOptions, 'Tezos Protocol History');
+            const controlsToHide = Array.from(section.querySelectorAll(
+                '.upgrade-share-btn, .section-copy-link, .infographic-toggle, .timeline-share-btn'
+            ));
+            const originalVisibility = controlsToHide.map(el => el.style.visibility);
+            try {
+                controlsToHide.forEach(el => { el.style.visibility = 'hidden'; });
+                await loadHtml2Canvas();
+                const canvas = await window.html2canvas(section, { backgroundColor: '#0a0e1a', scale: 2 });
+                // Dynamic upgrade count from timeline chips
+                const upgradeChips = document.querySelectorAll('.upgrade-chip');
+                const upgradeCount = upgradeChips.length || 21;
+                const daysLive = Math.floor((Date.now() - new Date(MAINNET_LAUNCH).getTime()) / 86400000);
+                const tweetOptions = [
+                    { label: '📜 Story', text: `${upgradeCount} protocol upgrades. Zero forks. Zero outages. ${daysLive.toLocaleString()}+ days.\n\nTezos doesn't break. It evolves.\n\ntezos.systems` },
+                    { label: '⚡ Stats', text: `Tezos network pulse:\n• ${upgradeCount} self-amendments\n• Zero contentious forks\n• Zero outages since 2018\n• 6-second blocks\n\ntezos.systems` },
+                ];
+                showShareModal(canvas, tweetOptions, 'Tezos Protocol History');
+            } catch (err) {
+                console.error('Upgrade share capture failed:', err);
+            } finally {
+                controlsToHide.forEach((el, index) => {
+                    el.style.visibility = originalVisibility[index];
+                });
+            }
         });
     }
 

@@ -5,7 +5,6 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { escapeHtml, formatNumber } from '../core/utils.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 import { fetchVotingStatus, getVotingPeriodName } from '../features/governance.js';
 
@@ -39,6 +38,23 @@ const PROTO_NAMES = {
     PsddFKi3: 'Athens',
 };
 
+function displayText(value, fallback = '—') {
+    if (value === null || value === undefined || value === '') return fallback;
+    return String(value);
+}
+
+function proposalName(value) {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    return value.alias
+        || value.name
+        || value.extras?.alias
+        || value.metadata?.alias
+        || value.proposal?.alias
+        || value.proposal?.extras?.alias
+        || (value.hash ? `${String(value.hash).slice(0, 8)}...` : '');
+}
+
 // ─── Data Fetching ────────────────────────────────────────────────────────────
 
 /**
@@ -54,6 +70,7 @@ async function fetchSnapshotData() {
         stakingRatio: '—',
         price: '—',
         change7d: 'N/A',
+        change7dRaw: null,
         governanceStatus: '—',
         uptimeDays: Math.floor((Date.now() - MAINNET_LAUNCH.getTime()) / 86400000),
         selfAmendments: SELF_AMENDMENTS,
@@ -140,6 +157,10 @@ async function fetchSnapshotData() {
         );
         if (cgResp.ok) {
             const cgData = await cgResp.json();
+            const usd = cgData?.market_data?.current_price?.usd;
+            if (usd != null && Number.isFinite(Number(usd))) {
+                data.price = `$${Number(usd).toFixed(4)}`;
+            }
             const change = cgData?.market_data?.price_change_percentage_7d;
             if (change != null) {
                 const sign = change >= 0 ? '+' : '';
@@ -154,7 +175,9 @@ async function fetchSnapshotData() {
         const voting = await fetchVotingStatus();
         if (voting && voting.kind) {
             const label = getVotingPeriodName(voting.kind);
-            const proposal = voting.epoch?.proposal?.alias || voting.proposal || '';
+            const proposal = voting.proposalName
+                || proposalName(voting.proposal)
+                || proposalName(voting.epoch?.proposal);
             data.governanceStatus = proposal ? `${label}: ${proposal}` : label;
         } else {
             data.governanceStatus = 'No active proposal';
@@ -334,7 +357,10 @@ function buildSnapshotDOM(data) {
             padding: 12px 14px;
             display: flex;
             flex-direction: column;
+            justify-content: center;
             gap: 4px;
+            flex: 1;
+            min-height: 0;
         `;
         const lbl = document.createElement('div');
         lbl.style.cssText = `
@@ -353,7 +379,8 @@ function buildSnapshotDOM(data) {
             color: ${WHITE};
             letter-spacing: 1px;
             line-height: 1.2;
-            word-break: break-all;
+            overflow-wrap: anywhere;
+            word-break: normal;
         `;
         val.textContent = value;
 
@@ -369,11 +396,11 @@ function buildSnapshotDOM(data) {
 
     // ── Column 1: Network ────────────────────────────────────────────────────
     const col1 = document.createElement('div');
-    col1.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+    col1.style.cssText = 'display: flex; flex-direction: column; gap: 10px; min-height: 0;';
 
-    const blockPanel = statPanel('BLOCK HEIGHT', escapeHtml(String(data.blockHeight)));
-    const cyclePanel = statPanel('CURRENT CYCLE', escapeHtml(String(data.cycle)));
-    const protoPanel = statPanel('PROTOCOL', escapeHtml(String(data.protocol)));
+    const blockPanel = statPanel('BLOCK HEIGHT', displayText(data.blockHeight));
+    const cyclePanel = statPanel('CURRENT CYCLE', displayText(data.cycle));
+    const protoPanel = statPanel('PROTOCOL', displayText(data.protocol));
 
     // Protocol value smaller font if long
     const protoVal = protoPanel.querySelector('div:last-child');
@@ -385,11 +412,11 @@ function buildSnapshotDOM(data) {
 
     // ── Column 2: Staking & Market ───────────────────────────────────────────
     const col2 = document.createElement('div');
-    col2.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+    col2.style.cssText = 'display: flex; flex-direction: column; gap: 10px; min-height: 0;';
 
-    const bakersPanel = statPanel('ACTIVE BAKERS', escapeHtml(String(data.activeBakers)));
-    const stakingPanel = statPanel('STAKING RATIO', escapeHtml(String(data.stakingRatio)));
-    const pricePanel = statPanel('XTZ PRICE', escapeHtml(String(data.price)));
+    const bakersPanel = statPanel('ACTIVE BAKERS', displayText(data.activeBakers));
+    const stakingPanel = statPanel('STAKING RATIO', displayText(data.stakingRatio));
+    const pricePanel = statPanel('XTZ PRICE', displayText(data.price));
 
     // 7d change — attach below price
     const changeRow = document.createElement('div');
@@ -400,7 +427,7 @@ function buildSnapshotDOM(data) {
         letter-spacing: 1px;
         margin-top: 2px;
     `;
-    changeRow.textContent = `7D ${escapeHtml(String(data.change7d))}`;
+    changeRow.textContent = `7D ${displayText(data.change7d, 'N/A')}`;
     pricePanel.appendChild(changeRow);
 
     col2.appendChild(bakersPanel);
@@ -409,17 +436,17 @@ function buildSnapshotDOM(data) {
 
     // ── Column 3: Governance & Milestones ────────────────────────────────────
     const col3 = document.createElement('div');
-    col3.style.cssText = 'display: flex; flex-direction: column; gap: 10px;';
+    col3.style.cssText = 'display: flex; flex-direction: column; gap: 10px; min-height: 0;';
 
-    const govPanel = statPanel('GOVERNANCE', escapeHtml(String(data.governanceStatus)));
+    const govPanel = statPanel('GOVERNANCE', displayText(data.governanceStatus));
     // Governance value smaller if long
     const govVal = govPanel.querySelector('div:last-child');
     const govStr = String(data.governanceStatus);
     if (govStr.length > 20) govVal.style.fontSize = '13px';
     else if (govStr.length > 14) govVal.style.fontSize = '16px';
 
-    const uptimePanel = statPanel('NETWORK UPTIME', `${escapeHtml(String(data.uptimeDays.toLocaleString()))} DAYS`);
-    const amendPanel = statPanel('SELF-AMENDMENTS', escapeHtml(String(data.selfAmendments)));
+    const uptimePanel = statPanel('NETWORK UPTIME', `${displayText(data.uptimeDays.toLocaleString())} DAYS`);
+    const amendPanel = statPanel('SELF-AMENDMENTS', displayText(data.selfAmendments));
 
     // Milestone note
     const milestoneNote = document.createElement('div');
@@ -447,6 +474,7 @@ function buildSnapshotDOM(data) {
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 18px;
         padding-top: 10px;
         border-top: 1px solid ${BORDER};
     `;
@@ -456,6 +484,8 @@ function buildSnapshotDOM(data) {
         font-size: 11px;
         color: ${DIM};
         letter-spacing: 2px;
+        flex: 1;
+        min-width: 0;
     `;
     footerLeft.textContent = `GENERATED ${data.timestamp.toUTCString().toUpperCase()}`;
 
@@ -465,6 +495,9 @@ function buildSnapshotDOM(data) {
         color: ${GREEN};
         font-weight: 700;
         letter-spacing: 3px;
+        flex: 1;
+        min-width: 0;
+        text-align: right;
     `;
     footerRight.textContent = 'TEZOS.SYSTEMS';
 
@@ -474,6 +507,8 @@ function buildSnapshotDOM(data) {
         color: ${DIM};
         letter-spacing: 2px;
         text-align: center;
+        flex: 1;
+        min-width: 0;
     `;
     footerCenter.textContent = 'POWERED BY TEZ CAPITAL';
 
@@ -494,6 +529,8 @@ function buildSnapshotDOM(data) {
 export async function showStateOfTezos() {
     // Show a loading toast
     const toast = _showToast('Generating snapshot…');
+    let card = null;
+    let restoreSpacing = null;
 
     try {
         const [data] = await Promise.all([
@@ -501,7 +538,7 @@ export async function showStateOfTezos() {
             loadHtml2Canvas(),
         ]);
 
-        const card = buildSnapshotDOM(data);
+        card = buildSnapshotDOM(data);
         document.body.appendChild(card);
 
         // Fix word-spacing for html2canvas (imported inline)
@@ -513,9 +550,12 @@ export async function showStateOfTezos() {
         els.forEach(el => {
             origSpacing.push(el.style.wordSpacing);
             if (!el.style.wordSpacing || el.style.wordSpacing === 'normal') {
-                el.style.wordSpacing = '3.5px';
+                el.style.wordSpacing = '0px';
             }
         });
+        restoreSpacing = () => {
+            els.forEach((el, i) => { el.style.wordSpacing = origSpacing[i]; });
+        };
 
         const canvas = await window.html2canvas(card, {
             backgroundColor: '#0a0e1a',
@@ -528,8 +568,10 @@ export async function showStateOfTezos() {
         });
 
         // Restore spacing & clean up
-        els.forEach((el, i) => { el.style.wordSpacing = origSpacing[i]; });
+        restoreSpacing();
+        restoreSpacing = null;
         card.remove();
+        card = null;
 
         toast.remove();
 
@@ -545,11 +587,11 @@ export async function showStateOfTezos() {
         const tweetOptions = [
             {
                 label: '📊 Stats',
-                text: `State of Tezos 📊\n\nCycle ${escapeHtml(String(cycle))} | ${escapeHtml(String(bakers))} bakers | ${escapeHtml(String(staking))} staked\nXTZ: ${escapeHtml(String(price))} (${escapeHtml(String(change))} 7d)\n${amendments} self-amendments. Zero hard forks.\n\ntezos.systems`,
+                text: `State of Tezos 📊\n\nCycle ${cycle} | ${bakers} bakers | ${staking} staked\nXTZ: ${price} (${change} 7d)\n${amendments} self-amendments. Zero hard forks.\n\ntezos.systems`,
             },
             {
                 label: '🔢 Bullets',
-                text: `Weekly Tezos snapshot:\n• ${escapeHtml(String(bakers))} active bakers\n• ${escapeHtml(String(staking))} staking ratio\n• Protocol: ${escapeHtml(String(proto))}\n• ${escapeHtml(String(price))} XTZ\n\nThe blockchain that upgrades itself.\ntezos.systems`,
+                text: `Weekly Tezos snapshot:\n• ${bakers} active bakers\n• ${staking} staking ratio\n• Protocol: ${proto}\n• ${price} XTZ\n\nThe blockchain that upgrades itself.\ntezos.systems`,
             },
             {
                 label: '🏷️ Brief',
@@ -563,6 +605,9 @@ export async function showStateOfTezos() {
         console.error('[state-of-tezos] Failed:', err);
         toast.remove();
         _showToast('Snapshot failed — check console', 3000, '#ff4466');
+    } finally {
+        if (restoreSpacing) restoreSpacing();
+        if (card?.isConnected) card.remove();
     }
 }
 

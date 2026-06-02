@@ -40,7 +40,8 @@ const allowedWarningPatterns = [
   /api\.coingecko\.com/i,
   /api\.tzkt\.io/i,
   /SW registration failed/i,
-  /Service Worker registration blocked by Playwright/i
+  /Service Worker registration blocked by Playwright/i,
+  /Using local protocol fallback/i
 ];
 
 const browserRoutes = [
@@ -656,8 +657,11 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await openDropdown(page, '#settings-gear', '#settings-dropdown');
   await page.locator('#share-btn').click();
   await page.locator('#section-picker-modal').waitFor({ state: 'visible', timeout: 5000 });
-  await expectCount(page, '#section-picker-modal input[type="checkbox"]', 8, label);
+  await expectCount(page, '#section-picker-modal input[type="checkbox"]', 6, label);
   await expectCount(page, '#section-picker-modal .section-picker-note', 1, label);
+  const pickerLabels = await page.locator('#section-picker-modal .section-picker-label').allTextContents();
+  assert(!pickerLabels.includes('⛓️'), `${label}: share picker should not show emoji-only section names`);
+  assert(!pickerLabels.includes('🧩 Embed Builder'), `${label}: share picker should not include hidden utility sections`);
   await page.locator('#section-picker-modal .share-modal-close').click();
   await page.locator('#section-picker-modal').waitFor({ state: 'detached', timeout: 5000 });
 

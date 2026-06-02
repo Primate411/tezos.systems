@@ -7,7 +7,8 @@ let _html2canvasPromise = null;
 
 // Mobile devices have strict canvas size limits (iOS Safari ~16MP)
 // Use scale 1 on mobile to avoid OOM failures
-const CAPTURE_SCALE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 1 : 2;
+const IS_MOBILE_UA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+const CAPTURE_SCALE = IS_MOBILE_UA ? 1 : 2;
 
 /**
  * Escape HTML special characters for safe injection into innerHTML
@@ -23,7 +24,7 @@ function escapeHtml(str) {
 }
 
 /**
- * Fix html2canvas word-spacing bug: force explicit word-spacing on text elements
+ * Fix html2canvas word-spacing bug: force explicit neutral word-spacing on text elements
  * before capture, returns a restore function to call after.
  */
 async function fixWordSpacing(container) {
@@ -36,7 +37,7 @@ async function fixWordSpacing(container) {
     els.forEach(el => {
         orig.push(el.style.wordSpacing);
         if (!el.style.wordSpacing || el.style.wordSpacing === 'normal') {
-            el.style.wordSpacing = '3.5px';
+            el.style.wordSpacing = '0px';
         }
     });
     return () => els.forEach((el, i) => { el.style.wordSpacing = orig[i]; });
@@ -113,6 +114,11 @@ const DASHBOARD_TWEET = 'Real-time Tezos network stats — bakers, staking, gove
  * Load html2canvas dynamically
  */
 export async function loadHtml2Canvas() {
+    if (window.html2canvas) {
+        html2canvasLoaded = true;
+        _html2canvasPromise = null;
+        return;
+    }
     if (html2canvasLoaded) return;
     if (_html2canvasPromise) return _html2canvasPromise;
     
@@ -120,6 +126,12 @@ export async function loadHtml2Canvas() {
         // Check if script is already in DOM (loading or errored)
         const existing = document.querySelector('script[src*="html2canvas"]');
         if (existing) {
+            if (window.html2canvas) {
+                html2canvasLoaded = true;
+                _html2canvasPromise = null;
+                resolve();
+                return;
+            }
             // Already added to DOM — wait for it or reuse
             if (html2canvasLoaded) {
                 resolve();
@@ -252,6 +264,28 @@ function getCardTitle(card) {
     return label ? label.textContent.trim() : 'Stat';
 }
 
+function getShareSectionName(titleEl) {
+    if (!titleEl) return '';
+    const fullTitle = titleEl.querySelector('.full-title')?.textContent.trim();
+    if (fullTitle) {
+        const prefix = Array.from(titleEl.childNodes)
+            .filter(n => n.nodeType === Node.TEXT_NODE)
+            .map(n => n.textContent.trim())
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+        return `${prefix} ${fullTitle}`.replace(/\s+/g, ' ').trim();
+    }
+    const clone = titleEl.cloneNode(true);
+    clone.querySelectorAll('.section-chevron, .short-title').forEach(el => el.remove());
+    return clone.textContent.replace(/\s+/g, ' ').trim();
+}
+
+function isCapturableSection(section) {
+    const style = getComputedStyle(section);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+}
+
 /**
  * Initialize share functionality
  */
@@ -271,6 +305,7 @@ export function initShare() {
 function addCardShareButtons() {
     const cards = document.querySelectorAll('.stat-card');
     cards.forEach(card => {
+        if (card.querySelector(':scope > .card-share-btn')) return;
         const btn = document.createElement('button');
         btn.className = 'card-share-btn';
         btn.innerHTML = '📸';
@@ -288,6 +323,8 @@ function addCardShareButtons() {
  */
 async function captureCard(card) {
     const btn = card.querySelector('.card-share-btn');
+    let wrapper = null;
+    let restoreSpacing = null;
     if (btn) {
         btn.innerHTML = '⏳';
         btn.style.opacity = '1';
@@ -333,7 +370,7 @@ async function captureCard(card) {
         }
         
         // Create branded 1200x630 wrapper
-        const wrapper = document.createElement('div');
+        wrapper = document.createElement('div');
         wrapper.style.cssText = `
             position: fixed; top: -9999px; left: -9999px;
             width: 600px; height: 630px;
@@ -550,7 +587,7 @@ async function captureCard(card) {
         wrapper.appendChild(footer);
         
         document.body.appendChild(wrapper);
-        const restoreSpacing = await fixWordSpacing(wrapper);
+        restoreSpacing = await fixWordSpacing(wrapper);
         
         const canvas = await html2canvas(wrapper, {
             backgroundColor: bgColor,
@@ -563,7 +600,9 @@ async function captureCard(card) {
         });
         
         restoreSpacing();
+        restoreSpacing = null;
         wrapper.remove();
+        wrapper = null;
         
         const allOptions = await getTweetOptions(card);
         const displayOptions = pickRandomOptions(allOptions, 4);
@@ -574,6 +613,8 @@ async function captureCard(card) {
         console.error('Card screenshot failed:', error);
         showNotification('Screenshot failed. Try again.', 'error');
     } finally {
+        if (restoreSpacing) restoreSpacing();
+        if (wrapper?.isConnected) wrapper.remove();
         if (btn) {
             btn.innerHTML = '📸';
             btn.style.opacity = '';
@@ -592,20 +633,19 @@ async function captureAndShare() {
         sections.push({ name: 'Protocols', element: upgradeClock });
     }
     document.querySelectorAll('.stats-section').forEach(sec => {
+        if (!isCapturableSection(sec)) return;
         const titleEl = sec.querySelector('.section-header .section-title');
         if (titleEl) {
-            // Get text without chevron span
-            const name = Array.from(titleEl.childNodes)
-                .filter(n => n.nodeType === Node.TEXT_NODE)
-                .map(n => n.textContent.trim())
-                .join('');
-            sections.push({ name: name || titleEl.textContent.trim(), element: sec });
+            sections.push({ name: getShareSectionName(titleEl), element: sec });
         }
     });
     
     // Build picker modal
     const existing = document.getElementById('section-picker-modal');
-    if (existing) existing.remove();
+    if (existing) {
+        existing._pickerCleanup?.();
+        existing.remove();
+    }
     
     const modal = document.createElement('div');
     modal.id = 'section-picker-modal';
@@ -628,7 +668,7 @@ async function captureAndShare() {
                     ${sections.map((s, i) => `
                         <label class="section-picker-option">
                             <input type="checkbox" checked data-section-idx="${i}">
-                            <span class="section-picker-label">${s.name}</span>
+                            <span class="section-picker-label">${escapeHtml(s.name)}</span>
                         </label>
                     `).join('')}
                 </div>
@@ -651,10 +691,19 @@ async function captureAndShare() {
         modal.classList.remove('visible');
         setTimeout(() => modal.remove(), 200);
     };
+    const closeWithCleanup = () => {
+        modal._pickerCleanup?.();
+        closeModal();
+    };
+    const onKeyDown = (e) => {
+        if (e.key === 'Escape') closeWithCleanup();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    modal._pickerCleanup = () => document.removeEventListener('keydown', onKeyDown);
     
-    modal.querySelector('.share-modal-close').addEventListener('click', closeModal);
-    modal.querySelector('#section-cancel-btn').addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    modal.querySelector('.share-modal-close').addEventListener('click', closeWithCleanup);
+    modal.querySelector('#section-cancel-btn').addEventListener('click', closeWithCleanup);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeWithCleanup(); });
     
     // Toggle all
     const toggleBtn = modal.querySelector('#section-toggle-all');
@@ -681,7 +730,7 @@ async function captureAndShare() {
             return;
         }
         const selectedSections = selectedIndices.map(i => sections[i]);
-        closeModal();
+        closeWithCleanup();
         doCaptureAndShare(selectedSections);
     });
 }
@@ -691,15 +740,20 @@ async function captureAndShare() {
  */
 async function doCaptureAndShare(selectedSections) {
     const shareBtn = document.getElementById('share-btn');
-    const originalText = shareBtn.innerHTML;
+    const originalText = shareBtn?.innerHTML || '';
+    let elementsToHide = [];
+    let wrapper = null;
+    let restoreSpacing = null;
     
     try {
-        shareBtn.innerHTML = '<span class="share-icon">⏳</span>';
-        shareBtn.disabled = true;
+        if (shareBtn) {
+            shareBtn.innerHTML = '<span class="share-icon">⏳</span>';
+            shareBtn.disabled = true;
+        }
         
         await loadHtml2Canvas();
         
-        const elementsToHide = [
+        elementsToHide = [
             document.querySelector('.header'),
             document.querySelector('.corner-ribbon'),
             document.getElementById('ultra-canvas'),
@@ -710,7 +764,7 @@ async function doCaptureAndShare(selectedSections) {
         
         elementsToHide.forEach(el => el.style.visibility = 'hidden');
         
-        const wrapper = document.createElement('div');
+        wrapper = document.createElement('div');
         wrapper.id = 'screenshot-wrapper';
         wrapper.style.cssText = `
             position: fixed;
@@ -735,13 +789,13 @@ async function doCaptureAndShare(selectedSections) {
                 const ucClone = ucOriginal.cloneNode(true);
                 ucClone.style.marginBottom = '20px';
                 // Remove infographic (too tall for capture) and toggle
-                ucClone.querySelectorAll('.protocol-infographic, .infographic-toggle').forEach(el => el.remove());
+                ucClone.querySelectorAll('.protocol-infographic, .infographic-toggle, .section-copy-link, .upgrade-share-btn, .timeline-share-btn').forEach(el => el.remove());
                 clone.insertBefore(ucClone, clone.firstChild);
             }
         }
         
         // Remove card share buttons, history buttons, and info buttons from clone
-        clone.querySelectorAll('.card-share-btn, .card-history-btn, .card-info-btn, .card-tooltip').forEach(el => el.remove());
+        clone.querySelectorAll('.card-share-btn, .card-history-btn, .card-info-btn, .card-tooltip, .section-copy-link, .feature-copy-link, .upgrade-share-btn, .timeline-share-btn').forEach(el => el.remove());
         
         // Remove unselected sections from clone (upgrade-clock already handled above)
         if (!selectedNames.has('Protocols')) {
@@ -752,12 +806,8 @@ async function doCaptureAndShare(selectedSections) {
         clone.querySelectorAll('.stats-section').forEach(sec => {
             const titleEl = sec.querySelector('.section-header .section-title');
             if (titleEl) {
-                // Strip chevron spans to match picker names
-                const cleanName = Array.from(titleEl.childNodes)
-                    .filter(n => n.nodeType === Node.TEXT_NODE)
-                    .map(n => n.textContent.trim())
-                    .join('');
-                if (!selectedNames.has(cleanName) && !selectedNames.has(titleEl.textContent.trim())) {
+                const cleanName = getShareSectionName(titleEl);
+                if (!selectedNames.has(cleanName)) {
                     sec.remove();
                 }
             }
@@ -840,7 +890,7 @@ async function doCaptureAndShare(selectedSections) {
         // Trim wrapper height to actual content (avoid dead space)
         const actualHeight = wrapper.scrollHeight;
         wrapper.style.height = actualHeight + 'px';
-        const restoreSpacing = await fixWordSpacing(wrapper);
+        restoreSpacing = await fixWordSpacing(wrapper);
         
         const canvas = await html2canvas(wrapper, {
             backgroundColor: isClean ? '#F8F9FA' : isDark ? '#1A1A1A' : isMatrix ? '#000000' : '#0a0a0f',
@@ -853,8 +903,9 @@ async function doCaptureAndShare(selectedSections) {
         });
         
         restoreSpacing();
+        restoreSpacing = null;
         wrapper.remove();
-        elementsToHide.forEach(el => el.style.visibility = '');
+        wrapper = null;
         
         showShareModal(canvas, DASHBOARD_TWEET, 'Dashboard');
         
@@ -862,8 +913,13 @@ async function doCaptureAndShare(selectedSections) {
         console.error('Screenshot failed:', error);
         showNotification('Screenshot failed. Try again.', 'error');
     } finally {
-        shareBtn.innerHTML = originalText;
-        shareBtn.disabled = false;
+        if (restoreSpacing) restoreSpacing();
+        if (wrapper?.isConnected) wrapper.remove();
+        elementsToHide.forEach(el => el.style.visibility = '');
+        if (shareBtn) {
+            shareBtn.innerHTML = originalText;
+            shareBtn.disabled = false;
+        }
     }
 }
 
@@ -872,9 +928,14 @@ async function doCaptureAndShare(selectedSections) {
  */
 async function nativeShare(canvas, text) {
     const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+    if (!blob) throw new Error('Failed to create share image');
     const file = new File([blob], 'tezos-stats.png', { type: 'image/png' });
     if (navigator.canShare?.({ files: [file] })) {
         await navigator.share({ text, url: 'https://tezos.systems', files: [file] });
+    } else if (typeof navigator.share === 'function') {
+        await navigator.share({ text, url: 'https://tezos.systems' });
+    } else {
+        throw new Error('Native share unavailable');
     }
 }
 
@@ -884,25 +945,30 @@ async function nativeShare(canvas, text) {
  */
 export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForRefresh) {
     const existing = document.getElementById('share-modal');
-    if (existing) existing.remove();
+    if (existing) {
+        existing._shareCleanup?.();
+        existing.remove();
+    }
     
     // Normalize to options array
     let tweetOptions = Array.isArray(tweetTextOrOptions)
         ? tweetTextOrOptions
         : [{ label: '📊 Standard', text: tweetTextOrOptions }];
+    tweetOptions = tweetOptions.map((option, index) => ({
+        label: String(option?.label || `Option ${index + 1}`),
+        text: String(option?.text ?? '')
+    }));
     
     // Keep all options for refresh functionality
-    const allTweetOptions = allOptionsForRefresh || tweetOptions;
+    const allTweetOptions = (allOptionsForRefresh || tweetOptions).map((option, index) => ({
+        label: String(option?.label || `Option ${index + 1}`),
+        text: String(option?.text ?? '')
+    }));
     
-    const _modalTheme2 = document.body.getAttribute('data-theme');
-    const isMatrix = _modalTheme2 === 'matrix';
-    const isClean = _modalTheme2 === 'clean';
-    const isDark = _modalTheme2 === 'dark';
-    const accent = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : '#00d4ff';
-    const accentRgb = isClean ? '37,99,235' : isDark ? '200,200,200' : isMatrix ? '0,255,0' : '0,212,255';
+    const { brand: accent, brandRgb: accentRgb, isClean, isDark } = getThemeColors();
     
     // Check Web Share API support
-    const canNativeShare = typeof navigator.canShare === 'function';
+    const canNativeShare = typeof navigator.share === 'function';
     const nativeShareBtn = canNativeShare 
         ? `<button class="share-action-btn" id="share-native"><span>📱</span> Share</button>` 
         : '';
@@ -910,6 +976,7 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     // Build tweet picker HTML helper
     function buildPickerHtml(options) {
         if (options.length <= 1) return '';
+        const canRefresh = allTweetOptions.length > options.length;
         return `
         <div class="tweet-picker" style="
             padding: 12px 16px;
@@ -922,12 +989,12 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
                     color: rgba(${accentRgb},0.6); font-weight: 600;">
                     Choose tweet style
                 </div>
-                <button id="tweet-refresh-btn" title="Shuffle options" style="
+                ${canRefresh ? `<button id="tweet-refresh-btn" title="Shuffle options" aria-label="Shuffle tweet options" style="
                     background: none; border: 1px solid rgba(${accentRgb},0.2); color: rgba(${accentRgb},0.6);
                     width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px;
                     display: flex; align-items: center; justify-content: center;
                     transition: all 0.2s;
-                ">🔄</button>
+                ">🔄</button>` : ''}
             </div>
             ${options.map((opt, i) => `
                 <label class="tweet-option" style="
@@ -942,11 +1009,11 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
                         style="accent-color: ${accent}; margin-top: 2px; flex-shrink: 0;">
                     <div style="flex: 1; min-width: 0;">
                         <div style="font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 2px;">
-                            ${opt.label}
+                            ${escapeHtml(opt.label)}
                         </div>
                         <div style="font-size: 0.68rem; color: rgba(255,255,255,0.4); line-height: 1.4;
                             white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                            ${opt.text.split('\n')[0]}
+                            ${escapeHtml(opt.text.split('\n')[0])}
                         </div>
                     </div>
                 </label>
@@ -959,11 +1026,14 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     const modal = document.createElement('div');
     modal.id = 'share-modal';
     modal.className = 'share-modal-overlay';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'share-modal-title');
     modal.innerHTML = `
         <div class="share-modal-content" style="max-height: 90vh; overflow-y: auto;">
             <div class="share-modal-header">
-                <h3>Share: ${title}</h3>
-                <button class="share-modal-close">×</button>
+                <h3 id="share-modal-title">Share: ${escapeHtml(title || 'Snapshot')}</h3>
+                <button class="share-modal-close" aria-label="Close share modal">×</button>
             </div>
             <div class="share-modal-preview">
                 <img src="${canvas.toDataURL('image/png')}" alt="Snapshot" />
@@ -1039,9 +1109,16 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
         return tweetOptions[idx]?.text || tweetOptions[0]?.text || '';
     };
     
-    modal.querySelector('.share-modal-close').addEventListener('click', () => closeShareModal(modal));
+    const closeModal = () => closeShareModal(modal);
+    const onKeyDown = (e) => {
+        if (e.key === 'Escape') closeModal();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    modal._shareCleanup = () => document.removeEventListener('keydown', onKeyDown);
+
+    modal.querySelector('.share-modal-close').addEventListener('click', closeModal);
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeShareModal(modal);
+        if (e.target === modal) closeModal();
     });
     
     // Download / Save
@@ -1156,6 +1233,7 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
  * Close share modal
  */
 function closeShareModal(modal) {
+    modal._shareCleanup?.();
     modal.classList.remove('visible');
     setTimeout(() => modal.remove(), 200);
 }
@@ -1229,13 +1307,27 @@ async function getProtocolData() {
 
 function getThemeColors() {
     const currentTheme = document.body.getAttribute('data-theme');
+    const themeColors = {
+        aurora: { brand: '#45E0C8', bg: '#070B1A', brandRgb: '69,224,200' },
+        matrix: { brand: '#00ff00', bg: '#0a0a0a', brandRgb: '0,255,0' },
+        void: { brand: '#8B5CF6', bg: '#06060f', brandRgb: '139,92,246' },
+        ember: { brand: '#FF9F43', bg: '#0f0806', brandRgb: '255,159,67' },
+        signal: { brand: '#00E4A0', bg: '#060a08', brandRgb: '0,228,160' },
+        clean: { brand: '#2563EB', bg: '#F8F9FA', brandRgb: '37,99,235' },
+        dark: { brand: '#C8C8C8', bg: '#1A1A1A', brandRgb: '200,200,200' },
+        bubblegum: { brand: '#FF69B4', bg: '#1F0E18', brandRgb: '255,105,180' },
+        abyss: { brand: '#00E5FF', bg: '#020A1E', brandRgb: '0,229,255' },
+        moss: { brand: '#50E850', bg: '#040C02', brandRgb: '80,232,80' },
+        nerv: { brand: '#FF9830', bg: '#000000', brandRgb: '255,152,48' },
+        warzone: { brand: '#FFC000', bg: '#080A02', brandRgb: '255,192,0' },
+        default: { brand: '#00d4ff', bg: '#0a0a0f', brandRgb: '0,212,255' }
+    };
+    const colors = themeColors[currentTheme] || themeColors.default;
     const isMatrix = currentTheme === 'matrix';
     const isDark = currentTheme === 'dark';
     const isClean = currentTheme === 'clean';
     const isBubblegum = currentTheme === 'bubblegum';
-    const brand = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : '#00d4ff';
-    const bg = isClean ? '#F8F9FA' : isDark ? '#1A1A1A' : isMatrix ? '#0a0a0a' : '#0a0a0f';
-    const brandRgb = isClean ? '37,99,235' : isDark ? '200,200,200' : isMatrix ? '0,255,0' : '0,212,255';
+    const { brand, bg, brandRgb } = colors;
     return { isMatrix, isDark, isClean, isBubblegum, brand, bg, brandRgb };
 }
 
@@ -1291,13 +1383,15 @@ function addFooter(wrapper, brand, leftText, { isClean = false, isDark = false }
  * Capture a single protocol card as a shareable 1200×630 image
  */
 export async function captureProtocol(protocol) {
+    let wrapper = null;
+    let restoreSpacing = null;
     try {
         await loadHtml2Canvas();
         const { brand, bg, brandRgb, isClean, isDark } = getThemeColors();
         const data = await getProtocolData();
         const total = data?.meta?.totalUpgrades || 21;
 
-        const wrapper = createBaseWrapper(bg, brandRgb);
+        wrapper = createBaseWrapper(bg, brandRgb);
 
         const content = document.createElement('div');
         content.style.cssText = `
@@ -1357,13 +1451,15 @@ export async function captureProtocol(protocol) {
         wrapper.appendChild(content);
         addFooter(wrapper, brand, `${total} upgrades • Zero forks`, { isClean, isDark });
         document.body.appendChild(wrapper);
-        const restoreSpacing = await fixWordSpacing(wrapper);
+        restoreSpacing = await fixWordSpacing(wrapper);
 
         const canvas = await html2canvas(wrapper, {
             backgroundColor: bg, scale: CAPTURE_SCALE, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
         });
         restoreSpacing();
+        restoreSpacing = null;
         wrapper.remove();
+        wrapper = null;
 
         const suffix = '\n\ntezos.systems';
         const protoOptions = await getProtocolTweetOptions(protocol, num, total);
@@ -1376,6 +1472,9 @@ export async function captureProtocol(protocol) {
     } catch (error) {
         console.error('Protocol capture failed:', error);
         showNotification('Screenshot failed. Try again.', 'error');
+    } finally {
+        if (restoreSpacing) restoreSpacing();
+        if (wrapper?.isConnected) wrapper.remove();
     }
 }
 
@@ -1383,12 +1482,14 @@ export async function captureProtocol(protocol) {
  * Capture the full protocol timeline as a 1200×630 image
  */
 export async function captureTimeline(allProtocols) {
+    let wrapper = null;
+    let restoreSpacing = null;
     try {
         await loadHtml2Canvas();
         const { brand, bg, brandRgb, isClean, isDark } = getThemeColors();
         const total = allProtocols.length;
 
-        const wrapper = createBaseWrapper(bg, brandRgb);
+        wrapper = createBaseWrapper(bg, brandRgb);
 
         const content = document.createElement('div');
         content.style.cssText = `
@@ -1454,13 +1555,15 @@ export async function captureTimeline(allProtocols) {
         wrapper.appendChild(content);
         addFooter(wrapper, brand, new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), { isClean, isDark });
         document.body.appendChild(wrapper);
-        const restoreSpacing = await fixWordSpacing(wrapper);
+        restoreSpacing = await fixWordSpacing(wrapper);
 
         const canvas = await html2canvas(wrapper, {
             backgroundColor: bg, scale: CAPTURE_SCALE, useCORS: true, logging: false, width: 600, height: 630, windowWidth: 600
         });
         restoreSpacing();
+        restoreSpacing = null;
         wrapper.remove();
+        wrapper = null;
 
         const suffix = '\n\ntezos.systems';
         const tweetsData = await loadTweetsData();
@@ -1474,6 +1577,9 @@ export async function captureTimeline(allProtocols) {
     } catch (error) {
         console.error('Timeline capture failed:', error);
         showNotification('Screenshot failed. Try again.', 'error');
+    } finally {
+        if (restoreSpacing) restoreSpacing();
+        if (wrapper?.isConnected) wrapper.remove();
     }
 }
 
@@ -1548,27 +1654,7 @@ export async function initProtocolShare() {
  * Build a purpose-built 1200×630px share card DOM element for a protocol history
  */
 function buildProtocolHistoryCardDOM(protocol, num) {
-    const theme = document.body.getAttribute('data-theme') || 'default';
-    const accentColors = {
-        aurora: '#45E0C8',
-        matrix: '#00ff41',
-        void: '#8B5CF6',
-        ember: '#FF9F43',
-        signal: '#00FFC8',
-        bubblegum: '#FF69B4',
-        default: '#00d4ff'
-    };
-    const bgColors = {
-        aurora: '#070B1A',
-        matrix: '#000800',
-        void: '#06060f',
-        ember: '#0f0806',
-        signal: '#060a0f',
-        bubblegum: '#1F0E18',
-        default: '#0a0e1a'
-    };
-    const accent = accentColors[theme] || '#00d4ff';
-    const bg = bgColors[theme] || '#0a0e1a';
+    const { brand: accent, bg, brandRgb } = getThemeColors();
     const accent10 = accent + '1a';
     const accent30 = accent + '4d';
 
@@ -1702,7 +1788,7 @@ function buildProtocolHistoryCardDOM(protocol, num) {
         ? escapeHtml(history.subtitle)
         : escapeHtml(protocol.headline || '');
 
-    const gridLine = `rgba(${accent === '#00d4ff' ? '0,212,255' : accent === '#00ff41' ? '0,255,65' : '255,255,255'},0.03)`;
+    const gridLine = `rgba(${brandRgb},0.03)`;
 
     card.innerHTML = `
         <!-- Grid overlay -->
@@ -1777,6 +1863,7 @@ function buildProtocolFeaturesBody(protocol, accent, accent10) {
  * Capture the protocol history modal as a shareable image
  */
 async function captureProtocolHistory(protocolName) {
+    let card = null;
     try {
         await loadHtml2Canvas();
 
@@ -1792,7 +1879,7 @@ async function captureProtocolHistory(protocolName) {
         }
 
         // Build the purpose-built 1200×630 card
-        const card = buildProtocolHistoryCardDOM(protocol, num);
+        card = buildProtocolHistoryCardDOM(protocol, num);
         document.body.appendChild(card);
 
         // Allow layout to settle
@@ -1809,7 +1896,8 @@ async function captureProtocolHistory(protocolName) {
             windowHeight: 630
         });
 
-        document.body.removeChild(card);
+        card.remove();
+        card = null;
 
         // Get tweet options for this protocol
         const suffix = '\n\ntezos.systems';
@@ -1823,6 +1911,8 @@ async function captureProtocolHistory(protocolName) {
     } catch (error) {
         console.error('History capture failed:', error);
         showNotification('Screenshot failed. Try again.', 'error');
+    } finally {
+        if (card?.isConnected) card.remove();
     }
 }
 
@@ -1834,9 +1924,18 @@ window.captureProtocolHistory = captureProtocolHistory;
  * Capture the Historical Data modal as a shareable image
  */
 async function captureHistoricalData() {
+    let modalContent = null;
+    let closeBtn = null;
+    let shareBtn = null;
+    let modalTitle = null;
+    let origTitleStyle = '';
+    let origMaxHeight = '';
+    let origOverflow = '';
+    let canvasBackups = [];
+    let restoreSpacing = null;
     try {
         await loadHtml2Canvas();
-        const modalContent = document.querySelector('#history-modal .modal-large');
+        modalContent = document.querySelector('#history-modal .modal-large');
         if (!modalContent) return;
 
         // Get selected time range
@@ -1844,15 +1943,15 @@ async function captureHistoricalData() {
         const range = activeBtn ? activeBtn.textContent.trim() : '7 Days';
 
         // Hide close & share buttons during capture
-        const closeBtn = modalContent.querySelector('.modal-close');
-        const shareBtn = modalContent.querySelector('#history-share-btn');
+        closeBtn = modalContent.querySelector('.modal-close');
+        shareBtn = modalContent.querySelector('#history-share-btn');
         if (closeBtn) closeBtn.style.display = 'none';
         if (shareBtn) shareBtn.style.display = 'none';
 
         // Fix gradient text (html2canvas can't render background-clip: text)
         const theme = document.body.getAttribute('data-theme') || 'default';
-        const modalTitle = modalContent.querySelector('.modal-title');
-        const origTitleStyle = modalTitle ? modalTitle.style.cssText : '';
+        modalTitle = modalContent.querySelector('.modal-title');
+        origTitleStyle = modalTitle ? modalTitle.style.cssText : '';
         if (modalTitle) {
             const accentColors = { aurora: '#45E0C8', matrix: '#00ff41', void: '#8B5CF6', ember: '#FF9F43', signal: '#00FFC8', bubblegum: '#FF69B4', default: '#00d4ff' };
             const titleColor = accentColors[theme] || '#00d4ff';
@@ -1864,14 +1963,13 @@ async function captureHistoricalData() {
         }
 
         // Temporarily remove scroll constraints so html2canvas captures ALL charts
-        const origMaxHeight = modalContent.style.maxHeight;
-        const origOverflow = modalContent.style.overflow;
+        origMaxHeight = modalContent.style.maxHeight;
+        origOverflow = modalContent.style.overflow;
         modalContent.style.maxHeight = 'none';
         modalContent.style.overflow = 'visible';
 
         // Convert Chart.js canvases to images (html2canvas can't render them)
         const chartCanvases = Array.from(modalContent.querySelectorAll('canvas'));
-        const canvasBackups = [];
         chartCanvases.forEach(origCanvas => {
             if (origCanvas.width > 0 && origCanvas.height > 0) {
                 try {
@@ -1896,7 +1994,7 @@ async function captureHistoricalData() {
         const fullHeight = modalContent.scrollHeight;
         const fullWidth = modalContent.scrollWidth;
         const bgColors = { aurora: '#070B1A', matrix: '#000800', void: '#06060f', ember: '#0f0806', signal: '#060a0f', bubblegum: '#1F0E18', default: '#08081a' };
-        const restoreSpacing = await fixWordSpacing(modalContent);
+        restoreSpacing = await fixWordSpacing(modalContent);
         const canvas = await html2canvas(modalContent, {
             backgroundColor: bgColors[theme] || '#08081a',
             scale: CAPTURE_SCALE,
@@ -1909,11 +2007,13 @@ async function captureHistoricalData() {
         });
 
         restoreSpacing();
+        restoreSpacing = null;
 
         // Restore original canvases
         canvasBackups.reverse().forEach(({ canvas: orig, img, parent }) => {
             if (img.parentNode === parent) parent.replaceChild(orig, img);
         });
+        canvasBackups = [];
 
         // Restore scroll constraints & buttons
         modalContent.style.maxHeight = origMaxHeight;
@@ -1930,6 +2030,18 @@ async function captureHistoricalData() {
     } catch (error) {
         console.error('Historical data capture failed:', error);
         showNotification('Screenshot failed. Try again.', 'error');
+    } finally {
+        if (restoreSpacing) restoreSpacing();
+        canvasBackups.reverse().forEach(({ canvas: orig, img, parent }) => {
+            if (img.parentNode === parent) parent.replaceChild(orig, img);
+        });
+        if (modalContent) {
+            modalContent.style.maxHeight = origMaxHeight;
+            modalContent.style.overflow = origOverflow;
+        }
+        if (closeBtn) closeBtn.style.display = '';
+        if (shareBtn) shareBtn.style.display = '';
+        if (modalTitle) modalTitle.style.cssText = origTitleStyle;
     }
 }
 
