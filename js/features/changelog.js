@@ -7,6 +7,13 @@ const CHANGELOG = [
     {
         date: '2026-06-02',
         entries: [
+            { type: '🔧', text: 'Live vote tally now reads early-window low turnout as on-track for the deadline instead of flashing a quorum warning' },
+            { type: '🔧', text: 'The Chamber now shows the active proposal name (e.g. Ushuaia) instead of a raw hash while a vote is live' },
+            { type: '⚡', text: 'Live vote tally now uses the cached, rate-limit-resilient data path so it survives TzKT 429s' },
+            { type: '🔧', text: 'Governance participation now comes from a single canonical source to avoid mismatched numbers' },
+            { type: '🎨', text: 'Chain comparison now sits below the live network stats so on-chain proof leads' },
+            { type: '🔧', text: 'Consensus finality copy now consistently reads ~12s (final after 2 blocks)' },
+            { type: '🔧', text: 'Governance banner is now keyboard-accessible (Enter/Space) and screen-reader labeled' },
             { type: '🔧', text: 'Share modals now sanitize picker text, clean up failed captures, and render reliably across mobile and newer themes' },
             { type: '🔧', text: 'State of Tezos snapshots now resolve active proposal names and current XTZ price correctly' },
             { type: '🔧', text: 'Protocol timeline now falls back to local governance metadata and expires old browser protocol caches' },

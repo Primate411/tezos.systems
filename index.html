@@ -49,12 +49,12 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=106">
+    <link rel="stylesheet" href="css/styles.min.css?v=107">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=106">
+    <link rel="modulepreload" href="js/core/app.js?v=107">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -483,25 +483,6 @@
         <div class="my-baker-section-inner">
             <p class="my-baker-desc">All active Tezos bakers ranked by staking power. Click any row to view details in My Baker.</p>
             <div id="leaderboard-results" class="leaderboard-results"></div>
-        </div>
-    </section>
-
-    <!-- How Tezos Compares — defaults visible, toggleable from Features menu -->
-    <section class="stats-section toggleable-section" id="comparison-section">
-        <div class="section-header">
-            <h2 class="section-title">⛓️ <span class="full-title">Tezos vs Other Chains</span><span class="short-title">Vs Others</span></h2>
-            <button class="info-button" id="comparison-info-btn" aria-label="About comparison data" title="About comparison data">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                </svg>
-            </button>
-            <button class="info-button" id="comparison-share-all-btn" aria-label="Share all comparisons" title="Share all comparisons">📸</button>
-        </div>
-        <div class="comparison-grid" id="comparison-grid">
-            <!-- Comparison cards rendered by comparison.js -->
-        </div>
-        <div class="comparison-footer">
-            <span class="comparison-last-updated" id="comparison-last-updated"></span>
         </div>
     </section>
 
@@ -1504,6 +1485,25 @@
         <!-- Calculator moved to my-baker toggle area above -->
 
         <!-- Network Moments Section -->
+
+        <!-- How Tezos Compares — placed after the live network stats so the live proof leads -->
+        <section class="stats-section toggleable-section" id="comparison-section">
+            <div class="section-header">
+                <h2 class="section-title">⛓️ <span class="full-title">Tezos vs Other Chains</span><span class="short-title">Vs Others</span></h2>
+                <button class="info-button" id="comparison-info-btn" aria-label="About comparison data" title="About comparison data">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+                <button class="info-button" id="comparison-share-all-btn" aria-label="Share all comparisons" title="Share all comparisons">📸</button>
+            </div>
+            <div class="comparison-grid" id="comparison-grid">
+                <!-- Comparison cards rendered by comparison.js -->
+            </div>
+            <div class="comparison-footer">
+                <span class="comparison-last-updated" id="comparison-last-updated"></span>
+            </div>
+        </section>
             </main>
 
     <!-- Comparison Info Modal -->
@@ -1540,7 +1540,7 @@
                     It provides fast finality—once a block is confirmed, it's permanent.
                 </p>
                 <ul>
-                    <li><strong>Deterministic finality</strong>: Transactions final in ~30 seconds</li>
+                    <li><strong>Deterministic finality</strong>: Transactions final after 2 blocks (~12 seconds)</li>
                     <li><strong>Energy efficient</strong>: Proof of Stake, not mining</li>
                     <li><strong>Liquid staking</strong>: Delegate without locking tokens</li>
                     <li><strong>Self-amendment</strong>: Protocol upgrades via on-chain voting</li>
@@ -1908,7 +1908,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=76"></script>
-    <script type="module" src="js/core/app.js?v=106"></script>
+    <script type="module" src="js/core/app.js?v=107"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

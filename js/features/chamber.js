@@ -17,6 +17,7 @@ import { API_URLS } from '../core/config.js';
 const TZKT = API_URLS.tzkt;
 const PROTOCOL_DATA_URL = '/data/protocol-data.json';
 const GOVERNANCE_VOTES_URL = '/data/governance-votes.json';
+const GOVERNANCE_REPORT_URL = '/data/governance-refresh-report.json';
 const HISTORY_CONTEXT_ROWS = 20;
 
 const STAGES = [
@@ -78,6 +79,7 @@ let _savedBodyWidth = null;
 let _savedScrollY = 0;
 let _protocolHistoryPromise = null;
 let _governanceVotesPromise = null;
+let _governanceReportPromise = null;
 
 function lockPageScrollForChamber() {
     if (_savedBodyOverflow !== null) return;
@@ -111,10 +113,12 @@ function unlockPageScrollForChamber() {
 }
 
 async function fetchEpochData(epochIndex, currentPeriod = null) {
-    const [epoch, protocols] = await Promise.all([
+    const [epoch, baseProtocols, report] = await Promise.all([
         (await fetch(`${TZKT}/voting/epochs/${epochIndex}`)).json(),
-        loadProtocolHistory()
+        loadProtocolHistory(),
+        loadGovernanceReport()
     ]);
+    const protocols = withActiveProposalName(baseProtocols, report);
     let proposal = epoch.proposals?.[0] || null;
     
     let votePeriod = chooseVotePeriod(epoch, currentPeriod);
@@ -283,6 +287,34 @@ async function loadGovernanceVotes() {
             });
     }
     return _governanceVotesPromise;
+}
+
+async function loadGovernanceReport() {
+    if (!_governanceReportPromise) {
+        _governanceReportPromise = fetch(GOVERNANCE_REPORT_URL, { cache: 'no-store' })
+            .then(r => r.ok ? r.json() : Promise.reject(new Error(`governance report HTTP ${r.status}`)))
+            .catch(err => {
+                console.warn('Chamber: governance report unavailable', err);
+                return null;
+            });
+    }
+    return _governanceReportPromise;
+}
+
+/**
+ * Resolve a live, not-yet-activated proposal (e.g. one in its Promotion period)
+ * by name without polluting the activated-protocol timeline. The refresh report
+ * carries the canonical proposalName/proposalHash; inject a name-only lookup entry
+ * so The Chamber shows e.g. "Ushuaia" instead of a raw PsUshuai9… hash. Harmless
+ * for historical epochs — the synthetic hash simply won't match their proposals.
+ */
+function withActiveProposalName(protocols, report) {
+    const gov = report?.currentGovernance;
+    const hash = gov?.proposalHash;
+    const name = gov?.proposalName;
+    if (!hash || !name) return protocols;
+    if (protocols.some(p => protocolHashMatches(hash, p.hash))) return protocols;
+    return [...protocols, { name, hash, active: true }];
 }
 
 // ─── Pipeline with staggered animation ───

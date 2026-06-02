@@ -133,6 +133,32 @@ async function fetchText(url) {
     return text;
 }
 
+/**
+ * Fetch and aggregate the live vote tally for the current voting period.
+ * Routed through fetchWithRetry so it inherits 429 backoff + caching — this is
+ * the call that backs the governance headline, so it must survive rate limits.
+ * Returns aggregated voting power by ballot, or null on failure (caller degrades).
+ */
+export async function fetchVoteTally() {
+    try {
+        const votes = await fetchWithRetry(
+            `${ENDPOINTS.tzkt.base}/voting/periods/current/voters?status.ne=none&limit=10000&select=status,votingPower`
+        );
+        if (!Array.isArray(votes)) return null;
+        let yay = 0, nay = 0, pass = 0;
+        for (const v of votes) {
+            const status = String(v.status || '').replace('voted_', '');
+            if (status === 'yay') yay += v.votingPower || 0;
+            else if (status === 'nay') nay += v.votingPower || 0;
+            else if (status === 'pass') pass += v.votingPower || 0;
+        }
+        return { yay, nay, pass, total: yay + nay + pass, voterCount: votes.length };
+    } catch (error) {
+        console.warn('Failed to fetch vote tally:', error);
+        return null;
+    }
+}
+
 async function fetchLiquidityBakingSubsidyState() {
     const blocks = await fetchWithRetry(`${ENDPOINTS.tzkt.base}/blocks?sort.desc=level&limit=1&select=level,lbToggleEma`);
     const latest = Array.isArray(blocks) ? blocks[0] : null;

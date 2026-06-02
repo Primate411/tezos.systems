@@ -249,6 +249,7 @@ function buildVotingStatusFromReport(report) {
         status: gov.status,
         startTime: gov.startTime,
         endTime: gov.endTime,
+        participationPct: gov.tally?.participationPct ?? null,
         epoch: {
             index: gov.epoch,
             status: gov.epochStatus,
@@ -281,12 +282,21 @@ export async function fetchVotingStatus() {
             loadGovernanceReport()
         ]);
         const proposal = chooseEpochProposal(period, epoch);
-        
+
+        // Canonical participation comes from the governance refresh report (computed
+        // server-side on every commit). Only trust it when its proposal matches the
+        // live one — otherwise let the caller fall back to a client-side estimate.
+        const reportGov = report?.currentGovernance;
+        const participationPct = (reportGov?.proposalHash && reportGov.proposalHash === proposal?.hash)
+            ? (reportGov.tally?.participationPct ?? null)
+            : null;
+
         return {
             kind: period.kind, // proposal, exploration, testing/cooldown, promotion, adoption
             status: period.status,
             startTime: period.startTime,
             endTime: period.endTime,
+            participationPct,
             epoch: epoch ? {
                 index: epoch.index,
                 status: epoch.status,
