@@ -805,6 +805,9 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     emaMeta: document.querySelector('#lb-ema-meta')?.textContent?.trim() || '',
     explainer: document.querySelector('.lb-explainer')?.textContent?.trim() || '',
     helpCount: document.querySelectorAll('#liquidity-baking-modal .lb-help').length,
+    loreExpanded: document.querySelector('#lb-lore-toggle')?.getAttribute('aria-expanded') || '',
+    loreHidden: document.querySelector('#lb-lore-body-wrap')?.hidden ?? null,
+    loreCollapsed: document.querySelector('.lb-lore-panel')?.dataset.lbLoreCollapsed || '',
     lore: document.querySelector('#lb-lore-body')?.textContent?.trim() || '',
     loreItems: document.querySelectorAll('#lb-lore-body .lb-lore-item').length,
     readMoreLinks: document.querySelectorAll('#liquidity-baking-modal a[href*="liquidity_baking"], #liquidity-baking-modal a[href*="liquidity-baking"]').length,
@@ -829,8 +832,22 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(!/1,000,000,000/.test(lbState.emaMeta), `governance testing period: LB EMA meta should not show raw protocol threshold: ${lbState.emaMeta}`);
   assert(/What is LB/.test(lbState.explainer) && /Liquidity Baking/.test(lbState.explainer), `governance testing period: LB explainer missing, saw ${lbState.explainer}`);
   assert(lbState.helpCount >= 5, `governance testing period: LB contextual tooltips missing, saw ${lbState.helpCount}`);
+  assert(lbState.loreExpanded === 'false', `governance testing period: LB lore should start collapsed, saw aria-expanded=${lbState.loreExpanded}`);
+  assert(lbState.loreHidden === true, 'governance testing period: LB lore body should be hidden by default');
+  assert(lbState.loreCollapsed === 'true', `governance testing period: LB lore collapsed flag mismatch: ${lbState.loreCollapsed}`);
   assert(lbState.loreItems >= 3, `governance testing period: LB protocol-history lore items missing, saw ${lbState.loreItems}`);
   assert(/Granada/.test(lbState.lore) && /Ithaca/.test(lbState.lore) && /Jakarta/.test(lbState.lore), `governance testing period: LB lore should expose Granada/Ithaca/Jakarta, saw ${lbState.lore}`);
+  await page.locator('#lb-lore-toggle').click();
+  const lbLoreExpandedState = await page.evaluate(() => ({
+    expanded: document.querySelector('#lb-lore-toggle')?.getAttribute('aria-expanded') || '',
+    hidden: document.querySelector('#lb-lore-body-wrap')?.hidden ?? null,
+    collapsed: document.querySelector('.lb-lore-panel')?.dataset.lbLoreCollapsed || '',
+    items: document.querySelectorAll('#lb-lore-body .lb-lore-item').length
+  }));
+  assert(lbLoreExpandedState.expanded === 'true', `governance testing period: LB lore did not expand, saw aria-expanded=${lbLoreExpandedState.expanded}`);
+  assert(lbLoreExpandedState.hidden === false, 'governance testing period: LB lore body stayed hidden after expand');
+  assert(lbLoreExpandedState.collapsed === 'false', `governance testing period: LB lore expanded flag mismatch: ${lbLoreExpandedState.collapsed}`);
+  assert(lbLoreExpandedState.items >= 3, `governance testing period: LB expanded lore items missing, saw ${lbLoreExpandedState.items}`);
   assert(lbState.readMoreLinks >= 2, `governance testing period: LB read-more links missing, saw ${lbState.readMoreLinks}`);
   assert(lbState.intervalDelays.includes(8000), `governance testing period: LB modal 8s refresh timer was not registered: ${lbState.intervalDelays.join(', ')}`);
 

@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-03',
         entries: [
+            { type: '🎨', text: 'Liquidity Baking protocol-history lore now starts collapsed behind an arrow so live status stays front and center' },
             { type: '🎨', text: 'Dashboard card values are now slightly smaller across themes so sparklines have more room to breathe' },
             { type: '✨', text: 'Expanded Chamber and Liquidity Baking panels now show their direct links in the footer for easy bookmarking' },
             { type: '✨', text: 'The Chamber now explains the governance process and shows start/end dates plus duration for each dated stage' },

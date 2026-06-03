@@ -359,9 +359,15 @@ function renderLoreItem(item) {
 
 function renderLiquidityBakingLoreShell() {
     return `
-        <section class="lb-panel lb-lore-panel lb-panel-has-help chamber-anim-fade" style="animation-delay:60ms">
-            <div class="lb-panel-title">
-                Protocol History Lore
+        <section class="lb-panel lb-lore-panel lb-panel-has-help chamber-anim-fade" data-lb-lore-collapsed="true" style="animation-delay:60ms">
+            <div class="lb-lore-header">
+                <button class="lb-lore-toggle" id="lb-lore-toggle" type="button" aria-expanded="false" aria-controls="lb-lore-body-wrap" aria-label="Expand Protocol History Lore">
+                    <span class="lb-lore-arrow" aria-hidden="true"></span>
+                    <span class="lb-lore-copy">
+                        <span class="lb-lore-heading">Protocol History Lore</span>
+                        <span class="lb-lore-compact">Granada -> Ithaca -> Jakarta</span>
+                    </span>
+                </button>
                 ${renderHelpTooltip({
                     label: 'Explain Liquidity Baking protocol history lore',
                     title: 'Where does this lore come from?',
@@ -370,12 +376,34 @@ function renderLiquidityBakingLoreShell() {
                     linkText: 'Open history'
                 })}
             </div>
-            <div class="lb-lore-source">Sourced from the curated protocol timeline: Granada -> Ithaca -> Jakarta.</div>
-            <div class="lb-lore-timeline" id="lb-lore-body">
-                <div class="lb-lore-loading">Loading protocol-history lore...</div>
+            <div class="lb-lore-collapsible" id="lb-lore-body-wrap" role="region" aria-labelledby="lb-lore-toggle" hidden>
+                <div class="lb-lore-source">Sourced from the curated protocol timeline: Granada -> Ithaca -> Jakarta.</div>
+                <div class="lb-lore-timeline" id="lb-lore-body">
+                    <div class="lb-lore-loading">Loading protocol-history lore...</div>
+                </div>
             </div>
         </section>
     `;
+}
+
+function initLiquidityBakingLoreToggle(container) {
+    const panel = container.querySelector('.lb-lore-panel');
+    const toggle = panel?.querySelector('#lb-lore-toggle');
+    const body = panel?.querySelector('#lb-lore-body-wrap');
+    if (!panel || !toggle || !body) return;
+
+    const setExpanded = (expanded) => {
+        toggle.setAttribute('aria-expanded', String(expanded));
+        toggle.setAttribute('aria-label', `${expanded ? 'Collapse' : 'Expand'} Protocol History Lore`);
+        body.hidden = !expanded;
+        panel.classList.toggle('is-open', expanded);
+        panel.dataset.lbLoreCollapsed = expanded ? 'false' : 'true';
+    };
+
+    setExpanded(false);
+    toggle.addEventListener('click', () => {
+        setExpanded(toggle.getAttribute('aria-expanded') !== 'true');
+    });
 }
 
 async function hydrateLiquidityBakingLore(container) {
@@ -797,6 +825,7 @@ function renderLiquidityBaking(data, container, activeFilter = _lbActiveFilter) 
     container.dataset.lbRendered = 'true';
     initBakerFilters(activeFilter);
     initBakerProfileLinks(container);
+    initLiquidityBakingLoreToggle(container);
     hydrateLiquidityBakingLore(container);
 }
 

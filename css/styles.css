@@ -14602,6 +14602,98 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     margin-top: 14px;
 }
 
+.lb-lore-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.lb-lore-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--accent-cyan);
+    cursor: pointer;
+    text-align: left;
+}
+
+.lb-lore-toggle:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+.lb-lore-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    border: 1px solid rgba(77, 212, 255, 0.24);
+    border-radius: 50%;
+    background: rgba(77, 212, 255, 0.07);
+    color: currentColor;
+    transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.lb-lore-arrow::before {
+    content: '';
+    width: 0;
+    height: 0;
+    margin-left: 1px;
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+    border-left: 6px solid currentColor;
+}
+
+.lb-lore-panel.is-open .lb-lore-arrow {
+    transform: rotate(90deg);
+    border-color: rgba(80, 232, 136, 0.45);
+    background: rgba(80, 232, 136, 0.11);
+    color: #50e888;
+}
+
+.lb-lore-copy {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.lb-lore-heading {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 1.3px;
+    text-transform: uppercase;
+}
+
+.lb-lore-compact {
+    overflow: hidden;
+    color: var(--text-tertiary, #555);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lb-lore-toggle:hover .lb-lore-heading,
+.lb-lore-toggle:focus-visible .lb-lore-heading {
+    color: #50e888;
+}
+
+.lb-lore-collapsible {
+    margin-top: 12px;
+}
+
 .lb-lore-source {
     margin-top: -4px;
     margin-bottom: 10px;
