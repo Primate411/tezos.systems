@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-03',
         entries: [
+            { type: '🎨', text: 'Dashboard card values are now slightly smaller across themes so sparklines have more room to breathe' },
+            { type: '✨', text: 'Expanded Chamber and Liquidity Baking panels now show their direct links in the footer for easy bookmarking' },
             { type: '✨', text: 'The Chamber now explains the governance process and shows start/end dates plus duration for each dated stage' },
             { type: '🔧', text: 'Direct #lb and #chamber visits now skip onboarding without consuming the first root-site landing visit' },
             { type: '🎨', text: 'The Chamber phase tracker now uses arrowed connectors on desktop and mobile instead of stray dash marks' },

@@ -2245,17 +2245,17 @@ body::before {
 }
 
 .stat-value {
-    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-size: 3rem;
     font-weight: 700;
     line-height: 1;
     margin-bottom: 0.25rem;
-    letter-spacing: -0.03em;
+    letter-spacing: 0;
     color: var(--text-primary);
 }
 
 /* Dual value styling for progress indicators (e.g., "37 / 130") */
 .stat-value-dual {
-    font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+    font-size: 2rem;
 }
 
 /* Text-based stat values (proposal names, voting periods) */
@@ -2910,7 +2910,11 @@ body::before {
     }
 
     .stat-value {
-        font-size: 2.5rem;
+        font-size: 2.25rem;
+    }
+
+    .stat-value-dual {
+        font-size: 1.65rem;
     }
 
     .card-front,
@@ -3157,6 +3161,8 @@ body.high-combo .stat-card {
 .sparkline-container {
     width: 100%;
     height: 80px;
+    min-height: 48px;
+    flex: 1 1 80px;
     margin-top: auto;
     position: relative;
     overflow: hidden;
@@ -9212,7 +9218,7 @@ body {
 [data-theme="dark"] .my-baker-title {
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', 'Segoe UI', sans-serif !important;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
 }
 
 /* Force all stat values to be achromatic */
@@ -13435,6 +13441,7 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-wrap: wrap;
     gap: 8px;
     padding-top: 16px;
     margin-top: 16px;
@@ -13446,6 +13453,16 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
 .chamber-footer a {
     color: var(--accent-cyan);
     text-decoration: none;
+}
+
+.chamber-footer .panel-direct-link {
+    font-family: 'JetBrains Mono', monospace;
+    color: color-mix(in srgb, var(--accent-cyan) 82%, var(--text-primary));
+}
+
+.chamber-footer .panel-direct-link:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 .chamber-historical-note {

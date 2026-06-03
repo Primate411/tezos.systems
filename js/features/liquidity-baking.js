@@ -790,6 +790,8 @@ function renderLiquidityBaking(data, container, activeFilter = _lbActiveFilter) 
             <a href="${LB_OCTEZ_DOCS_URL}" target="_blank" rel="noopener">Octez LB Docs →</a>
             <span class="chamber-footer-sep">·</span>
             <a href="${LB_PURPLEMATTER_URL}" target="_blank" rel="noopener">Purplematter Tracker →</a>
+            <span class="chamber-footer-sep">·</span>
+            <a class="panel-direct-link" href="/#lb" aria-label="Direct link to Liquidity Baking monitor">Direct: /#lb</a>
         </div>
     `;
     container.dataset.lbRendered = 'true';

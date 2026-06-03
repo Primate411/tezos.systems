@@ -1210,6 +1210,8 @@ function renderChamber(data, container) {
             <span class="chamber-footer-sep">·</span>
             <a href="https://www.tezosagora.org" target="_blank" rel="noopener">Agora →</a>
             <span class="chamber-footer-sep">·</span>
+            <a class="panel-direct-link" href="/#chamber" aria-label="Direct link to The Chamber">Direct: /#chamber</a>
+            <span class="chamber-footer-sep">·</span>
             <span class="chamber-epoch">Epoch ${epoch.index}</span>
             ${footerNote ? `<span class="chamber-footer-sep">·</span><span class="chamber-historical-note">${escapeHtml(footerNote)}</span>` : ''}
         </div>
