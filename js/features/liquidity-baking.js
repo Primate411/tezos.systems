@@ -15,6 +15,11 @@ const LB_LIVE_REFRESH_MS = 8000;
 const LB_ENTRY_REFRESH_MS = 60000;
 const CACHE_TTL = 60000;
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
+const LB_OPEN_TEZOS_URL = 'https://opentezos.com/defi/dexs/#liquidity-baking';
+const LB_OCTEZ_DOCS_URL = 'https://octez.tezos.com/docs/alpha/liquidity_baking.html';
+const LB_PURPLEMATTER_URL = 'https://purplematter.com/lb/';
+const LB_PROTOCOL_DATA_URL = '/data/protocol-data.json?v=2';
+const LB_LORE_PROTOCOLS = ['Granada', 'Ithaca', 'Jakarta'];
 
 let _lbCache = null;
 let _lbCacheTime = 0;
@@ -27,6 +32,7 @@ let _lbActiveFilter = 'all';
 let _lbEntryTimer = null;
 let _lbEntryRefreshInFlight = false;
 let _lbEntryVisibilityWired = false;
+let _lbLoreCache = null;
 
 function formatCount(value) {
     return Number(value || 0).toLocaleString('en-US');
@@ -34,6 +40,36 @@ function formatCount(value) {
 
 function formatLevel(value) {
     return formatCount(value || 0);
+}
+
+function compactText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function truncateText(value, maxLength = 220) {
+    const text = compactText(value);
+    if (text.length <= maxLength) return text;
+    const boundary = text.lastIndexOf(' ', maxLength - 1);
+    return `${text.slice(0, boundary > 80 ? boundary : maxLength - 1).trim()}...`;
+}
+
+function renderHelpTooltip({ label, title, body, href = LB_OPEN_TEZOS_URL, linkText = 'Read more' }) {
+    const isExternal = !String(href || '').startsWith('#');
+    const linkAttrs = isExternal ? ' target="_blank" rel="noopener"' : '';
+    return `
+        <details class="lb-help">
+            <summary class="lb-help-trigger" aria-label="${escapeHtml(label)}">?</summary>
+            <div class="lb-help-popover" role="tooltip">
+                <strong>${escapeHtml(title)}</strong>
+                <span>${escapeHtml(body)}</span>
+                <a href="${escapeHtml(href)}"${linkAttrs}>${escapeHtml(linkText)} →</a>
+            </div>
+        </details>
+    `;
+}
+
+function firstMatchingSection(sections, pattern) {
+    return sections.find((section) => pattern.test(`${section.heading || ''} ${section.content || ''}`) && section.content);
 }
 
 function formatAge(timestamp) {
@@ -165,6 +201,38 @@ async function fetchLiquidityBakingData(limit = LB_MODAL_BLOCK_LIMIT, { force = 
     return summary;
 }
 
+function extractLiquidityBakingLore(protocol) {
+    const sections = Array.isArray(protocol?.history?.sections) ? protocol.history.sections : [];
+    const lbSection = firstMatchingSection(sections, /Liquidity Baking|LB|escape hatch|toggle vote/i) || sections.find((section) => section.content);
+    const whySection = firstMatchingSection(sections, /Why It Matters/i);
+    const changes = Array.isArray(protocol?.changes)
+        ? protocol.changes.filter((change) => /Liquidity Baking|LB|escape|toggle/i.test(change))
+        : [];
+
+    return {
+        name: protocol.name,
+        date: protocol.date,
+        title: protocol.history?.title || protocol.headline || protocol.name,
+        subtitle: protocol.history?.subtitle || protocol.debate || '',
+        summary: truncateText(lbSection?.content || protocol.debate || protocol.headline, 260),
+        why: truncateText(whySection?.content || protocol.debate || '', 240),
+        changes
+    };
+}
+
+async function fetchLiquidityBakingLore() {
+    if (_lbLoreCache) return _lbLoreCache;
+    const response = await fetch(LB_PROTOCOL_DATA_URL, { cache: 'no-store' });
+    if (!response.ok) throw new Error(`Protocol history HTTP ${response.status}`);
+    const data = await response.json();
+    const protocols = Array.isArray(data?.protocols) ? data.protocols : [];
+    _lbLoreCache = LB_LORE_PROTOCOLS
+        .map((name) => protocols.find((protocol) => protocol.name === name))
+        .filter(Boolean)
+        .map(extractLiquidityBakingLore);
+    return _lbLoreCache;
+}
+
 export async function fetchBakerLiquidityBakingVote(bakerAddress) {
     if (!bakerAddress) return null;
     const cached = _bakerVoteCache.get(bakerAddress);
@@ -235,12 +303,113 @@ function renderVoteBar(label, key, count, total) {
     `;
 }
 
+function renderLiquidityBakingIntro(data) {
+    const stateCopy = data.disabled
+        ? 'Current state: the OFF-vote EMA is at or above the 50% disable threshold, so the subsidy is disabled.'
+        : 'Current state: the OFF-vote EMA is below the 50% disable threshold, so the subsidy can remain active.';
+    return `
+        <section class="lb-explainer chamber-anim-fade">
+            <div class="lb-explainer-main">
+                <div class="lb-explainer-kicker">What is LB?</div>
+                <p><strong>Liquidity Baking</strong> is Tezos' protocol-level XTZ/tzBTC liquidity program. Bakers can include a small toggle vote in each block: ON, OFF, or PASS.</p>
+                <p>${escapeHtml(stateCopy)}</p>
+            </div>
+            <div class="lb-explainer-facts" aria-label="Liquidity Baking quick facts">
+                <span><strong>Votes</strong> ON / OFF / PASS</span>
+                <span><strong>Meter</strong> OFF-vote EMA</span>
+                <span><strong>Threshold</strong> 50% disables</span>
+            </div>
+            <div class="lb-explainer-actions">
+                <a href="${LB_OPEN_TEZOS_URL}" target="_blank" rel="noopener">Read OpenTezos →</a>
+                <a href="${LB_OCTEZ_DOCS_URL}" target="_blank" rel="noopener">Read Octez docs →</a>
+            </div>
+        </section>
+    `;
+}
+
+function renderLoreItem(item) {
+    const year = item.date ? new Date(item.date).getUTCFullYear() : '';
+    const tags = item.changes.length
+        ? `<div class="lb-lore-tags">${item.changes.map((change) => `<span>${escapeHtml(change)}</span>`).join('')}</div>`
+        : '';
+    const why = item.why
+        ? `
+            <details class="lb-lore-details">
+                <summary>Read protocol-history lore</summary>
+                <p>${escapeHtml(item.why)}</p>
+            </details>
+        `
+        : '';
+    return `
+        <article class="lb-lore-item">
+            <div class="lb-lore-marker">
+                <span>${escapeHtml(item.name)}</span>
+                <small>${escapeHtml(year || item.date || '')}</small>
+            </div>
+            <div class="lb-lore-content">
+                <h3>${escapeHtml(item.title)}</h3>
+                <p class="lb-lore-subtitle">${escapeHtml(item.subtitle)}</p>
+                <p>${escapeHtml(item.summary)}</p>
+                ${tags}
+                ${why}
+            </div>
+        </article>
+    `;
+}
+
+function renderLiquidityBakingLoreShell() {
+    return `
+        <section class="lb-panel lb-lore-panel lb-panel-has-help chamber-anim-fade" style="animation-delay:60ms">
+            <div class="lb-panel-title">
+                Protocol History Lore
+                ${renderHelpTooltip({
+                    label: 'Explain Liquidity Baking protocol history lore',
+                    title: 'Where does this lore come from?',
+                    body: 'This section reuses the protocol history data for Granada, Ithaca, and Jakarta: the three upgrades that created, extended, and redesigned Liquidity Baking.',
+                    href: '#history',
+                    linkText: 'Open history'
+                })}
+            </div>
+            <div class="lb-lore-source">Sourced from the curated protocol timeline: Granada -> Ithaca -> Jakarta.</div>
+            <div class="lb-lore-timeline" id="lb-lore-body">
+                <div class="lb-lore-loading">Loading protocol-history lore...</div>
+            </div>
+        </section>
+    `;
+}
+
+async function hydrateLiquidityBakingLore(container) {
+    const target = container.querySelector('#lb-lore-body');
+    if (!target || target.dataset.lbLoreLoaded) return;
+    target.dataset.lbLoreLoaded = 'loading';
+    try {
+        const lore = await fetchLiquidityBakingLore();
+        target.dataset.lbLoreLoaded = 'true';
+        target.innerHTML = lore.length
+            ? lore.map(renderLoreItem).join('')
+            : '<div class="lb-lore-loading">No Liquidity Baking protocol-history entries found.</div>';
+    } catch (err) {
+        console.warn('Liquidity Baking lore load failed', err);
+        target.dataset.lbLoreLoaded = 'error';
+        target.innerHTML = '<div class="lb-lore-loading">Protocol-history lore is temporarily unavailable.</div>';
+    }
+}
+
 function renderGlobalMetrics(data) {
     const total = data.blocks.length;
     const counts = data.blockCounts;
     return `
-        <section class="lb-panel lb-global-panel chamber-anim-fade">
-            <div class="lb-panel-title">Global Metrics</div>
+        <section class="lb-panel lb-global-panel lb-panel-has-help chamber-anim-fade">
+            <div class="lb-panel-title">
+                Global Metrics
+                ${renderHelpTooltip({
+                    label: 'Explain Liquidity Baking vote sample',
+                    title: 'What is being counted?',
+                    body: 'This sample counts recent block-level LB toggle votes. It is a live window, not a full historical vote registry.',
+                    href: 'https://tzkt.io/blocks',
+                    linkText: 'View blocks'
+                })}
+            </div>
             <div class="lb-metric-grid">
                 <div><span>Blocks analyzed</span><strong id="lb-global-blocks">${formatCount(total)}</strong></div>
                 <div><span>Time span</span><strong id="lb-global-timespan">${escapeHtml(data.timeSpan)}</strong></div>
@@ -263,8 +432,17 @@ function renderEmaStatus(data) {
         ? 'OFF-vote EMA has reached the 50% disable threshold'
         : 'OFF-vote EMA is below the 50% disable threshold';
     return `
-        <section class="lb-panel lb-ema-panel chamber-anim-fade" style="animation-delay:100ms">
-            <div class="lb-panel-title">EMA Status</div>
+        <section class="lb-panel lb-ema-panel lb-panel-has-help chamber-anim-fade" style="animation-delay:100ms">
+            <div class="lb-panel-title">
+                EMA Status
+                ${renderHelpTooltip({
+                    label: 'Explain Liquidity Baking EMA',
+                    title: 'What is the EMA?',
+                    body: 'OFF votes are smoothed over time into an exponential moving average. At 50% or higher, the protocol disables the subsidy.',
+                    href: LB_OCTEZ_DOCS_URL,
+                    linkText: 'Read Octez docs'
+                })}
+            </div>
             <div class="lb-ema-value" id="lb-ema-value">${pct.toFixed(1)}%</div>
             <div class="lb-ema-meta" id="lb-ema-meta">${escapeHtml(context)}</div>
             <div class="lb-ema-meter">
@@ -289,8 +467,16 @@ function renderSavedBaker(data) {
     const signature = savedBakerSignature(data);
     if (!saved) {
         return `
-            <section class="lb-panel lb-saved-baker chamber-anim-fade" data-lb-saved-signature="${escapeHtml(signature)}" style="animation-delay:160ms">
-                <div class="lb-panel-title">Your Baker</div>
+            <section class="lb-panel lb-saved-baker lb-panel-has-help chamber-anim-fade" data-lb-saved-signature="${escapeHtml(signature)}" style="animation-delay:160ms">
+                <div class="lb-panel-title">
+                    Your Baker
+                    ${renderHelpTooltip({
+                        label: 'Explain baker Liquidity Baking vote tracking',
+                        title: 'Why set a baker?',
+                        body: 'If you save a baker address, this panel highlights that baker latest LB toggle vote from the current block sample.',
+                        linkText: 'Read more'
+                    })}
+                </div>
                 <div class="lb-empty-inline"><a href="/#my-baker">Set your baker</a> to track their latest LB vote.</div>
             </section>
         `;
@@ -299,16 +485,32 @@ function renderSavedBaker(data) {
     const match = data.bakerSummary.bakers.find((baker) => baker.address === saved);
     if (!match) {
         return `
-            <section class="lb-panel lb-saved-baker chamber-anim-fade" data-lb-saved-signature="${escapeHtml(signature)}" style="animation-delay:160ms">
-                <div class="lb-panel-title">Your Baker</div>
+            <section class="lb-panel lb-saved-baker lb-panel-has-help chamber-anim-fade" data-lb-saved-signature="${escapeHtml(signature)}" style="animation-delay:160ms">
+                <div class="lb-panel-title">
+                    Your Baker
+                    ${renderHelpTooltip({
+                        label: 'Explain baker Liquidity Baking vote tracking',
+                        title: 'Why is it missing?',
+                        body: 'The monitor only samples recent blocks. A saved baker may not appear if they did not bake inside this live window.',
+                        linkText: 'Read more'
+                    })}
+                </div>
                 <div class="lb-empty-inline">Saved address not found in the current ${formatCount(data.blocks.length)}-block sample.</div>
             </section>
         `;
     }
 
     return `
-        <section class="lb-panel lb-saved-baker chamber-anim-fade lb-vote-${match.vote.className}" data-lb-saved-signature="${escapeHtml(signature)}" style="animation-delay:160ms">
-            <div class="lb-panel-title">Your Baker</div>
+        <section class="lb-panel lb-saved-baker lb-panel-has-help chamber-anim-fade lb-vote-${match.vote.className}" data-lb-saved-signature="${escapeHtml(signature)}" style="animation-delay:160ms">
+            <div class="lb-panel-title">
+                Your Baker
+                ${renderHelpTooltip({
+                    label: 'Explain your baker Liquidity Baking vote',
+                    title: 'What does this show?',
+                    body: 'This is your saved baker latest LB toggle vote inside the current sample, pulled from the baker most recent block in that window.',
+                    linkText: 'Read more'
+                })}
+            </div>
             <div class="lb-saved-baker-row">
                 <div class="lb-baker-cell">${bakerLinks(match.address, match.name)}</div>
                 <span class="lb-vote-badge ${match.vote.className}">${match.vote.label}</span>
@@ -333,8 +535,17 @@ function renderRecentBlocks(blocks) {
     const rows = blocks.slice(0, 12).map((block) => renderRecentBlockRow(block)).join('');
 
     return `
-        <section class="lb-panel lb-recent-panel chamber-anim-fade" style="animation-delay:220ms">
-            <div class="lb-panel-title">Recent Blocks <span class="lb-live-pill">live</span></div>
+        <section class="lb-panel lb-recent-panel lb-panel-has-help chamber-anim-fade" style="animation-delay:220ms">
+            <div class="lb-panel-title">
+                Recent Blocks <span class="lb-live-pill">live</span>
+                ${renderHelpTooltip({
+                    label: 'Explain recent Liquidity Baking blocks',
+                    title: 'Why block rows?',
+                    body: 'Each Tezos block may carry the baker LB toggle vote. The monitor streams recent blocks so you can see the live vote flow.',
+                    href: 'https://tzkt.io/blocks',
+                    linkText: 'View blocks'
+                })}
+            </div>
             <div class="lb-table lb-recent-table">
                 <div class="lb-table-head"><span>Level</span><span>Vote</span><span>Baker</span></div>
                 <div id="lb-recent-block-list">${rows}</div>
@@ -363,8 +574,17 @@ function renderBakerVotes(data, activeFilter = _lbActiveFilter) {
     window._lbBakers = bakers;
     const filter = ['all', 'off', 'on', 'pass'].includes(activeFilter) ? activeFilter : 'all';
     return `
-        <section class="lb-panel lb-bakers-panel chamber-anim-fade" style="animation-delay:300ms">
-            <div class="lb-panel-title">Baker Latest Votes</div>
+        <section class="lb-panel lb-bakers-panel lb-panel-has-help chamber-anim-fade" style="animation-delay:300ms">
+            <div class="lb-panel-title">
+                Baker Latest Votes
+                ${renderHelpTooltip({
+                    label: 'Explain baker latest Liquidity Baking votes',
+                    title: 'Why one row per baker?',
+                    body: 'This deduplicates the sample by baker and keeps only each baker latest block, so you can scan their current LB stance quickly.',
+                    href: LB_PURPLEMATTER_URL,
+                    linkText: 'Open tracker'
+                })}
+            </div>
             <div class="lb-panel-subtitle">One row per baker, using each baker's latest block inside this sample.</div>
             <div class="lb-filter-row">
                 <button class="lb-filter-btn ${filter === 'all' ? 'active' : ''}" data-lb-filter="all">All ${formatCount(bakers.length)}</button>
@@ -555,6 +775,8 @@ function renderLiquidityBaking(data, container, activeFilter = _lbActiveFilter) 
                 <div class="proposal-hash" id="lb-head-meta">${latest ? `Head block ${formatLevel(latest.level)} · ${escapeHtml(formatAge(latest.timestamp))}` : 'Live TzKT block feed'}</div>
             </div>
         </div>
+        ${renderLiquidityBakingIntro(data)}
+        ${renderLiquidityBakingLoreShell()}
         <div class="lb-dashboard-grid">
             ${renderGlobalMetrics(data)}
             ${renderEmaStatus(data)}
@@ -565,14 +787,15 @@ function renderLiquidityBaking(data, container, activeFilter = _lbActiveFilter) 
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:380ms">
             <a href="https://tzkt.io/blocks" target="_blank" rel="noopener">TzKT Blocks →</a>
             <span class="chamber-footer-sep">·</span>
-            <a href="https://octez.tezos.com/docs/alpha/liquidity_baking.html" target="_blank" rel="noopener">Octez LB Docs →</a>
+            <a href="${LB_OCTEZ_DOCS_URL}" target="_blank" rel="noopener">Octez LB Docs →</a>
             <span class="chamber-footer-sep">·</span>
-            <a href="https://purplematter.com/lb/" target="_blank" rel="noopener">Purplematter Tracker →</a>
+            <a href="${LB_PURPLEMATTER_URL}" target="_blank" rel="noopener">Purplematter Tracker →</a>
         </div>
     `;
     container.dataset.lbRendered = 'true';
     initBakerFilters(activeFilter);
     initBakerProfileLinks(container);
+    hydrateLiquidityBakingLore(container);
 }
 
 function handleEscape(e) {

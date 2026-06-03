@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-03',
         entries: [
+            { type: '🎨', text: 'The Chamber phase tracker now uses arrowed connectors on desktop and mobile instead of stray dash marks' },
+            { type: '✨', text: 'Liquidity Baking dashboard now explains LB with contextual tooltips and protocol-history lore from Granada, Ithaca, and Jakarta' },
             { type: '✨', text: 'Direct links now open The Chamber and land on the Liquidity Baking dashboard tile' },
         ]
     },

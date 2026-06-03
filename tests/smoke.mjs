@@ -785,6 +785,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.evaluate(() => { window.location.hash = 'lb'; });
   await page.locator('#liquidity-baking-modal.active .lb-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#lb-baker-vote-list .lb-table-row').length >= 4, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#lb-lore-body .lb-lore-item').length >= 3, null, { timeout: 10000 });
   const lbState = await page.evaluate(() => ({
     title: document.querySelector('#liquidity-baking-modal .chamber-title')?.textContent || '',
     ema: document.querySelector('.lb-ema-value')?.textContent || '',
@@ -802,6 +803,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     firstTzktHref: document.querySelector('.lb-recent-table .lb-baker-source-link')?.getAttribute('href') || '',
     systemBrand: document.querySelector('.lb-system-brand')?.textContent?.trim() || '',
     emaMeta: document.querySelector('#lb-ema-meta')?.textContent?.trim() || '',
+    explainer: document.querySelector('.lb-explainer')?.textContent?.trim() || '',
+    helpCount: document.querySelectorAll('#liquidity-baking-modal .lb-help').length,
+    lore: document.querySelector('#lb-lore-body')?.textContent?.trim() || '',
+    loreItems: document.querySelectorAll('#lb-lore-body .lb-lore-item').length,
+    readMoreLinks: document.querySelectorAll('#liquidity-baking-modal a[href*="liquidity_baking"], #liquidity-baking-modal a[href*="liquidity-baking"]').length,
     intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
   }));
   assert(/Liquidity Baking Monitor/.test(lbState.title), `governance testing period: LB modal title mismatch: ${lbState.title}`);
@@ -821,6 +827,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(lbState.systemBrand === 'Tezos.Systems', `governance testing period: LB systems brand strip missing, saw ${lbState.systemBrand}`);
   assert(/50% disable threshold/.test(lbState.emaMeta), `governance testing period: LB EMA threshold copy mismatch: ${lbState.emaMeta}`);
   assert(!/1,000,000,000/.test(lbState.emaMeta), `governance testing period: LB EMA meta should not show raw protocol threshold: ${lbState.emaMeta}`);
+  assert(/What is LB/.test(lbState.explainer) && /Liquidity Baking/.test(lbState.explainer), `governance testing period: LB explainer missing, saw ${lbState.explainer}`);
+  assert(lbState.helpCount >= 5, `governance testing period: LB contextual tooltips missing, saw ${lbState.helpCount}`);
+  assert(lbState.loreItems >= 3, `governance testing period: LB protocol-history lore items missing, saw ${lbState.loreItems}`);
+  assert(/Granada/.test(lbState.lore) && /Ithaca/.test(lbState.lore) && /Jakarta/.test(lbState.lore), `governance testing period: LB lore should expose Granada/Ithaca/Jakarta, saw ${lbState.lore}`);
+  assert(lbState.readMoreLinks >= 2, `governance testing period: LB read-more links missing, saw ${lbState.readMoreLinks}`);
   assert(lbState.intervalDelays.includes(8000), `governance testing period: LB modal 8s refresh timer was not registered: ${lbState.intervalDelays.join(', ')}`);
 
   const smoothRefreshStart = await page.evaluate(() => {
