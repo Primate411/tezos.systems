@@ -4,12 +4,9 @@
     const WELCOMED_KEY = 'tezos-welcomed'; // respect welcome-terminal key too
     if (localStorage.getItem(TOUR_KEY) || localStorage.getItem(WELCOMED_KEY)) return;
 
-    // Skip onboarding tour for deep-link flows like #baker=... / #my-baker=...
+    // Deep links should go straight to their target. Do not consume the tour flag.
     const hash = window.location.hash.slice(1);
-    if (hash) {
-        const params = new URLSearchParams(hash);
-        if (params.has('baker') || params.has('my-baker')) return;
-    }
+    if (hash) return;
 
     const steps = [
         {

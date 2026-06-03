@@ -871,15 +871,39 @@ async function smokeFirstVisitTour(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
+  await installFeatureMocks(context);
   await context.addInitScript(() => {
     localStorage.removeItem('tezos-toured');
     localStorage.removeItem('tezos-welcomed');
-    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.removeItem('tezos-systems-theme');
   });
   const page = await context.newPage();
   attachIssueCollectors(page, 'first visit tour', issues);
 
-  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  let response = await page.goto(`${baseUrl}/#lb`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `first visit tour deep link: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#liquidity-baking-modal.active').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForTimeout(3200);
+  await assertLocatorCount(page.locator('.tour-nudge'), 0, 'deep-link tour nudge');
+  await assertLocatorCount(page.locator('#tour-overlay'), 0, 'deep-link tour overlay');
+  const firstVisitState = await page.evaluate(() => ({
+    theme: localStorage.getItem('tezos-systems-theme'),
+    toured: localStorage.getItem('tezos-toured'),
+    welcomed: localStorage.getItem('tezos-welcomed')
+  }));
+  assert(firstVisitState.theme === null, 'deep link should not save a theme or consume the landing redirect');
+  assert(firstVisitState.toured === null, 'deep link should not mark the tour complete');
+  assert(firstVisitState.welcomed === null, 'deep link should not mark welcome complete');
+
+  response = await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `first visit landing redirect: root failed with HTTP ${response?.status()}`);
+  await page.waitForURL('**/landing.html', { timeout: 10000 });
+
+  await page.evaluate(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+  });
+  response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `first visit tour: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#tour-overlay').waitFor({ state: 'detached', timeout: 2000 }).catch(() => {
