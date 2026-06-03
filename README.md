@@ -1,211 +1,347 @@
 # Tezos Systems
 
-Real-time network statistics dashboard for the Tezos blockchain. Tracks consensus, economics, governance, network activity, and ecosystem metrics with live data.
+Real-time Tezos network dashboard for consensus, economics, governance, market
+state, baker activity, and ecosystem signals.
 
-🌐 **Live:** [tezos.systems](https://tezos.systems)
+Live site: [tezos.systems](https://tezos.systems)
 
 ## What This Is
 
-A single-page dashboard that pulls live data from TzKT and Tez.Capital APIs to display Tezos network health at a glance. Built for bakers, stakers, and anyone who wants to understand what's happening on-chain without digging through an explorer.
+Tezos Systems is a static, client-side dashboard for understanding what is
+happening on Tezos without digging through several explorers and data services.
+It is built for bakers, stakers, governance watchers, and people who want a
+fast read on network health.
 
-**Key stats tracked:** baker count, tz4/BLS adoption, staking ratio, issuance rate, APY, governance status, transaction volume, smart contract/token counts, smart rollups, and more.
+The app is vanilla HTML, CSS, and JavaScript ES modules. There is no runtime
+framework, no bundler, and no client-side build step for JavaScript or HTML.
+The repo does use npm tooling for reproducible installs, smoke tests, CSS
+minification, Playwright, governance refresh scripts, and shared git hooks.
 
-## Architecture
+## Current Reality
 
-**Zero dependencies.** Pure vanilla JS (ES6 modules), CSS3, and HTML. No framework, no build step, no bundler. Hosted on GitHub Pages.
+- Live hosting: GitHub Pages from `main`, with custom domain from `CNAME`.
+- Local server: `npm run serve`, which runs `python3 -m http.server 9000`.
+- Served stylesheet: `css/styles.min.css`; edit `css/styles.css` first, then
+  run `npm run build:css`.
+- Shared hook wrapper: `.githooks/pre-commit`; enable it once per clone with
+  `npm run install-hooks`.
+- README sync guard: pre-commit blocks when staged changes touch
+  README-documented behavior but `README.md` is not staged.
+- Version metadata: `version.json` is stamped by the pre-commit hook and shown
+  in the faint footer build marker alongside the latest GitHub `main` commit.
+- Standard verification: `npm test`, which runs static checks and browser smoke
+  tests.
 
-### Project Structure
+## Project Structure
 
-```
+```text
 tezos.systems/
-├── index.html                  # Single-page app entry
+├── index.html                         # Main SPA shell, CSP, schema, dashboard DOM
+├── landing.html                       # First-visit landing page
 ├── css/
-│   └── styles.css              # All styles (~15000 lines) — includes 13 theme variants
+│   ├── styles.css                     # Source dashboard styles and themes
+│   ├── styles.min.css                 # Served dashboard stylesheet
+│   ├── hen-mode.css                   # HEN overlay styles
+│   └── landing.css                    # Landing and SEO page styles
 ├── js/
 │   ├── core/
-│   │   ├── app.js              # Main orchestrator — data fetching, rendering, modals
-│   │   ├── api.js              # TzKT + RPC API integration
-│   │   ├── config.js           # API endpoints, refresh intervals, constants
-│   │   ├── storage.js          # localStorage wrapper
-│   │   └── utils.js            # Number formatting, date helpers
-│   ├── features/
-│   │   ├── calculator.js       # Staking rewards calculator
-│   │   ├── comparison.js       # "How Tezos Compares" cross-chain data
-│   │   ├── governance.js       # Voting period tracking
-│   │   ├── history.js          # Historical data charts (theme-aware sparklines)
-│   │   ├── my-baker.js         # Per-baker performance lookup
-│   │   ├── objkt.js / objkt-ui.js  # NFT profile integration (objkt.com)
-│   │   ├── price.js            # XTZ price ticker (CoinGecko)
-│   │   ├── sleeping-giants.js  # Large dormant account tracker
-│   │   ├── moments.js          # Network Moments — milestone detection + toasts + timeline
-│   │   ├── streak.js           # Baker streak tracking
-│   │   └── whales.js           # Whale transaction feed
-│   ├── ui/
-│   │   ├── theme.js            # Theme system — 13 themes, picker, first-visit modal
-│   │   ├── share.js            # Screenshot/share captures (html2canvas)
-│   │   ├── animations.js       # Card flip animations on data update
-│   │   ├── gauge.js            # SVG gauge component (theme-aware staking ratio)
-│   │   ├── tabs.js             # Tab navigation
-│   │   └── title.js            # Dynamic page title with live stats
-│   └── effects/
-│       ├── matrix-effects.js   # Matrix digital rain canvas (matrix theme)
-│       ├── bg-effects.js       # Void/Ember/Signal canvas backgrounds
-│       ├── arcade-effects.js   # Easter egg arcade mode
-│       └── audio.js            # Sound effects
+│   │   ├── app.js                     # App orchestration, DOM wiring, refresh loop
+│   │   ├── api.js                     # TzKT, Octez RPC, Supabase, Tezos data fetches
+│   │   ├── config.js                  # Endpoints, refresh intervals, constants
+│   │   ├── storage.js                 # localStorage/sessionStorage wrappers
+│   │   └── utils.js                   # Formatting, sanitization, utility helpers
+│   ├── features/                      # Governance, LB, bakers, market, feeds, widgets
+│   ├── ui/                            # Theme, share, gauge, tabs, title, animations
+│   └── effects/                       # Matrix, themed backgrounds, audio/vibes
 ├── data/
-│   ├── protocol-data.json      # All 21 Tezos protocol upgrades (A→T)
-│   ├── protocol-debates.json   # Contentious upgrade narratives
-│   └── tweets.json             # Curated tweets for share templates
+│   ├── protocol-data.json             # Activated protocol timeline and lore
+│   ├── protocol-debates.json          # Debate/rejection narratives
+│   ├── governance-votes.json          # Generated governance vote history
+│   ├── governance-refresh-report.json # Generated stale-data/lore audit
+│   └── tweets.json                    # Share-copy templates
+├── widgets/                           # Standalone embeddable widgets and builder
+├── staking/ governance/ bakers/ hen/ compare/
+│                                      # SEO and standalone pages
+├── tests/
+│   ├── static-checks.mjs              # Dependency-free repo contract checks
+│   └── smoke.mjs                      # Playwright browser smoke suites
 ├── scripts/
-│   └── generate-og-image.js    # OG image generator
-└── .github/
-    └── scripts/
-        └── collect-data.js     # GitHub Actions data collection
+│   ├── refresh-governance-data.mjs    # Canonical governance refresh command
+│   ├── update-governance-votes.mjs    # Compatibility wrapper
+│   ├── stamp-version.sh               # Pre-commit version metadata stamp
+│   └── generate-og-image.js           # OG image generator
+├── .githooks/pre-commit               # Shared local hook wrapper
+├── sw.js                              # Service worker cache and offline strategy
+├── version.json                       # Served build metadata
+├── site.webmanifest
+├── robots.txt
+└── sitemap.xml
 ```
 
-### Data Flow
+## Runtime Flow
 
-1. **app.js** calls **api.js** on load + every 2 minutes
-2. API responses update the DOM directly (no virtual DOM, no state management)
-3. **animations.js** triggers flip animations when values change
-4. Sparkline charts rendered inline via canvas (colors adapt per theme)
-5. **price.js** fetches XTZ price independently (CoinGecko, 60s refresh)
+1. `index.html` loads `css/styles.min.css` and `js/core/app.js` as an ES
+   module.
+2. `app.js` initializes feature modules behind safe wrappers, registers the
+   service worker, handles deep links, and starts the refresh loop.
+3. Cached stats and protocol data are displayed first when available.
+4. Background refreshes update hero stats, comparison data, governance state,
+   cycle pulse, daily briefing, rewards tracker, price intelligence, baker
+   tools, leaderboard, My Tezos, and share-ready UI.
+5. DOM elements are updated directly by id and class. There is no app state
+   framework.
 
-## Theme System
+Current refresh and cache intervals from `js/core/config.js`:
 
-Thirteen visual themes, selectable via the theme picker dropdown with color dot previews. **Aurora** is the animated default (CSS-only northern-lights background — no JS canvas); every other theme is one click away.
+- Main dashboard refresh: 2 hours.
+- Sparkline refresh: 10 minutes.
+- Price refresh: 30 minutes.
+- Memory cache TTL: 1 minute.
+- Storage cache TTL: 4 hours.
 
-| Theme | Vibe | Background |
-|-------|------|-----------|
-| **Aurora** | Animated northern-lights — the default | Drifting CSS aurora glow, full-spectrum accents |
-| **Default** ("Midnight") | Refined dark blue | Subtle gradient, no canvas |
-| **Matrix** | Green terminal hacker | Digital rain canvas, monospace accents |
-| **Void** | Deep space purple | Particle field canvas |
-| **Ember** | Volcanic fire | Warm particle canvas |
-| **Signal** | Cool tech blue | Radar-style canvas |
-| **NERV** | Institutional orange ops console | Pure black, IBM Plex Mono accents |
-| **Clean** | Etherscan-inspired light | Pure white, no effects, compact layout |
-| **Dark** | Achromatic minimal | #1A1A1A bg, #222222 cards, #E8E8E8 text, no effects |
-| **Bubblegum** | Hot pink playful | Dark rose bg, floating bubble canvas |
-| **Abyss** | Deep-ocean cyan | Dark navy, cyan accents |
-| **Moss** | Living-network green | Near-black green, organic accents |
-| **Warzone** | Command & control amber | Dark olive, amber accents |
+## Themes
 
-### How Themes Work
+There are 13 visual themes in `js/ui/theme.js`. `aurora` is the default theme.
+The theme picker groups animated themes separately from classic data-focused
+themes, and stores the selection in `localStorage` under
+`tezos-systems-theme`.
 
-- CSS: `[data-theme="X"]` attribute on `<body>` drives all styling via CSS variable overrides
-- Variables defined in `:root` (default) and `[data-theme="X"]` blocks in `styles.css`
-- Canvas effects (matrix rain, particles) start/stop based on `themechange` events
-- **Clean & Dark themes** are data-focused — the `#ultra-canvas` element is hidden via CSS so canvas effects never render
-- **Clean theme** is the only light theme — has extensive `!important` overrides to force dark text, system fonts, and compact spacing
-- **Dark theme** is fully achromatic with no color accents, no glow/shadow effects, system fonts, and compact layout matching clean
-- Protocol history modals use **inline styles** in `app.js` (~line 860-1010) with theme ternaries for theme-aware colors
-- Share captures in `share.js` also have per-theme color maps for `html2canvas` backgrounds
-- Persistence: `localStorage.setItem('tezos-systems-theme', themeName)`
+| Theme | Role |
+|-------|------|
+| `aurora` | Default animated aurora theme |
+| `matrix` | Terminal/data-rain theme |
+| `default` | Midnight classic |
+| `void` | Deep-space particle theme |
+| `ember` | Warm particle theme |
+| `signal` | Tech/signal theme |
+| `nerv` | Operations-console theme |
+| `clean` | Light analytics theme |
+| `dark` | Achromatic dark analytics theme |
+| `bubblegum` | Pink playful theme |
+| `abyss` | Deep-ocean theme |
+| `moss` | Green organic theme |
+| `warzone` | Amber command theme |
 
-### Theme Picker
+HEN mode is a separate overlay entry point, not a persisted dashboard theme.
 
-- Dropdown palette with **color dots** showing each theme's palette at a glance
-- **Hover preview** — hovering a theme option temporarily applies it
-- **First-visit modal** — "Choose Your Vibe" prompt when no localStorage theme key exists, encouraging new visitors to pick a theme
+Theme support is intentionally broad but scattered. When changing themes, check
+`js/ui/theme.js`, CSS variables and overrides, `js/ui/share.js`,
+`js/ui/gauge.js`, `js/features/history.js`, `js/effects/bg-effects.js`, and
+inline modal styles in `js/core/app.js`.
 
-### Theme-Aware Components
+## Main Surfaces
 
-Several components dynamically adapt their colors based on the active theme via runtime detection:
+- Live network stat cards for consensus, economy, governance, network activity,
+  and ecosystem metrics.
+- Price bar, cycle pulse, daily briefing, rewards tracker, and price
+  intelligence.
+- Protocol timeline and history modals backed by `data/protocol-data.json` and
+  `data/protocol-debates.json`.
+- Governance banner and The Chamber for live and historical amendment voting.
+- Liquidity Baking dashboard tile and monitor with EMA state, recent block
+  votes, latest baker votes, contextual help, and protocol-history lore.
+- My Tezos drawer and My Baker lookup, including baker performance and latest
+  LB vote state.
+- Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping
+  giants, OBJKT/NFT profile lookup, HEN mode, changelog, share captures, and
+  embeddable widgets.
 
-- **Stake-O-Meter Gauge** (`js/ui/gauge.js`): Uses `getThemeColors()` to select arc and text colors per theme. Clean uses blue arc + dark text, dark uses gray arc + light text, matrix uses green, etc.
-- **Sparkline Charts** (`js/features/history.js`): Line colors adapt — gray strokes for dark theme, blue/red for clean, green for matrix. Each theme gets appropriate contrast and feel.
-- **Network Moments** (`js/features/moments.js`): Toast notifications and timeline section both use per-theme styling — green glow on matrix, pink on bubblegum, achromatic on dark, etc.
-- **Streak Badge & Deltas Panel**: Per-theme CSS overrides for colors, borders, and milestone glow animations.
+Useful deep links include:
 
-### Adding a New Theme
+- `#my-baker=...`
+- `#baker=...`
+- `#calculator`
+- `#compare`
+- `#leaderboard`
+- `#whales`
+- `#giants`
+- `#history`
+- `#theme=...`
+- `#section=...`
+- `#price`
+- `#chamber`
+- `#lb`
+- `#lb-tile`
 
-1. Add name to `THEMES` array in `js/ui/theme.js`
-2. Add `THEME_COLORS` entry with `bg`, `accent`, `text` hex values
-3. Add `[data-theme="yourtheme"]` CSS variable block in `styles.css` (~line 136)
-4. Add override rules at end of `styles.css` for any base styles that leak
-5. Add `isYourTheme` branches in `app.js` modal builder and `share.js` capture colors
-6. Add theme palette to `getThemeColors()` in `gauge.js` and sparkline color logic in `history.js`
-7. Add moment toast/timeline theme overrides in the "Network Moments" CSS section
-8. If it has canvas effects, add a class in `bg-effects.js` and register in `BG_THEMES`; if data-focused, add to the CSS rule that hides `#ultra-canvas`
-9. Add icon to `updateThemeIcon()` in `theme.js`
+## Data Sources
 
-## Key Sections
+| Source | Purpose |
+|--------|---------|
+| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, blocks, operations, governance, accounts |
+| Octez RPC `https://eu.rpc.tez.capital` | Issuance, supply, constants, cycle/head metadata |
+| CoinGecko | XTZ price, market cap, 24h change, volume |
+| Tezos Domains GraphQL | Domain and reverse-record lookups |
+| OBJKT GraphQL | NFT/profile surfaces |
+| Supabase REST | Historical Tezos snapshots via public anon client config |
 
-### Protocol Timeline
-The horizontal A→T letter grid shows all 21 Tezos self-amendments. Clicking a letter opens a detailed modal with upgrade info. Contentious upgrades (⚔) have debate narratives from `protocol-debates.json`. "View Timeline" button opens the full historical view. Share buttons generate themed screenshot cards.
-
-### Stat Cards
-Each metric card has: label, big number (with sparkline trend chart), 7-day change badge, info (ℹ️) tooltip, and per-card share (📸) button.
-
-### Network Moments
-Live milestone detection system. When the network crosses a threshold (e.g. staking hits 28%, baker count passes 250, new cycle starts), a themed toast notification slides in with a pre-written share tweet. Dismissed moments are tracked in localStorage. A "Network Moments" timeline section shows the last 30 days of milestones, giving repeat visitors a "what did I miss" reason to return. 88 milestone rules covering staking %, baker count, BLS adoption, funded accounts, cycle changes, and XTZ burned.
-
-### Toolbar Features (toggleable)
-- **My Baker** 🥐 — Enter a baker address to see performance
-- **Calculator** 🧮 — Staking/delegation rewards estimator
-- **Compare** ⚔️ — Cross-chain comparison table
-- **NFTs** 🖼️ — objkt.com profile integration
-- **Whales** 🐬 — Large transaction feed
-- **Giants** 😴 — Dormant large accounts
-- **History** 📈 — Historical charts with time range selector
-- **Ultra** ⚡ — Advanced display modes
-- **Share** 📸 — Full-page or section screenshot capture
-
-### Footer
-Includes GitHub contribution links (issues and PRs) for community engagement.
+The Supabase anon key in `js/core/config.js` is public client configuration, not
+a secret. Browser fetch domains must be allowed by the CSP in `index.html`.
 
 ## Local Development
 
 ```bash
 git clone https://github.com/Primate411/tezos.systems.git
 cd tezos.systems
-python3 -m http.server 8888
-# Open http://localhost:8888
+npm ci
+npm run install-hooks
+npm run serve
+# Open http://localhost:9000
 ```
 
-No build step. Edit files, refresh browser. Cache busting is done via `?v=` query params in `index.html` — bump these when deploying CSS/JS changes.
+The lockfile is tracked so fresh clones can use `npm ci`. If Playwright's
+bundled Chromium is missing, the smoke runner can fall back to a local
+Chrome/Chromium-family browser.
 
-## APIs Used
+The README guard reads staged files. If package/tooling, hook, handoff docs,
+smoke-test, config, theme, app-shell, service-worker, SEO, widget, or
+standalone-page contracts change without `README.md` staged, pre-commit fails
+with the affected files and reasons. If you audit a change and README truly
+does not need an update, commit with `SKIP_README_GUARD=1`.
 
-| API | Purpose | Endpoint |
-|-----|---------|----------|
-| TzKT | Baker data, staking, governance, transactions | `api.tzkt.io/v1/` |
-| Tez.Capital RPC | Issuance, supply data | `eu.rpc.tez.capital` |
-| CoinGecko | XTZ price | `api.coingecko.com/api/v3/` |
+Common commands:
 
-## Deployment
+```bash
+npm run build:css
+npm run refresh:governance
+npm run guard:readme
+npm run check:readme
+npm test
+npm run test:static
+npm run test:smoke
+npm run test:smoke:list
+npm run test:smoke:headed
+npm run test:smoke:strict
+npm run test:smoke:live
+node tests/smoke.mjs --only app-shell,route-crawl
+node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
+```
 
-Push to `main` → GitHub Pages auto-deploys. Custom domain via CNAME file.
+`QA.md` has the pre-deploy checklist and manual visual pass.
 
-**Cache busting:** Update `?v=` params in `index.html` script/link tags before deploying.
+## Testing
 
-## SEO & Discoverability
+`npm test` runs:
 
-- **robots.txt** — Explicitly allows AI crawlers (GPTBot, ClaudeBot, PerplexityBot, etc.)
-- **sitemap.xml** — Includes theme deep links (`/?theme=matrix`, etc.)
-- **JSON-LD** — WebApplication + Dataset structured data in `<head>`
-- **Meta tags** — Specific live stats in description, canonical URL, `twitter:site`, `robots` directives (`max-image-preview:large`)
-- **Theme-color meta** — Dynamic based on active theme
+- `npm run test:static`: JSON validity, generated governance freshness, local
+  asset references, cache-stamp alignment, CSP domains, selector contracts,
+  launch-date wording, module import sanity, LB-aware issuance contracts, CSS
+  freshness, lockfile/tooling, and shared hook checks.
+- `npm run test:smoke`: a Playwright browser run against a throwaway local
+  server by default. It uses mocked live-data endpoints for deterministic
+  feature flows.
 
-## Analytics
+Current smoke suites:
 
-GoatCounter (privacy-friendly, no cookies): `tezsys.goatcounter.com`
+- `first-visit-tour`
+- `app-shell`
+- `dashboard-desktop`
+- `dashboard-mobile`
+- `governance-lb`
+- `ux-regressions`
+- `feature-workflows`
+- `info-modals`
+- `themes`
+- `widget-builder`
+- `hen-mode`
+- `route-crawl`
 
-## Known Patterns & Gotchas
+Run `npm run test:smoke:list` for the current suite descriptions.
 
-- **Inline styles in modals:** Protocol history modals (`app.js` ~line 860-1010) use extensive inline styles with theme-conditional colors. Any new theme MUST add branches here or text will be invisible.
-- **Share captures:** `share.js` has `html2canvas()` calls with hardcoded theme color maps. New themes need entries in these maps.
-- **Theme-aware components:** Gauge (`gauge.js`) and sparklines (`history.js`) read the active theme at render time. New themes need palette entries in `getThemeColors()` and sparkline color logic or they'll fall back to defaults.
-- **CSS specificity wars:** The clean theme uses `!important` heavily because base styles are very specific. This is intentional — the alternative was restructuring 6000 lines of CSS.
-- **Canvas effects:** Matrix/void/ember/signal/bubblegum have canvas backgrounds. Clean, dark, and default have none. The `#ultra-canvas` is explicitly hidden via CSS for clean and dark themes.
-- **Word-spacing fix:** Mobile WebKit + small rem fonts + `text-rendering: optimizeLegibility` = words joining together. Fixed with `geometricPrecision` + absolute px word-spacing in share captures.
+## Deployment, Hooks, And Versioning
+
+Deploy by pushing `main`; GitHub Pages serves the committed files as-is.
+
+Before deploying JS, CSS, or data-dependency changes, review cache and version
+metadata:
+
+- `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
+- `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
+- `version.json` is stamped by `.githooks/pre-commit`.
+- The pre-commit hook runs the README guard, refreshes governance artifacts,
+  runs focused README contract checks, then stamps version metadata.
+
+New clones must run `npm run install-hooks` once so `core.hooksPath` points at
+`.githooks`. Using `git commit --no-verify` skips the refresh/stamp hook and can
+deploy stale metadata.
+
+Important version model:
+
+- `version.json` is pre-commit stamped, so its `commit` value points at the
+  parent/pre-commit `HEAD`.
+- `build` predicts the commit count after the commit being created and is the
+  useful deployed-version handle.
+- The footer fetches `version.json` with `cache: 'no-store'` and also fetches
+  the latest GitHub `main` commit at runtime.
+- `sw.js` treats `/version.json` as network-first and same-origin shell assets
+  as network-first with cache fallback.
+
+## Governance Data
+
+Use `npm run refresh:governance` before touching governance or protocol data.
+It updates:
+
+- `data/governance-votes.json`
+- `data/governance-refresh-report.json`
+
+The refresh report blocks when an accepted/current protocol is missing curated
+lore in `data/protocol-data.json`. Accepted protocol entries should keep
+technical facts sourced from official Octez/changelog material and present the
+community debate fairly.
+
+## Standalone Pages And Widgets
+
+SEO and standalone pages:
+
+- `staking/`
+- `governance/`
+- `bakers/`
+- `hen/`
+- `compare/`
+- `compare/tezos-vs-ethereum.html`
+- `compare/tezos-vs-solana.html`
+- `compare/tezos-vs-cardano.html`
+- `compare/tezos-vs-algorand.html`
+
+Widgets:
+
+- `widgets/baker-count.html`
+- `widgets/block-height.html`
+- `widgets/staking-ratio.html`
+- `widgets/price.html`
+- `widgets/protocol.html`
+- `widgets/governance.html`
+- `widgets/combo.html`
+- `widgets/baker-card.html`
+- `widgets/builder.html`
+
+## SEO And Analytics
+
+- `robots.txt` allows major AI crawlers and points at `sitemap.xml`.
+- `sitemap.xml` includes the canonical site, SEO pages, compare pages, widgets,
+  and theme/deep-link URLs.
+- `index.html` includes CSP, Open Graph/Twitter metadata, and JSON-LD.
+- GoatCounter is used for privacy-friendly analytics: `tezsys.goatcounter.com`.
+
+## Gotchas
+
+- Service worker cache can hide changes during QA. Hard refresh or unregister
+  the service worker if local behavior looks stale.
+- `index.html` serves `css/styles.min.css`; editing only `css/styles.css` is
+  not enough for deploy.
+- Share captures are fragile around chart rendering, gradient text, canvas
+  conversion, and word spacing. Test them visually after share or theme work.
+- Theme support lives in multiple files, and newer themes may fall back in some
+  components if their color maps are not updated.
+- TzKT filters can be surprising; some whale and sleeping-giant amount filters
+  are intentionally done client-side.
+- Tezos mainnet launch copy should use September 17, 2018. June 2018 refers to
+  fundraiser genesis, not the mainnet launch date used by the app.
+- Adding a new network source requires a CSP update in `index.html`.
 
 ## Credits
 
-- **Data:** [TzKT](https://tzkt.io) and [Tez.Capital](https://tez.capital)
-- **Built by:** [Tez Capital](https://tez.capital)
+- Data: [TzKT](https://tzkt.io), [Tez Capital](https://tez.capital), Octez RPC,
+  CoinGecko, Tezos Domains, OBJKT, and Supabase.
+- Built by: [Tez Capital](https://tez.capital).
 
----
-
-Built for the Tezos ecosystem 🫶
+Built for the Tezos ecosystem.

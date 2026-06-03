@@ -166,19 +166,20 @@ Frontend rendering:
 
 Hook installation caveat:
 
-- The repo now contains a tracked `.githooks/pre-commit` wrapper that runs
-  `scripts/stamp-version.sh`.
+- The repo now contains a tracked `.githooks/pre-commit` wrapper that runs the
+  README sync guard, refreshes governance artifacts, runs focused README
+  contract checks, then runs `scripts/stamp-version.sh`.
 - This checkout has `core.hooksPath` set to `.githooks`, so the hook is active
   locally.
 - Git hooks are local and do not travel with the repo.
-- New clones need `git config core.hooksPath .githooks` once, or `version.json`
-  will not be stamped automatically.
+- New clones need `git config core.hooksPath .githooks` once, or README sync,
+  governance refresh, and `version.json` stamping will not run automatically.
 - `npm run install-hooks` runs that config command.
 
 Stamping gotchas:
 
-- `git commit --no-verify` skips local hooks and can deploy stale
-  `version.json` metadata.
+- `git commit --no-verify` skips local hooks and can deploy stale README,
+  governance, or `version.json` metadata.
 - `git commit --amend` can keep the same build number because commit count does
   not increase; the hash still points at the pre-amend `HEAD`.
 - Rebases and cherry-picks can change the meaning of `build` because it is based
@@ -315,11 +316,10 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
 
 ## Known Stale or Risky Claims
 
-- README/local docs may say local dev port `8888`; current handoff uses `9000`.
-- README/SEO may say updates happen every 2 minutes; current config is slower.
-- README may say 8 themes; current code defines 12.
-- README may say zero dependencies; better wording is no runtime framework or
-  bundler.
+- README is guarded by `scripts/guard-readme-sync.mjs` plus
+  `tests/static-checks.mjs --readme-only`; staged changes to documented
+  contracts should stage `README.md` too, or use `SKIP_README_GUARD=1` after a
+  deliberate no-docs-needed audit.
 - Some text still references June 2018 or June 30, 2018 for Tezos mainnet, while
   `config.js` uses `2018-09-17T00:00:00Z`.
 - A comment near the comparison section says it defaults visible, but the local

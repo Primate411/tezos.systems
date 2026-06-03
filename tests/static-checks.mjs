@@ -486,7 +486,129 @@ async function checkStylesheetFreshness() {
   }
 }
 
+async function checkPortableTooling() {
+  const packageJson = JSON.parse(await readText('package.json'));
+  const gitignore = await readText('.gitignore');
+  const hook = await readText('.githooks/pre-commit').catch(() => '');
+  const hookStat = await statOrNull('.githooks/pre-commit');
+
+  if (!(await pathExists('package-lock.json'))) {
+    fail('package-lock.json must be tracked so fresh clones can use npm ci');
+  }
+  if (/^package-lock\.json$/m.test(gitignore)) {
+    fail('.gitignore must not ignore package-lock.json; reproducible test tooling depends on it');
+  }
+
+  const expectedScripts = {
+    'install-hooks': 'git config core.hooksPath .githooks',
+    'guard:readme': 'node scripts/guard-readme-sync.mjs',
+    'check:readme': 'node tests/static-checks.mjs --readme-only',
+    test: 'npm run test:static && npm run test:smoke',
+    'test:static': 'node tests/static-checks.mjs',
+    'test:smoke': 'node tests/smoke.mjs',
+    'test:smoke:list': 'node tests/smoke.mjs --list',
+    'test:smoke:headed': 'node tests/smoke.mjs --headed',
+    'test:smoke:strict': 'node tests/smoke.mjs --strict-external',
+    'test:smoke:live': 'node tests/smoke.mjs --base-url https://tezos.systems'
+  };
+
+  for (const [name, command] of Object.entries(expectedScripts)) {
+    if (packageJson.scripts?.[name] !== command) {
+      fail(`package.json script ${name} should be "${command}"`);
+    }
+  }
+
+  if (!hookStat) {
+    fail('.githooks/pre-commit must exist as the shared hook wrapper');
+  } else if ((hookStat.mode & 0o111) === 0) {
+    fail('.githooks/pre-commit must keep executable mode');
+  }
+  if (!(await pathExists('scripts/guard-readme-sync.mjs'))) {
+    fail('scripts/guard-readme-sync.mjs must exist for the README pre-commit guard');
+  }
+  if (!hook.includes('refresh-governance-data.mjs') || !hook.includes('stamp-version.sh')) {
+    fail('.githooks/pre-commit must refresh governance data and stamp version metadata');
+  }
+  if (!hook.includes('guard-readme-sync.mjs') || !hook.includes('static-checks.mjs') || !hook.includes('--readme-only')) {
+    fail('.githooks/pre-commit must guard README sync and run focused README contract checks');
+  }
+
+  pass('portable npm scripts, lockfile, and shared git hook checked');
+}
+
+async function checkReadmeContracts() {
+  const readme = await readText('README.md');
+  const themeSource = await readText('js/ui/theme.js');
+  const index = await readText('index.html');
+  const themeMatch = themeSource.match(/const THEMES = \[([^\]]+)\]/);
+  const themes = themeMatch ? Array.from(themeMatch[1].matchAll(/['"]([^'"]+)['"]/g)).map((match) => match[1]) : [];
+
+  if (!themes.length) {
+    fail('js/ui/theme.js theme list could not be parsed for README contract checks');
+  }
+
+  const stalePatterns = [
+    [/Zero dependencies/i, 'README must not claim zero dependencies'],
+    [/every 2 minutes/i, 'README must not claim the main refresh runs every 2 minutes'],
+    [/60s refresh/i, 'README must not claim price refresh is 60s'],
+    [/localhost:8888|http\.server 8888/i, 'README must not mention the old local dev port 8888'],
+    [/12 visual themes/i, 'README must not claim 12 visual themes while theme.js defines a different count']
+  ];
+  for (const [pattern, message] of stalePatterns) {
+    if (pattern.test(readme)) fail(message);
+  }
+
+  const requiredSnippets = [
+    `${themes.length} visual themes`,
+    'npm ci',
+    'npm run install-hooks',
+    'npm run serve',
+    'http://localhost:9000',
+    'npm run build:css',
+    'npm run refresh:governance',
+    'npm run guard:readme',
+    'npm run check:readme',
+    'npm run test:smoke:list',
+    'SKIP_README_GUARD=1',
+    'Main dashboard refresh: 2 hours',
+    'Sparkline refresh: 10 minutes',
+    'Price refresh: 30 minutes',
+    'Memory cache TTL: 1 minute',
+    'Storage cache TTL: 4 hours',
+    'css/styles.min.css',
+    'CACHE_NAME',
+    'version.json',
+    'September 17, 2018'
+  ];
+  for (const snippet of requiredSnippets) {
+    if (!readme.includes(snippet)) fail(`README missing current contract text: ${snippet}`);
+  }
+
+  for (const theme of themes) {
+    if (!readme.includes(`\`${theme}\``)) fail(`README theme table missing ${theme}`);
+  }
+
+  if (!index.includes(`${themes.length} visual themes`)) {
+    fail(`index.html schema featureList must agree with theme.js count (${themes.length} visual themes)`);
+  }
+
+  pass(`README contracts checked against package/config/theme reality (${themes.length} themes)`);
+}
+
 async function main() {
+  if (process.argv.includes('--readme-only')) {
+    await checkPortableTooling();
+    await checkReadmeContracts();
+
+    for (const message of passes) console.log(`ok - ${message}`);
+    for (const message of warnings) console.warn(`warn - ${message}`);
+    for (const message of failures) console.error(`fail - ${message}`);
+
+    console.log(`\nREADME checks: ${passes.length} passed, ${warnings.length} warnings, ${failures.length} failed`);
+    if (failures.length) process.exit(1);
+    return;
+  }
+
   await checkRequiredFiles();
   await checkJsonFiles();
   await checkGovernanceVotes();
@@ -499,6 +621,8 @@ async function main() {
   await checkHistoricalPagination();
   await checkLiquidityBakingIssuanceState();
   await checkStylesheetFreshness();
+  await checkPortableTooling();
+  await checkReadmeContracts();
 
   for (const message of passes) console.log(`ok - ${message}`);
   for (const message of warnings) console.warn(`warn - ${message}`);

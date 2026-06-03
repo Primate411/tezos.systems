@@ -5,12 +5,14 @@ Run these checks before deploying changes to `main`.
 ## One-time setup
 
 ```sh
-npm install
+npm ci
 npx playwright install chromium
 npm run install-hooks
 ```
 
-If Playwright's bundled Chromium is not installed, the smoke runner will fall back to a local Chrome/Chromium-family browser when available. You can force a specific browser with `BROWSER_EXECUTABLE_PATH=/path/to/chrome`.
+If Playwright's bundled Chromium is not installed, the smoke runner will fall back to a local Chrome/Chromium-family browser when available. You can force a specific browser with `node tests/smoke.mjs --browser-executable /path/to/chrome`.
+
+The installed pre-commit hook also runs the README guard. If staged changes touch documented behavior but `README.md` is not staged, the hook will block and list the files that need a README audit.
 
 ## Standard pre-deploy pass
 
@@ -21,22 +23,27 @@ npm test
 This runs:
 
 - `npm run test:static`: dependency-free checks for JSON validity, local asset references, cache-bust alignment, CSP domains, core DOM selector contracts, and served CSS freshness.
-- `npm run test:smoke`: starts a local static server, opens Chromium, checks desktop and mobile dashboard flows, and crawls standalone pages plus widgets.
+- `npm run test:smoke`: starts a local static server, opens Chromium, checks the app shell/PWA/cache contract, desktop and mobile dashboard flows, governance/LB, feature workflows, themes, widgets, HEN, and standalone routes.
 
 ## Useful variants
 
 ```sh
 npm run test:static
-BASE_URL=https://tezos.systems npm run test:smoke
-SMOKE_HEADED=1 npm run test:smoke
-STRICT_EXTERNAL=1 npm run test:smoke
-BROWSER_EXECUTABLE_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" npm run test:smoke
+npm run check:readme
+npm run test:smoke:list
+npm run test:smoke:headed
+npm run test:smoke:strict
+npm run test:smoke:live
+node tests/smoke.mjs --only app-shell,route-crawl
+node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
 ```
 
-- `BASE_URL` points the browser smoke suite at an already-running local server or the live site.
-- `SMOKE_HEADED=1` opens the browser visibly for debugging.
-- `STRICT_EXTERNAL=1` fails on upstream data warnings that are normally tolerated, such as CoinGecko or TzKT rate limits.
-- `BROWSER_EXECUTABLE_PATH` pins the browser executable used for the smoke crawl.
+- `--list` shows the available smoke suites.
+- `--only` runs one or more suites by name, comma-separated.
+- `--base-url` points the browser smoke suite at an already-running local server or the live site.
+- `--headed` opens the browser visibly for debugging.
+- `--strict-external` fails on upstream data warnings that are normally tolerated, such as CoinGecko or TzKT rate limits.
+- `--browser-executable` pins the browser executable used for the smoke crawl.
 
 ## Manual visual pass
 

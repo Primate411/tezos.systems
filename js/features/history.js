@@ -7,6 +7,13 @@ import { getCurrentTheme } from '../ui/theme.js';
 // Store chart instances for cleanup
 const chartInstances = {};
 
+function destroyChartInstance(canvasId) {
+    if (chartInstances[canvasId]) {
+        chartInstances[canvasId].destroy();
+        delete chartInstances[canvasId];
+    }
+}
+
 // Create mini sparkline for stat cards
 export function createSparkline(canvasId, data, metric) {
     const canvas = document.getElementById(canvasId);
@@ -152,9 +159,7 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
     if (!canvas) return;
 
     // Destroy existing chart if any
-    if (chartInstances[canvasId]) {
-        chartInstances[canvasId].destroy();
-    }
+    destroyChartInstance(canvasId);
 
     // Extract values and timestamps
     const points = data
@@ -607,6 +612,15 @@ const CARD_METRICS = {
     'active-contracts': { metric: 'active_contracts_24h', label: 'Active Contracts (24h)', unit: '' }
 };
 
+const CARD_HISTORY_RANGES = [
+    { range: '7d', label: '7d' },
+    { range: '30d', label: '30d' },
+    { range: '90d', label: '90d' },
+    { range: 'all', label: 'All Time' }
+];
+
+let cardHistoryRequestId = 0;
+
 /**
  * Add history buttons to stat cards with sparklines
  */
@@ -643,44 +657,73 @@ async function openCardHistoryModal(cardId) {
 
     // Update modal content
     const title = modal.querySelector('.card-history-title');
-    const chartContainer = modal.querySelector('.card-history-chart');
     
     if (title) {
         title.textContent = config.label;
     }
 
     // Show modal
+    modal.dataset.cardHistoryCard = cardId;
     modal.classList.add('active');
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
 
+    await renderCardHistoryChart(modal, config, '30d');
+}
+
+function setCardHistoryRangeState(modal, range) {
+    modal.querySelectorAll('.card-history-range-btn').forEach(btn => {
+        const isActive = btn.dataset.range === range;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
+    });
+}
+
+async function renderCardHistoryChart(modal, config, range) {
+    const chartContainer = modal.querySelector('.card-history-chart');
+    if (!chartContainer) return;
+
+    const canvasId = 'card-history-canvas';
+    const requestId = ++cardHistoryRequestId;
+    modal.dataset.cardHistoryRange = range;
+    setCardHistoryRangeState(modal, range);
+    destroyChartInstance(canvasId);
+    chartContainer.innerHTML = '<div class="card-history-state">Loading...</div>';
+
     // Load data and render chart
     try {
-        const data = await fetchHistoricalData('30d');
+        const data = await fetchHistoricalData(range);
+
+        if (requestId !== cardHistoryRequestId || !modal.classList.contains('active')) {
+            return;
+        }
         
         const metricPoints = data.filter(row => Number.isFinite(Number(row[config.metric])));
         if (data.length === 0 || metricPoints.length < 2) {
             chartContainer.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px; color: rgba(255, 255, 255, 0.5);">
+                <div class="card-history-state">
                     <p>Historical data is being collected.</p>
-                    <p style="margin-top: 8px; font-size: 0.9em;">Charts will appear once data is available.</p>
+                    <p>Charts will appear once data is available.</p>
                 </div>
             `;
             return;
         }
 
         // Create canvas for the chart
-        const canvasId = 'card-history-canvas';
         chartContainer.innerHTML = `<canvas id="${canvasId}"></canvas>`;
         
         // Render the chart
         createFullChart(canvasId, data, config.metric, config.label, config.unit);
     } catch (error) {
+        if (requestId !== cardHistoryRequestId) {
+            return;
+        }
+
         console.error('Failed to load card history:', error);
         chartContainer.innerHTML = `
-            <div style="text-align: center; padding: 60px 20px; color: rgba(255, 107, 157, 0.8);">
+            <div class="card-history-state card-history-state-error">
                 <p>Failed to load historical data.</p>
-                <p style="margin-top: 8px; font-size: 0.9em;">Please try again later.</p>
+                <p>Please try again later.</p>
             </div>
         `;
     }
@@ -701,9 +744,24 @@ function createCardHistoryModal() {
         <div class="card-history-content">
             <button class="card-history-close" id="card-history-close" aria-label="Close">×</button>
             <h2 class="card-history-title"></h2>
+            <div class="card-history-controls" role="group" aria-label="History range">
+                ${CARD_HISTORY_RANGES.map(({ range, label }) => `
+                    <button class="time-range-btn card-history-range-btn${range === '30d' ? ' active' : ''}" type="button" data-range="${range}" aria-pressed="${range === '30d'}">${label}</button>
+                `).join('')}
+            </div>
             <div class="card-history-chart"></div>
         </div>
     `;
+
+    modal.querySelectorAll('.card-history-range-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cardId = modal.dataset.cardHistoryCard;
+            const config = CARD_METRICS[cardId];
+            const range = btn.dataset.range || '30d';
+            if (!config || range === modal.dataset.cardHistoryRange) return;
+            renderCardHistoryChart(modal, config, range);
+        });
+    });
 
     // Close button handler
     const closeBtn = modal.querySelector('.card-history-close');
@@ -711,6 +769,8 @@ function createCardHistoryModal() {
         modal.classList.remove('active');
         modal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
+        cardHistoryRequestId += 1;
+        destroyChartInstance('card-history-canvas');
     };
 
     closeBtn.addEventListener('click', closeModal);

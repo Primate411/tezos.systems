@@ -4,5 +4,7 @@ set -e
 
 ROOT="$(git rev-parse --show-toplevel)"
 
+node "$ROOT/scripts/guard-readme-sync.mjs"
 node "$ROOT/scripts/refresh-governance-data.mjs" --stage
+node "$ROOT/tests/static-checks.mjs" --readme-only
 exec "$ROOT/scripts/stamp-version.sh"

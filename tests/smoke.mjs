@@ -8,10 +8,18 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
-const BASE_URL = process.env.BASE_URL || '';
-const HEADLESS = process.env.SMOKE_HEADED === '1' ? false : true;
-const STRICT_EXTERNAL = process.env.STRICT_EXTERNAL === '1';
-const BROWSER_EXECUTABLE_PATH = process.env.BROWSER_EXECUTABLE_PATH || '';
+let cli;
+try {
+  cli = parseArgs(process.argv.slice(2));
+} catch (error) {
+  console.error(`fail - ${error.message}`);
+  process.exit(1);
+}
+const BASE_URL = cli.baseUrl || process.env.BASE_URL || '';
+const HEADLESS = !(cli.headed || process.env.SMOKE_HEADED === '1');
+const STRICT_EXTERNAL = cli.strictExternal || process.env.STRICT_EXTERNAL === '1';
+const BROWSER_EXECUTABLE_PATH = cli.browserExecutablePath || process.env.BROWSER_EXECUTABLE_PATH || '';
+const ONLY_SUITES = cli.onlySuites;
 
 const systemBrowserCandidates = [
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -69,6 +77,72 @@ const browserRoutes = [
 
 const SAMPLE_ADDRESS = 'tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9';
 const SAMPLE_ADDRESS_2 = 'tz1hThMBD8jQjFt78heuCnKxJnJtQo9Ao25X';
+
+function usage() {
+  return `
+Usage: node tests/smoke.mjs [options]
+
+Options:
+  --base-url <url>             Test an existing local or remote server instead of starting one
+  --headed                     Run Chromium visibly
+  --strict-external            Fail on upstream warnings normally tolerated in local smoke runs
+  --browser-executable <path>  Use a specific Chrome/Chromium executable
+  --only <suite[,suite]>       Run selected suites by name
+  --list                       List available suites and exit
+  --help                       Show this help
+`.trim();
+}
+
+function readArg(argv, index, flag) {
+  const value = argv[index + 1];
+  if (!value || value.startsWith('--')) throw new Error(`${flag} requires a value\n\n${usage()}`);
+  return value;
+}
+
+function parseArgs(argv) {
+  const options = {
+    baseUrl: '',
+    browserExecutablePath: '',
+    headed: false,
+    list: false,
+    onlySuites: [],
+    strictExternal: false
+  };
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--help' || arg === '-h') {
+      options.help = true;
+    } else if (arg === '--list') {
+      options.list = true;
+    } else if (arg === '--headed') {
+      options.headed = true;
+    } else if (arg === '--strict-external') {
+      options.strictExternal = true;
+    } else if (arg === '--base-url') {
+      options.baseUrl = readArg(argv, index, arg);
+      index += 1;
+    } else if (arg.startsWith('--base-url=')) {
+      options.baseUrl = arg.slice('--base-url='.length);
+    } else if (arg === '--browser-executable') {
+      options.browserExecutablePath = readArg(argv, index, arg);
+      index += 1;
+    } else if (arg.startsWith('--browser-executable=')) {
+      options.browserExecutablePath = arg.slice('--browser-executable='.length);
+    } else if (arg === '--only') {
+      options.onlySuites.push(...readArg(argv, index, arg).split(','));
+      index += 1;
+    } else if (arg.startsWith('--only=')) {
+      options.onlySuites.push(...arg.slice('--only='.length).split(','));
+    } else {
+      throw new Error(`unknown smoke option: ${arg}\n\n${usage()}`);
+    }
+  }
+
+  options.baseUrl = options.baseUrl.replace(/\/$/, '');
+  options.onlySuites = options.onlySuites.map((suite) => suite.trim()).filter(Boolean);
+  return options;
+}
 
 const sampleBakers = [
   {
@@ -583,6 +657,149 @@ async function expectShareModal(page, label, issues = []) {
   await expectCount(page, '#share-modal #share-twitter', 1, label);
   await page.locator('#share-modal .share-modal-close').click();
   await page.locator('#share-modal').waitFor({ state: 'detached', timeout: 5000 });
+}
+
+async function smokeAppShell(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'allow'
+  });
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'app shell', issues);
+
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `app shell: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  const shell = await page.evaluate(async () => {
+    const fetchText = async (pathname) => {
+      const response = await fetch(pathname, { cache: 'no-store' });
+      return {
+        pathname,
+        ok: response.ok,
+        status: response.status,
+        contentType: response.headers.get('content-type') || '',
+        text: response.ok ? await response.text() : ''
+      };
+    };
+    const fetchJson = async (pathname) => {
+      const result = await fetchText(pathname);
+      let json = null;
+      let parseError = '';
+      if (result.ok) {
+        try {
+          json = JSON.parse(result.text);
+        } catch (error) {
+          parseError = error.message;
+        }
+      }
+      return { ...result, json, parseError };
+    };
+
+    const sw = await fetchText('/sw.js');
+    const version = await fetchJson('/version.json');
+    const manifest = await fetchJson('/site.webmanifest');
+    const robots = await fetchText('/robots.txt');
+    const sitemap = await fetchText('/sitemap.xml');
+    const shellAssets = Array.from(new Set(
+      Array.from(sw.text.matchAll(/['"]((?:\/|\.\.?\/)[^'"]+)['"]/g))
+        .map((match) => match[1])
+        .filter((asset) => asset.startsWith('/') && !asset.includes('*'))
+    )).sort();
+
+    const assetResults = [];
+    for (const asset of shellAssets) {
+      const assetResponse = await fetch(asset, { cache: 'no-store' });
+      assetResults.push({
+        asset,
+        ok: assetResponse.ok,
+        status: assetResponse.status,
+        contentType: assetResponse.headers.get('content-type') || ''
+      });
+    }
+
+    const iconResults = [];
+    for (const icon of manifest.json?.icons || []) {
+      const iconResponse = await fetch(icon.src, { cache: 'no-store' });
+      iconResults.push({ src: icon.src, ok: iconResponse.ok, status: iconResponse.status });
+    }
+
+    const stylesheet = document.querySelector('link[rel="stylesheet"][href^="css/styles.min.css"]')?.getAttribute('href') || '';
+    const appScript = document.querySelector('script[type="module"][src^="js/core/app.js"]')?.getAttribute('src') || '';
+    const appPreload = document.querySelector('link[rel="modulepreload"][href^="js/core/app.js"]')?.getAttribute('href') || '';
+    const csp = document.querySelector('meta[http-equiv="Content-Security-Policy"]')?.getAttribute('content') || '';
+    const cacheVersion = sw.text.match(/CACHE_NAME\s*=\s*['"]tezos-systems-v(\d+)['"]/)?.[1] || '';
+    const cssVersion = stylesheet.match(/\?v=(\d+)/)?.[1] || '';
+    const appScriptVersion = appScript.match(/\?v=(\d+)/)?.[1] || '';
+    const appPreloadVersion = appPreload.match(/\?v=(\d+)/)?.[1] || '';
+
+    return {
+      appPreload,
+      appPreloadVersion,
+      appScript,
+      appScriptVersion,
+      assetResults,
+      cacheVersion,
+      canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') || '',
+      csp,
+      cssVersion,
+      faviconCount: document.querySelectorAll('link[rel="icon"]').length,
+      iconResults,
+      manifest,
+      manifestHref: document.querySelector('link[rel="manifest"]')?.getAttribute('href') || '',
+      robots,
+      sitemap,
+      stylesheet,
+      sw,
+      version
+    };
+  });
+
+  const swReady = await page.evaluate(async () => {
+    if (!('serviceWorker' in navigator)) return { ready: false, state: 'unsupported' };
+    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), 10000));
+    const registration = await Promise.race([navigator.serviceWorker.ready, timeout]);
+    return {
+      ready: Boolean(registration),
+      active: registration?.active?.state || '',
+      installing: registration?.installing?.state || '',
+      waiting: registration?.waiting?.state || ''
+    };
+  });
+
+  assert(shell.sw.ok, `app shell: /sw.js failed with HTTP ${shell.sw.status}`);
+  assert(shell.version.ok && !shell.version.parseError, `app shell: /version.json invalid (${shell.version.status} ${shell.version.parseError})`);
+  assert(Number.isInteger(shell.version.json?.build), `app shell: version.json build should be an integer, saw ${JSON.stringify(shell.version.json)}`);
+  assert(/^[a-f0-9]{7,12}$/i.test(shell.version.json?.commit || ''), `app shell: version.json commit should be a short hash, saw ${shell.version.json?.commit}`);
+  assert(/^\d{4}-\d{2}-\d{2}$/.test(shell.version.json?.date || ''), `app shell: version.json date should be yyyy-mm-dd, saw ${shell.version.json?.date}`);
+  assert(shell.manifest.ok && !shell.manifest.parseError, `app shell: site.webmanifest invalid (${shell.manifest.status} ${shell.manifest.parseError})`);
+  assert(shell.manifest.json?.name === 'Tezos Systems', `app shell: manifest name mismatch: ${shell.manifest.json?.name}`);
+  assert((shell.manifest.json?.icons || []).length >= 4, 'app shell: manifest should expose standard and maskable icons');
+  assert(shell.iconResults.every((icon) => icon.ok), `app shell: manifest icons failed: ${shell.iconResults.filter((icon) => !icon.ok).map((icon) => `${icon.src} ${icon.status}`).join(', ')}`);
+  assert(shell.manifestHref === 'site.webmanifest', `app shell: manifest link mismatch: ${shell.manifestHref}`);
+  assert(shell.faviconCount >= 3, `app shell: expected multiple favicon links, saw ${shell.faviconCount}`);
+  assert(shell.canonical === 'https://tezos.systems/', `app shell: canonical URL mismatch: ${shell.canonical}`);
+  assert(shell.csp.includes('api.github.com') && shell.csp.includes('*.tzkt.io'), 'app shell: CSP missing core live-data domains');
+  assert(shell.stylesheet && shell.appScript && shell.appPreload, `app shell: missing stamped stylesheet/app script (${shell.stylesheet}, ${shell.appPreload}, ${shell.appScript})`);
+  assert(shell.cacheVersion && shell.cacheVersion === shell.cssVersion && shell.cacheVersion === shell.appPreloadVersion && shell.cacheVersion === shell.appScriptVersion, `app shell: cache stamps mismatch cache=${shell.cacheVersion} css=${shell.cssVersion} preload=${shell.appPreloadVersion} script=${shell.appScriptVersion}`);
+  assert(shell.robots.text.includes('Sitemap:'), 'app shell: robots.txt should point at the sitemap');
+  assert(shell.sitemap.text.includes('https://tezos.systems/'), 'app shell: sitemap should include the canonical root URL');
+  assert(swReady.ready, `app shell: service worker did not become ready (${JSON.stringify(swReady)})`);
+
+  const failedAssets = shell.assetResults.filter((asset) => !asset.ok);
+  assert(failedAssets.length === 0, `app shell: service worker shell assets failed: ${failedAssets.map((asset) => `${asset.asset} ${asset.status}`).join(', ')}`);
+  assert(shell.assetResults.length >= 40, `app shell: expected broad shell asset coverage, saw ${shell.assetResults.length}`);
+
+  await context.close();
+  assert(issues.length === 0, `app shell browser issues:\n${issues.join('\n')}`);
+  log(`ok - app shell smoke (${shell.assetResults.length} shell assets)`);
 }
 
 async function smokeDashboard(browser, baseUrl, viewport, label) {
@@ -1114,6 +1331,28 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.locator('[data-stat="total-bakers"] .card-history-btn').click({ force: true });
   await page.locator('#card-history-modal.active').waitFor({ state: 'visible', timeout: 10000 });
   assert((await page.locator('#card-history-modal .card-history-title').innerText()).includes('Total Bakers'), 'feature workflows card history title mismatch');
+  await expectCount(page, '#card-history-modal .card-history-range-btn', 4, 'feature workflows card history ranges');
+  await expectClassContains(page.locator('#card-history-modal .card-history-range-btn[data-range="30d"]'), 'active', 'feature workflows card history default range');
+  await page.locator('#card-history-modal .card-history-chart canvas').waitFor({ state: 'visible', timeout: 10000 });
+  const initialCardHistoryChartId = await page.evaluate(() => String(window.Chart?.getChart(document.getElementById('card-history-canvas'))?.id ?? ''));
+  await page.locator('#card-history-modal .card-history-range-btn[data-range="90d"]').click();
+  await expectClassContains(page.locator('#card-history-modal .card-history-range-btn[data-range="90d"]'), 'active', 'feature workflows card history 90d range');
+  const ninetyDayCardHistoryChartId = await page.waitForFunction((previousId) => {
+    const modal = document.querySelector('#card-history-modal');
+    const canvas = document.getElementById('card-history-canvas');
+    const chart = canvas ? window.Chart?.getChart(canvas) : null;
+    return modal?.dataset.cardHistoryRange === '90d' && chart && String(chart.id) !== previousId
+      ? String(chart.id)
+      : false;
+  }, initialCardHistoryChartId, { timeout: 10000 });
+  await page.locator('#card-history-modal .card-history-range-btn[data-range="all"]').click();
+  await expectClassContains(page.locator('#card-history-modal .card-history-range-btn[data-range="all"]'), 'active', 'feature workflows card history all-time range');
+  await page.waitForFunction((previousId) => {
+    const modal = document.querySelector('#card-history-modal');
+    const canvas = document.getElementById('card-history-canvas');
+    const chart = canvas ? window.Chart?.getChart(canvas) : null;
+    return modal?.dataset.cardHistoryRange === 'all' && chart && String(chart.id) !== previousId;
+  }, await ninetyDayCardHistoryChartId.jsonValue(), { timeout: 10000 });
   await page.locator('#card-history-close').click();
   await page.locator('#card-history-modal[aria-hidden="true"]').waitFor({ state: 'attached', timeout: 5000 });
   log('ok - feature workflow: card history');
@@ -1323,7 +1562,58 @@ async function crawlRoutes(browser, baseUrl) {
   assert(issues.length === 0, `route crawl browser issues:\n${issues.join('\n')}`);
 }
 
+function getSuiteCatalog(browser, baseUrl) {
+  return [
+    { name: 'first-visit-tour', description: 'Deep-link onboarding, first root visit, and tour prompt behavior', run: () => smokeFirstVisitTour(browser, baseUrl) },
+    { name: 'app-shell', description: 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets', run: () => smokeAppShell(browser, baseUrl) },
+    { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
+    { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
+    { name: 'governance-lb', description: 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
+    { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
+    { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
+    { name: 'info-modals', description: 'All section info modals and About Tezos launch-date copy', run: () => smokeInfoModals(browser, baseUrl) },
+    { name: 'themes', description: 'Theme picker availability and representative light/dark/colorful theme switching', run: () => smokeThemeSelection(browser, baseUrl) },
+    { name: 'widget-builder', description: 'Standalone widget builder type picker, preview sizing, and embed code tabs', run: () => smokeWidgetBuilder(browser, baseUrl) },
+    { name: 'hen-mode', description: 'HEN overlay startup and exit path', run: () => smokeHenMode(browser, baseUrl) },
+    { name: 'route-crawl', description: 'Dashboard, SEO pages, compare pages, and standalone widget routes render non-empty bodies', run: () => crawlRoutes(browser, baseUrl) }
+  ];
+}
+
+function selectSuites(catalog) {
+  if (!ONLY_SUITES.length) return catalog;
+  const available = new Set(catalog.map((suite) => suite.name));
+  const missing = ONLY_SUITES.filter((suite) => !available.has(suite));
+  if (missing.length) {
+    throw new Error(`unknown smoke suite(s): ${missing.join(', ')}\nAvailable suites: ${catalog.map((suite) => suite.name).join(', ')}`);
+  }
+  return catalog.filter((suite) => ONLY_SUITES.includes(suite.name));
+}
+
 async function main() {
+  if (cli.help) {
+    console.log(usage());
+    return;
+  }
+
+  const suiteNames = [
+    ['first-visit-tour', 'Deep-link onboarding, first root visit, and tour prompt behavior'],
+    ['app-shell', 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets'],
+    ['dashboard-desktop', 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
+    ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
+    ['governance-lb', 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh'],
+    ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
+    ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],
+    ['info-modals', 'All section info modals and About Tezos launch-date copy'],
+    ['themes', 'Theme picker availability and representative light/dark/colorful theme switching'],
+    ['widget-builder', 'Standalone widget builder type picker, preview sizing, and embed code tabs'],
+    ['hen-mode', 'HEN overlay startup and exit path'],
+    ['route-crawl', 'Dashboard, SEO pages, compare pages, and standalone widget routes render non-empty bodies']
+  ];
+  if (cli.list) {
+    for (const [name, description] of suiteNames) console.log(`${name} - ${description}`);
+    return;
+  }
+
   const server = await startLocalServer();
   let browser;
   try {
@@ -1331,17 +1621,11 @@ async function main() {
     browser = await launchChromium(chromium);
 
     log(`Smoke target: ${server.baseUrl}`);
-    await smokeFirstVisitTour(browser, server.baseUrl);
-    await smokeDashboard(browser, server.baseUrl, { width: 1440, height: 1000 }, 'desktop');
-    await smokeDashboard(browser, server.baseUrl, { width: 390, height: 844 }, 'mobile');
-    await smokeGovernanceTestingPeriod(browser, server.baseUrl);
-    await smokeUxChanges(browser, server.baseUrl);
-    await smokeFeatureWorkflows(browser, server.baseUrl);
-    await smokeInfoModals(browser, server.baseUrl);
-    await smokeThemeSelection(browser, server.baseUrl);
-    await smokeWidgetBuilder(browser, server.baseUrl);
-    await smokeHenMode(browser, server.baseUrl);
-    await crawlRoutes(browser, server.baseUrl);
+    const suites = selectSuites(getSuiteCatalog(browser, server.baseUrl));
+    log(`Smoke suites: ${suites.map((suite) => suite.name).join(', ')}`);
+    for (const suite of suites) {
+      await suite.run();
+    }
   } finally {
     if (browser) await browser.close();
     await server.stop();
