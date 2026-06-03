@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-03',
         entries: [
+            { type: '🎨', text: 'The active governance Chamber prompt now sits inside the live vote panel instead of repeating as a top-page banner' },
             { type: '✨', text: 'Per-card history charts now open on 30 days and can redraw at 7d, 30d, 90d, or all-time ranges' },
             { type: '🔧', text: 'Pre-commit now guards README sync when staged changes touch documented tooling, hook, theme, cache, route, widget, or app-shell behavior' },
             { type: '🔧', text: 'README and site metadata now agree with the current 13-theme, 9000-port, npm-tooling, smoke-test, hook, and cache-versioning setup' },

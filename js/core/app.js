@@ -23,8 +23,8 @@ import { initChamber } from '../features/chamber.js';
 import { initLiquidityBaking } from '../features/liquidity-baking.js';
 
 /**
- * Governance Countdown Banner
- * Shows a prominent banner when there's an active governance vote
+ * Governance Chamber Action
+ * Shows a compact Chamber entry point inside the live governance panel.
  */
 function updateGovernanceBanner(stats, votingStatus) {
     let banner = document.getElementById('gov-countdown-banner');
@@ -48,22 +48,20 @@ function updateGovernanceBanner(stats, votingStatus) {
         if (banner) { banner.remove(); }
         return;
     }
+
+    const bannerSlot = document.getElementById('gov-countdown-banner-slot');
+    if (!bannerSlot) {
+        if (banner) { banner.remove(); }
+        return;
+    }
     
     if (!banner) {
         banner = document.createElement('div');
         banner.id = 'gov-countdown-banner';
-        // Insert after price bar
-        const priceBar = document.getElementById('price-bar');
-        if (priceBar) {
-            priceBar.after(banner);
-        } else {
-            document.querySelector('.header')?.after(banner);
-        }
         // Click / Enter / Space opens The Chamber — keyboard-accessible button
         banner.style.cursor = 'pointer';
         banner.setAttribute('role', 'button');
         banner.setAttribute('tabindex', '0');
-        banner.setAttribute('aria-label', 'Open The Chamber — live Tezos governance');
         const openChamberModal = async () => {
             const { openChamber } = await import('../features/chamber.js');
             openChamber();
@@ -76,6 +74,9 @@ function updateGovernanceBanner(stats, votingStatus) {
             }
         });
     }
+    if (banner.parentElement !== bannerSlot) {
+        bannerSlot.appendChild(banner);
+    }
     
     const periodName = votingStatus ? getVotingPeriodName(votingStatus.kind) : 'Proposal';
     const timeLeft = votingStatus?.endTime ? formatTimeRemaining(votingStatus.endTime) : '';
@@ -87,20 +88,20 @@ function updateGovernanceBanner(stats, votingStatus) {
     let label = 'PROPOSAL';
     let cta = 'View Proposal →';
     let meta = timeLeft ? `${escapeHtml(timeLeft)} · 🗳️ Public baker ballots · 📊 Quorum watch` : '🗳️ Public baker ballots · 📊 Quorum watch';
-    let explainer = 'A Tezos proposal is moving through on-chain governance.';
     if (kind === 'exploration') {
         phase = 'exploration';
         icon = '🗳️';
         label = 'VOTE LIVE';
         cta = '🏛️ Watch The Chamber →';
-        explainer = 'A protocol proposal advanced from the Proposal period. Bakers are voting on-chain now.';
         meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority';
     }
-    else if (kind === 'testing' || kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'TESTING'; cta = 'View Results →'; explainer = 'The proposal cleared Exploration and is in Cooldown for testing and review before the final vote.'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · No ballots open · Testing and review` : 'No ballots open · Testing and review'; }
-    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = '🏛️ Watch The Chamber →'; explainer = 'This is the final baker vote before adoption. The sausage is being made in public.'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority'; }
+    else if (kind === 'testing' || kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'TESTING'; cta = 'View Results →'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · No ballots open · Testing and review` : 'No ballots open · Testing and review'; }
+    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = '🏛️ Watch The Chamber →'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority'; }
     else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'View Adoption →'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · Activation runway` : 'Activation runway'; }
     
     const isHot = kind === 'exploration' || kind === 'promotion';
+    const chamberTitle = isHot ? 'Live baker roll call' : 'Governance receipts';
+    banner.setAttribute('aria-label', `Open The Chamber — ${proposal ? `${proposal} ` : ''}${periodName}`);
     
     banner.innerHTML = `
         <div class="gov-live-indicator">
@@ -108,13 +109,12 @@ function updateGovernanceBanner(stats, votingStatus) {
             <span class="gov-live-label">${icon} ${label}</span>
         </div>
         <div class="gov-live-detail">
-            <span class="gov-live-title">${proposal ? `${escapeHtml(proposal)} ${escapeHtml(periodName)}` : escapeHtml(periodName)}</span>
-            <span class="gov-live-phase">${escapeHtml(explainer)}</span>
+            <span class="gov-live-title">${escapeHtml(chamberTitle)}</span>
             <span class="gov-live-meta">${meta}</span>
         </div>
         <div class="gov-live-cta">${cta}</div>
     `;
-    banner.className = `gov-countdown-banner gov-live gov-phase-${phase}${spotlight ? ' gov-vote-spotlight' : ''}`;
+    banner.className = `gov-countdown-banner gov-live gov-panel-action gov-phase-${phase}${spotlight ? ' gov-vote-spotlight' : ''}`;
 }
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
 // Mobile tabs disabled — single scrollable page
@@ -2092,10 +2092,12 @@ async function updateUpgradeClock() {
                                 </div>
                             </div>
                             ${tallyHtml}
+                            <div class="gov-countdown-banner-slot" id="gov-countdown-banner-slot" aria-live="polite"></div>
                         </div>
                         ${renderGovernanceProcessSummary(votingStatus, progress, tally)}
                     </div>
                 `;
+                updateGovernanceBanner(state.currentStats, votingStatus);
             } else {
                 statusEl.classList.remove('active');
                 statusEl.innerHTML = '';

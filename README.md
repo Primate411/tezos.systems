@@ -137,7 +137,7 @@ inline modal styles in `js/core/app.js`.
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
   `data/protocol-debates.json`.
-- Governance banner and The Chamber for live and historical amendment voting.
+- Governance panel prompt and The Chamber for live and historical amendment voting.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, and protocol-history lore.
 - My Tezos drawer and My Baker lookup, including baker performance and latest

@@ -10883,6 +10883,76 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     box-shadow: 0 0 18px color-mix(in srgb, var(--gov-accent) 22%, transparent);
 }
 
+.gov-countdown-banner-slot {
+    display: flex;
+    justify-content: flex-start;
+    min-width: 0;
+}
+
+.gov-countdown-banner.gov-panel-action {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 9px;
+    width: min(100%, 620px);
+    max-width: 620px;
+    margin: 10px 0 0;
+    padding: 8px 10px;
+    border-width: 1px;
+    border-radius: 8px;
+    font-size: 0.66rem;
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--gov-accent) 8%, transparent),
+        0 0 18px color-mix(in srgb, var(--gov-accent) 10%, transparent);
+}
+
+.gov-countdown-banner.gov-panel-action::after {
+    left: 10px;
+    right: 10px;
+    opacity: 0.3;
+}
+
+.gov-countdown-banner.gov-panel-action.gov-vote-spotlight {
+    padding: 8px 10px;
+    border-width: 1px;
+}
+
+.gov-panel-action .gov-live-indicator {
+    gap: 6px;
+    min-width: 0;
+}
+
+.gov-panel-action .gov-live-dot {
+    width: 7px;
+    height: 7px;
+    box-shadow: 0 0 8px var(--gov-accent);
+}
+
+.gov-panel-action .gov-live-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+}
+
+.gov-panel-action .gov-live-detail {
+    gap: 1px;
+}
+
+.gov-panel-action .gov-live-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+}
+
+.gov-panel-action .gov-live-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.62rem;
+}
+
+.gov-panel-action .gov-live-cta {
+    padding: 6px 9px;
+    border-radius: 6px;
+    font-size: 0.6rem;
+}
+
 .gov-banner-icon {
     font-size: 1rem;
 }
@@ -10914,6 +10984,17 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     .gov-live-cta {
         width: 100%;
         text-align: center;
+    }
+
+    .gov-countdown-banner.gov-panel-action {
+        width: 100%;
+        max-width: none;
+        margin: 10px 0 0;
+        padding: 10px;
+    }
+
+    .gov-panel-action .gov-live-meta {
+        white-space: normal;
     }
 }
 
