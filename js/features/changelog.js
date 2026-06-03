@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-03',
+        entries: [
+            { type: '✨', text: 'Direct links now open The Chamber and land on the Liquidity Baking dashboard tile' },
+        ]
+    },
+    {
         date: '2026-06-02',
         entries: [
             { type: '🔧', text: 'Live vote tally now reads early-window low turnout as on-track for the deadline instead of flashing a quorum warning' },

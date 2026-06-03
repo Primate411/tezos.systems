@@ -789,13 +789,13 @@ async function doCaptureAndShare(selectedSections) {
                 const ucClone = ucOriginal.cloneNode(true);
                 ucClone.style.marginBottom = '20px';
                 // Remove infographic (too tall for capture) and toggle
-                ucClone.querySelectorAll('.protocol-infographic, .infographic-toggle, .section-copy-link, .upgrade-share-btn, .timeline-share-btn').forEach(el => el.remove());
+                ucClone.querySelectorAll('.protocol-infographic, .infographic-toggle, .section-copy-link, .card-copy-link, .upgrade-share-btn, .timeline-share-btn').forEach(el => el.remove());
                 clone.insertBefore(ucClone, clone.firstChild);
             }
         }
         
         // Remove card share buttons, history buttons, and info buttons from clone
-        clone.querySelectorAll('.card-share-btn, .card-history-btn, .card-info-btn, .card-tooltip, .section-copy-link, .feature-copy-link, .upgrade-share-btn, .timeline-share-btn').forEach(el => el.remove());
+        clone.querySelectorAll('.card-share-btn, .card-history-btn, .card-copy-link, .card-info-btn, .card-tooltip, .section-copy-link, .feature-copy-link, .upgrade-share-btn, .timeline-share-btn').forEach(el => el.remove());
         
         // Remove unselected sections from clone (upgrade-clock already handled above)
         if (!selectedNames.has('Protocols')) {

@@ -676,6 +676,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
   await installFeatureMocks(context);
   await context.addInitScript(() => {
     window.__tezosSystemsIntervals = [];
@@ -701,6 +702,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     return /LB/.test(breakdown);
   }, null, { timeout: 10000 });
   await page.locator('#lb-entry-card[data-lb-live="true"][data-lb-refresh-interval="60000"]').waitFor({ state: 'visible', timeout: 10000 });
+  await expectCount(page, '#chamber-entry-card .card-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber card link');
+  await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb-tile"]', 1, 'governance testing period LB tile link');
 
   const dashboardState = await page.evaluate(() => ({
     banner: document.querySelector('#gov-countdown-banner')?.innerText || '',
@@ -758,6 +761,27 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
 
   await page.locator('.chamber-overlay.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#chamber-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.evaluate(() => { window.location.hash = 'chamber'; });
+  await page.locator('#chamber-modal.active .chamber-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#chamber-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#chamber-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.evaluate(() => { window.location.hash = 'lb-tile'; });
+  await page.waitForFunction(() => document.querySelector('#lb-entry-card')?.classList.contains('deep-link-highlight'), null, { timeout: 5000 });
+  await page.waitForFunction(() => {
+    const rect = document.querySelector('#lb-entry-card')?.getBoundingClientRect();
+    return Boolean(rect && rect.bottom > 0 && rect.top < window.innerHeight);
+  }, null, { timeout: 5000 });
+  const lbTileDeepLink = await page.evaluate(() => {
+    const rect = document.querySelector('#lb-entry-card')?.getBoundingClientRect();
+    return {
+      hash: window.location.hash,
+      inViewport: Boolean(rect && rect.bottom > 0 && rect.top < window.innerHeight),
+      modalActive: Boolean(document.querySelector('#liquidity-baking-modal')?.classList.contains('active'))
+    };
+  });
+  assert(lbTileDeepLink.hash === '#lb-tile', `governance testing period: LB tile hash mismatch: ${lbTileDeepLink.hash}`);
+  assert(lbTileDeepLink.inViewport, 'governance testing period: LB tile direct link did not scroll the tile into view');
+  assert(!lbTileDeepLink.modalActive, 'governance testing period: LB tile direct link should not open the monitor modal');
   await page.evaluate(() => { window.location.hash = 'lb'; });
   await page.locator('#liquidity-baking-modal.active .lb-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#lb-baker-vote-list .lb-table-row').length >= 4, null, { timeout: 10000 });

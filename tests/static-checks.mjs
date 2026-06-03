@@ -348,6 +348,20 @@ async function checkSelectorContracts() {
   }
   pass(`new UX selector contracts checked: ${requiredSnippets.length}`);
 
+  const app = await readText('js/core/app.js');
+  const chamber = await readText('js/features/chamber.js');
+  const lb = await readText('js/features/liquidity-baking.js');
+  const deepLinkContracts = [
+    ['Chamber hash route', "hash === 'chamber'", app],
+    ['LB tile hash route', "hash === 'lb-tile'", app],
+    ['Chamber card copy link', 'data-copy-hash="#chamber"', chamber],
+    ['LB tile copy link', 'data-copy-hash="#lb-tile"', lb]
+  ];
+  for (const [label, snippet, text] of deepLinkContracts) {
+    if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
+  }
+  pass(`deep-link selector contracts checked: ${deepLinkContracts.length}`);
+
   const rawWidgetLinks = [
     'href="/widgets/price.html"',
     'href="/widgets/baker-card.html"',

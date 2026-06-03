@@ -1236,8 +1236,10 @@ export function initChamber() {
     const grid = govSection.querySelector('.stats-grid');
     if (grid) {
         const card = document.createElement('div');
+        card.id = 'chamber-entry-card';
         card.className = 'stat-card chamber-entry-card';
         card.innerHTML = `
+            <button class="card-copy-link" type="button" data-copy-hash="#chamber" aria-label="Copy The Chamber direct link" title="Copy The Chamber link">🔗</button>
             <div class="card-inner">
                 <div class="card-front chamber-entry-front">
                     <h2 class="stat-label">The Chamber</h2>

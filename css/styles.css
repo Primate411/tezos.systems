@@ -1519,7 +1519,8 @@ body::before {
 }
 
 .feature-copy-link,
-.section-copy-link {
+.section-copy-link,
+.card-copy-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1540,7 +1541,9 @@ body::before {
 .feature-copy-link:hover,
 .feature-copy-link.copied,
 .section-copy-link:hover,
-.section-copy-link.copied {
+.section-copy-link.copied,
+.card-copy-link:hover,
+.card-copy-link.copied {
     border-color: var(--accent-cyan);
     color: var(--accent-cyan);
     box-shadow: 0 0 12px rgba(0, 212, 255, 0.12);
@@ -1551,6 +1554,58 @@ body::before {
     height: 32px;
     margin-left: 6px;
     font-size: 0.78rem;
+}
+
+.card-copy-link {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 12px;
+    padding: 0;
+    opacity: 0.36;
+    z-index: 52;
+}
+
+.stat-card:hover .card-copy-link {
+    opacity: 0.75;
+}
+
+.card-copy-link:hover,
+.card-copy-link.copied {
+    opacity: 1;
+    background: rgba(0, 212, 255, 0.15);
+    transform: scale(1.15);
+}
+
+.lb-entry-card .card-copy-link {
+    right: calc(1rem + 32px);
+}
+
+.deep-link-highlight {
+    animation: deep-link-pulse 1.8s ease-out;
+}
+
+.stat-card.deep-link-highlight,
+.lb-entry-card.deep-link-highlight {
+    border-color: var(--accent-cyan) !important;
+}
+
+@keyframes deep-link-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+        outline: 0 solid rgba(0, 212, 255, 0);
+    }
+    35% {
+        box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.26), 0 0 30px rgba(0, 212, 255, 0.22);
+        outline: 2px solid rgba(0, 212, 255, 0.24);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(0, 212, 255, 0);
+        outline: 0 solid rgba(0, 212, 255, 0);
+    }
 }
 
 .section-link-cta {
@@ -4206,6 +4261,7 @@ body.high-combo .stat-card {
     /* Touch devices - buttons always visible but compact */
     .card-history-btn,
     .card-share-btn,
+    .card-copy-link,
     .card-info-btn {
         opacity: 0.6;
         width: 28px;

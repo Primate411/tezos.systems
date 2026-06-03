@@ -250,7 +250,7 @@ async function init() {
             const section = document.querySelector('.upgrade-clock-content');
             if (!section) return;
             const controlsToHide = Array.from(section.querySelectorAll(
-                '.upgrade-share-btn, .section-copy-link, .infographic-toggle, .timeline-share-btn'
+                '.upgrade-share-btn, .section-copy-link, .card-copy-link, .infographic-toggle, .timeline-share-btn'
             ));
             const originalVisibility = controlsToHide.map(el => el.style.visibility);
             try {
@@ -2492,7 +2492,9 @@ function initOfflineIndicator() {
 //   #whales            → show whale tracker
 //   #giants            → show sleeping giants
 //   #history           → open history modal
+//   #chamber           → open The Chamber governance modal
 //   #lb                → open Liquidity Baking monitor
+//   #lb-tile           → scroll to the Liquidity Baking dashboard tile
 //   #theme=dark        → switch to theme
 //   #section=consensus → scroll to section
 function applyDeepLink() {
@@ -2526,6 +2528,52 @@ function applyDeepLink() {
                 target.scrollIntoView({ behavior: 'smooth', block: options.block || 'start' });
             }
         }, options.delay || 300);
+    };
+
+    const ensureStatsVisible = () => {
+        const sections = Array.from(document.querySelectorAll('.tezos-stats-section'));
+        const anyHidden = sections.some((section) => getComputedStyle(section).display === 'none');
+        if (!anyHidden) return;
+
+        const toggle = document.getElementById('tezos-stats-toggle');
+        if (toggle && localStorage.getItem(STATS_VISIBLE_KEY) === 'false') {
+            toggle.click();
+            return;
+        }
+
+        localStorage.setItem(STATS_VISIBLE_KEY, 'true');
+        sections.forEach((section) => { section.style.display = ''; });
+        toggle?.classList.add('active');
+        if (toggle) toggle.title = 'Tezos Stats: ON';
+    };
+
+    const scrollToElement = (target, options = {}) => {
+        if (!target) return;
+        const scroll = () => target.scrollIntoView({ behavior: 'smooth', block: options.block || 'center' });
+        scroll();
+        setTimeout(scroll, 180);
+        setTimeout(scroll, 520);
+        target.classList.add('deep-link-highlight');
+        setTimeout(() => target.classList.remove('deep-link-highlight'), options.highlightMs || 1800);
+    };
+
+    const isElementInViewport = (target) => {
+        if (!target) return false;
+        const rect = target.getBoundingClientRect();
+        return rect.bottom > 0 && rect.top < window.innerHeight;
+    };
+
+    const scrollToElementAfterLayout = (getTarget, options = {}) => {
+        const delays = [0, 700, 1600, 3000, 4500];
+        delays.forEach((delay, index) => {
+            setTimeout(() => {
+                const target = getTarget();
+                if (!target) return;
+                if (index === 0 || !isElementInViewport(target)) {
+                    scrollToElement(target, options);
+                }
+            }, delay);
+        });
     };
 
     // #my-baker=tz1... or #my-baker (just open it)
@@ -2563,6 +2611,19 @@ function applyDeepLink() {
     // #price
     if (params.has('price') || hash === 'price') {
         showToggleSection('price-intel-toggle', 'price-intelligence', { delay: 800 });
+    }
+
+    // #chamber / #the-chamber
+    if (params.has('chamber') || hash === 'chamber' || params.has('the-chamber') || hash === 'the-chamber') {
+        import('../features/chamber.js')
+            .then(({ openChamber }) => openChamber())
+            .catch((error) => console.warn('Failed to open The Chamber', error));
+    }
+
+    // #lb-tile / #liquidity-baking-tile
+    if (params.has('lb-tile') || hash === 'lb-tile' || params.has('liquidity-baking-tile') || hash === 'liquidity-baking-tile') {
+        ensureStatsVisible();
+        setTimeout(() => scrollToElementAfterLayout(() => document.getElementById('lb-entry-card')), 600);
     }
 
     // #lb / #liquidity-baking
