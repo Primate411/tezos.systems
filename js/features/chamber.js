@@ -21,11 +21,36 @@ const GOVERNANCE_REPORT_URL = '/data/governance-refresh-report.json';
 const HISTORY_CONTEXT_ROWS = 20;
 
 const STAGES = [
-    { key: 'proposal', label: 'Proposal', icon: '📜' },
-    { key: 'exploration', label: 'Exploration', icon: '🔍' },
-    { key: 'testing', label: 'Cooldown', icon: '⏳' },
-    { key: 'promotion', label: 'Promotion', icon: '🗳️' },
-    { key: 'adoption', label: 'Adoption', icon: '🚀' }
+    {
+        key: 'proposal',
+        label: 'Proposal',
+        icon: '📜',
+        detail: 'Bakers upvote candidate protocol hashes; the leading proposal advances.'
+    },
+    {
+        key: 'exploration',
+        label: 'Exploration',
+        icon: '🔍',
+        detail: 'First on-chain ballot. The proposal needs quorum and 80% Yay supermajority.'
+    },
+    {
+        key: 'testing',
+        label: 'Cooldown',
+        icon: '⏳',
+        detail: 'No baker ballots. The proposal is tested and reviewed before the final vote.'
+    },
+    {
+        key: 'promotion',
+        label: 'Promotion',
+        icon: '🗳️',
+        detail: 'Final on-chain ballot. Passing again clears the protocol for activation.'
+    },
+    {
+        key: 'adoption',
+        label: 'Adoption',
+        icon: '🚀',
+        detail: 'The approved protocol activates after the final vote clears.'
+    }
 ];
 
 function isBallotPeriod(periodOrKind) {
@@ -233,6 +258,59 @@ function fmtCountdown(endTime) {
     return `${m}m`;
 }
 
+function validDate(value) {
+    if (!value) return null;
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function fmtShortDate(value, includeYear = false) {
+    const date = validDate(value);
+    if (!date) return '';
+    const opts = { month: 'short', day: 'numeric', timeZone: 'UTC' };
+    if (includeYear) opts.year = 'numeric';
+    return date.toLocaleDateString('en-US', opts);
+}
+
+function fmtDateRange(startTime, endTime, includeYear = false) {
+    const start = validDate(startTime);
+    const end = validDate(endTime);
+    if (!start && !end) return '';
+    if (!start) return `Ends ${fmtShortDate(endTime, includeYear)}`;
+    if (!end) return `Starts ${fmtShortDate(startTime, includeYear)}`;
+    const sameYear = start.getUTCFullYear() === end.getUTCFullYear();
+    const startText = fmtShortDate(startTime, includeYear && !sameYear);
+    const endText = fmtShortDate(endTime, includeYear);
+    return `${startText} - ${endText}`;
+}
+
+function fmtDurationBetween(startTime, endTime) {
+    const start = validDate(startTime);
+    const end = validDate(endTime);
+    if (!start || !end) return '';
+    const diff = end - start;
+    if (diff <= 0) return '';
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    if (days > 0) return hours > 0 ? `${days}d ${hours}h` : `${days}d`;
+    if (hours > 0) return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    return `${minutes}m`;
+}
+
+function periodStatusText(period, isLive) {
+    if (!period) return 'Upcoming';
+    if (period.status === 'active') {
+        return isLive && period.endTime ? `${fmtCountdown(period.endTime)} left` : 'Active';
+    }
+    if (period.status === 'success') return period.kind === 'proposal' ? 'Selected' : 'Passed';
+    if (period.status === 'no_proposals') return 'No proposal';
+    if (period.status === 'no_quorum') return 'No quorum';
+    if (period.status === 'no_supermajority') return 'No supermajority';
+    if (period.status === 'failed') return 'Failed';
+    return period.status ? periodTitle(period.status) : 'Recorded';
+}
+
 function calcSupermajority(period) {
     if (!period?.yayVotingPower) return null;
     const yay = period.yayVotingPower;
@@ -327,23 +405,24 @@ function renderPipeline(epoch, isLive) {
         const period = periodMap[stage.key];
         let stateClass = 'future';
         let statusText = 'Upcoming';
+        let dateText = stage.key === 'adoption' ? 'After Promotion' : 'Pending dates';
+        let durationText = '';
         
         if (period) {
             if (period.status === 'active') {
                 stateClass = 'active';
-                statusText = isLive ? fmtCountdown(period.endTime) : 'Completed';
-                if (period.endTime && isLive) {
-                    const end = new Date(period.endTime);
-                    const dateStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                    statusText += ' · ' + dateStr;
-                }
+                statusText = periodStatusText(period, isLive);
             } else if (period.status === 'success' || period.status === 'no_proposals') {
                 stateClass = 'completed';
-                statusText = '✓';
+                statusText = periodStatusText(period, isLive);
             } else if (period.status === 'no_quorum' || period.status === 'no_supermajority') {
                 stateClass = 'failed';
-                statusText = '✗';
+                statusText = periodStatusText(period, isLive);
+            } else {
+                statusText = periodStatusText(period, isLive);
             }
+            dateText = fmtDateRange(period.startTime, period.endTime);
+            durationText = fmtDurationBetween(period.startTime, period.endTime);
         }
         
         const delay = i * 120;
@@ -352,12 +431,48 @@ function renderPipeline(epoch, isLive) {
             <div class="chamber-stage ${stateClass} chamber-anim-fade" data-stage="${stage.key}" style="animation-delay:${delay}ms">
                 <div class="stage-icon">${stage.icon}</div>
                 <div class="stage-label">${stage.label}</div>
-                <div class="stage-status">${statusText}</div>
+                <div class="stage-status">${escapeHtml(statusText)}</div>
+                <div class="stage-dates">${escapeHtml(dateText || 'Pending dates')}</div>
+                <div class="stage-duration">${durationText ? `${escapeHtml(durationText)} total` : escapeHtml(stage.key === 'adoption' ? 'if approved' : 'not scheduled')}</div>
                 ${stateClass === 'active' && isLive ? '<div class="stage-pulse"></div>' : ''}
             </div>
             ${i < STAGES.length - 1 ? `<div class="stage-connector ${stateClass === 'completed' ? 'completed' : ''} chamber-anim-fade" style="animation-delay:${delay + 60}ms"><div class="connector-fill"></div></div>` : ''}
         `;
     }).join('');
+}
+
+function renderGovernanceProcess(epoch) {
+    const startTime = epoch?.startTime || epoch?.periods?.[0]?.startTime;
+    const endTime = epoch?.endTime || [...(epoch?.periods || [])].reverse().find(p => p.endTime)?.endTime;
+    const rangeText = fmtDateRange(startTime, endTime, true) || 'Dates unavailable';
+    const durationText = fmtDurationBetween(startTime, endTime);
+    const activePeriod = (epoch?.periods || []).find(p => p.status === 'active');
+    const activeLabel = activePeriod ? periodTitle(activePeriod.kind) : 'Historical epoch';
+
+    return `
+        <section class="chamber-process-card chamber-anim-fade" aria-label="Tezos governance process" style="animation-delay:80ms">
+            <div class="chamber-process-summary">
+                <div>
+                    <span class="process-kicker">Governance process</span>
+                    <h3>Proposal to activation path</h3>
+                </div>
+                <div class="process-window">
+                    <span>Epoch ${escapeHtml(String(epoch?.index || ''))} · ${escapeHtml(activeLabel)}</span>
+                    <strong>${escapeHtml(rangeText)}</strong>
+                    ${durationText ? `<small>${escapeHtml(durationText)} visible window</small>` : ''}
+                </div>
+            </div>
+            <p class="process-brief">Bakers select a proposal, run an Exploration vote, pause for Cooldown testing, then hold the final Promotion vote before Adoption.</p>
+            <div class="chamber-process-steps">
+                ${STAGES.map(stage => `
+                    <div class="process-step">
+                        <span class="process-step-label">${stage.icon} ${escapeHtml(stage.label)}</span>
+                        <span>${escapeHtml(stage.detail)}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </section>
+    `;
 }
 
 // ─── Supermajority gauge with sweep animation ───
@@ -1067,6 +1182,7 @@ function renderChamber(data, container) {
     
     container.innerHTML = `
         ${renderProposalHeader(data)}
+        ${renderGovernanceProcess(epoch)}
         <div class="chamber-pipeline">${renderPipeline(epoch, isLive)}</div>
         ${votePeriod ? `
         <div class="chamber-grid">

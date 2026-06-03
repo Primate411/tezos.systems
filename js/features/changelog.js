@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-03',
         entries: [
+            { type: '✨', text: 'The Chamber now explains the governance process and shows start/end dates plus duration for each dated stage' },
             { type: '🔧', text: 'Direct #lb and #chamber visits now skip onboarding without consuming the first root-site landing visit' },
             { type: '🎨', text: 'The Chamber phase tracker now uses arrowed connectors on desktop and mobile instead of stray dash marks' },
             { type: '✨', text: 'Liquidity Baking dashboard now explains LB with contextual tooltips and protocol-history lore from Granada, Ithaca, and Jakarta' },
