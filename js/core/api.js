@@ -40,6 +40,7 @@ const cache = {
 const HISTORICAL_PAGE_SIZE = 1000;
 const LB_EMA_DISABLE_THRESHOLD = 1_000_000_000;
 const LB_EMA_DENOMINATOR = 2_000_000_000;
+const historicalDataCache = new Map();
 
 /**
  * Check if cached data is still valid
@@ -900,6 +901,12 @@ export async function checkApiHealth() {
 
 // Historical data fetching
 export async function fetchHistoricalData(range = '7d') {
+    const cacheKey = `history:${range}`;
+    const cached = historicalDataCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < cache.ttl) {
+        return cached.promise || cached.data;
+    }
+
     const { SUPABASE_CONFIG } = await import('./config.js');
 
     // Calculate start time based on range
@@ -933,7 +940,7 @@ export async function fetchHistoricalData(range = '7d') {
     };
     const allRows = [];
 
-    try {
+    const requestPromise = (async () => {
         for (let offset = 0; ; offset += HISTORICAL_PAGE_SIZE) {
             const response = await fetch(`${url}&limit=${HISTORICAL_PAGE_SIZE}&offset=${offset}`, { headers });
 
@@ -951,7 +958,22 @@ export async function fetchHistoricalData(range = '7d') {
         }
 
         return allRows;
+    })();
+
+    historicalDataCache.set(cacheKey, {
+        timestamp: Date.now(),
+        promise: requestPromise
+    });
+
+    try {
+        const rows = await requestPromise;
+        historicalDataCache.set(cacheKey, {
+            timestamp: Date.now(),
+            data: rows
+        });
+        return rows;
     } catch (error) {
+        historicalDataCache.delete(cacheKey);
         console.error('Failed to fetch historical data:', error);
         return [];
     }

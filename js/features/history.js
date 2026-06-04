@@ -6,11 +6,108 @@ import { getCurrentTheme } from '../ui/theme.js';
 
 // Store chart instances for cleanup
 const chartInstances = {};
+const FULL_CHART_POINT_LIMITS = {
+    '24h': 180,
+    '7d': 240,
+    '30d': 360,
+    '90d': 480,
+    all: 720,
+    default: 360
+};
+const FAST_RENDER_POINT_THRESHOLD = 180;
 
 function destroyChartInstance(canvasId) {
     if (chartInstances[canvasId]) {
         chartInstances[canvasId].destroy();
         delete chartInstances[canvasId];
+    }
+}
+
+function normalizeMetricPoints(data, metric) {
+    return data
+        .map(d => ({ value: Number(d[metric]), timestamp: new Date(d.timestamp) }))
+        .filter(point => Number.isFinite(point.value) && !isNaN(point.timestamp.getTime()));
+}
+
+function pushUniquePoint(points, point) {
+    if (!point || points[points.length - 1] === point) return;
+    points.push(point);
+}
+
+function evenlySamplePoints(points, maxPoints) {
+    if (points.length <= maxPoints) return points;
+    const sampled = [points[0]];
+    const step = (points.length - 1) / (maxPoints - 1);
+
+    for (let i = 1; i < maxPoints - 1; i++) {
+        pushUniquePoint(sampled, points[Math.round(i * step)]);
+    }
+
+    pushUniquePoint(sampled, points[points.length - 1]);
+    return sampled;
+}
+
+function downsampleTimeSeries(points, maxPoints) {
+    if (points.length <= maxPoints) return points;
+    if (maxPoints < 3) return points.slice(0, maxPoints);
+
+    const sampled = [points[0]];
+    const bucketCount = Math.max(1, Math.floor((maxPoints - 2) / 2));
+    const bucketSize = (points.length - 2) / bucketCount;
+
+    for (let bucket = 0; bucket < bucketCount; bucket++) {
+        const start = 1 + Math.floor(bucket * bucketSize);
+        const end = Math.min(points.length - 1, 1 + Math.floor((bucket + 1) * bucketSize));
+        let minPoint = null;
+        let maxPoint = null;
+        let minIndex = -1;
+        let maxIndex = -1;
+
+        for (let i = start; i < end; i++) {
+            const point = points[i];
+            if (!minPoint || point.value < minPoint.value) {
+                minPoint = point;
+                minIndex = i;
+            }
+            if (!maxPoint || point.value > maxPoint.value) {
+                maxPoint = point;
+                maxIndex = i;
+            }
+        }
+
+        if (minIndex === -1) continue;
+        if (minIndex === maxIndex) {
+            pushUniquePoint(sampled, minPoint);
+        } else if (minIndex < maxIndex) {
+            pushUniquePoint(sampled, minPoint);
+            pushUniquePoint(sampled, maxPoint);
+        } else {
+            pushUniquePoint(sampled, maxPoint);
+            pushUniquePoint(sampled, minPoint);
+        }
+    }
+
+    pushUniquePoint(sampled, points[points.length - 1]);
+    return evenlySamplePoints(sampled, maxPoints);
+}
+
+function getFullChartPointLimit(range) {
+    return FULL_CHART_POINT_LIMITS[range] || FULL_CHART_POINT_LIMITS.default;
+}
+
+function getFullChartTimeScale(range) {
+    switch (range) {
+        case '24h':
+            return { unit: 'hour', displayFormats: { hour: 'ha' } };
+        case '7d':
+        case '30d':
+            return { unit: 'day', displayFormats: { day: 'MMM d' } };
+        case '90d':
+            return { unit: 'week', displayFormats: { week: 'MMM d' } };
+        case 'all':
+            return { unit: 'month', displayFormats: { month: 'MMM yyyy' } };
+        default:
+            return { unit: 'day', displayFormats: { day: 'MMM d' } };
     }
 }
 
@@ -138,13 +235,19 @@ export function createSparkline(canvasId, data, metric) {
 
 // Calculate stats for a metric
 function calculateStats(data, metric, unit = '') {
-    const values = data.map(d => Number(d[metric])).filter(Number.isFinite);
+    const values = Array.isArray(data) && data.length && data[0]?.timestamp instanceof Date
+        ? data.map(point => point.value)
+        : data.map(d => Number(d[metric])).filter(Number.isFinite);
     if (values.length === 0) return null;
     
     const current = values[values.length - 1];
     const first = values[0];
-    const high = Math.max(...values);
-    const low = Math.min(...values);
+    let high = values[0];
+    let low = values[0];
+    for (const value of values) {
+        if (value > high) high = value;
+        if (value < low) low = value;
+    }
     const change = unit === '%'
         ? current - first
         : first !== 0 ? ((current - first) / first) * 100 : 0;
@@ -154,7 +257,7 @@ function calculateStats(data, metric, unit = '') {
 }
 
 // Create detailed line chart for history modal
-export function createFullChart(canvasId, data, metric, label, unit = '') {
+export function createFullChart(canvasId, data, metric, label, unit = '', options = {}) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
 
@@ -162,16 +265,21 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
     destroyChartInstance(canvasId);
 
     // Extract values and timestamps
-    const points = data
-        .map(d => ({ value: Number(d[metric]), timestamp: new Date(d.timestamp) }))
-        .filter(point => Number.isFinite(point.value) && !isNaN(point.timestamp.getTime()));
+    const points = normalizeMetricPoints(data, metric);
     if (points.length < 2) return;
 
-    const values = points.map(point => point.value);
-    const timestamps = points.map(point => point.timestamp);
+    const range = options.range || '7d';
+    const maxPoints = getFullChartPointLimit(range);
+    const chartPoints = downsampleTimeSeries(points, maxPoints);
+    const chartData = chartPoints.map(point => ({
+        x: point.timestamp.getTime(),
+        y: point.value
+    }));
+    const fastRender = points.length > FAST_RENDER_POINT_THRESHOLD || chartPoints.length > FAST_RENDER_POINT_THRESHOLD;
+    const timeScale = getFullChartTimeScale(range);
     
     // Calculate stats for this metric
-    const stats = calculateStats(data, metric, unit);
+    const stats = calculateStats(points, metric, unit);
     
     // Update stats display if element exists
     const statsEl = document.getElementById(`stats-${canvasId}`);
@@ -225,10 +333,9 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
     chartInstances[canvasId] = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: timestamps,
             datasets: [{
                 label: label,
-                data: values,
+                data: chartData,
                 borderColor: primaryColor,
                 backgroundColor: gradient,
                 borderWidth: 3,
@@ -238,7 +345,7 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
                 pointHoverBackgroundColor: primaryColor,
                 pointHoverBorderColor: '#fff',
                 pointHoverBorderWidth: 2,
-                tension: 0.4,
+                tension: fastRender ? 0.15 : 0.4,
                 // Glow effect via shadow
                 borderCapStyle: 'round',
                 borderJoinStyle: 'round'
@@ -247,10 +354,15 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            animation: {
-                duration: 1500,
-                easing: 'easeOutQuart',
-                delay: (context) => context.dataIndex * 10
+            parsing: false,
+            normalized: true,
+            animation: fastRender ? false : {
+                duration: 450,
+                easing: 'easeOutQuart'
+            },
+            transitions: {
+                active: { animation: { duration: 0 } },
+                resize: { animation: { duration: 0 } }
             },
             plugins: {
                 legend: { display: false },
@@ -290,10 +402,8 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
                 x: {
                     type: 'time',
                     time: {
-                        unit: 'hour',
-                        displayFormats: {
-                            hour: 'MMM d, ha'
-                        }
+                        unit: timeScale.unit,
+                        displayFormats: timeScale.displayFormats
                     },
                     grid: {
                         color: expandedTheme === 'clean' ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.05)',
@@ -330,7 +440,7 @@ export function createFullChart(canvasId, data, metric, label, unit = '') {
                 }
             }
         },
-        plugins: [{
+        plugins: fastRender ? [] : [{
             // Custom plugin for glow effect
             id: 'glowEffect',
             beforeDatasetsDraw: (chart) => {
@@ -580,7 +690,7 @@ async function updateHistoryCharts(range) {
         ];
 
         charts.forEach(({ canvasId, metric, label, unit }) => {
-            createFullChart(canvasId, data, metric, label, unit);
+            createFullChart(canvasId, data, metric, label, unit, { range });
         });
 
         console.log(`Updated ${charts.length} history charts with ${data.length} data points`);
@@ -713,7 +823,7 @@ async function renderCardHistoryChart(modal, config, range) {
         chartContainer.innerHTML = `<canvas id="${canvasId}"></canvas>`;
         
         // Render the chart
-        createFullChart(canvasId, data, config.metric, config.label, config.unit);
+        createFullChart(canvasId, data, config.metric, config.label, config.unit, { range });
     } catch (error) {
         if (requestId !== cardHistoryRequestId) {
             return;

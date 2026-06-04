@@ -432,14 +432,31 @@ async function checkModuleImportVersions() {
 
 async function checkHistoricalPagination() {
   const api = await readText('js/core/api.js');
+  const history = await readText('js/features/history.js');
   if (!api.includes('HISTORICAL_PAGE_SIZE')) {
     fail('fetchHistoricalData must page Supabase history results; default REST responses are capped at 1,000 rows');
   }
   if (!api.includes('&limit=${HISTORICAL_PAGE_SIZE}&offset=${offset}')) {
     fail('fetchHistoricalData must request paged Supabase results so all-time charts include recent rows');
   }
+  if (!api.includes('historicalDataCache') || !api.includes('cached.promise')) {
+    fail('fetchHistoricalData must cache in-flight and recent history requests so range switches do not refetch the same rows');
+  }
 
-  pass('historical data fetch paginates Supabase rows');
+  if (/delay\s*:\s*\([^)]*\)\s*=>\s*[^,\n}]*dataIndex/.test(history)) {
+    fail('history charts must not use per-point animation delays; long ranges should paint immediately');
+  }
+  if (!history.includes('FULL_CHART_POINT_LIMITS') || !history.includes('downsampleTimeSeries')) {
+    fail('history charts must bound long-range render points before passing data to Chart.js');
+  }
+  if (!history.includes('getFullChartTimeScale') || !history.includes("case 'all':") || !history.includes("unit: 'month'")) {
+    fail('history charts must use coarser time ticks for all-time ranges');
+  }
+  if (!history.includes('parsing: false') || !history.includes('animation: fastRender ? false')) {
+    fail('history charts must use fast Chart.js options for 30d+ rendering');
+  }
+
+  pass('historical data fetch paginates and long-range charts use fast render settings');
 }
 
 async function checkLiquidityBakingIssuanceState() {

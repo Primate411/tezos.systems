@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-04',
         entries: [
+            { type: '⚡', text: 'Historical charts now paint 30d, 90d, and all-time views faster with bounded render points and coarse long-range ticks' },
             { type: '🎨', text: 'Governance vote panels no longer repeat quorum and supermajority status below the ballot breakdown' },
             { type: '🎨', text: 'Visit streak notifications now follow the active theme and pop in with a brighter spring entrance' },
             { type: '🎨', text: 'Governance vote panels now put the Chamber summary at the top-left, remove the old time bar, and avoid duplicate path metrics' },

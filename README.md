@@ -224,8 +224,9 @@ node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
 
 - `npm run test:static`: JSON validity, generated governance freshness, local
   asset references, cache-stamp alignment, CSP domains, selector contracts,
-  launch-date wording, module import sanity, LB-aware issuance contracts, CSS
-  freshness, lockfile/tooling, and shared hook checks.
+  launch-date wording, module import sanity, historical chart pagination and
+  render-performance settings, LB-aware issuance contracts, CSS freshness,
+  lockfile/tooling, and shared hook checks.
 - `npm run test:smoke`: a Playwright browser run against a throwaway local
   server by default. It uses mocked live-data endpoints for deterministic
   feature flows.
