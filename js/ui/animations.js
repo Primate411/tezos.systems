@@ -3,8 +3,6 @@
  * Manages animation queue to prevent overlapping flips
  */
 
-import { sleep } from '../core/utils.js';
-
 // Import arcade effects (dynamic to avoid circular dependency)
 let arcadeEffects = null;
 try {
@@ -16,63 +14,6 @@ try {
 }
 
 const FLIP_DURATION = 600; // milliseconds - matches CSS transition
-const STAGGER_DELAY = 100; // milliseconds between card flips
-
-/**
- * Animation queue to prevent overlapping animations
- */
-class AnimationQueue {
-    constructor() {
-        this.queue = [];
-        this.isProcessing = false;
-    }
-
-    /**
-     * Add animation to queue
-     * @param {Function} animationFn - Async function that performs the animation
-     */
-    async add(animationFn) {
-        this.queue.push(animationFn);
-        if (!this.isProcessing) {
-            await this.process();
-        }
-    }
-
-    /**
-     * Process animation queue
-     */
-    async process() {
-        this.isProcessing = true;
-        while (this.queue.length > 0) {
-            const animation = this.queue.shift();
-            try {
-                await animation();
-            } catch (error) {
-                console.error('Animation error:', error);
-            }
-        }
-        this.isProcessing = false;
-    }
-
-    /**
-     * Clear all pending animations
-     */
-    clear() {
-        this.queue = [];
-    }
-
-    /**
-     * Get queue length
-     * @returns {number} Number of pending animations
-     */
-    get length() {
-        return this.queue.length;
-    }
-}
-
-// Global animation queue instance
-const animQueue = new AnimationQueue();
-
 /**
  * Flip a stat card with new value
  * @param {HTMLElement} cardElement - The stat card element
@@ -148,37 +89,6 @@ export async function flipCard(cardElement, newValue, formatter) {
 }
 
 /**
- * Update card value with flip animation (queued)
- * @param {string} cardId - ID of the stat card (data-stat attribute)
- * @param {string|number} newValue - New value to display
- * @param {Function} formatter - Formatter function for the value
- * @returns {Promise} Resolves when animation is queued
- */
-export async function updateStatWithAnimation(cardId, newValue, formatter) {
-    await animQueue.add(async () => {
-        const card = document.querySelector(`[data-stat="${cardId}"]`);
-        if (card) {
-            await flipCard(card, newValue, formatter);
-        }
-    });
-}
-
-/**
- * Update multiple stats with staggered animations
- * @param {Array} updates - Array of {cardId, value, formatter} objects
- * @returns {Promise} Resolves when all animations complete
- */
-export async function updateStatsWithStagger(updates) {
-    for (const update of updates) {
-        await updateStatWithAnimation(update.cardId, update.value, update.formatter);
-        // Add stagger delay
-        if (updates.indexOf(update) < updates.length - 1) {
-            await sleep(STAGGER_DELAY);
-        }
-    }
-}
-
-/**
  * Update stat value without animation (instant)
  * @param {string} cardId - ID of the stat card
  * @param {string|number} value - Value to display
@@ -242,66 +152,6 @@ export function showError(cardId, message = 'Error') {
         if (backValue) {
             backValue.classList.add('error-state');
             backValue.classList.remove('loading');
-        }
-    }
-}
-
-/**
- * Clear animation queue
- */
-export function clearAnimations() {
-    animQueue.clear();
-}
-
-/**
- * Check if animations are currently processing
- * @returns {boolean} True if animations are processing
- */
-export function isAnimating() {
-    return animQueue.isProcessing || animQueue.length > 0;
-}
-
-/**
- * Update circular progress ring for percentage stats
- * @param {string} cardId - ID of the stat card
- * @param {number} percentage - Percentage value (0-100)
- * @param {boolean} animate - Whether to animate the change
- */
-export function updateProgressRing(cardId, percentage, animate = true) {
-    // Only update rings for percentage-based stats
-    if (cardId !== 'tz4-adoption' && cardId !== 'issuance-rate') {
-        return;
-    }
-
-    // Calculate circumference based on card type
-    const circumference = cardId === 'tz4-adoption' ? 703.72 : 527.79; // 2πr
-
-    // Calculate offset (percentage from 0-100)
-    const offset = circumference - (percentage / 100 * circumference);
-
-    // Update both front and back rings
-    const frontRing = document.getElementById(`${cardId}-ring-front`);
-    const backRing = document.getElementById(`${cardId}-ring-back`);
-
-    if (frontRing) {
-        if (animate) {
-            // Smooth animation via CSS transition
-            requestAnimationFrame(() => {
-                frontRing.style.strokeDashoffset = offset;
-            });
-        } else {
-            // Instant update
-            frontRing.style.strokeDashoffset = offset;
-        }
-    }
-
-    if (backRing) {
-        if (animate) {
-            requestAnimationFrame(() => {
-                backRing.style.strokeDashoffset = offset;
-            });
-        } else {
-            backRing.style.strokeDashoffset = offset;
         }
     }
 }

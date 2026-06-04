@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-04',
         entries: [
+            { type: '🔧', text: 'Dead-code cleanup removed the disabled mobile tabs subsystem and stale helper exports without changing active dashboard flows' },
             { type: '⚡', text: 'Historical charts now paint 30d, 90d, and all-time views faster with bounded render points and coarse long-range ticks' },
             { type: '🎨', text: 'Governance vote panels no longer repeat quorum and supermajority status below the ballot breakdown' },
             { type: '🎨', text: 'Visit streak notifications now follow the active theme and pop in with a brighter spring entrance' },

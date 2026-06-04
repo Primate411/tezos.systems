@@ -234,15 +234,3 @@ export function calculatePercentage(part, total) {
     return (part / total) * 100;
 }
 
-/**
- * Specialized formatters for different stat types
- */
-export const formatters = {
-    tez: (amount) => formatXTZ(amount),
-    percentage: (value) => formatPercentage(value),
-    count: (num) => formatCount(num),
-    large: (num) => formatLarge(num),
-    timestamp: (date) => formatTimestamp(date)
-};
-
-

@@ -5,7 +5,7 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { formatNumber, escapeHtml } from '../core/utils.js';
+import { escapeHtml } from '../core/utils.js';
 import { fetchSharedStats } from '../core/api.js';
 import { fetchXTZPrice } from './price.js';
 import { letterGrade } from './baker-report-card.js';

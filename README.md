@@ -51,7 +51,7 @@ tezos.systems/
 │   │   ├── storage.js                 # localStorage/sessionStorage wrappers
 │   │   └── utils.js                   # Formatting, sanitization, utility helpers
 │   ├── features/                      # Governance, LB, bakers, market, feeds, widgets
-│   ├── ui/                            # Theme, share, gauge, tabs, title, animations
+│   ├── ui/                            # Theme, share, gauge, title, animations
 │   └── effects/                       # Matrix, themed backgrounds, audio/vibes
 ├── data/
 │   ├── protocol-data.json             # Activated protocol timeline and lore

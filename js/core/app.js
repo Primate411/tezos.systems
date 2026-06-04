@@ -4,7 +4,7 @@
  */
 
 import { fetchAllStats, fetchHeroStats, checkApiHealth, fetchVoteTally } from './api.js';
-import { initTheme, toggleTheme, openThemePicker, setTheme, getAvailableThemes } from '../ui/theme.js';
+import { initTheme, openThemePicker, setTheme, getAvailableThemes } from '../ui/theme.js';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
     formatCount,
@@ -210,8 +210,6 @@ function updateGovernanceBanner(stats, votingStatus, context = {}) {
     banner.className = `gov-countdown-banner gov-live gov-panel-action gov-phase-${phase}${spotlight ? ' gov-vote-spotlight' : ''}`;
 }
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
-// Mobile tabs disabled — single scrollable page
-// import { initTabs, updateOverviewSummary } from '../ui/tabs.js';
 import { initWhaleTracker } from '../features/whales.js';
 import { initSleepingGiants } from '../features/sleeping-giants.js';
 import { initPriceBar } from '../features/price.js';
@@ -868,9 +866,6 @@ async function updateStats(newStats) {
 
     // Update page title with live stats
     updatePageTitle(state.currentStats);
-
-    // Mobile overview summary disabled (tabs removed)
-    // updateOverviewSummary(state.currentStats);
 
     // Update network health pulse
     updateNetworkPulse();

@@ -13,32 +13,27 @@ const SOUND_PROFILES = {
     terminal: {
         click: { type: 'square', freq: 800, duration: 0.05, decay: 0.03 },
         hover: { type: 'square', freq: 400, duration: 0.02, decay: 0.01 },
-        activate: { type: 'square', freq: [200, 400, 800], duration: 0.15, decay: 0.1 },
-        trail: { type: 'square', freq: 120, duration: 0.01, decay: 0.005, volume: 0.02 }
+        activate: { type: 'square', freq: [200, 400, 800], duration: 0.15, decay: 0.1 }
     },
     signal: {
         click: { type: 'sine', freq: 880, duration: 0.08, decay: 0.05 },
         hover: { type: 'sine', freq: 660, duration: 0.03, decay: 0.02 },
-        activate: { type: 'sine', freq: [440, 660, 880], duration: 0.2, decay: 0.15 },
-        trail: { type: 'sine', freq: 220, duration: 0.015, decay: 0.01, volume: 0.015 }
+        activate: { type: 'sine', freq: [440, 660, 880], duration: 0.2, decay: 0.15 }
     },
     circuit: {
         click: { type: 'sawtooth', freq: 600, duration: 0.04, decay: 0.02 },
         hover: { type: 'triangle', freq: 300, duration: 0.02, decay: 0.01 },
-        activate: { type: 'sawtooth', freq: [150, 300, 600], duration: 0.12, decay: 0.08 },
-        trail: { type: 'triangle', freq: 100, duration: 0.008, decay: 0.004, volume: 0.02 }
+        activate: { type: 'sawtooth', freq: [150, 300, 600], duration: 0.12, decay: 0.08 }
     },
     glitch: {
         click: { type: 'sawtooth', freq: 'random', duration: 0.06, decay: 0.03 },
         hover: { type: 'square', freq: 'random', duration: 0.02, decay: 0.01 },
-        activate: { type: 'sawtooth', freq: [100, 800, 200, 1200], duration: 0.18, decay: 0.1 },
-        trail: { type: 'sawtooth', freq: 'random', duration: 0.01, decay: 0.005, volume: 0.015 }
+        activate: { type: 'sawtooth', freq: [100, 800, 200, 1200], duration: 0.18, decay: 0.1 }
     },
     network: {
         click: { type: 'sine', freq: 520, duration: 0.1, decay: 0.08 },
         hover: { type: 'sine', freq: 380, duration: 0.04, decay: 0.03 },
-        activate: { type: 'sine', freq: [260, 390, 520], duration: 0.25, decay: 0.2 },
-        trail: { type: 'sine', freq: 180, duration: 0.02, decay: 0.015, volume: 0.01 }
+        activate: { type: 'sine', freq: [260, 390, 520], duration: 0.25, decay: 0.2 }
     }
 };
 
@@ -71,13 +66,6 @@ export function initAudio() {
 export function toggleAudio() {
     audioEnabled = !audioEnabled;
     localStorage.setItem('ultraAudio', audioEnabled.toString());
-    return audioEnabled;
-}
-
-/**
- * Check if audio is enabled
- */
-export function isAudioEnabled() {
     return audioEnabled;
 }
 
@@ -195,22 +183,4 @@ export function playHover(mode) {
  */
 export function playActivate(mode) {
     playSound('activate', mode);
-}
-
-/**
- * Play subtle trail sound (throttled)
- */
-let lastTrailSound = 0;
-export function playTrail(mode) {
-    const now = Date.now();
-    if (now - lastTrailSound < 50) return; // Throttle to max 20/sec
-    lastTrailSound = now;
-    playSound('trail', mode);
-}
-
-/**
- * Get sound profile for a mode
- */
-export function getSoundProfile(mode) {
-    return SOUND_PROFILES[mode] || SOUND_PROFILES.terminal;
 }

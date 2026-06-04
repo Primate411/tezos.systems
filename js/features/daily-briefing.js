@@ -273,12 +273,6 @@ async function generate(stats, xtzPrice) {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
-export async function getBriefingSentences(stats, xtzPrice) {
-  if (!stats?.cycle) return { cycle: 0, sentences: [] };
-  const briefing = await generate(stats, xtzPrice);
-  return { cycle: briefing.cycle, sentences: briefing.sentences || [] };
-}
-
 function renderToDrawer(cycle, sentences) {
   const container = document.getElementById('drawer-network');
   if (!container) return;

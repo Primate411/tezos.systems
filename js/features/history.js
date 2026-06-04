@@ -699,12 +699,6 @@ async function updateHistoryCharts(range) {
     }
 }
 
-// Cleanup function to destroy all charts
-export function destroyAllCharts() {
-    Object.values(chartInstances).forEach(chart => chart.destroy());
-    Object.keys(chartInstances).forEach(key => delete chartInstances[key]);
-}
-
 // Card-to-metric mapping for history feature
 const CARD_METRICS = {
     'total-bakers': { metric: 'total_bakers', label: 'Total Bakers', unit: '' },

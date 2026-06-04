@@ -5,7 +5,7 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { formatNumber, escapeHtml, formatMutez } from '../core/utils.js';
+import { escapeHtml, formatMutez } from '../core/utils.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 
 const TZKT = API_URLS.tzkt;

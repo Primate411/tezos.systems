@@ -4338,215 +4338,6 @@ body.high-combo .stat-card {
 }
 
 /* ==========================================
-   Mobile Swipeable Tabs
-   ========================================== */
-
-.mobile-tabs {
-    display: none;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(15, 15, 26, 0.95);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid var(--glass-border);
-    padding: 0;
-    overflow: hidden;
-}
-
-.tab-list {
-    display: flex;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding: 0 8px;
-}
-
-.tab-list::-webkit-scrollbar {
-    display: none;
-}
-
-.tab-button {
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 12px 16px;
-    background: transparent;
-    border: none;
-    color: var(--text-tertiary);
-    font-size: 0.7rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    white-space: nowrap;
-}
-
-.tab-button::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%) scaleX(0);
-    width: 32px;
-    height: 2px;
-    background: var(--accent-cyan);
-    border-radius: 2px;
-    transition: transform 0.2s ease;
-}
-
-.tab-button.active {
-    color: var(--text-primary);
-}
-
-.tab-button.active::after {
-    transform: translateX(-50%) scaleX(1);
-}
-
-.tab-icon {
-    font-size: 1.2rem;
-    line-height: 1;
-}
-
-.tab-label {
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-[data-theme="matrix"] .tab-button::after {
-    background: #00ff00;
-}
-
-/* Tab panel states */
-body.mobile-tabs-active [data-tab-panel] {
-    display: none;
-}
-
-body.mobile-tabs-active [data-tab-panel].tab-active {
-    display: block;
-    animation: tabFadeIn 0.3s ease;
-}
-
-body.mobile-tabs-active .mobile-overview-summary.tab-active {
-    display: grid;
-}
-
-@keyframes tabFadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Slide animations */
-body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-left {
-    animation: slideFromLeft 0.3s ease;
-}
-
-body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-right {
-    animation: slideFromRight 0.3s ease;
-}
-
-@keyframes slideFromLeft {
-    from {
-        opacity: 0;
-        transform: translateX(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes slideFromRight {
-    from {
-        opacity: 0;
-        transform: translateX(-30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-/* Mobile tab adjustments */
-@media (max-width: 767px) {
-    .mobile-tabs {
-        display: block;
-    }
-    
-    /* Adjust header for mobile tabs */
-    body.mobile-tabs-active .header {
-        padding-top: 2rem;
-        padding-bottom: 1.5rem;
-    }
-    
-    body.mobile-tabs-active .header-content {
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-    
-    body.mobile-tabs-active .title {
-        font-size: 1.5rem;
-    }
-    
-    /* Hide section headers in tab mode (redundant with tab labels) */
-    body.mobile-tabs-active .section-header {
-        display: none;
-    }
-
-    /* Keep titles visible for My Baker and Calculator sections */
-    body.mobile-tabs-active .my-baker-section .section-header {
-        display: flex;
-    }
-    
-    /* Adjust main content padding */
-    body.mobile-tabs-active .main-content {
-        padding-top: 1rem;
-    }
-    
-    /* Small gap between mobile tab bar and upgrade clock card */
-    body.mobile-tabs-active .upgrade-clock {
-        margin-top: 9px;
-    }
-
-    /* Make sections full width */
-    body.mobile-tabs-active .stats-section {
-        padding: 0 1rem;
-    }
-    
-    /* Swipe hint - subtle */
-    body.mobile-tabs-active .main-content::after {
-        content: '';
-        display: block;
-        height: 40px;
-    }
-}
-
-/* Reduce motion */
-@media (prefers-reduced-motion: reduce) {
-    .tab-button::after {
-        transition: none;
-    }
-    
-    body.mobile-tabs-active [data-tab-panel].tab-active {
-        animation: none;
-    }
-    
-    body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-left,
-    body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-right {
-        animation: none;
-    }
-}
-
-/* ==========================================
    Whale Tracker Section
    ========================================== */
 
@@ -4777,24 +4568,6 @@ body.mobile-tabs-active [data-tab-panel].tab-entering.slide-from-right {
     }
 }
 
-/* Mobile tabs integration - whale section shows with overview only if enabled */
-body.mobile-tabs-active .whale-section {
-    display: none !important;
-}
-
-body.mobile-tabs-active[data-active-tab="overview"] .whale-section.visible {
-    display: block !important;
-}
-
-/* Mobile tabs integration - my-baker & calculator show with overview only if enabled */
-body.mobile-tabs-active .my-baker-section {
-    display: none !important;
-}
-
-body.mobile-tabs-active[data-active-tab="overview"] .my-baker-section.visible {
-    display: block !important;
-}
-
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
     .whale-tx-new,
@@ -4870,15 +4643,6 @@ body.mobile-tabs-active[data-active-tab="overview"] .my-baker-section.visible {
 
 .toggleable-section.visible {
     display: block;
-}
-
-/* Mobile tabs integration for toggleable sections */
-body.mobile-tabs-active .toggleable-section {
-    display: none !important;
-}
-
-body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible {
-    display: block !important;
 }
 
 #tezos-stats-toggle {
@@ -5409,15 +5173,6 @@ body.mobile-tabs-active[data-active-tab="overview"] .toggleable-section.visible 
     .giant-balance {
         font-size: 1.2rem;
     }
-}
-
-/* Mobile tabs integration */
-body.mobile-tabs-active .giants-section {
-    display: none !important;
-}
-
-body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
-    display: block !important;
 }
 
 /* Reduced motion */
@@ -7883,11 +7638,6 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
 [data-theme="ember"] .share-action-btn:hover { border-color: #FF9F43; color: #FF9F43; }
 [data-theme="signal"] .share-action-btn:hover { border-color: #00FFC8; color: #00FFC8; }
 
-/* --- Tab button --- */
-[data-theme="void"] .tab-button::after { background: #8B5CF6; }
-[data-theme="ember"] .tab-button::after { background: #FF9F43; }
-[data-theme="signal"] .tab-button::after { background: #00FFC8; }
-
 /* --- Whale tracker --- */
 [data-theme="void"] .whale-tx:hover { border-color: rgba(139, 92, 246, 0.3); }
 [data-theme="void"] .whale-tx-amount .xtz { color: #8B5CF6; }
@@ -8418,9 +8168,6 @@ body.mobile-tabs-active[data-active-tab="overview"] .giants-section.visible {
     border-color: #CBD5E1;
     color: #2563EB;
 }
-
-/* Tab button */
-[data-theme="clean"] .tab-button::after { background: #2563EB; }
 
 /* Whale tracker */
 [data-theme="clean"] .whale-tx:hover { border-color: #CBD5E0; }
@@ -9271,9 +9018,6 @@ body {
 /* Share actions */
 [data-theme="dark"] .share-action-btn:hover { border-color: #C8C8C8; color: #C8C8C8; }
 
-/* Tab button */
-[data-theme="dark"] .tab-button::after { background: #C8C8C8; }
-
 /* Whale transactions */
 [data-theme="dark"] .whale-tx:hover { border-color: #484848; }
 [data-theme="dark"] .whale-tx-amount .xtz { color: #C8C8C8; }
@@ -9780,8 +9524,6 @@ body {
 [data-theme="bubblegum"] .stat-card.hex-active::before { color: #FF69B4; }
 
 [data-theme="bubblegum"] .share-action-btn:hover { border-color: #FF69B4; color: #FF69B4; }
-
-[data-theme="bubblegum"] .tab-button::after { background: #FF69B4; }
 
 [data-theme="bubblegum"] .whale-tx:hover { border-color: rgba(255, 105, 180, 0.3); }
 [data-theme="bubblegum"] .whale-tx-amount .xtz { color: #FF69B4; }
@@ -10704,60 +10446,6 @@ body {
 
 .offline-banner.hidden {
     transform: translateY(-100%);
-}
-
-/* ==========================================
-   MOBILE OVERVIEW SUMMARY
-   ========================================== */
-
-.mobile-overview-summary {
-    display: none; /* Only visible on mobile */
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 0 16px 16px;
-}
-
-.mobile-tabs-active .mobile-overview-summary {
-    display: grid;
-}
-
-/* Hide on non-overview tabs */
-.mobile-tabs-active [data-active-tab]:not([data-active-tab="overview"]) ~ .mobile-overview-summary,
-body:not([data-active-tab="overview"]) .mobile-overview-summary {
-    display: none;
-}
-
-body[data-active-tab="overview"] .mobile-overview-summary {
-    display: grid;
-}
-
-/* Only show when mobile tabs active AND overview tab selected */
-body:not(.mobile-tabs-active) .mobile-overview-summary {
-    display: none !important;
-}
-
-.overview-metric {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    padding: 14px 16px;
-    text-align: center;
-}
-
-.overview-metric-label {
-    font-size: 0.65rem;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--text-muted);
-    margin-bottom: 6px;
-    font-family: 'Orbitron', monospace;
-}
-
-.overview-metric-value {
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: var(--accent-cyan);
-    font-family: 'Orbitron', monospace;
 }
 
 /* ==========================================

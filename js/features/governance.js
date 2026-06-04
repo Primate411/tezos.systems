@@ -329,14 +329,6 @@ export async function getUpgradeCount() {
 }
 
 /**
- * Get current protocol info
- */
-export async function getCurrentProtocol() {
-    const protocols = await fetchProtocols();
-    return protocols.find(p => p.isCurrent) || protocols[protocols.length - 1];
-}
-
-/**
  * Format time until next voting milestone
  */
 export function formatTimeRemaining(endTime) {

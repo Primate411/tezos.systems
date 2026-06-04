@@ -4,7 +4,7 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { formatNumber, escapeHtml, formatMutez } from '../core/utils.js';
+import { escapeHtml, formatMutez } from '../core/utils.js';
 import { letterGrade, computeBakerScores } from './baker-report-card.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 import { isValidAddress } from './my-baker.js';

@@ -250,19 +250,6 @@ function closeThemePicker() {
 }
 
 /**
- * Cycle to next theme (kept for backward compatibility)
- */
-export function toggleTheme() {
-    const current = getCurrentTheme();
-    const currentIndex = THEMES.indexOf(current);
-    const nextIndex = (currentIndex + 1) % THEMES.length;
-    const next = THEMES[nextIndex];
-
-    setTheme(next);
-    localStorage.setItem(THEME_KEY, next);
-}
-
-/**
  * Set theme
  * @param {string} theme - Theme to set ('default' or 'matrix')
  * @param {boolean} isPreview - If true, don't update UI elements (for hover preview)
@@ -360,13 +347,4 @@ export function getThemeColors(theme) {
         textPrimary: colors.text,
         textSecondary: colors.text + '99' // 60% opacity variant
     };
-}
-
-/**
- * Clear saved theme preference
- * Will revert to default theme
- */
-export function clearThemePreference() {
-    localStorage.removeItem(THEME_KEY);
-    setTheme(DEFAULT_THEME);
 }

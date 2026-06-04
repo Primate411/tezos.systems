@@ -2,7 +2,7 @@
  * Objkt NFT Profile - Standalone pane with toggle
  */
 
-import { fetchObjktProfile, resolveIpfs } from './objkt.js';
+import { fetchObjktProfile } from './objkt.js';
 import { escapeHtml } from '../core/utils.js';
 
 const STORAGE_KEY = 'tezos-systems-objkt-address';

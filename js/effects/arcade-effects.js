@@ -3,7 +3,7 @@
  * 5 distinct sub-modes for tezos.systems
  */
 
-import { initAudio, playClick, playHover, playActivate, playTrail, toggleAudio, isAudioEnabled } from './audio.js';
+import { initAudio, playClick, playHover, playActivate, toggleAudio } from './audio.js';
 import { throttle, debounce } from '../core/utils.js';
 
 const ULTRA_MODES = {
