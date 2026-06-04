@@ -21,6 +21,7 @@ import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveA
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js';
 import { initLiquidityBaking } from '../features/liquidity-baking.js';
+import { initTz4AdoptionChamber } from '../features/tz4-adoption.js';
 
 let lastGovernancePromptTally = null;
 
@@ -281,6 +282,7 @@ async function init() {
     // Initialize The Chamber governance modal
     safe('chamber', initChamber);
     safe('liquidityBaking', initLiquidityBaking);
+    safe('tz4AdoptionChamber', initTz4AdoptionChamber);
     
     // Initialize changelog modal
     safe('changelog', initChangelog);
@@ -696,9 +698,6 @@ function updateRewardAccountsBreakdown(totalDelegators, totalStakers) {
  * Update displayed statistics
  */
 async function updateStats(newStats) {
-    // Calculate targets
-    const tz4Target = Math.ceil(newStats.totalBakers * 0.5);
-    
     // First load - update instantly
     if (!state.lastUpdate) {
         console.log('First load - updating instantly');
@@ -708,7 +707,7 @@ async function updateStats(newStats) {
         updateStatInstant('tz4-adoption', newStats.tz4Percentage,
             (val) => `${val.toFixed(1)} / ${STAKING_TARGET}%`);
         const tz4Desc = document.getElementById('tz4-description');
-        if (tz4Desc) tz4Desc.textContent = `${newStats.tz4Bakers} / ${tz4Target} bakers`;
+        if (tz4Desc) tz4Desc.textContent = `${newStats.tz4Bakers} / ${newStats.totalBakers} bakers active`;
         updateStatInstant('cycle-progress', newStats.cycle, formatCount);
         document.getElementById('cycle-description').textContent = 
             `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
@@ -826,7 +825,7 @@ async function updateStats(newStats) {
         
         // Update descriptions
         const tz4Desc2 = document.getElementById('tz4-description');
-        if (tz4Desc2) tz4Desc2.textContent = `${newStats.tz4Bakers} / ${tz4Target} bakers`;
+        if (tz4Desc2) tz4Desc2.textContent = `${newStats.tz4Bakers} / ${newStats.totalBakers} bakers active`;
         document.getElementById('cycle-description').textContent = 
             `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
         updateRewardAccountsBreakdown(newStats.totalDelegators, newStats.totalStakers);
@@ -2491,6 +2490,7 @@ function initOfflineIndicator() {
 //   #chamber           → open The Chamber governance modal
 //   #lb                → open Liquidity Baking monitor
 //   #lb-tile           → scroll to the Liquidity Baking dashboard tile
+//   #tz4               → open tz4 Adoption Chamber
 //   #theme=dark        → switch to theme
 //   #section=consensus → scroll to section
 function applyDeepLink() {
@@ -2627,6 +2627,13 @@ function applyDeepLink() {
         import('../features/liquidity-baking.js')
             .then(({ openLiquidityBakingMonitor }) => openLiquidityBakingMonitor())
             .catch((error) => console.warn('Failed to open Liquidity Baking monitor', error));
+    }
+
+    // #tz4 / #tz4-adoption
+    if (params.has('tz4') || hash === 'tz4' || params.has('tz4-adoption') || hash === 'tz4-adoption') {
+        import('../features/tz4-adoption.js')
+            .then(({ openTz4AdoptionChamber }) => openTz4AdoptionChamber())
+            .catch((error) => console.warn('Failed to open tz4 Adoption Chamber', error));
     }
 
     // #calculator

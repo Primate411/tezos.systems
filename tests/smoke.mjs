@@ -77,6 +77,7 @@ const browserRoutes = [
 
 const SAMPLE_ADDRESS = 'tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9';
 const SAMPLE_ADDRESS_2 = 'tz1hThMBD8jQjFt78heuCnKxJnJtQo9Ao25X';
+const SAMPLE_ADDRESS_3 = 'tz1PendingBaker1111111111111111111111';
 
 function usage() {
   return `
@@ -171,6 +172,20 @@ const sampleBakers = [
     bakingPower: 650000000000,
     consensusAddress: null,
     balance: 600000000000,
+    software: 'Octez'
+  },
+  {
+    address: SAMPLE_ADDRESS_3,
+    alias: 'Pending Baker',
+    stakingBalance: 700000000000,
+    externalStakedBalance: 100000000000,
+    externalDelegatedBalance: 110000000000,
+    numDelegators: 18,
+    stakersCount: 6,
+    stakedBalance: 420000000000,
+    bakingPower: 420000000000,
+    consensusAddress: null,
+    balance: 500000000000,
     software: 'Octez'
   }
 ];
@@ -377,7 +392,26 @@ async function installFeatureMocks(context) {
       if (url.includes('/delegates?active=true&limit=')) return fulfillJson(route, sampleBakers.map((b) => b.address));
       if (url.includes('/rights/count?')) return fulfillText(route, '0');
       if (url.includes('/operations/update_consensus_key')) {
-        return fulfillJson(route, [{ sender: { address: SAMPLE_ADDRESS }, publicKeyHash: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQa' }]);
+        return fulfillJson(route, [
+          {
+            level: 12000000,
+            timestamp: new Date(Date.now() - 14 * 86400000).toISOString(),
+            sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+            publicKey: 'BLpkSmokeActiveConsensusKey111111111111111111111111111111111111111111111111',
+            publicKeyHash: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQa',
+            activationCycle: 1136,
+            status: 'applied'
+          },
+          {
+            level: 12345000,
+            timestamp: new Date(Date.now() - 1 * 86400000).toISOString(),
+            sender: { address: SAMPLE_ADDRESS_3, alias: 'Pending Baker' },
+            publicKey: 'BLpkSmokePendingConsensusKey1111111111111111111111111111111111111111111111',
+            publicKeyHash: 'tz4PendingPendingPendingPendingPendingPend',
+            activationCycle: 1148,
+            status: 'applied'
+          }
+        ]);
       }
       if (url.includes('/operations/transactions/count')) return fulfillJson(route, 12345);
       if (url.includes('/operations/transactions?')) {
@@ -1024,8 +1058,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     return /LB/.test(breakdown);
   }, null, { timeout: 10000 });
   await page.locator('#lb-entry-card[data-lb-live="true"][data-lb-refresh-interval="60000"]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('.stat-card[data-stat="tz4-adoption"].chamber-entry-card .chamber-expand-cue').waitFor({ state: 'visible', timeout: 10000 });
   await expectCount(page, '#chamber-entry-card .card-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber card link');
   await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb-tile"]', 1, 'governance testing period LB tile link');
+  await expectCount(page, '.feature-copy-link[data-copy-hash="#tz4"]', 1, 'governance testing period tz4 launcher link');
 
   const dashboardState = await page.evaluate(() => ({
     banner: document.querySelector('#gov-countdown-banner')?.innerText || '',
@@ -1044,6 +1080,13 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     lbEntryLive: document.querySelector('#lb-entry-card')?.dataset.lbLive || '',
     lbEntryRefreshInterval: document.querySelector('#lb-entry-card')?.dataset.lbRefreshInterval || '',
     lbEntryRefreshedAt: document.querySelector('#lb-entry-card')?.dataset.lbRefreshedAt || '',
+    tz4TileValue: document.querySelector('#tz4-adoption-front')?.textContent?.trim() || '',
+    tz4TileDescription: document.querySelector('#tz4-description')?.textContent?.trim() || '',
+    tz4TileWired: document.querySelector('[data-stat="tz4-adoption"]')?.dataset.tz4ChamberWired || '',
+    tz4TileRole: document.querySelector('[data-stat="tz4-adoption"]')?.getAttribute('role') || '',
+    tz4TileTabIndex: document.querySelector('[data-stat="tz4-adoption"]')?.getAttribute('tabindex') || '',
+    tz4TileCue: Boolean(document.querySelector('[data-stat="tz4-adoption"] .chamber-expand-cue')),
+    extraTz4EntryCard: Boolean(document.querySelector('#tz4-entry-card')),
     intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
   }));
   assert(/TESTING/.test(dashboardState.banner), `governance testing period: banner should say TESTING, saw ${dashboardState.banner}`);
@@ -1064,20 +1107,32 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.lbEntryLive === 'true', `governance testing period: LB entry should have live refresh enabled, saw ${dashboardState.lbEntryLive}`);
   assert(dashboardState.lbEntryRefreshInterval === '60000', `governance testing period: LB entry refresh interval mismatch: ${dashboardState.lbEntryRefreshInterval}`);
   assert(Number(dashboardState.lbEntryRefreshedAt) > 0, `governance testing period: LB entry refreshed timestamp missing: ${dashboardState.lbEntryRefreshedAt}`);
+  assert(dashboardState.tz4TileValue === '33.3 / 50%', `governance testing period: tz4 tile value mismatch: ${dashboardState.tz4TileValue}`);
+  assert(/1 \/ 3 bakers active/.test(dashboardState.tz4TileDescription), `governance testing period: tz4 tile description mismatch: ${dashboardState.tz4TileDescription}`);
+  assert(dashboardState.tz4TileWired === '1', `governance testing period: tz4 tile wiring missing: ${dashboardState.tz4TileWired}`);
+  assert(dashboardState.tz4TileRole === 'button', `governance testing period: tz4 tile role mismatch: ${dashboardState.tz4TileRole}`);
+  assert(dashboardState.tz4TileTabIndex === '0', `governance testing period: tz4 tile keyboard focus mismatch: ${dashboardState.tz4TileTabIndex}`);
+  assert(dashboardState.tz4TileCue, 'governance testing period: tz4 tile expand cue missing');
+  assert(!dashboardState.extraTz4EntryCard, 'governance testing period: tz4 should use the existing Adoption tile, not a separate entry card');
   assert(dashboardState.intervalDelays.includes(60000), `governance testing period: LB entry 60s refresh timer was not registered: ${dashboardState.intervalDelays.join(', ')}`);
+
+  await page.locator('[data-stat="tz4-adoption"] .card-front').click();
+  await page.locator('#tz4-adoption-modal.active .tz4-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#tz4-adoption-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#tz4-adoption-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
   await page.locator('#gov-countdown-banner').click();
   await page.locator('.chamber-overlay.active .chamber-content').waitFor({ state: 'visible', timeout: 10000 });
-  await page.locator('.chamber-badge').waitFor({ state: 'visible', timeout: 10000 });
-  await page.locator('.gauge-context-label').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#chamber-modal.active .chamber-badge').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#chamber-modal.active .gauge-context-label').waitFor({ state: 'visible', timeout: 10000 });
   const chamberState = await page.evaluate(() => ({
-    badge: document.querySelector('.chamber-badge')?.textContent?.trim() || '',
-    badgeClasses: document.querySelector('.chamber-badge')?.className || '',
-    gaugeLabel: document.querySelector('.gauge-context-label')?.textContent?.trim() || '',
-    gaugeMeta: document.querySelector('.gauge-context-meta')?.textContent?.trim() || '',
-    thresholdNote: document.querySelector('.gauge-threshold-note')?.textContent?.trim() || '',
-    svgTextCount: document.querySelectorAll('.gauge-svg text').length,
-    footer: document.querySelector('.chamber-footer')?.textContent || ''
+    badge: document.querySelector('#chamber-modal .chamber-badge')?.textContent?.trim() || '',
+    badgeClasses: document.querySelector('#chamber-modal .chamber-badge')?.className || '',
+    gaugeLabel: document.querySelector('#chamber-modal .gauge-context-label')?.textContent?.trim() || '',
+    gaugeMeta: document.querySelector('#chamber-modal .gauge-context-meta')?.textContent?.trim() || '',
+    thresholdNote: document.querySelector('#chamber-modal .gauge-threshold-note')?.textContent?.trim() || '',
+    svgTextCount: document.querySelectorAll('#chamber-modal .gauge-svg text').length,
+    footer: document.querySelector('#chamber-modal .chamber-footer')?.textContent || ''
   }));
   assert(chamberState.badge === 'Cooldown', `governance testing period: Chamber badge should be Cooldown, saw ${chamberState.badge}`);
   assert(chamberState.badgeClasses.includes('cooldown') && !chamberState.badgeClasses.includes('live'), `governance testing period: Chamber badge class mismatch: ${chamberState.badgeClasses}`);
@@ -1114,33 +1169,36 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('#liquidity-baking-modal.active .lb-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#lb-baker-vote-list .lb-table-row').length >= 4, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#lb-lore-body .lb-lore-item').length >= 3, null, { timeout: 10000 });
-  const lbState = await page.evaluate(() => ({
-    title: document.querySelector('#liquidity-baking-modal .chamber-title')?.textContent || '',
-    ema: document.querySelector('.lb-ema-value')?.textContent || '',
-    status: document.querySelector('.lb-status-banner')?.textContent || '',
-    live: document.querySelector('#liquidity-baking-modal')?.dataset.lbLive || '',
-    refreshState: document.querySelector('#lb-refresh-state')?.textContent || '',
-    recentRows: document.querySelectorAll('.lb-recent-table .lb-table-row').length,
-    bakerRows: document.querySelectorAll('#lb-baker-vote-list .lb-table-row').length,
-    filters: document.querySelectorAll('.lb-filter-btn').length,
-    recentSystemLinks: document.querySelectorAll('.lb-recent-table .lb-baker-name-link[href^="#baker="]').length,
-    recentTzktLinks: document.querySelectorAll('.lb-recent-table .lb-baker-source-link[href^="https://tzkt.io/"]').length,
-    bakerSystemLinks: document.querySelectorAll('#lb-baker-vote-list .lb-baker-name-link[href^="#baker="]').length,
-    bakerTzktLinks: document.querySelectorAll('#lb-baker-vote-list .lb-baker-source-link[href^="https://tzkt.io/"]').length,
-    firstSystemHref: document.querySelector('.lb-recent-table .lb-baker-name-link')?.getAttribute('href') || '',
-    firstTzktHref: document.querySelector('.lb-recent-table .lb-baker-source-link')?.getAttribute('href') || '',
-    systemBrand: document.querySelector('.lb-system-brand')?.textContent?.trim() || '',
-    emaMeta: document.querySelector('#lb-ema-meta')?.textContent?.trim() || '',
-    explainer: document.querySelector('.lb-explainer')?.textContent?.trim() || '',
-    helpCount: document.querySelectorAll('#liquidity-baking-modal .lb-help').length,
-    loreExpanded: document.querySelector('#lb-lore-toggle')?.getAttribute('aria-expanded') || '',
-    loreHidden: document.querySelector('#lb-lore-body-wrap')?.hidden ?? null,
-    loreCollapsed: document.querySelector('.lb-lore-panel')?.dataset.lbLoreCollapsed || '',
-    lore: document.querySelector('#lb-lore-body')?.textContent?.trim() || '',
-    loreItems: document.querySelectorAll('#lb-lore-body .lb-lore-item').length,
-    readMoreLinks: document.querySelectorAll('#liquidity-baking-modal a[href*="liquidity_baking"], #liquidity-baking-modal a[href*="liquidity-baking"]').length,
-    intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
-  }));
+  const lbState = await page.evaluate(() => {
+    const modal = document.querySelector('#liquidity-baking-modal');
+    return {
+      title: modal?.querySelector('.chamber-title')?.textContent || '',
+      ema: modal?.querySelector('.lb-ema-value')?.textContent || '',
+      status: modal?.querySelector('.lb-status-banner')?.textContent || '',
+      live: modal?.dataset.lbLive || '',
+      refreshState: modal?.querySelector('#lb-refresh-state')?.textContent || '',
+      recentRows: modal?.querySelectorAll('.lb-recent-table .lb-table-row').length || 0,
+      bakerRows: modal?.querySelectorAll('#lb-baker-vote-list .lb-table-row').length || 0,
+      filters: modal?.querySelectorAll('.lb-filter-btn').length || 0,
+      recentSystemLinks: modal?.querySelectorAll('.lb-recent-table .lb-baker-name-link[href^="#baker="]').length || 0,
+      recentTzktLinks: modal?.querySelectorAll('.lb-recent-table .lb-baker-source-link[href^="https://tzkt.io/"]').length || 0,
+      bakerSystemLinks: modal?.querySelectorAll('#lb-baker-vote-list .lb-baker-name-link[href^="#baker="]').length || 0,
+      bakerTzktLinks: modal?.querySelectorAll('#lb-baker-vote-list .lb-baker-source-link[href^="https://tzkt.io/"]').length || 0,
+      firstSystemHref: modal?.querySelector('.lb-recent-table .lb-baker-name-link')?.getAttribute('href') || '',
+      firstTzktHref: modal?.querySelector('.lb-recent-table .lb-baker-source-link')?.getAttribute('href') || '',
+      systemBrand: modal?.querySelector('.lb-system-brand')?.textContent?.trim() || '',
+      emaMeta: modal?.querySelector('#lb-ema-meta')?.textContent?.trim() || '',
+      explainer: modal?.querySelector('.lb-explainer')?.textContent?.trim() || '',
+      helpCount: modal?.querySelectorAll('.lb-help').length || 0,
+      loreExpanded: modal?.querySelector('#lb-lore-toggle')?.getAttribute('aria-expanded') || '',
+      loreHidden: modal?.querySelector('#lb-lore-body-wrap')?.hidden ?? null,
+      loreCollapsed: modal?.querySelector('.lb-lore-panel')?.dataset.lbLoreCollapsed || '',
+      lore: modal?.querySelector('#lb-lore-body')?.textContent?.trim() || '',
+      loreItems: modal?.querySelectorAll('#lb-lore-body .lb-lore-item').length || 0,
+      readMoreLinks: modal?.querySelectorAll('a[href*="liquidity_baking"], a[href*="liquidity-baking"]').length || 0,
+      intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
+    };
+  });
   assert(/Liquidity Baking Monitor/.test(lbState.title), `governance testing period: LB modal title mismatch: ${lbState.title}`);
   assert(lbState.ema === '51.5%', `governance testing period: LB EMA should show mocked value, saw ${lbState.ema}`);
   assert(/SUBSIDY DISABLED/.test(lbState.status), `governance testing period: LB status mismatch: ${lbState.status}`);
@@ -1167,10 +1225,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/Granada/.test(lbState.lore) && /Ithaca/.test(lbState.lore) && /Jakarta/.test(lbState.lore), `governance testing period: LB lore should expose Granada/Ithaca/Jakarta, saw ${lbState.lore}`);
   await page.locator('#lb-lore-toggle').click();
   const lbLoreExpandedState = await page.evaluate(() => ({
-    expanded: document.querySelector('#lb-lore-toggle')?.getAttribute('aria-expanded') || '',
-    hidden: document.querySelector('#lb-lore-body-wrap')?.hidden ?? null,
-    collapsed: document.querySelector('.lb-lore-panel')?.dataset.lbLoreCollapsed || '',
-    items: document.querySelectorAll('#lb-lore-body .lb-lore-item').length
+    expanded: document.querySelector('#liquidity-baking-modal #lb-lore-toggle')?.getAttribute('aria-expanded') || '',
+    hidden: document.querySelector('#liquidity-baking-modal #lb-lore-body-wrap')?.hidden ?? null,
+    collapsed: document.querySelector('#liquidity-baking-modal .lb-lore-panel')?.dataset.lbLoreCollapsed || '',
+    items: document.querySelectorAll('#liquidity-baking-modal #lb-lore-body .lb-lore-item').length
   }));
   assert(lbLoreExpandedState.expanded === 'true', `governance testing period: LB lore did not expand, saw aria-expanded=${lbLoreExpandedState.expanded}`);
   assert(lbLoreExpandedState.hidden === false, 'governance testing period: LB lore body stayed hidden after expand');
@@ -1204,6 +1262,66 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(Number(smoothRefreshState.topLevel) > Number(smoothRefreshStart.beforeLevel), `governance testing period: LB top row should advance, saw ${smoothRefreshStart.beforeLevel} -> ${smoothRefreshState.topLevel}`);
   assert(smoothRefreshState.newRows > 0, 'governance testing period: LB refresh should mark newly inserted rows');
   assert(smoothRefreshState.recentRows <= 12, `governance testing period: LB recent rows should stay capped, saw ${smoothRefreshState.recentRows}`);
+
+  await page.locator('#liquidity-baking-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#liquidity-baking-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.evaluate((addr) => {
+    localStorage.setItem('tezos-systems-my-baker-address', addr);
+    window.location.hash = 'tz4';
+  }, SAMPLE_ADDRESS);
+  await page.locator('#tz4-adoption-modal.active .tz4-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#tz4-baker-status-list .tz4-table-row').length >= 3, null, { timeout: 10000 });
+  const tz4State = await page.evaluate(() => ({
+    title: document.querySelector('#tz4-adoption-modal .chamber-title')?.textContent || '',
+    badge: document.querySelector('#tz4-adoption-modal .chamber-badge')?.textContent || '',
+    live: document.querySelector('#tz4-adoption-modal')?.dataset.tz4Live || '',
+    refreshState: document.querySelector('#tz4-refresh-state')?.textContent || '',
+    hero: document.querySelector('#tz4-adoption-modal .tz4-hero-number')?.textContent || '',
+    heroCopy: document.querySelector('#tz4-adoption-modal .tz4-hero-copy')?.textContent || '',
+    legend: document.querySelector('#tz4-adoption-modal .tz4-adoption-legend')?.textContent || '',
+    saved: document.querySelector('#tz4-adoption-modal .tz4-saved-baker')?.textContent || '',
+    firstMovers: document.querySelector('#tz4-adoption-modal .tz4-first-list')?.textContent || '',
+    rows: document.querySelectorAll('#tz4-baker-status-list .tz4-table-row').length,
+    activeRows: document.querySelectorAll('#tz4-baker-status-list [data-tz4-status="active"]').length,
+    pendingRows: document.querySelectorAll('#tz4-baker-status-list [data-tz4-status="pending"]').length,
+    notYetRows: document.querySelectorAll('#tz4-baker-status-list [data-tz4-status="not-yet"]').length,
+    filters: document.querySelectorAll('#tz4-adoption-modal [data-tz4-filter]').length,
+    systemLinks: document.querySelectorAll('#tz4-adoption-modal .lb-baker-name-link[href^="#baker="]').length,
+    tzktLinks: document.querySelectorAll('#tz4-adoption-modal .lb-baker-source-link[href^="https://tzkt.io/"]').length,
+    footer: document.querySelector('#tz4-adoption-modal .chamber-footer')?.textContent || '',
+    launcherCopy: document.querySelector('.feature-copy-link[data-copy-hash="#tz4"]')?.getAttribute('aria-label') || '',
+    intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
+  }));
+  assert(/tz4 Adoption Chamber/.test(tz4State.title), `governance testing period: tz4 modal title mismatch: ${tz4State.title}`);
+  assert(/33\.3% active/.test(tz4State.badge), `governance testing period: tz4 badge mismatch: ${tz4State.badge}`);
+  assert(tz4State.live === 'true', `governance testing period: tz4 modal live refresh should be active, saw ${tz4State.live}`);
+  assert(/auto-refresh 60s/.test(tz4State.refreshState), `governance testing period: tz4 refresh label mismatch: ${tz4State.refreshState}`);
+  assert(tz4State.hero === '33.3%', `governance testing period: tz4 hero adoption mismatch: ${tz4State.hero}`);
+  assert(/1 of 3 active bakers/.test(tz4State.heroCopy), `governance testing period: tz4 hero copy mismatch: ${tz4State.heroCopy}`);
+  assert(/1 active/.test(tz4State.legend) && /1 pending/.test(tz4State.legend) && /1 not yet/.test(tz4State.legend), `governance testing period: tz4 legend mismatch: ${tz4State.legend}`);
+  assert(/QA Baker/.test(tz4State.saved) && /Active/.test(tz4State.saved), `governance testing period: tz4 saved baker status mismatch: ${tz4State.saved}`);
+  assert(/QA Baker/.test(tz4State.firstMovers) && /cycle 1,136/.test(tz4State.firstMovers), `governance testing period: tz4 first mover list mismatch: ${tz4State.firstMovers}`);
+  assert(tz4State.rows >= 3, `governance testing period: tz4 table rows missing, saw ${tz4State.rows}`);
+  assert(tz4State.activeRows >= 1, 'governance testing period: tz4 active row missing');
+  assert(tz4State.pendingRows >= 1, 'governance testing period: tz4 pending row missing');
+  assert(tz4State.notYetRows >= 1, 'governance testing period: tz4 not-yet row missing');
+  assert(tz4State.filters === 4, `governance testing period: tz4 filter count mismatch: ${tz4State.filters}`);
+  assert(tz4State.systemLinks >= 3, `governance testing period: tz4 Tezos.Systems baker links missing, saw ${tz4State.systemLinks}`);
+  assert(tz4State.tzktLinks >= 3, `governance testing period: tz4 TzKT links missing, saw ${tz4State.tzktLinks}`);
+  assert(/Direct: \/#tz4/.test(tz4State.footer), `governance testing period: tz4 direct footer missing: ${tz4State.footer}`);
+  assert(/Copy tz4 Adoption Chamber link/.test(tz4State.launcherCopy), `governance testing period: tz4 launcher copy link missing: ${tz4State.launcherCopy}`);
+  assert(tz4State.intervalDelays.includes(60000), `governance testing period: tz4 modal 60s refresh timer was not registered: ${tz4State.intervalDelays.join(', ')}`);
+
+  await page.locator('#tz4-adoption-modal [data-tz4-filter="pending"]').click();
+  const tz4PendingFilter = await page.evaluate(() => ({
+    rows: document.querySelectorAll('#tz4-baker-status-list .tz4-table-row').length,
+    text: document.querySelector('#tz4-baker-status-list')?.textContent || ''
+  }));
+  assert(tz4PendingFilter.rows === 1, `governance testing period: tz4 pending filter should show one row, saw ${tz4PendingFilter.rows}`);
+  assert(/Pending Baker/.test(tz4PendingFilter.text) && /Activates cycle 1,148/.test(tz4PendingFilter.text), `governance testing period: tz4 pending filter mismatch: ${tz4PendingFilter.text}`);
+
+  await page.locator('#tz4-adoption-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#tz4-adoption-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
   await context.close();
   assert(issues.length === 0, `governance testing period browser issues:\n${issues.join('\n')}`);

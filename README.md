@@ -140,6 +140,8 @@ inline modal styles in `js/core/app.js`.
 - Governance panel prompt and The Chamber for live and historical amendment voting.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, and protocol-history lore.
+- tz4 Adoption Chamber with current baker BLS/tz4 status, pending consensus-key
+  switches, saved-baker highlighting, and first-switch timing.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
   LB vote state, and recent baker delegator/staker activity.
 - Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping
@@ -162,6 +164,7 @@ Useful deep links include:
 - `#chamber`
 - `#lb`
 - `#lb-tile`
+- `#tz4`
 
 ## Data Sources
 

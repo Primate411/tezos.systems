@@ -351,11 +351,17 @@ async function checkSelectorContracts() {
   const app = await readText('js/core/app.js');
   const chamber = await readText('js/features/chamber.js');
   const lb = await readText('js/features/liquidity-baking.js');
+  const tz4 = await readText('js/features/tz4-adoption.js');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
     ['LB tile hash route', "hash === 'lb-tile'", app],
+    ['tz4 hash route', "hash === 'tz4'", app],
     ['Chamber card copy link', 'data-copy-hash="#chamber"', chamber],
-    ['LB tile copy link', 'data-copy-hash="#lb-tile"', lb]
+    ['LB tile copy link', 'data-copy-hash="#lb-tile"', lb],
+    ['tz4 launcher copy link', 'data-copy-hash="#tz4"', index],
+    ['tz4 tile expand cue', 'data-stat="tz4-adoption"', index],
+    ['tz4 tile expand icon', 'chamber-expand-cue', index],
+    ['tz4 tile chamber wiring', 'openTz4AdoptionChamber', tz4]
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);

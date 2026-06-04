@@ -49,12 +49,12 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=132">
+    <link rel="stylesheet" href="css/styles.min.css?v=133">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=132">
+    <link rel="modulepreload" href="js/core/app.js?v=133">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -311,6 +311,14 @@
 
                         <div class="feature-launcher-group">
                             <div class="dropdown-section-label">Bakers & Staking</div>
+                            <div class="feature-launcher-row">
+                                <button id="tz4-adoption-toggle" class="glass-button feature-launcher-item" aria-label="Open tz4 Adoption Chamber" title="tz4 Adoption Chamber">
+                                    <span class="tz4-adoption-toggle-icon">tz4</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">tz4 Adoption</span><span class="dropdown-hint">BLS key rollout and baker status</span></span>
+                                    <span class="feature-status">Live</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#tz4" aria-label="Copy tz4 Adoption Chamber link" title="Copy direct link">🔗</button>
+                            </div>
                             <div class="feature-launcher-row">
                                 <button id="leaderboard-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Baker Leaderboard" title="Leaderboard: OFF">
                                     <span class="leaderboard-toggle-icon">🏆</span>
@@ -720,7 +728,7 @@
                 </div>
 
                 <!-- tz4 Adoption Card (Combined) -->
-                <div class="stat-card" data-stat="tz4-adoption">
+                <div class="stat-card chamber-entry-card tz4-entry-card" data-stat="tz4-adoption">
                     <div class="card-info-btn" data-tooltip="tz4-adoption">
                         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                             <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
@@ -746,9 +754,10 @@
                             <div class="stat-value stat-value-dual" id="tz4-adoption-back">
                                 <span class="loading">...</span>
                             </div>
-                            <p class="stat-description">Target: 50%</p>
+                            <p class="stat-description" id="tz4-description">BLS baker adoption</p>
                         </div>
                     </div>
+                    <span class="chamber-expand-cue" title="Opens a full window" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h5v5"/><path d="M9 20H4v-5"/><path d="M20 4l-7 7"/><path d="M4 20l7-7"/></svg></span>
                 </div>
 
                 <!-- Cycle Progress Card -->
@@ -1911,7 +1920,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=76"></script>
-    <script type="module" src="js/core/app.js?v=132"></script>
+    <script type="module" src="js/core/app.js?v=133"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
