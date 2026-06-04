@@ -79,7 +79,6 @@ function updateGovernanceBanner(stats, votingStatus) {
     }
     
     const periodName = votingStatus ? getVotingPeriodName(votingStatus.kind) : 'Proposal';
-    const timeLeft = votingStatus?.endTime ? formatTimeRemaining(votingStatus.endTime) : '';
     const spotlight = ['exploration', 'promotion'].includes(kind);
     
     // Phase-specific intensity
@@ -87,17 +86,17 @@ function updateGovernanceBanner(stats, votingStatus) {
     let icon = '📋';
     let label = 'PROPOSAL';
     let cta = 'View Proposal →';
-    let meta = timeLeft ? `${escapeHtml(timeLeft)} · 🗳️ Public baker ballots · 📊 Quorum watch` : '🗳️ Public baker ballots · 📊 Quorum watch';
+    let meta = '🗳️ Public baker ballots · 📊 Quorum watch';
     if (kind === 'exploration') {
         phase = 'exploration';
         icon = '🗳️';
         label = 'VOTE LIVE';
         cta = '🏛️ Watch The Chamber →';
-        meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority';
+        meta = '🗳️ Ballots · 📊 Quorum · ✅ Supermajority';
     }
-    else if (kind === 'testing' || kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'TESTING'; cta = 'View Results →'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · No ballots open · Testing and review` : 'No ballots open · Testing and review'; }
-    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = '🏛️ Watch The Chamber →'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · 🗳️ Ballots · 📊 Quorum · ✅ Supermajority` : '🗳️ Ballots · 📊 Quorum · ✅ Supermajority'; }
-    else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'View Adoption →'; meta = timeLeft ? `⏳ ${escapeHtml(timeLeft)} · Activation runway` : 'Activation runway'; }
+    else if (kind === 'testing' || kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'TESTING'; cta = 'View Results →'; meta = 'No ballots open · Testing and review'; }
+    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = '🏛️ Watch The Chamber →'; meta = '🗳️ Ballots · 📊 Quorum · ✅ Supermajority'; }
+    else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'View Adoption →'; meta = 'Activation runway'; }
     
     const isHot = kind === 'exploration' || kind === 'promotion';
     const chamberTitle = isHot ? 'Live baker roll call' : 'Governance receipts';

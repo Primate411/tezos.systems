@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-03',
         entries: [
+            { type: '🎨', text: 'The compact Chamber prompt no longer repeats the vote-panel countdown, leaving more room for vote context' },
             { type: '✨', text: 'My Tezos now shows bakers their latest delegators and stakers from the last 14 days' },
             { type: '🎨', text: 'The active governance Chamber prompt now sits inside the live vote panel instead of repeating as a top-page banner' },
             { type: '✨', text: 'Per-card history charts now open on 30 days and can redraw at 7d, 30d, 90d, or all-time ranges' },

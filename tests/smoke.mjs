@@ -1032,6 +1032,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     bannerClasses: document.querySelector('#gov-countdown-banner')?.className || '',
     bannerInVotePanel: Boolean(document.querySelector('#gov-countdown-banner')?.closest('.voting-live-summary')),
     bannerAfterPriceBar: document.querySelector('#price-bar')?.nextElementSibling?.id === 'gov-countdown-banner',
+    votingTime: document.querySelector('.voting-time')?.textContent?.trim() || '',
     votingPeriod: document.querySelector('#voting-period-front')?.textContent?.trim() || '',
     participation: document.querySelector('#participation-front')?.textContent?.trim() || '',
     participationDescription: document.querySelector('#participation-description')?.textContent?.trim() || '',
@@ -1050,6 +1051,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(!dashboardState.bannerClasses.includes('gov-vote-spotlight'), 'governance testing period: cooldown banner should not use live vote spotlight styling');
   assert(dashboardState.bannerInVotePanel, 'governance testing period: Chamber prompt should live inside the vote panel');
   assert(!dashboardState.bannerAfterPriceBar, 'governance testing period: Chamber prompt should not render as a top-page banner');
+  assert(dashboardState.votingTime && !dashboardState.banner.includes(dashboardState.votingTime), `governance testing period: Chamber prompt should not repeat panel countdown ${dashboardState.votingTime}`);
   assert(dashboardState.votingPeriod === 'Cooldown', `governance testing period: voting card should show Cooldown, saw ${dashboardState.votingPeriod}`);
   assert(dashboardState.participation === '---', `governance testing period: participation should be empty-state dashes, saw ${dashboardState.participation}`);
   assert(/No ballots during Cooldown/.test(dashboardState.participationDescription), `governance testing period: participation description mismatch: ${dashboardState.participationDescription}`);
