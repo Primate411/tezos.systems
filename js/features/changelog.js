@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-04',
+        entries: [
+            { type: '🎨', text: 'Since-last-visit popups now inherit the active theme instead of falling back to Matrix-style green chrome' },
+        ]
+    },
+    {
         date: '2026-06-03',
         entries: [
             { type: '🎨', text: 'The compact Chamber prompt no longer repeats the vote-panel countdown, leaving more room for vote context' },

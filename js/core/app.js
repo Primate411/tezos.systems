@@ -433,76 +433,27 @@ function showDeltasPanel(deltas) {
             ${metricsHtml}
         </div>
     `;
-    
-    panel.style.cssText = `
-        position: fixed;
-        top: 60px;
-        right: 10px;
-        border-radius: 8px;
-        padding: 12px 16px;
-        min-width: 180px;
-        z-index: 1001;
-        opacity: 0;
-        transform: translateY(-10px);
-        transition: opacity 0.3s ease, transform 0.3s ease;
-    `;
-    
+
     document.body.appendChild(panel);
-    
-    // Add styles for inner elements
-    const style = document.createElement('style');
-    style.textContent = `
-        .deltas-panel .deltas-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-            font-size: 0.8rem;
-        }
-        .deltas-panel .deltas-close {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0;
-            line-height: 1;
-        }
-        .deltas-panel .delta-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 4px 0;
-            font-size: 0.85rem;
-        }
-    `;
-    document.head.appendChild(style);
-    
+
     // Animate in
     requestAnimationFrame(() => {
-        panel.style.opacity = '1';
-        panel.style.transform = 'translateY(0)';
+        panel.classList.add('visible');
     });
-    
-    // Close button handler
-    panel.querySelector('.deltas-close').addEventListener('click', () => {
-        panel.style.opacity = '0';
-        panel.style.transform = 'translateY(-10px)';
+
+    const closePanel = () => {
+        panel.classList.remove('visible');
         setTimeout(() => {
             panel.remove();
-            style.remove();
         }, 300);
-    });
+    };
+
+    // Close button handler
+    panel.querySelector('.deltas-close').addEventListener('click', closePanel);
     
     // Auto-hide after 10 seconds
     setTimeout(() => {
-        if (panel.parentNode) {
-            panel.style.opacity = '0';
-            panel.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                panel.remove();
-                style.remove();
-            }, 300);
-        }
+        if (panel.parentNode) closePanel();
     }, 10000);
 }
 
