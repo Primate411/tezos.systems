@@ -2055,43 +2055,21 @@ async function updateUpgradeClock() {
                         const participationValue = Number.isFinite(votingStatus.participationPct)
                             ? votingStatus.participationPct
                             : (total / eligible) * 100;
-                        const participation = participationValue.toFixed(participationValue < 1 ? 2 : 1);
                         const yayOfYayNayValue = (yay + nay) > 0 ? (yay / (yay + nay)) * 100 : 0;
                         const yayOfYayNay = yayOfYayNayValue.toFixed(1);
-                        const quorumRequired = normalizeThreshold(votingStatus.ballotsQuorum, 0);
                         const supermajorityRequired = normalizeThreshold(votingStatus.supermajority, 80);
-                        const quorumMet = participationValue >= quorumRequired;
                         const smMet = yayOfYayNayValue >= supermajorityRequired;
-                        // Bakers cluster ballots in the final days, so low turnout early in
-                        // the window is the normal shape — frame it as on-track, not risk.
-                        // Only warn in the final stretch when the gap actually matters.
-                        const daysLeft = Math.max(0, Math.ceil((endTime - now) / 86400000));
-                        const lateWindow = daysLeft <= 3;
                         const smColor = smMet ? 'var(--color-success, #10b981)' : parseFloat(yayOfYayNay) >= 60 ? 'var(--color-warning, #f59e0b)' : 'var(--color-error, #ef4444)';
                         tally = {
                             participation: participationValue,
                             supermajority: yayOfYayNayValue,
                             voterCount
                         };
-                        const quorumLine = quorumMet
-                            ? `✅ ${participation}% participation · quorum met`
-                            : lateWindow
-                                ? `⚠️ ${participation}% participation · needs ${quorumRequired.toFixed(1)}% with ${daysLeft}d left`
-                                : `${participation}% participation · quorum builds toward the deadline · ${daysLeft}d left`;
-                        const smLine = smMet
-                            ? `✅ ${yayOfYayNay}% in favor · supermajority met`
-                            : lateWindow
-                                ? `⚠️ ${yayOfYayNay}% in favor · needs ${supermajorityRequired.toFixed(0)}%`
-                                : `${yayOfYayNay}% in favor so far · needs ${supermajorityRequired.toFixed(0)}%`;
                         tallyHtml = `
                             <div class="voting-tally">
                                 <div class="voting-tally-row"><span class="tally-label">Yay</span><span class="tally-bar"><span class="tally-fill tally-yay" style="width:${total > 0 ? (yay/total*100) : 0}%"></span></span><span class="tally-pct" style="color:${smColor}">${yayOfYayNay}%</span></div>
                                 <div class="voting-tally-row"><span class="tally-label">Nay</span><span class="tally-bar"><span class="tally-fill tally-nay" style="width:${total > 0 ? (nay/total*100) : 0}%"></span></span><span class="tally-pct">${(yay+nay) > 0 ? ((nay/(yay+nay))*100).toFixed(1) : '0.0'}%</span></div>
                                 <div class="voting-tally-row"><span class="tally-label">Pass</span><span class="tally-bar"><span class="tally-fill tally-pass" style="width:${total > 0 ? (pass/total*100) : 0}%"></span></span><span class="tally-pct">${total > 0 ? ((pass/total)*100).toFixed(1) : '0.0'}%</span></div>
-                                <div class="voting-tally-summary">
-                                    <span>${quorumLine}</span>
-                                    <span>${smLine}</span>
-                                </div>
                             </div>`;
                     }
                 }
