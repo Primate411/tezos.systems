@@ -67,7 +67,9 @@ export function initStreak() {
     const { count, isNew } = updateStreak();
 
     const badge = document.createElement('div');
-    badge.className = 'streak-badge';
+    badge.className = 'visit-streak-toast';
+    badge.setAttribute('role', 'status');
+    badge.setAttribute('aria-live', 'polite');
     if (MILESTONES.has(count)) {
         badge.classList.add('milestone');
     }

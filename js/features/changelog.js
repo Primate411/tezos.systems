@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-04',
         entries: [
+            { type: '🎨', text: 'Visit streak notifications now follow the active theme and pop in with a brighter spring entrance' },
             { type: '🎨', text: 'Governance vote panels now put the Chamber summary at the top-left, remove the old time bar, and avoid duplicate path metrics' },
             { type: '🎨', text: 'Desktop live-governance prompts now sit centered with compact time, quorum, supermajority, and ballot context' },
             { type: '🎨', text: 'Mobile live-governance prompts now keep the Chamber action compact instead of squeezing copy into vertical columns' },
