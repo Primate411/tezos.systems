@@ -22,11 +22,92 @@ import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriod
 import { initChamber } from '../features/chamber.js';
 import { initLiquidityBaking } from '../features/liquidity-baking.js';
 
+let lastGovernancePromptTally = null;
+
 /**
  * Governance Chamber Action
  * Shows a compact Chamber entry point inside the live governance panel.
  */
-function updateGovernanceBanner(stats, votingStatus) {
+function formatGovPromptPercent(value, decimals = 1) {
+    if (!Number.isFinite(value)) return null;
+    const precision = Math.abs(value) < 1 && value !== 0 ? 2 : decimals;
+    return `${value.toFixed(precision)}%`;
+}
+
+function buildGovernancePromptMetrics(votingStatus, tally) {
+    const metrics = [];
+    const quorumRequired = normalizeThreshold(votingStatus?.ballotsQuorum, 0);
+    const supermajorityRequired = normalizeThreshold(votingStatus?.supermajority, 80);
+    const epochIndex = typeof votingStatus?.epoch === 'object' ? votingStatus.epoch?.index : votingStatus?.epoch;
+
+    if (votingStatus?.endTime) {
+        metrics.push({
+            label: 'Time left',
+            value: formatTimeRemaining(votingStatus.endTime).replace(/\s*remaining$/i, '')
+        });
+    }
+
+    if (tally) {
+        const participation = formatGovPromptPercent(tally.participation);
+        const quorum = formatGovPromptPercent(quorumRequired);
+        const supermajority = formatGovPromptPercent(tally.supermajority);
+        const threshold = formatGovPromptPercent(supermajorityRequired, 0);
+
+        if (participation && quorum) {
+            metrics.push({
+                label: tally.participation >= quorumRequired ? 'Quorum met' : 'Quorum',
+                value: `${participation} / ${quorum}`
+            });
+        }
+        if (supermajority && threshold) {
+            metrics.push({
+                label: tally.supermajority >= supermajorityRequired ? 'Yay met' : 'Yay threshold',
+                value: `${supermajority} / ${threshold}`
+            });
+        }
+        if (Number.isFinite(tally.voterCount)) {
+            metrics.push({
+                label: 'Ballots',
+                value: `${tally.voterCount.toLocaleString()} cast`
+            });
+        }
+    } else {
+        const participationValue = Number(votingStatus?.participationPct);
+        const participation = formatGovPromptPercent(participationValue);
+        const quorum = formatGovPromptPercent(quorumRequired);
+        if (participation && quorum) {
+            metrics.push({
+                label: participationValue >= quorumRequired ? 'Quorum met' : 'Quorum',
+                value: `${participation} / ${quorum}`
+            });
+        } else if (participation) {
+            metrics.push({ label: 'Participation', value: participation });
+        }
+
+        const yay = Number(votingStatus?.yayVotingPower) || 0;
+        const nay = Number(votingStatus?.nayVotingPower) || 0;
+        const yayOfYayNay = (yay + nay) > 0 ? (yay / (yay + nay)) * 100 : null;
+        const supermajority = formatGovPromptPercent(yayOfYayNay);
+        const threshold = formatGovPromptPercent(supermajorityRequired, 0);
+        if (supermajority && threshold) {
+            metrics.push({
+                label: yayOfYayNay >= supermajorityRequired ? 'Yay met' : 'Yay threshold',
+                value: `${supermajority} / ${threshold}`
+            });
+        }
+    }
+
+    if (epochIndex && metrics.length < 4) {
+        metrics.push({
+            label: 'Epoch',
+            value: String(epochIndex)
+        });
+    }
+
+    return metrics.slice(0, 4);
+}
+
+function updateGovernanceBanner(stats, votingStatus, context = {}) {
     let banner = document.getElementById('gov-countdown-banner');
     
     // Only show when there's an actual proposal — not during empty proposal periods
@@ -45,6 +126,7 @@ function updateGovernanceBanner(stats, votingStatus) {
     const isVotingActive = hasProposal || isVotingPhase;
     
     if (!isVotingActive) {
+        lastGovernancePromptTally = null;
         if (banner) { banner.remove(); }
         return;
     }
@@ -100,6 +182,17 @@ function updateGovernanceBanner(stats, votingStatus) {
     
     const isHot = kind === 'exploration' || kind === 'promotion';
     const chamberTitle = isHot ? 'Live baker roll call' : 'Governance receipts';
+    if (context.tally) lastGovernancePromptTally = context.tally;
+    const metrics = buildGovernancePromptMetrics(votingStatus, context.tally || lastGovernancePromptTally);
+    const metricsHtml = metrics.length ? `
+            <div class="gov-live-metrics" aria-label="Current vote status">
+                ${metrics.map(metric => `
+                    <span class="gov-live-metric">
+                        <span>${escapeHtml(metric.label)}</span>
+                        <strong>${escapeHtml(metric.value)}</strong>
+                    </span>
+                `).join('')}
+            </div>` : '';
     banner.setAttribute('aria-label', `Open The Chamber — ${proposal ? `${proposal} ` : ''}${periodName}`);
     
     banner.innerHTML = `
@@ -110,6 +203,7 @@ function updateGovernanceBanner(stats, votingStatus) {
         <div class="gov-live-detail">
             <span class="gov-live-title">${escapeHtml(chamberTitle)}</span>
             <span class="gov-live-meta">${meta}</span>
+            ${metricsHtml}
         </div>
         <div class="gov-live-cta">${cta}</div>
     `;
@@ -2047,7 +2141,7 @@ async function updateUpgradeClock() {
                         ${renderGovernanceProcessSummary(votingStatus, progress, tally)}
                     </div>
                 `;
-                updateGovernanceBanner(state.currentStats, votingStatus);
+                updateGovernanceBanner(state.currentStats, votingStatus, { tally });
             } else {
                 statusEl.classList.remove('active');
                 statusEl.innerHTML = '';
