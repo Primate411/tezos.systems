@@ -1967,15 +1967,6 @@ function renderGovernanceProcessSummary(votingStatus, progress, tally) {
     const threshold = normalizeThreshold(votingStatus.supermajority, 80);
     const quorumRequired = normalizeThreshold(votingStatus.ballotsQuorum, 0);
     const nextText = governanceNextStepText(currentKind, nextStage, tally, quorumRequired, threshold);
-    const metrics = tally ? [
-        { label: 'Quorum', value: `${tally.participation.toFixed(1)} / ${quorumRequired.toFixed(1)}%` },
-        { label: 'Supermajority', value: `${tally.supermajority.toFixed(1)} / ${threshold.toFixed(0)}%` },
-        { label: 'Ballots', value: `${tally.voterCount.toLocaleString()} cast` }
-    ] : [
-        { label: 'Phase', value: `${phaseNumber} / ${GOVERNANCE_FLOW.length}` },
-        { label: 'Elapsed', value: `${Math.round(currentProgress)}%` },
-        { label: 'Next', value: nextStage ? nextStage.label : 'Activation' }
-    ];
 
     return `
         <aside class="governance-process-card" aria-label="Tezos governance process">
@@ -1999,14 +1990,6 @@ function renderGovernanceProcessSummary(votingStatus, progress, tally) {
                         </div>
                     `;
                 }).join('')}
-            </div>
-            <div class="governance-quick-stats">
-                ${metrics.map(metric => `
-                    <div class="governance-quick-stat">
-                        <span>${escapeHtml(metric.label)}</span>
-                        <strong>${escapeHtml(metric.value)}</strong>
-                    </div>
-                `).join('')}
             </div>
             <div class="governance-next-step">
                 <span>${epochIndex ? `Epoch ${escapeHtml(String(epochIndex))}` : 'Live governance'}</span>
@@ -2129,14 +2112,8 @@ async function updateUpgradeClock() {
                                 <span class="voting-period-name">${getVotingPeriodName(votingStatus.kind)}</span>
                                 ${proposalLabel}
                             </div>
-                            <div class="voting-time-row">
-                                <div class="voting-time">${formatTimeRemaining(votingStatus.endTime)}</div>
-                                <div class="voting-progress" aria-label="Current voting period progress">
-                                    <div class="voting-progress-bar" style="width: ${clampPercent(progress)}%"></div>
-                                </div>
-                            </div>
-                            ${tallyHtml}
                             <div class="gov-countdown-banner-slot" id="gov-countdown-banner-slot" aria-live="polite"></div>
+                            ${tallyHtml}
                         </div>
                         ${renderGovernanceProcessSummary(votingStatus, progress, tally)}
                     </div>
