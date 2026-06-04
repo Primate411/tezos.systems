@@ -17,6 +17,9 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const REWARDS_HISTORY_KEY = 'tezos-systems-my-rewards-history';
 const LAST_PORTFOLIO_KEY = 'tezos-systems-my-last-portfolio';
 const OVERNIGHT_KEY = 'tezos-systems-overnight-snapshot';
+const RECENT_BAKER_ACTIVITY_DAYS = 14;
+const RECENT_BAKER_ACTIVITY_LIMIT = 40;
+const RECENT_BAKER_ACTIVITY_DISPLAY_LIMIT = 6;
 // Protocol eras — map block levels to protocol names
 const PROTOCOL_ERAS = [
     { name: 'Genesis', level: 0, date: '2018-06-30' },
@@ -260,6 +263,165 @@ function fmtCompact(xtz) {
     if (xtz >= 1e6) return (xtz / 1e6).toFixed(2) + 'M';
     if (xtz >= 1e3) return (xtz / 1e3).toFixed(1) + 'K';
     return xtz.toFixed(2);
+}
+
+function fmtMutez(mutez) {
+    const xtz = (mutez || 0) / 1e6;
+    if (!Number.isFinite(xtz) || xtz <= 0) return '0 XTZ';
+    if (xtz < 0.01) return '<0.01 XTZ';
+    if (xtz < 100) return `${xtz.toFixed(2).replace(/\.?0+$/, '')} XTZ`;
+    return `${fmtCompact(xtz)} XTZ`;
+}
+
+function shortAddress(address) {
+    if (!address) return 'Unknown';
+    return `${address.slice(0, 8)}...${address.slice(-4)}`;
+}
+
+function accountName(account) {
+    return account?.alias || shortAddress(account?.address);
+}
+
+function relativeTime(timestamp) {
+    const time = new Date(timestamp).getTime();
+    if (!Number.isFinite(time)) return '';
+    const diff = Math.max(0, Date.now() - time);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+}
+
+function recentActivityUrl(path, params) {
+    const search = new URLSearchParams({
+        'timestamp.ge': new Date(Date.now() - RECENT_BAKER_ACTIVITY_DAYS * 86400000).toISOString(),
+        status: 'applied',
+        limit: String(RECENT_BAKER_ACTIVITY_LIMIT),
+        'sort.desc': 'id',
+        ...params
+    });
+    return `${TZKT}${path}?${search.toString()}`;
+}
+
+function uniqueRecentAccounts(ops, mapOp) {
+    const seen = new Set();
+    const rows = [];
+    for (const op of ops || []) {
+        const address = op.sender?.address;
+        if (!address || seen.has(address)) continue;
+        seen.add(address);
+        rows.push(mapOp(op));
+        if (rows.length >= RECENT_BAKER_ACTIVITY_DISPLAY_LIMIT) break;
+    }
+    return rows;
+}
+
+async function fetchJsonArray(url) {
+    try {
+        const resp = await fetch(url);
+        if (!resp.ok) return [];
+        const rows = await resp.json();
+        return Array.isArray(rows) ? rows : [];
+    } catch {
+        return [];
+    }
+}
+
+async function fetchRecentBakerActivity(bakerAddr) {
+    const selectDelegations = 'id,timestamp,sender,newDelegate,prevDelegate';
+    const selectStaking = 'id,timestamp,sender,baker,amount,action';
+    const [delegationOps, stakingOps] = await Promise.all([
+        fetchJsonArray(recentActivityUrl('/operations/delegations', {
+            newDelegate: bakerAddr,
+            select: selectDelegations
+        })),
+        fetchJsonArray(recentActivityUrl('/operations/staking', {
+            baker: bakerAddr,
+            action: 'stake',
+            select: selectStaking
+        }))
+    ]);
+
+    const delegators = uniqueRecentAccounts(delegationOps, (op) => ({
+        address: op.sender.address,
+        alias: op.sender.alias,
+        timestamp: op.timestamp,
+        previousBaker: op.prevDelegate ? accountName(op.prevDelegate) : null,
+    }));
+
+    const stakers = uniqueRecentAccounts(stakingOps, (op) => ({
+        address: op.sender.address,
+        alias: op.sender.alias,
+        timestamp: op.timestamp,
+        amount: op.amount || 0,
+    }));
+
+    return { delegators, stakers, days: RECENT_BAKER_ACTIVITY_DAYS };
+}
+
+function renderBakerActivityRows(rows, type) {
+    return rows.map((row) => {
+        const name = escapeHtml(row.alias || shortAddress(row.address));
+        const address = escapeHtml(row.address);
+        const time = escapeHtml(relativeTime(row.timestamp));
+        const meta = type === 'delegator'
+            ? (row.previousBaker ? `from ${escapeHtml(row.previousBaker)}` : 'new delegation')
+            : `staked ${escapeHtml(fmtMutez(row.amount))}`;
+        return `
+            <a class="drawer-activity-row" href="https://tzkt.io/${address}" target="_blank" rel="noopener">
+                <span class="drawer-activity-main">
+                    <span class="drawer-activity-name">${name}</span>
+                    <span class="drawer-activity-address">${address}</span>
+                </span>
+                <span class="drawer-activity-meta">${meta}<span>${time ? ` · ${time}` : ''}</span></span>
+            </a>
+        `;
+    }).join('');
+}
+
+function renderBakerActivityGroup(title, rows, type) {
+    if (!rows.length) return '';
+    return `
+        <div class="drawer-activity-group">
+            <div class="drawer-activity-group-head">
+                <span>${title}</span>
+                <span>${rows.length}</span>
+            </div>
+            <div class="drawer-activity-list">
+                ${renderBakerActivityRows(rows, type)}
+            </div>
+        </div>
+    `;
+}
+
+function renderBakerActivity(activity) {
+    const container = document.getElementById('drawer-baker-activity');
+    if (!container) return;
+    const delegators = activity?.delegators || [];
+    const stakers = activity?.stakers || [];
+    if (!delegators.length && !stakers.length) {
+        container.hidden = true;
+        container.innerHTML = '';
+        return;
+    }
+
+    container.hidden = false;
+    container.innerHTML = `
+        <div class="drawer-activity-panel">
+            <div class="drawer-activity-header">
+                <div>
+                    <h3>Latest reward accounts</h3>
+                    <p>New delegators and stakers in the last ${activity.days} days</p>
+                </div>
+                <span>${delegators.length + stakers.length}</span>
+            </div>
+            ${renderBakerActivityGroup('Latest delegators', delegators, 'delegator')}
+            ${renderBakerActivityGroup('Latest stakers', stakers, 'staker')}
+        </div>
+    `;
 }
 
 function getGreeting() {
@@ -997,11 +1159,12 @@ async function renderMorningBrief(address, force = false) {
         const bakerActive = isBaker ? account.active !== false : account.delegate?.active !== false;
         const bakerInactive = !bakerActive;
 
-        const [participation, rewards, story, bakerVote] = await Promise.all([
+        const [participation, rewards, story, bakerVote, bakerActivity] = await Promise.all([
             bakerAddr ? fetchParticipation(bakerAddr) : Promise.resolve(null),
             fetchRecentRewards(address),
             fetchTezosStory(address, account, bakerAddr),
             bakerAddr ? fetchBakerVoteStatus(bakerAddr) : Promise.resolve(null),
+            isBaker ? fetchRecentBakerActivity(address) : Promise.resolve(null),
         ]);
 
         const healthScore = calcBakerHealth(participation);
@@ -1052,7 +1215,7 @@ async function renderMorningBrief(address, force = false) {
             totalXTZ, staked, xtzPrice, apyRate, estDaily, estAnnual,
             rewardsLastCycle, rewardStreak,
             bakerName, bakerInactive, healthScore, health, attestRate,
-            isStaker, story, activeProposal, bakerVote,
+            isStaker, story, activeProposal, bakerVote, bakerActivity,
         };
 
         const cards = buildMorningBrief(data);
@@ -1064,6 +1227,7 @@ async function renderMorningBrief(address, force = false) {
 
         // Render morning brief sections in drawer
         renderBriefTabs(cards, data);
+        renderBakerActivity(bakerActivity);
 
         // Feature 6: Baker health grade in drawer
         if (healthScore !== null) {
@@ -1151,6 +1315,7 @@ async function renderMorningBrief(address, force = false) {
             container.innerHTML = `<div style="color:var(--text-dim);font-size:0.85rem;">⚠️ Could not load data. <button id="brief-retry" style="background:none;border:none;color:var(--accent);cursor:pointer;">Retry</button></div>`;
             document.getElementById('brief-retry')?.addEventListener('click', () => renderMorningBrief(address, true));
         }
+        renderBakerActivity(null);
     }
 }
 
@@ -1195,9 +1360,12 @@ export function initMyTezos() {
             renderMorningBrief(newAddr, true);
         } else {
             // Clear drawer sections
-            ['drawer-brief', 'drawer-network', 'drawer-rewards'].forEach(id => {
+            ['drawer-brief', 'drawer-network', 'drawer-rewards', 'drawer-baker-activity'].forEach(id => {
                 const el = document.getElementById(id);
-                if (el) el.innerHTML = '';
+                if (el) {
+                    el.innerHTML = '';
+                    if (id === 'drawer-baker-activity') el.hidden = true;
+                }
             });
         }
     });

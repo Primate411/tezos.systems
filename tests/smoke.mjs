@@ -375,6 +375,7 @@ async function installFeatureMocks(context) {
       if (url.includes('/delegates/count?active=true')) return fulfillJson(route, sampleBakers.length);
       if (url.includes('/delegates?active=true') && url.includes('select=') && url.includes('bakingPower')) return fulfillJson(route, sampleBakers);
       if (url.includes('/delegates?active=true&limit=')) return fulfillJson(route, sampleBakers.map((b) => b.address));
+      if (url.includes('/rights/count?')) return fulfillText(route, '0');
       if (url.includes('/operations/update_consensus_key')) {
         return fulfillJson(route, [{ sender: { address: SAMPLE_ADDRESS }, publicKeyHash: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQa' }]);
       }
@@ -390,8 +391,55 @@ async function installFeatureMocks(context) {
           target: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }
         }]);
       }
+      if (url.includes('/operations/delegations?') && url.includes(`newDelegate=${SAMPLE_ADDRESS}`)) {
+        return fulfillJson(route, [
+          {
+            id: 10,
+            timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
+            sender: { address: SAMPLE_ADDRESS_2, alias: 'Fresh Delegator' },
+            newDelegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+            prevDelegate: null
+          }
+        ]);
+      }
       if (url.includes('/operations/delegations?')) return fulfillJson(route, []);
+      if (url.includes('/operations/staking?') && url.includes(`baker=${SAMPLE_ADDRESS}`) && url.includes('action=stake')) {
+        return fulfillJson(route, [
+          {
+            id: 20,
+            timestamp: new Date(Date.now() - 5 * 3600000).toISOString(),
+            sender: { address: 'tz1SmokeStaker1111111111111111111111111', alias: 'Fresh Staker' },
+            baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+            amount: 125000000,
+            action: 'stake'
+          }
+        ]);
+      }
       if (url.includes('/operations/staking?')) return fulfillJson(route, []);
+      if (url.includes(`/accounts/${SAMPLE_ADDRESS}`) && !url.includes('/operations?')) {
+        return fulfillJson(route, {
+          address: SAMPLE_ADDRESS,
+          type: 'delegate',
+          alias: 'QA Baker',
+          active: true,
+          balance: 1500000000000,
+          stakedBalance: 700000000000,
+          delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker', active: true },
+          firstActivity: 458753,
+          firstActivityTime: '2019-05-30T00:00:00Z'
+        });
+      }
+      if (url.includes('/rewards/delegators/') || url.includes('/rewards/bakers/')) {
+        return fulfillJson(route, [
+          {
+            cycle: 1143,
+            blockRewardsStakedOwn: 6000000,
+            attestationRewardsStakedOwn: 3000000,
+            dalAttestationRewardsStakedOwn: 0,
+            blockFees: 100000
+          }
+        ]);
+      }
       if (url.includes('/accounts?balance.ge=')) {
         return fulfillJson(route, [
           { address: SAMPLE_ADDRESS, balance: 1500000000000, lastActivity: '2023-01-01T00:00:00Z' },
@@ -413,6 +461,22 @@ async function installFeatureMocks(context) {
         return fulfillJson(route, [
           { status: 'voted_yay', votingPower: 6000, delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } },
           { status: 'voted_pass', votingPower: 1500, delegate: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' } }
+        ]);
+      }
+      if (url.includes('/voting/periods?')) {
+        return fulfillJson(route, [
+          { firstLevel: 458753, kind: 'proposal' },
+          { firstLevel: 5726209, kind: 'promotion' }
+        ]);
+      }
+      if (url.includes('/voting/proposals?')) {
+        return fulfillJson(route, [
+          {
+            hash: 'PtSmokeProposal',
+            status: 'accepted',
+            extras: { alias: 'Smoke' },
+            initiator: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }
+          }
         ]);
       }
       if (url.includes('/voting/periods/current/voters')) return fulfillJson(route, []);
@@ -885,6 +949,47 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await context.close();
   assert(issues.length === 0, `${label}: browser issues:\n${issues.join('\n')}`);
   log(`ok - dashboard smoke (${label})`);
+}
+
+async function smokeMyTezosBakerActivity(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'my tezos baker activity', issues);
+
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `my tezos baker activity: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  await page.locator('#my-tezos-btn').click();
+  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos baker activity drawer');
+  await page.locator('#drawer-address-input').fill(SAMPLE_ADDRESS);
+  await page.locator('#drawer-connect-btn').click();
+  await page.waitForFunction(() => {
+    const text = document.querySelector('#drawer-baker-activity')?.textContent || '';
+    return text.includes('Fresh Delegator') && text.includes('Fresh Staker');
+  }, null, { timeout: 15000 });
+
+  const bakerActivityText = (await page.locator('#drawer-baker-activity').innerText()).toLowerCase();
+  assert(bakerActivityText.includes('latest delegators'), 'my tezos baker activity: should list latest delegators');
+  assert(bakerActivityText.includes('latest stakers'), 'my tezos baker activity: should list latest stakers');
+  await expectCount(page, '#drawer-baker-activity .drawer-activity-row', 2, 'my tezos baker activity');
+
+  await context.close();
+  assert(issues.length === 0, `my tezos baker activity browser issues:\n${issues.join('\n')}`);
+  log('ok - my tezos baker activity smoke');
 }
 
 async function smokeGovernanceTestingPeriod(browser, baseUrl) {
@@ -1572,6 +1677,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'app-shell', description: 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets', run: () => smokeAppShell(browser, baseUrl) },
     { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
+    { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
@@ -1604,6 +1710,7 @@ async function main() {
     ['app-shell', 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets'],
     ['dashboard-desktop', 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
+    ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],
     ['governance-lb', 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh'],
     ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
     ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],

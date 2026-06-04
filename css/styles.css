@@ -16075,6 +16075,107 @@ body[data-theme="nerv"]::after {
     transition: opacity 0.2s ease;
 }
 .drawer-close:hover { opacity: 1; }
+#drawer-baker-activity[hidden] { display: none; }
+.drawer-activity-panel {
+    border: 1px solid rgba(255,255,255,0.09);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.035);
+    padding: 0.95rem;
+}
+.drawer-activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+.drawer-activity-header h3 {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+.drawer-activity-header p {
+    margin: 0.25rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.35;
+    opacity: 0.72;
+}
+.drawer-activity-header > span {
+    flex: 0 0 auto;
+    min-width: 2rem;
+    padding: 0.18rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(0,212,255,0.11);
+    border: 1px solid rgba(0,212,255,0.16);
+    color: var(--accent-cyan, #00d4ff);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-align: center;
+}
+.drawer-activity-group + .drawer-activity-group { margin-top: 0.85rem; }
+.drawer-activity-group-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.drawer-activity-list {
+    display: grid;
+    gap: 0.45rem;
+}
+.drawer-activity-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 54px;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 7px;
+    background: rgba(0,0,0,0.12);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+.drawer-activity-row:hover {
+    border-color: rgba(0,212,255,0.22);
+    background: rgba(0,212,255,0.055);
+}
+.drawer-activity-main {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+}
+.drawer-activity-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.86rem;
+    font-weight: 700;
+}
+.drawer-activity-address {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.7rem;
+    opacity: 0.72;
+}
+.drawer-activity-meta {
+    flex: 0 0 auto;
+    max-width: 48%;
+    color: var(--text-secondary);
+    font-size: 0.74rem;
+    line-height: 1.25;
+    text-align: right;
+}
 
 /* ── Drawer content overrides (400px panel) ── */
 .my-tezos-drawer .my-baker-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
@@ -16084,6 +16185,15 @@ body[data-theme="nerv"]::after {
 @media (max-width: 480px) {
     .my-tezos-drawer { width: 100vw; right: -100vw; }
     .my-tezos-drawer.open { right: 0; }
+    .drawer-activity-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.3rem;
+    }
+    .drawer-activity-meta {
+        max-width: none;
+        text-align: left;
+    }
 }
 
 /* ── Drawer theme backgrounds ── */

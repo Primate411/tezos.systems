@@ -140,8 +140,8 @@ inline modal styles in `js/core/app.js`.
 - Governance panel prompt and The Chamber for live and historical amendment voting.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, and protocol-history lore.
-- My Tezos drawer and My Baker lookup, including baker performance and latest
-  LB vote state.
+- My Tezos drawer and My Baker lookup, including baker performance, latest
+  LB vote state, and recent baker delegator/staker activity.
 - Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping
   giants, OBJKT/NFT profile lookup, HEN mode, changelog, share captures, and
   embeddable widgets.
@@ -236,6 +236,7 @@ Current smoke suites:
 - `app-shell`
 - `dashboard-desktop`
 - `dashboard-mobile`
+- `my-tezos-baker-activity`
 - `governance-lb`
 - `ux-regressions`
 - `feature-workflows`
