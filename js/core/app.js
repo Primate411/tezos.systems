@@ -86,16 +86,16 @@ function updateGovernanceBanner(stats, votingStatus) {
     let icon = '📋';
     let label = 'PROPOSAL';
     let cta = 'View Proposal →';
-    let meta = '🗳️ Public baker ballots · 📊 Quorum watch';
+    let meta = 'Public baker ballots · Quorum watch';
     if (kind === 'exploration') {
         phase = 'exploration';
         icon = '🗳️';
         label = 'VOTE LIVE';
-        cta = '🏛️ Watch The Chamber →';
-        meta = '🗳️ Ballots · 📊 Quorum · ✅ Supermajority';
+        cta = '🏛️ Chamber →';
+        meta = 'Ballots · Quorum · Supermajority';
     }
     else if (kind === 'testing' || kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'TESTING'; cta = 'View Results →'; meta = 'No ballots open · Testing and review'; }
-    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = '🏛️ Watch The Chamber →'; meta = '🗳️ Ballots · 📊 Quorum · ✅ Supermajority'; }
+    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = '🏛️ Chamber →'; meta = 'Ballots · Quorum · Supermajority'; }
     else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'View Adoption →'; meta = 'Activation runway'; }
     
     const isHot = kind === 'exploration' || kind === 'promotion';

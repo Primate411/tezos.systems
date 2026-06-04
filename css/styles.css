@@ -11000,14 +11000,74 @@ body:not(.mobile-tabs-active) .mobile-overview-summary {
     }
 
     .gov-countdown-banner.gov-panel-action {
+        grid-template-columns: minmax(0, 1fr) auto;
+        grid-template-areas:
+            "indicator cta"
+            "detail detail";
+        align-items: center;
+        gap: 8px 10px;
         width: 100%;
         max-width: none;
         margin: 10px 0 0;
         padding: 10px;
     }
 
+    .gov-panel-action .gov-live-indicator {
+        grid-area: indicator;
+        justify-self: start;
+        min-width: 0;
+    }
+
+    .gov-panel-action .gov-live-detail {
+        grid-area: detail;
+        min-width: 0;
+    }
+
+    .gov-panel-action .gov-live-title {
+        overflow-wrap: normal;
+        word-break: normal;
+    }
+
     .gov-panel-action .gov-live-meta {
         white-space: normal;
+    }
+
+    .gov-panel-action .gov-live-cta {
+        grid-area: cta;
+        justify-self: end;
+        align-self: center;
+        width: auto;
+        max-width: min(190px, 50vw);
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.1;
+    }
+}
+
+@media (max-width: 430px) {
+    .gov-countdown-banner.gov-panel-action {
+        gap: 7px 8px;
+        padding: 9px;
+    }
+
+    .gov-panel-action .gov-live-label {
+        font-size: 0.56rem;
+        letter-spacing: 0.08em;
+    }
+
+    .gov-panel-action .gov-live-title {
+        font-size: 0.72rem;
+    }
+
+    .gov-panel-action .gov-live-meta {
+        font-size: 0.56rem;
+    }
+
+    .gov-panel-action .gov-live-cta {
+        max-width: 46vw;
+        padding: 7px 8px;
+        font-size: 0.56rem;
     }
 }
 

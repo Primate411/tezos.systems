@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-04',
         entries: [
+            { type: '🎨', text: 'Mobile live-governance prompts now keep the Chamber action compact instead of squeezing copy into vertical columns' },
             { type: '🎨', text: 'Since-last-visit popups now inherit the active theme instead of falling back to Matrix-style green chrome' },
         ]
     },
