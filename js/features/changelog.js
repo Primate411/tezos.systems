@@ -5,6 +5,13 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-05',
+        entries: [
+            { type: '🔧', text: 'My Tezos baker capacity now shows over-delegation above 100% with signed free capacity instead of clamping to 100% and 0 free' },
+            { type: '✨', text: 'My Tezos now gives bakers a top-line operator signal with next block ETA, fresh block/attestation health, and prominent DAL status' },
+        ]
+    },
+    {
         date: '2026-06-04',
         entries: [
             { type: '✨', text: 'tz4 Adoption Chamber added with direct #tz4 access, your-baker status, pending switches, and first-mover timing' },

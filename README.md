@@ -241,6 +241,7 @@ Current smoke suites:
 - `dashboard-desktop`
 - `dashboard-mobile`
 - `my-tezos-baker-activity`
+- `my-tezos-baker-capacity`
 - `governance-lb`
 - `ux-regressions`
 - `feature-workflows`

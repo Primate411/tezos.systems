@@ -208,11 +208,19 @@ function liquidityBakingVoteTooltip(vote) {
  * Create a capacity bar card showing used vs max capacity
  */
 function createCapacityBar(label, used, max, note) {
-    const pct = max > 0 ? Math.min((used / max) * 100, 100) : 0;
-    const remaining = Math.max(max - used, 0);
+    const rawPct = max > 0 ? (used / max) * 100 : (used > 0 ? 100 : 0);
+    const pct = Number.isFinite(rawPct) ? Math.max(rawPct, 0) : 0;
+    const fillPct = Math.min(pct, 100);
+    const remaining = max - used;
+    const isOverCapacity = remaining < 0;
+    const freeAmount = formatNumber(remaining, {
+        decimals: 0,
+        useAbbreviation: !isOverCapacity
+    });
 
     const card = document.createElement('div');
     card.className = 'capacity-bar-card';
+    if (isOverCapacity) card.classList.add('capacity-over');
 
     const header = document.createElement('div');
     header.className = 'capacity-bar-header';
@@ -225,8 +233,9 @@ function createCapacityBar(label, used, max, note) {
     barTrack.className = 'capacity-bar-track';
     const barFill = document.createElement('div');
     barFill.className = 'capacity-bar-fill';
-    barFill.style.width = `${pct}%`;
+    barFill.style.width = `${fillPct}%`;
     // Color based on fill level
+    if (isOverCapacity) barFill.classList.add('capacity-over');
     if (pct >= 90) barFill.classList.add('capacity-critical');
     else if (pct >= 70) barFill.classList.add('capacity-warning');
     barTrack.appendChild(barFill);
@@ -235,7 +244,7 @@ function createCapacityBar(label, used, max, note) {
     details.className = 'capacity-bar-details';
     details.innerHTML = `
         <span>${formatNumber(used, { decimals: 0 })} ꜩ used</span>
-        <span>${formatNumber(remaining, { decimals: 0 })} ꜩ free</span>
+        <span>${freeAmount} ꜩ free</span>
     `;
 
     const noteEl = document.createElement('div');

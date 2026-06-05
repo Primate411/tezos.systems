@@ -6169,6 +6169,21 @@ body.high-combo .stat-card {
     background: linear-gradient(90deg, #ff4444, #ff0066);
 }
 
+.capacity-bar-card.capacity-over {
+    border-color: rgba(255, 68, 68, 0.38);
+    box-shadow: inset 0 0 0 1px rgba(255, 68, 68, 0.08);
+}
+
+.capacity-bar-card.capacity-over .capacity-bar-pct,
+.capacity-bar-card.capacity-over .capacity-bar-details span:last-child {
+    color: #ff6b6b;
+}
+
+.capacity-bar-card.capacity-over .capacity-bar-fill {
+    background: linear-gradient(90deg, #ff4444, #ff0066);
+    box-shadow: 0 0 10px rgba(255, 0, 102, 0.3);
+}
+
 .capacity-bar-details {
     display: flex;
     justify-content: space-between;
@@ -16258,6 +16273,97 @@ body[data-theme="nerv"]::after {
     transition: opacity 0.2s ease;
 }
 .drawer-close:hover { opacity: 1; }
+#drawer-operator-status[hidden] { display: none; }
+.drawer-operator-panel {
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.06), rgba(255,255,255,0.025));
+    padding: 0.95rem;
+}
+.drawer-operator-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+}
+.drawer-operator-header h3 {
+    margin: 0;
+    font-size: 0.92rem;
+    line-height: 1.2;
+}
+.drawer-operator-header p {
+    max-width: 24rem;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.76rem;
+    line-height: 1.35;
+    opacity: 0.74;
+    text-align: right;
+}
+.drawer-operator-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+.drawer-operator-tile {
+    min-width: 0;
+    min-height: 104px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.18rem;
+    padding: 0.75rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 7px;
+    background: rgba(0,0,0,0.14);
+}
+.drawer-operator-next {
+    grid-column: 1 / -1;
+    min-height: 112px;
+    background: linear-gradient(135deg, rgba(0,212,255,0.14), rgba(16,185,129,0.07));
+    border-color: rgba(0,212,255,0.26);
+}
+.drawer-operator-label {
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    font-weight: 800;
+    line-height: 1.2;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.drawer-operator-value {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    font-size: 1.28rem;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+}
+.drawer-operator-next .drawer-operator-value {
+    color: var(--accent-cyan, #00d4ff);
+    font-size: 2rem;
+    text-shadow: 0 0 18px rgba(0,212,255,0.18);
+}
+.drawer-operator-detail {
+    color: var(--text-secondary);
+    font-size: 0.74rem;
+    line-height: 1.25;
+    opacity: 0.78;
+}
+.drawer-operator-ok {
+    border-color: rgba(16,185,129,0.24);
+}
+.drawer-operator-ok .drawer-operator-value {
+    color: var(--color-success, #10b981);
+}
+.drawer-operator-issue {
+    border-color: rgba(239,68,68,0.34);
+    background: rgba(239,68,68,0.075);
+}
+.drawer-operator-issue .drawer-operator-value {
+    color: var(--color-error, #ef4444);
+}
 #drawer-baker-activity[hidden] { display: none; }
 .drawer-activity-panel {
     border: 1px solid rgba(255,255,255,0.09);
@@ -16368,6 +16474,18 @@ body[data-theme="nerv"]::after {
 @media (max-width: 480px) {
     .my-tezos-drawer { width: 100vw; right: -100vw; }
     .my-tezos-drawer.open { right: 0; }
+    .drawer-operator-header {
+        flex-direction: column;
+    }
+    .drawer-operator-header p {
+        text-align: left;
+    }
+    .drawer-operator-grid {
+        grid-template-columns: 1fr;
+    }
+    .drawer-operator-next .drawer-operator-value {
+        font-size: 1.65rem;
+    }
     .drawer-activity-row {
         align-items: flex-start;
         flex-direction: column;

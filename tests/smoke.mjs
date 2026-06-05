@@ -78,6 +78,7 @@ const browserRoutes = [
 const SAMPLE_ADDRESS = 'tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9';
 const SAMPLE_ADDRESS_2 = 'tz1hThMBD8jQjFt78heuCnKxJnJtQo9Ao25X';
 const SAMPLE_ADDRESS_3 = 'tz1PendingBaker1111111111111111111111';
+const OVERDELEGATED_ADDRESS = 'tz1bA9zZpouVgtMRLijvw5safwDKSxg62r1x';
 
 function usage() {
   return `
@@ -189,6 +190,23 @@ const sampleBakers = [
     software: 'Octez'
   }
 ];
+
+const overdelegatedBaker = {
+  address: OVERDELEGATED_ADDRESS,
+  alias: 'Overdelegated Baker',
+  active: true,
+  balance: 65000000000,
+  stakedBalance: 65000000000,
+  stakingBalance: 695000000000,
+  externalStakedBalance: 567000000000,
+  externalDelegatedBalance: 630000000000,
+  numDelegators: 459,
+  stakersCount: 128,
+  bakingPower: 695000000000,
+  consensusAddress: null,
+  limitOfStakingOverBaking: 9000000,
+  software: 'Octez'
+};
 
 function sampleHistoryRows() {
   const now = Date.now();
@@ -347,6 +365,16 @@ async function installFeatureMocks(context) {
       if (url.includes('/header')) {
         return fulfillJson(route, { level: 12345678, timestamp: new Date().toISOString() });
       }
+      if (url.includes('/dal_participation')) {
+        return fulfillJson(route, {
+          expected_assigned_shards_per_slot: 214,
+          delegate_attested_dal_slots: 14,
+          delegate_attestable_dal_slots: 14,
+          expected_dal_rewards: '277986',
+          sufficient_dal_participation: true,
+          denounced: false
+        });
+      }
       if (url.includes('/participation')) {
         return fulfillJson(route, { expected_cycle_activity: 7000, minimal_cycle_activity: 5600, missed_slots: 0, missed_levels: 0 });
       }
@@ -390,6 +418,27 @@ async function installFeatureMocks(context) {
       if (url.includes('/delegates/count?active=true')) return fulfillJson(route, sampleBakers.length);
       if (url.includes('/delegates?active=true') && url.includes('select=') && url.includes('bakingPower')) return fulfillJson(route, sampleBakers);
       if (url.includes('/delegates?active=true&limit=')) return fulfillJson(route, sampleBakers.map((b) => b.address));
+      if (url.includes('/rights?')) {
+        const rights = new URL(url).searchParams;
+        const type = rights.get('type');
+        if (type === 'baking' && rights.get('status') === 'future') {
+          return fulfillJson(route, [
+            { level: 12345858, cycle: 1143, round: 0, status: 'future', type: 'baking', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } }
+          ]);
+        }
+        if (type === 'baking') {
+          return fulfillJson(route, [
+            { level: 12345540, cycle: 1143, round: 0, status: 'realized', type: 'baking', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } }
+          ]);
+        }
+        return fulfillJson(route, Array.from({ length: 10 }, (_, index) => ({
+          level: 12345670 - index,
+          slots: 1,
+          status: 'realized',
+          type: 'attestation',
+          baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }
+        })));
+      }
       if (url.includes('/rights/count?')) return fulfillText(route, '0');
       if (url.includes('/operations/update_consensus_key')) {
         return fulfillJson(route, [
@@ -450,6 +499,19 @@ async function installFeatureMocks(context) {
         ]);
       }
       if (url.includes('/operations/staking?')) return fulfillJson(route, []);
+      if (url.includes(`/accounts/${OVERDELEGATED_ADDRESS}`) && !url.includes('/operations?')) {
+        return fulfillJson(route, {
+          address: OVERDELEGATED_ADDRESS,
+          type: 'delegate',
+          alias: 'Overdelegated Baker',
+          active: true,
+          balance: 65000000000,
+          stakedBalance: 65000000000,
+          delegate: { address: OVERDELEGATED_ADDRESS, alias: 'Overdelegated Baker', active: true },
+          firstActivity: 458753,
+          firstActivityTime: '2019-05-30T00:00:00Z'
+        });
+      }
       if (url.includes(`/accounts/${SAMPLE_ADDRESS}`) && !url.includes('/operations?')) {
         return fulfillJson(route, {
           address: SAMPLE_ADDRESS,
@@ -550,6 +612,7 @@ async function installFeatureMocks(context) {
           ]
         });
       }
+      if (url.includes(`/delegates/${OVERDELEGATED_ADDRESS}`)) return fulfillJson(route, overdelegatedBaker);
       if (url.includes('/delegates/')) return fulfillJson(route, sampleBakers[0]);
     }
 
@@ -1021,9 +1084,75 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   assert(bakerActivityText.includes('latest stakers'), 'my tezos baker activity: should list latest stakers');
   await expectCount(page, '#drawer-baker-activity .drawer-activity-row', 2, 'my tezos baker activity');
 
+  await page.waitForFunction(() => {
+    const text = (document.querySelector('#drawer-operator-status')?.innerText || '').toLowerCase();
+    return text.includes('next block') && text.includes('working') && text.includes('last 10 attestations ok');
+  }, null, { timeout: 15000 });
+  const operatorText = (await page.locator('#drawer-operator-status').innerText()).toLowerCase();
+  assert(operatorText.includes('next block'), 'my tezos baker activity: should show the next block prominently');
+  assert(operatorText.includes('18m'), `my tezos baker activity: should estimate next block ETA, saw: ${operatorText}`);
+  assert(operatorText.includes('working'), 'my tezos baker activity: should show current baker working state');
+  assert(operatorText.includes('attestation') && operatorText.includes('100.0%'), 'my tezos baker activity: should show prominent attestation rate');
+  assert(operatorText.includes('dal') && operatorText.includes('14/14 dal slots'), 'my tezos baker activity: should show prominent DAL participation');
+
   await context.close();
   assert(issues.length === 0, `my tezos baker activity browser issues:\n${issues.join('\n')}`);
   log('ok - my tezos baker activity smoke');
+}
+
+async function smokeMyTezosBakerCapacity(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
+  await installFeatureMocks(context);
+  await context.addInitScript((address) => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-my-baker-address', address);
+  }, OVERDELEGATED_ADDRESS);
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'my tezos baker capacity', issues);
+
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `my tezos baker capacity: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  await page.locator('#my-tezos-btn').click();
+  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos baker capacity drawer');
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('.capacity-bar-card')).some((card) => (
+      card.textContent.includes('Delegation Capacity')
+      && card.textContent.includes('107.7%')
+      && card.textContent.includes('-45,000 ꜩ free')
+    ));
+  }, null, { timeout: 15000 });
+
+  const capacityState = await page.evaluate(() => {
+    const card = Array.from(document.querySelectorAll('.capacity-bar-card'))
+      .find((item) => item.textContent.includes('Delegation Capacity'));
+    return {
+      pct: card?.querySelector('.capacity-bar-pct')?.textContent?.trim() || '',
+      details: card?.querySelector('.capacity-bar-details')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      isOver: card?.classList.contains('capacity-over') || false,
+      fillWidth: card?.querySelector('.capacity-bar-fill')?.style.width || ''
+    };
+  });
+
+  assert(capacityState.pct === '107.7%', `my tezos baker capacity: over-delegation pct was clamped or wrong: ${capacityState.pct}`);
+  assert(capacityState.details.includes('630K ꜩ used'), `my tezos baker capacity: used capacity mismatch: ${capacityState.details}`);
+  assert(capacityState.details.includes('-45,000 ꜩ free'), `my tezos baker capacity: free capacity should be signed: ${capacityState.details}`);
+  assert(capacityState.isOver, 'my tezos baker capacity: over-capacity state class missing');
+  assert(capacityState.fillWidth === '100%', `my tezos baker capacity: visual fill should cap at 100%, saw ${capacityState.fillWidth}`);
+
+  await context.close();
+  assert(issues.length === 0, `my tezos baker capacity browser issues:\n${issues.join('\n')}`);
+  log('ok - my tezos baker capacity smoke');
 }
 
 async function smokeGovernanceTestingPeriod(browser, baseUrl) {
@@ -1798,6 +1927,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
+    { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },

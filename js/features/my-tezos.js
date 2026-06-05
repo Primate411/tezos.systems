@@ -20,6 +20,8 @@ const OVERNIGHT_KEY = 'tezos-systems-overnight-snapshot';
 const RECENT_BAKER_ACTIVITY_DAYS = 14;
 const RECENT_BAKER_ACTIVITY_LIMIT = 40;
 const RECENT_BAKER_ACTIVITY_DISPLAY_LIMIT = 6;
+const RECENT_OPERATOR_ATTESTATIONS = 10;
+const RIGHTS_FETCH_TIMEOUT_MS = 12000;
 // Protocol eras — map block levels to protocol names
 const PROTOCOL_ERAS = [
     { name: 'Genesis', level: 0, date: '2018-06-30' },
@@ -158,6 +160,201 @@ async function fetchParticipation(bakerAddr) {
         if (!resp.ok) return null;
         return await resp.json();
     } catch { return null; }
+}
+
+async function fetchDALParticipation(bakerAddr) {
+    try {
+        const resp = await fetch(`${OCTEZ}/chains/main/blocks/head/context/delegates/${bakerAddr}/dal_participation`);
+        if (!resp.ok) return null;
+        return await resp.json();
+    } catch { return null; }
+}
+
+async function fetchJsonWithTimeout(url, fallback = null, timeoutMs = RIGHTS_FETCH_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const resp = await fetch(url, { signal: controller.signal });
+        if (!resp.ok) return fallback;
+        return await resp.json();
+    } catch {
+        return fallback;
+    } finally {
+        clearTimeout(timeout);
+    }
+}
+
+function rightsUrl(params) {
+    return `${TZKT}/rights?${new URLSearchParams(params).toString()}`;
+}
+
+function parseBlockDelaySeconds(constants) {
+    const raw = constants?.minimal_block_delay;
+    const value = Array.isArray(raw) ? raw[0] : raw;
+    const seconds = parseFloat(String(value ?? '').replace(/"/g, ''));
+    return Number.isFinite(seconds) && seconds > 0 ? seconds : 6;
+}
+
+async function fetchBlockDelaySeconds() {
+    const constants = await fetchJsonWithTimeout(`${OCTEZ}/chains/main/blocks/head/context/constants`, null, 8000);
+    return parseBlockDelaySeconds(constants);
+}
+
+function formatDuration(ms) {
+    if (!Number.isFinite(ms)) return 'soon';
+    const totalMinutes = Math.max(0, Math.round(ms / 60000));
+    if (totalMinutes < 1) return '<1m';
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    if (days > 0) return `${days}d ${hours}h`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+}
+
+function formatLevel(level) {
+    const n = Number(level);
+    return Number.isFinite(n) ? n.toLocaleString() : 'unknown level';
+}
+
+function summarizeRightStatus(right) {
+    if (!right) return { state: 'unknown', text: 'No recent right', detail: 'TzKT returned no completed right yet' };
+    const status = String(right.status || 'unknown').toLowerCase();
+    const ok = status === 'realized';
+    return {
+        state: ok ? 'ok' : 'issue',
+        text: ok ? 'OK' : status.toUpperCase(),
+        detail: `Level ${formatLevel(right.level)}${right.round != null ? `, round ${right.round}` : ''}`
+    };
+}
+
+function summarizeRecentAttestations(rows) {
+    const recent = (rows || []).filter((row) => row.status !== 'future').slice(0, RECENT_OPERATOR_ATTESTATIONS);
+    const issues = recent.filter((row) => row.status !== 'realized');
+    if (!recent.length) {
+        return { state: 'unknown', rate: null, value: 'No data', detail: 'No completed attestation rights returned' };
+    }
+    const okCount = recent.length - issues.length;
+    const rate = (okCount / recent.length) * 100;
+    return {
+        state: issues.length ? 'issue' : 'ok',
+        rate,
+        value: `${rate.toFixed(1)}%`,
+        detail: issues.length
+            ? `${issues.length}/${recent.length} recent attestation issue${issues.length > 1 ? 's' : ''}`
+            : `Last ${recent.length} attestations OK`
+    };
+}
+
+function summarizeDalParticipation(dal) {
+    if (!dal) return { state: 'unknown', value: 'No data', detail: 'DAL participation unavailable' };
+    const attested = dal.delegate_attested_dal_slots || 0;
+    const attestable = dal.delegate_attestable_dal_slots || 0;
+    if (attestable <= 0) {
+        return { state: 'unknown', value: 'N/A', detail: 'No DAL slots assigned' };
+    }
+    const rate = (attested / attestable) * 100;
+    const ok = dal.sufficient_dal_participation !== false;
+    return {
+        state: ok ? 'ok' : 'issue',
+        value: `${rate.toFixed(1)}%`,
+        detail: `${attested}/${attestable} DAL slots${ok ? ' attested' : ' attested, below threshold'}`
+    };
+}
+
+function summarizeCycleAttestation(participation, recent) {
+    if (!participation) {
+        return { state: recent?.state || 'unknown', value: recent?.value || 'No data', detail: recent?.detail || 'Participation unavailable' };
+    }
+    const expected = participation.expected_cycle_activity || 0;
+    const missed = participation.missed_slots || 0;
+    if (expected <= 0) {
+        return { state: recent?.state || 'unknown', value: 'N/A', detail: recent?.detail || 'No cycle activity expected' };
+    }
+    const rate = ((expected - missed) / expected) * 100;
+    return {
+        state: recent?.state || (rate >= 99 ? 'ok' : 'issue'),
+        value: `${rate.toFixed(1)}%`,
+        detail: recent?.detail || `${missed} missed slots this cycle`
+    };
+}
+
+async function fetchBakerOperatorStatus(bakerAddr, participation) {
+    if (!bakerAddr) return null;
+    const [head, blockDelaySeconds, dalParticipation] = await Promise.all([
+        fetchJsonWithTimeout(`${TZKT}/head`, null, 8000),
+        fetchBlockDelaySeconds(),
+        fetchDALParticipation(bakerAddr)
+    ]);
+    const headLevel = Number(head?.level);
+    if (!Number.isFinite(headLevel)) {
+        const dal = summarizeDalParticipation(dalParticipation);
+        const attestation = summarizeCycleAttestation(participation, null);
+        return {
+            live: { state: 'unknown', value: 'No data', detail: 'Could not read current chain head' },
+            nextBlock: null,
+            lastBlock: null,
+            attestation,
+            dal,
+        };
+    }
+
+    const enc = bakerAddr;
+    const [nextBlocks, latestBlocks, latestAttestations] = await Promise.all([
+        fetchJsonWithTimeout(rightsUrl({
+            baker: enc,
+            type: 'baking',
+            status: 'future',
+            'level.gt': String(headLevel),
+            limit: '1',
+            'sort.asc': 'level',
+            select: 'level,cycle,round,status,type'
+        }), []),
+        fetchJsonWithTimeout(rightsUrl({
+            baker: enc,
+            type: 'baking',
+            ...(head.cycle != null ? { cycle: String(head.cycle) } : {}),
+            'level.le': String(headLevel),
+            limit: '1',
+            'sort.desc': 'level',
+            select: 'level,cycle,round,status,type'
+        }), []),
+        fetchJsonWithTimeout(rightsUrl({
+            baker: enc,
+            type: 'attestation',
+            'level.le': String(headLevel),
+            limit: String(RECENT_OPERATOR_ATTESTATIONS),
+            'sort.desc': 'level',
+            select: 'level,slots,status,type'
+        }), [])
+    ]);
+
+    const next = Array.isArray(nextBlocks) ? nextBlocks[0] : null;
+    const levelDiff = next ? Number(next.level) - headLevel : null;
+    const etaMs = Number.isFinite(levelDiff) ? levelDiff * blockDelaySeconds * 1000 : null;
+    const latestBlock = summarizeRightStatus(Array.isArray(latestBlocks) ? latestBlocks[0] : null);
+    const recentAttestations = summarizeRecentAttestations(Array.isArray(latestAttestations) ? latestAttestations : []);
+    const dal = summarizeDalParticipation(dalParticipation);
+    const attestation = summarizeCycleAttestation(participation, recentAttestations);
+    const hasIssue = latestBlock.state === 'issue' || recentAttestations.state === 'issue';
+    const liveState = hasIssue ? 'issue' : (latestBlock.state === 'unknown' && recentAttestations.state === 'unknown' ? 'unknown' : 'ok');
+
+    return {
+        live: {
+            state: liveState,
+            value: liveState === 'issue' ? 'Check now' : liveState === 'ok' ? 'Working' : 'No data',
+            detail: `${latestBlock.state === 'ok' ? 'Last block OK' : latestBlock.text} · ${recentAttestations.detail}`
+        },
+        nextBlock: next ? {
+            level: next.level,
+            round: next.round,
+            eta: formatDuration(etaMs),
+            detail: `Level ${formatLevel(next.level)}${next.round != null ? `, round ${next.round}` : ''}`
+        } : null,
+        lastBlock: latestBlock,
+        attestation,
+        dal,
+    };
 }
 
 function normalizeBallotStatus(status) {
@@ -424,6 +621,55 @@ function renderBakerActivity(activity) {
     `;
 }
 
+function renderOperatorTile(label, value, detail, state = 'unknown', extraClass = '') {
+    const safeState = ['ok', 'issue', 'unknown'].includes(state) ? state : 'unknown';
+    return `
+        <div class="drawer-operator-tile drawer-operator-${safeState} ${extraClass}">
+            <span class="drawer-operator-label">${escapeHtml(label)}</span>
+            <strong class="drawer-operator-value">${escapeHtml(value)}</strong>
+            <span class="drawer-operator-detail">${escapeHtml(detail || '')}</span>
+        </div>
+    `;
+}
+
+function renderBakerOperatorStatus(status, isBaker) {
+    const container = document.getElementById('drawer-operator-status');
+    if (!container) return;
+    if (!status) {
+        container.hidden = true;
+        container.innerHTML = '';
+        return;
+    }
+
+    const next = status.nextBlock
+        ? renderOperatorTile('Next block', status.nextBlock.eta, status.nextBlock.detail, 'ok', 'drawer-operator-next')
+        : renderOperatorTile('Next block', 'No right found', 'No upcoming baking right returned', 'unknown', 'drawer-operator-next');
+    const live = renderOperatorTile(
+        'Baker working?',
+        status.live.value,
+        status.live.detail,
+        status.live.state
+    );
+    const attest = renderOperatorTile('Attestation', status.attestation.value, status.attestation.detail, status.attestation.state);
+    const dal = renderOperatorTile('DAL', status.dal.value, status.dal.detail, status.dal.state);
+
+    container.hidden = false;
+    container.innerHTML = `
+        <div class="drawer-operator-panel">
+            <div class="drawer-operator-header">
+                <h3>${isBaker ? 'Baker signal' : 'Your baker signal'}</h3>
+                <p>Fresh rights check from the latest block and last ${RECENT_OPERATOR_ATTESTATIONS} attestations</p>
+            </div>
+            <div class="drawer-operator-grid">
+                ${next}
+                ${live}
+                ${attest}
+                ${dal}
+            </div>
+        </div>
+    `;
+}
+
 function getGreeting() {
     const h = new Date().getHours();
     if (h < 12) return 'Good morning';
@@ -590,6 +836,10 @@ function buildMorningBrief(data) {
     let healthText;
     if (data.bakerInactive) {
         healthText = `<strong>${escapeHtml(data.bakerName)}</strong> — <strong style="color:#ef4444">inactive ⚠️</strong>`;
+    } else if (data.operatorStatus?.live) {
+        const live = data.operatorStatus.live;
+        const color = live.state === 'issue' ? 'var(--color-error, #ef4444)' : live.state === 'ok' ? 'var(--color-success, #10b981)' : 'var(--text-dim, #888)';
+        healthText = `<strong>${escapeHtml(data.bakerName)}</strong> — <strong style="color:${color}">${escapeHtml(live.value)}</strong><br><span class="brief-sub">${escapeHtml(live.detail)}</span>`;
     } else if (data.healthScore !== null && data.attestRate) {
         healthText = `<strong>${escapeHtml(data.bakerName)}</strong> ${data.health.icon} ${data.attestRate}% attestation`;
     } else {
@@ -1166,6 +1416,7 @@ async function renderMorningBrief(address, force = false) {
             bakerAddr ? fetchBakerVoteStatus(bakerAddr) : Promise.resolve(null),
             isBaker ? fetchRecentBakerActivity(address) : Promise.resolve(null),
         ]);
+        const operatorStatus = bakerAddr ? await fetchBakerOperatorStatus(bakerAddr, participation) : null;
 
         const healthScore = calcBakerHealth(participation);
         const health = healthLabel(healthScore);
@@ -1215,7 +1466,7 @@ async function renderMorningBrief(address, force = false) {
             totalXTZ, staked, xtzPrice, apyRate, estDaily, estAnnual,
             rewardsLastCycle, rewardStreak,
             bakerName, bakerInactive, healthScore, health, attestRate,
-            isStaker, story, activeProposal, bakerVote, bakerActivity,
+            isStaker, story, activeProposal, bakerVote, bakerActivity, operatorStatus,
         };
 
         const cards = buildMorningBrief(data);
@@ -1226,6 +1477,7 @@ async function renderMorningBrief(address, force = false) {
         saveOvernightSnapshot(data);
 
         // Render morning brief sections in drawer
+        renderBakerOperatorStatus(operatorStatus, isBaker);
         renderBriefTabs(cards, data);
         renderBakerActivity(bakerActivity);
 
@@ -1315,6 +1567,7 @@ async function renderMorningBrief(address, force = false) {
             container.innerHTML = `<div style="color:var(--text-dim);font-size:0.85rem;">⚠️ Could not load data. <button id="brief-retry" style="background:none;border:none;color:var(--accent);cursor:pointer;">Retry</button></div>`;
             document.getElementById('brief-retry')?.addEventListener('click', () => renderMorningBrief(address, true));
         }
+        renderBakerOperatorStatus(null, false);
         renderBakerActivity(null);
     }
 }
@@ -1360,11 +1613,11 @@ export function initMyTezos() {
             renderMorningBrief(newAddr, true);
         } else {
             // Clear drawer sections
-            ['drawer-brief', 'drawer-network', 'drawer-rewards', 'drawer-baker-activity'].forEach(id => {
+            ['drawer-operator-status', 'drawer-brief', 'drawer-network', 'drawer-rewards', 'drawer-baker-activity'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
                     el.innerHTML = '';
-                    if (id === 'drawer-baker-activity') el.hidden = true;
+                    if (id === 'drawer-baker-activity' || id === 'drawer-operator-status') el.hidden = true;
                 }
             });
         }
