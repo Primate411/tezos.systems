@@ -21,7 +21,7 @@
             --accent-glow: rgba(0,212,255,0.15);
             --purple: #a855f7;
             --text-primary: #e0e0e0;
-            --text-secondary: #6b7280;
+            --text-secondary: #98a5b8;
             --border: rgba(255,255,255,0.06);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,6 +31,7 @@
             background: var(--bg);
             color: var(--text-primary);
             min-height: 100vh;
+            min-height: 100svh;
             line-height: 1.6;
             overflow-x: hidden;
         }
@@ -72,14 +73,16 @@
             font-weight: 900;
             line-height: 1.15;
             margin-bottom: 16px;
-            background: linear-gradient(135deg, var(--accent), var(--purple));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            background: none;
+            -webkit-background-clip: border-box;
+            -webkit-text-fill-color: currentColor;
+            background-clip: border-box;
+            color: #dff7ff;
+            text-shadow: 0 0 34px rgba(0, 212, 255, 0.24);
         }
         .hero-sub {
             font-size: clamp(1rem, 2.5vw, 1.25rem);
-            color: var(--text-secondary);
+            color: #b5c0d0;
             margin-bottom: 36px;
             max-width: 500px;
         }
@@ -185,8 +188,8 @@
             position: absolute;
             bottom: 32px;
             font-size: 0.85rem;
-            color: var(--text-secondary);
-            opacity: 0.4;
+            color: #9aa7ba;
+            opacity: 0.58;
             animation: bounce 2s ease-in-out infinite;
         }
         @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(8px); } }
@@ -381,6 +384,28 @@
 
         /* ─── Mobile ─── */
         @media (max-width: 640px) {
+            .hero {
+                justify-content: center;
+                padding: 32px 16px max(32px, env(safe-area-inset-bottom));
+            }
+            .hen-sticker {
+                position: static;
+                margin: 0 0 22px;
+                transform: rotate(-2deg);
+            }
+            .hero-badge { margin-bottom: 18px; }
+            .hero h1 {
+                max-width: 23rem;
+                font-size: clamp(2rem, 10vw, 2.7rem);
+            }
+            .hero-sub { margin-bottom: 28px; }
+            .enter-btn {
+                width: min(344px, 100%);
+                padding: 15px 20px;
+            }
+            .scroll-hint {
+                bottom: max(22px, env(safe-area-inset-bottom));
+            }
             .live-grid { grid-template-columns: repeat(2, 1fr); }
             .features-grid { grid-template-columns: 1fr; }
             .theme-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }

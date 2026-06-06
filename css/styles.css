@@ -810,11 +810,14 @@ body::before {
     font-family: 'Orbitron', sans-serif;
     font-size: 2.5rem;
     font-weight: 900;
-    background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    background: none;
+    -webkit-background-clip: border-box;
+    -webkit-text-fill-color: currentColor;
+    background-clip: border-box;
+    color: var(--accent-cyan);
+    color: color-mix(in srgb, var(--accent-cyan) 72%, #ffffff 28%);
     line-height: 1;
+    text-shadow: 0 0 18px color-mix(in srgb, var(--accent-cyan) 36%, transparent);
 }
 
 .upgrade-label {
@@ -1251,9 +1254,11 @@ body::before {
 
 /* Matrix theme */
 [data-theme="matrix"] .upgrade-number {
-    background: linear-gradient(135deg, #00ff00 0%, #00cc00 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
+    background: none;
+    -webkit-background-clip: border-box;
+    -webkit-text-fill-color: currentColor;
+    background-clip: border-box;
+    color: #42ff42;
 }
 
 [data-theme="matrix"] .upgrade-badge {
@@ -12925,12 +12930,15 @@ body {
     font-family: 'Orbitron', sans-serif;
     font-size: 1.6rem;
     font-weight: 800;
-    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    background: none;
+    -webkit-background-clip: border-box;
+    -webkit-text-fill-color: currentColor;
+    background-clip: border-box;
+    color: var(--accent-cyan);
+    color: color-mix(in srgb, var(--accent-cyan) 72%, var(--text-primary) 28%);
     letter-spacing: 2px;
     text-transform: uppercase;
+    text-shadow: 0 0 18px color-mix(in srgb, var(--accent-cyan) 28%, transparent);
     margin: 0;
 }
 
@@ -13804,9 +13812,11 @@ body {
 }
 
 [data-theme="matrix"] .chamber-title {
-    background: linear-gradient(90deg, #00ff00, #00cc00);
-    -webkit-background-clip: text;
-    background-clip: text;
+    background: none;
+    -webkit-background-clip: border-box;
+    -webkit-text-fill-color: currentColor;
+    background-clip: border-box;
+    color: #33ff33;
 }
 
 [data-theme="matrix"] .chamber-badge.live {
@@ -14725,7 +14735,7 @@ body {
     padding: 0;
     border: 0;
     background: transparent;
-    color: var(--text-tertiary, #555);
+    color: color-mix(in srgb, var(--text-secondary, #888) 84%, #ffffff 16%);
 }
 
 .lb-system-strip span + span::before {
@@ -14745,6 +14755,7 @@ body {
 
 .lb-header .chamber-title {
     font-size: clamp(1.2rem, 4.8vw, 1.6rem);
+    line-height: 1.25;
 }
 
 .lb-header .chamber-title::before {
@@ -14757,6 +14768,7 @@ body {
     margin-right: 8px;
     border: 1px solid rgba(0, 212, 255, 0.32);
     color: #4dd4ff;
+    -webkit-text-fill-color: currentColor;
     background: rgba(0, 212, 255, 0.08);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.72rem;
@@ -14764,6 +14776,17 @@ body {
     text-transform: lowercase;
     vertical-align: 2px;
     box-shadow: inset 0 0 12px rgba(0, 212, 255, 0.08);
+}
+
+.lb-header.health-header .chamber-title::before {
+    content: 'HLTH';
+    width: 44px;
+    color: #50e888;
+    -webkit-text-fill-color: currentColor;
+    border-color: rgba(80, 232, 136, 0.32);
+    background: rgba(80, 232, 136, 0.08);
+    box-shadow: inset 0 0 12px rgba(80, 232, 136, 0.08);
+    text-transform: uppercase;
 }
 
 .lb-explainer {
@@ -16049,6 +16072,17 @@ body {
         margin-right: 0;
         padding-left: 0;
         padding-right: 0;
+    }
+
+    .lb-header .chamber-title {
+        max-width: 100%;
+        font-size: clamp(1.08rem, 6vw, 1.35rem);
+        letter-spacing: 1px;
+    }
+
+    .lb-system-strip {
+        font-size: 0.58rem;
+        line-height: 1.55;
     }
 
     .lb-table-head span:last-child,
