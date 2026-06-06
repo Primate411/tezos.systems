@@ -105,6 +105,7 @@ let _savedScrollY = 0;
 let _protocolHistoryPromise = null;
 let _governanceVotesPromise = null;
 let _governanceReportPromise = null;
+const _ballotTimelinePromises = new Map();
 
 function lockPageScrollForChamber() {
     if (_savedBodyOverflow !== null) return;
@@ -220,24 +221,34 @@ async function fetchRecentEpochs(count = 5) {
 
 
 async function fetchBallotTimeline(periodIndex) {
+    if (_ballotTimelinePromises.has(periodIndex)) return _ballotTimelinePromises.get(periodIndex);
+
     // Fetch all ballot operations for a period, sorted by time
     // TzKT returns max 10000 per call, paginate if needed
-    const allBallots = [];
-    let offset = 0;
-    const limit = 1000;
-    
-    while (true) {
-        const url = `${TZKT}/operations/ballots?period=${periodIndex}&sort.asc=id&limit=${limit}&offset=${offset}`;
-        const batch = await (await fetch(url)).json();
-        if (!batch.length) break;
-        allBallots.push(...batch);
-        if (batch.length < limit) break;
-        offset += limit;
-        // Safety: cap at 10k ballots
-        if (offset >= 10000) break;
-    }
-    
-    return allBallots;
+    const promise = (async () => {
+        const allBallots = [];
+        let offset = 0;
+        const limit = 1000;
+
+        while (true) {
+            const url = `${TZKT}/operations/ballots?period=${periodIndex}&sort.asc=id&limit=${limit}&offset=${offset}`;
+            const batch = await (await fetch(url)).json();
+            if (!batch.length) break;
+            allBallots.push(...batch);
+            if (batch.length < limit) break;
+            offset += limit;
+            // Safety: cap at 10k ballots
+            if (offset >= 10000) break;
+        }
+
+        return allBallots.sort((a, b) => (new Date(a.timestamp) - new Date(b.timestamp)) || ((a.id || 0) - (b.id || 0)));
+    })().catch(err => {
+        _ballotTimelinePromises.delete(periodIndex);
+        throw err;
+    });
+
+    _ballotTimelinePromises.set(periodIndex, promise);
+    return promise;
 }
 
 function fmtPower(mutez) {
@@ -270,6 +281,19 @@ function fmtShortDate(value, includeYear = false) {
     const opts = { month: 'short', day: 'numeric', timeZone: 'UTC' };
     if (includeYear) opts.year = 'numeric';
     return date.toLocaleDateString('en-US', opts);
+}
+
+function fmtBallotTime(value) {
+    const date = validDate(value);
+    if (!date) return 'time n/a';
+    return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'UTC'
+    });
 }
 
 function fmtDateRange(startTime, endTime, includeYear = false) {
@@ -870,6 +894,93 @@ function initVoterFilters() {
     });
 }
 
+// ─── Current stage chronological vote order ───
+
+function ballotVoteMeta(ballot) {
+    const vote = String(ballot?.vote || ballot?.status || '').replace(/^voted_/, '').toLowerCase();
+    if (vote === 'yay') return { cls: 'yay', icon: '🟢', label: 'Yay' };
+    if (vote === 'nay') return { cls: 'nay', icon: '🔴', label: 'Nay' };
+    if (vote === 'pass') return { cls: 'pass', icon: '🟡', label: 'Pass' };
+    return { cls: 'unknown', icon: '⬜', label: 'Unknown' };
+}
+
+function ballotDelegateName(ballot) {
+    const address = ballot?.delegate?.address || ballot?.sender?.address || '';
+    return ballot?.delegate?.alias
+        || ballot?.sender?.alias
+        || (address ? `${address.slice(0, 10)}…` : 'Unknown baker');
+}
+
+function renderCurrentStageVoteOrder(data) {
+    if (!data?.votePeriod || !isBallotPeriod(data.votePeriod)) return '';
+    const stageName = votePeriodTitle(data.votePeriod);
+    const title = data.isLiveVote ? `Current ${stageName} Vote Order` : `${stageName} Vote Order`;
+
+    return `
+        <section class="chamber-current-vote-order chamber-anim-fade" id="chamber-current-vote-order" aria-label="${escapeHtml(stageName)} ballot order" style="animation-delay:640ms">
+            <div class="current-vote-header">
+                <div>
+                    <div class="current-vote-title">${escapeHtml(title)}</div>
+                    <div class="current-vote-context">Loading on-chain ballot order...</div>
+                </div>
+                <div class="current-vote-count"></div>
+            </div>
+            <div class="current-vote-list" role="list"></div>
+        </section>
+    `;
+}
+
+function renderCurrentStageVoteRow(ballot, index) {
+    const vote = ballotVoteMeta(ballot);
+    const address = ballot?.delegate?.address || ballot?.sender?.address || '';
+    const bakerName = ballotDelegateName(ballot);
+    const timeText = fmtBallotTime(ballot?.timestamp);
+    const timeMs = validDate(ballot?.timestamp)?.getTime() || 0;
+    const power = Number(ballot?.votingPower) || 0;
+    const rowNumber = String(index + 1).padStart(2, '0');
+    const title = `${timeText} UTC: ${bakerName} voted ${vote.label} with ${fmtPower(power)} ꜩ`;
+
+    return `
+        <div class="current-vote-row current-vote-${vote.cls}" role="listitem" data-ballot-time="${escapeHtml(String(timeMs))}" data-ballot-id="${escapeHtml(String(ballot?.id || ''))}" title="${escapeHtml(title)}">
+            <span class="current-vote-rank">${rowNumber}</span>
+            <span class="current-vote-time">${escapeHtml(timeText)} UTC</span>
+            <span class="current-vote-baker" title="${escapeHtml(address)}">${escapeHtml(bakerName)}</span>
+            <span class="current-vote-choice">${vote.icon} ${escapeHtml(vote.label)}</span>
+            <span class="current-vote-power">${fmtPower(power)} ꜩ</span>
+        </div>
+    `;
+}
+
+async function hydrateCurrentStageVoteOrder(data) {
+    const container = document.getElementById('chamber-current-vote-order');
+    if (!container || !data?.votePeriod) return;
+
+    const context = container.querySelector('.current-vote-context');
+    const count = container.querySelector('.current-vote-count');
+    const list = container.querySelector('.current-vote-list');
+    const stageName = votePeriodTitle(data.votePeriod);
+    const stageScope = data.isLiveVote ? `Current ${stageName} stage` : `Displayed ${stageName} result`;
+
+    try {
+        const ballots = await fetchBallotTimeline(data.votePeriod.index);
+        if (!ballots.length) {
+            context.textContent = `No ${stageName.toLowerCase()} ballots found for this stage yet.`;
+            if (count) count.textContent = '';
+            if (list) list.innerHTML = '';
+            return;
+        }
+
+        context.textContent = `${stageScope}, earliest on-chain ballots first`;
+        if (count) count.textContent = `${ballots.length} ballot${ballots.length === 1 ? '' : 's'}`;
+        if (list) list.innerHTML = ballots.map((ballot, index) => renderCurrentStageVoteRow(ballot, index)).join('');
+    } catch (err) {
+        console.warn('Chamber: current stage vote order failed', err);
+        context.textContent = 'Current-stage ballot order is unavailable right now.';
+        if (count) count.textContent = '';
+        if (list) list.innerHTML = '';
+    }
+}
+
 // ─── Historical comparison ───
 
 function isFailedVote(vote) {
@@ -1289,6 +1400,7 @@ function renderChamber(data, container) {
                 ${renderMomentumSparkline(voters, isLiveVote, votePeriod)}
             </div>
         </div>
+        ${renderCurrentStageVoteOrder(data)}
         ${renderHistoricalComparison(data)}
         ${renderChronologicalVoteLog()}
         ${renderTopVoters(voters)}
@@ -1315,6 +1427,7 @@ function renderChamber(data, container) {
     const content = container.closest('.chamber-content');
     if (content) initAmbientEffects(content);
     
+    hydrateCurrentStageVoteOrder(data);
     hydrateHistoricalComparison(data);
     hydrateChronologicalVoteLog(data);
     requestAnimationFrame(() => requestAnimationFrame(triggerAnimations));

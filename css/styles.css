@@ -14347,6 +14347,117 @@ body {
     font-weight: 400;
 }
 
+/* ─── Chamber: current stage vote order ─── */
+.chamber-current-vote-order {
+    padding: 16px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 16px;
+}
+
+.current-vote-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.current-vote-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--accent-cyan);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+}
+
+.current-vote-context {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #888);
+}
+
+.current-vote-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-tertiary, #555);
+    white-space: nowrap;
+    padding-top: 2px;
+}
+
+.current-vote-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 340px;
+    overflow: auto;
+    border-top: 1px solid rgba(255,255,255,0.05);
+}
+
+.current-vote-row {
+    display: grid;
+    grid-template-columns: 34px minmax(112px, 0.7fr) minmax(160px, 1.4fr) 72px 82px;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.current-vote-rank,
+.current-vote-time,
+.current-vote-power {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.current-vote-rank {
+    font-size: 0.68rem;
+    color: var(--text-tertiary, #555);
+}
+
+.current-vote-time {
+    font-size: 0.68rem;
+    color: var(--text-secondary, #888);
+    white-space: nowrap;
+}
+
+.current-vote-baker {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--text-primary, #ddd);
+}
+
+.current-vote-choice {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.current-vote-power {
+    font-size: 0.68rem;
+    color: var(--text-secondary, #888);
+    text-align: right;
+    white-space: nowrap;
+}
+
+.current-vote-row.current-vote-yay .current-vote-choice {
+    color: #22c55e;
+}
+
+.current-vote-row.current-vote-nay .current-vote-choice {
+    color: #ff6b80;
+}
+
+.current-vote-row.current-vote-pass .current-vote-choice {
+    color: #eab308;
+}
+
 /* ─── Chamber v2: Historical comparison ─── */
 .chamber-comparison {
     padding: 16px;
@@ -14568,6 +14679,41 @@ body {
 }
 
 @media (max-width: 640px) {
+    .current-vote-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 4px;
+    }
+
+    .current-vote-row {
+        grid-template-columns: 28px minmax(0, 1fr) 72px;
+        gap: 4px 8px;
+        padding: 8px 0;
+    }
+
+    .current-vote-rank {
+        grid-row: 1 / span 3;
+    }
+
+    .current-vote-baker {
+        grid-column: 2 / -1;
+    }
+
+    .current-vote-time {
+        grid-column: 2;
+    }
+
+    .current-vote-choice {
+        grid-column: 3;
+        grid-row: 2;
+        text-align: right;
+    }
+
+    .current-vote-power {
+        grid-column: 2 / -1;
+        text-align: left;
+    }
+
     .vote-history-row {
         grid-template-columns: minmax(0, 1fr) 44px;
         gap: 5px 8px;

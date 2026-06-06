@@ -586,8 +586,8 @@ async function installFeatureMocks(context, options = {}) {
       if (url.includes('/smart_rollups/count')) return fulfillJson(route, 18);
       if (url.includes('/operations/ballots?')) {
         return fulfillJson(route, [
-          { timestamp: new Date(Date.now() - 11 * 3600000).toISOString(), votingPower: 5000 },
-          { timestamp: new Date(Date.now() - 9 * 3600000).toISOString(), votingPower: 2500 }
+          { id: 1, timestamp: new Date(Date.now() - 11 * 3600000).toISOString(), votingPower: 5000, vote: 'yay', delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } },
+          { id: 2, timestamp: new Date(Date.now() - 9 * 3600000).toISOString(), votingPower: 2500, vote: 'pass', delegate: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' } }
         ]);
       }
       if (url.includes('/voting/periods/173/voters')) {
@@ -1429,6 +1429,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('.chamber-overlay.active .chamber-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#chamber-modal.active .chamber-badge').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#chamber-modal.active .gauge-context-label').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#chamber-current-vote-order .current-vote-row').length >= 2, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#chamber-vote-log .vote-log-row').length >= 40, null, { timeout: 10000 });
   const chamberState = await page.evaluate(() => ({
     badge: document.querySelector('#chamber-modal .chamber-badge')?.textContent?.trim() || '',
@@ -1438,6 +1439,15 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     thresholdNote: document.querySelector('#chamber-modal .gauge-threshold-note')?.textContent?.trim() || '',
     svgTextCount: document.querySelectorAll('#chamber-modal .gauge-svg text').length,
     footer: document.querySelector('#chamber-modal .chamber-footer')?.textContent || '',
+    currentVoteTitle: document.querySelector('#chamber-current-vote-order .current-vote-title')?.textContent?.trim() || '',
+    currentVoteContext: document.querySelector('#chamber-current-vote-order .current-vote-context')?.textContent?.trim() || '',
+    currentVoteCount: document.querySelector('#chamber-current-vote-order .current-vote-count')?.textContent?.trim() || '',
+    currentVoteRows: document.querySelectorAll('#chamber-current-vote-order .current-vote-row').length,
+    currentVoteFirstText: document.querySelector('#chamber-current-vote-order .current-vote-row')?.textContent || '',
+    currentVoteChronological: Array.from(document.querySelectorAll('#chamber-current-vote-order .current-vote-row')).every((row, index, rows) => {
+      if (index === 0) return true;
+      return Number(rows[index - 1].dataset.ballotTime) <= Number(row.dataset.ballotTime);
+    }),
     voteLogContext: document.querySelector('#chamber-vote-log .vote-log-context')?.textContent?.trim() || '',
     voteLogCount: document.querySelector('#chamber-vote-log .vote-log-count')?.textContent?.trim() || '',
     voteLogRows: document.querySelectorAll('#chamber-vote-log .vote-log-row').length,
@@ -1458,6 +1468,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/80% threshold/.test(chamberState.thresholdNote), `governance testing period: missing threshold note, saw ${chamberState.thresholdNote}`);
   assert(chamberState.svgTextCount === 0, 'governance testing period: threshold label should not be drawn over the gauge arc');
   assert(/Current Cooldown period; showing latest Exploration result/.test(chamberState.footer), `governance testing period: footer mismatch: ${chamberState.footer}`);
+  assert(chamberState.currentVoteTitle === 'Exploration Vote Order', `governance testing period: current-stage vote order title mismatch: ${chamberState.currentVoteTitle}`);
+  assert(/Displayed Exploration result/.test(chamberState.currentVoteContext), `governance testing period: current-stage vote order context mismatch: ${chamberState.currentVoteContext}`);
+  assert(chamberState.currentVoteCount === '2 ballots', `governance testing period: current-stage vote count mismatch: ${chamberState.currentVoteCount}`);
+  assert(chamberState.currentVoteChronological, 'governance testing period: current-stage votes should be oldest to newest');
+  assert(/QA Baker/.test(chamberState.currentVoteFirstText) && /Yay/.test(chamberState.currentVoteFirstText), `governance testing period: current-stage first ballot mismatch: ${chamberState.currentVoteFirstText}`);
   assert(chamberState.voteLogRows >= 40, `governance testing period: chronological vote log should show the full local history, saw ${chamberState.voteLogRows}`);
   assert(chamberState.voteLogChronological, 'governance testing period: chronological vote log should be oldest to newest by epoch and period');
   assert(/oldest to newest/.test(chamberState.voteLogContext), `governance testing period: vote log context should state sort order, saw ${chamberState.voteLogContext}`);
