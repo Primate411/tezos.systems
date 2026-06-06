@@ -7,8 +7,10 @@ const CHANGELOG = [
     {
         date: '2026-06-06',
         entries: [
+            { type: '🔧', text: 'First-visit dashboards now show the protocol panel plus a default Chambers section, with Network Stats hidden until enabled from Explore' },
+            { type: '🔧', text: 'The Chamber, Liquidity Baking, tz4 Adoption, and Network Health now share one Chambers launcher toggle instead of separate Explore rows' },
             { type: '✨', text: 'Network Health is now an expandable #health chamber with live block cadence, round, missed attestation, and missed block detail' },
-            { type: '🔧', text: 'The feature launcher now includes The Chamber with direct #chamber access beside the other live governance tools' },
+            { type: '🔧', text: 'The Chamber card keeps direct #chamber access while Explore now treats all chambers as one feature' },
         ]
     },
     {

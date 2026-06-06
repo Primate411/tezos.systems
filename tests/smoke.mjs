@@ -1027,12 +1027,20 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, '.card-share-btn, #share-btn, #upgrade-share-btn, #comparison-share-all-btn', 5, label);
   await expectCount(page, '#build-version', 1, label);
   await expectCount(page, '#widgets-gallery', 1, label);
+  await expectCount(page, '#chambers-section', 1, label);
+  assert(await page.locator('#chambers-section').isVisible(), `${label}: Chambers should be visible by default`);
+  await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card').length >= 4, null, { timeout: 10000 });
+  assert(!(await page.locator('#consensus-section').isVisible()), `${label}: Consensus stats should be hidden by default`);
+  assert(!(await page.locator('#economy-section').isVisible()), `${label}: Economy stats should be hidden by default`);
+  assert(!(await page.locator('#governance-section').isVisible()), `${label}: Governance stats should be hidden by default`);
+  assert(!(await page.locator('#network-activity-section').isVisible()), `${label}: Network Activity stats should be hidden by default`);
+  assert(!(await page.locator('#ecosystem-section').isVisible()), `${label}: Ecosystem stats should be hidden by default`);
   assert(!(await page.locator('#widgets-gallery').isVisible()), `${label}: Embed Builder utility should be hidden by default`);
   await expectCount(page, '#widgets-gallery .widget-utility-panel', 1, label);
   await expectCount(page, '#widgets-gallery a[href="/widgets/builder.html"]', 1, label);
   assert(await page.locator('#widgets-gallery .widget-preview-card').count() === 0, `${label}: raw widget preview cards should be demoted out of dashboard`);
   assert(await page.locator('#widgets-gallery a[href^="/widgets/"]:not([href="/widgets/builder.html"])').count() === 0, `${label}: dashboard widget utility should not link to raw widget endpoints`);
-  await expectCount(page, '.section-copy-link', 6, label);
+  await expectCount(page, '.section-copy-link', 7, label);
 
   await openDropdown(page, '#settings-gear', '#settings-dropdown');
   await page.locator('#changelog-btn').click();
@@ -1050,9 +1058,10 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await openDropdown(page, '#features-gear', '#features-dropdown');
   await expectCount(page, '#features-dropdown.feature-launcher', 1, label);
   await expectCount(page, '#features-dropdown .feature-launcher-group', 4, label);
-  await expectCount(page, '#features-dropdown .feature-copy-link', 12, label);
-  await expectCount(page, '#features-dropdown #chamber-toggle', 1, label);
-  await expectCount(page, '#features-dropdown .feature-copy-link[data-copy-hash="#chamber"]', 1, label);
+  await expectCount(page, '#features-dropdown .feature-copy-link', 10, label);
+  await expectCount(page, '#features-dropdown #chambers-toggle', 1, label);
+  await expectCount(page, '#features-dropdown .feature-copy-link[data-copy-hash="#chambers"]', 1, label);
+  await assertLocatorCount(page.locator('#features-dropdown #chamber-toggle, #features-dropdown #liquidity-baking-toggle, #features-dropdown #tz4-adoption-toggle'), 0, `${label} individual chamber launchers`);
   assert((await page.locator('#features-dropdown a[href="/widgets/builder.html"]').innerText()).includes('Embed Builder'), `${label}: launcher should point widgets to Embed Builder`);
   await page.locator('.feature-copy-link[data-copy-hash="#compare"]').click();
   await page.waitForFunction(() => document.querySelector('.feature-copy-link[data-copy-hash="#compare"]')?.textContent?.trim() === '✓', null, { timeout: 3000 });
@@ -1073,9 +1082,10 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await openDropdown(page, '#settings-gear', '#settings-dropdown');
   await page.locator('#share-btn').click();
   await page.locator('#section-picker-modal').waitFor({ state: 'visible', timeout: 5000 });
-  await expectCount(page, '#section-picker-modal input[type="checkbox"]', 6, label);
+  await expectCount(page, '#section-picker-modal input[type="checkbox"]', 2, label);
   await expectCount(page, '#section-picker-modal .section-picker-note', 1, label);
   const pickerLabels = await page.locator('#section-picker-modal .section-picker-label').allTextContents();
+  assert(pickerLabels.some((text) => text.includes('Chambers')), `${label}: share picker should include visible Chambers section`);
   assert(!pickerLabels.includes('⛓️'), `${label}: share picker should not show emoji-only section names`);
   assert(!pickerLabels.includes('🧩 Embed Builder'), `${label}: share picker should not include hidden utility sections`);
   await page.locator('#section-picker-modal .share-modal-close').click();
@@ -1307,6 +1317,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       return id;
     };
     localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
@@ -1324,10 +1335,12 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('#lb-entry-card[data-lb-live="true"][data-lb-refresh-interval="60000"]').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('.stat-card[data-stat="tz4-adoption"].chamber-entry-card .chamber-expand-cue').waitFor({ state: 'visible', timeout: 10000 });
   await expectCount(page, '#chamber-entry-card .card-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber card link');
-  await expectCount(page, '#chamber-toggle', 1, 'governance testing period chamber launcher button');
-  await expectCount(page, '.feature-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber launcher link');
+  await expectCount(page, '#chambers-toggle', 1, 'governance testing period chambers launcher button');
+  await expectCount(page, '.feature-copy-link[data-copy-hash="#chambers"]', 1, 'governance testing period chambers launcher link');
   await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb-tile"]', 1, 'governance testing period LB tile link');
-  await expectCount(page, '.feature-copy-link[data-copy-hash="#tz4"]', 1, 'governance testing period tz4 launcher link');
+  await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
+  await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
+  await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
 
   const dashboardState = await page.evaluate(() => ({
     banner: document.querySelector('#gov-countdown-banner')?.innerText || '',
@@ -1555,7 +1568,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     systemLinks: document.querySelectorAll('#tz4-adoption-modal .lb-baker-name-link[href^="#baker="]').length,
     tzktLinks: document.querySelectorAll('#tz4-adoption-modal .lb-baker-source-link[href^="https://tzkt.io/"]').length,
     footer: document.querySelector('#tz4-adoption-modal .chamber-footer')?.textContent || '',
-    launcherCopy: document.querySelector('.feature-copy-link[data-copy-hash="#tz4"]')?.getAttribute('aria-label') || '',
+    chambersLauncherCopy: document.querySelector('.feature-copy-link[data-copy-hash="#chambers"]')?.getAttribute('aria-label') || '',
     intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
   }));
   assert(/tz4 Adoption Chamber/.test(tz4State.title), `governance testing period: tz4 modal title mismatch: ${tz4State.title}`);
@@ -1575,7 +1588,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(tz4State.systemLinks >= 3, `governance testing period: tz4 Tezos.Systems baker links missing, saw ${tz4State.systemLinks}`);
   assert(tz4State.tzktLinks >= 3, `governance testing period: tz4 TzKT links missing, saw ${tz4State.tzktLinks}`);
   assert(/Direct: \/#tz4/.test(tz4State.footer), `governance testing period: tz4 direct footer missing: ${tz4State.footer}`);
-  assert(/Copy tz4 Adoption Chamber link/.test(tz4State.launcherCopy), `governance testing period: tz4 launcher copy link missing: ${tz4State.launcherCopy}`);
+  assert(/Copy Chambers link/.test(tz4State.chambersLauncherCopy), `governance testing period: combined Chambers launcher copy link missing: ${tz4State.chambersLauncherCopy}`);
   assert(tz4State.intervalDelays.includes(60000), `governance testing period: tz4 modal 60s refresh timer was not registered: ${tz4State.intervalDelays.join(', ')}`);
 
   await page.locator('#tz4-adoption-modal [data-tz4-filter="pending"]').click();
@@ -1729,6 +1742,7 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await installFeatureMocks(context);
   await context.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
@@ -1889,6 +1903,7 @@ async function smokeInfoModals(browser, baseUrl) {
   await installFeatureMocks(context);
   await context.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');

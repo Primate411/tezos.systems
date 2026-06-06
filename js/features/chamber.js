@@ -1313,7 +1313,7 @@ export async function openChamber() {
         if (retryBtn) {
             retryBtn.addEventListener('click', () => {
                 closeChamber();
-                setTimeout(() => document.querySelector('.chamber-entry-card')?.click(), 300);
+                setTimeout(() => document.getElementById('chamber-entry-card')?.click(), 300);
             });
         }
         return;
@@ -1348,16 +1348,19 @@ export function initChamber() {
     }
 
     const govSection = document.getElementById('governance-section');
-    if (!govSection) return;
     
-    const header = govSection.querySelector('.section-title');
+    const header = govSection?.querySelector('.section-title');
     if (header) {
         header.style.cursor = 'pointer';
         header.title = 'Open The Chamber — Governance War Room';
         header.addEventListener('click', openChamber);
     }
     
-    const grid = govSection.querySelector('.stats-grid');
+    const grid = document.getElementById('chambers-grid') || govSection?.querySelector('.stats-grid');
+    if (document.getElementById('chamber-entry-card')) {
+        loadEntryCardStatus();
+        return;
+    }
     if (grid) {
         const card = document.createElement('div');
         card.id = 'chamber-entry-card';
@@ -1376,7 +1379,7 @@ export function initChamber() {
         `;
         card.style.cursor = 'pointer';
         card.addEventListener('click', openChamber);
-        grid.appendChild(card);
+        grid.prepend(card);
         
         loadEntryCardStatus();
     }

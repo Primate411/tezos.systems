@@ -868,6 +868,8 @@ export async function fetchHeroStats() {
 
         return {
             totalBakers: bakers.total,
+            tz4Bakers: bakers.tz4Count,
+            tz4Percentage: bakers.tz4Percentage,
             currentIssuanceRate: issuanceRate,
             stakingRatio: staking.stakingRatio,
             cycle: cycleInfo.cycle,
@@ -876,7 +878,7 @@ export async function fetchHeroStats() {
         };
     } catch (error) {
         console.error('Failed to fetch hero stats:', error);
-        return { totalBakers: 0, stakingRatio: 0, currentIssuanceRate: 0, cycle: 0, cycleProgress: 0, cycleTimeRemaining: '—' };
+        return { totalBakers: 0, tz4Bakers: 0, tz4Percentage: 0, stakingRatio: 0, currentIssuanceRate: 0, cycle: 0, cycleProgress: 0, cycleTimeRemaining: '—' };
     }
 }
 

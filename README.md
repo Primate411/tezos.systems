@@ -85,10 +85,13 @@ tezos.systems/
 2. `app.js` initializes feature modules behind safe wrappers, registers the
    service worker, handles deep links, and starts the refresh loop.
 3. Cached stats and protocol data are displayed first when available.
-4. Background refreshes update hero stats, comparison data, governance state,
+4. First-visit default content is the protocol panel plus the Chambers section.
+   Network Stats sections are hidden until the user enables Network Stats from
+   Explore.
+5. Background refreshes update hero stats, comparison data, governance state,
    cycle pulse, daily briefing, rewards tracker, price intelligence, baker
    tools, leaderboard, My Tezos, and share-ready UI.
-5. DOM elements are updated directly by id and class. There is no app state
+6. DOM elements are updated directly by id and class. There is no app state
    framework.
 
 Current refresh and cache intervals from `js/core/config.js`:
@@ -131,8 +134,10 @@ inline modal styles in `js/core/app.js`.
 
 ## Main Surfaces
 
+- Chambers section is visible by default and groups The Chamber, Liquidity
+  Baking Monitor, tz4 Adoption, and Network Health as one hideable feature.
 - Live network stat cards for consensus, economy, governance, network activity,
-  and ecosystem metrics.
+  and ecosystem metrics are opt-in from Explore under Network Stats.
 - Network Health Chamber with direct `#health` access, recent block cadence,
   consensus round, missed attestation, and missed baking-right detail.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
@@ -163,6 +168,7 @@ Useful deep links include:
 - `#theme=...`
 - `#section=...`
 - `#price`
+- `#chambers`
 - `#health`
 - `#chamber`
 - `#lb`

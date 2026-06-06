@@ -948,13 +948,12 @@ export function initLiquidityBaking() {
         launcherBtn.addEventListener('click', openLiquidityBakingMonitor);
     }
 
-    if (!govSection) return;
     if (document.getElementById('lb-entry-card')) {
         startEntryCardRefresh();
         return;
     }
 
-    const grid = govSection.querySelector('.stats-grid');
+    const grid = document.getElementById('chambers-grid') || govSection?.querySelector('.stats-grid');
     if (!grid) return;
 
     const card = document.createElement('div');
@@ -1016,7 +1015,12 @@ export function initLiquidityBaking() {
         openLiquidityBakingMonitor();
     });
     card.addEventListener('click', openLiquidityBakingMonitor);
-    grid.appendChild(card);
+    const chamberCard = document.getElementById('chamber-entry-card');
+    if (chamberCard?.parentElement === grid) {
+        chamberCard.after(card);
+    } else {
+        grid.prepend(card);
+    }
     loadEntryCardStatus({ force: true });
     startEntryCardRefresh();
 }

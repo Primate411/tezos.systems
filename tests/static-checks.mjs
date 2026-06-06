@@ -313,6 +313,9 @@ async function checkSelectorContracts() {
     'price-bar',
     'features-gear',
     'features-dropdown',
+    'chambers-toggle',
+    'chambers-section',
+    'chambers-grid',
     'widgets-gallery',
     'settings-gear',
     'settings-dropdown',
@@ -334,6 +337,7 @@ async function checkSelectorContracts() {
 
   const requiredSnippets = [
     ['feature launcher grouped menu', 'class="settings-dropdown feature-launcher"'],
+    ['combined chambers launcher copy link', 'data-copy-hash="#chambers"'],
     ['direct feature copy links', 'data-copy-hash="#compare"'],
     ['widget embed utility panel', 'class="widget-utility-panel"'],
     ['widget embed utility hidden by default', 'class="stats-section widget-utility-section toggleable-section"'],
@@ -348,6 +352,17 @@ async function checkSelectorContracts() {
   }
   pass(`new UX selector contracts checked: ${requiredSnippets.length}`);
 
+  const retiredLauncherSnippets = [
+    ['individual Chamber launcher', 'id="chamber-toggle"'],
+    ['individual LB launcher', 'id="liquidity-baking-toggle"'],
+    ['individual tz4 launcher', 'id="tz4-adoption-toggle"'],
+    ['individual tz4 launcher copy link', 'data-copy-hash="#tz4"']
+  ];
+  for (const [label, snippet] of retiredLauncherSnippets) {
+    if (index.includes(snippet)) fail(`retired launcher still present: ${label}`);
+  }
+  pass(`retired chamber launcher contracts checked: ${retiredLauncherSnippets.length}`);
+
   const app = await readText('js/core/app.js');
   const chamber = await readText('js/features/chamber.js');
   const lb = await readText('js/features/liquidity-baking.js');
@@ -355,15 +370,15 @@ async function checkSelectorContracts() {
   const health = await readText('js/features/network-health.js');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
+    ['Chambers hash route', "hash === 'chambers'", app],
     ['Health hash route', "hash === 'health'", app],
     ['LB tile hash route', "hash === 'lb-tile'", app],
     ['tz4 hash route', "hash === 'tz4'", app],
-    ['Chamber launcher button', 'id="chamber-toggle"', index],
-    ['Chamber launcher copy link', 'data-copy-hash="#chamber"', index],
-    ['Chamber launcher wiring', 'chamber-toggle', chamber],
+    ['Chambers launcher button', 'id="chambers-toggle"', index],
+    ['Chambers launcher copy link', 'data-copy-hash="#chambers"', index],
+    ['Chambers visibility storage', 'tezos-systems-chambers-visible', app],
     ['Chamber card copy link', 'data-copy-hash="#chamber"', chamber],
     ['LB tile copy link', 'data-copy-hash="#lb-tile"', lb],
-    ['tz4 launcher copy link', 'data-copy-hash="#tz4"', index],
     ['tz4 tile expand cue', 'data-stat="tz4-adoption"', index],
     ['tz4 tile expand icon', 'chamber-expand-cue', index],
     ['tz4 tile chamber wiring', 'openTz4AdoptionChamber', tz4],

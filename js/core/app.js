@@ -278,6 +278,9 @@ async function init() {
     // Initialize share functionality
     safe('share', initShare);
     safe('protocolShare', initProtocolShare);
+
+    // Lift chamber entry cards out of the hidden network-stat sections.
+    safe('chambersSurface', initChambersSurface);
     
     // Initialize The Chamber governance modal
     safe('chamber', initChamber);
@@ -333,6 +336,7 @@ async function init() {
     });
     safe('navButtons', initNavButtons);
     safe('uptimeClock', initUptimeClock);
+    safe('chambersToggle', initChambersToggle);
     safe('tezosStatsToggle', initTezosStatsToggle);
     safe('networkHealth', initNetworkHealth);
 
@@ -388,8 +392,8 @@ async function init() {
     const cachedStats = loadStats();
     const cachedProtocols = loadProtocols();
     
-    // Only render cached stats if Tezos Stats is visible
-    const statsWanted = localStorage.getItem(STATS_VISIBLE_KEY) !== 'false';
+    // Only render cached full stats if the user enabled Network Stats.
+    const statsWanted = localStorage.getItem(STATS_VISIBLE_KEY) === 'true';
     if (cachedStats && statsWanted) {
         console.log('⚡ Rendering cached data instantly');
         statsDataLoaded = true;
@@ -418,6 +422,7 @@ async function init() {
             stakedRatio: cachedStats.stakingRatio,
         });
     }
+    if (cachedStats) updateTz4ChamberTile(cachedStats);
 
     // Check API health (non-blocking)
     checkApiHealth().then(health => console.log('API Health:', health));
@@ -572,10 +577,11 @@ async function refreshInBackground() {
                 stakedRatio: heroStats.stakingRatio,
             });
         }
+        updateTz4ChamberTile(heroStats);
 
         // Only fetch full stats if Tezos Stats sections are visible
         const statsVisible = localStorage.getItem(STATS_VISIBLE_KEY);
-        if (statsVisible !== 'false') {
+        if (statsVisible === 'true') {
             const newStats = await fetchAllStats();
             console.log('✅ Fresh stats received');
             
@@ -1086,6 +1092,66 @@ function initNavButtons() {
 }
 
 // ==========================================
+// CHAMBERS SURFACE
+// ==========================================
+const CHAMBERS_VISIBLE_KEY = 'tezos-systems-chambers-visible';
+
+function initChambersSurface() {
+    const grid = document.getElementById('chambers-grid');
+    if (!grid) return;
+
+    const tz4Card = document.querySelector('.stat-card[data-stat="tz4-adoption"]');
+    const healthCard = document.querySelector('.stat-card[data-stat="network-health"]');
+
+    if (tz4Card && tz4Card.parentElement !== grid) grid.appendChild(tz4Card);
+    if (healthCard && healthCard.parentElement !== grid) grid.appendChild(healthCard);
+}
+
+function initChambersToggle() {
+    const section = document.getElementById('chambers-section');
+    const toggleBtn = document.getElementById('chambers-toggle');
+    if (!section || !toggleBtn) return;
+
+    function updateVis(isVisible) {
+        section.style.display = isVisible ? '' : 'none';
+        toggleBtn.classList.toggle('active', isVisible);
+        toggleBtn.title = `Chambers: ${isVisible ? 'ON' : 'OFF'}`;
+        const status = toggleBtn.querySelector('.feature-status');
+        if (status) status.textContent = isVisible ? 'Pinned' : 'Hidden';
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        const stored = localStorage.getItem(CHAMBERS_VISIBLE_KEY);
+        const isVisible = stored !== 'false';
+        const newState = !isVisible;
+        localStorage.setItem(CHAMBERS_VISIBLE_KEY, String(newState));
+        updateVis(newState);
+    });
+
+    // Default ON: first visitors see the protocol panel and the four chambers.
+    const stored = localStorage.getItem(CHAMBERS_VISIBLE_KEY);
+    updateVis(stored !== 'false');
+}
+
+function updateTz4ChamberTile(stats) {
+    if (!stats) return;
+    const percentage = Number(stats.tz4Percentage);
+    if (!Number.isFinite(percentage)) return;
+
+    updateStatInstant('tz4-adoption', percentage, (val) => `${val.toFixed(1)} / ${STAKING_TARGET}%`);
+    const tz4Desc = document.getElementById('tz4-description');
+    if (!tz4Desc) return;
+
+    const tz4Bakers = Number(stats.tz4Bakers);
+    const totalBakers = Number(stats.totalBakers);
+    if (Number.isFinite(tz4Bakers) && Number.isFinite(totalBakers) && totalBakers > 0) {
+        tz4Desc.textContent = `${tz4Bakers} / ${totalBakers} bakers active`;
+    } else {
+        tz4Desc.textContent = 'BLS baker adoption';
+    }
+}
+
+// ==========================================
 // TEZOS STATS TOGGLE (5 metric sections)
 // ==========================================
 const STATS_VISIBLE_KEY = 'tezos-systems-stats-visible';
@@ -1102,6 +1168,8 @@ function initTezosStatsToggle() {
         sections.forEach(s => s.style.display = isVisible ? '' : 'none');
         toggleBtn.classList.toggle('active', isVisible);
         toggleBtn.title = `Tezos Stats: ${isVisible ? 'ON' : 'OFF'}`;
+        const status = toggleBtn.querySelector('.feature-status');
+        if (status) status.textContent = isVisible ? 'Pinned' : 'Hidden';
     }
 
     async function loadStatsIfNeeded() {
@@ -1122,7 +1190,7 @@ function initTezosStatsToggle() {
 
     toggleBtn.addEventListener('click', async () => {
         const stored = localStorage.getItem(STATS_VISIBLE_KEY);
-        const isVisible = stored !== 'false';
+        const isVisible = stored === 'true';
         const newState = !isVisible;
         localStorage.setItem(STATS_VISIBLE_KEY, String(newState));
         updateVis(newState);
@@ -1130,9 +1198,9 @@ function initTezosStatsToggle() {
         if (newState) refreshNetworkHealth({ force: true });
     });
 
-    // Default OFF — only show if user explicitly enabled (lazy-load)
+    // Default OFF: first visitors get the protocol panel plus chambers only.
     const stored = localStorage.getItem(STATS_VISIBLE_KEY);
-    const isVisible = stored !== 'false'; // null = true (default ON)
+    const isVisible = stored === 'true';
     updateVis(isVisible);
     if (isVisible) loadStatsIfNeeded();
 }
@@ -2333,6 +2401,7 @@ function initDeepLinkAffordances() {
         { selector: '#objkt-section .section-header', hash: '#nfts', label: 'NFT profile' },
         { selector: '#price-intelligence .section-header', hash: '#price', label: 'price intelligence' },
         { selector: '#widgets-gallery .section-header', hash: '#widgets', label: 'embed builder' },
+        { selector: '#chambers-section .section-header', hash: '#chambers', label: 'chambers' },
         { selector: '#consensus-section .section-header', hash: '#section=consensus', label: 'consensus stats' },
         { selector: '#economy-section .section-header', hash: '#section=economy', label: 'economy stats' },
         { selector: '#governance-section .section-header', hash: '#section=governance', label: 'governance stats' },
@@ -2533,7 +2602,7 @@ function applyDeepLink() {
         if (!anyHidden) return;
 
         const toggle = document.getElementById('tezos-stats-toggle');
-        if (toggle && localStorage.getItem(STATS_VISIBLE_KEY) === 'false') {
+        if (toggle && localStorage.getItem(STATS_VISIBLE_KEY) !== 'true') {
             toggle.click();
             return;
         }
@@ -2542,6 +2611,22 @@ function applyDeepLink() {
         sections.forEach((section) => { section.style.display = ''; });
         toggle?.classList.add('active');
         if (toggle) toggle.title = 'Tezos Stats: ON';
+    };
+
+    const ensureChambersVisible = () => {
+        const section = document.getElementById('chambers-section');
+        if (!section || getComputedStyle(section).display !== 'none') return;
+
+        const toggle = document.getElementById('chambers-toggle');
+        if (toggle && localStorage.getItem(CHAMBERS_VISIBLE_KEY) === 'false') {
+            toggle.click();
+            return;
+        }
+
+        localStorage.setItem(CHAMBERS_VISIBLE_KEY, 'true');
+        section.style.display = '';
+        toggle?.classList.add('active');
+        if (toggle) toggle.title = 'Chambers: ON';
     };
 
     const scrollToElement = (target, options = {}) => {
@@ -2617,6 +2702,12 @@ function applyDeepLink() {
             .catch((error) => console.warn('Failed to open The Chamber', error));
     }
 
+    // #chambers
+    if (params.has('chambers') || hash === 'chambers') {
+        ensureChambersVisible();
+        setTimeout(() => scrollToElementAfterLayout(() => document.getElementById('chambers-section'), { block: 'start' }), 200);
+    }
+
     // #health / #network-health
     if (params.has('health') || hash === 'health' || params.has('network-health') || hash === 'network-health') {
         import('../features/network-health.js')
@@ -2626,7 +2717,7 @@ function applyDeepLink() {
 
     // #lb-tile / #liquidity-baking-tile
     if (params.has('lb-tile') || hash === 'lb-tile' || params.has('liquidity-baking-tile') || hash === 'liquidity-baking-tile') {
-        ensureStatsVisible();
+        ensureChambersVisible();
         setTimeout(() => scrollToElementAfterLayout(() => document.getElementById('lb-entry-card')), 600);
     }
 
@@ -2715,6 +2806,7 @@ function applyDeepLink() {
 
     // #section=<id> — scroll to a section
     if (params.has('section')) {
+        ensureStatsVisible();
         const sectionName = params.get('section');
         // Map friendly names to section header text
         const sectionMap = {
