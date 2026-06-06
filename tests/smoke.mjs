@@ -1491,7 +1491,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(lbState.ema === '51.5%', `governance testing period: LB EMA should show mocked value, saw ${lbState.ema}`);
   assert(/SUBSIDY DISABLED/.test(lbState.status), `governance testing period: LB status mismatch: ${lbState.status}`);
   assert(lbState.live === 'true', `governance testing period: LB live refresh should be active, saw ${lbState.live}`);
-  assert(/auto-refresh 8s/.test(lbState.refreshState), `governance testing period: LB refresh label mismatch: ${lbState.refreshState}`);
+  assert(/auto-refresh 6s/.test(lbState.refreshState), `governance testing period: LB refresh label mismatch: ${lbState.refreshState}`);
   assert(lbState.recentRows >= 4, `governance testing period: LB recent rows missing, saw ${lbState.recentRows}`);
   assert(lbState.bakerRows >= 4, `governance testing period: LB baker rows missing, saw ${lbState.bakerRows}`);
   assert(lbState.filters === 4, `governance testing period: LB filter count mismatch: ${lbState.filters}`);
@@ -1523,12 +1523,12 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(lbLoreExpandedState.collapsed === 'false', `governance testing period: LB lore expanded flag mismatch: ${lbLoreExpandedState.collapsed}`);
   assert(lbLoreExpandedState.items >= 3, `governance testing period: LB expanded lore items missing, saw ${lbLoreExpandedState.items}`);
   assert(lbState.readMoreLinks >= 2, `governance testing period: LB read-more links missing, saw ${lbState.readMoreLinks}`);
-  assert(lbState.intervalDelays.includes(8000), `governance testing period: LB modal 8s refresh timer was not registered: ${lbState.intervalDelays.join(', ')}`);
+  assert(lbState.intervalDelays.includes(6000), `governance testing period: LB modal 6s refresh timer was not registered: ${lbState.intervalDelays.join(', ')}`);
 
   const smoothRefreshStart = await page.evaluate(() => {
     window.__lbBodyNode = document.querySelector('#liquidity-baking-modal .lb-body');
     window.__lbHeaderNode = document.querySelector('#liquidity-baking-modal .lb-header');
-    const timer = (window.__tezosSystemsIntervals || []).find((item) => item.timeout === 8000);
+    const timer = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 6000).at(-1);
     const beforeLevel = document.querySelector('#lb-recent-block-list .lb-table-row')?.dataset.lbLevel || '';
     timer?.handler();
     return { beforeLevel, hasTimer: Boolean(timer) };

@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-06',
         entries: [
+            { type: '🔧', text: 'Liquidity Baking Monitor now refreshes on the 6-second block cadence while open' },
             { type: '🎨', text: 'Mobile landing, upgrade proof, and chamber headings now use stronger solid contrast for Brave/WebKit rendering' },
             { type: '✨', text: 'Network Health now shows a compact My Tezos baker summary when a baker is saved' },
             { type: '🔧', text: 'First-visit dashboards now show the protocol panel plus a default Chambers section, with Network Stats hidden until enabled from Explore' },
