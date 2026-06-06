@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-06',
         entries: [
+            { type: '✨', text: 'The Chamber now includes a full chronological governance vote log from Athens through the latest local vote history' },
             { type: '🔧', text: 'tz4 Adoption and Network Health chamber cards now expose direct #tz4 and #health link controls' },
             { type: '🔧', text: 'Network Health chamber freshness now ages from the head block timestamp so stalled blocks do not look freshly updated' },
             { type: '🔧', text: 'Liquidity Baking Monitor now refreshes on the 6-second block cadence while open' },

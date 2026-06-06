@@ -146,7 +146,9 @@ inline modal styles in `js/core/app.js`.
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
   `data/protocol-debates.json`.
-- Governance panel prompt and The Chamber for live and historical amendment voting.
+- Governance panel prompt and The Chamber for live and historical amendment
+  voting, including the chronological vote log sourced from
+  `data/governance-votes.json`.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, protocol-history lore, 6-second
   open-monitor refreshes, and 60-second dashboard-tile refreshes.
@@ -255,7 +257,7 @@ Current smoke suites:
 - `my-tezos-baker-activity`
 - `my-tezos-baker-capacity`
 - `network-health`
-- `governance-lb`
+- `governance-lb` (covers Chamber chronological vote-log ordering)
 - `ux-regressions`
 - `feature-workflows`
 - `info-modals`

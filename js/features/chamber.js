@@ -965,6 +965,23 @@ function chooseHistoricalVotes(data, history) {
         .sort((a, b) => (b.epoch - a.epoch) || (b.period - a.period));
 }
 
+function compareVotesChronologically(a, b) {
+    const epochDelta = (a.epoch || 0) - (b.epoch || 0);
+    if (epochDelta) return epochDelta;
+    const periodDelta = (a.period || 0) - (b.period || 0);
+    if (periodDelta) return periodDelta;
+    const aStart = validDate(a.startTime)?.getTime() || 0;
+    const bStart = validDate(b.startTime)?.getTime() || 0;
+    return aStart - bStart;
+}
+
+function chronologicalVotes(history) {
+    const votes = Array.isArray(history?.periodVotes) ? history.periodVotes : [];
+    return votes
+        .filter(vote => ['exploration', 'promotion'].includes(vote.kind))
+        .sort(compareVotesChronologically);
+}
+
 function renderVoteHistoryRow(vote, protocols) {
     const tone = voteTone(vote);
     const name = voteDisplayName(vote, protocols);
@@ -983,6 +1000,46 @@ function renderVoteHistoryRow(vote, protocols) {
             <div class="comparison-bar-track"><div class="comparison-bar-fill" style="width:${width}%;${voteFillStyle(vote)}"></div></div>
             <span class="comparison-pct vote-history-pct">${pctText(yay)}</span>
             <span class="vote-history-status">${kindLabel(vote.kind)} · ${escapeHtml(status)} · quorum ${quorum}/${required}</span>
+        </div>
+    `;
+}
+
+function renderChronologicalVoteLog() {
+    return `
+        <section class="chamber-vote-log chamber-anim-fade" id="chamber-vote-log" aria-label="Chronological governance vote log" style="animation-delay:760ms">
+            <div class="vote-log-header">
+                <div>
+                    <div class="comparison-title">Chronological Vote Log</div>
+                    <div class="vote-log-context">Loading local governance vote history...</div>
+                </div>
+                <div class="vote-log-count"></div>
+            </div>
+            <div class="vote-log-table" role="list"></div>
+        </section>
+    `;
+}
+
+function renderChronologicalVoteRow(vote, protocols, index) {
+    const tone = voteTone(vote);
+    const name = voteDisplayName(vote, protocols);
+    const phase = kindLabel(vote.kind);
+    const status = statusLabel(vote.status);
+    const startDate = fmtShortDate(vote.startTime, true);
+    const endDate = fmtShortDate(vote.endTime, true);
+    const dateText = startDate && endDate ? `${startDate} - ${endDate}` : startDate || endDate || `Period ${vote.period}`;
+    const yay = typeof vote.yayPct === 'number' ? vote.yayPct : Number.NaN;
+    const participation = typeof vote.participationPct === 'number' ? vote.participationPct : Number.NaN;
+    const rowNumber = String(index + 1).padStart(2, '0');
+    const title = `Epoch ${vote.epoch}, period ${vote.period}: ${name} ${phase} ${status}. Yay ${precisePctText(yay)}; participation ${precisePctText(participation)}.`;
+
+    return `
+        <div class="vote-log-row vote-${tone}" role="listitem" data-vote-epoch="${escapeHtml(String(vote.epoch || ''))}" data-vote-period="${escapeHtml(String(vote.period || ''))}" data-vote-start="${escapeHtml(vote.startTime || '')}" title="${escapeHtml(title)}">
+            <span class="vote-log-index">${rowNumber}</span>
+            <span class="vote-log-date">${escapeHtml(dateText)}</span>
+            <span class="vote-log-name">${escapeHtml(name)}</span>
+            <span class="vote-log-meta">E${escapeHtml(String(vote.epoch || '?'))} P${escapeHtml(String(vote.period || '?'))} · ${phase} · ${escapeHtml(status)}</span>
+            <span class="vote-log-metric">${pctText(yay)} Yay</span>
+            <span class="vote-log-metric">${pctText(participation)} turnout</span>
         </div>
     `;
 }
@@ -1021,10 +1078,11 @@ async function hydrateHistoricalComparison(data) {
     const rowsEl = container.querySelector('.comparison-rows');
 
     try {
-        const [history, protocols] = await Promise.all([
+        const [history, fallbackProtocols] = await Promise.all([
             loadGovernanceVotes(),
             loadProtocolHistory()
         ]);
+        const protocols = Array.isArray(data.protocols) && data.protocols.length ? data.protocols : fallbackProtocols;
         const votes = chooseHistoricalVotes(data, history);
         if (!votes.length) {
             context.textContent = 'Local governance vote history is unavailable right now.';
@@ -1049,6 +1107,41 @@ async function hydrateHistoricalComparison(data) {
     } catch (err) {
         console.warn('Chamber: historical context failed', err);
         context.textContent = 'Local governance vote history is unavailable right now.';
+        if (rowsEl) rowsEl.innerHTML = '';
+    }
+}
+
+async function hydrateChronologicalVoteLog(data) {
+    const container = document.getElementById('chamber-vote-log');
+    if (!container) return;
+
+    const context = container.querySelector('.vote-log-context');
+    const count = container.querySelector('.vote-log-count');
+    const rowsEl = container.querySelector('.vote-log-table');
+
+    try {
+        const [history, fallbackProtocols] = await Promise.all([
+            loadGovernanceVotes(),
+            loadProtocolHistory()
+        ]);
+        const protocols = Array.isArray(data?.protocols) && data.protocols.length ? data.protocols : fallbackProtocols;
+        const votes = chronologicalVotes(history);
+        if (!votes.length) {
+            context.textContent = 'Local governance vote history is unavailable right now.';
+            if (count) count.textContent = '';
+            if (rowsEl) rowsEl.innerHTML = '';
+            return;
+        }
+
+        const first = votes[0];
+        const last = votes[votes.length - 1];
+        context.textContent = `${votes.length} exploration and promotion votes, oldest to newest`;
+        if (count) count.textContent = `E${first.epoch} -> E${last.epoch}`;
+        if (rowsEl) rowsEl.innerHTML = votes.map((vote, index) => renderChronologicalVoteRow(vote, protocols, index)).join('');
+    } catch (err) {
+        console.warn('Chamber: chronological vote log failed', err);
+        context.textContent = 'Local governance vote history is unavailable right now.';
+        if (count) count.textContent = '';
         if (rowsEl) rowsEl.innerHTML = '';
     }
 }
@@ -1197,6 +1290,7 @@ function renderChamber(data, container) {
             </div>
         </div>
         ${renderHistoricalComparison(data)}
+        ${renderChronologicalVoteLog()}
         ${renderTopVoters(voters)}
         ` : `
         <div class="chamber-no-votes">
@@ -1204,6 +1298,7 @@ function renderChamber(data, container) {
             <div class="no-votes-text">No active vote in this epoch</div>
             <div class="no-votes-sub">The Chamber comes alive during Exploration and Promotion periods</div>
         </div>
+        ${renderChronologicalVoteLog()}
         `}
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:800ms">
             <a href="https://tzkt.io/governance" target="_blank" rel="noopener">TzKT Governance →</a>
@@ -1221,6 +1316,7 @@ function renderChamber(data, container) {
     if (content) initAmbientEffects(content);
     
     hydrateHistoricalComparison(data);
+    hydrateChronologicalVoteLog(data);
     requestAnimationFrame(() => requestAnimationFrame(triggerAnimations));
 }
 

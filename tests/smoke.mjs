@@ -1429,6 +1429,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('.chamber-overlay.active .chamber-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#chamber-modal.active .chamber-badge').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#chamber-modal.active .gauge-context-label').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#chamber-vote-log .vote-log-row').length >= 40, null, { timeout: 10000 });
   const chamberState = await page.evaluate(() => ({
     badge: document.querySelector('#chamber-modal .chamber-badge')?.textContent?.trim() || '',
     badgeClasses: document.querySelector('#chamber-modal .chamber-badge')?.className || '',
@@ -1436,7 +1437,19 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     gaugeMeta: document.querySelector('#chamber-modal .gauge-context-meta')?.textContent?.trim() || '',
     thresholdNote: document.querySelector('#chamber-modal .gauge-threshold-note')?.textContent?.trim() || '',
     svgTextCount: document.querySelectorAll('#chamber-modal .gauge-svg text').length,
-    footer: document.querySelector('#chamber-modal .chamber-footer')?.textContent || ''
+    footer: document.querySelector('#chamber-modal .chamber-footer')?.textContent || '',
+    voteLogContext: document.querySelector('#chamber-vote-log .vote-log-context')?.textContent?.trim() || '',
+    voteLogCount: document.querySelector('#chamber-vote-log .vote-log-count')?.textContent?.trim() || '',
+    voteLogRows: document.querySelectorAll('#chamber-vote-log .vote-log-row').length,
+    voteLogFirstText: document.querySelector('#chamber-vote-log .vote-log-row')?.textContent || '',
+    voteLogFirstIndex: document.querySelector('#chamber-vote-log .vote-log-row .vote-log-index')?.textContent?.trim() || '',
+    voteLogChronological: Array.from(document.querySelectorAll('#chamber-vote-log .vote-log-row')).every((row, index, rows) => {
+      if (index === 0) return true;
+      const prev = rows[index - 1];
+      const prevKey = [Number(prev.dataset.voteEpoch), Number(prev.dataset.votePeriod)];
+      const key = [Number(row.dataset.voteEpoch), Number(row.dataset.votePeriod)];
+      return prevKey[0] < key[0] || (prevKey[0] === key[0] && prevKey[1] <= key[1]);
+    })
   }));
   assert(chamberState.badge === 'Cooldown', `governance testing period: Chamber badge should be Cooldown, saw ${chamberState.badge}`);
   assert(chamberState.badgeClasses.includes('cooldown') && !chamberState.badgeClasses.includes('live'), `governance testing period: Chamber badge class mismatch: ${chamberState.badgeClasses}`);
@@ -1445,6 +1458,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/80% threshold/.test(chamberState.thresholdNote), `governance testing period: missing threshold note, saw ${chamberState.thresholdNote}`);
   assert(chamberState.svgTextCount === 0, 'governance testing period: threshold label should not be drawn over the gauge arc');
   assert(/Current Cooldown period; showing latest Exploration result/.test(chamberState.footer), `governance testing period: footer mismatch: ${chamberState.footer}`);
+  assert(chamberState.voteLogRows >= 40, `governance testing period: chronological vote log should show the full local history, saw ${chamberState.voteLogRows}`);
+  assert(chamberState.voteLogChronological, 'governance testing period: chronological vote log should be oldest to newest by epoch and period');
+  assert(/oldest to newest/.test(chamberState.voteLogContext), `governance testing period: vote log context should state sort order, saw ${chamberState.voteLogContext}`);
+  assert(/Athens/.test(chamberState.voteLogFirstText), `governance testing period: vote log should start with the earliest Athens vote, saw ${chamberState.voteLogFirstText}`);
+  assert(chamberState.voteLogFirstIndex === '01', `governance testing period: vote log row numbering should start at 01, saw ${chamberState.voteLogFirstIndex}`);
 
   await page.locator('.chamber-overlay.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#chamber-modal')?.classList.contains('active'), null, { timeout: 5000 });
