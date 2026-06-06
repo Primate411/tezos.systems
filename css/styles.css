@@ -2691,6 +2691,63 @@ body::before {
     margin-bottom: 0;
 }
 
+.health-my-baker-panel {
+    border-color: rgba(77, 212, 255, 0.16);
+    background:
+        linear-gradient(135deg, rgba(77, 212, 255, 0.065), rgba(80, 232, 136, 0.035)),
+        rgba(255, 255, 255, 0.025);
+}
+
+.health-my-baker-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.health-my-baker-name {
+    margin-top: 6px;
+    min-width: 0;
+    font-size: 0.9rem;
+}
+
+.health-my-baker-status {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 3px 9px;
+    border: 1px solid currentColor;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 850;
+    line-height: 1.1;
+    text-transform: uppercase;
+}
+
+.health-my-baker-status.healthy {
+    color: #50e888;
+    background: rgba(80, 232, 136, 0.1);
+}
+
+.health-my-baker-status.watch {
+    color: #f5d65b;
+    background: rgba(245, 214, 91, 0.1);
+}
+
+.health-my-baker-status.degraded {
+    color: #ff5e72;
+    background: rgba(255, 94, 114, 0.1);
+}
+
+.health-my-baker-copy {
+    margin: 12px 0 14px;
+    color: var(--text-secondary, #888);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
 .health-timing-strip {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
@@ -16048,6 +16105,11 @@ body {
     .lb-dashboard-grid,
     .lb-metric-grid {
         grid-template-columns: 1fr;
+    }
+
+    .health-my-baker-head {
+        flex-direction: column;
+        gap: 10px;
     }
 
     .lb-vote-bar-row {

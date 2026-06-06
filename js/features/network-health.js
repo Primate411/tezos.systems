@@ -20,6 +20,7 @@ const LIVE_REFRESH_INTERVAL = 6 * 1000;
 const CHAMBER_REFRESH_INTERVAL = 6 * 1000;
 const BLOCK_PULSE_THROTTLE = 4 * 1000;
 const STORAGE_KEY = 'tezos-systems-network-health';
+const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
 
 const PERIODS = [
     { key: '24h', label: '24H', hours: 24, exactLimit: 22000 },
@@ -120,6 +121,65 @@ function bakerLinks(address, name) {
             <a class="lb-baker-source-link" href="https://tzkt.io/${encoded}" target="_blank" rel="noopener" title="Open baker on TzKT">TzKT</a>
         </span>
     `;
+}
+
+function getSavedMyBakerAddress() {
+    try {
+        return localStorage.getItem(MY_BAKER_STORAGE_KEY) || '';
+    } catch {
+        return '';
+    }
+}
+
+function bakerAddressMatches(baker, address) {
+    return Boolean(address && baker?.address === address);
+}
+
+function findBakerDisplayName(data, address) {
+    if (!address) return '';
+    const blockBaker = data.blocks.find((block) => bakerAddressMatches(block.producer, address))?.producer;
+    if (blockBaker) return bakerName(blockBaker);
+    const missedBlockBaker = data.missedBlocks.find((right) => bakerAddressMatches(right.baker, address))?.baker;
+    if (missedBlockBaker) return bakerName(missedBlockBaker);
+    const missedAttester = data.missedAttesters.find((item) => item.address === address);
+    return missedAttester?.name || shortAddress(address);
+}
+
+function summarizeMyTezosBaker(data) {
+    const address = getSavedMyBakerAddress();
+    if (!address) return null;
+
+    const missedAttestations = data.missedAttestations.filter((right) => bakerAddressMatches(right.baker, address));
+    const missedBlocks = data.missedBlocks.filter((right) => bakerAddressMatches(right.baker, address));
+    const latestBlock = data.blocks.find((block) => bakerAddressMatches(block.producer, address)) || null;
+    const missedSlots = missedAttestations.reduce((sum, right) => sum + right.slots, 0);
+
+    let label = 'Clear in sample';
+    let className = 'healthy';
+    let copy = latestBlock
+        ? `Produced block ${formatCount(latestBlock.level)} ${formatAge(latestBlock.timestamp)} with no missed rights in this sample.`
+        : 'No missed rights in this sample; not among the most recent block producers.';
+
+    if (missedBlocks.length) {
+        label = 'Missed block';
+        className = 'degraded';
+        copy = `${formatCount(missedBlocks.length)} missed baking right in the recent lookback.`;
+    } else if (missedSlots) {
+        label = 'Missed attestations';
+        className = 'watch';
+        copy = `${formatCount(missedSlots)} attestation power missed in the current block sample.`;
+    }
+
+    return {
+        address,
+        name: findBakerDisplayName(data, address),
+        missedSlots,
+        missedBlockCount: missedBlocks.length,
+        latestBlock,
+        label,
+        className,
+        copy
+    };
 }
 
 async function fetchJson(url, retries = 2) {
@@ -564,6 +624,29 @@ function renderTimingPanel(data) {
     `;
 }
 
+function renderMyTezosBakerPanel(data) {
+    const baker = summarizeMyTezosBaker(data);
+    if (!baker) return '';
+
+    return `
+        <section class="lb-panel health-panel health-my-baker-panel chamber-anim-fade" style="animation-delay:120ms">
+            <div class="health-my-baker-head">
+                <div>
+                    <div class="lb-panel-title">My Tezos Baker</div>
+                    <div class="health-my-baker-name">${bakerLinks(baker.address, baker.name)}</div>
+                </div>
+                <span class="health-my-baker-status ${baker.className}">${escapeHtml(baker.label)}</span>
+            </div>
+            <p class="health-my-baker-copy">${escapeHtml(baker.copy)}</p>
+            <div class="lb-metric-grid health-metric-grid health-my-baker-metrics">
+                <div><span>Attestation misses</span><strong>${formatCount(baker.missedSlots)}</strong></div>
+                <div><span>Block misses</span><strong>${formatCount(baker.missedBlockCount)}</strong></div>
+                <div><span>Latest block</span><strong>${baker.latestBlock ? formatCount(baker.latestBlock.level) : 'Not in sample'}</strong></div>
+            </div>
+        </section>
+    `;
+}
+
 function renderAttesterRows(attesters) {
     if (!attesters.length) return '<div class="lb-empty-inline">No missed attestations in the current block sample.</div>';
     return attesters.slice(0, 12).map((item) => `
@@ -578,7 +661,7 @@ function renderAttesterRows(attesters) {
 function renderMissedAttestationsPanel(data) {
     const missedPower = data.missedAttestations.reduce((sum, item) => sum + item.slots, 0);
     return `
-        <section class="lb-panel health-panel health-missed-attestations chamber-anim-fade" style="animation-delay:120ms">
+        <section class="lb-panel health-panel health-missed-attestations chamber-anim-fade" style="animation-delay:180ms">
             <div class="lb-panel-title">Missed Attestations</div>
             <div class="lb-metric-grid health-metric-grid">
                 <div><span>Missed power</span><strong>${formatCount(missedPower)}</strong></div>
@@ -606,7 +689,7 @@ function renderMissedBlockRows(missedBlocks) {
 
 function renderMissedBlocksPanel(data) {
     return `
-        <section class="lb-panel health-panel health-missed-blocks chamber-anim-fade" style="animation-delay:180ms">
+        <section class="lb-panel health-panel health-missed-blocks chamber-anim-fade" style="animation-delay:240ms">
             <div class="lb-panel-title">Missed Blocks</div>
             <div class="lb-panel-subtitle">Last ${formatCount(MISSED_BLOCK_LOOKBACK)} levels ending at head.</div>
             <div class="lb-table health-missed-block-table">
@@ -645,7 +728,7 @@ function renderRecentBlockRows(blocks) {
 
 function renderRecentBlocksPanel(data) {
     return `
-        <section class="lb-panel health-panel health-recent-blocks chamber-anim-fade" style="animation-delay:240ms">
+        <section class="lb-panel health-panel health-recent-blocks chamber-anim-fade" style="animation-delay:300ms">
             <div class="lb-panel-title">Passing Blocks <span class="lb-live-pill">live</span></div>
             <div class="lb-table health-block-table">
                 <div class="lb-table-head"><span>Level</span><span>Delta</span><span>Round</span><span>Attested</span><span>Missed</span><span>Baker</span></div>
@@ -689,11 +772,12 @@ function renderNetworkHealthChamber(data, container) {
         <div class="lb-dashboard-grid health-dashboard-grid">
             ${renderHealthScorePanel(data)}
             ${renderTimingPanel(data)}
+            ${renderMyTezosBakerPanel(data)}
             ${renderMissedAttestationsPanel(data)}
             ${renderMissedBlocksPanel(data)}
         </div>
         ${renderRecentBlocksPanel(data)}
-        <div class="chamber-footer chamber-anim-fade" style="animation-delay:300ms">
+        <div class="chamber-footer chamber-anim-fade" style="animation-delay:360ms">
             <a href="https://tzkt.io/blocks" target="_blank" rel="noopener">TzKT Blocks -></a>
             <span class="chamber-footer-sep">·</span>
             <a href="https://tzkt.io/rights" target="_blank" rel="noopener">TzKT Rights -></a>

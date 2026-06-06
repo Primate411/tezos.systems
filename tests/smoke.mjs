@@ -1210,7 +1210,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     serviceWorkers: 'block'
   });
   await installFeatureMocks(context);
-  await context.addInitScript(() => {
+  await context.addInitScript((myBakerAddress) => {
     window.__tezosSystemsIntervals = [];
     const originalSetInterval = window.setInterval.bind(window);
     window.setInterval = (handler, timeout, ...args) => {
@@ -1222,6 +1222,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-my-baker-address', myBakerAddress);
     localStorage.setItem('tezos-systems-network-health', JSON.stringify({
       updatedAt: Date.now(),
       periodUpdatedAt: Date.now(),
@@ -1234,7 +1235,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
         { key: '31d', label: '31D', score: 99.6, actualPower: 1000, possiblePower: 1004, missingPower: 4, blocks: 446400, sampleSize: 5, sampled: true }
       ]
     }));
-  });
+  }, SAMPLE_ADDRESS_2);
   const page = await context.newPage();
   attachIssueCollectors(page, 'network health chamber', issues);
 
@@ -1258,6 +1259,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       roundOne: modal?.querySelectorAll('.health-round-badge.round-watch').length || 0,
       attesterRows: modal?.querySelectorAll('#health-missed-attester-list .health-attester-row').length || 0,
       missedBlockRows: modal?.querySelectorAll('#health-missed-block-list .health-missed-block-row').length || 0,
+      myBaker: modal?.querySelector('.health-my-baker-panel')?.textContent || '',
+      myBakerStatus: modal?.querySelector('.health-my-baker-status')?.textContent || '',
+      myBakerMetrics: Array.from(modal?.querySelectorAll('.health-my-baker-metrics strong') || []).map((el) => el.textContent || ''),
       systemLinks: modal?.querySelectorAll('.health-baker-name-link[href^="#baker="]').length || 0,
       tzktLinks: modal?.querySelectorAll('.lb-baker-source-link[href^="https://tzkt.io/"]').length || 0,
       footer: modal?.querySelector('.chamber-footer')?.textContent || '',
@@ -1279,6 +1283,11 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.roundOne >= 1, 'network health chamber: round-one block badge missing');
   assert(healthState.attesterRows >= 2, `network health chamber: missed attester rows missing, saw ${healthState.attesterRows}`);
   assert(healthState.missedBlockRows >= 1, `network health chamber: missed block rows missing, saw ${healthState.missedBlockRows}`);
+  assert(/Second Baker/.test(healthState.myBaker), `network health chamber: My Tezos baker panel missing baker identity: ${healthState.myBaker}`);
+  assert(/Missed block/.test(healthState.myBakerStatus), `network health chamber: My Tezos baker status mismatch: ${healthState.myBakerStatus}`);
+  assert(healthState.myBakerMetrics[0] === '7', `network health chamber: My Tezos attestation misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
+  assert(healthState.myBakerMetrics[1] === '1', `network health chamber: My Tezos block misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
+  assert(!/Not in sample/.test(healthState.myBakerMetrics[2] || ''), `network health chamber: My Tezos latest block missing: ${healthState.myBakerMetrics.join(', ')}`);
   assert(healthState.systemLinks >= healthState.attesterRows, `network health chamber: baker profile links missing, saw ${healthState.systemLinks}`);
   assert(healthState.tzktLinks >= healthState.attesterRows, `network health chamber: TzKT links missing, saw ${healthState.tzktLinks}`);
   assert(/Direct: \/#health/.test(healthState.footer), `network health chamber: direct footer missing: ${healthState.footer}`);
@@ -2080,7 +2089,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
-    { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, rounds, and missed rights', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
+    { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
@@ -2115,7 +2124,7 @@ async function main() {
     ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],
     ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
-    ['network-health', 'Network Health card opens #health chamber with block cadence, rounds, and missed rights'],
+    ['network-health', 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary'],
     ['governance-lb', 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh'],
     ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
     ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],

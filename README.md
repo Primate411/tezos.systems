@@ -139,7 +139,8 @@ inline modal styles in `js/core/app.js`.
 - Live network stat cards for consensus, economy, governance, network activity,
   and ecosystem metrics are opt-in from Explore under Network Stats.
 - Network Health Chamber with direct `#health` access, recent block cadence,
-  consensus round, missed attestation, and missed baking-right detail.
+  consensus round, missed attestation, missed baking-right detail, and a
+  compact saved My Tezos baker summary.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and

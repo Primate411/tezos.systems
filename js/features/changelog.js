@@ -8,6 +8,7 @@ const CHANGELOG = [
         date: '2026-06-06',
         entries: [
             { type: '🎨', text: 'Mobile landing, upgrade proof, and chamber headings now use stronger solid contrast for Brave/WebKit rendering' },
+            { type: '✨', text: 'Network Health now shows a compact My Tezos baker summary when a baker is saved' },
             { type: '🔧', text: 'First-visit dashboards now show the protocol panel plus a default Chambers section, with Network Stats hidden until enabled from Explore' },
             { type: '🔧', text: 'The Chamber, Liquidity Baking, tz4 Adoption, and Network Health now share one Chambers launcher toggle instead of separate Explore rows' },
             { type: '✨', text: 'Network Health is now an expandable #health chamber with live block cadence, round, missed attestation, and missed block detail' },
