@@ -1014,7 +1014,9 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await openDropdown(page, '#features-gear', '#features-dropdown');
   await expectCount(page, '#features-dropdown.feature-launcher', 1, label);
   await expectCount(page, '#features-dropdown .feature-launcher-group', 4, label);
-  await expectCount(page, '#features-dropdown .feature-copy-link', 9, label);
+  await expectCount(page, '#features-dropdown .feature-copy-link', 12, label);
+  await expectCount(page, '#features-dropdown #chamber-toggle', 1, label);
+  await expectCount(page, '#features-dropdown .feature-copy-link[data-copy-hash="#chamber"]', 1, label);
   assert((await page.locator('#features-dropdown a[href="/widgets/builder.html"]').innerText()).includes('Embed Builder'), `${label}: launcher should point widgets to Embed Builder`);
   await page.locator('.feature-copy-link[data-copy-hash="#compare"]').click();
   await page.waitForFunction(() => document.querySelector('.feature-copy-link[data-copy-hash="#compare"]')?.textContent?.trim() === '✓', null, { timeout: 3000 });
@@ -1189,6 +1191,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('#lb-entry-card[data-lb-live="true"][data-lb-refresh-interval="60000"]').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('.stat-card[data-stat="tz4-adoption"].chamber-entry-card .chamber-expand-cue').waitFor({ state: 'visible', timeout: 10000 });
   await expectCount(page, '#chamber-entry-card .card-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber card link');
+  await expectCount(page, '#chamber-toggle', 1, 'governance testing period chamber launcher button');
+  await expectCount(page, '.feature-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber launcher link');
   await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb-tile"]', 1, 'governance testing period LB tile link');
   await expectCount(page, '.feature-copy-link[data-copy-hash="#tz4"]', 1, 'governance testing period tz4 launcher link');
 

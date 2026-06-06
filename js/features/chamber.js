@@ -1341,6 +1341,12 @@ export function closeChamber() {
 // ─── Entry card with live mini-status ───
 
 export function initChamber() {
+    const launcherBtn = document.getElementById('chamber-toggle');
+    if (launcherBtn && !launcherBtn.dataset.chamberWired) {
+        launcherBtn.dataset.chamberWired = '1';
+        launcherBtn.addEventListener('click', openChamber);
+    }
+
     const govSection = document.getElementById('governance-section');
     if (!govSection) return;
     

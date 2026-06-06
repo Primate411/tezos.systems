@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-06',
+        entries: [
+            { type: '🔧', text: 'The feature launcher now includes The Chamber with direct #chamber access beside the other live governance tools' },
+        ]
+    },
+    {
         date: '2026-06-05',
         entries: [
             { type: '🔧', text: 'My Tezos baker capacity now shows over-delegation above 100% with signed free capacity instead of clamping to 100% and 0 free' },
