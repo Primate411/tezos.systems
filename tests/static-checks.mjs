@@ -352,8 +352,10 @@ async function checkSelectorContracts() {
   const chamber = await readText('js/features/chamber.js');
   const lb = await readText('js/features/liquidity-baking.js');
   const tz4 = await readText('js/features/tz4-adoption.js');
+  const health = await readText('js/features/network-health.js');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
+    ['Health hash route', "hash === 'health'", app],
     ['LB tile hash route', "hash === 'lb-tile'", app],
     ['tz4 hash route', "hash === 'tz4'", app],
     ['Chamber launcher button', 'id="chamber-toggle"', index],
@@ -364,7 +366,11 @@ async function checkSelectorContracts() {
     ['tz4 launcher copy link', 'data-copy-hash="#tz4"', index],
     ['tz4 tile expand cue', 'data-stat="tz4-adoption"', index],
     ['tz4 tile expand icon', 'chamber-expand-cue', index],
-    ['tz4 tile chamber wiring', 'openTz4AdoptionChamber', tz4]
+    ['tz4 tile chamber wiring', 'openTz4AdoptionChamber', tz4],
+    ['health tile expand cue', 'data-stat="network-health"', index],
+    ['health tile expand icon', 'chamber-expand-cue', index],
+    ['health tile chamber wiring', 'openNetworkHealthChamber', health],
+    ['health direct footer link', 'Direct: /#health', health]
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);

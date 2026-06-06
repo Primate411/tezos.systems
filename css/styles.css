@@ -2585,6 +2585,229 @@ body::before {
     font-size: 0.78rem;
 }
 
+.health-entry-card {
+    border-color: rgba(80, 232, 136, 0.24) !important;
+}
+
+.health-entry-card:hover {
+    border-color: #50e888 !important;
+    box-shadow: 0 0 22px rgba(80, 232, 136, 0.12) !important;
+}
+
+.health-content {
+    border-color: rgba(80, 232, 136, 0.18) !important;
+}
+
+.health-content::before {
+    background: linear-gradient(90deg, rgba(80, 232, 136, 0.55), rgba(77, 212, 255, 0.35), transparent);
+}
+
+.health-header .chamber-title::before {
+    content: 'HLTH';
+    width: 44px;
+    color: #50e888;
+    border-color: rgba(80, 232, 136, 0.32);
+    background: rgba(80, 232, 136, 0.08);
+    box-shadow: inset 0 0 12px rgba(80, 232, 136, 0.08);
+}
+
+.health-explainer {
+    border-color: rgba(80, 232, 136, 0.14);
+    background:
+        linear-gradient(135deg, rgba(80, 232, 136, 0.07), rgba(77, 212, 255, 0.035)),
+        rgba(255, 255, 255, 0.025);
+}
+
+.health-explainer::before,
+.health-panel::before {
+    background: linear-gradient(90deg, rgba(80, 232, 136, 0.45), rgba(77, 212, 255, 0.28), transparent);
+}
+
+.health-dashboard-grid {
+    align-items: stretch;
+}
+
+.health-hero-number {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(2.35rem, 8vw, 4.1rem);
+    font-weight: 900;
+    line-height: 1;
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+}
+
+.health-hero-number.peak,
+.health-score-fill.peak {
+    color: #50e888;
+}
+
+.health-hero-number.healthy,
+.health-score-fill.healthy {
+    color: #4dd4ff;
+}
+
+.health-hero-number.watch,
+.health-score-fill.watch {
+    color: #f5d65b;
+}
+
+.health-hero-number.degraded,
+.health-score-fill.degraded {
+    color: #ff5e72;
+}
+
+.health-hero-copy,
+.health-timing-note {
+    color: var(--text-secondary, #888);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+
+.health-score-meter {
+    height: 14px;
+    margin: 14px 0 16px;
+    border-radius: 7px;
+    overflow: hidden;
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 18px),
+        rgba(255, 255, 255, 0.045);
+}
+
+.health-score-fill {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: currentColor;
+    box-shadow: 0 0 12px currentColor;
+    transition: width 0.55s ease;
+}
+
+.health-metric-grid {
+    margin-bottom: 0;
+}
+
+.health-timing-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+    gap: 6px;
+    margin: 12px 0;
+}
+
+.health-timing-cell {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-secondary, #888);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.health-timing-cell.peak,
+.health-interval.peak {
+    color: #50e888;
+}
+
+.health-timing-cell.watch,
+.health-interval.watch {
+    color: #f5d65b;
+}
+
+.health-timing-cell.degraded,
+.health-interval.degraded {
+    color: #ff5e72;
+}
+
+.health-round-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 34px;
+    height: 22px;
+    padding: 0 7px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 850;
+    background: rgba(255, 255, 255, 0.045);
+}
+
+.health-round-badge.round-zero {
+    color: #50e888;
+    background: rgba(80, 232, 136, 0.12);
+}
+
+.health-round-badge.round-watch {
+    color: #f5d65b;
+    background: rgba(245, 214, 91, 0.12);
+}
+
+.health-round-badge.round-late {
+    color: #ff5e72;
+    background: rgba(255, 94, 114, 0.12);
+}
+
+.health-power {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 850;
+}
+
+.health-power.peak {
+    color: #50e888;
+}
+
+.health-power.healthy {
+    color: #4dd4ff;
+}
+
+.health-power.watch {
+    color: #f5d65b;
+}
+
+.health-power.degraded {
+    color: #ff5e72;
+}
+
+.health-power small {
+    color: var(--text-tertiary, #555);
+    font-size: 0.78em;
+    font-weight: 700;
+}
+
+.health-attester-table .lb-table-head,
+.health-attester-table .lb-table-row {
+    grid-template-columns: minmax(0, 1.4fr) 72px minmax(130px, 0.9fr);
+}
+
+.health-missed-block-table .lb-table-head,
+.health-missed-block-table .lb-table-row {
+    grid-template-columns: minmax(90px, 0.7fr) 72px minmax(0, 1.4fr);
+}
+
+.health-block-table .lb-table-head,
+.health-block-table .lb-table-row {
+    grid-template-columns: minmax(90px, 0.72fr) 70px 72px 112px 72px minmax(0, 1.5fr);
+}
+
+.health-block-table .lb-table-row > span:first-child,
+.health-block-table .lb-table-row > span:nth-child(2),
+.health-block-table .lb-table-row > span:nth-child(5),
+.health-attester-table .lb-table-row > span,
+.health-missed-block-table .lb-table-row > span {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+#health-recent-block-list,
+#health-missed-attester-list,
+#health-missed-block-list {
+    min-width: 0;
+}
+
 .stat-description {
     font-size: 0.875rem;
     color: var(--text-secondary);
@@ -15865,6 +16088,35 @@ body {
 
     .tz4-baker-table .lb-table-head span:nth-child(n+3),
     .tz4-baker-table .lb-table-row > span:nth-child(n+3) {
+        grid-column: 1 / -1;
+        font-size: 0.7rem;
+        color: var(--text-tertiary, #555);
+    }
+
+    .health-attester-table .lb-table-head,
+    .health-attester-table .lb-table-row,
+    .health-missed-block-table .lb-table-head,
+    .health-missed-block-table .lb-table-row {
+        grid-template-columns: minmax(0, 1fr) 72px;
+    }
+
+    .health-attester-table .lb-table-head span:last-child,
+    .health-attester-table .lb-table-row > span:last-child,
+    .health-missed-block-table .lb-table-head span:last-child,
+    .health-missed-block-table .lb-table-row > div:last-child {
+        grid-column: 1 / -1;
+        font-size: 0.7rem;
+        color: var(--text-tertiary, #555);
+    }
+
+    .health-block-table .lb-table-head,
+    .health-block-table .lb-table-row {
+        grid-template-columns: minmax(86px, 0.9fr) 56px 54px;
+    }
+
+    .health-block-table .lb-table-head span:nth-child(n+4),
+    .health-block-table .lb-table-row > span:nth-child(n+4),
+    .health-block-table .lb-table-row > div:last-child {
         grid-column: 1 / -1;
         font-size: 0.7rem;
         color: var(--text-tertiary, #555);

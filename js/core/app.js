@@ -2488,6 +2488,7 @@ function initOfflineIndicator() {
 //   #giants            → show sleeping giants
 //   #history           → open history modal
 //   #chamber           → open The Chamber governance modal
+//   #health            → open Network Health Chamber
 //   #lb                → open Liquidity Baking monitor
 //   #lb-tile           → scroll to the Liquidity Baking dashboard tile
 //   #tz4               → open tz4 Adoption Chamber
@@ -2614,6 +2615,13 @@ function applyDeepLink() {
         import('../features/chamber.js')
             .then(({ openChamber }) => openChamber())
             .catch((error) => console.warn('Failed to open The Chamber', error));
+    }
+
+    // #health / #network-health
+    if (params.has('health') || hash === 'health' || params.has('network-health') || hash === 'network-health') {
+        import('../features/network-health.js')
+            .then(({ openNetworkHealthChamber }) => openNetworkHealthChamber())
+            .catch((error) => console.warn('Failed to open Network Health Chamber', error));
     }
 
     // #lb-tile / #liquidity-baking-tile

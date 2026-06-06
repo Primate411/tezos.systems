@@ -396,15 +396,39 @@ async function installFeatureMocks(context) {
       if (url.includes('/head')) {
         return fulfillJson(route, { level: 12345678, cycle: 1143, protocol: 'PtTALLiNQATEST' });
       }
+      if (/\/blocks\/[^/]+\/level/.test(url)) {
+        return fulfillJson(route, 12344000);
+      }
       if (url.includes('/blocks?')) {
+        const params = new URL(url).searchParams;
+        const requestedLimit = Number(params.get('limit')) || 4;
+        const count = Math.max(1, Math.min(requestedLimit, 20));
         const now = Date.now();
         const head = lbBlocksHead++;
-        return fulfillJson(route, [
-          { level: head, timestamp: new Date(now).toISOString(), producer: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }, lbToggle: false, lbToggleEma: 1030000000 },
-          { level: head - 1, timestamp: new Date(now - 6000).toISOString(), producer: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }, lbToggle: true, lbToggleEma: 1029500000 },
-          { level: head - 2, timestamp: new Date(now - 12000).toISOString(), producer: { address: 'tz1PassPassPassPassPassPassPassPassP', alias: 'Pass Baker' }, lbToggle: null, lbToggleEma: 1029000000 },
-          { level: head - 3, timestamp: new Date(now - 18000).toISOString(), producer: { address: 'tz1OffOffOffOffOffOffOffOffOffOf', alias: 'Off Baker' }, lbToggle: false, lbToggleEma: 1028500000 }
-        ]);
+        const producers = [
+          { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+          { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+          { address: 'tz1PassPassPassPassPassPassPassPassP', alias: 'Pass Baker' },
+          { address: 'tz1OffOffOffOffOffOffOffOffOffOf', alias: 'Off Baker' }
+        ];
+        const toggles = [false, true, null, false];
+        return fulfillJson(route, Array.from({ length: count }, (_, index) => {
+          const producer = producers[index % producers.length];
+          const lag = index * 6000 + (index >= 3 ? 2000 : 0);
+          const power = index === 2 ? 6920 : (index === 0 ? 6988 : 7000);
+          return {
+            level: head - index,
+            timestamp: new Date(now - lag).toISOString(),
+            producer,
+            proposer: producer,
+            attestationPower: power,
+            attestationCommittee: 7000,
+            payloadRound: index === 2 ? 1 : 0,
+            blockRound: index === 2 ? 1 : 0,
+            lbToggle: toggles[index % toggles.length],
+            lbToggleEma: 1030000000 - index * 500000
+          };
+        }));
       }
       if (url.includes('/protocols/current')) {
         return fulfillJson(route, { code: 21, alias: 'Tallinn', metadata: { alias: 'Tallinn' } });
@@ -421,6 +445,18 @@ async function installFeatureMocks(context) {
       if (url.includes('/rights?')) {
         const rights = new URL(url).searchParams;
         const type = rights.get('type');
+        if (type === 'attestation' && rights.get('status') === 'missed') {
+          return fulfillJson(route, [
+            { level: 12345678, timestamp: new Date(Date.now() - 1000).toISOString(), slots: 7, status: 'missed', type: 'attestation', baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' } },
+            { level: 12345677, timestamp: new Date(Date.now() - 7000).toISOString(), slots: 3, status: 'missed', type: 'attestation', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } },
+            { level: 12345676, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 2, status: 'missed', type: 'attestation', baker: { address: 'tz1MissMissMissMissMissMissMissMis', alias: 'Missed Attester' } }
+          ]);
+        }
+        if (type === 'baking' && rights.get('status') === 'missed') {
+          return fulfillJson(route, [
+            { level: 12345660, timestamp: new Date(Date.now() - 120000).toISOString(), round: 0, status: 'missed', type: 'baking', baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' } }
+          ]);
+        }
         if (type === 'baking' && rights.get('status') === 'future') {
           return fulfillJson(route, [
             { level: 12345858, cycle: 1143, round: 0, status: 'future', type: 'baking', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } }
@@ -1155,6 +1191,103 @@ async function smokeMyTezosBakerCapacity(browser, baseUrl) {
   await context.close();
   assert(issues.length === 0, `my tezos baker capacity browser issues:\n${issues.join('\n')}`);
   log('ok - my tezos baker capacity smoke');
+}
+
+async function smokeNetworkHealthChamber(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => {
+    window.__tezosSystemsIntervals = [];
+    const originalSetInterval = window.setInterval.bind(window);
+    window.setInterval = (handler, timeout, ...args) => {
+      const id = originalSetInterval(handler, timeout, ...args);
+      window.__tezosSystemsIntervals.push({ handler, id, timeout });
+      return id;
+    };
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-network-health', JSON.stringify({
+      updatedAt: Date.now(),
+      periodUpdatedAt: Date.now(),
+      headLevel: 12345678,
+      blocks: [],
+      summary: { score: 99.8, totalPower: 34930, totalCommittee: 35000, missingPower: 70, count: 5 },
+      periods: [
+        { key: '24h', label: '24H', score: 99.8, actualPower: 1000, possiblePower: 1002, missingPower: 2, blocks: 14400, sampleSize: 5, sampled: false },
+        { key: '7d', label: '7D', score: 99.7, actualPower: 1000, possiblePower: 1003, missingPower: 3, blocks: 100800, sampleSize: 5, sampled: true },
+        { key: '31d', label: '31D', score: 99.6, actualPower: 1000, possiblePower: 1004, missingPower: 4, blocks: 446400, sampleSize: 5, sampled: true }
+      ]
+    }));
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'network health chamber', issues);
+
+  const response = await page.goto(`${baseUrl}/#health`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `network health chamber: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction(() => document.querySelectorAll('#health-recent-block-list .health-block-row').length >= 4, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#health-missed-attester-list .health-attester-row').length >= 2, null, { timeout: 10000 });
+
+  const healthState = await page.evaluate(() => {
+    const modal = document.querySelector('#network-health-modal');
+    const card = document.querySelector('[data-stat="network-health"]');
+    return {
+      title: modal?.querySelector('.chamber-title')?.textContent || '',
+      badge: modal?.querySelector('#health-header-badge')?.textContent || '',
+      live: modal?.dataset.healthLive || '',
+      refreshState: modal?.querySelector('#health-refresh-state')?.textContent || '',
+      hero: modal?.querySelector('#health-hero-score')?.textContent || '',
+      avg: modal?.querySelector('#health-avg-block')?.textContent || '',
+      blockRows: modal?.querySelectorAll('#health-recent-block-list .health-block-row').length || 0,
+      roundOne: modal?.querySelectorAll('.health-round-badge.round-watch').length || 0,
+      attesterRows: modal?.querySelectorAll('#health-missed-attester-list .health-attester-row').length || 0,
+      missedBlockRows: modal?.querySelectorAll('#health-missed-block-list .health-missed-block-row').length || 0,
+      systemLinks: modal?.querySelectorAll('.health-baker-name-link[href^="#baker="]').length || 0,
+      tzktLinks: modal?.querySelectorAll('.lb-baker-source-link[href^="https://tzkt.io/"]').length || 0,
+      footer: modal?.querySelector('.chamber-footer')?.textContent || '',
+      cardWired: card?.dataset.healthChamberWired || '',
+      cardRole: card?.getAttribute('role') || '',
+      cardTabIndex: card?.getAttribute('tabindex') || '',
+      cardCue: Boolean(card?.querySelector('.chamber-expand-cue')),
+      intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
+    };
+  });
+
+  assert(/Network Health Chamber/.test(healthState.title), `network health chamber: title mismatch: ${healthState.title}`);
+  assert(/Healthy|Watch/.test(healthState.badge), `network health chamber: badge mismatch: ${healthState.badge}`);
+  assert(healthState.live === 'true', `network health chamber: live refresh should be active, saw ${healthState.live}`);
+  assert(/auto-refresh 6s/.test(healthState.refreshState), `network health chamber: refresh label mismatch: ${healthState.refreshState}`);
+  assert(/%/.test(healthState.hero), `network health chamber: hero score missing: ${healthState.hero}`);
+  assert(/s/.test(healthState.avg), `network health chamber: average block time missing: ${healthState.avg}`);
+  assert(healthState.blockRows >= 4, `network health chamber: recent block rows missing, saw ${healthState.blockRows}`);
+  assert(healthState.roundOne >= 1, 'network health chamber: round-one block badge missing');
+  assert(healthState.attesterRows >= 2, `network health chamber: missed attester rows missing, saw ${healthState.attesterRows}`);
+  assert(healthState.missedBlockRows >= 1, `network health chamber: missed block rows missing, saw ${healthState.missedBlockRows}`);
+  assert(healthState.systemLinks >= healthState.attesterRows, `network health chamber: baker profile links missing, saw ${healthState.systemLinks}`);
+  assert(healthState.tzktLinks >= healthState.attesterRows, `network health chamber: TzKT links missing, saw ${healthState.tzktLinks}`);
+  assert(/Direct: \/#health/.test(healthState.footer), `network health chamber: direct footer missing: ${healthState.footer}`);
+  assert(healthState.cardWired === '1', `network health chamber: card wiring missing: ${healthState.cardWired}`);
+  assert(healthState.cardRole === 'button', `network health chamber: card role mismatch: ${healthState.cardRole}`);
+  assert(healthState.cardTabIndex === '0', `network health chamber: card keyboard focus mismatch: ${healthState.cardTabIndex}`);
+  assert(healthState.cardCue, 'network health chamber: card expand cue missing');
+  assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
+
+  await page.locator('#network-health-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.locator('[data-stat="network-health"]').click();
+  await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#network-health-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+
+  await context.close();
+  assert(issues.length === 0, `network health chamber browser issues:\n${issues.join('\n')}`);
+  log('ok - network health chamber smoke');
 }
 
 async function smokeGovernanceTestingPeriod(browser, baseUrl) {
@@ -1932,6 +2065,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
+    { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, rounds, and missed rights', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
@@ -1965,6 +2099,8 @@ async function main() {
     ['dashboard-desktop', 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],
+    ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
+    ['network-health', 'Network Health card opens #health chamber with block cadence, rounds, and missed rights'],
     ['governance-lb', 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh'],
     ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
     ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],

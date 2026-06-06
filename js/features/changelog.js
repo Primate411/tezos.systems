@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-06',
         entries: [
+            { type: '✨', text: 'Network Health is now an expandable #health chamber with live block cadence, round, missed attestation, and missed block detail' },
             { type: '🔧', text: 'The feature launcher now includes The Chamber with direct #chamber access beside the other live governance tools' },
         ]
     },

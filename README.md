@@ -133,6 +133,8 @@ inline modal styles in `js/core/app.js`.
 
 - Live network stat cards for consensus, economy, governance, network activity,
   and ecosystem metrics.
+- Network Health Chamber with direct `#health` access, recent block cadence,
+  consensus round, missed attestation, and missed baking-right detail.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
@@ -161,6 +163,7 @@ Useful deep links include:
 - `#theme=...`
 - `#section=...`
 - `#price`
+- `#health`
 - `#chamber`
 - `#lb`
 - `#lb-tile`
