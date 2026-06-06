@@ -356,7 +356,7 @@ async function checkSelectorContracts() {
     ['individual Chamber launcher', 'id="chamber-toggle"'],
     ['individual LB launcher', 'id="liquidity-baking-toggle"'],
     ['individual tz4 launcher', 'id="tz4-adoption-toggle"'],
-    ['individual tz4 launcher copy link', 'data-copy-hash="#tz4"']
+    ['individual tz4 launcher copy link', 'feature-copy-link" type="button" data-copy-hash="#tz4"']
   ];
   for (const [label, snippet] of retiredLauncherSnippets) {
     if (index.includes(snippet)) fail(`retired launcher still present: ${label}`);
@@ -379,9 +379,12 @@ async function checkSelectorContracts() {
     ['Chambers visibility storage', 'tezos-systems-chambers-visible', app],
     ['Chamber card copy link', 'data-copy-hash="#chamber"', chamber],
     ['LB tile copy link', 'data-copy-hash="#lb-tile"', lb],
+    ['tz4 tile card copy link', 'data-copy-hash="#tz4"', index],
     ['tz4 tile expand cue', 'data-stat="tz4-adoption"', index],
     ['tz4 tile expand icon', 'chamber-expand-cue', index],
     ['tz4 tile chamber wiring', 'openTz4AdoptionChamber', tz4],
+    ['tz4 direct footer link', 'Direct: /#tz4', tz4],
+    ['health tile card copy link', 'data-copy-hash="#health"', index],
     ['health tile expand cue', 'data-stat="network-health"', index],
     ['health tile expand icon', 'chamber-expand-cue', index],
     ['health tile chamber wiring', 'openNetworkHealthChamber', health],

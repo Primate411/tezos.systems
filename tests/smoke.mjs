@@ -243,8 +243,9 @@ function fulfillText(route, body, contentType = 'text/plain') {
   return route.fulfill({ status: 200, contentType, body });
 }
 
-async function installFeatureMocks(context) {
+async function installFeatureMocks(context, options = {}) {
   let lbBlocksHead = 12345678;
+  const blockHeadLagMs = Number(options.blockHeadLagMs) || 0;
   await context.route('**/*', async (route) => {
     const request = route.request();
     const url = request.url();
@@ -403,7 +404,7 @@ async function installFeatureMocks(context) {
         const params = new URL(url).searchParams;
         const requestedLimit = Number(params.get('limit')) || 4;
         const count = Math.max(1, Math.min(requestedLimit, 20));
-        const now = Date.now();
+        const now = Date.now() - blockHeadLagMs;
         const head = lbBlocksHead++;
         const producers = [
           { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
@@ -1209,7 +1210,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(context);
+  await installFeatureMocks(context, { blockHeadLagMs: 90000 });
   await context.addInitScript((myBakerAddress) => {
     window.__tezosSystemsIntervals = [];
     const originalSetInterval = window.setInterval.bind(window);
@@ -1265,10 +1266,17 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       systemLinks: modal?.querySelectorAll('.health-baker-name-link[href^="#baker="]').length || 0,
       tzktLinks: modal?.querySelectorAll('.lb-baker-source-link[href^="https://tzkt.io/"]').length || 0,
       footer: modal?.querySelector('.chamber-footer')?.textContent || '',
+      headMeta: modal?.querySelector('#health-head-meta')?.textContent || '',
+      updatedAge: modal?.querySelector('.health-score-panel [data-health-age]')?.textContent || '',
+      updatedAgeMs: modal?.querySelector('.health-score-panel [data-health-age]')?.dataset.healthAge
+        ? Date.now() - new Date(modal.querySelector('.health-score-panel [data-health-age]').dataset.healthAge).getTime()
+        : 0,
+      ageLabelCount: modal?.querySelectorAll('[data-health-age]').length || 0,
       cardWired: card?.dataset.healthChamberWired || '',
       cardRole: card?.getAttribute('role') || '',
       cardTabIndex: card?.getAttribute('tabindex') || '',
       cardCue: Boolean(card?.querySelector('.chamber-expand-cue')),
+      cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
   });
@@ -1291,10 +1299,16 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.systemLinks >= healthState.attesterRows, `network health chamber: baker profile links missing, saw ${healthState.systemLinks}`);
   assert(healthState.tzktLinks >= healthState.attesterRows, `network health chamber: TzKT links missing, saw ${healthState.tzktLinks}`);
   assert(/Direct: \/#health/.test(healthState.footer), `network health chamber: direct footer missing: ${healthState.footer}`);
+  assert(healthState.updatedAgeMs >= 85000, `network health chamber: Updated age should come from stale head block timestamp, saw ${healthState.updatedAge} (${healthState.updatedAgeMs}ms)`);
+  assert(!/^(0s ago|just now)$/.test(healthState.updatedAge), `network health chamber: Updated age should not be fetch-time fresh: ${healthState.updatedAge}`);
+  assert(healthState.headMeta.includes(healthState.updatedAge), `network health chamber: header head age should match Updated metric: ${healthState.headMeta} vs ${healthState.updatedAge}`);
+  assert(healthState.ageLabelCount >= 3, `network health chamber: age labels should be live-tickable, saw ${healthState.ageLabelCount}`);
   assert(healthState.cardWired === '1', `network health chamber: card wiring missing: ${healthState.cardWired}`);
   assert(healthState.cardRole === 'button', `network health chamber: card role mismatch: ${healthState.cardRole}`);
   assert(healthState.cardTabIndex === '0', `network health chamber: card keyboard focus mismatch: ${healthState.cardTabIndex}`);
   assert(healthState.cardCue, 'network health chamber: card expand cue missing');
+  assert(healthState.cardCopyHash === '#health', `network health chamber: card direct link mismatch: ${healthState.cardCopyHash}`);
+  assert(healthState.intervalDelays.includes(1000), `network health chamber: 1s freshness ticker was not registered: ${healthState.intervalDelays.join(', ')}`);
   assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
 
   await page.locator('#network-health-modal.active .chamber-close').click();
@@ -1347,6 +1361,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#chambers-toggle', 1, 'governance testing period chambers launcher button');
   await expectCount(page, '.feature-copy-link[data-copy-hash="#chambers"]', 1, 'governance testing period chambers launcher link');
   await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb-tile"]', 1, 'governance testing period LB tile link');
+  await expectCount(page, '#chambers-section [data-stat="tz4-adoption"] .card-copy-link[data-copy-hash="#tz4"]', 1, 'governance testing period tz4 tile link');
+  await expectCount(page, '#chambers-section [data-stat="network-health"] .card-copy-link[data-copy-hash="#health"]', 1, 'governance testing period health tile link');
   await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');

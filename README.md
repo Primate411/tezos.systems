@@ -135,7 +135,8 @@ inline modal styles in `js/core/app.js`.
 ## Main Surfaces
 
 - Chambers section is visible by default and groups The Chamber, Liquidity
-  Baking Monitor, tz4 Adoption, and Network Health as one hideable feature.
+  Baking Monitor, tz4 Adoption, and Network Health as one hideable feature with
+  card-level direct-link controls.
 - Live network stat cards for consensus, economy, governance, network activity,
   and ecosystem metrics are opt-in from Explore under Network Stats.
 - Network Health Chamber with direct `#health` access, recent block cadence,
@@ -253,6 +254,7 @@ Current smoke suites:
 - `dashboard-mobile`
 - `my-tezos-baker-activity`
 - `my-tezos-baker-capacity`
+- `network-health`
 - `governance-lb`
 - `ux-regressions`
 - `feature-workflows`

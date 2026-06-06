@@ -18,6 +18,7 @@ const SAMPLE_SIZE = 180;
 const PERIOD_TTL = 30 * 60 * 1000;
 const LIVE_REFRESH_INTERVAL = 6 * 1000;
 const CHAMBER_REFRESH_INTERVAL = 6 * 1000;
+const AGE_TICK_INTERVAL = 1000;
 const BLOCK_PULSE_THROTTLE = 4 * 1000;
 const STORAGE_KEY = 'tezos-systems-network-health';
 const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
@@ -34,6 +35,7 @@ let cachedData = null;
 let lastFullFetch = 0;
 let lastBlockPulseFetch = 0;
 let chamberTimer = null;
+let ageTimer = null;
 let chamberRefreshInFlight = false;
 let savedBodyOverflow = null;
 let savedHtmlOverflow = null;
@@ -69,8 +71,11 @@ function formatSeconds(value) {
 }
 
 function formatAge(timestamp) {
-    const diff = Date.now() - new Date(timestamp).getTime();
-    if (!Number.isFinite(diff) || diff < 0) return 'just now';
+    if (!timestamp) return '--';
+    const timestampMs = new Date(timestamp).getTime();
+    if (!Number.isFinite(timestampMs)) return '--';
+    const diff = Date.now() - timestampMs;
+    if (diff < 0) return 'just now';
     const seconds = Math.floor(diff / 1000);
     if (seconds < 60) return `${seconds}s ago`;
     const minutes = Math.floor(seconds / 60);
@@ -79,6 +84,31 @@ function formatAge(timestamp) {
     if (hours < 24) return `${hours}h ${minutes % 60}m ago`;
     const days = Math.floor(hours / 24);
     return `${days}d ${hours % 24}h ago`;
+}
+
+function getHeadTimestamp(data) {
+    return data?.headTimestamp || data?.blocks?.[0]?.timestamp || null;
+}
+
+function healthAgeAttr(timestamp) {
+    return timestamp ? ` data-health-age="${escapeHtml(timestamp)}"` : '';
+}
+
+function refreshHealthAgeLabels(root = document) {
+    root.querySelectorAll('[data-health-age]').forEach((element) => {
+        element.textContent = formatAge(element.dataset.healthAge);
+    });
+}
+
+function startHealthAgeTicker() {
+    if (ageTimer) return;
+    ageTimer = window.setInterval(() => refreshHealthAgeLabels(document), AGE_TICK_INTERVAL);
+}
+
+function stopHealthAgeTicker() {
+    if (!ageTimer) return;
+    window.clearInterval(ageTimer);
+    ageTimer = null;
 }
 
 function healthClass(score) {
@@ -395,6 +425,7 @@ async function fetchNetworkHealth({ forcePeriods = false } = {}) {
     const lastBlocks = await fetchLastBlocks();
     const summary = summarizeBlocks(lastBlocks);
     const headLevel = lastBlocks[0]?.level || 0;
+    const headTimestamp = lastBlocks[0]?.timestamp || null;
     const now = new Date();
 
     let periods = cachedData?.periods || [];
@@ -407,6 +438,7 @@ async function fetchNetworkHealth({ forcePeriods = false } = {}) {
 
     return {
         updatedAt: Date.now(),
+        headTimestamp,
         periodUpdatedAt: shouldFetchPeriods ? Date.now() : (cachedData?.periodUpdatedAt || 0),
         headLevel,
         blocks: lastBlocks,
@@ -474,6 +506,7 @@ async function fetchNetworkHealthChamberData() {
     const summary = summarizeBlocks(blocks);
     const timing = summarizeTiming(blocks);
     const headLevel = blocks[0]?.level || 0;
+    const headTimestamp = blocks[0]?.timestamp || null;
     const oldestLevel = blocks[blocks.length - 1]?.level || headLevel;
     const missedBlockStart = Math.max(1, headLevel - MISSED_BLOCK_LOOKBACK);
     const [missedAttestations, missedBlocks] = headLevel
@@ -485,6 +518,7 @@ async function fetchNetworkHealthChamberData() {
 
     return {
         updatedAt: Date.now(),
+        headTimestamp,
         headLevel,
         oldestLevel,
         blocks,
@@ -582,6 +616,7 @@ function renderNetworkHealthError() {
 function renderHealthScorePanel(data) {
     const cls = healthClass(data.summary.score);
     const width = Math.max(2, Math.min(100, data.summary.score));
+    const headTimestamp = getHeadTimestamp(data);
     return `
         <section class="lb-panel health-panel health-score-panel chamber-anim-fade">
             <div class="lb-panel-title">Consensus Power</div>
@@ -593,7 +628,7 @@ function renderHealthScorePanel(data) {
             <div class="lb-metric-grid health-metric-grid">
                 <div><span>Missed power</span><strong>${formatCompactPower(data.summary.missingPower)}</strong></div>
                 <div><span>Block range</span><strong>${formatCount(data.oldestLevel)} -> ${formatCount(data.headLevel)}</strong></div>
-                <div><span>Updated</span><strong>${formatAge(data.updatedAt)}</strong></div>
+                <div><span>Updated</span><strong${healthAgeAttr(headTimestamp)}>${formatAge(headTimestamp)}</strong></div>
             </div>
         </section>
     `;
@@ -653,7 +688,7 @@ function renderAttesterRows(attesters) {
         <div class="lb-table-row health-attester-row" data-health-baker="${escapeHtml(item.address)}">
             <div class="lb-baker-cell">${bakerLinks(item.address, item.name)}</div>
             <span>${formatCount(item.slots)}</span>
-            <span>${formatCount(item.latestLevel)} · ${escapeHtml(formatAge(item.latestTimestamp))}</span>
+            <span>${formatCount(item.latestLevel)} · <span${healthAgeAttr(item.latestTimestamp)}>${escapeHtml(formatAge(item.latestTimestamp))}</span></span>
         </div>
     `).join('');
 }
@@ -740,6 +775,10 @@ function renderRecentBlocksPanel(data) {
 
 function renderNetworkHealthChamber(data, container) {
     const latest = data.blocks[0] || null;
+    const headTimestamp = getHeadTimestamp(data);
+    const headAge = latest
+        ? `<span${healthAgeAttr(headTimestamp)}>${escapeHtml(formatAge(headTimestamp))}</span>`
+        : '';
     const status = chamberStatus(data);
     container.innerHTML = `
         <div class="chamber-header lb-header health-header chamber-anim-fade">
@@ -755,7 +794,7 @@ function renderNetworkHealthChamber(data, container) {
             </div>
             <div class="chamber-proposal-info">
                 <div class="proposal-name">Immediate block and consensus health</div>
-                <div class="proposal-hash" id="health-head-meta">${latest ? `Head block ${formatCount(latest.level)} · ${escapeHtml(formatAge(latest.timestamp))} · avg ${formatSeconds(data.timing.avgSeconds)}` : 'Live TzKT block feed'}</div>
+                <div class="proposal-hash" id="health-head-meta">${latest ? `Head block ${formatCount(latest.level)} · ${headAge} · avg ${formatSeconds(data.timing.avgSeconds)}` : 'Live TzKT block feed'}</div>
             </div>
         </div>
         <section class="lb-explainer health-explainer chamber-anim-fade">
@@ -787,6 +826,7 @@ function renderNetworkHealthChamber(data, container) {
     `;
     container.dataset.healthRendered = 'true';
     initHealthBakerProfileLinks(container);
+    refreshHealthAgeLabels(container);
 }
 
 function initHealthBakerProfileLinks(root = document) {
@@ -843,6 +883,7 @@ function startChamberRefresh() {
     stopChamberRefresh();
     const overlay = document.getElementById('network-health-modal');
     if (overlay) overlay.dataset.healthLive = 'true';
+    startHealthAgeTicker();
     chamberTimer = window.setInterval(() => {
         if (document.hidden) return;
         refreshNetworkHealthChamber();
@@ -854,6 +895,7 @@ function stopChamberRefresh() {
         window.clearInterval(chamberTimer);
         chamberTimer = null;
     }
+    stopHealthAgeTicker();
     const overlay = document.getElementById('network-health-modal');
     if (overlay) overlay.dataset.healthLive = 'false';
 }
