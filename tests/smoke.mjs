@@ -231,6 +231,66 @@ function sampleHistoryRows() {
   });
 }
 
+const SPARKLINE_LATEST_EXPECTATIONS = [
+  ['Total Bakers', 'bakers-sparkline', 'totalBakers'],
+  ['tz4 Adoption', 'tz4-sparkline', 'tz4Percentage'],
+  ['Staking Ratio', 'staking-sparkline', 'stakingRatio'],
+  ['Issuance Rate', 'issuance-sparkline', 'currentIssuanceRate'],
+  ['Total Supply', 'supply-sparkline', 'totalSupply'],
+  ['TX Volume', 'tx-volume-sparkline', 'transactionVolume24h'],
+  ['Contract Calls', 'contract-calls-sparkline', 'contractCalls24h'],
+  ['Funded Accounts', 'funded-accounts-sparkline', 'fundedAccounts'],
+  ['New Accounts', 'new-accounts-sparkline', 'newAccounts24h'],
+  ['Smart Contracts', 'smart-contracts-sparkline', 'smartContracts'],
+  ['Tokens', 'tokens-sparkline', 'tokens'],
+  ['Rollups', 'rollups-sparkline', 'rollups'],
+  ['Active Contracts', 'active-contracts-sparkline', 'activeContracts24h']
+];
+
+async function assertAllSparklineLatestValues(page, label) {
+  await page.waitForFunction((expectations) => {
+    const stats = JSON.parse(localStorage.getItem('tezos-systems-stats') || 'null');
+    if (!stats) return false;
+
+    return expectations.every(([, canvasId, statKey]) => {
+      const expected = Number(stats[statKey]);
+      const canvas = document.getElementById(canvasId);
+      const chart = canvas ? window.Chart?.getChart(canvas) : null;
+      const values = chart?.data?.datasets?.[0]?.data || [];
+      const actual = Number(values.at(-1));
+      return Number.isFinite(expected) && chart && values.length >= 2 && Number.isFinite(actual) && Math.abs(actual - expected) <= 0.01;
+    });
+  }, SPARKLINE_LATEST_EXPECTATIONS, { timeout: 10000 });
+
+  const state = await page.evaluate((expectations) => {
+    const stats = JSON.parse(localStorage.getItem('tezos-systems-stats') || 'null');
+    if (!stats) return { ready: false, missingStats: true, mismatches: [] };
+
+    const mismatches = [];
+    for (const [metricLabel, canvasId, statKey] of expectations) {
+      const expected = Number(stats[statKey]);
+      const canvas = document.getElementById(canvasId);
+      const chart = canvas ? window.Chart?.getChart(canvas) : null;
+      const values = chart?.data?.datasets?.[0]?.data || [];
+      const actual = Number(values.at(-1));
+
+      if (!Number.isFinite(expected) || !chart || values.length < 2 || !Number.isFinite(actual) || Math.abs(actual - expected) > 0.01) {
+        mismatches.push({
+          label: metricLabel,
+          canvasId,
+          statKey,
+          expected,
+          actual,
+          points: values.length
+        });
+      }
+    }
+
+    return { ready: mismatches.length === 0, missingStats: false, mismatches };
+  }, SPARKLINE_LATEST_EXPECTATIONS);
+  assert(state.ready, `${label}: sparkline latest values must match live card stats:\n${JSON.stringify(state.mismatches, null, 2)}`);
+}
+
 function fulfillJson(route, data) {
   return route.fulfill({
     status: 200,
@@ -1366,6 +1426,13 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
+  await page.waitForFunction(() => {
+    const canvas = document.getElementById('tz4-sparkline');
+    const chart = canvas ? window.Chart?.getChart(canvas) : null;
+    const values = chart?.data?.datasets?.[0]?.data || [];
+    const latest = Number(values.at(-1));
+    return Number.isFinite(latest) && Math.abs(latest - (100 / 3)) < 0.01;
+  }, null, { timeout: 10000 });
 
   const dashboardState = await page.evaluate(() => ({
     banner: document.querySelector('#gov-countdown-banner')?.innerText || '',
@@ -1390,6 +1457,12 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     tz4TileRole: document.querySelector('[data-stat="tz4-adoption"]')?.getAttribute('role') || '',
     tz4TileTabIndex: document.querySelector('[data-stat="tz4-adoption"]')?.getAttribute('tabindex') || '',
     tz4TileCue: Boolean(document.querySelector('[data-stat="tz4-adoption"] .chamber-expand-cue')),
+    tz4SparklineLast: (() => {
+      const canvas = document.getElementById('tz4-sparkline');
+      const chart = canvas ? window.Chart?.getChart(canvas) : null;
+      const values = chart?.data?.datasets?.[0]?.data || [];
+      return Number(values.at(-1));
+    })(),
     extraTz4EntryCard: Boolean(document.querySelector('#tz4-entry-card')),
     intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
   }));
@@ -1417,6 +1490,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.tz4TileRole === 'button', `governance testing period: tz4 tile role mismatch: ${dashboardState.tz4TileRole}`);
   assert(dashboardState.tz4TileTabIndex === '0', `governance testing period: tz4 tile keyboard focus mismatch: ${dashboardState.tz4TileTabIndex}`);
   assert(dashboardState.tz4TileCue, 'governance testing period: tz4 tile expand cue missing');
+  assert(Math.abs(dashboardState.tz4SparklineLast - (100 / 3)) < 0.01, `governance testing period: tz4 sparkline latest value must match live tile, saw ${dashboardState.tz4SparklineLast}`);
   assert(!dashboardState.extraTz4EntryCard, 'governance testing period: tz4 should use the existing Adoption tile, not a separate entry card');
   assert(dashboardState.intervalDelays.includes(60000), `governance testing period: LB entry 60s refresh timer was not registered: ${dashboardState.intervalDelays.join(', ')}`);
 
@@ -1870,6 +1944,8 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => document.querySelector('#staking-ratio-front')?.textContent?.trim() === '29.05%', null, { timeout: 10000 });
   await page.waitForFunction(() => /pp$/.test(document.querySelector('#staking-trend')?.textContent?.trim() || ''), null, { timeout: 10000 });
+  await assertAllSparklineLatestValues(page, 'feature workflows');
+  log('ok - all sparkline card latest values match live stats');
   log('ok - staking ratio uses finalized/frozen stake and pp trend');
 
   await clickFeatureLauncher(page, '#leaderboard-toggle');

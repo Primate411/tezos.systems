@@ -91,7 +91,10 @@ tezos.systems/
 5. Background refreshes update hero stats, comparison data, governance state,
    cycle pulse, daily briefing, rewards tracker, price intelligence, baker
    tools, leaderboard, My Tezos, and share-ready UI.
-6. DOM elements are updated directly by id and class. There is no app state
+6. Sparkline cards draw their series from historical snapshots, then align the
+   final point with the latest live stat so chart endpoints and card values
+   agree.
+7. DOM elements are updated directly by id and class. There is no app state
    framework.
 
 Current refresh and cache intervals from `js/core/config.js`:
@@ -259,7 +262,7 @@ Current smoke suites:
 - `network-health`
 - `governance-lb` (covers Chamber current-stage/historical vote ordering and mobile vote-row geometry)
 - `ux-regressions`
-- `feature-workflows`
+- `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`
 - `themes`
 - `widget-builder`

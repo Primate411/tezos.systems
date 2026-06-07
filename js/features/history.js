@@ -15,6 +15,7 @@ const FULL_CHART_POINT_LIMITS = {
     default: 360
 };
 const FAST_RENDER_POINT_THRESHOLD = 180;
+const latestLiveMetricPoints = new Map();
 
 function destroyChartInstance(canvasId) {
     if (chartInstances[canvasId]) {
@@ -24,9 +25,43 @@ function destroyChartInstance(canvasId) {
 }
 
 function normalizeMetricPoints(data, metric) {
-    return data
+    const points = data
         .map(d => ({ value: Number(d[metric]), timestamp: new Date(d.timestamp) }))
         .filter(point => Number.isFinite(point.value) && !isNaN(point.timestamp.getTime()));
+
+    return withLatestLiveMetricPoint(points, metric);
+}
+
+export function setLatestLiveMetric(metric, value, timestamp = new Date()) {
+    const numericValue = Number(value);
+    const pointTime = new Date(timestamp);
+    if (!metric || !Number.isFinite(numericValue) || isNaN(pointTime.getTime())) return;
+
+    latestLiveMetricPoints.set(metric, {
+        value: numericValue,
+        timestamp: pointTime
+    });
+}
+
+function withLatestLiveMetricPoint(points, metric) {
+    const latest = latestLiveMetricPoints.get(metric);
+    if (!latest) return points;
+
+    const next = points.slice();
+    const last = next[next.length - 1];
+    if (!last) return next;
+
+    if (latest.timestamp.getTime() < last.timestamp.getTime()) return next;
+    next[next.length - 1] = latest;
+    return next;
+}
+
+function formatSparklineTooltipValue(metric, value) {
+    const numericValue = Number(value);
+    if (!Number.isFinite(numericValue)) return '';
+    if (metric === 'tz4_percentage' || metric === 'staking_ratio') return `${numericValue.toFixed(1)}%`;
+    if (metric === 'current_issuance_rate') return `${numericValue.toFixed(2)}%`;
+    return numericValue.toLocaleString(undefined, { maximumFractionDigits: 2 });
 }
 
 function pushUniquePoint(points, point) {
@@ -117,9 +152,7 @@ export function createSparkline(canvasId, data, metric) {
     if (!canvas) return;
 
     // Extract values and timestamps
-    const points = data
-        .map(d => ({ value: Number(d[metric]), timestamp: new Date(d.timestamp) }))
-        .filter(point => Number.isFinite(point.value) && !isNaN(point.timestamp.getTime()));
+    const points = normalizeMetricPoints(data, metric);
     if (points.length < 2) return;
 
     const values = points.map(point => point.value);
@@ -210,7 +243,7 @@ export function createSparkline(canvasId, data, metric) {
                             if (!date || isNaN(date.getTime())) return '';
                             return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                         },
-                        label: (item) => item.formattedValue
+                        label: (item) => formatSparklineTooltipValue(metric, item.raw)
                     }
                 }
             },
@@ -465,8 +498,8 @@ function calculateTrend(data, metric, mode = 'relative') {
     const now = Date.now();
     const sevenDaysAgo = now - (7 * 24 * 60 * 60 * 1000);
     
-    const points = data
-        .map(d => ({ value: Number(d[metric]), timestamp: new Date(d.timestamp).getTime() }))
+    const points = normalizeMetricPoints(data, metric)
+        .map(point => ({ value: point.value, timestamp: point.timestamp.getTime() }))
         .filter(point => Number.isFinite(point.value) && Number.isFinite(point.timestamp));
     if (points.length < 2) return null;
 

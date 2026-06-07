@@ -16,7 +16,7 @@ import {
     escapeHtml
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
-import { initHistoryModal, updateSparklines, addCardHistoryButtons } from '../features/history.js';
+import { initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric } from '../features/history.js';
 import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js';
@@ -24,6 +24,21 @@ import { initLiquidityBaking } from '../features/liquidity-baking.js';
 import { initTz4AdoptionChamber } from '../features/tz4-adoption.js';
 
 let lastGovernancePromptTally = null;
+const SPARKLINE_LIVE_METRICS = [
+    ['tz4_percentage', 'tz4Percentage'],
+    ['staking_ratio', 'stakingRatio'],
+    ['total_bakers', 'totalBakers'],
+    ['current_issuance_rate', 'currentIssuanceRate'],
+    ['total_supply', 'totalSupply'],
+    ['tx_volume_24h', 'transactionVolume24h'],
+    ['contract_calls_24h', 'contractCalls24h'],
+    ['funded_accounts', 'fundedAccounts'],
+    ['new_accounts_24h', 'newAccounts24h'],
+    ['smart_contracts', 'smartContracts'],
+    ['tokens', 'tokens'],
+    ['rollups', 'rollups'],
+    ['active_contracts_24h', 'activeContracts24h']
+];
 
 /**
  * Governance Chamber Action
@@ -578,6 +593,7 @@ async function refreshInBackground() {
             });
         }
         updateTz4ChamberTile(heroStats);
+        syncLiveSparklineMetrics(heroStats);
 
         // Only fetch full stats if Tezos Stats sections are visible
         const statsVisible = localStorage.getItem(STATS_VISIBLE_KEY);
@@ -590,6 +606,7 @@ async function refreshInBackground() {
             saveVisitSnapshot(newStats);
             saveStats(newStats);
             await updateStats(newStats);
+            syncLiveSparklineMetrics(newStats);
             state.lastUpdate = new Date();
             updateLastRefreshTime();
         }
@@ -652,6 +669,7 @@ async function refresh() {
         const hadPriorUpdate = !!state.lastUpdate;
         state.lastUpdate = null;
         await updateStats(newStats);
+        syncLiveSparklineMetrics(newStats);
         state.lastUpdate = new Date();
         updateLastRefreshTime();
         await updateUpgradeClock(); // Update protocol + days live
@@ -1149,6 +1167,21 @@ function updateTz4ChamberTile(stats) {
     } else {
         tz4Desc.textContent = 'BLS baker adoption';
     }
+}
+
+function syncLiveSparklineMetrics(stats) {
+    if (!stats) return;
+
+    let hasMetric = false;
+    for (const [metric, statKey] of SPARKLINE_LIVE_METRICS) {
+        if (!(statKey in stats)) continue;
+        const value = Number(stats[statKey]);
+        if (!Number.isFinite(value)) continue;
+        setLatestLiveMetric(metric, value);
+        hasMetric = true;
+    }
+
+    if (hasMetric) updateSparklines();
 }
 
 // ==========================================

@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-07',
+        entries: [
+            { type: '🔧', text: 'Sparkline cards now end on the same latest live values shown by their dashboard tiles' },
+        ]
+    },
+    {
         date: '2026-06-06',
         entries: [
             { type: '🎨', text: 'Mobile Chamber vote rows now keep baker, timestamp, choice, and turnout details in distinct readable lines' },
