@@ -14687,20 +14687,26 @@ body {
 
     .current-vote-row {
         grid-template-columns: 28px minmax(0, 1fr) 72px;
+        grid-template-rows: minmax(18px, max-content) minmax(18px, max-content) minmax(17px, max-content);
+        align-items: start;
         gap: 4px 8px;
+        min-height: 76px;
         padding: 8px 0;
     }
 
     .current-vote-rank {
+        grid-column: 1;
         grid-row: 1 / span 3;
     }
 
     .current-vote-baker {
         grid-column: 2 / -1;
+        grid-row: 1;
     }
 
     .current-vote-time {
         grid-column: 2;
+        grid-row: 2;
     }
 
     .current-vote-choice {
@@ -14711,6 +14717,7 @@ body {
 
     .current-vote-power {
         grid-column: 2 / -1;
+        grid-row: 3;
         text-align: left;
     }
 
@@ -14733,25 +14740,45 @@ body {
 
     .vote-log-row {
         grid-template-columns: 28px minmax(0, 1fr) 72px;
+        grid-template-rows: minmax(19px, max-content) minmax(17px, max-content) minmax(17px, max-content) minmax(17px, max-content);
+        align-items: start;
         gap: 4px 8px;
+        min-height: 91px;
         padding: 9px 0;
     }
 
     .vote-log-index {
+        grid-column: 1;
         grid-row: 1 / span 4;
     }
 
     .vote-log-name {
         grid-column: 2 / -1;
+        grid-row: 1;
     }
 
-    .vote-log-date,
+    .vote-log-date {
+        grid-column: 2 / -1;
+        grid-row: 2;
+    }
+
     .vote-log-meta {
         grid-column: 2 / -1;
+        grid-row: 3;
     }
 
     .vote-log-metric {
+        grid-row: 4;
         text-align: left;
+    }
+
+    .vote-log-row .vote-log-metric:nth-last-child(2) {
+        grid-column: 2;
+    }
+
+    .vote-log-row .vote-log-metric:last-child {
+        grid-column: 3;
+        text-align: right;
     }
 }
 

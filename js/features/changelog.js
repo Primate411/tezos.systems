@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-06',
         entries: [
+            { type: '🎨', text: 'Mobile Chamber vote rows now keep baker, timestamp, choice, and turnout details in distinct readable lines' },
             { type: '✨', text: 'The Chamber now shows current-stage ballots in chronological order before the broader historical context' },
             { type: '✨', text: 'The Chamber now includes a full chronological governance vote log from Athens through the latest local vote history' },
             { type: '🔧', text: 'tz4 Adoption and Network Health chamber cards now expose direct #tz4 and #health link controls' },

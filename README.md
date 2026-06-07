@@ -257,7 +257,7 @@ Current smoke suites:
 - `my-tezos-baker-activity`
 - `my-tezos-baker-capacity`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage and historical vote ordering)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows`
 - `info-modals`

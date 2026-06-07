@@ -1479,6 +1479,54 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/Athens/.test(chamberState.voteLogFirstText), `governance testing period: vote log should start with the earliest Athens vote, saw ${chamberState.voteLogFirstText}`);
   assert(chamberState.voteLogFirstIndex === '01', `governance testing period: vote log row numbering should start at 01, saw ${chamberState.voteLogFirstIndex}`);
 
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForFunction(() => window.matchMedia('(max-width: 640px)').matches, null, { timeout: 5000 });
+  const chamberMobileRows = await page.evaluate(() => {
+    const inspectRows = (selector) => Array.from(document.querySelectorAll(selector)).slice(0, 4).map((row, rowIndex) => {
+      const rowBox = row.getBoundingClientRect();
+      const children = Array.from(row.children).map((el, childIndex) => {
+        const box = el.getBoundingClientRect();
+        return {
+          childIndex,
+          cls: el.className,
+          text: el.textContent?.trim() || '',
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+          overflowX: el.scrollWidth > el.clientWidth + 1
+        };
+      });
+      const overlaps = [];
+      for (let first = 0; first < children.length; first += 1) {
+        for (let second = first + 1; second < children.length; second += 1) {
+          const a = children[first];
+          const b = children[second];
+          if (a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y) {
+            overlaps.push([a.cls, b.cls]);
+          }
+        }
+      }
+      return {
+        rowIndex,
+        height: rowBox.height,
+        overflowX: row.scrollWidth > row.clientWidth + 1,
+        overlaps,
+        children
+      };
+    });
+
+    return {
+      current: inspectRows('#chamber-current-vote-order .current-vote-row'),
+      log: inspectRows('#chamber-vote-log .vote-log-row')
+    };
+  });
+  const funkyCurrentRows = chamberMobileRows.current.filter((row) => row.overflowX || row.overlaps.length);
+  const funkyLogRows = chamberMobileRows.log.filter((row) => row.overflowX || row.overlaps.length);
+  assert(funkyCurrentRows.length === 0, `governance testing period: mobile current vote rows should not overlap or overflow: ${JSON.stringify(funkyCurrentRows)}`);
+  assert(funkyLogRows.length === 0, `governance testing period: mobile vote-log rows should not overlap or overflow: ${JSON.stringify(funkyLogRows)}`);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+
   await page.locator('.chamber-overlay.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#chamber-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await page.evaluate(() => { window.location.hash = 'chamber'; });
