@@ -7,6 +7,7 @@
 import { API_URLS } from '../core/config.js';
 import { loadHtml2Canvas, showShareModal } from '../ui/share.js';
 import { fetchVotingStatus, getVotingPeriodName } from '../features/governance.js';
+import { getTzktTotalStaked } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
 const MAINNET_LAUNCH = new Date('2018-09-17T00:00:00Z');
@@ -122,16 +123,13 @@ async function fetchSnapshotData() {
         }
     } catch { /* graceful fallback */ }
 
-    // 3. Staking ratio from protocol-frozen stake. Pending unstakes count until finalized.
+    // 3. Staking ratio from the same TzKT aggregate shown on tzkt.io.
     try {
-        const [stakeResp, supplyResp] = await Promise.all([
-            fetch(`${API_URLS.octez}/chains/main/blocks/head/context/total_frozen_stake`),
-            fetch(`${API_URLS.octez}/chains/main/blocks/head/context/total_supply`)
-        ]);
-        if (stakeResp.ok && supplyResp.ok) {
-            const [stakeText, supplyText] = await Promise.all([stakeResp.text(), supplyResp.text()]);
-            const staked = parseInt(String(stakeText).replace(/"/g, ''), 10);
-            const total = parseInt(String(supplyText).replace(/"/g, ''), 10);
+        const statsResp = await fetch(`${API_URLS.tzkt}/statistics/current`);
+        if (statsResp.ok) {
+            const stats = await statsResp.json();
+            const staked = getTzktTotalStaked(stats);
+            const total = Number(stats.totalSupply || 0);
             if (total > 0 && staked > 0) {
                 data.stakingRatio = `${((staked / total) * 100).toFixed(1)}%`;
             }

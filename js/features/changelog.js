@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-07',
         entries: [
+            { type: '🔧', text: 'Staking ratio and APY now match TzKT Proof-of-Stake totals across dashboard, widgets, and share surfaces' },
             { type: '🔧', text: 'Sparkline cards now end on the same latest live values shown by their dashboard tiles' },
         ]
     },

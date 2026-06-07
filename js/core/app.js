@@ -807,8 +807,18 @@ async function updateStats(newStats) {
         ) {
             updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate, newStats.lbSubsidyDisabled);
         }
+        if (state.currentStats.delegateAPY !== newStats.delegateAPY || state.currentStats.stakeAPY !== newStats.stakeAPY) {
+            updates.push({
+                cardId: 'staking-apy',
+                value: newStats.delegateAPY,
+                formatter: (val) => `${(val || 0).toFixed(1)}% / ${(newStats.stakeAPY || 0).toFixed(1)}%`
+            });
+        }
         if (state.currentStats.stakingRatio !== newStats.stakingRatio) {
             updates.push({ cardId: 'staking-ratio', value: newStats.stakingRatio, formatter: formatPercentage });
+        }
+        if (state.currentStats.delegatedRatio !== newStats.delegatedRatio) {
+            updates.push({ cardId: 'delegated', value: newStats.delegatedRatio, formatter: formatPercentage });
         }
         if (state.currentStats.bakingPower !== newStats.bakingPower) {
             updates.push({ cardId: 'baking-power', value: newStats.bakingPower, formatter: formatSupply });
@@ -853,6 +863,10 @@ async function updateStats(newStats) {
         document.getElementById('cycle-description').textContent = 
             `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
         updateRewardAccountsBreakdown(newStats.totalDelegators, newStats.totalStakers);
+    }
+
+    if (newStats.delegateAPY && newStats.stakeAPY) {
+        setLiveAPY(newStats.delegateAPY, newStats.stakeAPY);
     }
 
     // Feed uptime clock on every refresh

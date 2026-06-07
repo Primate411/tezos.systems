@@ -5,7 +5,7 @@
 
 import { API_URLS } from '../core/config.js';
 import { escapeHtml, formatNumber } from '../core/utils.js';
-import { fetchSharedStats } from '../core/api.js';
+import { fetchSharedStats, getTzktTotalDelegated, getTzktTotalStaked } from '../core/api.js';
 import { fetchBakerLiquidityBakingVote } from './liquidity-baking.js';
 // objkt.js moved to standalone section
 
@@ -93,13 +93,16 @@ async function getStakingAPY() {
             supplyResp.text()
         ]);
         const netIssuance = parseFloat(rateText.replace(/"/g, ''));
-        const supplyMutez = parseInt(String(supplyText).replace(/"/g, ''), 10) || stats.totalSupply || 0;
-        const stakedMutez = parseInt(String(stakeText).replace(/"/g, ''), 10)
-            || stats.totalFrozen
-            || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
+        const supplyMutez = Number(stats.totalSupply || 0) || parseInt(String(supplyText).replace(/"/g, ''), 10) || 0;
+        const stakedMutez = getTzktTotalStaked(stats)
+            || parseInt(String(stakeText).replace(/"/g, ''), 10)
+            || 0;
         const supply = supplyMutez / 1e6;
         const staked = stakedMutez / 1e6;
-        const delegated = ((stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0)) / 1e6;
+        const delegated = getTzktTotalDelegated(stats) / 1e6;
+        if (!Number.isFinite(netIssuance) || netIssuance <= 0 || supply <= 0 || staked <= 0) {
+            throw new Error('Missing staking APY inputs');
+        }
         const edge = 2;
         const effective = (staked / supply) + (delegated / supply) / (1 + edge);
         const stakeAPY = (netIssuance / 100) / effective * 100;

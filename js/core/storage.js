@@ -17,7 +17,7 @@ const STORAGE_KEYS = {
     momentsDismissed: 'tezos-systems-moments-dismissed'
 };
 
-const STATS_CACHE_VERSION = 'baking-power-v1';
+const STATS_CACHE_VERSION = 'tzkt-staking-v1';
 const PROTOCOLS_CACHE_VERSION = 'protocols-v2';
 
 // Cache TTL from config

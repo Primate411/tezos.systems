@@ -47,6 +47,7 @@ const allowedWarningPatterns = [
   /HTTP 503/i,
   /api\.coingecko\.com/i,
   /api\.tzkt\.io/i,
+  /api\.github\.com/i,
   /SW registration failed/i,
   /Service Worker registration blocked by Playwright/i,
   /Using local protocol fallback/i
@@ -329,6 +330,14 @@ async function installFeatureMocks(context, options = {}) {
 
     if (url.includes('iijpfczftroespicmufb.supabase.co/rest/v1/tezos_history')) {
       return fulfillJson(route, sampleHistoryRows());
+    }
+
+    if (url.includes('api.github.com/repos/Primate411/tezos.systems/commits/main')) {
+      return fulfillJson(route, {
+        sha: 'cafebabecafebabecafebabecafebabecafebabe',
+        html_url: 'https://github.com/Primate411/tezos.systems/commit/cafebabe',
+        commit: { committer: { date: '2026-06-07T00:00:00Z' } }
+      });
     }
 
     if (url.includes('api.tezos.domains/graphql')) {
@@ -835,8 +844,10 @@ function attachIssueCollectors(page, label, issues) {
   page.on('console', (message) => {
     if (!['warning', 'warn', 'error'].includes(message.type())) return;
     const text = message.text();
-    if (STRICT_EXTERNAL || !isAllowedWarning(text)) {
-      issues.push(`${label} console ${message.type()}: ${text}`);
+    const locationUrl = message.location()?.url || '';
+    const warningText = `${text} ${locationUrl}`;
+    if (STRICT_EXTERNAL || !isAllowedWarning(warningText)) {
+      issues.push(`${label} console ${message.type()}: ${text}${locationUrl ? ` (${locationUrl})` : ''}`);
     }
   });
 
@@ -1942,11 +1953,12 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `feature workflows: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForFunction(() => document.querySelector('#staking-ratio-front')?.textContent?.trim() === '29.05%', null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector('#staking-ratio-front')?.textContent?.trim() === '27.62%', null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector('#staking-apy-front')?.textContent?.trim() === '4.2% / 12.7%', null, { timeout: 10000 });
   await page.waitForFunction(() => /pp$/.test(document.querySelector('#staking-trend')?.textContent?.trim() || ''), null, { timeout: 10000 });
   await assertAllSparklineLatestValues(page, 'feature workflows');
   log('ok - all sparkline card latest values match live stats');
-  log('ok - staking ratio uses finalized/frozen stake and pp trend');
+  log('ok - staking ratio and APY use TzKT total staked with pp trend');
 
   await clickFeatureLauncher(page, '#leaderboard-toggle');
   await page.locator('#leaderboard-section.visible').waitFor({ state: 'visible', timeout: 10000 });

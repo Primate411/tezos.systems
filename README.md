@@ -194,6 +194,11 @@ Useful deep links include:
 | OBJKT GraphQL | NFT/profile surfaces |
 | Supabase REST | Historical Tezos snapshots via public anon client config |
 
+Live staking ratio and APY surfaces use TzKT `statistics/current` totals for
+`totalOwnStaked + totalExternalStaked`, paired with TzKT `totalSupply`. Octez
+RPC still supplies issuance, constants, cycle/head metadata, and fallback values
+when TzKT stats are unavailable.
+
 The Supabase anon key in `js/core/config.js` is public client configuration, not
 a secret. Browser fetch domains must be allowed by the CSP in `index.html`.
 

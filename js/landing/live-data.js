@@ -26,6 +26,15 @@ function parseMutez(value) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function getTzktTotalStaked(stats = {}) {
+    const total = Number(stats.totalOwnStaked || 0) + Number(stats.totalExternalStaked || 0);
+    return total > 0 ? total : Number(stats.totalFrozen || 0);
+}
+
+function getTzktTotalDelegated(stats = {}) {
+    return Number(stats.totalOwnDelegated || 0) + Number(stats.totalExternalDelegated || 0);
+}
+
 async function fetchLiquidityBakingSubsidyState() {
     try {
         const blocks = await fetchJson(`${TZKT}/blocks?sort.desc=level&limit=1&select=level,lbToggleEma`);
@@ -88,16 +97,14 @@ export async function loadStakingData() {
 
         const parsedProtocolIssuance = parseFloat(rateText.replace(/"/g, ''));
         const protocolIssuance = Number.isFinite(parsedProtocolIssuance) ? parsedProtocolIssuance : 0;
-        const supplyMutez = parseMutez(supplyText) || stats.totalSupply || 0;
-        const frozenStakeMutez = parseMutez(frozenStakeText)
-            || stats.totalFrozen
-            || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
+        const supplyMutez = Number(stats.totalSupply || 0) || parseMutez(supplyText) || 0;
+        const stakedMutez = getTzktTotalStaked(stats) || parseMutez(frozenStakeText) || 0;
         const canEstimateLb = Boolean(constants && supplyMutez);
         const lbIssuance = calculateLbIssuanceRate(constants, supplyMutez, lbState.disabled);
         const totalIssuance = protocolIssuance + lbIssuance;
         const supply = supplyMutez / 1e6;
-        const staked = frozenStakeMutez / 1e6;
-        const delegated = ((stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0)) / 1e6;
+        const staked = stakedMutez / 1e6;
+        const delegated = getTzktTotalDelegated(stats) / 1e6;
         const stakingRatio = supply > 0 ? (staked / supply * 100) : 0;
         const edge = 2;
         const effective = supply > 0 ? (staked / supply) + (delegated / supply) / (1 + edge) : 0;

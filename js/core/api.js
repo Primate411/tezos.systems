@@ -177,6 +177,15 @@ function parseMutezText(value) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
+export function getTzktTotalStaked(stats = {}) {
+    const total = Number(stats.totalOwnStaked || 0) + Number(stats.totalExternalStaked || 0);
+    return total > 0 ? total : Number(stats.totalFrozen || 0);
+}
+
+export function getTzktTotalDelegated(stats = {}) {
+    return Number(stats.totalOwnDelegated || 0) + Number(stats.totalExternalDelegated || 0);
+}
+
 // ─── Shared dedup fetchers ─────────────────────────────────────────────────────
 
 /**
@@ -559,7 +568,7 @@ async function fetchRecentActivityCutoffLevel() {
 
 /**
  * Fetch staking ratio and delegated percentage
- * Counts protocol-frozen stake so pending unstakes remain included until they finalize.
+ * Matches TzKT's Proof-of-Stake totals: own staked + external staked.
  */
 async function fetchStakingRatio() {
     try {
@@ -571,7 +580,7 @@ async function fetchStakingRatio() {
 
         const stats = statsResult.status === 'fulfilled' ? statsResult.value : {};
         const rpcSupply = supplyResult.status === 'fulfilled' ? parseMutezText(supplyResult.value) : 0;
-        const totalSupply = rpcSupply || stats.totalSupply || 0;
+        const totalSupply = Number(stats.totalSupply || 0) || rpcSupply || 0;
         
         if (totalSupply === 0) {
             return {
@@ -587,13 +596,11 @@ async function fetchStakingRatio() {
         const rpcFrozenStake = frozenStakeResult.status === 'fulfilled'
             ? parseMutezText(frozenStakeResult.value)
             : 0;
-        const fallbackFrozenStake = stats.totalFrozen
-            || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
-        const totalFrozenStake = rpcFrozenStake || fallbackFrozenStake || 0;
-        const stakingRatio = (totalFrozenStake / totalSupply) * 100;
+        const totalStaked = getTzktTotalStaked(stats) || rpcFrozenStake || 0;
+        const stakingRatio = (totalStaked / totalSupply) * 100;
         
         // Delegated = own delegated + external delegated (not locked/staked)
-        const totalDelegated = (stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0);
+        const totalDelegated = getTzktTotalDelegated(stats);
         const delegatedRatio = (totalDelegated / totalSupply) * 100;
 
         const totalDelegators = stats.totalDelegators || 0;
@@ -697,23 +704,29 @@ async function fetchRollups() {
  */
 export async function fetchStakingAPY() {
     try {
-        // Get net issuance rate from Octez RPC (this is what TzKT uses for APY calc)
-        const rateString = await fetchSharedYearlyRate();
-        const netIssuance = parseFloat(String(rateString || '0').replace(/"/g, ''));
-        
-        // Get finalized/frozen stake from RPC so APY uses the same ratio shown on the dashboard.
-        const [stats, frozenStakeRaw, supplyRaw] = await Promise.all([
+        const [rateResult, statsResult, frozenStakeResult, supplyResult] = await Promise.allSettled([
+            fetchSharedYearlyRate(),
             fetchSharedStats(),
             fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalFrozenStake}`),
             fetchText(`${ENDPOINTS.octez.base}${ENDPOINTS.octez.totalSupply}`)
         ]);
-        const supplyMutez = parseMutezText(supplyRaw) || stats.totalSupply || 0;
-        const frozenStakeMutez = parseMutezText(frozenStakeRaw)
-            || stats.totalFrozen
-            || ((stats.totalOwnStaked || 0) + (stats.totalExternalStaked || 0));
+
+        const rateString = rateResult.status === 'fulfilled' ? rateResult.value : '0';
+        const netIssuance = parseFloat(String(rateString || '0').replace(/"/g, ''));
+        const stats = statsResult.status === 'fulfilled' ? statsResult.value : {};
+        const fallbackSupplyMutez = supplyResult.status === 'fulfilled' ? parseMutezText(supplyResult.value) : 0;
+        const fallbackFrozenStakeMutez = frozenStakeResult.status === 'fulfilled' ? parseMutezText(frozenStakeResult.value) : 0;
+        const supplyMutez = Number(stats.totalSupply || 0) || fallbackSupplyMutez || 0;
+        const stakedMutez = getTzktTotalStaked(stats) || fallbackFrozenStakeMutez || 0;
+        const delegatedMutez = getTzktTotalDelegated(stats);
+
+        if (!Number.isFinite(netIssuance) || netIssuance <= 0 || supplyMutez <= 0 || stakedMutez <= 0) {
+            throw new Error('Missing staking APY inputs');
+        }
+
         const supply = supplyMutez / 1e6;
-        const staked = frozenStakeMutez / 1e6;
-        const delegated = ((stats.totalOwnDelegated || 0) + (stats.totalExternalDelegated || 0)) / 1e6;
+        const staked = stakedMutez / 1e6;
+        const delegated = delegatedMutez / 1e6;
         
         const s = staked / supply;
         const d = delegated / supply;
