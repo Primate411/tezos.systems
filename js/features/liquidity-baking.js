@@ -1015,9 +1015,9 @@ export function initLiquidityBaking() {
         openLiquidityBakingMonitor();
     });
     card.addEventListener('click', openLiquidityBakingMonitor);
-    const chamberCard = document.getElementById('chamber-entry-card');
-    if (chamberCard?.parentElement === grid) {
-        chamberCard.after(card);
+    const priorityCard = document.getElementById('tezlink-entry-card') || document.getElementById('chamber-entry-card');
+    if (priorityCard?.parentElement === grid) {
+        priorityCard.after(card);
     } else {
         grid.prepend(card);
     }

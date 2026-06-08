@@ -299,7 +299,10 @@ async function checkCsp() {
     'data.objkt.com',
     'api.github.com',
     'cdn.jsdelivr.net',
-    '*.octez.io'
+    '*.octez.io',
+    'api.llama.fi',
+    'explorer.etherlink.com',
+    'node.mainnet.etherlink.com'
   ];
   for (const domain of requiredConnect) {
     if (!csp.includes(domain)) fail(`CSP connect-src is missing ${domain}`);
@@ -366,11 +369,13 @@ async function checkSelectorContracts() {
   const app = await readText('js/core/app.js');
   const chamber = await readText('js/features/chamber.js');
   const lb = await readText('js/features/liquidity-baking.js');
+  const tezlink = await readText('js/features/tezlink.js');
   const tz4 = await readText('js/features/tz4-adoption.js');
   const health = await readText('js/features/network-health.js');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
     ['Chambers hash route', "hash === 'chambers'", app],
+    ['Tezlink hash route', "hash === 'tezlink'", app],
     ['Health hash route', "hash === 'health'", app],
     ['LB tile hash route', "hash === 'lb-tile'", app],
     ['tz4 hash route', "hash === 'tz4'", app],
@@ -378,6 +383,8 @@ async function checkSelectorContracts() {
     ['Chambers launcher copy link', 'data-copy-hash="#chambers"', index],
     ['Chambers visibility storage', 'tezos-systems-chambers-visible', app],
     ['Chamber card copy link', 'data-copy-hash="#chamber"', chamber],
+    ['Tezlink card copy link', 'data-copy-hash="#tezlink"', tezlink],
+    ['Tezlink direct footer link', 'Direct: /#tezlink', tezlink],
     ['LB tile copy link', 'data-copy-hash="#lb-tile"', lb],
     ['tz4 tile card copy link', 'data-copy-hash="#tz4"', index],
     ['tz4 tile expand cue', 'data-stat="tz4-adoption"', index],

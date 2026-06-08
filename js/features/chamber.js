@@ -1582,6 +1582,7 @@ export function initChamber() {
                     <div class="stat-value chamber-entry-icon">🏛️</div>
                     <p class="stat-description">Enter governance war room</p>
                     <div class="chamber-entry-status" id="chamber-entry-mini"></div>
+                    <div class="chamber-entry-metrics" id="chamber-entry-metrics" hidden></div>
                 </div>
             </div>
             <span class="chamber-expand-cue" title="Opens a full window" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h5v5"/><path d="M9 20H4v-5"/><path d="M20 4l-7 7"/><path d="M4 20l7-7"/></svg></span>
@@ -1594,22 +1595,104 @@ export function initChamber() {
     }
 }
 
+function formatEntryPct(value, decimals = 1) {
+    if (!Number.isFinite(value)) return '--';
+    return `${value.toFixed(decimals)}%`;
+}
+
+function formatEntryPower(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '--';
+    return fmtPower(number);
+}
+
+function entryCountdown(endTime) {
+    if (!endTime) return '--';
+    return fmtCountdown(endTime);
+}
+
+function calcEntryParticipation(period) {
+    const total = Number(period?.totalVotingPower);
+    const yay = Number(period?.yayVotingPower) || 0;
+    const nay = Number(period?.nayVotingPower) || 0;
+    const pass = Number(period?.passVotingPower) || 0;
+    if (!Number.isFinite(total) || total <= 0) return null;
+    return ((yay + nay + pass) / total) * 100;
+}
+
+function calcEntryBallots(period) {
+    const yay = Number(period?.yayBallots) || 0;
+    const nay = Number(period?.nayBallots) || 0;
+    const pass = Number(period?.passBallots) || 0;
+    const directCount = Number(period?.ballotsCount);
+    if (Number.isFinite(directCount) && directCount > 0) return directCount;
+    return yay + nay + pass;
+}
+
+function setEntryMetrics(metricsEl, metrics) {
+    if (!metricsEl) return;
+    metricsEl.hidden = false;
+    metricsEl.innerHTML = metrics.map((metric) => `
+        <div class="chamber-entry-metric ${metric.className || ''}">
+            <span>${escapeHtml(metric.label)}</span>
+            <strong>${escapeHtml(metric.value)}</strong>
+        </div>
+    `).join('');
+}
+
+function clearEntryMetrics(card, metricsEl) {
+    card?.classList.remove('chamber-entry-wide', 'chamber-entry-risk');
+    if (!metricsEl) return;
+    metricsEl.hidden = true;
+    metricsEl.innerHTML = '';
+}
+
 async function loadEntryCardStatus() {
     try {
         const mini = document.getElementById('chamber-entry-mini');
         if (!mini) return;
         const card = mini.closest('.chamber-entry-card');
+        const metricsEl = document.getElementById('chamber-entry-metrics');
         
         const currentPeriod = await (await fetch(`${TZKT}/voting/periods/current`)).json();
         const isActive = currentPeriod.status === 'active' && currentPeriod.kind !== 'proposal';
         const isLiveVote = isActive && isBallotPeriod(currentPeriod);
         
         if (isLiveVote) {
-            const pct = calcSupermajority(currentPeriod);
+            const supermajority = calcSupermajority(currentPeriod);
+            const participation = calcEntryParticipation(currentPeriod);
+            const quorum = Number(currentPeriod.ballotsQuorum);
+            const threshold = Number(currentPeriod.supermajority) || 80;
+            const ballots = calcEntryBallots(currentPeriod);
             const stageName = periodTitle(currentPeriod.kind);
-            mini.innerHTML = `<span class="entry-live-dot"></span> Live ${stageName} vote · ${pct !== null ? pct.toFixed(0) + '% Yay' : 'open ballots'}`;
+            const quorumMet = Number.isFinite(participation) && Number.isFinite(quorum) && participation >= quorum;
+            const yayMet = Number.isFinite(supermajority) && supermajority >= threshold;
+            const statusText = quorumMet
+                ? `quorum ${formatEntryPct(participation)} / ${formatEntryPct(quorum)}`
+                : `needs quorum ${formatEntryPct(participation)} / ${formatEntryPct(quorum)}`;
+            mini.innerHTML = `<span class="entry-live-dot"></span> Live ${stageName} vote · ${statusText}`;
             mini.classList.add('live');
-            card?.classList.add('chamber-entry-live');
+            card?.classList.add('chamber-entry-live', 'chamber-entry-wide');
+            card?.classList.toggle('chamber-entry-risk', !quorumMet || !yayMet);
+            setEntryMetrics(metricsEl, [
+                { label: 'Time left', value: entryCountdown(currentPeriod.endTime) },
+                {
+                    label: quorumMet ? 'Quorum met' : 'Quorum gap',
+                    value: quorumMet
+                        ? `${formatEntryPct(participation)} / ${formatEntryPct(quorum)}`
+                        : `${formatEntryPct(Math.max(0, quorum - (participation || 0)))} short`,
+                    className: quorumMet ? 'is-good' : 'is-risk'
+                },
+                {
+                    label: yayMet ? 'Yay met' : 'Yay threshold',
+                    value: `${formatEntryPct(supermajority)} / ${formatEntryPct(threshold, 0)}`,
+                    className: yayMet ? 'is-good' : 'is-risk'
+                },
+                {
+                    label: 'Ballots',
+                    value: ballots ? `${ballots.toLocaleString()} · ${formatEntryPower(currentPeriod.yayVotingPower)} Yay` : 'Open'
+                }
+            ]);
         } else if (isActive) {
             const stageName = periodTitle(currentPeriod.kind);
             const detail = currentPeriod.kind === 'testing'
@@ -1620,10 +1703,12 @@ async function loadEntryCardStatus() {
             mini.innerHTML = `${stageName} · ${detail}`;
             mini.classList.remove('live');
             card?.classList.remove('chamber-entry-live');
+            clearEntryMetrics(card, metricsEl);
         } else {
             mini.innerHTML = 'No active vote';
             mini.classList.remove('live');
             card?.classList.remove('chamber-entry-live');
+            clearEntryMetrics(card, metricsEl);
         }
     } catch {
         // Silent fail

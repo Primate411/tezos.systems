@@ -10,7 +10,10 @@ export const SUPABASE_CONFIG = {
 // API base URLs
 export const API_URLS = {
   tzkt: 'https://api.tzkt.io/v1',
-  octez: 'https://eu.rpc.tez.capital'
+  octez: 'https://eu.rpc.tez.capital',
+  defillama: 'https://api.llama.fi',
+  tezlinkExplorer: 'https://explorer.etherlink.com/api/v2',
+  tezlinkRpc: 'https://node.mainnet.etherlink.com'
 };
 
 // Refresh intervals (milliseconds)

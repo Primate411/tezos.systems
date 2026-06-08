@@ -20,6 +20,8 @@ const LIVE_REFRESH_INTERVAL = 6 * 1000;
 const CHAMBER_REFRESH_INTERVAL = 6 * 1000;
 const AGE_TICK_INTERVAL = 1000;
 const BLOCK_PULSE_THROTTLE = 4 * 1000;
+const ACTIVITY_TAPE_TTL = 60 * 1000;
+const ACTIVITY_TAPE_LIMIT = 5;
 const STORAGE_KEY = 'tezos-systems-network-health';
 const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
 
@@ -39,6 +41,9 @@ let ageTimer = null;
 let chamberRefreshInFlight = false;
 let savedBodyOverflow = null;
 let savedHtmlOverflow = null;
+let activityTapeCache = [];
+let activityTapeCacheAt = 0;
+let activityTapeInFlight = null;
 
 function formatCount(value) {
     return Number(value || 0).toLocaleString('en-US');
@@ -223,6 +228,43 @@ async function fetchJson(url, retries = 2) {
             await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
         }
     }
+}
+
+function normalizeActivityTx(tx) {
+    const amountMutez = Number(tx.amount);
+    const method = tx.parameter?.entrypoint || tx.entrypoint || 'transfer';
+    return {
+        hash: tx.hash || '',
+        timestamp: tx.timestamp || null,
+        amount: Number.isFinite(amountMutez) ? amountMutez / 1e6 : null,
+        method,
+        sender: bakerName(tx.sender),
+        target: bakerName(tx.target)
+    };
+}
+
+async function fetchActivityTape({ force = false } = {}) {
+    if (!force && activityTapeCache.length && Date.now() - activityTapeCacheAt < ACTIVITY_TAPE_TTL) {
+        return activityTapeCache;
+    }
+    if (activityTapeInFlight) return activityTapeInFlight;
+
+    const url = `${TZKT}/operations/transactions?status=applied&amount.ge=1000000000&sort.desc=id&limit=${ACTIVITY_TAPE_LIMIT}`;
+    activityTapeInFlight = fetchJson(url)
+        .then((rows) => {
+            activityTapeCache = (Array.isArray(rows) ? rows : []).map(normalizeActivityTx);
+            activityTapeCacheAt = Date.now();
+            return activityTapeCache;
+        })
+        .catch((error) => {
+            console.warn('Network Health activity tape failed:', error);
+            return activityTapeCache;
+        })
+        .finally(() => {
+            activityTapeInFlight = null;
+        });
+
+    return activityTapeInFlight;
 }
 
 function numericRound(value) {
@@ -509,12 +551,13 @@ async function fetchNetworkHealthChamberData() {
     const headTimestamp = blocks[0]?.timestamp || null;
     const oldestLevel = blocks[blocks.length - 1]?.level || headLevel;
     const missedBlockStart = Math.max(1, headLevel - MISSED_BLOCK_LOOKBACK);
-    const [missedAttestations, missedBlocks] = headLevel
+    const [missedAttestations, missedBlocks, activityTape] = headLevel
         ? await Promise.all([
             fetchMissedRights('attestation', oldestLevel, headLevel),
-            fetchMissedRights('baking', missedBlockStart, headLevel, 30)
+            fetchMissedRights('baking', missedBlockStart, headLevel, 30),
+            fetchActivityTape()
         ])
-        : [[], []];
+        : [[], [], []];
 
     return {
         updatedAt: Date.now(),
@@ -527,6 +570,7 @@ async function fetchNetworkHealthChamberData() {
         missedAttestations,
         missedAttesters: summarizeMissedAttesters(missedAttestations),
         missedBlocks,
+        activityTape,
         periods: cachedData?.periods || []
     };
 }
@@ -593,6 +637,9 @@ function renderNetworkHealth(data) {
     if (descEl) {
         descEl.textContent = `${formatCompactPower(data.summary.totalPower)} / ${formatCompactPower(data.summary.totalCommittee)} power across last 5 blocks`;
     }
+
+    ensureHealthEntryTape();
+    refreshNetworkHealthTape();
 }
 
 function renderNetworkHealthError() {
@@ -611,6 +658,55 @@ function renderNetworkHealthError() {
     }
     if (blocksEl) blocksEl.innerHTML = '<span class="network-health-muted">TzKT unavailable</span>';
     if (periodsEl) periodsEl.innerHTML = '';
+    renderHealthEntryTape([]);
+}
+
+function ensureHealthEntryTape() {
+    const card = document.querySelector('.stat-card[data-stat="network-health"]');
+    const front = card?.querySelector('.card-front');
+    if (!front) return null;
+
+    let tape = document.getElementById('network-health-live-tape');
+    if (!tape) {
+        tape = document.createElement('div');
+        tape.id = 'network-health-live-tape';
+        tape.className = 'health-live-tape';
+        tape.setAttribute('aria-label', 'Network activity live tape');
+        tape.innerHTML = `
+            <div class="health-live-tape-title">Live Tape</div>
+            <div class="health-live-tape-rows" id="network-health-live-tape-rows">
+                <div class="health-live-empty">Loading transfers</div>
+            </div>
+        `;
+        front.appendChild(tape);
+    }
+
+    return tape;
+}
+
+function renderHealthEntryTape(rows) {
+    const tape = ensureHealthEntryTape();
+    const rowsEl = tape?.querySelector('#network-health-live-tape-rows');
+    if (!rowsEl) return;
+
+    if (!rows?.length) {
+        rowsEl.innerHTML = '<div class="health-live-empty">Large transfers unavailable</div>';
+        return;
+    }
+
+    rowsEl.innerHTML = rows.slice(0, 3).map((row) => `
+        <div class="health-live-row">
+            <span class="health-live-method">${escapeHtml(row.method)}</span>
+            <span class="health-live-amount">${row.amount === null ? '--' : `${formatCompactPower(row.amount)} XTZ`}</span>
+            <span class="health-live-age">${escapeHtml(formatAge(row.timestamp))}</span>
+        </div>
+    `).join('');
+}
+
+async function refreshNetworkHealthTape({ force = false } = {}) {
+    const rows = await fetchActivityTape({ force });
+    renderHealthEntryTape(rows);
+    return rows;
 }
 
 function renderHealthScorePanel(data) {
@@ -735,6 +831,28 @@ function renderMissedBlocksPanel(data) {
     `;
 }
 
+function renderActivityTapePanel(data) {
+    const rows = data.activityTape || [];
+    const body = rows.length ? rows.slice(0, 8).map((row) => `
+        <a class="lb-table-row health-activity-row" href="https://tzkt.io/${escapeHtml(row.hash)}" target="_blank" rel="noopener">
+            <span>${escapeHtml(row.method)}</span>
+            <span>${row.amount === null ? '--' : `${formatCount(Math.round(row.amount))} XTZ`}</span>
+            <span>${escapeHtml(row.target)}</span>
+            <span${healthAgeAttr(row.timestamp)}>${escapeHtml(formatAge(row.timestamp))}</span>
+        </a>
+    `).join('') : '<div class="lb-empty-inline">No large transfers returned in the live sample.</div>';
+
+    return `
+        <section class="lb-panel health-panel health-activity-panel chamber-anim-fade" style="animation-delay:300ms">
+            <div class="lb-panel-title">Live Activity Tape <span class="lb-live-pill">1,000+ XTZ</span></div>
+            <div class="lb-table health-activity-table">
+                <div class="lb-table-head"><span>Method</span><span>Amount</span><span>Target</span><span>Age</span></div>
+                <div id="health-activity-list">${body}</div>
+            </div>
+        </section>
+    `;
+}
+
 function renderRoundBadge(block) {
     const cls = block.blockRound === 0 ? 'round-zero' : (block.blockRound === 1 ? 'round-watch' : 'round-late');
     const title = block.payloadRound !== block.blockRound
@@ -813,6 +931,7 @@ function renderNetworkHealthChamber(data, container) {
             ${renderTimingPanel(data)}
             ${renderMyTezosBakerPanel(data)}
             ${renderMissedAttestationsPanel(data)}
+            ${renderActivityTapePanel(data)}
             ${renderMissedBlocksPanel(data)}
         </div>
         ${renderRecentBlocksPanel(data)}
@@ -961,7 +1080,7 @@ function wireNetworkHealthCard() {
     const card = document.querySelector('.stat-card[data-stat="network-health"]');
     if (!card || card.dataset.healthChamberWired) return;
     card.dataset.healthChamberWired = '1';
-    card.classList.add('chamber-entry-card', 'health-entry-card');
+    card.classList.add('chamber-entry-card', 'health-entry-card', 'chamber-entry-wide');
     card.style.cursor = 'pointer';
     card.title = 'Open Network Health Chamber';
     card.setAttribute('role', 'button');
@@ -983,6 +1102,8 @@ function wireNetworkHealthCard() {
         event.preventDefault();
         openNetworkHealthChamber();
     });
+
+    ensureHealthEntryTape();
 }
 
 export async function refreshNetworkHealth({ force = false } = {}) {
@@ -995,6 +1116,7 @@ export async function refreshNetworkHealth({ force = false } = {}) {
             lastFullFetch = data.periodUpdatedAt || lastFullFetch;
             saveCachedData(data);
             renderNetworkHealth(data);
+            refreshNetworkHealthTape();
             return data;
         })
         .catch((error) => {

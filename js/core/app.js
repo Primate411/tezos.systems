@@ -22,6 +22,7 @@ import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriod
 import { initChamber } from '../features/chamber.js';
 import { initLiquidityBaking } from '../features/liquidity-baking.js';
 import { initTz4AdoptionChamber } from '../features/tz4-adoption.js';
+import { initTezlinkChamber } from '../features/tezlink.js';
 
 let lastGovernancePromptTally = null;
 const SPARKLINE_LIVE_METRICS = [
@@ -300,6 +301,7 @@ async function init() {
     // Initialize The Chamber governance modal
     safe('chamber', initChamber);
     safe('liquidityBaking', initLiquidityBaking);
+    safe('tezlinkChamber', initTezlinkChamber);
     safe('tz4AdoptionChamber', initTz4AdoptionChamber);
     
     // Initialize changelog modal
@@ -2604,6 +2606,7 @@ function initOfflineIndicator() {
 //   #giants            → show sleeping giants
 //   #history           → open history modal
 //   #chamber           → open The Chamber governance modal
+//   #tezlink           → open Tezlink Chamber
 //   #health            → open Network Health Chamber
 //   #lb                → open Liquidity Baking monitor
 //   #lb-tile           → scroll to the Liquidity Baking dashboard tile
@@ -2753,6 +2756,13 @@ function applyDeepLink() {
     if (params.has('chambers') || hash === 'chambers') {
         ensureChambersVisible();
         setTimeout(() => scrollToElementAfterLayout(() => document.getElementById('chambers-section'), { block: 'start' }), 200);
+    }
+
+    // #tezlink
+    if (params.has('tezlink') || hash === 'tezlink') {
+        import('../features/tezlink.js')
+            .then(({ openTezlinkChamber }) => openTezlinkChamber())
+            .catch((error) => console.warn('Failed to open Tezlink Chamber', error));
     }
 
     // #health / #network-health

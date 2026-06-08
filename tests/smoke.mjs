@@ -39,6 +39,7 @@ const allowedWarningPatterns = [
   /Rate limited \(429\)/i,
   /status of 429/i,
   /Landing data fetch/i,
+  /Tezlink entry refresh failed/i,
   /Failed to fetch/i,
   /CORS policy/i,
   /No 'Access-Control-Allow-Origin'/i,
@@ -47,6 +48,9 @@ const allowedWarningPatterns = [
   /HTTP 503/i,
   /api\.coingecko\.com/i,
   /api\.tzkt\.io/i,
+  /api\.llama\.fi/i,
+  /explorer\.etherlink\.com/i,
+  /node\.mainnet\.etherlink\.com/i,
   /api\.github\.com/i,
   /SW registration failed/i,
   /Service Worker registration blocked by Playwright/i,
@@ -411,6 +415,68 @@ async function installFeatureMocks(context, options = {}) {
 
     if (url.includes('api.coingecko.com/api/v3/coins/tezos')) {
       return fulfillJson(route, { market_data: { price_change_percentage_7d: 4.2 } });
+    }
+
+    if (url.includes('api.llama.fi/v2/chains')) {
+      return fulfillJson(route, [
+        { name: 'Etherlink', tvl: 18148091.5, chainId: 42793 },
+        { name: 'Tezos', tvl: 22493581.69, chainId: null }
+      ]);
+    }
+
+    if (url.includes('api.llama.fi/protocols')) {
+      return fulfillJson(route, [
+        { name: 'Curve DEX', slug: 'curve-dex', category: 'Dexs', chainTvls: { Etherlink: 10014648.09 } },
+        { name: 'Spiko', slug: 'spiko', category: 'RWA', chainTvls: { Etherlink: 9090824.44 } },
+        { name: 'Morpho Blue', slug: 'morpho-blue', category: 'Lending', chainTvls: { Etherlink: 3559007.6 } },
+        { name: 'Youves', slug: 'youves', category: 'CDP', chainTvls: { Tezos: 12000000 } }
+      ]);
+    }
+
+    if (url.includes('explorer.etherlink.com/api/v2/stats')) {
+      return fulfillJson(route, {
+        average_block_time: 2970,
+        gas_prices: { slow: 0.88, average: 0.88, fast: 0.89 },
+        gas_price_updated_at: new Date().toISOString(),
+        total_addresses: '1595409',
+        total_blocks: '44808895',
+        total_transactions: '81004089',
+        transactions_today: '87656',
+        tvl: null
+      });
+    }
+
+    if (url.includes('explorer.etherlink.com/api/v2/transactions')) {
+      return fulfillJson(route, {
+        items: [
+          {
+            hash: '0xSmokeTx111111111111111111111111111111111111111111111111111111111111',
+            method: 'credit',
+            status: 'ok',
+            fee: { type: 'actual', value: '953130000000000' },
+            timestamp: new Date(Date.now() - 4000).toISOString(),
+            block_number: 44808895,
+            from: { hash: '0x6e311Afe9dc3Be21D6f4Ef4Ea913C14dc9470391', name: null },
+            to: { hash: '0x0c532e1e916219007f244e2d8Ef46f8530Ec75DE', name: 'Bankroll' }
+          },
+          {
+            hash: '0xSmokeTx222222222222222222222222222222222222222222222222222222222222',
+            method: 'swap',
+            status: 'ok',
+            fee: { type: 'actual', value: '800000000000000' },
+            timestamp: new Date(Date.now() - 9000).toISOString(),
+            block_number: 44808894,
+            from: { hash: '0xa76d2FdB56bD95707BFF83a55A3400630D093d64', name: null },
+            to: { hash: '0x0000000000000000000000000000000000000001', name: 'Smoke DEX' }
+          }
+        ]
+      });
+    }
+
+    if (url.includes('node.mainnet.etherlink.com')) {
+      if (postData.includes('eth_blockNumber')) return fulfillJson(route, { jsonrpc: '2.0', id: 1, result: '0x2abbd5f' });
+      if (postData.includes('eth_gasPrice')) return fulfillJson(route, { jsonrpc: '2.0', id: 1, result: '0x3b9aca00' });
+      return fulfillJson(route, { jsonrpc: '2.0', id: 1, result: null });
     }
 
     if (url.includes('eu.rpc.tez.capital')) {
@@ -859,7 +925,7 @@ function attachIssueCollectors(page, label, issues) {
     const url = request.url();
     const failureText = request.failure()?.errorText || 'failed';
     if (failureText === 'net::ERR_ABORTED' && !STRICT_EXTERNAL) return;
-    if (/api\.tzkt\.io|api\.coingecko\.com|gc\.zgo\.at|goatcounter|fonts\.googleapis|fonts\.gstatic/.test(url) && !STRICT_EXTERNAL) {
+    if (/api\.tzkt\.io|api\.coingecko\.com|api\.llama\.fi|explorer\.etherlink\.com|node\.mainnet\.etherlink\.com|gc\.zgo\.at|goatcounter|fonts\.googleapis|fonts\.gstatic/.test(url) && !STRICT_EXTERNAL) {
       return;
     }
     issues.push(`${label} request failed: ${failureText} ${url}`);
@@ -1101,7 +1167,11 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, '#widgets-gallery', 1, label);
   await expectCount(page, '#chambers-section', 1, label);
   assert(await page.locator('#chambers-section').isVisible(), `${label}: Chambers should be visible by default`);
-  await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card').length >= 4, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card').length >= 5, null, { timeout: 10000 });
+  await expectCount(page, '#chambers-section #tezlink-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#tezlink"]', 1, `${label} Tezlink chamber card`);
+  const chamberOrder = await page.evaluate(() => Array.from(document.querySelectorAll('#chambers-grid > .chamber-entry-card, #chambers-grid > .stat-card')).map((el) => el.id || el.dataset.stat || ''));
+  assert(chamberOrder.indexOf('tezlink-entry-card') > chamberOrder.indexOf('chamber-entry-card'), `${label}: Tezlink should follow The Chamber: ${chamberOrder.join(', ')}`);
+  assert(chamberOrder.indexOf('tezlink-entry-card') < chamberOrder.indexOf('lb-entry-card'), `${label}: Tezlink should come before LB: ${chamberOrder.join(', ')}`);
   assert(!(await page.locator('#consensus-section').isVisible()), `${label}: Consensus stats should be hidden by default`);
   assert(!(await page.locator('#economy-section').isVisible()), `${label}: Economy stats should be hidden by default`);
   assert(!(await page.locator('#governance-section').isVisible()), `${label}: Governance stats should be hidden by default`);
@@ -1316,6 +1386,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => document.querySelectorAll('#health-recent-block-list .health-block-row').length >= 4, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#health-missed-attester-list .health-attester-row').length >= 2, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#health-activity-list .health-activity-row').length >= 1, null, { timeout: 10000 });
 
   const healthState = await page.evaluate(() => {
     const modal = document.querySelector('#network-health-modal');
@@ -1331,6 +1402,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       roundOne: modal?.querySelectorAll('.health-round-badge.round-watch').length || 0,
       attesterRows: modal?.querySelectorAll('#health-missed-attester-list .health-attester-row').length || 0,
       missedBlockRows: modal?.querySelectorAll('#health-missed-block-list .health-missed-block-row').length || 0,
+      activityRows: modal?.querySelectorAll('#health-activity-list .health-activity-row').length || 0,
+      activityText: modal?.querySelector('#health-activity-list')?.textContent || '',
       myBaker: modal?.querySelector('.health-my-baker-panel')?.textContent || '',
       myBakerStatus: modal?.querySelector('.health-my-baker-status')?.textContent || '',
       myBakerMetrics: Array.from(modal?.querySelectorAll('.health-my-baker-metrics strong') || []).map((el) => el.textContent || ''),
@@ -1347,7 +1420,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       cardRole: card?.getAttribute('role') || '',
       cardTabIndex: card?.getAttribute('tabindex') || '',
       cardCue: Boolean(card?.querySelector('.chamber-expand-cue')),
+      cardWide: card?.classList.contains('chamber-entry-wide') || false,
       cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
+      cardTape: card?.querySelector('#network-health-live-tape')?.textContent || '',
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
   });
@@ -1362,6 +1437,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.roundOne >= 1, 'network health chamber: round-one block badge missing');
   assert(healthState.attesterRows >= 2, `network health chamber: missed attester rows missing, saw ${healthState.attesterRows}`);
   assert(healthState.missedBlockRows >= 1, `network health chamber: missed block rows missing, saw ${healthState.missedBlockRows}`);
+  assert(healthState.activityRows >= 1, `network health chamber: activity tape rows missing, saw ${healthState.activityRows}`);
+  assert(/QA Baker|Second Baker|XTZ/.test(healthState.activityText), `network health chamber: activity tape content mismatch: ${healthState.activityText}`);
   assert(/Second Baker/.test(healthState.myBaker), `network health chamber: My Tezos baker panel missing baker identity: ${healthState.myBaker}`);
   assert(/Missed block/.test(healthState.myBakerStatus), `network health chamber: My Tezos baker status mismatch: ${healthState.myBakerStatus}`);
   assert(healthState.myBakerMetrics[0] === '7', `network health chamber: My Tezos attestation misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
@@ -1373,6 +1450,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.updatedAgeMs >= 85000, `network health chamber: Updated age should come from stale head block timestamp, saw ${healthState.updatedAge} (${healthState.updatedAgeMs}ms)`);
   assert(!/^(0s ago|just now)$/.test(healthState.updatedAge), `network health chamber: Updated age should not be fetch-time fresh: ${healthState.updatedAge}`);
   assert(healthState.headMeta.includes(healthState.updatedAge), `network health chamber: header head age should match Updated metric: ${healthState.headMeta} vs ${healthState.updatedAge}`);
+  assert(healthState.cardWide, 'network health chamber: entry card should be double-width');
+  assert(/Live Tape/.test(healthState.cardTape) && /XTZ/.test(healthState.cardTape), `network health chamber: entry live tape missing: ${healthState.cardTape}`);
   assert(healthState.ageLabelCount >= 3, `network health chamber: age labels should be live-tickable, saw ${healthState.ageLabelCount}`);
   assert(healthState.cardWired === '1', `network health chamber: card wiring missing: ${healthState.cardWired}`);
   assert(healthState.cardRole === 'button', `network health chamber: card role mismatch: ${healthState.cardRole}`);
@@ -1392,6 +1471,78 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await context.close();
   assert(issues.length === 0, `network health chamber browser issues:\n${issues.join('\n')}`);
   log('ok - network health chamber smoke');
+}
+
+async function smokeTezlinkChamber(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'tezlink chamber', issues);
+
+  const response = await page.goto(`${baseUrl}/#tezlink`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `tezlink chamber: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('#tezlink-entry-card.chamber-entry-wide').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#tezlink-modal.active .tezlink-content').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction(() => document.querySelectorAll('#tezlink-modal .tezlink-protocol-row').length >= 2, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#tezlink-modal .tezlink-tx-row').length >= 2, null, { timeout: 10000 });
+
+  const tezlinkState = await page.evaluate(() => {
+    const card = document.querySelector('#tezlink-entry-card');
+    const modal = document.querySelector('#tezlink-modal');
+    return {
+      cardWide: card?.classList.contains('chamber-entry-wide') || false,
+      cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
+      cardValue: card?.querySelector('#tezlink-entry-tvl')?.textContent?.trim() || '',
+      cardMini: card?.querySelector('#tezlink-entry-mini')?.textContent?.trim() || '',
+      cardTape: card?.querySelector('#tezlink-entry-tape')?.textContent || '',
+      title: modal?.querySelector('.chamber-title')?.textContent || '',
+      badge: modal?.querySelector('.chamber-badge')?.textContent || '',
+      proposalInfo: modal?.querySelector('.chamber-proposal-info')?.textContent || '',
+      facts: modal?.querySelector('.tezlink-explainer')?.textContent || '',
+      protocolRows: modal?.querySelectorAll('.tezlink-protocol-row').length || 0,
+      protocolText: modal?.querySelector('.tezlink-protocol-table')?.textContent || '',
+      txRows: modal?.querySelectorAll('.tezlink-tx-row').length || 0,
+      txText: modal?.querySelector('.tezlink-tx-table')?.textContent || '',
+      footer: modal?.querySelector('.chamber-footer')?.textContent || '',
+      directHref: modal?.querySelector('.panel-direct-link')?.getAttribute('href') || '',
+      sourceLinks: modal?.querySelectorAll('a[href*="defillama.com"], a[href*="explorer.etherlink.com"]').length || 0
+    };
+  });
+
+  assert(tezlinkState.cardWide, 'tezlink chamber: card should be double-width');
+  assert(tezlinkState.cardCopyHash === '#tezlink', `tezlink chamber: card copy hash mismatch: ${tezlinkState.cardCopyHash}`);
+  assert(/\$18\.1M/.test(tezlinkState.cardValue), `tezlink chamber: card TVL mismatch: ${tezlinkState.cardValue}`);
+  assert(/Head|live L2 feed/i.test(tezlinkState.cardMini), `tezlink chamber: card mini mismatch: ${tezlinkState.cardMini}`);
+  assert(/credit|swap/.test(tezlinkState.cardTape), `tezlink chamber: card transaction tape missing: ${tezlinkState.cardTape}`);
+  assert(/Tezlink Chamber/.test(tezlinkState.title), `tezlink chamber: title mismatch: ${tezlinkState.title}`);
+  assert(/Live L2/.test(tezlinkState.badge), `tezlink chamber: badge mismatch: ${tezlinkState.badge}`);
+  assert(/\$18\.1M/.test(tezlinkState.proposalInfo), `tezlink chamber: header TVL missing: ${tezlinkState.proposalInfo}`);
+  assert(/Atomic L2|atomic L2/i.test(tezlinkState.facts), `tezlink chamber: explainer missing atomic L2 context: ${tezlinkState.facts}`);
+  assert(tezlinkState.protocolRows >= 2, `tezlink chamber: protocol rows missing, saw ${tezlinkState.protocolRows}`);
+  assert(/Curve DEX/.test(tezlinkState.protocolText), `tezlink chamber: protocol TVL missing Curve DEX: ${tezlinkState.protocolText}`);
+  assert(tezlinkState.txRows >= 2, `tezlink chamber: transaction rows missing, saw ${tezlinkState.txRows}`);
+  assert(/Bankroll|Smoke DEX/.test(tezlinkState.txText), `tezlink chamber: transaction tape target missing: ${tezlinkState.txText}`);
+  assert(/Direct: \/#tezlink/.test(tezlinkState.footer), `tezlink chamber: direct footer missing: ${tezlinkState.footer}`);
+  assert(tezlinkState.directHref === '/#tezlink', `tezlink chamber: direct href mismatch: ${tezlinkState.directHref}`);
+  assert(tezlinkState.sourceLinks >= 2, `tezlink chamber: source links missing, saw ${tezlinkState.sourceLinks}`);
+
+  await page.locator('#tezlink-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#tezlink-modal')?.classList.contains('active'), null, { timeout: 5000 });
+
+  await context.close();
+  assert(issues.length === 0, `tezlink chamber browser issues:\n${issues.join('\n')}`);
+  log('ok - tezlink chamber smoke');
 }
 
 async function smokeGovernanceTestingPeriod(browser, baseUrl) {
@@ -1429,12 +1580,14 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('#lb-entry-card[data-lb-live="true"][data-lb-refresh-interval="60000"]').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('.stat-card[data-stat="tz4-adoption"].chamber-entry-card .chamber-expand-cue').waitFor({ state: 'visible', timeout: 10000 });
   await expectCount(page, '#chamber-entry-card .card-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber card link');
+  await expectCount(page, '#tezlink-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#tezlink"]', 1, 'governance testing period Tezlink card link');
   await expectCount(page, '#chambers-toggle', 1, 'governance testing period chambers launcher button');
   await expectCount(page, '.feature-copy-link[data-copy-hash="#chambers"]', 1, 'governance testing period chambers launcher link');
   await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb-tile"]', 1, 'governance testing period LB tile link');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"] .card-copy-link[data-copy-hash="#tz4"]', 1, 'governance testing period tz4 tile link');
   await expectCount(page, '#chambers-section [data-stat="network-health"] .card-copy-link[data-copy-hash="#health"]', 1, 'governance testing period health tile link');
   await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
+  await expectCount(page, '#chambers-section #tezlink-entry-card', 1, 'governance testing period Tezlink tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
   await page.waitForFunction(() => {
@@ -2274,6 +2427,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
+    { name: 'tezlink', description: 'Tezlink Chamber opens #tezlink with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
@@ -2309,6 +2463,7 @@ async function main() {
     ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],
     ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
+    ['tezlink', 'Tezlink Chamber opens #tezlink with atomic L2 TVL, protocol mix, and live transaction tape'],
     ['network-health', 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary'],
     ['governance-lb', 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh'],
     ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],

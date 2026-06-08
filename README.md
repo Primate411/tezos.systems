@@ -137,21 +137,27 @@ inline modal styles in `js/core/app.js`.
 
 ## Main Surfaces
 
-- Chambers section is visible by default and groups The Chamber, Liquidity
-  Baking Monitor, tz4 Adoption, and Network Health as one hideable feature with
-  card-level direct-link controls.
+- Chambers section is visible by default and groups The Chamber, Tezlink,
+  Liquidity Baking Monitor, tz4 Adoption, and Network Health as one hideable
+  feature with card-level direct-link controls.
+- Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
+  transactions, gas, addresses, Blockscout transaction tape, and DefiLlama
+  protocol TVL sourced from current Tezlink rails.
 - Live network stat cards for consensus, economy, governance, network activity,
   and ecosystem metrics are opt-in from Explore under Network Stats.
 - Network Health Chamber with direct `#health` access, recent block cadence,
   consensus round, missed attestation, missed baking-right detail, and a
-  compact saved My Tezos baker summary.
+  compact saved My Tezos baker summary. Its Chambers card spans two tiles and
+  includes a throttled 1,000+ XTZ live activity tape.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
   `data/protocol-debates.json`.
 - Governance panel prompt and The Chamber for live and historical amendment
   voting, including a current-stage chronological ballot feed and the bottom
-  historical vote log sourced from `data/governance-votes.json`.
+  historical vote log sourced from `data/governance-votes.json`. The Chamber
+  card expands during active ballot periods to show time left, quorum,
+  supermajority, and ballot context.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, protocol-history lore, 6-second
   open-monitor refreshes, and 60-second dashboard-tile refreshes.
@@ -177,6 +183,7 @@ Useful deep links include:
 - `#section=...`
 - `#price`
 - `#chambers`
+- `#tezlink`
 - `#health`
 - `#chamber`
 - `#lb`
@@ -193,6 +200,9 @@ Useful deep links include:
 | Tezos Domains GraphQL | Domain and reverse-record lookups |
 | OBJKT GraphQL | NFT/profile surfaces |
 | Supabase REST | Historical Tezos snapshots via public anon client config |
+| DefiLlama `https://api.llama.fi` | Tezlink chain TVL and protocol TVL; DefiLlama currently indexes the chain as Etherlink |
+| Tezlink Blockscout `https://explorer.etherlink.com/api/v2` | Tezlink transaction, address, gas, and block stats |
+| Tezlink JSON-RPC `https://node.mainnet.etherlink.com` | Tezlink RPC head and gas fallback |
 
 Live staking ratio and APY surfaces use TzKT `statistics/current` totals for
 `totalOwnStaked + totalExternalStaked`, paired with TzKT `totalSupply`. Octez
@@ -264,6 +274,7 @@ Current smoke suites:
 - `dashboard-mobile`
 - `my-tezos-baker-activity`
 - `my-tezos-baker-capacity`
+- `tezlink`
 - `network-health`
 - `governance-lb` (covers Chamber current-stage/historical vote ordering and mobile vote-row geometry)
 - `ux-regressions`

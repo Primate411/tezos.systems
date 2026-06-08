@@ -7,6 +7,9 @@ const CHANGELOG = [
     {
         date: '2026-06-07',
         entries: [
+            { type: '✨', text: 'Tezlink Chamber added with atomic L2 TVL, transaction, gas, address, and protocol TVL data sourced from current Tezlink rails' },
+            { type: '✨', text: 'Network Health now earns a double-width Chambers tile with a live 1,000+ XTZ activity tape' },
+            { type: '🔧', text: 'The Chamber card now expands during active ballot periods and shows time left, quorum, Yay threshold, and ballot context' },
             { type: '🔧', text: 'Staking ratio and APY now match TzKT Proof-of-Stake totals across dashboard, widgets, and share surfaces' },
             { type: '🔧', text: 'Sparkline cards now end on the same latest live values shown by their dashboard tiles' },
         ]

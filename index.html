@@ -29,7 +29,7 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     
     <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' unpkg.com cdn.jsdelivr.net gc.zgo.at; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co data.objkt.com *.goatcounter.com https://*.gke.papers.tech api.github.com cdn.jsdelivr.net i.github.com fonts.googleapis.com fonts.gstatic.com *.octez.io; img-src 'self' data: *.objkt.com assets.objkt.media ipfs.io; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' unpkg.com cdn.jsdelivr.net gc.zgo.at; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co data.objkt.com *.goatcounter.com https://*.gke.papers.tech api.github.com cdn.jsdelivr.net i.github.com fonts.googleapis.com fonts.gstatic.com *.octez.io api.llama.fi explorer.etherlink.com node.mainnet.etherlink.com; img-src 'self' data: *.objkt.com assets.objkt.media ipfs.io; object-src 'none'; base-uri 'self'; form-action 'self';">
     
     <!-- Google Fonts - Techy font for title -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -49,12 +49,12 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=151">
+    <link rel="stylesheet" href="css/styles.min.css?v=152">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=151">
+    <link rel="modulepreload" href="js/core/app.js?v=152">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -286,7 +286,7 @@
                             <div class="feature-launcher-row">
                                 <button id="chambers-toggle" class="glass-button feature-launcher-item" aria-label="Show or hide Tezos chambers" title="Chambers: ON">
                                     <span class="chambers-toggle-icon">🏛️</span>
-                                    <span class="feature-launcher-text"><span class="dropdown-label">Chambers</span><span class="dropdown-hint">Governance, LB, tz4, network health</span></span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Chambers</span><span class="dropdown-hint">Governance, Tezlink, LB, tz4, health</span></span>
                                     <span class="feature-status">Pinned</span>
                                 </button>
                                 <button class="feature-copy-link" type="button" data-copy-hash="#chambers" aria-label="Copy Chambers link" title="Copy direct link">🔗</button>
@@ -1441,8 +1441,8 @@
                     <div class="card-tooltip" id="tooltip-rollups">
                         <div class="tooltip-content">
                             <h4>Smart Rollups</h4>
-                            <p>Layer 2 scaling solutions on Tezos. Includes Etherlink (EVM-compatible) for high-throughput, low-cost transactions.</p>
-                            <a href="https://www.etherlink.com" target="_blank" rel="noopener">Try Etherlink →</a>
+                            <p>Layer 2 scaling solutions on Tezos. Includes Tezlink (EVM-compatible) for high-throughput, low-cost transactions.</p>
+                            <a href="https://www.etherlink.com" target="_blank" rel="noopener">Try Tezlink →</a>
                         </div>
                     </div>
                     <div class="card-inner">
@@ -1731,12 +1731,12 @@
                     <li><strong>NFTs</strong>: Objkt, fxhash, Teia - major art platforms</li>
                     <li><strong>DeFi</strong>: Plenty, Youves, Ctez - trading & lending</li>
                     <li><strong>Gaming</strong>: Tezotopia, Emergents TCG</li>
-                    <li><strong>Etherlink</strong>: EVM L2 for Ethereum compatibility</li>
+                    <li><strong>Tezlink</strong>: EVM L2 for Ethereum compatibility</li>
                     <li><strong>Active contracts</strong>: Smart contracts with recent on-chain usage</li>
                 </ul>
                 <div class="modal-links">
                     <a href="https://tezos.com/ecosystem" target="_blank" rel="noopener">Tezos Ecosystem</a>
-                    <a href="https://www.etherlink.com" target="_blank" rel="noopener">Etherlink L2</a>
+                    <a href="https://www.etherlink.com" target="_blank" rel="noopener">Tezlink L2</a>
                 </div>
             </div>
         </div>
@@ -1927,7 +1927,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=76"></script>
-    <script type="module" src="js/core/app.js?v=151"></script>
+    <script type="module" src="js/core/app.js?v=152"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

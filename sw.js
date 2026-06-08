@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v151';
+const CACHE_NAME = 'tezos-systems-v152';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -28,6 +28,7 @@ const SHELL_ASSETS = [
     '/js/features/moments.js',
     '/js/features/my-baker.js',
     '/js/features/network-health.js',
+    '/js/features/tezlink.js',
     '/js/features/sleeping-giants.js',
     '/js/features/governance.js',
     '/js/features/history.js',

@@ -2255,7 +2255,7 @@ body::before {
 .stat-value {
     font-size: 3rem;
     font-weight: 700;
-    line-height: 1;
+    line-height: 1.12;
     margin-bottom: 0.25rem;
     letter-spacing: 0;
     color: var(--text-primary);
@@ -2264,6 +2264,7 @@ body::before {
 /* Dual value styling for progress indicators (e.g., "37 / 130") */
 .stat-value-dual {
     font-size: 2rem;
+    line-height: 1.12;
 }
 
 /* Text-based stat values (proposal names, voting periods) */
@@ -2392,7 +2393,7 @@ body::before {
 
 .network-health-score {
     font-size: clamp(1.85rem, 3.1vw, 2.55rem);
-    line-height: 0.95;
+    line-height: 1.1;
     margin: 0;
     letter-spacing: 0;
     font-variant-numeric: tabular-nums;
@@ -2635,11 +2636,297 @@ body::before {
     align-items: stretch;
 }
 
+.health-live-tape {
+    width: 100%;
+    min-width: 0;
+    padding: 0.55rem 0.6rem;
+    border: 1px solid rgba(80, 232, 136, 0.16);
+    border-radius: 8px;
+    background: rgba(80, 232, 136, 0.035);
+}
+
+.health-live-tape-title {
+    margin-bottom: 0.4rem;
+    color: #50e888;
+    font-size: 0.54rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.health-live-tape-rows {
+    display: grid;
+    gap: 0.28rem;
+}
+
+.health-live-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.38rem;
+    min-width: 0;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    line-height: 1.1;
+}
+
+.health-live-method,
+.health-live-amount,
+.health-live-age,
+.health-live-empty {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.health-live-method {
+    color: var(--accent-cyan);
+    font-weight: 800;
+}
+
+.health-live-amount {
+    color: var(--text-primary);
+}
+
+.health-live-age,
+.health-live-empty {
+    color: var(--text-tertiary);
+}
+
+.health-activity-row {
+    grid-template-columns: minmax(90px, 0.75fr) minmax(100px, 0.75fr) minmax(0, 1.2fr) minmax(72px, 0.45fr);
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+@media (min-width: 760px) {
+    .health-entry-card.chamber-entry-wide .card-front {
+        display: grid;
+        grid-template-columns: minmax(0, 1.18fr) minmax(0, 0.82fr);
+        grid-auto-rows: min-content;
+        align-content: center;
+        align-items: center;
+        gap: 0.38rem 0.75rem;
+        text-align: left;
+    }
+
+    .health-entry-card.chamber-entry-wide .card-front > :not(.health-live-tape) {
+        grid-column: 1;
+    }
+
+    .health-entry-card.chamber-entry-wide .health-live-tape {
+        grid-column: 2;
+        grid-row: 1 / span 5;
+        align-self: center;
+    }
+
+    #chambers-grid .health-entry-card.chamber-entry-wide {
+        height: 204px !important;
+    }
+}
+
+/* Tezlink Chamber */
+.tezlink-entry-card {
+    border-color: rgba(77, 212, 255, 0.26) !important;
+    background:
+        linear-gradient(135deg, rgba(77, 212, 255, 0.07), rgba(80, 232, 136, 0.035)),
+        var(--glass-bg, rgba(255, 255, 255, 0.03));
+}
+
+.tezlink-entry-card:hover {
+    border-color: #4dd4ff !important;
+    box-shadow: 0 0 22px rgba(77, 212, 255, 0.13) !important;
+}
+
+.tezlink-entry-front {
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.52rem;
+    text-align: left;
+}
+
+.tezlink-entry-main,
+.tezlink-entry-metrics,
+.tezlink-entry-tape {
+    min-width: 0;
+}
+
+.tezlink-entry-value,
+.tezlink-hero-number {
+    color: #4dd4ff !important;
+    font-family: 'Orbitron', 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+}
+
+.tezlink-entry-value {
+    font-size: clamp(1.75rem, 3vw, 2.35rem) !important;
+    line-height: 1.2;
+    margin: 0.05rem 0 0;
+}
+
+.tezlink-entry-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.34rem;
+}
+
+.tezlink-entry-metric {
+    min-width: 0;
+    padding: 0.32rem 0.42rem;
+    border: 1px solid rgba(77, 212, 255, 0.12);
+    border-radius: 7px;
+    background: rgba(77, 212, 255, 0.035);
+}
+
+.tezlink-entry-metric span,
+.tezlink-entry-metric strong {
+    display: block;
+    overflow: hidden;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tezlink-entry-metric span {
+    margin-bottom: 0.18rem;
+    color: var(--text-tertiary);
+    font-size: 0.48rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.tezlink-entry-metric strong {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.tezlink-entry-tape {
+    display: grid;
+    gap: 0.28rem;
+    padding: 0.52rem 0.55rem;
+    border: 1px solid rgba(80, 232, 136, 0.14);
+    border-radius: 8px;
+    background: rgba(80, 232, 136, 0.035);
+}
+
+.tezlink-tape-row {
+    display: grid;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.36rem;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.56rem;
+    line-height: 1.1;
+}
+
+.tezlink-tape-method,
+.tezlink-tape-target,
+.tezlink-tape-age,
+.tezlink-tape-empty {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tezlink-tape-method {
+    color: #50e888;
+    font-weight: 800;
+}
+
+.tezlink-tape-age,
+.tezlink-tape-empty {
+    color: var(--text-tertiary);
+}
+
+.tezlink-content {
+    border-color: rgba(77, 212, 255, 0.18) !important;
+}
+
+.tezlink-content::before {
+    background: linear-gradient(90deg, rgba(77, 212, 255, 0.6), rgba(80, 232, 136, 0.36), transparent);
+}
+
+.tezlink-header .chamber-title::before {
+    content: 'L2';
+    width: 34px;
+    color: #4dd4ff;
+    border-color: rgba(77, 212, 255, 0.34);
+    background: rgba(77, 212, 255, 0.08);
+    box-shadow: inset 0 0 12px rgba(77, 212, 255, 0.08);
+}
+
+.tezlink-explainer {
+    border-color: rgba(77, 212, 255, 0.14);
+    background:
+        linear-gradient(135deg, rgba(77, 212, 255, 0.07), rgba(80, 232, 136, 0.035)),
+        rgba(255, 255, 255, 0.025);
+}
+
+.tezlink-explainer::before,
+.tezlink-panel::before {
+    background: linear-gradient(90deg, rgba(77, 212, 255, 0.48), rgba(80, 232, 136, 0.28), transparent);
+}
+
+.tezlink-dashboard-grid {
+    align-items: stretch;
+}
+
+.tezlink-hero-number {
+    font-size: clamp(2.35rem, 8vw, 4.1rem);
+    font-weight: 900;
+    line-height: 1.12;
+    margin-bottom: 8px;
+}
+
+.tezlink-protocol-row {
+    grid-template-columns: 34px minmax(0, 1fr) minmax(90px, 0.45fr);
+}
+
+.tezlink-protocol-name {
+    min-width: 0;
+}
+
+.tezlink-protocol-name strong,
+.tezlink-protocol-name small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tezlink-protocol-name small {
+    margin-top: 0.15rem;
+    color: var(--text-tertiary);
+    font-size: 0.62rem;
+}
+
+.tezlink-tx-row {
+    grid-template-columns: minmax(86px, 0.7fr) minmax(0, 1fr) minmax(92px, 0.7fr) minmax(58px, 0.35fr);
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+@media (min-width: 760px) {
+    .tezlink-entry-card.chamber-entry-wide .tezlink-entry-front {
+        display: grid;
+        grid-template-columns: minmax(0, 0.86fr) minmax(0, 0.88fr) minmax(0, 1.12fr);
+        align-items: center;
+        gap: 0.6rem;
+    }
+}
+
 .health-hero-number {
     font-family: 'Orbitron', sans-serif;
     font-size: clamp(2.35rem, 8vw, 4.1rem);
     font-weight: 900;
-    line-height: 1;
+    line-height: 1.12;
     margin-bottom: 8px;
     font-variant-numeric: tabular-nums;
 }
@@ -13974,7 +14261,7 @@ body {
         flex: none;
         min-width: unset;
         width: 100%;
-        min-height: 66px;
+        min-height: 82px;
         padding: 9px 12px;
         gap: 4px 10px;
         border: 1px solid rgba(255, 255, 255, 0.035);
@@ -14080,7 +14367,7 @@ body {
         grid-template-columns: 36px minmax(0, 1fr);
         grid-template-rows: auto auto auto auto;
         flex-basis: auto;
-        min-height: 96px;
+        min-height: 112px;
         border-color: rgba(0, 212, 255, 0.28);
         background: rgba(0, 212, 255, 0.075);
         box-shadow: 0 0 18px rgba(0, 212, 255, 0.08), inset 0 0 0 1px rgba(0, 212, 255, 0.04);
@@ -14889,6 +15176,10 @@ body {
     transition: color 0.3s;
 }
 
+.chamber-entry-icon {
+    line-height: 1.12;
+}
+
 .chamber-entry-status.live {
     color: #00ff65;
 }
@@ -14902,6 +15193,125 @@ body {
     margin-right: 4px;
     animation: chamberBreathe 4.8s ease-in-out infinite;
     vertical-align: middle;
+}
+
+.chamber-entry-card.chamber-entry-wide {
+    min-width: 0;
+}
+
+.chamber-entry-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.38rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.chamber-entry-metric {
+    min-width: 0;
+    padding: 0.35rem 0.45rem;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.chamber-entry-metric span,
+.chamber-entry-metric strong {
+    display: block;
+    overflow: hidden;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chamber-entry-metric span {
+    margin-bottom: 0.2rem;
+    color: var(--text-tertiary);
+    font-size: 0.5rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.chamber-entry-metric strong {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.chamber-entry-metric.is-good strong {
+    color: #00ff88;
+}
+
+.chamber-entry-metric.is-risk strong {
+    color: #f59e0b;
+}
+
+.chamber-entry-card.chamber-entry-risk {
+    border-color: rgba(245, 158, 11, 0.34) !important;
+    box-shadow: 0 0 24px rgba(245, 158, 11, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+@media (min-width: 760px) {
+    #chambers-grid .chamber-entry-card.chamber-entry-wide {
+        grid-column: span 2;
+    }
+
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-front {
+        display: grid;
+        grid-template-columns: minmax(0, 0.74fr) minmax(0, 1.26fr);
+        grid-template-rows: min-content min-content min-content min-content;
+        align-items: center;
+        justify-items: stretch;
+        gap: 0.35rem 0.8rem;
+        text-align: left;
+    }
+
+    #chamber-entry-card.chamber-entry-wide .stat-label,
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-icon,
+    #chamber-entry-card.chamber-entry-wide .stat-description,
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-status {
+        grid-column: 1;
+    }
+
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-metrics {
+        grid-column: 2;
+        grid-row: 1 / -1;
+        align-self: center;
+    }
+
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-icon {
+        margin: 0;
+        text-align: left;
+    }
+}
+
+@media (max-width: 759px) {
+    #chambers-grid .chamber-entry-card.chamber-entry-wide {
+        height: auto !important;
+        min-height: 236px;
+    }
+
+    #chamber-entry-card.chamber-entry-wide {
+        min-height: 224px;
+    }
+
+    #chambers-grid .tezlink-entry-card.chamber-entry-wide {
+        min-height: 252px;
+    }
+
+    #chambers-grid .health-entry-card.chamber-entry-wide {
+        min-height: 252px;
+    }
+
+    .tezlink-entry-value {
+        line-height: 1.16;
+    }
+
+    .network-health-blocks {
+        min-height: 2.25rem;
+    }
 }
 
 /* Matrix theme: ambient overrides */
@@ -15016,7 +15426,7 @@ body {
     font-family: 'Orbitron', 'JetBrains Mono', monospace;
     font-size: 2.95rem !important;
     font-variant-numeric: tabular-nums;
-    line-height: 0.95;
+    line-height: 1.22;
     letter-spacing: 0;
     margin: 4px 0 2px;
     white-space: nowrap;
@@ -15783,7 +16193,7 @@ body {
     font-family: 'Orbitron', sans-serif;
     font-size: clamp(2rem, 7vw, 3.6rem);
     font-weight: 900;
-    line-height: 1;
+    line-height: 1.12;
     color: var(--text-primary);
     margin-bottom: 8px;
 }
@@ -16194,7 +16604,7 @@ body {
     font-family: 'Orbitron', sans-serif;
     font-size: clamp(2.35rem, 8vw, 4.1rem);
     font-weight: 900;
-    line-height: 1;
+    line-height: 1.12;
     color: #4dd4ff;
     text-shadow: 0 0 20px rgba(77, 212, 255, 0.2);
     margin-bottom: 8px;
@@ -16530,6 +16940,39 @@ body {
         grid-column: 1 / -1;
         font-size: 0.7rem;
         color: var(--text-tertiary, #555);
+    }
+
+    .tezlink-protocol-table .lb-table-head,
+    .tezlink-protocol-row {
+        grid-template-columns: 28px minmax(0, 1fr) minmax(76px, 0.48fr);
+    }
+
+    .tezlink-tx-table .lb-table-head,
+    .tezlink-tx-row {
+        grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(72px, 0.7fr) 42px;
+        gap: 8px;
+    }
+
+    .tezlink-protocol-table .lb-table-head span,
+    .tezlink-protocol-row > span,
+    .tezlink-protocol-row > div,
+    .tezlink-tx-table .lb-table-head span,
+    .tezlink-tx-row > span,
+    .tezlink-tx-row > div {
+        grid-column: auto;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .tezlink-protocol-table .lb-table-head span:last-child,
+    .tezlink-protocol-row > span:last-child,
+    .tezlink-tx-table .lb-table-head span:last-child,
+    .tezlink-tx-row > span:last-child {
+        grid-column: auto;
+        color: inherit;
+        font-size: inherit;
     }
 }
 
