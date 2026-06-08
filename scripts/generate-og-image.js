@@ -2,7 +2,8 @@
 /**
  * Generate OG image for tezos.systems with live stats and matrix theme.
  * Run: node scripts/generate-og-image.js
- * Uses Playwright (npx playwright) — no install needed.
+ * Uses Playwright and falls back to local Chrome/Chromium if the bundled
+ * browser is missing.
  */
 
 const fs = require('fs');
@@ -197,11 +198,60 @@ async function main() {
     const outputPath = path.join(__dirname, '..', 'og-image.png');
 
     console.log('Capturing with Playwright...');
-    // Use Playwright's screenshot API via a small inline script
+    // Use Playwright's screenshot API via a small inline script.
     const playwrightScript = `
+    const fs = require('fs');
     const { chromium } = require('playwright');
+
+    const browserExecutablePath = process.env.BROWSER_EXECUTABLE_PATH || '';
+    const systemBrowserCandidates = [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium',
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+      '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium',
+      '/usr/bin/chromium-browser',
+      '/snap/bin/chromium'
+    ];
+
+    function fileExists(file) {
+      try {
+        fs.accessSync(file);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function findSystemBrowser() {
+      if (browserExecutablePath) {
+        if (!fileExists(browserExecutablePath)) {
+          throw new Error('BROWSER_EXECUTABLE_PATH does not exist: ' + browserExecutablePath);
+        }
+        return browserExecutablePath;
+      }
+
+      return systemBrowserCandidates.find(fileExists) || '';
+    }
+
+    async function launchChromium() {
+      try {
+        return await chromium.launch({ headless: true });
+      } catch (error) {
+        if (!/Executable doesn't exist|playwright install/i.test(error.message)) throw error;
+        const executablePath = findSystemBrowser();
+        if (!executablePath) {
+          throw new Error('Playwright browser binary is missing. Run npx playwright install chromium, or set BROWSER_EXECUTABLE_PATH to Chrome/Chromium.');
+        }
+        console.log('Using system browser: ' + executablePath);
+        return chromium.launch({ headless: true, executablePath });
+      }
+    }
+
     (async () => {
-      const browser = await chromium.launch({ headless: true });
+      const browser = await launchChromium();
       const page = await browser.newPage();
       await page.setViewportSize({ width: 1200, height: 630 });
       await page.goto('file://${tmpHtml.replace(/'/g, "\\'")}', { waitUntil: 'networkidle', timeout: 15000 });
@@ -214,7 +264,7 @@ async function main() {
     fs.writeFileSync(tmpScript, playwrightScript);
 
     try {
-        execSync(`npx playwright install chromium --with-deps 2>/dev/null; node "${tmpScript}"`, {
+        execSync(`node "${tmpScript}"`, {
             stdio: 'inherit',
             timeout: 60000,
         });

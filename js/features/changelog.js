@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-08',
+        entries: [
+            { type: '🔧', text: 'Social preview image generation now falls back to local Chrome when Playwright\'s bundled browser is unavailable' },
+        ]
+    },
+    {
         date: '2026-06-07',
         entries: [
             { type: '✨', text: 'Tezlink Chamber added with atomic L2 TVL, transaction, gas, address, and protocol TVL data sourced from current Tezlink rails' },

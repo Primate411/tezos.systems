@@ -224,8 +224,8 @@ npm run serve
 ```
 
 The lockfile is tracked so fresh clones can use `npm ci`. If Playwright's
-bundled Chromium is missing, the smoke runner can fall back to a local
-Chrome/Chromium-family browser.
+bundled Chromium is missing, the smoke runner and OG image generator can fall
+back to a local Chrome/Chromium-family browser.
 
 The README guard reads staged files. If package/tooling, hook, handoff docs,
 smoke-test, config, theme, app-shell, service-worker, SEO, widget, or
