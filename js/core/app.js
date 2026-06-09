@@ -2609,7 +2609,7 @@ function initOfflineIndicator() {
 //   #history           → open history modal
 //   #chamber           → open The Chamber governance modal
 //   #tezlink           → open Tezlink Chamber
-//   #etherlink-governance → open Etherlink Governance Chamber
+//   #l2chamber         → open Tezlink Governance Chamber
 //   #health            → open Network Health Chamber
 //   #lb                → open Liquidity Baking monitor
 //   #lb-tile           → scroll to the Liquidity Baking dashboard tile
@@ -2768,15 +2768,16 @@ function applyDeepLink() {
             .catch((error) => console.warn('Failed to open Tezlink Chamber', error));
     }
 
-    // #etherlink-governance / #etherlink-gov / #etherlink
+    // #l2chamber / legacy #etherlink-governance / #etherlink-gov / #etherlink
     if (
+        params.has('l2chamber') || hash === 'l2chamber' ||
         params.has('etherlink-governance') || hash === 'etherlink-governance' ||
         params.has('etherlink-gov') || hash === 'etherlink-gov' ||
         params.has('etherlink') || hash === 'etherlink'
     ) {
         import('../features/etherlink-governance.js')
             .then(({ openEtherlinkGovernanceChamber }) => openEtherlinkGovernanceChamber())
-            .catch((error) => console.warn('Failed to open Etherlink Governance Chamber', error));
+            .catch((error) => console.warn('Failed to open Tezlink Governance Chamber', error));
     }
 
     // #health / #network-health

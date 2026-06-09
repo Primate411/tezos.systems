@@ -1720,7 +1720,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('#etherlink-governance-entry-card[data-etherlink-governance-live="true"]').waitFor({ state: 'visible', timeout: 10000 });
   await expectCount(page, '#chamber-entry-card .card-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber card link');
   await expectCount(page, '#tezlink-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#tezlink"]', 1, 'governance testing period Tezlink card link');
-  await expectCount(page, '#etherlink-governance-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#etherlink-governance"]', 1, 'governance testing period Etherlink Governance card link');
+  await expectCount(page, '#etherlink-governance-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#l2chamber"]', 1, 'governance testing period Tezlink Governance card link');
   await expectCount(page, '#chambers-toggle', 1, 'governance testing period chambers launcher button');
   await expectCount(page, '.feature-copy-link[data-copy-hash="#chambers"]', 1, 'governance testing period chambers launcher link');
   await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb-tile"]', 1, 'governance testing period LB tile link');
@@ -1728,7 +1728,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#chambers-section [data-stat="network-health"] .card-copy-link[data-copy-hash="#health"]', 1, 'governance testing period health tile link');
   await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
   await expectCount(page, '#chambers-section #tezlink-entry-card', 1, 'governance testing period Tezlink tile in Chambers');
-  await expectCount(page, '#chambers-section #etherlink-governance-entry-card', 1, 'governance testing period Etherlink Governance tile in Chambers');
+  await expectCount(page, '#chambers-section #etherlink-governance-entry-card', 1, 'governance testing period Tezlink Governance tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
   await page.waitForFunction(() => {
@@ -1800,14 +1800,14 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.lbEntryLive === 'true', `governance testing period: LB entry should have live refresh enabled, saw ${dashboardState.lbEntryLive}`);
   assert(dashboardState.lbEntryRefreshInterval === '60000', `governance testing period: LB entry refresh interval mismatch: ${dashboardState.lbEntryRefreshInterval}`);
   assert(Number(dashboardState.lbEntryRefreshedAt) > 0, `governance testing period: LB entry refreshed timestamp missing: ${dashboardState.lbEntryRefreshedAt}`);
-  assert(dashboardState.etherlinkEntryLive === 'true', `governance testing period: Etherlink Governance entry should show live data, saw ${dashboardState.etherlinkEntryLive}`);
-  assert(dashboardState.etherlinkEntryWide, 'governance testing period: Etherlink Governance should be 2x1 while an Etherlink proposal is active');
-  assert(dashboardState.etherlinkEntrySize === 'wide', `governance testing period: Etherlink Governance size flag mismatch: ${dashboardState.etherlinkEntrySize}`);
-  assert(dashboardState.etherlinkEntryValue === '14.2%', `governance testing period: Etherlink Governance value mismatch: ${dashboardState.etherlinkEntryValue}`);
-  assert(/FAST .*00625d22ab/.test(dashboardState.etherlinkEntryDescription), `governance testing period: Etherlink Governance description mismatch: ${dashboardState.etherlinkEntryDescription}`);
-  assert(/FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Etherlink Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
-  assert(/FAST14\.2%\/5%/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Etherlink Governance FAST metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
-  assert(/SLOWNoactiveproposal/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Etherlink Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
+  assert(dashboardState.etherlinkEntryLive === 'true', `governance testing period: Tezlink Governance entry should show live data, saw ${dashboardState.etherlinkEntryLive}`);
+  assert(dashboardState.etherlinkEntryWide, 'governance testing period: Tezlink Governance should be 2x1 while an Etherlink proposal is active');
+  assert(dashboardState.etherlinkEntrySize === 'wide', `governance testing period: Tezlink Governance size flag mismatch: ${dashboardState.etherlinkEntrySize}`);
+  assert(dashboardState.etherlinkEntryValue === '14.2%', `governance testing period: Tezlink Governance value mismatch: ${dashboardState.etherlinkEntryValue}`);
+  assert(/FAST .*00625d22ab/.test(dashboardState.etherlinkEntryDescription), `governance testing period: Tezlink Governance description mismatch: ${dashboardState.etherlinkEntryDescription}`);
+  assert(/FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Tezlink Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
+  assert(/FAST14\.2%\/5%/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance FAST metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
+  assert(/SLOWNoactiveproposal/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(dashboardState.tz4TileValue === '33.3 / 50%', `governance testing period: tz4 tile value mismatch: ${dashboardState.tz4TileValue}`);
   assert(/1 \/ 3 bakers active/.test(dashboardState.tz4TileDescription), `governance testing period: tz4 tile description mismatch: ${dashboardState.tz4TileDescription}`);
   assert(dashboardState.tz4TileWired === '1', `governance testing period: tz4 tile wiring missing: ${dashboardState.tz4TileWired}`);
@@ -1842,7 +1842,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
   });
-  assert(/Etherlink Governance Chamber/.test(etherlinkState.title), `governance testing period: Etherlink title mismatch: ${etherlinkState.title}`);
+  assert(/Tezlink Governance Chamber/.test(etherlinkState.title), `governance testing period: Tezlink title mismatch: ${etherlinkState.title}`);
   assert(/Proposal quorum met/.test(etherlinkState.badge), `governance testing period: Etherlink badge mismatch: ${etherlinkState.badge}`);
   assert(etherlinkState.tabs === 3, `governance testing period: Etherlink should expose three track tabs, saw ${etherlinkState.tabs}`);
   assert(etherlinkState.activeTab === 'fast', `governance testing period: Etherlink FAST tab should start active, saw ${etherlinkState.activeTab}`);
@@ -1851,7 +1851,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(etherlinkState.proposalRows >= 2, `governance testing period: Etherlink proposal rows missing, saw ${etherlinkState.proposalRows}`);
   assert(etherlinkState.voterRows >= 3, `governance testing period: Etherlink upvoter rows missing, saw ${etherlinkState.voterRows}`);
   assert(etherlinkState.activityRows >= 2, `governance testing period: Etherlink activity rows missing, saw ${etherlinkState.activityRows}`);
-  assert(/Direct: \/#etherlink-governance/.test(etherlinkState.footer), `governance testing period: Etherlink direct footer missing: ${etherlinkState.footer}`);
+  assert(/Direct: \/#l2chamber/.test(etherlinkState.footer), `governance testing period: Tezlink direct footer missing: ${etherlinkState.footer}`);
   assert(etherlinkState.officialHref.includes('/governance/fast'), `governance testing period: Etherlink official track link missing: ${etherlinkState.officialHref}`);
   assert(etherlinkState.storageHref.includes(ETHERLINK_FAST_CONTRACT), `governance testing period: Etherlink TzKT storage link missing: ${etherlinkState.storageHref}`);
   assert(/auto-refresh 60s/.test(etherlinkState.refreshState), `governance testing period: Etherlink refresh label mismatch: ${etherlinkState.refreshState}`);
@@ -1866,7 +1866,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/No active SLOW proposal/.test(etherlinkSlowState.text), `governance testing period: Etherlink SLOW empty state missing: ${etherlinkSlowState.text.slice(0, 240)}`);
   await page.locator('#etherlink-governance-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#etherlink-governance-modal')?.classList.contains('active'), null, { timeout: 5000 });
-  await page.evaluate(() => { window.location.hash = 'etherlink-governance'; });
+  await page.evaluate(() => { window.location.hash = 'l2chamber'; });
   await page.locator('#etherlink-governance-modal.active .etherlink-gov-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#etherlink-governance-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#etherlink-governance-modal')?.classList.contains('active'), null, { timeout: 5000 });
@@ -2198,7 +2198,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   });
   assert(!quietSizing.chamberWide && quietSizing.chamberSize === 'compact', `quiet governance sizing: The Chamber should be 1x1, saw ${JSON.stringify(quietSizing)}`);
   assert(/No active vote/.test(quietSizing.chamberText), `quiet governance sizing: The Chamber quiet text mismatch: ${quietSizing.chamberText}`);
-  assert(!quietSizing.etherlinkWide && quietSizing.etherlinkSize === 'compact', `quiet governance sizing: Etherlink Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
+  assert(!quietSizing.etherlinkWide && quietSizing.etherlinkSize === 'compact', `quiet governance sizing: Tezlink Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
   assert(/Quiet/.test(quietSizing.etherlinkText) && /All tracks quiet/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink quiet text mismatch: ${quietSizing.etherlinkText}`);
   assert(quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should collapse when all tracks are quiet');
   assert(Math.abs(quietSizing.chamberWidth - quietSizing.etherlinkWidth) < 8, `quiet governance sizing: compact cards should share 1x1 width, saw ${quietSizing.chamberWidth} vs ${quietSizing.etherlinkWidth}`);
@@ -2686,7 +2686,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
     { name: 'tezlink', description: 'Tezlink Chamber opens #tezlink with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
-    { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Etherlink Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
+    { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezlink Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
     { name: 'info-modals', description: 'All section info modals and About Tezos launch-date copy', run: () => smokeInfoModals(browser, baseUrl) },
@@ -2722,7 +2722,7 @@ async function main() {
     ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
     ['tezlink', 'Tezlink Chamber opens #tezlink with atomic L2 TVL, protocol mix, and live transaction tape'],
     ['network-health', 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary'],
-    ['governance-lb', 'Governance cooldown state, Chamber, Etherlink Governance, LB dashboard tile, LB modal, lore, links, smooth refresh'],
+    ['governance-lb', 'Governance cooldown state, Chamber, Tezlink Governance, LB dashboard tile, LB modal, lore, links, smooth refresh'],
     ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
     ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],
     ['info-modals', 'All section info modals and About Tezos launch-date copy'],

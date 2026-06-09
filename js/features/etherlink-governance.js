@@ -1,5 +1,5 @@
 /**
- * Etherlink Governance Chamber
+ * Tezlink Governance Chamber
  * Read-only FAST / SLOW / Sequencer governance surface backed by TzKT storage.
  */
 
@@ -18,7 +18,7 @@ const TRACKS = [
         key: 'fast',
         label: 'FAST',
         contract: 'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo',
-        description: 'Kernel hotfix and fast-track Etherlink governance.',
+        description: 'Kernel hotfix and fast-track Tezlink governance.',
         quorumLabel: '15% promotion quorum'
     },
     {
@@ -483,7 +483,7 @@ function renderEntryCard(data) {
     if (descriptionEl) {
         descriptionEl.textContent = 'FAST, SLOW, and Sequencer tracks';
         if (quiet) {
-            descriptionEl.textContent = 'No active Etherlink proposals';
+            descriptionEl.textContent = 'No active Tezlink proposals';
         } else if (main.phase === 'proposal' && main.proposal) {
             descriptionEl.textContent = `${main.label} ${proposalLabel(main.proposal.winner)}`;
         }
@@ -512,7 +512,7 @@ function renderEntryError() {
     }
     if (mini) {
         mini.classList.remove('live');
-        mini.textContent = 'Etherlink governance data delayed';
+        mini.textContent = 'Tezlink governance data delayed';
     }
 }
 
@@ -691,11 +691,11 @@ function renderChamber(data, container) {
         <div class="chamber-header lb-header etherlink-gov-header chamber-anim-fade">
             <div class="lb-system-strip">
                 <span class="lb-system-brand">Tezos.Systems</span>
-                <span>Etherlink Governance</span>
+                <span>Tezlink Governance</span>
                 <span>TzKT-backed read-only mirror</span>
             </div>
             <div class="chamber-title-row">
-                <h2 class="chamber-title" id="etherlink-governance-title">Etherlink Governance Chamber</h2>
+                <h2 class="chamber-title" id="etherlink-governance-title">Tezlink Governance Chamber</h2>
                 <span class="chamber-badge ${escapeHtml(status.className)}">${escapeHtml(status.label)}</span>
                 <span class="lb-live-pill lb-refresh-pill" id="etherlink-governance-refresh-state">auto-refresh ${Math.round(CHAMBER_REFRESH_MS / 1000)}s</span>
             </div>
@@ -704,7 +704,7 @@ function renderChamber(data, container) {
                 <div class="proposal-hash">Contract ${escapeHtml(track.contract)} · head ${escapeHtml(String(data.headLevel || '--'))} · updated ${escapeHtml(formatDate(data.updatedAt))}</div>
             </div>
         </div>
-        <div class="etherlink-gov-tabs" role="tablist" aria-label="Etherlink governance tracks">
+        <div class="etherlink-gov-tabs" role="tablist" aria-label="Tezlink governance tracks">
             ${data.tracks.map(renderTab).join('')}
         </div>
         ${renderTrackPanel(track)}
@@ -713,7 +713,7 @@ function renderChamber(data, container) {
             <span class="chamber-footer-sep">·</span>
             <a href="https://tzkt.io/${escapeHtml(track.contract)}/storage/" target="_blank" rel="noopener">TzKT storage -></a>
             <span class="chamber-footer-sep">·</span>
-            <a class="panel-direct-link" href="/#etherlink-governance" aria-label="Direct link to Etherlink Governance Chamber">Direct: /#etherlink-governance</a>
+            <a class="panel-direct-link" href="/#l2chamber" aria-label="Direct link to Tezlink Governance Chamber">Direct: /#l2chamber</a>
         </div>
     `;
     container.querySelectorAll('[data-etherlink-track]').forEach((button) => {
@@ -732,7 +732,7 @@ async function refreshEntryCard({ force = false } = {}) {
         const data = await fetchEtherlinkGovernanceData({ force });
         renderEntryCard(data);
     } catch (error) {
-        console.warn('Etherlink governance entry refresh failed:', error);
+        console.warn('Tezlink governance entry refresh failed:', error);
         renderEntryError();
     }
 }
@@ -783,12 +783,12 @@ async function refreshChamber({ force = false } = {}) {
         const data = await fetchEtherlinkGovernanceData({ force });
         if (overlay.classList.contains('active')) renderChamber(data, body);
     } catch (error) {
-        console.warn('Etherlink governance chamber refresh failed:', error);
+        console.warn('Tezlink governance chamber refresh failed:', error);
         if (!body.dataset.rendered) {
             body.innerHTML = `
                 <div class="chamber-error">
                     <div class="error-icon">!</div>
-                    <div class="error-title">Could not reach Etherlink governance data</div>
+                    <div class="error-title">Could not reach Tezlink governance data</div>
                     <div class="error-detail">TzKT contract storage may be temporarily unavailable. Try again in a moment.</div>
                     <button class="chamber-retry-btn" id="etherlink-governance-retry">Retry</button>
                 </div>
@@ -812,10 +812,10 @@ export async function openEtherlinkGovernanceChamber(trackKey = '') {
         overlay.className = 'modal-overlay chamber-overlay lb-overlay etherlink-gov-overlay';
         overlay.innerHTML = `
             <div class="modal-content modal-large chamber-content lb-content etherlink-gov-content" role="dialog" aria-modal="true" aria-labelledby="etherlink-governance-title">
-                <button class="modal-close chamber-close" type="button" aria-label="Close Etherlink Governance Chamber">&times;</button>
+                <button class="modal-close chamber-close" type="button" aria-label="Close Tezlink Governance Chamber">&times;</button>
                 <div class="chamber-body lb-body etherlink-gov-body" id="etherlink-governance-body">
                     <div class="chamber-loading">
-                        <div class="chamber-loading-text">Opening Etherlink Governance Chamber...</div>
+                        <div class="chamber-loading-text">Opening Tezlink Governance Chamber...</div>
                         <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
                     </div>
                 </div>
@@ -863,19 +863,19 @@ export function initEtherlinkGovernanceChamber() {
     card.className = 'stat-card chamber-entry-card etherlink-governance-entry-card';
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', 'Open Etherlink Governance Chamber');
-    card.title = 'Open Etherlink Governance Chamber';
+    card.setAttribute('aria-label', 'Open Tezlink Governance Chamber');
+    card.title = 'Open Tezlink Governance Chamber';
     card.innerHTML = `
-        <button class="card-copy-link" type="button" data-copy-hash="#etherlink-governance" aria-label="Copy Etherlink Governance Chamber direct link" title="Copy Etherlink Governance link">🔗</button>
+        <button class="card-copy-link" type="button" data-copy-hash="#l2chamber" aria-label="Copy Tezlink Governance Chamber direct link" title="Copy Tezlink Governance link">🔗</button>
         <div class="card-inner">
             <div class="card-front chamber-entry-front etherlink-governance-entry-front">
                 <div class="tezlink-entry-main">
-                    <h2 class="stat-label">Etherlink Governance</h2>
+                    <h2 class="stat-label">Tezlink Governance</h2>
                     <div class="stat-value etherlink-gov-entry-value" id="etherlink-governance-entry-value"><span class="loading">...</span></div>
                     <p class="stat-description" id="etherlink-governance-entry-description">FAST, SLOW, and Sequencer tracks</p>
                     <div class="chamber-entry-status live" id="etherlink-governance-entry-mini">Loading governance tracks</div>
                 </div>
-                <div class="tezlink-entry-metrics etherlink-gov-entry-metrics" id="etherlink-governance-entry-metrics" aria-label="Etherlink governance track status" hidden></div>
+                <div class="tezlink-entry-metrics etherlink-gov-entry-metrics" id="etherlink-governance-entry-metrics" aria-label="Tezlink governance track status" hidden></div>
             </div>
         </div>
         <span class="chamber-expand-cue" title="Opens a full window" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h5v5"/><path d="M9 20H4v-5"/><path d="M20 4l-7 7"/><path d="M4 20l7-7"/></svg></span>

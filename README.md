@@ -137,10 +137,10 @@ inline modal styles in `js/core/app.js`.
 
 ## Main Surfaces
 
-- Chambers section is visible by default and groups The Chamber, Etherlink
-  Governance, Tezlink, Liquidity Baking Monitor, tz4 Adoption, and Network
+- Chambers section is visible by default and groups The Chamber, Tezlink
+  Governance, Tezlink L2, Liquidity Baking Monitor, tz4 Adoption, and Network
   Health as one hideable feature with card-level direct-link controls.
-- Etherlink Governance Chamber with direct `#etherlink-governance` access,
+- Tezlink Governance Chamber with direct `#l2chamber` access,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
   storage and bigmaps, plus official-track and TzKT links for action/audit.
 - Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
@@ -186,7 +186,7 @@ Useful deep links include:
 - `#section=...`
 - `#price`
 - `#chambers`
-- `#etherlink-governance`
+- `#l2chamber`
 - `#tezlink`
 - `#health`
 - `#chamber`
@@ -281,7 +281,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, Etherlink Governance, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, Tezlink Governance, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`

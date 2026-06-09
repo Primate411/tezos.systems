@@ -7,7 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-09',
         entries: [
-            { type: '✨', text: 'Etherlink Governance Chamber added with FAST, SLOW, and Sequencer track status sourced from live TzKT contract storage' },
+            { type: '✨', text: 'Tezlink Governance Chamber added with #l2chamber access plus FAST, SLOW, and Sequencer track status from live TzKT contract storage' },
         ]
     },
     {
