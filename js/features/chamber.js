@@ -1642,6 +1642,7 @@ function setEntryMetrics(metricsEl, metrics) {
 
 function clearEntryMetrics(card, metricsEl) {
     card?.classList.remove('chamber-entry-wide', 'chamber-entry-risk');
+    if (card) card.dataset.chamberEntrySize = 'compact';
     if (!metricsEl) return;
     metricsEl.hidden = true;
     metricsEl.innerHTML = '';
@@ -1673,6 +1674,7 @@ async function loadEntryCardStatus() {
             mini.innerHTML = `<span class="entry-live-dot"></span> Live ${stageName} vote · ${statusText}`;
             mini.classList.add('live');
             card?.classList.add('chamber-entry-live', 'chamber-entry-wide');
+            if (card) card.dataset.chamberEntrySize = 'wide';
             card?.classList.toggle('chamber-entry-risk', !quorumMet || !yayMet);
             setEntryMetrics(metricsEl, [
                 { label: 'Time left', value: entryCountdown(currentPeriod.endTime) },

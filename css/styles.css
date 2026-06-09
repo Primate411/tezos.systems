@@ -2922,6 +2922,329 @@ body::before {
     }
 }
 
+/* Etherlink Governance Chamber */
+.etherlink-governance-entry-card {
+    border-color: rgba(89, 243, 166, 0.26) !important;
+    background:
+        linear-gradient(135deg, rgba(89, 243, 166, 0.065), rgba(143, 179, 255, 0.04), rgba(245, 214, 91, 0.025)),
+        var(--glass-bg, rgba(255, 255, 255, 0.03));
+}
+
+.etherlink-governance-entry-card:hover {
+    border-color: #59f3a6 !important;
+    box-shadow: 0 0 22px rgba(89, 243, 166, 0.13) !important;
+}
+
+.etherlink-gov-entry-value {
+    color: #59f3a6 !important;
+    font-family: 'Orbitron', 'JetBrains Mono', monospace;
+    font-size: clamp(1.75rem, 3vw, 2.35rem) !important;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    letter-spacing: 0;
+    margin: 0.05rem 0 0;
+}
+
+.etherlink-gov-entry-metrics {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.etherlink-gov-entry-metric {
+    border-color: rgba(89, 243, 166, 0.13);
+    background: rgba(89, 243, 166, 0.035);
+}
+
+.etherlink-gov-entry-metric.live strong,
+.etherlink-gov-entry-metric.good strong {
+    color: #59f3a6;
+}
+
+.etherlink-gov-entry-metric.risk strong {
+    color: #f5d65b;
+}
+
+.etherlink-gov-entry-metric.muted strong {
+    color: var(--text-tertiary);
+}
+
+.etherlink-gov-content {
+    max-width: min(1080px, calc(100vw - 32px)) !important;
+    border-color: rgba(89, 243, 166, 0.18) !important;
+}
+
+.etherlink-gov-content::before {
+    background: linear-gradient(90deg, rgba(89, 243, 166, 0.7), rgba(143, 179, 255, 0.42), rgba(245, 214, 91, 0.22));
+}
+
+.etherlink-gov-header .chamber-title::before {
+    content: 'L2G';
+    width: 40px;
+    color: #59f3a6;
+    border-color: rgba(89, 243, 166, 0.34);
+    background: rgba(89, 243, 166, 0.08);
+    box-shadow: inset 0 0 12px rgba(89, 243, 166, 0.08);
+}
+
+.etherlink-gov-header .chamber-badge.live,
+.etherlink-gov-header .chamber-badge.good {
+    background: rgba(89, 243, 166, 0.14);
+    border: 1px solid rgba(89, 243, 166, 0.28);
+    color: #59f3a6;
+    box-shadow: 0 0 12px rgba(89, 243, 166, 0.08);
+}
+
+.etherlink-gov-header .chamber-badge.risk {
+    background: rgba(245, 214, 91, 0.12);
+    border: 1px solid rgba(245, 214, 91, 0.26);
+    color: #f5d65b;
+}
+
+.etherlink-gov-header .chamber-badge.muted {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: var(--text-secondary);
+}
+
+.etherlink-gov-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 16px 0 0;
+}
+
+.etherlink-gov-tab {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    text-align: left;
+    transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.etherlink-gov-tab:hover,
+.etherlink-gov-tab:focus-visible,
+.etherlink-gov-tab.active {
+    border-color: rgba(89, 243, 166, 0.36);
+    background: rgba(89, 243, 166, 0.08);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.etherlink-gov-tab span,
+.etherlink-gov-tab strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.etherlink-gov-tab span {
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+}
+
+.etherlink-gov-tab strong {
+    color: var(--text-tertiary);
+    font-size: 0.62rem;
+    font-weight: 750;
+    letter-spacing: 0;
+}
+
+.etherlink-gov-tab strong.live,
+.etherlink-gov-tab strong.good,
+.etherlink-gov-progress.is-met + .etherlink-gov-threshold-row {
+    color: #59f3a6;
+}
+
+.etherlink-gov-tab strong.risk {
+    color: #f5d65b;
+}
+
+.etherlink-gov-tab strong.muted {
+    color: var(--text-tertiary);
+}
+
+.etherlink-gov-explainer {
+    border-color: rgba(89, 243, 166, 0.14);
+    background:
+        linear-gradient(135deg, rgba(89, 243, 166, 0.065), rgba(143, 179, 255, 0.035)),
+        rgba(255, 255, 255, 0.025);
+}
+
+.etherlink-gov-explainer::before,
+.etherlink-gov-panel::before {
+    background: linear-gradient(90deg, rgba(89, 243, 166, 0.48), rgba(143, 179, 255, 0.28), transparent);
+}
+
+.etherlink-gov-proposal-hash {
+    margin: 10px 0 14px;
+    padding: 10px 12px;
+    border: 1px solid rgba(143, 179, 255, 0.13);
+    border-radius: 6px;
+    background: rgba(143, 179, 255, 0.045);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.etherlink-gov-threshold-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 10px 0 8px;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.etherlink-gov-threshold-row strong {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.76rem;
+    white-space: nowrap;
+}
+
+.etherlink-gov-progress {
+    height: 10px;
+    border-radius: 5px;
+    background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 1px, transparent 1px 18px),
+        rgba(255, 255, 255, 0.045);
+    overflow: hidden;
+}
+
+.etherlink-gov-progress span {
+    display: block;
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, #59f3a6, #8fb3ff);
+    transition: width 0.55s ease;
+}
+
+.etherlink-gov-progress.is-met span {
+    background: linear-gradient(90deg, #59f3a6, #f5d65b);
+}
+
+.etherlink-gov-table {
+    margin-top: 14px;
+}
+
+.etherlink-gov-proposal-row {
+    grid-template-columns: minmax(120px, 0.95fr) minmax(0, 1.35fr) minmax(94px, 0.5fr);
+}
+
+.etherlink-gov-voter-row {
+    grid-template-columns: minmax(130px, 0.9fr) minmax(0, 1.3fr) minmax(70px, 0.35fr);
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.etherlink-gov-activity-row {
+    grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1.3fr) minmax(76px, 0.4fr);
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.etherlink-gov-proposal-row code,
+.etherlink-gov-voter-row code,
+.etherlink-gov-activity-row code {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.etherlink-gov-vote-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin: 12px 0 16px;
+}
+
+.etherlink-gov-vote-grid div {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.026);
+}
+
+.etherlink-gov-vote-grid span,
+.etherlink-gov-vote-grid strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.etherlink-gov-vote-grid span {
+    margin-bottom: 4px;
+    color: var(--text-tertiary);
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.etherlink-gov-vote-grid strong {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.86rem;
+}
+
+@media (min-width: 760px) {
+    .etherlink-governance-entry-card.chamber-entry-wide .etherlink-governance-entry-front {
+        display: grid;
+        grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+        align-items: center;
+        gap: 0.62rem;
+        text-align: left;
+    }
+}
+
+@media (max-width: 760px) {
+    #chambers-grid .etherlink-governance-entry-card.chamber-entry-wide {
+        min-height: 258px;
+    }
+
+    .etherlink-gov-tabs {
+        grid-template-columns: 1fr;
+    }
+
+    .etherlink-gov-proposal-row,
+    .etherlink-gov-voter-row,
+    .etherlink-gov-activity-row {
+        grid-template-columns: minmax(0, 1fr) minmax(76px, 0.45fr);
+    }
+
+    .etherlink-gov-proposal-row code,
+    .etherlink-gov-voter-row code,
+    .etherlink-gov-activity-row code {
+        grid-column: 1 / -1;
+    }
+
+    .etherlink-gov-threshold-row {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .etherlink-gov-vote-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .health-hero-number {
     font-family: 'Orbitron', sans-serif;
     font-size: clamp(2.35rem, 8vw, 4.1rem);

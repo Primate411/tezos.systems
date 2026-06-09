@@ -137,9 +137,12 @@ inline modal styles in `js/core/app.js`.
 
 ## Main Surfaces
 
-- Chambers section is visible by default and groups The Chamber, Tezlink,
-  Liquidity Baking Monitor, tz4 Adoption, and Network Health as one hideable
-  feature with card-level direct-link controls.
+- Chambers section is visible by default and groups The Chamber, Etherlink
+  Governance, Tezlink, Liquidity Baking Monitor, tz4 Adoption, and Network
+  Health as one hideable feature with card-level direct-link controls.
+- Etherlink Governance Chamber with direct `#etherlink-governance` access,
+  live FAST, SLOW, and Sequencer track status sourced from TzKT contract
+  storage and bigmaps, plus official-track and TzKT links for action/audit.
 - Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
   transactions, gas, addresses, Blockscout transaction tape, and DefiLlama
   protocol TVL sourced from current Tezlink rails.
@@ -183,6 +186,7 @@ Useful deep links include:
 - `#section=...`
 - `#price`
 - `#chambers`
+- `#etherlink-governance`
 - `#tezlink`
 - `#health`
 - `#chamber`
@@ -194,7 +198,7 @@ Useful deep links include:
 
 | Source | Purpose |
 |--------|---------|
-| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, blocks, operations, governance, accounts |
+| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, blocks, operations, governance, accounts, Etherlink governance contract storage/bigmaps |
 | Octez RPC `https://eu.rpc.tez.capital` | Issuance, supply, constants, cycle/head metadata |
 | CoinGecko | XTZ price, market cap, 24h change, volume |
 | Tezos Domains GraphQL | Domain and reverse-record lookups |
@@ -203,6 +207,7 @@ Useful deep links include:
 | DefiLlama `https://api.llama.fi` | Tezlink chain TVL and protocol TVL; DefiLlama currently indexes the chain as Etherlink |
 | Tezlink Blockscout `https://explorer.etherlink.com/api/v2` | Tezlink transaction, address, gas, and block stats |
 | Tezlink JSON-RPC `https://node.mainnet.etherlink.com` | Tezlink RPC head and gas fallback |
+| Etherlink governance `https://governance.etherlink.com/governance` | Official FAST, SLOW, and Sequencer action pages linked from the read-only chamber |
 
 Live staking ratio and APY surfaces use TzKT `statistics/current` totals for
 `totalOwnStaked + totalExternalStaked`, paired with TzKT `totalSupply`. Octez
@@ -276,7 +281,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, Etherlink Governance, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`

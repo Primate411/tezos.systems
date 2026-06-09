@@ -84,6 +84,13 @@ const SAMPLE_ADDRESS = 'tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9';
 const SAMPLE_ADDRESS_2 = 'tz1hThMBD8jQjFt78heuCnKxJnJtQo9Ao25X';
 const SAMPLE_ADDRESS_3 = 'tz1PendingBaker1111111111111111111111';
 const OVERDELEGATED_ADDRESS = 'tz1bA9zZpouVgtMRLijvw5safwDKSxg62r1x';
+const ETHERLINK_FAST_CONTRACT = 'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo';
+const ETHERLINK_SLOW_CONTRACT = 'KT1AXRU3wLc87WNhLhVGrgqDGubLACUMUgPb';
+const ETHERLINK_SEQUENCER_CONTRACT = 'KT1VGyd2cRSHoDnxDnSuqGJD3mL8DzcVqX98';
+const ETHERLINK_FAST_PROPOSAL = '00625d22abf10a520cae5489b7e19df70219a150d336ee6dc0a8eb4c21eca43c1b';
+const ETHERLINK_PROPOSALS_BIGMAP = '990001';
+const ETHERLINK_UPVOTERS_BIGMAP = '990002';
+const ETHERLINK_UPVOTE_COUNTS_BIGMAP = '990003';
 
 function usage() {
   return `
@@ -311,6 +318,8 @@ function fulfillText(route, body, contentType = 'text/plain') {
 async function installFeatureMocks(context, options = {}) {
   let lbBlocksHead = 12345678;
   const blockHeadLagMs = Number(options.blockHeadLagMs) || 0;
+  const etherlinkQuiet = Boolean(options.etherlinkQuiet);
+  const governanceNoProposal = Boolean(options.governanceNoProposal);
   await context.route('**/*', async (route) => {
     const request = route.request();
     const url = request.url();
@@ -634,6 +643,121 @@ async function installFeatureMocks(context, options = {}) {
           }
         ]);
       }
+      if (url.includes(`/contracts/${ETHERLINK_FAST_CONTRACT}/storage`)) {
+        return fulfillJson(route, {
+          config: {
+            started_at_level: '10419200',
+            period_length: '4800',
+            proposal_quorum: '5',
+            promotion_quorum: '15',
+            promotion_supermajority: '80'
+          },
+          last_winner: null,
+          voting_context: etherlinkQuiet ? null : {
+            period_index: '401',
+            total_voting_power: '656635662773932',
+            period: {
+              proposal: {
+                proposals: ETHERLINK_PROPOSALS_BIGMAP,
+                upvoters_proposals: ETHERLINK_UPVOTERS_BIGMAP,
+                upvoters_upvotes_count: ETHERLINK_UPVOTE_COUNTS_BIGMAP,
+                winner_candidate: ETHERLINK_FAST_PROPOSAL,
+                total_voting_power: '656635662773932',
+                max_upvotes_voting_power: '93213811256339'
+              }
+            }
+          }
+        });
+      }
+      if (url.includes(`/contracts/${ETHERLINK_SLOW_CONTRACT}/storage`)) {
+        return fulfillJson(route, {
+          config: {
+            started_at_level: '10454078',
+            period_length: '67200',
+            proposal_quorum: '1',
+            promotion_quorum: '5',
+            promotion_supermajority: '75'
+          },
+          last_winner: null,
+          voting_context: null
+        });
+      }
+      if (url.includes(`/contracts/${ETHERLINK_SEQUENCER_CONTRACT}/storage`)) {
+        return fulfillJson(route, {
+          config: {
+            started_at_level: '10454078',
+            period_length: '67200',
+            proposal_quorum: '1',
+            promotion_quorum: '8',
+            promotion_supermajority: '75'
+          },
+          last_winner: null,
+          voting_context: null
+        });
+      }
+      if (url.includes(`/bigmaps/${ETHERLINK_PROPOSALS_BIGMAP}/keys`)) {
+        return fulfillJson(route, [
+          {
+            key: ETHERLINK_FAST_PROPOSAL,
+            firstLevel: 12343010,
+            lastLevel: 12345600,
+            value: {
+              proposers: [SAMPLE_ADDRESS],
+              upvotes_voting_power: '93213811256339'
+            }
+          }
+        ]);
+      }
+      if (url.includes(`/bigmaps/${ETHERLINK_UPVOTERS_BIGMAP}/keys`)) {
+        return fulfillJson(route, [
+          { firstLevel: 12343020, key: { key_hash: SAMPLE_ADDRESS, bytes: ETHERLINK_FAST_PROPOSAL }, value: null },
+          { firstLevel: 12343720, key: { key_hash: SAMPLE_ADDRESS_2, bytes: ETHERLINK_FAST_PROPOSAL }, value: null },
+          { firstLevel: 12344420, key: { key_hash: SAMPLE_ADDRESS_3, bytes: ETHERLINK_FAST_PROPOSAL }, value: null }
+        ]);
+      }
+      if (url.includes(`/bigmaps/${ETHERLINK_UPVOTE_COUNTS_BIGMAP}/keys`)) {
+        return fulfillJson(route, [
+          { key: SAMPLE_ADDRESS, value: '1', firstLevel: 12343020 },
+          { key: SAMPLE_ADDRESS_2, value: '1', firstLevel: 12343720 }
+        ]);
+      }
+      if (url.includes('/accounts?') && url.includes('address.in=')) {
+        const params = new URL(url).searchParams;
+        const requested = (params.get('address.in') || '').split(',').filter(Boolean);
+        const aliases = new Map([
+          [SAMPLE_ADDRESS, 'QA Baker'],
+          [SAMPLE_ADDRESS_2, 'Second Baker'],
+          [SAMPLE_ADDRESS_3, 'Pending Baker']
+        ]);
+        return fulfillJson(route, requested.map((address) => ({ address, alias: aliases.get(address) || null })));
+      }
+      if (url.includes('/operations/transactions?') && url.includes(`target=${ETHERLINK_FAST_CONTRACT}`)) {
+        return fulfillJson(route, [
+          {
+            id: 4011,
+            hash: 'opEtherlinkFastUpvote111111111111111111111111111',
+            level: 12345600,
+            timestamp: new Date(Date.now() - 8 * 60000).toISOString(),
+            status: 'applied',
+            sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+            target: { address: ETHERLINK_FAST_CONTRACT, alias: 'Etherlink FAST governance' },
+            parameter: { entrypoint: 'upvote', value: ETHERLINK_FAST_PROPOSAL }
+          },
+          {
+            id: 4010,
+            hash: 'opEtherlinkFastSubmit111111111111111111111111',
+            level: 12343010,
+            timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
+            status: 'applied',
+            sender: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+            target: { address: ETHERLINK_FAST_CONTRACT, alias: 'Etherlink FAST governance' },
+            parameter: { entrypoint: 'new_proposal', value: ETHERLINK_FAST_PROPOSAL }
+          }
+        ]);
+      }
+      if (url.includes('/operations/transactions?') && (url.includes(`target=${ETHERLINK_SLOW_CONTRACT}`) || url.includes(`target=${ETHERLINK_SEQUENCER_CONTRACT}`))) {
+        return fulfillJson(route, []);
+      }
       if (url.includes('/operations/transactions/count')) return fulfillJson(route, 12345);
       if (url.includes('/operations/transactions?')) {
         return fulfillJson(route, [{
@@ -751,6 +875,20 @@ async function installFeatureMocks(context, options = {}) {
       if (url.includes('/voting/periods/current')) {
         const start = new Date(Date.now() - 3600000).toISOString();
         const end = new Date(Date.now() + 86400000).toISOString();
+        if (governanceNoProposal) {
+          return fulfillJson(route, {
+            index: 172,
+            kind: 'proposal',
+            status: 'active',
+            epoch: 91,
+            firstLevel: 12340000,
+            lastLevel: 12350800,
+            startTime: start,
+            endTime: end,
+            proposalsCount: 0,
+            totalVotingPower: 12000
+          });
+        }
         return fulfillJson(route, {
           index: 174,
           kind: 'testing',
@@ -1579,8 +1717,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   }, null, { timeout: 10000 });
   await page.locator('#lb-entry-card[data-lb-live="true"][data-lb-refresh-interval="60000"]').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('.stat-card[data-stat="tz4-adoption"].chamber-entry-card .chamber-expand-cue').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#etherlink-governance-entry-card[data-etherlink-governance-live="true"]').waitFor({ state: 'visible', timeout: 10000 });
   await expectCount(page, '#chamber-entry-card .card-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber card link');
   await expectCount(page, '#tezlink-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#tezlink"]', 1, 'governance testing period Tezlink card link');
+  await expectCount(page, '#etherlink-governance-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#etherlink-governance"]', 1, 'governance testing period Etherlink Governance card link');
   await expectCount(page, '#chambers-toggle', 1, 'governance testing period chambers launcher button');
   await expectCount(page, '.feature-copy-link[data-copy-hash="#chambers"]', 1, 'governance testing period chambers launcher link');
   await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb-tile"]', 1, 'governance testing period LB tile link');
@@ -1588,6 +1728,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#chambers-section [data-stat="network-health"] .card-copy-link[data-copy-hash="#health"]', 1, 'governance testing period health tile link');
   await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
   await expectCount(page, '#chambers-section #tezlink-entry-card', 1, 'governance testing period Tezlink tile in Chambers');
+  await expectCount(page, '#chambers-section #etherlink-governance-entry-card', 1, 'governance testing period Etherlink Governance tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
   await page.waitForFunction(() => {
@@ -1608,6 +1749,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     participation: document.querySelector('#participation-front')?.textContent?.trim() || '',
     participationDescription: document.querySelector('#participation-description')?.textContent?.trim() || '',
     entryMini: document.querySelector('#chamber-entry-mini')?.textContent?.trim() || '',
+    chamberEntryWide: document.querySelector('#chamber-entry-card')?.classList.contains('chamber-entry-wide') || false,
+    chamberEntrySize: document.querySelector('#chamber-entry-card')?.dataset.chamberEntrySize || '',
     issuance: document.querySelector('#issuance-rate-front')?.textContent?.trim() || '',
     issuanceBreakdown: document.querySelector('#issuance-breakdown')?.textContent?.trim() || '',
     lbEntryEma: document.querySelector('#lb-entry-ema')?.textContent?.trim() || '',
@@ -1615,6 +1758,13 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     lbEntryLive: document.querySelector('#lb-entry-card')?.dataset.lbLive || '',
     lbEntryRefreshInterval: document.querySelector('#lb-entry-card')?.dataset.lbRefreshInterval || '',
     lbEntryRefreshedAt: document.querySelector('#lb-entry-card')?.dataset.lbRefreshedAt || '',
+    etherlinkEntryValue: document.querySelector('#etherlink-governance-entry-value')?.textContent?.trim() || '',
+    etherlinkEntryDescription: document.querySelector('#etherlink-governance-entry-description')?.textContent?.trim() || '',
+    etherlinkEntryMini: document.querySelector('#etherlink-governance-entry-mini')?.textContent?.trim() || '',
+    etherlinkEntryLive: document.querySelector('#etherlink-governance-entry-card')?.dataset.etherlinkGovernanceLive || '',
+    etherlinkEntryWide: document.querySelector('#etherlink-governance-entry-card')?.classList.contains('chamber-entry-wide') || false,
+    etherlinkEntrySize: document.querySelector('#etherlink-governance-entry-card')?.dataset.etherlinkGovernanceSize || '',
+    etherlinkEntryMetrics: document.querySelector('#etherlink-governance-entry-metrics')?.textContent?.trim() || '',
     tz4TileValue: document.querySelector('#tz4-adoption-front')?.textContent?.trim() || '',
     tz4TileDescription: document.querySelector('#tz4-description')?.textContent?.trim() || '',
     tz4TileWired: document.querySelector('[data-stat="tz4-adoption"]')?.dataset.tz4ChamberWired || '',
@@ -1640,6 +1790,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.participation === '---', `governance testing period: participation should be empty-state dashes, saw ${dashboardState.participation}`);
   assert(/No ballots during Cooldown/.test(dashboardState.participationDescription), `governance testing period: participation description mismatch: ${dashboardState.participationDescription}`);
   assert(/Cooldown/.test(dashboardState.entryMini) && /testing and review/.test(dashboardState.entryMini), `governance testing period: Chamber entry status mismatch: ${dashboardState.entryMini}`);
+  assert(!dashboardState.chamberEntryWide, 'governance testing period: The Chamber should be 1x1 when no baker ballots are open');
+  assert(dashboardState.chamberEntrySize === 'compact', `governance testing period: The Chamber size flag mismatch: ${dashboardState.chamberEntrySize}`);
   assert(dashboardState.issuance === '4.50%', `governance testing period: disabled LB should be excluded from total issuance, saw ${dashboardState.issuance}`);
   assert(/4\.50% Protocol/.test(dashboardState.issuanceBreakdown), `governance testing period: protocol issuance breakdown mismatch: ${dashboardState.issuanceBreakdown}`);
   assert(/0\.00% LB \(disabled\)/.test(dashboardState.issuanceBreakdown), `governance testing period: disabled LB breakdown missing, saw ${dashboardState.issuanceBreakdown}`);
@@ -1648,6 +1800,14 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.lbEntryLive === 'true', `governance testing period: LB entry should have live refresh enabled, saw ${dashboardState.lbEntryLive}`);
   assert(dashboardState.lbEntryRefreshInterval === '60000', `governance testing period: LB entry refresh interval mismatch: ${dashboardState.lbEntryRefreshInterval}`);
   assert(Number(dashboardState.lbEntryRefreshedAt) > 0, `governance testing period: LB entry refreshed timestamp missing: ${dashboardState.lbEntryRefreshedAt}`);
+  assert(dashboardState.etherlinkEntryLive === 'true', `governance testing period: Etherlink Governance entry should show live data, saw ${dashboardState.etherlinkEntryLive}`);
+  assert(dashboardState.etherlinkEntryWide, 'governance testing period: Etherlink Governance should be 2x1 while an Etherlink proposal is active');
+  assert(dashboardState.etherlinkEntrySize === 'wide', `governance testing period: Etherlink Governance size flag mismatch: ${dashboardState.etherlinkEntrySize}`);
+  assert(dashboardState.etherlinkEntryValue === '14.2%', `governance testing period: Etherlink Governance value mismatch: ${dashboardState.etherlinkEntryValue}`);
+  assert(/FAST .*00625d22ab/.test(dashboardState.etherlinkEntryDescription), `governance testing period: Etherlink Governance description mismatch: ${dashboardState.etherlinkEntryDescription}`);
+  assert(/FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Etherlink Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
+  assert(/FAST14\.2%\/5%/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Etherlink Governance FAST metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
+  assert(/SLOWNoactiveproposal/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Etherlink Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(dashboardState.tz4TileValue === '33.3 / 50%', `governance testing period: tz4 tile value mismatch: ${dashboardState.tz4TileValue}`);
   assert(/1 \/ 3 bakers active/.test(dashboardState.tz4TileDescription), `governance testing period: tz4 tile description mismatch: ${dashboardState.tz4TileDescription}`);
   assert(dashboardState.tz4TileWired === '1', `governance testing period: tz4 tile wiring missing: ${dashboardState.tz4TileWired}`);
@@ -1657,6 +1817,59 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(Math.abs(dashboardState.tz4SparklineLast - (100 / 3)) < 0.01, `governance testing period: tz4 sparkline latest value must match live tile, saw ${dashboardState.tz4SparklineLast}`);
   assert(!dashboardState.extraTz4EntryCard, 'governance testing period: tz4 should use the existing Adoption tile, not a separate entry card');
   assert(dashboardState.intervalDelays.includes(60000), `governance testing period: LB entry 60s refresh timer was not registered: ${dashboardState.intervalDelays.join(', ')}`);
+
+  await page.locator('#etherlink-governance-entry-card .card-front').click();
+  await page.locator('#etherlink-governance-modal.active .etherlink-gov-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction((proposal) => document.querySelector('#etherlink-governance-modal .etherlink-gov-proposal-hash')?.textContent?.includes(proposal), ETHERLINK_FAST_PROPOSAL, { timeout: 10000 });
+  const etherlinkState = await page.evaluate(() => {
+    const modal = document.querySelector('#etherlink-governance-modal');
+    const compactText = (selector) => document.querySelector(selector)?.textContent?.trim() || '';
+    return {
+      title: compactText('#etherlink-governance-modal .chamber-title'),
+      badge: compactText('#etherlink-governance-modal .chamber-badge'),
+      tabs: document.querySelectorAll('#etherlink-governance-modal [data-etherlink-track]').length,
+      activeTab: document.querySelector('#etherlink-governance-modal [data-etherlink-track].active')?.dataset.etherlinkTrack || '',
+      proposalHash: compactText('#etherlink-governance-modal .etherlink-gov-proposal-hash'),
+      threshold: compactText('#etherlink-governance-modal .etherlink-gov-threshold-row'),
+      proposalRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-proposal-row').length,
+      voterRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-voter-row').length,
+      activityRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-activity-row').length,
+      footer: compactText('#etherlink-governance-modal .chamber-footer'),
+      officialHref: document.querySelector('#etherlink-governance-modal .chamber-footer a[href*="governance.etherlink.com/governance/fast"]')?.href || '',
+      storageHref: document.querySelector('#etherlink-governance-modal .chamber-footer a[href*="tzkt.io/KT19oUV"]')?.href || '',
+      live: modal?.classList.contains('active') ? 'true' : '',
+      refreshState: compactText('#etherlink-governance-refresh-state'),
+      intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
+    };
+  });
+  assert(/Etherlink Governance Chamber/.test(etherlinkState.title), `governance testing period: Etherlink title mismatch: ${etherlinkState.title}`);
+  assert(/Proposal quorum met/.test(etherlinkState.badge), `governance testing period: Etherlink badge mismatch: ${etherlinkState.badge}`);
+  assert(etherlinkState.tabs === 3, `governance testing period: Etherlink should expose three track tabs, saw ${etherlinkState.tabs}`);
+  assert(etherlinkState.activeTab === 'fast', `governance testing period: Etherlink FAST tab should start active, saw ${etherlinkState.activeTab}`);
+  assert(etherlinkState.proposalHash === ETHERLINK_FAST_PROPOSAL, `governance testing period: Etherlink proposal hash mismatch: ${etherlinkState.proposalHash}`);
+  assert(/93\.2M XTZ upvotes/.test(etherlinkState.threshold) && /14\.2% \/ 5% required/.test(etherlinkState.threshold), `governance testing period: Etherlink threshold mismatch: ${etherlinkState.threshold}`);
+  assert(etherlinkState.proposalRows >= 2, `governance testing period: Etherlink proposal rows missing, saw ${etherlinkState.proposalRows}`);
+  assert(etherlinkState.voterRows >= 3, `governance testing period: Etherlink upvoter rows missing, saw ${etherlinkState.voterRows}`);
+  assert(etherlinkState.activityRows >= 2, `governance testing period: Etherlink activity rows missing, saw ${etherlinkState.activityRows}`);
+  assert(/Direct: \/#etherlink-governance/.test(etherlinkState.footer), `governance testing period: Etherlink direct footer missing: ${etherlinkState.footer}`);
+  assert(etherlinkState.officialHref.includes('/governance/fast'), `governance testing period: Etherlink official track link missing: ${etherlinkState.officialHref}`);
+  assert(etherlinkState.storageHref.includes(ETHERLINK_FAST_CONTRACT), `governance testing period: Etherlink TzKT storage link missing: ${etherlinkState.storageHref}`);
+  assert(/auto-refresh 60s/.test(etherlinkState.refreshState), `governance testing period: Etherlink refresh label mismatch: ${etherlinkState.refreshState}`);
+  assert(etherlinkState.intervalDelays.includes(60000), `governance testing period: Etherlink 60s refresh timer missing: ${etherlinkState.intervalDelays.join(', ')}`);
+
+  await page.locator('#etherlink-governance-modal [data-etherlink-track="slow"]').click();
+  const etherlinkSlowState = await page.evaluate(() => ({
+    activeTab: document.querySelector('#etherlink-governance-modal [data-etherlink-track].active')?.dataset.etherlinkTrack || '',
+    text: document.querySelector('#etherlink-governance-modal')?.textContent || ''
+  }));
+  assert(etherlinkSlowState.activeTab === 'slow', `governance testing period: Etherlink SLOW tab did not activate, saw ${etherlinkSlowState.activeTab}`);
+  assert(/No active SLOW proposal/.test(etherlinkSlowState.text), `governance testing period: Etherlink SLOW empty state missing: ${etherlinkSlowState.text.slice(0, 240)}`);
+  await page.locator('#etherlink-governance-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#etherlink-governance-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.evaluate(() => { window.location.hash = 'etherlink-governance'; });
+  await page.locator('#etherlink-governance-modal.active .etherlink-gov-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#etherlink-governance-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#etherlink-governance-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
   await page.locator('[data-stat="tz4-adoption"] .card-front').click();
   await page.locator('#tz4-adoption-modal.active .tz4-content').waitFor({ state: 'visible', timeout: 10000 });
@@ -1947,6 +2160,50 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.waitForFunction(() => !document.querySelector('#tz4-adoption-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
   await context.close();
+
+  const quietContext = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(quietContext, { etherlinkQuiet: true, governanceNoProposal: true });
+  await quietContext.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const quietPage = await quietContext.newPage();
+  attachIssueCollectors(quietPage, 'quiet governance sizing', issues);
+  const quietResponse = await quietPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(quietResponse?.ok(), `quiet governance sizing: dashboard failed with HTTP ${quietResponse?.status()}`);
+  await quietPage.locator('#chamber-entry-card[data-chamber-entry-size="compact"]').waitFor({ state: 'visible', timeout: 10000 });
+  await quietPage.locator('#etherlink-governance-entry-card[data-etherlink-governance-size="compact"]').waitFor({ state: 'visible', timeout: 10000 });
+  const quietSizing = await quietPage.evaluate(() => {
+    const chamber = document.querySelector('#chamber-entry-card');
+    const etherlink = document.querySelector('#etherlink-governance-entry-card');
+    const chamberRect = chamber?.getBoundingClientRect();
+    const etherlinkRect = etherlink?.getBoundingClientRect();
+    return {
+      chamberWide: chamber?.classList.contains('chamber-entry-wide') || false,
+      chamberSize: chamber?.dataset.chamberEntrySize || '',
+      chamberText: chamber?.textContent || '',
+      etherlinkWide: etherlink?.classList.contains('chamber-entry-wide') || false,
+      etherlinkSize: etherlink?.dataset.etherlinkGovernanceSize || '',
+      etherlinkText: etherlink?.textContent || '',
+      etherlinkMetricsHidden: document.querySelector('#etherlink-governance-entry-metrics')?.hidden ?? false,
+      chamberWidth: chamberRect?.width || 0,
+      etherlinkWidth: etherlinkRect?.width || 0
+    };
+  });
+  assert(!quietSizing.chamberWide && quietSizing.chamberSize === 'compact', `quiet governance sizing: The Chamber should be 1x1, saw ${JSON.stringify(quietSizing)}`);
+  assert(/No active vote/.test(quietSizing.chamberText), `quiet governance sizing: The Chamber quiet text mismatch: ${quietSizing.chamberText}`);
+  assert(!quietSizing.etherlinkWide && quietSizing.etherlinkSize === 'compact', `quiet governance sizing: Etherlink Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
+  assert(/Quiet/.test(quietSizing.etherlinkText) && /All tracks quiet/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink quiet text mismatch: ${quietSizing.etherlinkText}`);
+  assert(quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should collapse when all tracks are quiet');
+  assert(Math.abs(quietSizing.chamberWidth - quietSizing.etherlinkWidth) < 8, `quiet governance sizing: compact cards should share 1x1 width, saw ${quietSizing.chamberWidth} vs ${quietSizing.etherlinkWidth}`);
+  await quietContext.close();
+
   assert(issues.length === 0, `governance testing period browser issues:\n${issues.join('\n')}`);
   log('ok - governance testing period smoke');
 }
@@ -2429,7 +2686,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
     { name: 'tezlink', description: 'Tezlink Chamber opens #tezlink with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
-    { name: 'governance-lb', description: 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
+    { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Etherlink Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
     { name: 'info-modals', description: 'All section info modals and About Tezos launch-date copy', run: () => smokeInfoModals(browser, baseUrl) },
@@ -2465,7 +2722,7 @@ async function main() {
     ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
     ['tezlink', 'Tezlink Chamber opens #tezlink with atomic L2 TVL, protocol mix, and live transaction tape'],
     ['network-health', 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary'],
-    ['governance-lb', 'Governance cooldown state, Chamber, LB dashboard tile, LB modal, lore, links, smooth refresh'],
+    ['governance-lb', 'Governance cooldown state, Chamber, Etherlink Governance, LB dashboard tile, LB modal, lore, links, smooth refresh'],
     ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
     ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],
     ['info-modals', 'All section info modals and About Tezos launch-date copy'],

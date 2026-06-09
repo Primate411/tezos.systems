@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-09',
+        entries: [
+            { type: '✨', text: 'Etherlink Governance Chamber added with FAST, SLOW, and Sequencer track status sourced from live TzKT contract storage' },
+        ]
+    },
+    {
         date: '2026-06-08',
         entries: [
             { type: '🔧', text: 'Social preview image generation now falls back to local Chrome when Playwright\'s bundled browser is unavailable' },

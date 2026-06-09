@@ -23,6 +23,7 @@ import { initChamber } from '../features/chamber.js';
 import { initLiquidityBaking } from '../features/liquidity-baking.js';
 import { initTz4AdoptionChamber } from '../features/tz4-adoption.js';
 import { initTezlinkChamber } from '../features/tezlink.js';
+import { initEtherlinkGovernanceChamber } from '../features/etherlink-governance.js';
 
 let lastGovernancePromptTally = null;
 const SPARKLINE_LIVE_METRICS = [
@@ -302,6 +303,7 @@ async function init() {
     safe('chamber', initChamber);
     safe('liquidityBaking', initLiquidityBaking);
     safe('tezlinkChamber', initTezlinkChamber);
+    safe('etherlinkGovernanceChamber', initEtherlinkGovernanceChamber);
     safe('tz4AdoptionChamber', initTz4AdoptionChamber);
     
     // Initialize changelog modal
@@ -2607,6 +2609,7 @@ function initOfflineIndicator() {
 //   #history           → open history modal
 //   #chamber           → open The Chamber governance modal
 //   #tezlink           → open Tezlink Chamber
+//   #etherlink-governance → open Etherlink Governance Chamber
 //   #health            → open Network Health Chamber
 //   #lb                → open Liquidity Baking monitor
 //   #lb-tile           → scroll to the Liquidity Baking dashboard tile
@@ -2763,6 +2766,17 @@ function applyDeepLink() {
         import('../features/tezlink.js')
             .then(({ openTezlinkChamber }) => openTezlinkChamber())
             .catch((error) => console.warn('Failed to open Tezlink Chamber', error));
+    }
+
+    // #etherlink-governance / #etherlink-gov / #etherlink
+    if (
+        params.has('etherlink-governance') || hash === 'etherlink-governance' ||
+        params.has('etherlink-gov') || hash === 'etherlink-gov' ||
+        params.has('etherlink') || hash === 'etherlink'
+    ) {
+        import('../features/etherlink-governance.js')
+            .then(({ openEtherlinkGovernanceChamber }) => openEtherlinkGovernanceChamber())
+            .catch((error) => console.warn('Failed to open Etherlink Governance Chamber', error));
     }
 
     // #health / #network-health
