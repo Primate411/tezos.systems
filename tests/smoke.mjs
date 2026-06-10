@@ -97,6 +97,14 @@ const ETHERLINK_SEQUENCER_PROPOSAL = {
 const ETHERLINK_PROPOSALS_BIGMAP = '990001';
 const ETHERLINK_UPVOTERS_BIGMAP = '990002';
 const ETHERLINK_UPVOTE_COUNTS_BIGMAP = '990003';
+const EXPECTED_CHAMBER_ORDER = [
+  'network-health',
+  'chamber-entry-card',
+  'tezlink-entry-card',
+  'etherlink-governance-entry-card',
+  'tz4-adoption',
+  'lb-entry-card'
+];
 
 function usage() {
   return `
@@ -1002,6 +1010,14 @@ function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+async function assertChamberOrder(page, label) {
+  const chamberOrder = await page.evaluate(() => Array.from(document.querySelectorAll('#chambers-grid > .chamber-entry-card, #chambers-grid > .stat-card')).map((el) => el.id || el.dataset.stat || ''));
+  assert(
+    EXPECTED_CHAMBER_ORDER.every((key, index) => chamberOrder[index] === key),
+    `${label}: Chambers order mismatch, expected ${EXPECTED_CHAMBER_ORDER.join(', ')} but saw ${chamberOrder.join(', ')}`
+  );
+}
+
 function isAllowedWarning(message) {
   return allowedWarningPatterns.some((pattern) => pattern.test(message));
 }
@@ -1371,9 +1387,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   assert(await page.locator('#chambers-section').isVisible(), `${label}: Chambers should be visible by default`);
   await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card').length >= 5, null, { timeout: 10000 });
   await expectCount(page, '#chambers-section #tezlink-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#tezlink"]', 1, `${label} Tezlink chamber card`);
-  const chamberOrder = await page.evaluate(() => Array.from(document.querySelectorAll('#chambers-grid > .chamber-entry-card, #chambers-grid > .stat-card')).map((el) => el.id || el.dataset.stat || ''));
-  assert(chamberOrder.indexOf('tezlink-entry-card') > chamberOrder.indexOf('chamber-entry-card'), `${label}: Tezlink should follow The Chamber: ${chamberOrder.join(', ')}`);
-  assert(chamberOrder.indexOf('tezlink-entry-card') < chamberOrder.indexOf('lb-entry-card'), `${label}: Tezlink should come before LB: ${chamberOrder.join(', ')}`);
+  await assertChamberOrder(page, label);
   assert(!(await page.locator('#consensus-section').isVisible()), `${label}: Consensus stats should be hidden by default`);
   assert(!(await page.locator('#economy-section').isVisible()), `${label}: Economy stats should be hidden by default`);
   assert(!(await page.locator('#governance-section').isVisible()), `${label}: Governance stats should be hidden by default`);
@@ -1834,6 +1848,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#chambers-section #etherlink-governance-entry-card', 1, 'governance testing period Tezlink Governance tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
+  await assertChamberOrder(page, 'governance testing period');
   await page.waitForFunction(() => {
     const canvas = document.getElementById('tz4-sparkline');
     const chart = canvas ? window.Chart?.getChart(canvas) : null;

@@ -358,6 +358,7 @@ async function init() {
     safe('chambersToggle', initChambersToggle);
     safe('tezosStatsToggle', initTezosStatsToggle);
     safe('networkHealth', initNetworkHealth);
+    safe('chambersOrder', orderChambersSurface);
 
     // Upgrade section share button
     const upgradeShareBtn = document.getElementById('upgrade-share-btn');
@@ -1131,16 +1132,31 @@ function initNavButtons() {
 // CHAMBERS SURFACE
 // ==========================================
 const CHAMBERS_VISIBLE_KEY = 'tezos-systems-chambers-visible';
+const CHAMBER_CARD_ORDER = [
+    '[data-stat="network-health"]',
+    '#chamber-entry-card',
+    '#tezlink-entry-card',
+    '#etherlink-governance-entry-card',
+    '[data-stat="tz4-adoption"]',
+    '#lb-entry-card'
+];
 
-function initChambersSurface() {
+function orderChambersSurface() {
     const grid = document.getElementById('chambers-grid');
     if (!grid) return;
 
-    const tz4Card = document.querySelector('.stat-card[data-stat="tz4-adoption"]');
-    const healthCard = document.querySelector('.stat-card[data-stat="network-health"]');
+    const orderedCards = CHAMBER_CARD_ORDER
+        .map((selector) => document.querySelector(selector))
+        .filter(Boolean);
 
-    if (tz4Card && tz4Card.parentElement !== grid) grid.appendChild(tz4Card);
-    if (healthCard && healthCard.parentElement !== grid) grid.appendChild(healthCard);
+    orderedCards.forEach((card) => {
+        grid.appendChild(card);
+    });
+    grid.dataset.chambersOrder = orderedCards.map((card) => card.id || card.dataset.stat || '').join(',');
+}
+
+function initChambersSurface() {
+    orderChambersSurface();
 }
 
 function initChambersToggle() {

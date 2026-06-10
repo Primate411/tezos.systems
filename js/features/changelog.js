@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-10',
         entries: [
+            { type: '🔧', text: 'Chambers grid now keeps Network Health with The Chamber, Tezlink with Tezlink Governance, and tz4 Adoption with LB Monitor' },
             { type: '✨', text: 'tz4 Adoption now uses a wide Chambers tile with latest baker switches, pending activations, and the full queue in the opened chamber' },
             { type: '✨', text: 'Tezlink Governance track tabs now show recent historical proposal submissions for FAST, SLOW, and Sequencer' },
             { type: '🔧', text: 'Network Health chamber refreshes now update block rows in place so the 6-second live feed stays smooth' },

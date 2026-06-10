@@ -137,9 +137,9 @@ inline modal styles in `js/core/app.js`.
 
 ## Main Surfaces
 
-- Chambers section is visible by default and groups The Chamber, Tezlink
-  Governance, Tezlink L2, Liquidity Baking Monitor, tz4 Adoption, and Network
-  Health as one hideable feature with card-level direct-link controls.
+- Chambers section is visible by default and orders the chamber pairs as Network
+  Health <> The Chamber, Tezlink <> Tezlink Governance, and tz4 Adoption <> LB
+  Monitor, with card-level direct-link controls.
 - Tezlink Governance Chamber with direct `#l2chamber` access,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
   discovery, storage, bigmaps, and recent historical proposal submissions, plus
