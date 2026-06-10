@@ -1609,6 +1609,45 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.intervalDelays.includes(1000), `network health chamber: 1s freshness ticker was not registered: ${healthState.intervalDelays.join(', ')}`);
   assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
 
+  const beforeSmoothRefresh = await page.evaluate(() => {
+    const timer = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 6000).at(-1);
+    window.__healthBodyNode = document.querySelector('#network-health-modal .health-body');
+    window.__healthHeaderNode = document.querySelector('#network-health-modal .health-header');
+    window.__healthScorePanelNode = document.querySelector('#network-health-modal .health-score-panel');
+    return {
+      hasTimer: Boolean(timer?.handler),
+      firstLevel: document.querySelector('#health-recent-block-list .health-block-row')?.dataset.healthLevel || '',
+      rowCount: document.querySelectorAll('#health-recent-block-list .health-block-row').length
+    };
+  });
+  assert(beforeSmoothRefresh.hasTimer, 'network health chamber: smooth refresh timer handler missing');
+  assert(beforeSmoothRefresh.firstLevel, 'network health chamber: missing first block level before smooth refresh');
+  await page.evaluate(() => {
+    const timer = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 6000).at(-1);
+    timer?.handler?.();
+  });
+  await page.waitForFunction((previousLevel) => {
+    const first = document.querySelector('#health-recent-block-list .health-block-row');
+    return first?.dataset.healthLevel && first.dataset.healthLevel !== previousLevel;
+  }, beforeSmoothRefresh.firstLevel, { timeout: 10000 });
+  const smoothRefreshState = await page.evaluate(() => ({
+    bodySame: window.__healthBodyNode === document.querySelector('#network-health-modal .health-body'),
+    headerSame: window.__healthHeaderNode === document.querySelector('#network-health-modal .health-header'),
+    scorePanelSame: window.__healthScorePanelNode === document.querySelector('#network-health-modal .health-score-panel'),
+    mode: document.querySelector('#network-health-modal .health-body')?.dataset.healthRefreshMode || '',
+    firstLevel: document.querySelector('#health-recent-block-list .health-block-row')?.dataset.healthLevel || '',
+    rowCount: document.querySelectorAll('#health-recent-block-list .health-block-row').length,
+    newRows: document.querySelectorAll('#health-recent-block-list .lb-row-new').length,
+    tablePadding: getComputedStyle(document.querySelector('.health-block-table .lb-table-row')).paddingTop
+  }));
+  assert(smoothRefreshState.bodySame, 'network health chamber: smooth refresh replaced the chamber body');
+  assert(smoothRefreshState.headerSame, 'network health chamber: smooth refresh replaced the header instead of updating in place');
+  assert(smoothRefreshState.scorePanelSame, 'network health chamber: smooth refresh replaced the score panel instead of updating in place');
+  assert(smoothRefreshState.mode === 'in-place', `network health chamber: refresh mode mismatch: ${smoothRefreshState.mode}`);
+  assert(smoothRefreshState.rowCount === beforeSmoothRefresh.rowCount, `network health chamber: passing block row count shifted after smooth refresh: ${smoothRefreshState.rowCount}`);
+  assert(smoothRefreshState.newRows >= 1, 'network health chamber: smooth refresh did not animate newly arriving block rows');
+  assert(parseFloat(smoothRefreshState.tablePadding) >= 8, `network health chamber: passing blocks row padding too tight: ${smoothRefreshState.tablePadding}`);
+
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await page.locator('[data-stat="network-health"]').click();

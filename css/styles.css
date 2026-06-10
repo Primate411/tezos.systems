@@ -2636,6 +2636,14 @@ body::before {
     align-items: stretch;
 }
 
+.health-value-updated {
+    animation: lb-value-pulse 0.45s ease both;
+}
+
+.health-soft-updated .lb-table-row {
+    animation: lb-row-soft-pulse 0.35s ease both;
+}
+
 .health-live-tape {
     width: 100%;
     min-width: 0;
@@ -3464,9 +3472,31 @@ body::before {
     grid-template-columns: minmax(90px, 0.7fr) 72px minmax(0, 1.4fr);
 }
 
+.lb-panel.health-recent-blocks {
+    margin-top: 14px;
+    padding: 18px 16px 16px;
+}
+
+.health-recent-blocks .lb-panel-title {
+    margin-bottom: 14px;
+}
+
+.health-block-table {
+    padding-top: 2px;
+}
+
 .health-block-table .lb-table-head,
 .health-block-table .lb-table-row {
     grid-template-columns: minmax(90px, 0.72fr) 70px 72px 112px 72px minmax(0, 1.5fr);
+}
+
+.health-block-table .lb-table-head {
+    padding: 0 12px 10px;
+}
+
+.health-block-table .lb-table-row {
+    min-height: 38px;
+    padding: 8px 12px;
 }
 
 .health-block-table .lb-table-row > span:first-child,
@@ -3481,6 +3511,17 @@ body::before {
 #health-missed-attester-list,
 #health-missed-block-list {
     min-width: 0;
+}
+
+.health-block-table #health-recent-block-list {
+    padding-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .health-value-updated,
+    .health-soft-updated .lb-table-row {
+        animation: none;
+    }
 }
 
 .stat-description {

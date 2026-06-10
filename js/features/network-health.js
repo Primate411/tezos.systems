@@ -709,6 +709,42 @@ async function refreshNetworkHealthTape({ force = false } = {}) {
     return rows;
 }
 
+function setTextIfChanged(target, value, { pulse = true } = {}) {
+    const element = typeof target === 'string' ? document.querySelector(target) : target;
+    if (!element) return false;
+    const next = String(value ?? '');
+    if (element.textContent === next) return false;
+    element.textContent = next;
+    if (pulse) {
+        element.classList.remove('health-value-updated');
+        void element.offsetWidth;
+        element.classList.add('health-value-updated');
+    }
+    return true;
+}
+
+function setClassNameIfChanged(target, className) {
+    const element = typeof target === 'string' ? document.querySelector(target) : target;
+    if (!element || element.className === className) return false;
+    element.className = className;
+    return true;
+}
+
+function setHtmlIfSignatureChanged(target, html, signature, { softClass = 'health-soft-updated', pulse = false } = {}) {
+    const element = typeof target === 'string' ? document.querySelector(target) : target;
+    if (!element) return false;
+    const nextSignature = String(signature ?? html);
+    if (element.dataset.healthSignature === nextSignature) return false;
+    element.dataset.healthSignature = nextSignature;
+    element.innerHTML = html;
+    if (pulse) {
+        element.classList.remove(softClass);
+        void element.offsetWidth;
+        element.classList.add(softClass);
+    }
+    return true;
+}
+
 function renderHealthScorePanel(data) {
     const cls = healthClass(data.summary.score);
     const width = Math.max(2, Math.min(100, data.summary.score));
@@ -717,14 +753,14 @@ function renderHealthScorePanel(data) {
         <section class="lb-panel health-panel health-score-panel chamber-anim-fade">
             <div class="lb-panel-title">Consensus Power</div>
             <div class="health-hero-number ${cls}" id="health-hero-score">${formatPct(data.summary.score)}%</div>
-            <div class="health-hero-copy">Last ${formatCount(data.summary.count)} blocks recorded ${formatCompactPower(data.summary.totalPower)} / ${formatCompactPower(data.summary.totalCommittee)} attestation power.</div>
+            <div class="health-hero-copy" id="health-hero-copy">Last ${formatCount(data.summary.count)} blocks recorded ${formatCompactPower(data.summary.totalPower)} / ${formatCompactPower(data.summary.totalCommittee)} attestation power.</div>
             <div class="health-score-meter" aria-label="Recent attestation power">
-                <div class="health-score-fill ${cls}" style="width:${width.toFixed(2)}%"></div>
+                <div class="health-score-fill ${cls}" id="health-score-fill" style="width:${width.toFixed(2)}%"></div>
             </div>
             <div class="lb-metric-grid health-metric-grid">
-                <div><span>Missed power</span><strong>${formatCompactPower(data.summary.missingPower)}</strong></div>
-                <div><span>Block range</span><strong>${formatCount(data.oldestLevel)} -> ${formatCount(data.headLevel)}</strong></div>
-                <div><span>Updated</span><strong${healthAgeAttr(headTimestamp)}>${formatAge(headTimestamp)}</strong></div>
+                <div><span>Missed power</span><strong id="health-summary-missed">${formatCompactPower(data.summary.missingPower)}</strong></div>
+                <div><span>Block range</span><strong id="health-summary-range">${formatCount(data.oldestLevel)} -> ${formatCount(data.headLevel)}</strong></div>
+                <div><span>Updated</span><strong id="health-summary-updated"${healthAgeAttr(headTimestamp)}>${formatAge(headTimestamp)}</strong></div>
             </div>
         </section>
     `;
@@ -746,11 +782,11 @@ function renderTimingPanel(data) {
             <div class="lb-panel-title">Block Cadence <span class="lb-live-pill">target ${TARGET_BLOCK_SECONDS}s</span></div>
             <div class="lb-metric-grid health-metric-grid">
                 <div><span>Average</span><strong id="health-avg-block">${formatSeconds(data.timing.avgSeconds)}</strong></div>
-                <div><span>On target</span><strong>${formatPct(onTargetPct)}%</strong></div>
-                <div><span>Round 0</span><strong>${formatPct(data.timing.roundZeroPct)}%</strong></div>
+                <div><span>On target</span><strong id="health-on-target">${formatPct(onTargetPct)}%</strong></div>
+                <div><span>Round 0</span><strong id="health-round-zero">${formatPct(data.timing.roundZeroPct)}%</strong></div>
             </div>
-            <div class="health-timing-strip" aria-label="Recent block intervals">${cells}</div>
-            <div class="health-timing-note">Max round ${formatCount(data.timing.maxRound)} across the live sample.</div>
+            <div class="health-timing-strip" id="health-timing-strip" aria-label="Recent block intervals">${cells}</div>
+            <div class="health-timing-note" id="health-timing-note">Max round ${formatCount(data.timing.maxRound)} across the live sample.</div>
         </section>
     `;
 }
@@ -760,19 +796,19 @@ function renderMyTezosBakerPanel(data) {
     if (!baker) return '';
 
     return `
-        <section class="lb-panel health-panel health-my-baker-panel chamber-anim-fade" style="animation-delay:120ms">
+        <section class="lb-panel health-panel health-my-baker-panel chamber-anim-fade" id="health-my-baker-panel" style="animation-delay:120ms">
             <div class="health-my-baker-head">
                 <div>
                     <div class="lb-panel-title">My Tezos Baker</div>
-                    <div class="health-my-baker-name">${bakerLinks(baker.address, baker.name)}</div>
+                    <div class="health-my-baker-name" id="health-my-baker-name">${bakerLinks(baker.address, baker.name)}</div>
                 </div>
-                <span class="health-my-baker-status ${baker.className}">${escapeHtml(baker.label)}</span>
+                <span class="health-my-baker-status ${baker.className}" id="health-my-baker-status">${escapeHtml(baker.label)}</span>
             </div>
-            <p class="health-my-baker-copy">${escapeHtml(baker.copy)}</p>
+            <p class="health-my-baker-copy" id="health-my-baker-copy">${escapeHtml(baker.copy)}</p>
             <div class="lb-metric-grid health-metric-grid health-my-baker-metrics">
-                <div><span>Attestation misses</span><strong>${formatCount(baker.missedSlots)}</strong></div>
-                <div><span>Block misses</span><strong>${formatCount(baker.missedBlockCount)}</strong></div>
-                <div><span>Latest block</span><strong>${baker.latestBlock ? formatCount(baker.latestBlock.level) : 'Not in sample'}</strong></div>
+                <div><span>Attestation misses</span><strong id="health-my-baker-attestations">${formatCount(baker.missedSlots)}</strong></div>
+                <div><span>Block misses</span><strong id="health-my-baker-blocks">${formatCount(baker.missedBlockCount)}</strong></div>
+                <div><span>Latest block</span><strong id="health-my-baker-latest">${baker.latestBlock ? formatCount(baker.latestBlock.level) : 'Not in sample'}</strong></div>
             </div>
         </section>
     `;
@@ -861,13 +897,11 @@ function renderRoundBadge(block) {
     return `<span class="health-round-badge ${cls}" title="${escapeHtml(title)}">R${formatCount(block.blockRound)}</span>`;
 }
 
-function renderRecentBlockRows(blocks) {
-    return blocks.map((block, index) => {
+function renderRecentBlockRow(block, { isNew = false } = {}) {
         const cls = healthClass(block.score);
         const timeCls = timingClass(block.intervalSeconds);
-        const isNew = index === 0 ? 'lb-row-new' : '';
         return `
-            <div class="lb-table-row health-block-row ${isNew}" data-health-level="${Number(block.level) || 0}">
+            <div class="lb-table-row health-block-row ${isNew ? 'lb-row-new' : ''}" data-health-level="${Number(block.level) || 0}">
                 <span>${formatCount(block.level)}</span>
                 <span class="health-interval ${timeCls}">${formatSeconds(block.intervalSeconds)}</span>
                 <span>${renderRoundBadge(block)}</span>
@@ -876,7 +910,10 @@ function renderRecentBlockRows(blocks) {
                 <div class="lb-baker-cell">${bakerLinks(block.producer?.address, bakerName(block.producer))}</div>
             </div>
         `;
-    }).join('');
+}
+
+function renderRecentBlockRows(blocks, { markLatest = true } = {}) {
+    return blocks.map((block, index) => renderRecentBlockRow(block, { isNew: markLatest && index === 0 })).join('');
 }
 
 function renderRecentBlocksPanel(data) {
@@ -948,6 +985,172 @@ function renderNetworkHealthChamber(data, container) {
     refreshHealthAgeLabels(container);
 }
 
+function updateHealthHeader(data) {
+    const latest = data.blocks[0] || null;
+    const headTimestamp = getHeadTimestamp(data);
+    const headAge = latest
+        ? `<span${healthAgeAttr(headTimestamp)}>${escapeHtml(formatAge(headTimestamp))}</span>`
+        : '';
+    const status = chamberStatus(data);
+    const badge = document.getElementById('health-header-badge');
+    if (badge) {
+        setTextIfChanged(badge, status.label);
+        badge.className = `chamber-badge ${status.className}`;
+    }
+    setTextIfChanged('#health-refresh-state', `auto-refresh ${Math.round(CHAMBER_REFRESH_INTERVAL / 1000)}s`, { pulse: false });
+    const metaHtml = latest
+        ? `Head block ${formatCount(latest.level)} · ${headAge} · avg ${formatSeconds(data.timing.avgSeconds)}`
+        : 'Live TzKT block feed';
+    setHtmlIfSignatureChanged(
+        '#health-head-meta',
+        metaHtml,
+        `${latest?.level || 0}:${headTimestamp || ''}:${formatSeconds(data.timing.avgSeconds)}`
+    );
+}
+
+function updateHealthScorePanel(data) {
+    const cls = healthClass(data.summary.score);
+    const width = Math.max(2, Math.min(100, data.summary.score));
+    const headTimestamp = getHeadTimestamp(data);
+    setTextIfChanged('#health-hero-score', `${formatPct(data.summary.score)}%`);
+    setClassNameIfChanged('#health-hero-score', `health-hero-number ${cls}`);
+    setTextIfChanged('#health-hero-copy', `Last ${formatCount(data.summary.count)} blocks recorded ${formatCompactPower(data.summary.totalPower)} / ${formatCompactPower(data.summary.totalCommittee)} attestation power.`, { pulse: false });
+    const fill = document.getElementById('health-score-fill');
+    if (fill) {
+        fill.className = `health-score-fill ${cls}`;
+        fill.style.width = `${width.toFixed(2)}%`;
+    }
+    setTextIfChanged('#health-summary-missed', formatCompactPower(data.summary.missingPower));
+    setTextIfChanged('#health-summary-range', `${formatCount(data.oldestLevel)} -> ${formatCount(data.headLevel)}`);
+    const updated = document.getElementById('health-summary-updated');
+    if (updated) {
+        updated.dataset.healthAge = headTimestamp || '';
+        setTextIfChanged(updated, formatAge(headTimestamp), { pulse: false });
+    }
+}
+
+function updateHealthTimingPanel(data) {
+    const onTargetPct = data.timing.intervalCount ? (data.timing.onTarget / data.timing.intervalCount) * 100 : 0;
+    const cells = data.blocks.slice(0, -1).map((block) => {
+        const cls = timingClass(block.intervalSeconds);
+        return `
+            <span class="health-timing-cell ${cls}" title="Block ${formatCount(block.level)} interval ${formatSeconds(block.intervalSeconds)}">
+                ${formatSeconds(block.intervalSeconds)}
+            </span>
+        `;
+    }).join('');
+    setTextIfChanged('#health-avg-block', formatSeconds(data.timing.avgSeconds));
+    setTextIfChanged('#health-on-target', `${formatPct(onTargetPct)}%`);
+    setTextIfChanged('#health-round-zero', `${formatPct(data.timing.roundZeroPct)}%`);
+    setHtmlIfSignatureChanged(
+        '#health-timing-strip',
+        cells,
+        data.blocks.slice(0, -1).map((block) => `${block.level}:${formatSeconds(block.intervalSeconds)}`).join('|')
+    );
+    setTextIfChanged('#health-timing-note', `Max round ${formatCount(data.timing.maxRound)} across the live sample.`, { pulse: false });
+}
+
+function updateMyTezosBakerPanel(data) {
+    const baker = summarizeMyTezosBaker(data);
+    const panel = document.getElementById('health-my-baker-panel');
+    if (!baker) {
+        panel?.remove();
+        return;
+    }
+    if (!panel) {
+        document.querySelector('.health-missed-attestations')?.insertAdjacentHTML('beforebegin', renderMyTezosBakerPanel(data));
+        initHealthBakerProfileLinks(document.getElementById('health-my-baker-panel') || document);
+        return;
+    }
+    setHtmlIfSignatureChanged(
+        '#health-my-baker-name',
+        bakerLinks(baker.address, baker.name),
+        `${baker.address}:${baker.name}`
+    );
+    const status = document.getElementById('health-my-baker-status');
+    if (status) {
+        setTextIfChanged(status, baker.label);
+        status.className = `health-my-baker-status ${baker.className}`;
+    }
+    setTextIfChanged('#health-my-baker-copy', baker.copy, { pulse: false });
+    setTextIfChanged('#health-my-baker-attestations', formatCount(baker.missedSlots));
+    setTextIfChanged('#health-my-baker-blocks', formatCount(baker.missedBlockCount));
+    setTextIfChanged('#health-my-baker-latest', baker.latestBlock ? formatCount(baker.latestBlock.level) : 'Not in sample');
+    initHealthBakerProfileLinks(panel);
+}
+
+function updateListIfChanged(selector, html, signature) {
+    const changed = setHtmlIfSignatureChanged(selector, html, signature, { pulse: true });
+    const root = typeof selector === 'string' ? document.querySelector(selector) : selector;
+    if (changed) initHealthBakerProfileLinks(root || document);
+}
+
+function updateRecentBlockRows(blocks) {
+    const list = document.getElementById('health-recent-block-list');
+    if (!list) return;
+    const nextBlocks = blocks.slice(0, CHAMBER_BLOCK_LIMIT);
+    const signature = nextBlocks.map((block) => `${block.level}:${block.power}:${block.committee}:${block.missedPower}:${block.blockRound}`).join('|');
+    if (!list.children.length) {
+        setHtmlIfSignatureChanged(list, renderRecentBlockRows(nextBlocks), signature);
+        initHealthBakerProfileLinks(list);
+        return;
+    }
+
+    const existingLevels = new Set([...list.querySelectorAll('.health-block-row')].map((row) => row.dataset.healthLevel));
+    const freshBlocks = nextBlocks.filter((block) => !existingLevels.has(String(Number(block.level) || 0)));
+    if (!freshBlocks.length) {
+        updateListIfChanged(list, renderRecentBlockRows(nextBlocks, { markLatest: false }), signature);
+        return;
+    }
+
+    for (const block of [...freshBlocks].reverse()) {
+        list.insertAdjacentHTML('afterbegin', renderRecentBlockRow(block, { isNew: true }));
+    }
+    while (list.querySelectorAll('.health-block-row').length > nextBlocks.length) {
+        list.querySelector('.health-block-row:last-child')?.remove();
+    }
+    list.dataset.healthSignature = signature;
+    initHealthBakerProfileLinks(list);
+}
+
+function updateNetworkHealthInPlace(data, container) {
+    if (!container.dataset.healthRendered || !document.getElementById('health-hero-score')) {
+        renderNetworkHealthChamber(data, container);
+        return;
+    }
+    container.dataset.healthRefreshMode = 'in-place';
+    updateHealthHeader(data);
+    updateHealthScorePanel(data);
+    updateHealthTimingPanel(data);
+    updateMyTezosBakerPanel(data);
+    updateListIfChanged(
+        '#health-missed-attester-list',
+        renderAttesterRows(data.missedAttesters),
+        data.missedAttesters.map((item) => `${item.address}:${item.slots}:${item.latestLevel}`).join('|')
+    );
+    updateListIfChanged(
+        '#health-missed-block-list',
+        renderMissedBlockRows(data.missedBlocks),
+        data.missedBlocks.map((right) => `${right.level}:${right.round}:${right.baker?.address || ''}`).join('|')
+    );
+    updateListIfChanged(
+        '#health-activity-list',
+        (data.activityTape || []).length
+            ? data.activityTape.slice(0, 8).map((row) => `
+        <a class="lb-table-row health-activity-row" href="https://tzkt.io/${escapeHtml(row.hash)}" target="_blank" rel="noopener">
+            <span>${escapeHtml(row.method)}</span>
+            <span>${row.amount === null ? '--' : `${formatCount(Math.round(row.amount))} XTZ`}</span>
+            <span>${escapeHtml(row.target)}</span>
+            <span${healthAgeAttr(row.timestamp)}>${escapeHtml(formatAge(row.timestamp))}</span>
+        </a>
+    `).join('')
+            : '<div class="lb-empty-inline">No large transfers returned in the live sample.</div>',
+        (data.activityTape || []).map((row) => `${row.hash}:${row.amount}:${row.timestamp}`).join('|')
+    );
+    updateRecentBlockRows(data.blocks);
+    refreshHealthAgeLabels(container);
+}
+
 function initHealthBakerProfileLinks(root = document) {
     root.querySelectorAll('.health-baker-name-link').forEach((link) => {
         if (link.dataset.healthProfileWired) return;
@@ -986,7 +1189,8 @@ async function refreshNetworkHealthChamber({ initial = false } = {}) {
     try {
         const data = await fetchNetworkHealthChamberData();
         if (!overlay.classList.contains('active')) return;
-        renderNetworkHealthChamber(data, body);
+        if (initial) renderNetworkHealthChamber(data, body);
+        else updateNetworkHealthInPlace(data, body);
     } catch (error) {
         if (initial) throw error;
         console.warn('Network Health chamber refresh failed', error);

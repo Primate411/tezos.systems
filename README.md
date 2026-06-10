@@ -152,7 +152,8 @@ inline modal styles in `js/core/app.js`.
 - Network Health Chamber with direct `#health` access, recent block cadence,
   consensus round, missed attestation, missed baking-right detail, and a
   compact saved My Tezos baker summary. Its Chambers card spans two tiles and
-  includes a throttled 1,000+ XTZ live activity tape.
+  includes a throttled 1,000+ XTZ live activity tape; the open chamber refreshes
+  on the block cadence with in-place row updates instead of a full rerender.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
