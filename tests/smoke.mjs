@@ -2233,6 +2233,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     heroCopy: document.querySelector('#tz4-adoption-modal .tz4-hero-copy')?.textContent || '',
     legend: document.querySelector('#tz4-adoption-modal .tz4-adoption-legend')?.textContent || '',
     saved: document.querySelector('#tz4-adoption-modal .tz4-saved-baker')?.textContent || '',
+    latestSwitches: document.querySelector('#tz4-adoption-modal .tz4-latest-panel')?.textContent || '',
+    latestSwitchRows: document.querySelectorAll('#tz4-adoption-modal [data-tz4-latest-switch]').length,
+    pendingQueue: document.querySelector('#tz4-adoption-modal .tz4-pending-panel')?.textContent || '',
+    pendingQueueRows: document.querySelectorAll('#tz4-adoption-modal [data-tz4-pending-queue]').length,
     firstMovers: document.querySelector('#tz4-adoption-modal .tz4-first-list')?.textContent || '',
     rows: document.querySelectorAll('#tz4-baker-status-list .tz4-table-row').length,
     activeRows: document.querySelectorAll('#tz4-baker-status-list [data-tz4-status="active"]').length,
@@ -2253,6 +2257,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/1 of 3 active bakers/.test(tz4State.heroCopy), `governance testing period: tz4 hero copy mismatch: ${tz4State.heroCopy}`);
   assert(/1 active/.test(tz4State.legend) && /1 pending/.test(tz4State.legend) && /1 not yet/.test(tz4State.legend), `governance testing period: tz4 legend mismatch: ${tz4State.legend}`);
   assert(/QA Baker/.test(tz4State.saved) && /Active/.test(tz4State.saved), `governance testing period: tz4 saved baker status mismatch: ${tz4State.saved}`);
+  assert(tz4State.latestSwitchRows === 1, `governance testing period: tz4 latest switch row count mismatch: ${tz4State.latestSwitchRows}`);
+  assert(/Latest Switches/.test(tz4State.latestSwitches) && /QA Baker/.test(tz4State.latestSwitches) && /cycle 1,136/.test(tz4State.latestSwitches), `governance testing period: tz4 latest switch panel mismatch: ${tz4State.latestSwitches}`);
+  assert(tz4State.pendingQueueRows === 1, `governance testing period: tz4 pending queue row count mismatch: ${tz4State.pendingQueueRows}`);
+  assert(/Pending Queue/.test(tz4State.pendingQueue) && /Pending Baker/.test(tz4State.pendingQueue) && /Activates cycle 1,148/.test(tz4State.pendingQueue), `governance testing period: tz4 pending queue panel mismatch: ${tz4State.pendingQueue}`);
   assert(/QA Baker/.test(tz4State.firstMovers) && /cycle 1,136/.test(tz4State.firstMovers), `governance testing period: tz4 first mover list mismatch: ${tz4State.firstMovers}`);
   assert(tz4State.rows >= 3, `governance testing period: tz4 table rows missing, saw ${tz4State.rows}`);
   assert(tz4State.activeRows >= 1, 'governance testing period: tz4 active row missing');

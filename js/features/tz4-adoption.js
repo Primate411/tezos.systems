@@ -10,6 +10,8 @@ const TZKT = API_URLS.tzkt;
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const CACHE_TTL = 60000;
 const MODAL_REFRESH_MS = 60000;
+const LATEST_SWITCH_LIMIT = 5;
+const PENDING_QUEUE_LIMIT = 8;
 
 let _tz4Cache = null;
 let _tz4CacheTime = 0;
@@ -182,8 +184,38 @@ function summarize(bakers, currentCycle) {
         activePowerPct,
         totalPower,
         activePower,
+        latestSwitches: latestSwitches(active),
+        pendingQueue: pendingQueue(pending),
         currentCycle
     };
+}
+
+function timestampValue(value) {
+    const time = new Date(value || '').getTime();
+    return Number.isFinite(time) ? time : 0;
+}
+
+function latestSwitches(bakers, limit = LATEST_SWITCH_LIMIT) {
+    return [...bakers]
+        .filter((baker) => baker.switchedAt && timestampValue(baker.switchedAt))
+        .sort((a, b) => {
+            const timeDiff = timestampValue(b.switchedAt) - timestampValue(a.switchedAt);
+            if (timeDiff) return timeDiff;
+            return Number(b.activationCycle || 0) - Number(a.activationCycle || 0);
+        })
+        .slice(0, limit);
+}
+
+function pendingQueue(bakers, limit = PENDING_QUEUE_LIMIT) {
+    return [...bakers]
+        .sort((a, b) => {
+            const cycleDiff = Number(a.activationCycle || Number.MAX_SAFE_INTEGER) - Number(b.activationCycle || Number.MAX_SAFE_INTEGER);
+            if (cycleDiff) return cycleDiff;
+            const timeDiff = timestampValue(a.pendingTz4?.timestamp) - timestampValue(b.pendingTz4?.timestamp);
+            if (timeDiff) return timeDiff;
+            return Number(b.bakingPower || 0) - Number(a.bakingPower || 0);
+        })
+        .slice(0, limit);
 }
 
 function sortBakersForTable(bakers) {
@@ -361,11 +393,65 @@ function renderFirstMoverRows(bakers) {
 
 function renderFirstMovers(data) {
     return `
-        <section class="lb-panel tz4-panel tz4-first-panel chamber-anim-fade" style="animation-delay:170ms">
+        <section class="lb-panel tz4-panel tz4-first-panel chamber-anim-fade" style="animation-delay:240ms">
             <div class="lb-panel-title">First Movers</div>
             <div class="tz4-first-list">
                 <div class="tz4-first-head"><span>#</span><span>Baker</span><span>Switched</span><span>Activation</span></div>
                 ${renderFirstMoverRows(data.bakers)}
+            </div>
+        </section>
+    `;
+}
+
+function renderLatestSwitchRows(bakers) {
+    if (!bakers.length) return '<div class="lb-empty-inline">No recent tz4 switch timing is available yet.</div>';
+    return bakers.map((baker) => `
+        <div class="tz4-focus-row" data-tz4-latest-switch="${escapeHtml(baker.address)}">
+            <div class="tz4-focus-main">
+                <div class="lb-baker-cell">${bakerLinks(baker.address, baker.name)}</div>
+                <span class="tz4-focus-meta">Switched ${escapeHtml(formatDate(baker.switchedAt))} - ${escapeHtml(formatAge(baker.switchedAt))}</span>
+            </div>
+            <span class="tz4-focus-chip">cycle ${escapeHtml(formatCount(baker.activationCycle || 0))}</span>
+        </div>
+    `).join('');
+}
+
+function renderLatestSwitches(data) {
+    return `
+        <section class="lb-panel tz4-panel tz4-latest-panel chamber-anim-fade" style="animation-delay:160ms">
+            <div class="lb-panel-title">Latest Switches</div>
+            <div class="lb-panel-subtitle">Most recent active bakers to complete tz4 activation.</div>
+            <div class="tz4-focus-list">
+                ${renderLatestSwitchRows(data.latestSwitches)}
+            </div>
+        </section>
+    `;
+}
+
+function renderPendingQueueRows(bakers, total) {
+    if (!bakers.length) return '<div class="lb-empty-inline">No bakers are currently pending tz4 activation.</div>';
+    const hiddenCount = Math.max(0, total - bakers.length);
+    return `
+        ${bakers.map((baker) => `
+            <div class="tz4-focus-row pending" data-tz4-pending-queue="${escapeHtml(baker.address)}">
+                <div class="tz4-focus-main">
+                    <div class="lb-baker-cell">${bakerLinks(baker.address, baker.name)}</div>
+                    <span class="tz4-focus-meta">${escapeHtml(statusDetail(baker))}${baker.pendingTz4?.timestamp ? ` - submitted ${escapeHtml(formatDate(baker.pendingTz4.timestamp))}` : ''}</span>
+                </div>
+                ${statusBadge(baker)}
+            </div>
+        `).join('')}
+        ${hiddenCount ? `<div class="tz4-focus-note">${formatCount(hiddenCount)} more pending in the Baker Status filter.</div>` : ''}
+    `;
+}
+
+function renderPendingQueue(data) {
+    return `
+        <section class="lb-panel tz4-panel tz4-pending-panel chamber-anim-fade" style="animation-delay:200ms">
+            <div class="lb-panel-title">Pending Queue</div>
+            <div class="lb-panel-subtitle">Bakers with applied tz4 consensus-key updates waiting for activation.</div>
+            <div class="tz4-focus-list">
+                ${renderPendingQueueRows(data.pendingQueue, data.pendingCount)}
             </div>
         </section>
     `;
@@ -392,9 +478,9 @@ function renderBakerStatus(data, activeFilter = _tz4ActiveFilter) {
     window._tz4Bakers = data.bakers;
     const filter = ['all', 'active', 'pending', 'not-yet'].includes(activeFilter) ? activeFilter : 'all';
     return `
-        <section class="lb-panel tz4-panel tz4-bakers-panel chamber-anim-fade" style="animation-delay:220ms">
+        <section class="lb-panel tz4-panel tz4-bakers-panel chamber-anim-fade" style="animation-delay:300ms">
             <div class="lb-panel-title">Baker Status</div>
-            <div class="lb-panel-subtitle">One row per active funded baker. Active rows are ordered by first tz4 switch timing.</div>
+            <div class="lb-panel-subtitle">One row per active funded baker. Active rows are ordered by first tz4 switch timing, pending rows by activation cycle.</div>
             <div class="lb-filter-row tz4-filter-row">
                 <button class="lb-filter-btn ${filter === 'all' ? 'active' : ''}" data-tz4-filter="all">All ${formatCount(data.total)}</button>
                 <button class="lb-filter-btn ${filter === 'active' ? 'active' : ''}" data-tz4-filter="active">Active ${formatCount(data.activeCount)}</button>
@@ -456,10 +542,12 @@ function renderTz4Adoption(data, container, activeFilter = _tz4ActiveFilter) {
             ${renderGlobalMetrics(data)}
             ${renderPowerMetrics(data)}
             ${renderSavedBaker(data)}
+            ${renderLatestSwitches(data)}
+            ${renderPendingQueue(data)}
             ${renderFirstMovers(data)}
         </div>
         ${renderBakerStatus(data, activeFilter)}
-        <div class="chamber-footer chamber-anim-fade" style="animation-delay:280ms">
+        <div class="chamber-footer chamber-anim-fade" style="animation-delay:340ms">
             <a href="https://tzkt.io/bakers" target="_blank" rel="noopener">TzKT Bakers -></a>
             <span class="chamber-footer-sep">&middot;</span>
             <a href="https://octez.tezos.com/docs/user/key-management.html" target="_blank" rel="noopener">Octez Key Docs -></a>

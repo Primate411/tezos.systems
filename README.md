@@ -166,8 +166,9 @@ inline modal styles in `js/core/app.js`.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, protocol-history lore, 6-second
   open-monitor refreshes, and 60-second dashboard-tile refreshes.
-- tz4 Adoption Chamber with current baker BLS/tz4 status, pending consensus-key
-  switches, saved-baker highlighting, and first-switch timing.
+- tz4 Adoption Chamber with current baker BLS/tz4 status, latest completed
+  switches, pending consensus-key activations, saved-baker highlighting, and
+  first-switch timing.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
   LB vote state, and recent baker delegator/staker activity.
 - Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping
