@@ -11,6 +11,7 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const CACHE_TTL = 60000;
 const MODAL_REFRESH_MS = 60000;
 const LATEST_SWITCH_LIMIT = 5;
+const ENTRY_PREVIEW_SWITCH_LIMIT = 4;
 const PENDING_QUEUE_LIMIT = 8;
 
 let _tz4Cache = null;
@@ -238,7 +239,10 @@ function sortBakersForTable(bakers) {
 }
 
 async function fetchTz4AdoptionData({ force = false } = {}) {
-    if (!force && _tz4Cache && Date.now() - _tz4CacheTime < CACHE_TTL) return _tz4Cache;
+    if (!force && _tz4Cache && Date.now() - _tz4CacheTime < CACHE_TTL) {
+        renderTz4EntryPreview(_tz4Cache);
+        return _tz4Cache;
+    }
     const [bakers, operations, currentCycle] = await Promise.all([
         fetchActiveBakers(),
         fetchConsensusKeyUpdates(),
@@ -247,6 +251,7 @@ async function fetchTz4AdoptionData({ force = false } = {}) {
     const data = summarize(enrichBakers(bakers, operations, currentCycle), currentCycle);
     _tz4Cache = data;
     _tz4CacheTime = Date.now();
+    renderTz4EntryPreview(data);
     return data;
 }
 
@@ -284,6 +289,56 @@ function statusDetail(baker) {
             : 'tz4 consensus key submitted';
     }
     return 'Current consensus key is not tz4';
+}
+
+function compactBakerName(baker) {
+    const name = bakerName(baker);
+    const address = baker?.address || '';
+    return `<span class="tz4-entry-baker-name" title="${escapeHtml(address)}">${escapeHtml(name)}</span>`;
+}
+
+function renderTz4EntryPreviewRows(bakers, mode) {
+    if (!bakers.length) {
+        const copy = mode === 'pending' ? 'No pending activations' : 'No switch timing yet';
+        return `<div class="tz4-entry-preview-empty">${copy}</div>`;
+    }
+    return bakers.map((baker) => {
+        const detail = mode === 'pending'
+            ? `Activates cycle ${formatCount(baker.activationCycle || 0)}`
+            : `${formatAge(baker.switchedAt)} - cycle ${formatCount(baker.activationCycle || 0)}`;
+        return `
+            <div class="tz4-entry-preview-row ${mode === 'pending' ? 'pending' : ''}">
+                ${compactBakerName(baker)}
+                <span>${escapeHtml(detail)}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderTz4EntryPreview(data) {
+    const card = document.querySelector('.stat-card[data-stat="tz4-adoption"]');
+    const target = document.getElementById('tz4-entry-preview');
+    if (!card || !target || !data) return;
+
+    card.classList.add('chamber-entry-wide');
+    card.classList.toggle('tz4-entry-pending', data.pendingCount > 0);
+    card.dataset.tz4EntrySize = 'wide';
+    card.dataset.tz4Pending = String(data.pendingCount || 0);
+    const latest = (data.latestSwitches || []).slice(0, ENTRY_PREVIEW_SWITCH_LIMIT);
+    const pending = (data.pendingQueue || []).slice(0, 2);
+    const hiddenPending = Math.max(0, (data.pendingCount || 0) - pending.length);
+    card.dataset.tz4LatestSwitches = String(latest.length || 0);
+    target.innerHTML = `
+        <div class="tz4-entry-preview-section">
+            <div class="tz4-entry-preview-title"><span>Latest switches</span><strong>${formatCount(latest.length)}</strong></div>
+            ${renderTz4EntryPreviewRows(latest, 'latest')}
+        </div>
+        <div class="tz4-entry-preview-section pending">
+            <div class="tz4-entry-preview-title"><span>Pending</span><strong>${formatCount(data.pendingCount || 0)}</strong></div>
+            ${renderTz4EntryPreviewRows(pending, 'pending')}
+            ${hiddenPending ? `<div class="tz4-entry-preview-more">+${formatCount(hiddenPending)} more pending</div>` : ''}
+        </div>
+    `;
 }
 
 function renderAdoptionBar(data) {
@@ -701,4 +756,12 @@ export function initTz4AdoptionChamber() {
     }
 
     wireTz4AdoptionTile();
+    const preview = document.getElementById('tz4-entry-preview');
+    if (preview && !preview.dataset.tz4PreviewRequested) {
+        preview.dataset.tz4PreviewRequested = '1';
+        fetchTz4AdoptionData().catch((error) => {
+            console.warn('tz4 Adoption tile preview failed', error);
+            preview.innerHTML = '<div class="tz4-entry-preview-empty">tz4 switch list delayed</div>';
+        });
+    }
 }

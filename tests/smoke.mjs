@@ -1870,6 +1870,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     etherlinkEntryMetrics: document.querySelector('#etherlink-governance-entry-metrics')?.textContent?.trim() || '',
     tz4TileValue: document.querySelector('#tz4-adoption-front')?.textContent?.trim() || '',
     tz4TileDescription: document.querySelector('#tz4-description')?.textContent?.trim() || '',
+    tz4TileWide: document.querySelector('[data-stat="tz4-adoption"]')?.classList.contains('chamber-entry-wide') || false,
+    tz4TileSize: document.querySelector('[data-stat="tz4-adoption"]')?.dataset.tz4EntrySize || '',
+    tz4TilePending: document.querySelector('[data-stat="tz4-adoption"]')?.dataset.tz4Pending || '',
+    tz4TileLatest: document.querySelector('[data-stat="tz4-adoption"]')?.dataset.tz4LatestSwitches || '',
+    tz4TilePreview: document.querySelector('#tz4-entry-preview')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     tz4TileWired: document.querySelector('[data-stat="tz4-adoption"]')?.dataset.tz4ChamberWired || '',
     tz4TileRole: document.querySelector('[data-stat="tz4-adoption"]')?.getAttribute('role') || '',
     tz4TileTabIndex: document.querySelector('[data-stat="tz4-adoption"]')?.getAttribute('tabindex') || '',
@@ -1913,6 +1918,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/SLOWNoactiveproposal/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(dashboardState.tz4TileValue === '33.3 / 50%', `governance testing period: tz4 tile value mismatch: ${dashboardState.tz4TileValue}`);
   assert(/1 \/ 3 bakers active/.test(dashboardState.tz4TileDescription), `governance testing period: tz4 tile description mismatch: ${dashboardState.tz4TileDescription}`);
+  assert(dashboardState.tz4TileWide, 'governance testing period: tz4 Adoption tile should be 2x1 in Chambers');
+  assert(dashboardState.tz4TileSize === 'wide', `governance testing period: tz4 tile size flag mismatch: ${dashboardState.tz4TileSize}`);
+  assert(dashboardState.tz4TilePending === '1', `governance testing period: tz4 tile pending count mismatch: ${dashboardState.tz4TilePending}`);
+  assert(dashboardState.tz4TileLatest === '1', `governance testing period: tz4 tile latest count mismatch: ${dashboardState.tz4TileLatest}`);
+  assert(/Latest switches/.test(dashboardState.tz4TilePreview) && /QA Baker/.test(dashboardState.tz4TilePreview) && /Pending/.test(dashboardState.tz4TilePreview) && /Pending Baker/.test(dashboardState.tz4TilePreview), `governance testing period: tz4 tile preview mismatch: ${dashboardState.tz4TilePreview}`);
   assert(dashboardState.tz4TileWired === '1', `governance testing period: tz4 tile wiring missing: ${dashboardState.tz4TileWired}`);
   assert(dashboardState.tz4TileRole === 'button', `governance testing period: tz4 tile role mismatch: ${dashboardState.tz4TileRole}`);
   assert(dashboardState.tz4TileTabIndex === '0', `governance testing period: tz4 tile keyboard focus mismatch: ${dashboardState.tz4TileTabIndex}`);

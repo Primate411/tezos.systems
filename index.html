@@ -49,12 +49,12 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=159">
+    <link rel="stylesheet" href="css/styles.min.css?v=160">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
-    <link rel="modulepreload" href="js/core/app.js?v=159">
+    <link rel="modulepreload" href="js/core/app.js?v=160">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -730,7 +730,7 @@
                 </div>
 
                 <!-- tz4 Adoption Card (Combined) -->
-                <div class="stat-card chamber-entry-card tz4-entry-card" data-stat="tz4-adoption">
+                <div class="stat-card chamber-entry-card chamber-entry-wide tz4-entry-card" data-stat="tz4-adoption">
                     <button class="card-copy-link" type="button" data-copy-hash="#tz4" aria-label="Copy tz4 Adoption Chamber direct link" title="Copy tz4 Chamber link">🔗</button>
                     <div class="card-info-btn" data-tooltip="tz4-adoption">
                         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -751,6 +751,9 @@
                                 <span class="loading">...</span>
                             </div>
                             <div class="sparkline-container"><canvas id="tz4-sparkline" class="sparkline-chart"></canvas><span class="trend-arrow" id="tz4-trend"></span></div>
+                            <div class="tz4-entry-preview" id="tz4-entry-preview" aria-live="polite">
+                                <div class="tz4-entry-preview-empty">Loading tz4 switch list...</div>
+                            </div>
                         </div>
                         <div class="card-back" aria-hidden="true">
                             <h2 class="stat-label">tz4 Adoption</h2>
@@ -1928,7 +1931,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=76"></script>
-    <script type="module" src="js/core/app.js?v=159"></script>
+    <script type="module" src="js/core/app.js?v=160"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
