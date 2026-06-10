@@ -388,9 +388,9 @@ async function checkSelectorContracts() {
     ['Tezlink Governance card copy link', 'data-copy-hash="#l2chamber"', etherlinkGovernance],
     ['Tezlink Governance direct footer link', 'Direct: /#l2chamber', etherlinkGovernance],
     ['Tezlink Governance chamber wiring', 'openEtherlinkGovernanceChamber', etherlinkGovernance],
-    ['Tezlink Governance active FAST contract', 'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo', etherlinkGovernance],
-    ['Tezlink Governance active SLOW contract', 'KT1AXRU3wLc87WNhLhVGrgqDGubLACUMUgPb', etherlinkGovernance],
-    ['Tezlink Governance active Sequencer contract', 'KT1VGyd2cRSHoDnxDnSuqGJD3mL8DzcVqX98', etherlinkGovernance],
+    ['Tezlink Governance TzKT discovery', 'discoverGovernanceTracks', etherlinkGovernance],
+    ['Tezlink Governance originator guard', 'GOVERNANCE_CONTRACT_CREATOR', etherlinkGovernance],
+    ['Tezlink Governance discovery failure copy', 'contract discovery unavailable', etherlinkGovernance],
     ['Tezlink card copy link', 'data-copy-hash="#tezlink"', tezlink],
     ['Tezlink direct footer link', 'Direct: /#tezlink', tezlink],
     ['LB tile copy link', 'data-copy-hash="#lb-tile"', lb],
@@ -407,6 +407,14 @@ async function checkSelectorContracts() {
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
+  }
+  const fixedEtherlinkContracts = [
+    'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo',
+    'KT1AXRU3wLc87WNhLhVGrgqDGubLACUMUgPb',
+    'KT1VGyd2cRSHoDnxDnSuqGJD3mL8DzcVqX98'
+  ];
+  for (const address of fixedEtherlinkContracts) {
+    if (etherlinkGovernance.includes(address)) fail(`Tezlink Governance chamber should discover active contract, not hardcode ${address}`);
   }
   pass(`deep-link selector contracts checked: ${deepLinkContracts.length}`);
 

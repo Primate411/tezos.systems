@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-10',
+        entries: [
+            { type: '🔧', text: 'Tezlink Governance now discovers active contracts from TzKT, keeps empty proposal shells compact, and labels the quiet state IDLE' },
+        ]
+    },
+    {
         date: '2026-06-09',
         entries: [
             { type: '✨', text: 'Tezlink Governance Chamber added with #l2chamber access plus FAST, SLOW, and Sequencer track status from live TzKT contract storage' },

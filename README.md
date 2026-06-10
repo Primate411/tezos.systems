@@ -142,7 +142,8 @@ inline modal styles in `js/core/app.js`.
   Health as one hideable feature with card-level direct-link controls.
 - Tezlink Governance Chamber with direct `#l2chamber` access,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
-  storage and bigmaps, plus official-track and TzKT links for action/audit.
+  discovery, storage, and bigmaps, plus official-track and TzKT links for
+  action/audit.
 - Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
   transactions, gas, addresses, Blockscout transaction tape, and DefiLlama
   protocol TVL sourced from current Tezlink rails.
@@ -198,7 +199,7 @@ Useful deep links include:
 
 | Source | Purpose |
 |--------|---------|
-| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, blocks, operations, governance, accounts, Etherlink governance contract storage/bigmaps |
+| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, blocks, operations, governance, accounts, Etherlink governance contract discovery/storage/bigmaps |
 | Octez RPC `https://eu.rpc.tez.capital` | Issuance, supply, constants, cycle/head metadata |
 | CoinGecko | XTZ price, market cap, 24h change, volume |
 | Tezos Domains GraphQL | Domain and reverse-record lookups |

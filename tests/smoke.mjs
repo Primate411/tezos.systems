@@ -319,6 +319,7 @@ async function installFeatureMocks(context, options = {}) {
   let lbBlocksHead = 12345678;
   const blockHeadLagMs = Number(options.blockHeadLagMs) || 0;
   const etherlinkQuiet = Boolean(options.etherlinkQuiet);
+  const etherlinkNullProposal = Boolean(options.etherlinkNullProposal);
   const governanceNoProposal = Boolean(options.governanceNoProposal);
   await context.route('**/*', async (route) => {
     const request = route.request();
@@ -643,6 +644,13 @@ async function installFeatureMocks(context, options = {}) {
           }
         ]);
       }
+      if (url.includes('/contracts?') && url.includes('creator=tz1VGpuq8GkCwf4x6MupTz6QAcJLivQcaAsb')) {
+        return fulfillJson(route, [
+          { address: ETHERLINK_SEQUENCER_CONTRACT, kind: 'smart_contract', firstActivity: 13171350 },
+          { address: ETHERLINK_FAST_CONTRACT, kind: 'smart_contract', firstActivity: 13171346 },
+          { address: ETHERLINK_SLOW_CONTRACT, kind: 'smart_contract', firstActivity: 13171342 }
+        ]);
+      }
       if (url.includes(`/contracts/${ETHERLINK_FAST_CONTRACT}/storage`)) {
         return fulfillJson(route, {
           config: {
@@ -661,9 +669,9 @@ async function installFeatureMocks(context, options = {}) {
                 proposals: ETHERLINK_PROPOSALS_BIGMAP,
                 upvoters_proposals: ETHERLINK_UPVOTERS_BIGMAP,
                 upvoters_upvotes_count: ETHERLINK_UPVOTE_COUNTS_BIGMAP,
-                winner_candidate: ETHERLINK_FAST_PROPOSAL,
+                winner_candidate: etherlinkNullProposal ? null : ETHERLINK_FAST_PROPOSAL,
                 total_voting_power: '656635662773932',
-                max_upvotes_voting_power: '93213811256339'
+                max_upvotes_voting_power: etherlinkNullProposal ? '0' : '93213811256339'
               }
             }
           }
@@ -696,6 +704,7 @@ async function installFeatureMocks(context, options = {}) {
         });
       }
       if (url.includes(`/bigmaps/${ETHERLINK_PROPOSALS_BIGMAP}/keys`)) {
+        if (etherlinkNullProposal) return fulfillJson(route, []);
         return fulfillJson(route, [
           {
             key: ETHERLINK_FAST_PROPOSAL,
@@ -709,6 +718,7 @@ async function installFeatureMocks(context, options = {}) {
         ]);
       }
       if (url.includes(`/bigmaps/${ETHERLINK_UPVOTERS_BIGMAP}/keys`)) {
+        if (etherlinkNullProposal) return fulfillJson(route, []);
         return fulfillJson(route, [
           { firstLevel: 12343020, key: { key_hash: SAMPLE_ADDRESS, bytes: ETHERLINK_FAST_PROPOSAL }, value: null },
           { firstLevel: 12343720, key: { key_hash: SAMPLE_ADDRESS_2, bytes: ETHERLINK_FAST_PROPOSAL }, value: null },
@@ -2165,7 +2175,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(quietContext, { etherlinkQuiet: true, governanceNoProposal: true });
+  await installFeatureMocks(quietContext, { etherlinkNullProposal: true, governanceNoProposal: true });
   await quietContext.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
     localStorage.setItem('tezos-systems-stats-visible', 'true');
@@ -2199,7 +2209,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(!quietSizing.chamberWide && quietSizing.chamberSize === 'compact', `quiet governance sizing: The Chamber should be 1x1, saw ${JSON.stringify(quietSizing)}`);
   assert(/No active vote/.test(quietSizing.chamberText), `quiet governance sizing: The Chamber quiet text mismatch: ${quietSizing.chamberText}`);
   assert(!quietSizing.etherlinkWide && quietSizing.etherlinkSize === 'compact', `quiet governance sizing: Tezlink Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
-  assert(/Quiet/.test(quietSizing.etherlinkText) && /All tracks quiet/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink quiet text mismatch: ${quietSizing.etherlinkText}`);
+  assert(/IDLE/.test(quietSizing.etherlinkText) && /All tracks idle/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink idle text mismatch: ${quietSizing.etherlinkText}`);
   assert(quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should collapse when all tracks are quiet');
   assert(Math.abs(quietSizing.chamberWidth - quietSizing.etherlinkWidth) < 8, `quiet governance sizing: compact cards should share 1x1 width, saw ${quietSizing.chamberWidth} vs ${quietSizing.etherlinkWidth}`);
   await quietContext.close();

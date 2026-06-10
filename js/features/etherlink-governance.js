@@ -12,26 +12,24 @@ const ENTRY_REFRESH_MS = 60 * 1000;
 const CHAMBER_REFRESH_MS = 60 * 1000;
 const CACHE_TTL = 45 * 1000;
 const GOVERNANCE_BASE = 'https://governance.etherlink.com/governance';
+const GOVERNANCE_CONTRACT_CREATOR = 'tz1VGpuq8GkCwf4x6MupTz6QAcJLivQcaAsb';
 
-const TRACKS = [
+const TRACK_TEMPLATES = [
     {
         key: 'fast',
         label: 'FAST',
-        contract: 'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo',
         description: 'Kernel hotfix and fast-track Tezlink governance.',
         quorumLabel: '15% promotion quorum'
     },
     {
         key: 'slow',
         label: 'SLOW',
-        contract: 'KT1AXRU3wLc87WNhLhVGrgqDGubLACUMUgPb',
         description: 'Longer-window kernel governance for standard upgrades.',
         quorumLabel: '5% promotion quorum'
     },
     {
         key: 'sequencer',
         label: 'SEQUENCER',
-        contract: 'KT1VGyd2cRSHoDnxDnSuqGJD3mL8DzcVqX98',
         description: 'Sequencer pool and public-key governance.',
         quorumLabel: '8% promotion quorum'
     }
@@ -197,6 +195,60 @@ function detectPhase(storage) {
     return Object.keys(period)[0] || 'active';
 }
 
+function toNumber(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function startedAtLevel(storage) {
+    return toNumber(storage?.config?.started_at_level);
+}
+
+function classifyTrackKey(storage) {
+    const config = storage?.config || {};
+    const proposalQuorum = toNumber(config.proposal_quorum);
+    const promotionQuorum = toNumber(config.promotion_quorum);
+    const supermajority = toNumber(config.promotion_supermajority);
+    if (!proposalQuorum || !promotionQuorum || !supermajority) return '';
+    if (proposalQuorum === 5 && promotionQuorum === 15) return 'fast';
+    if (promotionQuorum === 5) return 'slow';
+    if (promotionQuorum === 8) return 'sequencer';
+    return '';
+}
+
+async function discoverGovernanceTracks() {
+    const candidates = await fetchJson(`${TZKT}/contracts?creator=${GOVERNANCE_CONTRACT_CREATOR}&limit=16&sort.desc=firstActivity`);
+    const discovered = await Promise.allSettled(
+        candidates
+            .filter((contract) => contract?.kind === 'smart_contract' && contract?.address)
+            .map(async (contract) => {
+                const storage = await fetchJson(`${TZKT}/contracts/${contract.address}/storage`);
+                const key = classifyTrackKey(storage);
+                if (!key) return null;
+                return { key, contract, storage };
+            })
+    );
+    const byTrack = new Map();
+    discovered.forEach((result) => {
+        if (result.status !== 'fulfilled' || !result.value) return;
+        const existing = byTrack.get(result.value.key);
+        if (!existing || startedAtLevel(result.value.storage) > startedAtLevel(existing.storage)) {
+            byTrack.set(result.value.key, result.value);
+        }
+    });
+
+    return TRACK_TEMPLATES.map((template) => {
+        const found = byTrack.get(template.key);
+        return {
+            ...template,
+            contract: found?.contract?.address || '',
+            storage: found?.storage || null,
+            discoveredAtLevel: startedAtLevel(found?.storage),
+            source: found ? 'tzkt-discovery' : 'missing'
+        };
+    });
+}
+
 function knownProposal(hash) {
     if (!hash) return null;
     if (typeof hash === 'object') {
@@ -235,6 +287,7 @@ async function fetchBigmapKeys(ptr, params = '') {
 }
 
 async function fetchActivity(track, period) {
+    if (!track.contract) return [];
     const url = `${TZKT}/operations/transactions?target=${track.contract}&level.ge=${period.startLevel}&level.le=${period.endLevel}&limit=25&sort.desc=level`;
     const rows = await fetchJson(url);
     return rows
@@ -291,12 +344,16 @@ async function buildProposalState(storage) {
         });
     }
     const upvoters = await enrichUpvoters(upvoterKeys).catch(() => []);
+    const maxUpvotes = proposal.max_upvotes_voting_power || proposalRows[0]?.upvotes || '0';
+    if (!winner && !proposalRows.length && !upvoters.length && toBigInt(maxUpvotes) <= 0n) {
+        return null;
+    }
 
     return {
         kind: 'proposal',
         winner,
         totalVotingPower: proposal.total_voting_power || storage?.voting_context?.total_voting_power || '0',
-        maxUpvotes: proposal.max_upvotes_voting_power || proposalRows[0]?.upvotes || '0',
+        maxUpvotes,
         proposalRows,
         upvoters
     };
@@ -314,6 +371,7 @@ function buildPromotionState(storage) {
     const totalCast = toBigInt(yea) + toBigInt(nay) + toBigInt(pass);
     const yeaNay = toBigInt(yea) + toBigInt(nay);
     const supermajority = yeaNay > 0n ? Number((toBigInt(yea) * 10000n) / yeaNay) / 100 : null;
+    if (!candidate && totalCast <= 0n) return null;
 
     return {
         kind: 'promotion',
@@ -329,7 +387,8 @@ function buildPromotionState(storage) {
 }
 
 async function fetchTrack(track, headLevel) {
-    const storage = await fetchJson(`${TZKT}/contracts/${track.contract}/storage`);
+    if (!track.contract) throw new Error('contract discovery unavailable');
+    const storage = track.storage || await fetchJson(`${TZKT}/contracts/${track.contract}/storage`);
     const period = normalizePeriod(track, storage, headLevel);
     const phase = detectPhase(storage);
     const [proposalResult, activityResult] = await Promise.allSettled([
@@ -377,9 +436,10 @@ async function fetchEtherlinkGovernanceData({ force = false } = {}) {
     const headRows = await fetchJson(`${TZKT}/blocks?limit=1&sort.desc=level`);
     const head = Array.isArray(headRows) ? headRows[0] : headRows;
     const headLevel = Number(head?.level) || 0;
-    const trackResults = await Promise.allSettled(TRACKS.map((track) => fetchTrack(track, headLevel)));
+    const trackTemplates = await discoverGovernanceTracks();
+    const trackResults = await Promise.allSettled(trackTemplates.map((track) => fetchTrack(track, headLevel)));
     const tracks = trackResults.map((result, index) => (
-        result.status === 'fulfilled' ? result.value : fallbackTrack(TRACKS[index], result.reason)
+        result.status === 'fulfilled' ? result.value : fallbackTrack(trackTemplates[index], result.reason)
     ));
 
     cachedData = {
@@ -403,25 +463,29 @@ function trackStatus(track) {
         const yayMet = Number.isFinite(track.promotion.supermajority) && track.promotion.supermajority >= track.supermajorityRequired;
         return { label: quorumMet && yayMet ? 'Promotion passing' : 'Promotion live', className: quorumMet && yayMet ? 'good' : 'risk' };
     }
-    if (track.phase === 'empty') return { label: 'No active proposal', className: 'muted' };
+    if (track.phase === 'empty' || !hasActiveTrackPayload(track)) return { label: 'No active proposal', className: 'muted' };
     return { label: 'Active period', className: 'live' };
 }
 
 function topTrack(data) {
-    return data.tracks.find((track) => track.phase === 'proposal' && track.proposal)
-        || data.tracks.find((track) => track.phase === 'promotion' && track.promotion)
+    return data.tracks.find((track) => track.phase === 'proposal' && track.proposal && hasActiveTrackPayload(track))
+        || data.tracks.find((track) => track.phase === 'promotion' && track.promotion && hasActiveTrackPayload(track))
         || data.tracks[0];
 }
 
-function hasActiveProposalTrack(data) {
-    return data.tracks.some((track) => (
+function hasActiveTrackPayload(track) {
+    return Boolean(
         (track.phase === 'proposal' && track.proposal)
         || (track.phase === 'promotion' && track.promotion)
-    ));
+    );
+}
+
+function hasActiveProposalTrack(data) {
+    return data.tracks.some(hasActiveTrackPayload);
 }
 
 function allTracksQuiet(data) {
-    return data.tracks.every((track) => track.phase === 'empty');
+    return data.tracks.every((track) => track.phase !== 'error' && !hasActiveTrackPayload(track));
 }
 
 function progressWidth(value, required) {
@@ -464,7 +528,7 @@ function renderEntryCard(data) {
     const quiet = allTracksQuiet(data);
     let value = main.label;
     if (quiet) {
-        value = 'Quiet';
+        value = 'IDLE';
     } else if (main.phase === 'proposal' && main.proposal) {
         value = formatPercent(main.proposalProgress);
     } else if (main.phase === 'promotion' && main.promotion) {
@@ -490,7 +554,7 @@ function renderEntryCard(data) {
     }
     if (miniEl) {
         miniEl.classList.toggle('live', status.className === 'live' || status.className === 'good');
-        miniEl.textContent = quiet ? 'All tracks quiet' : `${main.label}: ${status.label}`;
+        miniEl.textContent = quiet ? 'All tracks idle' : `${main.label}: ${status.label}`;
     }
     if (metricsEl) {
         metricsEl.hidden = !activeTrack;
@@ -692,7 +756,7 @@ function renderChamber(data, container) {
             <div class="lb-system-strip">
                 <span class="lb-system-brand">Tezos.Systems</span>
                 <span>Tezlink Governance</span>
-                <span>TzKT-backed read-only mirror</span>
+                <span>TzKT-discovered read-only mirror</span>
             </div>
             <div class="chamber-title-row">
                 <h2 class="chamber-title" id="etherlink-governance-title">Tezlink Governance Chamber</h2>
@@ -701,7 +765,7 @@ function renderChamber(data, container) {
             </div>
             <div class="chamber-proposal-info">
                 <div class="proposal-name">${escapeHtml(track.label)} #${escapeHtml(String(track.period?.index ?? '--'))}</div>
-                <div class="proposal-hash">Contract ${escapeHtml(track.contract)} · head ${escapeHtml(String(data.headLevel || '--'))} · updated ${escapeHtml(formatDate(data.updatedAt))}</div>
+                <div class="proposal-hash">Contract ${escapeHtml(track.contract || 'discovery unavailable')} · head ${escapeHtml(String(data.headLevel || '--'))} · updated ${escapeHtml(formatDate(data.updatedAt))}</div>
             </div>
         </div>
         <div class="etherlink-gov-tabs" role="tablist" aria-label="Tezlink governance tracks">
@@ -711,7 +775,7 @@ function renderChamber(data, container) {
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:220ms">
             <a href="${GOVERNANCE_BASE}/${escapeHtml(track.key)}" target="_blank" rel="noopener">Official ${escapeHtml(track.label)} track -></a>
             <span class="chamber-footer-sep">·</span>
-            <a href="https://tzkt.io/${escapeHtml(track.contract)}/storage/" target="_blank" rel="noopener">TzKT storage -></a>
+            ${track.contract ? `<a href="https://tzkt.io/${escapeHtml(track.contract)}/storage/" target="_blank" rel="noopener">TzKT storage -></a>` : '<span>TzKT discovery unavailable</span>'}
             <span class="chamber-footer-sep">·</span>
             <a class="panel-direct-link" href="/#l2chamber" aria-label="Direct link to Tezlink Governance Chamber">Direct: /#l2chamber</a>
         </div>
@@ -804,7 +868,7 @@ async function refreshChamber({ force = false } = {}) {
 }
 
 export async function openEtherlinkGovernanceChamber(trackKey = '') {
-    if (trackKey && TRACKS.some((track) => track.key === trackKey)) activeTrackKey = trackKey;
+    if (trackKey && TRACK_TEMPLATES.some((track) => track.key === trackKey)) activeTrackKey = trackKey;
     let overlay = document.getElementById('etherlink-governance-modal');
     if (!overlay) {
         overlay = document.createElement('div');
