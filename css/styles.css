@@ -3146,25 +3146,46 @@ body::before {
     margin-top: 14px;
 }
 
-.etherlink-gov-proposal-row {
+.etherlink-gov-table .etherlink-gov-proposal-row {
     grid-template-columns: minmax(120px, 0.95fr) minmax(0, 1.35fr) minmax(94px, 0.5fr);
 }
 
-.etherlink-gov-voter-row {
+.etherlink-gov-table .etherlink-gov-voter-row {
     grid-template-columns: minmax(130px, 0.9fr) minmax(0, 1.3fr) minmax(70px, 0.35fr);
     color: var(--text-secondary);
     text-decoration: none;
 }
 
-.etherlink-gov-activity-row {
+.etherlink-gov-table .etherlink-gov-activity-row {
     grid-template-columns: minmax(110px, 0.7fr) minmax(0, 1.3fr) minmax(76px, 0.4fr);
     color: var(--text-secondary);
     text-decoration: none;
 }
 
+.etherlink-gov-history-panel {
+    grid-column: 1 / -1;
+}
+
+.etherlink-gov-table .etherlink-gov-history-row {
+    grid-template-columns: minmax(120px, 0.9fr) minmax(0, 1.2fr) minmax(100px, 0.55fr) minmax(100px, 0.7fr);
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.etherlink-gov-history-row a {
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.etherlink-gov-history-row a:hover,
+.etherlink-gov-history-row a:focus-visible {
+    color: #59f3a6;
+}
+
 .etherlink-gov-proposal-row code,
 .etherlink-gov-voter-row code,
-.etherlink-gov-activity-row code {
+.etherlink-gov-activity-row code,
+.etherlink-gov-history-row code {
     min-width: 0;
     overflow: hidden;
     color: var(--text-tertiary);
@@ -3230,15 +3251,17 @@ body::before {
         grid-template-columns: 1fr;
     }
 
-    .etherlink-gov-proposal-row,
-    .etherlink-gov-voter-row,
-    .etherlink-gov-activity-row {
+    .etherlink-gov-table .etherlink-gov-proposal-row,
+    .etherlink-gov-table .etherlink-gov-voter-row,
+    .etherlink-gov-table .etherlink-gov-activity-row,
+    .etherlink-gov-table .etherlink-gov-history-row {
         grid-template-columns: minmax(0, 1fr) minmax(76px, 0.45fr);
     }
 
     .etherlink-gov-proposal-row code,
     .etherlink-gov-voter-row code,
-    .etherlink-gov-activity-row code {
+    .etherlink-gov-activity-row code,
+    .etherlink-gov-history-row code {
         grid-column: 1 / -1;
     }
 

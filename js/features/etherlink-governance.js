@@ -13,6 +13,20 @@ const CHAMBER_REFRESH_MS = 60 * 1000;
 const CACHE_TTL = 45 * 1000;
 const GOVERNANCE_BASE = 'https://governance.etherlink.com/governance';
 const GOVERNANCE_CONTRACT_CREATOR = 'tz1VGpuq8GkCwf4x6MupTz6QAcJLivQcaAsb';
+const HISTORICAL_PROPOSAL_SCAN_LIMIT = 32;
+const HISTORICAL_PROPOSALS_PER_TRACK = 4;
+const GOVERNANCE_HISTORY_CODE_HASHES = [
+    1029816579,
+    2062495254,
+    -322739163,
+    368151125
+];
+const GOVERNANCE_HISTORY_CODE_HASH_TRACKS = new Map([
+    ['1029816579', ['fast']],
+    ['2062495254', ['fast', 'slow']],
+    ['-322739163', ['fast', 'slow']],
+    ['368151125', ['sequencer']]
+]);
 
 const TRACK_TEMPLATES = [
     {
@@ -72,12 +86,14 @@ const KNOWN_PROPOSALS = new Map([
 
 let cachedData = null;
 let cachedAt = 0;
+let dataInFlight = null;
 let activeTrackKey = 'fast';
 let entryTimer = null;
 let chamberTimer = null;
 let chamberInFlight = false;
 let savedBodyOverflow = null;
 let savedHtmlOverflow = null;
+const targetTrackCache = new Map();
 
 function isAbortableTarget(target) {
     return Boolean(target?.closest('button, a, .card-info-btn, .card-tooltip'));
@@ -90,6 +106,26 @@ async function fetchJson(url) {
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return response.json();
+}
+
+function delay(ms) {
+    return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+}
+
+async function fetchJsonWithRetry(url, attempts = 2) {
+    let lastError = null;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+        try {
+            return await fetchJson(url);
+        } catch (error) {
+            lastError = error;
+            if (!String(error?.message || '').includes('HTTP 429') || attempt === attempts - 1) {
+                throw error;
+            }
+            await delay(350 * (attempt + 1));
+        }
+    }
+    throw lastError;
 }
 
 function toBigInt(value) {
@@ -218,24 +254,22 @@ function classifyTrackKey(storage) {
 
 async function discoverGovernanceTracks() {
     const candidates = await fetchJson(`${TZKT}/contracts?creator=${GOVERNANCE_CONTRACT_CREATOR}&limit=16&sort.desc=firstActivity`);
-    const discovered = await Promise.allSettled(
-        candidates
-            .filter((contract) => contract?.kind === 'smart_contract' && contract?.address)
-            .map(async (contract) => {
-                const storage = await fetchJson(`${TZKT}/contracts/${contract.address}/storage`);
-                const key = classifyTrackKey(storage);
-                if (!key) return null;
-                return { key, contract, storage };
-            })
-    );
     const byTrack = new Map();
-    discovered.forEach((result) => {
-        if (result.status !== 'fulfilled' || !result.value) return;
-        const existing = byTrack.get(result.value.key);
-        if (!existing || startedAtLevel(result.value.storage) > startedAtLevel(existing.storage)) {
-            byTrack.set(result.value.key, result.value);
+    const contracts = candidates.filter((contract) => contract?.kind === 'smart_contract' && contract?.address);
+    for (const contract of contracts) {
+        try {
+            const storage = await fetchJsonWithRetry(`${TZKT}/contracts/${contract.address}/storage`, 3);
+            const key = classifyTrackKey(storage);
+            if (!key) continue;
+            targetTrackCache.set(contract.address, key);
+            const existing = byTrack.get(key);
+            if (!existing || startedAtLevel(storage) > startedAtLevel(existing.storage)) {
+                byTrack.set(key, { key, contract, storage });
+            }
+        } catch (_) {
+            // Discovery is best-effort: fallback tracks make the delay visible without breaking the modal.
         }
-    });
+    }
 
     return TRACK_TEMPLATES.map((template) => {
         const found = byTrack.get(template.key);
@@ -300,6 +334,79 @@ async function fetchActivity(track, period) {
             value: op.parameter?.value,
             sender: op.sender || null
         }));
+}
+
+function proposalKey(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    try {
+        return JSON.stringify(value);
+    } catch (_) {
+        return String(value);
+    }
+}
+
+function possibleHistoryTracks(codeHash) {
+    return GOVERNANCE_HISTORY_CODE_HASH_TRACKS.get(String(codeHash)) || TRACK_TEMPLATES.map((track) => track.key);
+}
+
+function historyTrackIsFull(byTrack, trackKey) {
+    return (byTrack.get(trackKey) || []).length >= HISTORICAL_PROPOSALS_PER_TRACK;
+}
+
+async function classifyHistoricalOperation(op) {
+    const address = op.target?.address || '';
+    const possibleTracks = possibleHistoryTracks(op.targetCodeHash);
+    if (possibleTracks.length === 1) {
+        if (address) targetTrackCache.set(address, possibleTracks[0]);
+        return possibleTracks[0];
+    }
+    if (!address) return '';
+    const cached = targetTrackCache.get(address);
+    if (cached) return cached;
+    try {
+        const storage = await fetchJsonWithRetry(`${TZKT}/contracts/${address}/storage`, 2);
+        const key = classifyTrackKey(storage);
+        if (key) targetTrackCache.set(address, key);
+        return key;
+    } catch (_) {
+        return '';
+    }
+}
+
+async function fetchHistoricalProposalMap() {
+    const url = `${TZKT}/operations/transactions?targetCodeHash.in=${GOVERNANCE_HISTORY_CODE_HASHES.join(',')}&entrypoint=new_proposal&limit=${HISTORICAL_PROPOSAL_SCAN_LIMIT}&sort.desc=level`;
+    const rows = await fetchJson(url);
+    const byTrack = new Map(TRACK_TEMPLATES.map((track) => [track.key, []]));
+    const seen = new Set();
+
+    for (const op of rows) {
+        if (op.status && op.status !== 'applied') continue;
+        const possibleTracks = possibleHistoryTracks(op.targetCodeHash);
+        if (possibleTracks.every((trackKey) => historyTrackIsFull(byTrack, trackKey))) continue;
+        const contract = op.target?.address || '';
+        const payload = op.parameter?.value;
+        const key = proposalKey(payload);
+        if (!key) continue;
+        const trackKey = await classifyHistoricalOperation(op);
+        if (!trackKey) continue;
+        const seenKey = `${trackKey}:${key}`;
+        if (seen.has(seenKey)) continue;
+        seen.add(seenKey);
+        const proposals = byTrack.get(trackKey) || [];
+        if (proposals.length >= HISTORICAL_PROPOSALS_PER_TRACK) continue;
+        proposals.push({
+            payload,
+            key,
+            level: op.level,
+            time: op.timestamp,
+            hash: op.hash,
+            contract,
+            sender: op.sender || null
+        });
+    }
+
+    return byTrack;
 }
 
 async function enrichUpvoters(keys) {
@@ -386,7 +493,7 @@ function buildPromotionState(storage) {
     };
 }
 
-async function fetchTrack(track, headLevel) {
+async function fetchTrack(track, headLevel, historicalProposals = []) {
     if (!track.contract) throw new Error('contract discovery unavailable');
     const storage = track.storage || await fetchJson(`${TZKT}/contracts/${track.contract}/storage`);
     const period = normalizePeriod(track, storage, headLevel);
@@ -412,6 +519,7 @@ async function fetchTrack(track, headLevel) {
         proposal,
         promotion,
         activity,
+        historicalProposals,
         proposalProgress,
         proposalRequired,
         promotionRequired,
@@ -427,29 +535,44 @@ function fallbackTrack(track, error) {
         proposal: null,
         promotion: null,
         activity: [],
+        historicalProposals: [],
         error: error?.message || 'unavailable'
     };
 }
 
 async function fetchEtherlinkGovernanceData({ force = false } = {}) {
     if (!force && cachedData && Date.now() - cachedAt < CACHE_TTL) return cachedData;
-    const headRows = await fetchJson(`${TZKT}/blocks?limit=1&sort.desc=level`);
-    const head = Array.isArray(headRows) ? headRows[0] : headRows;
-    const headLevel = Number(head?.level) || 0;
-    const trackTemplates = await discoverGovernanceTracks();
-    const trackResults = await Promise.allSettled(trackTemplates.map((track) => fetchTrack(track, headLevel)));
-    const tracks = trackResults.map((result, index) => (
-        result.status === 'fulfilled' ? result.value : fallbackTrack(trackTemplates[index], result.reason)
-    ));
+    if (dataInFlight) return dataInFlight;
+    dataInFlight = (async () => {
+        const headRows = await fetchJson(`${TZKT}/blocks?limit=1&sort.desc=level`);
+        const head = Array.isArray(headRows) ? headRows[0] : headRows;
+        const headLevel = Number(head?.level) || 0;
+        const trackTemplates = await discoverGovernanceTracks();
+        const historicalResult = await Promise.allSettled([fetchHistoricalProposalMap()]);
+        const historicalProposals = historicalResult[0]?.status === 'fulfilled'
+            ? historicalResult[0].value
+            : new Map();
+        const trackResults = await Promise.allSettled(trackTemplates.map((track) => (
+            fetchTrack(track, headLevel, historicalProposals.get(track.key) || [])
+        )));
+        const tracks = trackResults.map((result, index) => (
+            result.status === 'fulfilled' ? result.value : fallbackTrack(trackTemplates[index], result.reason)
+        ));
 
-    cachedData = {
-        head,
-        headLevel,
-        updatedAt: Date.now(),
-        tracks
-    };
-    cachedAt = Date.now();
-    return cachedData;
+        cachedData = {
+            head,
+            headLevel,
+            updatedAt: Date.now(),
+            tracks
+        };
+        cachedAt = Date.now();
+        return cachedData;
+    })();
+    try {
+        return await dataInFlight;
+    } finally {
+        dataInFlight = null;
+    }
 }
 
 function trackStatus(track) {
@@ -674,6 +797,7 @@ function renderPromotionPanel(track) {
 
 function renderEmptyPanel(track) {
     if (track.phase !== 'empty') return '';
+    const last = track.historicalProposals?.[0] || null;
     return `
         <section class="lb-panel etherlink-gov-panel chamber-anim-fade">
             <div class="lb-panel-header">
@@ -683,7 +807,43 @@ function renderEmptyPanel(track) {
                 </div>
                 <a class="lb-live-pill" href="${GOVERNANCE_BASE}/${escapeHtml(track.key)}" target="_blank" rel="noopener">Official track</a>
             </div>
-            <p class="lb-copy">The contract is in its proposal window, but TzKT storage does not currently show a known proposal or promotion payload for this track.</p>
+            <p class="lb-copy">The contract is in its proposal window, but TzKT storage does not currently show a known proposal or promotion payload for this track.${last ? ` Latest indexed proposal: ${escapeHtml(proposalLabel(last.payload))}.` : ''}</p>
+        </section>
+    `;
+}
+
+function renderHistoricalProposals(track) {
+    const rows = (track.historicalProposals || []).slice(0, HISTORICAL_PROPOSALS_PER_TRACK).map((proposal) => {
+        const knownHref = proposalHref(proposal.payload);
+        const title = proposalLabel(proposal.payload);
+        const proposalCell = knownHref
+            ? `<a href="${escapeHtml(knownHref)}" target="_blank" rel="noopener">${escapeHtml(title)}</a>`
+            : `<span>${escapeHtml(title)}</span>`;
+        return `
+            <div class="lb-table-row etherlink-gov-history-row" data-etherlink-proposal-op="${escapeHtml(proposal.hash)}">
+                <span>${proposalCell}</span>
+                <code>${escapeHtml(compactHash(proposal.key))}</code>
+                <span>${escapeHtml(formatDate(proposal.time))}</span>
+                <strong>${escapeHtml(proposal.sender?.alias || proposal.sender?.address || 'sender')}</strong>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <section class="lb-panel etherlink-gov-panel etherlink-gov-history-panel chamber-anim-fade" style="animation-delay:90ms">
+            <div class="lb-panel-header">
+                <div>
+                    <span class="lb-panel-kicker">Historical proposals</span>
+                    <h3>Recent ${escapeHtml(track.label)} submissions</h3>
+                </div>
+                <span class="lb-live-pill">${escapeHtml(String((track.historicalProposals || []).length))} indexed</span>
+            </div>
+            <div class="lb-table etherlink-gov-table">
+                <div class="lb-table-head etherlink-gov-history-row">
+                    <span>Proposal</span><span>Payload</span><span>Submitted</span><span>Sender</span>
+                </div>
+                <div>${rows || '<div class="lb-empty">No historical proposal submissions found in the indexed TzKT sample.</div>'}</div>
+            </div>
         </section>
     `;
 }
@@ -742,6 +902,7 @@ function renderTrackPanel(track) {
                 ${renderProposalPanel(track)}
                 ${renderPromotionPanel(track)}
                 ${renderEmptyPanel(track)}
+                ${renderHistoricalProposals(track)}
                 ${renderActivity(track)}
             </div>
         </div>

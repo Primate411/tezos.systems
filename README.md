@@ -142,8 +142,8 @@ inline modal styles in `js/core/app.js`.
   Health as one hideable feature with card-level direct-link controls.
 - Tezlink Governance Chamber with direct `#l2chamber` access,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
-  discovery, storage, and bigmaps, plus official-track and TzKT links for
-  action/audit.
+  discovery, storage, bigmaps, and recent historical proposal submissions, plus
+  official-track and TzKT links for action/audit.
 - Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
   transactions, gas, addresses, Blockscout transaction tape, and DefiLlama
   protocol TVL sourced from current Tezlink rails.

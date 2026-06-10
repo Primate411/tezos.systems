@@ -88,6 +88,12 @@ const ETHERLINK_FAST_CONTRACT = 'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo';
 const ETHERLINK_SLOW_CONTRACT = 'KT1AXRU3wLc87WNhLhVGrgqDGubLACUMUgPb';
 const ETHERLINK_SEQUENCER_CONTRACT = 'KT1VGyd2cRSHoDnxDnSuqGJD3mL8DzcVqX98';
 const ETHERLINK_FAST_PROPOSAL = '00625d22abf10a520cae5489b7e19df70219a150d336ee6dc0a8eb4c21eca43c1b';
+const ETHERLINK_FAST_OLDER_PROPOSAL = '0056aea7f98b2bc4d18edb450b2f098f6e95e5356f30a1fac2b50080f3e482bad1';
+const ETHERLINK_SLOW_PROPOSAL = '0079e0f348b608ce486c9e5e1fdf84b650019922bf3383b562522c2c8f60a098da';
+const ETHERLINK_SEQUENCER_PROPOSAL = {
+  pool_address: '3b1885eec759c22c878e12c84fac33b3b9d153e4',
+  sequencer_pk: 'p2pk64mGSmsRAuodTdyNMJdSC6SmtWHF3gXH1WmmpPY8hyTqYFfd4Bg'
+};
 const ETHERLINK_PROPOSALS_BIGMAP = '990001';
 const ETHERLINK_UPVOTERS_BIGMAP = '990002';
 const ETHERLINK_UPVOTE_COUNTS_BIGMAP = '990003';
@@ -729,6 +735,54 @@ async function installFeatureMocks(context, options = {}) {
         return fulfillJson(route, [
           { key: SAMPLE_ADDRESS, value: '1', firstLevel: 12343020 },
           { key: SAMPLE_ADDRESS_2, value: '1', firstLevel: 12343720 }
+        ]);
+      }
+      if (url.includes('/operations/transactions?') && url.includes('targetCodeHash.in=') && url.includes('entrypoint=new_proposal')) {
+        return fulfillJson(route, [
+          {
+            id: 5010,
+            hash: 'opEtherlinkHistoricalFast111111111111111111111',
+            level: 12345610,
+            timestamp: new Date(Date.now() - 5 * 60000).toISOString(),
+            status: 'applied',
+            sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+            target: { address: ETHERLINK_FAST_CONTRACT, alias: 'Etherlink FAST governance' },
+            targetCodeHash: 1029816579,
+            parameter: { entrypoint: 'new_proposal', value: ETHERLINK_FAST_PROPOSAL }
+          },
+          {
+            id: 5009,
+            hash: 'opEtherlinkHistoricalFastOlder1111111111111111',
+            level: 12342000,
+            timestamp: new Date(Date.now() - 3 * 3600000).toISOString(),
+            status: 'applied',
+            sender: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+            target: { address: ETHERLINK_FAST_CONTRACT, alias: 'Etherlink FAST governance' },
+            targetCodeHash: 1029816579,
+            parameter: { entrypoint: 'new_proposal', value: ETHERLINK_FAST_OLDER_PROPOSAL }
+          },
+          {
+            id: 5008,
+            hash: 'opEtherlinkHistoricalSlow111111111111111111111',
+            level: 12330000,
+            timestamp: new Date(Date.now() - 5 * 3600000).toISOString(),
+            status: 'applied',
+            sender: { address: SAMPLE_ADDRESS_3, alias: 'Pending Baker' },
+            target: { address: ETHERLINK_SLOW_CONTRACT, alias: 'Etherlink SLOW governance' },
+            targetCodeHash: 2062495254,
+            parameter: { entrypoint: 'new_proposal', value: ETHERLINK_SLOW_PROPOSAL }
+          },
+          {
+            id: 5007,
+            hash: 'opEtherlinkHistoricalSequencer11111111111111',
+            level: 12320000,
+            timestamp: new Date(Date.now() - 8 * 3600000).toISOString(),
+            status: 'applied',
+            sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+            target: { address: ETHERLINK_SEQUENCER_CONTRACT, alias: 'Etherlink Sequencer governance' },
+            targetCodeHash: 368151125,
+            parameter: { entrypoint: 'new_proposal', value: ETHERLINK_SEQUENCER_PROPOSAL }
+          }
         ]);
       }
       if (url.includes('/accounts?') && url.includes('address.in=')) {
@@ -1881,6 +1935,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       proposalHash: compactText('#etherlink-governance-modal .etherlink-gov-proposal-hash'),
       threshold: compactText('#etherlink-governance-modal .etherlink-gov-threshold-row'),
       proposalRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-proposal-row').length,
+      historyRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-history-row').length,
+      historyText: compactText('#etherlink-governance-modal .etherlink-gov-track-panel'),
       voterRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-voter-row').length,
       activityRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-activity-row').length,
       footer: compactText('#etherlink-governance-modal .chamber-footer'),
@@ -1898,6 +1954,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(etherlinkState.proposalHash === ETHERLINK_FAST_PROPOSAL, `governance testing period: Etherlink proposal hash mismatch: ${etherlinkState.proposalHash}`);
   assert(/93\.2M XTZ upvotes/.test(etherlinkState.threshold) && /14\.2% \/ 5% required/.test(etherlinkState.threshold), `governance testing period: Etherlink threshold mismatch: ${etherlinkState.threshold}`);
   assert(etherlinkState.proposalRows >= 2, `governance testing period: Etherlink proposal rows missing, saw ${etherlinkState.proposalRows}`);
+  assert(etherlinkState.historyRows >= 3, `governance testing period: Etherlink FAST history rows missing, saw ${etherlinkState.historyRows}`);
+  assert(/Etherlink 6\.1/.test(etherlinkState.historyText), `governance testing period: Etherlink FAST history should include older proposal: ${etherlinkState.historyText.slice(0, 320)}`);
   assert(etherlinkState.voterRows >= 3, `governance testing period: Etherlink upvoter rows missing, saw ${etherlinkState.voterRows}`);
   assert(etherlinkState.activityRows >= 2, `governance testing period: Etherlink activity rows missing, saw ${etherlinkState.activityRows}`);
   assert(/Direct: \/#l2chamber/.test(etherlinkState.footer), `governance testing period: Tezlink direct footer missing: ${etherlinkState.footer}`);
@@ -1909,10 +1967,20 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('#etherlink-governance-modal [data-etherlink-track="slow"]').click();
   const etherlinkSlowState = await page.evaluate(() => ({
     activeTab: document.querySelector('#etherlink-governance-modal [data-etherlink-track].active')?.dataset.etherlinkTrack || '',
+    historyRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-history-row').length,
     text: document.querySelector('#etherlink-governance-modal')?.textContent || ''
   }));
   assert(etherlinkSlowState.activeTab === 'slow', `governance testing period: Etherlink SLOW tab did not activate, saw ${etherlinkSlowState.activeTab}`);
   assert(/No active SLOW proposal/.test(etherlinkSlowState.text), `governance testing period: Etherlink SLOW empty state missing: ${etherlinkSlowState.text.slice(0, 240)}`);
+  assert(etherlinkSlowState.historyRows >= 2 && /Farfadet/.test(etherlinkSlowState.text), `governance testing period: Etherlink SLOW history missing: ${etherlinkSlowState.text.slice(0, 320)}`);
+  await page.locator('#etherlink-governance-modal [data-etherlink-track="sequencer"]').click();
+  const etherlinkSequencerState = await page.evaluate(() => ({
+    activeTab: document.querySelector('#etherlink-governance-modal [data-etherlink-track].active')?.dataset.etherlinkTrack || '',
+    historyRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-history-row').length,
+    text: document.querySelector('#etherlink-governance-modal')?.textContent || ''
+  }));
+  assert(etherlinkSequencerState.activeTab === 'sequencer', `governance testing period: Etherlink Sequencer tab did not activate, saw ${etherlinkSequencerState.activeTab}`);
+  assert(etherlinkSequencerState.historyRows >= 2 && /Sequencer Upgrade/.test(etherlinkSequencerState.text), `governance testing period: Etherlink Sequencer history missing: ${etherlinkSequencerState.text.slice(0, 320)}`);
   await page.locator('#etherlink-governance-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#etherlink-governance-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await page.evaluate(() => { window.location.hash = 'l2chamber'; });
