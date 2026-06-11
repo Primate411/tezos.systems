@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-11',
         entries: [
+            { type: '🎨', text: 'Network Health and Liquidity Baking chamber cards now keep compact status rows inside the card frame at wide desktop sizes' },
             { type: '🎨', text: 'Chambers now render as three paired rows so wide cards keep their companion card instead of leaving visual gaps' },
             { type: '✨', text: 'The Chamber card and modal now show live proposal context, refresh every minute, expose vote sharing, and keep live vote data before process explainers' },
             { type: '🎨', text: 'Network Health, Tezlink, Tezlink Governance, Liquidity Baking, and tz4 cards now use clearer live tapes, meters, idle chips, and mobile-safe previews' },

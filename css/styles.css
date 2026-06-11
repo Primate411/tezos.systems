@@ -2741,7 +2741,8 @@ body::before {
         grid-auto-rows: min-content;
         align-content: center;
         align-items: center;
-        gap: 0.38rem 0.75rem;
+        gap: 0.42rem 0.75rem;
+        padding-top: 1rem !important;
         text-align: left;
     }
 
@@ -2757,6 +2758,27 @@ body::before {
 
     #chambers-grid .health-entry-card.chamber-entry-wide {
         height: 204px !important;
+    }
+
+    .health-entry-card.chamber-entry-wide .network-health-blocks {
+        min-height: 2.65rem;
+    }
+
+    .health-entry-card.chamber-entry-wide .network-health-block {
+        min-height: 2.58rem;
+        padding: 0.18rem 0.18rem;
+    }
+
+    .health-entry-card.chamber-entry-wide .network-health-block-bar {
+        min-height: 21px;
+    }
+
+    .health-entry-card.chamber-entry-wide .network-health-periods {
+        min-height: 1.48rem;
+    }
+
+    .health-entry-card.chamber-entry-wide .network-health-period {
+        padding: 0.18rem 0.32rem;
     }
 }
 
@@ -16057,12 +16079,17 @@ body {
 
 .lb-entry-ema {
     font-family: 'Orbitron', 'JetBrains Mono', monospace;
-    font-size: 2.95rem !important;
+    font-size: 2.72rem !important;
     font-variant-numeric: tabular-nums;
-    line-height: 1.22;
+    line-height: 1.04;
     letter-spacing: 0;
     margin: 4px 0 2px;
     white-space: nowrap;
+}
+
+.lb-entry-card .lb-entry-open-target {
+    gap: 0.55rem !important;
+    padding-top: 1.35rem !important;
 }
 
 .lb-entry-card.lb-subsidy-active .lb-entry-ema {
@@ -16082,6 +16109,11 @@ body {
 
 .lb-entry-card.lb-subsidy-disabled .chamber-entry-status {
     color: var(--chamber-disabled-color);
+}
+
+.lb-entry-card .chamber-entry-status {
+    margin-top: 0;
+    line-height: 1.15;
 }
 
 .lb-entry-meter {
