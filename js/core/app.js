@@ -3,6 +3,7 @@
  * Dashboard for Tezos network statistics
  */
 
+import './tzkt-throttle.js';
 import { fetchAllStats, fetchHeroStats, checkApiHealth, fetchVoteTally } from './api.js';
 import { initTheme, openThemePicker, setTheme, getAvailableThemes } from '../ui/theme.js';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';

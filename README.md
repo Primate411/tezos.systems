@@ -48,6 +48,7 @@ tezos.systems/
 │   │   ├── app.js                     # App orchestration, DOM wiring, refresh loop
 │   │   ├── api.js                     # TzKT, Octez RPC, Supabase, Tezos data fetches
 │   │   ├── config.js                  # Endpoints, refresh intervals, constants
+│   │   ├── tzkt-throttle.js           # Browser-local TzKT request pacing
 │   │   ├── storage.js                 # localStorage/sessionStorage wrappers
 │   │   └── utils.js                   # Formatting, sanitization, utility helpers
 │   ├── features/                      # Governance, LB, bakers, market, feeds, widgets
@@ -82,19 +83,21 @@ tezos.systems/
 
 1. `index.html` loads `css/styles.min.css` and `js/core/app.js` as an ES
    module.
-2. `app.js` initializes feature modules behind safe wrappers, registers the
+2. `app.js` installs `js/core/tzkt-throttle.js` before feature startup so
+   browser-side TzKT API fetches are queued at six request starts per second.
+3. `app.js` initializes feature modules behind safe wrappers, registers the
    service worker, handles deep links, and starts the refresh loop.
-3. Cached stats and protocol data are displayed first when available.
-4. First-visit default content is the protocol panel plus the Chambers section.
+4. Cached stats and protocol data are displayed first when available.
+5. First-visit default content is the protocol panel plus the Chambers section.
    Network Stats sections are hidden until the user enables Network Stats from
    Explore.
-5. Background refreshes update hero stats, comparison data, governance state,
+6. Background refreshes update hero stats, comparison data, governance state,
    cycle pulse, daily briefing, rewards tracker, price intelligence, baker
    tools, leaderboard, My Tezos, and share-ready UI.
-6. Sparkline cards draw their series from historical snapshots, then align the
+7. Sparkline cards draw their series from historical snapshots, then align the
    final point with the latest live stat so chart endpoints and card values
    agree.
-7. DOM elements are updated directly by id and class. There is no app state
+8. DOM elements are updated directly by id and class. There is no app state
    framework.
 
 Current refresh and cache intervals from `js/core/config.js`:
@@ -216,6 +219,10 @@ Live staking ratio and APY surfaces use TzKT `statistics/current` totals for
 `totalOwnStaked + totalExternalStaked`, paired with TzKT `totalSupply`. Octez
 RPC still supplies issuance, constants, cycle/head metadata, and fallback values
 when TzKT stats are unavailable.
+
+Visitor-side TzKT fetches are paced in the browser by `js/core/tzkt-throttle.js`
+at six request starts per second. This avoids avoidable 429 bursts without
+adding a proxy or changing the canonical TzKT API host.
 
 The Supabase anon key in `js/core/config.js` is public client configuration, not
 a secret. Browser fetch domains must be allowed by the CSP in `index.html`.
@@ -382,6 +389,8 @@ Widgets:
   components if their color maps are not updated.
 - TzKT filters can be surprising; some whale and sleeping-giant amount filters
   are intentionally done client-side.
+- TzKT requests are queued per browser tab at six starts per second; expect a
+  small delay when several feature modules ask for live TzKT data at once.
 - Tezos mainnet launch copy should use September 17, 2018. June 2018 refers to
   fundraiser genesis, not the mainnet launch date used by the app.
 - Adding a new network source requires a CSP update in `index.html`.

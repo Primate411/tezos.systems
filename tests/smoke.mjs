@@ -1355,6 +1355,70 @@ async function smokeAppShell(browser, baseUrl) {
   log(`ok - app shell smoke (${shell.assetResults.length} shell assets)`);
 }
 
+async function smokeTzktThrottle(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 800, height: 600 },
+    serviceWorkers: 'block'
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'TzKT throttle', issues);
+
+  const response = await page.goto(`${baseUrl}/tests/fixtures/tzkt-throttle.html`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `TzKT throttle: fixture failed with HTTP ${response?.status()}`);
+  await page.waitForFunction(() => window.__tzktThrottle?.patched === true, null, { timeout: 5000 });
+
+  const result = await page.evaluate(async () => {
+    window.__tzktThrottleStarts.length = 0;
+    const start = performance.now();
+    const tzktUrls = Array.from(
+      { length: 8 },
+      (_, index) => `https://api.tzkt.io/v1/head?smoke=${index}`
+    );
+    const otherUrl = 'https://api.coingecko.com/api/v3/ping';
+
+    await Promise.all([
+      ...tzktUrls.map((url) => fetch(url).then((r) => r.json())),
+      fetch(otherUrl).then((r) => r.json())
+    ]);
+
+    const starts = window.__tzktThrottleStarts.map((entry) => ({
+      ...entry,
+      delta: entry.at - start
+    }));
+
+    return {
+      constants: {
+        maxRequestsPerSecond: window.__tzktThrottle.maxRequestsPerSecond,
+        minSpacingMs: window.__tzktThrottle.minSpacingMs
+      },
+      other: starts.find((entry) => entry.url.includes('api.coingecko.com')),
+      starts,
+      tzkt: starts.filter((entry) => entry.url.includes('api.tzkt.io'))
+    };
+  });
+
+  assert(result.constants.maxRequestsPerSecond === 6, `TzKT throttle: maxRequestsPerSecond mismatch ${result.constants.maxRequestsPerSecond}`);
+  assert(result.constants.minSpacingMs >= 167, `TzKT throttle: minSpacingMs should pace six per second, saw ${result.constants.minSpacingMs}`);
+  assert(result.tzkt.length === 8, `TzKT throttle: expected 8 TzKT starts, saw ${result.tzkt.length}`);
+  assert(result.other && result.other.delta < 100, `TzKT throttle: non-TzKT fetch should bypass queue quickly, saw ${JSON.stringify(result.other)}`);
+
+  const tzktDeltas = result.tzkt.map((entry) => entry.delta).sort((a, b) => a - b);
+  const firstSevenSpan = tzktDeltas[6] - tzktDeltas[0];
+  const totalSpan = tzktDeltas[7] - tzktDeltas[0];
+  assert(firstSevenSpan >= 950, `TzKT throttle: seventh request started too soon (${firstSevenSpan.toFixed(1)}ms)`);
+  assert(totalSpan >= 1100, `TzKT throttle: eight requests were not paced enough (${totalSpan.toFixed(1)}ms)`);
+
+  for (let i = 0; i < tzktDeltas.length; i += 1) {
+    const windowCount = tzktDeltas.filter((delta) => delta >= tzktDeltas[i] && delta < tzktDeltas[i] + 1000).length;
+    assert(windowCount <= 6, `TzKT throttle: ${windowCount} requests started inside one second window at ${tzktDeltas[i].toFixed(1)}ms`);
+  }
+
+  await context.close();
+  assert(issues.length === 0, `TzKT throttle browser issues:\n${issues.join('\n')}`);
+  log('ok - TzKT throttle smoke');
+}
+
 async function smokeDashboard(browser, baseUrl, viewport, label) {
   const issues = [];
   const context = await browser.newContext({
@@ -2830,6 +2894,7 @@ function getSuiteCatalog(browser, baseUrl) {
   return [
     { name: 'first-visit-tour', description: 'Deep-link onboarding, first root visit, and tour prompt behavior', run: () => smokeFirstVisitTour(browser, baseUrl) },
     { name: 'app-shell', description: 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets', run: () => smokeAppShell(browser, baseUrl) },
+    { name: 'tzkt-throttle', description: 'Browser-local TzKT fetch queue keeps visitor requests at six starts per second', run: () => smokeTzktThrottle(browser, baseUrl) },
     { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
@@ -2866,6 +2931,7 @@ async function main() {
   const suiteNames = [
     ['first-visit-tour', 'Deep-link onboarding, first root visit, and tour prompt behavior'],
     ['app-shell', 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets'],
+    ['tzkt-throttle', 'Browser-local TzKT fetch queue keeps visitor requests at six starts per second'],
     ['dashboard-desktop', 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>TzKT throttle smoke fixture</title>
+    <link rel="icon" href="data:,">
+</head>
+<body>
+    <main>TzKT throttle smoke fixture</main>
+    <script>
+        window.__tzktThrottleStarts = [];
+        window.fetch = async function smokeFetch(resource) {
+            const url = resource && typeof resource.url === 'string' ? resource.url : String(resource);
+            window.__tzktThrottleStarts.push({ url, at: performance.now() });
+            return new Response(JSON.stringify({ ok: true, url }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        };
+    </script>
+    <script type="module" src="/js/core/tzkt-throttle.js"></script>
+</body>
+</html>

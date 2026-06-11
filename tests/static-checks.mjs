@@ -140,6 +140,7 @@ async function checkRequiredFiles() {
     'js/core/app.js',
     'js/core/api.js',
     'js/core/config.js',
+    'js/core/tzkt-throttle.js',
     'sw.js',
     'version.json',
     'data/governance-votes.json',

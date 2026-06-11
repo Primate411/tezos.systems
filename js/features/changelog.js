@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-11',
+        entries: [
+            { type: '⚡', text: 'TzKT API calls now pass through a browser-local queue capped at six request starts per second to avoid visitor-side 429 bursts' },
+        ]
+    },
+    {
         date: '2026-06-10',
         entries: [
             { type: '🔧', text: 'Chambers grid now keeps Network Health with The Chamber, Tezlink with Tezlink Governance, and tz4 Adoption with LB Monitor' },
