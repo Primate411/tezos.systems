@@ -477,8 +477,31 @@ function renderEmaStatus(data) {
                 <span class="lb-ema-threshold" style="left:50%"><span>50% disables</span></span>
                 <div class="lb-ema-fill ${data.disabled ? 'disabled' : 'active'}" id="lb-ema-fill" style="width:${capped.toFixed(2)}%"></div>
             </div>
+            <div class="lb-ema-sparkline" id="lb-ema-sparkline">${renderEmaSparkline(data.blocks)}</div>
             <div class="lb-status-banner ${data.disabled ? 'disabled' : 'active'}" id="lb-status-banner">${status}</div>
         </section>
+    `;
+}
+
+function renderEmaSparkline(blocks = []) {
+    const points = blocks
+        .slice(0, 72)
+        .reverse()
+        .map((block) => emaPct(block.lbToggleEma))
+        .filter((value) => Number.isFinite(value));
+    if (points.length < 2) return '';
+    const width = 180;
+    const height = 42;
+    const coords = points.map((value, index) => {
+        const x = (index / Math.max(1, points.length - 1)) * width;
+        const y = height - (Math.max(0, Math.min(100, value)) / 100) * height;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+    return `
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="Recent OFF-vote EMA trend">
+            <line x1="0" y1="${(height / 2).toFixed(1)}" x2="${width}" y2="${(height / 2).toFixed(1)}" class="lb-ema-spark-threshold"/>
+            <polyline points="${coords}" class="lb-ema-spark-line"/>
+        </svg>
     `;
 }
 
@@ -495,7 +518,7 @@ function renderSavedBaker(data) {
     const signature = savedBakerSignature(data);
     if (!saved) {
         return `
-            <section class="lb-panel lb-saved-baker lb-panel-has-help chamber-anim-fade" data-lb-saved-signature="${escapeHtml(signature)}" style="animation-delay:160ms">
+            <section class="lb-panel lb-saved-baker lb-saved-baker-compact lb-panel-has-help chamber-anim-fade" data-lb-saved-signature="${escapeHtml(signature)}" style="animation-delay:160ms">
                 <div class="lb-panel-title">
                     Your Baker
                     ${renderHelpTooltip({
@@ -710,6 +733,8 @@ function updateEmaStatus(data) {
         banner.classList.toggle('disabled', data.disabled);
         banner.classList.toggle('active', !data.disabled);
     }
+    const sparkline = document.getElementById('lb-ema-sparkline');
+    if (sparkline) sparkline.innerHTML = renderEmaSparkline(data.blocks);
 }
 
 function updateSavedBakerPanel(data) {
@@ -979,6 +1004,10 @@ export function initLiquidityBaking() {
                 <h2 class="stat-label">LB Monitor</h2>
                 <div class="stat-value lb-entry-ema" id="lb-entry-ema"><span class="loading">...</span></div>
                 <p class="stat-description" id="lb-entry-description">EMA + baker toggle votes</p>
+                <div class="lb-entry-meter" aria-label="OFF-vote EMA threshold">
+                    <span class="lb-entry-meter-threshold" style="left:50%"></span>
+                    <span class="lb-entry-meter-fill" id="lb-entry-meter-fill"></span>
+                </div>
                 <div class="chamber-entry-status" id="lb-entry-mini"></div>
             </div>
         </div>
@@ -1048,6 +1077,7 @@ async function loadEntryCardStatus({ force = false } = {}) {
     const mini = document.getElementById('lb-entry-mini');
     const ema = document.getElementById('lb-entry-ema');
     const description = document.getElementById('lb-entry-description');
+    const meterFill = document.getElementById('lb-entry-meter-fill');
     if (!mini || _lbEntryRefreshInFlight) return;
 
     _lbEntryRefreshInFlight = true;
@@ -1056,6 +1086,11 @@ async function loadEntryCardStatus({ force = false } = {}) {
         const status = data.disabled ? 'disabled' : 'active';
         if (ema) ema.textContent = `${data.emaPct.toFixed(1)}%`;
         if (description) description.textContent = `Subsidy ${status}`;
+        if (meterFill) {
+            meterFill.style.width = `${Math.min(100, Math.max(0, data.emaPct)).toFixed(2)}%`;
+            meterFill.classList.toggle('disabled', data.disabled);
+            meterFill.classList.toggle('active', !data.disabled);
+        }
         mini.textContent = 'OFF-vote EMA + baker votes';
         mini.classList.toggle('live', !data.disabled);
         const card = mini.closest('.lb-entry-card');

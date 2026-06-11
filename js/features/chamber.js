@@ -19,6 +19,12 @@ const PROTOCOL_DATA_URL = '/data/protocol-data.json';
 const GOVERNANCE_VOTES_URL = '/data/governance-votes.json';
 const GOVERNANCE_REPORT_URL = '/data/governance-refresh-report.json';
 const HISTORY_CONTEXT_ROWS = 20;
+const CHAMBER_ENTRY_REFRESH_MS = 60000;
+const CHAMBER_MARK_SVG = '<svg class="chamber-entry-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M12 25h40M18 25v25M30 25v25M42 25v25M14 50h36M10 56h44M32 8l22 12H10L32 8Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+let _chamberEntryTimer = null;
+let _chamberEntryVisibilityWired = false;
+let _chamberEntryRefreshInFlight = false;
 
 const STAGES = [
     {
@@ -146,7 +152,7 @@ async function fetchEpochData(epochIndex, currentPeriod = null) {
     ]);
     const protocols = withActiveProposalName(baseProtocols, report);
     let proposal = epoch.proposals?.[0] || null;
-    
+
     let votePeriod = chooseVotePeriod(epoch, currentPeriod);
     
     let voters = [];
@@ -465,7 +471,7 @@ function renderPipeline(epoch, isLive) {
     }).join('');
 }
 
-function renderGovernanceProcess(epoch) {
+function renderGovernanceProcess(epoch, { compact = false } = {}) {
     const startTime = epoch?.startTime || epoch?.periods?.[0]?.startTime;
     const endTime = epoch?.endTime || [...(epoch?.periods || [])].reverse().find(p => p.endTime)?.endTime;
     const rangeText = fmtDateRange(startTime, endTime, true) || 'Dates unavailable';
@@ -473,8 +479,7 @@ function renderGovernanceProcess(epoch) {
     const activePeriod = (epoch?.periods || []).find(p => p.status === 'active');
     const activeLabel = activePeriod ? periodTitle(activePeriod.kind) : 'Historical epoch';
 
-    return `
-        <section class="chamber-process-card chamber-anim-fade" aria-label="Tezos governance process" style="animation-delay:80ms">
+    const processBody = `
             <div class="chamber-process-summary">
                 <div>
                     <span class="process-kicker">Governance process</span>
@@ -495,6 +500,20 @@ function renderGovernanceProcess(epoch) {
                     </div>
                 `).join('')}
             </div>
+    `;
+
+    if (compact) {
+        return `
+            <details class="chamber-process-card chamber-process-card-compact chamber-anim-fade" aria-label="Tezos governance process" style="animation-delay:620ms">
+                <summary>How Tezos governance works</summary>
+                ${processBody}
+            </details>
+        `;
+    }
+
+    return `
+        <section class="chamber-process-card chamber-anim-fade" aria-label="Tezos governance process" style="animation-delay:80ms">
+            ${processBody}
         </section>
     `;
 }
@@ -602,12 +621,13 @@ function renderBakerHeatmap(voters) {
         if (v.status === 'voted_yay') colorClass = 'voted-yay';
         else if (v.status === 'voted_nay') colorClass = 'voted-nay';
         else if (v.status === 'voted_pass') colorClass = 'voted-pass';
-        const name = escapeHtml(v.delegate.alias || v.delegate.address.slice(0, 8) + '…');
+        const address = v.delegate.address || '';
+        const name = escapeHtml(v.delegate.alias || address.slice(0, 8) + '…');
         const delay = 300 + idx * 30;
         
-        return `<div class="heatmap-cell ${colorClass} heatmap-cascade" style="width:${size}px;height:${size}px;animation-delay:${delay}ms" title="${name}: ${fmtPower(v.votingPower)} ꜩ — ${v.status === 'none' ? 'NOT VOTED' : v.status.replace('voted_', '').toUpperCase()}">
+        return `<a class="heatmap-cell ${colorClass} heatmap-cascade" href="https://tzkt.io/${escapeHtml(address)}" target="_blank" rel="noopener" style="width:${size}px;height:${size}px;animation-delay:${delay}ms" title="${name}: ${fmtPower(v.votingPower)} ꜩ — ${v.status === 'none' ? 'NOT VOTED' : v.status.replace('voted_', '').toUpperCase()}">
             ${size >= 32 ? `<span class="heatmap-label">${name.length > 6 ? name.slice(0, 5) + '…' : name}</span>` : ''}
-        </div>`;
+        </a>`;
     }).join('');
     
     const yayCt = top.filter(v => v.status === 'voted_yay').length;
@@ -618,7 +638,7 @@ function renderBakerHeatmap(voters) {
     return `
         <div class="chamber-heatmap chamber-anim-fade" style="animation-delay:300ms">
             <div class="heatmap-title">Baker Consensus Heatmap</div>
-            <div class="heatmap-subtitle">Top 50 bakers · Box area = stake power · Color = vote</div>
+            <div class="heatmap-subtitle">Top 50 bakers · Box size approximates stake power · Color = vote</div>
             <div class="heatmap-scale">Largest: ${fmtPower(sorted[0]?.votingPower || 0)} ꜩ · Smallest shown: ${fmtPower(top[top.length - 1]?.votingPower || 0)} ꜩ</div>
             <div class="heatmap-grid">${cells}</div>
             <div class="heatmap-mobile-summary">
@@ -678,6 +698,10 @@ function renderMomentumSparkline(voters, isLiveVote, votePeriod) {
     const periodIdx = votePeriod?.index;
     const startTime = votePeriod?.startTime;
     const endTime = votePeriod?.endTime;
+    const quorumRequired = Number(votePeriod?.ballotsQuorum);
+    const quorumY = Number.isFinite(quorumRequired)
+        ? Math.max(0, Math.min(60, 60 - (quorumRequired * 0.6)))
+        : null;
     
     // Schedule async ballot fetch after render
     if (periodIdx) {
@@ -700,6 +724,7 @@ function renderMomentumSparkline(voters, isLiveVote, votePeriod) {
                     <text x="0" y="72" fill="var(--text-tertiary, #555)" font-size="7" font-family="JetBrains Mono, monospace" id="momentum-x-start"></text>
                     <text x="300" y="72" fill="var(--text-tertiary, #555)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace" id="momentum-x-end"></text>
                     <line x1="0" y1="30" x2="300" y2="30" stroke="rgba(255,255,255,0.04)" stroke-width="0.5"/>
+                    ${quorumY !== null ? `<line class="momentum-quorum-line" x1="0" y1="${quorumY.toFixed(2)}" x2="300" y2="${quorumY.toFixed(2)}"/><text x="300" y="${Math.max(8, quorumY - 3).toFixed(2)}" fill="var(--chamber-watch-color, #f5b84b)" font-size="7" text-anchor="end" font-family="JetBrains Mono, monospace">quorum ${quorumRequired.toFixed(1)}%</text>` : ''}
                     <path id="momentum-area" fill="url(#momentumGrad)" opacity="0.3"/>
                     <path id="momentum-line" fill="none" stroke="var(--accent-cyan)" stroke-width="2"/>
                 </svg>
@@ -846,7 +871,7 @@ function renderTopVoters(voters) {
             <button class="voter-filter-btn" data-filter="voted_yay">🟢 Yay</button>
             <button class="voter-filter-btn" data-filter="voted_nay">🔴 Nay</button>
             <button class="voter-filter-btn" data-filter="voted_pass">🟡 Pass</button>
-            <button class="voter-filter-btn" data-filter="none">⬜ Abstain</button>
+            <button class="voter-filter-btn" data-filter="none">⬜ Not voted</button>
         </div>
     `;
     
@@ -1097,9 +1122,9 @@ function renderVoteHistoryRow(vote, protocols) {
     const tone = voteTone(vote);
     const name = voteDisplayName(vote, protocols);
     const yay = typeof vote.yayPct === 'number' ? vote.yayPct : Number.NaN;
-    const width = Number.isFinite(yay) ? Math.max(0, Math.min(100, yay)) : 0;
     const status = statusLabel(vote.status);
     const participation = typeof vote.participationPct === 'number' ? vote.participationPct : Number.NaN;
+    const width = Number.isFinite(participation) ? Math.max(0, Math.min(100, participation)) : 0;
     const quorumRequirement = typeof vote.ballotsQuorum === 'number' ? vote.ballotsQuorum : Number.NaN;
     const quorum = precisePctText(participation);
     const required = precisePctText(quorumRequirement);
@@ -1107,10 +1132,10 @@ function renderVoteHistoryRow(vote, protocols) {
 
     return `
         <div class="comparison-row vote-history-row vote-${tone}" title="${escapeHtml(title)}">
-            <span class="comparison-name vote-history-name">E${escapeHtml(String(vote.epoch))} ${escapeHtml(name)}</span>
+            <span class="comparison-name vote-history-name">E${escapeHtml(String(vote.epoch))} ${kindLabel(vote.kind)} ${escapeHtml(name)}</span>
             <div class="comparison-bar-track"><div class="comparison-bar-fill" style="width:${width}%;${voteFillStyle(vote)}"></div></div>
-            <span class="comparison-pct vote-history-pct">${pctText(yay)}</span>
-            <span class="vote-history-status">${kindLabel(vote.kind)} · ${escapeHtml(status)} · quorum ${quorum}/${required}</span>
+            <span class="comparison-pct vote-history-pct">${pctText(participation)}</span>
+            <span class="vote-history-status">${escapeHtml(status)} · Yay ${pctText(yay)} · quorum ${quorum}/${required}</span>
         </div>
     `;
 }
@@ -1293,9 +1318,24 @@ function renderProposalHeader(data) {
         badge = `<span class="chamber-badge ${tone}">${escapeHtml(periodTitle(currentPeriod.kind))}</span>`;
     }
     
+    const systemState = isLiveVote
+        ? `Live ${periodTitle(currentPeriod?.kind)} vote`
+        : isLive && currentPeriod
+            ? `${periodTitle(currentPeriod.kind)} period`
+            : 'Historical record';
+
     return `
         <div class="chamber-header chamber-anim-fade">
-            <div class="chamber-title-row"><h2 class="chamber-title">🏛️ The Chamber</h2>${badge}</div>
+            <div class="lb-system-strip chamber-system-strip">
+                <span class="lb-system-brand">Tezos.Systems</span>
+                <span>Governance</span>
+                <span>${escapeHtml(systemState)}</span>
+            </div>
+            <div class="chamber-title-row">
+                <h2 class="chamber-title">The Chamber</h2>
+                ${badge}
+                ${isLiveVote ? '<button type="button" class="chamber-share-btn" id="chamber-share-vote">Share vote</button>' : ''}
+            </div>
             <div class="chamber-proposal-info">
                 <div class="proposal-name">${escapeHtml(proposalName)}</div>
                 ${proposalHash ? `<div class="proposal-hash" title="${escapeHtml(proposalHash)}">${escapeHtml(proposalHash.slice(0, 24))}…</div>` : ''}
@@ -1383,13 +1423,8 @@ function renderChamber(data, container) {
         : !isLiveVote && votePeriod
             ? `Current ${periodTitle(currentPeriod?.kind)} period; showing latest ${votePeriodTitle(votePeriod)} result`
             : '';
-    
-    container.innerHTML = `
-        ${renderProposalHeader(data)}
-        ${renderGovernanceProcess(epoch)}
-        <div class="chamber-pipeline">${renderPipeline(epoch, isLive)}</div>
-        ${votePeriod ? `
-        <div class="chamber-grid">
+    const liveGridHtml = votePeriod ? `
+        <div class="chamber-grid ${isLiveVote ? 'chamber-grid-live-first' : ''}">
             <div class="chamber-col-left">
                 ${renderSupermajorityGauge(votePeriod, data)}
                 ${renderQuorumBar(votePeriod, voters)}
@@ -1404,14 +1439,20 @@ function renderChamber(data, container) {
         ${renderHistoricalComparison(data)}
         ${renderChronologicalVoteLog()}
         ${renderTopVoters(voters)}
-        ` : `
+    ` : `
         <div class="chamber-no-votes">
             <div class="no-votes-icon">🏛️</div>
             <div class="no-votes-text">No active vote in this epoch</div>
             <div class="no-votes-sub">The Chamber comes alive during Exploration and Promotion periods</div>
         </div>
         ${renderChronologicalVoteLog()}
-        `}
+    `;
+    const processHtml = renderGovernanceProcess(epoch, { compact: isLiveVote });
+    const pipelineHtml = `<div class="chamber-pipeline ${isLiveVote ? 'chamber-pipeline-compact' : ''}">${renderPipeline(epoch, isLive)}</div>`;
+
+    container.innerHTML = `
+        ${renderProposalHeader(data)}
+        ${isLiveVote ? liveGridHtml + pipelineHtml + processHtml : processHtml + pipelineHtml + liveGridHtml}
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:800ms">
             <a href="https://tzkt.io/governance" target="_blank" rel="noopener">TzKT Governance →</a>
             <span class="chamber-footer-sep">·</span>
@@ -1430,7 +1471,52 @@ function renderChamber(data, container) {
     hydrateCurrentStageVoteOrder(data);
     hydrateHistoricalComparison(data);
     hydrateChronologicalVoteLog(data);
+    initChamberShare(data);
     requestAnimationFrame(() => requestAnimationFrame(triggerAnimations));
+}
+
+function initChamberShare(data) {
+    const button = document.getElementById('chamber-share-vote');
+    if (!button || button.dataset.chamberShareWired) return;
+    button.dataset.chamberShareWired = '1';
+    button.addEventListener('click', async (event) => {
+        event.stopPropagation();
+        const originalText = button.textContent;
+        button.disabled = true;
+        button.textContent = 'Capturing...';
+        try {
+            const target = document.querySelector('#chamber-modal .chamber-grid') || document.querySelector('#chamber-modal .chamber-body');
+            if (!target) throw new Error('Share target unavailable');
+            const { loadHtml2Canvas, showShareModal } = await import('../ui/share.js');
+            await loadHtml2Canvas();
+            const canvas = await window.html2canvas(target, {
+                backgroundColor: '#0A0E1A',
+                scale: window.innerWidth < 700 ? 1 : 2,
+                useCORS: true,
+                logging: false
+            });
+            const proposalName = data.proposal?.hash
+                ? extractProtoName(data.proposal.hash, data.protocols || [])
+                : 'Tezos governance';
+            const stage = periodTitle(data.currentPeriod?.kind || data.votePeriod?.kind);
+            showShareModal(canvas, [
+                {
+                    label: 'Governance',
+                    text: `${proposalName} is in a live ${stage} vote on Tezos.\n\nTrack quorum, supermajority, and baker votes at tezos.systems/#chamber`
+                }
+            ], `The Chamber: ${proposalName}`);
+        } catch (error) {
+            console.warn('Chamber share failed', error);
+            button.textContent = 'Share failed';
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.disabled = false;
+            }, 1800);
+            return;
+        }
+        button.textContent = originalText;
+        button.disabled = false;
+    });
 }
 
 // ─── Epoch navigation handlers ───
@@ -1567,7 +1653,8 @@ export function initChamber() {
     
     const grid = document.getElementById('chambers-grid') || govSection?.querySelector('.stats-grid');
     if (document.getElementById('chamber-entry-card')) {
-        loadEntryCardStatus();
+        loadEntryCardStatus({ force: true });
+        startEntryCardRefresh();
         return;
     }
     if (grid) {
@@ -1579,7 +1666,7 @@ export function initChamber() {
             <div class="card-inner">
                 <div class="card-front chamber-entry-front">
                     <h2 class="stat-label">The Chamber</h2>
-                    <div class="stat-value chamber-entry-icon">🏛️</div>
+                    <div class="stat-value chamber-entry-icon" id="chamber-entry-hero">${CHAMBER_MARK_SVG}</div>
                     <p class="stat-description">Enter governance war room</p>
                     <div class="chamber-entry-status" id="chamber-entry-mini"></div>
                     <div class="chamber-entry-metrics" id="chamber-entry-metrics" hidden></div>
@@ -1591,8 +1678,18 @@ export function initChamber() {
         card.addEventListener('click', openChamber);
         grid.prepend(card);
         
-        loadEntryCardStatus();
+        loadEntryCardStatus({ force: true });
+        startEntryCardRefresh();
     }
+}
+
+function setEntryHero(heroEl, text = '') {
+    if (!heroEl) return;
+    const cleanText = String(text || '').trim();
+    heroEl.classList.toggle('has-proposal-name', Boolean(cleanText));
+    heroEl.innerHTML = cleanText
+        ? `${CHAMBER_MARK_SVG}<span>${escapeHtml(cleanText)}</span>`
+        : CHAMBER_MARK_SVG;
 }
 
 function formatEntryPct(value, decimals = 1) {
@@ -1648,16 +1745,71 @@ function clearEntryMetrics(card, metricsEl) {
     metricsEl.innerHTML = '';
 }
 
-async function loadEntryCardStatus() {
+async function resolveEntryProposalName(currentPeriod) {
+    try {
+        const [epochResult, protocolsResult, reportResult] = await Promise.allSettled([
+            fetch(`${TZKT}/voting/epochs/current`).then((response) => response.ok ? response.json() : null),
+            loadProtocolHistory(),
+            loadGovernanceReport()
+        ]);
+        const epoch = epochResult.status === 'fulfilled' ? epochResult.value : null;
+        const report = reportResult.status === 'fulfilled' ? reportResult.value : null;
+        const protocols = protocolsResult.status === 'fulfilled'
+            ? withActiveProposalName(protocolsResult.value, report)
+            : [];
+        const proposal = epoch?.proposals?.[0]
+            || epoch?.proposal
+            || currentPeriod?.proposal
+            || currentPeriod?.proposalHash
+            || report?.activeProposal
+            || null;
+        const hash = typeof proposal === 'string'
+            ? proposal
+            : proposal?.hash || proposal?.proposalHash || proposal?.payload || proposal?.protocolHash || '';
+        const name = hash ? extractProtoName(hash, protocols) : '';
+        return name && !/^Proto[A-Za-z0-9]/.test(name) ? name : name || 'Live Proposal';
+    } catch {
+        return 'Live Proposal';
+    }
+}
+
+function startEntryCardRefresh() {
+    const card = document.getElementById('chamber-entry-card');
+    if (!card || _chamberEntryTimer) return;
+
+    card.dataset.chamberLive = 'true';
+    card.dataset.chamberRefreshInterval = String(CHAMBER_ENTRY_REFRESH_MS);
+    _chamberEntryTimer = window.setInterval(() => {
+        if (document.hidden) return;
+        loadEntryCardStatus({ force: true });
+    }, CHAMBER_ENTRY_REFRESH_MS);
+
+    if (!_chamberEntryVisibilityWired) {
+        _chamberEntryVisibilityWired = true;
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) loadEntryCardStatus({ force: true });
+        });
+    }
+}
+
+async function loadEntryCardStatus({ force = false } = {}) {
+    if (_chamberEntryRefreshInFlight && !force) return;
+    _chamberEntryRefreshInFlight = true;
     try {
         const mini = document.getElementById('chamber-entry-mini');
         if (!mini) return;
         const card = mini.closest('.chamber-entry-card');
         const metricsEl = document.getElementById('chamber-entry-metrics');
+        const heroEl = document.getElementById('chamber-entry-hero');
+        const description = card?.querySelector('.stat-description');
         
-        const currentPeriod = await (await fetch(`${TZKT}/voting/periods/current`)).json();
+        const currentPeriod = await (await fetch(`${TZKT}/voting/periods/current`, { cache: force ? 'no-store' : 'default' })).json();
         const isActive = currentPeriod.status === 'active' && currentPeriod.kind !== 'proposal';
         const isLiveVote = isActive && isBallotPeriod(currentPeriod);
+        const stageName = periodTitle(currentPeriod.kind);
+        const proposalName = isActive || currentPeriod.kind === 'proposal'
+            ? await resolveEntryProposalName(currentPeriod)
+            : '';
         
         if (isLiveVote) {
             const supermajority = calcSupermajority(currentPeriod);
@@ -1665,13 +1817,11 @@ async function loadEntryCardStatus() {
             const quorum = Number(currentPeriod.ballotsQuorum);
             const threshold = Number(currentPeriod.supermajority) || 80;
             const ballots = calcEntryBallots(currentPeriod);
-            const stageName = periodTitle(currentPeriod.kind);
             const quorumMet = Number.isFinite(participation) && Number.isFinite(quorum) && participation >= quorum;
             const yayMet = Number.isFinite(supermajority) && supermajority >= threshold;
-            const statusText = quorumMet
-                ? `quorum ${formatEntryPct(participation)} / ${formatEntryPct(quorum)}`
-                : `needs quorum ${formatEntryPct(participation)} / ${formatEntryPct(quorum)}`;
-            mini.innerHTML = `<span class="entry-live-dot"></span> Live ${stageName} vote · ${statusText}`;
+            setEntryHero(heroEl, proposalName);
+            if (description) description.textContent = `${stageName} ballot open`;
+            mini.innerHTML = `<span class="entry-live-dot"></span> Live ${stageName} vote · refresh 60s`;
             mini.classList.add('live');
             card?.classList.add('chamber-entry-live', 'chamber-entry-wide');
             if (card) card.dataset.chamberEntrySize = 'wide';
@@ -1696,23 +1846,30 @@ async function loadEntryCardStatus() {
                 }
             ]);
         } else if (isActive) {
-            const stageName = periodTitle(currentPeriod.kind);
             const detail = currentPeriod.kind === 'testing'
                 ? 'testing and review'
                 : currentPeriod.kind === 'adoption'
                     ? 'activation runway'
                     : 'no ballots open';
+            setEntryHero(heroEl, proposalName || stageName);
+            if (description) description.textContent = `${stageName} period`;
             mini.innerHTML = `${stageName} · ${detail}`;
             mini.classList.remove('live');
             card?.classList.remove('chamber-entry-live');
             clearEntryMetrics(card, metricsEl);
         } else {
-            mini.innerHTML = 'No active vote';
+            setEntryHero(heroEl, currentPeriod.kind === 'proposal' ? 'Proposal period' : '');
+            if (description) description.textContent = currentPeriod.kind === 'proposal'
+                ? 'Governance proposals window'
+                : 'Governance watch';
+            mini.innerHTML = currentPeriod.kind === 'proposal' ? 'Proposal period · no ballots open' : 'Governance idle';
             mini.classList.remove('live');
             card?.classList.remove('chamber-entry-live');
             clearEntryMetrics(card, metricsEl);
         }
     } catch {
         // Silent fail
+    } finally {
+        _chamberEntryRefreshInFlight = false;
     }
 }

@@ -116,6 +116,42 @@ function displayAddress(address) {
     return address.name || address.ens_domain_name || shortHash(address.hash);
 }
 
+function friendlyMethod(method) {
+    const raw = String(method || '').trim();
+    const lower = raw.toLowerCase();
+    const known = {
+        '0xae7e8d81': 'oracle update',
+        updatepricefeedsifnecessary: 'oracle update',
+        updatepricefeeds: 'oracle update',
+        transfer: 'transfer',
+        approve: 'approve',
+        swap: 'swap'
+    };
+    if (known[lower]) return known[lower];
+    if (/^0x[a-f0-9]{8}$/i.test(raw)) return 'contract call';
+    return raw.replace(/_/g, ' ') || 'transaction';
+}
+
+function collapseTxRows(txs, limit = 8) {
+    const rows = [];
+    for (const tx of txs || []) {
+        const method = friendlyMethod(tx.method);
+        const previous = rows[rows.length - 1];
+        if (previous && previous.method === method && previous.to === tx.to) {
+            previous.count += 1;
+            previous.hashes.push(tx.hash);
+            continue;
+        }
+        rows.push({ ...tx, method, count: 1, hashes: [tx.hash] });
+        if (rows.length >= limit) break;
+    }
+    return rows;
+}
+
+function txMethodLabel(tx) {
+    return tx.count > 1 ? `${tx.method} x${tx.count}` : tx.method;
+}
+
 function normalizeTx(tx) {
     const feeValue = toNumber(tx?.fee?.value) ?? toNumber(tx?.transaction_burnt_fee);
     const feeMutezLike = feeValue === null ? null : feeValue / 1e18;
@@ -216,9 +252,9 @@ async function fetchTezlinkData({ force = false } = {}) {
 
 function renderEntryTape(txs) {
     if (!txs?.length) return '<div class="tezlink-tape-empty">Waiting for L2 transactions</div>';
-    return txs.slice(0, 3).map((tx) => `
+    return collapseTxRows(txs, 3).map((tx) => `
         <div class="tezlink-tape-row">
-            <span class="tezlink-tape-method">${escapeHtml(tx.method)}</span>
+            <span class="tezlink-tape-method">${escapeHtml(txMethodLabel(tx))}</span>
             <span class="tezlink-tape-target">${escapeHtml(tx.to)}</span>
             <span class="tezlink-tape-age">${escapeHtml(formatAge(tx.timestamp))}</span>
         </div>
@@ -288,9 +324,9 @@ function renderProtocolRows(protocols) {
 
 function renderTransactionRows(txs) {
     if (!txs?.length) return '<div class="lb-empty-inline">No validated L2 transactions returned.</div>';
-    return txs.slice(0, 8).map((tx) => `
+    return collapseTxRows(txs, 8).map((tx) => `
         <a class="lb-table-row tezlink-tx-row" href="https://explorer.etherlink.com/tx/${escapeHtml(tx.hash)}" target="_blank" rel="noopener">
-            <span>${escapeHtml(tx.method)}</span>
+            <span>${escapeHtml(txMethodLabel(tx))}</span>
             <span>${escapeHtml(tx.to)}</span>
             <span>${tx.fee === null ? '--' : `${tx.fee.toFixed(6)} XTZ`}</span>
             <span>${escapeHtml(formatAge(tx.timestamp))}</span>
@@ -539,6 +575,7 @@ export function initTezlinkChamber() {
                 <div class="tezlink-entry-main">
                     <h2 class="stat-label">Tezlink</h2>
                     <div class="stat-value tezlink-entry-value" id="tezlink-entry-tvl"><span class="loading">...</span></div>
+                    <span class="tezlink-entry-value-label">TVL</span>
                     <p class="stat-description" id="tezlink-entry-description">Atomic L2 rollup</p>
                     <div class="chamber-entry-status live" id="tezlink-entry-mini">Loading L2 feed</div>
                 </div>

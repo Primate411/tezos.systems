@@ -1011,10 +1011,27 @@ function assert(condition, message) {
 }
 
 async function assertChamberOrder(page, label) {
-  const chamberOrder = await page.evaluate(() => Array.from(document.querySelectorAll('#chambers-grid > .chamber-entry-card, #chambers-grid > .stat-card')).map((el) => el.id || el.dataset.stat || ''));
+  const chamberState = await page.evaluate(() => {
+    const cardKey = (el) => el.id || el.dataset.stat || '';
+    return {
+      order: Array.from(document.querySelectorAll('#chambers-grid .stat-card')).map(cardKey),
+      pairs: Array.from(document.querySelectorAll('#chambers-grid > .chamber-card-pair')).map((pair) => (
+        Array.from(pair.querySelectorAll(':scope > .stat-card')).map(cardKey)
+      ))
+    };
+  });
   assert(
-    EXPECTED_CHAMBER_ORDER.every((key, index) => chamberOrder[index] === key),
-    `${label}: Chambers order mismatch, expected ${EXPECTED_CHAMBER_ORDER.join(', ')} but saw ${chamberOrder.join(', ')}`
+    EXPECTED_CHAMBER_ORDER.every((key, index) => chamberState.order[index] === key),
+    `${label}: Chambers order mismatch, expected ${EXPECTED_CHAMBER_ORDER.join(', ')} but saw ${chamberState.order.join(', ')}`
+  );
+  const expectedPairs = [
+    ['network-health', 'chamber-entry-card'],
+    ['tezlink-entry-card', 'etherlink-governance-entry-card'],
+    ['tz4-adoption', 'lb-entry-card']
+  ];
+  assert(
+    expectedPairs.every((pair, index) => pair.every((key, innerIndex) => chamberState.pairs[index]?.[innerIndex] === key)),
+    `${label}: Chambers pair layout mismatch, expected ${JSON.stringify(expectedPairs)} but saw ${JSON.stringify(chamberState.pairs)}`
   );
 }
 
@@ -2411,10 +2428,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     };
   });
   assert(!quietSizing.chamberWide && quietSizing.chamberSize === 'compact', `quiet governance sizing: The Chamber should be 1x1, saw ${JSON.stringify(quietSizing)}`);
-  assert(/No active vote/.test(quietSizing.chamberText), `quiet governance sizing: The Chamber quiet text mismatch: ${quietSizing.chamberText}`);
+  assert(/Proposal period/.test(quietSizing.chamberText) && /no ballots open/i.test(quietSizing.chamberText), `quiet governance sizing: The Chamber quiet text mismatch: ${quietSizing.chamberText}`);
   assert(!quietSizing.etherlinkWide && quietSizing.etherlinkSize === 'compact', `quiet governance sizing: Tezlink Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
-  assert(/IDLE/.test(quietSizing.etherlinkText) && /All tracks idle/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink idle text mismatch: ${quietSizing.etherlinkText}`);
-  assert(quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should collapse when all tracks are quiet');
+  assert(/Tracks/.test(quietSizing.etherlinkText) && /All tracks idle/.test(quietSizing.etherlinkText) && /FAST/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink idle text mismatch: ${quietSizing.etherlinkText}`);
+  assert(!quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should show compact track chips when all tracks are quiet');
   assert(Math.abs(quietSizing.chamberWidth - quietSizing.etherlinkWidth) < 8, `quiet governance sizing: compact cards should share 1x1 width, saw ${quietSizing.chamberWidth} vs ${quietSizing.etherlinkWidth}`);
   await quietContext.close();
 

@@ -1133,27 +1133,74 @@ function initNavButtons() {
 // CHAMBERS SURFACE
 // ==========================================
 const CHAMBERS_VISIBLE_KEY = 'tezos-systems-chambers-visible';
-const CHAMBER_CARD_ORDER = [
-    '[data-stat="network-health"]',
-    '#chamber-entry-card',
-    '#tezlink-entry-card',
-    '#etherlink-governance-entry-card',
-    '[data-stat="tz4-adoption"]',
-    '#lb-entry-card'
+const CHAMBER_CARD_PAIRS = [
+    {
+        key: 'health-governance',
+        selectors: ['[data-stat="network-health"]', '#chamber-entry-card']
+    },
+    {
+        key: 'tezlink-governance',
+        selectors: ['#tezlink-entry-card', '#etherlink-governance-entry-card']
+    },
+    {
+        key: 'tz4-liquidity',
+        selectors: ['[data-stat="tz4-adoption"]', '#lb-entry-card']
+    }
 ];
+const CHAMBER_CARD_ORDER = CHAMBER_CARD_PAIRS.flatMap((pair) => pair.selectors);
+let _chamberPairObserver = null;
+
+function updateChamberPairState(pair) {
+    if (!pair) return;
+    const cards = Array.from(pair.querySelectorAll(':scope > .stat-card'));
+    const wideCount = cards.filter((card) => card.classList.contains('chamber-entry-wide')).length;
+    pair.dataset.cardCount = String(cards.length);
+    pair.dataset.wideCount = String(wideCount);
+}
+
+function updateAllChamberPairStates() {
+    document.querySelectorAll('#chambers-grid > .chamber-card-pair').forEach(updateChamberPairState);
+}
 
 function orderChambersSurface() {
     const grid = document.getElementById('chambers-grid');
     if (!grid) return;
 
-    const orderedCards = CHAMBER_CARD_ORDER
-        .map((selector) => document.querySelector(selector))
-        .filter(Boolean);
+    grid.classList.add('chambers-paired-grid');
+    const orderedCards = [];
 
-    orderedCards.forEach((card) => {
-        grid.appendChild(card);
+    CHAMBER_CARD_PAIRS.forEach((pairConfig) => {
+        let pair = grid.querySelector(`:scope > .chamber-card-pair[data-chamber-pair="${pairConfig.key}"]`);
+        if (!pair) {
+            pair = document.createElement('div');
+            pair.className = 'chamber-card-pair';
+            pair.dataset.chamberPair = pairConfig.key;
+        }
+
+        pairConfig.selectors.forEach((selector) => {
+            const card = document.querySelector(selector);
+            if (!card) return;
+            pair.appendChild(card);
+            orderedCards.push(card);
+        });
+
+        if (pair.children.length) {
+            grid.appendChild(pair);
+        }
+        updateChamberPairState(pair);
     });
+
     grid.dataset.chambersOrder = orderedCards.map((card) => card.id || card.dataset.stat || '').join(',');
+
+    if (!_chamberPairObserver) {
+        _chamberPairObserver = new MutationObserver(() => updateAllChamberPairStates());
+        _chamberPairObserver.observe(grid, {
+            subtree: true,
+            childList: true,
+            attributes: true,
+            attributeFilter: ['class', 'data-chamber-entry-size', 'data-etherlink-governance-size', 'data-tz4-entry-size']
+        });
+    }
 }
 
 function initChambersSurface() {
@@ -1194,6 +1241,12 @@ function updateTz4ChamberTile(stats) {
     updateStatInstant('tz4-adoption', percentage, (val) => `${val.toFixed(1)} / ${STAKING_TARGET}%`);
     const tz4Desc = document.getElementById('tz4-description');
     if (!tz4Desc) return;
+
+    const card = document.querySelector('.stat-card[data-stat="tz4-adoption"]');
+    if (card?.dataset.tz4PowerDescription) {
+        tz4Desc.textContent = card.dataset.tz4PowerDescription;
+        return;
+    }
 
     const tz4Bakers = Number(stats.tz4Bakers);
     const totalBakers = Number(stats.totalBakers);

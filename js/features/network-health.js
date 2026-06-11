@@ -243,6 +243,29 @@ function normalizeActivityTx(tx) {
     };
 }
 
+function collapseActivityRows(rows, limit = 8) {
+    const collapsed = [];
+    for (const row of rows || []) {
+        const previous = collapsed[collapsed.length - 1];
+        const sameAsPrevious = previous
+            && previous.method === row.method
+            && previous.target === row.target
+            && previous.amount === row.amount;
+        if (sameAsPrevious) {
+            previous.count += 1;
+            previous.hashes.push(row.hash);
+            continue;
+        }
+        collapsed.push({ ...row, count: 1, hashes: [row.hash] });
+        if (collapsed.length >= limit) break;
+    }
+    return collapsed;
+}
+
+function activityMethodLabel(row) {
+    return row.count > 1 ? `${row.method} x${row.count}` : row.method;
+}
+
 async function fetchActivityTape({ force = false } = {}) {
     if (!force && activityTapeCache.length && Date.now() - activityTapeCacheAt < ACTIVITY_TAPE_TTL) {
         return activityTapeCache;
@@ -583,8 +606,7 @@ function renderBlock(block) {
 
     return `
         <div class="network-health-block ${cls}" title="${title}" aria-label="${title}">
-            <span class="network-health-block-power">${block.power.toLocaleString()}<span class="network-health-denominator">${formatBlockDenominator(block.committee)}</span></span>
-            <span class="network-health-meter"><span style="width:${width}%"></span></span>
+            <span class="network-health-block-bar"><span style="height:${width}%"></span></span>
             <span class="network-health-block-level">#${levelTail}</span>
         </div>
     `;
@@ -620,6 +642,7 @@ function renderNetworkHealth(data) {
     if (statusEl) {
         statusEl.textContent = label;
         statusEl.className = `network-health-status ${cls}`;
+        statusEl.title = 'Status combines recent attestation power, missed baking rights, block round, and cadence.';
     }
 
     blocksEl.innerHTML = data.blocks.map(renderBlock).join('');
@@ -694,9 +717,9 @@ function renderHealthEntryTape(rows) {
         return;
     }
 
-    rowsEl.innerHTML = rows.slice(0, 3).map((row) => `
+    rowsEl.innerHTML = collapseActivityRows(rows, 3).map((row) => `
         <div class="health-live-row">
-            <span class="health-live-method">${escapeHtml(row.method)}</span>
+            <span class="health-live-method">${escapeHtml(activityMethodLabel(row))}</span>
             <span class="health-live-amount">${row.amount === null ? '--' : `${formatCompactPower(row.amount)} XTZ`}</span>
             <span class="health-live-age">${escapeHtml(formatAge(row.timestamp))}</span>
         </div>
@@ -868,10 +891,10 @@ function renderMissedBlocksPanel(data) {
 }
 
 function renderActivityTapePanel(data) {
-    const rows = data.activityTape || [];
-    const body = rows.length ? rows.slice(0, 8).map((row) => `
+    const rows = collapseActivityRows(data.activityTape || [], 8);
+    const body = rows.length ? rows.map((row) => `
         <a class="lb-table-row health-activity-row" href="https://tzkt.io/${escapeHtml(row.hash)}" target="_blank" rel="noopener">
-            <span>${escapeHtml(row.method)}</span>
+            <span>${escapeHtml(activityMethodLabel(row))}</span>
             <span>${row.amount === null ? '--' : `${formatCount(Math.round(row.amount))} XTZ`}</span>
             <span>${escapeHtml(row.target)}</span>
             <span${healthAgeAttr(row.timestamp)}>${escapeHtml(formatAge(row.timestamp))}</span>

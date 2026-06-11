@@ -69,6 +69,11 @@
     --border: var(--glass-border);
     --border-color: var(--glass-border);
     --text-dim: var(--text-tertiary);
+    --chamber-live-color: #35E894;
+    --chamber-good-color: #35E894;
+    --chamber-watch-color: #F5B84B;
+    --chamber-risk-color: #FF6B7A;
+    --chamber-disabled-color: #F5B84B;
 
     /* Subtle effects */
     --blur-amount: 24px;
@@ -287,6 +292,11 @@ body[data-theme="aurora"]::after {
     --accent-purple: #2563EB;
     --accent-pink: #DC2626;
     --accent-blue: #2563EB;
+    --chamber-live-color: #047857;
+    --chamber-good-color: #047857;
+    --chamber-watch-color: #B45309;
+    --chamber-risk-color: #B91C1C;
+    --chamber-disabled-color: #B45309;
     --blur-amount: 0px;
     --transition: all 0.15s ease;
 }
@@ -2430,25 +2440,25 @@ body::before {
 
 .network-health-score.peak,
 .network-health-period.peak .network-health-period-value,
-.network-health-block.peak .network-health-block-power {
+.network-health-block.peak .network-health-block-bar {
     color: #10b981;
 }
 
 .network-health-score.healthy,
 .network-health-period.healthy .network-health-period-value,
-.network-health-block.healthy .network-health-block-power {
+.network-health-block.healthy .network-health-block-bar {
     color: var(--accent-cyan);
 }
 
 .network-health-score.watch,
 .network-health-period.watch .network-health-period-value,
-.network-health-block.watch .network-health-block-power {
+.network-health-block.watch .network-health-block-bar {
     color: #f59e0b;
 }
 
 .network-health-score.degraded,
 .network-health-period.degraded .network-health-period-value,
-.network-health-block.degraded .network-health-block-power {
+.network-health-block.degraded .network-health-block-bar {
     color: #ff4466;
 }
 
@@ -2491,51 +2501,37 @@ body::before {
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 0.35rem;
     width: 100%;
-    min-height: 2.05rem;
+    min-height: 3.05rem;
 }
 
 .network-health-block {
+    display: grid;
+    grid-template-rows: minmax(26px, 1fr) auto;
+    align-items: end;
+    justify-items: center;
     min-width: 0;
-    padding: 0.24rem 0.3rem;
+    min-height: 3rem;
+    padding: 0.24rem 0.2rem;
     border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 6px;
     background: rgba(255, 255, 255, 0.025);
 }
 
-.network-health-block-power {
+.network-health-block-bar {
     display: block;
     overflow: hidden;
-    color: var(--text-primary);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.56rem;
-    font-weight: 700;
-    line-height: 1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-variant-numeric: tabular-nums;
-}
-
-.network-health-denominator {
-    color: var(--text-tertiary);
-    font-size: 0.78em;
-    font-weight: 700;
-    margin-left: 1px;
-}
-
-.network-health-meter {
-    display: block;
-    width: 100%;
-    height: 3px;
-    margin: 0.22rem 0 0.18rem;
-    overflow: hidden;
+    align-self: stretch;
+    width: 10px;
+    min-height: 26px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.07);
 }
 
-.network-health-meter span {
+.network-health-block-bar span {
     display: block;
-    height: 100%;
-    border-radius: inherit;
+    width: 100%;
+    margin-top: auto;
+    border-radius: 999px;
     background: currentColor;
     box-shadow: 0 0 8px currentColor;
 }
@@ -2804,6 +2800,18 @@ body::before {
     margin: 0.05rem 0 0;
 }
 
+.tezlink-entry-value-label {
+    display: block;
+    margin-top: -2px;
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.52rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
 .tezlink-entry-metrics {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3004,6 +3012,18 @@ body::before {
     color: var(--text-tertiary);
 }
 
+.etherlink-gov-idle-preview {
+    gap: 0.28rem;
+}
+
+.etherlink-gov-idle-preview .etherlink-gov-entry-metric {
+    padding: 0.25rem 0.34rem;
+}
+
+.etherlink-gov-idle-preview .etherlink-gov-entry-metric span {
+    margin-bottom: 0;
+}
+
 .etherlink-gov-content {
     max-width: min(1080px, calc(100vw - 32px)) !important;
     border-color: rgba(89, 243, 166, 0.18) !important;
@@ -3196,9 +3216,22 @@ body::before {
 }
 
 .etherlink-gov-table .etherlink-gov-history-row {
-    grid-template-columns: minmax(120px, 0.9fr) minmax(0, 1.2fr) minmax(100px, 0.55fr) minmax(100px, 0.7fr);
+    grid-template-columns: minmax(0, 1.35fr) minmax(100px, 0.55fr) minmax(100px, 0.7fr);
     color: var(--text-secondary);
     text-decoration: none;
+}
+
+.etherlink-gov-history-main {
+    min-width: 0;
+}
+
+.etherlink-gov-history-main > a,
+.etherlink-gov-history-main > span,
+.etherlink-gov-history-main > code {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .etherlink-gov-history-row a {
@@ -4198,6 +4231,12 @@ body.high-combo .stat-card {
 
 .trend-arrow.down {
     color: #ff6b9d;
+}
+
+.stat-card[data-stat="tz4-adoption"] .trend-arrow {
+    top: -1px;
+    right: 2px;
+    bottom: auto;
 }
 
 .trend-arrow.neutral {
@@ -13687,6 +13726,7 @@ body {
     justify-content: center;
     gap: 12px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
 }
 
 .chamber-title {
@@ -13722,11 +13762,43 @@ body {
 }
 
 .chamber-badge.live {
-    background: rgba(0, 255, 100, 0.15);
-    border: 1px solid rgba(0, 255, 100, 0.32);
-    color: #00ff65;
-    box-shadow: 0 0 12px rgba(0, 255, 100, 0.08);
+    background: color-mix(in srgb, var(--chamber-live-color) 16%, transparent);
+    border: 1px solid color-mix(in srgb, var(--chamber-live-color) 34%, transparent);
+    color: var(--chamber-live-color);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--chamber-live-color) 10%, transparent);
     animation: chamberBreathe 4.8s ease-in-out infinite;
+}
+
+.chamber-share-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30px;
+    padding: 6px 12px;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 34%, transparent);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    text-transform: uppercase;
+    transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.chamber-share-btn:hover {
+    border-color: var(--accent-cyan);
+    background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
+    transform: translateY(-1px);
+}
+
+.chamber-share-btn:disabled {
+    cursor: wait;
+    opacity: 0.72;
+    transform: none;
 }
 
 .chamber-badge.cooldown,
@@ -13771,6 +13843,52 @@ body {
     background:
         linear-gradient(135deg, rgba(0, 212, 255, 0.045), rgba(160, 110, 255, 0.025)),
         rgba(255, 255, 255, 0.018);
+}
+
+.chamber-process-card-compact {
+    padding: 0;
+    overflow: hidden;
+}
+
+.chamber-process-card-compact summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 42px;
+    padding: 0 14px;
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    list-style: none;
+    text-transform: uppercase;
+}
+
+.chamber-process-card-compact summary::-webkit-details-marker {
+    display: none;
+}
+
+.chamber-process-card-compact summary::after {
+    content: '▸';
+    color: var(--accent-cyan);
+    transition: transform 0.2s ease;
+}
+
+.chamber-process-card-compact[open] summary::after {
+    transform: rotate(90deg);
+}
+
+.chamber-process-card-compact[open] .chamber-process-summary,
+.chamber-process-card-compact[open] .process-brief,
+.chamber-process-card-compact[open] .chamber-process-steps {
+    margin-left: 14px;
+    margin-right: 14px;
+}
+
+.chamber-process-card-compact[open] .chamber-process-steps {
+    margin-bottom: 14px;
 }
 
 .chamber-process-summary {
@@ -13872,6 +13990,16 @@ body {
     border-radius: 16px;
     border: 1px solid rgba(255,255,255,0.04);
     overflow-x: auto;
+}
+
+.chamber-pipeline-compact {
+    margin-bottom: 18px;
+    padding: 12px;
+}
+
+.chamber-pipeline-compact .chamber-stage {
+    min-width: 92px;
+    padding: 9px 10px;
 }
 
 .chamber-stage {
@@ -14273,6 +14401,7 @@ body {
 }
 
 .heatmap-cell {
+    text-decoration: none;
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -14280,7 +14409,7 @@ body {
     font-size: 0.45rem;
     font-weight: 600;
     color: rgba(255,255,255,0.7);
-    cursor: default;
+    cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
     overflow: hidden;
@@ -14365,6 +14494,13 @@ body {
     width: 100%;
     height: 60px;
     display: block;
+}
+
+.momentum-quorum-line {
+    stroke: var(--chamber-watch-color, #f5b84b);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    opacity: 0.75;
 }
 
 /* Top voters */
@@ -15521,6 +15657,24 @@ body {
 }
 
 /* ─── Chamber v2: Entry card upgrade ─── */
+#chambers-grid.chambers-paired-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+#chambers-grid.chambers-paired-grid > .chamber-card-pair {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    min-width: 0;
+}
+
+#chambers-grid.chambers-paired-grid > .chamber-card-pair > .stat-card {
+    width: 100%;
+    min-width: 0;
+}
+
 .chamber-entry-card {
     border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, transparent) !important;
     transition: all 0.3s ease !important;
@@ -15551,37 +15705,50 @@ body {
 }
 
 .chamber-entry-card.chamber-entry-live {
-    border-color: #00ff88 !important;
+    border-color: var(--chamber-live-color) !important;
     background:
-        linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(0, 212, 255, 0.035)),
+        linear-gradient(135deg, color-mix(in srgb, var(--chamber-live-color) 14%, transparent), rgba(0, 212, 255, 0.035)),
         var(--glass-bg, rgba(255,255,255,0.03));
-    box-shadow: 0 0 24px rgba(0, 255, 136, 0.12), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    box-shadow: 0 0 24px color-mix(in srgb, var(--chamber-live-color) 18%, transparent), inset 0 1px 0 rgba(255,255,255,0.05) !important;
 }
 
 .chamber-entry-card.chamber-entry-live::before {
     opacity: 0.18;
-    border-color: #00ff88;
+    border-color: var(--chamber-live-color);
 }
 
-/* "Opens a full window" cue on the entry cards (Chamber, Liquidity Baking).
-   Subtle expand-arrows glyph, bottom-right (the natural resize/expand corner);
-   theme-aware and brightens on hover. */
 .chamber-expand-cue {
     position: absolute;
-    bottom: 9px;
-    right: 9px;
-    width: 14px;
-    height: 14px;
+    bottom: 8px;
+    right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 36%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--bg-primary, #0a0e1a) 82%, transparent);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
     color: var(--accent-cyan);
-    opacity: 0.3;
+    opacity: 0.72;
     cursor: pointer;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: opacity 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
     z-index: 2;
 }
-.chamber-expand-cue svg { width: 100%; height: 100%; display: block; }
+.chamber-expand-cue::after { content: 'Open'; }
+.chamber-expand-cue svg { width: 13px; height: 13px; display: block; flex: 0 0 auto; }
 .chamber-entry-card:hover .chamber-expand-cue {
-    opacity: 0.85;
-    transform: scale(1.14);
+    opacity: 1;
+    transform: translateY(-1px);
+    border-color: var(--accent-cyan);
 }
 
 .chamber-entry-status {
@@ -15593,11 +15760,35 @@ body {
 }
 
 .chamber-entry-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
     line-height: 1.12;
 }
 
+.chamber-entry-mark {
+    width: 42px;
+    height: 42px;
+    color: var(--accent-cyan);
+    flex: 0 0 auto;
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-cyan) 24%, transparent));
+}
+
+.chamber-entry-icon.has-proposal-name {
+    max-width: 100%;
+    font-size: clamp(1.15rem, 3vw, 1.75rem) !important;
+    line-height: 1.02;
+    white-space: normal;
+}
+
+.chamber-entry-icon.has-proposal-name span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .chamber-entry-status.live {
-    color: #00ff65;
+    color: var(--chamber-live-color);
 }
 
 .entry-live-dot {
@@ -15605,7 +15796,7 @@ body {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #00ff65;
+    background: var(--chamber-live-color);
     margin-right: 4px;
     animation: chamberBreathe 4.8s ease-in-out infinite;
     vertical-align: middle;
@@ -15657,19 +15848,31 @@ body {
 }
 
 .chamber-entry-metric.is-good strong {
-    color: #00ff88;
+    color: var(--chamber-good-color);
 }
 
 .chamber-entry-metric.is-risk strong {
-    color: #f59e0b;
+    color: var(--chamber-watch-color);
 }
 
 .chamber-entry-card.chamber-entry-risk {
-    border-color: rgba(245, 158, 11, 0.34) !important;
-    box-shadow: 0 0 24px rgba(245, 158, 11, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    border-color: color-mix(in srgb, var(--chamber-watch-color) 42%, transparent) !important;
+    box-shadow: 0 0 24px color-mix(in srgb, var(--chamber-watch-color) 12%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }
 
 @media (min-width: 760px) {
+    #chambers-grid.chambers-paired-grid > .chamber-card-pair {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-wide-count="2"] {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-wide-count="2"] > .chamber-entry-wide {
+        grid-column: auto;
+    }
+
     #chambers-grid .chamber-entry-card {
         height: 204px;
     }
@@ -15831,7 +16034,7 @@ body {
 }
 
 .lb-entry-card.lb-subsidy-disabled {
-    border-color: rgba(255, 94, 114, 0.3) !important;
+    border-color: color-mix(in srgb, var(--chamber-disabled-color) 34%, transparent) !important;
 }
 
 .lb-entry-card .card-tooltip {
@@ -15868,8 +16071,8 @@ body {
 }
 
 .lb-entry-card.lb-subsidy-disabled .lb-entry-ema {
-    color: #ff5e72 !important;
-    text-shadow: 0 0 18px rgba(255, 94, 114, 0.24) !important;
+    color: var(--chamber-disabled-color) !important;
+    text-shadow: 0 0 18px color-mix(in srgb, var(--chamber-disabled-color) 24%, transparent) !important;
 }
 
 .lb-entry-card .stat-description {
@@ -15878,7 +16081,39 @@ body {
 }
 
 .lb-entry-card.lb-subsidy-disabled .chamber-entry-status {
-    color: #ff8a9a;
+    color: var(--chamber-disabled-color);
+}
+
+.lb-entry-meter {
+    position: relative;
+    width: min(100%, 152px);
+    height: 6px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.075);
+}
+
+.lb-entry-meter-fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: var(--chamber-good-color);
+    transition: width 0.45s ease, background 0.25s ease;
+}
+
+.lb-entry-meter-fill.disabled {
+    background: var(--chamber-disabled-color);
+}
+
+.lb-entry-meter-threshold {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    width: 1px;
+    z-index: 1;
+    background: var(--text-primary);
+    opacity: 0.72;
 }
 
 .lb-content {
@@ -16657,6 +16892,32 @@ body {
     box-shadow: 0 0 12px rgba(80, 232, 136, 0.18);
 }
 
+.lb-ema-sparkline {
+    height: 42px;
+    margin: -4px 0 14px;
+    opacity: 0.92;
+}
+
+.lb-ema-sparkline svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.lb-ema-spark-threshold {
+    stroke: var(--text-tertiary);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+    opacity: 0.52;
+}
+
+.lb-ema-spark-line {
+    fill: none;
+    stroke: var(--accent-cyan);
+    stroke-width: 2;
+    vector-effect: non-scaling-stroke;
+}
+
 .lb-ema-threshold {
     position: absolute;
     top: -4px;
@@ -16698,9 +16959,21 @@ body {
 }
 
 .lb-status-banner.disabled {
-    color: #ffb36b;
-    background: rgba(255, 159, 67, 0.11);
-    border: 1px solid rgba(255, 159, 67, 0.16);
+    color: var(--chamber-disabled-color);
+    background: color-mix(in srgb, var(--chamber-disabled-color) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--chamber-disabled-color) 18%, transparent);
+}
+
+.lb-saved-baker-compact {
+    padding-bottom: 12px;
+}
+
+.lb-saved-baker-compact .lb-panel-title {
+    margin-bottom: 6px;
+}
+
+.lb-saved-baker-compact .lb-empty-inline {
+    font-size: 0.76rem;
 }
 
 .lb-saved-baker-row {
@@ -16748,6 +17021,14 @@ body {
 #lb-recent-block-list,
 #lb-baker-vote-list {
     min-width: 0;
+}
+
+@media (min-width: 900px) {
+    #lb-baker-vote-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0 12px;
+    }
 }
 
 .lb-table-head,
@@ -17203,6 +17484,20 @@ body {
     grid-column: 1 / -1;
 }
 
+.tz4-saved-baker-compact {
+    padding-bottom: 12px;
+}
+
+.tz4-saved-baker-compact .lb-panel-title {
+    margin-bottom: 6px;
+}
+
+.tz4-share-switch {
+    grid-column: 1 / -1;
+    justify-self: start;
+    width: max-content;
+}
+
 .tz4-saved-active {
     border-color: rgba(77, 212, 255, 0.18);
 }
@@ -17362,6 +17657,12 @@ body {
     min-width: 0;
 }
 
+.tz4-baker-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+}
+
 @media (min-width: 760px) {
     .tz4-entry-card.chamber-entry-wide .card-front {
         display: grid;
@@ -17370,6 +17671,7 @@ body {
         align-content: flex-start;
         align-items: flex-start;
         gap: 0.42rem 0.78rem;
+        padding-top: 1rem !important;
         text-align: left;
     }
 
@@ -17396,6 +17698,22 @@ body {
     .tz4-entry-card.chamber-entry-wide .sparkline-container {
         width: min(100%, 150px);
         margin: 0;
+    }
+
+    .tz4-entry-card.chamber-entry-wide .tz4-entry-preview-section + .tz4-entry-preview-section {
+        margin-top: 5px;
+    }
+
+    .tz4-entry-card.chamber-entry-wide .tz4-entry-preview-title {
+        margin-bottom: 2px;
+        font-size: 0.5rem;
+    }
+
+    .tz4-entry-card.chamber-entry-wide .tz4-entry-preview-row {
+        min-height: 16px;
+        padding: 1px 0;
+        font-size: 0.54rem;
+        line-height: 1.15;
     }
 }
 
@@ -17493,7 +17811,7 @@ body {
     }
 
     #chambers-grid .tz4-entry-card.chamber-entry-wide {
-        min-height: 372px;
+        min-height: 354px;
     }
 
     .tz4-entry-card.chamber-entry-wide .card-front {

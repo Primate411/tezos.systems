@@ -11,14 +11,16 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const CACHE_TTL = 60000;
 const MODAL_REFRESH_MS = 60000;
 const LATEST_SWITCH_LIMIT = 5;
-const ENTRY_PREVIEW_SWITCH_LIMIT = 4;
+const ENTRY_PREVIEW_SWITCH_LIMIT = 3;
 const PENDING_QUEUE_LIMIT = 8;
+const BAKER_STATUS_PREVIEW_LIMIT = 20;
 
 let _tz4Cache = null;
 let _tz4CacheTime = 0;
 let _savedBodyOverflow = null;
 let _savedHtmlOverflow = null;
 let _tz4ActiveFilter = 'all';
+let _tz4ShowAllBakers = false;
 let _tz4ModalTimer = null;
 let _tz4ModalRefreshInFlight = false;
 
@@ -325,9 +327,14 @@ function renderTz4EntryPreview(data) {
     card.dataset.tz4EntrySize = 'wide';
     card.dataset.tz4Pending = String(data.pendingCount || 0);
     const latest = (data.latestSwitches || []).slice(0, ENTRY_PREVIEW_SWITCH_LIMIT);
-    const pending = (data.pendingQueue || []).slice(0, 2);
+    const pending = (data.pendingQueue || []).slice(0, 1);
     const hiddenPending = Math.max(0, (data.pendingCount || 0) - pending.length);
     card.dataset.tz4LatestSwitches = String(latest.length || 0);
+    card.dataset.tz4PowerDescription = `${formatCount(data.activeCount)} / ${formatCount(data.total)} bakers active · ${formatPercent(data.activePowerPct)} power`;
+    const description = document.getElementById('tz4-description');
+    if (description) {
+        description.textContent = card.dataset.tz4PowerDescription;
+    }
     target.innerHTML = `
         <div class="tz4-entry-preview-section">
             <div class="tz4-entry-preview-title"><span>Latest switches</span><strong>${formatCount(latest.length)}</strong></div>
@@ -404,7 +411,7 @@ function renderSavedBaker(data) {
     const baker = saved ? data.bakers.find((item) => item.address === saved) : null;
     if (!saved) {
         return `
-            <section class="lb-panel tz4-panel tz4-saved-baker chamber-anim-fade" style="animation-delay:120ms">
+            <section class="lb-panel tz4-panel tz4-saved-baker tz4-saved-baker-compact chamber-anim-fade" style="animation-delay:120ms">
                 <div class="lb-panel-title">Your Baker</div>
                 <div class="lb-empty-inline"><a href="/#my-baker">Set your baker</a> to track their tz4 status.</div>
             </section>
@@ -412,7 +419,7 @@ function renderSavedBaker(data) {
     }
     if (!baker) {
         return `
-            <section class="lb-panel tz4-panel tz4-saved-baker chamber-anim-fade" style="animation-delay:120ms">
+            <section class="lb-panel tz4-panel tz4-saved-baker tz4-saved-baker-compact chamber-anim-fade" style="animation-delay:120ms">
                 <div class="lb-panel-title">Your Baker</div>
                 <div class="lb-empty-inline">Saved baker is not in the active funded-baker set.</div>
             </section>
@@ -425,9 +432,30 @@ function renderSavedBaker(data) {
                 <div class="lb-baker-cell">${bakerLinks(baker.address, baker.name)}</div>
                 ${statusBadge(baker)}
                 <span class="tz4-row-detail">${escapeHtml(statusDetail(baker))}</span>
+                ${baker.status === 'active' ? '<button type="button" class="lb-filter-btn tz4-share-switch" data-tz4-share-switch>Share switch</button>' : ''}
             </div>
         </section>
     `;
+}
+
+function initTz4Share(container, data) {
+    const button = container.querySelector('[data-tz4-share-switch]');
+    if (!button || button.dataset.tz4ShareWired) return;
+    const saved = localStorage.getItem(STORAGE_KEY);
+    const baker = saved ? data.bakers.find((item) => item.address === saved) : null;
+    if (!baker) return;
+    button.dataset.tz4ShareWired = '1';
+    button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const name = baker.name || baker.address;
+        const text = `${name} is baking with a tz4/BLS consensus key on Tezos.\n\nTrack the tz4 rollout at tezos.systems/#tz4`;
+        if (navigator.share) {
+            navigator.share({ text, url: 'https://tezos.systems/#tz4' }).catch(() => {});
+            return;
+        }
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'width=550,height=420');
+    });
 }
 
 function renderFirstMoverRows(bakers) {
@@ -517,21 +545,29 @@ function filterBakers(bakers, filter) {
     return bakers.filter((baker) => baker.status === filter);
 }
 
-function renderBakerRows(bakers) {
+function renderBakerRows(bakers, { showAll = false } = {}) {
     if (!bakers.length) return '<div class="lb-empty-inline">No bakers match this filter.</div>';
-    return sortBakersForTable(bakers).map((baker) => `
+    const rows = sortBakersForTable(bakers);
+    const visible = showAll ? rows : rows.slice(0, BAKER_STATUS_PREVIEW_LIMIT);
+    return visible.map((baker) => `
         <div class="lb-table-row tz4-table-row" data-tz4-baker="${escapeHtml(baker.address)}" data-tz4-status="${escapeHtml(baker.status)}">
             <div class="lb-baker-cell">${bakerLinks(baker.address, baker.name)}</div>
             <span>${statusBadge(baker)}</span>
-            <span>${escapeHtml(statusDetail(baker))}</span>
+            <span>${escapeHtml(baker.status === 'not-yet' ? 'Awaiting switch' : statusDetail(baker))}</span>
             <span>${formatMutez(baker.bakingPower)} XTZ - ${formatPercent(baker.bakingPowerShare)}</span>
         </div>
     `).join('');
 }
 
+function renderBakerStatusActions(bakers, showAll = _tz4ShowAllBakers) {
+    if (!bakers.length || bakers.length <= BAKER_STATUS_PREVIEW_LIMIT || showAll) return '';
+    return `<button type="button" class="lb-filter-btn tz4-show-all-btn" data-tz4-show-all>Show all ${formatCount(bakers.length)}</button>`;
+}
+
 function renderBakerStatus(data, activeFilter = _tz4ActiveFilter) {
     window._tz4Bakers = data.bakers;
     const filter = ['all', 'active', 'pending', 'not-yet'].includes(activeFilter) ? activeFilter : 'all';
+    const filtered = filterBakers(data.bakers, filter);
     return `
         <section class="lb-panel tz4-panel tz4-bakers-panel chamber-anim-fade" style="animation-delay:300ms">
             <div class="lb-panel-title">Baker Status</div>
@@ -544,8 +580,9 @@ function renderBakerStatus(data, activeFilter = _tz4ActiveFilter) {
             </div>
             <div class="lb-table tz4-baker-table">
                 <div class="lb-table-head"><span>Baker</span><span>Status</span><span>Timing</span><span>Baking power</span></div>
-                <div id="tz4-baker-status-list">${renderBakerRows(filterBakers(data.bakers, filter))}</div>
+                <div id="tz4-baker-status-list">${renderBakerRows(filtered, { showAll: _tz4ShowAllBakers })}</div>
             </div>
+            <div class="tz4-baker-actions" id="tz4-baker-status-actions">${renderBakerStatusActions(filtered)}</div>
         </section>
     `;
 }
@@ -561,17 +598,31 @@ function initBakerProfileLinks(root = document) {
 function initBakerFilters(activeFilter = _tz4ActiveFilter) {
     const container = document.querySelector('.tz4-bakers-panel');
     const list = document.getElementById('tz4-baker-status-list');
+    const actions = document.getElementById('tz4-baker-status-actions');
     if (!container || !list || !window._tz4Bakers) return;
     _tz4ActiveFilter = ['all', 'active', 'pending', 'not-yet'].includes(activeFilter) ? activeFilter : 'all';
+
+    function rerenderRows() {
+        const filtered = filterBakers(window._tz4Bakers, _tz4ActiveFilter);
+        list.innerHTML = renderBakerRows(filtered, { showAll: _tz4ShowAllBakers });
+        if (actions) actions.innerHTML = renderBakerStatusActions(filtered);
+        initBakerProfileLinks(list);
+        actions?.querySelector('[data-tz4-show-all]')?.addEventListener('click', () => {
+            _tz4ShowAllBakers = true;
+            rerenderRows();
+        });
+    }
+
     container.querySelectorAll('[data-tz4-filter]').forEach((button) => {
         button.addEventListener('click', () => {
             container.querySelectorAll('[data-tz4-filter]').forEach((other) => other.classList.remove('active'));
             button.classList.add('active');
             _tz4ActiveFilter = button.dataset.tz4Filter || 'all';
-            list.innerHTML = renderBakerRows(filterBakers(window._tz4Bakers, _tz4ActiveFilter));
-            initBakerProfileLinks(list);
+            _tz4ShowAllBakers = false;
+            rerenderRows();
         });
     });
+    rerenderRows();
 }
 
 function renderTz4Adoption(data, container, activeFilter = _tz4ActiveFilter) {
@@ -613,6 +664,7 @@ function renderTz4Adoption(data, container, activeFilter = _tz4ActiveFilter) {
     container.dataset.tz4Rendered = 'true';
     initBakerFilters(activeFilter);
     initBakerProfileLinks(container);
+    initTz4Share(container, data);
 }
 
 async function refreshTz4AdoptionChamber({ initial = false } = {}) {

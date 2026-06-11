@@ -189,7 +189,7 @@ function formatAge(timestamp) {
 
 function formatDurationFromBlocks(blocks) {
     if (!Number.isFinite(blocks)) return '--';
-    if (blocks <= 0) return 'ending now';
+    if (blocks <= 0) return 'rolling over now';
     const minutes = Math.round((blocks * BLOCK_SECONDS) / 60);
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
@@ -651,7 +651,7 @@ function renderEntryCard(data) {
     const quiet = allTracksQuiet(data);
     let value = main.label;
     if (quiet) {
-        value = 'IDLE';
+        value = 'Tracks';
     } else if (main.phase === 'proposal' && main.proposal) {
         value = formatPercent(main.proposalProgress);
     } else if (main.phase === 'promotion' && main.promotion) {
@@ -670,18 +670,19 @@ function renderEntryCard(data) {
     if (descriptionEl) {
         descriptionEl.textContent = 'FAST, SLOW, and Sequencer tracks';
         if (quiet) {
-            descriptionEl.textContent = 'No active Tezlink proposals';
+            descriptionEl.textContent = 'FAST · SLOW · SEQ idle';
         } else if (main.phase === 'proposal' && main.proposal) {
             descriptionEl.textContent = `${main.label} ${proposalLabel(main.proposal.winner)}`;
         }
     }
     if (miniEl) {
         miniEl.classList.toggle('live', status.className === 'live' || status.className === 'good');
-        miniEl.textContent = quiet ? 'All tracks idle' : `${main.label}: ${status.label}`;
+        miniEl.textContent = quiet ? 'All tracks idle · refresh 60s' : `${main.label}: ${status.label}`;
     }
     if (metricsEl) {
-        metricsEl.hidden = !activeTrack;
-        metricsEl.innerHTML = activeTrack ? renderEntryMetrics(data) : '';
+        metricsEl.hidden = false;
+        metricsEl.classList.toggle('etherlink-gov-idle-preview', quiet);
+        metricsEl.innerHTML = renderEntryMetrics(data);
     }
 }
 
@@ -821,8 +822,7 @@ function renderHistoricalProposals(track) {
             : `<span>${escapeHtml(title)}</span>`;
         return `
             <div class="lb-table-row etherlink-gov-history-row" data-etherlink-proposal-op="${escapeHtml(proposal.hash)}">
-                <span>${proposalCell}</span>
-                <code>${escapeHtml(compactHash(proposal.key))}</code>
+                <div class="etherlink-gov-history-main">${proposalCell}<code>${escapeHtml(compactHash(proposal.payload || proposal.key))}</code></div>
                 <span>${escapeHtml(formatDate(proposal.time))}</span>
                 <strong>${escapeHtml(proposal.sender?.alias || proposal.sender?.address || 'sender')}</strong>
             </div>
@@ -840,7 +840,7 @@ function renderHistoricalProposals(track) {
             </div>
             <div class="lb-table etherlink-gov-table">
                 <div class="lb-table-head etherlink-gov-history-row">
-                    <span>Proposal</span><span>Payload</span><span>Submitted</span><span>Sender</span>
+                    <span>Proposal</span><span>Submitted</span><span>Sender</span>
                 </div>
                 <div>${rows || '<div class="lb-empty">No historical proposal submissions found in the indexed TzKT sample.</div>'}</div>
             </div>
