@@ -1133,6 +1133,7 @@ function initNavButtons() {
 // CHAMBERS SURFACE
 // ==========================================
 const CHAMBERS_VISIBLE_KEY = 'tezos-systems-chambers-visible';
+const CHAMBERS_DIGEST_STORAGE_KEY = 'tezos-systems-chambers-digest-snapshot';
 const CHAMBER_CARD_PAIRS = [
     {
         key: 'health-governance',
@@ -1149,6 +1150,233 @@ const CHAMBER_CARD_PAIRS = [
 ];
 const CHAMBER_CARD_ORDER = CHAMBER_CARD_PAIRS.flatMap((pair) => pair.selectors);
 let _chamberPairObserver = null;
+let _chambersDigestObserver = null;
+let _chambersDigestTimer = null;
+let _chambersDigestBaselineLoaded = false;
+let _chambersDigestBaseline = null;
+
+function normalizeChamberText(value) {
+    return String(value || '')
+        .replace(/\s+/g, ' ')
+        .replace(/\s*·\s*refresh\s+\d+s/gi, '')
+        .trim();
+}
+
+function readChamberText(selector) {
+    return normalizeChamberText(document.querySelector(selector)?.textContent);
+}
+
+function parseChamberPercent(value) {
+    const match = String(value || '').match(/(-?\d+(?:\.\d+)?)\s*%/);
+    return match ? Number(match[1]) : null;
+}
+
+function parseTz4AdoptionPercent(value) {
+    const text = String(value || '');
+    const ratioMatch = text.match(/(-?\d+(?:\.\d+)?)\s*\/\s*-?\d+(?:\.\d+)?\s*%?/);
+    return ratioMatch ? Number(ratioMatch[1]) : parseChamberPercent(text);
+}
+
+function parseTz4PowerPercent(value) {
+    const text = String(value || '');
+    const match = text.match(/(-?\d+(?:\.\d+)?)\s*%\s*power/i)
+        || text.match(/power\s*(-?\d+(?:\.\d+)?)\s*%/i);
+    return match ? Number(match[1]) : null;
+}
+
+function parseChamberUsd(value) {
+    const match = String(value || '').replace(/,/g, '').match(/\$?\s*(-?\d+(?:\.\d+)?)\s*([KMB])?/i);
+    if (!match) return null;
+    const unit = (match[2] || '').toUpperCase();
+    const multiplier = unit === 'B' ? 1e9 : unit === 'M' ? 1e6 : unit === 'K' ? 1e3 : 1;
+    return Number(match[1]) * multiplier;
+}
+
+function formatChamberPct(value) {
+    return Number.isFinite(value) ? `${value.toFixed(1)}%` : '';
+}
+
+function formatSignedPoints(delta) {
+    if (!Number.isFinite(delta)) return '';
+    const sign = delta > 0 ? '+' : '';
+    return `${sign}${delta.toFixed(1)}pp`;
+}
+
+function formatCompactUsd(value) {
+    if (!Number.isFinite(value)) return '';
+    const abs = Math.abs(value);
+    const sign = value < 0 ? '-' : '';
+    if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(1)}B`;
+    if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(1)}M`;
+    if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(0)}K`;
+    return `${sign}$${abs.toFixed(0)}`;
+}
+
+function loadChambersDigestBaseline() {
+    if (_chambersDigestBaselineLoaded) return _chambersDigestBaseline;
+    _chambersDigestBaselineLoaded = true;
+    try {
+        const raw = localStorage.getItem(CHAMBERS_DIGEST_STORAGE_KEY);
+        _chambersDigestBaseline = raw ? JSON.parse(raw) : null;
+    } catch {
+        _chambersDigestBaseline = null;
+    }
+    return _chambersDigestBaseline;
+}
+
+function saveChambersDigestSnapshot(snapshot) {
+    try {
+        localStorage.setItem(CHAMBERS_DIGEST_STORAGE_KEY, JSON.stringify(snapshot));
+    } catch (_) {
+        // Local storage can be unavailable in hardened browser modes.
+    }
+}
+
+function collectChambersDigestSnapshot() {
+    const chamberHero = readChamberText('#chamber-entry-hero');
+    const chamberStatus = readChamberText('#chamber-entry-mini');
+    const healthText = readChamberText('#network-health-front');
+    const healthStatus = readChamberText('#network-health-status');
+    const lbText = readChamberText('#lb-entry-ema');
+    const lbStatus = readChamberText('#lb-entry-description');
+    const tz4Text = readChamberText('#tz4-adoption-front');
+    const tz4Description = readChamberText('#tz4-description');
+    const tz4PowerDescription = normalizeChamberText(document.querySelector('.stat-card[data-stat="tz4-adoption"]')?.dataset.tz4PowerDescription || tz4Description);
+    const tezlinkText = readChamberText('#tezlink-entry-tvl');
+    const l2Status = readChamberText('#etherlink-governance-entry-mini');
+
+    const snapshot = {
+        ts: Date.now(),
+        chamberHero,
+        chamberStatus,
+        healthPct: parseChamberPercent(healthText),
+        healthStatus,
+        lbEmaPct: parseChamberPercent(lbText),
+        lbStatus,
+        tz4BakerPct: parseTz4AdoptionPercent(tz4Text),
+        tz4PowerPct: parseTz4PowerPercent(tz4PowerDescription),
+        tezlinkTvlUsd: parseChamberUsd(tezlinkText),
+        l2Status
+    };
+    const tz4Value = Number.isFinite(snapshot.tz4PowerPct) ? snapshot.tz4PowerPct : snapshot.tz4BakerPct;
+    const signalCount = [
+        snapshot.chamberStatus,
+        Number.isFinite(snapshot.healthPct),
+        Number.isFinite(snapshot.lbEmaPct),
+        Number.isFinite(tz4Value),
+        Number.isFinite(snapshot.tezlinkTvlUsd),
+        snapshot.l2Status
+    ].filter(Boolean).length;
+    snapshot.ready = signalCount >= 4;
+    return snapshot;
+}
+
+function buildChambersDigestLine(snapshot) {
+    if (!snapshot.ready) return 'Loading chamber signals...';
+    const parts = [];
+    const chamber = snapshot.chamberHero
+        ? `${snapshot.chamberHero}: ${snapshot.chamberStatus || 'governance watch'}`
+        : (snapshot.chamberStatus || 'Governance watch');
+    if (chamber) parts.push(chamber);
+    if (Number.isFinite(snapshot.healthPct)) parts.push(`health ${formatChamberPct(snapshot.healthPct)}`);
+    if (Number.isFinite(snapshot.lbEmaPct)) {
+        const lbMode = /disabled/i.test(snapshot.lbStatus) ? 'disabled' : (/active/i.test(snapshot.lbStatus) ? 'active' : 'watch');
+        parts.push(`LB EMA ${formatChamberPct(snapshot.lbEmaPct)} ${lbMode}`);
+    }
+    const tz4Value = Number.isFinite(snapshot.tz4PowerPct) ? snapshot.tz4PowerPct : snapshot.tz4BakerPct;
+    if (Number.isFinite(tz4Value)) parts.push(`tz4 ${formatChamberPct(tz4Value)} power`);
+    if (Number.isFinite(snapshot.tezlinkTvlUsd)) parts.push(`Tezlink ${formatCompactUsd(snapshot.tezlinkTvlUsd)} TVL`);
+    if (snapshot.l2Status) parts.push(`L2 ${snapshot.l2Status}`);
+    return parts.slice(0, 6).join(' · ');
+}
+
+function buildChambersDigestDelta(snapshot, baseline) {
+    if (!snapshot.ready) return 'Snapshot pending';
+    if (!baseline) return 'Snapshot saved for next visit';
+    const deltas = [];
+    const addPointDelta = (label, current, previous) => {
+        if (!Number.isFinite(current) || !Number.isFinite(previous)) return;
+        const delta = current - previous;
+        if (Math.abs(delta) >= 0.05) deltas.push(`${label} ${formatSignedPoints(delta)}`);
+    };
+    addPointDelta('health', snapshot.healthPct, baseline.healthPct);
+    addPointDelta('LB EMA', snapshot.lbEmaPct, baseline.lbEmaPct);
+    addPointDelta('tz4', snapshot.tz4PowerPct ?? snapshot.tz4BakerPct, baseline.tz4PowerPct ?? baseline.tz4BakerPct);
+    if (Number.isFinite(snapshot.tezlinkTvlUsd) && Number.isFinite(baseline.tezlinkTvlUsd)) {
+        const delta = snapshot.tezlinkTvlUsd - baseline.tezlinkTvlUsd;
+        if (Math.abs(delta) >= 1000) deltas.push(`Tezlink ${formatCompactUsd(delta)}`);
+    }
+    if (!deltas.length && baseline.chamberStatus && baseline.chamberStatus !== snapshot.chamberStatus) {
+        deltas.push(`Chamber now ${snapshot.chamberStatus}`);
+    }
+    if (!deltas.length && baseline.l2Status && baseline.l2Status !== snapshot.l2Status) {
+        deltas.push(`L2 now ${snapshot.l2Status}`);
+    }
+    return deltas.length ? `Since last visit: ${deltas.slice(0, 4).join(' · ')}` : 'Since last visit: no headline movement yet';
+}
+
+function updateChambersDigest() {
+    const panel = document.getElementById('chambers-digest');
+    const textEl = document.getElementById('chambers-digest-text');
+    const deltaEl = document.getElementById('chambers-digest-delta');
+    if (!panel || !textEl || !deltaEl) return;
+
+    const snapshot = collectChambersDigestSnapshot();
+    const baseline = loadChambersDigestBaseline();
+    const line = buildChambersDigestLine(snapshot);
+    const delta = buildChambersDigestDelta(snapshot, baseline);
+    const updated = new Date(snapshot.ts).toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'UTC'
+    });
+
+    textEl.textContent = snapshot.ready ? `${line} · as of ${updated} UTC` : line;
+    deltaEl.textContent = delta;
+    panel.dataset.ready = snapshot.ready ? 'true' : 'false';
+    panel.dataset.digestLine = textEl.textContent;
+    panel.dataset.digestDelta = delta;
+    if (snapshot.ready) saveChambersDigestSnapshot(snapshot);
+}
+
+function scheduleChambersDigestUpdate() {
+    if (_chambersDigestTimer) clearTimeout(_chambersDigestTimer);
+    _chambersDigestTimer = setTimeout(updateChambersDigest, 80);
+}
+
+async function copyChambersDigest() {
+    const panel = document.getElementById('chambers-digest');
+    const button = document.getElementById('chambers-digest-share');
+    if (!panel || !button) return;
+    const line = panel.dataset.digestLine || readChamberText('#chambers-digest-text');
+    const delta = panel.dataset.digestDelta || readChamberText('#chambers-digest-delta');
+    const text = `${line}\n${delta}\n${window.location.origin}${window.location.pathname}#chambers`;
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            textarea.remove();
+        }
+        button.classList.add('copied');
+        const original = button.textContent;
+        button.textContent = 'Copied';
+        setTimeout(() => {
+            button.classList.remove('copied');
+            button.textContent = original || 'Share';
+        }, 1200);
+    } catch (error) {
+        console.warn('[chambers] digest copy failed:', error);
+    }
+}
 
 function updateChamberPairState(pair) {
     if (!pair) return;
@@ -1160,6 +1388,7 @@ function updateChamberPairState(pair) {
 
 function updateAllChamberPairStates() {
     document.querySelectorAll('#chambers-grid > .chamber-card-pair').forEach(updateChamberPairState);
+    scheduleChambersDigestUpdate();
 }
 
 function orderChambersSurface() {
@@ -1191,6 +1420,7 @@ function orderChambersSurface() {
     });
 
     grid.dataset.chambersOrder = orderedCards.map((card) => card.id || card.dataset.stat || '').join(',');
+    scheduleChambersDigestUpdate();
 
     if (!_chamberPairObserver) {
         _chamberPairObserver = new MutationObserver(() => updateAllChamberPairStates());
@@ -1205,6 +1435,23 @@ function orderChambersSurface() {
 
 function initChambersSurface() {
     orderChambersSurface();
+    const digestShare = document.getElementById('chambers-digest-share');
+    if (digestShare && !digestShare.dataset.chambersDigestWired) {
+        digestShare.dataset.chambersDigestWired = '1';
+        digestShare.addEventListener('click', copyChambersDigest);
+    }
+    const grid = document.getElementById('chambers-grid');
+    if (grid && !_chambersDigestObserver) {
+        _chambersDigestObserver = new MutationObserver(scheduleChambersDigestUpdate);
+        _chambersDigestObserver.observe(grid, {
+            subtree: true,
+            childList: true,
+            characterData: true,
+            attributes: true,
+            attributeFilter: ['class', 'data-chamber-entry-size', 'data-etherlink-governance-size', 'data-tz4-entry-size', 'data-tz4-power-description', 'data-lb-refreshed-at']
+        });
+    }
+    updateChambersDigest();
 }
 
 function initChambersToggle() {

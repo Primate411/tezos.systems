@@ -1582,6 +1582,86 @@ body::before {
     font-size: 0.82rem;
 }
 
+.chambers-digest {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0 0 1rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 20%, transparent);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 7%, transparent), rgba(255, 255, 255, 0.018)),
+        var(--glass-bg);
+    color: var(--text-secondary);
+}
+
+.chambers-digest-copy {
+    min-width: 0;
+}
+
+.chambers-digest-kicker {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1;
+    text-transform: uppercase;
+}
+
+.chambers-digest p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+
+.chambers-digest-delta {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--text-tertiary);
+    font-size: 0.74rem;
+    line-height: 1.35;
+}
+
+.chambers-digest-share {
+    flex: 0 0 auto;
+    padding: 0.45rem 0.75rem;
+    border: 1px solid var(--glass-border);
+    border-radius: 7px;
+    background: var(--glass-bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+    transition: var(--transition);
+}
+
+.chambers-digest-share:hover,
+.chambers-digest-share.copied {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.12);
+}
+
+@media (max-width: 640px) {
+    .chambers-digest {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .chambers-digest-share {
+        width: 100%;
+    }
+}
+
 .feature-copy-link:hover,
 .feature-copy-link.copied,
 .section-copy-link:hover,

@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-11',
         entries: [
+            { type: '✨', text: 'Chambers now show a daily signal digest with since-last-visit movement and a shareable copy button' },
             { type: '🔧', text: 'Dashboard refresh now keeps shared feature safety wrappers available during manual and background refresh cycles' },
             { type: '🎨', text: 'Liquidity Baking EMA trend lines now auto-scale around the recent range, and Tezlink Governance card controls avoid crowding track chips' },
             { type: '🔧', text: 'Tezlink Governance period countdowns now advance from the current head block instead of sticking at rollover copy' },

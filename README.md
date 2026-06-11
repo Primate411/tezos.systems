@@ -154,6 +154,9 @@ inline modal styles in `js/core/app.js`.
   compact track chips visible even when all tracks are idle, keeps its open
   control clear of those chips, and computes period countdowns from the current
   head block.
+- Chambers daily signal digest with a current cross-chamber headline,
+  since-last-visit movement for headline percentages and TVL, and a copy/share
+  control that points back to `#chambers`.
 - Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
   transactions, gas, addresses, grouped Blockscout transaction tape rows, and
   DefiLlama protocol TVL sourced from current Tezlink rails.
@@ -303,7 +306,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, Chambers daily digest and deltas, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`
