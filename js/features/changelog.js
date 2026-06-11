@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-11',
         entries: [
+            { type: '🎨', text: 'Aurora title now keeps its shifting multicolor treatment visible on desktop instead of reading as a mostly static blue wordmark' },
             { type: '⚡', text: 'TzKT API calls now pass through a browser-local queue capped at six request starts per second to avoid visitor-side 429 bursts' },
         ]
     },

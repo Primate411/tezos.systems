@@ -114,6 +114,8 @@ There are 13 visual themes in `js/ui/theme.js`. `aurora` is the default theme.
 The theme picker groups animated themes separately from classic data-focused
 themes, and stores the selection in `localStorage` under
 `tezos-systems-theme`.
+Aurora's header title uses a desktop-specific multicolor sweep so the one-line
+wordmark stays as vivid as the wrapped mobile title.
 
 | Theme | Role |
 |-------|------|

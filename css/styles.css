@@ -151,6 +151,35 @@ body[data-theme="aurora"]::after {
 }
 @keyframes auroraTitleShift { to { background-position: 220% center; } }
 
+@media (min-width: 769px) {
+    [data-theme="aurora"] .title {
+        background: linear-gradient(105deg,
+            #45E0C8 0%,
+            #8FE9DC 9%,
+            #5BA8FF 18%,
+            #9B8CFF 28%,
+            #F49AD1 38%,
+            #FFD166 48%,
+            #45E0C8 58%,
+            #5BA8FF 72%,
+            #9B8CFF 86%,
+            #F49AD1 100%);
+        background-size: 220% 100%;
+        -webkit-background-clip: text;
+        background-clip: text;
+        text-shadow:
+            0 0 28px rgba(69, 224, 200, 0.24),
+            0 0 46px rgba(155, 140, 255, 0.22),
+            0 0 58px rgba(244, 154, 209, 0.16);
+        animation: auroraTitleSweep 6s linear infinite;
+    }
+}
+
+@keyframes auroraTitleSweep {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
 /* Glass, glow & accents */
 [data-theme="aurora"] .stat-card:hover {
     border-color: rgba(124, 140, 255, 0.40);

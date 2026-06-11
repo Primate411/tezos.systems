@@ -560,6 +560,36 @@ async function checkStylesheetFreshness() {
   }
 }
 
+async function checkAuroraDesktopTitleTreatment() {
+  const css = await readText('css/styles.css');
+  const mediaStart = css.indexOf('@media (min-width: 769px)');
+  const keyframesStart = css.indexOf('@keyframes auroraTitleSweep', mediaStart);
+  const desktopBlock = mediaStart >= 0 && keyframesStart >= 0
+    ? css.slice(mediaStart, keyframesStart)
+    : '';
+
+  if (!desktopBlock.includes('[data-theme="aurora"] .title')) {
+    fail('desktop aurora title needs a viewport-specific treatment so it does not flatten into one color');
+    return;
+  }
+
+  for (const token of ['#45E0C8', '#5BA8FF', '#9B8CFF', '#F49AD1']) {
+    if (!desktopBlock.includes(token)) fail(`desktop aurora title gradient missing ${token}`);
+  }
+
+  if (!desktopBlock.includes('background-size: 220% 100%')) {
+    fail('desktop aurora title must keep a wide gradient field for visible color movement');
+  }
+  if (!desktopBlock.includes('animation: auroraTitleSweep 6s linear infinite')) {
+    fail('desktop aurora title must use the faster auroraTitleSweep animation');
+  }
+  if (!css.includes('@keyframes auroraTitleSweep')) {
+    fail('desktop aurora title animation keyframes are missing');
+  }
+
+  pass('desktop aurora title keeps a distinct multicolor sweep treatment');
+}
+
 async function checkPortableTooling() {
   const packageJson = JSON.parse(await readText('package.json'));
   const gitignore = await readText('.gitignore');
@@ -695,6 +725,7 @@ async function main() {
   await checkHistoricalPagination();
   await checkLiquidityBakingIssuanceState();
   await checkStylesheetFreshness();
+  await checkAuroraDesktopTitleTreatment();
   await checkPortableTooling();
   await checkReadmeContracts();
 
