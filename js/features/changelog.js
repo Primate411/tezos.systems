@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-11',
         entries: [
+            { type: '🔧', text: 'Network Health chamber card controls now keep camera, direct link, and info buttons in separate top-right slots' },
             { type: '🎨', text: 'Network Health and Liquidity Baking chamber cards now keep compact status rows inside the card frame at wide desktop sizes' },
             { type: '🎨', text: 'Chambers now render as three paired rows so wide cards keep their companion card instead of leaving visual gaps' },
             { type: '✨', text: 'The Chamber card and modal now show live proposal context, refresh every minute, expose vote sharing, and keep live vote data before process explainers' },

@@ -374,6 +374,7 @@ async function checkSelectorContracts() {
   const etherlinkGovernance = await readText('js/features/etherlink-governance.js');
   const tz4 = await readText('js/features/tz4-adoption.js');
   const health = await readText('js/features/network-health.js');
+  const styles = await readText('css/styles.css');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
     ['Chambers hash route', "hash === 'chambers'", app],
@@ -418,6 +419,18 @@ async function checkSelectorContracts() {
     if (etherlinkGovernance.includes(address)) fail(`Tezlink Governance chamber should discover active contract, not hardcode ${address}`);
   }
   pass(`deep-link selector contracts checked: ${deepLinkContracts.length}`);
+
+  const cardControlContracts = [
+    ['Health card copy slot', '.health-entry-card .card-copy-link', styles],
+    ['Health card camera slot', '.health-entry-card .card-share-btn', styles],
+    ['Network Health pre-init camera slot', '.stat-card[data-stat="network-health"] .card-share-btn', styles],
+    ['Chamber direct-link slot', 'right: calc(1rem + 32px);', styles],
+    ['Chamber camera slot', 'right: calc(1rem + 64px);', styles]
+  ];
+  for (const [label, snippet, text] of cardControlContracts) {
+    if (!text.includes(snippet)) fail(`missing card control spacing contract: ${label}`);
+  }
+  pass(`card control spacing contracts checked: ${cardControlContracts.length}`);
 
   const rawWidgetLinks = [
     'href="/widgets/price.html"',

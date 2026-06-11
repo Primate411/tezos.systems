@@ -5190,6 +5190,13 @@ body.high-combo .stat-card {
 .stat-card:hover .card-share-btn { opacity: 0.75; }
 .card-share-btn:hover { opacity: 1 !important; background: rgba(0, 212, 255, 0.15); border-color: var(--accent-cyan); color: var(--accent-cyan); transform: scale(1.15); box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
 
+.lb-entry-card .card-share-btn,
+.tz4-entry-card .card-share-btn,
+.health-entry-card .card-share-btn,
+.stat-card[data-stat="network-health"] .card-share-btn {
+    right: calc(1rem + 64px);
+}
+
 /* Per-card history button */
 .card-history-btn {
     position: absolute;
