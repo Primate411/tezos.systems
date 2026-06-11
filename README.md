@@ -146,20 +146,25 @@ inline modal styles in `js/core/app.js`.
   Health <> The Chamber, Tezlink <> Tezlink Governance, and tz4 Adoption <> LB
   Monitor. Each pair is wrapped as its own responsive row so wide cards keep
   their companion card instead of creating desktop grid holes; cards also keep
-  visible open affordances and card-level direct-link controls.
+  visible open affordances, card-level direct-link controls, and quiet `as of`
+  freshness stamps on the live chamber cards.
 - Tezlink Governance Chamber with direct `#l2chamber` access,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
   discovery, storage, bigmaps, and recent historical proposal submissions, plus
   official-track and TzKT links for action/audit. The dashboard card keeps
   compact track chips visible even when all tracks are idle, keeps its open
-  control clear of those chips, and computes period countdowns from the current
-  head block.
+  control clear of those chips, computes period countdowns from the current
+  head block, and the open chamber now includes track rules, track memory, and
+  a merged submission/vote timeline for each L2 governance track.
 - Chambers daily signal digest with a current cross-chamber headline,
   since-last-visit movement for headline percentages and TVL, and a copy/share
   control that points back to `#chambers`.
 - Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
   transactions, gas, addresses, grouped Blockscout transaction tape rows, and
-  DefiLlama protocol TVL sourced from current Tezlink rails.
+  DefiLlama protocol TVL sourced from current Tezlink rails. The open chamber
+  also layers in 30-day TVL/transaction direction, TzKT smart-rollup anchor
+  metadata, gas oracle detail, and top tokens by holders when those upstream
+  feeds are available.
 - Live network stat cards for consensus, economy, governance, network activity,
   and ecosystem metrics are opt-in from Explore under Network Stats.
 - Network Health Chamber with direct `#health` access, recent block cadence,
@@ -167,7 +172,8 @@ inline modal styles in `js/core/app.js`.
   compact saved My Tezos baker summary. Its Chambers card spans two tiles and
   includes compact block-power bars plus a deduped throttled 1,000+ XTZ live
   activity tape; the open chamber refreshes on the block cadence with in-place
-  row updates instead of a full rerender.
+  row updates instead of a full rerender, and now adds incident memory, period
+  telemetry, and network-load panels.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
@@ -178,15 +184,19 @@ inline modal styles in `js/core/app.js`.
   card refreshes every 60 seconds and expands during active ballot periods to
   show proposal name, time left, quorum, supermajority, and ballot context. The
   opened Chamber renders live vote instrumentation before the process explainer
-  and includes a vote share capture button.
+  and includes proposal intel, quorum/non-voter gap analysis, and a vote share
+  capture button.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, protocol-history lore, EMA
   threshold meter and auto-scaled trend sparkline, 6-second open-monitor
-  refreshes, and 60-second dashboard-tile refreshes.
+  refreshes, and 60-second dashboard-tile refreshes. The open monitor also
+  shows sampled EMA drift/forecasting, a history strip, vote-change feed, and
+  top baker signals when no baker is saved.
 - tz4 Adoption Chamber with a wide Chambers tile for latest completed switches
   and pending activations, plus baker-count and baking-power adoption readouts,
   current baker BLS/tz4 status, saved-baker highlighting/share, first-switch
-  timing, and a capped Baker Status table with a Show all control.
+  timing, projection to 50%, largest holdouts, monthly switch momentum, power
+  milestones, and a capped Baker Status table with a Show all control.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
   LB vote state, and recent baker delegator/staker activity.
 - Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping

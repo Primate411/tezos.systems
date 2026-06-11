@@ -590,6 +590,15 @@ function trackStatus(track) {
     return { label: 'Active period', className: 'live' };
 }
 
+function trackLastActivity(track) {
+    const candidates = [
+        ...(track.activity || []).map((op) => ({ time: op.time, label: op.entrypoint?.replace(/_/g, ' ') || 'contract call', href: op.hash ? `https://tzkt.io/${op.hash}` : '' })),
+        ...(track.historicalProposals || []).map((proposal) => ({ time: proposal.time, label: `proposal ${proposalLabel(proposal.payload)}`, href: proposal.hash ? `https://tzkt.io/${proposal.hash}` : '' }))
+    ].filter((item) => item.time);
+    candidates.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+    return candidates[0] || null;
+}
+
 function topTrack(data) {
     return data.tracks.find((track) => track.phase === 'proposal' && track.proposal && hasActiveTrackPayload(track))
         || data.tracks.find((track) => track.phase === 'promotion' && track.promotion && hasActiveTrackPayload(track))
@@ -628,11 +637,12 @@ function renderProgress(value, required, label) {
 function renderEntryMetrics(data) {
     return data.tracks.map((track) => {
         const status = trackStatus(track);
+        const last = trackLastActivity(track);
         const value = track.phase === 'proposal' && track.proposal
             ? `${formatPercent(track.proposalProgress)} / ${formatPercent(track.proposalRequired, 0)}`
             : track.phase === 'promotion' && track.promotion
                 ? `${formatPercent(track.promotion.participation)} / ${formatPercent(track.promotionRequired, 0)}`
-                : status.label;
+                : last ? `${formatAge(last.time)}` : status.label;
         return `
             <div class="tezlink-entry-metric etherlink-gov-entry-metric ${status.className}">
                 <span>${escapeHtml(track.label)}</span>
@@ -684,6 +694,8 @@ function renderEntryCard(data) {
         metricsEl.classList.toggle('etherlink-gov-idle-preview', quiet);
         metricsEl.innerHTML = renderEntryMetrics(data);
     }
+    const time = new Date(data.updatedAt || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+    card.dataset.updatedLabel = `as of ${time} UTC`;
 }
 
 function renderEntryError() {
@@ -848,6 +860,93 @@ function renderHistoricalProposals(track) {
     `;
 }
 
+function renderTrackRules(track) {
+    return `
+        <section class="lb-panel etherlink-gov-panel etherlink-gov-rules-panel chamber-anim-fade" id="etherlink-gov-rules" style="animation-delay:40ms">
+            <div class="lb-panel-header">
+                <div>
+                    <span class="lb-panel-kicker">Track rules</span>
+                    <h3>${escapeHtml(track.label)} thresholds</h3>
+                </div>
+                <span class="lb-live-pill">${escapeHtml(track.source || 'storage')}</span>
+            </div>
+            <div class="lb-metric-grid health-metric-grid">
+                <div><span>Proposal quorum</span><strong>${escapeHtml(formatPercent(track.proposalRequired, 0))}</strong></div>
+                <div><span>Promotion quorum</span><strong>${escapeHtml(formatPercent(track.promotionRequired, 0))}</strong></div>
+                <div><span>Supermajority</span><strong>${escapeHtml(formatPercent(track.supermajorityRequired, 0))}</strong></div>
+                <div><span>Period length</span><strong>${escapeHtml(formatDurationFromBlocks(Number(track.config?.period_length)))}</strong></div>
+            </div>
+            <div class="health-timing-note">Contract ${escapeHtml(track.contract || 'not discovered')} · last winner ${escapeHtml(proposalLabel(track.storage?.last_winner || track.config?.last_winner || ''))}</div>
+        </section>
+    `;
+}
+
+function renderTrackMemory(track) {
+    const last = trackLastActivity(track);
+    const latestProposal = track.historicalProposals?.[0] || null;
+    return `
+        <section class="lb-panel etherlink-gov-panel etherlink-gov-memory-panel chamber-anim-fade" id="etherlink-gov-memory" style="animation-delay:70ms">
+            <div class="lb-panel-header">
+                <div>
+                    <span class="lb-panel-kicker">Track memory</span>
+                    <h3>${last ? escapeHtml(last.label) : `No indexed ${escapeHtml(track.label)} activity yet`}</h3>
+                </div>
+                ${last?.href ? `<a class="lb-live-pill" href="${escapeHtml(last.href)}" target="_blank" rel="noopener">Open op</a>` : ''}
+            </div>
+            <div class="lb-metric-grid health-metric-grid">
+                <div><span>Last activity</span><strong>${last ? escapeHtml(formatAge(last.time)) : '--'}</strong></div>
+                <div><span>Last proposal</span><strong>${latestProposal ? escapeHtml(proposalLabel(latestProposal.payload)) : '--'}</strong></div>
+                <div><span>Current phase</span><strong>${escapeHtml(track.phase || 'unknown')}</strong></div>
+            </div>
+            <div class="health-timing-note">Idle tracks still show their rules and last indexed proposal so quiet does not read as dead.</div>
+        </section>
+    `;
+}
+
+function renderMergedTimeline(track) {
+    const rows = [
+        ...(track.historicalProposals || []).map((proposal) => ({
+            kind: 'submission',
+            label: proposalLabel(proposal.payload),
+            time: proposal.time,
+            actor: proposal.sender?.alias || proposal.sender?.address || 'sender',
+            href: proposal.hash ? `https://tzkt.io/${proposal.hash}` : ''
+        })),
+        ...(track.activity || []).map((op) => ({
+            kind: op.entrypoint?.replace(/_/g, ' ') || 'call',
+            label: proposalLabel(op.value) || op.entrypoint || 'contract call',
+            time: op.time,
+            actor: op.sender?.alias || op.sender?.address || 'sender',
+            href: op.hash ? `https://tzkt.io/${op.hash}` : ''
+        }))
+    ].filter((row) => row.time).sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 10);
+    const body = rows.length ? rows.map((row) => `
+        <a class="lb-table-row etherlink-gov-timeline-row" href="${escapeHtml(row.href || `${GOVERNANCE_BASE}/${track.key}`)}" target="_blank" rel="noopener">
+            <span>${escapeHtml(row.kind)}</span>
+            <span>${escapeHtml(row.label)}</span>
+            <strong>${escapeHtml(formatAge(row.time))}</strong>
+            <code>${escapeHtml(row.actor)}</code>
+        </a>
+    `).join('') : '<div class="lb-empty">No merged timeline entries in the indexed sample.</div>';
+    return `
+        <section class="lb-panel etherlink-gov-panel etherlink-gov-timeline-panel chamber-anim-fade" id="etherlink-gov-timeline" style="animation-delay:140ms">
+            <div class="lb-panel-header">
+                <div>
+                    <span class="lb-panel-kicker">Timeline</span>
+                    <h3>Submission → vote → trigger</h3>
+                </div>
+                <span class="lb-live-pill">${escapeHtml(String(rows.length))} rows</span>
+            </div>
+            <div class="lb-table etherlink-gov-table">
+                <div class="lb-table-head etherlink-gov-timeline-row">
+                    <span>Step</span><span>Payload</span><span>When</span><span>Actor</span>
+                </div>
+                <div>${body}</div>
+            </div>
+        </section>
+    `;
+}
+
 function renderActivity(track) {
     const rows = track.activity.slice(0, 8).map((op) => `
         <a class="lb-table-row etherlink-gov-activity-row" href="https://tzkt.io/${escapeHtml(op.hash)}" target="_blank" rel="noopener">
@@ -899,11 +998,13 @@ function renderTrackPanel(track) {
                 </div>
             </section>
             <div class="lb-dashboard-grid etherlink-gov-dashboard-grid">
+                ${renderTrackRules(track)}
+                ${renderTrackMemory(track)}
                 ${renderProposalPanel(track)}
                 ${renderPromotionPanel(track)}
                 ${renderEmptyPanel(track)}
                 ${renderHistoricalProposals(track)}
-                ${renderActivity(track)}
+                ${renderMergedTimeline(track)}
             </div>
         </div>
     `;

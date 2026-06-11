@@ -9,6 +9,7 @@ import { escapeHtml } from '../core/utils.js';
 const DEFILLAMA = API_URLS.defillama;
 const EXPLORER = API_URLS.tezlinkExplorer;
 const RPC = API_URLS.tezlinkRpc;
+const TZKT = API_URLS.tzkt;
 const ENTRY_REFRESH_MS = 60 * 1000;
 const CHAMBER_REFRESH_MS = 60 * 1000;
 const CACHE_TTL = 45 * 1000;
@@ -217,16 +218,85 @@ function normalizeStats(stats, txPayload, rpcResults, chainTvls, protocols) {
     };
 }
 
+function normalizeTvlHistory(rows) {
+    if (!Array.isArray(rows)) return [];
+    return rows
+        .map((row) => ({
+            date: row.date || row.timestamp || row.time,
+            tvl: toNumber(row.tvl ?? row.totalLiquidityUSD ?? row.value)
+        }))
+        .filter((row) => row.date && row.tvl !== null)
+        .slice(-30);
+}
+
+function normalizeChartRows(payload, valueKeys = ['value', 'transactions', 'count']) {
+    const rows = Array.isArray(payload) ? payload : Array.isArray(payload?.chart_data) ? payload.chart_data : Array.isArray(payload?.items) ? payload.items : [];
+    return rows
+        .map((row) => {
+            const valueKey = valueKeys.find((key) => row[key] !== undefined);
+            return {
+                date: row.date || row.timestamp || row.day,
+                value: valueKey ? toNumber(row[valueKey]) : null
+            };
+        })
+        .filter((row) => row.date && row.value !== null)
+        .slice(-30);
+}
+
+function normalizeTokens(payload) {
+    const rows = Array.isArray(payload?.items) ? payload.items : Array.isArray(payload) ? payload : [];
+    return rows
+        .map((token) => ({
+            name: token.name || token.token?.name || 'Token',
+            symbol: token.symbol || token.token?.symbol || '',
+            holders: toNumber(token.holders_count ?? token.holders ?? token.token?.holders_count),
+            address: token.address || token.token?.address || token.token?.address_hash || ''
+        }))
+        .filter((token) => token.holders !== null)
+        .sort((a, b) => b.holders - a.holders)
+        .slice(0, 6);
+}
+
+function normalizeAnchor(payload) {
+    const rows = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : [];
+    const anchor = rows[0] || payload || null;
+    if (!anchor || Array.isArray(anchor)) return null;
+    return {
+        address: anchor.address || anchor.hash || anchor.rollup || anchor.smart_rollup || '',
+        level: toNumber(anchor.lastCommitmentLevel ?? anchor.last_commitment_level ?? anchor.lastActivity ?? anchor.lastLevel),
+        inboxLevel: toNumber(anchor.inboxLevel ?? anchor.inbox_level),
+        updatedAt: anchor.lastActivityTime || anchor.timestamp || anchor.updatedAt || null
+    };
+}
+
+function trendDelta(rows, key = 'value') {
+    if (!rows?.length) return null;
+    const first = rows[0]?.[key];
+    const last = rows[rows.length - 1]?.[key];
+    if (!Number.isFinite(first) || !Number.isFinite(last)) return null;
+    return {
+        first,
+        last,
+        absolute: last - first,
+        pct: first ? ((last - first) / first) * 100 : null
+    };
+}
+
 async function fetchTezlinkData({ force = false } = {}) {
     if (!force && cachedData && Date.now() - cachedAt < CACHE_TTL) return cachedData;
 
-    const [chainsResult, protocolsResult, statsResult, txsResult, headResult, gasResult] = await Promise.allSettled([
+    const [chainsResult, protocolsResult, statsResult, txsResult, headResult, gasResult, tvlHistoryResult, txChartResult, activeAccountsResult, tokensResult, anchorResult] = await Promise.allSettled([
         fetchJson(`${DEFILLAMA}/v2/chains`),
         fetchJson(`${DEFILLAMA}/protocols`),
         fetchJson(`${EXPLORER}/stats`),
         fetchJson(`${EXPLORER}/transactions?filter=validated`),
         rpcCall('eth_blockNumber'),
-        rpcCall('eth_gasPrice')
+        rpcCall('eth_gasPrice'),
+        fetchJson(`${DEFILLAMA}/v2/historicalChainTvl/${CHAIN_NAME}`),
+        fetchJson(`${EXPLORER}/stats/charts/transactions`),
+        fetchJson(`${EXPLORER}/stats/charts/active-accounts`),
+        fetchJson(`${EXPLORER}/tokens?type=ERC-20&sort=holders_count&order=desc`),
+        fetchJson(`${TZKT}/smart_rollups?limit=5&sort.desc=lastActivity`)
     ]);
 
     const chains = chainsResult.status === 'fulfilled' ? chainsResult.value : [];
@@ -240,6 +310,12 @@ async function fetchTezlinkData({ force = false } = {}) {
         head: headResult.status === 'fulfilled' ? headResult.value : null,
         gasPrice: gasResult.status === 'fulfilled' ? gasResult.value : null
     }, chainTvls, protocols);
+    data.tvlHistory = tvlHistoryResult.status === 'fulfilled' ? normalizeTvlHistory(tvlHistoryResult.value) : [];
+    data.txHistory = txChartResult.status === 'fulfilled' ? normalizeChartRows(txChartResult.value, ['transactions', 'value', 'count']) : [];
+    data.activeAccountsHistory = activeAccountsResult.status === 'fulfilled' ? normalizeChartRows(activeAccountsResult.value, ['active_accounts', 'accounts', 'value']) : [];
+    data.tokens = tokensResult.status === 'fulfilled' ? normalizeTokens(tokensResult.value) : [];
+    data.anchor = anchorResult.status === 'fulfilled' ? normalizeAnchor(anchorResult.value) : null;
+    data.gasPrices = stats?.gas_prices || {};
 
     if (!data.tvl && !data.transactionsToday && !data.totalTransactions && !data.totalAddresses && !data.txs.length) {
         throw new Error('Tezlink data unavailable');
@@ -283,6 +359,7 @@ function renderEntryMetrics(data) {
 }
 
 function renderEntryCard(data) {
+    const card = document.getElementById('tezlink-entry-card');
     const value = document.getElementById('tezlink-entry-tvl');
     const description = document.getElementById('tezlink-entry-description');
     const metrics = document.getElementById('tezlink-entry-metrics');
@@ -290,12 +367,19 @@ function renderEntryCard(data) {
     const mini = document.getElementById('tezlink-entry-mini');
 
     if (value) value.textContent = formatUsd(data.tvl);
-    if (description) description.textContent = 'Atomic L2 rollup';
+    if (description) {
+        const tvlDelta = trendDelta(data.tvlHistory, 'tvl');
+        description.textContent = Number.isFinite(tvlDelta?.pct) ? `Atomic L2 rollup · 30d ${tvlDelta.pct >= 0 ? '+' : ''}${tvlDelta.pct.toFixed(1)}% TVL` : 'Atomic L2 rollup';
+    }
     if (metrics) metrics.innerHTML = renderEntryMetrics(data);
     if (tape) tape.innerHTML = renderEntryTape(data.txs);
     if (mini) {
         const head = data.rpcHead || data.explorerHead;
         mini.textContent = head ? `Head ${compactNumber(head)} · live L2 feed` : 'Live L2 feed';
+    }
+    if (card) {
+        const time = new Date(data.updatedAt || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+        card.dataset.updatedLabel = `as of ${time} UTC`;
     }
 }
 
@@ -388,6 +472,93 @@ function renderTransactionPanel(data) {
     `;
 }
 
+function renderMiniSparkline(rows, key = 'value') {
+    const values = (rows || []).map((row) => row[key]).filter(Number.isFinite);
+    if (values.length < 2) return '<div class="lb-empty-inline">Trend history unavailable.</div>';
+    const width = 240;
+    const height = 54;
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const span = Math.max(1, max - min);
+    const points = values.map((value, index) => {
+        const x = (index / Math.max(1, values.length - 1)) * width;
+        const y = height - ((value - min) / span) * height;
+        return `${x.toFixed(1)},${Math.max(0, Math.min(height, y)).toFixed(1)}`;
+    }).join(' ');
+    return `<svg class="tezlink-mini-sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none"><polyline points="${points}"/></svg>`;
+}
+
+function renderTrendPanel(data) {
+    const tvlDelta = trendDelta(data.tvlHistory, 'tvl');
+    const txDelta = trendDelta(data.txHistory, 'value');
+    const activeDelta = trendDelta(data.activeAccountsHistory, 'value');
+    return `
+        <section class="lb-panel tezlink-panel tezlink-trend-panel chamber-anim-fade" id="tezlink-trend-panel" style="animation-delay:90ms">
+            <div class="lb-panel-title">30d Direction</div>
+            <div class="lb-metric-grid health-metric-grid">
+                <div><span>TVL</span><strong>${Number.isFinite(tvlDelta?.pct) ? `${tvlDelta.pct >= 0 ? '+' : ''}${tvlDelta.pct.toFixed(1)}%` : '--'}</strong></div>
+                <div><span>Daily tx</span><strong>${Number.isFinite(txDelta?.pct) ? `${txDelta.pct >= 0 ? '+' : ''}${txDelta.pct.toFixed(1)}%` : '--'}</strong></div>
+                <div><span>Active addresses</span><strong>${data.activeAccountsHistory?.length ? compactNumber(data.activeAccountsHistory.at(-1)?.value) : '--'}</strong></div>
+            </div>
+            ${renderMiniSparkline(data.tvlHistory, 'tvl')}
+            <div class="health-timing-note">Cumulative addresses always rise; active-address history is the honest activity check.</div>
+        </section>
+    `;
+}
+
+function renderAnchorPanel(data) {
+    const anchor = data.anchor;
+    return `
+        <section class="lb-panel tezlink-panel tezlink-anchor-panel chamber-anim-fade" id="tezlink-anchor-panel" style="animation-delay:100ms">
+            <div class="lb-panel-title">L1 Anchor</div>
+            <div class="lb-metric-grid health-metric-grid">
+                <div><span>Rollup</span><strong>${anchor?.address ? escapeHtml(shortHash(anchor.address)) : '--'}</strong></div>
+                <div><span>Commit level</span><strong>${anchor?.level ? compactNumber(anchor.level) : '--'}</strong></div>
+                <div><span>Inbox level</span><strong>${anchor?.inboxLevel ? compactNumber(anchor.inboxLevel) : '--'}</strong></div>
+            </div>
+            <div class="health-timing-note">${anchor?.updatedAt ? `TzKT rollup activity ${escapeHtml(formatAge(anchor.updatedAt))} ago.` : 'Rollup anchor metadata is best-effort from TzKT smart-rollup rows.'}</div>
+        </section>
+    `;
+}
+
+function renderGasOraclePanel(data) {
+    const slow = toNumber(data.gasPrices?.slow);
+    const avg = toNumber(data.gasPrices?.average) ?? data.gasGwei;
+    const fast = toNumber(data.gasPrices?.fast);
+    const transferGas = 21000;
+    const transferEth = Number.isFinite(avg) ? (avg * 1e9 * transferGas) / 1e18 : null;
+    return `
+        <section class="lb-panel tezlink-panel tezlink-gas-panel chamber-anim-fade" id="tezlink-gas-oracle" style="animation-delay:130ms">
+            <div class="lb-panel-title">Gas Oracle</div>
+            <div class="lb-metric-grid health-metric-grid">
+                <div><span>Slow</span><strong>${formatGas(slow)}</strong></div>
+                <div><span>Average</span><strong>${formatGas(avg)}</strong></div>
+                <div><span>Fast</span><strong>${formatGas(fast)}</strong></div>
+            </div>
+            <div class="health-timing-note">Simple transfer gas at average: ${transferEth === null ? '--' : `${transferEth.toFixed(8)} XTZ-equivalent gas units`}.</div>
+        </section>
+    `;
+}
+
+function renderTokensPanel(data) {
+    const rows = data.tokens?.length ? data.tokens.map((token) => `
+        <div class="lb-table-row">
+            <span>${escapeHtml(token.symbol || token.name)}</span>
+            <span>${escapeHtml(token.name)}</span>
+            <span>${compactNumber(token.holders)}</span>
+        </div>
+    `).join('') : '<div class="lb-empty-inline">Token holder rows unavailable.</div>';
+    return `
+        <section class="lb-panel tezlink-panel tezlink-token-panel chamber-anim-fade" id="tezlink-token-panel" style="animation-delay:150ms">
+            <div class="lb-panel-title">Top Tokens by Holders</div>
+            <div class="lb-table">
+                <div class="lb-table-head"><span>Symbol</span><span>Name</span><span>Holders</span></div>
+                ${rows}
+            </div>
+        </section>
+    `;
+}
+
 function renderTezlinkChamber(data, container) {
     const head = data.rpcHead || data.explorerHead;
     container.innerHTML = `
@@ -420,8 +591,12 @@ function renderTezlinkChamber(data, container) {
         </section>
         <div class="lb-dashboard-grid tezlink-dashboard-grid">
             ${renderPulsePanel(data)}
+            ${renderTrendPanel(data)}
+            ${renderAnchorPanel(data)}
             ${renderThroughputPanel(data)}
+            ${renderGasOraclePanel(data)}
             ${renderProtocolPanel(data)}
+            ${renderTokensPanel(data)}
             ${renderTransactionPanel(data)}
         </div>
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:240ms">

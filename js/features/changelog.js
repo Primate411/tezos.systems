@@ -7,6 +7,10 @@ const CHANGELOG = [
     {
         date: '2026-06-11',
         entries: [
+            { type: '✨', text: 'Chambers now add trust-layer intelligence across the six live rooms: proposal intel, gap analysis, track memory, period telemetry, L2 direction, LB drift, and tz4 momentum' },
+            { type: '✨', text: 'Tezlink now includes 30-day direction, L1 rollup anchor metadata, gas oracle detail, and top-token holder rows inside the chamber' },
+            { type: '✨', text: 'Liquidity Baking and tz4 Adoption now expose sampled forecast/history layers, vote-change or holdout feeds, and clearer operator momentum signals' },
+            { type: '🎨', text: 'Live chamber cards now show quiet UTC freshness stamps without crowding their direct-link and open controls' },
             { type: '✨', text: 'Chambers now show a daily signal digest with since-last-visit movement and a shareable copy button' },
             { type: '🔧', text: 'Dashboard refresh now keeps shared feature safety wrappers available during manual and background refresh cycles' },
             { type: '🎨', text: 'Liquidity Baking EMA trend lines now auto-scale around the recent range, and Tezlink Governance card controls avoid crowding track chips' },

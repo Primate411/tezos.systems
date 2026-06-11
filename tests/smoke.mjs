@@ -448,6 +448,13 @@ async function installFeatureMocks(context, options = {}) {
       ]);
     }
 
+    if (url.includes('api.llama.fi/v2/historicalChainTvl/Etherlink')) {
+      return fulfillJson(route, Array.from({ length: 31 }, (_, index) => ({
+        date: Math.floor((Date.now() - (30 - index) * 86400000) / 1000),
+        tvl: 15000000 + index * 104000
+      })));
+    }
+
     if (url.includes('api.llama.fi/protocols')) {
       return fulfillJson(route, [
         { name: 'Curve DEX', slug: 'curve-dex', category: 'Dexs', chainTvls: { Etherlink: 10014648.09 } },
@@ -455,6 +462,22 @@ async function installFeatureMocks(context, options = {}) {
         { name: 'Morpho Blue', slug: 'morpho-blue', category: 'Lending', chainTvls: { Etherlink: 3559007.6 } },
         { name: 'Youves', slug: 'youves', category: 'CDP', chainTvls: { Tezos: 12000000 } }
       ]);
+    }
+
+    if (url.includes('explorer.etherlink.com/api/v2/stats/charts/transactions')) {
+      return fulfillJson(route, {
+        chart_data: Array.from({ length: 30 }, (_, index) => ({
+          date: new Date(Date.now() - (29 - index) * 86400000).toISOString().slice(0, 10),
+          transactions: 52000 + index * 840
+        }))
+      });
+    }
+
+    if (url.includes('explorer.etherlink.com/api/v2/stats/charts/active-accounts')) {
+      return fulfillJson(route, Array.from({ length: 30 }, (_, index) => ({
+        date: new Date(Date.now() - (29 - index) * 86400000).toISOString().slice(0, 10),
+        active_accounts: 4100 + index * 55
+      })));
     }
 
     if (url.includes('explorer.etherlink.com/api/v2/stats')) {
@@ -467,6 +490,16 @@ async function installFeatureMocks(context, options = {}) {
         total_transactions: '81004089',
         transactions_today: '87656',
         tvl: null
+      });
+    }
+
+    if (url.includes('explorer.etherlink.com/api/v2/tokens')) {
+      return fulfillJson(route, {
+        items: [
+          { symbol: 'USDC.e', name: 'Bridged USDC', holders_count: '18420' },
+          { symbol: 'WXTZ', name: 'Wrapped XTZ', holders_count: '12920' },
+          { symbol: 'YOU', name: 'Youves Governance', holders_count: '3110' }
+        ]
       });
     }
 
@@ -914,6 +947,17 @@ async function installFeatureMocks(context, options = {}) {
       if (url.includes('/accounts/count')) return fulfillJson(route, 520000);
       if (url.includes('/contracts/count')) return fulfillJson(route, 95000);
       if (url.includes('/tokens/count')) return fulfillJson(route, 140000);
+      if (url.includes('/smart_rollups?')) {
+        return fulfillJson(route, [
+          {
+            address: 'sr1SmokeRollup111111111111111111111111111',
+            alias: 'Tezlink rollup',
+            lastCommitmentLevel: 12345000,
+            inboxLevel: 12345610,
+            lastActivityTime: new Date(Date.now() - 180000).toISOString()
+          }
+        ]);
+      }
       if (url.includes('/smart_rollups/count')) return fulfillJson(route, 18);
       if (url.includes('/operations/ballots?')) {
         return fulfillJson(route, [
@@ -1710,6 +1754,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       missedBlockRows: modal?.querySelectorAll('#health-missed-block-list .health-missed-block-row').length || 0,
       activityRows: modal?.querySelectorAll('#health-activity-list .health-activity-row').length || 0,
       activityText: modal?.querySelector('#health-activity-list')?.textContent || '',
+      incidentMemory: modal?.querySelector('#health-incident-memory')?.textContent || '',
+      periodTelemetry: modal?.querySelector('#health-period-telemetry')?.textContent || '',
+      networkLoad: modal?.querySelector('#health-network-load')?.textContent || '',
       myBaker: modal?.querySelector('.health-my-baker-panel')?.textContent || '',
       myBakerStatus: modal?.querySelector('.health-my-baker-status')?.textContent || '',
       myBakerMetrics: Array.from(modal?.querySelectorAll('.health-my-baker-metrics strong') || []).map((el) => el.textContent || ''),
@@ -1728,6 +1775,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       cardCue: Boolean(card?.querySelector('.chamber-expand-cue')),
       cardWide: card?.classList.contains('chamber-entry-wide') || false,
       cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
+      cardUpdatedLabel: card?.dataset.updatedLabel || '',
       cardTape: card?.querySelector('#network-health-live-tape')?.textContent || '',
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
@@ -1745,6 +1793,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.missedBlockRows >= 1, `network health chamber: missed block rows missing, saw ${healthState.missedBlockRows}`);
   assert(healthState.activityRows >= 1, `network health chamber: activity tape rows missing, saw ${healthState.activityRows}`);
   assert(/QA Baker|Second Baker|XTZ/.test(healthState.activityText), `network health chamber: activity tape content mismatch: ${healthState.activityText}`);
+  assert(/Incident Memory/.test(healthState.incidentMemory) && /Missed/.test(healthState.incidentMemory), `network health chamber: incident memory missing: ${healthState.incidentMemory}`);
+  assert(/Period Telemetry/.test(healthState.periodTelemetry) && /24H/.test(healthState.periodTelemetry) && /31D/.test(healthState.periodTelemetry), `network health chamber: period telemetry missing: ${healthState.periodTelemetry}`);
+  assert(/Network Load/.test(healthState.networkLoad) && /Large tx rows/.test(healthState.networkLoad), `network health chamber: network load panel missing: ${healthState.networkLoad}`);
   assert(/Second Baker/.test(healthState.myBaker), `network health chamber: My Tezos baker panel missing baker identity: ${healthState.myBaker}`);
   assert(/Missed block/.test(healthState.myBakerStatus), `network health chamber: My Tezos baker status mismatch: ${healthState.myBakerStatus}`);
   assert(healthState.myBakerMetrics[0] === '7', `network health chamber: My Tezos attestation misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
@@ -1764,6 +1815,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.cardTabIndex === '0', `network health chamber: card keyboard focus mismatch: ${healthState.cardTabIndex}`);
   assert(healthState.cardCue, 'network health chamber: card expand cue missing');
   assert(healthState.cardCopyHash === '#health', `network health chamber: card direct link mismatch: ${healthState.cardCopyHash}`);
+  assert(/^as of \d{2}:\d{2} UTC$/.test(healthState.cardUpdatedLabel), `network health chamber: freshness stamp mismatch: ${healthState.cardUpdatedLabel}`);
   assert(healthState.intervalDelays.includes(1000), `network health chamber: 1s freshness ticker was not registered: ${healthState.intervalDelays.join(', ')}`);
   assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
 
@@ -1848,6 +1900,7 @@ async function smokeTezlinkChamber(browser, baseUrl) {
     return {
       cardWide: card?.classList.contains('chamber-entry-wide') || false,
       cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
+      cardUpdatedLabel: card?.dataset.updatedLabel || '',
       cardValue: card?.querySelector('#tezlink-entry-tvl')?.textContent?.trim() || '',
       cardMini: card?.querySelector('#tezlink-entry-mini')?.textContent?.trim() || '',
       cardTape: card?.querySelector('#tezlink-entry-tape')?.textContent || '',
@@ -1859,6 +1912,12 @@ async function smokeTezlinkChamber(browser, baseUrl) {
       protocolText: modal?.querySelector('.tezlink-protocol-table')?.textContent || '',
       txRows: modal?.querySelectorAll('.tezlink-tx-row').length || 0,
       txText: modal?.querySelector('.tezlink-tx-table')?.textContent || '',
+      trendText: modal?.querySelector('#tezlink-trend-panel')?.textContent || '',
+      anchorText: modal?.querySelector('#tezlink-anchor-panel')?.textContent || '',
+      gasText: modal?.querySelector('#tezlink-gas-oracle')?.textContent || '',
+      tokenRows: modal?.querySelectorAll('#tezlink-token-panel .lb-table-row').length || 0,
+      tokenText: modal?.querySelector('#tezlink-token-panel')?.textContent || '',
+      sparklinePoints: modal?.querySelector('#tezlink-trend-panel .tezlink-mini-sparkline polyline')?.getAttribute('points')?.trim().split(/\s+/).length || 0,
       footer: modal?.querySelector('.chamber-footer')?.textContent || '',
       directHref: modal?.querySelector('.panel-direct-link')?.getAttribute('href') || '',
       sourceLinks: modal?.querySelectorAll('a[href*="defillama.com"], a[href*="explorer.etherlink.com"]').length || 0
@@ -1867,6 +1926,7 @@ async function smokeTezlinkChamber(browser, baseUrl) {
 
   assert(tezlinkState.cardWide, 'tezlink chamber: card should be double-width');
   assert(tezlinkState.cardCopyHash === '#tezlink', `tezlink chamber: card copy hash mismatch: ${tezlinkState.cardCopyHash}`);
+  assert(/^as of \d{2}:\d{2} UTC$/.test(tezlinkState.cardUpdatedLabel), `tezlink chamber: freshness stamp mismatch: ${tezlinkState.cardUpdatedLabel}`);
   assert(/\$18\.1M/.test(tezlinkState.cardValue), `tezlink chamber: card TVL mismatch: ${tezlinkState.cardValue}`);
   assert(/Head|live L2 feed/i.test(tezlinkState.cardMini), `tezlink chamber: card mini mismatch: ${tezlinkState.cardMini}`);
   assert(/credit|swap/.test(tezlinkState.cardTape), `tezlink chamber: card transaction tape missing: ${tezlinkState.cardTape}`);
@@ -1878,6 +1938,10 @@ async function smokeTezlinkChamber(browser, baseUrl) {
   assert(/Curve DEX/.test(tezlinkState.protocolText), `tezlink chamber: protocol TVL missing Curve DEX: ${tezlinkState.protocolText}`);
   assert(tezlinkState.txRows >= 2, `tezlink chamber: transaction rows missing, saw ${tezlinkState.txRows}`);
   assert(/Bankroll|Smoke DEX/.test(tezlinkState.txText), `tezlink chamber: transaction tape target missing: ${tezlinkState.txText}`);
+  assert(/30d Direction/.test(tezlinkState.trendText) && /TVL/.test(tezlinkState.trendText) && tezlinkState.sparklinePoints >= 20, `tezlink chamber: trend panel missing: ${tezlinkState.trendText}`);
+  assert(/L1 Anchor/.test(tezlinkState.anchorText) && /sr1Smok/.test(tezlinkState.anchorText), `tezlink chamber: anchor panel missing rollup: ${tezlinkState.anchorText}`);
+  assert(/Gas Oracle/.test(tezlinkState.gasText) && /Average/.test(tezlinkState.gasText), `tezlink chamber: gas oracle panel missing: ${tezlinkState.gasText}`);
+  assert(tezlinkState.tokenRows >= 3 && /USDC\.e|WXTZ/.test(tezlinkState.tokenText), `tezlink chamber: token holder panel missing: ${tezlinkState.tokenText}`);
   assert(/Direct: \/#tezlink/.test(tezlinkState.footer), `tezlink chamber: direct footer missing: ${tezlinkState.footer}`);
   assert(tezlinkState.directHref === '/#tezlink', `tezlink chamber: direct href mismatch: ${tezlinkState.directHref}`);
   assert(tezlinkState.sourceLinks >= 2, `tezlink chamber: source links missing, saw ${tezlinkState.sourceLinks}`);
@@ -1947,6 +2011,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#chambers-section #etherlink-governance-entry-card', 1, 'governance testing period Tezlink Governance tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
+  await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]').length >= 6, null, { timeout: 10000 });
   await assertChamberOrder(page, 'governance testing period');
   await page.waitForFunction(() => {
     const canvas = document.getElementById('tz4-sparkline');
@@ -1985,6 +2050,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     chambersDigestReady: document.querySelector('#chambers-digest')?.dataset.ready || '',
     chambersDigestText: document.querySelector('#chambers-digest-text')?.textContent?.trim() || '',
     chambersDigestDelta: document.querySelector('#chambers-digest-delta')?.textContent?.trim() || '',
+    chamberUpdatedLabels: Array.from(document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]')).map((card) => card.dataset.updatedLabel || ''),
     etherlinkEntryGeometry: (() => {
       const card = document.querySelector('#etherlink-governance-entry-card');
       const cue = card?.querySelector('.chamber-expand-cue');
@@ -2050,10 +2116,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/FAST .*00625d22ab/.test(dashboardState.etherlinkEntryDescription), `governance testing period: Tezlink Governance description mismatch: ${dashboardState.etherlinkEntryDescription}`);
   assert(/FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Tezlink Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
   assert(/FAST14\.2%\/5%/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance FAST metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
-  assert(/SLOWNoactiveproposal/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
+  assert(/SLOW(5hago|Noactiveproposal)/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(dashboardState.chambersDigestReady === 'true', `governance testing period: Chambers digest should be ready, saw ${dashboardState.chambersDigestReady}`);
   assert(/LB EMA 51\.5% disabled/.test(dashboardState.chambersDigestText) && /tz4 47\.0% power/.test(dashboardState.chambersDigestText) && /Tezlink \$18\.1M TVL/.test(dashboardState.chambersDigestText), `governance testing period: Chambers digest text mismatch: ${dashboardState.chambersDigestText}`);
   assert(/Since last visit:/.test(dashboardState.chambersDigestDelta) && /LB EMA \+1\.5pp/.test(dashboardState.chambersDigestDelta) && /Tezlink \$1\.1M/.test(dashboardState.chambersDigestDelta), `governance testing period: Chambers digest delta mismatch: ${dashboardState.chambersDigestDelta}`);
+  assert(dashboardState.chamberUpdatedLabels.length >= 6 && dashboardState.chamberUpdatedLabels.every((label) => /^as of \d{2}:\d{2} UTC$/.test(label)), `governance testing period: chamber freshness stamps missing: ${dashboardState.chamberUpdatedLabels.join(', ')}`);
   assert(dashboardState.etherlinkEntryGeometry.overlap === 0, `governance testing period: Tezlink Governance open cue overlaps Sequencer chip: ${JSON.stringify(dashboardState.etherlinkEntryGeometry)}`);
   assert(dashboardState.tz4TileValue === '33.3 / 50%', `governance testing period: tz4 tile value mismatch: ${dashboardState.tz4TileValue}`);
   assert(/1 \/ 3 bakers active/.test(dashboardState.tz4TileDescription), `governance testing period: tz4 tile description mismatch: ${dashboardState.tz4TileDescription}`);
@@ -2086,8 +2153,12 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       proposalRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-proposal-row').length,
       historyRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-history-row').length,
       historyText: compactText('#etherlink-governance-modal .etherlink-gov-track-panel'),
+      rules: compactText('#etherlink-governance-modal #etherlink-gov-rules'),
+      memory: compactText('#etherlink-governance-modal #etherlink-gov-memory'),
+      timelineRows: document.querySelectorAll('#etherlink-governance-modal #etherlink-gov-timeline .etherlink-gov-timeline-row').length,
+      timelineText: compactText('#etherlink-governance-modal #etherlink-gov-timeline'),
       voterRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-voter-row').length,
-      activityRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-activity-row').length,
+      activityRows: document.querySelectorAll('#etherlink-governance-modal #etherlink-gov-timeline .etherlink-gov-timeline-row').length,
       footer: compactText('#etherlink-governance-modal .chamber-footer'),
       officialHref: document.querySelector('#etherlink-governance-modal .chamber-footer a[href*="governance.etherlink.com/governance/fast"]')?.href || '',
       storageHref: document.querySelector('#etherlink-governance-modal .chamber-footer a[href*="tzkt.io/KT19oUV"]')?.href || '',
@@ -2106,8 +2177,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(etherlinkState.proposalRows >= 2, `governance testing period: Etherlink proposal rows missing, saw ${etherlinkState.proposalRows}`);
   assert(etherlinkState.historyRows >= 3, `governance testing period: Etherlink FAST history rows missing, saw ${etherlinkState.historyRows}`);
   assert(/Etherlink 6\.1/.test(etherlinkState.historyText), `governance testing period: Etherlink FAST history should include older proposal: ${etherlinkState.historyText.slice(0, 320)}`);
+  assert(/Proposalquorum5%/.test(etherlinkState.rules.replace(/\s+/g, '')) && /Period length/.test(etherlinkState.rules), `governance testing period: Etherlink rules panel missing thresholds: ${etherlinkState.rules}`);
+  assert(/Track memory/.test(etherlinkState.memory) && /Last proposal/.test(etherlinkState.memory), `governance testing period: Etherlink memory panel missing: ${etherlinkState.memory}`);
+  assert(etherlinkState.timelineRows >= 3 && /Submission/.test(etherlinkState.timelineText), `governance testing period: Etherlink merged timeline missing: ${etherlinkState.timelineText}`);
   assert(etherlinkState.voterRows >= 3, `governance testing period: Etherlink upvoter rows missing, saw ${etherlinkState.voterRows}`);
-  assert(etherlinkState.activityRows >= 2, `governance testing period: Etherlink activity rows missing, saw ${etherlinkState.activityRows}`);
+  assert(etherlinkState.activityRows >= 3, `governance testing period: Etherlink merged activity rows missing, saw ${etherlinkState.activityRows}`);
   assert(/Direct: \/#l2chamber/.test(etherlinkState.footer), `governance testing period: Tezlink direct footer missing: ${etherlinkState.footer}`);
   assert(etherlinkState.officialHref.includes('/governance/fast'), `governance testing period: Etherlink official track link missing: ${etherlinkState.officialHref}`);
   assert(etherlinkState.storageHref.includes(ETHERLINK_FAST_CONTRACT), `governance testing period: Etherlink TzKT storage link missing: ${etherlinkState.storageHref}`);
@@ -2158,6 +2232,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     thresholdNote: document.querySelector('#chamber-modal .gauge-threshold-note')?.textContent?.trim() || '',
     svgTextCount: document.querySelectorAll('#chamber-modal .gauge-svg text').length,
     footer: document.querySelector('#chamber-modal .chamber-footer')?.textContent || '',
+    proposalIntel: document.querySelector('#chamber-proposal-intel')?.textContent || '',
+    gapAnalysis: document.querySelector('#chamber-gap-analysis')?.textContent || '',
     currentVoteTitle: document.querySelector('#chamber-current-vote-order .current-vote-title')?.textContent?.trim() || '',
     currentVoteContext: document.querySelector('#chamber-current-vote-order .current-vote-context')?.textContent?.trim() || '',
     currentVoteCount: document.querySelector('#chamber-current-vote-order .current-vote-count')?.textContent?.trim() || '',
@@ -2187,6 +2263,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/80% threshold/.test(chamberState.thresholdNote), `governance testing period: missing threshold note, saw ${chamberState.thresholdNote}`);
   assert(chamberState.svgTextCount === 0, 'governance testing period: threshold label should not be drawn over the gauge arc');
   assert(/Current Cooldown period; showing latest Exploration result/.test(chamberState.footer), `governance testing period: footer mismatch: ${chamberState.footer}`);
+  assert(/Proposal Intel/.test(chamberState.proposalIntel) && /activation window|Cooldown|window ends/i.test(chamberState.proposalIntel), `governance testing period: proposal intel missing: ${chamberState.proposalIntel}`);
+  assert(/Gap Analysis/.test(chamberState.gapAnalysis) && /Quorum gap/.test(chamberState.gapAnalysis) && /Largest non-voters/.test(chamberState.gapAnalysis), `governance testing period: gap analysis missing: ${chamberState.gapAnalysis}`);
   assert(chamberState.currentVoteTitle === 'Exploration Vote Order', `governance testing period: current-stage vote order title mismatch: ${chamberState.currentVoteTitle}`);
   assert(/Displayed Exploration result/.test(chamberState.currentVoteContext), `governance testing period: current-stage vote order context mismatch: ${chamberState.currentVoteContext}`);
   assert(chamberState.currentVoteCount === '2 ballots', `governance testing period: current-stage vote count mismatch: ${chamberState.currentVoteCount}`);
@@ -2275,6 +2353,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#lb-lore-body .lb-lore-item').length >= 3, null, { timeout: 10000 });
   const lbState = await page.evaluate(() => {
     const modal = document.querySelector('#liquidity-baking-modal');
+    const card = document.querySelector('#lb-entry-card');
     return {
       title: modal?.querySelector('.chamber-title')?.textContent || '',
       ema: modal?.querySelector('.lb-ema-value')?.textContent || '',
@@ -2309,6 +2388,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
         return Math.max(...points) - Math.min(...points);
       })(),
       sparklineLabel: modal?.querySelector('#lb-ema-sparkline svg')?.getAttribute('aria-label') || '',
+      forecast: modal?.querySelector('#lb-ema-forecast')?.textContent || '',
+      history: modal?.querySelector('#lb-ema-history')?.textContent || '',
+      changeFeed: modal?.querySelector('#lb-vote-change-feed')?.textContent || '',
+      cardUpdatedLabel: card?.dataset.updatedLabel || '',
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
   });
@@ -2338,6 +2421,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/Granada/.test(lbState.lore) && /Ithaca/.test(lbState.lore) && /Jakarta/.test(lbState.lore), `governance testing period: LB lore should expose Granada/Ithaca/Jakarta, saw ${lbState.lore}`);
   assert(lbState.sparklineSpread >= 12, `governance testing period: LB EMA sparkline should auto-scale recent movement, saw spread ${lbState.sparklineSpread}`);
   assert(/from 51\.\d+% to 51\.\d+%/.test(lbState.sparklineLabel), `governance testing period: LB EMA sparkline label should expose scaled range, saw ${lbState.sparklineLabel}`);
+  assert(/EMA Forecast/.test(lbState.forecast) && /Drift/.test(lbState.forecast), `governance testing period: LB forecast panel missing: ${lbState.forecast}`);
+  assert(/EMA History Strip/.test(lbState.history) && /Sample/.test(lbState.history), `governance testing period: LB history strip missing: ${lbState.history}`);
+  assert(/Vote Change Feed/.test(lbState.changeFeed), `governance testing period: LB vote change feed missing: ${lbState.changeFeed}`);
+  assert(/^as of \d{2}:\d{2} UTC$/.test(lbState.cardUpdatedLabel), `governance testing period: LB freshness stamp mismatch: ${lbState.cardUpdatedLabel}`);
   await page.locator('#lb-lore-toggle').click();
   const lbLoreExpandedState = await page.evaluate(() => ({
     expanded: document.querySelector('#liquidity-baking-modal #lb-lore-toggle')?.getAttribute('aria-expanded') || '',
@@ -2400,6 +2487,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     pendingQueue: document.querySelector('#tz4-adoption-modal .tz4-pending-panel')?.textContent || '',
     pendingQueueRows: document.querySelectorAll('#tz4-adoption-modal [data-tz4-pending-queue]').length,
     firstMovers: document.querySelector('#tz4-adoption-modal .tz4-first-list')?.textContent || '',
+    projection: document.querySelector('#tz4-projection-panel')?.textContent || '',
+    holdouts: document.querySelector('#tz4-holdouts-panel')?.textContent || '',
+    momentum: document.querySelector('#tz4-switch-momentum')?.textContent || '',
+    milestones: document.querySelector('#tz4-power-milestones')?.textContent || '',
     rows: document.querySelectorAll('#tz4-baker-status-list .tz4-table-row').length,
     activeRows: document.querySelectorAll('#tz4-baker-status-list [data-tz4-status="active"]').length,
     pendingRows: document.querySelectorAll('#tz4-baker-status-list [data-tz4-status="pending"]').length,
@@ -2408,6 +2499,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     systemLinks: document.querySelectorAll('#tz4-adoption-modal .lb-baker-name-link[href^="#baker="]').length,
     tzktLinks: document.querySelectorAll('#tz4-adoption-modal .lb-baker-source-link[href^="https://tzkt.io/"]').length,
     footer: document.querySelector('#tz4-adoption-modal .chamber-footer')?.textContent || '',
+    cardUpdatedLabel: document.querySelector('[data-stat="tz4-adoption"]')?.dataset.updatedLabel || '',
     chambersLauncherCopy: document.querySelector('.feature-copy-link[data-copy-hash="#chambers"]')?.getAttribute('aria-label') || '',
     intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
   }));
@@ -2424,6 +2516,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(tz4State.pendingQueueRows === 1, `governance testing period: tz4 pending queue row count mismatch: ${tz4State.pendingQueueRows}`);
   assert(/Pending Queue/.test(tz4State.pendingQueue) && /Pending Baker/.test(tz4State.pendingQueue) && /Activates cycle 1,148/.test(tz4State.pendingQueue), `governance testing period: tz4 pending queue panel mismatch: ${tz4State.pendingQueue}`);
   assert(/QA Baker/.test(tz4State.firstMovers) && /cycle 1,136/.test(tz4State.firstMovers), `governance testing period: tz4 first mover list mismatch: ${tz4State.firstMovers}`);
+  assert(/Projection to 50%/.test(tz4State.projection) && /Bakers/.test(tz4State.projection), `governance testing period: tz4 projection panel missing: ${tz4State.projection}`);
+  assert(/Largest Holdouts/.test(tz4State.holdouts) && /Second Baker/.test(tz4State.holdouts), `governance testing period: tz4 holdouts panel missing: ${tz4State.holdouts}`);
+  assert(/Switches per Month/.test(tz4State.momentum) && /Momentum/.test(tz4State.momentum), `governance testing period: tz4 momentum panel missing: ${tz4State.momentum}`);
+  assert(/Power Milestones/.test(tz4State.milestones) && /40% power/.test(tz4State.milestones), `governance testing period: tz4 milestone panel missing: ${tz4State.milestones}`);
   assert(tz4State.rows >= 3, `governance testing period: tz4 table rows missing, saw ${tz4State.rows}`);
   assert(tz4State.activeRows >= 1, 'governance testing period: tz4 active row missing');
   assert(tz4State.pendingRows >= 1, 'governance testing period: tz4 pending row missing');
@@ -2432,6 +2528,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(tz4State.systemLinks >= 3, `governance testing period: tz4 Tezos.Systems baker links missing, saw ${tz4State.systemLinks}`);
   assert(tz4State.tzktLinks >= 3, `governance testing period: tz4 TzKT links missing, saw ${tz4State.tzktLinks}`);
   assert(/Direct: \/#tz4/.test(tz4State.footer), `governance testing period: tz4 direct footer missing: ${tz4State.footer}`);
+  assert(/^as of \d{2}:\d{2} UTC$/.test(tz4State.cardUpdatedLabel), `governance testing period: tz4 freshness stamp mismatch: ${tz4State.cardUpdatedLabel}`);
   assert(/Copy Chambers link/.test(tz4State.chambersLauncherCopy), `governance testing period: combined Chambers launcher copy link missing: ${tz4State.chambersLauncherCopy}`);
   assert(tz4State.intervalDelays.includes(60000), `governance testing period: tz4 modal 60s refresh timer was not registered: ${tz4State.intervalDelays.join(', ')}`);
 

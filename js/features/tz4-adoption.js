@@ -331,6 +331,7 @@ function renderTz4EntryPreview(data) {
     const hiddenPending = Math.max(0, (data.pendingCount || 0) - pending.length);
     card.dataset.tz4LatestSwitches = String(latest.length || 0);
     card.dataset.tz4PowerDescription = `${formatCount(data.activeCount)} / ${formatCount(data.total)} bakers active · ${formatPercent(data.activePowerPct)} power`;
+    card.dataset.updatedLabel = `as of ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })} UTC`;
     const description = document.getElementById('tz4-description');
     if (description) {
         description.textContent = card.dataset.tz4PowerDescription;
@@ -402,6 +403,136 @@ function renderPowerMetrics(data) {
                 <div><span>Total</span><strong>${formatMutez(data.totalPower)} XTZ</strong></div>
             </div>
             <div class="lb-panel-subtitle">Baking-power share uses the same active funded-baker set as the dashboard baker count.</div>
+        </section>
+    `;
+}
+
+function projectionToTarget(data, targetPct = 50) {
+    const activeWithDates = data.bakers
+        .filter((baker) => baker.status === 'active' && baker.switchedAt)
+        .sort((a, b) => timestampValue(a.switchedAt) - timestampValue(b.switchedAt));
+    if (!activeWithDates.length || data.adoptionPct >= targetPct) {
+        return { label: data.adoptionPct >= targetPct ? 'Target reached' : 'No pace yet', detail: 'Projection needs switch timing.' };
+    }
+    const now = Date.now();
+    const cutoff = now - 90 * 86400000;
+    const recent = activeWithDates.filter((baker) => timestampValue(baker.switchedAt) >= cutoff);
+    const needed = Math.max(0, Math.ceil((targetPct / 100) * data.total) - data.activeCount);
+    const pacePerDay = recent.length / 90;
+    if (!needed || pacePerDay <= 0) return { label: 'No current pace', detail: `${needed} more baker${needed === 1 ? '' : 's'} needed for ${targetPct}% by count.` };
+    const days = needed / pacePerDay;
+    const date = new Date(now + days * 86400000);
+    return {
+        label: `~${date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
+        detail: `${needed} more baker${needed === 1 ? '' : 's'} at the 90-day pace (${(pacePerDay * 30).toFixed(1)}/mo).`
+    };
+}
+
+function renderProjectionPanel(data) {
+    const projection = projectionToTarget(data);
+    return `
+        <section class="lb-panel tz4-panel tz4-projection-panel chamber-anim-fade" id="tz4-projection-panel" style="animation-delay:100ms">
+            <div class="lb-panel-title">Projection to 50%</div>
+            <div class="tz4-hero-number">${escapeHtml(projection.label)}</div>
+            <div class="tz4-hero-copy">${escapeHtml(projection.detail)}</div>
+            <div class="lb-metric-grid tz4-metric-grid">
+                <div><span>Bakers</span><strong>${formatPercent(data.adoptionPct)}</strong></div>
+                <div><span>Power</span><strong>${formatPercent(data.activePowerPct)}</strong></div>
+                <div><span>Pending</span><strong>${formatCount(data.pendingCount)}</strong></div>
+            </div>
+        </section>
+    `;
+}
+
+function renderHoldoutRows(data) {
+    const holdouts = data.bakers
+        .filter((baker) => baker.status === 'not-yet')
+        .sort((a, b) => Number(b.bakingPower || 0) - Number(a.bakingPower || 0))
+        .slice(0, 8);
+    if (!holdouts.length) return '<div class="lb-empty-inline">No non-tz4 holdouts in the active funded-baker set.</div>';
+    return holdouts.map((baker, index) => `
+        <div class="lb-table-row tz4-holdout-row">
+            <span>${index + 1}</span>
+            <div class="lb-baker-cell">${bakerLinks(baker.address, baker.name)}</div>
+            <span>${formatMutez(baker.bakingPower)} XTZ</span>
+            <strong>${formatPercent(baker.bakingPowerShare)}</strong>
+        </div>
+    `).join('');
+}
+
+function renderHoldoutsPanel(data) {
+    return `
+        <section class="lb-panel tz4-panel tz4-holdouts-panel chamber-anim-fade" id="tz4-holdouts-panel" style="animation-delay:180ms">
+            <div class="lb-panel-title">Largest Holdouts</div>
+            <div class="lb-panel-subtitle">Top active funded bakers whose current consensus key is not tz4.</div>
+            <div class="lb-table tz4-holdout-table">
+                <div class="lb-table-head tz4-holdout-row"><span>#</span><span>Baker</span><span>Baking power</span><span>Share</span></div>
+                ${renderHoldoutRows(data)}
+            </div>
+        </section>
+    `;
+}
+
+function monthKey(value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function renderSwitchMomentumPanel(data) {
+    const counts = new Map();
+    data.bakers
+        .filter((baker) => baker.status === 'active' && baker.switchedAt)
+        .forEach((baker) => {
+            const key = monthKey(baker.switchedAt);
+            if (key) counts.set(key, (counts.get(key) || 0) + 1);
+        });
+    const rows = [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-12);
+    const max = Math.max(1, ...rows.map(([, count]) => count));
+    const bars = rows.length ? rows.map(([key, count]) => `
+        <div class="tz4-month-bar" title="${escapeHtml(key)}: ${formatCount(count)} switches">
+            <span style="height:${Math.max(8, (count / max) * 100).toFixed(1)}%"></span>
+            <small>${escapeHtml(key.slice(5))}</small>
+        </div>
+    `).join('') : '<div class="lb-empty-inline">No monthly switch timing yet.</div>';
+    return `
+        <section class="lb-panel tz4-panel tz4-momentum-panel chamber-anim-fade" id="tz4-switch-momentum" style="animation-delay:220ms">
+            <div class="lb-panel-title">Switches per Month</div>
+            <div class="tz4-month-bars">${bars}</div>
+            <div class="lb-panel-subtitle">Momentum from first applied BLS consensus-key updates.</div>
+        </section>
+    `;
+}
+
+function powerMilestones(data) {
+    const active = data.bakers
+        .filter((baker) => baker.status === 'active' && baker.switchedAt)
+        .sort((a, b) => timestampValue(a.switchedAt) - timestampValue(b.switchedAt));
+    const markers = [10, 20, 30, 40, 50];
+    const found = [];
+    let power = 0;
+    for (const baker of active) {
+        power += Number(baker.bakingPower || 0);
+        const pct = data.totalPower ? (power / data.totalPower) * 100 : 0;
+        while (markers.length && pct >= markers[0]) {
+            found.push({ pct: markers.shift(), date: baker.switchedAt });
+        }
+    }
+    return found;
+}
+
+function renderMilestonesPanel(data) {
+    const milestones = powerMilestones(data);
+    const body = milestones.length ? milestones.map((milestone) => `
+        <div class="tz4-focus-row">
+            <div class="tz4-focus-main"><strong>${formatCount(milestone.pct)}% power</strong><span class="tz4-focus-meta">${escapeHtml(formatDate(milestone.date))}</span></div>
+            <span class="tz4-focus-chip">${escapeHtml(formatAge(milestone.date))}</span>
+        </div>
+    `).join('') : '<div class="lb-empty-inline">Power milestones are still building.</div>';
+    return `
+        <section class="lb-panel tz4-panel tz4-milestones-panel chamber-anim-fade" id="tz4-power-milestones" style="animation-delay:260ms">
+            <div class="lb-panel-title">Power Milestones</div>
+            <div class="tz4-focus-list">${body}</div>
         </section>
     `;
 }
@@ -647,9 +778,13 @@ function renderTz4Adoption(data, container, activeFilter = _tz4ActiveFilter) {
         <div class="lb-dashboard-grid tz4-dashboard-grid">
             ${renderGlobalMetrics(data)}
             ${renderPowerMetrics(data)}
+            ${renderProjectionPanel(data)}
             ${renderSavedBaker(data)}
             ${renderLatestSwitches(data)}
+            ${renderHoldoutsPanel(data)}
             ${renderPendingQueue(data)}
+            ${renderSwitchMomentumPanel(data)}
+            ${renderMilestonesPanel(data)}
             ${renderFirstMovers(data)}
         </div>
         ${renderBakerStatus(data, activeFilter)}

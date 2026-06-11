@@ -661,6 +661,12 @@ function renderNetworkHealth(data) {
         descEl.textContent = `${formatCompactPower(data.summary.totalPower)} / ${formatCompactPower(data.summary.totalCommittee)} power across last 5 blocks`;
     }
 
+    const card = document.querySelector('.stat-card[data-stat="network-health"]');
+    if (card) {
+        const time = new Date(data.headTimestamp || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+        card.dataset.updatedLabel = `as of ${time} UTC`;
+    }
+
     ensureHealthEntryTape();
     refreshNetworkHealthTape();
 }
@@ -951,6 +957,80 @@ function renderRecentBlocksPanel(data) {
     `;
 }
 
+function latestIncident(data) {
+    const roundIncident = data.blocks.find((block) => block.blockRound > 0 || block.missedPower > 0);
+    const missedBlock = data.missedBlocks[0] || null;
+    const incidents = [
+        roundIncident ? {
+            label: roundIncident.blockRound > 0 ? `round-${roundIncident.blockRound} block` : `${formatCompactPower(roundIncident.missedPower)} missed power`,
+            timestamp: roundIncident.timestamp,
+            detail: `block ${formatCount(roundIncident.level)}`
+        } : null,
+        missedBlock ? {
+            label: 'missed baking right',
+            timestamp: missedBlock.timestamp,
+            detail: `level ${formatCount(missedBlock.level)}`
+        } : null
+    ].filter(Boolean).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    return incidents[0] || null;
+}
+
+function renderIncidentMemoryPanel(data) {
+    const incident = latestIncident(data);
+    const roundBlocks = data.blocks.filter((block) => block.blockRound > 0).length;
+    const missedPowerBlocks = data.blocks.filter((block) => block.missedPower > 0).length;
+    return `
+        <section class="lb-panel health-panel health-incident-panel chamber-anim-fade" id="health-incident-memory" style="animation-delay:90ms">
+            <div class="lb-panel-title">Incident Memory</div>
+            <div class="lb-metric-grid health-metric-grid">
+                <div><span>Last incident</span><strong>${incident ? escapeHtml(formatAge(incident.timestamp)) : 'None in sample'}</strong></div>
+                <div><span>Round > 0</span><strong>${formatCount(roundBlocks)}</strong></div>
+                <div><span>Missed power blocks</span><strong>${formatCount(missedPowerBlocks)}</strong></div>
+            </div>
+            <div class="health-timing-note">${incident ? `${escapeHtml(incident.label)} at ${escapeHtml(incident.detail)}` : 'The current chamber sample is clean; longer period scores remain below.'}</div>
+        </section>
+    `;
+}
+
+function renderPeriodTelemetryPanel(data) {
+    const periods = data.periods || [];
+    const rows = periods.length ? periods.map((period) => `
+        <div class="health-uptime-cell ${healthClass(period.score)}" title="${escapeHtml(period.label)} ${formatPct(period.score)}%">
+            <span>${escapeHtml(period.label)}</span>
+            <strong>${formatPct(period.score)}%</strong>
+        </div>
+    `).join('') : '<div class="lb-empty-inline">Period health cache is warming up.</div>';
+    return `
+        <section class="lb-panel health-panel health-period-panel chamber-anim-fade" id="health-period-telemetry" style="animation-delay:150ms">
+            <div class="lb-panel-title">Period Telemetry</div>
+            <div class="health-uptime-strip">${rows}</div>
+            <div class="lb-metric-grid health-metric-grid">
+                <div><span>24h score</span><strong>${periods[0] ? `${formatPct(periods[0].score)}%` : '--'}</strong></div>
+                <div><span>7d score</span><strong>${periods[1] ? `${formatPct(periods[1].score)}%` : '--'}</strong></div>
+                <div><span>31d score</span><strong>${periods[2] ? `${formatPct(periods[2].score)}%` : '--'}</strong></div>
+            </div>
+            <div class="health-timing-note">Status-page style period memory from sampled TzKT block ranges.</div>
+        </section>
+    `;
+}
+
+function renderNetworkLoadPanel(data) {
+    const tape = data.activityTape || [];
+    const totalAmount = tape.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+    const methods = new Set(tape.map((row) => row.method).filter(Boolean));
+    return `
+        <section class="lb-panel health-panel health-load-panel chamber-anim-fade" id="health-network-load" style="animation-delay:210ms">
+            <div class="lb-panel-title">Network Load</div>
+            <div class="lb-metric-grid health-metric-grid">
+                <div><span>Large tx rows</span><strong>${formatCount(tape.length)}</strong></div>
+                <div><span>Large XTZ moved</span><strong>${formatCompactPower(totalAmount)} XTZ</strong></div>
+                <div><span>Methods</span><strong>${formatCount(methods.size)}</strong></div>
+            </div>
+            <div class="health-timing-note">This is the chamber live-tape sample for 1,000+ XTZ transfers, not a full mempool.</div>
+        </section>
+    `;
+}
+
 function renderNetworkHealthChamber(data, container) {
     const latest = data.blocks[0] || null;
     const headTimestamp = getHeadTimestamp(data);
@@ -989,6 +1069,9 @@ function renderNetworkHealthChamber(data, container) {
         <div class="lb-dashboard-grid health-dashboard-grid">
             ${renderHealthScorePanel(data)}
             ${renderTimingPanel(data)}
+            ${renderIncidentMemoryPanel(data)}
+            ${renderPeriodTelemetryPanel(data)}
+            ${renderNetworkLoadPanel(data)}
             ${renderMyTezosBakerPanel(data)}
             ${renderMissedAttestationsPanel(data)}
             ${renderActivityTapePanel(data)}
@@ -1136,6 +1219,15 @@ function updateRecentBlockRows(blocks) {
     initHealthBakerProfileLinks(list);
 }
 
+function updateHealthStoryPanels(data) {
+    const incident = document.getElementById('health-incident-memory');
+    if (incident) incident.outerHTML = renderIncidentMemoryPanel(data);
+    const periods = document.getElementById('health-period-telemetry');
+    if (periods) periods.outerHTML = renderPeriodTelemetryPanel(data);
+    const load = document.getElementById('health-network-load');
+    if (load) load.outerHTML = renderNetworkLoadPanel(data);
+}
+
 function updateNetworkHealthInPlace(data, container) {
     if (!container.dataset.healthRendered || !document.getElementById('health-hero-score')) {
         renderNetworkHealthChamber(data, container);
@@ -1145,6 +1237,7 @@ function updateNetworkHealthInPlace(data, container) {
     updateHealthHeader(data);
     updateHealthScorePanel(data);
     updateHealthTimingPanel(data);
+    updateHealthStoryPanels(data);
     updateMyTezosBakerPanel(data);
     updateListIfChanged(
         '#health-missed-attester-list',

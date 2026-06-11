@@ -172,6 +172,172 @@ function summarizeBlocks(blocks) {
     };
 }
 
+function formatUtcTime(value) {
+    const date = new Date(value || Date.now());
+    if (Number.isNaN(date.getTime())) return 'time n/a';
+    return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'UTC'
+    });
+}
+
+function calculateEmaDrift(blocks) {
+    const points = (blocks || [])
+        .filter((block) => Number.isFinite(Number(block.lbToggleEma)) && block.timestamp)
+        .map((block) => ({ pct: emaPct(block.lbToggleEma), time: new Date(block.timestamp).getTime(), level: Number(block.level) || 0 }))
+        .sort((a, b) => a.time - b.time);
+    if (points.length < 2) return null;
+    const first = points[0];
+    const last = points[points.length - 1];
+    const days = Math.max((last.time - first.time) / 86400000, 1 / 24);
+    const delta = last.pct - first.pct;
+    const perDay = delta / days;
+    const threshold = 50;
+    let forecast = 'No threshold flip projected from this sample';
+    if (Math.abs(perDay) >= 0.01) {
+        const daysToThreshold = (threshold - last.pct) / perDay;
+        if (daysToThreshold > 0 && daysToThreshold < 365) {
+            const date = new Date(Date.now() + daysToThreshold * 86400000);
+            const action = last.pct >= threshold ? 're-enable risk' : 'disable risk';
+            forecast = `${action} around ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })} at current drift`;
+        }
+    }
+    return {
+        first,
+        last,
+        delta,
+        perDay,
+        forecast,
+        sampleBlocks: points.length,
+        sampleDays: days
+    };
+}
+
+function renderEmaHistorySparkline(blocks = []) {
+    const points = (blocks || [])
+        .filter((block) => Number.isFinite(Number(block.lbToggleEma)))
+        .slice()
+        .reverse()
+        .map((block) => emaPct(block.lbToggleEma));
+    if (points.length < 2) return '<div class="lb-empty-inline">EMA history needs more blocks.</div>';
+    const width = 320;
+    const height = 80;
+    const min = Math.max(0, Math.min(...points) - 0.5);
+    const max = Math.min(100, Math.max(...points) + 0.5);
+    const span = Math.max(0.1, max - min);
+    const thresholdY = height - ((50 - min) / span) * height;
+    const coords = points.map((point, index) => {
+        const x = (index / Math.max(1, points.length - 1)) * width;
+        const y = height - ((point - min) / span) * height;
+        return `${x.toFixed(1)},${Math.max(0, Math.min(height, y)).toFixed(1)}`;
+    }).join(' ');
+    return `
+        <svg class="lb-history-sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="Sampled LB EMA history">
+            ${thresholdY >= 0 && thresholdY <= height ? `<line class="lb-ema-spark-threshold" x1="0" y1="${thresholdY.toFixed(1)}" x2="${width}" y2="${thresholdY.toFixed(1)}"/>` : ''}
+            <polyline class="lb-ema-spark-line" points="${coords}"/>
+        </svg>
+    `;
+}
+
+function renderEmaForecastPanel(data) {
+    const drift = calculateEmaDrift(data.blocks);
+    if (!drift) return '';
+    const direction = drift.perDay < -0.01 ? 'falling' : drift.perDay > 0.01 ? 'rising' : 'flat';
+    const deltaSign = drift.delta > 0 ? '+' : '';
+    const perDaySign = drift.perDay > 0 ? '+' : '';
+    return `
+        <section class="lb-panel lb-forecast-panel lb-panel-has-help chamber-anim-fade" id="lb-ema-forecast" style="animation-delay:130ms">
+            <div class="lb-panel-title">
+                EMA Forecast
+                ${renderHelpTooltip({
+                    label: 'Explain Liquidity Baking drift forecast',
+                    title: 'How is this forecast calculated?',
+                    body: 'It uses the sampled block window in this chamber: latest OFF-vote EMA minus oldest EMA, normalized per day, then projected to the 50% threshold.',
+                    href: 'https://tzkt.io/blocks',
+                    linkText: 'View blocks'
+                })}
+            </div>
+            <div class="lb-metric-grid">
+                <div><span>Direction</span><strong>${escapeHtml(direction)}</strong></div>
+                <div><span>Drift</span><strong>${perDaySign}${drift.perDay.toFixed(2)}pp/day</strong></div>
+                <div><span>Window</span><strong>${formatCount(drift.sampleBlocks)} blocks</strong></div>
+            </div>
+            <div class="lb-panel-subtitle">${escapeHtml(drift.forecast)} · sample moved ${deltaSign}${drift.delta.toFixed(2)}pp.</div>
+        </section>
+    `;
+}
+
+function renderEmaHistoryPanel(data) {
+    const drift = calculateEmaDrift(data.blocks);
+    return `
+        <section class="lb-panel lb-history-panel chamber-anim-fade" id="lb-ema-history" style="animation-delay:150ms">
+            <div class="lb-panel-title">EMA History Strip</div>
+            ${renderEmaHistorySparkline(data.blocks)}
+            <div class="lb-panel-subtitle">${drift ? `Sample ${formatLevel(drift.first.level)} -> ${formatLevel(drift.last.level)} · ${drift.first.pct.toFixed(2)}% -> ${drift.last.pct.toFixed(2)}%` : 'Waiting for sampled history.'}</div>
+        </section>
+    `;
+}
+
+function findVoteChanges(blocks) {
+    const history = new Map();
+    const changes = [];
+    [...(blocks || [])].reverse().forEach((block) => {
+        const address = block.producer?.address;
+        if (!address) return;
+        const vote = voteFromToggle(block.lbToggle);
+        const previous = history.get(address);
+        if (previous && previous.vote.key !== vote.key) {
+            changes.push({
+                address,
+                name: bakerName(block.producer),
+                from: previous.vote,
+                to: vote,
+                level: block.level,
+                timestamp: block.timestamp
+            });
+        }
+        history.set(address, { vote, level: block.level, timestamp: block.timestamp });
+    });
+    return changes.sort((a, b) => Number(b.level || 0) - Number(a.level || 0));
+}
+
+function renderVoteChangeFeed(data) {
+    const changes = findVoteChanges(data.blocks).slice(0, 6);
+    const body = changes.length ? changes.map((change) => `
+        <div class="lb-table-row lb-change-row">
+            <div class="lb-baker-cell">${bakerLinks(change.address, change.name)}</div>
+            <span><span class="lb-vote-badge ${change.from.className}">${change.from.label}</span> -> <span class="lb-vote-badge ${change.to.className}">${change.to.label}</span></span>
+            <span>${formatLevel(change.level)} · ${escapeHtml(formatAge(change.timestamp))}</span>
+        </div>
+    `).join('') : '<div class="lb-empty-inline">No baker vote changes inside this sample.</div>';
+    return `
+        <section class="lb-panel lb-change-panel chamber-anim-fade" id="lb-vote-change-feed" style="animation-delay:260ms">
+            <div class="lb-panel-title">Vote Change Feed</div>
+            <div class="lb-panel-subtitle">Bakers whose sampled latest vote differs from their earlier sampled vote.</div>
+            <div class="lb-table lb-change-table">
+                <div class="lb-table-head"><span>Baker</span><span>Flip</span><span>Seen</span></div>
+                ${body}
+            </div>
+        </section>
+    `;
+}
+
+function renderTopBakerSignalRows(data) {
+    const drivers = [...data.bakerSummary.bakers]
+        .sort((a, b) => b.level - a.level)
+        .slice(0, 10);
+    if (!drivers.length) return '<div class="lb-empty-inline">Top baker signals unavailable in this sample.</div>';
+    return drivers.map((baker) => `
+        <div class="lb-table-row">
+            <div class="lb-baker-cell">${bakerLinks(baker.address, baker.name)}</div>
+            <span><span class="lb-vote-badge ${baker.vote.className}">${baker.vote.label}</span></span>
+            <span>${formatLevel(baker.level)} · ${escapeHtml(formatAge(baker.timestamp))}</span>
+        </div>
+    `).join('');
+}
+
 async function fetchBlocks(limit) {
     const url = `${TZKT}/blocks?sort.desc=level&limit=${limit}&select=level,timestamp,producer,lbToggle,lbToggleEma`;
     const response = await fetch(url, { cache: 'no-store' });
@@ -549,15 +715,19 @@ function renderSavedBaker(data) {
         return `
             <section class="lb-panel lb-saved-baker lb-saved-baker-compact lb-panel-has-help chamber-anim-fade" data-lb-saved-signature="${escapeHtml(signature)}" style="animation-delay:160ms">
                 <div class="lb-panel-title">
-                    Your Baker
+                    Top Baker Signals
                     ${renderHelpTooltip({
                         label: 'Explain baker Liquidity Baking vote tracking',
-                        title: 'Why set a baker?',
-                        body: 'If you save a baker address, this panel highlights that baker latest LB toggle vote from the current block sample.',
+                        title: 'Why these bakers?',
+                        body: 'Until you save a baker, this slot shows the freshest sampled baker signals so the panel does not waste space.',
                         linkText: 'Read more'
                     })}
                 </div>
-                <div class="lb-empty-inline"><a href="/#my-baker">Set your baker</a> to track their latest LB vote.</div>
+                <div class="lb-table lb-baker-table lb-top-signal-table">
+                    <div class="lb-table-head"><span>Baker</span><span>Vote</span><span>Latest block</span></div>
+                    ${renderTopBakerSignalRows(data)}
+                </div>
+                <div class="lb-panel-subtitle"><a href="/#my-baker">Set your baker</a> to pin their LB signal here.</div>
             </section>
         `;
     }
@@ -795,6 +965,15 @@ function updateRecentBlocks(blocks) {
     initBakerProfileLinks(list);
 }
 
+function updateStoryPanels(data) {
+    const forecast = document.getElementById('lb-ema-forecast');
+    if (forecast) forecast.outerHTML = renderEmaForecastPanel(data);
+    const history = document.getElementById('lb-ema-history');
+    if (history) history.outerHTML = renderEmaHistoryPanel(data);
+    const changes = document.getElementById('lb-vote-change-feed');
+    if (changes) changes.outerHTML = renderVoteChangeFeed(data);
+}
+
 function updateBakerVoteList(data, activeFilter = _lbActiveFilter) {
     const { bakers, counts } = data.bakerSummary;
     window._lbBakers = bakers;
@@ -833,6 +1012,7 @@ function updateLiquidityBakingInPlace(data, container, activeFilter = _lbActiveF
     setTextIfChanged('#lb-head-meta', latest ? `Head block ${formatLevel(latest.level)} · ${formatAge(latest.timestamp)}` : 'Live TzKT block feed');
     updateGlobalMetrics(data);
     updateEmaStatus(data);
+    updateStoryPanels(data);
     updateSavedBakerPanel(data);
     updateRecentBlocks(data.blocks);
     updateBakerVoteList(data, activeFilter);
@@ -862,9 +1042,12 @@ function renderLiquidityBaking(data, container, activeFilter = _lbActiveFilter) 
         <div class="lb-dashboard-grid">
             ${renderGlobalMetrics(data)}
             ${renderEmaStatus(data)}
+            ${renderEmaForecastPanel(data)}
+            ${renderEmaHistoryPanel(data)}
             ${renderSavedBaker(data)}
             ${renderRecentBlocks(data.blocks)}
         </div>
+        ${renderVoteChangeFeed(data)}
         ${renderBakerVotes(data, activeFilter)}
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:380ms">
             <a href="https://tzkt.io/blocks" target="_blank" rel="noopener">TzKT Blocks →</a>
@@ -1129,6 +1312,7 @@ async function loadEntryCardStatus({ force = false } = {}) {
             card.dataset.lbRefreshedAt = String(Date.now());
             card.dataset.lbLive = 'true';
             card.dataset.lbRefreshInterval = String(LB_ENTRY_REFRESH_MS);
+            card.dataset.updatedLabel = `as of ${formatUtcTime(data.latest?.timestamp || Date.now())} UTC`;
         }
     } catch {
         if (ema) ema.textContent = '--';

@@ -159,8 +159,21 @@ async function fetchEpochData(epochIndex, currentPeriod = null) {
     if (votePeriod) {
         voters = await (await fetch(`${TZKT}/voting/periods/${votePeriod.index}/voters?sort.desc=votingPower&limit=250`)).json();
     }
+
+    let previousVotePeriod = null;
+    let previousVoters = [];
+    if (votePeriod?.kind === 'promotion') {
+        previousVotePeriod = (epoch.periods || []).find(p => p.kind === 'exploration' && p.index !== votePeriod.index) || null;
+        if (previousVotePeriod?.index) {
+            try {
+                previousVoters = await (await fetch(`${TZKT}/voting/periods/${previousVotePeriod.index}/voters?sort.desc=votingPower&limit=250`)).json();
+            } catch (_) {
+                previousVoters = [];
+            }
+        }
+    }
     
-    return { epoch, proposal, votePeriod, voters, protocols };
+    return { epoch, proposal, votePeriod, voters, previousVotePeriod, previousVoters, protocols, report };
 }
 
 async function fetchChamberData(epochIndex) {
@@ -264,6 +277,10 @@ function fmtPower(mutez) {
     return xtz.toFixed(0);
 }
 
+function formatCount(value) {
+    return Number(value || 0).toLocaleString('en-US');
+}
+
 function fmtCountdown(endTime) {
     const diff = new Date(endTime) - new Date();
     if (diff <= 0) return 'Ended';
@@ -292,6 +309,19 @@ function fmtShortDate(value, includeYear = false) {
 function fmtBallotTime(value) {
     const date = validDate(value);
     if (!date) return 'time n/a';
+    return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'UTC'
+    });
+}
+
+function fmtUtcDateTime(value) {
+    const date = validDate(value);
+    if (!date) return '';
     return date.toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -1055,6 +1085,144 @@ function precisePctText(value) {
     return Number.isFinite(value) ? `${value.toFixed(1)}%` : 'n/a';
 }
 
+function bakerDisplay(voter) {
+    const address = voter?.delegate?.address || '';
+    return voter?.delegate?.alias || (address ? `${address.slice(0, 8)}...${address.slice(-5)}` : 'Unknown');
+}
+
+function voteStatusLabel(status) {
+    if (status === 'voted_yay') return 'Yay';
+    if (status === 'voted_nay') return 'Nay';
+    if (status === 'voted_pass') return 'Pass';
+    if (status === 'none') return 'Not voted';
+    return status || 'Unknown';
+}
+
+function findPeriod(epoch, kind) {
+    return (epoch?.periods || []).find((period) => period.kind === kind) || null;
+}
+
+function proposalDisplayName(data) {
+    return data?.proposal?.hash ? extractProtoName(data.proposal.hash, data.protocols || []) : 'Current proposal';
+}
+
+function activeProtocolLore(data) {
+    if (!data?.proposal?.hash) return null;
+    return protocolFromHash(data.proposal.hash, data.protocols || []);
+}
+
+function governanceResolutionLine(data) {
+    const period = data.currentPeriod || data.votePeriod;
+    if (!period) return 'Resolution timing unavailable';
+    const end = fmtUtcDateTime(period.endTime);
+    if (data.currentPeriod?.kind === 'adoption' && end) {
+        return `${proposalDisplayName(data)} activates around ${end} UTC`;
+    }
+    if (data.currentPeriod?.kind === 'testing') {
+        const promotion = findPeriod(data.epoch, 'promotion');
+        const adoption = findPeriod(data.epoch, 'adoption');
+        const promotionStart = fmtUtcDateTime(promotion?.startTime);
+        const activation = fmtUtcDateTime(adoption?.endTime || adoption?.startTime);
+        if (promotionStart && activation) return `Promotion starts around ${promotionStart} UTC; activation window around ${activation} UTC if it passes`;
+        if (period.endTime) return `Cooldown ends around ${end} UTC before the final vote`;
+    }
+    if (data.isLiveVote && end) return `${votePeriodTitle(data.votePeriod)} closes around ${end} UTC`;
+    if (end) return `${periodTitle(period.kind)} window ends around ${end} UTC`;
+    return 'Resolution timing unavailable';
+}
+
+function renderProposalIntel(data) {
+    const protocol = activeProtocolLore(data);
+    const changes = Array.isArray(protocol?.changes) ? protocol.changes.slice(0, 3) : [];
+    const proposalPeriod = findPeriod(data.epoch, 'proposal');
+    const proposals = Array.isArray(data.epoch?.proposals) ? data.epoch.proposals : [];
+    const rivals = Math.max(0, proposals.length - 1);
+    const upvotes = data.proposal?.upvotes ? `${formatCount(data.proposal.upvotes)} upvotes` : 'upvote stake unavailable';
+    const context = changes.length
+        ? changes.map((change) => `<li>${escapeHtml(change)}</li>`).join('')
+        : `<li>${escapeHtml(protocol?.headline || data.report?.currentGovernance?.proposalName || 'Curated protocol bullets are pending while this proposal is live.')}</li>`;
+    const agoraHref = data.report?.currentGovernance?.proposalHash
+        ? `https://www.tezosagora.org/search?q=${encodeURIComponent(data.report.currentGovernance.proposalHash)}`
+        : 'https://www.tezosagora.org';
+
+    return `
+        <section class="chamber-intel-panel chamber-anim-fade" id="chamber-proposal-intel" style="animation-delay:120ms">
+            <div class="chamber-intel-title">Proposal Intel</div>
+            <div class="chamber-intel-lede">${escapeHtml(governanceResolutionLine(data))}</div>
+            <div class="chamber-intel-grid">
+                <div><span>Proposal race</span><strong>${escapeHtml(proposalDisplayName(data))}${rivals ? ` · ${rivals} rival${rivals === 1 ? '' : 's'}` : ''}</strong><small>${escapeHtml(upvotes)}${proposalPeriod?.endTime ? ` · proposal period ended ${escapeHtml(fmtUtcDateTime(proposalPeriod.endTime))} UTC` : ''}</small></div>
+                <div><span>Context</span><ul>${context}</ul></div>
+            </div>
+            <a class="chamber-intel-link" href="${escapeHtml(agoraHref)}" target="_blank" rel="noopener">Agora research →</a>
+        </section>
+    `;
+}
+
+function summarizeStageDelta(data) {
+    const current = Array.isArray(data.voters) ? data.voters : [];
+    const previous = Array.isArray(data.previousVoters) ? data.previousVoters : [];
+    if (!current.length || !previous.length) return null;
+    const currentByAddress = new Map(current.map((voter) => [voter.delegate?.address, voter]));
+    const previousVoted = previous.filter((voter) => voter.status !== 'none');
+    const dropouts = previousVoted.filter((voter) => currentByAddress.get(voter.delegate?.address)?.status === 'none');
+    const switchers = previousVoted.filter((voter) => {
+        const next = currentByAddress.get(voter.delegate?.address);
+        return next && next.status !== 'none' && next.status !== voter.status;
+    });
+    const dropoutPower = dropouts.reduce((sum, voter) => sum + Number(voter.votingPower || 0), 0);
+    return { dropouts, switchers, dropoutPower };
+}
+
+function renderGovernanceGapAnalysis(data) {
+    const voters = Array.isArray(data.voters) ? data.voters : [];
+    const period = data.votePeriod;
+    if (!period || !voters.length) return '';
+    const totalPower = Number(period.totalVotingPower) || voters.reduce((sum, voter) => sum + Number(voter.votingPower || 0), 0);
+    const votedPower = voters.filter((voter) => voter.status !== 'none').reduce((sum, voter) => sum + Number(voter.votingPower || 0), 0);
+    const quorumRequired = Number(period.ballotsQuorum || 0);
+    const requiredPower = totalPower * (quorumRequired / 100);
+    const quorumGap = Math.max(0, requiredPower - votedPower);
+    const nonVoters = voters.filter((voter) => voter.status === 'none').sort((a, b) => b.votingPower - a.votingPower);
+    const topNonVoters = nonVoters.slice(0, 5);
+    const yayVoters = voters.filter((voter) => voter.status === 'voted_yay').sort((a, b) => b.votingPower - a.votingPower);
+    const yayPower = yayVoters.reduce((sum, voter) => sum + Number(voter.votingPower || 0), 0);
+    const topFiveYayPower = yayVoters.slice(0, 5).reduce((sum, voter) => sum + Number(voter.votingPower || 0), 0);
+    const concentration = yayPower > 0 ? (topFiveYayPower / yayPower) * 100 : null;
+    const stageDelta = summarizeStageDelta(data);
+    const rows = topNonVoters.length
+        ? topNonVoters.map((voter) => `
+            <div class="chamber-gap-row">
+                <span>${escapeHtml(bakerDisplay(voter))}</span>
+                <strong>${fmtPower(voter.votingPower)} ꜩ</strong>
+            </div>
+        `).join('')
+        : '<div class="lb-empty-inline">No top non-voters in the displayed voter set.</div>';
+    const switcherCopy = stageDelta
+        ? `${stageDelta.dropouts.length} dropout${stageDelta.dropouts.length === 1 ? '' : 's'} from Exploration · ${stageDelta.switchers.length} switcher${stageDelta.switchers.length === 1 ? '' : 's'}`
+        : 'Stage dropout comparison appears during Promotion';
+    const switcherRows = stageDelta?.switchers?.length
+        ? stageDelta.switchers.slice(0, 3).map((voter) => {
+            const next = voters.find((item) => item.delegate?.address === voter.delegate?.address);
+            return `<span>${escapeHtml(bakerDisplay(voter))}: ${escapeHtml(voteStatusLabel(voter.status))} → ${escapeHtml(voteStatusLabel(next?.status))}</span>`;
+        }).join('')
+        : '';
+
+    return `
+        <section class="chamber-gap-panel chamber-anim-fade" id="chamber-gap-analysis" style="animation-delay:660ms">
+            <div class="chamber-intel-title">Gap Analysis</div>
+            <div class="chamber-intel-grid">
+                <div><span>Quorum gap</span><strong>${quorumGap > 0 ? `${fmtPower(quorumGap)} ꜩ` : 'Closed'}</strong><small>${precisePctText((votedPower / totalPower) * 100)} turnout / ${precisePctText(quorumRequired)} required</small></div>
+                <div><span>Top 5 Yay concentration</span><strong>${Number.isFinite(concentration) ? precisePctText(concentration) : 'n/a'}</strong><small>${fmtPower(topFiveYayPower)} ꜩ of Yay power</small></div>
+                <div><span>Stage movement</span><strong>${escapeHtml(switcherCopy)}</strong><small>${stageDelta ? `${fmtPower(stageDelta.dropoutPower)} ꜩ missing from prior-stage voters` : 'Promotion-only comparison'}</small>${switcherRows ? `<div class="chamber-switcher-list">${switcherRows}</div>` : ''}</div>
+            </div>
+            <div class="chamber-gap-list">
+                <div class="chamber-gap-heading">Largest non-voters</div>
+                ${rows}
+            </div>
+        </section>
+    `;
+}
+
 function voteTone(vote) {
     if (vote.status === 'active') return 'active';
     if (isFailedVote(vote)) return 'failed';
@@ -1436,6 +1604,7 @@ function renderChamber(data, container) {
             </div>
         </div>
         ${renderCurrentStageVoteOrder(data)}
+        ${renderGovernanceGapAnalysis(data)}
         ${renderHistoricalComparison(data)}
         ${renderChronologicalVoteLog()}
         ${renderTopVoters(voters)}
@@ -1452,6 +1621,7 @@ function renderChamber(data, container) {
 
     container.innerHTML = `
         ${renderProposalHeader(data)}
+        ${renderProposalIntel(data)}
         ${isLiveVote ? liveGridHtml + pipelineHtml + processHtml : processHtml + pipelineHtml + liveGridHtml}
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:800ms">
             <a href="https://tzkt.io/governance" target="_blank" rel="noopener">TzKT Governance →</a>
@@ -1804,6 +1974,10 @@ async function loadEntryCardStatus({ force = false } = {}) {
         const description = card?.querySelector('.stat-description');
         
         const currentPeriod = await (await fetch(`${TZKT}/voting/periods/current`, { cache: force ? 'no-store' : 'default' })).json();
+        if (card) {
+            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+            card.dataset.updatedLabel = `as of ${time} UTC`;
+        }
         const isActive = currentPeriod.status === 'active' && currentPeriod.kind !== 'proposal';
         const isLiveVote = isActive && isBallotPeriod(currentPeriod);
         const stageName = periodTitle(currentPeriod.kind);
