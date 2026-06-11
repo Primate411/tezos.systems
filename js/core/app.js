@@ -276,16 +276,16 @@ const state = {
     refreshTimer: null,
 };
 
+// Safe feature wrapper — one failing feature can't kill init or refresh
+function safe(name, fn) {
+    try { fn(); } catch (e) { console.warn(`[feature] ${name} failed:`, e); }
+}
+
 /**
  * Initialize the dashboard
  */
 async function init() {
     console.log('Initializing Tezos Systems dashboard...');
-
-    // Safe init wrapper — one failing feature can't kill the rest
-    function safe(name, fn) {
-        try { fn(); } catch (e) { console.warn(`[init] ${name} failed:`, e); }
-    }
 
     // Initialize theme
     safe('theme', initTheme);

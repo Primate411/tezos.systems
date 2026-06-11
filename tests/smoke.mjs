@@ -1964,6 +1964,24 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     etherlinkEntryWide: document.querySelector('#etherlink-governance-entry-card')?.classList.contains('chamber-entry-wide') || false,
     etherlinkEntrySize: document.querySelector('#etherlink-governance-entry-card')?.dataset.etherlinkGovernanceSize || '',
     etherlinkEntryMetrics: document.querySelector('#etherlink-governance-entry-metrics')?.textContent?.trim() || '',
+    etherlinkEntryGeometry: (() => {
+      const card = document.querySelector('#etherlink-governance-entry-card');
+      const cue = card?.querySelector('.chamber-expand-cue');
+      const sequencer = [...(card?.querySelectorAll('.etherlink-gov-entry-metric') || [])]
+        .find((node) => /SEQUENCER/.test(node.textContent || ''));
+      const rect = (node) => {
+        if (!node) return null;
+        const box = node.getBoundingClientRect();
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+      };
+      const cueRect = rect(cue);
+      const sequencerRect = rect(sequencer);
+      const overlap = cueRect && sequencerRect
+        ? Math.max(0, Math.min(cueRect.right, sequencerRect.right) - Math.max(cueRect.left, sequencerRect.left))
+          * Math.max(0, Math.min(cueRect.bottom, sequencerRect.bottom) - Math.max(cueRect.top, sequencerRect.top))
+        : 0;
+      return { cueRect, sequencerRect, overlap };
+    })(),
     tz4TileValue: document.querySelector('#tz4-adoption-front')?.textContent?.trim() || '',
     tz4TileDescription: document.querySelector('#tz4-description')?.textContent?.trim() || '',
     tz4TileWide: document.querySelector('[data-stat="tz4-adoption"]')?.classList.contains('chamber-entry-wide') || false,
@@ -2012,6 +2030,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Tezlink Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
   assert(/FAST14\.2%\/5%/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance FAST metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(/SLOWNoactiveproposal/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
+  assert(dashboardState.etherlinkEntryGeometry.overlap === 0, `governance testing period: Tezlink Governance open cue overlaps Sequencer chip: ${JSON.stringify(dashboardState.etherlinkEntryGeometry)}`);
   assert(dashboardState.tz4TileValue === '33.3 / 50%', `governance testing period: tz4 tile value mismatch: ${dashboardState.tz4TileValue}`);
   assert(/1 \/ 3 bakers active/.test(dashboardState.tz4TileDescription), `governance testing period: tz4 tile description mismatch: ${dashboardState.tz4TileDescription}`);
   assert(dashboardState.tz4TileWide, 'governance testing period: tz4 Adoption tile should be 2x1 in Chambers');
@@ -2050,6 +2069,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       storageHref: document.querySelector('#etherlink-governance-modal .chamber-footer a[href*="tzkt.io/KT19oUV"]')?.href || '',
       live: modal?.classList.contains('active') ? 'true' : '',
       refreshState: compactText('#etherlink-governance-refresh-state'),
+      periodFacts: compactText('#etherlink-governance-modal .etherlink-gov-explainer .lb-explainer-facts'),
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
   });
@@ -2068,6 +2088,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(etherlinkState.officialHref.includes('/governance/fast'), `governance testing period: Etherlink official track link missing: ${etherlinkState.officialHref}`);
   assert(etherlinkState.storageHref.includes(ETHERLINK_FAST_CONTRACT), `governance testing period: Etherlink TzKT storage link missing: ${etherlinkState.storageHref}`);
   assert(/auto-refresh 60s/.test(etherlinkState.refreshState), `governance testing period: Etherlink refresh label mismatch: ${etherlinkState.refreshState}`);
+  assert(!/rolling over now/i.test(etherlinkState.periodFacts), `governance testing period: Etherlink period facts should not stick at rollover: ${etherlinkState.periodFacts}`);
   assert(etherlinkState.intervalDelays.includes(60000), `governance testing period: Etherlink 60s refresh timer missing: ${etherlinkState.intervalDelays.join(', ')}`);
 
   await page.locator('#etherlink-governance-modal [data-etherlink-track="slow"]').click();
@@ -2255,6 +2276,15 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       lore: modal?.querySelector('#lb-lore-body')?.textContent?.trim() || '',
       loreItems: modal?.querySelectorAll('#lb-lore-body .lb-lore-item').length || 0,
       readMoreLinks: modal?.querySelectorAll('a[href*="liquidity_baking"], a[href*="liquidity-baking"]').length || 0,
+      sparklineSpread: (() => {
+        const polyline = modal?.querySelector('#lb-ema-sparkline polyline');
+        const points = (polyline?.getAttribute('points') || '').trim().split(/\s+/)
+          .map((point) => Number(point.split(',')[1]))
+          .filter((value) => Number.isFinite(value));
+        if (points.length < 2) return 0;
+        return Math.max(...points) - Math.min(...points);
+      })(),
+      sparklineLabel: modal?.querySelector('#lb-ema-sparkline svg')?.getAttribute('aria-label') || '',
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
   });
@@ -2282,6 +2312,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(lbState.loreCollapsed === 'true', `governance testing period: LB lore collapsed flag mismatch: ${lbState.loreCollapsed}`);
   assert(lbState.loreItems >= 3, `governance testing period: LB protocol-history lore items missing, saw ${lbState.loreItems}`);
   assert(/Granada/.test(lbState.lore) && /Ithaca/.test(lbState.lore) && /Jakarta/.test(lbState.lore), `governance testing period: LB lore should expose Granada/Ithaca/Jakarta, saw ${lbState.lore}`);
+  assert(lbState.sparklineSpread >= 12, `governance testing period: LB EMA sparkline should auto-scale recent movement, saw spread ${lbState.sparklineSpread}`);
+  assert(/from 51\.\d+% to 51\.\d+%/.test(lbState.sparklineLabel), `governance testing period: LB EMA sparkline label should expose scaled range, saw ${lbState.sparklineLabel}`);
   await page.locator('#lb-lore-toggle').click();
   const lbLoreExpandedState = await page.evaluate(() => ({
     expanded: document.querySelector('#liquidity-baking-modal #lb-lore-toggle')?.getAttribute('aria-expanded') || '',
@@ -2424,7 +2456,24 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       etherlinkText: etherlink?.textContent || '',
       etherlinkMetricsHidden: document.querySelector('#etherlink-governance-entry-metrics')?.hidden ?? false,
       chamberWidth: chamberRect?.width || 0,
-      etherlinkWidth: etherlinkRect?.width || 0
+      etherlinkWidth: etherlinkRect?.width || 0,
+      etherlinkGeometry: (() => {
+        const cue = etherlink?.querySelector('.chamber-expand-cue');
+        const sequencer = [...(etherlink?.querySelectorAll('.etherlink-gov-entry-metric') || [])]
+          .find((node) => /SEQUENCER/.test(node.textContent || ''));
+        const rect = (node) => {
+          if (!node) return null;
+          const box = node.getBoundingClientRect();
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+        };
+        const cueRect = rect(cue);
+        const sequencerRect = rect(sequencer);
+        const overlap = cueRect && sequencerRect
+          ? Math.max(0, Math.min(cueRect.right, sequencerRect.right) - Math.max(cueRect.left, sequencerRect.left))
+            * Math.max(0, Math.min(cueRect.bottom, sequencerRect.bottom) - Math.max(cueRect.top, sequencerRect.top))
+          : 0;
+        return { cueRect, sequencerRect, overlap };
+      })()
     };
   });
   assert(!quietSizing.chamberWide && quietSizing.chamberSize === 'compact', `quiet governance sizing: The Chamber should be 1x1, saw ${JSON.stringify(quietSizing)}`);
@@ -2433,6 +2482,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/Tracks/.test(quietSizing.etherlinkText) && /All tracks idle/.test(quietSizing.etherlinkText) && /FAST/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink idle text mismatch: ${quietSizing.etherlinkText}`);
   assert(!quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should show compact track chips when all tracks are quiet');
   assert(Math.abs(quietSizing.chamberWidth - quietSizing.etherlinkWidth) < 8, `quiet governance sizing: compact cards should share 1x1 width, saw ${quietSizing.chamberWidth} vs ${quietSizing.etherlinkWidth}`);
+  assert(quietSizing.etherlinkGeometry.overlap === 0, `quiet governance sizing: Tezlink Governance open cue overlaps Sequencer chip: ${JSON.stringify(quietSizing.etherlinkGeometry)}`);
   await quietContext.close();
 
   assert(issues.length === 0, `governance testing period browser issues:\n${issues.join('\n')}`);

@@ -189,7 +189,7 @@ function formatAge(timestamp) {
 
 function formatDurationFromBlocks(blocks) {
     if (!Number.isFinite(blocks)) return '--';
-    if (blocks <= 0) return 'rolling over now';
+    if (blocks <= 0) return '<1m';
     const minutes = Math.round((blocks * BLOCK_SECONDS) / 60);
     if (minutes < 60) return `${minutes}m`;
     const hours = Math.floor(minutes / 60);
@@ -206,7 +206,7 @@ function normalizePeriod(track, storage, headLevel) {
     const periodLength = Number(config.period_length ?? track.periodLength ?? 1);
     const storageIndex = Number(storage?.voting_context?.period_index);
     const computedIndex = periodLength > 0 ? Math.floor(Math.max(0, headLevel - startedAt) / periodLength) : 0;
-    const index = Number.isFinite(storageIndex) ? storageIndex : computedIndex;
+    const index = Number.isFinite(storageIndex) ? Math.max(storageIndex, computedIndex) : computedIndex;
     const startLevel = startedAt + index * periodLength;
     const endLevel = startLevel + periodLength - 1;
     const blocksRemaining = Math.max(0, endLevel - headLevel);

@@ -151,7 +151,9 @@ inline modal styles in `js/core/app.js`.
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
   discovery, storage, bigmaps, and recent historical proposal submissions, plus
   official-track and TzKT links for action/audit. The dashboard card keeps
-  compact track chips visible even when all tracks are idle.
+  compact track chips visible even when all tracks are idle, keeps its open
+  control clear of those chips, and computes period countdowns from the current
+  head block.
 - Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
   transactions, gas, addresses, grouped Blockscout transaction tape rows, and
   DefiLlama protocol TVL sourced from current Tezlink rails.
@@ -176,8 +178,8 @@ inline modal styles in `js/core/app.js`.
   and includes a vote share capture button.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, protocol-history lore, EMA
-  threshold meter and trend sparkline, 6-second open-monitor refreshes, and
-  60-second dashboard-tile refreshes.
+  threshold meter and auto-scaled trend sparkline, 6-second open-monitor
+  refreshes, and 60-second dashboard-tile refreshes.
 - tz4 Adoption Chamber with a wide Chambers tile for latest completed switches
   and pending activations, plus baker-count and baking-power adoption readouts,
   current baker BLS/tz4 status, saved-baker highlighting/share, first-switch
@@ -301,7 +303,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, Tezlink Governance, LB, tz4 card preview, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`

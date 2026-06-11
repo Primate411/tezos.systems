@@ -7,6 +7,9 @@ const CHANGELOG = [
     {
         date: '2026-06-11',
         entries: [
+            { type: '🔧', text: 'Dashboard refresh now keeps shared feature safety wrappers available during manual and background refresh cycles' },
+            { type: '🎨', text: 'Liquidity Baking EMA trend lines now auto-scale around the recent range, and Tezlink Governance card controls avoid crowding track chips' },
+            { type: '🔧', text: 'Tezlink Governance period countdowns now advance from the current head block instead of sticking at rollover copy' },
             { type: '🔧', text: 'Network Health chamber card controls now keep camera, direct link, and info buttons in separate top-right slots' },
             { type: '🎨', text: 'Network Health and Liquidity Baking chamber cards now keep compact status rows inside the card frame at wide desktop sizes' },
             { type: '🎨', text: 'Chambers now render as three paired rows so wide cards keep their companion card instead of leaving visual gaps' },

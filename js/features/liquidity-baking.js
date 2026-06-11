@@ -492,14 +492,43 @@ function renderEmaSparkline(blocks = []) {
     if (points.length < 2) return '';
     const width = 180;
     const height = 42;
+    const padding = 4;
+    const threshold = 50;
+    const rawMin = Math.min(...points);
+    const rawMax = Math.max(...points);
+    const rawSpan = Math.max(0.1, rawMax - rawMin);
+    const thresholdWindow = Math.max(0.45, rawSpan * 1.75);
+    const includeThreshold = threshold >= rawMin - thresholdWindow && threshold <= rawMax + thresholdWindow;
+    const domainPadding = Math.max(0.06, rawSpan * 0.35);
+    let min = rawMin - domainPadding;
+    let max = rawMax + domainPadding;
+    if (includeThreshold) {
+        min = Math.min(min, threshold - 0.2);
+        max = Math.max(max, threshold + 0.2);
+    }
+    if (max - min < 0.25) {
+        const midpoint = (max + min) / 2;
+        min = midpoint - 0.125;
+        max = midpoint + 0.125;
+    }
+    min = Math.max(0, min);
+    max = Math.min(100, max);
+    const span = Math.max(0.1, max - min);
+    const scaleY = (value) => {
+        const normalized = (Math.max(min, Math.min(max, value)) - min) / span;
+        return padding + (1 - normalized) * (height - padding * 2);
+    };
     const coords = points.map((value, index) => {
         const x = (index / Math.max(1, points.length - 1)) * width;
-        const y = height - (Math.max(0, Math.min(100, value)) / 100) * height;
+        const y = scaleY(value);
         return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
+    const thresholdY = includeThreshold ? scaleY(threshold) : null;
+    const first = points[0];
+    const last = points[points.length - 1];
     return `
-        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="Recent OFF-vote EMA trend">
-            <line x1="0" y1="${(height / 2).toFixed(1)}" x2="${width}" y2="${(height / 2).toFixed(1)}" class="lb-ema-spark-threshold"/>
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" aria-label="Recent OFF-vote EMA trend from ${first.toFixed(2)}% to ${last.toFixed(2)}%">
+            ${thresholdY === null ? '' : `<line x1="0" y1="${thresholdY.toFixed(1)}" x2="${width}" y2="${thresholdY.toFixed(1)}" class="lb-ema-spark-threshold"/>`}
             <polyline points="${coords}" class="lb-ema-spark-line"/>
         </svg>
     `;
