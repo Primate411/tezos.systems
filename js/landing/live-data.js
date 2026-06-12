@@ -3,7 +3,7 @@
  * Lightweight — only fetches what the page needs
  */
 import '../core/tzkt-throttle.js';
-import { fetchCurrentVotingPeriod } from '../core/api.js';
+import { fetchCurrentVotingPeriod, fetchWithRetry } from '../core/api.js';
 import { escapeHtml } from '../core/utils.js';
 
 const TZKT = 'https://api.tzkt.io/v1';
@@ -12,9 +12,7 @@ const LB_EMA_DISABLE_THRESHOLD = 1_000_000_000;
 const LB_MINUTES_PER_YEAR = 365.25 * 24 * 60;
 
 async function fetchJson(url) {
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`${url} failed: ${resp.status}`);
-    return resp.json();
+    return fetchWithRetry(url, { cache: 'no-store', memoryCache: false }, 2);
 }
 
 async function fetchText(url) {

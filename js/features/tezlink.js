@@ -4,7 +4,8 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { escapeHtml } from '../core/utils.js';
+import { escapeHtml, setDataFreshnessState } from '../core/utils.js';
+import { fetchWithRetry } from '../core/api.js';
 
 const DEFILLAMA = API_URLS.defillama;
 const EXPLORER = API_URLS.tezlinkExplorer;
@@ -28,13 +29,7 @@ function isAbortableTarget(target) {
 }
 
 async function fetchJson(url, options = {}) {
-    const response = await fetch(url, {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store',
-        ...options
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
+    return fetchWithRetry(url, { cache: 'no-store', memoryCache: false, ...options }, 2);
 }
 
 async function rpcCall(method, params = []) {
@@ -378,8 +373,10 @@ function renderEntryCard(data) {
         mini.textContent = head ? `Head ${compactNumber(head)} · live L2 feed` : 'Live L2 feed';
     }
     if (card) {
-        const time = new Date(data.updatedAt || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+        const updatedAt = data.updatedAt || Date.now();
+        const time = new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
         card.dataset.updatedLabel = `as of ${time} UTC`;
+        setDataFreshnessState(card, updatedAt, ENTRY_REFRESH_MS * 2);
     }
 }
 

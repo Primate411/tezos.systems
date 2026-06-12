@@ -15783,6 +15783,12 @@ body {
     text-transform: uppercase;
 }
 
+.chamber-entry-card.chamber-data-stale[data-updated-label]::after {
+    color: var(--chamber-watch-color, #f5b84b);
+    opacity: 0.96;
+    text-shadow: 0 0 10px color-mix(in srgb, var(--chamber-watch-color, #f5b84b) 30%, transparent);
+}
+
 @keyframes entryCardPulse {
     0%, 100% { opacity: 0; }
     50% { opacity: 0.16; }

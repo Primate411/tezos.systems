@@ -11,7 +11,7 @@
  * Falls back to last complete epoch when no active proposal exists.
  */
 
-import { escapeHtml } from '../core/utils.js';
+import { escapeHtml, setDataFreshnessState } from '../core/utils.js';
 import { API_URLS } from '../core/config.js';
 import { fetchCurrentVotingPeriod } from '../core/api.js';
 
@@ -22,6 +22,17 @@ const GOVERNANCE_REPORT_URL = '/data/governance-refresh-report.json';
 const HISTORY_CONTEXT_ROWS = 20;
 const CHAMBER_ENTRY_REFRESH_MS = 60000;
 const CHAMBER_MARK_SVG = '<svg class="chamber-entry-mark" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><path d="M12 25h40M18 25v25M30 25v25M42 25v25M14 50h36M10 56h44M32 8l22 12H10L32 8Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const LIVE_PROPOSAL_CONTEXT = [
+    {
+        match: ['psushuai9qapm5tgj1jpuvgkdxz5gykdnevs6rh8suvrarvzlcy', 'ushuaia'],
+        href: 'https://forum.tezosagora.org/t/ushuaia-psushuai9/7045',
+        bullets: [
+            'DAL bandwidth jumps to 10 MB/s, with dynamic attestation lag targeting faster L1 confirmation for DAL-backed apps.',
+            'Rollup PVM features can move with Etherlink governance, and WASM PVM V6 lays groundwork for a faster storage backend.',
+            'Testnet-only flags let builders trial protocol-native liquid staking and tz5 post-quantum user keys before mainnet activation.'
+        ]
+    }
+];
 
 let _chamberEntryTimer = null;
 let _chamberEntryVisibilityWired = false;
@@ -1132,19 +1143,36 @@ function governanceResolutionLine(data) {
     return 'Resolution timing unavailable';
 }
 
+function liveProposalContext(data) {
+    const candidates = [
+        data.report?.currentGovernance?.proposalHash,
+        data.report?.currentGovernance?.proposalName,
+        data.proposal?.hash,
+        data.proposal?.alias,
+        data.currentPeriod?.proposal?.hash,
+        data.currentPeriod?.proposal?.alias,
+        proposalDisplayName(data)
+    ].filter(Boolean).map((value) => String(value).toLowerCase());
+    return LIVE_PROPOSAL_CONTEXT.find((entry) =>
+        entry.match.some((needle) => candidates.some((value) => value.includes(needle)))
+    ) || null;
+}
+
 function renderProposalIntel(data) {
     const protocol = activeProtocolLore(data);
     const changes = Array.isArray(protocol?.changes) ? protocol.changes.slice(0, 3) : [];
+    const liveContext = liveProposalContext(data);
     const proposalPeriod = findPeriod(data.epoch, 'proposal');
     const proposals = Array.isArray(data.epoch?.proposals) ? data.epoch.proposals : [];
     const rivals = Math.max(0, proposals.length - 1);
     const upvotes = data.proposal?.upvotes ? `${formatCount(data.proposal.upvotes)} upvotes` : 'upvote stake unavailable';
-    const context = changes.length
-        ? changes.map((change) => `<li>${escapeHtml(change)}</li>`).join('')
+    const contextBullets = changes.length ? changes : liveContext?.bullets || [];
+    const context = contextBullets.length
+        ? contextBullets.map((change) => `<li>${escapeHtml(change)}</li>`).join('')
         : `<li>${escapeHtml(protocol?.headline || data.report?.currentGovernance?.proposalName || 'Curated protocol bullets are pending while this proposal is live.')}</li>`;
-    const agoraHref = data.report?.currentGovernance?.proposalHash
+    const agoraHref = liveContext?.href || (data.report?.currentGovernance?.proposalHash
         ? `https://www.tezosagora.org/search?q=${encodeURIComponent(data.report.currentGovernance.proposalHash)}`
-        : 'https://www.tezosagora.org';
+        : 'https://www.tezosagora.org');
 
     return `
         <section class="chamber-intel-panel chamber-anim-fade" id="chamber-proposal-intel" style="animation-delay:120ms">
@@ -1983,8 +2011,10 @@ async function loadEntryCardStatus({ force = false } = {}) {
         
         const currentPeriod = await fetchCurrentVotingPeriod({ force });
         if (card) {
-            const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+            const updatedAt = Date.now();
+            const time = new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
             card.dataset.updatedLabel = `as of ${time} UTC`;
+            setDataFreshnessState(card, updatedAt, CHAMBER_ENTRY_REFRESH_MS * 2);
         }
         const isActive = currentPeriod.status === 'active' && currentPeriod.kind !== 'proposal';
         const isLiveVote = isActive && isBallotPeriod(currentPeriod);

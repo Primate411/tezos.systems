@@ -4,7 +4,8 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { escapeHtml } from '../core/utils.js';
+import { escapeHtml, setDataFreshnessState } from '../core/utils.js';
+import { fetchWithRetry } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
 const POWER_PER_BLOCK = 7000;
@@ -219,16 +220,7 @@ function summarizeMyTezosBaker(data) {
 }
 
 async function fetchJson(url, retries = 2) {
-    for (let attempt = 0; attempt <= retries; attempt += 1) {
-        try {
-            const response = await fetch(url, { headers: { Accept: 'application/json' }, cache: 'no-store' });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return await response.json();
-        } catch (error) {
-            if (attempt === retries) throw error;
-            await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
-        }
-    }
+    return fetchWithRetry(url, { cache: 'no-store', memoryCache: false }, retries + 1);
 }
 
 function normalizeActivityTx(tx) {
@@ -664,8 +656,10 @@ function renderNetworkHealth(data) {
 
     const card = document.querySelector('.stat-card[data-stat="network-health"]');
     if (card) {
-        const time = new Date(data.headTimestamp || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+        const updatedAt = data.headTimestamp || Date.now();
+        const time = new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
         card.dataset.updatedLabel = `as of ${time} UTC`;
+        setDataFreshnessState(card, updatedAt, LIVE_REFRESH_INTERVAL * 2);
     }
 
     ensureHealthEntryTape();

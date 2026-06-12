@@ -4,7 +4,7 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { escapeHtml } from '../core/utils.js';
+import { escapeHtml, setDataFreshnessState } from '../core/utils.js';
 
 const TZKT = API_URLS.tzkt;
 const LB_THRESHOLD = 1000000000;
@@ -1312,7 +1312,9 @@ async function loadEntryCardStatus({ force = false } = {}) {
             card.dataset.lbRefreshedAt = String(Date.now());
             card.dataset.lbLive = 'true';
             card.dataset.lbRefreshInterval = String(LB_ENTRY_REFRESH_MS);
-            card.dataset.updatedLabel = `as of ${formatUtcTime(data.latest?.timestamp || Date.now())} UTC`;
+            const updatedAt = data.latest?.timestamp || Date.now();
+            card.dataset.updatedLabel = `as of ${formatUtcTime(updatedAt)} UTC`;
+            setDataFreshnessState(card, updatedAt, LB_ENTRY_REFRESH_MS * 2);
         }
     } catch {
         if (ema) ema.textContent = '--';

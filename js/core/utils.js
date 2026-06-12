@@ -91,6 +91,22 @@ export function formatCount(num) {
 }
 
 /**
+ * Mark live chamber cards stale when their source timestamp falls behind.
+ * The stamp text remains unchanged; this only controls the visual state.
+ */
+export function setDataFreshnessState(element, timestamp, staleAfterMs) {
+    if (!element) return false;
+    const time = timestamp ? new Date(timestamp).getTime() : NaN;
+    const stale = Number.isFinite(time)
+        && Number.isFinite(staleAfterMs)
+        && staleAfterMs > 0
+        && Date.now() - time > staleAfterMs;
+    element.classList.toggle('chamber-data-stale', stale);
+    element.dataset.freshnessState = stale ? 'stale' : 'fresh';
+    return stale;
+}
+
+/**
  * Format large numbers with abbreviations
  * @param {number} num - The number to format
  * @returns {string} Formatted large number string
@@ -233,4 +249,3 @@ export function calculatePercentage(part, total) {
     }
     return (part / total) * 100;
 }
-

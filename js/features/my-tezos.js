@@ -6,7 +6,7 @@
 
 import { API_URLS } from '../core/config.js';
 import { escapeHtml } from '../core/utils.js';
-import { fetchSharedStats, getTzktTotalDelegated, getTzktTotalStaked } from '../core/api.js';
+import { fetchSharedStats, fetchWithRetry, getTzktTotalDelegated, getTzktTotalStaked } from '../core/api.js';
 import { fetchXTZPrice } from './price.js';
 import { letterGrade } from './baker-report-card.js';
 import { fetchVotingStatus, getVotingPeriodName } from './governance.js';
@@ -49,13 +49,15 @@ const PROTOCOL_ERAS = [
 
 // Dynamically extend PROTOCOL_ERAS from TzKT on first load
 let _erasLoaded = false;
+async function fetchTzktJson(url, attempts = 2) {
+    return fetchWithRetry(url, { cache: 'no-store', memoryCache: false }, attempts);
+}
+
 async function ensureProtocolEras() {
     if (_erasLoaded) return;
     _erasLoaded = true;
     try {
-        const resp = await fetch(TZKT + '/protocols?sort.asc=code');
-        if (!resp.ok) return;
-        const protocols = await resp.json();
+        const protocols = await fetchTzktJson(TZKT + '/protocols?sort.asc=code');
         const named = protocols.filter(p => p.code >= 4 && p.extras?.alias);
         for (const p of named) {
             const name = p.extras.alias;
@@ -118,14 +120,14 @@ async function getStakingAPY() {
 
 async function fetchRecentRewards(address) {
     try {
-        const resp = await fetch(`${TZKT}/rewards/delegators/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
-        if (!resp.ok) {
-            const bakerResp = await fetch(`${TZKT}/rewards/bakers/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
-            if (!bakerResp.ok) return null;
-            return await bakerResp.json();
+        return await fetchTzktJson(`${TZKT}/rewards/delegators/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
+    } catch {
+        try {
+            return await fetchTzktJson(`${TZKT}/rewards/bakers/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
+        } catch {
+            return null;
         }
-        return await resp.json();
-    } catch { return null; }
+    }
 }
 
 function getRewardAmount(r) {
@@ -177,9 +179,7 @@ async function fetchJsonWithTimeout(url, fallback = null, timeoutMs = RIGHTS_FET
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
-        const resp = await fetch(url, { signal: controller.signal });
-        if (!resp.ok) return fallback;
-        return await resp.json();
+        return await fetchWithRetry(url, { signal: controller.signal, cache: 'no-store', memoryCache: false }, 2);
     } catch {
         return fallback;
     } finally {
@@ -375,9 +375,7 @@ function governancePhaseName(kind) {
 
 async function fetchCurrentVoter(bakerAddr) {
     try {
-        const resp = await fetch(`${TZKT}/voting/periods/current/voters/${encodeURIComponent(bakerAddr)}`);
-        if (!resp.ok) return null;
-        return await resp.json();
+        return await fetchTzktJson(`${TZKT}/voting/periods/current/voters/${encodeURIComponent(bakerAddr)}`);
     } catch {
         return null;
     }
@@ -521,9 +519,7 @@ function uniqueRecentAccounts(ops, mapOp) {
 
 async function fetchJsonArray(url) {
     try {
-        const resp = await fetch(url);
-        if (!resp.ok) return [];
-        const rows = await resp.json();
+        const rows = await fetchTzktJson(url);
         return Array.isArray(rows) ? rows : [];
     } catch {
         return [];
@@ -935,24 +931,18 @@ async function fetchTezosStory(address, account, bakerAddress) {
     let proposalsInjected = 0;
     let proposalNames = [];
     try {
-        const allPeriodsResp = await fetch(`${TZKT}/voting/periods?limit=1000&select=firstLevel,kind`);
-        if (allPeriodsResp.ok) {
-            const periods = await allPeriodsResp.json();
-            govCycles = periods.filter(p => p.firstLevel >= firstActivity).length;
-        }
+        const periods = await fetchTzktJson(`${TZKT}/voting/periods?limit=1000&select=firstLevel,kind`);
+        govCycles = periods.filter(p => p.firstLevel >= firstActivity).length;
     } catch {}
 
     // Check if this address or their baker injected any accepted proposals
     const checkAddrs = new Set([address]);
     if (bakerAddress) checkAddrs.add(bakerAddress);
     try {
-        const proposalsResp = await fetch(`${TZKT}/voting/proposals?limit=200`);
-        if (proposalsResp.ok) {
-            const allProposals = await proposalsResp.json();
-            const accepted = allProposals.filter(p => p.status === 'accepted' && checkAddrs.has(p.initiator?.address));
-            proposalsInjected = accepted.length;
-            proposalNames = accepted.map(p => (p.extras?.alias) || p.hash.slice(0, 8)).filter(Boolean);
-        }
+        const allProposals = await fetchTzktJson(`${TZKT}/voting/proposals?limit=200`);
+        const accepted = allProposals.filter(p => p.status === 'accepted' && checkAddrs.has(p.initiator?.address));
+        proposalsInjected = accepted.length;
+        proposalNames = accepted.map(p => (p.extras?.alias) || p.hash.slice(0, 8)).filter(Boolean);
     } catch {}
 
     return {
@@ -1394,13 +1384,12 @@ async function renderMorningBrief(address, force = false) {
 
     try {
         const [accountResp, xtzPrice, apy] = await Promise.all([
-            fetch(`${TZKT}/accounts/${encodeURIComponent(address)}`),
+            fetchTzktJson(`${TZKT}/accounts/${encodeURIComponent(address)}`),
             getXtzPrice(),
             getStakingAPY()
         ]);
 
-        if (!accountResp.ok) throw new Error('Account not found');
-        const account = await accountResp.json();
+        const account = accountResp;
 
         const balance = (account.balance || 0) / 1e6;
         const staked = (account.stakedBalance || 0) / 1e6;

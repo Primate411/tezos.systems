@@ -4,7 +4,8 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { escapeHtml } from '../core/utils.js';
+import { escapeHtml, setDataFreshnessState } from '../core/utils.js';
+import { fetchWithRetry } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
 const BLOCK_SECONDS = 6;
@@ -100,32 +101,11 @@ function isAbortableTarget(target) {
 }
 
 async function fetchJson(url) {
-    const response = await fetch(url, {
-        headers: { Accept: 'application/json' },
-        cache: 'no-store'
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
-}
-
-function delay(ms) {
-    return new Promise((resolve) => globalThis.setTimeout(resolve, ms));
+    return fetchWithRetry(url, { cache: 'no-store', memoryCache: false }, 1);
 }
 
 async function fetchJsonWithRetry(url, attempts = 2) {
-    let lastError = null;
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-        try {
-            return await fetchJson(url);
-        } catch (error) {
-            lastError = error;
-            if (!String(error?.message || '').includes('HTTP 429') || attempt === attempts - 1) {
-                throw error;
-            }
-            await delay(350 * (attempt + 1));
-        }
-    }
-    throw lastError;
+    return fetchWithRetry(url, { cache: 'no-store', memoryCache: false }, attempts);
 }
 
 function toBigInt(value) {
@@ -694,8 +674,10 @@ function renderEntryCard(data) {
         metricsEl.classList.toggle('etherlink-gov-idle-preview', quiet);
         metricsEl.innerHTML = renderEntryMetrics(data);
     }
-    const time = new Date(data.updatedAt || Date.now()).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+    const updatedAt = data.updatedAt || Date.now();
+    const time = new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
     card.dataset.updatedLabel = `as of ${time} UTC`;
+    setDataFreshnessState(card, updatedAt, ENTRY_REFRESH_MS * 2);
 }
 
 function renderEntryError() {

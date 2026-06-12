@@ -4,7 +4,8 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { escapeHtml, formatMutez } from '../core/utils.js';
+import { escapeHtml, formatMutez, setDataFreshnessState } from '../core/utils.js';
+import { fetchWithRetry } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
@@ -85,9 +86,7 @@ function bakerLinks(address, name) {
 }
 
 async function fetchJson(url) {
-    const response = await fetch(url, { cache: 'no-store' });
-    if (!response.ok) throw new Error(`TzKT HTTP ${response.status}`);
-    return response.json();
+    return fetchWithRetry(url, { cache: 'no-store', memoryCache: false }, 2);
 }
 
 async function fetchActiveBakers() {
@@ -338,6 +337,7 @@ function renderTz4EntryPreview(data) {
     card.dataset.tz4PowerDescription = `${formatCount(data.activeCount)} / ${formatCount(data.total)} bakers active · ${formatPercent(data.activePowerPct)} power`;
     const updatedAt = data.updatedAt || new Date().toISOString();
     card.dataset.updatedLabel = `as of ${new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })} UTC`;
+    setDataFreshnessState(card, updatedAt, CACHE_TTL * 2);
     const description = document.getElementById('tz4-description');
     if (description) {
         description.textContent = card.dataset.tz4PowerDescription;

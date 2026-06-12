@@ -1767,6 +1767,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       cardWide: card?.classList.contains('chamber-entry-wide') || false,
       cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
       cardUpdatedLabel: card?.dataset.updatedLabel || '',
+      cardFreshnessState: card?.dataset.freshnessState || '',
+      cardStale: card?.classList.contains('chamber-data-stale') || false,
       cardTape: card?.querySelector('#network-health-live-tape')?.textContent || '',
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
@@ -1807,6 +1809,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.cardCue, 'network health chamber: card expand cue missing');
   assert(healthState.cardCopyHash === '#health', `network health chamber: card direct link mismatch: ${healthState.cardCopyHash}`);
   assert(/^as of \d{2}:\d{2} UTC$/.test(healthState.cardUpdatedLabel), `network health chamber: freshness stamp mismatch: ${healthState.cardUpdatedLabel}`);
+  assert(healthState.cardFreshnessState === 'stale' && healthState.cardStale, `network health chamber: stale freshness state missing: ${healthState.cardFreshnessState}/${healthState.cardStale}`);
   assert(healthState.intervalDelays.includes(1000), `network health chamber: 1s freshness ticker was not registered: ${healthState.intervalDelays.join(', ')}`);
   assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
 
@@ -1825,7 +1828,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(beforeSmoothRefresh.firstLevel, 'network health chamber: missing first block level before smooth refresh');
   await page.evaluate(() => {
     const timer = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 6000).at(-1);
-    timer?.handler?.();
+    const realNow = Date.now;
+    Date.now = () => realNow() + 13000;
+    try {
+      timer?.handler?.();
+    } finally {
+      Date.now = realNow;
+    }
   });
   await page.waitForFunction((previousLevel) => {
     const first = document.querySelector('#health-recent-block-list .health-block-row');
