@@ -4,7 +4,7 @@
  */
 
 import { API_URLS } from '../core/config.js';
-import { escapeHtml, setDataFreshnessState } from '../core/utils.js';
+import { escapeHtml, refreshDataFreshnessStates, setDataFreshnessState } from '../core/utils.js';
 import { fetchWithRetry } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
@@ -105,17 +105,12 @@ function refreshHealthAgeLabels(root = document) {
     root.querySelectorAll('[data-health-age]').forEach((element) => {
         element.textContent = formatAge(element.dataset.healthAge);
     });
+    refreshDataFreshnessStates(root);
 }
 
 function startHealthAgeTicker() {
     if (ageTimer) return;
     ageTimer = window.setInterval(() => refreshHealthAgeLabels(document), AGE_TICK_INTERVAL);
-}
-
-function stopHealthAgeTicker() {
-    if (!ageTimer) return;
-    window.clearInterval(ageTimer);
-    ageTimer = null;
 }
 
 function healthClass(score) {
@@ -656,10 +651,11 @@ function renderNetworkHealth(data) {
 
     const card = document.querySelector('.stat-card[data-stat="network-health"]');
     if (card) {
-        const updatedAt = data.headTimestamp || Date.now();
-        const time = new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
+        const labelTimestamp = data.headTimestamp || data.updatedAt || Date.now();
+        const freshnessTimestamp = data.updatedAt || Date.now();
+        const time = new Date(labelTimestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
         card.dataset.updatedLabel = `as of ${time} UTC`;
-        setDataFreshnessState(card, updatedAt, LIVE_REFRESH_INTERVAL * 2);
+        setDataFreshnessState(card, freshnessTimestamp, LIVE_REFRESH_INTERVAL * 2);
     }
 
     ensureHealthEntryTape();
@@ -1330,7 +1326,6 @@ function stopChamberRefresh() {
         window.clearInterval(chamberTimer);
         chamberTimer = null;
     }
-    stopHealthAgeTicker();
     const overlay = document.getElementById('network-health-modal');
     if (overlay) overlay.dataset.healthLive = 'false';
 }
@@ -1452,6 +1447,7 @@ export function initNetworkHealth() {
     if (!document.querySelector('[data-stat="network-health"]')) return;
 
     wireNetworkHealthCard();
+    startHealthAgeTicker();
 
     cachedData = loadCachedData();
     if (cachedData) {

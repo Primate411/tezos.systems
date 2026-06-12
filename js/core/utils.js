@@ -90,6 +90,16 @@ export function formatCount(num) {
     return formatNumber(num, { decimals: 0, useAbbreviation: false });
 }
 
+function applyDataFreshnessState(element, timestampMs, staleAfterMs) {
+    const stale = Number.isFinite(timestampMs)
+        && Number.isFinite(staleAfterMs)
+        && staleAfterMs > 0
+        && Date.now() - timestampMs > staleAfterMs;
+    element.classList.toggle('chamber-data-stale', stale);
+    element.dataset.freshnessState = stale ? 'stale' : 'fresh';
+    return stale;
+}
+
 /**
  * Mark live chamber cards stale when their source timestamp falls behind.
  * The stamp text remains unchanged; this only controls the visual state.
@@ -97,13 +107,27 @@ export function formatCount(num) {
 export function setDataFreshnessState(element, timestamp, staleAfterMs) {
     if (!element) return false;
     const time = timestamp ? new Date(timestamp).getTime() : NaN;
-    const stale = Number.isFinite(time)
-        && Number.isFinite(staleAfterMs)
-        && staleAfterMs > 0
-        && Date.now() - time > staleAfterMs;
-    element.classList.toggle('chamber-data-stale', stale);
-    element.dataset.freshnessState = stale ? 'stale' : 'fresh';
-    return stale;
+    if (Number.isFinite(time)) {
+        element.dataset.freshnessTimestamp = String(time);
+    } else {
+        delete element.dataset.freshnessTimestamp;
+    }
+    if (Number.isFinite(staleAfterMs) && staleAfterMs > 0) {
+        element.dataset.freshnessStaleAfter = String(staleAfterMs);
+    } else {
+        delete element.dataset.freshnessStaleAfter;
+    }
+    return applyDataFreshnessState(element, time, staleAfterMs);
+}
+
+export function refreshDataFreshnessStates(root = document) {
+    root.querySelectorAll('[data-freshness-timestamp][data-freshness-stale-after]').forEach((element) => {
+        applyDataFreshnessState(
+            element,
+            Number(element.dataset.freshnessTimestamp),
+            Number(element.dataset.freshnessStaleAfter)
+        );
+    });
 }
 
 /**

@@ -1768,6 +1768,11 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
       cardUpdatedLabel: card?.dataset.updatedLabel || '',
       cardFreshnessState: card?.dataset.freshnessState || '',
+      cardFreshnessTimestamp: card?.dataset.freshnessTimestamp || '',
+      cardFreshnessStaleAfter: card?.dataset.freshnessStaleAfter || '',
+      cardFreshnessAgeMs: card?.dataset.freshnessTimestamp
+        ? Date.now() - Number(card.dataset.freshnessTimestamp)
+        : 0,
       cardStale: card?.classList.contains('chamber-data-stale') || false,
       cardTape: card?.querySelector('#network-health-live-tape')?.textContent || '',
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
@@ -1809,9 +1814,30 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.cardCue, 'network health chamber: card expand cue missing');
   assert(healthState.cardCopyHash === '#health', `network health chamber: card direct link mismatch: ${healthState.cardCopyHash}`);
   assert(/^as of \d{2}:\d{2} UTC$/.test(healthState.cardUpdatedLabel), `network health chamber: freshness stamp mismatch: ${healthState.cardUpdatedLabel}`);
-  assert(healthState.cardFreshnessState === 'stale' && healthState.cardStale, `network health chamber: stale freshness state missing: ${healthState.cardFreshnessState}/${healthState.cardStale}`);
+  assert(healthState.cardFreshnessState === 'fresh' && !healthState.cardStale, `network health chamber: block-age watch state should not mark fresh fetch stale: ${healthState.cardFreshnessState}/${healthState.cardStale}`);
+  assert(healthState.cardFreshnessStaleAfter === '12000', `network health chamber: freshness threshold should track 2x live refresh interval, saw ${healthState.cardFreshnessStaleAfter}`);
+  assert(healthState.cardFreshnessAgeMs < 12000, `network health chamber: freshness timestamp should come from fetch time, saw ${healthState.cardFreshnessAgeMs}ms`);
   assert(healthState.intervalDelays.includes(1000), `network health chamber: 1s freshness ticker was not registered: ${healthState.intervalDelays.join(', ')}`);
   assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
+
+  const tickerFreshnessState = await page.evaluate(() => {
+    const timers = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 1000);
+    const realNow = Date.now;
+    Date.now = () => realNow() + 13000;
+    try {
+      timers.forEach((timer) => timer?.handler?.());
+    } finally {
+      Date.now = realNow;
+    }
+    const card = document.querySelector('[data-stat="network-health"]');
+    return {
+      hasTimer: timers.some((timer) => Boolean(timer?.handler)),
+      state: card?.dataset.freshnessState || '',
+      stale: card?.classList.contains('chamber-data-stale') || false
+    };
+  });
+  assert(tickerFreshnessState.hasTimer, 'network health chamber: freshness ticker handler missing');
+  assert(tickerFreshnessState.state === 'stale' && tickerFreshnessState.stale, `network health chamber: stale state should update from ticker after fetch silence: ${tickerFreshnessState.state}/${tickerFreshnessState.stale}`);
 
   const beforeSmoothRefresh = await page.evaluate(() => {
     const timer = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 6000).at(-1);

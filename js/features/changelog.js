@@ -12,6 +12,7 @@ const CHANGELOG = [
             { type: '⚡', text: 'Remaining TzKT-backed chamber helpers now share the core Retry-After-aware fetch path without the one-minute memory cache on live pollers' },
             { type: '✨', text: 'Proposal Intel now shows live Ushuaia context bullets covering DAL throughput, rollup PVM activation, and testnet-only staking/key trials' },
             { type: '🎨', text: 'Chamber freshness stamps turn amber when their source timestamp falls behind the expected refresh window' },
+            { type: '🔧', text: 'Chamber freshness now rechecks from wall-clock time so failed refreshes can turn stale, while Network Health separates data freshness from block age' },
             { type: '🔧', text: 'Network Health refresh now follows block pulses first, with the interval acting only as a stale-pulse fallback' },
             { type: '🎨', text: 'The Chamber live vote chips use shorter mid-width-safe labels, and tz4 Adoption stamps freshness from the chain head time' },
         ]
