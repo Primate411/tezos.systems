@@ -16032,6 +16032,10 @@ body {
         grid-column: span 2;
     }
 
+    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tz4-liquidity"] > .chamber-entry-card {
+        height: 232px;
+    }
+
     #chamber-entry-card.chamber-entry-wide .chamber-entry-front {
         display: grid;
         grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -17047,6 +17051,18 @@ body {
     transform: rotate(45deg);
 }
 
+.lb-panel-title .lb-help-popover,
+.lb-lore-header .lb-help-popover {
+    right: 0;
+    left: auto;
+}
+
+.lb-panel-title .lb-help-popover::before,
+.lb-lore-header .lb-help-popover::before {
+    right: 6px;
+    left: auto;
+}
+
 .lb-help[open] .lb-help-popover,
 .lb-help:hover .lb-help-popover,
 .lb-help:focus-within .lb-help-popover {
@@ -18033,6 +18049,7 @@ body {
         grid-row: 1 / span 3;
         align-self: stretch;
         padding-top: 1px;
+        padding-bottom: 14px;
     }
 
     .tz4-entry-card.chamber-entry-wide .stat-label {
@@ -18076,7 +18093,20 @@ body {
     }
 
     .lb-help-popover {
-        width: min(260px, calc(100vw - 48px));
+        position: fixed;
+        right: 24px;
+        bottom: 24px;
+        left: 24px;
+        top: auto;
+        z-index: 40;
+        width: auto;
+        max-height: min(60vh, 420px);
+        overflow: auto;
+        transform: translateY(8px);
+    }
+
+    .lb-help-popover::before {
+        display: none;
     }
 
     .lb-lore-item {
@@ -18159,12 +18189,13 @@ body {
     }
 
     #chambers-grid .tz4-entry-card.chamber-entry-wide {
-        min-height: 354px;
+        min-height: 392px;
     }
 
     .tz4-entry-card.chamber-entry-wide .card-front {
         justify-content: flex-start;
         gap: 0.55rem;
+        padding-bottom: 2.75rem !important;
     }
 
     .tz4-entry-card.chamber-entry-wide .tz4-entry-preview {
