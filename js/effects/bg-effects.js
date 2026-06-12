@@ -3,6 +3,8 @@
  * Shares the same canvas pattern as matrix-effects.js
  */
 
+import { debugLog } from '../core/utils.js';
+
 const BG_THEMES = ['void', 'ember', 'signal', 'bubblegum', 'nerv', 'abyss', 'moss', 'warzone'];
 
 class VoidEffect {
@@ -1659,4 +1661,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(handleThemeChange, 0);
 });
 
-console.log('Background effects module loaded');
+debugLog('Background effects module loaded');

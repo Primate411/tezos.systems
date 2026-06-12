@@ -3,7 +3,7 @@
  * Shows notable XTZ movements with context
  */
 
-import { escapeHtml } from '../core/utils.js';
+import { debugLog, escapeHtml } from '../core/utils.js';
 import { THRESHOLDS, API_URLS } from '../core/config.js';
 
 // Known address labels
@@ -582,11 +582,11 @@ function updateWhaleVisibility() {
 export async function initWhaleTracker() {
     const section = document.getElementById('whale-section');
     if (!section) {
-        console.log('Whale section not found, skipping initialization');
+        debugLog('Whale section not found, skipping initialization');
         return;
     }
     
-    console.log('Initializing Whale Tracker...');
+    debugLog('Initializing Whale Tracker...');
     
     // Load saved preference (default: off)
     isEnabled = localStorage.getItem(STORAGE_KEY) === 'true';

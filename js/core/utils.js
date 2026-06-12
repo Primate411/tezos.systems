@@ -90,6 +90,18 @@ export function formatCount(num) {
     return formatNumber(num, { decimals: 0, useAbbreviation: false });
 }
 
+export function debugLog(...args) {
+    try {
+        const enabled = localStorage.getItem('tezos-systems-debug') === 'true'
+            || localStorage.getItem('tezos-systems-debug') === '1'
+            || window.location.hostname === 'localhost'
+            || window.location.hostname === '127.0.0.1';
+        if (enabled) console.log(...args);
+    } catch {
+        // Debug logging should never affect production flow.
+    }
+}
+
 function applyDataFreshnessState(element, timestampMs, staleAfterMs) {
     const stale = Number.isFinite(timestampMs)
         && Number.isFinite(staleAfterMs)

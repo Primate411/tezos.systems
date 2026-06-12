@@ -793,8 +793,6 @@ const HenMode = (() => {
             }
         });
 
-        console.log('[HEN] mode v2 initialized');
-
         // Live-updating timestamps every 30s
         setInterval(function() {
             document.querySelectorAll('.hen-card-time').forEach(function(el) {

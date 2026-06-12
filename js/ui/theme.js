@@ -30,7 +30,7 @@ let originalTheme = null;
 
 /**
  * Initialize theme system
- * Loads theme from localStorage or shows first-visit modal
+ * Loads theme from localStorage or applies the default theme for new visitors
  */
 export function initTheme() {
     // Check URL for theme deep link (?theme=matrix, etc.)
@@ -59,7 +59,7 @@ export function initTheme() {
 }
 
 /**
- * Show first-visit theme picker modal
+ * First visits now land directly on the dashboard; the guided tour handles onboarding.
  */
 const THEME_VIBES = {
     'aurora': { tagline: 'Liquid Aurora', icon: '🌌' },
@@ -78,14 +78,7 @@ const THEME_VIBES = {
 };
 
 function showFirstVisitPicker() {
-    // First visit — redirect to landing page (unless already there)
-    if (window.location.pathname === '/landing.html') return;
-    // Skip redirect for HEN mode deep link
-    if (new URLSearchParams(window.location.search).has('hen')) { setTheme(DEFAULT_THEME); return; }
-    // Skip redirect for any hash deep link (#baker=, #my-baker=, #calculator, etc.)
-    if (window.location.hash && window.location.hash.length > 1) { setTheme(DEFAULT_THEME); return; }
     setTheme(DEFAULT_THEME);
-    window.location.replace('/landing.html');
 }
 
 

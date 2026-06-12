@@ -37,7 +37,7 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
 ```text
 tezos.systems/
 ├── index.html                         # Main SPA shell, CSP, schema, dashboard DOM
-├── landing.html                       # First-visit landing page
+├── landing.html                       # Welcome and SEO landing page
 ├── css/
 │   ├── styles.css                     # Source dashboard styles and themes
 │   ├── styles.min.css                 # Served dashboard stylesheet
@@ -338,7 +338,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v176`.
+- Current aligned shell cache stamp: `v177`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

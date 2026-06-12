@@ -2400,6 +2400,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       })(),
       sparklineLabel: modal?.querySelector('#lb-ema-sparkline svg')?.getAttribute('aria-label') || '',
       forecast: modal?.querySelector('#lb-ema-forecast')?.textContent || '',
+      forecastMetricValues: Array.from(modal?.querySelectorAll('#lb-ema-forecast .lb-metric-grid strong') || []).map((el) => el.textContent?.trim() || ''),
       history: modal?.querySelector('#lb-ema-history')?.textContent || '',
       changeFeed: modal?.querySelector('#lb-vote-change-feed')?.textContent || '',
       cardUpdatedLabel: card?.dataset.updatedLabel || '',
@@ -2433,6 +2434,9 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(lbState.sparklineSpread >= 12, `governance testing period: LB EMA sparkline should auto-scale recent movement, saw spread ${lbState.sparklineSpread}`);
   assert(/from 51\.\d+% to 51\.\d+%/.test(lbState.sparklineLabel), `governance testing period: LB EMA sparkline label should expose scaled range, saw ${lbState.sparklineLabel}`);
   assert(/EMA Forecast/.test(lbState.forecast) && /Drift/.test(lbState.forecast), `governance testing period: LB forecast panel missing: ${lbState.forecast}`);
+  assert(lbState.forecastMetricValues.some((value) => /pp\/d$/.test(value)), `governance testing period: LB drift metric should use compact pp/d unit: ${lbState.forecastMetricValues.join(', ')}`);
+  assert(lbState.forecastMetricValues.every((value) => value.length <= 11), `governance testing period: LB forecast metrics should stay compact: ${lbState.forecastMetricValues.join(', ')}`);
+  assert(!/pp\/day/.test(lbState.forecast), `governance testing period: LB forecast should avoid verbose pp/day unit: ${lbState.forecast}`);
   assert(/EMA History Strip/.test(lbState.history) && /Sample/.test(lbState.history), `governance testing period: LB history strip missing: ${lbState.history}`);
   assert(/Vote Change Feed/.test(lbState.changeFeed), `governance testing period: LB vote change feed missing: ${lbState.changeFeed}`);
   assert(/^as of \d{2}:\d{2} UTC$/.test(lbState.cardUpdatedLabel), `governance testing period: LB freshness stamp mismatch: ${lbState.cardUpdatedLabel}`);
@@ -2648,19 +2652,13 @@ async function smokeFirstVisitTour(browser, baseUrl) {
     toured: localStorage.getItem('tezos-toured'),
     welcomed: localStorage.getItem('tezos-welcomed')
   }));
-  assert(firstVisitState.theme === null, 'deep link should not save a theme or consume the landing redirect');
+  assert(firstVisitState.theme === null, 'deep link should not save a theme or consume first-visit onboarding');
   assert(firstVisitState.toured === null, 'deep link should not mark the tour complete');
   assert(firstVisitState.welcomed === null, 'deep link should not mark welcome complete');
 
   response = await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
-  assert(response?.ok(), `first visit landing redirect: root failed with HTTP ${response?.status()}`);
-  await page.waitForURL('**/landing.html', { timeout: 10000 });
-
-  await page.evaluate(() => {
-    localStorage.setItem('tezos-systems-theme', 'matrix');
-  });
-  response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `first visit tour: dashboard failed with HTTP ${response?.status()}`);
+  assert(!page.url().includes('/landing.html'), `first visit tour: root should stay on dashboard, saw ${page.url()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#tour-overlay').waitFor({ state: 'detached', timeout: 2000 }).catch(() => {
     throw new Error('first visit tour: tour overlay should not block first paint before Start');

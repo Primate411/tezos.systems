@@ -3,7 +3,7 @@
  * Tracks large wallets that have been dormant and alerts when they awaken
  */
 
-import { escapeHtml } from '../core/utils.js';
+import { debugLog, escapeHtml } from '../core/utils.js';
 import { THRESHOLDS, API_URLS } from '../core/config.js';
 
 // Configuration
@@ -58,7 +58,7 @@ function saveAwakenings() {
  */
 async function requestNotificationPermission() {
     if (!('Notification' in window)) {
-        console.log('Browser does not support notifications');
+        debugLog('Browser does not support notifications');
         return false;
     }
     
@@ -577,11 +577,11 @@ async function loadInitialData() {
 export async function initSleepingGiants() {
     const section = document.getElementById('giants-section');
     if (!section) {
-        console.log('Giants section not found');
+        debugLog('Giants section not found');
         return;
     }
     
-    console.log('Initializing Sleeping Giants...');
+    debugLog('Initializing Sleeping Giants...');
     
     // Load saved preference (default: off)
     isEnabled = localStorage.getItem(STORAGE_KEY) === 'true';

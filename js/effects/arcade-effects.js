@@ -4,7 +4,7 @@
  */
 
 import { initAudio, playClick, playHover, playActivate, toggleAudio } from './audio.js';
-import { throttle, debounce } from '../core/utils.js';
+import { debugLog, throttle, debounce } from '../core/utils.js';
 
 const ULTRA_MODES = {
     terminal: {
@@ -100,7 +100,7 @@ export function initArcadeEffects() {
         startEffects();
     }
 
-    console.log(`🎮 Ultra system ready (${ultraEnabled ? currentMode.toUpperCase() : 'OFF'})`);
+    debugLog(`🎮 Ultra system ready (${ultraEnabled ? currentMode.toUpperCase() : 'OFF'})`);
 }
 
 /**

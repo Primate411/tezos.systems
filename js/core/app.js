@@ -14,7 +14,8 @@ import {
     formatLarge,
     formatTimestamp,
     formatSupply,
-    escapeHtml
+    escapeHtml,
+    debugLog
 } from './utils.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric } from '../features/history.js';
@@ -285,7 +286,7 @@ function safe(name, fn) {
  * Initialize the dashboard
  */
 async function init() {
-    console.log('Initializing Tezos Systems dashboard...');
+    debugLog('Initializing Tezos Systems dashboard...');
 
     // Initialize theme
     safe('theme', initTheme);
@@ -416,7 +417,7 @@ async function init() {
     // Only render cached full stats if the user enabled Network Stats.
     const statsWanted = localStorage.getItem(STATS_VISIBLE_KEY) === 'true';
     if (cachedStats && statsWanted) {
-        console.log('⚡ Rendering cached data instantly');
+        debugLog('⚡ Rendering cached data instantly');
         statsDataLoaded = true;
         await updateStats(cachedStats);
         state.lastUpdate = new Date();
@@ -446,7 +447,7 @@ async function init() {
     if (cachedStats) updateTz4ChamberTile(cachedStats);
 
     // Check API health (non-blocking)
-    checkApiHealth().then(health => console.log('API Health:', health));
+    checkApiHealth().then(health => debugLog('API Health:', health));
 
     // Fetch hero data + conditional full stats
     refreshInBackground();
@@ -476,7 +477,7 @@ async function init() {
     // Setup keyboard shortcuts
     initKeyboardShortcuts();
 
-    console.log('Dashboard initialized');
+    debugLog('Dashboard initialized');
 }
 
 /**
@@ -512,7 +513,7 @@ function showCacheIndicator(age) {
  * Show deltas panel for "since last visit" changes
  */
 function showDeltasPanel(deltas) {
-    console.log('📊 Showing deltas since last visit:', deltas);
+    debugLog('📊 Showing deltas since last visit:', deltas);
     
     // Format delta values
     const formatDelta = (metric) => {
@@ -581,7 +582,7 @@ function showDeltasPanel(deltas) {
  * Refresh data in background without showing loading states
  */
 async function refreshInBackground() {
-    console.log('🔄 Fetching fresh data in background...');
+    debugLog('🔄 Fetching fresh data in background...');
     
     try {
         // Always update protocol/hero data
@@ -605,7 +606,7 @@ async function refreshInBackground() {
         const statsVisible = localStorage.getItem(STATS_VISIBLE_KEY);
         if (statsVisible === 'true') {
             const newStats = await fetchAllStats();
-            console.log('✅ Fresh stats received');
+            debugLog('✅ Fresh stats received');
             
             const deltas = getVisitDeltas(newStats);
             if (deltas) showDeltasPanel(deltas);
@@ -656,11 +657,11 @@ async function refreshInBackground() {
  * Refresh all statistics (manual refresh - shows loading)
  */
 async function refresh() {
-    console.log('Refreshing stats...');
+    debugLog('Refreshing stats...');
 
     try {
         const newStats = await fetchAllStats();
-        console.log('Stats received:', newStats);
+        debugLog('Stats received:', newStats);
 
         // Silent failure (rate-limit / network): keep the last good UI, flag it.
         if (looksEmptyStats(newStats)) {
@@ -730,7 +731,7 @@ function updateRewardAccountsBreakdown(totalDelegators, totalStakers) {
 async function updateStats(newStats) {
     // First load - update instantly
     if (!state.lastUpdate) {
-        console.log('First load - updating instantly');
+        debugLog('First load - updating instantly');
         
         // Consensus
         updateStatInstant('total-bakers', newStats.totalBakers, formatCount);
@@ -1295,7 +1296,7 @@ function initTezosStatsToggle() {
     async function loadStatsIfNeeded() {
         if (statsDataLoaded) return;
         statsDataLoaded = true;
-        console.log('📊 Fetching Tezos Stats on demand...');
+        debugLog('📊 Fetching Tezos Stats on demand...');
         try {
             const newStats = await fetchAllStats();
             saveStats(newStats);
@@ -2285,7 +2286,7 @@ async function updateUpgradeClock() {
             }
         }
         
-        console.log('Upgrade clock updated');
+        debugLog('Upgrade clock updated');
     } catch (error) {
         console.error('Failed to update upgrade clock:', error);
     }
@@ -2633,7 +2634,7 @@ window.TezosStats = { refresh };
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/sw.js').then((reg) => {
-            console.log('📦 Service Worker registered, scope:', reg.scope);
+            debugLog('📦 Service Worker registered, scope:', reg.scope);
         }).catch((err) => {
             console.warn('SW registration failed:', err);
         });

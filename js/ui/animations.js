@@ -3,6 +3,8 @@
  * Manages animation queue to prevent overlapping flips
  */
 
+import { debugLog } from '../core/utils.js';
+
 // Import arcade effects (dynamic to avoid circular dependency)
 let arcadeEffects = null;
 try {
@@ -10,7 +12,7 @@ try {
         arcadeEffects = module;
     });
 } catch (e) {
-    console.log('Arcade effects not available');
+    debugLog('Arcade effects not available');
 }
 
 const FLIP_DURATION = 600; // milliseconds - matches CSS transition

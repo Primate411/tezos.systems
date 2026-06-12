@@ -4,6 +4,7 @@
  */
 
 import { CACHE_TTLS } from './config.js';
+import { debugLog } from './utils.js';
 
 const STORAGE_KEYS = {
     stats: 'tezos-systems-stats',
@@ -35,7 +36,7 @@ export function saveStats(stats) {
         localStorage.setItem(STORAGE_KEYS.stats, JSON.stringify(stats));
         localStorage.setItem(STORAGE_KEYS.statsVersion, STATS_CACHE_VERSION);
         localStorage.setItem(STORAGE_KEYS.timestamp, Date.now().toString());
-        console.log('💾 Stats cached to localStorage');
+        debugLog('💾 Stats cached to localStorage');
     } catch (error) {
         // localStorage might be full or disabled
         console.warn('Failed to cache stats:', error);
@@ -56,18 +57,18 @@ export function loadStats() {
             return null;
         }
         if (version !== STATS_CACHE_VERSION) {
-            console.log('📦 Cached stats version changed');
+            debugLog('📦 Cached stats version changed');
             return null;
         }
         
         // Check if cache is still valid
         const age = Date.now() - parseInt(timestamp);
         if (age > CACHE_TTL) {
-            console.log('📦 Cached stats expired');
+            debugLog('📦 Cached stats expired');
             return null;
         }
         
-        console.log(`📦 Loaded cached stats (${Math.round(age / 60000)}min old)`);
+        debugLog(`📦 Loaded cached stats (${Math.round(age / 60000)}min old)`);
         return JSON.parse(stats);
     } catch (error) {
         console.warn('Failed to load cached stats:', error);
@@ -102,16 +103,16 @@ export function loadProtocols() {
 
         const parsed = JSON.parse(protocols);
         if (Array.isArray(parsed)) {
-            console.log('📦 Legacy protocol cache ignored');
+            debugLog('📦 Legacy protocol cache ignored');
             return null;
         }
         if (parsed.version !== PROTOCOLS_CACHE_VERSION || !Array.isArray(parsed.data)) {
-            console.log('📦 Protocol cache version changed');
+            debugLog('📦 Protocol cache version changed');
             return null;
         }
         const age = Date.now() - Number(parsed.timestamp || 0);
         if (age > CACHE_TTL) {
-            console.log('📦 Protocol cache expired');
+            debugLog('📦 Protocol cache expired');
             return null;
         }
         return parsed.data;
@@ -160,7 +161,7 @@ export function saveVisitSnapshot(stats) {
             localStorage.setItem(STORAGE_KEYS.lastVisitStats, JSON.stringify(stats));
             localStorage.setItem(STORAGE_KEYS.lastVisit, now.toString());
             localStorage.setItem(STORAGE_KEYS.lastVisitVersion, STATS_CACHE_VERSION);
-            console.log('📸 Visit snapshot saved');
+            debugLog('📸 Visit snapshot saved');
         }
     } catch (error) {
         console.warn('Failed to save visit snapshot:', error);

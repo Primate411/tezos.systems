@@ -2,6 +2,7 @@
 // Handles sparklines and full charts using Chart.js
 
 import { fetchHistoricalData } from '../core/api.js';
+import { debugLog } from '../core/utils.js';
 import { getCurrentTheme } from '../ui/theme.js';
 
 // Store chart instances for cleanup
@@ -560,13 +561,13 @@ export async function updateSparklines() {
         const data = await fetchHistoricalData('30d');
 
         if (data.length === 0) {
-            console.log('No historical data available yet');
+            debugLog('No historical data available yet');
             return;
         }
 
         // Only show sparklines if we have at least 3 data points
         if (data.length < 3) {
-            console.log('Waiting for more data points (need at least 3)');
+            debugLog('Waiting for more data points (need at least 3)');
             return;
         }
 
@@ -595,7 +596,7 @@ export async function updateSparklines() {
             updateTrendArrow(trendId, trend, inverted, changeMode === 'points' ? 'pp' : '%');
         });
 
-        console.log(`Updated ${sparklines.length} sparklines with ${data.length} data points`);
+        debugLog(`Updated ${sparklines.length} sparklines with ${data.length} data points`);
     } catch (error) {
         console.error('Failed to update sparklines:', error);
     }
@@ -674,7 +675,7 @@ async function updateHistoryCharts(range) {
         const data = await fetchHistoricalData(range);
 
         if (data.length === 0) {
-            console.log('No historical data available yet');
+            debugLog('No historical data available yet');
             // Show message to user
             const chartsContainer = document.querySelector('.charts-container');
             if (chartsContainer) {
@@ -726,7 +727,7 @@ async function updateHistoryCharts(range) {
             createFullChart(canvasId, data, metric, label, unit, { range });
         });
 
-        console.log(`Updated ${charts.length} history charts with ${data.length} data points`);
+        debugLog(`Updated ${charts.length} history charts with ${data.length} data points`);
     } catch (error) {
         console.error('Failed to update history charts:', error);
     }

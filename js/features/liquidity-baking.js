@@ -38,6 +38,13 @@ function formatCount(value) {
     return Number(value || 0).toLocaleString('en-US');
 }
 
+function formatCompactCount(value) {
+    const count = Number(value || 0);
+    if (Math.abs(count) >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (Math.abs(count) >= 1000) return `${(count / 1000).toFixed(1)}K`;
+    return formatCount(count);
+}
+
 function formatLevel(value) {
     return formatCount(value || 0);
 }
@@ -247,6 +254,8 @@ function renderEmaForecastPanel(data) {
     const direction = drift.perDay < -0.01 ? 'falling' : drift.perDay > 0.01 ? 'rising' : 'flat';
     const deltaSign = drift.delta > 0 ? '+' : '';
     const perDaySign = drift.perDay > 0 ? '+' : '';
+    const perDayValue = `${perDaySign}${drift.perDay.toFixed(1)}pp/d`;
+    const windowValue = `${formatCompactCount(drift.sampleBlocks)} blocks`;
     return `
         <section class="lb-panel lb-forecast-panel lb-panel-has-help chamber-anim-fade" id="lb-ema-forecast" style="animation-delay:130ms">
             <div class="lb-panel-title">
@@ -261,10 +270,10 @@ function renderEmaForecastPanel(data) {
             </div>
             <div class="lb-metric-grid">
                 <div><span>Direction</span><strong>${escapeHtml(direction)}</strong></div>
-                <div><span>Drift</span><strong>${perDaySign}${drift.perDay.toFixed(2)}pp/day</strong></div>
-                <div><span>Window</span><strong>${formatCount(drift.sampleBlocks)} blocks</strong></div>
+                <div><span>Drift</span><strong title="${perDaySign}${drift.perDay.toFixed(2)} percentage points per day">${escapeHtml(perDayValue)}</strong></div>
+                <div><span>Window</span><strong title="${formatCount(drift.sampleBlocks)} blocks">${escapeHtml(windowValue)}</strong></div>
             </div>
-            <div class="lb-panel-subtitle">${escapeHtml(drift.forecast)} · sample moved ${deltaSign}${drift.delta.toFixed(2)}pp.</div>
+            <div class="lb-panel-subtitle">${escapeHtml(drift.forecast)} · sample moved ${deltaSign}${drift.delta.toFixed(1)}pp.</div>
         </section>
     `;
 }

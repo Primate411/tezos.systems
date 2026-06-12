@@ -3,6 +3,8 @@
  * Digital rain background for matrix theme
  */
 
+import { debugLog } from '../core/utils.js';
+
 // Configuration
 const MATRIX_CONFIG = {
     fontSize: 16,
@@ -25,7 +27,7 @@ class MatrixRain {
     start() {
         if (this.isActive) return;
 
-        console.log('Starting Matrix rain effect');
+        debugLog('Starting Matrix rain effect');
         this.isActive = true;
 
         // Create canvas
@@ -57,7 +59,7 @@ class MatrixRain {
     stop() {
         if (!this.isActive) return;
 
-        console.log('Stopping Matrix rain effect');
+        debugLog('Stopping Matrix rain effect');
         this.isActive = false;
 
         // Cancel animation
@@ -166,4 +168,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(handleThemeChange, 100);
 });
 
-console.log('Matrix effects module loaded');
+debugLog('Matrix effects module loaded');
