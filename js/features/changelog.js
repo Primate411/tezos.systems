@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-12',
         entries: [
+            { type: '🎨', text: 'Aurora title now uses the same shifting multicolor wordmark on desktop and mobile' },
             { type: '🎨', text: 'Chamber card controls now reserve a top-right lane so copy, share, info, and open buttons stay clear of live preview content' },
             { type: '🔧', text: 'Governance RSS now keeps active proposal names in historical feed items, lazy theme cache stamps are guarded, and Liquidity Baking block ranges stay compact' },
             { type: '✨', text: 'Each live chamber now has a public share route with its own title, description, canonical URL, and 1200x630 social card' },

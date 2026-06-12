@@ -692,32 +692,32 @@ async function checkStylesheetFreshness() {
 
 async function checkAuroraDesktopTitleTreatment() {
   const css = await readText('css/styles.css');
-  const mediaStart = css.indexOf('@media (min-width: 769px)');
-  const keyframesStart = css.indexOf('@keyframes auroraTitleSweep', mediaStart);
-  const desktopBlock = mediaStart >= 0 && keyframesStart >= 0
-    ? css.slice(mediaStart, keyframesStart)
+  const titleStart = css.indexOf('[data-theme="aurora"] .title');
+  const keyframesStart = css.indexOf('@keyframes auroraTitleShift', titleStart);
+  const sharedBlock = titleStart >= 0 && keyframesStart >= 0
+    ? css.slice(titleStart, keyframesStart)
     : '';
 
-  if (!desktopBlock.includes('[data-theme="aurora"] .title')) {
-    fail('desktop aurora title needs a viewport-specific treatment so it does not flatten into one color');
+  if (!sharedBlock.includes('[data-theme="aurora"] .title')) {
+    fail('aurora title needs a shared mobile/desktop multicolor treatment');
     return;
   }
 
   for (const token of ['#45E0C8', '#5BA8FF', '#9B8CFF', '#F49AD1']) {
-    if (!desktopBlock.includes(token)) fail(`desktop aurora title gradient missing ${token}`);
+    if (!sharedBlock.includes(token)) fail(`shared aurora title gradient missing ${token}`);
   }
 
-  if (!desktopBlock.includes('background-size: 220% 100%')) {
-    fail('desktop aurora title must keep a wide gradient field for visible color movement');
+  if (!sharedBlock.includes('background-size: 220% auto')) {
+    fail('aurora title must keep the mobile-style wide gradient field on desktop');
   }
-  if (!desktopBlock.includes('animation: auroraTitleSweep 6s linear infinite')) {
-    fail('desktop aurora title must use the faster auroraTitleSweep animation');
+  if (!sharedBlock.includes('animation: auroraTitleShift 9s linear infinite')) {
+    fail('aurora title must use the same shifting animation on desktop and mobile');
   }
-  if (!css.includes('@keyframes auroraTitleSweep')) {
-    fail('desktop aurora title animation keyframes are missing');
+  if (css.includes('auroraTitleSweep')) {
+    fail('desktop aurora title should not use a separate sweep animation from mobile');
   }
 
-  pass('desktop aurora title keeps a distinct multicolor sweep treatment');
+  pass('desktop aurora title shares the mobile multicolor shift treatment');
 }
 
 async function checkPortableTooling() {
