@@ -7,13 +7,14 @@ const CHANGELOG = [
     {
         date: '2026-06-11',
         entries: [
+            { type: '🎨', text: 'Network Health now gives the bottom-left freshness stamp more room and uses slimmer block-status pills in the wide Chambers card' },
+            { type: '🔧', text: 'Removed the Chambers Daily Signal strip so the live room cards lead the section directly' },
             { type: '✨', text: 'Chambers now add trust-layer intelligence across the six live rooms: proposal intel, gap analysis, track memory, period telemetry, L2 direction, LB drift, and tz4 momentum' },
             { type: '✨', text: 'Tezlink now includes 30-day direction, L1 rollup anchor metadata, gas oracle detail, and top-token holder rows inside the chamber' },
             { type: '✨', text: 'Liquidity Baking and tz4 Adoption now expose sampled forecast/history layers, vote-change or holdout feeds, and clearer operator momentum signals' },
             { type: '🎨', text: 'Cache-free chamber QA tightened the tz4 live preview spacing and keeps Liquidity Baking help popovers inside mobile and desktop viewports' },
             { type: '🎨', text: 'Tezlink Governance quiet-state chips now stay clear of the bottom-left freshness stamp' },
             { type: '🎨', text: 'Live chamber cards now show quiet UTC freshness stamps without crowding their direct-link and open controls' },
-            { type: '✨', text: 'Chambers now show a daily signal digest with since-last-visit movement and a shareable copy button' },
             { type: '🔧', text: 'Dashboard refresh now keeps shared feature safety wrappers available during manual and background refresh cycles' },
             { type: '🎨', text: 'Liquidity Baking EMA trend lines now auto-scale around the recent range, and Tezlink Governance card controls avoid crowding track chips' },
             { type: '🔧', text: 'Tezlink Governance period countdowns now advance from the current head block instead of sticking at rollover copy' },

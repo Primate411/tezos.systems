@@ -156,9 +156,6 @@ inline modal styles in `js/core/app.js`.
   control clear of those chips, computes period countdowns from the current
   head block, and the open chamber now includes track rules, track memory, and
   a merged submission/vote timeline for each L2 governance track.
-- Chambers daily signal digest with a current cross-chamber headline,
-  since-last-visit movement for headline percentages and TVL, and a copy/share
-  control that points back to `#chambers`.
 - Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
   transactions, gas, addresses, grouped Blockscout transaction tape rows, and
   DefiLlama protocol TVL sourced from current Tezlink rails. The open chamber
@@ -316,7 +313,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, Chambers daily digest and deltas, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`
@@ -336,7 +333,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v171`.
+- Current aligned shell cache stamp: `v172`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

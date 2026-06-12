@@ -1511,15 +1511,6 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, '#chambers-section', 1, label);
   assert(await page.locator('#chambers-section').isVisible(), `${label}: Chambers should be visible by default`);
   await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card').length >= 5, null, { timeout: 10000 });
-  await page.locator('#chambers-digest[data-ready="true"]').waitFor({ state: 'visible', timeout: 10000 });
-  const chambersDigest = await page.evaluate(() => ({
-    text: document.querySelector('#chambers-digest-text')?.textContent || '',
-    delta: document.querySelector('#chambers-digest-delta')?.textContent || '',
-    share: document.querySelector('#chambers-digest-share')?.textContent || ''
-  }));
-  assert(/LB EMA/.test(chambersDigest.text) && /Tezlink/.test(chambersDigest.text), `${label}: Chambers digest missing headline signals: ${JSON.stringify(chambersDigest)}`);
-  assert(/Snapshot saved|Since last visit/.test(chambersDigest.delta), `${label}: Chambers digest delta missing: ${JSON.stringify(chambersDigest)}`);
-  assert(/Share/.test(chambersDigest.share), `${label}: Chambers digest share control missing: ${JSON.stringify(chambersDigest)}`);
   await expectCount(page, '#chambers-section #tezlink-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#tezlink"]', 1, `${label} Tezlink chamber card`);
   await assertChamberOrder(page, label);
   assert(!(await page.locator('#consensus-section').isVisible()), `${label}: Consensus stats should be hidden by default`);
@@ -1975,15 +1966,6 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
-    localStorage.setItem('tezos-systems-chambers-digest-snapshot', JSON.stringify({
-      ts: Date.now() - 86400000,
-      chamberStatus: 'Old governance state',
-      healthPct: 98.8,
-      lbEmaPct: 50.0,
-      tz4PowerPct: 45.0,
-      tezlinkTvlUsd: 17000000,
-      l2Status: 'Old L2 state'
-    }));
   });
   const page = await context.newPage();
   attachIssueCollectors(page, 'governance testing period', issues);
@@ -2047,9 +2029,6 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     etherlinkEntryWide: document.querySelector('#etherlink-governance-entry-card')?.classList.contains('chamber-entry-wide') || false,
     etherlinkEntrySize: document.querySelector('#etherlink-governance-entry-card')?.dataset.etherlinkGovernanceSize || '',
     etherlinkEntryMetrics: document.querySelector('#etherlink-governance-entry-metrics')?.textContent?.trim() || '',
-    chambersDigestReady: document.querySelector('#chambers-digest')?.dataset.ready || '',
-    chambersDigestText: document.querySelector('#chambers-digest-text')?.textContent?.trim() || '',
-    chambersDigestDelta: document.querySelector('#chambers-digest-delta')?.textContent?.trim() || '',
     chamberUpdatedLabels: Array.from(document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]')).map((card) => card.dataset.updatedLabel || ''),
     etherlinkEntryGeometry: (() => {
       const card = document.querySelector('#etherlink-governance-entry-card');
@@ -2117,9 +2096,6 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Tezlink Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
   assert(/FAST14\.2%\/5%/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance FAST metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(/SLOW(5hago|Noactiveproposal)/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezlink Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
-  assert(dashboardState.chambersDigestReady === 'true', `governance testing period: Chambers digest should be ready, saw ${dashboardState.chambersDigestReady}`);
-  assert(/LB EMA 51\.5% disabled/.test(dashboardState.chambersDigestText) && /tz4 47\.0% power/.test(dashboardState.chambersDigestText) && /Tezlink \$18\.1M TVL/.test(dashboardState.chambersDigestText), `governance testing period: Chambers digest text mismatch: ${dashboardState.chambersDigestText}`);
-  assert(/Since last visit:/.test(dashboardState.chambersDigestDelta) && /LB EMA \+1\.5pp/.test(dashboardState.chambersDigestDelta) && /Tezlink \$1\.1M/.test(dashboardState.chambersDigestDelta), `governance testing period: Chambers digest delta mismatch: ${dashboardState.chambersDigestDelta}`);
   assert(dashboardState.chamberUpdatedLabels.length >= 6 && dashboardState.chamberUpdatedLabels.every((label) => /^as of \d{2}:\d{2} UTC$/.test(label)), `governance testing period: chamber freshness stamps missing: ${dashboardState.chamberUpdatedLabels.join(', ')}`);
   assert(dashboardState.etherlinkEntryGeometry.overlap === 0, `governance testing period: Tezlink Governance open cue overlaps Sequencer chip: ${JSON.stringify(dashboardState.etherlinkEntryGeometry)}`);
   assert(dashboardState.tz4TileValue === '33.3 / 50%', `governance testing period: tz4 tile value mismatch: ${dashboardState.tz4TileValue}`);

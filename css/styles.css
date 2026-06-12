@@ -1582,86 +1582,6 @@ body::before {
     font-size: 0.82rem;
 }
 
-.chambers-digest {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    margin: 0 0 1rem;
-    padding: 0.9rem 1rem;
-    border: 1px solid color-mix(in srgb, var(--accent-cyan) 20%, transparent);
-    border-radius: 8px;
-    background:
-        linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 7%, transparent), rgba(255, 255, 255, 0.018)),
-        var(--glass-bg);
-    color: var(--text-secondary);
-}
-
-.chambers-digest-copy {
-    min-width: 0;
-}
-
-.chambers-digest-kicker {
-    display: block;
-    margin-bottom: 0.2rem;
-    color: var(--text-tertiary);
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.62rem;
-    font-weight: 800;
-    letter-spacing: 0;
-    line-height: 1;
-    text-transform: uppercase;
-}
-
-.chambers-digest p {
-    margin: 0;
-    color: var(--text-primary);
-    font-size: 0.9rem;
-    line-height: 1.35;
-}
-
-.chambers-digest-delta {
-    display: block;
-    margin-top: 0.25rem;
-    color: var(--text-tertiary);
-    font-size: 0.74rem;
-    line-height: 1.35;
-}
-
-.chambers-digest-share {
-    flex: 0 0 auto;
-    padding: 0.45rem 0.75rem;
-    border: 1px solid var(--glass-border);
-    border-radius: 7px;
-    background: var(--glass-bg);
-    color: var(--text-secondary);
-    cursor: pointer;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0;
-    text-transform: uppercase;
-    transition: var(--transition);
-}
-
-.chambers-digest-share:hover,
-.chambers-digest-share.copied {
-    border-color: var(--accent-cyan);
-    color: var(--accent-cyan);
-    box-shadow: 0 0 12px rgba(0, 212, 255, 0.12);
-}
-
-@media (max-width: 640px) {
-    .chambers-digest {
-        align-items: stretch;
-        flex-direction: column;
-    }
-
-    .chambers-digest-share {
-        width: 100%;
-    }
-}
-
 .feature-copy-link:hover,
 .feature-copy-link.copied,
 .section-copy-link:hover,
@@ -2836,29 +2756,54 @@ body::before {
         align-self: center;
     }
 
+    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="health-governance"] > .chamber-entry-card {
+        height: 224px;
+    }
+
     #chambers-grid .health-entry-card.chamber-entry-wide {
-        height: 204px !important;
+        height: 224px !important;
     }
 
     .health-entry-card.chamber-entry-wide .network-health-blocks {
-        min-height: 2.65rem;
+        gap: 0.28rem;
+        width: min(100%, 420px);
+        min-height: 2.25rem;
     }
 
     .health-entry-card.chamber-entry-wide .network-health-block {
-        min-height: 2.58rem;
-        padding: 0.18rem 0.18rem;
+        grid-template-rows: minmax(18px, 1fr) auto;
+        min-height: 2.2rem;
+        padding: 0.12rem 0.16rem;
+        border-radius: 5px;
     }
 
     .health-entry-card.chamber-entry-wide .network-health-block-bar {
-        min-height: 21px;
+        width: 8px;
+        min-height: 18px;
+    }
+
+    .health-entry-card.chamber-entry-wide .network-health-block-level {
+        font-size: 0.46rem;
     }
 
     .health-entry-card.chamber-entry-wide .network-health-periods {
-        min-height: 1.48rem;
+        gap: 0.28rem;
+        width: min(100%, 420px);
+        min-height: 1.32rem;
     }
 
     .health-entry-card.chamber-entry-wide .network-health-period {
-        padding: 0.18rem 0.32rem;
+        padding: 0.14rem 0.28rem;
+        border-radius: 5px;
+    }
+
+    .health-entry-card.chamber-entry-wide .network-health-period-label {
+        margin-bottom: 0.12rem;
+        font-size: 0.46rem;
+    }
+
+    .health-entry-card.chamber-entry-wide .network-health-period-value {
+        font-size: 0.6rem;
     }
 }
 
