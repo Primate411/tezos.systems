@@ -267,10 +267,123 @@
             <a href="/compare/tezos-vs-algorand.html" >vs Algorand</a>
         </div>
         <div id="compare-content">
-            <noscript>
-                <p>This comparison requires JavaScript to fetch live blockchain data. Please enable JavaScript.</p>
-            </noscript>
-            <p style="text-align:center;color:var(--text-secondary)">Loading live data...</p>
+            <!-- baked:start -->
+            <div class="cp-scoreboard" data-baked-compare="true">
+              <div class="cp-score cp-tezos-score"><span class="cp-score-num">4</span><span class="cp-score-label">Tezos</span></div>
+              <div class="cp-vs">vs</div>
+              <div class="cp-score cp-other-score"><span class="cp-score-num">1</span><span class="cp-score-label">Ethereum</span></div>
+            </div>
+            <div class="cp-table">
+              <div class="cp-header">
+                <div class="cp-metric">Metric</div>
+                <div class="cp-val"><img src="/favicon-48.png" alt="Tezos" width="20" height="20"> Tezos</div>
+                <div class="cp-val">Ethereum</div>
+              </div>
+              <div class="cp-row">
+              <div class="cp-metric">⏱️ Block Time</div>
+              <div class="cp-val cp-winner">
+                <span class="cp-val-main">~6s</span>
+              </div>
+              <div class="cp-val ">
+                <span class="cp-val-main">~12s</span>
+              </div>
+            </div>
+              <div class="cp-row">
+              <div class="cp-metric">✅ Finality</div>
+              <div class="cp-val cp-winner">
+                <span class="cp-val-main">~12s</span><span class="cp-val-note">2 blocks</span>
+              </div>
+              <div class="cp-val ">
+                <span class="cp-val-main">~13 min</span><span class="cp-val-note">2 epochs</span>
+              </div>
+            </div>
+              <div class="cp-row">
+              <div class="cp-metric">🥩 Staking %</div>
+              <div class="cp-val ">
+                <span class="cp-val-main">~27.8%</span>
+              </div>
+              <div class="cp-val cp-winner">
+                <span class="cp-val-main">~30%</span>
+              </div>
+            </div>
+              <div class="cp-row">
+              <div class="cp-metric">🖨️ Annual Issuance</div>
+              <div class="cp-val ">
+                <span class="cp-val-main">Live</span><span class="cp-val-note">Protocol issuance plus active LB when enabled</span>
+              </div>
+              <div class="cp-val ">
+                <span class="cp-val-main">~0.5%</span>
+              </div>
+            </div>
+              <div class="cp-row">
+              <div class="cp-metric">🏛️ Nakamoto Coeff.</div>
+              <div class="cp-val ">
+                <span class="cp-val-main">6</span><span class="cp-val-note">entities for 33% of stake (248 total)</span>
+              </div>
+              <div class="cp-val ">
+                <span class="cp-val-main">6</span><span class="cp-val-note">entities for 50% of stake (802 total)</span>
+              </div>
+            </div>
+              <div class="cp-row">
+              <div class="cp-metric">🔄 On-Chain Upgrades</div>
+              <div class="cp-val cp-winner">
+                <span class="cp-val-main">21</span>
+              </div>
+              <div class="cp-val ">
+                <span class="cp-val-main">0</span><span class="cp-val-note">Hard forks only</span>
+              </div>
+            </div>
+              <div class="cp-row">
+              <div class="cp-metric">🍴 Hard Forks</div>
+              <div class="cp-val ">
+                <span class="cp-val-main">0</span>
+              </div>
+              <div class="cp-val ">
+                <span class="cp-val-main">17+</span>
+              </div>
+            </div>
+              <div class="cp-row">
+              <div class="cp-metric">⚡ Energy / Tx</div>
+              <div class="cp-val cp-winner">
+                <span class="cp-val-main">&lt;0.001 kWh</span>
+              </div>
+              <div class="cp-val ">
+                <span class="cp-val-main">~0.003 kWh</span><span class="cp-val-note">Post-Merge</span>
+              </div>
+            </div>
+              <div class="cp-row">
+              <div class="cp-metric">💰 Avg Tx Fee</div>
+              <div class="cp-val ">
+                <span class="cp-val-main">~$0.01</span>
+              </div>
+              <div class="cp-val ">
+                <span class="cp-val-main">~$0.01–$0.10</span>
+              </div>
+            </div>
+              <div class="cp-row">
+              <div class="cp-metric">⚔️ Slashing</div>
+              <div class="cp-val ">
+                <span class="cp-val-main">Adaptive</span><span class="cp-val-note">Scales with offense severity</span>
+              </div>
+              <div class="cp-val ">
+                <span class="cp-val-main">Yes</span><span class="cp-val-note">Up to full stake</span>
+              </div>
+            </div>
+            </div>
+            <div class="cp-narrative">
+              <p>Tezos and Ethereum are both proof-of-stake blockchains, but they make different tradeoffs around governance, decentralization, finality, and operational predictability.</p>
+              <p>On this baked baseline, Tezos leads in 4 of 10 tracked categories while Ethereum leads in 1. The live script upgrades these values in-browser with current Tezos network data from TzKT and Octez RPC.</p>
+              <p>Tezos has completed 21 named on-chain protocol upgrades without a hard fork or network split. Its deterministic finality target is two blocks, so the dashboard treats finality and governance state as live operating signals, not only marketing claims.</p>
+              <p>Ethereum dominates in liquidity and developer mindshare, but its upgrade process still lands as coordinated hard forks and its stake is concentrated across large liquid-staking and exchange operators.</p>
+            </div>
+            <div class="cp-cta">
+              <a href="/" class="cp-cta-btn">Explore the full dashboard →</a>
+              <a href="/#calculator" class="cp-cta-btn cp-cta-secondary">Calculate staking rewards →</a>
+            </div>
+            <div class="cp-footer">
+              <p>Baked baseline from static comparison data last verified 2026-02-28. Live Tezos values upgrade in-browser from <a href="https://api.tzkt.io" target="_blank" rel="noopener">TzKT</a>.</p>
+            </div>
+            <!-- baked:end -->
         </div>
     </div>
     <script type="module">

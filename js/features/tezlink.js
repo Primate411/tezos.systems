@@ -601,7 +601,7 @@ function renderTezlinkChamber(data, container) {
             <span class="chamber-footer-sep">·</span>
             <a href="https://explorer.etherlink.com/" target="_blank" rel="noopener">Blockscout -></a>
             <span class="chamber-footer-sep">·</span>
-            <a class="panel-direct-link" href="/#tezlink" aria-label="Direct link to Tezlink Chamber">Direct: /#tezlink</a>
+            <a class="panel-direct-link" href="/tezlink/" aria-label="Direct link to Tezlink Chamber">Direct: /tezlink/</a>
         </div>
     `;
 }

@@ -7,6 +7,10 @@ const CHANGELOG = [
     {
         date: '2026-06-12',
         entries: [
+            { type: '✨', text: 'Each live chamber now has a public share route with its own title, description, canonical URL, and 1200x630 social card' },
+            { type: '✨', text: 'The governance pipeline now publishes an RSS feed and refreshes Chamber routes, OG cards, and static compare pages on schedule' },
+            { type: '⚡', text: 'Compare pages now ship crawlable static scoreboards and summaries before the live enhancement script hydrates them' },
+            { type: '⚡', text: 'Inactive theme overrides now live in lazy-loaded theme CSS bundles instead of the initial render-blocking stylesheet' },
             { type: '⚡', text: 'TzKT request pacing now covers SEO landing pages, standalone compare pages, and TzKT-backed widgets in addition to the main dashboard' },
             { type: '⚡', text: 'Current governance-period reads now share a short-lived core snapshot and TzKT 429 Retry-After handling also understands HTTP-date headers' },
             { type: '⚡', text: 'Remaining TzKT-backed chamber helpers now share the core Retry-After-aware fetch path without the one-minute memory cache on live pollers' },

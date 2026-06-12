@@ -586,9 +586,9 @@ function initTz4Share(container, data) {
         event.preventDefault();
         event.stopPropagation();
         const name = baker.name || baker.address;
-        const text = `${name} is baking with a tz4/BLS consensus key on Tezos.\n\nTrack the tz4 rollout at tezos.systems/#tz4`;
+        const text = `${name} is baking with a tz4/BLS consensus key on Tezos.\n\nTrack the tz4 rollout at tezos.systems/tz4/`;
         if (navigator.share) {
-            navigator.share({ text, url: 'https://tezos.systems/#tz4' }).catch(() => {});
+            navigator.share({ text, url: 'https://tezos.systems/tz4/' }).catch(() => {});
             return;
         }
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank', 'width=550,height=420');
@@ -799,7 +799,7 @@ function renderTz4Adoption(data, container, activeFilter = _tz4ActiveFilter) {
             <span class="chamber-footer-sep">&middot;</span>
             <a href="https://octez.tezos.com/docs/user/key-management.html" target="_blank" rel="noopener">Octez Key Docs -></a>
             <span class="chamber-footer-sep">&middot;</span>
-            <a class="panel-direct-link" href="/#tz4" aria-label="Direct link to tz4 Adoption Chamber">Direct: /#tz4</a>
+            <a class="panel-direct-link" href="/tz4/" aria-label="Direct link to tz4 Adoption Chamber">Direct: /tz4/</a>
         </div>
     `;
     container.dataset.tz4Rendered = 'true';

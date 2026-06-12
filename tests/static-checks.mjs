@@ -143,6 +143,7 @@ async function checkRequiredFiles() {
     'js/core/tzkt-throttle.js',
     'sw.js',
     'version.json',
+    'feed.xml',
     'data/governance-votes.json',
     'data/governance-refresh-report.json',
     'data/protocol-data.json',
@@ -215,6 +216,18 @@ async function checkGovernanceVotes() {
   }
   if (report.singleEntryPoint !== 'scripts/refresh-governance-data.mjs') {
     fail('governance refresh report must name scripts/refresh-governance-data.mjs as the single entry point');
+  }
+  if (!Array.isArray(report.generatedFiles) || !report.generatedFiles.includes('feed.xml')) {
+    fail('governance refresh report generatedFiles must include feed.xml');
+  }
+
+  const feed = await readText('feed.xml');
+  if (!feed.includes('<rss version="2.0"') || !feed.includes('https://tezos.systems/chamber/')) {
+    fail('feed.xml must be an RSS feed linking governance items to /chamber/');
+  }
+  const activeName = report.currentGovernance?.proposalName;
+  if (activeName && !feed.includes(activeName)) {
+    fail(`feed.xml should include active proposal name ${activeName}`);
   }
 
   const currentProtocol = report.currentProtocol;
@@ -318,6 +331,12 @@ async function checkSitemapCoverage() {
     'https://tezos.systems/',
     'https://tezos.systems/staking/',
     'https://tezos.systems/governance/',
+    'https://tezos.systems/chamber/',
+    'https://tezos.systems/health/',
+    'https://tezos.systems/tezlink/',
+    'https://tezos.systems/l2chamber/',
+    'https://tezos.systems/tz4/',
+    'https://tezos.systems/lb/',
     'https://tezos.systems/bakers/',
     'https://tezos.systems/hen/',
     'https://tezos.systems/compare/'
@@ -423,9 +442,9 @@ async function checkSelectorContracts() {
     ['Chamber gap analysis panel', 'id="chamber-gap-analysis"', chamber],
     ['Chamber promotion delta uses epoch periods', '(epoch.periods || []).find', chamber],
     ['Chamber branded share capture helper', 'captureBrandedChamberShare', share],
-    ['Chamber share direct link baked into image', 'tezos.systems/#chamber', chamber],
+    ['Chamber share direct link baked into image', 'tezos.systems/chamber/', chamber],
     ['Tezlink Governance card copy link', 'data-copy-hash="#l2chamber"', etherlinkGovernance],
-    ['Tezlink Governance direct footer link', 'Direct: /#l2chamber', etherlinkGovernance],
+    ['Tezlink Governance direct footer link', 'Direct: /l2chamber/', etherlinkGovernance],
     ['Tezlink Governance chamber wiring', 'openEtherlinkGovernanceChamber', etherlinkGovernance],
     ['Tezlink Governance TzKT discovery', 'discoverGovernanceTracks', etherlinkGovernance],
     ['Tezlink Governance originator guard', 'GOVERNANCE_CONTRACT_CREATOR', etherlinkGovernance],
@@ -434,12 +453,12 @@ async function checkSelectorContracts() {
     ['Tezlink Governance track memory panel', 'id="etherlink-gov-memory"', etherlinkGovernance],
     ['Tezlink Governance merged timeline panel', 'id="etherlink-gov-timeline"', etherlinkGovernance],
     ['Tezlink card copy link', 'data-copy-hash="#tezlink"', tezlink],
-    ['Tezlink direct footer link', 'Direct: /#tezlink', tezlink],
+    ['Tezlink direct footer link', 'Direct: /tezlink/', tezlink],
     ['Tezlink 30d trend panel', 'id="tezlink-trend-panel"', tezlink],
     ['Tezlink L1 anchor panel', 'id="tezlink-anchor-panel"', tezlink],
     ['Tezlink gas oracle panel', 'id="tezlink-gas-oracle"', tezlink],
     ['Tezlink top tokens panel', 'id="tezlink-token-panel"', tezlink],
-    ['LB tile copy link', 'data-copy-hash="#lb-tile"', lb],
+    ['LB chamber copy link', 'data-copy-hash="#lb"', lb],
     ['LB EMA forecast panel', 'id="lb-ema-forecast"', lb],
     ['LB EMA history panel', 'id="lb-ema-history"', lb],
     ['LB vote change feed', 'id="lb-vote-change-feed"', lb],
@@ -447,7 +466,7 @@ async function checkSelectorContracts() {
     ['tz4 tile expand cue', 'data-stat="tz4-adoption"', index],
     ['tz4 tile expand icon', 'chamber-expand-cue', index],
     ['tz4 tile chamber wiring', 'openTz4AdoptionChamber', tz4],
-    ['tz4 direct footer link', 'Direct: /#tz4', tz4],
+    ['tz4 direct footer link', 'Direct: /tz4/', tz4],
     ['tz4 projection panel', 'id="tz4-projection-panel"', tz4],
     ['tz4 holdouts panel', 'id="tz4-holdouts-panel"', tz4],
     ['tz4 monthly switch panel', 'id="tz4-switch-momentum"', tz4],
@@ -456,7 +475,7 @@ async function checkSelectorContracts() {
     ['health tile expand cue', 'data-stat="network-health"', index],
     ['health tile expand icon', 'chamber-expand-cue', index],
     ['health tile chamber wiring', 'openNetworkHealthChamber', health],
-    ['health direct footer link', 'Direct: /#health', health],
+    ['health direct footer link', 'Direct: /health/', health],
     ['health incident memory panel', 'id="health-incident-memory"', health],
     ['health period telemetry panel', 'id="health-period-telemetry"', health],
     ['health network load panel', 'id="health-network-load"', health],
@@ -626,6 +645,28 @@ async function checkStylesheetFreshness() {
   } else {
     pass('served minified CSS is not older than source CSS');
   }
+
+  const themeFiles = await walk('css/themes', (file) => file.endsWith('.min.css')).catch(() => []);
+  const expectedThemes = ['matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
+  const baseCss = await readText('css/styles.min.css');
+  const leakedThemes = expectedThemes.filter((theme) => new RegExp(`data-theme\\s*=\\s*["']?${theme}["']?`, 'i').test(baseCss));
+  if (leakedThemes.length) {
+    fail(`css/styles.min.css should not carry lazy theme selectors: ${leakedThemes.join(', ')}`);
+  }
+  if (minified.size > 300 * 1024) {
+    fail(`css/styles.min.css is ${Math.round(minified.size / 1024)}KB; lazy theme split should keep the render-blocking base under 300KB`);
+  }
+  for (const theme of expectedThemes) {
+    const file = `css/themes/${theme}.min.css`;
+    if (!themeFiles.includes(file)) fail(`missing lazy theme bundle: ${file}`);
+    const themeStat = await statOrNull(file);
+    if (themeStat && source.mtimeMs > themeStat.mtimeMs + 1000) {
+      warn(`${file} is older than css/styles.css; run npm run build:css`);
+    }
+  }
+  if (themeFiles.length >= expectedThemes.length) {
+    pass(`lazy theme CSS bundles checked: ${themeFiles.length}`);
+  }
 }
 
 async function checkAuroraDesktopTitleTreatment() {
@@ -737,6 +778,9 @@ async function checkReadmeContracts() {
     'npm run serve',
     'http://localhost:9000',
     'npm run build:css',
+    'npm run routes:chambers',
+    'npm run og:chambers',
+    'npm run bake:compare',
     'npm run refresh:governance',
     'npm run guard:readme',
     'npm run check:readme',

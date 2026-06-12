@@ -1021,7 +1021,7 @@ function renderChamber(data, container) {
             <span class="chamber-footer-sep">·</span>
             ${track.contract ? `<a href="https://tzkt.io/${escapeHtml(track.contract)}/storage/" target="_blank" rel="noopener">TzKT storage -></a>` : '<span>TzKT discovery unavailable</span>'}
             <span class="chamber-footer-sep">·</span>
-            <a class="panel-direct-link" href="/#l2chamber" aria-label="Direct link to Tezlink Governance Chamber">Direct: /#l2chamber</a>
+            <a class="panel-direct-link" href="/l2chamber/" aria-label="Direct link to Tezlink Governance Chamber">Direct: /l2chamber/</a>
         </div>
     `;
     container.querySelectorAll('[data-etherlink-track]').forEach((button) => {

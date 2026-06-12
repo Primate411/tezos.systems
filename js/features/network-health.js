@@ -1074,7 +1074,7 @@ function renderNetworkHealthChamber(data, container) {
             <span class="chamber-footer-sep">·</span>
             <a href="https://tzkt.io/rights" target="_blank" rel="noopener">TzKT Rights -></a>
             <span class="chamber-footer-sep">·</span>
-            <a class="panel-direct-link" href="/#health" aria-label="Direct link to Network Health Chamber">Direct: /#health</a>
+            <a class="panel-direct-link" href="/health/" aria-label="Direct link to Network Health Chamber">Direct: /health/</a>
         </div>
     `;
     container.dataset.healthRendered = 'true';

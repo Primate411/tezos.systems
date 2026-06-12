@@ -14,10 +14,12 @@ const AGORA_SEARCH = 'https://forum.tezosagora.org/search.json';
 const GOVERNANCE_VOTES_FILE = path.join(ROOT, 'data', 'governance-votes.json');
 const GOVERNANCE_REPORT_FILE = path.join(ROOT, 'data', 'governance-refresh-report.json');
 const PROTOCOL_FILE = path.join(ROOT, 'data', 'protocol-data.json');
+const GOVERNANCE_FEED_FILE = path.join(ROOT, 'feed.xml');
 
 const GENERATED_FILES = [
     'data/governance-votes.json',
-    'data/governance-refresh-report.json'
+    'data/governance-refresh-report.json',
+    'feed.xml'
 ];
 
 const GOVERNANCE_SURFACES = [
@@ -30,6 +32,11 @@ const GOVERNANCE_SURFACES = [
         surface: 'Governance refresh report',
         files: ['data/governance-refresh-report.json'],
         update: 'Generated audit of live period, current protocol, active proposal, lore coverage, blockers, and warnings.'
+    },
+    {
+        surface: 'Governance RSS feed',
+        files: ['feed.xml'],
+        update: 'Generated from current governance plus recent Exploration/Promotion outcomes so RSS relay bots can syndicate governance events.'
     },
     {
         surface: 'Front-page protocol lore',
@@ -151,6 +158,29 @@ function displayName(proposal, protocol) {
     return protocol?.name
         || proposalName(proposal)
         || 'No proposal';
+}
+
+function escapeXml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&apos;');
+}
+
+function rssDate(iso, fallback = new Date()) {
+    const date = iso ? new Date(iso) : fallback;
+    return Number.isFinite(date.getTime()) ? date.toUTCString() : fallback.toUTCString();
+}
+
+function formatPctValue(value, suffix = '%') {
+    const number = Number(value);
+    return Number.isFinite(number) ? `${number.toFixed(2)}${suffix}` : 'n/a';
+}
+
+function periodStatusLabel(status) {
+    return String(status || 'observed').replaceAll('_', ' ');
 }
 
 function sortedProtocolData(protocolData) {
@@ -412,6 +442,75 @@ function buildReport({ generatedAt, protocolData, tzktProtocols, epochs, current
     };
 }
 
+function governanceFeedItem(item) {
+    return `    <item>
+      <title>${escapeXml(item.title)}</title>
+      <link>${escapeXml(item.link)}</link>
+      <guid isPermaLink="false">${escapeXml(item.guid)}</guid>
+      <pubDate>${escapeXml(rssDate(item.pubDate))}</pubDate>
+      <description>${escapeXml(item.description)}</description>
+    </item>`;
+}
+
+function buildGovernanceFeed({ generatedAt, report, periodVotes }) {
+    const builtAt = new Date(generatedAt);
+    const current = report.currentGovernance || {};
+    const link = 'https://tezos.systems/chamber/';
+    const items = [];
+
+    if (current.proposalHash) {
+        const name = current.proposalName || current.proposalHash;
+        const kind = current.kind ? `${current.kind[0].toUpperCase()}${current.kind.slice(1)}` : 'Governance';
+        const status = periodStatusLabel(current.status);
+        const closes = current.endTime ? ` Ends ${current.endTime}.` : '';
+        items.push({
+            title: `${name} ${kind} vote is ${status}`,
+            link,
+            guid: `tezos-governance:${current.epoch}:${current.period}:${current.kind}:${current.status}:current`,
+            pubDate: current.startTime || generatedAt,
+            description: `${name} is in ${kind} ${status} on Tezos.${closes} Participation ${formatPctValue(current.tally?.participationPct)}, yay ${formatPctValue(current.tally?.yayPct)}, quorum ${formatPctValue(current.tally?.ballotsQuorum)}.`
+        });
+    }
+
+    const feedDateForVote = (vote) => {
+        if (vote.status === 'active') return vote.startTime || generatedAt;
+        return vote.endTime || vote.startTime || generatedAt;
+    };
+    const recent = [...periodVotes]
+        .filter((vote) => vote.proposalHash)
+        .filter((vote) => !(current.proposalHash && vote.epoch === current.epoch && vote.period === current.period && vote.kind === current.kind))
+        .sort((a, b) => new Date(feedDateForVote(b)) - new Date(feedDateForVote(a)))
+        .slice(0, 18);
+
+    for (const vote of recent) {
+        const name = vote.displayName || vote.proposalAlias || vote.proposalHash;
+        const kind = vote.kind ? `${vote.kind[0].toUpperCase()}${vote.kind.slice(1)}` : 'Governance';
+        const status = periodStatusLabel(vote.status);
+        items.push({
+            title: `${name} ${kind} ${status}`,
+            link,
+            guid: `tezos-governance:${vote.epoch}:${vote.period}:${vote.kind}:${vote.status}`,
+            pubDate: feedDateForVote(vote),
+            description: `${name} ${kind} period ${status}. Participation ${formatPctValue(vote.participationPct)}, yay ${formatPctValue(vote.yayPct)}, quorum ${formatPctValue(vote.ballotsQuorum)}.`
+        });
+    }
+
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Tezos Systems Governance</title>
+    <link>https://tezos.systems/chamber/</link>
+    <atom:link href="https://tezos.systems/feed.xml" rel="self" type="application/rss+xml" />
+    <description>Live Tezos governance periods, vote outcomes, quorum, and proposal-watch events from tezos.systems.</description>
+    <language>en-us</language>
+    <lastBuildDate>${escapeXml(rssDate(generatedAt, builtAt))}</lastBuildDate>
+    <ttl>180</ttl>
+${items.map(governanceFeedItem).join('\n')}
+  </channel>
+</rss>
+`;
+}
+
 async function stageGeneratedFiles() {
     await execFileAsync('git', ['add', ...GENERATED_FILES], { cwd: ROOT });
 }
@@ -456,6 +555,7 @@ export async function main(argv = process.argv.slice(2)) {
 
     await writeJson(GOVERNANCE_VOTES_FILE, votesPayload);
     await writeJson(GOVERNANCE_REPORT_FILE, report);
+    await fs.writeFile(GOVERNANCE_FEED_FILE, buildGovernanceFeed({ generatedAt, report, periodVotes }));
 
     if (stage) await stageGeneratedFiles();
 
@@ -463,6 +563,7 @@ export async function main(argv = process.argv.slice(2)) {
     const proposal = period.proposalName || period.proposalHash || 'no proposal';
     console.log(`Wrote ${rel(GOVERNANCE_VOTES_FILE)} with ${epochs.length} epochs, ${periodVotes.length} exploration/promotion votes, ${failedVoteCount} failures`);
     console.log(`Wrote ${rel(GOVERNANCE_REPORT_FILE)}: ${report.status}; current ${report.currentProtocol?.name || 'unknown'}; ${period.kind || 'unknown'} ${period.status || 'unknown'} (${proposal})`);
+    console.log(`Wrote ${rel(GOVERNANCE_FEED_FILE)} for governance RSS relays`);
 
     for (const warning of report.warnings) {
         console.warn(`warn - ${warning.code}: ${warning.message}`);

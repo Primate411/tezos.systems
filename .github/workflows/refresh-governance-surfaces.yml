@@ -1,0 +1,53 @@
+name: Refresh Governance Surfaces
+
+on:
+  schedule:
+    # Keep RSS relays and governance OG previews fresh during active votes.
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Refresh generated governance and distribution surfaces
+        run: |
+          npm run refresh:governance
+          npm run routes:chambers
+          npm run og:chambers
+          npm run bake:compare
+          npm run build:css
+
+      - name: Validate generated surfaces
+        run: npm run test:static
+
+      - name: Commit changes when generated surfaces changed
+        run: |
+          if git diff --quiet -- data/governance-votes.json data/governance-refresh-report.json feed.xml chamber health tezlink l2chamber tz4 lb og compare css/styles.min.css css/themes; then
+            echo "No generated surface changes"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          ./scripts/stamp-version.sh
+          git add data/governance-votes.json data/governance-refresh-report.json feed.xml chamber health tezlink l2chamber tz4 lb og compare css/styles.min.css css/themes version.json
+          git commit -m "Refresh governance distribution surfaces"
+          git push

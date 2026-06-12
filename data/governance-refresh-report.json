@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-12T15:42:37.227Z",
+  "generatedAt": "2026-06-12T16:07:11.059Z",
   "status": "warning",
   "source": {
     "tzktEpochs": "https://api.tzkt.io/v1/voting/epochs?limit=1000&sort.asc=index",
@@ -10,7 +10,8 @@
   "singleEntryPoint": "scripts/refresh-governance-data.mjs",
   "generatedFiles": [
     "data/governance-votes.json",
-    "data/governance-refresh-report.json"
+    "data/governance-refresh-report.json",
+    "feed.xml"
   ],
   "currentProtocol": {
     "code": 24,
@@ -30,7 +31,7 @@
     "kind": "promotion",
     "status": "active",
     "startTime": "2026-06-01T13:34:49Z",
-    "endTime": "2026-06-15T20:50:01Z",
+    "endTime": "2026-06-15T20:50:10Z",
     "proposalHash": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
     "proposalName": "Ushuaia",
     "proposalStatus": "active",
@@ -159,6 +160,13 @@
         "data/governance-refresh-report.json"
       ],
       "update": "Generated audit of live period, current protocol, active proposal, lore coverage, blockers, and warnings."
+    },
+    {
+      "surface": "Governance RSS feed",
+      "files": [
+        "feed.xml"
+      ],
+      "update": "Generated from current governance plus recent Exploration/Promotion outcomes so RSS relay bots can syndicate governance events."
     },
     {
       "surface": "Front-page protocol lore",

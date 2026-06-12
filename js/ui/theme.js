@@ -7,6 +7,7 @@ const THEME_KEY = 'tezos-systems-theme';
 const THEMES = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
 // Aurora — bespoke animated default; striking but legible.
 const DEFAULT_THEME = 'aurora';
+const THEME_CSS_VERSION = '178';
 
 // Theme color definitions for the picker dots
 const THEME_COLORS = {
@@ -27,6 +28,42 @@ const THEME_COLORS = {
 
 let currentPreviewTheme = null;
 let originalTheme = null;
+
+function themeCssHref(theme) {
+    return `/css/themes/${theme}.min.css?v=${THEME_CSS_VERSION}`;
+}
+
+function ensureThemeStylesheet(theme) {
+    if (theme === DEFAULT_THEME || !THEMES.includes(theme)) return;
+    const id = `theme-css-${theme}`;
+    if (document.getElementById(id)) return;
+
+    const preload = document.getElementById(`theme-css-preload-${theme}`);
+    if (preload) {
+        preload.id = id;
+        preload.rel = 'stylesheet';
+        preload.removeAttribute('as');
+        return;
+    }
+
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = themeCssHref(theme);
+    document.head.appendChild(link);
+}
+
+function preloadThemeStylesheets() {
+    THEMES.filter((theme) => theme !== DEFAULT_THEME).forEach((theme) => {
+        if (document.getElementById(`theme-css-${theme}`) || document.getElementById(`theme-css-preload-${theme}`)) return;
+        const link = document.createElement('link');
+        link.id = `theme-css-preload-${theme}`;
+        link.rel = 'preload';
+        link.as = 'style';
+        link.href = themeCssHref(theme);
+        document.head.appendChild(link);
+    });
+}
 
 /**
  * Initialize theme system
@@ -86,6 +123,8 @@ function showFirstVisitPicker() {
  * Open theme picker dropdown
  */
 export function openThemePicker() {
+    preloadThemeStylesheets();
+
     // Remove any existing theme picker
     const existingPicker = document.getElementById('theme-picker-dropdown');
     if (existingPicker) {
@@ -255,6 +294,7 @@ export function setTheme(theme, isPreview = false) {
     }
 
     // Apply theme to body
+    ensureThemeStylesheet(theme);
     document.body.setAttribute('data-theme', theme);
 
     // Always dispatch themechange so canvas effects (matrix rain, particles) start/stop

@@ -1633,7 +1633,7 @@ function renderChamber(data, container) {
             <span class="chamber-footer-sep">·</span>
             <a href="https://www.tezosagora.org" target="_blank" rel="noopener">Agora →</a>
             <span class="chamber-footer-sep">·</span>
-            <a class="panel-direct-link" href="/#chamber" aria-label="Direct link to The Chamber">Direct: /#chamber</a>
+            <a class="panel-direct-link" href="/chamber/" aria-label="Direct link to The Chamber">Direct: /chamber/</a>
             <span class="chamber-footer-sep">·</span>
             <span class="chamber-epoch">Epoch ${epoch.index}</span>
             ${footerNote ? `<span class="chamber-footer-sep">·</span><span class="chamber-historical-note">${escapeHtml(footerNote)}</span>` : ''}
@@ -1675,7 +1675,7 @@ function initChamberShare(data) {
                 proposalName,
                 stage,
                 summary: governanceResolutionLine(data),
-                directUrl: 'tezos.systems/#chamber',
+                directUrl: 'tezos.systems/chamber/',
                 stats: [
                     {
                         label: 'Quorum',
@@ -1709,7 +1709,7 @@ function initChamberShare(data) {
             showShareModal(canvas, [
                 {
                     label: 'Governance',
-                    text: `${proposalName} is in a live ${stage} vote on Tezos.\n\nTrack quorum, supermajority, and baker votes at tezos.systems/#chamber`
+                    text: `${proposalName} is in a live ${stage} vote on Tezos.\n\nTrack quorum, supermajority, and baker votes at tezos.systems/chamber/`
                 }
             ], `The Chamber: ${proposalName}`);
         } catch (error) {

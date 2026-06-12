@@ -40,7 +40,8 @@ tezos.systems/
 ├── landing.html                       # Welcome and SEO landing page
 ├── css/
 │   ├── styles.css                     # Source dashboard styles and themes
-│   ├── styles.min.css                 # Served dashboard stylesheet
+│   ├── styles.min.css                 # Served base dashboard stylesheet
+│   ├── themes/                        # Generated lazy-loaded theme bundles
 │   ├── hen-mode.css                   # HEN overlay styles
 │   └── landing.css                    # Landing and SEO page styles
 ├── js/
@@ -63,11 +64,19 @@ tezos.systems/
 ├── widgets/                           # Standalone embeddable widgets and builder
 ├── staking/ governance/ bakers/ hen/ compare/
 │                                      # SEO and standalone pages
+├── chamber/ health/ tezlink/ l2chamber/ tz4/ lb/
+│                                      # Pretty share/OG routes into live Chambers
+├── og/                                # Generated per-chamber OG images
+├── feed.xml                           # Generated Tezos governance RSS feed
 ├── tests/
 │   ├── static-checks.mjs              # Dependency-free repo contract checks
 │   └── smoke.mjs                      # Playwright browser smoke suites
 ├── scripts/
 │   ├── refresh-governance-data.mjs    # Canonical governance refresh command
+│   ├── generate-chamber-routes.mjs    # Pretty Chamber route generator
+│   ├── generate-chamber-og-images.mjs # Per-Chamber OG image generator
+│   ├── bake-compare-pages.mjs         # Static compare-page content baker
+│   ├── build-css.mjs                  # Base/theme CSS splitter and minifier
 │   ├── update-governance-votes.mjs    # Compatibility wrapper
 │   ├── stamp-version.sh               # Pre-commit version metadata stamp
 │   └── generate-og-image.js           # OG image generator
@@ -224,6 +233,11 @@ Useful deep links include:
 - `#lb-tile`
 - `#tz4`
 
+Public share routes are also available at `/chamber/`, `/health/`,
+`/tezlink/`, `/l2chamber/`, `/tz4/`, and `/lb/`. These routes carry unique
+Open Graph metadata and redirect into the corresponding live dashboard room.
+`/feed.xml` exposes the generated governance RSS feed for relay bots.
+
 ## Data Sources
 
 | Source | Purpose |
@@ -250,6 +264,13 @@ SEO landing pages, standalone compare pages, and TzKT-backed widgets so embeds
 do not bypass the visitor-side request budget. The core API helper also honors
 TzKT `429` Retry-After responses and shares the current governance-period
 snapshot across dashboard consumers.
+
+Governance distribution surfaces are generated from the same refresh path:
+`npm run refresh:governance` updates vote/report/feed artifacts, while
+`npm run routes:chambers`, `npm run og:chambers`, and `npm run bake:compare`
+refresh pretty route pages, per-Chamber share images, and crawlable compare
+content. `.github/workflows/refresh-governance-surfaces.yml` runs those on a
+schedule and commits only when generated outputs change.
 
 The Supabase anon key in `js/core/config.js` is public client configuration, not
 a secret. Browser fetch domains must be allowed by the CSP in `index.html`.
@@ -279,6 +300,9 @@ Common commands:
 
 ```bash
 npm run build:css
+npm run routes:chambers
+npm run og:chambers
+npm run bake:compare
 npm run refresh:governance
 npm run guard:readme
 npm run check:readme
@@ -338,7 +362,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v177`.
+- Current aligned shell cache stamp: `v178`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

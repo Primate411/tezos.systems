@@ -2531,6 +2531,17 @@ function initDeepLinkAffordances() {
     ];
 
     function makeUrl(hash) {
+        const prettyRoutes = {
+            '#chamber': '/chamber/',
+            '#health': '/health/',
+            '#tezlink': '/tezlink/',
+            '#l2chamber': '/l2chamber/',
+            '#lb': '/lb/',
+            '#lb-tile': '/lb/',
+            '#tz4': '/tz4/'
+        };
+        const pretty = prettyRoutes[hash];
+        if (pretty) return `${window.location.origin}${pretty}`;
         return `${window.location.origin}${window.location.pathname}${hash}`;
     }
 
