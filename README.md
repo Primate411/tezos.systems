@@ -342,7 +342,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, top-right Chamber control geometry, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`
@@ -362,7 +362,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v179`.
+- Current aligned shell cache stamp: `v180`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

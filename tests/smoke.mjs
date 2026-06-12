@@ -1085,6 +1085,120 @@ async function assertChamberOrder(page, label) {
   );
 }
 
+async function assertChamberControlGeometry(page, label) {
+  const issues = await page.evaluate(() => {
+    const cardSelectors = [
+      '#chamber-entry-card',
+      '#tezlink-entry-card',
+      '#etherlink-governance-entry-card',
+      '#lb-entry-card',
+      '#chambers-section [data-stat="tz4-adoption"]',
+      '#chambers-section [data-stat="network-health"]'
+    ];
+    const contentSelector = [
+      '.card-front .stat-label',
+      '.card-front .stat-value',
+      '.card-front .stat-description',
+      '.card-front .chamber-entry-icon',
+      '.card-front .chamber-entry-status',
+      '.card-front .chamber-entry-metrics',
+      '.card-front .chamber-entry-metric',
+      '.card-front .tezlink-entry-main',
+      '.card-front .tezlink-entry-metrics',
+      '.card-front .tezlink-entry-metric',
+      '.card-front .tezlink-entry-tape',
+      '.card-front .tezlink-tape-row',
+      '.card-front .etherlink-gov-entry-metrics',
+      '.card-front .etherlink-gov-entry-metric',
+      '.card-front .network-health-blocks',
+      '.card-front .network-health-block',
+      '.card-front .health-live-tape',
+      '.card-front .health-live-row',
+      '.card-front .lb-entry-meter',
+      '.card-front .tz4-entry-preview',
+      '.card-front .tz4-entry-preview-title',
+      '.card-front .tz4-entry-preview-row',
+      '.card-front .tz4-entry-preview-empty',
+      '.card-front .tz4-entry-preview-more',
+      '.card-front .sparkline-container'
+    ].join(', ');
+
+    const visibleBox = (node) => {
+      if (!node) return null;
+      const style = window.getComputedStyle(node);
+      if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return null;
+      const box = node.getBoundingClientRect();
+      if (box.width <= 0 || box.height <= 0) return null;
+      return {
+        left: box.left,
+        right: box.right,
+        top: box.top,
+        bottom: box.bottom,
+        width: box.width,
+        height: box.height
+      };
+    };
+    const nameOf = (node) => {
+      if (node.id) return `#${node.id}`;
+      const classes = Array.from(node.classList || []).slice(0, 3).join('.');
+      return classes ? `.${classes}` : node.tagName.toLowerCase();
+    };
+    const overlapArea = (a, b) => {
+      const width = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const height = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      return width > 1 && height > 1 ? width * height : 0;
+    };
+    const found = [];
+
+    for (const selector of cardSelectors) {
+      const card = document.querySelector(selector);
+      const cardBox = visibleBox(card);
+      if (!card || !cardBox) {
+        found.push({ card: selector, issue: 'missing-card' });
+        continue;
+      }
+      const controls = Array.from(card.querySelectorAll(':scope > .card-copy-link, :scope > .card-share-btn, :scope > .card-info-btn, :scope > .chamber-expand-cue'))
+        .map((node) => ({ node, name: nameOf(node), box: visibleBox(node) }))
+        .filter((item) => item.box);
+      const topControls = controls.filter((item) => !item.node.classList.contains('chamber-expand-cue'));
+      const content = Array.from(card.querySelectorAll(contentSelector))
+        .map((node) => ({ node, name: nameOf(node), box: visibleBox(node) }))
+        .filter((item) => item.box);
+
+      for (const control of topControls) {
+        if (control.box.top < cardBox.top + 8) {
+          found.push({ card: selector, issue: 'top-control-too-high', control: control.name, topGap: Number((control.box.top - cardBox.top).toFixed(2)) });
+        }
+        if (control.box.right > cardBox.right - 8) {
+          found.push({ card: selector, issue: 'top-control-too-far-right', control: control.name, rightGap: Number((cardBox.right - control.box.right).toFixed(2)) });
+        }
+      }
+
+      for (let first = 0; first < controls.length; first += 1) {
+        for (let second = first + 1; second < controls.length; second += 1) {
+          const overlap = overlapArea(controls[first].box, controls[second].box);
+          if (overlap > 0) {
+            found.push({ card: selector, issue: 'control-control-overlap', first: controls[first].name, second: controls[second].name, overlap: Number(overlap.toFixed(2)) });
+          }
+        }
+      }
+
+      for (const control of controls) {
+        for (const item of content) {
+          if (control.node === item.node || control.node.contains(item.node) || item.node.contains(control.node)) continue;
+          const overlap = overlapArea(control.box, item.box);
+          if (overlap > 0) {
+            found.push({ card: selector, issue: 'control-content-overlap', control: control.name, content: item.name, overlap: Number(overlap.toFixed(2)) });
+          }
+        }
+      }
+    }
+
+    return found;
+  });
+  assert(issues.length === 0, `${label}: chamber controls should not overlap content or each other: ${JSON.stringify(issues)}`);
+}
+
 function isAllowedWarning(message) {
   return allowedWarningPatterns.some((pattern) => pattern.test(message));
 }
@@ -2036,6 +2150,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
   await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]').length >= 6, null, { timeout: 10000 });
   await assertChamberOrder(page, 'governance testing period');
+  await assertChamberControlGeometry(page, 'governance testing period');
   await page.waitForFunction(() => {
     const canvas = document.getElementById('tz4-sparkline');
     const chart = canvas ? window.Chart?.getChart(canvas) : null;

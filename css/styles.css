@@ -15745,10 +15745,23 @@ body {
 }
 
 .chamber-entry-card {
+    --chamber-control-lane: 6.85rem;
+    --chamber-bottom-control-lane: 7.35rem;
     border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, transparent) !important;
     transition: all 0.3s ease !important;
     position: relative;
     overflow: hidden;
+}
+
+#chambers-grid .chamber-entry-card .card-front {
+    padding-right: var(--chamber-control-lane);
+}
+
+.chamber-entry-card > .card-copy-link,
+.chamber-entry-card > .card-share-btn,
+.chamber-entry-card > .card-info-btn,
+.chamber-entry-card > .chamber-expand-cue {
+    z-index: 70;
 }
 
 .chamber-entry-card::before {
@@ -15768,7 +15781,7 @@ body {
     left: 12px;
     bottom: 10px;
     z-index: 2;
-    max-width: calc(100% - 82px);
+    max-width: calc(100% - var(--chamber-bottom-control-lane));
     overflow: hidden;
     color: var(--text-tertiary, #555);
     font-family: 'JetBrains Mono', monospace;
@@ -16026,6 +16039,15 @@ body {
 }
 
 @media (max-width: 759px) {
+    #chambers-grid .chamber-entry-card {
+        --chamber-control-lane: 5.35rem;
+    }
+
+    #chambers-grid .chamber-entry-card .card-front {
+        padding-top: 2.35rem;
+        padding-right: var(--chamber-control-lane);
+    }
+
     #chambers-grid .chamber-entry-card[data-updated-label] .card-front {
         padding-bottom: 2.1rem;
     }

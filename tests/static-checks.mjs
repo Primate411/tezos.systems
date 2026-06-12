@@ -516,7 +516,11 @@ async function checkSelectorContracts() {
     ['Health card camera slot', '.health-entry-card .card-share-btn', styles],
     ['Network Health pre-init camera slot', '.stat-card[data-stat="network-health"] .card-share-btn', styles],
     ['Chamber direct-link slot', 'right: calc(1rem + 32px);', styles],
-    ['Chamber camera slot', 'right: calc(1rem + 64px);', styles]
+    ['Chamber camera slot', 'right: calc(1rem + 64px);', styles],
+    ['Chamber top control lane', '--chamber-control-lane', styles],
+    ['Chamber content avoids top-right controls', 'padding-right: var(--chamber-control-lane);', styles],
+    ['Chamber controls layer above card content', '.chamber-entry-card > .card-copy-link', styles],
+    ['Chamber bottom freshness avoids open cue', '--chamber-bottom-control-lane', styles]
   ];
   for (const [label, snippet, text] of cardControlContracts) {
     if (!text.includes(snippet)) fail(`missing card control spacing contract: ${label}`);
