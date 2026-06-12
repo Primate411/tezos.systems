@@ -11,6 +11,7 @@ const CHANGELOG = [
             { type: '✨', text: 'Tezlink now includes 30-day direction, L1 rollup anchor metadata, gas oracle detail, and top-token holder rows inside the chamber' },
             { type: '✨', text: 'Liquidity Baking and tz4 Adoption now expose sampled forecast/history layers, vote-change or holdout feeds, and clearer operator momentum signals' },
             { type: '🎨', text: 'Cache-free chamber QA tightened the tz4 live preview spacing and keeps Liquidity Baking help popovers inside mobile and desktop viewports' },
+            { type: '🎨', text: 'Tezlink Governance quiet-state chips now stay clear of the bottom-left freshness stamp' },
             { type: '🎨', text: 'Live chamber cards now show quiet UTC freshness stamps without crowding their direct-link and open controls' },
             { type: '✨', text: 'Chambers now show a daily signal digest with since-last-visit movement and a shareable copy button' },
             { type: '🔧', text: 'Dashboard refresh now keeps shared feature safety wrappers available during manual and background refresh cycles' },
