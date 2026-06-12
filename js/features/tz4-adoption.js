@@ -111,13 +111,17 @@ async function fetchConsensusKeyUpdates() {
     return Array.isArray(operations) ? operations.filter(isBlsConsensusUpdate) : [];
 }
 
-async function fetchHeadCycle() {
+async function fetchHeadState() {
     try {
         const head = await fetchJson(`${TZKT}/head`);
-        return Number(head?.cycle);
+        const cycle = Number(head?.cycle);
+        return {
+            cycle: Number.isFinite(cycle) ? cycle : null,
+            timestamp: head?.timestamp || null
+        };
     } catch (error) {
         console.warn('tz4 Adoption: current cycle unavailable', error);
-        return null;
+        return { cycle: null, timestamp: null };
     }
 }
 
@@ -245,12 +249,13 @@ async function fetchTz4AdoptionData({ force = false } = {}) {
         renderTz4EntryPreview(_tz4Cache);
         return _tz4Cache;
     }
-    const [bakers, operations, currentCycle] = await Promise.all([
+    const [bakers, operations, headState] = await Promise.all([
         fetchActiveBakers(),
         fetchConsensusKeyUpdates(),
-        fetchHeadCycle()
+        fetchHeadState()
     ]);
-    const data = summarize(enrichBakers(bakers, operations, currentCycle), currentCycle);
+    const data = summarize(enrichBakers(bakers, operations, headState.cycle), headState.cycle);
+    data.updatedAt = headState.timestamp || new Date().toISOString();
     _tz4Cache = data;
     _tz4CacheTime = Date.now();
     renderTz4EntryPreview(data);
@@ -331,7 +336,8 @@ function renderTz4EntryPreview(data) {
     const hiddenPending = Math.max(0, (data.pendingCount || 0) - pending.length);
     card.dataset.tz4LatestSwitches = String(latest.length || 0);
     card.dataset.tz4PowerDescription = `${formatCount(data.activeCount)} / ${formatCount(data.total)} bakers active · ${formatPercent(data.activePowerPct)} power`;
-    card.dataset.updatedLabel = `as of ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })} UTC`;
+    const updatedAt = data.updatedAt || new Date().toISOString();
+    card.dataset.updatedLabel = `as of ${new Date(updatedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' })} UTC`;
     const description = document.getElementById('tz4-description');
     if (description) {
         description.textContent = card.dataset.tz4PowerDescription;

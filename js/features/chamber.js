@@ -13,6 +13,7 @@
 
 import { escapeHtml } from '../core/utils.js';
 import { API_URLS } from '../core/config.js';
+import { fetchCurrentVotingPeriod } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
 const PROTOCOL_DATA_URL = '/data/protocol-data.json';
@@ -183,7 +184,7 @@ async function fetchChamberData(epochIndex) {
     
     try {
         if (!epochIndex) {
-            const currentPeriod = await (await fetch(`${TZKT}/voting/periods/current`)).json();
+            const currentPeriod = await fetchCurrentVotingPeriod();
             let activeEpoch = null;
             let isLive = false;
             
@@ -1514,30 +1515,6 @@ function renderProposalHeader(data) {
     `;
 }
 
-// ─── Ambient war room effects ───
-
-function initAmbientEffects(container) { return; // CSS-only via ::before/::after
-    // Scanlines overlay (CSS-only, no canvas needed)
-    let scanlines = container.querySelector('.chamber-scanlines');
-    if (!scanlines) {
-        scanlines = document.createElement('div');
-        scanlines.className = 'chamber-scanlines';
-        container.appendChild(scanlines);
-    }
-    
-    // CSS particle dots via pseudo-elements + keyframes (no canvas)
-    let particleLayer = container.querySelector('.chamber-particle-layer');
-    if (!particleLayer) {
-        particleLayer = document.createElement('div');
-        particleLayer.className = 'chamber-particle-layer';
-        container.appendChild(particleLayer);
-    }
-}
-
-function stopAmbientEffects() {
-    // CSS-only effects, nothing to stop
-}
-
 // ─── Post-render animation triggers ───
 
 function triggerAnimations() {
@@ -1634,9 +1611,6 @@ function renderChamber(data, container) {
             ${footerNote ? `<span class="chamber-footer-sep">·</span><span class="chamber-historical-note">${escapeHtml(footerNote)}</span>` : ''}
         </div>
     `;
-    
-    const content = container.closest('.chamber-content');
-    if (content) initAmbientEffects(content);
     
     hydrateCurrentStageVoteOrder(data);
     hydrateHistoricalComparison(data);
@@ -1831,7 +1805,6 @@ export async function openChamber() {
 }
 
 export function closeChamber() {
-    stopAmbientEffects();
     document.removeEventListener('keydown', handleChamberEscape);
     const overlay = document.getElementById('chamber-modal');
     if (overlay) overlay.classList.remove('active');
@@ -2008,7 +1981,7 @@ async function loadEntryCardStatus({ force = false } = {}) {
         const heroEl = document.getElementById('chamber-entry-hero');
         const description = card?.querySelector('.stat-description');
         
-        const currentPeriod = await (await fetch(`${TZKT}/voting/periods/current`, { cache: force ? 'no-store' : 'default' })).json();
+        const currentPeriod = await fetchCurrentVotingPeriod({ force });
         if (card) {
             const time = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'UTC' });
             card.dataset.updatedLabel = `as of ${time} UTC`;
@@ -2040,18 +2013,18 @@ async function loadEntryCardStatus({ force = false } = {}) {
                 {
                     label: quorumMet ? 'Quorum met' : 'Quorum gap',
                     value: quorumMet
-                        ? `${formatEntryPct(participation)} / ${formatEntryPct(quorum)}`
+                        ? `${formatEntryPct(participation)} ok`
                         : `${formatEntryPct(Math.max(0, quorum - (participation || 0)))} short`,
                     className: quorumMet ? 'is-good' : 'is-risk'
                 },
                 {
-                    label: yayMet ? 'Yay met' : 'Yay threshold',
-                    value: `${formatEntryPct(supermajority)} / ${formatEntryPct(threshold, 0)}`,
+                    label: yayMet ? 'Yay met' : 'Yay watch',
+                    value: `${formatEntryPct(supermajority)}${yayMet ? ' ok' : ` / ${formatEntryPct(threshold, 0)}`}`,
                     className: yayMet ? 'is-good' : 'is-risk'
                 },
                 {
                     label: 'Ballots',
-                    value: ballots ? `${ballots.toLocaleString()} · ${formatEntryPower(currentPeriod.yayVotingPower)} Yay` : 'Open'
+                    value: ballots ? ballots.toLocaleString() : 'Open'
                 }
             ]);
         } else if (isActive) {
@@ -2076,8 +2049,8 @@ async function loadEntryCardStatus({ force = false } = {}) {
             card?.classList.remove('chamber-entry-live');
             clearEntryMetrics(card, metricsEl);
         }
-    } catch {
-        // Silent fail
+    } catch (error) {
+        console.warn('The Chamber entry refresh failed:', error);
     } finally {
         _chamberEntryRefreshInFlight = false;
     }

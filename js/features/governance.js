@@ -4,6 +4,7 @@
  */
 
 import { API_URLS } from '../core/config.js';
+import { fetchCurrentVotingPeriod } from '../core/api.js';
 
 const TZKT_BASE = API_URLS.tzkt;
 const PROTOCOL_DATA_URL = '/data/protocol-data.json';
@@ -274,9 +275,7 @@ function buildVotingStatusFromReport(report) {
  */
 export async function fetchVotingStatus() {
     try {
-        const response = await fetch(`${TZKT_BASE}/voting/periods/current`);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const period = await response.json();
+        const period = await fetchCurrentVotingPeriod();
         const [epoch, report] = await Promise.all([
             fetchVotingEpoch(period.epoch),
             loadGovernanceReport()

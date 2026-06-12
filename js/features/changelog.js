@@ -5,6 +5,15 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-12',
+        entries: [
+            { type: '⚡', text: 'TzKT request pacing now covers SEO landing pages, standalone compare pages, and TzKT-backed widgets in addition to the main dashboard' },
+            { type: '⚡', text: 'Current governance-period reads now share a short-lived core snapshot and TzKT 429 Retry-After handling also understands HTTP-date headers' },
+            { type: '🔧', text: 'Network Health refresh now follows block pulses first, with the interval acting only as a stale-pulse fallback' },
+            { type: '🎨', text: 'The Chamber live vote chips use shorter mid-width-safe labels, and tz4 Adoption stamps freshness from the chain head time' },
+        ]
+    },
+    {
         date: '2026-06-11',
         entries: [
             { type: '🔧', text: 'The Chamber share image now exports a branded 1200x630 Tezos Systems frame with proposal, vote metrics, date, and direct link baked into the pixels' },

@@ -40,6 +40,7 @@ const cache = {
 const HISTORICAL_PAGE_SIZE = 1000;
 const LB_EMA_DISABLE_THRESHOLD = 1_000_000_000;
 const LB_EMA_DENOMINATOR = 2_000_000_000;
+const GOVERNANCE_SNAPSHOT_TTL = 60 * 1000;
 const historicalDataCache = new Map();
 
 /**
@@ -72,26 +73,35 @@ export async function fetchSharedStats() {
 /**
  * Fetch with retry logic and caching
  */
-async function fetchWithRetry(url, options = {}, retries = 3) {
+export async function fetchWithRetry(url, options = {}, retries = 3) {
+    const { memoryCache = true, ...fetchOptions } = options || {};
+
     // Check cache first
-    if (isCacheValid(url)) {
+    if (memoryCache && isCacheValid(url)) {
         return cache.data[url];
     }
 
     for (let i = 0; i < retries; i++) {
         try {
             const response = await fetch(url, {
-                ...options,
+                ...fetchOptions,
                 headers: {
                     'Accept': 'application/json',
-                    ...options.headers
+                    ...fetchOptions.headers
                 }
             });
 
             if (response.status === 429) {
                 // Rate limited — respect Retry-After or use exponential backoff
-                const retryAfter = parseInt(response.headers.get('Retry-After') || '0');
-                const backoffMs = retryAfter > 0 ? retryAfter * 1000 : 2000 * Math.pow(2, i);
+                const retryAfterHeader = response.headers.get('Retry-After') || '';
+                const retryAfterSeconds = parseInt(retryAfterHeader, 10);
+                const retryAfterDate = Date.parse(retryAfterHeader);
+                const retryAfterMs = Number.isFinite(retryAfterSeconds)
+                    ? retryAfterSeconds * 1000
+                    : Number.isFinite(retryAfterDate)
+                        ? Math.max(0, retryAfterDate - Date.now())
+                        : 0;
+                const backoffMs = retryAfterMs > 0 ? retryAfterMs : 2000 * Math.pow(2, i);
                 console.warn(`⚠️ Rate limited (429) on ${url}, backing off ${Math.round(backoffMs/1000)}s`);
                 await new Promise(r => setTimeout(r, backoffMs));
                 continue;
@@ -104,8 +114,10 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
             const data = await response.json();
             
             // Cache the response
-            cache.data[url] = data;
-            cache.timestamps[url] = Date.now();
+            if (memoryCache) {
+                cache.data[url] = data;
+                cache.timestamps[url] = Date.now();
+            }
             
             return data;
         } catch (error) {
@@ -114,6 +126,35 @@ async function fetchWithRetry(url, options = {}, retries = 3) {
         }
     }
     throw new Error('Max retries exceeded');
+}
+
+let _currentVotingPeriod = null;
+let _currentVotingPeriodAt = 0;
+let _currentVotingPeriodPromise = null;
+
+export async function fetchCurrentVotingPeriod({ force = false } = {}) {
+    const now = Date.now();
+    if (!force && _currentVotingPeriod && now - _currentVotingPeriodAt < GOVERNANCE_SNAPSHOT_TTL) {
+        return _currentVotingPeriod;
+    }
+    if (!force && _currentVotingPeriodPromise) {
+        return _currentVotingPeriodPromise;
+    }
+
+    const url = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.voting}`;
+    _currentVotingPeriodPromise = fetchWithRetry(
+        url,
+        { cache: force ? 'no-store' : 'default', memoryCache: false },
+        2
+    ).then((period) => {
+        _currentVotingPeriod = period;
+        _currentVotingPeriodAt = Date.now();
+        return period;
+    }).finally(() => {
+        _currentVotingPeriodPromise = null;
+    });
+
+    return _currentVotingPeriodPromise;
 }
 
 /**
@@ -389,9 +430,8 @@ function governanceProposalDescription(kind, hasProposal) {
 
 async function fetchGovernance() {
     try {
-        const votingUrl = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.voting}`;
         const [voting, report] = await Promise.all([
-            fetchWithRetry(votingUrl),
+            fetchCurrentVotingPeriod(),
             fetchGovernanceReport()
         ]);
         let epoch = null;

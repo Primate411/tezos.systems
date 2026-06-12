@@ -2,6 +2,8 @@
  * Live data injection for SEO landing pages
  * Lightweight — only fetches what the page needs
  */
+import '../core/tzkt-throttle.js';
+import { fetchCurrentVotingPeriod } from '../core/api.js';
 import { escapeHtml } from '../core/utils.js';
 
 const TZKT = 'https://api.tzkt.io/v1';
@@ -133,7 +135,7 @@ export async function loadStakingData() {
 export async function loadGovernanceData() {
     try {
         const [voting, protocols, headMeta] = await Promise.all([
-            fetchJson(`${TZKT}/voting/periods/current`),
+            fetchCurrentVotingPeriod(),
             fetchJson(`${TZKT}/protocols?sort.desc=firstLevel&limit=30`),
             fetchJson('https://eu.rpc.tez.capital/chains/main/blocks/head/metadata')
         ]);

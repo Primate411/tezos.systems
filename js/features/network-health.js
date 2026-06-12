@@ -36,6 +36,7 @@ let refreshInFlight = null;
 let cachedData = null;
 let lastFullFetch = 0;
 let lastBlockPulseFetch = 0;
+let lastBlockPulseAt = 0;
 let chamberTimer = null;
 let ageTimer = null;
 let chamberRefreshInFlight = false;
@@ -1325,7 +1326,8 @@ function startChamberRefresh() {
     startHealthAgeTicker();
     chamberTimer = window.setInterval(() => {
         if (document.hidden) return;
-        refreshNetworkHealthChamber();
+        const pulseStale = !lastBlockPulseAt || Date.now() - lastBlockPulseAt > CHAMBER_REFRESH_INTERVAL * 2;
+        if (pulseStale) refreshNetworkHealthChamber();
     }, CHAMBER_REFRESH_INTERVAL);
 }
 
@@ -1467,11 +1469,14 @@ export function initNetworkHealth() {
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(() => {
-        if (document.visibilityState === 'visible') refreshNetworkHealth();
+        if (document.visibilityState !== 'visible') return;
+        const pulseStale = !lastBlockPulseAt || Date.now() - lastBlockPulseAt > LIVE_REFRESH_INTERVAL * 2;
+        if (pulseStale) refreshNetworkHealth();
     }, LIVE_REFRESH_INTERVAL);
 
     window.addEventListener('block-pulse', () => {
         const now = Date.now();
+        lastBlockPulseAt = now;
         if (now - lastBlockPulseFetch < BLOCK_PULSE_THROTTLE) return;
         lastBlockPulseFetch = now;
         refreshNetworkHealth();

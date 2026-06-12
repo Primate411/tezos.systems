@@ -85,6 +85,8 @@ tezos.systems/
    module.
 2. `app.js` installs `js/core/tzkt-throttle.js` before feature startup so
    browser-side TzKT API fetches are queued at six request starts per second.
+   Standalone landing, compare, and TzKT widget entry points import the same
+   shim for their separate browser windows or iframes.
 3. `app.js` initializes feature modules behind safe wrappers, registers the
    service worker, handles deep links, and starts the refresh loop.
 4. Cached stats and protocol data are displayed first when available.
@@ -243,8 +245,11 @@ RPC still supplies issuance, constants, cycle/head metadata, and fallback values
 when TzKT stats are unavailable.
 
 Visitor-side TzKT fetches are paced in the browser by `js/core/tzkt-throttle.js`
-at six request starts per second. This avoids avoidable 429 bursts without
-adding a proxy or changing the canonical TzKT API host.
+at six request starts per second. This shim is installed by the dashboard,
+SEO landing pages, standalone compare pages, and TzKT-backed widgets so embeds
+do not bypass the visitor-side request budget. The core API helper also honors
+TzKT `429` Retry-After responses and shares the current governance-period
+snapshot across dashboard consumers.
 
 The Supabase anon key in `js/core/config.js` is public client configuration, not
 a secret. Browser fetch domains must be allowed by the CSP in `index.html`.
@@ -333,7 +338,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v173`.
+- Current aligned shell cache stamp: `v174`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.
@@ -412,8 +417,10 @@ Widgets:
   components if their color maps are not updated.
 - TzKT filters can be surprising; some whale and sleeping-giant amount filters
   are intentionally done client-side.
-- TzKT requests are queued per browser tab at six starts per second; expect a
-  small delay when several feature modules ask for live TzKT data at once.
+- TzKT requests are queued per browser tab or widget iframe at six starts per
+  second. TzKT limits by visitor IP, so several open dashboard tabs or embed
+  iframes can still add up; expect a small delay when several feature modules
+  ask for live TzKT data at once.
 - Tezos mainnet launch copy should use September 17, 2018. June 2018 refers to
   fundraiser genesis, not the mainnet launch date used by the app.
 - Adding a new network source requires a CSP update in `index.html`.

@@ -6,6 +6,7 @@
  * auto-generates narrative, shareable OG cards.
  */
 
+import '../core/tzkt-throttle.js';
 import { CHAIN_COMPARISON, API_URLS } from '../core/config.js';
 import { escapeHtml } from '../core/utils.js';
 import { getTzktTotalStaked } from '../core/api.js';
