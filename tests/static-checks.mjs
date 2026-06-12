@@ -229,6 +229,10 @@ async function checkGovernanceVotes() {
   if (activeName && !feed.includes(activeName)) {
     fail(`feed.xml should include active proposal name ${activeName}`);
   }
+  const activeHashPrefix = report.currentGovernance?.proposalHash?.slice(0, 8);
+  if (activeName && activeHashPrefix && feed.includes(activeHashPrefix)) {
+    fail(`feed.xml should use active proposal name ${activeName}, not raw hash prefix ${activeHashPrefix}`);
+  }
 
   const currentProtocol = report.currentProtocol;
   const currentLore = currentProtocol
@@ -270,21 +274,34 @@ async function checkLocalReferences() {
 async function checkCacheBustAlignment() {
   const index = await readText('index.html');
   const sw = await readText('sw.js');
+  const themePreload = await readText('js/core/theme-preload.js');
+  const themeUi = await readText('js/ui/theme.js');
   const cssMatch = index.match(/css\/styles\.min\.css\?v=(\d+)/);
   const appPreloadMatch = index.match(/js\/core\/app\.js\?v=(\d+)/);
   const appScriptMatch = index.match(/<script[^>]+src=["']js\/core\/app\.js\?v=(\d+)["']/);
   const cacheMatch = sw.match(/CACHE_NAME\s*=\s*['"]tezos-systems-v(\d+)['"]/);
+  const themePreloadMatch = themePreload.match(/THEME_CSS_VERSION\s*=\s*['"](\d+)['"]/);
+  const themeUiMatch = themeUi.match(/THEME_CSS_VERSION\s*=\s*['"](\d+)['"]/);
 
   if (!cssMatch) fail('index.html must serve css/styles.min.css with a ?v= cache stamp');
   if (!appPreloadMatch) fail('index.html modulepreload for js/core/app.js must carry a ?v= cache stamp');
   if (!appScriptMatch) fail('index.html app module script must carry a ?v= cache stamp');
   if (!cacheMatch) fail('sw.js CACHE_NAME must be tezos-systems-vNN');
+  if (!themePreloadMatch) fail('theme-preload.js must expose THEME_CSS_VERSION');
+  if (!themeUiMatch) fail('theme.js must expose THEME_CSS_VERSION');
 
   const versions = [cssMatch?.[1], appPreloadMatch?.[1], appScriptMatch?.[1], cacheMatch?.[1]].filter(Boolean);
   if (new Set(versions).size > 1) {
     fail(`cache stamps are out of sync: ${versions.join(', ')}`);
   } else if (versions.length === 4) {
     pass(`cache stamps aligned at v${versions[0]}`);
+  }
+
+  const themeVersions = [themePreloadMatch?.[1], themeUiMatch?.[1], cssMatch?.[1]].filter(Boolean);
+  if (new Set(themeVersions).size > 1) {
+    fail(`lazy theme CSS versions are out of sync: ${themeVersions.join(', ')}`);
+  } else if (themeVersions.length === 3) {
+    pass(`lazy theme CSS version aligned at v${themeVersions[0]}`);
   }
 
   if (!sw.includes("'/version.json'") && !sw.includes('/version.json')) {

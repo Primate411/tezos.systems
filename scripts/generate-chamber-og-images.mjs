@@ -5,6 +5,7 @@ import fsSync from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
+import sharp from 'sharp';
 import { CHAMBER_ROUTES } from './lib/chamber-routes.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -278,6 +279,23 @@ function renderCard(route, report) {
 </html>`;
 }
 
+async function optimizePng(file) {
+  const before = (await fs.stat(file)).size;
+  const optimized = await sharp(file)
+    .png({
+      adaptiveFiltering: true,
+      compressionLevel: 9,
+      effort: 10,
+      palette: true,
+      quality: 92
+    })
+    .toBuffer();
+  if (optimized.length < before) {
+    await fs.writeFile(file, optimized);
+  }
+  return { before, after: Math.min(before, optimized.length) };
+}
+
 async function main() {
   const report = await readGovernanceReport();
   await fs.mkdir(OUT_DIR, { recursive: true });
@@ -288,7 +306,8 @@ async function main() {
       await page.setContent(renderCard(route, report), { waitUntil: 'load' });
       const out = path.join(OUT_DIR, `${route.slug}.png`);
       await page.screenshot({ path: out, type: 'png' });
-      console.log(`Wrote ${path.relative(ROOT, out)}`);
+      const { before, after } = await optimizePng(out);
+      console.log(`Wrote ${path.relative(ROOT, out)} (${Math.round(before / 1024)}KB -> ${Math.round(after / 1024)}KB)`);
     }
   } finally {
     await browser.close();

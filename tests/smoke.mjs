@@ -1807,7 +1807,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(!/Not in sample/.test(healthState.myBakerMetrics[2] || ''), `network health chamber: My Tezos latest block missing: ${healthState.myBakerMetrics.join(', ')}`);
   assert(healthState.systemLinks >= healthState.attesterRows, `network health chamber: baker profile links missing, saw ${healthState.systemLinks}`);
   assert(healthState.tzktLinks >= healthState.attesterRows, `network health chamber: TzKT links missing, saw ${healthState.tzktLinks}`);
-  assert(/Direct: \/#health/.test(healthState.footer), `network health chamber: direct footer missing: ${healthState.footer}`);
+  assert(/Direct: \/health\//.test(healthState.footer), `network health chamber: direct footer missing: ${healthState.footer}`);
   assert(healthState.updatedAgeMs >= 85000, `network health chamber: Updated age should come from stale head block timestamp, saw ${healthState.updatedAge} (${healthState.updatedAgeMs}ms)`);
   assert(!/^(0s ago|just now)$/.test(healthState.updatedAge), `network health chamber: Updated age should not be fetch-time fresh: ${healthState.updatedAge}`);
   assert(healthState.headMeta.includes(healthState.updatedAge), `network health chamber: header head age should match Updated metric: ${healthState.headMeta} vs ${healthState.updatedAge}`);
@@ -1974,7 +1974,7 @@ async function smokeTezlinkChamber(browser, baseUrl) {
   assert(/L1 Anchor/.test(tezlinkState.anchorText) && /sr1Smok/.test(tezlinkState.anchorText), `tezlink chamber: anchor panel missing rollup: ${tezlinkState.anchorText}`);
   assert(/Gas Oracle/.test(tezlinkState.gasText) && /Average/.test(tezlinkState.gasText), `tezlink chamber: gas oracle panel missing: ${tezlinkState.gasText}`);
   assert(tezlinkState.tokenRows >= 3 && /USDC\.e|WXTZ/.test(tezlinkState.tokenText), `tezlink chamber: token holder panel missing: ${tezlinkState.tokenText}`);
-  assert(/Direct: \/#tezlink/.test(tezlinkState.footer), `tezlink chamber: direct footer missing: ${tezlinkState.footer}`);
+  assert(/Direct: \/tezlink\//.test(tezlinkState.footer), `tezlink chamber: direct footer missing: ${tezlinkState.footer}`);
   assert(tezlinkState.directHref === '/#tezlink', `tezlink chamber: direct href mismatch: ${tezlinkState.directHref}`);
   assert(tezlinkState.sourceLinks >= 2, `tezlink chamber: source links missing, saw ${tezlinkState.sourceLinks}`);
 
@@ -2026,7 +2026,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#etherlink-governance-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#l2chamber"]', 1, 'governance testing period Tezlink Governance card link');
   await expectCount(page, '#chambers-toggle', 1, 'governance testing period chambers launcher button');
   await expectCount(page, '.feature-copy-link[data-copy-hash="#chambers"]', 1, 'governance testing period chambers launcher link');
-  await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb-tile"]', 1, 'governance testing period LB tile link');
+  await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb"]', 1, 'governance testing period LB chamber link');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"] .card-copy-link[data-copy-hash="#tz4"]', 1, 'governance testing period tz4 tile link');
   await expectCount(page, '#chambers-section [data-stat="network-health"] .card-copy-link[data-copy-hash="#health"]', 1, 'governance testing period health tile link');
   await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
@@ -2199,7 +2199,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(etherlinkState.timelineRows >= 3 && /Submission/.test(etherlinkState.timelineText), `governance testing period: Etherlink merged timeline missing: ${etherlinkState.timelineText}`);
   assert(etherlinkState.voterRows >= 3, `governance testing period: Etherlink upvoter rows missing, saw ${etherlinkState.voterRows}`);
   assert(etherlinkState.activityRows >= 3, `governance testing period: Etherlink merged activity rows missing, saw ${etherlinkState.activityRows}`);
-  assert(/Direct: \/#l2chamber/.test(etherlinkState.footer), `governance testing period: Tezlink direct footer missing: ${etherlinkState.footer}`);
+  assert(/Direct: \/l2chamber\//.test(etherlinkState.footer), `governance testing period: Tezlink direct footer missing: ${etherlinkState.footer}`);
   assert(etherlinkState.officialHref.includes('/governance/fast'), `governance testing period: Etherlink official track link missing: ${etherlinkState.officialHref}`);
   assert(etherlinkState.storageHref.includes(ETHERLINK_FAST_CONTRACT), `governance testing period: Etherlink TzKT storage link missing: ${etherlinkState.storageHref}`);
   assert(/auto-refresh 60s/.test(etherlinkState.refreshState), `governance testing period: Etherlink refresh label mismatch: ${etherlinkState.refreshState}`);
@@ -2548,7 +2548,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(tz4State.filters === 4, `governance testing period: tz4 filter count mismatch: ${tz4State.filters}`);
   assert(tz4State.systemLinks >= 3, `governance testing period: tz4 Tezos.Systems baker links missing, saw ${tz4State.systemLinks}`);
   assert(tz4State.tzktLinks >= 3, `governance testing period: tz4 TzKT links missing, saw ${tz4State.tzktLinks}`);
-  assert(/Direct: \/#tz4/.test(tz4State.footer), `governance testing period: tz4 direct footer missing: ${tz4State.footer}`);
+  assert(/Direct: \/tz4\//.test(tz4State.footer), `governance testing period: tz4 direct footer missing: ${tz4State.footer}`);
   assert(/^as of \d{2}:\d{2} UTC$/.test(tz4State.cardUpdatedLabel), `governance testing period: tz4 freshness stamp mismatch: ${tz4State.cardUpdatedLabel}`);
   assert(/Copy Chambers link/.test(tz4State.chambersLauncherCopy), `governance testing period: combined Chambers launcher copy link missing: ${tz4State.chambersLauncherCopy}`);
   assert(tz4State.intervalDelays.includes(60000), `governance testing period: tz4 modal 60s refresh timer was not registered: ${tz4State.intervalDelays.join(', ')}`);

@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-12',
         entries: [
+            { type: '🔧', text: 'Governance RSS now keeps active proposal names in historical feed items, lazy theme cache stamps are guarded, and Liquidity Baking block ranges stay compact' },
             { type: '✨', text: 'Each live chamber now has a public share route with its own title, description, canonical URL, and 1200x630 social card' },
             { type: '✨', text: 'The governance pipeline now publishes an RSS feed and refreshes Chamber routes, OG cards, and static compare pages on schedule' },
             { type: '⚡', text: 'Compare pages now ship crawlable static scoreboards and summaries before the live enhancement script hydrates them' },

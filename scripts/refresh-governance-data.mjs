@@ -457,6 +457,12 @@ function buildGovernanceFeed({ generatedAt, report, periodVotes }) {
     const current = report.currentGovernance || {};
     const link = 'https://tezos.systems/chamber/';
     const items = [];
+    const feedProposalName = (vote) => {
+        if (current.proposalHash && vote.proposalHash === current.proposalHash && current.proposalName) {
+            return current.proposalName;
+        }
+        return vote.displayName || vote.proposalAlias || vote.proposalHash;
+    };
 
     if (current.proposalHash) {
         const name = current.proposalName || current.proposalHash;
@@ -483,7 +489,7 @@ function buildGovernanceFeed({ generatedAt, report, periodVotes }) {
         .slice(0, 18);
 
     for (const vote of recent) {
-        const name = vote.displayName || vote.proposalAlias || vote.proposalHash;
+        const name = feedProposalName(vote);
         const kind = vote.kind ? `${vote.kind[0].toUpperCase()}${vote.kind.slice(1)}` : 'Governance';
         const status = periodStatusLabel(vote.status);
         items.push({

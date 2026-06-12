@@ -45,6 +45,22 @@ function formatCompactCount(value) {
     return formatCount(count);
 }
 
+function formatCompactLevel(value) {
+    const level = Number(value || 0);
+    if (Math.abs(level) >= 1000000) return `${(level / 1000000).toFixed(3)}M`;
+    if (Math.abs(level) >= 1000) return `${(level / 1000).toFixed(1)}K`;
+    return formatCount(level);
+}
+
+function formatCompactLevelRange(oldest, latest) {
+    const start = Number(oldest || 0);
+    const end = Number(latest || 0);
+    if (Math.abs(start) >= 1000000 && Math.abs(end) >= 1000000) {
+        return `${(start / 1000000).toFixed(3)}-${(end / 1000000).toFixed(3)}M`;
+    }
+    return `${formatCompactLevel(start)}-${formatCompactLevel(end)}`;
+}
+
 function formatLevel(value) {
     return formatCount(value || 0);
 }
@@ -173,7 +189,8 @@ function summarizeBlocks(blocks) {
         blockCounts: countVotes(blocks),
         bakerSummary: summarizeBakers(blocks),
         timeSpan: latest && oldest ? formatSpan(oldest.timestamp, latest.timestamp) : 'n/a',
-        blockRange: latest && oldest ? `${formatLevel(oldest.level)} → ${formatLevel(latest.level)}` : 'n/a',
+        blockRange: latest && oldest ? `${formatLevel(oldest.level)} -> ${formatLevel(latest.level)}` : 'n/a',
+        blockRangeShort: latest && oldest ? formatCompactLevelRange(oldest.level, latest.level) : 'n/a',
         emaPct: latest ? emaPct(latest.lbToggleEma) : 0,
         disabled: latest ? subsidyDisabled(latest.lbToggleEma) : false
     };
@@ -616,7 +633,7 @@ function renderGlobalMetrics(data) {
             <div class="lb-metric-grid">
                 <div><span>Blocks analyzed</span><strong id="lb-global-blocks">${formatCount(total)}</strong></div>
                 <div><span>Time span</span><strong id="lb-global-timespan">${escapeHtml(data.timeSpan)}</strong></div>
-                <div><span>Block range</span><strong id="lb-global-range">${escapeHtml(data.blockRange)}</strong></div>
+                <div><span>Block range</span><strong id="lb-global-range" title="${escapeHtml(data.blockRange)}">${escapeHtml(data.blockRangeShort || data.blockRange)}</strong></div>
             </div>
             <div class="lb-vote-bars">
                 ${renderVoteBar('OFF', 'off', counts.off, total)}
@@ -908,7 +925,9 @@ function updateGlobalMetrics(data) {
     const total = data.blocks.length;
     setTextIfChanged('#lb-global-blocks', formatCount(total));
     setTextIfChanged('#lb-global-timespan', data.timeSpan);
-    setTextIfChanged('#lb-global-range', data.blockRange);
+    setTextIfChanged('#lb-global-range', data.blockRangeShort || data.blockRange);
+    const range = document.querySelector('#lb-global-range');
+    if (range) range.title = data.blockRange;
     updateVoteBar('off', data.blockCounts.off, total);
     updateVoteBar('on', data.blockCounts.on, total);
     updateVoteBar('pass', data.blockCounts.pass, total);
