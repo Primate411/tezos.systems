@@ -311,6 +311,37 @@ async function checkCsp() {
   pass('CSP includes required live-data domains');
 }
 
+async function checkSitemapCoverage() {
+  const sitemap = await readText('sitemap.xml');
+  const locs = new Set(Array.from(sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)).map((match) => match[1]));
+  const expected = [
+    'https://tezos.systems/',
+    'https://tezos.systems/staking/',
+    'https://tezos.systems/governance/',
+    'https://tezos.systems/bakers/',
+    'https://tezos.systems/hen/',
+    'https://tezos.systems/compare/'
+  ];
+
+  for (const file of await walk('compare', (name) => name.endsWith('.html'))) {
+    expected.push(file.endsWith('/index.html')
+      ? 'https://tezos.systems/compare/'
+      : `https://tezos.systems/${file}`);
+  }
+  for (const file of await walk('widgets', (name) => name.endsWith('.html'))) {
+    expected.push(`https://tezos.systems/${file}`);
+  }
+
+  for (const url of new Set(expected)) {
+    if (!locs.has(url)) fail(`sitemap.xml missing ${url}`);
+  }
+  for (const url of locs) {
+    if (url.includes('#')) fail(`sitemap.xml should use crawlable paths instead of hash fragments: ${url}`);
+  }
+
+  pass(`sitemap coverage checked: ${locs.size} URLs`);
+}
+
 async function checkSelectorContracts() {
   const index = await readText('index.html');
   const requiredIds = [
@@ -374,6 +405,7 @@ async function checkSelectorContracts() {
   const etherlinkGovernance = await readText('js/features/etherlink-governance.js');
   const tz4 = await readText('js/features/tz4-adoption.js');
   const health = await readText('js/features/network-health.js');
+  const share = await readText('js/ui/share.js');
   const styles = await readText('css/styles.css');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
@@ -390,6 +422,8 @@ async function checkSelectorContracts() {
     ['Chamber proposal intel panel', 'id="chamber-proposal-intel"', chamber],
     ['Chamber gap analysis panel', 'id="chamber-gap-analysis"', chamber],
     ['Chamber promotion delta uses epoch periods', '(epoch.periods || []).find', chamber],
+    ['Chamber branded share capture helper', 'captureBrandedChamberShare', share],
+    ['Chamber share direct link baked into image', 'tezos.systems/#chamber', chamber],
     ['Tezlink Governance card copy link', 'data-copy-hash="#l2chamber"', etherlinkGovernance],
     ['Tezlink Governance direct footer link', 'Direct: /#l2chamber', etherlinkGovernance],
     ['Tezlink Governance chamber wiring', 'openEtherlinkGovernanceChamber', etherlinkGovernance],
@@ -753,6 +787,7 @@ async function main() {
   await checkLocalReferences();
   await checkCacheBustAlignment();
   await checkCsp();
+  await checkSitemapCoverage();
   await checkSelectorContracts();
   await checkMainnetLaunchCopy();
   await checkModuleImportVersions();

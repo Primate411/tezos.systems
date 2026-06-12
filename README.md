@@ -333,7 +333,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v172`.
+- Current aligned shell cache stamp: `v173`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.
@@ -395,8 +395,8 @@ Widgets:
 ## SEO And Analytics
 
 - `robots.txt` allows major AI crawlers and points at `sitemap.xml`.
-- `sitemap.xml` includes the canonical site, SEO pages, compare pages, widgets,
-  and theme/deep-link URLs.
+- `sitemap.xml` includes the canonical site, SEO pages, compare pages, and
+  widget endpoints.
 - `index.html` includes CSP, Open Graph/Twitter metadata, and JSON-LD.
 - GoatCounter is used for privacy-friendly analytics: `tezsys.goatcounter.com`.
 

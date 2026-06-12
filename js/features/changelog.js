@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-11',
         entries: [
+            { type: '🔧', text: 'The Chamber share image now exports a branded 1200x630 Tezos Systems frame with proposal, vote metrics, date, and direct link baked into the pixels' },
+            { type: '🔧', text: 'Homepage and landing metadata now use search-oriented Tezos dashboard copy, and sitemap coverage now includes SEO pages plus widget endpoints' },
             { type: '🎨', text: 'Network Health now gives the bottom-left freshness stamp more room and uses slimmer block-status pills in the wide Chambers card' },
             { type: '🔧', text: 'Removed the Chambers Daily Signal strip so the live room cards lead the section directly' },
             { type: '✨', text: 'Chambers now add trust-layer intelligence across the six live rooms: proposal intel, gap analysis, track memory, period telemetry, L2 direction, LB drift, and tz4 momentum' },

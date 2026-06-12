@@ -1657,18 +1657,53 @@ function initChamberShare(data) {
         try {
             const target = document.querySelector('#chamber-modal .chamber-grid') || document.querySelector('#chamber-modal .chamber-body');
             if (!target) throw new Error('Share target unavailable');
-            const { loadHtml2Canvas, showShareModal } = await import('../ui/share.js');
-            await loadHtml2Canvas();
-            const canvas = await window.html2canvas(target, {
-                backgroundColor: '#0A0E1A',
-                scale: window.innerWidth < 700 ? 1 : 2,
-                useCORS: true,
-                logging: false
-            });
             const proposalName = data.proposal?.hash
                 ? extractProtoName(data.proposal.hash, data.protocols || [])
                 : 'Tezos governance';
             const stage = periodTitle(data.currentPeriod?.kind || data.votePeriod?.kind);
+            const supermajority = calcSupermajority(data.votePeriod);
+            const participation = calcQuorum(data.votePeriod, data.voters);
+            const quorum = Number(data.votePeriod?.ballotsQuorum);
+            const threshold = Number(data.votePeriod?.supermajority) || 80;
+            const votedCount = Array.isArray(data.voters) ? data.voters.filter(voter => voter.status !== 'none').length : 0;
+            const voterCount = Array.isArray(data.voters) ? data.voters.length : 0;
+            const closeLine = data.currentPeriod?.endTime ? `${fmtUtcDateTime(data.currentPeriod.endTime)} UTC` : 'Timing n/a';
+            const { captureBrandedChamberShare, showShareModal } = await import('../ui/share.js');
+            const canvas = await captureBrandedChamberShare(target, {
+                proposalName,
+                stage,
+                summary: governanceResolutionLine(data),
+                directUrl: 'tezos.systems/#chamber',
+                stats: [
+                    {
+                        label: 'Quorum',
+                        value: Number.isFinite(participation) && Number.isFinite(quorum)
+                            ? `${participation.toFixed(1)}% / ${quorum.toFixed(1)}%`
+                            : 'n/a',
+                        tone: Number.isFinite(participation) && Number.isFinite(quorum) && participation >= quorum ? 'good' : 'risk',
+                        progress: participation,
+                        threshold: quorum
+                    },
+                    {
+                        label: 'Yay vote',
+                        value: Number.isFinite(supermajority)
+                            ? `${supermajority.toFixed(1)}% / ${threshold.toFixed(0)}%`
+                            : 'n/a',
+                        tone: Number.isFinite(supermajority) && supermajority >= threshold ? 'good' : 'risk',
+                        progress: supermajority,
+                        threshold
+                    },
+                    {
+                        label: 'Bakers voted',
+                        value: voterCount ? `${votedCount} / ${voterCount}` : 'n/a',
+                        tone: votedCount ? 'neutral' : 'risk'
+                    },
+                    {
+                        label: 'Closes',
+                        value: closeLine
+                    }
+                ]
+            });
             showShareModal(canvas, [
                 {
                     label: 'Governance',

@@ -924,6 +924,201 @@ async function doCaptureAndShare(selectedSections) {
 }
 
 /**
+ * Capture The Chamber's live vote panel inside a branded 1200x630 share frame.
+ */
+export async function captureBrandedChamberShare(target, details = {}) {
+    if (!target) throw new Error('Share target unavailable');
+
+    let wrapper = null;
+    let restoreSpacing = null;
+    const {
+        brand: brandColor,
+        bg: bgColor,
+        brandRgb: brandRgb,
+        isClean,
+        isDark
+    } = getThemeColors();
+    const softText = isClean ? 'rgba(0,0,0,0.56)' : isDark ? 'rgba(232,232,232,0.58)' : 'rgba(255,255,255,0.62)';
+    const mutedText = isClean ? 'rgba(0,0,0,0.38)' : isDark ? 'rgba(232,232,232,0.42)' : 'rgba(255,255,255,0.42)';
+    const panelBg = isClean ? 'rgba(255,255,255,0.82)' : isDark ? 'rgba(255,255,255,0.055)' : `rgba(${brandRgb},0.055)`;
+    const panelBorder = isClean ? 'rgba(37,99,235,0.16)' : isDark ? 'rgba(255,255,255,0.12)' : `rgba(${brandRgb},0.22)`;
+
+    await loadHtml2Canvas();
+
+    const captureDate = details.date || new Date().toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+    const proposalName = details.proposalName || 'Tezos governance';
+    const stage = details.stage || 'Live vote';
+    const summary = details.summary || 'Track quorum, supermajority, and baker voting in real time.';
+    const directUrl = details.directUrl || 'tezos.systems/#chamber';
+    const stats = Array.isArray(details.stats) ? details.stats.slice(0, 4) : [];
+
+    try {
+        wrapper = document.createElement('div');
+        wrapper.style.cssText = `
+            position: fixed; top: -9999px; left: -9999px;
+            width: 1200px; height: 630px;
+            background: ${bgColor};
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
+            color: ${isClean ? '#101827' : '#ffffff'};
+            overflow: hidden;
+            box-sizing: border-box;
+        `;
+
+        const border = document.createElement('div');
+        border.style.cssText = `
+            position: absolute; inset: 18px;
+            border: 1px solid ${panelBorder};
+            border-radius: 16px;
+            box-shadow: ${isClean || isDark ? '0 16px 48px rgba(0,0,0,0.12)' : `inset 0 0 46px rgba(${brandRgb},0.045), 0 0 28px rgba(${brandRgb},0.08)`};
+            pointer-events: none;
+        `;
+        wrapper.appendChild(border);
+
+        const content = document.createElement('div');
+        content.style.cssText = `
+            position: relative; z-index: 1;
+            height: 100%;
+            display: grid;
+            grid-template-columns: 430px 1fr;
+            gap: 34px;
+            padding: 44px 52px 40px;
+            box-sizing: border-box;
+        `;
+
+        const left = document.createElement('section');
+        left.style.cssText = 'display:flex;flex-direction:column;min-width:0;';
+        left.innerHTML = `
+            <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:${brandColor};text-shadow:${isClean || isDark ? 'none' : `0 0 28px rgba(${brandRgb},0.45)`};">TEZOS SYSTEMS</div>
+            <div style="width:210px;height:1px;background:${brandColor};opacity:0.72;margin:14px 0 30px;"></div>
+            <div style="font-size:13px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:${softText};">The Chamber · ${escapeHtml(stage)}</div>
+            <h1 style="margin:16px 0 12px;font-size:${proposalName.length > 22 ? '52px' : '62px'};line-height:0.96;font-weight:850;letter-spacing:0;color:${brandColor};max-width:420px;overflow-wrap:anywhere;">${escapeHtml(proposalName)}</h1>
+            <p style="margin:0 0 26px;font-size:19px;line-height:1.42;color:${softText};">${escapeHtml(summary)}</p>
+        `;
+
+        const statGrid = document.createElement('div');
+        statGrid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:auto;';
+        for (const stat of stats) {
+            const card = document.createElement('div');
+            const tone = stat.tone === 'good' ? '#00d084' : stat.tone === 'risk' ? '#ff6b7a' : brandColor;
+            card.style.cssText = `
+                min-height: 82px;
+                padding: 13px 14px;
+                border-radius: 10px;
+                border: 1px solid ${panelBorder};
+                background: ${panelBg};
+                box-sizing: border-box;
+            `;
+            card.innerHTML = `
+                <div style="font-size:11px;font-weight:800;letter-spacing:1.7px;text-transform:uppercase;color:${mutedText};margin-bottom:8px;">${escapeHtml(stat.label)}</div>
+                <div style="font-size:${String(stat.value || '').length > 14 ? '19px' : '24px'};line-height:1.04;font-weight:850;color:${tone};overflow-wrap:anywhere;">${escapeHtml(stat.value)}</div>
+            `;
+            statGrid.appendChild(card);
+        }
+        left.appendChild(statGrid);
+
+        const footer = document.createElement('div');
+        footer.style.cssText = `display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:28px;font-size:15px;color:${mutedText};`;
+        footer.innerHTML = `
+            <span>${escapeHtml(captureDate)}</span>
+            <span style="color:${brandColor};font-weight:800;letter-spacing:1px;">${escapeHtml(directUrl)}</span>
+        `;
+        left.appendChild(footer);
+
+        const right = document.createElement('section');
+        right.style.cssText = `
+            min-width:0;
+            display:flex;
+            flex-direction:column;
+            gap:14px;
+        `;
+        const stageLabels = ['Proposal', 'Exploration', 'Cooldown', 'Promotion', 'Adoption'];
+        const activeStage = stage.toLowerCase();
+        const stageRail = stageLabels.map(label => {
+            const active = activeStage.includes(label.toLowerCase());
+            return `
+                <div style="display:flex;align-items:center;gap:9px;min-width:0;">
+                    <span style="width:13px;height:13px;border-radius:999px;background:${active ? brandColor : 'transparent'};border:1px solid ${active ? brandColor : panelBorder};box-shadow:${active && !isClean ? `0 0 16px rgba(${brandRgb},0.7)` : 'none'};flex:0 0 auto;"></span>
+                    <span style="font-size:13px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:${active ? brandColor : mutedText};white-space:nowrap;">${escapeHtml(label)}</span>
+                </div>
+            `;
+        }).join('');
+        const barStats = stats.filter(stat => Number.isFinite(stat.progress) && Number.isFinite(stat.threshold)).slice(0, 2);
+        const barRows = barStats.map(stat => {
+            const progress = Math.max(0, Math.min(100, Number(stat.progress)));
+            const threshold = Math.max(0, Math.min(100, Number(stat.threshold)));
+            const passed = progress >= threshold;
+            const fillColor = passed ? '#00d084' : '#ffb84d';
+            return `
+                <div style="padding:20px;border:1px solid ${panelBorder};border-radius:12px;background:${isClean ? 'rgba(255,255,255,0.76)' : 'rgba(255,255,255,0.045)'};">
+                    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:14px;">
+                        <div>
+                            <div style="font-size:12px;font-weight:850;letter-spacing:1.8px;text-transform:uppercase;color:${mutedText};">${escapeHtml(stat.label)}</div>
+                            <div style="font-size:34px;line-height:1.08;font-weight:900;color:${fillColor};margin-top:4px;">${escapeHtml(stat.value)}</div>
+                        </div>
+                        <div style="font-size:13px;font-weight:800;letter-spacing:1.3px;text-transform:uppercase;color:${passed ? '#00d084' : '#ffb84d'};">${passed ? 'Cleared' : 'Watch'}</div>
+                    </div>
+                    <div style="position:relative;height:14px;border-radius:999px;background:${isClean ? 'rgba(15,23,42,0.10)' : 'rgba(255,255,255,0.10)'};overflow:hidden;">
+                        <div style="height:100%;width:${progress.toFixed(2)}%;border-radius:999px;background:${fillColor};"></div>
+                        <span style="position:absolute;top:-5px;left:${threshold.toFixed(2)}%;width:2px;height:24px;background:${isClean ? 'rgba(15,23,42,0.42)' : 'rgba(255,255,255,0.58)'};"></span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        const smallStats = stats.slice(2, 4).map(stat => `
+            <div style="padding:18px;border:1px solid ${panelBorder};border-radius:12px;background:${isClean ? 'rgba(255,255,255,0.76)' : 'rgba(255,255,255,0.045)'};">
+                <div style="font-size:12px;font-weight:850;letter-spacing:1.8px;text-transform:uppercase;color:${mutedText};margin-bottom:9px;">${escapeHtml(stat.label)}</div>
+                <div style="font-size:${String(stat.value || '').length > 18 ? '23px' : '30px'};line-height:1.08;font-weight:900;color:${stat.tone === 'risk' ? '#ff6b7a' : brandColor};overflow-wrap:anywhere;">${escapeHtml(stat.value)}</div>
+            </div>
+        `).join('');
+
+        right.innerHTML = `
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:18px;">
+                <div style="font-size:13px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:${softText};">Live Vote Room</div>
+                <div style="font-size:13px;color:${mutedText};">Chamber signal card</div>
+            </div>
+            <div style="height:496px;border:1px solid ${panelBorder};border-radius:14px;background:${panelBg};box-shadow:${isClean ? '0 20px 54px rgba(17,24,39,0.10)' : `0 24px 64px rgba(0,0,0,0.32), inset 0 0 36px rgba(${brandRgb},0.035)`};overflow:hidden;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:18px;">
+                <div style="display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));gap:10px;padding:14px 16px;border:1px solid ${panelBorder};border-radius:12px;background:${isClean ? 'rgba(255,255,255,0.68)' : 'rgba(0,0,0,0.16)'};">
+                    ${stageRail}
+                </div>
+                <div style="display:grid;grid-template-columns:1fr;gap:14px;">
+                    ${barRows}
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                    ${smallStats}
+                </div>
+            </div>
+        `;
+
+        content.appendChild(left);
+        content.appendChild(right);
+        wrapper.appendChild(content);
+        document.body.appendChild(wrapper);
+
+        restoreSpacing = await fixWordSpacing(wrapper);
+        const canvas = await window.html2canvas(wrapper, {
+            backgroundColor: bgColor,
+            scale: 1,
+            useCORS: true,
+            logging: false,
+            width: 1200,
+            height: 630,
+            windowWidth: 1200
+        });
+
+        restoreSpacing();
+        restoreSpacing = null;
+        return canvas;
+    } finally {
+        if (restoreSpacing) restoreSpacing();
+        if (wrapper?.isConnected) wrapper.remove();
+    }
+}
+
+/**
  * Native share via Web Share API
  */
 async function nativeShare(canvas, text) {
