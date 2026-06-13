@@ -341,6 +341,7 @@ async function installFeatureMocks(context, options = {}) {
   const etherlinkQuiet = Boolean(options.etherlinkQuiet);
   const etherlinkNullProposal = Boolean(options.etherlinkNullProposal);
   const governanceNoProposal = Boolean(options.governanceNoProposal);
+  const governanceLiveVote = Boolean(options.governanceLiveVote);
   await context.route('**/*', async (route) => {
     const request = route.request();
     const url = request.url();
@@ -993,10 +994,18 @@ async function installFeatureMocks(context, options = {}) {
           }
         ]);
       }
-      if (url.includes('/voting/periods/current/voters')) return fulfillJson(route, []);
+      if (url.includes('/voting/periods/current/voters')) {
+        if (governanceLiveVote) {
+          return fulfillJson(route, [
+            { status: 'voted_yay', votingPower: 6000, delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } },
+            { status: 'voted_pass', votingPower: 1500, delegate: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' } }
+          ]);
+        }
+        return fulfillJson(route, []);
+      }
       if (url.includes('/voting/periods/current')) {
         const start = new Date(Date.now() - 3600000).toISOString();
-        const end = new Date(Date.now() + 86400000).toISOString();
+        const end = new Date(Date.now() + 2 * 86400000 + 21 * 3600000 + 21 * 60000).toISOString();
         if (governanceNoProposal) {
           return fulfillJson(route, {
             index: 172,
@@ -1009,6 +1018,30 @@ async function installFeatureMocks(context, options = {}) {
             endTime: end,
             proposalsCount: 0,
             totalVotingPower: 12000
+          });
+        }
+        if (governanceLiveVote) {
+          return fulfillJson(route, {
+            index: 173,
+            kind: 'promotion',
+            status: 'active',
+            epoch: 91,
+            firstLevel: 12340000,
+            lastLevel: 12350800,
+            startTime: start,
+            endTime: end,
+            totalVotingPower: 12000,
+            ballotsQuorum: 50,
+            supermajority: 80,
+            yayVotingPower: 6000,
+            passVotingPower: 1500,
+            nayVotingPower: 0,
+            yayBallots: 1,
+            passBallots: 1,
+            nayBallots: 0,
+            ballotsCount: 2,
+            proposalHash: 'PtSmokeProposal',
+            proposal: { hash: 'PtSmokeProposal', alias: 'Smoke' }
           });
         }
         return fulfillJson(route, {
@@ -1157,13 +1190,41 @@ async function assertChamberControlGeometry(page, label) {
         found.push({ card: selector, issue: 'missing-card' });
         continue;
       }
-      const controls = Array.from(card.querySelectorAll(':scope > .card-copy-link, :scope > .card-share-btn, :scope > .card-info-btn, :scope > .chamber-expand-cue'))
+      const controls = Array.from(card.querySelectorAll(':scope > .card-copy-link, :scope > .card-share-btn, :scope > .card-info-btn, :scope .chamber-entry-footer > .chamber-expand-cue'))
         .map((node) => ({ node, name: nameOf(node), box: visibleBox(node) }))
         .filter((item) => item.box);
       const topControls = controls.filter((item) => !item.node.classList.contains('chamber-expand-cue'));
+      const footer = card.querySelector(':scope .chamber-entry-footer');
+      const footerBox = visibleBox(footer);
       const content = Array.from(card.querySelectorAll(contentSelector))
+        .filter((node) => !node.closest('.chamber-entry-footer'))
         .map((node) => ({ node, name: nameOf(node), box: visibleBox(node) }))
         .filter((item) => item.box);
+
+      if (!footer || !footerBox) {
+        found.push({ card: selector, issue: 'missing-footer-rail' });
+      } else {
+        const expectedFreshness = card.dataset.updatedLabel || '';
+        const actualFreshness = footer.querySelector('.chamber-entry-freshness')?.textContent?.trim() || '';
+        if (expectedFreshness && actualFreshness !== expectedFreshness) {
+          found.push({ card: selector, issue: 'footer-freshness-mismatch', expected: expectedFreshness, actual: actualFreshness });
+        }
+        if (footerBox.bottom > cardBox.bottom + 1 || footerBox.top < cardBox.top - 1) {
+          found.push({ card: selector, issue: 'footer-outside-card', footer: footerBox, cardBox });
+        }
+        for (const item of content) {
+          const overlap = overlapArea(footerBox, item.box);
+          if (overlap > 0) {
+            found.push({ card: selector, issue: 'footer-content-overlap', footer: '.chamber-entry-footer', content: item.name, overlap: Number(overlap.toFixed(2)) });
+          }
+        }
+      }
+
+      for (const item of content) {
+        if (item.box.top < cardBox.top - 1 || item.box.bottom > cardBox.bottom + 1) {
+          found.push({ card: selector, issue: 'content-outside-card', content: item.name, contentBox: item.box, cardBox });
+        }
+      }
 
       for (const control of topControls) {
         if (control.box.top < cardBox.top + 8) {
@@ -1197,6 +1258,74 @@ async function assertChamberControlGeometry(page, label) {
     return found;
   });
   assert(issues.length === 0, `${label}: chamber controls should not overlap content or each other: ${JSON.stringify(issues)}`);
+}
+
+async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, mockOptions = {}) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport,
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context, mockOptions);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, label, issues);
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `${label}: dashboard failed with HTTP ${response?.status()}`);
+  await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]').length >= 6, null, { timeout: 15000 });
+  if (mockOptions.governanceLiveVote) {
+    await page.locator('#chamber-entry-card.chamber-entry-wide[data-chamber-entry-size="wide"] .chamber-entry-metric strong').first().waitFor({ state: 'visible', timeout: 10000 });
+  }
+  await assertChamberControlGeometry(page, label);
+
+  const state = await page.evaluate(() => {
+    const rect = (node) => {
+      if (!node) return null;
+      const box = node.getBoundingClientRect();
+      return { top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+    };
+    const metricGrid = document.querySelector('#chamber-entry-card.chamber-entry-wide .chamber-entry-metrics');
+    const metricStyle = metricGrid ? window.getComputedStyle(metricGrid) : null;
+    const metricColumns = metricStyle?.gridTemplateColumns?.split(' ').filter(Boolean).length || 0;
+    const metricTruncations = Array.from(document.querySelectorAll('#chamber-entry-card.chamber-entry-wide .chamber-entry-metric span, #chamber-entry-card.chamber-entry-wide .chamber-entry-metric strong'))
+      .filter((node) => node.scrollWidth > node.clientWidth + 1)
+      .map((node) => node.textContent?.trim() || '');
+    const tezlinkCard = document.querySelector('#tezlink-entry-card');
+    const tezlinkLabel = tezlinkCard?.querySelector('.stat-label');
+    const tezlinkCardBox = rect(tezlinkCard);
+    const tezlinkLabelBox = rect(tezlinkLabel);
+    const footers = Array.from(document.querySelectorAll('#chambers-section .chamber-entry-card')).map((card) => ({
+      id: card.id || card.dataset.stat || '',
+      updatedLabel: card.dataset.updatedLabel || '',
+      footerText: card.querySelector('.chamber-entry-footer .chamber-entry-freshness')?.textContent?.trim() || '',
+      hasOpenCue: Boolean(card.querySelector('.chamber-entry-footer > .chamber-expand-cue'))
+    }));
+    return {
+      chamberWide: document.querySelector('#chamber-entry-card')?.classList.contains('chamber-entry-wide') || false,
+      chamberText: document.querySelector('#chamber-entry-card')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      metricColumns,
+      metricTruncations,
+      footers,
+      tezlinkTitleClip: Boolean(tezlinkCardBox && tezlinkLabelBox && tezlinkLabelBox.top < tezlinkCardBox.top - 1),
+      tezlinkCardBox,
+      tezlinkLabelBox
+    };
+  });
+
+  assert(!mockOptions.governanceLiveVote || state.chamberWide, `${label}: live vote should render The Chamber as a wide card: ${JSON.stringify(state)}`);
+  assert(state.metricTruncations.length === 0, `${label}: live vote metrics should not ellipsize: ${JSON.stringify(state.metricTruncations)}`);
+  assert(viewport.width >= 760 ? state.metricColumns === 2 : state.metricColumns >= 1, `${label}: unexpected live vote metric columns: ${state.metricColumns}`);
+  assert(!state.tezlinkTitleClip, `${label}: Tezlink title should remain inside the card: ${JSON.stringify({ card: state.tezlinkCardBox, label: state.tezlinkLabelBox })}`);
+  assert(state.footers.length >= 6 && state.footers.every((footer) => footer.updatedLabel === footer.footerText && footer.hasOpenCue), `${label}: chamber footer rail should own freshness and open cue on every card: ${JSON.stringify(state.footers)}`);
+  assert(issues.length === 0, `${label}: browser issues:\n${issues.join('\n')}`);
+  await context.close();
 }
 
 function isAllowedWarning(message) {
@@ -2089,7 +2218,7 @@ async function smokeTezlinkChamber(browser, baseUrl) {
   assert(/Gas Oracle/.test(tezlinkState.gasText) && /Average/.test(tezlinkState.gasText), `tezlink chamber: gas oracle panel missing: ${tezlinkState.gasText}`);
   assert(tezlinkState.tokenRows >= 3 && /USDC\.e|WXTZ/.test(tezlinkState.tokenText), `tezlink chamber: token holder panel missing: ${tezlinkState.tokenText}`);
   assert(/Direct: \/tezlink\//.test(tezlinkState.footer), `tezlink chamber: direct footer missing: ${tezlinkState.footer}`);
-  assert(tezlinkState.directHref === '/#tezlink', `tezlink chamber: direct href mismatch: ${tezlinkState.directHref}`);
+  assert(tezlinkState.directHref === '/tezlink/', `tezlink chamber: direct href mismatch: ${tezlinkState.directHref}`);
   assert(tezlinkState.sourceLinks >= 2, `tezlink chamber: source links missing, saw ${tezlinkState.sourceLinks}`);
 
   await page.locator('#tezlink-modal.active .chamber-close').click();
@@ -2151,6 +2280,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]').length >= 6, null, { timeout: 10000 });
   await assertChamberOrder(page, 'governance testing period');
   await assertChamberControlGeometry(page, 'governance testing period');
+  await assertResponsiveChamberCards(browser, baseUrl, { width: 900, height: 1000 }, 'governance live chamber tablet', { governanceLiveVote: true });
+  await assertResponsiveChamberCards(browser, baseUrl, { width: 375, height: 900 }, 'governance live chamber mobile', { governanceLiveVote: true });
   await page.waitForFunction(() => {
     const canvas = document.getElementById('tz4-sparkline');
     const chart = canvas ? window.Chart?.getChart(canvas) : null;
@@ -2289,6 +2420,20 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       memory: compactText('#etherlink-governance-modal #etherlink-gov-memory'),
       timelineRows: document.querySelectorAll('#etherlink-governance-modal #etherlink-gov-timeline .etherlink-gov-timeline-row').length,
       timelineText: compactText('#etherlink-governance-modal #etherlink-gov-timeline'),
+      timelineStyle: (() => {
+        const row = document.querySelector('#etherlink-governance-modal #etherlink-gov-timeline .etherlink-gov-timeline-row');
+        if (!row) return null;
+        const style = window.getComputedStyle(row);
+        const box = row.getBoundingClientRect();
+        const columns = style.gridTemplateColumns?.split(' ').filter(Boolean) || [];
+        return {
+          display: style.display,
+          color: style.color,
+          textDecorationLine: style.textDecorationLine,
+          columnCount: columns.length,
+          width: box.width
+        };
+      })(),
       voterRows: document.querySelectorAll('#etherlink-governance-modal .etherlink-gov-voter-row').length,
       activityRows: document.querySelectorAll('#etherlink-governance-modal #etherlink-gov-timeline .etherlink-gov-timeline-row').length,
       footer: compactText('#etherlink-governance-modal .chamber-footer'),
@@ -2312,6 +2457,9 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/Proposalquorum5%/.test(etherlinkState.rules.replace(/\s+/g, '')) && /Period length/.test(etherlinkState.rules), `governance testing period: Etherlink rules panel missing thresholds: ${etherlinkState.rules}`);
   assert(/Track memory/.test(etherlinkState.memory) && /Last proposal/.test(etherlinkState.memory), `governance testing period: Etherlink memory panel missing: ${etherlinkState.memory}`);
   assert(etherlinkState.timelineRows >= 3 && /Submission/.test(etherlinkState.timelineText), `governance testing period: Etherlink merged timeline missing: ${etherlinkState.timelineText}`);
+  assert(etherlinkState.timelineStyle?.display === 'grid' && etherlinkState.timelineStyle.columnCount >= 4, `governance testing period: Etherlink timeline rows should use the themed grid, saw ${JSON.stringify(etherlinkState.timelineStyle)}`);
+  assert(!/underline/i.test(etherlinkState.timelineStyle?.textDecorationLine || ''), `governance testing period: Etherlink timeline rows should not render as default underlined links: ${JSON.stringify(etherlinkState.timelineStyle)}`);
+  assert(!/rgb\(0,\s*0,\s*238\)/.test(etherlinkState.timelineStyle?.color || ''), `governance testing period: Etherlink timeline rows should not render default browser link blue: ${JSON.stringify(etherlinkState.timelineStyle)}`);
   assert(etherlinkState.voterRows >= 3, `governance testing period: Etherlink upvoter rows missing, saw ${etherlinkState.voterRows}`);
   assert(etherlinkState.activityRows >= 3, `governance testing period: Etherlink merged activity rows missing, saw ${etherlinkState.activityRows}`);
   assert(/Direct: \/l2chamber\//.test(etherlinkState.footer), `governance testing period: Tezlink direct footer missing: ${etherlinkState.footer}`);
@@ -2626,6 +2774,27 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     projection: document.querySelector('#tz4-projection-panel')?.textContent || '',
     holdouts: document.querySelector('#tz4-holdouts-panel')?.textContent || '',
     momentum: document.querySelector('#tz4-switch-momentum')?.textContent || '',
+    monthBarStyle: (() => {
+      const rail = document.querySelector('#tz4-adoption-modal .tz4-month-bars');
+      const bar = rail?.querySelector('.tz4-month-bar');
+      const fill = bar?.querySelector('.tz4-month-fill');
+      const count = bar?.querySelector('.tz4-month-count');
+      if (!rail || !bar || !fill) return null;
+      const railStyle = window.getComputedStyle(rail);
+      const barStyle = window.getComputedStyle(bar);
+      const fillStyle = window.getComputedStyle(fill);
+      const fillBox = fill.getBoundingClientRect();
+      return {
+        count: rail.querySelectorAll('.tz4-month-bar').length,
+        railDisplay: railStyle.display,
+        barDisplay: barStyle.display,
+        fillDisplay: fillStyle.display,
+        countText: count?.textContent?.trim() || '',
+        fillHeightVar: fillStyle.getPropertyValue('--tz4-month-height').trim(),
+        fillWidth: fillBox.width,
+        fillHeight: fillBox.height
+      };
+    })(),
     milestones: document.querySelector('#tz4-power-milestones')?.textContent || '',
     rows: document.querySelectorAll('#tz4-baker-status-list .tz4-table-row').length,
     activeRows: document.querySelectorAll('#tz4-baker-status-list [data-tz4-status="active"]').length,
@@ -2655,6 +2824,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/Projection to 50%/.test(tz4State.projection) && /Bakers/.test(tz4State.projection), `governance testing period: tz4 projection panel missing: ${tz4State.projection}`);
   assert(/Largest Holdouts/.test(tz4State.holdouts) && /Second Baker/.test(tz4State.holdouts), `governance testing period: tz4 holdouts panel missing: ${tz4State.holdouts}`);
   assert(/Switches per Month/.test(tz4State.momentum) && /Momentum/.test(tz4State.momentum), `governance testing period: tz4 momentum panel missing: ${tz4State.momentum}`);
+  assert(tz4State.monthBarStyle?.count >= 1 && tz4State.monthBarStyle.railDisplay === 'grid' && tz4State.monthBarStyle.barDisplay === 'grid' && tz4State.monthBarStyle.fillDisplay === 'block' && /^\d/.test(tz4State.monthBarStyle.countText) && /px$/.test(tz4State.monthBarStyle.fillHeightVar) && tz4State.monthBarStyle.fillWidth > 0 && tz4State.monthBarStyle.fillHeight >= 8, `governance testing period: tz4 switches-per-month bars should render visible columns with count labels, saw ${JSON.stringify(tz4State.monthBarStyle)}`);
   assert(/Power Milestones/.test(tz4State.milestones) && /40% power/.test(tz4State.milestones), `governance testing period: tz4 milestone panel missing: ${tz4State.milestones}`);
   assert(tz4State.rows >= 3, `governance testing period: tz4 table rows missing, saw ${tz4State.rows}`);
   assert(tz4State.activeRows >= 1, 'governance testing period: tz4 active row missing');

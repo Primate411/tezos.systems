@@ -2728,11 +2728,11 @@ body::before {
     }
 
     #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="health-governance"] > .chamber-entry-card {
-        height: 224px;
+        height: 244px;
     }
 
     #chambers-grid .health-entry-card.chamber-entry-wide {
-        height: 224px !important;
+        height: 244px !important;
     }
 
     .health-entry-card.chamber-entry-wide .network-health-blocks {
@@ -3244,6 +3244,20 @@ body::before {
     text-decoration: none;
 }
 
+.etherlink-gov-table .etherlink-gov-timeline-row {
+    grid-template-columns: minmax(92px, 0.7fr) minmax(0, 1.28fr) minmax(78px, 0.44fr) minmax(112px, 0.72fr);
+    color: var(--text-secondary);
+    text-decoration: none;
+}
+
+.etherlink-gov-table a.etherlink-gov-timeline-row:hover,
+.etherlink-gov-table a.etherlink-gov-timeline-row:focus-visible {
+    color: var(--text-primary);
+    border-color: rgba(89, 243, 166, 0.16);
+    background: rgba(89, 243, 166, 0.045);
+    outline: none;
+}
+
 .etherlink-gov-history-panel {
     grid-column: 1 / -1;
 }
@@ -3280,6 +3294,7 @@ body::before {
 .etherlink-gov-proposal-row code,
 .etherlink-gov-voter-row code,
 .etherlink-gov-activity-row code,
+.etherlink-gov-timeline-row code,
 .etherlink-gov-history-row code {
     min-width: 0;
     overflow: hidden;
@@ -3349,6 +3364,7 @@ body::before {
     .etherlink-gov-table .etherlink-gov-proposal-row,
     .etherlink-gov-table .etherlink-gov-voter-row,
     .etherlink-gov-table .etherlink-gov-activity-row,
+    .etherlink-gov-table .etherlink-gov-timeline-row,
     .etherlink-gov-table .etherlink-gov-history-row {
         grid-template-columns: minmax(0, 1fr) minmax(76px, 0.45fr);
     }
@@ -3356,6 +3372,7 @@ body::before {
     .etherlink-gov-proposal-row code,
     .etherlink-gov-voter-row code,
     .etherlink-gov-activity-row code,
+    .etherlink-gov-timeline-row code,
     .etherlink-gov-history-row code {
         grid-column: 1 / -1;
     }
@@ -15717,7 +15734,6 @@ body {
 
 .chamber-entry-card {
     --chamber-control-lane: 6.85rem;
-    --chamber-bottom-control-lane: 7.35rem;
     border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, transparent) !important;
     transition: all 0.3s ease !important;
     position: relative;
@@ -15730,8 +15746,7 @@ body {
 
 .chamber-entry-card > .card-copy-link,
 .chamber-entry-card > .card-share-btn,
-.chamber-entry-card > .card-info-btn,
-.chamber-entry-card > .chamber-expand-cue {
+.chamber-entry-card > .card-info-btn {
     z-index: 70;
 }
 
@@ -15747,12 +15762,29 @@ body {
 }
 
 .chamber-entry-card[data-updated-label]::after {
-    content: attr(data-updated-label);
-    position: absolute;
-    left: 12px;
-    bottom: 10px;
-    z-index: 2;
-    max-width: calc(100% - var(--chamber-bottom-control-lane));
+    content: none;
+}
+
+.chamber-entry-footer {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    width: 100%;
+    min-width: 0;
+    min-height: 24px;
+    margin-top: auto;
+    padding-top: 0.42rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.chamber-entry-footer[hidden] {
+    display: none;
+}
+
+.chamber-entry-freshness {
+    min-width: 0;
     overflow: hidden;
     color: var(--text-tertiary, #555);
     font-family: 'JetBrains Mono', monospace;
@@ -15767,7 +15799,7 @@ body {
     text-transform: uppercase;
 }
 
-.chamber-entry-card.chamber-data-stale[data-updated-label]::after {
+.chamber-entry-card.chamber-data-stale .chamber-entry-freshness {
     color: var(--chamber-watch-color, #f5b84b);
     opacity: 0.96;
     text-shadow: 0 0 10px color-mix(in srgb, var(--chamber-watch-color, #f5b84b) 30%, transparent);
@@ -15798,9 +15830,8 @@ body {
 }
 
 .chamber-expand-cue {
-    position: absolute;
-    bottom: 8px;
-    right: 8px;
+    position: static;
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -15821,7 +15852,7 @@ body {
     letter-spacing: 0.06em;
     text-transform: uppercase;
     transition: opacity 0.3s ease, transform 0.3s ease, border-color 0.3s ease;
-    z-index: 2;
+    z-index: 70;
 }
 .chamber-expand-cue::after { content: 'Open'; }
 .chamber-expand-cue svg { width: 13px; height: 13px; display: block; flex: 0 0 auto; }
@@ -15829,6 +15860,10 @@ body {
     opacity: 1;
     transform: translateY(-1px);
     border-color: var(--accent-cyan);
+}
+
+.chamber-entry-footer .chamber-expand-cue {
+    margin-left: auto;
 }
 
 .chamber-entry-status {
@@ -15963,7 +15998,7 @@ body {
         align-items: flex-start;
         gap: 0.7rem;
         padding-top: 1.65rem;
-        padding-bottom: 2.1rem;
+        padding-bottom: 1rem;
         text-align: left;
     }
 
@@ -15972,7 +16007,7 @@ body {
     }
 
     #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tezlink-governance"] > .chamber-entry-card {
-        height: 224px;
+        height: 248px;
     }
 
     #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tz4-liquidity"] > .chamber-entry-card {
@@ -15999,13 +16034,65 @@ body {
 
     #chamber-entry-card.chamber-entry-wide .chamber-entry-metrics {
         grid-column: 2;
-        grid-row: 1 / -1;
+        grid-row: 1 / span 4;
         align-self: center;
     }
 
     #chamber-entry-card.chamber-entry-wide .chamber-entry-icon {
         margin: 0;
         text-align: left;
+    }
+}
+
+@media (min-width: 760px) and (max-width: 1040px) {
+    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="health-governance"] > .chamber-entry-card {
+        height: 300px;
+    }
+
+    #chambers-grid .health-entry-card.chamber-entry-wide {
+        height: 300px !important;
+    }
+
+    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tezlink-governance"] > .chamber-entry-card {
+        height: 340px;
+    }
+
+    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tz4-liquidity"] > .chamber-entry-card {
+        height: 276px;
+    }
+
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-front {
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-rows: min-content;
+        align-content: flex-start;
+    }
+
+    #chamber-entry-card.chamber-entry-wide .stat-label,
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-icon,
+    #chamber-entry-card.chamber-entry-wide .stat-description,
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-status,
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-metrics,
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-footer {
+        grid-column: 1;
+    }
+
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-metrics {
+        grid-row: auto;
+        grid-template-columns: repeat(2, minmax(78px, 1fr));
+        align-self: stretch;
+    }
+
+    .tezlink-entry-card.chamber-entry-wide .tezlink-entry-front {
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-rows: min-content;
+        align-content: flex-start;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .tezlink-entry-card.chamber-entry-wide .tezlink-entry-tape {
+        max-height: 6.4rem;
+        overflow: hidden;
     }
 }
 
@@ -16019,21 +16106,17 @@ body {
         padding-right: var(--chamber-control-lane);
     }
 
-    #chambers-grid .chamber-entry-card[data-updated-label] .card-front {
-        padding-bottom: 2.1rem;
-    }
-
     #chambers-grid .chamber-entry-card.chamber-entry-wide {
         height: auto !important;
-        min-height: 236px;
+        min-height: 284px;
     }
 
     #chamber-entry-card.chamber-entry-wide {
-        min-height: 224px;
+        min-height: 286px;
     }
 
     #chambers-grid .tezlink-entry-card.chamber-entry-wide {
-        min-height: 252px;
+        min-height: 356px;
     }
 
     #chambers-grid .etherlink-governance-entry-card[data-etherlink-governance-size="compact"] {
@@ -16041,7 +16124,18 @@ body {
     }
 
     #chambers-grid .health-entry-card.chamber-entry-wide {
-        min-height: 252px;
+        min-height: 306px;
+    }
+
+    .health-entry-card.chamber-entry-wide .card-front,
+    .tezlink-entry-card.chamber-entry-wide .card-front {
+        justify-content: flex-start;
+    }
+
+    .health-live-tape,
+    .tezlink-entry-tape {
+        max-height: 5.2rem;
+        overflow: hidden;
     }
 
     .tezlink-entry-value {
@@ -17787,6 +17881,51 @@ body {
 
 .tz4-adoption-legend i.not-yet {
     background: rgba(180, 184, 200, 0.35);
+}
+
+.tz4-month-bars {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(34px, 1fr));
+    gap: 0.5rem;
+    min-height: 156px;
+    align-items: end;
+    padding: 0.2rem 0 0;
+}
+
+.tz4-month-bar {
+    display: grid;
+    grid-template-rows: auto 104px auto;
+    align-items: end;
+    justify-items: center;
+    gap: 0.34rem;
+    min-width: 0;
+    color: var(--text-tertiary, #555);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 800;
+}
+
+.tz4-month-count {
+    color: #50e888;
+    font-size: 0.68rem;
+    line-height: 1;
+}
+
+.tz4-month-fill {
+    align-self: end;
+    display: block;
+    height: var(--tz4-month-height, 12px);
+    width: min(100%, 18px);
+    min-height: 8px;
+    border-radius: 5px 5px 2px 2px;
+    background: linear-gradient(180deg, #50e888, #4dd4ff);
+    box-shadow: 0 0 14px rgba(77, 212, 255, 0.16);
+}
+
+.tz4-month-bar small {
+    color: var(--text-tertiary, #555);
+    font-size: inherit;
+    line-height: 1;
 }
 
 .tz4-metric-grid {

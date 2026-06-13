@@ -495,12 +495,16 @@ function renderSwitchMomentumPanel(data) {
         });
     const rows = [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).slice(-12);
     const max = Math.max(1, ...rows.map(([, count]) => count));
-    const bars = rows.length ? rows.map(([key, count]) => `
-        <div class="tz4-month-bar" title="${escapeHtml(key)}: ${formatCount(count)} switches">
-            <span style="height:${Math.max(8, (count / max) * 100).toFixed(1)}%"></span>
+    const bars = rows.length ? rows.map(([key, count]) => {
+        const heightPx = Math.max(12, Math.round((count / max) * 96));
+        return `
+        <div class="tz4-month-bar" title="${escapeHtml(key)}: ${formatCount(count)} switches" aria-label="${escapeHtml(key)}: ${formatCount(count)} switches">
+            <strong class="tz4-month-count">${escapeHtml(formatCount(count))}</strong>
+            <span class="tz4-month-fill" style="--tz4-month-height:${heightPx}px"></span>
             <small>${escapeHtml(key.slice(5))}</small>
         </div>
-    `).join('') : '<div class="lb-empty-inline">No monthly switch timing yet.</div>';
+    `;
+    }).join('') : '<div class="lb-empty-inline">No monthly switch timing yet.</div>';
     return `
         <section class="lb-panel tz4-panel tz4-momentum-panel chamber-anim-fade" id="tz4-switch-momentum" style="animation-delay:220ms">
             <div class="lb-panel-title">Switches per Month</div>
@@ -599,7 +603,7 @@ function renderFirstMoverRows(bakers) {
     const firstMovers = bakers
         .filter((baker) => baker.status === 'active' && baker.switchedAt)
         .sort((a, b) => new Date(a.switchedAt).getTime() - new Date(b.switchedAt).getTime())
-        .slice(0, 8);
+        .slice(0, 10);
     if (!firstMovers.length) return '<div class="lb-empty-inline">No first-switch timing is available yet.</div>';
     return firstMovers.map((baker, index) => `
         <div class="tz4-first-row">

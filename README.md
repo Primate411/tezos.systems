@@ -203,8 +203,9 @@ inline modal styles in `js/core/app.js`.
 - tz4 Adoption Chamber with a wide Chambers tile for latest completed switches
   and pending activations, plus baker-count and baking-power adoption readouts,
   current baker BLS/tz4 status, saved-baker highlighting/share, first-switch
-  timing, projection to 50%, largest holdouts, monthly switch momentum, power
-  milestones, and a capped Baker Status table with a Show all control.
+  timing, projection to 50%, largest holdouts, visible monthly switch-count
+  momentum, power milestones, top-10 first movers, and a capped Baker Status
+  table with a Show all control.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
   LB vote state, and recent baker delegator/staker activity.
 - Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping
@@ -342,7 +343,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, top-right Chamber control geometry, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, in-flow Chamber footer geometry, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview/month bars, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`
@@ -362,7 +363,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v181`.
+- Current aligned shell cache stamp: `v183`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

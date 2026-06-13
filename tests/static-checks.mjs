@@ -496,7 +496,8 @@ async function checkSelectorContracts() {
     ['health incident memory panel', 'id="health-incident-memory"', health],
     ['health period telemetry panel', 'id="health-period-telemetry"', health],
     ['health network load panel', 'id="health-network-load"', health],
-    ['shared chamber freshness stamp style', '.chamber-entry-card[data-updated-label]::after', styles]
+    ['shared chamber footer rail style', '.chamber-entry-footer', styles],
+    ['shared chamber freshness text style', '.chamber-entry-freshness', styles]
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
@@ -520,12 +521,29 @@ async function checkSelectorContracts() {
     ['Chamber top control lane', '--chamber-control-lane', styles],
     ['Chamber content avoids top-right controls', 'padding-right: var(--chamber-control-lane);', styles],
     ['Chamber controls layer above card content', '.chamber-entry-card > .card-copy-link', styles],
-    ['Chamber bottom freshness avoids open cue', '--chamber-bottom-control-lane', styles]
+    ['Chamber footer rail exists in flow', '.chamber-entry-footer', styles],
+    ['Chamber footer owns open cue', '.chamber-entry-footer .chamber-expand-cue', styles],
+    ['Chamber stale freshness uses footer text', '.chamber-entry-card.chamber-data-stale .chamber-entry-freshness', styles],
+    ['Chamber pseudo freshness disabled', '.chamber-entry-card[data-updated-label]::after', styles]
   ];
   for (const [label, snippet, text] of cardControlContracts) {
     if (!text.includes(snippet)) fail(`missing card control spacing contract: ${label}`);
   }
   pass(`card control spacing contracts checked: ${cardControlContracts.length}`);
+
+  const chamberRendererStyleContracts = [
+    ['Tezlink Governance timeline row style', '.etherlink-gov-table .etherlink-gov-timeline-row', styles],
+    ['Tezlink Governance timeline row removes browser underline', 'a.etherlink-gov-timeline-row:hover', styles],
+    ['tz4 monthly bar rail style', '.tz4-month-bars', styles],
+    ['tz4 monthly bar column style', '.tz4-month-bar {', styles],
+    ['tz4 monthly bar visible count style', '.tz4-month-count', styles],
+    ['tz4 monthly bar fill style', '.tz4-month-fill', styles],
+    ['tz4 first movers top 10 cap', '.slice(0, 10)', tz4]
+  ];
+  for (const [label, snippet, text] of chamberRendererStyleContracts) {
+    if (!text.includes(snippet)) fail(`missing chamber renderer style contract: ${label}`);
+  }
+  pass(`chamber renderer style contracts checked: ${chamberRendererStyleContracts.length}`);
 
   const rawWidgetLinks = [
     'href="/widgets/price.html"',

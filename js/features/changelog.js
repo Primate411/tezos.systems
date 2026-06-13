@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-12',
         entries: [
+            { type: '🎨', text: 'tz4 Adoption now shows visible monthly switch counts with reliable bar heights and expands First Movers to the top 10 bakers' },
+            { type: '🎨', text: 'Chamber cards now use an in-flow freshness footer and keep live vote metrics, Tezlink titles, L2 timelines, and tz4 month bars readable across tablet and mobile widths' },
             { type: '🎨', text: 'Aurora title now uses the same shifting multicolor wordmark on desktop and mobile' },
             { type: '🎨', text: 'Chamber card controls now reserve a top-right lane so copy, share, info, and open buttons stay clear of live preview content' },
             { type: '🔧', text: 'Governance RSS now keeps active proposal names in historical feed items, lazy theme cache stamps are guarded, and Liquidity Baking block ranges stay compact' },

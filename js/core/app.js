@@ -1150,6 +1150,33 @@ const CHAMBER_CARD_PAIRS = [
 ];
 let _chamberPairObserver = null;
 
+function syncChamberEntryFooter(card) {
+    if (!card?.classList?.contains('chamber-entry-card')) return;
+    const front = card.querySelector(':scope .card-front');
+    if (!front) return;
+
+    let footer = front.querySelector(':scope > .chamber-entry-footer');
+    if (!footer) {
+        footer = document.createElement('div');
+        footer.className = 'chamber-entry-footer';
+        footer.innerHTML = '<span class="chamber-entry-freshness"></span>';
+        front.appendChild(footer);
+    }
+
+    const freshness = footer.querySelector('.chamber-entry-freshness');
+    const label = card.dataset.updatedLabel || '';
+    if (freshness && freshness.textContent !== label) freshness.textContent = label;
+    footer.classList.toggle('has-freshness', Boolean(label));
+
+    const cue = card.querySelector(':scope > .chamber-expand-cue, :scope .card-inner + .chamber-expand-cue, :scope .chamber-entry-footer .chamber-expand-cue');
+    if (cue && cue.parentElement !== footer) footer.appendChild(cue);
+    footer.hidden = !label && !footer.querySelector('.chamber-expand-cue');
+}
+
+function syncChamberEntryFooters(root = document) {
+    root.querySelectorAll?.('.chamber-entry-card').forEach(syncChamberEntryFooter);
+}
+
 function updateChamberPairState(pair) {
     if (!pair) return;
     const cards = Array.from(pair.querySelectorAll(':scope > .stat-card'));
@@ -1191,14 +1218,18 @@ function orderChambersSurface() {
     });
 
     grid.dataset.chambersOrder = orderedCards.map((card) => card.id || card.dataset.stat || '').join(',');
+    syncChamberEntryFooters(grid);
 
     if (!_chamberPairObserver) {
-        _chamberPairObserver = new MutationObserver(() => updateAllChamberPairStates());
+        _chamberPairObserver = new MutationObserver(() => {
+            updateAllChamberPairStates();
+            syncChamberEntryFooters(grid);
+        });
         _chamberPairObserver.observe(grid, {
             subtree: true,
             childList: true,
             attributes: true,
-            attributeFilter: ['class', 'data-chamber-entry-size', 'data-etherlink-governance-size', 'data-tz4-entry-size']
+            attributeFilter: ['class', 'data-chamber-entry-size', 'data-etherlink-governance-size', 'data-tz4-entry-size', 'data-updated-label']
         });
     }
 }
