@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-12',
         entries: [
+            { type: '🎨', text: 'Tezlink and tz4 chamber polish now keeps mobile TVL copy together, fills quiet direction cells, and lets holdout baker names wrap' },
             { type: '🎨', text: 'tz4 Adoption now shows visible monthly switch counts with reliable bar heights and expands First Movers to the top 10 bakers' },
             { type: '🎨', text: 'Chamber cards now use an in-flow freshness footer and keep live vote metrics, Tezlink titles, L2 timelines, and tz4 month bars readable across tablet and mobile widths' },
             { type: '🎨', text: 'Aurora title now uses the same shifting multicolor wordmark on desktop and mobile' },

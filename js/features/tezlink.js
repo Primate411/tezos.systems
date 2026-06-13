@@ -277,6 +277,21 @@ function trendDelta(rows, key = 'value') {
     };
 }
 
+function formatDirectionDelta(delta, fallback = 'tracking') {
+    if (!Number.isFinite(delta?.pct)) return fallback;
+    return `${delta.pct >= 0 ? '+' : ''}${delta.pct.toFixed(1)}%`;
+}
+
+function renderTrendMetric(label, delta, fallback) {
+    const hasDelta = Number.isFinite(delta?.pct);
+    return `
+        <div>
+            <span>${escapeHtml(label)}</span>
+            <strong${hasDelta ? '' : ' class="muted"'}>${escapeHtml(formatDirectionDelta(delta, fallback))}</strong>
+        </div>
+    `;
+}
+
 async function fetchTezlinkData({ force = false } = {}) {
     if (!force && cachedData && Date.now() - cachedAt < CACHE_TTL) return cachedData;
 
@@ -364,7 +379,8 @@ function renderEntryCard(data) {
     if (value) value.textContent = formatUsd(data.tvl);
     if (description) {
         const tvlDelta = trendDelta(data.tvlHistory, 'tvl');
-        description.textContent = Number.isFinite(tvlDelta?.pct) ? `Atomic L2 rollup · 30d ${tvlDelta.pct >= 0 ? '+' : ''}${tvlDelta.pct.toFixed(1)}% TVL` : 'Atomic L2 rollup';
+        const tvlDirection = Number.isFinite(tvlDelta?.pct) ? `TVL ${formatDirectionDelta(tvlDelta)} / 30d` : 'TVL tracking';
+        description.textContent = `Atomic L2 · ${tvlDirection}`;
     }
     if (metrics) metrics.innerHTML = renderEntryMetrics(data);
     if (tape) tape.innerHTML = renderEntryTape(data.txs);
@@ -493,9 +509,9 @@ function renderTrendPanel(data) {
         <section class="lb-panel tezlink-panel tezlink-trend-panel chamber-anim-fade" id="tezlink-trend-panel" style="animation-delay:90ms">
             <div class="lb-panel-title">30d Direction</div>
             <div class="lb-metric-grid health-metric-grid">
-                <div><span>TVL</span><strong>${Number.isFinite(tvlDelta?.pct) ? `${tvlDelta.pct >= 0 ? '+' : ''}${tvlDelta.pct.toFixed(1)}%` : '--'}</strong></div>
-                <div><span>Daily tx</span><strong>${Number.isFinite(txDelta?.pct) ? `${txDelta.pct >= 0 ? '+' : ''}${txDelta.pct.toFixed(1)}%` : '--'}</strong></div>
-                <div><span>Active addresses</span><strong>${data.activeAccountsHistory?.length ? compactNumber(data.activeAccountsHistory.at(-1)?.value) : '--'}</strong></div>
+                ${renderTrendMetric('TVL', tvlDelta, 'tracking')}
+                ${renderTrendMetric('Daily tx', txDelta, 'warming')}
+                ${renderTrendMetric('Active addresses', activeDelta, 'warming')}
             </div>
             ${renderMiniSparkline(data.tvlHistory, 'tvl')}
             <div class="health-timing-note">Cumulative addresses always rise; active-address history is the honest activity check.</div>

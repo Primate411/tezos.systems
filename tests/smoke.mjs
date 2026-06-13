@@ -2177,6 +2177,7 @@ async function smokeTezlinkChamber(browser, baseUrl) {
       cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
       cardUpdatedLabel: card?.dataset.updatedLabel || '',
       cardValue: card?.querySelector('#tezlink-entry-tvl')?.textContent?.trim() || '',
+      cardDescription: card?.querySelector('#tezlink-entry-description')?.textContent?.trim() || '',
       cardMini: card?.querySelector('#tezlink-entry-mini')?.textContent?.trim() || '',
       cardTape: card?.querySelector('#tezlink-entry-tape')?.textContent || '',
       title: modal?.querySelector('.chamber-title')?.textContent || '',
@@ -2188,6 +2189,7 @@ async function smokeTezlinkChamber(browser, baseUrl) {
       txRows: modal?.querySelectorAll('.tezlink-tx-row').length || 0,
       txText: modal?.querySelector('.tezlink-tx-table')?.textContent || '',
       trendText: modal?.querySelector('#tezlink-trend-panel')?.textContent || '',
+      trendMetricValues: Array.from(modal?.querySelectorAll('#tezlink-trend-panel .lb-metric-grid strong') || []).map((el) => el.textContent?.trim() || ''),
       anchorText: modal?.querySelector('#tezlink-anchor-panel')?.textContent || '',
       gasText: modal?.querySelector('#tezlink-gas-oracle')?.textContent || '',
       tokenRows: modal?.querySelectorAll('#tezlink-token-panel .lb-table-row').length || 0,
@@ -2203,6 +2205,8 @@ async function smokeTezlinkChamber(browser, baseUrl) {
   assert(tezlinkState.cardCopyHash === '#tezlink', `tezlink chamber: card copy hash mismatch: ${tezlinkState.cardCopyHash}`);
   assert(/^as of \d{2}:\d{2} UTC$/.test(tezlinkState.cardUpdatedLabel), `tezlink chamber: freshness stamp mismatch: ${tezlinkState.cardUpdatedLabel}`);
   assert(/\$18\.1M/.test(tezlinkState.cardValue), `tezlink chamber: card TVL mismatch: ${tezlinkState.cardValue}`);
+  assert(/Atomic L2/.test(tezlinkState.cardDescription) && /TVL [+-]\d+\.\d% \/ 30d|TVL tracking/.test(tezlinkState.cardDescription), `tezlink chamber: card description should keep TVL with the trend copy: ${tezlinkState.cardDescription}`);
+  assert(!/\bTVL$/.test(tezlinkState.cardDescription), `tezlink chamber: card description should not leave TVL as a trailing orphan: ${tezlinkState.cardDescription}`);
   assert(/Head|live L2 feed/i.test(tezlinkState.cardMini), `tezlink chamber: card mini mismatch: ${tezlinkState.cardMini}`);
   assert(/credit|swap/.test(tezlinkState.cardTape), `tezlink chamber: card transaction tape missing: ${tezlinkState.cardTape}`);
   assert(/Tezlink Chamber/.test(tezlinkState.title), `tezlink chamber: title mismatch: ${tezlinkState.title}`);
@@ -2214,6 +2218,7 @@ async function smokeTezlinkChamber(browser, baseUrl) {
   assert(tezlinkState.txRows >= 2, `tezlink chamber: transaction rows missing, saw ${tezlinkState.txRows}`);
   assert(/Bankroll|Smoke DEX/.test(tezlinkState.txText), `tezlink chamber: transaction tape target missing: ${tezlinkState.txText}`);
   assert(/30d Direction/.test(tezlinkState.trendText) && /TVL/.test(tezlinkState.trendText) && tezlinkState.sparklinePoints >= 20, `tezlink chamber: trend panel missing: ${tezlinkState.trendText}`);
+  assert(tezlinkState.trendMetricValues.length === 3 && tezlinkState.trendMetricValues.every((value) => value && value !== '--'), `tezlink chamber: 30d direction cells should not render empty dash placeholders: ${tezlinkState.trendMetricValues.join(', ')}`);
   assert(/L1 Anchor/.test(tezlinkState.anchorText) && /sr1Smok/.test(tezlinkState.anchorText), `tezlink chamber: anchor panel missing rollup: ${tezlinkState.anchorText}`);
   assert(/Gas Oracle/.test(tezlinkState.gasText) && /Average/.test(tezlinkState.gasText), `tezlink chamber: gas oracle panel missing: ${tezlinkState.gasText}`);
   assert(tezlinkState.tokenRows >= 3 && /USDC\.e|WXTZ/.test(tezlinkState.tokenText), `tezlink chamber: token holder panel missing: ${tezlinkState.tokenText}`);
@@ -2773,6 +2778,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     firstMovers: document.querySelector('#tz4-adoption-modal .tz4-first-list')?.textContent || '',
     projection: document.querySelector('#tz4-projection-panel')?.textContent || '',
     holdouts: document.querySelector('#tz4-holdouts-panel')?.textContent || '',
+    holdoutNameWhiteSpace: getComputedStyle(document.querySelector('#tz4-holdouts-panel .lb-baker-name-link') || document.body).whiteSpace,
     momentum: document.querySelector('#tz4-switch-momentum')?.textContent || '',
     monthBarStyle: (() => {
       const rail = document.querySelector('#tz4-adoption-modal .tz4-month-bars');
@@ -2823,6 +2829,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/QA Baker/.test(tz4State.firstMovers) && /cycle 1,136/.test(tz4State.firstMovers), `governance testing period: tz4 first mover list mismatch: ${tz4State.firstMovers}`);
   assert(/Projection to 50%/.test(tz4State.projection) && /Bakers/.test(tz4State.projection), `governance testing period: tz4 projection panel missing: ${tz4State.projection}`);
   assert(/Largest Holdouts/.test(tz4State.holdouts) && /Second Baker/.test(tz4State.holdouts), `governance testing period: tz4 holdouts panel missing: ${tz4State.holdouts}`);
+  assert(tz4State.holdoutNameWhiteSpace !== 'nowrap', `governance testing period: tz4 holdout baker names should be allowed to wrap, saw ${tz4State.holdoutNameWhiteSpace}`);
   assert(/Switches per Month/.test(tz4State.momentum) && /Momentum/.test(tz4State.momentum), `governance testing period: tz4 momentum panel missing: ${tz4State.momentum}`);
   assert(tz4State.monthBarStyle?.count >= 1 && tz4State.monthBarStyle.railDisplay === 'grid' && tz4State.monthBarStyle.barDisplay === 'grid' && tz4State.monthBarStyle.fillDisplay === 'block' && /^\d/.test(tz4State.monthBarStyle.countText) && /px$/.test(tz4State.monthBarStyle.fillHeightVar) && tz4State.monthBarStyle.fillWidth > 0 && tz4State.monthBarStyle.fillHeight >= 8, `governance testing period: tz4 switches-per-month bars should render visible columns with count labels, saw ${JSON.stringify(tz4State.monthBarStyle)}`);
   assert(/Power Milestones/.test(tz4State.milestones) && /40% power/.test(tz4State.milestones), `governance testing period: tz4 milestone panel missing: ${tz4State.milestones}`);

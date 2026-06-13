@@ -170,9 +170,9 @@ inline modal styles in `js/core/app.js`.
 - Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
   transactions, gas, addresses, grouped Blockscout transaction tape rows, and
   DefiLlama protocol TVL sourced from current Tezlink rails. The open chamber
-  also layers in 30-day TVL/transaction direction, TzKT smart-rollup anchor
-  metadata, gas oracle detail, and top tokens by holders when those upstream
-  feeds are available.
+  also layers in 30-day TVL/transaction/active-address direction with
+  quiet-state fallbacks, TzKT smart-rollup anchor metadata, gas oracle detail,
+  and top tokens by holders when those upstream feeds are available.
 - Live network stat cards for consensus, economy, governance, network activity,
   and ecosystem metrics are opt-in from Explore under Network Stats.
 - Network Health Chamber with direct `#health` access, recent block cadence,
@@ -343,7 +343,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, in-flow Chamber footer geometry, Tezlink Governance card geometry and rollover timing, LB auto-scaled EMA trend, tz4 card preview/month bars, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, in-flow Chamber footer geometry, Tezlink Governance card geometry and rollover timing, Tezlink direction fallbacks, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`
@@ -363,7 +363,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v183`.
+- Current aligned shell cache stamp: `v184`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.
