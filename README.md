@@ -64,7 +64,7 @@ tezos.systems/
 ├── widgets/                           # Standalone embeddable widgets and builder
 ├── staking/ governance/ bakers/ hen/ compare/
 │                                      # SEO and standalone pages
-├── chamber/ health/ tezlink/ l2chamber/ tz4/ lb/
+├── chamber/ health/ tezosx/ l2chamber/ tz4/ lb/
 │                                      # Pretty share/OG routes into live Chambers
 ├── og/                                # Generated per-chamber OG images
 ├── feed.xml                           # Generated Tezos governance RSS feed
@@ -154,13 +154,13 @@ inline modal styles in `js/core/app.js`.
 ## Main Surfaces
 
 - Chambers section is visible by default and orders the chamber pairs as Network
-  Health <> The Chamber, Tezlink <> Tezlink Governance, and tz4 Adoption <> LB
+  Health <> The Chamber, Tezos X <> Tezos X Governance, and tz4 Adoption <> LB
   Monitor. Each pair is wrapped as its own responsive row so wide cards keep
   their companion card instead of creating desktop grid holes; cards also keep
   a canonical app-shell open affordance in the fixed footer rail, card-level
   direct-link controls, and quiet `as of` freshness stamps on the live chamber
   cards.
-- Tezlink Governance Chamber with direct `#l2chamber` access,
+- Tezos X Governance Chamber with direct `#l2chamber` access,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
   discovery, storage, bigmaps, and recent historical proposal submissions, plus
   official-track and TzKT links for action/audit. The dashboard card keeps
@@ -168,9 +168,9 @@ inline modal styles in `js/core/app.js`.
   control clear of those chips, computes period countdowns from the current
   head block, and the open chamber now includes track rules, track memory, and
   a merged submission/vote timeline for each L2 governance track.
-- Tezlink Chamber with direct `#tezlink` access, atomic L2 TVL, daily
+- Tezos X Chamber with direct `#tezosx` access, atomic L2 TVL, daily
   transactions, gas, addresses, grouped Blockscout transaction tape rows, and
-  DefiLlama protocol TVL sourced from current Tezlink rails. The open chamber
+  DefiLlama protocol TVL sourced from current Etherlink rails. The open chamber
   also layers in 30-day TVL/transaction/active-address direction with
   quiet-state fallbacks, TzKT smart-rollup anchor metadata, gas oracle detail,
   and top tokens by holders when those upstream feeds are available.
@@ -228,7 +228,7 @@ Useful deep links include:
 - `#price`
 - `#chambers`
 - `#l2chamber`
-- `#tezlink`
+- `#tezosx`
 - `#health`
 - `#chamber`
 - `#lb`
@@ -236,7 +236,7 @@ Useful deep links include:
 - `#tz4`
 
 Public share routes are also available at `/chamber/`, `/health/`,
-`/tezlink/`, `/l2chamber/`, `/tz4/`, and `/lb/`. These routes carry unique
+`/tezosx/`, `/l2chamber/`, `/tz4/`, and `/lb/`. These routes carry unique
 Open Graph metadata and redirect into the corresponding live dashboard room.
 `/feed.xml` exposes the generated governance RSS feed for relay bots.
 
@@ -250,9 +250,9 @@ Open Graph metadata and redirect into the corresponding live dashboard room.
 | Tezos Domains GraphQL | Domain and reverse-record lookups |
 | OBJKT GraphQL | NFT/profile surfaces |
 | Supabase REST | Historical Tezos snapshots via public anon client config |
-| DefiLlama `https://api.llama.fi` | Tezlink chain TVL and protocol TVL; DefiLlama currently indexes the chain as Etherlink |
-| Tezlink Blockscout `https://explorer.etherlink.com/api/v2` | Tezlink transaction, address, gas, and block stats |
-| Tezlink JSON-RPC `https://node.mainnet.etherlink.com` | Tezlink RPC head and gas fallback |
+| DefiLlama `https://api.llama.fi` | Tezos X chain TVL and protocol TVL; DefiLlama currently indexes the chain as Etherlink |
+| Etherlink Blockscout `https://explorer.etherlink.com/api/v2` | Tezos X chamber transaction, address, gas, and block stats |
+| Etherlink JSON-RPC `https://node.mainnet.etherlink.com` | Tezos X chamber RPC head and gas fallback |
 | Etherlink governance `https://governance.etherlink.com/governance` | Official FAST, SLOW, and Sequencer action pages linked from the read-only chamber |
 
 Live staking ratio and APY surfaces use TzKT `statistics/current` totals for
@@ -344,7 +344,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, fixed Chamber footer geometry, Tezlink Governance card geometry and rollover timing, Tezlink direction fallbacks, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, fixed Chamber footer geometry, Tezos X Governance card geometry and rollover timing, Tezos X direction fallbacks, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`
@@ -364,7 +364,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v185`.
+- Current aligned shell cache stamp: `v188`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

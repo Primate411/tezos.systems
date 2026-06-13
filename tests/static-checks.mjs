@@ -350,7 +350,7 @@ async function checkSitemapCoverage() {
     'https://tezos.systems/governance/',
     'https://tezos.systems/chamber/',
     'https://tezos.systems/health/',
-    'https://tezos.systems/tezlink/',
+    'https://tezos.systems/tezosx/',
     'https://tezos.systems/l2chamber/',
     'https://tezos.systems/tz4/',
     'https://tezos.systems/lb/',
@@ -446,8 +446,9 @@ async function checkSelectorContracts() {
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
     ['Chambers hash route', "hash === 'chambers'", app],
-    ['Tezlink Governance hash route', "hash === 'l2chamber'", app],
-    ['Tezlink hash route', "hash === 'tezlink'", app],
+    ['Tezos X Governance hash route', "hash === 'l2chamber'", app],
+    ['Tezos X hash route', "hash === 'tezosx'", app],
+    ['Legacy Tezlink hash route', "hash === 'tezlink'", app],
     ['Health hash route', "hash === 'health'", app],
     ['LB tile hash route', "hash === 'lb-tile'", app],
     ['tz4 hash route', "hash === 'tz4'", app],
@@ -460,23 +461,23 @@ async function checkSelectorContracts() {
     ['Chamber promotion delta uses epoch periods', '(epoch.periods || []).find', chamber],
     ['Chamber branded share capture helper', 'captureBrandedChamberShare', share],
     ['Chamber share direct link baked into image', 'tezos.systems/chamber/', chamber],
-    ['Tezlink Governance card copy link', 'data-copy-hash="#l2chamber"', etherlinkGovernance],
-    ['Tezlink Governance direct footer link', 'Direct: /l2chamber/', etherlinkGovernance],
-    ['Tezlink Governance chamber wiring', 'openEtherlinkGovernanceChamber', etherlinkGovernance],
-    ['Tezlink Governance TzKT discovery', 'discoverGovernanceTracks', etherlinkGovernance],
-    ['Tezlink Governance originator guard', 'GOVERNANCE_CONTRACT_CREATOR', etherlinkGovernance],
-    ['Tezlink Governance discovery failure copy', 'contract discovery unavailable', etherlinkGovernance],
-    ['Tezlink Governance track rules panel', 'id="etherlink-gov-rules"', etherlinkGovernance],
-    ['Tezlink Governance track memory panel', 'id="etherlink-gov-memory"', etherlinkGovernance],
-    ['Tezlink Governance merged timeline panel', 'id="etherlink-gov-timeline"', etherlinkGovernance],
-    ['Tezlink card copy link', 'data-copy-hash="#tezlink"', tezlink],
-    ['Tezlink direct footer link', 'Direct: /tezlink/', tezlink],
-    ['Tezlink 30d trend panel', 'id="tezlink-trend-panel"', tezlink],
-    ['Tezlink 30d trend fallback copy', 'formatDirectionDelta', tezlink],
-    ['Tezlink 30d trend metric helper', 'renderTrendMetric', tezlink],
-    ['Tezlink L1 anchor panel', 'id="tezlink-anchor-panel"', tezlink],
-    ['Tezlink gas oracle panel', 'id="tezlink-gas-oracle"', tezlink],
-    ['Tezlink top tokens panel', 'id="tezlink-token-panel"', tezlink],
+    ['Tezos X Governance card copy link', 'data-copy-hash="#l2chamber"', etherlinkGovernance],
+    ['Tezos X Governance direct footer link', 'Direct: /l2chamber/', etherlinkGovernance],
+    ['Tezos X Governance chamber wiring', 'openEtherlinkGovernanceChamber', etherlinkGovernance],
+    ['Tezos X Governance TzKT discovery', 'discoverGovernanceTracks', etherlinkGovernance],
+    ['Tezos X Governance originator guard', 'GOVERNANCE_CONTRACT_CREATOR', etherlinkGovernance],
+    ['Tezos X Governance discovery failure copy', 'contract discovery unavailable', etherlinkGovernance],
+    ['Tezos X Governance track rules panel', 'id="etherlink-gov-rules"', etherlinkGovernance],
+    ['Tezos X Governance track memory panel', 'id="etherlink-gov-memory"', etherlinkGovernance],
+    ['Tezos X Governance merged timeline panel', 'id="etherlink-gov-timeline"', etherlinkGovernance],
+    ['Tezos X card copy link', 'data-copy-hash="#tezosx"', tezlink],
+    ['Tezos X direct footer link', 'Direct: /tezosx/', tezlink],
+    ['Tezos X 30d trend panel', 'id="tezlink-trend-panel"', tezlink],
+    ['Tezos X 30d trend fallback copy', 'formatDirectionDelta', tezlink],
+    ['Tezos X 30d trend metric helper', 'renderTrendMetric', tezlink],
+    ['Tezos X L1 anchor panel', 'id="tezlink-anchor-panel"', tezlink],
+    ['Tezos X gas oracle panel', 'id="tezlink-gas-oracle"', tezlink],
+    ['Tezos X top tokens panel', 'id="tezlink-token-panel"', tezlink],
     ['LB chamber copy link', 'data-copy-hash="#lb"', lb],
     ['LB EMA forecast panel', 'id="lb-ema-forecast"', lb],
     ['LB EMA history panel', 'id="lb-ema-history"', lb],
@@ -511,7 +512,7 @@ async function checkSelectorContracts() {
     'KT1VGyd2cRSHoDnxDnSuqGJD3mL8DzcVqX98'
   ];
   for (const address of fixedEtherlinkContracts) {
-    if (etherlinkGovernance.includes(address)) fail(`Tezlink Governance chamber should discover active contract, not hardcode ${address}`);
+    if (etherlinkGovernance.includes(address)) fail(`Tezos X Governance chamber should discover active contract, not hardcode ${address}`);
   }
   pass(`deep-link selector contracts checked: ${deepLinkContracts.length}`);
 
@@ -563,8 +564,8 @@ async function checkSelectorContracts() {
   pass(`chamber expand cue canonical contracts checked: ${expandCueMarkupFiles.length} source files`);
 
   const chamberRendererStyleContracts = [
-    ['Tezlink Governance timeline row style', '.etherlink-gov-table .etherlink-gov-timeline-row', styles],
-    ['Tezlink Governance timeline row removes browser underline', 'a.etherlink-gov-timeline-row:hover', styles],
+    ['Tezos X Governance timeline row style', '.etherlink-gov-table .etherlink-gov-timeline-row', styles],
+    ['Tezos X Governance timeline row removes browser underline', 'a.etherlink-gov-timeline-row:hover', styles],
     ['tz4 monthly bar rail style', '.tz4-month-bars', styles],
     ['tz4 monthly bar column style', '.tz4-month-bar {', styles],
     ['tz4 monthly bar visible count style', '.tz4-month-count', styles],

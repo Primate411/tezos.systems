@@ -110,7 +110,7 @@ function routeDetails(route, report) {
       chips: ['recent rounds', 'missed rights', 'operator signals'],
       body: 'A live room for chain cadence, attestation power, missed baking rights, and network load.'
     },
-    tezlink: {
+    tezosx: {
       kicker: 'Etherlink Activity',
       value: 'L2 direction',
       chips: ['TVL trend', 'L1 anchors', 'gas + token rows'],

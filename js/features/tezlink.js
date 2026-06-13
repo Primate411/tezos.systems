@@ -1,5 +1,5 @@
 /**
- * Tezlink Chamber
+ * Tezos X Chamber
  * Atomic L2 rollup surface backed by current mainnet L2 data sources.
  */
 
@@ -328,7 +328,7 @@ async function fetchTezlinkData({ force = false } = {}) {
     data.gasPrices = stats?.gas_prices || {};
 
     if (!data.tvl && !data.transactionsToday && !data.totalTransactions && !data.totalAddresses && !data.txs.length) {
-        throw new Error('Tezlink data unavailable');
+        throw new Error('Tezos X data unavailable');
     }
 
     cachedData = data;
@@ -402,11 +402,11 @@ function renderEntryError() {
     const mini = document.getElementById('tezlink-entry-mini');
     if (value) value.textContent = '--';
     if (description) description.textContent = 'L2 data unavailable';
-    if (mini) mini.textContent = 'Retrying Tezlink sources';
+    if (mini) mini.textContent = 'Retrying Tezos X sources';
 }
 
 function renderProtocolRows(protocols) {
-    if (!protocols?.length) return '<div class="lb-empty-inline">No Tezlink protocol TVL rows returned.</div>';
+    if (!protocols?.length) return '<div class="lb-empty-inline">No Tezos X protocol TVL rows returned.</div>';
     return protocols.slice(0, 8).map((protocol, index) => `
         <div class="lb-table-row tezlink-protocol-row">
             <span>${index + 1}</span>
@@ -436,7 +436,7 @@ function renderPulsePanel(data) {
         <section class="lb-panel tezlink-panel chamber-anim-fade">
             <div class="lb-panel-title">Atomic Rollup Pulse <span class="lb-live-pill">live</span></div>
             <div class="tezlink-hero-number">${formatUsd(data.tvl)}</div>
-            <div class="health-hero-copy">DefiLlama chain TVL for the Tezlink L2 surface, sourced from current mainnet rollup data.</div>
+            <div class="health-hero-copy">DefiLlama chain TVL for the Tezos X L2 surface, sourced from current mainnet rollup data.</div>
             <div class="lb-metric-grid health-metric-grid">
                 <div><span>24h tx</span><strong>${compactNumber(data.transactionsToday)}</strong></div>
                 <div><span>Addresses</span><strong>${compactNumber(data.totalAddresses)}</strong></div>
@@ -578,11 +578,11 @@ function renderTezlinkChamber(data, container) {
         <div class="chamber-header lb-header tezlink-header chamber-anim-fade">
             <div class="lb-system-strip">
                 <span class="lb-system-brand">Tezos.Systems</span>
-                <span>Tezlink</span>
+                <span>Tezos X</span>
                 <span>Atomic L2 rollup</span>
             </div>
             <div class="chamber-title-row">
-                <h2 class="chamber-title" id="tezlink-title">Tezlink Chamber</h2>
+                <h2 class="chamber-title" id="tezlink-title">Tezos X Chamber</h2>
                 <span class="chamber-badge live">Live L2</span>
                 <span class="lb-live-pill lb-refresh-pill" id="tezlink-refresh-state">auto-refresh ${Math.round(CHAMBER_REFRESH_MS / 1000)}s</span>
             </div>
@@ -594,9 +594,9 @@ function renderTezlinkChamber(data, container) {
         <section class="lb-explainer tezlink-explainer chamber-anim-fade">
             <div class="lb-explainer-main">
                 <div class="lb-explainer-kicker">Right now</div>
-                <p><strong>Tezlink</strong> tracks the atomic L2 execution surface Tezos users care about: TVL, cost, active transaction flow, and protocol mix.</p>
+                <p><strong>Tezos X</strong> tracks the atomic L2 execution surface Tezos users care about: TVL, cost, active transaction flow, and protocol mix.</p>
             </div>
-            <div class="lb-explainer-facts" aria-label="Tezlink quick facts">
+            <div class="lb-explainer-facts" aria-label="Tezos X quick facts">
                 <span><strong>TVL</strong> ${formatUsd(data.tvl)}</span>
                 <span><strong>24h tx</strong> ${compactNumber(data.transactionsToday)}</span>
                 <span><strong>Gas</strong> ${formatGas(data.gasGwei)}</span>
@@ -617,7 +617,7 @@ function renderTezlinkChamber(data, container) {
             <span class="chamber-footer-sep">·</span>
             <a href="https://explorer.etherlink.com/" target="_blank" rel="noopener">Blockscout -></a>
             <span class="chamber-footer-sep">·</span>
-            <a class="panel-direct-link" href="/tezlink/" aria-label="Direct link to Tezlink Chamber">Direct: /tezlink/</a>
+            <a class="panel-direct-link" href="/tezosx/" aria-label="Direct link to Tezos X Chamber">Direct: /tezosx/</a>
         </div>
     `;
 }
@@ -665,7 +665,7 @@ async function refreshTezlinkChamber({ force = false } = {}) {
         if (!body.dataset.rendered) {
             body.innerHTML = `
                 <div class="lb-error">
-                    <strong>Tezlink data unavailable.</strong>
+                    <strong>Tezos X data unavailable.</strong>
                     <button type="button" class="primary-btn" id="tezlink-retry-open">Retry</button>
                 </div>
             `;
@@ -687,9 +687,9 @@ export async function openTezlinkChamber() {
         overlay.className = 'modal-overlay chamber-overlay lb-overlay tezlink-overlay';
         overlay.innerHTML = `
             <div class="modal-content modal-large chamber-content lb-content tezlink-content" role="dialog" aria-modal="true" aria-labelledby="tezlink-title">
-                <button class="modal-close chamber-close" type="button" aria-label="Close Tezlink Chamber">&times;</button>
+                <button class="modal-close chamber-close" type="button" aria-label="Close Tezos X Chamber">&times;</button>
                 <div class="chamber-body lb-body tezlink-body" id="tezlink-chamber-body">
-                    <div class="loading">Loading Tezlink chamber...</div>
+                    <div class="loading">Loading Tezos X chamber...</div>
                 </div>
             </div>
         `;
@@ -754,21 +754,21 @@ export function initTezlinkChamber() {
     card.className = 'stat-card chamber-entry-card chamber-entry-wide tezlink-entry-card';
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', 'Open Tezlink Chamber');
-    card.title = 'Open Tezlink Chamber';
+    card.setAttribute('aria-label', 'Open Tezos X Chamber');
+    card.title = 'Open Tezos X Chamber';
     card.innerHTML = `
-        <button class="card-copy-link" type="button" data-copy-hash="#tezlink" aria-label="Copy Tezlink direct link" title="Copy Tezlink link">🔗</button>
+        <button class="card-copy-link" type="button" data-copy-hash="#tezosx" aria-label="Copy Tezos X direct link" title="Copy Tezos X link">🔗</button>
         <div class="card-inner">
             <div class="card-front chamber-entry-front tezlink-entry-front">
                 <div class="tezlink-entry-main">
-                    <h2 class="stat-label">Tezlink</h2>
+                    <h2 class="stat-label">Tezos X</h2>
                     <div class="stat-value tezlink-entry-value" id="tezlink-entry-tvl"><span class="loading">...</span></div>
                     <span class="tezlink-entry-value-label">TVL</span>
                     <p class="stat-description" id="tezlink-entry-description">Atomic L2 rollup</p>
                     <div class="chamber-entry-status live" id="tezlink-entry-mini">Loading L2 feed</div>
                 </div>
-                <div class="tezlink-entry-metrics" id="tezlink-entry-metrics" aria-label="Tezlink live metrics"></div>
-                <div class="tezlink-entry-tape" id="tezlink-entry-tape" aria-label="Tezlink live transaction tape">
+                <div class="tezlink-entry-metrics" id="tezlink-entry-metrics" aria-label="Tezos X live metrics"></div>
+                <div class="tezlink-entry-tape" id="tezlink-entry-tape" aria-label="Tezos X live transaction tape">
                     <div class="tezlink-tape-empty">Loading transactions</div>
                 </div>
             </div>

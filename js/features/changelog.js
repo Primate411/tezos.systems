@@ -5,12 +5,20 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-13',
+        entries: [
+            { type: '🔧', text: 'Tezos X now uses #tezosx and /tezosx/ as its primary direct links while legacy #tezlink still opens the chamber' },
+            { type: '🔧', text: 'The L2 governance chamber is now labeled Tezos X Governance while preserving the existing #l2chamber direct link' },
+            { type: '🔧', text: 'The L2 chamber is now labeled Tezos X across the dashboard card, modal, share route, and network copy' },
+        ]
+    },
+    {
         date: '2026-06-12',
         entries: [
             { type: '🔧', text: 'Chamber open buttons now come from one app-shell template and sit in the same footer position across all live room cards' },
-            { type: '🎨', text: 'Tezlink and tz4 chamber polish now keeps mobile TVL copy together, fills quiet direction cells, and lets holdout baker names wrap' },
+            { type: '🎨', text: 'Tezos X and tz4 chamber polish now keeps mobile TVL copy together, fills quiet direction cells, and lets holdout baker names wrap' },
             { type: '🎨', text: 'tz4 Adoption now shows visible monthly switch counts with reliable bar heights and expands First Movers to the top 10 bakers' },
-            { type: '🎨', text: 'Chamber cards now use an in-flow freshness footer and keep live vote metrics, Tezlink titles, L2 timelines, and tz4 month bars readable across tablet and mobile widths' },
+            { type: '🎨', text: 'Chamber cards now use an in-flow freshness footer and keep live vote metrics, Tezos X titles, L2 timelines, and tz4 month bars readable across tablet and mobile widths' },
             { type: '🎨', text: 'Aurora title now uses the same shifting multicolor wordmark on desktop and mobile' },
             { type: '🎨', text: 'Chamber card controls now reserve a top-right lane so copy, share, info, and open buttons stay clear of live preview content' },
             { type: '🔧', text: 'Governance RSS now keeps active proposal names in historical feed items, lazy theme cache stamps are guarded, and Liquidity Baking block ranges stay compact' },
@@ -37,19 +45,19 @@ const CHANGELOG = [
             { type: '🎨', text: 'Network Health now gives the bottom-left freshness stamp more room and uses slimmer block-status pills in the wide Chambers card' },
             { type: '🔧', text: 'Removed the Chambers Daily Signal strip so the live room cards lead the section directly' },
             { type: '✨', text: 'Chambers now add trust-layer intelligence across the six live rooms: proposal intel, gap analysis, track memory, period telemetry, L2 direction, LB drift, and tz4 momentum' },
-            { type: '✨', text: 'Tezlink now includes 30-day direction, L1 rollup anchor metadata, gas oracle detail, and top-token holder rows inside the chamber' },
+            { type: '✨', text: 'Tezos X now includes 30-day direction, L1 rollup anchor metadata, gas oracle detail, and top-token holder rows inside the chamber' },
             { type: '✨', text: 'Liquidity Baking and tz4 Adoption now expose sampled forecast/history layers, vote-change or holdout feeds, and clearer operator momentum signals' },
             { type: '🎨', text: 'Cache-free chamber QA tightened the tz4 live preview spacing and keeps Liquidity Baking help popovers inside mobile and desktop viewports' },
-            { type: '🎨', text: 'Tezlink Governance quiet-state chips now stay clear of the bottom-left freshness stamp' },
+            { type: '🎨', text: 'Tezos X Governance quiet-state chips now stay clear of the bottom-left freshness stamp' },
             { type: '🎨', text: 'Live chamber cards now show quiet UTC freshness stamps without crowding their direct-link and open controls' },
             { type: '🔧', text: 'Dashboard refresh now keeps shared feature safety wrappers available during manual and background refresh cycles' },
-            { type: '🎨', text: 'Liquidity Baking EMA trend lines now auto-scale around the recent range, and Tezlink Governance card controls avoid crowding track chips' },
-            { type: '🔧', text: 'Tezlink Governance period countdowns now advance from the current head block instead of sticking at rollover copy' },
+            { type: '🎨', text: 'Liquidity Baking EMA trend lines now auto-scale around the recent range, and Tezos X Governance card controls avoid crowding track chips' },
+            { type: '🔧', text: 'Tezos X Governance period countdowns now advance from the current head block instead of sticking at rollover copy' },
             { type: '🔧', text: 'Network Health chamber card controls now keep camera, direct link, and info buttons in separate top-right slots' },
             { type: '🎨', text: 'Network Health and Liquidity Baking chamber cards now keep compact status rows inside the card frame at wide desktop sizes' },
             { type: '🎨', text: 'Chambers now render as three paired rows so wide cards keep their companion card instead of leaving visual gaps' },
             { type: '✨', text: 'The Chamber card and modal now show live proposal context, refresh every minute, expose vote sharing, and keep live vote data before process explainers' },
-            { type: '🎨', text: 'Network Health, Tezlink, Tezlink Governance, Liquidity Baking, and tz4 cards now use clearer live tapes, meters, idle chips, and mobile-safe previews' },
+            { type: '🎨', text: 'Network Health, Tezos X, Tezos X Governance, Liquidity Baking, and tz4 cards now use clearer live tapes, meters, idle chips, and mobile-safe previews' },
             { type: '🔧', text: 'Chamber theme colors, vote labels, historical turnout bars, tz4 baker rows, and Liquidity Baking disabled-state semantics were tightened after a full chamber audit' },
             { type: '🎨', text: 'Aurora title now keeps its shifting multicolor treatment visible on desktop instead of reading as a mostly static blue wordmark' },
             { type: '⚡', text: 'TzKT API calls now pass through a browser-local queue capped at six request starts per second to avoid visitor-side 429 bursts' },
@@ -58,17 +66,17 @@ const CHANGELOG = [
     {
         date: '2026-06-10',
         entries: [
-            { type: '🔧', text: 'Chambers grid now keeps Network Health with The Chamber, Tezlink with Tezlink Governance, and tz4 Adoption with LB Monitor' },
+            { type: '🔧', text: 'Chambers grid now keeps Network Health with The Chamber, Tezos X with Tezos X Governance, and tz4 Adoption with LB Monitor' },
             { type: '✨', text: 'tz4 Adoption now uses a wide Chambers tile with latest baker switches, pending activations, and the full queue in the opened chamber' },
-            { type: '✨', text: 'Tezlink Governance track tabs now show recent historical proposal submissions for FAST, SLOW, and Sequencer' },
+            { type: '✨', text: 'Tezos X Governance track tabs now show recent historical proposal submissions for FAST, SLOW, and Sequencer' },
             { type: '🔧', text: 'Network Health chamber refreshes now update block rows in place so the 6-second live feed stays smooth' },
-            { type: '🔧', text: 'Tezlink Governance now discovers active contracts from TzKT, keeps empty proposal shells compact, and labels the quiet state IDLE' },
+            { type: '🔧', text: 'Tezos X Governance now discovers active contracts from TzKT, keeps empty proposal shells compact, and labels the quiet state IDLE' },
         ]
     },
     {
         date: '2026-06-09',
         entries: [
-            { type: '✨', text: 'Tezlink Governance Chamber added with #l2chamber access plus FAST, SLOW, and Sequencer track status from live TzKT contract storage' },
+            { type: '✨', text: 'Tezos X Governance Chamber added with #l2chamber access plus FAST, SLOW, and Sequencer track status from live TzKT contract storage' },
         ]
     },
     {
@@ -80,7 +88,7 @@ const CHANGELOG = [
     {
         date: '2026-06-07',
         entries: [
-            { type: '✨', text: 'Tezlink Chamber added with atomic L2 TVL, transaction, gas, address, and protocol TVL data sourced from current Tezlink rails' },
+            { type: '✨', text: 'Tezos X Chamber added with atomic L2 TVL, transaction, gas, address, and protocol TVL data sourced from current Etherlink rails' },
             { type: '✨', text: 'Network Health now earns a double-width Chambers tile with a live 1,000+ XTZ activity tape' },
             { type: '🔧', text: 'The Chamber card now expands during active ballot periods and shows time left, quorum, Yay threshold, and ballot context' },
             { type: '🔧', text: 'Staking ratio and APY now match TzKT Proof-of-Stake totals across dashboard, widgets, and share surfaces' },

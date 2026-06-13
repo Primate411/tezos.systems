@@ -2576,7 +2576,8 @@ function initDeepLinkAffordances() {
         const prettyRoutes = {
             '#chamber': '/chamber/',
             '#health': '/health/',
-            '#tezlink': '/tezlink/',
+            '#tezosx': '/tezosx/',
+            '#tezlink': '/tezosx/',
             '#l2chamber': '/l2chamber/',
             '#lb': '/lb/',
             '#lb-tile': '/lb/',
@@ -2731,8 +2732,9 @@ function initOfflineIndicator() {
 //   #giants            → show sleeping giants
 //   #history           → open history modal
 //   #chamber           → open The Chamber governance modal
-//   #tezlink           → open Tezlink Chamber
-//   #l2chamber         → open Tezlink Governance Chamber
+//   #tezosx           -> open Tezos X Chamber
+//   #tezlink          -> legacy alias for Tezos X Chamber
+//   #l2chamber         -> open Tezos X Governance Chamber
 //   #health            → open Network Health Chamber
 //   #lb                → open Liquidity Baking monitor
 //   #lb-tile           → scroll to the Liquidity Baking dashboard tile
@@ -2884,11 +2886,11 @@ function applyDeepLink() {
         setTimeout(() => scrollToElementAfterLayout(() => document.getElementById('chambers-section'), { block: 'start' }), 200);
     }
 
-    // #tezlink
-    if (params.has('tezlink') || hash === 'tezlink') {
+    // #tezosx / legacy #tezlink
+    if (params.has('tezosx') || hash === 'tezosx' || params.has('tezlink') || hash === 'tezlink') {
         import('../features/tezlink.js')
             .then(({ openTezlinkChamber }) => openTezlinkChamber())
-            .catch((error) => console.warn('Failed to open Tezlink Chamber', error));
+            .catch((error) => console.warn('Failed to open Tezos X Chamber', error));
     }
 
     // #l2chamber / legacy #etherlink-governance / #etherlink-gov / #etherlink
@@ -2900,7 +2902,7 @@ function applyDeepLink() {
     ) {
         import('../features/etherlink-governance.js')
             .then(({ openEtherlinkGovernanceChamber }) => openEtherlinkGovernanceChamber())
-            .catch((error) => console.warn('Failed to open Tezlink Governance Chamber', error));
+            .catch((error) => console.warn('Failed to open Tezos X Governance Chamber', error));
     }
 
     // #health / #network-health

@@ -18,10 +18,10 @@ export const CHAMBER_ROUTES = [
     accent: '#47d18c'
   },
   {
-    slug: 'tezlink',
-    hash: '#tezlink',
-    title: 'Tezlink Chamber - Etherlink Activity Monitor',
-    shortTitle: 'Tezlink',
+    slug: 'tezosx',
+    hash: '#tezosx',
+    title: 'Tezos X Chamber - Etherlink Activity Monitor',
+    shortTitle: 'Tezos X',
     description: 'Follow Etherlink activity, L1 anchors, gas signals, TVL direction, and L2 token concentration.',
     eyebrow: 'Etherlink L2',
     accent: '#a855f7'
@@ -29,8 +29,8 @@ export const CHAMBER_ROUTES = [
   {
     slug: 'l2chamber',
     hash: '#l2chamber',
-    title: 'Tezlink Governance Chamber - Etherlink Governance Monitor',
-    shortTitle: 'Tezlink Governance',
+    title: 'Tezos X Governance Chamber - Etherlink Governance Monitor',
+    shortTitle: 'Tezos X Governance',
     description: 'Track Etherlink governance contracts, track rules, proposal timelines, and quiet-state discovery.',
     eyebrow: 'L2 Governance',
     accent: '#ff9f43'
