@@ -1149,6 +1149,15 @@ const CHAMBER_CARD_PAIRS = [
     }
 ];
 let _chamberPairObserver = null;
+const CHAMBER_EXPAND_CUE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h5v5"/><path d="M9 20H4v-5"/><path d="M20 4l-7 7"/><path d="M4 20l7-7"/></svg>';
+
+function createChamberExpandCue() {
+    const cue = document.createElement('span');
+    cue.className = 'chamber-expand-cue';
+    cue.setAttribute('aria-hidden', 'true');
+    cue.innerHTML = CHAMBER_EXPAND_CUE_SVG;
+    return cue;
+}
 
 function syncChamberEntryFooter(card) {
     if (!card?.classList?.contains('chamber-entry-card')) return;
@@ -1168,7 +1177,9 @@ function syncChamberEntryFooter(card) {
     if (freshness && freshness.textContent !== label) freshness.textContent = label;
     footer.classList.toggle('has-freshness', Boolean(label));
 
-    const cue = card.querySelector(':scope > .chamber-expand-cue, :scope .card-inner + .chamber-expand-cue, :scope .chamber-entry-footer .chamber-expand-cue');
+    const cue = footer.querySelector(':scope > .chamber-expand-cue')
+        || card.querySelector(':scope > .chamber-expand-cue, :scope .card-inner + .chamber-expand-cue')
+        || createChamberExpandCue();
     if (cue && cue.parentElement !== footer) footer.appendChild(cue);
     footer.hidden = !label && !footer.querySelector('.chamber-expand-cue');
 }

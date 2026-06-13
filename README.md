@@ -157,8 +157,9 @@ inline modal styles in `js/core/app.js`.
   Health <> The Chamber, Tezlink <> Tezlink Governance, and tz4 Adoption <> LB
   Monitor. Each pair is wrapped as its own responsive row so wide cards keep
   their companion card instead of creating desktop grid holes; cards also keep
-  visible open affordances, card-level direct-link controls, and quiet `as of`
-  freshness stamps on the live chamber cards.
+  a canonical app-shell open affordance in the fixed footer rail, card-level
+  direct-link controls, and quiet `as of` freshness stamps on the live chamber
+  cards.
 - Tezlink Governance Chamber with direct `#l2chamber` access,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
   discovery, storage, bigmaps, and recent historical proposal submissions, plus
@@ -343,7 +344,7 @@ Current smoke suites:
 - `my-tezos-baker-capacity`
 - `tezlink`
 - `network-health`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, in-flow Chamber footer geometry, Tezlink Governance card geometry and rollover timing, Tezlink direction fallbacks, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, fixed Chamber footer geometry, Tezlink Governance card geometry and rollover timing, Tezlink direction fallbacks, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`
@@ -363,7 +364,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v184`.
+- Current aligned shell cache stamp: `v185`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

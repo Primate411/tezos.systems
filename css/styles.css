@@ -2717,7 +2717,7 @@ body::before {
         text-align: left;
     }
 
-    .health-entry-card.chamber-entry-wide .card-front > :not(.health-live-tape) {
+    .health-entry-card.chamber-entry-wide .card-front > :not(.health-live-tape):not(.chamber-entry-footer) {
         grid-column: 1;
     }
 
@@ -3045,16 +3045,6 @@ body::before {
 
 #chambers-grid .etherlink-governance-entry-card[data-etherlink-governance-size="compact"] .etherlink-gov-entry-metrics {
     margin-bottom: 0.45rem;
-}
-
-.etherlink-governance-entry-card .chamber-expand-cue {
-    min-width: 24px;
-    width: 24px;
-    padding: 0;
-}
-
-.etherlink-governance-entry-card .chamber-expand-cue::after {
-    content: '';
 }
 
 .etherlink-gov-content {
@@ -3981,6 +3971,10 @@ body::before {
 
     .stat-card {
         height: 190px;
+    }
+
+    #chambers-grid .chamber-entry-card {
+        --chamber-card-inline-padding: 1.5rem;
     }
 
     .stat-value {
@@ -15734,6 +15728,7 @@ body {
 
 .chamber-entry-card {
     --chamber-control-lane: 6.85rem;
+    --chamber-card-inline-padding: 1.75rem;
     border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, transparent) !important;
     transition: all 0.3s ease !important;
     position: relative;
@@ -15742,6 +15737,7 @@ body {
 
 #chambers-grid .chamber-entry-card .card-front {
     padding-right: var(--chamber-control-lane);
+    padding-bottom: 3rem;
 }
 
 .chamber-entry-card > .card-copy-link,
@@ -15766,15 +15762,18 @@ body {
 }
 
 .chamber-entry-footer {
-    grid-column: 1 / -1;
+    position: absolute;
+    right: var(--chamber-card-inline-padding);
+    bottom: 0.75rem;
+    left: var(--chamber-card-inline-padding);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.65rem;
-    width: 100%;
+    width: auto;
     min-width: 0;
     min-height: 24px;
-    margin-top: auto;
+    margin-top: 0;
     padding-top: 0.42rem;
     border-top: 1px solid rgba(255, 255, 255, 0.045);
 }
@@ -15856,14 +15855,10 @@ body {
 }
 .chamber-expand-cue::after { content: 'Open'; }
 .chamber-expand-cue svg { width: 13px; height: 13px; display: block; flex: 0 0 auto; }
-.chamber-entry-card:hover .chamber-expand-cue {
+.chamber-expand-cue:hover {
     opacity: 1;
     transform: translateY(-1px);
     border-color: var(--accent-cyan);
-}
-
-.chamber-entry-footer .chamber-expand-cue {
-    margin-left: auto;
 }
 
 .chamber-entry-status {
@@ -15998,7 +15993,7 @@ body {
         align-items: flex-start;
         gap: 0.7rem;
         padding-top: 1.65rem;
-        padding-bottom: 1rem;
+        padding-bottom: 3rem;
         text-align: left;
     }
 
@@ -16011,7 +16006,7 @@ body {
     }
 
     #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tz4-liquidity"] > .chamber-entry-card {
-        height: 232px;
+        height: 252px;
     }
 
     #chamber-entry-card.chamber-entry-wide .chamber-entry-front {
@@ -16071,8 +16066,7 @@ body {
     #chamber-entry-card.chamber-entry-wide .chamber-entry-icon,
     #chamber-entry-card.chamber-entry-wide .stat-description,
     #chamber-entry-card.chamber-entry-wide .chamber-entry-status,
-    #chamber-entry-card.chamber-entry-wide .chamber-entry-metrics,
-    #chamber-entry-card.chamber-entry-wide .chamber-entry-footer {
+    #chamber-entry-card.chamber-entry-wide .chamber-entry-metrics {
         grid-column: 1;
     }
 
@@ -16104,15 +16098,16 @@ body {
     #chambers-grid .chamber-entry-card .card-front {
         padding-top: 2.35rem;
         padding-right: var(--chamber-control-lane);
+        padding-bottom: 3rem;
     }
 
     #chambers-grid .chamber-entry-card.chamber-entry-wide {
         height: auto !important;
-        min-height: 284px;
+        min-height: 320px;
     }
 
     #chamber-entry-card.chamber-entry-wide {
-        min-height: 286px;
+        min-height: 348px;
     }
 
     #chambers-grid .tezlink-entry-card.chamber-entry-wide {
@@ -16125,6 +16120,10 @@ body {
 
     #chambers-grid .health-entry-card.chamber-entry-wide {
         min-height: 306px;
+    }
+
+    #chambers-grid .lb-entry-card {
+        min-height: 320px;
     }
 
     .health-entry-card.chamber-entry-wide .card-front,
@@ -18164,7 +18163,7 @@ body {
         text-align: left;
     }
 
-    .tz4-entry-card.chamber-entry-wide .card-front > :not(.tz4-entry-preview) {
+    .tz4-entry-card.chamber-entry-wide .card-front > :not(.tz4-entry-preview):not(.chamber-entry-footer) {
         grid-column: 1;
     }
 
@@ -18314,10 +18313,13 @@ body {
     }
 
     #chambers-grid .tz4-entry-card.chamber-entry-wide {
-        min-height: 392px;
+        min-height: 430px;
     }
 
     .tz4-entry-card.chamber-entry-wide .card-front {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
         justify-content: flex-start;
         gap: 0.55rem;
         padding-bottom: 2.75rem !important;
@@ -18325,6 +18327,10 @@ body {
 
     .tz4-entry-card.chamber-entry-wide .tz4-entry-preview {
         display: block;
+        grid-column: auto;
+        grid-row: auto;
+        align-self: stretch;
+        padding-bottom: 0;
         margin-top: 2px;
     }
 

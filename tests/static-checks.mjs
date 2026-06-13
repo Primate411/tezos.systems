@@ -483,7 +483,6 @@ async function checkSelectorContracts() {
     ['LB vote change feed', 'id="lb-vote-change-feed"', lb],
     ['tz4 tile card copy link', 'data-copy-hash="#tz4"', index],
     ['tz4 tile expand cue', 'data-stat="tz4-adoption"', index],
-    ['tz4 tile expand icon', 'chamber-expand-cue', index],
     ['tz4 tile chamber wiring', 'openTz4AdoptionChamber', tz4],
     ['tz4 direct footer link', 'Direct: /tz4/', tz4],
     ['tz4 projection panel', 'id="tz4-projection-panel"', tz4],
@@ -493,12 +492,13 @@ async function checkSelectorContracts() {
     ['tz4 power milestone panel', 'id="tz4-power-milestones"', tz4],
     ['health tile card copy link', 'data-copy-hash="#health"', index],
     ['health tile expand cue', 'data-stat="network-health"', index],
-    ['health tile expand icon', 'chamber-expand-cue', index],
     ['health tile chamber wiring', 'openNetworkHealthChamber', health],
     ['health direct footer link', 'Direct: /health/', health],
     ['health incident memory panel', 'id="health-incident-memory"', health],
     ['health period telemetry panel', 'id="health-period-telemetry"', health],
     ['health network load panel', 'id="health-network-load"', health],
+    ['canonical chamber expand cue factory', 'function createChamberExpandCue()', app],
+    ['canonical chamber expand cue class', "cue.className = 'chamber-expand-cue'", app],
     ['shared chamber footer rail style', '.chamber-entry-footer', styles],
     ['shared chamber freshness text style', '.chamber-entry-freshness', styles]
   ];
@@ -525,7 +525,11 @@ async function checkSelectorContracts() {
     ['Chamber content avoids top-right controls', 'padding-right: var(--chamber-control-lane);', styles],
     ['Chamber controls layer above card content', '.chamber-entry-card > .card-copy-link', styles],
     ['Chamber footer rail exists in flow', '.chamber-entry-footer', styles],
-    ['Chamber footer owns open cue', '.chamber-entry-footer .chamber-expand-cue', styles],
+    ['Chamber footer is absolute bottom rail', 'position: absolute;', styles],
+    ['Chamber footer uses shared right edge', 'right: var(--chamber-card-inline-padding);', styles],
+    ['Chamber footer uses shared left edge', 'left: var(--chamber-card-inline-padding);', styles],
+    ['Chamber footer bottom placement is fixed', 'bottom: 0.75rem;', styles],
+    ['Chamber open cue style is global', '.chamber-expand-cue {', styles],
     ['Chamber stale freshness uses footer text', '.chamber-entry-card.chamber-data-stale .chamber-entry-freshness', styles],
     ['Chamber pseudo freshness disabled', '.chamber-entry-card[data-updated-label]::after', styles]
   ];
@@ -533,6 +537,30 @@ async function checkSelectorContracts() {
     if (!text.includes(snippet)) fail(`missing card control spacing contract: ${label}`);
   }
   pass(`card control spacing contracts checked: ${cardControlContracts.length}`);
+
+  const expandCueMarkupFiles = [
+    'index.html',
+    ...(await walk('js', (file) => file.endsWith('.js') && file !== 'js/core/app.js'))
+  ];
+  for (const file of expandCueMarkupFiles) {
+    const text = file === 'index.html' ? index : await readText(file);
+    if (text.includes('chamber-expand-cue')) {
+      fail(`chamber expand cue must be created only by js/core/app.js, found in ${file}`);
+    }
+  }
+
+  const scopedCueSelectors = [];
+  for (const match of styles.matchAll(/([^{}]+)\{/g)) {
+    const selectorBlock = match[1].trim();
+    if (!selectorBlock.includes('.chamber-expand-cue')) continue;
+    selectorBlock.split(',').map((selector) => selector.trim()).forEach((selector) => {
+      if (!selector.startsWith('.chamber-expand-cue')) scopedCueSelectors.push(selector);
+    });
+  }
+  if (scopedCueSelectors.length) {
+    fail(`chamber expand cue styles must stay unscoped: ${scopedCueSelectors.join(', ')}`);
+  }
+  pass(`chamber expand cue canonical contracts checked: ${expandCueMarkupFiles.length} source files`);
 
   const chamberRendererStyleContracts = [
     ['Tezlink Governance timeline row style', '.etherlink-gov-table .etherlink-gov-timeline-row', styles],
