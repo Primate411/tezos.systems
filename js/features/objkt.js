@@ -4,6 +4,11 @@
 
 const OBJKT_GRAPHQL = 'https://data.objkt.com/v3/graphql';
 
+function asNumber(value) {
+    const num = Number(value);
+    return Number.isFinite(num) ? num : 0;
+}
+
 /**
  * Fetch creator and collector data for an address
  */
@@ -164,11 +169,12 @@ function processProfile(holder) {
     const boughtListings = holder.listings_bought || [];
 
     // Filter out zero-value/null tokens
-    const validHeld = heldTokens.filter(h => h.token?.name && h.quantity > 0);
+    const validHeld = heldTokens.filter(h => h.token?.name && asNumber(h.quantity) > 0);
 
     if (validHeld.length > 0) {
         // Total pieces held
-        const totalHeld = validHeld.reduce((sum, h) => sum + h.quantity, 0);
+        const totalHeld = validHeld.reduce((sum, h) => sum + asNumber(h.quantity), 0);
+        const uniqueAssetKeys = new Set();
 
         // Unique collections
         const collectionMap = new Map();
@@ -178,14 +184,21 @@ function processProfile(holder) {
             if (!collectionMap.has(key)) {
                 collectionMap.set(key, {
                     name: fa?.name || 'Unknown',
-                    count: 0,
+                    assetCount: 0,
+                    editionCount: 0,
+                    assetKeys: new Set(),
                     estimatedValue: 0
                 });
             }
             const entry = collectionMap.get(key);
-            entry.count += h.quantity;
+            const assetKey = String(h.token?.pk || `${key}:${h.token?.name || entry.assetKeys.size}`);
+            const quantity = asNumber(h.quantity);
+            uniqueAssetKeys.add(assetKey);
+            entry.assetKeys.add(assetKey);
+            entry.assetCount = entry.assetKeys.size;
+            entry.editionCount += quantity;
             if (h.token.lowest_ask) {
-                entry.estimatedValue += (h.token.lowest_ask * h.quantity);
+                entry.estimatedValue += (asNumber(h.token.lowest_ask) * quantity);
             }
         }
 
@@ -205,17 +218,20 @@ function processProfile(holder) {
         let portfolioValue = 0;
         for (const h of validHeld) {
             if (h.token.lowest_ask) {
-                portfolioValue += h.token.lowest_ask * h.quantity;
+                portfolioValue += asNumber(h.token.lowest_ask) * asNumber(h.quantity);
             }
         }
 
-        // Top collections by count
+        // Top collections by distinct assets. Edition quantity can be misleading
+        // for high-supply FA2 tokens, so keep it as secondary metadata only.
         const topCollections = [...collectionMap.values()]
-            .sort((a, b) => b.count - a.count)
+            .map(({ assetKeys, ...entry }) => entry)
+            .sort((a, b) => (b.assetCount - a.assetCount) || (b.editionCount - a.editionCount))
             .slice(0, 5);
 
         profile.collector = {
             totalHeld,
+            uniqueAssetsHeld: uniqueAssetKeys.size,
             uniqueCollections: collectionMap.size,
             totalSpent: totalSpent / 1e6,
             portfolioValue: portfolioValue / 1e6,

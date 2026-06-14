@@ -424,6 +424,15 @@ async function installFeatureMocks(context, options = {}) {
                   fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345' },
                   lowest_ask: 1000000
                 }
+              }, {
+                quantity: '13635916737',
+                token: {
+                  name: 'Smoke High Supply',
+                  pk: 2,
+                  supply: '13635916737',
+                  fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345' },
+                  lowest_ask: 0
+                }
               }],
               created_tokens: [{
                 token_pk: 1,
@@ -3399,6 +3408,9 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#objkt-results .objkt-subsection').length > 0, null, { timeout: 10000 });
   const objktText = await page.locator('#objkt-results').innerText();
   assert(/creator/i.test(objktText) && /collector/i.test(objktText), `feature workflows NFT profile should render creator and collector sections, saw: ${objktText}`);
+  assert(/Assets Held\s+2/i.test(objktText), `feature workflows NFT profile should default held total to distinct assets, saw: ${objktText}`);
+  assert(/Top Collections Held[\s\S]*Smoke Collection[\s\S]*2 assets/i.test(objktText), `feature workflows NFT top collections should count distinct assets, saw: ${objktText}`);
+  assert(!/13635916737 pieces/i.test(objktText), `feature workflows NFT top collections should not expose raw high-edition quantity as pieces, saw: ${objktText}`);
   await page.locator('#objkt-clear').click();
   assert((await page.locator('#objkt-results').innerText()).trim() === '', 'feature workflows NFT clear should empty results');
   log('ok - feature workflow: NFT profile');

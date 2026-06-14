@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-14',
         entries: [
+            { type: '🔧', text: 'NFT Profile collector collections now default to distinct asset counts instead of raw edition quantities for high-supply tokens' },
             { type: '🎨', text: 'Mobile landing theme cards now wrap into a two-column grid and stay inside the viewport' },
             { type: '🔧', text: 'Smoke tests now check public routes, widget pages, and the 404 screen for desktop/mobile formatting overflow' },
             { type: '🔧', text: 'The 404 screen now declares the Tezos Systems favicon like the other standalone pages' },

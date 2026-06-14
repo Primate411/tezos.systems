@@ -42,6 +42,25 @@ function fmtXTZ(mutez) {
     return '0 ꜩ';
 }
 
+function fmtCount(value) {
+    const num = Number(value) || 0;
+    return num.toLocaleString();
+}
+
+function plural(value, singular, pluralLabel = `${singular}s`) {
+    return Number(value) === 1 ? singular : pluralLabel;
+}
+
+function formatHeldCollectionStats(collection) {
+    const assetCount = Number(collection.assetCount ?? collection.count ?? 0) || 0;
+    const editionCount = Number(collection.editionCount ?? collection.count ?? assetCount) || 0;
+    const parts = [`${fmtCount(assetCount)} ${plural(assetCount, 'asset')}`];
+    if (editionCount > assetCount && editionCount <= 1000000) {
+        parts.push(`${fmtCount(editionCount)} ${plural(editionCount, 'edition')}`);
+    }
+    return parts.join(' · ');
+}
+
 function createStatItem(label, value) {
     const div = document.createElement('div');
     div.className = 'my-baker-stat';
@@ -156,9 +175,13 @@ async function renderProfile(address, container) {
 
             const grid = document.createElement('div');
             grid.className = 'my-baker-grid';
-            grid.appendChild(createStatItem('Pieces Held', profile.collector.totalHeld.toLocaleString()));
+            const assetsHeld = profile.collector.uniqueAssetsHeld ?? profile.collector.totalHeld;
+            grid.appendChild(createStatItem('Assets Held', fmtCount(assetsHeld)));
             grid.appendChild(createStatItem('Collections', profile.collector.uniqueCollections.toLocaleString()));
             grid.appendChild(createStatItem('Total Spent', fmtXTZ(profile.collector.totalSpent * 1e6)));
+            if (profile.collector.totalHeld > assetsHeld && profile.collector.totalHeld <= 1000000) {
+                grid.appendChild(createStatItem('Editions Held', fmtCount(profile.collector.totalHeld)));
+            }
             if (profile.collector.portfolioValue > 0) {
                 grid.appendChild(createStatItem('Portfolio Floor', fmtXTZ(profile.collector.portfolioValue * 1e6)));
             }
@@ -178,7 +201,7 @@ async function renderProfile(address, container) {
                     row.className = 'objkt-collection-row';
                     row.innerHTML = `
                         <span class="objkt-coll-name">${escapeHtml(coll.name)}</span>
-                        <span class="objkt-coll-stats">${coll.count} piece${coll.count !== 1 ? 's' : ''}</span>
+                        <span class="objkt-coll-stats">${formatHeldCollectionStats(coll)}</span>
                     `;
                     collList.appendChild(row);
                 }
