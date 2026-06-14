@@ -345,6 +345,42 @@ function fulfillText(route, body, contentType = 'text/plain') {
   return route.fulfill({ status: 200, contentType, body });
 }
 
+function pageRows(total, offset, limit, makeRow) {
+  const start = Math.max(0, Number(offset) || 0);
+  const count = Math.max(0, Number(limit) || 0);
+  if (count === 0 || start >= total) return [];
+  const end = Math.min(total, start + count);
+  return Array.from({ length: end - start }, (_, index) => makeRow(start + index));
+}
+
+function smokeHeldToken(index) {
+  const isHighSupply = index === 1;
+  return {
+    quantity: isHighSupply ? '13635916737' : 1,
+    token: {
+      name: isHighSupply ? 'Smoke High Supply' : `Smoke Piece ${index + 1}`,
+      pk: index + 1,
+      supply: isHighSupply ? '13635916737' : 10,
+      fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345' },
+      lowest_ask: index === 0 ? 1000000 : 0
+    }
+  };
+}
+
+function smokeCreatedToken(index) {
+  return {
+    token_pk: index + 1,
+    token: {
+      name: `Smoke Piece ${index + 1}`,
+      supply: 10,
+      pk: index + 1,
+      fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345' },
+      lowest_ask: index === 0 ? 1000000 : 0,
+      listing_sales: index === 0 ? [{ price_xtz: 2500000, timestamp: new Date().toISOString() }] : []
+    }
+  };
+}
+
 async function installFeatureMocks(context, options = {}) {
   let lbBlocksHead = 12345678;
   const blockHeadLagMs = Number(options.blockHeadLagMs) || 0;
@@ -410,52 +446,26 @@ async function installFeatureMocks(context, options = {}) {
 
     if (url.includes('data.objkt.com/v3/graphql')) {
       if (postData.includes('holder(')) {
+        const body = JSON.parse(postData || '{}');
+        const vars = body.variables || {};
         return fulfillJson(route, {
           data: {
             holder: [{
               address: SAMPLE_ADDRESS,
               alias: 'QA Artist',
               tzdomain: 'qa-artist.tez',
-              held_tokens: [{
-                quantity: 2,
-                token: {
-                  name: 'Smoke Piece',
-                  pk: 1,
-                  supply: 10,
-                  fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345' },
-                  lowest_ask: 1000000
-                }
-              }, {
-                quantity: '13635916737',
-                token: {
-                  name: 'Smoke High Supply',
-                  pk: 2,
-                  supply: '13635916737',
-                  fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345' },
-                  lowest_ask: 0
-                }
-              }],
-              created_tokens: [{
-                token_pk: 1,
-                token: {
-                  name: 'Smoke Piece',
-                  supply: 10,
-                  pk: 1,
-                  fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345' },
-                  lowest_ask: 1000000,
-                  listing_sales: [{ price_xtz: 2500000, timestamp: new Date().toISOString() }]
-                }
-              }],
-              fa2s_created: [{
+              held_tokens: pageRows(501, vars.heldOffset, vars.heldLimit, smokeHeldToken),
+              created_tokens: pageRows(501, vars.createdOffset, vars.createdLimit, smokeCreatedToken),
+              fa2s_created: pageRows(1, vars.collectionOffset, vars.collectionLimit, () => ({
                 name: 'Smoke Collection',
                 contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345',
                 items: 10,
                 volume_total: 2500000,
                 floor_price: 1000000,
                 owners: 3
-              }],
-              listings_sold: [{ price_xtz: 2500000, timestamp: new Date().toISOString() }],
-              listings_bought: [{ price_xtz: 1000000, timestamp: new Date().toISOString() }],
+              })),
+              listings_sold: pageRows(1, vars.soldOffset, vars.soldLimit, () => ({ price_xtz: 2500000, timestamp: new Date().toISOString() })),
+              listings_bought: pageRows(1, vars.boughtOffset, vars.boughtLimit, () => ({ price_xtz: 1000000, timestamp: new Date().toISOString() })),
               sales_stats: [{ type: 'creator', volume: 2500000, interval_days: null }]
             }]
           }
@@ -2096,8 +2106,8 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
     return window._myTezosData?.fullAddress === address
       && story?.proposalsInjected === 0
       && story?.bakerProposalsInjected === 1
-      && story?.nftAssetsCollected === 2
-      && story?.creatorStats?.totalCreated === 1
+      && story?.nftAssetsCollected === 501
+      && story?.creatorStats?.totalCreated === 501
       && story?.creatorStats?.totalSalesVolume === 2.5
       && story?.domainAlias === 'qa-baker.tez';
   }, SAMPLE_DELEGATOR_ADDRESS, { timeout: 15000 });
@@ -2111,8 +2121,8 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   assert(storyText.includes('Baker injected 1 accepted proposal'), `my tezos proposal attribution: missing baker attribution: ${storyText}`);
   assert(!storyText.includes('📜 Injected 1 accepted proposal'), `my tezos proposal attribution: delegator was credited as initiator: ${storyText}`);
   assert(storyText.includes('Smoke'), `my tezos proposal attribution: proposal alias missing: ${storyText}`);
-  assert(storyText.includes('Collected 2 NFTs'), `my tezos proposal attribution: NFT collection count missing: ${storyText}`);
-  assert(storyText.includes('Created 1 NFT') && storyText.includes('2.50 XTZ sales'), `my tezos proposal attribution: creator stats missing: ${storyText}`);
+  assert(storyText.includes('Collected 501 NFTs'), `my tezos proposal attribution: NFT collection count missing: ${storyText}`);
+  assert(storyText.includes('Created 501 NFTs') && storyText.includes('2.50 XTZ sales'), `my tezos proposal attribution: creator stats missing: ${storyText}`);
   assert(storyText.includes('Known as qa-baker.tez'), `my tezos proposal attribution: domain alias missing: ${storyText}`);
 
   await page.locator('#drawer-brief .story-share-btn').click();
@@ -2123,10 +2133,10 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   }));
   assert(shareState.picker.includes('qa-baker.tez'), `my tezos proposal attribution: share tweet picker missing domain alias: ${shareState.picker}`);
   assert(shareState.captured.includes('Known as qa-baker.tez'), `my tezos proposal attribution: share card capture missing domain alias: ${shareState.captured}`);
-  assert(shareState.picker.includes('Collected 2 NFTs'), `my tezos proposal attribution: share tweet picker missing NFT count: ${shareState.picker}`);
-  assert(shareState.captured.includes('Collected 2 NFTs'), `my tezos proposal attribution: share card capture missing NFT count: ${shareState.captured}`);
-  assert(shareState.picker.includes('Created 1 NFT'), `my tezos proposal attribution: share tweet picker missing creator stats: ${shareState.picker}`);
-  assert(shareState.captured.includes('Created 1 NFT') && shareState.captured.includes('2.50 XTZ sales'), `my tezos proposal attribution: share card capture missing creator stats: ${shareState.captured}`);
+  assert(shareState.picker.includes('Collected 501 NFTs'), `my tezos proposal attribution: share tweet picker missing NFT count: ${shareState.picker}`);
+  assert(shareState.captured.includes('Collected 501 NFTs'), `my tezos proposal attribution: share card capture missing NFT count: ${shareState.captured}`);
+  assert(shareState.picker.includes('Created 501 NFTs'), `my tezos proposal attribution: share tweet picker missing creator stats: ${shareState.picker}`);
+  assert(shareState.captured.includes('Created 501 NFTs') && shareState.captured.includes('2.50 XTZ sales'), `my tezos proposal attribution: share card capture missing creator stats: ${shareState.captured}`);
   assert(!shareState.captured.includes('Lived through'), `my tezos proposal attribution: share card still includes governance cycles: ${shareState.captured}`);
   await expectShareModal(page, 'my tezos proposal attribution share', issues);
 
@@ -3431,8 +3441,8 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#objkt-results .objkt-subsection').length > 0, null, { timeout: 10000 });
   const objktText = await page.locator('#objkt-results').innerText();
   assert(/creator/i.test(objktText) && /collector/i.test(objktText), `feature workflows NFT profile should render creator and collector sections, saw: ${objktText}`);
-  assert(/Assets Held\s+2/i.test(objktText), `feature workflows NFT profile should default held total to distinct assets, saw: ${objktText}`);
-  assert(/Top Collections Held[\s\S]*Smoke Collection[\s\S]*2 assets/i.test(objktText), `feature workflows NFT top collections should count distinct assets, saw: ${objktText}`);
+  assert(/Assets Held\s+501/i.test(objktText), `feature workflows NFT profile should page held assets past 500, saw: ${objktText}`);
+  assert(/Top Collections Held[\s\S]*Smoke Collection[\s\S]*501 assets/i.test(objktText), `feature workflows NFT top collections should page distinct assets past 500, saw: ${objktText}`);
   assert(!/13635916737 pieces/i.test(objktText), `feature workflows NFT top collections should not expose raw high-edition quantity as pieces, saw: ${objktText}`);
   await page.locator('#objkt-clear').click();
   assert((await page.locator('#objkt-results').innerText()).trim() === '', 'feature workflows NFT clear should empty results');

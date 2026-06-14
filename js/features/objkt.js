@@ -3,6 +3,9 @@
  */
 
 const OBJKT_GRAPHQL = 'https://data.objkt.com/v3/graphql';
+const OBJKT_PAGE_SIZE = 500;
+const OBJKT_COLLECTION_PAGE_SIZE = 50;
+const OBJKT_MAX_PAGE_ROUNDS = 40;
 
 function asNumber(value) {
     const num = Number(value);
@@ -13,15 +16,27 @@ function asNumber(value) {
  * Fetch creator and collector data for an address
  */
 export async function fetchObjktProfile(address) {
-    const query = `{
-        holder(where: {address: {_eq: "${address}"}}) {
+    const query = `query ObjktProfile(
+        $address: String!,
+        $heldLimit: Int!,
+        $heldOffset: Int!,
+        $createdLimit: Int!,
+        $createdOffset: Int!,
+        $collectionLimit: Int!,
+        $collectionOffset: Int!,
+        $soldLimit: Int!,
+        $soldOffset: Int!,
+        $boughtLimit: Int!,
+        $boughtOffset: Int!
+    ) {
+        holder(where: {address: {_eq: $address}}, limit: 1) {
             address
             alias
             tzdomain
             twitter
             description
             logo
-            held_tokens(where: {quantity: {_gt: "0"}}, limit: 500) {
+            held_tokens(where: {quantity: {_gt: "0"}}, limit: $heldLimit, offset: $heldOffset) {
                 quantity
                 token {
                     name
@@ -32,7 +47,7 @@ export async function fetchObjktProfile(address) {
                     lowest_ask
                 }
             }
-            created_tokens(limit: 500) {
+            created_tokens(limit: $createdLimit, offset: $createdOffset) {
                 token_pk
                 token {
                     name
@@ -47,7 +62,7 @@ export async function fetchObjktProfile(address) {
                     }
                 }
             }
-            fa2s_created(limit: 50) {
+            fa2s_created(limit: $collectionLimit, offset: $collectionOffset) {
                 name
                 contract
                 items
@@ -56,11 +71,11 @@ export async function fetchObjktProfile(address) {
                 owners
                 logo
             }
-            listings_sold(limit: 500) {
+            listings_sold(limit: $soldLimit, offset: $soldOffset) {
                 price_xtz
                 timestamp
             }
-            listings_bought(limit: 500) {
+            listings_bought(limit: $boughtLimit, offset: $boughtOffset) {
                 price_xtz
                 timestamp
             }
@@ -72,20 +87,123 @@ export async function fetchObjktProfile(address) {
         }
     }`;
 
+    const holder = await fetchPagedHolder(address, query);
+    if (!holder) return null;
+
+    return processProfile(holder);
+}
+
+async function fetchHolderPage(address, query, offsets, limits) {
     const resp = await fetch(OBJKT_GRAPHQL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query })
+        body: JSON.stringify({
+            query,
+            variables: {
+                address,
+                heldLimit: limits.held,
+                heldOffset: offsets.held,
+                createdLimit: limits.created,
+                createdOffset: offsets.created,
+                collectionLimit: limits.collection,
+                collectionOffset: offsets.collection,
+                soldLimit: limits.sold,
+                soldOffset: offsets.sold,
+                boughtLimit: limits.bought,
+                boughtOffset: offsets.bought
+            }
+        })
     });
 
     if (!resp.ok) throw new Error(`Objkt API error: ${resp.status}`);
     const data = await resp.json();
     if (data.errors) throw new Error(data.errors[0].message);
+    return data.data?.holder?.[0] || null;
+}
 
-    const holder = data.data?.holder?.[0];
-    if (!holder) return null;
+async function fetchPagedHolder(address, query) {
+    const pages = {
+        held_tokens: [],
+        created_tokens: [],
+        fa2s_created: [],
+        listings_sold: [],
+        listings_bought: []
+    };
+    let metadata = null;
+    let salesStats = [];
+    let offsets = {
+        held: 0,
+        created: 0,
+        collection: 0,
+        sold: 0,
+        bought: 0
+    };
+    let active = {
+        held: true,
+        created: true,
+        collection: true,
+        sold: true,
+        bought: true
+    };
 
-    return processProfile(holder);
+    for (let round = 0; round < OBJKT_MAX_PAGE_ROUNDS; round += 1) {
+        const limits = {
+            held: active.held ? OBJKT_PAGE_SIZE : 0,
+            created: active.created ? OBJKT_PAGE_SIZE : 0,
+            collection: active.collection ? OBJKT_COLLECTION_PAGE_SIZE : 0,
+            sold: active.sold ? OBJKT_PAGE_SIZE : 0,
+            bought: active.bought ? OBJKT_PAGE_SIZE : 0
+        };
+        if (!limits.held && !limits.created && !limits.collection && !limits.sold && !limits.bought) break;
+
+        const page = await fetchHolderPage(address, query, offsets, limits);
+        if (!page) return metadata ? { ...metadata, sales_stats: salesStats, ...pages } : null;
+
+        if (!metadata) {
+            metadata = {
+                address: page.address,
+                alias: page.alias,
+                tzdomain: page.tzdomain,
+                twitter: page.twitter,
+                description: page.description,
+                logo: page.logo
+            };
+            salesStats = page.sales_stats || [];
+        }
+
+        if (active.held) {
+            const rows = page.held_tokens || [];
+            pages.held_tokens.push(...rows);
+            active.held = rows.length === OBJKT_PAGE_SIZE;
+            offsets.held += rows.length;
+        }
+        if (active.created) {
+            const rows = page.created_tokens || [];
+            pages.created_tokens.push(...rows);
+            active.created = rows.length === OBJKT_PAGE_SIZE;
+            offsets.created += rows.length;
+        }
+        if (active.collection) {
+            const rows = page.fa2s_created || [];
+            pages.fa2s_created.push(...rows);
+            active.collection = rows.length === OBJKT_COLLECTION_PAGE_SIZE;
+            offsets.collection += rows.length;
+        }
+        if (active.sold) {
+            const rows = page.listings_sold || [];
+            pages.listings_sold.push(...rows);
+            active.sold = rows.length === OBJKT_PAGE_SIZE;
+            offsets.sold += rows.length;
+        }
+        if (active.bought) {
+            const rows = page.listings_bought || [];
+            pages.listings_bought.push(...rows);
+            active.bought = rows.length === OBJKT_PAGE_SIZE;
+            offsets.bought += rows.length;
+        }
+    }
+
+    return metadata ? { ...metadata, sales_stats: salesStats, ...pages } : null;
 }
 
 /**

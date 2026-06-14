@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-14',
         entries: [
+            { type: '🔧', text: 'Objkt profile reads now page past the 500-row API cap so large creator and collector wallets count correctly' },
             { type: '✨', text: 'My Tezos Story now shows compact Objkt creator stats and drops the governance-cycle line from the share card' },
             { type: '✨', text: 'My Tezos Story now includes a reverse .tez domain alias when one exists for the address' },
             { type: '✨', text: 'My Tezos Story now includes the number of NFTs an address has collected, using distinct Objkt-held assets' },
