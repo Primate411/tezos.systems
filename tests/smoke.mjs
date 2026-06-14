@@ -344,10 +344,23 @@ async function installFeatureMocks(context, options = {}) {
   const etherlinkNullProposal = Boolean(options.etherlinkNullProposal);
   const governanceNoProposal = Boolean(options.governanceNoProposal);
   const governanceLiveVote = Boolean(options.governanceLiveVote);
+  const forwardDomainAddress = options.forwardDomainAddress || SAMPLE_ADDRESS;
+  const dashboardHtml = options.dashboardHtml || '';
+  const dashboardPathnames = new Set(options.dashboardPathnames || []);
+  const dashboardOrigin = options.baseUrl ? new URL(options.baseUrl).origin : '';
   await context.route('**/*', async (route) => {
     const request = route.request();
     const url = request.url();
     const postData = request.postData() || '';
+    const parsedUrl = new URL(url);
+
+    if (
+      dashboardHtml &&
+      parsedUrl.origin === dashboardOrigin &&
+      dashboardPathnames.has(parsedUrl.pathname)
+    ) {
+      return fulfillText(route, dashboardHtml, 'text/html');
+    }
 
     if (url.includes('html2canvas@1.4.1')) {
       return fulfillText(route, `
@@ -380,7 +393,7 @@ async function installFeatureMocks(context, options = {}) {
     if (url.includes('api.tezos.domains/graphql')) {
       return fulfillJson(route, {
         data: {
-          domain: { address: SAMPLE_ADDRESS },
+          domain: { address: forwardDomainAddress },
           reverseRecord: { domain: { name: 'qa-baker.tez' } }
         }
       });
@@ -2082,14 +2095,22 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   log('ok - my tezos proposal attribution smoke');
 }
 
-async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
+async function runMyTezosDeepLinkOverride(browser, baseUrl, scenario) {
   const issues = [];
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
   await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
-  await installFeatureMocks(context);
+  const dashboardHtml = scenario.dashboardPathnames?.length
+    ? await fetch(`${baseUrl}/`, { cache: 'no-store' }).then((response) => response.text())
+    : '';
+  await installFeatureMocks(context, {
+    baseUrl,
+    dashboardHtml,
+    dashboardPathnames: scenario.dashboardPathnames || [],
+    forwardDomainAddress: scenario.forwardDomainAddress
+  });
   await context.addInitScript((staleAddress) => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
     localStorage.setItem('tezos-toured', '1');
@@ -2099,14 +2120,14 @@ async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
   }, SAMPLE_ADDRESS);
 
   const page = await context.newPage();
-  attachIssueCollectors(page, 'my tezos deep link override', issues);
+  attachIssueCollectors(page, scenario.label, issues);
 
-  const response = await page.goto(`${baseUrl}/#my-baker=${SAMPLE_ADDRESS_2}`, { waitUntil: 'domcontentloaded' });
-  assert(response?.ok(), `my tezos deep link override: dashboard failed with HTTP ${response?.status()}`);
+  const response = await page.goto(`${baseUrl}${scenario.path}`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `${scenario.label}: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 25000 });
-  await page.waitForFunction((address) => localStorage.getItem('tezos-systems-my-baker-address') === address, SAMPLE_ADDRESS_2, { timeout: 5000 });
-  await page.waitForFunction((address) => window._myTezosData?.fullAddress === address, SAMPLE_ADDRESS_2, { timeout: 25000 });
+  await page.waitForFunction((address) => localStorage.getItem('tezos-systems-my-baker-address') === address, scenario.expectedAddress, { timeout: 5000 });
+  await page.waitForFunction((address) => window._myTezosData?.fullAddress === address, scenario.expectedAddress, { timeout: 25000 });
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).some((stat) => (
       stat.textContent.includes('Ext. Delegated') && stat.textContent.includes('220,000.00')
@@ -2122,13 +2143,49 @@ async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
     ))
   }));
 
-  assert(state.stored === SAMPLE_ADDRESS_2, `my tezos deep link override: localStorage kept stale address ${state.stored}`);
-  assert(state.input === SAMPLE_ADDRESS_2, `my tezos deep link override: drawer input mismatch ${state.input}`);
-  assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `my tezos deep link override: header still shows stale address: ${state.header}`);
-  assert(!state.staleMetricStillVisible, 'my tezos deep link override: stale baker metrics remained visible');
+  assert(state.stored === scenario.expectedAddress, `${scenario.label}: localStorage kept stale address ${state.stored}`);
+  assert(state.input === scenario.expectedAddress, `${scenario.label}: drawer input mismatch ${state.input}`);
+  assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `${scenario.label}: header still shows stale address: ${state.header}`);
+  assert(!state.staleMetricStillVisible, `${scenario.label}: stale baker metrics remained visible`);
 
   await context.close();
-  assert(issues.length === 0, `my tezos deep link override browser issues:\n${issues.join('\n')}`);
+  assert(issues.length === 0, `${scenario.label} browser issues:\n${issues.join('\n')}`);
+}
+
+async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
+  const directAddressPath = `/${SAMPLE_ADDRESS_2}`;
+  const directDomainPath = '/qa-baker.tez';
+  const scenarios = [
+    {
+      label: 'my tezos hash address deep link override',
+      path: `/#my-baker=${SAMPLE_ADDRESS_2}`,
+      expectedAddress: SAMPLE_ADDRESS_2
+    },
+    {
+      label: 'my tezos hash domain deep link override',
+      path: '/#my-baker=qa-baker.tez',
+      expectedAddress: SAMPLE_ADDRESS_2,
+      forwardDomainAddress: SAMPLE_ADDRESS_2
+    },
+    {
+      label: 'my tezos direct address path override',
+      path: directAddressPath,
+      expectedAddress: SAMPLE_ADDRESS_2,
+      dashboardPathnames: [directAddressPath]
+    },
+    {
+      label: 'my tezos direct domain path override',
+      path: directDomainPath,
+      expectedAddress: SAMPLE_ADDRESS_2,
+      dashboardPathnames: [directDomainPath],
+      forwardDomainAddress: SAMPLE_ADDRESS_2
+    }
+  ];
+
+  for (const scenario of scenarios) {
+    await runMyTezosDeepLinkOverride(browser, baseUrl, scenario);
+    log(`ok - ${scenario.label}`);
+  }
   log('ok - my tezos deep link override smoke');
 }
 

@@ -216,6 +216,7 @@ inline modal styles in `js/core/app.js`.
 Useful deep links include:
 
 - `#my-baker=...`
+- `/tz1...` or `/name.tez` to resolve directly into My Tezos
 - `#baker=...`
 - `#calculator`
 - `#compare`
@@ -364,7 +365,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v190`.
+- Current aligned shell cache stamp: `v191`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

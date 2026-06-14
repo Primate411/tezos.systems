@@ -2725,6 +2725,7 @@ function initOfflineIndicator() {
 // ==========================================
 // Supported hash fragments:
 //   #my-baker=tz1...   → open My Baker with address
+//   #my-baker=name.tez → resolve Tezos Domain and open My Tezos
 //   #baker=tz1...      → open Baker profile modal
 //   #calculator        → open Rewards Calculator
 //   #compare           → show comparison section
@@ -2741,9 +2742,132 @@ function initOfflineIndicator() {
 //   #tz4               → open tz4 Adoption Chamber
 //   #theme=dark        → switch to theme
 //   #section=consensus → scroll to section
+// Account path shortcuts:
+//   /tz1...            → open My Tezos with address
+//   /name.tez          → resolve Tezos Domain and open My Tezos
+function isTezosAccountAddress(value) {
+    return /^(tz[1-4]|KT1)[a-zA-Z0-9]{33}$/.test(String(value || '').trim());
+}
+
+function isTezDomainName(value) {
+    const domain = String(value || '').trim();
+    return domain.length <= 253 && /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i.test(domain);
+}
+
+function decodeRouteTarget(value) {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+}
+
+function getMyTezosPathTarget() {
+    const pathTarget = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    if (!pathTarget || pathTarget.includes('/')) return null;
+    const target = decodeRouteTarget(pathTarget).trim();
+    if (isTezosAccountAddress(target) || isTezDomainName(target)) return target;
+    return null;
+}
+
+async function resolveForwardTezDomain(name) {
+    try {
+        const resp = await fetch('https://api.tezos.domains/graphql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: `query ResolveDomain($name: String!) { domain(name: $name) { address } }`,
+                variables: { name }
+            })
+        });
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        const address = data?.data?.domain?.address || '';
+        return isTezosAccountAddress(address) ? address : null;
+    } catch {
+        return null;
+    }
+}
+
+async function resolveMyTezosTarget(rawTarget) {
+    const target = String(rawTarget || '').trim();
+    if (!target) return { address: '', label: '' };
+    if (isTezosAccountAddress(target)) return { address: target, label: target };
+    if (isTezDomainName(target)) {
+        const domain = target.toLowerCase();
+        const address = await resolveForwardTezDomain(domain);
+        return { address: address || '', label: domain };
+    }
+    return { address: '', label: target };
+}
+
+function setMyTezosDrawerOpen(address) {
+    const drawer = document.getElementById('my-tezos-drawer');
+    const scrim = document.getElementById('my-tezos-drawer-scrim');
+    if (drawer && scrim) {
+        drawer.classList.add('open');
+        scrim.classList.add('open');
+        document.body.style.overflow = 'hidden';
+    }
+    const emptyState = document.getElementById('drawer-empty-state');
+    const connectedState = document.getElementById('drawer-connected');
+    if (emptyState) emptyState.style.display = address ? 'none' : '';
+    if (connectedState) connectedState.style.display = address ? '' : 'none';
+}
+
+function renderMyTezosDirectLinkError(label) {
+    setMyTezosDrawerOpen(true);
+    const input = document.getElementById('my-baker-input');
+    const results = document.getElementById('my-baker-results');
+    const errorMsg = document.getElementById('my-baker-error-msg');
+    if (input) input.value = label;
+    if (results) results.innerHTML = '';
+    if (errorMsg) errorMsg.textContent = `Could not resolve "${label}". Domain not found.`;
+}
+
+async function openMyTezosTarget(rawTarget) {
+    const label = String(rawTarget || '').trim();
+    if (!label) {
+        setMyTezosDrawerOpen(localStorage.getItem('tezos-systems-my-baker-address'));
+        return;
+    }
+
+    const input = document.getElementById('my-baker-input');
+    const errorMsg = document.getElementById('my-baker-error-msg');
+    if (input) input.value = label;
+    if (errorMsg && isTezDomainName(label)) errorMsg.textContent = 'Resolving domain...';
+
+    const resolved = await resolveMyTezosTarget(label);
+    if (!resolved.address) {
+        renderMyTezosDirectLinkError(resolved.label || label);
+        return;
+    }
+
+    localStorage.setItem('tezos-systems-my-baker-address', resolved.address);
+    setMyTezosDrawerOpen(resolved.address);
+
+    setTimeout(() => {
+        const currentInput = document.getElementById('my-baker-input');
+        const saveBtn = document.getElementById('my-baker-save');
+        if (currentInput) currentInput.value = resolved.address;
+        if (errorMsg) errorMsg.textContent = '';
+        if (saveBtn && !(saveBtn.dataset.mode === 'copy' && saveBtn.dataset.copyAddress === resolved.address)) {
+            saveBtn.click();
+        } else {
+            refreshMyBaker();
+            refreshMyTezos();
+            window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: resolved.address } }));
+        }
+    }, 100);
+}
+
 function applyDeepLink() {
     const hash = window.location.hash.slice(1);
-    if (!hash) return;
+    if (!hash) {
+        const pathTarget = getMyTezosPathTarget();
+        if (pathTarget) openMyTezosTarget(pathTarget);
+        return;
+    }
 
     const params = new URLSearchParams(hash);
 
@@ -2836,36 +2960,10 @@ function applyDeepLink() {
         });
     };
 
-    // #my-baker=tz1... or #my-baker (just open it)
+    // #my-baker=tz1..., #my-baker=name.tez, or #my-baker (just open it)
     if (params.has('my-baker')) {
         const addr = params.get('my-baker');
-        const drawer = document.getElementById('my-tezos-drawer');
-        const scrim = document.getElementById('my-tezos-drawer-scrim');
-        if (addr && addr.startsWith('tz')) {
-            // CRITICAL: set localStorage BEFORE opening drawer and clicking save.
-            // This prevents the drawer from briefly showing the old baker while loading.
-            localStorage.setItem('tezos-systems-my-baker-address', addr);
-        }
-        // Open drawer
-        if (drawer && scrim) {
-            drawer.classList.add('open');
-            scrim.classList.add('open');
-            document.body.style.overflow = 'hidden';
-            // Show correct state
-            const address = addr || localStorage.getItem('tezos-systems-my-baker-address');
-            const emptyState = document.getElementById('drawer-empty-state');
-            const connectedState = document.getElementById('drawer-connected');
-            if (emptyState) emptyState.style.display = address ? 'none' : '';
-            if (connectedState) connectedState.style.display = address ? '' : 'none';
-        }
-        if (addr && addr.startsWith('tz')) {
-            setTimeout(() => {
-                const input = document.getElementById('my-baker-input');
-                const saveBtn = document.getElementById('my-baker-save');
-                if (input) { input.value = addr; }
-                if (saveBtn) { saveBtn.click(); }
-            }, 100);
-        }
+        openMyTezosTarget(addr);
     }
 
     // #price

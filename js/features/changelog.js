@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-14',
+        entries: [
+            { type: '✨', text: 'Direct account paths like /tz1... and /name.tez now resolve straight into My Tezos with stale saved addresses overridden' },
+        ]
+    },
+    {
         date: '2026-06-13',
         entries: [
             { type: '🔧', text: 'My Tezos Story now attributes accepted protocol proposals to the actual injector instead of crediting a delegator for a proposal from their baker' },
