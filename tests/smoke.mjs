@@ -2097,6 +2097,8 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
       && story?.proposalsInjected === 0
       && story?.bakerProposalsInjected === 1
       && story?.nftAssetsCollected === 2
+      && story?.creatorStats?.totalCreated === 1
+      && story?.creatorStats?.totalSalesVolume === 2.5
       && story?.domainAlias === 'qa-baker.tez';
   }, SAMPLE_DELEGATOR_ADDRESS, { timeout: 15000 });
 
@@ -2110,6 +2112,7 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   assert(!storyText.includes('📜 Injected 1 accepted proposal'), `my tezos proposal attribution: delegator was credited as initiator: ${storyText}`);
   assert(storyText.includes('Smoke'), `my tezos proposal attribution: proposal alias missing: ${storyText}`);
   assert(storyText.includes('Collected 2 NFTs'), `my tezos proposal attribution: NFT collection count missing: ${storyText}`);
+  assert(storyText.includes('Created 1 NFT') && storyText.includes('2.50 XTZ sales'), `my tezos proposal attribution: creator stats missing: ${storyText}`);
   assert(storyText.includes('Known as qa-baker.tez'), `my tezos proposal attribution: domain alias missing: ${storyText}`);
 
   await page.locator('#drawer-brief .story-share-btn').click();
@@ -2122,6 +2125,9 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   assert(shareState.captured.includes('Known as qa-baker.tez'), `my tezos proposal attribution: share card capture missing domain alias: ${shareState.captured}`);
   assert(shareState.picker.includes('Collected 2 NFTs'), `my tezos proposal attribution: share tweet picker missing NFT count: ${shareState.picker}`);
   assert(shareState.captured.includes('Collected 2 NFTs'), `my tezos proposal attribution: share card capture missing NFT count: ${shareState.captured}`);
+  assert(shareState.picker.includes('Created 1 NFT'), `my tezos proposal attribution: share tweet picker missing creator stats: ${shareState.picker}`);
+  assert(shareState.captured.includes('Created 1 NFT') && shareState.captured.includes('2.50 XTZ sales'), `my tezos proposal attribution: share card capture missing creator stats: ${shareState.captured}`);
+  assert(!shareState.captured.includes('Lived through'), `my tezos proposal attribution: share card still includes governance cycles: ${shareState.captured}`);
   await expectShareModal(page, 'my tezos proposal attribution share', issues);
 
   await context.close();

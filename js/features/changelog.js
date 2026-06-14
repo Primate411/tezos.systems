@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-14',
         entries: [
+            { type: '✨', text: 'My Tezos Story now shows compact Objkt creator stats and drops the governance-cycle line from the share card' },
             { type: '✨', text: 'My Tezos Story now includes a reverse .tez domain alias when one exists for the address' },
             { type: '✨', text: 'My Tezos Story now includes the number of NFTs an address has collected, using distinct Objkt-held assets' },
             { type: '🔧', text: 'NFT Profile collector collections now default to distinct asset counts instead of raw edition quantities for high-supply tokens' },
