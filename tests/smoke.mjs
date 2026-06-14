@@ -90,6 +90,7 @@ const browserRoutes = [
 const SAMPLE_ADDRESS = 'tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9';
 const SAMPLE_ADDRESS_2 = 'tz1hThMBD8jQjFt78heuCnKxJnJtQo9Ao25X';
 const SAMPLE_ADDRESS_3 = 'tz1PendingBaker1111111111111111111111';
+const SAMPLE_DELEGATOR_ADDRESS = 'tz1iJP1EtP9iSkmaEKCZznDMst91oJGB9SZ5';
 const OVERDELEGATED_ADDRESS = 'tz1bA9zZpouVgtMRLijvw5safwDKSxg62r1x';
 const ETHERLINK_FAST_CONTRACT = 'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo';
 const ETHERLINK_SLOW_CONTRACT = 'KT1AXRU3wLc87WNhLhVGrgqDGubLACUMUgPb';
@@ -934,6 +935,32 @@ async function installFeatureMocks(context, options = {}) {
           firstActivityTime: '2019-05-30T00:00:00Z'
         });
       }
+      if (url.includes(`/accounts/${SAMPLE_ADDRESS_2}`) && !url.includes('/operations?')) {
+        return fulfillJson(route, {
+          address: SAMPLE_ADDRESS_2,
+          type: 'delegate',
+          alias: 'Second Baker',
+          active: true,
+          balance: 600000000000,
+          stakedBalance: 500000000000,
+          delegate: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker', active: true },
+          firstActivity: 458753,
+          firstActivityTime: '2019-05-30T00:00:00Z'
+        });
+      }
+      if (url.includes(`/accounts/${SAMPLE_DELEGATOR_ADDRESS}`) && !url.includes('/operations?')) {
+        return fulfillJson(route, {
+          address: SAMPLE_DELEGATOR_ADDRESS,
+          type: 'user',
+          alias: 'Malicious Sheep',
+          active: true,
+          balance: 42000000000,
+          stakedBalance: 0,
+          delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker', active: true },
+          firstActivity: 6422529,
+          firstActivityTime: '2024-11-19T00:00:00Z'
+        });
+      }
       if (url.includes('/rewards/delegators/') || url.includes('/rewards/bakers/')) {
         return fulfillJson(route, [
           {
@@ -1079,7 +1106,10 @@ async function installFeatureMocks(context, options = {}) {
         });
       }
       if (url.includes(`/delegates/${OVERDELEGATED_ADDRESS}`)) return fulfillJson(route, overdelegatedBaker);
-      if (url.includes('/delegates/')) return fulfillJson(route, sampleBakers[0]);
+      if (url.includes('/delegates/')) {
+        const address = decodeURIComponent(new URL(url).pathname.split('/').pop() || '');
+        return fulfillJson(route, sampleBakers.find((baker) => baker.address === address) || sampleBakers[0]);
+      }
     }
 
     return route.continue();
@@ -1384,8 +1414,15 @@ async function startLocalServer() {
   return {
     baseUrl,
     stop: async () => {
+      if (child.exitCode !== null || child.signalCode !== null) return;
       child.kill();
-      await new Promise((resolve) => child.once('exit', resolve));
+      await new Promise((resolve) => {
+        const timeout = setTimeout(resolve, 2000);
+        child.once('exit', () => {
+          clearTimeout(timeout);
+          resolve();
+        });
+      });
     }
   };
 }
@@ -1934,6 +1971,165 @@ async function smokeMyTezosBakerCapacity(browser, baseUrl) {
   await context.close();
   assert(issues.length === 0, `my tezos baker capacity browser issues:\n${issues.join('\n')}`);
   log('ok - my tezos baker capacity smoke');
+}
+
+async function smokeMyTezosAddressSwitch(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
+  await installFeatureMocks(context);
+  await context.addInitScript((address) => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-my-baker-address', address);
+  }, SAMPLE_ADDRESS);
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'my tezos address switch', issues);
+
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `my tezos address switch: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  await page.locator('#my-tezos-btn').click();
+  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos address switch drawer');
+  await page.locator('#my-baker-input').waitFor({ state: 'visible', timeout: 5000 });
+  await assert(
+    (await page.locator('#my-baker-input').inputValue()) === SAMPLE_ADDRESS,
+    'my tezos address switch: saved address did not populate connected input'
+  );
+
+  await page.locator('#my-baker-input').fill(SAMPLE_ADDRESS_2);
+  await page.waitForFunction(() => document.querySelector('#my-baker-save')?.textContent?.trim() === 'Save', null, { timeout: 3000 });
+  await page.locator('#my-baker-save').click();
+  await page.waitForFunction((address) => localStorage.getItem('tezos-systems-my-baker-address') === address, SAMPLE_ADDRESS_2, { timeout: 5000 });
+  await page.waitForFunction((address) => window._myTezosData?.fullAddress === address, SAMPLE_ADDRESS_2, { timeout: 15000 });
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).some((stat) => (
+      stat.textContent.includes('Ext. Delegated') && stat.textContent.includes('220,000.00')
+    ));
+  }, null, { timeout: 15000 });
+
+  const state = await page.evaluate(() => ({
+    stored: localStorage.getItem('tezos-systems-my-baker-address'),
+    input: document.querySelector('#my-baker-input')?.value || '',
+    button: document.querySelector('#my-baker-save')?.textContent?.trim() || '',
+    extDelegated: Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).find((stat) => (
+      stat.textContent.includes('Ext. Delegated')
+    ))?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || ''
+  }));
+
+  assert(state.stored === SAMPLE_ADDRESS_2, `my tezos address switch: localStorage kept stale address ${state.stored}`);
+  assert(state.input === SAMPLE_ADDRESS_2, `my tezos address switch: connected input mismatch ${state.input}`);
+  assert(state.button === '📋 Copy', `my tezos address switch: save button did not return to copy mode, saw ${state.button}`);
+  assert(state.extDelegated.includes('220,000.00'), `my tezos address switch: drawer still shows stale baker metrics: ${state.extDelegated}`);
+  assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `my tezos address switch: header still points at old baker: ${state.header}`);
+
+  await context.close();
+  assert(issues.length === 0, `my tezos address switch browser issues:\n${issues.join('\n')}`);
+  log('ok - my tezos address switch smoke');
+}
+
+async function smokeMyTezosProposalAttribution(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await context.addInitScript((address) => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-my-baker-address', address);
+  }, SAMPLE_DELEGATOR_ADDRESS);
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'my tezos proposal attribution', issues);
+
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `my tezos proposal attribution: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  await page.locator('#my-tezos-btn').click();
+  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos proposal attribution drawer');
+  await page.waitForFunction((address) => {
+    const story = window._myTezosData?.story;
+    return window._myTezosData?.fullAddress === address
+      && story?.proposalsInjected === 0
+      && story?.bakerProposalsInjected === 1;
+  }, SAMPLE_DELEGATOR_ADDRESS, { timeout: 15000 });
+
+  const storyText = await page.evaluate(() => {
+    const sections = Array.from(document.querySelectorAll('#drawer-brief .brief-section'));
+    const story = sections.find((section) => section.textContent.includes('Your Tezos Story'));
+    return story?.textContent?.replace(/\s+/g, ' ').trim() || '';
+  });
+
+  assert(storyText.includes('Baker injected 1 accepted proposal'), `my tezos proposal attribution: missing baker attribution: ${storyText}`);
+  assert(!storyText.includes('📜 Injected 1 accepted proposal'), `my tezos proposal attribution: delegator was credited as initiator: ${storyText}`);
+  assert(storyText.includes('Smoke'), `my tezos proposal attribution: proposal alias missing: ${storyText}`);
+
+  await context.close();
+  assert(issues.length === 0, `my tezos proposal attribution browser issues:\n${issues.join('\n')}`);
+  log('ok - my tezos proposal attribution smoke');
+}
+
+async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
+  await installFeatureMocks(context);
+  await context.addInitScript((staleAddress) => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-my-baker-address', staleAddress);
+  }, SAMPLE_ADDRESS);
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'my tezos deep link override', issues);
+
+  const response = await page.goto(`${baseUrl}/#my-baker=${SAMPLE_ADDRESS_2}`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `my tezos deep link override: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 25000 });
+  await page.waitForFunction((address) => localStorage.getItem('tezos-systems-my-baker-address') === address, SAMPLE_ADDRESS_2, { timeout: 5000 });
+  await page.waitForFunction((address) => window._myTezosData?.fullAddress === address, SAMPLE_ADDRESS_2, { timeout: 25000 });
+  await page.waitForFunction(() => {
+    return Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).some((stat) => (
+      stat.textContent.includes('Ext. Delegated') && stat.textContent.includes('220,000.00')
+    ));
+  }, null, { timeout: 25000 });
+
+  const state = await page.evaluate(() => ({
+    stored: localStorage.getItem('tezos-systems-my-baker-address'),
+    input: document.querySelector('#my-baker-input')?.value || '',
+    header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || '',
+    staleMetricStillVisible: Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).some((stat) => (
+      stat.textContent.includes('Ext. Delegated') && stat.textContent.includes('180,000.00')
+    ))
+  }));
+
+  assert(state.stored === SAMPLE_ADDRESS_2, `my tezos deep link override: localStorage kept stale address ${state.stored}`);
+  assert(state.input === SAMPLE_ADDRESS_2, `my tezos deep link override: drawer input mismatch ${state.input}`);
+  assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `my tezos deep link override: header still shows stale address: ${state.header}`);
+  assert(!state.staleMetricStillVisible, 'my tezos deep link override: stale baker metrics remained visible');
+
+  await context.close();
+  assert(issues.length === 0, `my tezos deep link override browser issues:\n${issues.join('\n')}`);
+  log('ok - my tezos deep link override smoke');
 }
 
 async function smokeNetworkHealthChamber(browser, baseUrl) {
@@ -3395,6 +3591,9 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
+    { name: 'my-tezos-address-switch', description: 'My Tezos connected drawer saves a newly typed address over a stale saved baker', run: () => smokeMyTezosAddressSwitch(browser, baseUrl) },
+    { name: 'my-tezos-proposal-attribution', description: 'My Tezos Story distinguishes a delegator from their baker when accepted proposals are shown', run: () => smokeMyTezosProposalAttribution(browser, baseUrl) },
+    { name: 'my-tezos-deep-link-override', description: 'My Tezos direct address links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) },
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
@@ -3432,6 +3631,9 @@ async function main() {
     ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],
     ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
+    ['my-tezos-address-switch', 'My Tezos connected drawer saves a newly typed address over a stale saved baker'],
+    ['my-tezos-proposal-attribution', 'My Tezos Story distinguishes a delegator from their baker when accepted proposals are shown'],
+    ['my-tezos-deep-link-override', 'My Tezos direct address links override a stale saved baker on first load'],
     ['tezlink', 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape'],
     ['network-health', 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary'],
     ['governance-lb', 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh'],

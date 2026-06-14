@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-13',
         entries: [
+            { type: '🔧', text: 'My Tezos Story now attributes accepted protocol proposals to the actual injector instead of crediting a delegator for a proposal from their baker' },
+            { type: '🔧', text: 'My Tezos address edits now save over a stale connected baker instead of copying the old address' },
             { type: '🔧', text: 'Tezos X now uses #tezosx and /tezosx/ as its primary direct links while legacy #tezlink still opens the chamber' },
             { type: '🔧', text: 'The L2 governance chamber is now labeled Tezos X Governance while preserving the existing #l2chamber direct link' },
             { type: '🔧', text: 'The L2 chamber is now labeled Tezos X across the dashboard card, modal, share route, and network copy' },

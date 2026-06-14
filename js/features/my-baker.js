@@ -12,6 +12,7 @@ import { fetchBakerLiquidityBakingVote } from './liquidity-baking.js';
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const SAVED_ADDRESSES_KEY = 'tezos-systems-saved-addresses';
 const TZKT = API_URLS.tzkt;
+let _bakerRenderSeq = 0;
 
 /**
  * Validate a Tezos address
@@ -302,6 +303,7 @@ function createMatrixLoader() {
  * Render the My Baker data into the results container
  */
 async function renderBakerData(address, container) {
+    const renderSeq = ++_bakerRenderSeq;
     container.innerHTML = '';
     // Remove stale report card button so MutationObserver recreates with fresh address
     const section = container.closest('#drawer-baker') || container.closest('#my-baker-section');
@@ -352,6 +354,7 @@ async function renderBakerData(address, container) {
             participationAddr ? fetchBakerLiquidityBakingVote(participationAddr) : Promise.resolve(null),
         ]);
 
+        if (renderSeq !== _bakerRenderSeq) return;
         container.innerHTML = '';
 
         const grid = document.createElement('div');
@@ -520,6 +523,7 @@ async function renderBakerData(address, container) {
                 try {
                     const missedRights = await fetchMissedRights(participationAddr, currentCycle);
                     clearTimeout(fallbackTimer);
+                    if (renderSeq !== _bakerRenderSeq) return;
                     if (missedRights) {
                         const fmtN = (n) => formatNumber(n, { decimals: 0, useAbbreviation: false });
                         missedCycleEl.querySelector('.my-baker-stat-value').textContent = `${fmtN(missedRights.cycle.blocks)} / ${fmtN(missedRights.cycle.attest)}`;
@@ -540,6 +544,7 @@ async function renderBakerData(address, container) {
         const objktInput = document.getElementById('objkt-input');
         if (objktInput && !objktInput.value) objktInput.value = address;
     } catch (err) {
+        if (renderSeq !== _bakerRenderSeq) return;
         container.innerHTML = '';
         const errorEl = document.createElement('div');
         errorEl.className = 'my-baker-error';
@@ -571,31 +576,23 @@ export function init() {
     if (!input || !saveBtn || !clearBtn || !results) return;
 
     // Feature 4: Copy-to-clipboard mode — after save, button becomes Copy
-    const _originalSaveHandler = () => saveBtn.click();
     function showCopyMode(address) {
         saveBtn.textContent = '📋 Copy';
         saveBtn.dataset.mode = 'copy';
-        saveBtn.onclick = async (e) => {
-            e.preventDefault();
-            try {
-                await navigator.clipboard.writeText(address);
-                saveBtn.textContent = '✅ Copied';
-                setTimeout(() => { saveBtn.textContent = '📋 Copy'; }, 1500);
-            } catch {
-                // Fallback
-                const ta = document.createElement('textarea');
-                ta.value = address; ta.style.cssText = 'position:fixed;opacity:0';
-                document.body.appendChild(ta); ta.select();
-                document.execCommand('copy'); document.body.removeChild(ta);
-                saveBtn.textContent = '✅ Copied';
-                setTimeout(() => { saveBtn.textContent = '📋 Copy'; }, 1500);
-            }
-        };
+        saveBtn.dataset.copyAddress = address;
     }
     function restoreSaveMode() {
         saveBtn.textContent = 'Save';
         delete saveBtn.dataset.mode;
-        saveBtn.onclick = null; // Will fall through to the addEventListener below
+        delete saveBtn.dataset.copyAddress;
+    }
+
+    function syncSaveModeToInput() {
+        if (saveBtn.dataset.mode !== 'copy') return;
+        const active = saveBtn.dataset.copyAddress || localStorage.getItem(STORAGE_KEY) || '';
+        if (input.value.trim() !== active) {
+            restoreSaveMode();
+        }
     }
 
     // Feature 9: Multi-address support
@@ -698,9 +695,27 @@ export function init() {
     }
     renderSavedAddresses();
 
+    async function copyCurrentAddress(addr) {
+        try {
+            await navigator.clipboard.writeText(addr);
+            saveBtn.textContent = '✅ Copied';
+            setTimeout(() => { saveBtn.textContent = '📋 Copy'; }, 1500);
+        } catch {
+            const ta = document.createElement('textarea');
+            ta.value = addr; ta.style.cssText = 'position:fixed;opacity:0';
+            document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+            saveBtn.textContent = '✅ Copied';
+            setTimeout(() => { saveBtn.textContent = '📋 Copy'; }, 1500);
+        }
+    }
+
     saveBtn.addEventListener('click', async () => {
-        if (saveBtn.dataset.mode === 'copy') return;
         const raw = input.value.trim();
+        if (saveBtn.dataset.mode === 'copy' && raw === saveBtn.dataset.copyAddress) {
+            await copyCurrentAddress(raw);
+            return;
+        }
         errorMsg.textContent = '';
 
         let addr = raw;
@@ -733,6 +748,7 @@ export function init() {
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') saveBtn.click();
     });
+    input.addEventListener('input', syncSaveModeToInput);
 
     clearBtn.addEventListener('click', () => {
         localStorage.removeItem(STORAGE_KEY);

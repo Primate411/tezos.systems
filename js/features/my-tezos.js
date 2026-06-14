@@ -894,7 +894,13 @@ function buildMorningBrief(data) {
         if (data.story.proposalsInjected > 0) {
             storyText += `<br>📜 Injected <strong>${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''}</strong>`;
             if (data.story.proposalNames.length <= 4) {
-                storyText += `: ${data.story.proposalNames.join(', ')}`;
+                storyText += `: ${data.story.proposalNames.map(escapeHtml).join(', ')}`;
+            }
+        }
+        if (data.story.bakerProposalsInjected > 0) {
+            storyText += `<br>📜 Baker injected <strong>${data.story.bakerProposalsInjected} accepted proposal${data.story.bakerProposalsInjected > 1 ? 's' : ''}</strong>`;
+            if (data.story.bakerProposalNames.length <= 4) {
+                storyText += `: ${data.story.bakerProposalNames.map(escapeHtml).join(', ')}`;
             }
         }
     } else {
@@ -935,14 +941,18 @@ async function fetchTezosStory(address, account, bakerAddress) {
         govCycles = periods.filter(p => p.firstLevel >= firstActivity).length;
     } catch {}
 
-    // Check if this address or their baker injected any accepted proposals
-    const checkAddrs = new Set([address]);
-    if (bakerAddress) checkAddrs.add(bakerAddress);
+    let bakerProposalsInjected = 0;
+    let bakerProposalNames = [];
     try {
         const allProposals = await fetchTzktJson(`${TZKT}/voting/proposals?limit=200`);
-        const accepted = allProposals.filter(p => p.status === 'accepted' && checkAddrs.has(p.initiator?.address));
+        const accepted = allProposals.filter(p => p.status === 'accepted' && p.initiator?.address === address);
         proposalsInjected = accepted.length;
         proposalNames = accepted.map(p => (p.extras?.alias) || p.hash.slice(0, 8)).filter(Boolean);
+        if (bakerAddress && bakerAddress !== address) {
+            const bakerAccepted = allProposals.filter(p => p.status === 'accepted' && p.initiator?.address === bakerAddress);
+            bakerProposalsInjected = bakerAccepted.length;
+            bakerProposalNames = bakerAccepted.map(p => (p.extras?.alias) || p.hash.slice(0, 8)).filter(Boolean);
+        }
     } catch {}
 
     return {
@@ -954,6 +964,8 @@ async function fetchTezosStory(address, account, bakerAddress) {
         govCycles,
         proposalsInjected,
         proposalNames,
+        bakerProposalsInjected,
+        bakerProposalNames,
         currentEra: PROTOCOL_ERAS[PROTOCOL_ERAS.length - 1].name,
     };
 }
@@ -987,6 +999,14 @@ async function shareTezosStory(data) {
         // Build protocol badge trail
         const badgeEras = PROTOCOL_ERAS.filter(p => p.name !== 'Genesis');
         const joinIdx = badgeEras.findIndex(p => p.name === data.story.joinedEra);
+        const proposalLinesHtml = [
+            data.story.proposalsInjected > 0
+                ? `Injected <span style="color:${brand};font-weight:700;">${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''}</span><br>`
+                : '',
+            data.story.bakerProposalsInjected > 0
+                ? `Baker injected <span style="color:${brand};font-weight:700;">${data.story.bakerProposalsInjected} accepted proposal${data.story.bakerProposalsInjected > 1 ? 's' : ''}</span><br>`
+                : ''
+        ].join('');
         const badgesHtml = badgeEras.map((p, i) => {
             const isJoined = p.name === data.story.joinedEra;
             const isCurrent = i === badgeEras.length - 1;
@@ -1035,7 +1055,7 @@ async function shareTezosStory(data) {
                     Joined under <span style="color:${brand};font-weight:700;">${data.story.joinedEra}</span><br>
                     Witnessed <span style="color:${brand};font-weight:700;">${data.story.upgradesSeen} protocol upgrades</span><br>
                     ${data.story.govCycles > 0 ? `Lived through <span style="color:${brand};font-weight:700;">${data.story.govCycles} governance cycles</span><br>` : ''}
-                    ${data.story.proposalsInjected > 0 ? `Injected <span style="color:${brand};font-weight:700;">${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''}</span><br>` : ''}
+                    ${proposalLinesHtml}
                     Zero hard forks. Ever.
                 </div>
 
@@ -1057,12 +1077,26 @@ async function shareTezosStory(data) {
         });
         wrapper.remove();
 
-        const injectedLine = data.story.proposalsInjected > 0
-            ? `\n📜 ${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''} injected`
-            : '';
+        const injectedLines = [
+            data.story.proposalsInjected > 0
+                ? `📜 ${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''} injected`
+                : '',
+            data.story.bakerProposalsInjected > 0
+                ? `📜 My baker injected ${data.story.bakerProposalsInjected} accepted proposal${data.story.bakerProposalsInjected > 1 ? 's' : ''}`
+                : ''
+        ].filter(Boolean);
+        const injectedLine = injectedLines.length ? `\n${injectedLines.join('\n')}` : '';
+        const storyProposalSentence = [
+            data.story.proposalsInjected > 0 ? ` Injected ${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''}.` : '',
+            data.story.bakerProposalsInjected > 0 ? ` My baker injected ${data.story.bakerProposalsInjected} accepted proposal${data.story.bakerProposalsInjected > 1 ? 's' : ''}.` : ''
+        ].join('');
+        const ogProposalSentence = [
+            data.story.proposalsInjected > 0 ? ` ${data.story.proposalsInjected} proposal${data.story.proposalsInjected > 1 ? 's' : ''} I injected became Tezos law.` : '',
+            data.story.bakerProposalsInjected > 0 ? ` My baker injected ${data.story.bakerProposalsInjected} proposal${data.story.bakerProposalsInjected > 1 ? 's' : ''} that became Tezos law.` : ''
+        ].join('');
         const tweetOptions = [
-            { label: '📜 Story', text: `I've been on Tezos for ${data.story.daysSinceJoin.toLocaleString()} days. Joined under ${data.story.joinedEra}. Witnessed ${data.story.upgradesSeen} protocol upgrades.${data.story.proposalsInjected > 0 ? ` Injected ${data.story.proposalsInjected} accepted proposals.` : ''} Zero hard forks.\n\nWhat's your Tezos story?\ntezos.systems` },
-            { label: '🏛️ OG', text: `${data.story.joinedEra} era. ${data.story.upgradesSeen} upgrades witnessed. ${data.story.daysSinceJoin.toLocaleString()} days and counting.${data.story.proposalsInjected > 0 ? ` ${data.story.proposalsInjected} proposals that became Tezos law.` : ''}\n\nTezos doesn't fork. It evolves.\ntezos.systems` },
+            { label: '📜 Story', text: `I've been on Tezos for ${data.story.daysSinceJoin.toLocaleString()} days. Joined under ${data.story.joinedEra}. Witnessed ${data.story.upgradesSeen} protocol upgrades.${storyProposalSentence} Zero hard forks.\n\nWhat's your Tezos story?\ntezos.systems` },
+            { label: '🏛️ OG', text: `${data.story.joinedEra} era. ${data.story.upgradesSeen} upgrades witnessed. ${data.story.daysSinceJoin.toLocaleString()} days and counting.${ogProposalSentence}\n\nTezos doesn't fork. It evolves.\ntezos.systems` },
             { label: '📊 Data', text: `My Tezos Story:\n\n📅 ${data.story.daysSinceJoin.toLocaleString()} days on-chain\n🏛️ Joined: ${data.story.joinedEra}\n🔄 ${data.story.upgradesSeen} upgrades witnessed${injectedLine}\n🔗 Zero forks\n\ntezos.systems` },
         ];
 
@@ -1340,6 +1374,7 @@ function initPulseViz(strip, data) {
 let _briefRendering = false;
 let _briefRenderedAddr = null;
 let _pendingBriefAddr = null;
+let _briefRequestSeq = 0;
 
 function renderBriefTabs(cards, data) {
     const container = document.getElementById('drawer-brief');
@@ -1379,6 +1414,7 @@ async function renderMorningBrief(address, force = false) {
     }
     if (!force && _briefRenderedAddr === address) return;
     
+    const requestSeq = ++_briefRequestSeq;
     _briefRendering = true;
     _briefRenderedAddr = address;
 
@@ -1462,6 +1498,10 @@ async function renderMorningBrief(address, force = false) {
         };
 
         const cards = buildMorningBrief(data);
+        if (requestSeq !== _briefRequestSeq || localStorage.getItem(STORAGE_KEY) !== address) {
+            if (requestSeq === _briefRequestSeq) _briefRendering = false;
+            return;
+        }
 
         // Overnight Report — prepend if returning user
         const overnight = buildOvernightCard(data, getOvernightSnapshot());
@@ -1552,6 +1592,10 @@ async function renderMorningBrief(address, force = false) {
         }
 
     } catch (err) {
+        if (requestSeq !== _briefRequestSeq || localStorage.getItem(STORAGE_KEY) !== address) {
+            if (requestSeq === _briefRequestSeq) _briefRendering = false;
+            return;
+        }
         _briefRendering = false;
         console.warn('Morning Brief error:', err);
         const container = document.getElementById('drawer-brief');
