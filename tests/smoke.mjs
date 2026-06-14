@@ -86,6 +86,14 @@ const browserRoutes = [
   '/widgets/baker-card.html',
   '/widgets/builder.html'
 ];
+const formattingRoutes = [
+  ...browserRoutes,
+  '/404.html'
+];
+const formattingViewports = [
+  { label: 'desktop', viewport: { width: 1280, height: 900 } },
+  { label: 'mobile', viewport: { width: 390, height: 844 } }
+];
 
 const SAMPLE_ADDRESS = 'tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9';
 const SAMPLE_ADDRESS_2 = 'tz1hThMBD8jQjFt78heuCnKxJnJtQo9Ao25X';
@@ -3639,6 +3647,128 @@ async function crawlRoutes(browser, baseUrl) {
   assert(issues.length === 0, `route crawl browser issues:\n${issues.join('\n')}`);
 }
 
+async function smokeRouteFormatting(browser, baseUrl) {
+  const issues = [];
+
+  for (const { label, viewport } of formattingViewports) {
+    const context = await browser.newContext({
+      viewport,
+      serviceWorkers: 'block'
+    });
+    await context.addInitScript(() => {
+      localStorage.setItem('tezos-systems-theme', 'matrix');
+      localStorage.setItem('tezos-toured', '1');
+      localStorage.setItem('tezos-welcomed', '1');
+      localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    });
+
+    const page = await context.newPage();
+    attachIssueCollectors(page, `route formatting ${label}`, issues);
+    const formattingIssues = [];
+
+    for (const route of formattingRoutes) {
+      const url = `${baseUrl}${route}`;
+      const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
+      assert((response?.status() || 0) < 500, `route formatting ${label}: route returned ${response?.status()}: ${route}`);
+      await page.locator('body').waitFor({ state: 'attached', timeout: 5000 });
+      await page.waitForTimeout(300);
+
+      const routeIssues = await page.evaluate(() => {
+        const found = [];
+        const viewportWidth = window.innerWidth;
+        const doc = document.documentElement;
+        const body = document.body;
+        const scrollWidth = Math.max(doc?.scrollWidth || 0, body?.scrollWidth || 0);
+        const horizontalOverflow = scrollWidth - viewportWidth;
+
+        if (horizontalOverflow > 4) {
+          found.push(`document overflows viewport by ${horizontalOverflow.toFixed(1)}px (scrollWidth ${scrollWidth}, viewport ${viewportWidth})`);
+        }
+
+        const ignoredAncestorSelector = [
+          '[hidden]',
+          '[aria-hidden="true"]',
+          '#my-tezos-drawer:not(.open):not(.active)',
+          '#features-dropdown:not(.open)',
+          '#settings-dropdown:not(.open)',
+          '#theme-picker-dropdown:not(.open)',
+          '.modal-overlay:not(.active):not(.visible):not([aria-hidden="false"])',
+          '.changelog-modal:not(.active):not([aria-hidden="false"])'
+        ].join(', ');
+        const skippedTags = new Set(['SCRIPT', 'STYLE', 'LINK', 'META', 'HEAD', 'TITLE', 'NOSCRIPT', 'TEMPLATE']);
+        const elementName = (node) => {
+          if (node.id) return `#${node.id}`;
+          const className = typeof node.className === 'string'
+            ? node.className.trim().split(/\s+/).filter(Boolean).slice(0, 3).join('.')
+            : '';
+          return className ? `${node.tagName.toLowerCase()}.${className}` : node.tagName.toLowerCase();
+        };
+        const textSample = (node) => (node.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 80);
+        const isVisible = (node) => {
+          if (!node || skippedTags.has(node.tagName)) return false;
+          if (node.closest(ignoredAncestorSelector)) return false;
+          const style = window.getComputedStyle(node);
+          if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+          const box = node.getBoundingClientRect();
+          return box.width > 1 && box.height > 1;
+        };
+
+        const escaped = [];
+        for (const node of Array.from(document.body.querySelectorAll('*'))) {
+          if (!isVisible(node)) continue;
+          const box = node.getBoundingClientRect();
+          const style = window.getComputedStyle(node);
+          if (style.position === 'fixed' && box.width >= viewportWidth - 2) continue;
+          if (box.left < -4 || box.right > viewportWidth + 4) {
+            escaped.push(`${elementName(node)} at ${box.left.toFixed(1)}..${box.right.toFixed(1)} "${textSample(node)}"`);
+          }
+        }
+
+        if (escaped.length) {
+          found.push(`visible content escapes viewport: ${escaped.slice(0, 8).join(' | ')}`);
+        }
+
+        const clipped = [];
+        const controlSelector = [
+          'button',
+          'a',
+          'input',
+          'select',
+          'textarea',
+          '.landing-card',
+          '.theme-card',
+          '.feature-launcher-item',
+          '.widget-type-btn',
+          '.comparison-card'
+        ].join(', ');
+        for (const node of Array.from(document.querySelectorAll(controlSelector))) {
+          if (!isVisible(node)) continue;
+          const style = window.getComputedStyle(node);
+          const clipsX = ['hidden', 'clip'].includes(style.overflowX);
+          const clipsY = ['hidden', 'clip'].includes(style.overflowY);
+          if ((clipsX && node.scrollWidth > node.clientWidth + 3) || (clipsY && node.scrollHeight > node.clientHeight + 3)) {
+            clipped.push(`${elementName(node)} ${node.scrollWidth}x${node.scrollHeight} > ${node.clientWidth}x${node.clientHeight} "${textSample(node)}"`);
+          }
+        }
+
+        if (clipped.length) {
+          found.push(`visible control text/content clips: ${clipped.slice(0, 8).join(' | ')}`);
+        }
+
+        return found;
+      });
+
+      formattingIssues.push(...routeIssues.map((issue) => `${label} ${route}: ${issue}`));
+    }
+
+    await context.close();
+    assert(formattingIssues.length === 0, `route formatting issues:\n${formattingIssues.join('\n')}`);
+    log(`ok - route formatting (${label}, ${formattingRoutes.length} routes)`);
+  }
+
+  assert(issues.length === 0, `route formatting browser issues:\n${issues.join('\n')}`);
+}
+
 function getSuiteCatalog(browser, baseUrl) {
   return [
     { name: 'first-visit-tour', description: 'Deep-link onboarding, first root visit, and tour prompt behavior', run: () => smokeFirstVisitTour(browser, baseUrl) },
@@ -3660,6 +3790,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'themes', description: 'Theme picker availability and representative light/dark/colorful theme switching', run: () => smokeThemeSelection(browser, baseUrl) },
     { name: 'widget-builder', description: 'Standalone widget builder type picker, preview sizing, and embed code tabs', run: () => smokeWidgetBuilder(browser, baseUrl) },
     { name: 'hen-mode', description: 'HEN overlay startup and exit path', run: () => smokeHenMode(browser, baseUrl) },
+    { name: 'route-formatting', description: 'Public pages, widget pages, and 404 screen avoid horizontal overflow and clipped controls on desktop/mobile', run: () => smokeRouteFormatting(browser, baseUrl) },
     { name: 'route-crawl', description: 'Dashboard, SEO pages, compare pages, and standalone widget routes render non-empty bodies', run: () => crawlRoutes(browser, baseUrl) }
   ];
 }
@@ -3700,6 +3831,7 @@ async function main() {
     ['themes', 'Theme picker availability and representative light/dark/colorful theme switching'],
     ['widget-builder', 'Standalone widget builder type picker, preview sizing, and embed code tabs'],
     ['hen-mode', 'HEN overlay startup and exit path'],
+    ['route-formatting', 'Public pages, widget pages, and 404 screen avoid horizontal overflow and clipped controls on desktop/mobile'],
     ['route-crawl', 'Dashboard, SEO pages, compare pages, and standalone widget routes render non-empty bodies']
   ];
   if (cli.list) {

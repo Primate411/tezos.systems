@@ -310,6 +310,7 @@
             padding: 16px 12px;
             text-align: center;
             cursor: pointer;
+            min-width: 0;
             transition: all 0.25s;
         }
         .theme-card:hover {
@@ -339,11 +340,13 @@
             font-weight: 600;
             color: var(--text-primary);
             margin-bottom: 2px;
+            overflow-wrap: anywhere;
         }
         .theme-tagline {
             display: block;
             font-size: 0.65rem;
             color: var(--text-secondary);
+            overflow-wrap: anywhere;
         }
 
         /* ─── Final CTA ─── */
@@ -408,7 +411,7 @@
             }
             .live-grid { grid-template-columns: repeat(2, 1fr); }
             .features-grid { grid-template-columns: 1fr; }
-            .theme-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+            .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
             .theme-preview { width: 36px; height: 36px; }
             section { padding: 60px 16px; }
         }

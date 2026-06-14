@@ -339,10 +339,14 @@ Current smoke suites:
 
 - `first-visit-tour`
 - `app-shell`
+- `tzkt-throttle`
 - `dashboard-desktop`
 - `dashboard-mobile`
 - `my-tezos-baker-activity`
 - `my-tezos-baker-capacity`
+- `my-tezos-address-switch`
+- `my-tezos-proposal-attribution`
+- `my-tezos-deep-link-override`
 - `tezlink`
 - `network-health`
 - `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, fixed Chamber footer geometry, Tezos X Governance card geometry and rollover timing, Tezos X direction fallbacks, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
@@ -352,6 +356,7 @@ Current smoke suites:
 - `themes`
 - `widget-builder`
 - `hen-mode`
+- `route-formatting`
 - `route-crawl`
 
 Run `npm run test:smoke:list` for the current suite descriptions.
