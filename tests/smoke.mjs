@@ -372,7 +372,8 @@ async function installFeatureMocks(context, options = {}) {
 
     if (url.includes('html2canvas@1.4.1')) {
       return fulfillText(route, `
-        window.html2canvas = async function() {
+        window.html2canvas = async function(element) {
+          window.__lastHtml2CanvasText = String(element?.innerText || element?.textContent || '');
           const canvas = document.createElement('canvas');
           canvas.width = 600;
           canvas.height = 630;
@@ -2094,7 +2095,8 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
     const story = window._myTezosData?.story;
     return window._myTezosData?.fullAddress === address
       && story?.proposalsInjected === 0
-      && story?.bakerProposalsInjected === 1;
+      && story?.bakerProposalsInjected === 1
+      && story?.nftAssetsCollected === 2;
   }, SAMPLE_DELEGATOR_ADDRESS, { timeout: 15000 });
 
   const storyText = await page.evaluate(() => {
@@ -2106,6 +2108,17 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   assert(storyText.includes('Baker injected 1 accepted proposal'), `my tezos proposal attribution: missing baker attribution: ${storyText}`);
   assert(!storyText.includes('📜 Injected 1 accepted proposal'), `my tezos proposal attribution: delegator was credited as initiator: ${storyText}`);
   assert(storyText.includes('Smoke'), `my tezos proposal attribution: proposal alias missing: ${storyText}`);
+  assert(storyText.includes('Collected 2 NFTs'), `my tezos proposal attribution: NFT collection count missing: ${storyText}`);
+
+  await page.locator('#drawer-brief .story-share-btn').click();
+  await page.locator('#share-modal.visible').waitFor({ state: 'visible', timeout: 10000 });
+  const shareState = await page.evaluate(() => ({
+    picker: document.querySelector('#share-modal .tweet-picker')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    captured: window.__lastHtml2CanvasText?.replace(/\s+/g, ' ').trim() || ''
+  }));
+  assert(shareState.picker.includes('Collected 2 NFTs'), `my tezos proposal attribution: share tweet picker missing NFT count: ${shareState.picker}`);
+  assert(shareState.captured.includes('Collected 2 NFTs'), `my tezos proposal attribution: share card capture missing NFT count: ${shareState.captured}`);
+  await expectShareModal(page, 'my tezos proposal attribution share', issues);
 
   await context.close();
   assert(issues.length === 0, `my tezos proposal attribution browser issues:\n${issues.join('\n')}`);

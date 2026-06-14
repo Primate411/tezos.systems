@@ -10,6 +10,7 @@ import { fetchSharedStats, fetchWithRetry, getTzktTotalDelegated, getTzktTotalSt
 import { fetchXTZPrice } from './price.js';
 import { letterGrade } from './baker-report-card.js';
 import { fetchVotingStatus, getVotingPeriodName } from './governance.js';
+import { fetchObjktProfile } from './objkt.js';
 
 const TZKT = API_URLS.tzkt;
 const OCTEZ = API_URLS.octez;
@@ -471,6 +472,15 @@ function fmtMutez(mutez) {
     return `${fmtCompact(xtz)} XTZ`;
 }
 
+function fmtCount(count) {
+    const n = Number(count);
+    return Number.isFinite(n) ? Math.max(0, Math.trunc(n)).toLocaleString() : '0';
+}
+
+function pluralize(count, singular, plural = `${singular}s`) {
+    return Number(count) === 1 ? singular : plural;
+}
+
 function shortAddress(address) {
     if (!address) return 'Unknown';
     return `${address.slice(0, 8)}...${address.slice(-4)}`;
@@ -903,6 +913,9 @@ function buildMorningBrief(data) {
                 storyText += `: ${data.story.bakerProposalNames.map(escapeHtml).join(', ')}`;
             }
         }
+        if (Number.isFinite(data.story.nftAssetsCollected)) {
+            storyText += `<br>🖼️ Collected <strong>${fmtCount(data.story.nftAssetsCollected)} ${pluralize(data.story.nftAssetsCollected, 'NFT')}</strong>`;
+        }
     } else {
         storyText = 'No on-chain history found for this address yet.';
     }
@@ -936,6 +949,7 @@ async function fetchTezosStory(address, account, bakerAddress) {
     let govCycles = 0;
     let proposalsInjected = 0;
     let proposalNames = [];
+    let nftAssetsCollected = null;
     try {
         const periods = await fetchTzktJson(`${TZKT}/voting/periods?limit=1000&select=firstLevel,kind`);
         govCycles = periods.filter(p => p.firstLevel >= firstActivity).length;
@@ -955,6 +969,13 @@ async function fetchTezosStory(address, account, bakerAddress) {
         }
     } catch {}
 
+    try {
+        const profile = await fetchObjktProfile(address);
+        nftAssetsCollected = profile?.collector
+            ? Math.max(0, Math.trunc(Number(profile.collector.uniqueAssetsHeld ?? profile.collector.totalHeld) || 0))
+            : 0;
+    } catch {}
+
     return {
         joinedEra: joinedEra.name,
         joinedDate: joinedEra.date,
@@ -966,6 +987,7 @@ async function fetchTezosStory(address, account, bakerAddress) {
         proposalNames,
         bakerProposalsInjected,
         bakerProposalNames,
+        nftAssetsCollected,
         currentEra: PROTOCOL_ERAS[PROTOCOL_ERAS.length - 1].name,
     };
 }
@@ -1007,6 +1029,9 @@ async function shareTezosStory(data) {
                 ? `Baker injected <span style="color:${brand};font-weight:700;">${data.story.bakerProposalsInjected} accepted proposal${data.story.bakerProposalsInjected > 1 ? 's' : ''}</span><br>`
                 : ''
         ].join('');
+        const nftLineHtml = Number.isFinite(data.story.nftAssetsCollected)
+            ? `Collected <span style="color:${brand};font-weight:700;">${fmtCount(data.story.nftAssetsCollected)} ${pluralize(data.story.nftAssetsCollected, 'NFT')}</span><br>`
+            : '';
         const badgesHtml = badgeEras.map((p, i) => {
             const isJoined = p.name === data.story.joinedEra;
             const isCurrent = i === badgeEras.length - 1;
@@ -1056,6 +1081,7 @@ async function shareTezosStory(data) {
                     Witnessed <span style="color:${brand};font-weight:700;">${data.story.upgradesSeen} protocol upgrades</span><br>
                     ${data.story.govCycles > 0 ? `Lived through <span style="color:${brand};font-weight:700;">${data.story.govCycles} governance cycles</span><br>` : ''}
                     ${proposalLinesHtml}
+                    ${nftLineHtml}
                     Zero hard forks. Ever.
                 </div>
 
@@ -1086,6 +1112,12 @@ async function shareTezosStory(data) {
                 : ''
         ].filter(Boolean);
         const injectedLine = injectedLines.length ? `\n${injectedLines.join('\n')}` : '';
+        const nftLine = Number.isFinite(data.story.nftAssetsCollected)
+            ? `\n🖼️ ${fmtCount(data.story.nftAssetsCollected)} ${pluralize(data.story.nftAssetsCollected, 'NFT')} collected`
+            : '';
+        const nftSentence = Number.isFinite(data.story.nftAssetsCollected)
+            ? ` Collected ${fmtCount(data.story.nftAssetsCollected)} ${pluralize(data.story.nftAssetsCollected, 'NFT')}.`
+            : '';
         const storyProposalSentence = [
             data.story.proposalsInjected > 0 ? ` Injected ${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''}.` : '',
             data.story.bakerProposalsInjected > 0 ? ` My baker injected ${data.story.bakerProposalsInjected} accepted proposal${data.story.bakerProposalsInjected > 1 ? 's' : ''}.` : ''
@@ -1095,9 +1127,9 @@ async function shareTezosStory(data) {
             data.story.bakerProposalsInjected > 0 ? ` My baker injected ${data.story.bakerProposalsInjected} proposal${data.story.bakerProposalsInjected > 1 ? 's' : ''} that became Tezos law.` : ''
         ].join('');
         const tweetOptions = [
-            { label: '📜 Story', text: `I've been on Tezos for ${data.story.daysSinceJoin.toLocaleString()} days. Joined under ${data.story.joinedEra}. Witnessed ${data.story.upgradesSeen} protocol upgrades.${storyProposalSentence} Zero hard forks.\n\nWhat's your Tezos story?\ntezos.systems` },
-            { label: '🏛️ OG', text: `${data.story.joinedEra} era. ${data.story.upgradesSeen} upgrades witnessed. ${data.story.daysSinceJoin.toLocaleString()} days and counting.${ogProposalSentence}\n\nTezos doesn't fork. It evolves.\ntezos.systems` },
-            { label: '📊 Data', text: `My Tezos Story:\n\n📅 ${data.story.daysSinceJoin.toLocaleString()} days on-chain\n🏛️ Joined: ${data.story.joinedEra}\n🔄 ${data.story.upgradesSeen} upgrades witnessed${injectedLine}\n🔗 Zero forks\n\ntezos.systems` },
+            { label: '📜 Story', text: `I've been on Tezos for ${data.story.daysSinceJoin.toLocaleString()} days. Joined under ${data.story.joinedEra}. Witnessed ${data.story.upgradesSeen} protocol upgrades.${storyProposalSentence}${nftSentence} Zero hard forks.\n\nWhat's your Tezos story?\ntezos.systems` },
+            { label: '🏛️ OG', text: `${data.story.joinedEra} era. ${data.story.upgradesSeen} upgrades witnessed. ${data.story.daysSinceJoin.toLocaleString()} days and counting.${ogProposalSentence}${nftSentence}\n\nTezos doesn't fork. It evolves.\ntezos.systems` },
+            { label: '📊 Data', text: `My Tezos Story:\n\n📅 ${data.story.daysSinceJoin.toLocaleString()} days on-chain\n🏛️ Joined: ${data.story.joinedEra}\n🔄 ${data.story.upgradesSeen} upgrades witnessed${injectedLine}${nftLine}\n🔗 Zero forks\n\ntezos.systems` },
         ];
 
         showShareModal(canvas, tweetOptions, 'Your Tezos Story');
