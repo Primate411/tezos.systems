@@ -344,6 +344,7 @@ Current smoke suites:
 - `dashboard-mobile`
 - `my-tezos-baker-activity`
 - `my-tezos-baker-capacity`
+- `my-tezos-staker-rewards`
 - `my-tezos-address-switch`
 - `my-tezos-proposal-attribution`
 - `my-tezos-deep-link-override`

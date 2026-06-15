@@ -119,29 +119,93 @@ async function getStakingAPY() {
     }
 }
 
-async function fetchRecentRewards(address) {
-    try {
-        return await fetchTzktJson(`${TZKT}/rewards/delegators/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
-    } catch {
+async function fetchRecentRewards(address, account = null) {
+    const enc = encodeURIComponent(address);
+    const tryFetchRows = async (url) => {
         try {
-            return await fetchTzktJson(`${TZKT}/rewards/bakers/${encodeURIComponent(address)}?limit=100&sort.desc=cycle`);
+            const rows = await fetchTzktJson(url);
+            return Array.isArray(rows) && rows.length ? rows : null;
         } catch {
             return null;
         }
+    };
+
+    const isBaker = account?.type === 'delegate' || account?.delegate?.address === address;
+    const hasStake = (Number(account?.stakedBalance) || 0) > 0;
+
+    if (isBaker) {
+        const bakerRows = await tryFetchRows(`${TZKT}/rewards/bakers/${enc}?limit=100&sort.desc=cycle`);
+        if (bakerRows) return bakerRows;
     }
+    if (hasStake) {
+        const stakerRows = await tryFetchRows(`${TZKT}/rewards/stakers/${enc}?limit=100&sort.desc=cycle`);
+        if (stakerRows) return stakerRows;
+    }
+
+    return await tryFetchRows(`${TZKT}/rewards/delegators/${enc}?limit=100&sort.desc=cycle`)
+        || await tryFetchRows(`${TZKT}/rewards/stakers/${enc}?limit=100&sort.desc=cycle`)
+        || await tryFetchRows(`${TZKT}/rewards/bakers/${enc}?limit=100&sort.desc=cycle`);
+}
+
+function sumRewardFields(r, fields) {
+    return fields.reduce((sum, field) => sum + (Number(r?.[field]) || 0), 0);
+}
+
+function getBakerRewardMutez(r) {
+    return sumRewardFields(r, [
+        'blockRewardsDelegated',
+        'blockRewardsStakedOwn',
+        'blockRewardsStakedEdge',
+        'blockRewardsStakedShared',
+        'attestationRewardsDelegated',
+        'attestationRewardsStakedOwn',
+        'attestationRewardsStakedEdge',
+        'attestationRewardsStakedShared',
+        'dalAttestationRewardsDelegated',
+        'dalAttestationRewardsStakedOwn',
+        'dalAttestationRewardsStakedEdge',
+        'dalAttestationRewardsStakedShared',
+        'vdfRevelationRewardsDelegated',
+        'vdfRevelationRewardsStakedOwn',
+        'vdfRevelationRewardsStakedEdge',
+        'vdfRevelationRewardsStakedShared',
+        'nonceRevelationRewardsDelegated',
+        'nonceRevelationRewardsStakedOwn',
+        'nonceRevelationRewardsStakedEdge',
+        'nonceRevelationRewardsStakedShared',
+        'blockFees'
+    ]);
+}
+
+function getDelegatorRewardEstimateMutez(r) {
+    const baker = r?.bakerRewards || r;
+    const delegated = Number(r?.delegatedBalance) || 0;
+    const externalDelegated = Number(baker?.externalDelegatedBalance ?? r?.externalDelegatedBalance) || 0;
+    if (delegated <= 0 || externalDelegated <= 0) return 0;
+    const delegatedPool = sumRewardFields(baker, [
+        'blockRewardsDelegated',
+        'attestationRewardsDelegated',
+        'dalAttestationRewardsDelegated',
+        'vdfRevelationRewardsDelegated',
+        'nonceRevelationRewardsDelegated'
+    ]);
+    return Math.round(delegatedPool * delegated / externalDelegated);
 }
 
 function getRewardAmount(r) {
-    const blockRewards = (r.blockRewardsDelegated || 0) + (r.blockRewardsStakedOwn || 0) +
-                         (r.blockRewardsStakedEdge || 0) + (r.blockRewardsStakedShared || 0);
-    const attestRewards = (r.attestationRewardsDelegated || 0) + (r.attestationRewardsStakedOwn || 0) +
-                          (r.attestationRewardsStakedEdge || 0) + (r.attestationRewardsStakedShared || 0);
-    const dalRewards = (r.dalAttestationRewardsDelegated || 0) + (r.dalAttestationRewardsStakedOwn || 0) +
-                       (r.dalAttestationRewardsStakedEdge || 0) + (r.dalAttestationRewardsStakedShared || 0);
-    const actual = blockRewards + attestRewards + dalRewards + (r.blockFees || 0);
+    if (!r) return 0;
+    if (r.rewards !== undefined) return (Number(r.rewards) || 0) / 1e6;
+    if (r.bakerRewards) return getDelegatorRewardEstimateMutez(r) / 1e6;
+
+    const actual = getBakerRewardMutez(r);
     if (actual > 0) return actual / 1e6;
-    const future = (r.futureBlockRewards || 0) + (r.futureAttestationRewards || 0) + (r.futureDalAttestationRewards || 0);
+
+    const attestFuture = r.futureAttestationRewards ?? r.futureEndorsementRewards ?? 0;
+    const future = (Number(r.futureBlockRewards) || 0)
+        + (Number(attestFuture) || 0)
+        + (Number(r.futureDalAttestationRewards) || 0);
     if (future > 0) return future / 1e6;
+
     if (r.ownBlockRewards !== undefined) {
         return ((r.ownBlockRewards || 0) + (r.ownEndorsementRewards || 0) +
                 (r.extraBlockRewards || 0) + (r.extraEndorsementRewards || 0)) / 1e6;
@@ -1560,7 +1624,7 @@ async function renderMorningBrief(address, force = false) {
 
         const [participation, rewards, story, bakerVote, bakerActivity] = await Promise.all([
             bakerAddr ? fetchParticipation(bakerAddr) : Promise.resolve(null),
-            fetchRecentRewards(address),
+            fetchRecentRewards(address, account),
             fetchTezosStory(address, account, bakerAddr),
             bakerAddr ? fetchBakerVoteStatus(bakerAddr) : Promise.resolve(null),
             isBaker ? fetchRecentBakerActivity(address) : Promise.resolve(null),

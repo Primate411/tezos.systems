@@ -421,8 +421,8 @@ async function renderBakerData(address, container) {
         let missedCycleEl = null;
         let missedLifetimeEl = null;
         if (participationAddr && currentCycle) {
-            missedCycleEl = createStatItem('Missed (Cycle)', 'Loading...', 'Missed blocks / missed attestations this cycle');
-            missedLifetimeEl = createStatItem('Missed (10d)', 'Loading...', 'Missed blocks / missed attestations (last ~10 days)');
+            missedCycleEl = createStatItem('Bkr Missed (Cycle)', 'Loading...', 'Baker missed blocks / missed attestation rights this cycle');
+            missedLifetimeEl = createStatItem('Bkr Missed (10d)', 'Loading...', 'Baker missed blocks / missed attestation rights over the last ~10 cycles');
             grid.appendChild(missedCycleEl);
             grid.appendChild(missedLifetimeEl);
         }

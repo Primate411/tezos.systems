@@ -11,6 +11,7 @@ import { API_URLS } from '../core/config.js';
 const CONTAINER_ID = 'rewards-tracker-container';
 const LS_KEY_ADDR = 'tezos-systems-my-baker-address';
 const LS_KEY_NOTIF = 'tezos-systems-rewards-notif';
+const REWARDS_LIMIT = 10000;
 let countdownInterval = null;
 let lastKnownCycle = null;
 
@@ -21,7 +22,7 @@ function getAddress() {
 }
 
 function getCacheKey(address) {
-  return `tezos-systems-rewards-v2-${address}`;
+  return `tezos-systems-rewards-v3-${address}`;
 }
 
 function parsePrice(xtzPrice) {
@@ -36,6 +37,109 @@ function fmt(n, d = 2) {
 
 function fmtXtz(mutez) {
   return fmt(mutez / 1_000_000, 4);
+}
+
+async function fetchJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`TzKT ${res.status}`);
+  return res.json();
+}
+
+function sumFields(row, fields) {
+  return fields.reduce((total, field) => total + (Number(row?.[field]) || 0), 0);
+}
+
+function sumBakerEarned(row) {
+  return sumFields(row, [
+    'blockRewardsDelegated',
+    'blockRewardsStakedOwn',
+    'blockRewardsStakedEdge',
+    'blockRewardsStakedShared',
+    'attestationRewardsDelegated',
+    'attestationRewardsStakedOwn',
+    'attestationRewardsStakedEdge',
+    'attestationRewardsStakedShared',
+    'dalAttestationRewardsDelegated',
+    'dalAttestationRewardsStakedOwn',
+    'dalAttestationRewardsStakedEdge',
+    'dalAttestationRewardsStakedShared',
+    'vdfRevelationRewardsDelegated',
+    'vdfRevelationRewardsStakedOwn',
+    'vdfRevelationRewardsStakedEdge',
+    'vdfRevelationRewardsStakedShared',
+    'nonceRevelationRewardsDelegated',
+    'nonceRevelationRewardsStakedOwn',
+    'nonceRevelationRewardsStakedEdge',
+    'nonceRevelationRewardsStakedShared',
+    'blockFees'
+  ]);
+}
+
+function sumBakerFuture(row) {
+  const attestationFuture = row?.futureAttestationRewards ?? row?.futureEndorsementRewards ?? 0;
+  return (Number(row?.futureBlockRewards) || 0)
+    + (Number(attestationFuture) || 0)
+    + (Number(row?.futureDalAttestationRewards) || 0);
+}
+
+function sumMissedRewards(row) {
+  const missedAttest = row?.missedAttestationRewards ?? row?.missedEndorsementRewards ?? 0;
+  return (Number(row?.missedBlockRewards) || 0)
+    + (Number(missedAttest) || 0)
+    + (Number(row?.missedDalAttestationRewards) || 0)
+    + (Number(row?.missedBlockFees) || 0);
+}
+
+function estimateDelegatorReward(row) {
+  const baker = row?.bakerRewards || row;
+  const delegated = Number(row?.delegatedBalance) || 0;
+  const externalDelegated = Number(baker?.externalDelegatedBalance ?? row?.externalDelegatedBalance) || 0;
+  if (delegated <= 0 || externalDelegated <= 0) return 0;
+
+  const delegatedPool = sumFields(baker, [
+    'blockRewardsDelegated',
+    'attestationRewardsDelegated',
+    'dalAttestationRewardsDelegated',
+    'vdfRevelationRewardsDelegated',
+    'nonceRevelationRewardsDelegated'
+  ]);
+  return Math.round(delegatedPool * delegated / externalDelegated);
+}
+
+function normalizeBakerRewards(rows) {
+  return rows.map((row) => ({
+    ...row,
+    _rewardKind: 'baker',
+    _earnedRewards: sumBakerEarned(row),
+    _futureRewards: sumBakerFuture(row),
+    _missedRewards: sumMissedRewards(row)
+  }));
+}
+
+function normalizeStakerRewards(rows) {
+  return rows.map((row) => ({
+    ...row,
+    _rewardKind: 'staker',
+    _earnedRewards: Number(row.rewards) || 0,
+    _futureRewards: 0,
+    _missedRewards: 0
+  }));
+}
+
+function normalizeDelegatorRewards(rows) {
+  return rows.map((row) => ({
+    ...row,
+    _rewardKind: 'delegator-estimate',
+    _earnedRewards: estimateDelegatorReward(row),
+    _futureRewards: 0,
+    _missedRewards: sumMissedRewards(row.bakerRewards || row)
+  }));
+}
+
+function rewardAmountMutez(row) {
+  if (row?._earnedRewards !== undefined) return Number(row._earnedRewards) || 0;
+  if (row?.rewards !== undefined) return Number(row.rewards) || 0;
+  return sumBakerEarned(row);
 }
 
 function secondsToHms(s) {
@@ -58,46 +162,40 @@ async function fetchRewards(address) {
     } catch (_) {}
   }
 
-  // Try baker endpoint first (Tallinn-era fields), fall back to delegator
-  let data;
-  const bakerUrl = `${API_URLS.tzkt}/rewards/bakers/${address}?sort.desc=id&limit=10000`;
-  const bakerRes = await fetch(bakerUrl);
-  if (bakerRes.ok) {
-    const raw = await bakerRes.json();
-    // Normalize Tallinn baker fields to common shape
-    data = raw.map(r => {
-      const earned = (r.blockRewardsDelegated || 0) + (r.blockRewardsStakedOwn || 0) +
-        (r.blockRewardsStakedEdge || 0) + (r.blockRewardsStakedShared || 0) +
-        (r.attestationRewardsDelegated || 0) + (r.attestationRewardsStakedOwn || 0) +
-        (r.attestationRewardsStakedEdge || 0) + (r.attestationRewardsStakedShared || 0);
-      const missed = (r.missedBlockRewards || 0) + (r.missedAttestationRewards || 0);
-      const future = (r.futureBlockRewards || 0) + (r.futureAttestationRewards || 0);
-      return {
-        cycle: r.cycle,
-        blockRewards: earned,
-        endorsementRewards: 0,
-        blockFees: r.blockFees || 0,
-        missedBlockRewards: missed,
-        missedEndorsementRewards: 0,
-        stakingBalance: r.ownStakedBalance || 0,
-        delegatedBalance: r.externalDelegatedBalance || 0,
-        _isBaker: true,
-        _futureRewards: future,
-        _earnedRewards: earned,
-        _blocks: r.blocks || 0,
-        _expectedBlocks: r.expectedBlocks || 0,
-        _attestations: r.attestations || 0,
-        _expectedAttestations: r.expectedAttestations || 0,
-      };
-    });
-  } else {
-    // Delegator fallback
-    const delUrl = `${API_URLS.tzkt}/rewards/delegators/${address}?sort.desc=id&limit=30` +
-      `&select=cycle,stakingBalance,externalStakedBalance,delegatedBalance,blockRewards,` +
-      `endorsementRewards,blockFees,missedBlockRewards,missedEndorsementRewards`;
-    const delRes = await fetch(delUrl);
-    if (!delRes.ok) throw new Error(`TzKT ${delRes.status}`);
-    data = await delRes.json();
+  const enc = encodeURIComponent(address);
+  let account = null;
+  try {
+    account = await fetchJson(`${API_URLS.tzkt}/accounts/${enc}`);
+  } catch (_) {}
+
+  const fetchBakerRows = async () => normalizeBakerRewards(
+    await fetchJson(`${API_URLS.tzkt}/rewards/bakers/${enc}?sort.desc=cycle&limit=${REWARDS_LIMIT}`)
+  );
+  const fetchStakerRows = async () => normalizeStakerRewards(
+    await fetchJson(`${API_URLS.tzkt}/rewards/stakers/${enc}?sort.desc=cycle&limit=${REWARDS_LIMIT}`)
+  );
+  const fetchDelegatorRows = async () => normalizeDelegatorRewards(
+    await fetchJson(`${API_URLS.tzkt}/rewards/delegators/${enc}?sort.desc=cycle&limit=${REWARDS_LIMIT}`)
+  );
+
+  let data = [];
+  const isBaker = account?.type === 'delegate' || account?.delegate?.address === address;
+  const hasStake = (Number(account?.stakedBalance) || 0) > 0;
+
+  if (isBaker) {
+    try { data = await fetchBakerRows(); } catch (_) { data = []; }
+  }
+  if (!data.length && hasStake) {
+    try { data = await fetchStakerRows(); } catch (_) { data = []; }
+  }
+  if (!data.length) {
+    try { data = await fetchDelegatorRows(); } catch (_) { data = []; }
+  }
+  if (!data.length && !isBaker) {
+    try { data = await fetchStakerRows(); } catch (_) { data = []; }
+  }
+  if (!data.length) {
+    try { data = await fetchBakerRows(); } catch (_) { data = []; }
   }
   localStorage.setItem(cacheKey, JSON.stringify({ ts: Date.now(), data }));
   return data;
@@ -142,12 +240,7 @@ function maybeSendCycleNotif(currentCycle) {
 function calcLifetime(rewards) {
   let totalMutez = 0;
   for (const r of rewards) {
-    // For baker data, _earnedRewards has the actual earned amount
-    if (r._earnedRewards !== undefined) {
-      totalMutez += r._earnedRewards + (r.blockFees || 0);
-    } else {
-      totalMutez += (r.blockRewards || 0) + (r.endorsementRewards || 0) + (r.blockFees || 0);
-    }
+    totalMutez += rewardAmountMutez(r);
   }
   return totalMutez;
 }
@@ -162,9 +255,9 @@ function calcThisCycle(rewards, stats) {
     recent = rewards.find(r => (r._earnedRewards || 0) > 0) || rewards[0];
   }
   
-  const earnedSoFar = recent._earnedRewards || (recent.blockRewards || 0) + (recent.endorsementRewards || 0) + (recent.blockFees || 0);
+  const earnedSoFar = rewardAmountMutez(recent);
   const futureEst = recent._futureRewards || 0;
-  const missed = (recent.missedBlockRewards || 0) + (recent.missedEndorsementRewards || 0);
+  const missed = recent._missedRewards ?? ((recent.missedBlockRewards || 0) + (recent.missedEndorsementRewards || 0));
   
   // Full cycle estimate: earned so far + remaining future, or just future if nothing earned yet
   const fullCycleMutez = earnedSoFar > 0 ? (earnedSoFar + futureEst) : futureEst;
@@ -176,8 +269,8 @@ function calcThisCycle(rewards, stats) {
 }
 
 function cycleColor(r) {
-  const missed = (r.missedBlockRewards || 0) + (r.missedEndorsementRewards || 0);
-  const earned = (r.blockRewards || 0) + (r.endorsementRewards || 0) + (r.blockFees || 0);
+  const missed = r._missedRewards ?? ((r.missedBlockRewards || 0) + (r.missedEndorsementRewards || 0));
+  const earned = rewardAmountMutez(r);
   const total = earned + missed;
   if (total === 0) return '#555';
   const ratio = missed / total;
@@ -342,6 +435,14 @@ function buildContainer(rewards, stats, xtzPrice) {
   const fullCycleXtz = (fullCycleMutez || 0) / 1_000_000;
   const fullCycleUsd = fullCycleXtz * price;
   const firstCycle = rewards.length ? rewards[rewards.length - 1].cycle : null;
+  const rewardKind = rewards.find((row) => row?._rewardKind)?._rewardKind || 'unknown';
+  const lifetimeSubtitle = rewardKind === 'baker'
+    ? 'Total baker rewards'
+    : rewardKind === 'staker'
+      ? 'Protocol staking rewards'
+      : rewardKind === 'delegator-estimate'
+        ? 'Estimated delegation share'
+        : 'Personal rewards history';
   const notifEnabled = isNotifEnabled();
   const effClass = efficiency >= 95 ? 'rt-eff-high' : efficiency >= 80 ? 'rt-eff-mid' : 'rt-eff-low';
   const blocksRemaining = stats?.blocksRemaining ??
@@ -382,7 +483,7 @@ function buildContainer(rewards, stats, xtzPrice) {
 
       <div class="rt-card" id="rt-lifetime-card">
         <div class="rt-card-title">🏆 Lifetime Rewards</div>
-        <div class="rt-sub" style="font-size:10px;opacity:0.5;margin-bottom:4px">Total baker rewards (incl. delegator share)</div>
+        <div class="rt-sub" style="font-size:10px;opacity:0.5;margin-bottom:4px">${lifetimeSubtitle}</div>
         <div class="rt-value">${fmt(lifetimeXtz, 4)} <span style="font-size:0.9rem">XTZ</span></div>
         <div class="rt-sub">≈ $${fmt(lifetimeUsd)} USD total</div>
         <div class="rt-sub" style="margin-top:0.3rem">
@@ -414,7 +515,7 @@ function buildContainer(rewards, stats, xtzPrice) {
       const block = document.createElement('div');
       block.className = 'rt-cal-block';
       block.style.background = cycleColor(r);
-      const earned = ((r.blockRewards || 0) + (r.endorsementRewards || 0) + (r.blockFees || 0)) / 1_000_000;
+      const earned = rewardAmountMutez(r) / 1_000_000;
       block.setAttribute('data-tip', `Cycle ${r.cycle}: ${fmt(earned, 4)} XTZ`);
       calGrid.appendChild(block);
     }
