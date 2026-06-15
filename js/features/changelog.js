@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-15',
+        entries: [
+            { type: '🔧', text: 'My Tezos smoke coverage now exercises regular delegators and mostly-staked user accounts, not only bakers' },
+        ]
+    },
+    {
         date: '2026-06-14',
         entries: [
             { type: '🔧', text: 'My Tezos rewards now use personal staker reward rows and clearer baker missed-right labels' },

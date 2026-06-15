@@ -99,7 +99,10 @@ const SAMPLE_ADDRESS = 'tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9';
 const SAMPLE_ADDRESS_2 = 'tz1hThMBD8jQjFt78heuCnKxJnJtQo9Ao25X';
 const SAMPLE_ADDRESS_3 = 'tz1PendingBaker1111111111111111111111';
 const SAMPLE_DELEGATOR_ADDRESS = 'tz1iJP1EtP9iSkmaEKCZznDMst91oJGB9SZ5';
+const SAMPLE_REGULAR_DELEGATOR_ADDRESS = 'tz1iKT2pvdbEHuVC3zugnJfVoQZbbyUzgToW';
+const SAMPLE_SMALL_DELEGATOR_ADDRESS = 'tz1hh3pqYnm3umz3U7zJ6xkaCmpXbnKA7aAm';
 const SAMPLE_STAKER_ADDRESS = 'tz1XrutuvkFRG15HmV2gdon86F38NMMGMAXr';
+const SAMPLE_HEAVY_STAKER_ADDRESS = 'tz1dKGGEVmYrm6V8hBKexLQLdWCapoEAZb1i';
 const OVERDELEGATED_ADDRESS = 'tz1bA9zZpouVgtMRLijvw5safwDKSxg62r1x';
 const ETHERLINK_FAST_CONTRACT = 'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo';
 const ETHERLINK_SLOW_CONTRACT = 'KT1AXRU3wLc87WNhLhVGrgqDGubLACUMUgPb';
@@ -1003,6 +1006,32 @@ async function installFeatureMocks(context, options = {}) {
           firstActivityTime: '2024-11-19T00:00:00Z'
         });
       }
+      if (url.includes(`/accounts/${SAMPLE_REGULAR_DELEGATOR_ADDRESS}`) && !url.includes('/operations?')) {
+        return fulfillJson(route, {
+          address: SAMPLE_REGULAR_DELEGATOR_ADDRESS,
+          type: 'user',
+          alias: 'Regular Delegator',
+          active: true,
+          balance: 256243269312,
+          stakedBalance: 0,
+          delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker', active: true },
+          firstActivity: 6123456,
+          firstActivityTime: '2024-07-15T00:00:00Z'
+        });
+      }
+      if (url.includes(`/accounts/${SAMPLE_SMALL_DELEGATOR_ADDRESS}`) && !url.includes('/operations?')) {
+        return fulfillJson(route, {
+          address: SAMPLE_SMALL_DELEGATOR_ADDRESS,
+          type: 'user',
+          alias: 'Small Delegator',
+          active: true,
+          balance: 6915950133,
+          stakedBalance: 0,
+          delegate: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker', active: true },
+          firstActivity: 5123456,
+          firstActivityTime: '2023-10-09T00:00:00Z'
+        });
+      }
       if (url.includes(`/accounts/${SAMPLE_STAKER_ADDRESS}`) && !url.includes('/operations?')) {
         return fulfillJson(route, {
           address: SAMPLE_STAKER_ADDRESS,
@@ -1015,6 +1044,83 @@ async function installFeatureMocks(context, options = {}) {
           firstActivity: 1388526,
           firstActivityTime: '2021-03-17T10:50:09Z'
         });
+      }
+      if (url.includes(`/accounts/${SAMPLE_HEAVY_STAKER_ADDRESS}`) && !url.includes('/operations?')) {
+        return fulfillJson(route, {
+          address: SAMPLE_HEAVY_STAKER_ADDRESS,
+          type: 'user',
+          alias: 'Mostly Staked Visitor',
+          active: true,
+          balance: 199382376272,
+          stakedBalance: 199362178211,
+          delegate: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker', active: true },
+          firstActivity: 5544332,
+          firstActivityTime: '2024-02-20T00:00:00Z'
+        });
+      }
+      if (url.includes(`/rewards/stakers/${SAMPLE_REGULAR_DELEGATOR_ADDRESS}`)) {
+        return fulfillJson(route, []);
+      }
+      if (url.includes(`/rewards/bakers/${SAMPLE_REGULAR_DELEGATOR_ADDRESS}`)) {
+        return fulfillJson(route, []);
+      }
+      if (url.includes(`/rewards/delegators/${SAMPLE_REGULAR_DELEGATOR_ADDRESS}`)) {
+        return fulfillJson(route, [
+          {
+            cycle: 1143,
+            delegatedBalance: 256243269312,
+            baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+            bakerRewards: {
+              externalDelegatedBalance: 2562432693120,
+              blockRewardsDelegated: 6000000,
+              attestationRewardsDelegated: 3000000,
+              dalAttestationRewardsDelegated: 1000000
+            }
+          },
+          {
+            cycle: 1142,
+            delegatedBalance: 256243269312,
+            baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+            bakerRewards: {
+              externalDelegatedBalance: 2562432693120,
+              blockRewardsDelegated: 3000000,
+              attestationRewardsDelegated: 2000000,
+              dalAttestationRewardsDelegated: 0
+            }
+          }
+        ]);
+      }
+      if (url.includes(`/rewards/stakers/${SAMPLE_SMALL_DELEGATOR_ADDRESS}`)) {
+        return fulfillJson(route, []);
+      }
+      if (url.includes(`/rewards/bakers/${SAMPLE_SMALL_DELEGATOR_ADDRESS}`)) {
+        return fulfillJson(route, []);
+      }
+      if (url.includes(`/rewards/delegators/${SAMPLE_SMALL_DELEGATOR_ADDRESS}`)) {
+        return fulfillJson(route, [
+          {
+            cycle: 1143,
+            delegatedBalance: 6915950133,
+            baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+            bakerRewards: {
+              externalDelegatedBalance: 69159501330,
+              blockRewardsDelegated: 3000000,
+              attestationRewardsDelegated: 1200000,
+              dalAttestationRewardsDelegated: 0
+            }
+          },
+          {
+            cycle: 1142,
+            delegatedBalance: 6915950133,
+            baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+            bakerRewards: {
+              externalDelegatedBalance: 69159501330,
+              blockRewardsDelegated: 1000000,
+              attestationRewardsDelegated: 200000,
+              dalAttestationRewardsDelegated: 0
+            }
+          }
+        ]);
       }
       if (url.includes(`/rewards/stakers/${SAMPLE_STAKER_ADDRESS}`)) {
         return fulfillJson(route, [
@@ -1036,6 +1142,31 @@ async function installFeatureMocks(context, options = {}) {
               blockRewardsDelegated: 1017848222,
               attestationRewardsDelegated: 1156300055,
               dalAttestationRewardsDelegated: 257256945
+            }
+          }
+        ]);
+      }
+      if (url.includes(`/rewards/stakers/${SAMPLE_HEAVY_STAKER_ADDRESS}`)) {
+        return fulfillJson(route, [
+          { cycle: 1143, baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }, initialStake: 199345572778, finalStake: 199362178211, rewards: 16605433 },
+          { cycle: 1142, baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }, initialStake: 199309175613, finalStake: 199345572778, rewards: 36397165 },
+          { cycle: 1141, baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }, initialStake: 199270967036, finalStake: 199309175613, rewards: 38208577 }
+        ]);
+      }
+      if (url.includes(`/rewards/bakers/${SAMPLE_HEAVY_STAKER_ADDRESS}`)) {
+        return fulfillJson(route, []);
+      }
+      if (url.includes(`/rewards/delegators/${SAMPLE_HEAVY_STAKER_ADDRESS}`)) {
+        return fulfillJson(route, [
+          {
+            cycle: 1143,
+            delegatedBalance: 20197488,
+            baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+            bakerRewards: {
+              externalDelegatedBalance: 3203106679689,
+              blockRewardsDelegated: 99584197,
+              attestationRewardsDelegated: 0,
+              dalAttestationRewardsDelegated: 0
             }
           }
         ]);
@@ -2052,7 +2183,7 @@ async function smokeMyTezosBakerCapacity(browser, baseUrl) {
   log('ok - my tezos baker capacity smoke');
 }
 
-async function smokeMyTezosStakerRewards(browser, baseUrl) {
+async function getMyTezosRewardReport(browser, baseUrl, { address, label, requiredText }) {
   const issues = [];
   const rewardsRequests = [];
   const context = await browser.newContext({
@@ -2068,66 +2199,170 @@ async function smokeMyTezosStakerRewards(browser, baseUrl) {
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
   });
 
-  const page = await context.newPage();
-  page.on('request', (request) => {
-    const url = request.url();
-    if (url.includes('api.tzkt.io/v1/rewards/')) rewardsRequests.push(url);
-  });
-  attachIssueCollectors(page, 'my tezos staker rewards', issues);
-
-  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
-  assert(response?.ok(), `my tezos staker rewards: dashboard failed with HTTP ${response?.status()}`);
-  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-
-  await page.locator('#my-tezos-btn').click();
-  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos staker rewards drawer');
-  await page.locator('#drawer-address-input').fill(SAMPLE_STAKER_ADDRESS);
-  await page.locator('#drawer-connect-btn').click();
+  let page = null;
   try {
-    await page.waitForFunction((address) => {
+    page = await context.newPage();
+    page.on('request', (request) => {
+      const url = request.url();
+      if (url.includes('api.tzkt.io/v1/rewards/')) rewardsRequests.push(url);
+    });
+    attachIssueCollectors(page, label, issues);
+
+    const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+    assert(response?.ok(), `${label}: dashboard failed with HTTP ${response?.status()}`);
+    await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+    await page.locator('#my-tezos-btn').click();
+    await expectClassContains(page.locator('#my-tezos-drawer'), 'open', `${label} drawer`);
+    await page.locator('#drawer-address-input').fill(address);
+    await page.locator('#drawer-connect-btn').click();
+    await page.waitForFunction(({ address, requiredText }) => {
       const rewardsText = document.querySelector('#rewards-tracker-container')?.innerText || '';
-      const statsLabels = Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat-label')).map((el) => el.textContent?.trim());
+      const statsText = document.querySelector('#my-baker-results')?.innerText || '';
+      const briefText = document.querySelector('#drawer-brief')?.innerText || '';
+      const combined = `${rewardsText}\n${statsText}\n${briefText}`;
+      const combinedLower = combined.toLowerCase();
       return window._myTezosData?.fullAddress === address
-        && rewardsText.includes('Protocol staking rewards')
-        && rewardsText.includes('1.0856')
-        && rewardsText.includes('0.1676')
-        && statsLabels.includes('Bkr Missed (10d)');
-    }, SAMPLE_STAKER_ADDRESS, { timeout: 15000 });
+        && requiredText.every((text) => combinedLower.includes(text.toLowerCase()));
+    }, { address, requiredText }, { timeout: 15000 });
+
+    const state = await page.evaluate(() => {
+      const data = window._myTezosData || {};
+      const rewardsText = document.querySelector('#rewards-tracker-container')?.innerText?.replace(/\s+/g, ' ').trim() || '';
+      const lifetimeText = document.querySelector('#rt-lifetime-card')?.innerText?.replace(/\s+/g, ' ').trim() || '';
+      const statsText = document.querySelector('#my-baker-results')?.innerText?.replace(/\s+/g, ' ').trim() || '';
+      const statsLabels = Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat-label')).map((el) => el.textContent?.trim());
+      return {
+        rewardsText,
+        lifetimeText,
+        statsText,
+        statsLabels,
+        fullAddress: data.fullAddress,
+        isStaker: data.isStaker,
+        rewardsLastCycle: data.rewardsLastCycle,
+        staked: data.staked,
+        totalXTZ: data.totalXTZ
+      };
+    });
+
+    assert(issues.length === 0, `${label} browser issues:\n${issues.join('\n')}`);
+    return { state, rewardsRequests };
   } catch (error) {
-    const debug = await page.evaluate(() => ({
-      data: window._myTezosData || null,
-      rewardsText: document.querySelector('#rewards-tracker-container')?.innerText || '',
-      statsText: document.querySelector('#my-baker-results')?.innerText || '',
-      errorText: document.querySelector('#my-baker-error-msg')?.textContent || '',
-      stored: localStorage.getItem('tezos-systems-my-baker-address')
-    }));
-    throw new Error(`my tezos staker rewards did not render expected state:\n${JSON.stringify({ debug, rewardsRequests }, null, 2)}\n${error.message}`);
+    let debug = null;
+    if (page) {
+      try {
+        debug = await page.evaluate(() => ({
+          data: window._myTezosData || null,
+          rewardsText: document.querySelector('#rewards-tracker-container')?.innerText || '',
+          statsText: document.querySelector('#my-baker-results')?.innerText || '',
+          briefText: document.querySelector('#drawer-brief')?.innerText || '',
+          errorText: document.querySelector('#my-baker-error-msg')?.textContent || '',
+          stored: localStorage.getItem('tezos-systems-my-baker-address')
+        }));
+      } catch {}
+    }
+    throw new Error(`${label} did not render expected state:\n${JSON.stringify({ debug, rewardsRequests }, null, 2)}\n${error.message}`);
+  } finally {
+    await context.close();
+  }
+}
+
+async function smokeMyTezosStakerRewards(browser, baseUrl) {
+  const cases = [
+    {
+      label: 'my tezos staker rewards reported wallet',
+      address: SAMPLE_STAKER_ADDRESS,
+      expectedLifetime: '1.0856 XTZ',
+      expectedCurrent: '0.1676 XTZ',
+      expectedLastCycle: 0.16764,
+      minStakeRatio: 0.75
+    },
+    {
+      label: 'my tezos staker rewards mostly staked wallet',
+      address: SAMPLE_HEAVY_STAKER_ADDRESS,
+      expectedLifetime: '91.2112 XTZ',
+      expectedCurrent: '16.6054 XTZ',
+      expectedLastCycle: 16.605433,
+      minStakeRatio: 0.99
+    }
+  ];
+
+  for (const rewardCase of cases) {
+    const { state, rewardsRequests } = await getMyTezosRewardReport(browser, baseUrl, {
+      ...rewardCase,
+      requiredText: [
+        'Protocol staking rewards',
+        rewardCase.expectedLifetime,
+        rewardCase.expectedCurrent,
+        'APY (Staker)',
+        'Bkr Missed (10d)'
+      ]
+    });
+
+    assert(rewardsRequests.some((url) => url.includes(`/rewards/stakers/${rewardCase.address}`)), `${rewardCase.label}: staker rewards endpoint was not requested`);
+    assert(!rewardsRequests.some((url) => url.includes(`/rewards/delegators/${rewardCase.address}`)), `${rewardCase.label}: delegator endpoint should not be used when personal staker rows exist`);
+    assert(!rewardsRequests.some((url) => url.includes(`/rewards/bakers/${rewardCase.address}`)), `${rewardCase.label}: baker endpoint should not be used for a user account with staker rows`);
+    assert(state.lifetimeText.includes('Protocol staking rewards'), `${rewardCase.label}: lifetime card subtitle wrong: ${state.lifetimeText}`);
+    assert(state.lifetimeText.includes(rewardCase.expectedLifetime), `${rewardCase.label}: lifetime total should use personal staker rows: ${state.lifetimeText}`);
+    assert(state.rewardsText.includes(rewardCase.expectedCurrent), `${rewardCase.label}: this-cycle card should use current staker reward: ${state.rewardsText}`);
+    assert(Math.abs(Number(state.rewardsLastCycle) - rewardCase.expectedLastCycle) < 0.00001, `${rewardCase.label}: Morning Brief reward amount wrong: ${state.rewardsLastCycle}`);
+    assert(state.isStaker === true, `${rewardCase.label}: Morning Brief should mark account as a staker`);
+    assert(Number(state.staked) / Number(state.totalXTZ) >= rewardCase.minStakeRatio, `${rewardCase.label}: stake ratio should match a mostly-staked account: ${state.staked}/${state.totalXTZ}`);
+    assert(state.statsLabels.includes('Bkr Missed (10d)'), `${rewardCase.label}: baker missed-right label should be explicit, saw ${state.statsLabels.join(', ')}`);
+    assert(state.statsLabels.includes('APY (Staker)'), `${rewardCase.label}: APY label should be staker-specific, saw ${state.statsLabels.join(', ')}`);
+    assert(!state.statsLabels.includes('Missed (10d)'), `${rewardCase.label}: ambiguous missed-right label is still present`);
+    assert(!state.lifetimeText.includes('9.1000 XTZ'), `${rewardCase.label}: old generic baker mock leaked into lifetime card: ${state.lifetimeText}`);
   }
 
-  const state = await page.evaluate(() => {
-    const rewardsText = document.querySelector('#rewards-tracker-container')?.innerText?.replace(/\s+/g, ' ').trim() || '';
-    const lifetimeText = document.querySelector('#rt-lifetime-card')?.innerText?.replace(/\s+/g, ' ').trim() || '';
-    const statsLabels = Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat-label')).map((el) => el.textContent?.trim());
-    return {
-      rewardsText,
-      lifetimeText,
-      rewardsLastCycle: window._myTezosData?.rewardsLastCycle,
-      statsLabels
-    };
-  });
-
-  assert(rewardsRequests.some((url) => url.includes(`/rewards/stakers/${SAMPLE_STAKER_ADDRESS}`)), 'my tezos staker rewards: staker rewards endpoint was not requested');
-  assert(state.lifetimeText.includes('Protocol staking rewards'), `my tezos staker rewards: lifetime card subtitle wrong: ${state.lifetimeText}`);
-  assert(state.lifetimeText.includes('1.0856 XTZ'), `my tezos staker rewards: lifetime total should use personal staker rows: ${state.lifetimeText}`);
-  assert(state.rewardsText.includes('0.1676 XTZ'), `my tezos staker rewards: this-cycle card should use current staker reward: ${state.rewardsText}`);
-  assert(Math.abs(Number(state.rewardsLastCycle) - 0.16764) < 0.00001, `my tezos staker rewards: Morning Brief reward amount wrong: ${state.rewardsLastCycle}`);
-  assert(state.statsLabels.includes('Bkr Missed (10d)'), `my tezos staker rewards: baker missed-right label should be explicit, saw ${state.statsLabels.join(', ')}`);
-  assert(!state.statsLabels.includes('Missed (10d)'), 'my tezos staker rewards: ambiguous missed-right label is still present');
-  assert(!state.lifetimeText.includes('9.1000 XTZ'), `my tezos staker rewards: old generic baker mock leaked into lifetime card: ${state.lifetimeText}`);
-
-  await context.close();
-  assert(issues.length === 0, `my tezos staker rewards browser issues:\n${issues.join('\n')}`);
   log('ok - my tezos staker rewards smoke');
+}
+
+async function smokeMyTezosDelegatorRewards(browser, baseUrl) {
+  const cases = [
+    {
+      label: 'my tezos delegator rewards regular wallet',
+      address: SAMPLE_REGULAR_DELEGATOR_ADDRESS,
+      expectedLifetime: '1.5000 XTZ',
+      expectedCurrent: '1.0000 XTZ',
+      expectedLastCycle: 1
+    },
+    {
+      label: 'my tezos delegator rewards small wallet',
+      address: SAMPLE_SMALL_DELEGATOR_ADDRESS,
+      expectedLifetime: '0.5400 XTZ',
+      expectedCurrent: '0.4200 XTZ',
+      expectedLastCycle: 0.42
+    }
+  ];
+
+  for (const rewardCase of cases) {
+    const { state, rewardsRequests } = await getMyTezosRewardReport(browser, baseUrl, {
+      ...rewardCase,
+      requiredText: [
+        'Estimated delegation share',
+        rewardCase.expectedLifetime,
+        rewardCase.expectedCurrent,
+        'APY (Delegator)',
+        'Bkr Missed (10d)'
+      ]
+    });
+
+    assert(rewardsRequests.some((url) => url.includes(`/rewards/delegators/${rewardCase.address}`)), `${rewardCase.label}: delegator rewards endpoint was not requested`);
+    assert(!rewardsRequests.some((url) => url.includes(`/rewards/stakers/${rewardCase.address}`)), `${rewardCase.label}: staker endpoint should not be used for a zero-stake delegator with reward rows`);
+    assert(!rewardsRequests.some((url) => url.includes(`/rewards/bakers/${rewardCase.address}`)), `${rewardCase.label}: baker endpoint should not be used for a regular delegator`);
+    assert(state.lifetimeText.includes('Estimated delegation share'), `${rewardCase.label}: lifetime card subtitle wrong: ${state.lifetimeText}`);
+    assert(state.lifetimeText.includes(rewardCase.expectedLifetime), `${rewardCase.label}: lifetime total should use delegator estimate rows: ${state.lifetimeText}`);
+    assert(state.rewardsText.includes(rewardCase.expectedCurrent), `${rewardCase.label}: this-cycle card should use current delegator estimate: ${state.rewardsText}`);
+    assert(Math.abs(Number(state.rewardsLastCycle) - rewardCase.expectedLastCycle) < 0.00001, `${rewardCase.label}: Morning Brief delegator reward amount wrong: ${state.rewardsLastCycle}`);
+    assert(state.isStaker === false, `${rewardCase.label}: Morning Brief should not mark a zero-stake delegator as a staker`);
+    assert(Number(state.staked) === 0, `${rewardCase.label}: staked amount should stay zero: ${state.staked}`);
+    assert(state.statsLabels.includes('APY (Delegator)'), `${rewardCase.label}: APY label should be delegator-specific, saw ${state.statsLabels.join(', ')}`);
+    assert(state.statsLabels.includes('Bkr Missed (10d)'), `${rewardCase.label}: delegated wallet should still label baker missed rights explicitly, saw ${state.statsLabels.join(', ')}`);
+    assert(!state.lifetimeText.includes('Protocol staking rewards'), `${rewardCase.label}: delegator report should not use staking copy: ${state.lifetimeText}`);
+    assert(!state.lifetimeText.includes('9.1000 XTZ'), `${rewardCase.label}: old generic baker mock leaked into lifetime card: ${state.lifetimeText}`);
+  }
+
+  log('ok - my tezos delegator rewards smoke');
 }
 
 async function smokeMyTezosAddressSwitch(browser, baseUrl) {
@@ -3939,7 +4174,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
-    { name: 'my-tezos-staker-rewards', description: 'My Tezos connected drawer uses personal staker reward rows and explicit baker missed-right labels', run: () => smokeMyTezosStakerRewards(browser, baseUrl) },
+    { name: 'my-tezos-staker-rewards', description: 'My Tezos connected drawer uses personal staker reward rows for regular and mostly-staked accounts', run: () => smokeMyTezosStakerRewards(browser, baseUrl) },
+    { name: 'my-tezos-delegator-rewards', description: 'My Tezos connected drawer uses delegator estimate rows for zero-stake delegated accounts', run: () => smokeMyTezosDelegatorRewards(browser, baseUrl) },
     { name: 'my-tezos-address-switch', description: 'My Tezos connected drawer saves a newly typed address over a stale saved baker', run: () => smokeMyTezosAddressSwitch(browser, baseUrl) },
     { name: 'my-tezos-proposal-attribution', description: 'My Tezos Story distinguishes a delegator from their baker when accepted proposals are shown', run: () => smokeMyTezosProposalAttribution(browser, baseUrl) },
     { name: 'my-tezos-deep-link-override', description: 'My Tezos direct address links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) },
@@ -3981,7 +4217,8 @@ async function main() {
     ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],
     ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
-    ['my-tezos-staker-rewards', 'My Tezos connected drawer uses personal staker reward rows and explicit baker missed-right labels'],
+    ['my-tezos-staker-rewards', 'My Tezos connected drawer uses personal staker reward rows for regular and mostly-staked accounts'],
+    ['my-tezos-delegator-rewards', 'My Tezos connected drawer uses delegator estimate rows for zero-stake delegated accounts'],
     ['my-tezos-address-switch', 'My Tezos connected drawer saves a newly typed address over a stale saved baker'],
     ['my-tezos-proposal-attribution', 'My Tezos Story distinguishes a delegator from their baker when accepted proposals are shown'],
     ['my-tezos-deep-link-override', 'My Tezos direct address links override a stale saved baker on first load'],
