@@ -7,6 +7,10 @@ const CHANGELOG = [
     {
         date: '2026-06-15',
         entries: [
+            { type: '✨', text: 'ctez Oven Guide now supports Octez.Connect wallet requests for mint_or_burn and withdraw oven operations' },
+            { type: '✨', text: 'My Tezos now has an Octez.Connect wallet path that syncs the connected account into the drawer without removing manual address entry' },
+            { type: '✨', text: 'ctez Oven Guide joins Chambers with Better Call Dev links, unit helpers, and safer burn/withdraw instructions' },
+            { type: '🔧', text: 'Governance lore now covers Ushuaia Adoption with DAL, rollup, sTEZ, and tz5 context so the live protocol refresh stays unblocked' },
             { type: '🔧', text: 'My Tezos smoke coverage now exercises regular delegators and mostly-staked user accounts, not only bakers' },
         ]
     },

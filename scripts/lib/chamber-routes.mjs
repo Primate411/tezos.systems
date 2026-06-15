@@ -52,6 +52,15 @@ export const CHAMBER_ROUTES = [
     description: 'Watch the Tezos Liquidity Baking OFF-vote EMA, subsidy state, baker vote flow, and threshold risk.',
     eyebrow: 'Liquidity Baking',
     accent: '#f5b84b'
+  },
+  {
+    slug: 'ctez',
+    hash: '#ctez',
+    title: 'ctez Oven Guide - Withdraw Tez From ctez Ovens',
+    shortTitle: 'ctez Oven Guide',
+    description: 'Find a ctez oven, burn outstanding ctez, and withdraw tez safely through Better Call Dev.',
+    eyebrow: 'ctez Exit Guide',
+    accent: '#38bdf8'
   }
 ];
 

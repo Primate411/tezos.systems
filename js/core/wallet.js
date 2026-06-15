@@ -1,0 +1,217 @@
+/**
+ * Octez.Connect wallet bridge for Tezos.Systems.
+ *
+ * The site is intentionally framework-free, so the SDK is loaded lazily from
+ * its browser bundle only when a wallet action needs it.
+ */
+
+export const OCTEZ_CONNECT_VERSION = '4.8.5';
+export const OCTEZ_CONNECT_SRC = `https://cdn.jsdelivr.net/npm/@tezos-x/octez.connect-sdk@${OCTEZ_CONNECT_VERSION}/dist/octez.connect.min.js`;
+
+export const MY_TEZOS_ADDRESS_KEY = 'tezos-systems-my-baker-address';
+export const WALLET_ADDRESS_KEY = 'tezos-systems-octez-wallet-address';
+
+let _sdkPromise = null;
+let _clientPromise = null;
+let _eventsBound = false;
+let _activeAccount = null;
+
+export function isTezosAccountAddress(address) {
+    return /^(tz[1-4])[a-zA-Z0-9]{33}$/.test(String(address || '').trim());
+}
+
+export function shortAddress(address) {
+    const value = String(address || '').trim();
+    if (value.length < 12) return value;
+    return `${value.slice(0, 6)}…${value.slice(-4)}`;
+}
+
+export function getStoredWalletAddress() {
+    try {
+        const address = localStorage.getItem(WALLET_ADDRESS_KEY) || '';
+        return isTezosAccountAddress(address) ? address : '';
+    } catch {
+        return '';
+    }
+}
+
+function emitWalletUpdate(account, status = 'ready') {
+    const address = account?.address || '';
+    window.dispatchEvent(new CustomEvent('tezos-wallet-updated', {
+        detail: {
+            account: account || null,
+            address,
+            connected: Boolean(address),
+            status
+        }
+    }));
+}
+
+function rememberAccount(account, status = 'ready') {
+    _activeAccount = account || null;
+    try {
+        if (account?.address && isTezosAccountAddress(account.address)) {
+            localStorage.setItem(WALLET_ADDRESS_KEY, account.address);
+        } else {
+            localStorage.removeItem(WALLET_ADDRESS_KEY);
+        }
+    } catch {}
+    emitWalletUpdate(_activeAccount, status);
+    return _activeAccount;
+}
+
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const existing = document.querySelector(`script[data-octez-connect-sdk="${OCTEZ_CONNECT_VERSION}"]`);
+        if (existing) {
+            existing.addEventListener('load', resolve, { once: true });
+            existing.addEventListener('error', reject, { once: true });
+            if (window.beacon?.getDAppClientInstance) resolve();
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.defer = true;
+        script.crossOrigin = 'anonymous';
+        script.dataset.octezConnectSdk = OCTEZ_CONNECT_VERSION;
+        script.addEventListener('load', resolve, { once: true });
+        script.addEventListener('error', () => reject(new Error('Could not load Octez.Connect SDK')), { once: true });
+        document.head.appendChild(script);
+    });
+}
+
+export async function loadOctezConnect() {
+    if (window.beacon?.getDAppClientInstance) return window.beacon;
+    if (!_sdkPromise) {
+        _sdkPromise = loadScript(OCTEZ_CONNECT_SRC).then(() => {
+            if (!window.beacon?.getDAppClientInstance) {
+                throw new Error('Octez.Connect SDK did not expose a dApp client');
+            }
+            return window.beacon;
+        });
+    }
+    return _sdkPromise;
+}
+
+function buildClientOptions(beacon) {
+    const regions = beacon.Regions || {};
+    const matrixNodes = {};
+    if (regions.EUROPE_WEST) {
+        matrixNodes[regions.EUROPE_WEST] = [
+            'beacon-node-3.octez.io',
+            'beacon-node-1.octez.io',
+            'beacon-node-2.octez.io',
+            'beacon-node-1.hope.papers.tech',
+            'beacon-node-1.hope-2.papers.tech',
+            'beacon-node-1.hope-3.papers.tech',
+            'beacon-node-1.hope-4.papers.tech',
+            'beacon-node-1.hope-5.papers.tech'
+        ];
+    }
+    if (regions.NORTH_AMERICA_EAST) matrixNodes[regions.NORTH_AMERICA_EAST] = [];
+
+    return {
+        name: 'Tezos.Systems',
+        appUrl: window.location.origin,
+        network: { type: beacon.NetworkType?.MAINNET || 'mainnet' },
+        featuredWallets: ['kukai', 'airgap', 'umami', 'temple', 'metamask'],
+        enableMetrics: false,
+        ...(Object.keys(matrixNodes).length ? { matrixNodes } : {})
+    };
+}
+
+async function bindWalletEvents(client, beacon) {
+    if (_eventsBound || !client?.subscribeToEvent) return;
+    _eventsBound = true;
+
+    const activeEvent = beacon.BeaconEvent?.ACTIVE_ACCOUNT_SET || 'ACTIVE_ACCOUNT_SET';
+    const abortEvent = beacon.BeaconEvent?.PAIR_ABORTED || 'PAIR_ABORTED';
+    try {
+        await client.subscribeToEvent(activeEvent, (account) => rememberAccount(account, 'ready'));
+        await client.subscribeToEvent(abortEvent, () => emitWalletUpdate(_activeAccount, 'aborted'));
+    } catch (error) {
+        console.warn('[wallet] could not bind Octez.Connect events:', error?.message || error);
+    }
+}
+
+export async function getDAppClient() {
+    if (!_clientPromise) {
+        _clientPromise = loadOctezConnect().then(async (beacon) => {
+            const client = beacon.getDAppClientInstance(buildClientOptions(beacon));
+            await bindWalletEvents(client, beacon);
+            return client;
+        });
+    }
+    return _clientPromise;
+}
+
+export async function getWalletAccount({ quiet = false } = {}) {
+    try {
+        const client = await getDAppClient();
+        const account = await client.getActiveAccount();
+        return rememberAccount(account, account?.address ? 'ready' : 'empty');
+    } catch (error) {
+        if (!quiet) throw error;
+        return null;
+    }
+}
+
+export function syncWalletToMyTezos(address) {
+    const value = String(address || '').trim();
+    if (!isTezosAccountAddress(value)) {
+        throw new Error('Connected wallet did not provide a tz1/tz2/tz3/tz4 account address');
+    }
+    localStorage.setItem(MY_TEZOS_ADDRESS_KEY, value);
+    const drawerInput = document.getElementById('drawer-address-input');
+    const mainInput = document.getElementById('my-baker-input');
+    if (drawerInput) drawerInput.value = value;
+    if (mainInput) mainInput.value = value;
+    window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: value, source: 'octez-connect' } }));
+    return value;
+}
+
+export async function connectOctezWallet({ syncMyTezos = false } = {}) {
+    const client = await getDAppClient();
+    const permissions = await client.requestPermissions();
+    const account = await client.getActiveAccount();
+    const active = rememberAccount(account || permissions, 'connected');
+    if (syncMyTezos && active?.address) syncWalletToMyTezos(active.address);
+    return active;
+}
+
+export async function disconnectOctezWallet() {
+    const client = await getDAppClient();
+    try {
+        if (client.disconnect) {
+            await client.disconnect();
+        } else if (client.clearActiveAccount) {
+            await client.clearActiveAccount();
+        }
+    } catch (error) {
+        if (!/No transport available|Not connected/i.test(String(error?.message || error))) {
+            throw error;
+        }
+        if (client.clearActiveAccount) await client.clearActiveAccount();
+    }
+    return rememberAccount(null, 'disconnected');
+}
+
+export async function requestWalletOperation(operationDetails) {
+    const beacon = await loadOctezConnect();
+    const client = await getDAppClient();
+    let account = await client.getActiveAccount();
+    if (!account?.address) {
+        account = await connectOctezWallet({ syncMyTezos: true });
+    } else {
+        rememberAccount(account, 'ready');
+    }
+
+    const transactionKind = beacon.TezosOperationType?.TRANSACTION || 'transaction';
+    const normalized = operationDetails.map((detail) => ({
+        ...detail,
+        kind: detail.kind || transactionKind
+    }));
+    return client.requestOperation({ operationDetails: normalized });
+}

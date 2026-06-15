@@ -30,7 +30,7 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     
     <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' unpkg.com cdn.jsdelivr.net gc.zgo.at; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co data.objkt.com *.goatcounter.com https://*.gke.papers.tech api.github.com cdn.jsdelivr.net i.github.com fonts.googleapis.com fonts.gstatic.com *.octez.io api.llama.fi explorer.etherlink.com node.mainnet.etherlink.com; img-src 'self' data: *.objkt.com assets.objkt.media ipfs.io; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' unpkg.com cdn.jsdelivr.net gc.zgo.at; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co data.objkt.com *.goatcounter.com https://*.gke.papers.tech https://*.papers.tech wss://*.papers.tech api.github.com cdn.jsdelivr.net i.github.com fonts.googleapis.com fonts.gstatic.com *.octez.io https://*.octez.io wss://*.octez.io wss://relay.walletconnect.com https://relay.walletconnect.com api.llama.fi explorer.etherlink.com node.mainnet.etherlink.com; img-src 'self' data: *.objkt.com assets.objkt.media ipfs.io; object-src 'none'; base-uri 'self'; form-action 'self';">
     
     <!-- Google Fonts - Techy font for title -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,16 +50,17 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=193">
+    <link rel="stylesheet" href="css/styles.min.css?v=195">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=193">
+    <link rel="modulepreload" href="js/core/app.js?v=195">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
+    <link rel="modulepreload" href="js/core/wallet.js">
     <link rel="modulepreload" href="js/ui/animations.js">
     <link rel="modulepreload" href="js/ui/share.js">
     <link rel="modulepreload" href="js/features/my-tezos.js">
@@ -69,6 +70,7 @@
     <link rel="modulepreload" href="js/features/leaderboard.js">
     <link rel="modulepreload" href="js/features/liquidity-baking.js">
     <link rel="modulepreload" href="js/features/etherlink-governance.js">
+    <link rel="modulepreload" href="js/features/ctez.js">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -211,7 +213,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=192"></script>
+    <script src="js/core/theme-preload.js?v=195"></script>
     <a id="hen-launcher" class="hen-launcher" href="/?hen=1" aria-label="Enter HEN mode" title="Enter HEN mode">
         <span aria-hidden="true">🐔</span>
     </a>
@@ -284,7 +286,7 @@
                             <div class="feature-launcher-row">
                                 <button id="chambers-toggle" class="glass-button feature-launcher-item" aria-label="Show or hide Tezos chambers" title="Chambers: ON">
                                     <span class="chambers-toggle-icon">🏛️</span>
-                                    <span class="feature-launcher-text"><span class="dropdown-label">Chambers</span><span class="dropdown-hint">Governance, Tezos X, LB, health</span></span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Chambers</span><span class="dropdown-hint">Governance, Tezos X, LB, ctez</span></span>
                                     <span class="feature-status">Pinned</span>
                                 </button>
                                 <button class="feature-copy-link" type="button" data-copy-hash="#chambers" aria-label="Copy Chambers link" title="Copy direct link">🔗</button>
@@ -1858,6 +1860,10 @@
               <input type="text" id="drawer-address-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
               <button id="drawer-connect-btn" class="glass-button my-baker-btn">Connect</button>
             </div>
+            <div class="wallet-connect-row">
+              <button id="drawer-wallet-connect-btn" class="glass-button wallet-connect-btn" type="button">Connect wallet</button>
+              <span id="drawer-wallet-status" class="wallet-connect-status">Octez.Connect available</span>
+            </div>
           </div>
           <div class="empty-preview-blur">
             <div style="padding:16px;opacity:0.15;filter:blur(2px);">
@@ -1885,6 +1891,11 @@
               <button id="my-baker-save" class="glass-button my-baker-btn">Save</button>
               <button id="my-baker-clear" class="glass-button my-baker-btn">Clear</button>
               <button id="my-baker-share-link" class="glass-button my-baker-btn" style="display:none;">🔗</button>
+            </div>
+            <div class="wallet-connect-row wallet-connect-row-compact">
+              <button id="my-tezos-wallet-connect" class="glass-button wallet-connect-btn" type="button">Connect wallet</button>
+              <button id="my-tezos-wallet-disconnect" class="glass-button wallet-connect-btn wallet-disconnect-btn" type="button">Disconnect</button>
+              <span id="my-tezos-wallet-status" class="wallet-connect-status">No wallet connected</span>
             </div>
             <div id="my-baker-error-msg" class="my-baker-error"></div>
             <div id="drawer-saved-addresses" class="drawer-saved-addresses"></div>
@@ -1929,7 +1940,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=193"></script>
+    <script type="module" src="js/core/app.js?v=195"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

@@ -50,6 +50,7 @@ tezos.systems/
 │   │   ├── api.js                     # TzKT, Octez RPC, Supabase, Tezos data fetches
 │   │   ├── config.js                  # Endpoints, refresh intervals, constants
 │   │   ├── tzkt-throttle.js           # Browser-local TzKT request pacing
+│   │   ├── wallet.js                  # Lazy Octez.Connect wallet bridge
 │   │   ├── storage.js                 # localStorage/sessionStorage wrappers
 │   │   └── utils.js                   # Formatting, sanitization, utility helpers
 │   ├── features/                      # Governance, LB, bakers, market, feeds, widgets
@@ -64,7 +65,7 @@ tezos.systems/
 ├── widgets/                           # Standalone embeddable widgets and builder
 ├── staking/ governance/ bakers/ hen/ compare/
 │                                      # SEO and standalone pages
-├── chamber/ health/ tezosx/ l2chamber/ tz4/ lb/
+├── chamber/ health/ tezosx/ l2chamber/ tz4/ lb/ ctez/
 │                                      # Pretty share/OG routes into live Chambers
 ├── og/                                # Generated per-chamber OG images
 ├── feed.xml                           # Generated Tezos governance RSS feed
@@ -153,13 +154,13 @@ inline modal styles in `js/core/app.js`.
 
 ## Main Surfaces
 
-- Chambers section is visible by default and orders the chamber pairs as Network
-  Health <> The Chamber, Tezos X <> Tezos X Governance, and tz4 Adoption <> LB
-  Monitor. Each pair is wrapped as its own responsive row so wide cards keep
-  their companion card instead of creating desktop grid holes; cards also keep
-  a canonical app-shell open affordance in the fixed footer rail, card-level
-  direct-link controls, and quiet `as of` freshness stamps on the live chamber
-  cards.
+- Chambers section is visible by default and orders the chamber rows as Network
+  Health <> The Chamber, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
+  Monitor, and a full-width ctez Oven Guide. Each row is wrapped responsively so
+  wide cards keep their companion card instead of creating desktop grid holes;
+  cards also keep a canonical app-shell open affordance in the fixed footer
+  rail, card-level direct-link controls, and quiet `as of` freshness stamps on
+  the live chamber cards.
 - Tezos X Governance Chamber with direct `#l2chamber` access,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
   discovery, storage, bigmaps, and recent historical proposal submissions, plus
@@ -207,8 +208,15 @@ inline modal styles in `js/core/app.js`.
   timing, projection to 50%, largest holdouts, visible monthly switch-count
   momentum, power milestones, top-10 first movers, and a capped Baker Status
   table with a Show all control.
+- ctez Oven Guide with direct `#ctez` access, Better Call Dev links for the
+  retired ctez contract storage and `mint_or_burn`/`withdraw` interaction page,
+  oven ID plus `ctez_outstanding`/`tez_balance` checkpoints, raw mutez and
+  micro-ctez unit helpers, Octez.Connect wallet actions for `mint_or_burn` and
+  `withdraw`, and signing-safety reminders for users withdrawing tez from old
+  ctez ovens.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
-  LB vote state, and recent baker delegator/staker activity.
+  LB vote state, Octez.Connect wallet sync, and recent baker delegator/staker
+  activity.
 - Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping
   giants, OBJKT/NFT profile lookup, HEN mode, changelog, share captures, and
   embeddable widgets.
@@ -235,10 +243,12 @@ Useful deep links include:
 - `#lb`
 - `#lb-tile`
 - `#tz4`
+- `#ctez`
 
 Public share routes are also available at `/chamber/`, `/health/`,
-`/tezosx/`, `/l2chamber/`, `/tz4/`, and `/lb/`. These routes carry unique
-Open Graph metadata and redirect into the corresponding live dashboard room.
+`/tezosx/`, `/l2chamber/`, `/tz4/`, `/lb/`, and `/ctez/`. These routes carry
+unique Open Graph metadata and redirect into the corresponding live dashboard
+room.
 `/feed.xml` exposes the generated governance RSS feed for relay bots.
 
 ## Data Sources
@@ -255,6 +265,8 @@ Open Graph metadata and redirect into the corresponding live dashboard room.
 | Etherlink Blockscout `https://explorer.etherlink.com/api/v2` | Tezos X chamber transaction, address, gas, and block stats |
 | Etherlink JSON-RPC `https://node.mainnet.etherlink.com` | Tezos X chamber RPC head and gas fallback |
 | Etherlink governance `https://governance.etherlink.com/governance` | Official FAST, SLOW, and Sequencer action pages linked from the read-only chamber |
+| Better Call Dev `https://better-call.dev` | External ctez contract storage and interaction pages linked from the read-only Oven Guide |
+| Octez.Connect `@tezos-x/octez.connect-sdk` | Lazy browser wallet pairing and ctez/My Tezos account actions |
 
 Live staking ratio and APY surfaces use TzKT `statistics/current` totals for
 `totalOwnStaked + totalExternalStaked`, paired with TzKT `totalSupply`. Octez
@@ -343,6 +355,7 @@ Current smoke suites:
 - `dashboard-desktop`
 - `dashboard-mobile`
 - `my-tezos-baker-activity`
+- `my-tezos-wallet-connect`
 - `my-tezos-baker-capacity`
 - `my-tezos-staker-rewards`
 - `my-tezos-delegator-rewards`
@@ -351,6 +364,7 @@ Current smoke suites:
 - `my-tezos-deep-link-override`
 - `tezlink`
 - `network-health`
+- `ctez`
 - `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, fixed Chamber footer geometry, Tezos X Governance card geometry and rollover timing, Tezos X direction fallbacks, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)

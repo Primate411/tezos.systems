@@ -141,6 +141,7 @@ async function checkRequiredFiles() {
     'js/core/api.js',
     'js/core/config.js',
     'js/core/tzkt-throttle.js',
+    'js/core/wallet.js',
     'sw.js',
     'version.json',
     'feed.xml',
@@ -331,6 +332,10 @@ async function checkCsp() {
     'api.github.com',
     'cdn.jsdelivr.net',
     '*.octez.io',
+    'wss://*.octez.io',
+    'https://*.papers.tech',
+    'wss://*.papers.tech',
+    'wss://relay.walletconnect.com',
     'api.llama.fi',
     'explorer.etherlink.com',
     'node.mainnet.etherlink.com'
@@ -354,6 +359,7 @@ async function checkSitemapCoverage() {
     'https://tezos.systems/l2chamber/',
     'https://tezos.systems/tz4/',
     'https://tezos.systems/lb/',
+    'https://tezos.systems/ctez/',
     'https://tezos.systems/bakers/',
     'https://tezos.systems/hen/',
     'https://tezos.systems/compare/'
@@ -440,6 +446,8 @@ async function checkSelectorContracts() {
   const tezlink = await readText('js/features/tezlink.js');
   const etherlinkGovernance = await readText('js/features/etherlink-governance.js');
   const tz4 = await readText('js/features/tz4-adoption.js');
+  const ctez = await readText('js/features/ctez.js');
+  const wallet = await readText('js/core/wallet.js');
   const health = await readText('js/features/network-health.js');
   const share = await readText('js/ui/share.js');
   const styles = await readText('css/styles.css');
@@ -482,6 +490,24 @@ async function checkSelectorContracts() {
     ['LB EMA forecast panel', 'id="lb-ema-forecast"', lb],
     ['LB EMA history panel', 'id="lb-ema-history"', lb],
     ['LB vote change feed', 'id="lb-vote-change-feed"', lb],
+    ['ctez hash route', "hash === 'ctez'", app],
+    ['ctez card copy link', 'data-copy-hash="#ctez"', ctez],
+    ['ctez chamber wiring', 'openCtezChamber', ctez],
+    ['ctez direct footer link', 'Direct: /ctez/', ctez],
+    ['ctez contract address', 'KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2', ctez],
+    ['ctez oven storage link', 'CTEZ_STORAGE_URL', ctez],
+    ['ctez mint-or-burn link', 'interact/mint_or_burn', ctez],
+    ['ctez Octez.Connect controls', 'ctez-wallet-connect', ctez],
+    ['ctez mint_or_burn operation builder', 'buildCtezMintOrBurnOperation', ctez],
+    ['ctez withdraw operation builder', 'buildCtezWithdrawOperation', ctez],
+    ['ctez wallet request path', 'requestWalletOperation([operation])', ctez],
+    ['ctez unit helper', 'decimalToMicroString', ctez],
+    ['Octez.Connect SDK pin', '@tezos-x/octez.connect-sdk@${OCTEZ_CONNECT_VERSION}', wallet],
+    ['Octez.Connect lazy loader', 'loadOctezConnect', wallet],
+    ['Octez.Connect My Tezos sync key', 'tezos-systems-my-baker-address', wallet],
+    ['Octez.Connect wallet storage key', 'tezos-systems-octez-wallet-address', wallet],
+    ['My Tezos wallet connect control', 'id="drawer-wallet-connect-btn"', index],
+    ['My Tezos connected wallet control', 'id="my-tezos-wallet-connect"', index],
     ['tz4 tile card copy link', 'data-copy-hash="#tz4"', index],
     ['tz4 tile expand cue', 'data-stat="tz4-adoption"', index],
     ['tz4 tile chamber wiring', 'openTz4AdoptionChamber', tz4],
@@ -573,7 +599,9 @@ async function checkSelectorContracts() {
     ['tz4 monthly bar column style', '.tz4-month-bar {', styles],
     ['tz4 monthly bar visible count style', '.tz4-month-count', styles],
     ['tz4 monthly bar fill style', '.tz4-month-fill', styles],
-    ['tz4 first movers top 10 cap', '.slice(0, 10)', tz4]
+    ['tz4 first movers top 10 cap', '.slice(0, 10)', tz4],
+    ['ctez action grid style', '.ctez-action-grid', styles],
+    ['ctez guide grid style', '.ctez-guide-grid', styles]
   ];
   for (const [label, snippet, text] of chamberRendererStyleContracts) {
     if (!text.includes(snippet)) fail(`missing chamber renderer style contract: ${label}`);

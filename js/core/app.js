@@ -17,6 +17,12 @@ import {
     escapeHtml,
     debugLog
 } from './utils.js';
+import {
+    connectOctezWallet,
+    disconnectOctezWallet,
+    getStoredWalletAddress,
+    shortAddress
+} from './wallet.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric } from '../features/history.js';
 import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
@@ -26,6 +32,7 @@ import { initLiquidityBaking } from '../features/liquidity-baking.js';
 import { initTz4AdoptionChamber } from '../features/tz4-adoption.js';
 import { initTezlinkChamber } from '../features/tezlink.js';
 import { initEtherlinkGovernanceChamber } from '../features/etherlink-governance.js';
+import { initCtezChamber } from '../features/ctez.js';
 
 let lastGovernancePromptTally = null;
 const SPARKLINE_LIVE_METRICS = [
@@ -307,6 +314,7 @@ async function init() {
     safe('tezlinkChamber', initTezlinkChamber);
     safe('etherlinkGovernanceChamber', initEtherlinkGovernanceChamber);
     safe('tz4AdoptionChamber', initTz4AdoptionChamber);
+    safe('ctezChamber', initCtezChamber);
     
     // Initialize changelog modal
     safe('changelog', initChangelog);
@@ -1053,6 +1061,69 @@ function initMyTezosButton() {
         }
     }
 
+    function updateWalletDrawerState(address = getStoredWalletAddress(), status = '') {
+        const label = address ? `Wallet ${shortAddress(address)}` : (status || 'No wallet connected');
+        const emptyStatus = document.getElementById('drawer-wallet-status');
+        const connectedStatus = document.getElementById('my-tezos-wallet-status');
+        const disconnectBtn = document.getElementById('my-tezos-wallet-disconnect');
+        [emptyStatus, connectedStatus].forEach((el) => {
+            if (!el) return;
+            el.textContent = label;
+            el.dataset.connected = address ? 'true' : 'false';
+        });
+        if (disconnectBtn) disconnectBtn.hidden = !address;
+    }
+
+    async function connectWalletFromDrawer(button) {
+        const buttons = [
+            document.getElementById('drawer-wallet-connect-btn'),
+            document.getElementById('my-tezos-wallet-connect')
+        ].filter(Boolean);
+        buttons.forEach((btn) => { btn.disabled = true; });
+        if (button) button.textContent = 'Connecting...';
+        updateWalletDrawerState('', 'Opening Octez.Connect...');
+        try {
+            const account = await connectOctezWallet({ syncMyTezos: true });
+            if (account?.address) {
+                await openMyTezosTarget(account.address);
+                updateWalletDrawerState(account.address);
+            } else {
+                updateWalletDrawerState('', 'Wallet connected');
+            }
+        } catch (error) {
+            updateWalletDrawerState('', `Wallet failed: ${error?.message || error}`);
+        } finally {
+            buttons.forEach((btn) => {
+                btn.disabled = false;
+                btn.textContent = 'Connect wallet';
+            });
+        }
+    }
+
+    document.getElementById('drawer-wallet-connect-btn')?.addEventListener('click', (event) => {
+        connectWalletFromDrawer(event.currentTarget);
+    });
+    document.getElementById('my-tezos-wallet-connect')?.addEventListener('click', (event) => {
+        connectWalletFromDrawer(event.currentTarget);
+    });
+    document.getElementById('my-tezos-wallet-disconnect')?.addEventListener('click', async (event) => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        updateWalletDrawerState('', 'Disconnecting wallet...');
+        try {
+            await disconnectOctezWallet();
+            updateWalletDrawerState('', 'Wallet disconnected');
+        } catch (error) {
+            updateWalletDrawerState('', `Disconnect failed: ${error?.message || error}`);
+        } finally {
+            button.disabled = false;
+        }
+    });
+    window.addEventListener('tezos-wallet-updated', (event) => {
+        updateWalletDrawerState(event.detail?.address || '', event.detail?.status === 'aborted' ? 'Pairing cancelled' : '');
+    });
+    updateWalletDrawerState();
+
     btn.addEventListener('click', () => {
         const drawer = document.getElementById('my-tezos-drawer');
         const scrim = document.getElementById('my-tezos-drawer-scrim');
@@ -1146,6 +1217,10 @@ const CHAMBER_CARD_PAIRS = [
     {
         key: 'tz4-liquidity',
         selectors: ['[data-stat="tz4-adoption"]', '#lb-entry-card']
+    },
+    {
+        key: 'ctez-guide',
+        selectors: ['#ctez-entry-card']
     }
 ];
 let _chamberPairObserver = null;
@@ -2581,7 +2656,8 @@ function initDeepLinkAffordances() {
             '#l2chamber': '/l2chamber/',
             '#lb': '/lb/',
             '#lb-tile': '/lb/',
-            '#tz4': '/tz4/'
+            '#tz4': '/tz4/',
+            '#ctez': '/ctez/'
         };
         const pretty = prettyRoutes[hash];
         if (pretty) return `${window.location.origin}${pretty}`;
@@ -2740,6 +2816,7 @@ function initOfflineIndicator() {
 //   #lb                → open Liquidity Baking monitor
 //   #lb-tile           → scroll to the Liquidity Baking dashboard tile
 //   #tz4               → open tz4 Adoption Chamber
+//   #ctez              → open ctez Oven Guide
 //   #theme=dark        → switch to theme
 //   #section=consensus → scroll to section
 // Account path shortcuts:
@@ -3028,6 +3105,13 @@ function applyDeepLink() {
         import('../features/tz4-adoption.js')
             .then(({ openTz4AdoptionChamber }) => openTz4AdoptionChamber())
             .catch((error) => console.warn('Failed to open tz4 Adoption Chamber', error));
+    }
+
+    // #ctez / #ctez-oven / #ctez-guide
+    if (params.has('ctez') || hash === 'ctez' || params.has('ctez-oven') || hash === 'ctez-oven' || params.has('ctez-guide') || hash === 'ctez-guide') {
+        import('../features/ctez.js')
+            .then(({ openCtezChamber }) => openCtezChamber())
+            .catch((error) => console.warn('Failed to open ctez Oven Guide', error));
     }
 
     // #calculator

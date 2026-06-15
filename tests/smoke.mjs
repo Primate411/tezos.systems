@@ -69,6 +69,7 @@ const browserRoutes = [
   '/l2chamber/',
   '/tz4/',
   '/lb/',
+  '/ctez/',
   '/bakers/',
   '/hen/',
   '/compare/',
@@ -123,7 +124,8 @@ const EXPECTED_CHAMBER_ORDER = [
   'tezlink-entry-card',
   'etherlink-governance-entry-card',
   'tz4-adoption',
-  'lb-entry-card'
+  'lb-entry-card',
+  'ctez-entry-card'
 ];
 
 function usage() {
@@ -1351,7 +1353,8 @@ async function assertChamberOrder(page, label) {
   const expectedPairs = [
     ['network-health', 'chamber-entry-card'],
     ['tezlink-entry-card', 'etherlink-governance-entry-card'],
-    ['tz4-adoption', 'lb-entry-card']
+    ['tz4-adoption', 'lb-entry-card'],
+    ['ctez-entry-card']
   ];
   assert(
     expectedPairs.every((pair, index) => pair.every((key, innerIndex) => chamberState.pairs[index]?.[innerIndex] === key)),
@@ -1366,6 +1369,7 @@ async function assertChamberControlGeometry(page, label) {
       '#tezlink-entry-card',
       '#etherlink-governance-entry-card',
       '#lb-entry-card',
+      '#ctez-entry-card',
       '#chambers-section [data-stat="tz4-adoption"]',
       '#chambers-section [data-stat="network-health"]'
     ];
@@ -1643,6 +1647,57 @@ async function loadPlaywright() {
   } catch (error) {
     throw new Error('Playwright is not installed. Run npm install first.');
   }
+}
+
+async function installOctezConnectMock(context, address = SAMPLE_ADDRESS) {
+  await context.addInitScript((mockAddress) => {
+    const activeAccount = {
+      address: mockAddress,
+      network: { type: 'mainnet' },
+      origin: { type: 'mock' },
+      scopes: ['operation_request', 'sign']
+    };
+    const listeners = {};
+    let currentAccount = null;
+    window.__octezConnectRequests = [];
+    window.__octezConnectDisconnected = false;
+    const client = {
+      async requestPermissions() {
+        currentAccount = activeAccount;
+        window.__octezConnectDisconnected = false;
+        (listeners.ACTIVE_ACCOUNT_SET || []).forEach((callback) => callback(currentAccount));
+        return currentAccount;
+      },
+      async getActiveAccount() {
+        return currentAccount;
+      },
+      async requestOperation(input) {
+        window.__octezConnectRequests.push(input);
+        return { transactionHash: `ooSmoke${window.__octezConnectRequests.length}` };
+      },
+      async disconnect() {
+        currentAccount = null;
+        window.__octezConnectDisconnected = true;
+        (listeners.ACTIVE_ACCOUNT_SET || []).forEach((callback) => callback(null));
+      },
+      async clearActiveAccount() {
+        currentAccount = null;
+        (listeners.ACTIVE_ACCOUNT_SET || []).forEach((callback) => callback(null));
+      },
+      async subscribeToEvent(eventName, callback) {
+        listeners[eventName] = listeners[eventName] || [];
+        listeners[eventName].push(callback);
+      }
+    };
+    window.beacon = {
+      getDAppClientInstance: () => client,
+      NetworkType: { MAINNET: 'mainnet' },
+      PermissionScope: { OPERATION_REQUEST: 'operation_request', SIGN: 'sign' },
+      TezosOperationType: { TRANSACTION: 'transaction' },
+      BeaconEvent: { ACTIVE_ACCOUNT_SET: 'ACTIVE_ACCOUNT_SET', PAIR_ABORTED: 'PAIR_ABORTED' },
+      Regions: { EUROPE_WEST: 'EUROPE_WEST', NORTH_AMERICA_EAST: 'NORTH_AMERICA_EAST' }
+    };
+  }, address);
 }
 
 async function findSystemBrowser() {
@@ -2126,6 +2181,63 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   await context.close();
   assert(issues.length === 0, `my tezos baker activity browser issues:\n${issues.join('\n')}`);
   log('ok - my tezos baker activity smoke');
+}
+
+async function smokeMyTezosWalletConnect(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await installOctezConnectMock(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'my tezos wallet connect', issues);
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `my tezos wallet connect: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  await page.locator('#my-tezos-btn').click();
+  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos wallet connect drawer');
+  await page.locator('#drawer-wallet-connect-btn').click();
+  await page.waitForFunction((address) => localStorage.getItem('tezos-systems-my-baker-address') === address, SAMPLE_ADDRESS, { timeout: 10000 });
+  await page.locator('#my-baker-input').waitFor({ state: 'visible', timeout: 10000 });
+
+  const connectedState = await page.evaluate(() => ({
+    savedWallet: localStorage.getItem('tezos-systems-octez-wallet-address') || '',
+    savedProfile: localStorage.getItem('tezos-systems-my-baker-address') || '',
+    input: document.querySelector('#my-baker-input')?.value || '',
+    emptyDisplay: getComputedStyle(document.querySelector('#drawer-empty-state')).display,
+    connectedDisplay: getComputedStyle(document.querySelector('#drawer-connected')).display,
+    status: document.querySelector('#my-tezos-wallet-status')?.textContent || ''
+  }));
+  assert(connectedState.savedWallet === SAMPLE_ADDRESS, `my tezos wallet connect: wallet storage mismatch ${JSON.stringify(connectedState)}`);
+  assert(connectedState.savedProfile === SAMPLE_ADDRESS, `my tezos wallet connect: profile storage mismatch ${JSON.stringify(connectedState)}`);
+  assert(connectedState.input === SAMPLE_ADDRESS, `my tezos wallet connect: profile input mismatch ${JSON.stringify(connectedState)}`);
+  assert(connectedState.emptyDisplay === 'none' && connectedState.connectedDisplay !== 'none', `my tezos wallet connect: drawer state mismatch ${JSON.stringify(connectedState)}`);
+  assert(connectedState.status.includes('Wallet tz1aWX…T1Z9'), `my tezos wallet connect: status mismatch ${JSON.stringify(connectedState)}`);
+
+  await page.locator('#my-tezos-wallet-disconnect').click();
+  await page.waitForFunction(() => window.__octezConnectDisconnected === true, null, { timeout: 5000 });
+  const disconnectedState = await page.evaluate(() => ({
+    savedWallet: localStorage.getItem('tezos-systems-octez-wallet-address') || '',
+    savedProfile: localStorage.getItem('tezos-systems-my-baker-address') || '',
+    status: document.querySelector('#my-tezos-wallet-status')?.textContent || ''
+  }));
+  assert(disconnectedState.savedWallet === '', `my tezos wallet connect: disconnect should clear wallet storage ${JSON.stringify(disconnectedState)}`);
+  assert(disconnectedState.savedProfile === SAMPLE_ADDRESS, `my tezos wallet connect: disconnect should keep My Tezos profile ${JSON.stringify(disconnectedState)}`);
+  assert(/Wallet disconnected|No wallet connected/.test(disconnectedState.status), `my tezos wallet connect: disconnect status mismatch ${JSON.stringify(disconnectedState)}`);
+
+  await context.close();
+  assert(issues.length === 0, `my tezos wallet connect browser issues:\n${issues.join('\n')}`);
+  log('ok - my tezos wallet connect');
 }
 
 async function smokeMyTezosBakerCapacity(browser, baseUrl) {
@@ -2889,6 +3001,164 @@ async function smokeTezlinkChamber(browser, baseUrl) {
   log('ok - tezlink chamber smoke');
 }
 
+async function smokeCtezChamber(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await installOctezConnectMock(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'ctez chamber', issues);
+
+  const response = await page.goto(`${baseUrl}/#ctez`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `ctez chamber: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('#ctez-entry-card.chamber-entry-wide').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#ctez-modal.active .ctez-content').waitFor({ state: 'visible', timeout: 10000 });
+
+  const ctezState = await page.evaluate(() => {
+    const modal = document.querySelector('#ctez-modal');
+    const card = document.querySelector('#ctez-entry-card');
+    const text = modal?.textContent || '';
+    const bcdLinks = Array.from(modal?.querySelectorAll('a[href^="https://better-call.dev/mainnet/"]') || []).map((link) => link.href);
+    return {
+      title: modal?.querySelector('.chamber-title')?.textContent || '',
+      badge: modal?.querySelector('.chamber-badge')?.textContent || '',
+      text,
+      stepCards: modal?.querySelectorAll('.ctez-step-card').length || 0,
+      actionCards: modal?.querySelectorAll('.ctez-action-card').length || 0,
+      bcdLinks,
+      sourceLinks: modal?.querySelectorAll('a[href*="x.com/TezosCommons/article/2066606430384529532"]').length || 0,
+      repoLinks: modal?.querySelectorAll('a[href="https://github.com/Tezsure/ctez"]').length || 0,
+      directHref: modal?.querySelector('.panel-direct-link')?.getAttribute('href') || '',
+      footer: modal?.querySelector('.chamber-footer')?.textContent || '',
+      cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
+      cardWide: card?.classList.contains('chamber-entry-wide') || false,
+      cardCue: Boolean(card?.querySelector('.chamber-expand-cue')),
+      cardText: card?.textContent?.replace(/\s+/g, ' ').trim() || ''
+    };
+  });
+
+  assert(/ctez Oven Guide/.test(ctezState.title), `ctez chamber: title mismatch: ${ctezState.title}`);
+  assert(/Better Call Dev/.test(ctezState.badge), `ctez chamber: badge mismatch: ${ctezState.badge}`);
+  assert(/KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2/.test(ctezState.text), 'ctez chamber: contract address missing');
+  assert(/ctez_outstanding/.test(ctezState.text) && /tez_balance/.test(ctezState.text), `ctez chamber: oven fields missing: ${ctezState.text}`);
+  assert(/Never share your seed phrase/.test(ctezState.text), 'ctez chamber: safety copy missing');
+  assert(ctezState.stepCards === 3, `ctez chamber: expected 3 step cards, saw ${ctezState.stepCards}`);
+  assert(ctezState.actionCards >= 4, `ctez chamber: action cards missing, saw ${ctezState.actionCards}`);
+  assert(ctezState.bcdLinks.some((href) => href.endsWith('/storage')), `ctez chamber: storage link missing: ${ctezState.bcdLinks.join(', ')}`);
+  assert(ctezState.bcdLinks.some((href) => href.includes('/interact/mint_or_burn')), `ctez chamber: mint_or_burn link missing: ${ctezState.bcdLinks.join(', ')}`);
+  assert(ctezState.sourceLinks >= 1, 'ctez chamber: Tezos Commons source link missing');
+  assert(ctezState.repoLinks >= 1, 'ctez chamber: original ctez repo link missing');
+  assert(/Direct: \/ctez\//.test(ctezState.footer), `ctez chamber: direct footer missing: ${ctezState.footer}`);
+  assert(ctezState.directHref === '/ctez/', `ctez chamber: direct href mismatch: ${ctezState.directHref}`);
+  assert(ctezState.cardCopyHash === '#ctez', `ctez chamber: card copy hash mismatch: ${ctezState.cardCopyHash}`);
+  assert(ctezState.cardWide && ctezState.cardCue, `ctez chamber: card should be wide and have shared open cue: ${JSON.stringify(ctezState)}`);
+  assert(/Exit path/.test(ctezState.cardText) && /mutez/.test(ctezState.cardText), `ctez chamber: card copy mismatch: ${ctezState.cardText}`);
+
+  await page.locator('#ctez-tez-input').fill('12.345678');
+  await page.locator('#ctez-outstanding-input').fill('123456');
+  const helperState = await page.evaluate(() => ({
+    mutez: document.querySelector('#ctez-mutez-output')?.textContent || '',
+    burn: document.querySelector('#ctez-burn-output')?.textContent || ''
+  }));
+  assert(/12,345,678 mutez/.test(helperState.mutez), `ctez chamber: mutez helper mismatch: ${helperState.mutez}`);
+  assert(/-123,456/.test(helperState.burn), `ctez chamber: burn helper mismatch: ${helperState.burn}`);
+
+  await page.locator('#ctez-wallet-connect').click();
+  await page.waitForFunction((address) => localStorage.getItem('tezos-systems-octez-wallet-address') === address, SAMPLE_ADDRESS, { timeout: 5000 });
+  const walletConnectState = await page.evaluate(() => ({
+    status: document.querySelector('#ctez-wallet-status')?.textContent || '',
+    savedMyTezos: localStorage.getItem('tezos-systems-my-baker-address') || '',
+    withdrawTo: document.querySelector('#ctez-wallet-withdraw-to')?.value || ''
+  }));
+  assert(walletConnectState.status.includes('Wallet tz1aWX…T1Z9'), `ctez wallet: status mismatch ${JSON.stringify(walletConnectState)}`);
+  assert(walletConnectState.savedMyTezos === SAMPLE_ADDRESS, `ctez wallet: should sync My Tezos address ${JSON.stringify(walletConnectState)}`);
+  assert(walletConnectState.withdrawTo === SAMPLE_ADDRESS, `ctez wallet: withdraw recipient should default to wallet ${JSON.stringify(walletConnectState)}`);
+
+  await page.locator('#ctez-wallet-oven-id').fill('42');
+  await page.locator('#ctez-wallet-outstanding').fill('123456');
+  await page.locator('#ctez-wallet-burn').click();
+  await page.waitForFunction(() => window.__octezConnectRequests?.length >= 1, null, { timeout: 5000 });
+
+  await page.locator('#ctez-wallet-withdraw-amount').fill('987654');
+  await page.locator('#ctez-wallet-withdraw').click();
+  await page.waitForFunction(() => window.__octezConnectRequests?.length >= 2, null, { timeout: 5000 });
+
+  const walletRequests = await page.evaluate(() => window.__octezConnectRequests);
+  const burnDetail = walletRequests[0]?.operationDetails?.[0] || {};
+  const withdrawDetail = walletRequests[1]?.operationDetails?.[0] || {};
+  assert(burnDetail.kind === 'transaction', `ctez wallet: burn kind mismatch ${JSON.stringify(burnDetail)}`);
+  assert(burnDetail.destination === 'KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2', `ctez wallet: burn destination mismatch ${JSON.stringify(burnDetail)}`);
+  assert(burnDetail.parameters?.entrypoint === 'mint_or_burn', `ctez wallet: burn entrypoint mismatch ${JSON.stringify(burnDetail)}`);
+  assert(JSON.stringify(burnDetail.parameters?.value) === JSON.stringify({
+    prim: 'Pair',
+    args: [{ int: '42' }, { int: '-123456' }]
+  }), `ctez wallet: burn Micheline mismatch ${JSON.stringify(burnDetail.parameters?.value)}`);
+  assert(withdrawDetail.kind === 'transaction', `ctez wallet: withdraw kind mismatch ${JSON.stringify(withdrawDetail)}`);
+  assert(withdrawDetail.parameters?.entrypoint === 'withdraw', `ctez wallet: withdraw entrypoint mismatch ${JSON.stringify(withdrawDetail)}`);
+  assert(JSON.stringify(withdrawDetail.parameters?.value) === JSON.stringify({
+    prim: 'Pair',
+    args: [
+      { int: '42' },
+      { prim: 'Pair', args: [{ int: '987654' }, { string: SAMPLE_ADDRESS }] }
+    ]
+  }), `ctez wallet: withdraw Micheline mismatch ${JSON.stringify(withdrawDetail.parameters?.value)}`);
+
+  await page.locator('#ctez-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#ctez-modal')?.classList.contains('active'), null, { timeout: 5000 });
+
+  await context.close();
+
+  const mobileContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(mobileContext);
+  await mobileContext.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const mobilePage = await mobileContext.newPage();
+  attachIssueCollectors(mobilePage, 'ctez chamber mobile', issues);
+  const mobileResponse = await mobilePage.goto(`${baseUrl}/#ctez`, { waitUntil: 'domcontentloaded' });
+  assert(mobileResponse?.ok(), `ctez chamber mobile: dashboard failed with HTTP ${mobileResponse?.status()}`);
+  await mobilePage.locator('#ctez-modal.active .ctez-content').waitFor({ state: 'visible', timeout: 10000 });
+  const mobileState = await mobilePage.evaluate(() => {
+    const modal = document.querySelector('#ctez-modal .ctez-content');
+    const box = modal?.getBoundingClientRect();
+    const grids = Array.from(document.querySelectorAll('#ctez-modal .ctez-action-grid, #ctez-modal .ctez-guide-grid, #ctez-modal .ctez-tool-grid'));
+    return {
+      modalWidth: box?.width || 0,
+      viewportWidth: window.innerWidth,
+      pageOverflow: document.documentElement.scrollWidth - window.innerWidth,
+      modalOverflow: modal ? modal.scrollWidth - modal.clientWidth : 0,
+      gridOverflows: grids.map((grid) => grid.scrollWidth - grid.clientWidth),
+      title: document.querySelector('#ctez-modal .chamber-title')?.textContent || '',
+      closeVisible: Boolean(document.querySelector('#ctez-modal .chamber-close')?.getBoundingClientRect().width)
+    };
+  });
+  assert(/ctez Oven Guide/.test(mobileState.title), `ctez chamber mobile: title mismatch: ${mobileState.title}`);
+  assert(mobileState.closeVisible, 'ctez chamber mobile: close button should remain visible');
+  assert(mobileState.modalWidth <= mobileState.viewportWidth, `ctez chamber mobile: modal wider than viewport: ${JSON.stringify(mobileState)}`);
+  assert(mobileState.pageOverflow <= 2 && mobileState.modalOverflow <= 2 && mobileState.gridOverflows.every((value) => value <= 2), `ctez chamber mobile: horizontal overflow: ${JSON.stringify(mobileState)}`);
+  await mobileContext.close();
+
+  assert(issues.length === 0, `ctez chamber browser issues:\n${issues.join('\n')}`);
+  log('ok - ctez chamber smoke');
+}
+
 async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -2930,11 +3200,13 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#chambers-toggle', 1, 'governance testing period chambers launcher button');
   await expectCount(page, '.feature-copy-link[data-copy-hash="#chambers"]', 1, 'governance testing period chambers launcher link');
   await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb"]', 1, 'governance testing period LB chamber link');
+  await expectCount(page, '#ctez-entry-card .card-copy-link[data-copy-hash="#ctez"]', 1, 'governance testing period ctez chamber link');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"] .card-copy-link[data-copy-hash="#tz4"]', 1, 'governance testing period tz4 tile link');
   await expectCount(page, '#chambers-section [data-stat="network-health"] .card-copy-link[data-copy-hash="#health"]', 1, 'governance testing period health tile link');
   await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
   await expectCount(page, '#chambers-section #tezlink-entry-card', 1, 'governance testing period Tezos X tile in Chambers');
   await expectCount(page, '#chambers-section #etherlink-governance-entry-card', 1, 'governance testing period Tezos X Governance tile in Chambers');
+  await expectCount(page, '#chambers-section #ctez-entry-card', 1, 'governance testing period ctez tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
   await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]').length >= 6, null, { timeout: 10000 });
@@ -4173,6 +4445,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
+    { name: 'my-tezos-wallet-connect', description: 'My Tezos drawer connects through Octez.Connect and keeps the saved profile after wallet disconnect', run: () => smokeMyTezosWalletConnect(browser, baseUrl) },
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
     { name: 'my-tezos-staker-rewards', description: 'My Tezos connected drawer uses personal staker reward rows for regular and mostly-staked accounts', run: () => smokeMyTezosStakerRewards(browser, baseUrl) },
     { name: 'my-tezos-delegator-rewards', description: 'My Tezos connected drawer uses delegator estimate rows for zero-stake delegated accounts', run: () => smokeMyTezosDelegatorRewards(browser, baseUrl) },
@@ -4181,6 +4454,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-deep-link-override', description: 'My Tezos direct address links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) },
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
+    { name: 'ctez', description: 'ctez Oven Guide opens #ctez with Better Call Dev links, unit helpers, and safety copy', run: () => smokeCtezChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
@@ -4216,6 +4490,7 @@ async function main() {
     ['dashboard-desktop', 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],
+    ['my-tezos-wallet-connect', 'My Tezos drawer connects through Octez.Connect and keeps the saved profile after wallet disconnect'],
     ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
     ['my-tezos-staker-rewards', 'My Tezos connected drawer uses personal staker reward rows for regular and mostly-staked accounts'],
     ['my-tezos-delegator-rewards', 'My Tezos connected drawer uses delegator estimate rows for zero-stake delegated accounts'],
@@ -4224,6 +4499,7 @@ async function main() {
     ['my-tezos-deep-link-override', 'My Tezos direct address links override a stale saved baker on first load'],
     ['tezlink', 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape'],
     ['network-health', 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary'],
+    ['ctez', 'ctez Oven Guide opens #ctez with Better Call Dev links, unit helpers, and safety copy'],
     ['governance-lb', 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh'],
     ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
     ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],

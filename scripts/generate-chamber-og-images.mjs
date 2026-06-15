@@ -133,6 +133,12 @@ function routeDetails(route, report) {
       value: 'OFF-vote EMA',
       chips: ['50% threshold', 'baker votes', 'subsidy state'],
       body: 'Monitor Tezos Liquidity Baking vote flow, EMA drift, history strip, and subsidy re-enable or disable risk.'
+    },
+    ctez: {
+      kicker: 'ctez Oven Guide',
+      value: 'Better Call Dev',
+      chips: ['oven id', 'burn ctez', 'withdraw mutez'],
+      body: 'A unit-safe guide for finding old ctez ovens, burning outstanding ctez, and withdrawing tez through verified contract pages.'
     }
   };
 

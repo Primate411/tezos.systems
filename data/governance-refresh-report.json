@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-15T19:33:51.618Z",
-  "status": "warning",
+  "generatedAt": "2026-06-15T23:32:15.806Z",
+  "status": "ok",
   "source": {
     "tzktEpochs": "https://api.tzkt.io/v1/voting/epochs?limit=1000&sort.asc=index",
     "tzktCurrentPeriod": "https://api.tzkt.io/v1/voting/periods/current",
@@ -27,16 +27,16 @@
   "currentGovernance": {
     "epoch": 90,
     "epochStatus": "voting",
-    "period": 175,
-    "kind": "promotion",
+    "period": 176,
+    "kind": "adoption",
     "status": "active",
-    "startTime": "2026-06-01T13:34:49Z",
-    "endTime": "2026-06-15T21:27:10Z",
+    "startTime": "2026-06-15T21:27:43Z",
+    "endTime": "2026-06-29T21:29:07Z",
     "proposalHash": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
     "proposalName": "Ushuaia",
     "proposalStatus": "active",
-    "proposalAccepted": false,
-    "proposalHasLore": false,
+    "proposalAccepted": true,
+    "proposalHasLore": true,
     "proposalAgoraTopic": {
       "title": "Ushuaia (PsUshuai9)",
       "name": "Ushuaia",
@@ -50,13 +50,13 @@
     "upvotes": 59,
     "votingPower": 175035626966796,
     "tally": {
-      "yayVotingPower": 218018082561279,
-      "nayVotingPower": 0,
-      "passVotingPower": 217850754265983,
-      "yayPct": 100,
-      "participationPct": 66.38,
-      "ballotsQuorum": 49.18,
-      "supermajority": 80
+      "yayVotingPower": null,
+      "nayVotingPower": null,
+      "passVotingPower": null,
+      "yayPct": null,
+      "participationPct": 0,
+      "ballotsQuorum": null,
+      "supermajority": null
     }
   },
   "coverage": {
@@ -65,15 +65,8 @@
       "missing": []
     },
     "activeProposalLore": {
-      "ok": false,
-      "missing": [
-        {
-          "name": "Ushuaia",
-          "hash": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
-          "status": "active",
-          "periodKind": "promotion"
-        }
-      ]
+      "ok": true,
+      "missing": []
     },
     "voteHistory": {
       "epochCount": 91,
@@ -227,17 +220,6 @@
       "update": "Add concise user-facing entries for governance data controls, lore, and front-page behavior changes."
     }
   ],
-  "warnings": [
-    {
-      "code": "active-proposal-needs-research-watch",
-      "message": "Active proposal is not in protocol-data.json yet. Track TezosAgora, X, and official docs now; add balanced lore if it reaches Adoption/current protocol.",
-      "proposal": {
-        "name": "Ushuaia",
-        "hash": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
-        "status": "active",
-        "periodKind": "promotion"
-      }
-    }
-  ],
+  "warnings": [],
   "blockers": []
 }
