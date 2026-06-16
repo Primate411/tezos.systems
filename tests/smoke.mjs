@@ -3131,11 +3131,13 @@ async function smokeCtezChamber(browser, baseUrl) {
       hasSunsetBanner: Boolean(modal?.querySelector('.ctez-sunset-banner')),
       hasSummaryStrip: Boolean(modal?.querySelector('#ctez-summary-strip')),
       hasConnectControl: Boolean(modal?.querySelector('.ctez-console-toolbar #ctez-wallet-connect')),
+      hasCloseControl: Boolean(modal?.querySelector('#ctez-wallet-close')),
       hasOvenPanel: Boolean(modal?.querySelector('.ctez-oven-panel #ctez-oven-list')),
       hasRefresh: Boolean(modal?.querySelector('#ctez-wallet-refresh')),
       manualFields: Boolean(modal?.querySelector('#ctez-wallet-oven-id, #ctez-tez-input, #ctez-outstanding-input, #ctez-wallet-withdraw-to, #ctez-wallet-withdraw-amount, .ctez-action-card, .ctez-guide-grid, .ctez-exit-workspace')),
       bcdLinks,
-      directHref: modal?.querySelector('.panel-direct-link')?.getAttribute('href') || '',
+      communityLinks: Array.from(modal?.querySelectorAll('a[href*="purplematter.com/ctez-tool"], a[href*="x.com/webidente"]') || []).length,
+      directHref: modal?.querySelector('a[aria-label="Direct link to ctez End of Life"]')?.getAttribute('href') || '',
       footer: modal?.querySelector('.chamber-footer')?.textContent || '',
       hasDefaultCard: Boolean(document.querySelector('#ctez-entry-card')),
       hasTopLeftLauncher: Boolean(document.querySelector('#ctez-launcher')),
@@ -3147,10 +3149,11 @@ async function smokeCtezChamber(browser, baseUrl) {
 
   assert(/ctez End of Life/.test(ctezState.title), `ctez chamber: title mismatch: ${ctezState.title}`);
   assert(/Oven recovery/.test(ctezState.badge), `ctez chamber: badge mismatch: ${ctezState.badge}`);
-  assert(ctezState.hasConsoleShell && ctezState.hasSunsetBanner && ctezState.hasSummaryStrip && ctezState.hasConnectControl && ctezState.hasOvenPanel && ctezState.hasRefresh, `ctez chamber: console shell missing: ${JSON.stringify(ctezState)}`);
+  assert(ctezState.hasConsoleShell && ctezState.hasSunsetBanner && ctezState.hasSummaryStrip && ctezState.hasConnectControl && ctezState.hasCloseControl && ctezState.hasOvenPanel && ctezState.hasRefresh, `ctez chamber: console shell missing: ${JSON.stringify(ctezState)}`);
   assert(!ctezState.manualFields, `ctez chamber: manual/guide controls should not render: ${JSON.stringify(ctezState)}`);
   assert(ctezState.bcdLinks.length === 0, `ctez chamber: Better Call Dev links should not render: ${ctezState.bcdLinks.join(', ')}`);
   assert(!/Better Call Dev|ctez_outstanding|tez_balance|oven ID/i.test(ctezState.text), `ctez chamber: raw recovery instructions leaked into UI: ${ctezState.text}`);
+  assert(ctezState.communityLinks >= 2 && /Purple Matter tool/.test(ctezState.footer) && /@webidente/.test(ctezState.footer), `ctez chamber: community reference links missing: ${JSON.stringify(ctezState)}`);
   assert(/KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2/.test(ctezState.text), 'ctez chamber: contract address missing');
   assert(/Close old ovens and recover remaining tez/.test(ctezState.text), `ctez chamber: recovery console header missing: ${ctezState.text}`);
   assert(/Ctez is sunsetting, please close your ovens/.test(ctezState.text), `ctez chamber: sunset banner missing: ${ctezState.text}`);
@@ -3183,32 +3186,34 @@ async function smokeCtezChamber(browser, baseUrl) {
     ovenCards: Array.from(document.querySelectorAll('#ctez-oven-list .ctez-oven-card')).map((card) => card.textContent.replace(/\s+/g, ' ').trim()),
     selectedSummary: document.querySelector('#ctez-selected-summary')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     savedMyTezos: localStorage.getItem('tezos-systems-my-baker-address') || '',
-    burnDisabled: document.querySelector('#ctez-wallet-burn')?.disabled ?? true,
-    withdrawDisabled: document.querySelector('#ctez-wallet-withdraw')?.disabled ?? true
+    closeDisabled: document.querySelector('#ctez-wallet-close')?.disabled ?? true,
+    closeText: document.querySelector('#ctez-wallet-close')?.textContent?.trim() || '',
+    review: document.querySelector('#ctez-wallet-review')?.textContent?.replace(/\s+/g, ' ').trim() || ''
   }));
   assert(walletConnectState.status.includes('Wallet tz1aWX…T1Z9'), `ctez wallet: status mismatch ${JSON.stringify(walletConnectState)}`);
   assert(walletConnectState.savedMyTezos === SAMPLE_ADDRESS, `ctez wallet: should sync My Tezos address ${JSON.stringify(walletConnectState)}`);
   assert(/2 ctez ovens found/.test(walletConnectState.ovenStatus), `ctez wallet: oven status mismatch ${JSON.stringify(walletConnectState)}`);
-  assert(/Oven Summary/.test(walletConnectState.summaryStrip) && /7\.530864 tez/.test(walletConnectState.summaryStrip) && /0\.123456 ctez/.test(walletConnectState.summaryStrip) && /0\.987654 tez/.test(walletConnectState.summaryStrip) && /Ovens found 2/.test(walletConnectState.summaryStrip), `ctez wallet: oven summary mismatch ${JSON.stringify(walletConnectState)}`);
+  assert(/Oven Summary/.test(walletConnectState.summaryStrip) && /Total balance 7\.530864 tez/.test(walletConnectState.summaryStrip) && /0\.123456 ctez/.test(walletConnectState.summaryStrip) && /Potential recovery 7\.530864 tez/.test(walletConnectState.summaryStrip) && /Ovens found 2/.test(walletConnectState.summaryStrip), `ctez wallet: oven summary mismatch ${JSON.stringify(walletConnectState)}`);
   assert(walletConnectState.ovenCards.length === 2 && /ID/.test(walletConnectState.ovenCards[0]) && /Oven address/.test(walletConnectState.ovenCards[0]) && /6\.54321 tez/.test(walletConnectState.ovenCards[0]) && /0\.987654 tez/.test(walletConnectState.ovenCards[1]), `ctez wallet: detected oven rows mismatch ${JSON.stringify(walletConnectState)}`);
-  assert(/Oven Stats/.test(walletConnectState.selectedSummary) && /Collateral Overview/.test(walletConnectState.selectedSummary) && /Mintable Overview/.test(walletConnectState.selectedSummary) && /Owner/.test(walletConnectState.selectedSummary) && /0\.123456 ctez/.test(walletConnectState.selectedSummary), `ctez wallet: selected debt summary mismatch ${JSON.stringify(walletConnectState)}`);
-  assert(!walletConnectState.burnDisabled && walletConnectState.withdrawDisabled, `ctez wallet: debt oven should enable burn only ${JSON.stringify(walletConnectState)}`);
+  assert(/Oven Stats/.test(walletConnectState.selectedSummary) && /Collateral Overview/.test(walletConnectState.selectedSummary) && /Mintable Overview/.test(walletConnectState.selectedSummary) && /Close Plan/.test(walletConnectState.selectedSummary) && /Owner/.test(walletConnectState.selectedSummary) && /0\.123456 ctez/.test(walletConnectState.selectedSummary) && /Raw burn quantity -123456/.test(walletConnectState.selectedSummary) && /Raw withdraw amount 6543210/.test(walletConnectState.selectedSummary), `ctez wallet: selected debt summary mismatch ${JSON.stringify(walletConnectState)}`);
+  assert(!walletConnectState.closeDisabled && /one wallet batch/i.test(walletConnectState.closeText) && /burn 0\.123456 ctez, then withdraw 6\.54321 tez/.test(walletConnectState.review), `ctez wallet: debt oven should enable one-batch close ${JSON.stringify(walletConnectState)}`);
 
-  await page.locator('#ctez-wallet-burn').click();
+  await page.locator('#ctez-wallet-close').click();
   await page.waitForFunction(() => window.__octezConnectRequests?.length >= 1, null, { timeout: 5000 });
 
   await page.locator('#ctez-oven-list .ctez-oven-card[data-oven-index="1"]').click();
   await page.waitForFunction(() => {
-    const burn = document.querySelector('#ctez-wallet-burn');
-    const withdraw = document.querySelector('#ctez-wallet-withdraw');
-    return burn?.disabled === true && withdraw?.disabled === false;
+    const close = document.querySelector('#ctez-wallet-close');
+    return close?.disabled === false && /Withdraw tez/.test(close.textContent || '');
   }, null, { timeout: 5000 });
-  await page.locator('#ctez-wallet-withdraw').click();
+  await page.locator('#ctez-wallet-close').click();
   await page.waitForFunction(() => window.__octezConnectRequests?.length >= 2, null, { timeout: 5000 });
 
   const walletRequests = await page.evaluate(() => window.__octezConnectRequests);
   const burnDetail = walletRequests[0]?.operationDetails?.[0] || {};
-  const withdrawDetail = walletRequests[1]?.operationDetails?.[0] || {};
+  const firstWithdrawDetail = walletRequests[0]?.operationDetails?.[1] || {};
+  const secondWithdrawDetail = walletRequests[1]?.operationDetails?.[0] || {};
+  assert(walletRequests[0]?.operationDetails?.length === 2, `ctez wallet: debt oven close should submit a two-leg batch ${JSON.stringify(walletRequests[0])}`);
   assert(burnDetail.kind === 'transaction', `ctez wallet: burn kind mismatch ${JSON.stringify(burnDetail)}`);
   assert(burnDetail.destination === 'KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2', `ctez wallet: burn destination mismatch ${JSON.stringify(burnDetail)}`);
   assert(burnDetail.parameters?.entrypoint === 'mint_or_burn', `ctez wallet: burn entrypoint mismatch ${JSON.stringify(burnDetail)}`);
@@ -3216,15 +3221,25 @@ async function smokeCtezChamber(browser, baseUrl) {
     prim: 'Pair',
     args: [{ int: '42' }, { int: '-123456' }]
   }), `ctez wallet: burn Micheline mismatch ${JSON.stringify(burnDetail.parameters?.value)}`);
-  assert(withdrawDetail.kind === 'transaction', `ctez wallet: withdraw kind mismatch ${JSON.stringify(withdrawDetail)}`);
-  assert(withdrawDetail.parameters?.entrypoint === 'withdraw', `ctez wallet: withdraw entrypoint mismatch ${JSON.stringify(withdrawDetail)}`);
-  assert(JSON.stringify(withdrawDetail.parameters?.value) === JSON.stringify({
+  assert(firstWithdrawDetail.kind === 'transaction', `ctez wallet: first withdraw kind mismatch ${JSON.stringify(firstWithdrawDetail)}`);
+  assert(firstWithdrawDetail.parameters?.entrypoint === 'withdraw', `ctez wallet: first withdraw entrypoint mismatch ${JSON.stringify(firstWithdrawDetail)}`);
+  assert(JSON.stringify(firstWithdrawDetail.parameters?.value) === JSON.stringify({
+    prim: 'Pair',
+    args: [
+      { int: '42' },
+      { prim: 'Pair', args: [{ int: '6543210' }, { string: SAMPLE_ADDRESS }] }
+    ]
+  }), `ctez wallet: first withdraw Micheline mismatch ${JSON.stringify(firstWithdrawDetail.parameters?.value)}`);
+  assert(walletRequests[1]?.operationDetails?.length === 1, `ctez wallet: ready oven close should submit a one-leg withdraw ${JSON.stringify(walletRequests[1])}`);
+  assert(secondWithdrawDetail.kind === 'transaction', `ctez wallet: second withdraw kind mismatch ${JSON.stringify(secondWithdrawDetail)}`);
+  assert(secondWithdrawDetail.parameters?.entrypoint === 'withdraw', `ctez wallet: second withdraw entrypoint mismatch ${JSON.stringify(secondWithdrawDetail)}`);
+  assert(JSON.stringify(secondWithdrawDetail.parameters?.value) === JSON.stringify({
     prim: 'Pair',
     args: [
       { int: '43' },
       { prim: 'Pair', args: [{ int: '987654' }, { string: SAMPLE_ADDRESS }] }
     ]
-  }), `ctez wallet: withdraw Micheline mismatch ${JSON.stringify(withdrawDetail.parameters?.value)}`);
+  }), `ctez wallet: second withdraw Micheline mismatch ${JSON.stringify(secondWithdrawDetail.parameters?.value)}`);
 
   await page.locator('#ctez-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#ctez-modal')?.classList.contains('active'), null, { timeout: 5000 });

@@ -210,11 +210,12 @@ inline modal styles in `js/core/app.js`.
   momentum, power milestones, top-10 first movers, and a capped Baker Status
   table with a Show all control.
 - ctez End of Life with direct `#ctez` access, a tiny top-left launcher, an
-  Explore entry, an official-app-inspired My Ovens summary/detail console,
+  Explore entry, a native Tezos.Systems My Ovens summary/detail console,
   Octez.Connect pairing, TzKT contract storage and big-map discovery for ovens
-  owned by the connected wallet, wallet-reviewed `mint_or_burn` and `withdraw`
-  requests generated from detected oven data, and signing-safety reminders for
-  users recovering tez from old ctez ovens.
+  owned by the connected wallet, wallet-reviewed one-batch close requests that
+  burn outstanding ctez before withdrawing tez when both legs are needed,
+  Purple Matter/community fallback links, and signing-safety reminders for users
+  recovering tez from old ctez ovens.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
   LB vote state, Octez.Connect wallet sync, and recent baker delegator/staker
   activity.

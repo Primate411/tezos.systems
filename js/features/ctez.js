@@ -14,6 +14,8 @@ import {
 } from '../core/wallet.js';
 
 const CTEZ_CONTRACT = 'KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2';
+const CTEZ_COMMUNITY_TOOL_URL = 'https://purplematter.com/ctez-tool/';
+const CTEZ_COMMUNITY_BUILDER_URL = 'https://x.com/webidente';
 const CTEZ_OVENS_LIMIT = 50;
 const TZKT = API_URLS.tzkt;
 
@@ -199,6 +201,92 @@ export function buildCtezWithdrawOperation(id, amount, to) {
     };
 }
 
+export function buildCtezCloseOvenOperations(oven, destination) {
+    const id = normalizeMicroInput(oven?.id);
+    if (!isNatString(id)) throw new Error('Selected ctez oven is missing a valid id');
+
+    const debt = normalizeMicroInput(oven?.ctezOutstanding || '0');
+    const balance = normalizeMicroInput(oven?.tezBalance || '0');
+    const operations = [];
+
+    if (isPositiveNatString(debt)) {
+        operations.push(buildCtezMintOrBurnOperation(id, `-${debt}`));
+    }
+    if (isPositiveNatString(balance)) {
+        const to = String(destination || '').trim();
+        if (!isTezosAccountAddress(to)) throw new Error('Reconnect your wallet before withdrawing tez');
+        operations.push(buildCtezWithdrawOperation(id, balance, to));
+    }
+    if (!operations.length) throw new Error('No ctez or tez is available to close for the selected oven');
+    return operations;
+}
+
+function getClosePlanCopy(oven, destination) {
+    const debt = hasOutstandingDebt(oven);
+    const balance = hasRecoverableBalance(oven);
+    const destinationText = balance ? shortAddress(destination) : 'Not needed';
+    const parts = [];
+    if (debt) parts.push(`burn ${formatMicroAmount(oven.ctezOutstanding, 'ctez')}`);
+    if (balance) parts.push(`withdraw ${formatMicroAmount(oven.tezBalance, 'tez')}`);
+    return {
+        burnLabel: debt ? formatMicroAmount(oven.ctezOutstanding, 'ctez') : 'Skipped',
+        burnRaw: debt ? `-${normalizeMicroInput(oven.ctezOutstanding)}` : '0',
+        withdrawLabel: balance ? formatMicroAmount(oven.tezBalance, 'tez') : 'Skipped',
+        withdrawRaw: normalizeMicroInput(oven?.tezBalance || '0'),
+        destinationText,
+        operationsLabel: parts.length ? `${parts.length} operation${parts.length === 1 ? '' : 's'}` : 'No operation',
+        review: parts.length
+            ? `One wallet request will ${parts.join(', then ')}${balance ? ` to ${destinationText}` : ''}.`
+            : 'No wallet request is needed for the selected oven.'
+    };
+}
+
+function renderCtezClosePlan(oven, destination) {
+    const plan = getClosePlanCopy(oven, destination);
+    return `
+        <section class="ctez-detail-card ctez-close-plan">
+            <h4>Close Plan</h4>
+            <div class="ctez-plan-row">
+                <span>Oven #</span>
+                <strong>${escapeHtml(oven?.id || 'unknown')}</strong>
+            </div>
+            <div class="ctez-plan-row">
+                <span>ctez burn</span>
+                <strong>${escapeHtml(plan.burnLabel)}</strong>
+            </div>
+            <div class="ctez-plan-row ctez-plan-row-muted">
+                <span>Raw burn quantity</span>
+                <strong>${escapeHtml(plan.burnRaw)}</strong>
+            </div>
+            <div class="ctez-plan-row">
+                <span>tez withdraw</span>
+                <strong>${escapeHtml(plan.withdrawLabel)}</strong>
+            </div>
+            <div class="ctez-plan-row ctez-plan-row-muted">
+                <span>Raw withdraw amount</span>
+                <strong>${escapeHtml(plan.withdrawRaw)}</strong>
+            </div>
+            <div class="ctez-plan-row">
+                <span>Destination</span>
+                <strong title="${escapeHtml(destination || '')}">${escapeHtml(plan.destinationText)}</strong>
+            </div>
+            <div class="ctez-plan-row">
+                <span>Wallet batch</span>
+                <strong>${escapeHtml(plan.operationsLabel)}</strong>
+            </div>
+        </section>
+    `;
+}
+
+function getCloseButtonLabel(oven) {
+    const debt = hasOutstandingDebt(oven);
+    const balance = hasRecoverableBalance(oven);
+    if (debt && balance) return 'Close oven in one wallet batch';
+    if (debt) return 'Burn ctez debt';
+    if (balance) return 'Withdraw tez';
+    return 'Oven already clear';
+}
+
 function renderCtezChamber() {
     return `
         <div class="chamber-header ctez-header chamber-anim-fade">
@@ -240,7 +328,7 @@ function renderCtezChamber() {
             <div class="ctez-summary-strip" id="ctez-summary-strip">
                 ${renderMetric('Total balance', '0 tez')}
                 ${renderMetric('Outstanding', '0 ctez')}
-                ${renderMetric('Withdrawable', '0 tez')}
+                ${renderMetric('Potential recovery', '0 tez')}
                 ${renderMetric('Ovens found', '0')}
             </div>
 
@@ -257,8 +345,7 @@ function renderCtezChamber() {
                     </div>
                     <div id="ctez-selected-summary" class="ctez-selected-summary"></div>
                     <div class="ctez-action-buttons">
-                        <button id="ctez-wallet-burn" class="glass-button ctez-wallet-submit" type="button">Burn ctez debt</button>
-                        <button id="ctez-wallet-withdraw" class="glass-button ctez-wallet-submit" type="button">Withdraw tez</button>
+                        <button id="ctez-wallet-close" class="glass-button ctez-wallet-submit" type="button">Close selected oven</button>
                     </div>
                     <div id="ctez-wallet-review" class="ctez-wallet-review">Wallet requests stay inactive until recoverable oven data is found.</div>
                     <div id="ctez-wallet-feedback" class="ctez-wallet-feedback" role="status" aria-live="polite"></div>
@@ -270,14 +357,19 @@ function renderCtezChamber() {
             <div class="lb-panel-title">Before you sign</div>
             <ul class="ctez-step-list">
                 <li>Verify your wallet shows the ctez contract address: <code>${escapeHtml(CTEZ_CONTRACT)}</code>.</li>
-                <li>Burn outstanding ctez debt before withdrawing tez from the same oven.</li>
-                <li>No manual contract pages or raw oven fields are required.</li>
+                <li>The close request burns outstanding ctez first, then withdraws tez in the same wallet batch when both legs are needed.</li>
+                <li>Your wallet must hold the ctez needed for any burn leg before the batch can succeed.</li>
+                <li>No manual contract pages or raw recovery fields are required.</li>
                 <li>Never share your seed phrase, private key, wallet file, or wallet password.</li>
             </ul>
         </section>
 
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:220ms">
             <span>ctez contract ${escapeHtml(CTEZ_CONTRACT)}</span>
+            <span class="chamber-footer-sep">·</span>
+            <a class="panel-direct-link" href="${CTEZ_COMMUNITY_TOOL_URL}" target="_blank" rel="noopener">Purple Matter tool</a>
+            <span class="chamber-footer-sep">by</span>
+            <a class="panel-direct-link" href="${CTEZ_COMMUNITY_BUILDER_URL}" target="_blank" rel="noopener">@webidente</a>
             <span class="chamber-footer-sep">·</span>
             <a class="panel-direct-link" href="/ctez/" aria-label="Direct link to ctez End of Life">Direct: /ctez/</a>
         </div>
@@ -355,8 +447,7 @@ function renderOvenCard(oven, index) {
 }
 
 function updateCtezActionButtons(root) {
-    const burnButton = root.querySelector('#ctez-wallet-burn');
-    const withdrawButton = root.querySelector('#ctez-wallet-withdraw');
+    const closeButton = root.querySelector('#ctez-wallet-close');
     const refreshButton = root.querySelector('#ctez-wallet-refresh');
     const oven = selectedOven();
     const busy = _ctezState.loading || _ctezWalletBusy;
@@ -366,13 +457,9 @@ function updateCtezActionButtons(root) {
     if (refreshButton) refreshButton.disabled = busy || !_ctezState.address;
     const connectButton = root.querySelector('#ctez-wallet-connect');
     if (connectButton) connectButton.disabled = busy;
-    if (burnButton) {
-        burnButton.disabled = busy || !oven || !debt;
-        burnButton.textContent = debt ? 'Burn ctez debt' : 'No debt to burn';
-    }
-    if (withdrawButton) {
-        withdrawButton.disabled = busy || !oven || debt || !balance;
-        withdrawButton.textContent = balance ? 'Withdraw tez' : 'No tez to withdraw';
+    if (closeButton) {
+        closeButton.disabled = busy || !oven || (!debt && !balance);
+        closeButton.textContent = getCloseButtonLabel(oven);
     }
 }
 
@@ -392,15 +479,12 @@ function renderCtezOvenState(root) {
     if (summaryStrip) {
         const totalBalance = sumMicroValues(_ctezState.ovens, 'tezBalance');
         const totalDebt = sumMicroValues(_ctezState.ovens, 'ctezOutstanding');
-        const withdrawable = _ctezState.ovens
-            .filter((item) => !hasOutstandingDebt(item))
-            .reduce((total, item) => total + microBigInt(item.tezBalance), 0n)
-            .toString();
+        const recoverable = sumMicroValues(_ctezState.ovens, 'tezBalance');
         summaryStrip.innerHTML = `
             <div class="ctez-summary-title">Oven Summary</div>
             ${renderMetric('Total balance', formatMicroAmount(totalBalance, 'tez'))}
             ${renderMetric('Outstanding', formatMicroAmount(totalDebt, 'ctez'))}
-            ${renderMetric('Withdrawable', formatMicroAmount(withdrawable, 'tez'))}
+            ${renderMetric('Potential recovery', formatMicroAmount(recoverable, 'tez'))}
             ${renderMetric('Ovens found', String(_ctezState.ovens.length))}
         `;
     }
@@ -455,9 +539,11 @@ function renderCtezOvenState(root) {
         const debt = hasOutstandingDebt(oven);
         const balance = hasRecoverableBalance(oven);
         const utilization = formatOvenUtilization(oven);
-        const withdrawable = !debt && balance ? formatMicroAmount(oven.tezBalance, 'tez') : '0 tez';
+        const withdrawable = balance ? formatMicroAmount(oven.tezBalance, 'tez') : '0 tez';
+        const destination = _ctezState.address || getStoredWalletAddress();
+        const closePlan = getClosePlanCopy(oven, destination);
         if (selectedTitle) selectedTitle.textContent = `Oven #${oven.id || _ctezState.selectedIndex + 1}`;
-        if (selectedBadge) selectedBadge.textContent = debt ? 'Burn required' : balance ? 'Ready to withdraw' : 'Clear';
+        if (selectedBadge) selectedBadge.textContent = debt && balance ? 'Batch ready' : debt ? 'Burn required' : balance ? 'Ready to withdraw' : 'Clear';
         summary.innerHTML = `
             <section class="ctez-detail-card ctez-detail-card-wide">
                 <h4>Oven Stats</h4>
@@ -480,25 +566,22 @@ function renderCtezOvenState(root) {
             <section class="ctez-detail-card">
                 <h4>Collateral Overview</h4>
                 ${renderMetric('Oven balance', formatMicroAmount(oven.tezBalance, 'tez'))}
-                ${renderMetric('Withdrawable', withdrawable)}
+                ${renderMetric('Potential recovery', withdrawable)}
             </section>
             <section class="ctez-detail-card">
                 <h4>Mintable Overview</h4>
                 ${renderMetric('Outstanding', formatMicroAmount(oven.ctezOutstanding, 'ctez'))}
-                ${renderMetric('Required action', debt ? 'Burn first' : 'None')}
+                ${renderMetric('Required action', debt ? 'Burn in batch' : 'None')}
             </section>
+            ${renderCtezClosePlan(oven, destination)}
             <section class="ctez-detail-card">
                 <h4>Owner</h4>
                 ${renderMetric('Wallet', shortAddress(oven.owner || _ctezState.address))}
                 ${renderMetric('Last seen level', oven.lastLevel ? formatGroupedNumber(String(oven.lastLevel)) : 'unknown')}
             </section>
-            <p>${debt ? 'Burn the outstanding ctez first. After it confirms, refresh this panel and withdraw the tez.' : balance ? 'This oven is ready to withdraw.' : 'This oven is already clear.'}</p>
+            <p>${escapeHtml(closePlan.review)} ${debt ? 'Make sure this wallet has enough ctez for the burn leg before signing.' : ''}</p>
         `;
-        setWalletReview(root, debt
-            ? 'Ready to request a ctez debt burn from your wallet.'
-            : balance
-                ? 'Ready to request a tez withdrawal from your wallet.'
-                : 'No wallet request is needed for the selected oven.');
+        setWalletReview(root, closePlan.review);
     }
     updateCtezActionButtons(root);
 }
@@ -533,8 +616,7 @@ async function loadCtezOvens(root, address, { force = false } = {}) {
 function wireCtezWalletActions(root) {
     const connectButton = root.querySelector('#ctez-wallet-connect');
     const refreshButton = root.querySelector('#ctez-wallet-refresh');
-    const burnButton = root.querySelector('#ctez-wallet-burn');
-    const withdrawButton = root.querySelector('#ctez-wallet-withdraw');
+    const closeButton = root.querySelector('#ctez-wallet-close');
 
     updateCtezWalletStatus(root);
     renderCtezOvenState(root);
@@ -570,52 +652,23 @@ function wireCtezWalletActions(root) {
         await loadCtezOvens(root, address, { force: true });
     });
 
-    burnButton?.addEventListener('click', async () => {
-        const oven = selectedOven();
-        if (!oven || !isNatString(oven.id) || !isPositiveNatString(oven.ctezOutstanding)) {
-            setWalletFeedback(root, 'No ctez debt is available to burn for the selected oven.', 'warning');
-            return;
-        }
-        const quantity = `-${oven.ctezOutstanding}`;
-        const operation = buildCtezMintOrBurnOperation(oven.id, quantity);
-        setWalletReview(root, `Wallet request: burn ${formatMicroAmount(oven.ctezOutstanding, 'ctez')} from the selected ctez oven.`);
-        setWalletButtonsBusy(root, true);
-        setWalletFeedback(root, 'Sending burn request to your wallet for review...', 'pending');
-        try {
-            await requestWalletOperation([operation]);
-            setWalletFeedback(root, 'Wallet accepted the burn request. Refresh after it confirms.', 'success');
-        } catch (error) {
-            setWalletFeedback(root, `Burn request failed: ${error?.message || error}`, 'error');
-        } finally {
-            setWalletButtonsBusy(root, false);
-        }
-    });
-
-    withdrawButton?.addEventListener('click', async () => {
+    closeButton?.addEventListener('click', async () => {
         const oven = selectedOven();
         const to = _ctezState.address || getStoredWalletAddress();
-        if (!oven || !isNatString(oven.id) || !isPositiveNatString(oven.tezBalance)) {
-            setWalletFeedback(root, 'No tez is available to withdraw for the selected oven.', 'warning');
+        if (!oven || !isNatString(oven.id) || (!hasOutstandingDebt(oven) && !hasRecoverableBalance(oven))) {
+            setWalletFeedback(root, 'No ctez or tez is available to close for the selected oven.', 'warning');
             return;
         }
-        if (hasOutstandingDebt(oven)) {
-            setWalletFeedback(root, 'Burn the outstanding ctez before withdrawing tez.', 'warning');
-            return;
-        }
-        if (!isTezosAccountAddress(to)) {
-            setWalletFeedback(root, 'Reconnect your wallet before withdrawing tez.', 'error');
-            return;
-        }
-
-        const operation = buildCtezWithdrawOperation(oven.id, oven.tezBalance, to);
-        setWalletReview(root, `Wallet request: withdraw ${formatMicroAmount(oven.tezBalance, 'tez')} to ${shortAddress(to)}.`);
         setWalletButtonsBusy(root, true);
-        setWalletFeedback(root, 'Sending withdraw request to your wallet for review...', 'pending');
         try {
-            await requestWalletOperation([operation]);
-            setWalletFeedback(root, 'Wallet accepted the withdraw request.', 'success');
+            const plan = getClosePlanCopy(oven, to);
+            const operations = buildCtezCloseOvenOperations(oven, to);
+            setWalletReview(root, `Wallet request: ${plan.review}`);
+            setWalletFeedback(root, `Sending ${operations.length === 1 ? 'operation' : 'batch'} to your wallet for review...`, 'pending');
+            await requestWalletOperation(operations);
+            setWalletFeedback(root, 'Wallet accepted the close request. Refresh after it confirms.', 'success');
         } catch (error) {
-            setWalletFeedback(root, `Withdraw request failed: ${error?.message || error}`, 'error');
+            setWalletFeedback(root, `Close request failed: ${error?.message || error}`, 'error');
         } finally {
             setWalletButtonsBusy(root, false);
         }

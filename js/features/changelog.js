@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-16',
         entries: [
+            { type: '✨', text: 'ctez End of Life now previews the selected oven close plan and submits burn plus withdraw legs in one Octez.Connect wallet batch when both are needed' },
+            { type: '🎨', text: 'ctez End of Life now uses native Tezos.Systems chamber styling with live recovery panels, mono plan rows, and community reference links' },
             { type: '🎨', text: 'My Tezos wallet and manual address actions now use clearer labels so the drawer no longer presents two similar connect buttons' },
             { type: '🎨', text: 'ctez End of Life now stays out of default Chambers and opens from Explore or the tiny top-left ctez launcher' },
             { type: '🎨', text: 'ctez Recovery now mirrors the retired app with a calmer My Ovens summary, oven rows, and detail cards while keeping automatic wallet detection' },

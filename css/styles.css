@@ -17425,6 +17425,521 @@ body {
     }
 }
 
+/* Native Tezos.Systems treatment for the ctez chamber. */
+.ctez-content {
+    border-color: color-mix(in srgb, var(--accent-cyan) 18%, transparent) !important;
+    background:
+        radial-gradient(circle at 20% 0%, color-mix(in srgb, var(--chamber-good-color) 10%, transparent), transparent 32%),
+        linear-gradient(180deg, rgba(10, 10, 20, 0.98), rgba(6, 8, 16, 0.99)) !important;
+    box-shadow:
+        0 0 52px color-mix(in srgb, var(--accent-cyan) 6%, transparent),
+        0 0 100px rgba(0, 0, 0, 0.82),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+}
+
+.ctez-content::before {
+    height: 2px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--chamber-good-color) 58%, transparent), color-mix(in srgb, var(--accent-cyan) 42%, transparent), transparent);
+}
+
+.ctez-header {
+    padding: 0 52px 8px;
+    border: 0;
+    background: transparent;
+    text-align: center;
+}
+
+.ctez-system-strip span + span::before {
+    color: color-mix(in srgb, var(--chamber-good-color) 45%, transparent);
+}
+
+.ctez-system-strip .lb-system-brand {
+    color: var(--chamber-good-color) !important;
+}
+
+.ctez-header .chamber-title-row {
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ctez-header .chamber-title {
+    color: color-mix(in srgb, var(--accent-cyan) 72%, var(--text-primary) 28%);
+    -webkit-text-fill-color: currentColor;
+    background: none;
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.15rem, 4.8vw, 1.6rem);
+    font-weight: 800;
+    letter-spacing: 2px;
+    line-height: 1.25;
+    text-shadow: 0 0 18px color-mix(in srgb, var(--accent-cyan) 28%, transparent);
+    text-transform: uppercase;
+}
+
+.ctez-header .chamber-title::before {
+    content: 'ctez';
+    width: 40px;
+    height: 28px;
+    margin-right: 8px;
+    border: 1px solid color-mix(in srgb, var(--chamber-good-color) 34%, transparent);
+    color: var(--chamber-good-color);
+    -webkit-text-fill-color: currentColor;
+    background: color-mix(in srgb, var(--chamber-good-color) 8%, transparent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1;
+    text-transform: lowercase;
+    vertical-align: 2px;
+    box-shadow: inset 0 0 12px color-mix(in srgb, var(--chamber-good-color) 8%, transparent);
+}
+
+.ctez-header .chamber-badge,
+.ctez-badge {
+    min-height: 30px;
+    padding: 6px 12px;
+    border: 1px solid color-mix(in srgb, var(--chamber-good-color) 34%, transparent);
+    border-radius: 20px;
+    color: var(--chamber-good-color);
+    background: color-mix(in srgb, var(--chamber-good-color) 14%, transparent);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    line-height: 1;
+    text-transform: uppercase;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--chamber-good-color) 10%, transparent);
+}
+
+.ctez-header .proposal-name {
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.92rem;
+}
+
+.ctez-header .proposal-hash {
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.64rem;
+}
+
+.ctez-console-shell {
+    gap: 16px;
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 14%, transparent);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--chamber-good-color) 5%, transparent), color-mix(in srgb, var(--accent-cyan) 3%, transparent)),
+        rgba(255, 255, 255, 0.018);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.ctez-sunset-banner {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 13px 14px;
+    border: 1px solid color-mix(in srgb, var(--chamber-watch-color) 26%, transparent);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--chamber-watch-color) 12%, transparent), color-mix(in srgb, var(--chamber-good-color) 6%, transparent)),
+        rgba(0, 0, 0, 0.14);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.ctez-sunset-banner strong {
+    min-width: 0;
+    min-height: 0;
+    padding: 7px 10px;
+    border: 1px solid color-mix(in srgb, var(--chamber-good-color) 30%, transparent);
+    border-radius: 6px;
+    color: var(--chamber-good-color);
+    background: color-mix(in srgb, var(--chamber-good-color) 8%, transparent);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.ctez-console-toolbar,
+.ctez-summary-strip,
+.ctez-oven-panel,
+.ctez-safety-panel {
+    width: 100%;
+}
+
+.ctez-toolbar-mark {
+    width: 38px;
+    height: 38px;
+    border: 1px solid color-mix(in srgb, var(--chamber-good-color) 28%, transparent);
+    border-radius: 8px;
+    color: var(--chamber-good-color);
+    background: color-mix(in srgb, var(--chamber-good-color) 8%, transparent);
+    font-family: 'JetBrains Mono', monospace;
+    box-shadow: inset 0 0 14px color-mix(in srgb, var(--chamber-good-color) 7%, transparent);
+}
+
+.ctez-panel-kicker {
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.ctez-console-toolbar h3,
+.ctez-detail-head h3,
+.ctez-summary-title,
+.ctez-detail-card h4 {
+    color: var(--text-primary);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+}
+
+.ctez-summary-title {
+    font-size: 0.82rem;
+}
+
+.ctez-console-toolbar h3,
+.ctez-detail-head h3 {
+    font-size: 0.98rem;
+}
+
+.ctez-wallet-button,
+.ctez-wallet-refresh,
+.ctez-wallet-submit {
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.66rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.ctez-wallet-button,
+.ctez-wallet-submit {
+    border-color: color-mix(in srgb, var(--chamber-good-color) 42%, transparent);
+    color: var(--chamber-good-color, #35E894);
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--chamber-good-color) 16%, transparent), color-mix(in srgb, var(--accent-cyan) 8%, transparent)),
+        rgba(0, 0, 0, 0.12);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--chamber-good-color) 14%, transparent);
+}
+
+.ctez-wallet-refresh {
+    border-color: color-mix(in srgb, var(--accent-cyan) 24%, transparent);
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.028);
+}
+
+.ctez-wallet-button:hover:not(:disabled),
+.ctez-wallet-submit:hover:not(:disabled),
+.ctez-wallet-refresh:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.ctez-wallet-button:disabled,
+.ctez-wallet-submit:disabled,
+.ctez-wallet-refresh:disabled {
+    opacity: 0.72;
+    transform: none;
+}
+
+.ctez-wallet-button:disabled,
+.ctez-wallet-submit:disabled {
+    color: var(--chamber-good-color, #35E894);
+    background: color-mix(in srgb, var(--chamber-good-color) 11%, transparent);
+}
+
+.ctez-wallet-status,
+.ctez-wallet-feedback,
+.ctez-wallet-review,
+.ctez-oven-status {
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+}
+
+.ctez-wallet-status[data-connected="true"] {
+    color: var(--chamber-good-color);
+}
+
+.ctez-summary-strip,
+.ctez-oven-card,
+.ctez-detail-card,
+.ctez-wallet-review,
+.ctez-empty-state,
+.ctez-oven-loading {
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 12%, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.018)),
+        rgba(0, 0, 0, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.ctez-summary-strip {
+    grid-template-columns: minmax(140px, 1fr) repeat(4, minmax(116px, 1fr));
+    padding: 14px;
+}
+
+.ctez-console-metric span,
+.ctez-oven-cell small,
+.ctez-detail-address span,
+.ctez-detail-meter span,
+.ctez-plan-row span {
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.9px;
+    line-height: 1.35;
+    text-transform: uppercase;
+}
+
+.ctez-console-metric strong,
+.ctez-oven-cell strong,
+.ctez-detail-address strong,
+.ctez-detail-meter strong,
+.ctez-plan-row strong {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.ctez-oven-card {
+    min-height: 74px;
+    padding: 14px;
+}
+
+.ctez-oven-card:hover,
+.ctez-oven-card:focus-visible {
+    border-color: color-mix(in srgb, var(--accent-cyan) 38%, transparent);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--accent-cyan) 7%, transparent), rgba(255, 255, 255, 0.02)),
+        rgba(0, 0, 0, 0.17);
+}
+
+.ctez-oven-card.is-selected {
+    border-color: color-mix(in srgb, var(--chamber-good-color) 58%, transparent);
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--chamber-good-color) 11%, transparent), color-mix(in srgb, var(--accent-cyan) 5%, transparent)),
+        rgba(0, 0, 0, 0.2);
+    box-shadow:
+        inset 2px 0 0 var(--chamber-good-color),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ctez-oven-card.has-action {
+    border-color: color-mix(in srgb, var(--chamber-good-color) 22%, transparent);
+}
+
+.ctez-utilization-bar {
+    height: 12px;
+    padding: 3px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.ctez-utilization-bar i {
+    background: linear-gradient(90deg, var(--chamber-good-color), var(--accent-cyan));
+    box-shadow: 0 0 10px color-mix(in srgb, var(--chamber-good-color) 28%, transparent);
+}
+
+.ctez-contract-pill {
+    border-color: color-mix(in srgb, var(--chamber-good-color) 30%, transparent);
+    border-radius: 999px;
+    color: var(--chamber-good-color);
+    background: color-mix(in srgb, var(--chamber-good-color) 8%, transparent);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.ctez-selected-summary {
+    grid-template-columns: minmax(0, 1.05fr) repeat(2, minmax(0, 0.95fr));
+}
+
+.ctez-detail-card h4 {
+    margin-bottom: 12px;
+    border-bottom-color: color-mix(in srgb, var(--accent-cyan) 11%, transparent);
+    font-size: 0.76rem;
+}
+
+.ctez-close-plan {
+    grid-column: span 2;
+    display: grid;
+    gap: 0;
+}
+
+.ctez-plan-row {
+    display: grid;
+    grid-template-columns: minmax(112px, 0.7fr) minmax(0, 1fr);
+    align-items: baseline;
+    gap: 12px;
+    min-width: 0;
+    padding: 10px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent-cyan) 10%, transparent);
+}
+
+.ctez-plan-row:last-child {
+    border-bottom: 0;
+}
+
+.ctez-plan-row-muted strong {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.ctez-selected-summary p {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+}
+
+.ctez-action-buttons {
+    grid-template-columns: 1fr;
+}
+
+.ctez-wallet-review {
+    color: var(--text-secondary);
+}
+
+.ctez-wallet-feedback[data-state="pending"] {
+    color: var(--chamber-watch-color);
+}
+
+.ctez-wallet-feedback[data-state="success"] {
+    color: var(--chamber-good-color);
+}
+
+.ctez-wallet-feedback[data-state="warning"] {
+    color: var(--chamber-watch-color);
+}
+
+.ctez-wallet-feedback[data-state="error"] {
+    color: var(--chamber-risk-color);
+}
+
+.ctez-safety-panel {
+    border-color: color-mix(in srgb, var(--chamber-watch-color) 22%, transparent);
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--chamber-watch-color) 7%, transparent), rgba(255, 255, 255, 0.018)),
+        rgba(0, 0, 0, 0.12);
+}
+
+.ctez-step-list {
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+
+.ctez-step-list li::before {
+    background: var(--chamber-watch-color);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--chamber-watch-color) 34%, transparent);
+}
+
+.ctez-step-list code {
+    color: var(--text-primary);
+}
+
+[data-theme="matrix"] .ctez-content {
+    border-color: rgba(0, 255, 0, 0.16) !important;
+    background:
+        radial-gradient(circle at 20% 0%, rgba(0, 255, 0, 0.06), transparent 32%),
+        linear-gradient(180deg, rgba(3, 10, 3, 0.98), rgba(2, 6, 2, 0.99)) !important;
+    box-shadow:
+        0 0 52px rgba(0, 255, 0, 0.045),
+        0 0 100px rgba(0, 0, 0, 0.82),
+        inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+    scrollbar-color: #00ff00 rgba(0, 0, 0, 0.32);
+}
+
+[data-theme="matrix"] .ctez-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #00ff00 0%, #00aa00 100%);
+    box-shadow: 0 0 10px rgba(0, 255, 0, 0.24);
+}
+
+[data-theme="matrix"] .ctez-header .chamber-title,
+[data-theme="matrix"] .ctez-header .proposal-name,
+[data-theme="matrix"] .ctez-header .proposal-hash,
+[data-theme="matrix"] .ctez-panel-kicker,
+[data-theme="matrix"] .ctez-wallet-status,
+[data-theme="matrix"] .ctez-oven-status,
+[data-theme="matrix"] .ctez-console-metric span,
+[data-theme="matrix"] .ctez-oven-cell small,
+[data-theme="matrix"] .ctez-detail-address span,
+[data-theme="matrix"] .ctez-detail-meter span,
+[data-theme="matrix"] .ctez-plan-row span,
+[data-theme="matrix"] .ctez-step-list {
+    text-shadow: none;
+}
+
+[data-theme="matrix"] .ctez-header .chamber-title {
+    color: #33ff33;
+    -webkit-text-fill-color: currentColor;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    text-shadow: 0 0 14px rgba(0, 255, 0, 0.32);
+}
+
+[data-theme="matrix"] .ctez-header .chamber-title::before {
+    color: #00ff00;
+    -webkit-text-fill-color: currentColor;
+    background: rgba(0, 255, 0, 0.08);
+    border-color: rgba(0, 255, 0, 0.34);
+    box-shadow: inset 0 0 12px rgba(0, 255, 0, 0.08);
+}
+
+[data-theme="matrix"] .ctez-badge {
+    color: #00ff00;
+    background: rgba(0, 255, 0, 0.12);
+    border-color: rgba(0, 255, 0, 0.32);
+}
+
+@media (max-width: 980px) {
+    .ctez-close-plan {
+        grid-column: 1 / -1;
+    }
+}
+
+@media (max-width: 680px) {
+    .ctez-header {
+        padding: 0 32px 8px 8px;
+        text-align: left;
+    }
+
+    .ctez-header .chamber-title-row {
+        justify-content: flex-start;
+    }
+
+    .ctez-console-shell {
+        padding: 12px;
+    }
+
+    .ctez-sunset-banner {
+        grid-template-columns: 1fr;
+        padding: 12px;
+    }
+
+    .ctez-summary-strip,
+    .ctez-oven-card,
+    .ctez-selected-summary,
+    .ctez-detail-meter,
+    .ctez-plan-row {
+        grid-template-columns: 1fr;
+    }
+
+    .ctez-plan-row {
+        gap: 4px;
+    }
+}
+
 .lb-lore-panel {
     margin-top: 14px;
 }
