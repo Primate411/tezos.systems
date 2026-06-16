@@ -15667,7 +15667,7 @@ body {
 }
 
 .chamber-entry-card {
-    --chamber-control-lane: 3.35rem;
+    --chamber-control-lane: 3.65rem;
     --chamber-card-inline-padding: 1.45rem;
     border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, transparent) !important;
     transition: all 0.3s ease !important;
@@ -15675,47 +15675,36 @@ body {
     overflow: hidden;
 }
 
-.lb-entry-card {
-    --chamber-control-lane: 4.95rem;
-}
-
-.tz4-entry-card,
-.health-entry-card,
-.stat-card[data-stat="network-health"] {
-    --chamber-control-lane: 7.45rem;
-}
-
 #chambers-grid .chamber-entry-card .card-front {
     padding-right: var(--chamber-control-lane);
     padding-bottom: 2.35rem;
 }
 
-.chamber-entry-card > .card-copy-link,
-.chamber-entry-card > .card-share-btn,
-.chamber-entry-card > .card-info-btn {
+#chambers-grid .chamber-entry-card > .card-copy-link,
+#chambers-grid .chamber-entry-card > .card-share-btn,
+#chambers-grid .chamber-entry-card > .card-info-btn {
     top: 0.85rem;
     width: 26px;
     height: 26px;
     z-index: 70;
 }
 
-.chamber-entry-card > .card-copy-link,
-.chamber-entry-card > .card-info-btn,
-.chamber-entry-card > .card-share-btn {
+#chambers-grid .chamber-entry-card > .card-copy-link,
+#chambers-grid .chamber-entry-card > .card-info-btn,
+#chambers-grid .chamber-entry-card > .card-share-btn {
     right: 0.85rem;
 }
 
-.lb-entry-card > .card-copy-link,
-.tz4-entry-card > .card-copy-link,
-.health-entry-card > .card-copy-link,
-.stat-card[data-stat="network-health"] > .card-copy-link {
-    right: calc(0.85rem + 34px);
+#chambers-grid .chamber-entry-card > .card-share-btn {
+    top: 0.85rem;
 }
 
-.tz4-entry-card > .card-share-btn,
-.health-entry-card > .card-share-btn,
-.stat-card[data-stat="network-health"] > .card-share-btn {
-    right: calc(0.85rem + 68px);
+#chambers-grid .chamber-entry-card > .card-copy-link {
+    top: calc(0.85rem + 34px);
+}
+
+#chambers-grid .chamber-entry-card > .card-info-btn {
+    top: calc(0.85rem + 68px);
 }
 
 .chamber-entry-card::before {
@@ -16091,26 +16080,24 @@ body {
     }
 
     #chambers-grid .chamber-entry-card {
-        --chamber-control-lane: 3.25rem;
+        --chamber-control-lane: 3.85rem;
         --chamber-card-inline-padding: 1.25rem;
     }
 
-    #chambers-grid .lb-entry-card {
-        --chamber-control-lane: 5.05rem;
-    }
-
-    #chambers-grid .tz4-entry-card,
-    #chambers-grid .health-entry-card,
-    #chambers-grid .stat-card[data-stat="network-health"] {
-        --chamber-control-lane: 7.6rem;
-    }
-
-    .chamber-entry-card > .card-copy-link,
-    .chamber-entry-card > .card-share-btn,
-    .chamber-entry-card > .card-info-btn {
+    #chambers-grid .chamber-entry-card > .card-copy-link,
+    #chambers-grid .chamber-entry-card > .card-share-btn,
+    #chambers-grid .chamber-entry-card > .card-info-btn {
         top: 0.78rem;
         width: 28px;
         height: 28px;
+    }
+
+    #chambers-grid .chamber-entry-card > .card-copy-link {
+        top: calc(0.78rem + 36px);
+    }
+
+    #chambers-grid .chamber-entry-card > .card-info-btn {
+        top: calc(0.78rem + 72px);
     }
 
     #chambers-grid .chamber-entry-card .card-front {
