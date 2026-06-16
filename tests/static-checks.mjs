@@ -504,7 +504,10 @@ async function checkSelectorContracts() {
     ['ctez chamber wiring', 'openCtezChamber', ctez],
     ['ctez direct footer link', 'Direct: /ctez/', ctez],
     ['ctez contract address', 'KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2', ctez],
-    ['ctez wallet-first app shell', 'ctez-app-shell', ctez],
+    ['ctez official-style console shell', 'ctez-console-shell', ctez],
+    ['ctez sunset banner', 'ctez-sunset-banner', ctez],
+    ['ctez oven summary strip', 'ctez-summary-strip', ctez],
+    ['ctez oven detail cards', 'ctez-detail-card', ctez],
     ['ctez detected oven list', 'ctez-oven-list', ctez],
     ['ctez automatic oven lookup', 'fetchCtezOvens', ctez],
     ['ctez TzKT big-map lookup', '/bigmaps/${ovensPtr}/keys', ctez],
@@ -629,9 +632,12 @@ async function checkSelectorContracts() {
     ['tz4 monthly bar visible count style', '.tz4-month-count', styles],
     ['tz4 monthly bar fill style', '.tz4-month-fill', styles],
     ['tz4 first movers top 10 cap', '.slice(0, 10)', tz4],
-    ['ctez app shell style', '.ctez-app-shell', styles],
+    ['ctez console shell style', '.ctez-console-shell', styles],
+    ['ctez summary strip style', '.ctez-summary-strip', styles],
     ['ctez oven panel style', '.ctez-oven-panel', styles],
     ['ctez oven card style', '.ctez-oven-card', styles],
+    ['ctez utilization bar style', '.ctez-utilization-bar', styles],
+    ['ctez detail card style', '.ctez-detail-card', styles],
     ['ctez action button grid style', '.ctez-action-buttons', styles]
   ];
   for (const [label, snippet, text] of chamberRendererStyleContracts) {

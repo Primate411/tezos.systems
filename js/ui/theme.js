@@ -7,7 +7,7 @@ const THEME_KEY = 'tezos-systems-theme';
 const THEMES = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
 // Aurora — bespoke animated default; striking but legible.
 const DEFAULT_THEME = 'aurora';
-const THEME_CSS_VERSION = '198';
+const THEME_CSS_VERSION = '199';
 
 // Theme color definitions for the picker dots
 const THEME_COLORS = {

@@ -208,11 +208,12 @@ inline modal styles in `js/core/app.js`.
   timing, projection to 50%, largest holdouts, visible monthly switch-count
   momentum, power milestones, top-10 first movers, and a capped Baker Status
   table with a Show all control.
-- ctez Recovery with direct `#ctez` access, an Octez.Connect wallet-first flow,
-  TzKT contract storage and big-map discovery for ovens owned by the connected
-  wallet, wallet-reviewed `mint_or_burn` and `withdraw` requests generated from
-  detected oven data, and signing-safety reminders for users recovering tez
-  from old ctez ovens.
+- ctez Recovery with direct `#ctez` access, an official-app-inspired My Ovens
+  summary/detail console, an Octez.Connect wallet-first flow, TzKT contract
+  storage and big-map discovery for ovens owned by the connected wallet,
+  wallet-reviewed `mint_or_burn` and `withdraw` requests generated from detected
+  oven data, and signing-safety reminders for users recovering tez from old
+  ctez ovens.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
   LB vote state, Octez.Connect wallet sync, and recent baker delegator/staker
   activity.

@@ -83,6 +83,37 @@ function hasOutstandingDebt(oven) {
     return BigInt(normalizeMicroInput(oven?.ctezOutstanding || '0')) > 0n;
 }
 
+function microBigInt(value) {
+    const raw = normalizeMicroInput(value);
+    return /^\d+$/.test(raw) ? BigInt(raw) : 0n;
+}
+
+function sumMicroValues(items, key) {
+    return items.reduce((total, item) => total + microBigInt(item?.[key] || '0'), 0n).toString();
+}
+
+function formatOvenUtilization(oven) {
+    const balance = microBigInt(oven?.tezBalance || '0');
+    const debt = microBigInt(oven?.ctezOutstanding || '0');
+    if (debt === 0n) return { label: '0%', bar: '0' };
+    if (balance === 0n) return { label: '100%', bar: '100' };
+    const basisPoints = debt * 10000n / balance;
+    const percent = Math.min(Number(basisPoints) / 100, 999);
+    return {
+        label: `${percent >= 10 ? percent.toFixed(1) : percent.toFixed(2)}%`,
+        bar: String(Math.min(Math.max(percent, 2), 100))
+    };
+}
+
+function renderMetric(label, value) {
+    return `
+        <div class="ctez-console-metric">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+        </div>
+    `;
+}
+
 async function fetchJson(url) {
     // Wallet-triggered recovery reads should not wait behind dashboard background TzKT fan-out.
     const browserFetch = (typeof window !== 'undefined' && window.__tezosSystemsOriginalFetch) || fetch;
@@ -180,34 +211,50 @@ function renderCtezChamber() {
                 <span class="chamber-badge ctez-badge">Wallet flow</span>
             </div>
             <div class="chamber-proposal-info">
-                <div class="proposal-name">Connect a Tezos wallet to recover old ctez oven balances</div>
+                <div class="proposal-name">My Ovens recovery console for old ctez balances</div>
                 <div class="proposal-hash">Contract ${escapeHtml(CTEZ_CONTRACT)}</div>
             </div>
         </div>
 
-        <section class="ctez-app-shell chamber-anim-fade" style="animation-delay:80ms">
-            <div class="ctez-connect-panel">
-                <div class="ctez-connect-mark">ctez</div>
-                <h3>Find recoverable tez automatically.</h3>
-                <p>Connect the wallet that owned the ctez oven. Tezos Systems checks the contract state and prepares wallet requests from the detected oven data.</p>
+        <section class="ctez-console-shell chamber-anim-fade" style="animation-delay:80ms">
+            <div class="ctez-sunset-banner">
+                <span>Ctez is sunsetting, please close your ovens.</span>
+                <strong>My Ovens</strong>
+            </div>
+
+            <div class="ctez-console-toolbar">
+                <div class="ctez-toolbar-title">
+                    <span class="ctez-toolbar-mark">ctez</span>
+                    <div>
+                        <div class="ctez-panel-kicker">Recovery console</div>
+                        <h3>My Ovens</h3>
+                    </div>
+                </div>
                 <div class="ctez-wallet-actions">
                     <button id="ctez-wallet-connect" class="glass-button ctez-wallet-button" type="button">Connect wallet</button>
                     <button id="ctez-wallet-refresh" class="glass-button ctez-wallet-refresh" type="button" disabled>Refresh</button>
+                    <span id="ctez-wallet-status" class="ctez-wallet-status">No wallet connected</span>
                 </div>
-                <span id="ctez-wallet-status" class="ctez-wallet-status">No wallet connected</span>
+            </div>
+
+            <div class="ctez-summary-strip" id="ctez-summary-strip">
+                ${renderMetric('Total balance', '0 tez')}
+                ${renderMetric('Outstanding', '0 ctez')}
+                ${renderMetric('Withdrawable', '0 tez')}
+                ${renderMetric('Ovens found', '0')}
             </div>
 
             <div class="ctez-oven-panel" id="ctez-oven-panel" data-state="idle">
-                <div class="ctez-oven-panel-head">
-                    <div>
-                        <div class="ctez-panel-kicker">Recovery status</div>
-                        <h3>Your ctez ovens</h3>
-                    </div>
-                    <span class="ctez-contract-pill">Verified contract</span>
-                </div>
                 <div id="ctez-oven-status" class="ctez-oven-status">Connect a wallet to check for ctez ovens.</div>
                 <div id="ctez-oven-list" class="ctez-oven-list"></div>
                 <div id="ctez-action-panel" class="ctez-action-panel" hidden>
+                    <div class="ctez-detail-head">
+                        <div>
+                            <div class="ctez-panel-kicker">My Oven Details</div>
+                            <h3 id="ctez-selected-title">Selected oven</h3>
+                        </div>
+                        <span id="ctez-selected-badge" class="ctez-contract-pill">Verified contract</span>
+                    </div>
                     <div id="ctez-selected-summary" class="ctez-selected-summary"></div>
                     <div class="ctez-action-buttons">
                         <button id="ctez-wallet-burn" class="glass-button ctez-wallet-submit" type="button">Burn ctez debt</button>
@@ -272,13 +319,36 @@ function updateCtezWalletStatus(root, address = getStoredWalletAddress()) {
 function renderOvenCard(oven, index) {
     const debt = hasOutstandingDebt(oven);
     const balance = hasRecoverableBalance(oven);
-    const state = debt ? 'Debt first' : balance ? 'Ready' : 'Clear';
+    const state = debt ? 'Burn first' : balance ? 'Withdraw' : 'Clear';
+    const utilization = formatOvenUtilization(oven);
+    const withdrawable = !debt && balance ? formatMicroAmount(oven.tezBalance, 'tez') : '0 tez';
     return `
         <button class="ctez-oven-card ${index === _ctezState.selectedIndex ? 'is-selected' : ''} ${debt || balance ? 'has-action' : 'is-clear'}" type="button" data-oven-index="${index}">
-            <span class="ctez-oven-label">Detected oven</span>
-            <strong>${escapeHtml(formatMicroAmount(oven.tezBalance, 'tez'))}</strong>
-            <small>${debt ? `${escapeHtml(formatMicroAmount(oven.ctezOutstanding, 'ctez'))} to burn` : 'No ctez debt'}</small>
-            <em>${escapeHtml(state)}</em>
+            <span class="ctez-oven-cell ctez-oven-id">
+                <strong>#${escapeHtml(oven.id || String(index + 1))}</strong>
+                <small>ID</small>
+            </span>
+            <span class="ctez-oven-cell">
+                <strong>${escapeHtml(shortAddress(oven.ovenAddress || CTEZ_CONTRACT))}</strong>
+                <small>Oven address</small>
+            </span>
+            <span class="ctez-oven-cell">
+                <strong>${escapeHtml(formatMicroAmount(oven.tezBalance, 'tez'))}</strong>
+                <small>Oven balance</small>
+            </span>
+            <span class="ctez-oven-cell">
+                <strong>${escapeHtml(formatMicroAmount(oven.ctezOutstanding, 'ctez'))}</strong>
+                <small>Outstanding</small>
+            </span>
+            <span class="ctez-oven-cell">
+                <strong>${escapeHtml(withdrawable)}</strong>
+                <small>Withdrawable</small>
+            </span>
+            <span class="ctez-oven-cell ctez-utilization-cell">
+                <span class="ctez-utilization-bar"><i style="width:${escapeHtml(utilization.bar)}%"></i></span>
+                <strong>${escapeHtml(utilization.label)}</strong>
+                <small>${escapeHtml(state)}</small>
+            </span>
         </button>
     `;
 }
@@ -311,10 +381,28 @@ function renderCtezOvenState(root) {
     const list = root.querySelector('#ctez-oven-list');
     const actionPanel = root.querySelector('#ctez-action-panel');
     const summary = root.querySelector('#ctez-selected-summary');
+    const summaryStrip = root.querySelector('#ctez-summary-strip');
+    const selectedTitle = root.querySelector('#ctez-selected-title');
+    const selectedBadge = root.querySelector('#ctez-selected-badge');
     const oven = selectedOven();
 
     updateCtezWalletStatus(root, _ctezState.address || getStoredWalletAddress());
     if (panel) panel.dataset.state = _ctezState.loading ? 'loading' : _ctezState.error ? 'error' : _ctezState.ovens.length ? 'ready' : _ctezState.address ? 'empty' : 'idle';
+    if (summaryStrip) {
+        const totalBalance = sumMicroValues(_ctezState.ovens, 'tezBalance');
+        const totalDebt = sumMicroValues(_ctezState.ovens, 'ctezOutstanding');
+        const withdrawable = _ctezState.ovens
+            .filter((item) => !hasOutstandingDebt(item))
+            .reduce((total, item) => total + microBigInt(item.tezBalance), 0n)
+            .toString();
+        summaryStrip.innerHTML = `
+            <div class="ctez-summary-title">Oven Summary</div>
+            ${renderMetric('Total balance', formatMicroAmount(totalBalance, 'tez'))}
+            ${renderMetric('Outstanding', formatMicroAmount(totalDebt, 'ctez'))}
+            ${renderMetric('Withdrawable', formatMicroAmount(withdrawable, 'tez'))}
+            ${renderMetric('Ovens found', String(_ctezState.ovens.length))}
+        `;
+    }
 
     if (_ctezState.loading) {
         if (status) status.textContent = `Checking ctez ovens for ${shortAddress(_ctezState.address)}...`;
@@ -365,15 +453,44 @@ function renderCtezOvenState(root) {
     if (summary && oven) {
         const debt = hasOutstandingDebt(oven);
         const balance = hasRecoverableBalance(oven);
+        const utilization = formatOvenUtilization(oven);
+        const withdrawable = !debt && balance ? formatMicroAmount(oven.tezBalance, 'tez') : '0 tez';
+        if (selectedTitle) selectedTitle.textContent = `Oven #${oven.id || _ctezState.selectedIndex + 1}`;
+        if (selectedBadge) selectedBadge.textContent = debt ? 'Burn required' : balance ? 'Ready to withdraw' : 'Clear';
         summary.innerHTML = `
-            <div>
-                <span>Recoverable tez</span>
-                <strong>${escapeHtml(formatMicroAmount(oven.tezBalance, 'tez'))}</strong>
-            </div>
-            <div>
-                <span>ctez debt</span>
-                <strong>${escapeHtml(formatMicroAmount(oven.ctezOutstanding, 'ctez'))}</strong>
-            </div>
+            <section class="ctez-detail-card ctez-detail-card-wide">
+                <h4>Oven Stats</h4>
+                <div class="ctez-detail-address">
+                    <span>Oven address</span>
+                    <strong>${escapeHtml(oven.ovenAddress || CTEZ_CONTRACT)}</strong>
+                </div>
+                <div class="ctez-detail-meter">
+                    <div>
+                        <strong>${escapeHtml(debt ? 'Debt open' : 'Clear')}</strong>
+                        <span>Recovery state</span>
+                    </div>
+                    <div>
+                        <span class="ctez-utilization-bar"><i style="width:${escapeHtml(utilization.bar)}%"></i></span>
+                        <strong>${escapeHtml(utilization.label)}</strong>
+                        <span>Debt utilization</span>
+                    </div>
+                </div>
+            </section>
+            <section class="ctez-detail-card">
+                <h4>Collateral Overview</h4>
+                ${renderMetric('Oven balance', formatMicroAmount(oven.tezBalance, 'tez'))}
+                ${renderMetric('Withdrawable', withdrawable)}
+            </section>
+            <section class="ctez-detail-card">
+                <h4>Mintable Overview</h4>
+                ${renderMetric('Outstanding', formatMicroAmount(oven.ctezOutstanding, 'ctez'))}
+                ${renderMetric('Required action', debt ? 'Burn first' : 'None')}
+            </section>
+            <section class="ctez-detail-card">
+                <h4>Owner</h4>
+                ${renderMetric('Wallet', shortAddress(oven.owner || _ctezState.address))}
+                ${renderMetric('Last seen level', oven.lastLevel ? formatGroupedNumber(String(oven.lastLevel)) : 'unknown')}
+            </section>
             <p>${debt ? 'Burn the outstanding ctez first. After it confirms, refresh this panel and withdraw the tez.' : balance ? 'This oven is ready to withdraw.' : 'This oven is already clear.'}</p>
         `;
         setWalletReview(root, debt

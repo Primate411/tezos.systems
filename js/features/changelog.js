@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-16',
         entries: [
+            { type: '🎨', text: 'ctez Recovery now mirrors the retired app with a calmer My Ovens summary, oven rows, and detail cards while keeping automatic wallet detection' },
             { type: '🎨', text: 'ctez Recovery now presents a wallet-first interface that detects owned ovens automatically and hides manual recovery steps from users' },
         ]
     },

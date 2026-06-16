@@ -3130,8 +3130,10 @@ async function smokeCtezChamber(browser, baseUrl) {
       title: modal?.querySelector('.chamber-title')?.textContent || '',
       badge: modal?.querySelector('.chamber-badge')?.textContent || '',
       text,
-      hasAppShell: Boolean(modal?.querySelector('.ctez-app-shell')),
-      hasConnectPanel: Boolean(modal?.querySelector('.ctez-connect-panel #ctez-wallet-connect')),
+      hasConsoleShell: Boolean(modal?.querySelector('.ctez-console-shell')),
+      hasSunsetBanner: Boolean(modal?.querySelector('.ctez-sunset-banner')),
+      hasSummaryStrip: Boolean(modal?.querySelector('#ctez-summary-strip')),
+      hasConnectControl: Boolean(modal?.querySelector('.ctez-console-toolbar #ctez-wallet-connect')),
       hasOvenPanel: Boolean(modal?.querySelector('.ctez-oven-panel #ctez-oven-list')),
       hasRefresh: Boolean(modal?.querySelector('#ctez-wallet-refresh')),
       manualFields: Boolean(modal?.querySelector('#ctez-wallet-oven-id, #ctez-tez-input, #ctez-outstanding-input, #ctez-wallet-withdraw-to, #ctez-wallet-withdraw-amount, .ctez-action-card, .ctez-guide-grid, .ctez-exit-workspace')),
@@ -3147,12 +3149,13 @@ async function smokeCtezChamber(browser, baseUrl) {
 
   assert(/ctez Recovery/.test(ctezState.title), `ctez chamber: title mismatch: ${ctezState.title}`);
   assert(/Wallet flow/.test(ctezState.badge), `ctez chamber: badge mismatch: ${ctezState.badge}`);
-  assert(ctezState.hasAppShell && ctezState.hasConnectPanel && ctezState.hasOvenPanel && ctezState.hasRefresh, `ctez chamber: wallet-first app shell missing: ${JSON.stringify(ctezState)}`);
+  assert(ctezState.hasConsoleShell && ctezState.hasSunsetBanner && ctezState.hasSummaryStrip && ctezState.hasConnectControl && ctezState.hasOvenPanel && ctezState.hasRefresh, `ctez chamber: console shell missing: ${JSON.stringify(ctezState)}`);
   assert(!ctezState.manualFields, `ctez chamber: manual/guide controls should not render: ${JSON.stringify(ctezState)}`);
   assert(ctezState.bcdLinks.length === 0, `ctez chamber: Better Call Dev links should not render: ${ctezState.bcdLinks.join(', ')}`);
   assert(!/Better Call Dev|ctez_outstanding|tez_balance|oven ID/i.test(ctezState.text), `ctez chamber: raw recovery instructions leaked into UI: ${ctezState.text}`);
   assert(/KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2/.test(ctezState.text), 'ctez chamber: contract address missing');
-  assert(/Connect a Tezos wallet/.test(ctezState.text), `ctez chamber: connect prompt missing: ${ctezState.text}`);
+  assert(/My Ovens recovery console/.test(ctezState.text), `ctez chamber: recovery console header missing: ${ctezState.text}`);
+  assert(/Ctez is sunsetting, please close your ovens/.test(ctezState.text), `ctez chamber: sunset banner missing: ${ctezState.text}`);
   assert(/Never share your seed phrase/.test(ctezState.text), 'ctez chamber: safety copy missing');
   assert(/Direct: \/ctez\//.test(ctezState.footer), `ctez chamber: direct footer missing: ${ctezState.footer}`);
   assert(ctezState.directHref === '/ctez/', `ctez chamber: direct href mismatch: ${ctezState.directHref}`);
@@ -3166,6 +3169,7 @@ async function smokeCtezChamber(browser, baseUrl) {
   const walletConnectState = await page.evaluate(() => ({
     status: document.querySelector('#ctez-wallet-status')?.textContent || '',
     ovenStatus: document.querySelector('#ctez-oven-status')?.textContent || '',
+    summaryStrip: document.querySelector('#ctez-summary-strip')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     ovenCards: Array.from(document.querySelectorAll('#ctez-oven-list .ctez-oven-card')).map((card) => card.textContent.replace(/\s+/g, ' ').trim()),
     selectedSummary: document.querySelector('#ctez-selected-summary')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     savedMyTezos: localStorage.getItem('tezos-systems-my-baker-address') || '',
@@ -3175,8 +3179,9 @@ async function smokeCtezChamber(browser, baseUrl) {
   assert(walletConnectState.status.includes('Wallet tz1aWX…T1Z9'), `ctez wallet: status mismatch ${JSON.stringify(walletConnectState)}`);
   assert(walletConnectState.savedMyTezos === SAMPLE_ADDRESS, `ctez wallet: should sync My Tezos address ${JSON.stringify(walletConnectState)}`);
   assert(/2 ctez ovens found/.test(walletConnectState.ovenStatus), `ctez wallet: oven status mismatch ${JSON.stringify(walletConnectState)}`);
-  assert(walletConnectState.ovenCards.length === 2 && /6\.54321 tez/.test(walletConnectState.ovenCards[0]) && /0\.987654 tez/.test(walletConnectState.ovenCards[1]), `ctez wallet: detected oven cards mismatch ${JSON.stringify(walletConnectState)}`);
-  assert(/0\.123456 ctez/.test(walletConnectState.selectedSummary), `ctez wallet: selected debt summary mismatch ${JSON.stringify(walletConnectState)}`);
+  assert(/Oven Summary/.test(walletConnectState.summaryStrip) && /7\.530864 tez/.test(walletConnectState.summaryStrip) && /0\.123456 ctez/.test(walletConnectState.summaryStrip) && /0\.987654 tez/.test(walletConnectState.summaryStrip) && /Ovens found 2/.test(walletConnectState.summaryStrip), `ctez wallet: oven summary mismatch ${JSON.stringify(walletConnectState)}`);
+  assert(walletConnectState.ovenCards.length === 2 && /ID/.test(walletConnectState.ovenCards[0]) && /Oven address/.test(walletConnectState.ovenCards[0]) && /6\.54321 tez/.test(walletConnectState.ovenCards[0]) && /0\.987654 tez/.test(walletConnectState.ovenCards[1]), `ctez wallet: detected oven rows mismatch ${JSON.stringify(walletConnectState)}`);
+  assert(/Oven Stats/.test(walletConnectState.selectedSummary) && /Collateral Overview/.test(walletConnectState.selectedSummary) && /Mintable Overview/.test(walletConnectState.selectedSummary) && /Owner/.test(walletConnectState.selectedSummary) && /0\.123456 ctez/.test(walletConnectState.selectedSummary), `ctez wallet: selected debt summary mismatch ${JSON.stringify(walletConnectState)}`);
   assert(!walletConnectState.burnDisabled && walletConnectState.withdrawDisabled, `ctez wallet: debt oven should enable burn only ${JSON.stringify(walletConnectState)}`);
 
   await page.locator('#ctez-wallet-burn').click();
@@ -3236,7 +3241,7 @@ async function smokeCtezChamber(browser, baseUrl) {
   const mobileState = await mobilePage.evaluate(() => {
     const modal = document.querySelector('#ctez-modal .ctez-content');
     const box = modal?.getBoundingClientRect();
-    const grids = Array.from(document.querySelectorAll('#ctez-modal .ctez-app-shell, #ctez-modal .ctez-connect-panel, #ctez-modal .ctez-oven-panel, #ctez-modal .ctez-oven-list, #ctez-modal .ctez-action-panel, #ctez-modal .ctez-action-buttons, #ctez-modal .ctez-selected-summary'));
+    const grids = Array.from(document.querySelectorAll('#ctez-modal .ctez-console-shell, #ctez-modal .ctez-console-toolbar, #ctez-modal .ctez-summary-strip, #ctez-modal .ctez-oven-panel, #ctez-modal .ctez-oven-list, #ctez-modal .ctez-action-panel, #ctez-modal .ctez-action-buttons, #ctez-modal .ctez-selected-summary'));
     return {
       modalWidth: box?.width || 0,
       viewportWidth: window.innerWidth,
