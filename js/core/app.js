@@ -26,7 +26,7 @@ import {
 } from './wallet.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric } from '../features/history.js';
-import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
+import { ensureCardShareButton, initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
 import { fetchProtocols, fetchVotingStatus, getVotingPeriodName } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js';
 import { initLiquidityBaking } from '../features/liquidity-baking.js';
@@ -1141,6 +1141,45 @@ const CHAMBER_CARD_PAIRS = [
 ];
 let _chamberPairObserver = null;
 const CHAMBER_EXPAND_CUE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h5v5"/><path d="M9 20H4v-5"/><path d="M20 4l-7 7"/><path d="M4 20l7-7"/></svg>';
+const CHAMBER_INFO_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>';
+const CHAMBER_INFO_COPY = {
+    'chamber-entry-card': {
+        title: 'The Chamber',
+        body: 'Current Tezos governance state, proposal context, vote receipts, next milestones, and historical amendment memory.',
+        href: '/chamber/',
+        link: 'Open Chamber ->'
+    },
+    'tezlink-entry-card': {
+        title: 'Tezos X',
+        body: 'Live Tezos X chamber for Etherlink TVL, L2 transaction tape, gas oracle cadence, and rollup activity signals.',
+        href: '/tezosx/',
+        link: 'Open Tezos X ->'
+    },
+    'etherlink-governance-entry-card': {
+        title: 'Tezos X Governance',
+        body: 'Governance track monitor for FAST, SLOW, and Sequencer proposal lanes, including idle state and recent track memory.',
+        href: '/l2chamber/',
+        link: 'Open Governance ->'
+    },
+    'lb-entry-card': {
+        title: 'Liquidity Baking Monitor',
+        body: 'Tracks the Liquidity Baking OFF-vote EMA, subsidy state, threshold distance, and baker vote signal.',
+        href: '/lb/',
+        link: 'Open LB Monitor ->'
+    },
+    'tz4-adoption': {
+        title: 'tz4/BLS Adoption',
+        body: 'Tracks baker migration toward tz4/BLS keys, pending activations, switch momentum, and the 50% adoption target.',
+        href: '/tz4/',
+        link: 'Open tz4 Chamber ->'
+    },
+    'network-health': {
+        title: 'Network Health',
+        body: 'Measures recent block attestation power, sampled health windows, live activity tape, and saved My Tezos baker signal.',
+        href: '/health/',
+        link: 'Open Health ->'
+    }
+};
 
 function createChamberExpandCue() {
     const cue = document.createElement('span');
@@ -1150,8 +1189,72 @@ function createChamberExpandCue() {
     return cue;
 }
 
+function getChamberInfoKey(card) {
+    return card?.id || card?.dataset?.stat || 'chamber-card';
+}
+
+function getChamberInfoCopy(card) {
+    const key = getChamberInfoKey(card);
+    if (CHAMBER_INFO_COPY[key]) return CHAMBER_INFO_COPY[key];
+    const title = card.querySelector(':scope .stat-label')?.textContent?.trim() || 'Chamber Card';
+    const body = card.querySelector(':scope .stat-description')?.textContent?.trim()
+        || 'Live Tezos Systems chamber card with direct links, share capture, and expanded room details.';
+    return { title, body, href: '#chambers', link: 'Open Chambers ->' };
+}
+
+function ensureChamberInfoButton(card) {
+    if (!card?.classList?.contains('chamber-entry-card')) return null;
+    const key = getChamberInfoKey(card);
+    const copy = getChamberInfoCopy(card);
+    let info = card.querySelector(':scope > .card-info-btn');
+    let tooltip = card.querySelector(':scope > .card-tooltip');
+    const insertBefore = card.querySelector(':scope > .card-inner');
+
+    if (!info) {
+        info = document.createElement('button');
+        info.type = 'button';
+        info.className = 'card-info-btn';
+        if (insertBefore) card.insertBefore(info, insertBefore);
+        else card.appendChild(info);
+    }
+
+    info.dataset.tooltip = info.dataset.tooltip || key;
+    info.setAttribute('aria-label', `Explain ${copy.title}`);
+    info.title = 'What is this?';
+    if (!info.querySelector('svg')) info.innerHTML = CHAMBER_INFO_ICON_SVG;
+    if (!info.dataset.chamberInfoWired) {
+        info.dataset.chamberInfoWired = '1';
+        info.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+        });
+    }
+
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.className = 'card-tooltip';
+        tooltip.id = `tooltip-${key}`;
+        tooltip.innerHTML = `
+            <div class="tooltip-content">
+                <h4>${escapeHtml(copy.title)}</h4>
+                <p>${escapeHtml(copy.body)}</p>
+                <a href="${escapeHtml(copy.href)}">${escapeHtml(copy.link)}</a>
+            </div>
+        `;
+    }
+
+    if (tooltip.previousElementSibling !== info) {
+        info.insertAdjacentElement('afterend', tooltip);
+    }
+
+    return info;
+}
+
 function syncChamberEntryFooter(card) {
     if (!card?.classList?.contains('chamber-entry-card')) return;
+    ensureCardShareButton(card);
+    ensureChamberInfoButton(card);
+
     const front = card.querySelector(':scope .card-front');
     if (!front) return;
 

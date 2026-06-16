@@ -5,6 +5,9 @@
 let html2canvasLoaded = false;
 let _html2canvasPromise = null;
 
+const CARD_SHARE_ICON_SVG = '<svg class="card-share-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7.8 6H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.8L14.5 4Z"/><circle cx="12" cy="13" r="3.2"/></svg>';
+const CARD_SHARE_LOADING_ICON = '<span class="card-share-loading" aria-hidden="true">...</span>';
+
 // Mobile devices have strict canvas size limits (iOS Safari ~16MP)
 // Use scale 1 on mobile to avoid OOM failures
 const IS_MOBILE_UA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
@@ -299,23 +302,37 @@ export function initShare() {
     addCardShareButtons();
 }
 
+export function ensureCardShareButton(card) {
+    if (!card) return null;
+    let btn = card.querySelector(':scope > .card-share-btn');
+    if (!btn) {
+        btn = document.createElement('button');
+        btn.className = 'card-share-btn';
+        card.appendChild(btn);
+    }
+
+    btn.type = 'button';
+    if (!btn.querySelector('svg.card-share-icon')) btn.innerHTML = CARD_SHARE_ICON_SVG;
+    btn.title = 'Share this card';
+    btn.setAttribute('aria-label', 'Share this card');
+
+    if (!btn.dataset.cardShareWired) {
+        btn.dataset.cardShareWired = '1';
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            captureCard(card);
+        });
+    }
+
+    return btn;
+}
+
 /**
  * Add share buttons to all stat cards
  */
 function addCardShareButtons() {
-    const cards = document.querySelectorAll('.stat-card');
-    cards.forEach(card => {
-        if (card.querySelector(':scope > .card-share-btn')) return;
-        const btn = document.createElement('button');
-        btn.className = 'card-share-btn';
-        btn.innerHTML = '📸';
-        btn.title = 'Share this stat';
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            captureCard(card);
-        });
-        card.appendChild(btn);
-    });
+    document.querySelectorAll('.stat-card').forEach(ensureCardShareButton);
 }
 
 /**
@@ -326,7 +343,7 @@ async function captureCard(card) {
     let wrapper = null;
     let restoreSpacing = null;
     if (btn) {
-        btn.innerHTML = '⏳';
+        btn.innerHTML = CARD_SHARE_LOADING_ICON;
         btn.style.opacity = '1';
     }
     
@@ -616,7 +633,7 @@ async function captureCard(card) {
         if (restoreSpacing) restoreSpacing();
         if (wrapper?.isConnected) wrapper.remove();
         if (btn) {
-            btn.innerHTML = '📸';
+            btn.innerHTML = CARD_SHARE_ICON_SVG;
             btn.style.opacity = '';
         }
     }

@@ -1498,6 +1498,16 @@ async function assertChamberControlGeometry(page, label) {
         .map((node) => ({ node, name: nameOf(node), box: visibleBox(node) }))
         .filter((item) => item.box);
 
+      const shareControl = card.querySelector(':scope > .card-share-btn');
+      const infoControl = card.querySelector(':scope > .card-info-btn');
+      const infoTooltip = card.querySelector(':scope > .card-tooltip');
+      if (!shareControl) found.push({ card: selector, issue: 'missing-share-control' });
+      else if (!shareControl.querySelector('svg')) found.push({ card: selector, issue: 'share-control-missing-svg' });
+      if (!infoControl) found.push({ card: selector, issue: 'missing-info-control' });
+      else if (!infoControl.querySelector('svg')) found.push({ card: selector, issue: 'info-control-missing-svg' });
+      if (!infoTooltip) found.push({ card: selector, issue: 'missing-info-tooltip' });
+      else if (infoTooltip.previousElementSibling !== infoControl) found.push({ card: selector, issue: 'info-tooltip-not-adjacent' });
+
       if (!footer || !footerBox) {
         found.push({ card: selector, issue: 'missing-footer-rail' });
       } else {

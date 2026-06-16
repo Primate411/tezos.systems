@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-16',
         entries: [
+            { type: '🎨', text: 'Every Chamber card now gets consistent SVG share and info controls, including late-rendered Tezos X, governance, and Chamber entry cards' },
             { type: '🎨', text: 'Chamber card controls now stack vertically so camera, direct-link, and info icons stay clear of live preview rows' },
             { type: '🔧', text: 'tz4 Adoption now clears stale modal rows on reopen so refreshed content and the live timer start together' },
             { type: '🎨', text: 'The Chamber now explains quiet governance states with a top-level Now panel, latest vote receipt, next milestone, and failed-vote memory instead of leaving no-ballot periods feeling empty' },
