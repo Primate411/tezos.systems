@@ -208,12 +208,13 @@ inline modal styles in `js/core/app.js`.
   timing, projection to 50%, largest holdouts, visible monthly switch-count
   momentum, power milestones, top-10 first movers, and a capped Baker Status
   table with a Show all control.
-- ctez Oven Guide with direct `#ctez` access, Better Call Dev links for the
-  retired ctez contract storage and `mint_or_burn`/`withdraw` interaction page,
+- ctez Oven Guide with direct `#ctez` access, a calmer three-step exit
+  workspace for finding ovens, burning outstanding ctez, and withdrawing tez,
+  Better Call Dev links for contract storage and `mint_or_burn`/`withdraw`,
   oven ID plus `ctez_outstanding`/`tez_balance` checkpoints, raw mutez and
-  micro-ctez unit helpers, Octez.Connect wallet actions for `mint_or_burn` and
-  `withdraw`, and signing-safety reminders for users withdrawing tez from old
-  ctez ovens.
+  micro-ctez unit helpers, optional Octez.Connect wallet actions for
+  `mint_or_burn` and `withdraw`, and signing-safety reminders for users
+  withdrawing tez from old ctez ovens.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
   LB vote state, Octez.Connect wallet sync, and recent baker delegator/staker
   activity.

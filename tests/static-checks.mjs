@@ -503,6 +503,8 @@ async function checkSelectorContracts() {
     ['ctez card copy link', 'data-copy-hash="#ctez"', ctez],
     ['ctez chamber wiring', 'openCtezChamber', ctez],
     ['ctez direct footer link', 'Direct: /ctez/', ctez],
+    ['ctez exit workspace', 'ctez-exit-workspace', ctez],
+    ['ctez optional signer rail', 'Optional signer', ctez],
     ['ctez contract address', 'KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2', ctez],
     ['ctez oven storage link', 'CTEZ_STORAGE_URL', ctez],
     ['ctez mint-or-burn link', 'interact/mint_or_burn', ctez],
@@ -615,7 +617,9 @@ async function checkSelectorContracts() {
     ['tz4 monthly bar fill style', '.tz4-month-fill', styles],
     ['tz4 first movers top 10 cap', '.slice(0, 10)', tz4],
     ['ctez action grid style', '.ctez-action-grid', styles],
-    ['ctez guide grid style', '.ctez-guide-grid', styles]
+    ['ctez guide grid style', '.ctez-guide-grid', styles],
+    ['ctez exit workspace style', '.ctez-exit-workspace', styles],
+    ['ctez hero panel style', '.ctez-hero-panel', styles]
   ];
   for (const [label, snippet, text] of chamberRendererStyleContracts) {
     if (!text.includes(snippet)) fail(`missing chamber renderer style contract: ${label}`);

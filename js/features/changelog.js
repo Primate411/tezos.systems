@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-15',
         entries: [
+            { type: '🎨', text: 'ctez Oven Guide now uses a calmer exit workspace with a primary three-step path, quieter reference links, and wallet signing moved into an optional side rail' },
             { type: '🔧', text: 'Octez.Connect wallet loading now uses a CSP-safe prewarmed ESM bundle so My Tezos and ctez wallet actions can open the dApp client' },
             { type: '🎨', text: 'Current Protocol now shows only a compact Chamber signal while detailed governance progress stays inside The Chamber' },
             { type: '🔧', text: 'My Tezos baker signal now ignores nonzero-round baking rights and shows a back-online state as soon as fresh attestations are realized' },

@@ -3095,6 +3095,10 @@ async function smokeCtezChamber(browser, baseUrl) {
       title: modal?.querySelector('.chamber-title')?.textContent || '',
       badge: modal?.querySelector('.chamber-badge')?.textContent || '',
       text,
+      hero: modal?.querySelector('.ctez-hero-panel')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      hasWorkspace: Boolean(modal?.querySelector('.ctez-exit-workspace')),
+      hasWalletRail: Boolean(modal?.querySelector('.ctez-side-rail .ctez-wallet-panel #ctez-wallet-connect')),
+      walletRailText: modal?.querySelector('.ctez-side-rail .ctez-wallet-panel')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       stepCards: modal?.querySelectorAll('.ctez-step-card').length || 0,
       actionCards: modal?.querySelectorAll('.ctez-action-card').length || 0,
       bcdLinks,
@@ -3110,7 +3114,10 @@ async function smokeCtezChamber(browser, baseUrl) {
   });
 
   assert(/ctez Oven Guide/.test(ctezState.title), `ctez chamber: title mismatch: ${ctezState.title}`);
-  assert(/Better Call Dev/.test(ctezState.badge), `ctez chamber: badge mismatch: ${ctezState.badge}`);
+  assert(/Retired frontend fallback/.test(ctezState.badge), `ctez chamber: badge mismatch: ${ctezState.badge}`);
+  assert(ctezState.hasWorkspace && ctezState.hasWalletRail, `ctez chamber: calmer workspace and wallet rail missing: ${JSON.stringify(ctezState)}`);
+  assert(/Find the oven\. Clear the debt\. Withdraw the tez\./.test(ctezState.hero), `ctez chamber: hero sequence missing: ${ctezState.hero}`);
+  assert(/Optional signer/.test(ctezState.walletRailText) && /Connect only when/.test(ctezState.walletRailText), `ctez chamber: wallet rail should be contextual: ${ctezState.walletRailText}`);
   assert(/KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2/.test(ctezState.text), 'ctez chamber: contract address missing');
   assert(/ctez_outstanding/.test(ctezState.text) && /tez_balance/.test(ctezState.text), `ctez chamber: oven fields missing: ${ctezState.text}`);
   assert(/Never share your seed phrase/.test(ctezState.text), 'ctez chamber: safety copy missing');
@@ -3200,7 +3207,7 @@ async function smokeCtezChamber(browser, baseUrl) {
   const mobileState = await mobilePage.evaluate(() => {
     const modal = document.querySelector('#ctez-modal .ctez-content');
     const box = modal?.getBoundingClientRect();
-    const grids = Array.from(document.querySelectorAll('#ctez-modal .ctez-action-grid, #ctez-modal .ctez-guide-grid, #ctez-modal .ctez-tool-grid'));
+    const grids = Array.from(document.querySelectorAll('#ctez-modal .ctez-action-grid, #ctez-modal .ctez-guide-grid, #ctez-modal .ctez-tool-grid, #ctez-modal .ctez-exit-workspace, #ctez-modal .ctez-side-rail'));
     return {
       modalWidth: box?.width || 0,
       viewportWidth: window.innerWidth,

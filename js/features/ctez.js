@@ -125,9 +125,12 @@ function renderActionLink({ href, title, body, meta }) {
 function renderStep({ number, title, body, items }) {
     return `
         <section class="ctez-step-card chamber-anim-fade" style="animation-delay:${120 + number * 50}ms">
-            <div class="ctez-step-kicker">Step ${number}</div>
-            <h3>${escapeHtml(title)}</h3>
-            <p>${escapeHtml(body)}</p>
+            <div class="ctez-step-number">${number}</div>
+            <div class="ctez-step-copy">
+                <div class="ctez-step-kicker">Step ${number}</div>
+                <h3>${escapeHtml(title)}</h3>
+                <p>${escapeHtml(body)}</p>
+            </div>
             <ul class="ctez-step-list">
                 ${items.map((item) => `<li>${item}</li>`).join('')}
             </ul>
@@ -141,156 +144,190 @@ function renderCtezChamber() {
             <div class="lb-system-strip ctez-system-strip">
                 <span class="lb-system-brand">Tezos.Systems</span>
                 <span>ctez Oven Guide</span>
-                <span>Manual exit path</span>
             </div>
             <div class="chamber-title-row">
                 <h2 class="chamber-title">ctez Oven Guide</h2>
-                <span class="chamber-badge ctez-badge">Better Call Dev</span>
+                <span class="chamber-badge ctez-badge">Retired frontend fallback</span>
             </div>
             <div class="chamber-proposal-info">
-                <div class="proposal-name">Withdraw tez from a ctez oven after the old frontend retirement</div>
+                <div class="proposal-name">A calmer path for withdrawing tez from old ctez ovens</div>
                 <div class="proposal-hash">Contract ${escapeHtml(CTEZ_CONTRACT)}</div>
             </div>
         </div>
 
-        <section class="lb-explainer ctez-explainer chamber-anim-fade" style="animation-delay:80ms">
-            <div>
-                <span class="ctez-pill">Oven storage</span>
-                <span class="ctez-pill">mint_or_burn</span>
-                <span class="ctez-pill">withdraw</span>
-                <span class="ctez-pill">Octez.Connect</span>
-            </div>
-            <h3>Find the oven, clear outstanding ctez, then withdraw the tez balance.</h3>
-            <p>
-                The original ctez frontend wrapped contract calls and converted human amounts to micro-units for you.
-                Better Call Dev exposes the raw contract fields, so this guide keeps the unit conversions visible before you sign anything.
-            </p>
-        </section>
-
-        <section class="ctez-wallet-panel chamber-anim-fade" style="animation-delay:110ms">
-            <div class="ctez-wallet-header">
-                <div>
-                    <div class="lb-panel-title">Octez.Connect wallet actions</div>
-                    <p class="ctez-tool-note">Connect a Tezos wallet, review the raw fields here, then let your wallet simulate and sign the ctez oven call.</p>
-                </div>
-                <div class="ctez-wallet-actions">
-                    <button id="ctez-wallet-connect" class="glass-button ctez-wallet-button" type="button">Connect wallet</button>
-                    <span id="ctez-wallet-status" class="ctez-wallet-status">No wallet connected</span>
+        <section class="ctez-hero-panel chamber-anim-fade" style="animation-delay:80ms">
+            <div class="ctez-hero-copy">
+                <div class="ctez-hero-eyebrow">Use one clean sequence</div>
+                <h3>Find the oven. Clear the debt. Withdraw the tez.</h3>
+                <p>
+                    The retired ctez frontend used to hide the contract fields and unit math. Keep the raw values visible, then use the wallet only after the oven id and amounts are known.
+                </p>
+                <div class="ctez-pill-row" aria-label="ctez exit checkpoints">
+                    <span class="ctez-pill">Oven storage</span>
+                    <span class="ctez-pill">ctez_outstanding</span>
+                    <span class="ctez-pill">tez_balance</span>
+                    <span class="ctez-pill">Wallet review</span>
                 </div>
             </div>
-            <div class="ctez-wallet-grid">
-                <label class="ctez-converter ctez-wallet-field">
-                    <span>oven id</span>
-                    <input id="ctez-wallet-oven-id" inputmode="numeric" autocomplete="off" placeholder="0">
-                </label>
-                <label class="ctez-converter ctez-wallet-field">
-                    <span>ctez_outstanding</span>
-                    <input id="ctez-wallet-outstanding" inputmode="numeric" autocomplete="off" placeholder="10000000">
-                </label>
-                <button id="ctez-wallet-burn" class="glass-button ctez-wallet-submit" type="button">Burn outstanding ctez</button>
-                <label class="ctez-converter ctez-wallet-field">
-                    <span>withdraw amount, mutez</span>
-                    <input id="ctez-wallet-withdraw-amount" inputmode="numeric" autocomplete="off" placeholder="10000000">
-                </label>
-                <label class="ctez-converter ctez-wallet-field ctez-wallet-field-wide">
-                    <span>withdraw to</span>
-                    <input id="ctez-wallet-withdraw-to" autocomplete="off" placeholder="tz1…">
-                </label>
-                <button id="ctez-wallet-withdraw" class="glass-button ctez-wallet-submit" type="button">Withdraw tez</button>
+            <div class="ctez-flow-list">
+                <div class="ctez-flow-row">
+                    <span>1</span>
+                    <strong>Locate oven</strong>
+                    <small>Search storage with the owner wallet.</small>
+                </div>
+                <div class="ctez-flow-row">
+                    <span>2</span>
+                    <strong>Burn outstanding ctez</strong>
+                    <small>Use a negative mint_or_burn quantity.</small>
+                </div>
+                <div class="ctez-flow-row">
+                    <span>3</span>
+                    <strong>Withdraw tez</strong>
+                    <small>Send raw mutez to your wallet.</small>
+                </div>
             </div>
-            <div id="ctez-wallet-review" class="ctez-wallet-review">Wallet requests stay inactive until you connect and press a burn or withdraw button.</div>
-            <div id="ctez-wallet-feedback" class="ctez-wallet-feedback" role="status" aria-live="polite"></div>
         </section>
 
-        <div class="ctez-action-grid chamber-anim-fade" style="animation-delay:120ms">
-            ${renderActionLink({
-                href: CTEZ_STORAGE_URL,
-                title: 'Open oven storage',
-                body: 'Search the ovens big map with your wallet address.',
-                meta: 'Better Call Dev storage'
-            })}
-            ${renderActionLink({
-                href: CTEZ_MINT_BURN_URL,
-                title: 'Open mint_or_burn',
-                body: 'Burn outstanding ctez, then use withdraw.',
-                meta: 'Better Call Dev interact'
-            })}
-            ${renderActionLink({
-                href: CTEZ_SOURCE_URL,
-                title: 'Read source walkthrough',
-                body: 'Tezos Commons article with screenshots.',
-                meta: 'X article'
-            })}
-            ${renderActionLink({
-                href: CTEZ_REPO_URL,
-                title: 'Original ctez frontend',
-                body: 'Contract and old UI source for reference.',
-                meta: 'GitHub'
-            })}
-        </div>
+        <div class="ctez-exit-workspace">
+            <div class="ctez-primary-rail">
+                <div class="ctez-guide-grid">
+                    ${renderStep({
+                        number: 1,
+                        title: 'Locate your oven',
+                        body: 'Open contract storage, expand the ovens big map, and search with the wallet address that owns the oven.',
+                        items: [
+                            `Open <a href="${escapeHtml(CTEZ_STORAGE_URL)}" target="_blank" rel="noopener">storage</a> for <code>${escapeHtml(CTEZ_CONTRACT)}</code>.`,
+                            'Record the oven id from the big-map key.',
+                            'Record <code>ctez_outstanding</code> and <code>tez_balance</code> from the oven value.'
+                        ]
+                    })}
+                    ${renderStep({
+                        number: 2,
+                        title: 'Burn outstanding ctez',
+                        body: 'If ctez_outstanding is above zero, call mint_or_burn with a negative quantity.',
+                        items: [
+                            `Open <a href="${escapeHtml(CTEZ_MINT_BURN_URL)}" target="_blank" rel="noopener">mint_or_burn</a>.`,
+                            'Set <code>id</code> to the oven id.',
+                            'Set <code>quantity</code> to <code>-ctez_outstanding</code>, for example <code>10000000</code> becomes <code>-10000000</code>.',
+                            'Confirm your wallet holds at least that much ctez before signing.'
+                        ]
+                    })}
+                    ${renderStep({
+                        number: 3,
+                        title: 'Withdraw the tez',
+                        body: 'After outstanding ctez is cleared, use the withdraw entrypoint with the raw mutez amount.',
+                        items: [
+                            'Select <code>withdraw</code> on the Better Call Dev interact page.',
+                            'Set <code>id</code> to the oven id.',
+                            'Set <code>to</code> to your wallet address.',
+                            'Set <code>amount</code> to <code>tez_balance</code> in mutez. If it fails, retry with a slightly smaller amount.'
+                        ]
+                    })}
+                </div>
 
-        <div class="ctez-guide-grid">
-            ${renderStep({
-                number: 1,
-                title: 'Locate your oven',
-                body: 'Open contract storage, expand the ovens big map, and search with the wallet address that owns the oven.',
-                items: [
-                    `Open <a href="${escapeHtml(CTEZ_STORAGE_URL)}" target="_blank" rel="noopener">storage</a> for <code>${escapeHtml(CTEZ_CONTRACT)}</code>.`,
-                    'Record the oven id from the big-map key.',
-                    'Record <code>ctez_outstanding</code> and <code>tez_balance</code> from the oven value.'
-                ]
-            })}
-            ${renderStep({
-                number: 2,
-                title: 'Burn outstanding ctez',
-                body: 'If ctez_outstanding is above zero, call mint_or_burn with a negative quantity.',
-                items: [
-                    `Open <a href="${escapeHtml(CTEZ_MINT_BURN_URL)}" target="_blank" rel="noopener">mint_or_burn</a>.`,
-                    'Set <code>id</code> to the oven id.',
-                    'Set <code>quantity</code> to <code>-ctez_outstanding</code>, for example <code>10000000</code> becomes <code>-10000000</code>.',
-                    'Confirm your wallet holds at least that much ctez before signing.'
-                ]
-            })}
-            ${renderStep({
-                number: 3,
-                title: 'Withdraw the tez',
-                body: 'After outstanding ctez is cleared, use the withdraw entrypoint with the raw mutez amount.',
-                items: [
-                    'Select <code>withdraw</code> on the Better Call Dev interact page.',
-                    'Set <code>id</code> to the oven id.',
-                    'Set <code>to</code> to your wallet address.',
-                    'Set <code>amount</code> to <code>tez_balance</code> in mutez. If it fails, retry with a slightly smaller amount.'
-                ]
-            })}
-        </div>
-
-        <section class="ctez-tool-panel chamber-anim-fade" style="animation-delay:300ms">
-            <div class="lb-panel-title">Unit helpers</div>
-            <div class="ctez-tool-grid">
-                <label class="ctez-converter">
-                    <span>tez balance</span>
-                    <input id="ctez-tez-input" inputmode="decimal" autocomplete="off" placeholder="10">
-                    <strong id="ctez-mutez-output">10 tez = 10,000,000 mutez</strong>
-                </label>
-                <label class="ctez-converter">
-                    <span>ctez_outstanding</span>
-                    <input id="ctez-outstanding-input" inputmode="numeric" autocomplete="off" placeholder="10000000">
-                    <strong id="ctez-burn-output">Burn quantity: -10,000,000</strong>
-                </label>
+                <section class="ctez-tool-panel chamber-anim-fade" style="animation-delay:300ms">
+                    <div class="lb-panel-title">Unit helpers</div>
+                    <div class="ctez-tool-grid">
+                        <label class="ctez-converter">
+                            <span>tez balance</span>
+                            <input id="ctez-tez-input" inputmode="decimal" autocomplete="off" placeholder="10">
+                            <strong id="ctez-mutez-output">10 tez = 10,000,000 mutez</strong>
+                        </label>
+                        <label class="ctez-converter">
+                            <span>ctez_outstanding</span>
+                            <input id="ctez-outstanding-input" inputmode="numeric" autocomplete="off" placeholder="10000000">
+                            <strong id="ctez-burn-output">Burn quantity: -10,000,000</strong>
+                        </label>
+                    </div>
+                    <p class="ctez-tool-note">
+                        Better Call Dev contract fields use raw micro-units. The retired frontend multiplied human tez/ctez amounts by 1,000,000 before sending the contract call.
+                    </p>
+                </section>
             </div>
-            <p class="ctez-tool-note">
-                Better Call Dev contract fields use raw micro-units. The retired frontend multiplied human tez/ctez amounts by 1,000,000 before sending the contract call.
-            </p>
-        </section>
 
-        <section class="ctez-safety-panel chamber-anim-fade" style="animation-delay:360ms">
-            <div class="lb-panel-title">Signing checklist</div>
-            <ul class="ctez-step-list">
-                <li>Verify the contract address before signing: <code>${escapeHtml(CTEZ_CONTRACT)}</code>.</li>
-                <li>Only sign the expected <code>mint_or_burn</code> or <code>withdraw</code> call.</li>
-                <li>Never share your seed phrase, private key, wallet file, or wallet password with anyone offering help.</li>
-                <li>If you are unsure, ask in official Tezos community channels and ignore unsolicited direct messages.</li>
-            </ul>
+            <aside class="ctez-side-rail">
+                <section class="ctez-wallet-panel chamber-anim-fade" style="animation-delay:160ms">
+                    <div class="ctez-panel-kicker">Optional signer</div>
+                    <div class="ctez-wallet-header">
+                        <div>
+                            <div class="lb-panel-title">Wallet actions</div>
+                            <p class="ctez-tool-note">Connect only when the oven id and raw amounts are ready. Your wallet still shows the final operation before signing.</p>
+                        </div>
+                        <div class="ctez-wallet-actions">
+                            <button id="ctez-wallet-connect" class="glass-button ctez-wallet-button" type="button">Connect wallet</button>
+                            <span id="ctez-wallet-status" class="ctez-wallet-status">No wallet connected</span>
+                        </div>
+                    </div>
+                    <div class="ctez-wallet-grid">
+                        <div class="ctez-wallet-call">
+                            <div class="ctez-wallet-call-title">Burn debt</div>
+                            <label class="ctez-converter ctez-wallet-field">
+                                <span>oven id</span>
+                                <input id="ctez-wallet-oven-id" inputmode="numeric" autocomplete="off" placeholder="0">
+                            </label>
+                            <label class="ctez-converter ctez-wallet-field">
+                                <span>ctez_outstanding</span>
+                                <input id="ctez-wallet-outstanding" inputmode="numeric" autocomplete="off" placeholder="10000000">
+                            </label>
+                            <button id="ctez-wallet-burn" class="glass-button ctez-wallet-submit" type="button">Burn outstanding ctez</button>
+                        </div>
+                        <div class="ctez-wallet-call">
+                            <div class="ctez-wallet-call-title">Withdraw tez</div>
+                            <label class="ctez-converter ctez-wallet-field">
+                                <span>amount, mutez</span>
+                                <input id="ctez-wallet-withdraw-amount" inputmode="numeric" autocomplete="off" placeholder="10000000">
+                            </label>
+                            <label class="ctez-converter ctez-wallet-field ctez-wallet-field-wide">
+                                <span>withdraw to</span>
+                                <input id="ctez-wallet-withdraw-to" autocomplete="off" placeholder="tz1...">
+                            </label>
+                            <button id="ctez-wallet-withdraw" class="glass-button ctez-wallet-submit" type="button">Withdraw tez</button>
+                        </div>
+                    </div>
+                    <div id="ctez-wallet-review" class="ctez-wallet-review">Wallet requests stay inactive until you connect and press a burn or withdraw button.</div>
+                    <div id="ctez-wallet-feedback" class="ctez-wallet-feedback" role="status" aria-live="polite"></div>
+                </section>
+
+                <section class="ctez-safety-panel chamber-anim-fade" style="animation-delay:360ms">
+                    <div class="lb-panel-title">Signing checklist</div>
+                    <ul class="ctez-step-list">
+                        <li>Verify the contract address before signing: <code>${escapeHtml(CTEZ_CONTRACT)}</code>.</li>
+                        <li>Only sign the expected <code>mint_or_burn</code> or <code>withdraw</code> call.</li>
+                        <li>Never share your seed phrase, private key, wallet file, or wallet password with anyone offering help.</li>
+                        <li>If you are unsure, ask in official Tezos community channels and ignore unsolicited direct messages.</li>
+                    </ul>
+                </section>
+            </aside>
+        </div>
+
+        <section class="ctez-reference-panel chamber-anim-fade" style="animation-delay:390ms">
+            <div class="lb-panel-title">Reference links</div>
+            <div class="ctez-action-grid">
+                ${renderActionLink({
+                    href: CTEZ_STORAGE_URL,
+                    title: 'Oven storage',
+                    body: 'Search the ovens big map with your wallet address.',
+                    meta: 'Better Call Dev'
+                })}
+                ${renderActionLink({
+                    href: CTEZ_MINT_BURN_URL,
+                    title: 'Contract interact',
+                    body: 'Use mint_or_burn first, then withdraw.',
+                    meta: 'Better Call Dev'
+                })}
+                ${renderActionLink({
+                    href: CTEZ_SOURCE_URL,
+                    title: 'Source walkthrough',
+                    body: 'Tezos Commons article with screenshots.',
+                    meta: 'X article'
+                })}
+                ${renderActionLink({
+                    href: CTEZ_REPO_URL,
+                    title: 'Original frontend',
+                    body: 'Contract and old UI source for reference.',
+                    meta: 'GitHub'
+                })}
+            </div>
         </section>
 
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:420ms">
