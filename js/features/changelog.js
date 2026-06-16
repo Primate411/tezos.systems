@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-16',
         entries: [
+            { type: '🎨', text: 'Front-page Chamber cards now use denser rows, tighter mobile previews, and cleaner utility-control spacing' },
             { type: '✨', text: 'ctez End of Life now previews the selected oven close plan and submits burn plus withdraw legs in one Octez.Connect wallet batch when both are needed' },
             { type: '🎨', text: 'ctez End of Life now uses native Tezos.Systems chamber styling with live recovery panels, mono plan rows, and community reference links' },
             { type: '🎨', text: 'My Tezos wallet and manual address actions now use clearer labels so the drawer no longer presents two similar connect buttons' },
