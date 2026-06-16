@@ -707,17 +707,28 @@ async function installFeatureMocks(context, options = {}) {
           ]);
         }
         if (type === 'baking' && rights.get('status') === 'future') {
+          if (rights.get('round') !== '0') {
+            return fulfillJson(route, [
+              { level: 12345698, cycle: 1143, round: 5, status: 'future', type: 'baking', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } }
+            ]);
+          }
           return fulfillJson(route, [
             { level: 12345858, cycle: 1143, round: 0, status: 'future', type: 'baking', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } }
           ]);
         }
         if (type === 'baking') {
+          if (rights.get('round') !== '0') {
+            return fulfillJson(route, [
+              { level: 12345670, cycle: 1143, round: 5, status: 'missed', type: 'baking', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } }
+            ]);
+          }
           return fulfillJson(route, [
-            { level: 12345540, cycle: 1143, round: 0, status: 'realized', type: 'baking', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } }
+            { level: 12345540, cycle: 1143, round: 0, status: 'missed', type: 'baking', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } }
           ]);
         }
         return fulfillJson(route, Array.from({ length: 10 }, (_, index) => ({
           level: 12345670 - index,
+          timestamp: new Date(Date.now() - index * 6000).toISOString(),
           slots: 1,
           status: 'realized',
           type: 'attestation',
@@ -2169,12 +2180,13 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
 
   await page.waitForFunction(() => {
     const text = (document.querySelector('#drawer-operator-status')?.innerText || '').toLowerCase();
-    return text.includes('next block') && text.includes('working') && text.includes('last 10 attestations ok');
+    return text.includes('next round 0 block') && text.includes('back online') && text.includes('last 10 attestations ok');
   }, null, { timeout: 15000 });
   const operatorText = (await page.locator('#drawer-operator-status').innerText()).toLowerCase();
-  assert(operatorText.includes('next block'), 'my tezos baker activity: should show the next block prominently');
+  assert(operatorText.includes('next round 0 block'), 'my tezos baker activity: should show the next round 0 block prominently');
   assert(operatorText.includes('18m'), `my tezos baker activity: should estimate next block ETA, saw: ${operatorText}`);
-  assert(operatorText.includes('working'), 'my tezos baker activity: should show current baker working state');
+  assert(operatorText.includes('back online'), 'my tezos baker activity: should show recovered baker state from fresh attestations');
+  assert(!operatorText.includes('round 5'), `my tezos baker activity: should not surface nonzero-round baking rights, saw: ${operatorText}`);
   assert(operatorText.includes('attestation') && operatorText.includes('100.0%'), 'my tezos baker activity: should show prominent attestation rate');
   assert(operatorText.includes('dal') && operatorText.includes('14/14 dal slots'), 'my tezos baker activity: should show prominent DAL participation');
 

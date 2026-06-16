@@ -286,7 +286,7 @@ function formatLevel(level) {
 }
 
 function summarizeRightStatus(right) {
-    if (!right) return { state: 'unknown', text: 'No recent right', detail: 'TzKT returned no completed right yet' };
+    if (!right) return { state: 'unknown', text: 'No recent round 0 right', detail: 'TzKT returned no completed round 0 baking right yet' };
     const status = String(right.status || 'unknown').toLowerCase();
     const ok = status === 'realized';
     return {
@@ -296,21 +296,31 @@ function summarizeRightStatus(right) {
     };
 }
 
+function isRoundZeroRight(right) {
+    return Number(right?.round) === 0;
+}
+
+function firstRoundZeroRight(rows) {
+    return (Array.isArray(rows) ? rows : []).find(isRoundZeroRight) || null;
+}
+
 function summarizeRecentAttestations(rows) {
     const recent = (rows || []).filter((row) => row.status !== 'future').slice(0, RECENT_OPERATOR_ATTESTATIONS);
     const issues = recent.filter((row) => row.status !== 'realized');
     if (!recent.length) {
-        return { state: 'unknown', rate: null, value: 'No data', detail: 'No completed attestation rights returned' };
+        return { state: 'unknown', rate: null, value: 'No data', detail: 'No completed attestation rights returned', latest: null };
     }
     const okCount = recent.length - issues.length;
     const rate = (okCount / recent.length) * 100;
+    const latest = recent[0] || null;
     return {
         state: issues.length ? 'issue' : 'ok',
         rate,
         value: `${rate.toFixed(1)}%`,
+        latest,
         detail: issues.length
             ? `${issues.length}/${recent.length} recent attestation issue${issues.length > 1 ? 's' : ''}`
-            : `Last ${recent.length} attestations OK`
+            : `Last ${recent.length} attestations OK · latest level ${formatLevel(latest?.level)}`
     };
 }
 
@@ -347,6 +357,54 @@ function summarizeCycleAttestation(participation, recent) {
     };
 }
 
+function summarizeLiveOperatorStatus(latestBlock, recentAttestations) {
+    if (recentAttestations.state === 'ok' && latestBlock.state === 'issue') {
+        return {
+            state: 'ok',
+            value: 'Back online',
+            detail: `Fresh attestations OK · prior round 0 block ${latestBlock.text}`
+        };
+    }
+
+    if (recentAttestations.state === 'ok') {
+        return {
+            state: 'ok',
+            value: 'Working',
+            detail: `${latestBlock.state === 'ok' ? 'Last round 0 block OK' : latestBlock.text} · ${recentAttestations.detail}`
+        };
+    }
+
+    if (recentAttestations.state === 'issue') {
+        return {
+            state: 'issue',
+            value: 'Check now',
+            detail: `${latestBlock.text} · ${recentAttestations.detail}`
+        };
+    }
+
+    if (latestBlock.state === 'issue') {
+        return {
+            state: 'issue',
+            value: 'Check now',
+            detail: `${latestBlock.text} · no fresh attestation confirmation`
+        };
+    }
+
+    if (latestBlock.state === 'ok') {
+        return {
+            state: 'ok',
+            value: 'Working',
+            detail: `Last round 0 block OK · ${recentAttestations.detail}`
+        };
+    }
+
+    return {
+        state: 'unknown',
+        value: 'No data',
+        detail: `${latestBlock.text} · ${recentAttestations.detail}`
+    };
+}
+
 async function fetchBakerOperatorStatus(bakerAddr, participation) {
     if (!bakerAddr) return null;
     const [head, blockDelaySeconds, dalParticipation] = await Promise.all([
@@ -374,7 +432,8 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
             type: 'baking',
             status: 'future',
             'level.gt': String(headLevel),
-            limit: '1',
+            round: '0',
+            limit: '20',
             'sort.asc': 'level',
             select: 'level,cycle,round,status,type'
         }), []),
@@ -383,9 +442,10 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
             type: 'baking',
             ...(head.cycle != null ? { cycle: String(head.cycle) } : {}),
             'level.le': String(headLevel),
-            limit: '1',
+            round: '0',
+            limit: '5',
             'sort.desc': 'level',
-            select: 'level,cycle,round,status,type'
+            select: 'level,timestamp,cycle,round,status,type'
         }), []),
         fetchJsonWithTimeout(rightsUrl({
             baker: enc,
@@ -393,26 +453,21 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
             'level.le': String(headLevel),
             limit: String(RECENT_OPERATOR_ATTESTATIONS),
             'sort.desc': 'level',
-            select: 'level,slots,status,type'
+            select: 'level,timestamp,slots,status,type'
         }), [])
     ]);
 
-    const next = Array.isArray(nextBlocks) ? nextBlocks[0] : null;
+    const next = firstRoundZeroRight(nextBlocks);
     const levelDiff = next ? Number(next.level) - headLevel : null;
     const etaMs = Number.isFinite(levelDiff) ? levelDiff * blockDelaySeconds * 1000 : null;
-    const latestBlock = summarizeRightStatus(Array.isArray(latestBlocks) ? latestBlocks[0] : null);
+    const latestBlock = summarizeRightStatus(firstRoundZeroRight(latestBlocks));
     const recentAttestations = summarizeRecentAttestations(Array.isArray(latestAttestations) ? latestAttestations : []);
     const dal = summarizeDalParticipation(dalParticipation);
     const attestation = summarizeCycleAttestation(participation, recentAttestations);
-    const hasIssue = latestBlock.state === 'issue' || recentAttestations.state === 'issue';
-    const liveState = hasIssue ? 'issue' : (latestBlock.state === 'unknown' && recentAttestations.state === 'unknown' ? 'unknown' : 'ok');
+    const live = summarizeLiveOperatorStatus(latestBlock, recentAttestations);
 
     return {
-        live: {
-            state: liveState,
-            value: liveState === 'issue' ? 'Check now' : liveState === 'ok' ? 'Working' : 'No data',
-            detail: `${latestBlock.state === 'ok' ? 'Last block OK' : latestBlock.text} · ${recentAttestations.detail}`
-        },
+        live,
         nextBlock: next ? {
             level: next.level,
             round: next.round,
@@ -764,8 +819,8 @@ function renderBakerOperatorStatus(status, isBaker) {
     }
 
     const next = status.nextBlock
-        ? renderOperatorTile('Next block', status.nextBlock.eta, status.nextBlock.detail, 'ok', 'drawer-operator-next')
-        : renderOperatorTile('Next block', 'No right found', 'No upcoming baking right returned', 'unknown', 'drawer-operator-next');
+        ? renderOperatorTile('Next round 0 block', status.nextBlock.eta, status.nextBlock.detail, 'ok', 'drawer-operator-next')
+        : renderOperatorTile('Next round 0 block', 'No right found', 'No upcoming round 0 baking right returned', 'unknown', 'drawer-operator-next');
     const live = renderOperatorTile(
         'Baker working?',
         status.live.value,
@@ -780,7 +835,7 @@ function renderBakerOperatorStatus(status, isBaker) {
         <div class="drawer-operator-panel">
             <div class="drawer-operator-header">
                 <h3>${isBaker ? 'Baker signal' : 'Your baker signal'}</h3>
-                <p>Fresh rights check from the latest block and last ${RECENT_OPERATOR_ATTESTATIONS} attestations</p>
+                <p>Fresh round 0 rights and last ${RECENT_OPERATOR_ATTESTATIONS} attestations</p>
             </div>
             <div class="drawer-operator-grid">
                 ${next}
