@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-16',
         entries: [
+            { type: '🔧', text: 'tz4 Adoption now clears stale modal rows on reopen so refreshed content and the live timer start together' },
+            { type: '🎨', text: 'The Chamber now explains quiet governance states with a top-level Now panel, latest vote receipt, next milestone, and failed-vote memory instead of leaving no-ballot periods feeling empty' },
             { type: '🔧', text: 'My Tezos baker signal now refreshes live while the drawer is open so resolved attestation issues clear without a manual reload' },
             { type: '🎨', text: 'Front-page Chamber cards now use denser rows, tighter mobile previews, and cleaner utility-control spacing' },
             { type: '✨', text: 'ctez End of Life now previews the selected oven close plan and submits burn plus withdraw legs in one Octez.Connect wallet batch when both are needed' },

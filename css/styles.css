@@ -13665,6 +13665,14 @@ body {
     animation: chamberBreathe 4s ease-in-out infinite;
 }
 
+.chamber-loading-subtext {
+    max-width: 320px;
+    color: var(--text-tertiary, #555);
+    font-size: 0.74rem;
+    line-height: 1.45;
+    text-align: center;
+}
+
 .chamber-loading-bar {
     width: 200px;
     height: 3px;
@@ -16158,7 +16166,8 @@ body {
 
 /* Chamber: intel and trust panels */
 .chamber-intel-panel,
-.chamber-gap-panel {
+.chamber-gap-panel,
+.chamber-now-panel {
     position: relative;
     padding: 16px;
     background: rgba(255, 255, 255, 0.024);
@@ -16169,12 +16178,123 @@ body {
 }
 
 .chamber-intel-panel::before,
-.chamber-gap-panel::before {
+.chamber-gap-panel::before,
+.chamber-now-panel::before {
     content: '';
     position: absolute;
     inset: 0 0 auto;
     height: 2px;
     background: linear-gradient(90deg, rgba(77, 212, 255, 0.44), rgba(80, 232, 136, 0.28), transparent);
+}
+
+.chamber-now-panel {
+    display: grid;
+    gap: 14px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 7%, transparent), transparent 46%),
+        rgba(255, 255, 255, 0.024);
+}
+
+.chamber-now-main {
+    position: relative;
+}
+
+.chamber-now-kicker {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--accent-cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.63rem;
+    font-weight: 850;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.chamber-now-main h3 {
+    margin: 0 0 7px;
+    color: var(--text-primary);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.98rem;
+    line-height: 1.25;
+}
+
+.chamber-now-main p {
+    max-width: 980px;
+    margin: 0;
+    color: var(--text-secondary, #888);
+    font-size: 0.84rem;
+    line-height: 1.48;
+}
+
+.chamber-now-grid,
+.chamber-now-watch {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.chamber-now-card,
+.chamber-now-watch > div {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.022);
+}
+
+.chamber-now-watch {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+}
+
+.chamber-now-card span,
+.chamber-now-watch span {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text-tertiary, #555);
+    font-size: 0.61rem;
+    font-weight: 850;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.chamber-now-card strong {
+    display: block;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.chamber-now-card small,
+.chamber-now-memory small {
+    display: block;
+    margin-top: 4px;
+    color: var(--text-tertiary, #555);
+    font-size: 0.66rem;
+    line-height: 1.35;
+}
+
+.chamber-now-watch ul {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.chamber-now-watch li,
+.chamber-now-memory p {
+    margin: 0;
+    color: var(--text-secondary, #888);
+    font-size: 0.74rem;
+    line-height: 1.4;
+}
+
+.chamber-now-memory {
+    display: grid;
+    gap: 5px;
 }
 
 .chamber-intel-title {
@@ -16350,8 +16470,31 @@ body {
 }
 
 @media (max-width: 760px) {
+    .chamber-now-grid,
+    .chamber-now-watch,
     .chamber-intel-grid {
         grid-template-columns: 1fr;
+    }
+
+    .chamber-now-panel {
+        gap: 10px;
+        padding: 12px;
+    }
+
+    .chamber-now-main h3 {
+        font-size: 0.86rem;
+    }
+
+    .chamber-now-main p,
+    .chamber-now-watch li,
+    .chamber-now-memory p {
+        font-size: 0.7rem;
+    }
+
+    .chamber-now-watch li:nth-child(n+2),
+    .chamber-now-memory p:nth-of-type(n+2),
+    .chamber-now-memory small {
+        display: none;
     }
 }
 

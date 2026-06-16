@@ -195,8 +195,9 @@ inline modal styles in `js/core/app.js`.
   Chamber card refreshes every 60 seconds and expands during active ballot
   periods to show proposal name, time left, quorum, supermajority, and ballot
   context. The opened Chamber renders live vote instrumentation before the
-  process explainer and includes proposal intel, quorum/non-voter gap analysis,
-  and a vote share capture button.
+  process explainer and includes a phase-aware current-state panel for quiet
+  proposal/cooldown/adoption moments, proposal intel, quorum/non-voter gap
+  analysis, and a vote share capture button.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, protocol-history lore, EMA
   threshold meter and auto-scaled trend sparkline, 6-second open-monitor

@@ -1173,6 +1173,24 @@ function renderProposalIntel(data) {
     const agoraHref = liveContext?.href || (data.report?.currentGovernance?.proposalHash
         ? `https://www.tezosagora.org/search?q=${encodeURIComponent(data.report.currentGovernance.proposalHash)}`
         : 'https://www.tezosagora.org');
+    const activePeriod = data.currentPeriod?.status === 'active'
+        ? data.currentPeriod
+        : (data.epoch?.periods || []).find((period) => period.status === 'active');
+    const activeLabel = activePeriod ? periodTitle(activePeriod.kind) : (data.isLive ? 'Live governance' : 'Historical');
+    const activeDetail = data.isLiveVote
+        ? 'Ballots are open now'
+        : activePeriod?.kind === 'adoption'
+            ? 'No ballots open; activation runway'
+            : activePeriod?.kind === 'testing'
+                ? 'No ballots open; review before Promotion'
+                : activePeriod?.kind === 'proposal'
+                    ? 'Proposal upvote window'
+                    : 'Showing recorded context';
+    const activeTime = activePeriod?.endTime
+        ? `Ends ${fmtUtcDateTime(activePeriod.endTime)} UTC`
+        : data.report?.generatedAt
+            ? `Report refreshed ${fmtUtcDateTime(data.report.generatedAt)} UTC`
+            : 'Live timing unavailable';
 
     return `
         <section class="chamber-intel-panel chamber-anim-fade" id="chamber-proposal-intel" style="animation-delay:120ms">
@@ -1181,8 +1199,211 @@ function renderProposalIntel(data) {
             <div class="chamber-intel-grid">
                 <div><span>Proposal race</span><strong>${escapeHtml(proposalDisplayName(data))}${rivals ? ` · ${rivals} rival${rivals === 1 ? '' : 's'}` : ''}</strong><small>${escapeHtml(upvotes)}${proposalPeriod?.endTime ? ` · proposal period ended ${escapeHtml(fmtUtcDateTime(proposalPeriod.endTime))} UTC` : ''}</small></div>
                 <div><span>Context</span><ul>${context}</ul></div>
+                <div><span>Current period</span><strong>${escapeHtml(activeLabel)}</strong><small>${escapeHtml(activeDetail)} · ${escapeHtml(activeTime)}</small></div>
             </div>
             <a class="chamber-intel-link" href="${escapeHtml(agoraHref)}" target="_blank" rel="noopener">Agora research →</a>
+        </section>
+    `;
+}
+
+function activeGovernancePeriod(data) {
+    if (data.currentPeriod?.status === 'active') return data.currentPeriod;
+    return (data.epoch?.periods || []).find((period) => period.status === 'active') || null;
+}
+
+function proposalActionLabel(data) {
+    const stage = activeGovernancePeriod(data)?.kind || data.currentPeriod?.kind || '';
+    const proposalName = proposalDisplayName(data);
+    if (stage === 'adoption') return `${proposalName} activation runway`;
+    if (stage === 'testing') return `${proposalName} cooldown review`;
+    if (stage === 'proposal') return 'Proposal window watch';
+    if (isBallotPeriod(stage)) return `${proposalName} ${periodTitle(stage)} vote`;
+    return data.isLive ? `${periodTitle(stage)} governance state` : 'Historical governance record';
+}
+
+function quietGovernanceSummary(data) {
+    const stage = activeGovernancePeriod(data)?.kind || data.currentPeriod?.kind || '';
+    const proposalName = proposalDisplayName(data);
+    if (stage === 'adoption') {
+        return `${proposalName} passed Promotion. The chain is in the activation runway, so baker ballots are closed while operators prepare for the protocol switch.`;
+    }
+    if (stage === 'testing') {
+        return `${proposalName} passed Exploration. Cooldown is the no-ballot review window before bakers get the final Promotion vote.`;
+    }
+    if (stage === 'proposal') {
+        return 'Bakers are upvoting candidate protocol hashes. Quorum and Yay thresholds only become live once a proposal advances to Exploration.';
+    }
+    if (!data.isLive) {
+        return 'This governance epoch is complete. The Chamber is showing the recorded vote receipts and the wider memory of past amendment outcomes.';
+    }
+    return `${periodTitle(stage)} is quiet for ballots right now. The useful signal is what just happened, what opens next, and what history says to watch.`;
+}
+
+function nextGovernanceMilestone(data) {
+    const active = activeGovernancePeriod(data);
+    const stage = active?.kind || data.currentPeriod?.kind || '';
+    const endText = fmtUtcDateTime(active?.endTime);
+    const countdown = active?.endTime ? fmtCountdown(active.endTime) : '';
+
+    if (stage === 'adoption') {
+        return {
+            label: 'Next milestone',
+            value: countdown && countdown !== 'Ended' ? `${countdown} to activation` : 'Activation pending',
+            detail: endText ? `${endText} UTC` : 'Activation date unavailable'
+        };
+    }
+
+    if (stage === 'testing') {
+        const promotion = findPeriod(data.epoch, 'promotion');
+        const startText = fmtUtcDateTime(promotion?.startTime);
+        return {
+            label: 'Next ballot',
+            value: startText ? `${startText} UTC` : 'Promotion pending',
+            detail: 'Promotion opens after Cooldown'
+        };
+    }
+
+    if (stage === 'proposal') {
+        return {
+            label: 'Window closes',
+            value: countdown && countdown !== 'Ended' ? countdown : (endText ? `${endText} UTC` : 'Timing pending'),
+            detail: 'Leading hash advances if the proposal period selects one'
+        };
+    }
+
+    if (data.votePeriod?.endTime) {
+        return {
+            label: 'Latest receipt',
+            value: `${votePeriodTitle(data.votePeriod)} closed`,
+            detail: `${fmtUtcDateTime(data.votePeriod.endTime)} UTC`
+        };
+    }
+
+    return {
+        label: 'Next milestone',
+        value: 'Watching governance',
+        detail: 'No live ballot or dated transition is available'
+    };
+}
+
+function latestVoteReceipt(data) {
+    const period = data.votePeriod;
+    if (!period) {
+        return {
+            value: 'No vote receipt',
+            detail: 'Waiting for Exploration or Promotion data'
+        };
+    }
+
+    const yayPct = calcSupermajority(period);
+    const turnout = Number.isFinite(period.participationPct)
+        ? period.participationPct
+        : calcQuorum(period, data.voters || []);
+    const ballots = calcEntryBallots(period);
+    const status = statusLabel(period.status);
+    const metrics = [
+        Number.isFinite(yayPct) ? `${precisePctText(yayPct)} Yay` : '',
+        Number.isFinite(turnout) ? `${precisePctText(turnout)} turnout` : '',
+        ballots ? `${formatCount(ballots)} ballots` : ''
+    ].filter(Boolean).join(' · ');
+
+    return {
+        value: `${votePeriodTitle(period)} ${status}`,
+        detail: metrics || 'Vote metrics unavailable'
+    };
+}
+
+function governanceMemoryRows(data) {
+    const failedVotes = data.report?.coverage?.voteHistory?.failedVotes;
+    if (!Array.isArray(failedVotes) || !failedVotes.length) {
+        return ['Historical failed-vote memory is warming up.'];
+    }
+    return failedVotes.slice(0, 3).map((vote) => {
+        const name = vote.displayName || vote.proposalAlias || (vote.proposalHash ? vote.proposalHash.slice(0, 8) : `Epoch ${vote.epoch}`);
+        const reason = statusLabel(vote.status);
+        const turnout = Number.isFinite(vote.participationPct) ? `${precisePctText(vote.participationPct)} turnout` : 'turnout n/a';
+        const yay = Number.isFinite(vote.yayPct) ? `${precisePctText(vote.yayPct)} Yay` : 'Yay n/a';
+        return `${name}: ${reason}, ${turnout}, ${yay}`;
+    });
+}
+
+function governanceWatchItems(data) {
+    const stage = activeGovernancePeriod(data)?.kind || data.currentPeriod?.kind || '';
+    if (stage === 'adoption') {
+        return [
+            'Prepare node and client upgrade paths before the activation timestamp.',
+            'Audit the final Promotion receipt, then watch Network Health as activation approaches.',
+            'Use Agora/TzKT to confirm the proposal source instead of treating quiet as stale data.'
+        ];
+    }
+    if (stage === 'testing') {
+        return [
+            'Follow client and testnet feedback before Promotion opens.',
+            'Confirm your baker is ready to cast the final vote once ballots resume.',
+            'Compare turnout with prior failed votes; quiet review windows can still change sentiment.'
+        ];
+    }
+    if (stage === 'proposal') {
+        return [
+            'Watch leading hash, upvotes, and initiator before Exploration starts.',
+            'No quorum or Yay threshold exists yet; this is still proposal selection.',
+            'Set My Tezos if you want the live vote state tied back to your baker later.'
+        ];
+    }
+    return [
+        'Read the latest vote receipt before jumping to the historical log.',
+        'Failed votes below show whether governance risk came from quorum or supermajority.',
+        'Check the neighboring Health, LB, tz4, and Tezos X chambers while L1 voting is quiet.'
+    ];
+}
+
+function renderGovernanceNow(data) {
+    if (data.isLiveVote) return '';
+
+    const active = activeGovernancePeriod(data);
+    const stageLabel = active ? periodTitle(active.kind) : (data.isLive ? periodTitle(data.currentPeriod?.kind) : 'Historical');
+    const stageDetail = active?.endTime ? `Ends ${fmtUtcDateTime(active.endTime)} UTC` : (data.isLive ? 'Live governance state' : 'Completed epoch');
+    const milestone = nextGovernanceMilestone(data);
+    const receipt = latestVoteReceipt(data);
+    const memoryRows = governanceMemoryRows(data);
+    const watchItems = governanceWatchItems(data);
+    const generatedAt = fmtUtcDateTime(data.report?.generatedAt);
+
+    return `
+        <section class="chamber-now-panel chamber-anim-fade" id="chamber-now-panel" aria-label="Current governance state" style="animation-delay:160ms">
+            <div class="chamber-now-main">
+                <span class="chamber-now-kicker">What is happening now</span>
+                <h3>${escapeHtml(proposalActionLabel(data))}</h3>
+                <p>${escapeHtml(quietGovernanceSummary(data))}</p>
+            </div>
+            <div class="chamber-now-grid">
+                <div class="chamber-now-card">
+                    <span>Current state</span>
+                    <strong>${escapeHtml(stageLabel)}</strong>
+                    <small>${escapeHtml(stageDetail)}</small>
+                </div>
+                <div class="chamber-now-card">
+                    <span>${escapeHtml(milestone.label)}</span>
+                    <strong>${escapeHtml(milestone.value)}</strong>
+                    <small>${escapeHtml(milestone.detail)}</small>
+                </div>
+                <div class="chamber-now-card">
+                    <span>Latest vote</span>
+                    <strong>${escapeHtml(receipt.value)}</strong>
+                    <small>${escapeHtml(receipt.detail)}</small>
+                </div>
+            </div>
+            <div class="chamber-now-watch">
+                <div>
+                    <span>Watch now</span>
+                    <ul>${watchItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+                </div>
+                <div class="chamber-now-memory">
+                    <span>Governance memory</span>
+                    ${memoryRows.map((row) => `<p>${escapeHtml(row)}</p>`).join('')}
+                    ${generatedAt ? `<small>report refreshed ${escapeHtml(generatedAt)} UTC</small>` : ''}
+                </div>
+            </div>
         </section>
     `;
 }
@@ -1621,13 +1842,14 @@ function renderChamber(data, container) {
         </div>
         ${renderChronologicalVoteLog()}
     `;
-    const processHtml = renderGovernanceProcess(epoch, { compact: isLiveVote });
+    const processHtml = renderGovernanceProcess(epoch, { compact: true });
     const pipelineHtml = `<div class="chamber-pipeline ${isLiveVote ? 'chamber-pipeline-compact' : ''}">${renderPipeline(epoch, isLive)}</div>`;
 
     container.innerHTML = `
         ${renderProposalHeader(data)}
+        ${renderGovernanceNow(data)}
         ${renderProposalIntel(data)}
-        ${isLiveVote ? liveGridHtml + pipelineHtml + processHtml : processHtml + pipelineHtml + liveGridHtml}
+        ${liveGridHtml + pipelineHtml + processHtml}
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:800ms">
             <a href="https://tzkt.io/governance" target="_blank" rel="noopener">TzKT Governance →</a>
             <span class="chamber-footer-sep">·</span>
@@ -1779,6 +2001,7 @@ export async function openChamber() {
                 <div class="chamber-body">
                     <div class="chamber-loading">
                         <div class="chamber-loading-text">Entering The Chamber…</div>
+                        <div class="chamber-loading-subtext">Fetching current period, epoch votes, and protocol context</div>
                         <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
                     </div>
                 </div>

@@ -3663,6 +3663,9 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       if (index === 0) return true;
       return Number(rows[index - 1].dataset.ballotTime) <= Number(row.dataset.ballotTime);
     }),
+    chamberNow: document.querySelector('#chamber-now-panel')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    chamberNowCards: document.querySelectorAll('#chamber-now-panel .chamber-now-card').length,
+    chamberNowWatchItems: document.querySelectorAll('#chamber-now-panel .chamber-now-watch li').length,
     voteLogContext: document.querySelector('#chamber-vote-log .vote-log-context')?.textContent?.trim() || '',
     voteLogCount: document.querySelector('#chamber-vote-log .vote-log-count')?.textContent?.trim() || '',
     voteLogRows: document.querySelectorAll('#chamber-vote-log .vote-log-row').length,
@@ -3683,6 +3686,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/80% threshold/.test(chamberState.thresholdNote), `governance testing period: missing threshold note, saw ${chamberState.thresholdNote}`);
   assert(chamberState.svgTextCount === 0, 'governance testing period: threshold label should not be drawn over the gauge arc');
   assert(/Current Cooldown period; showing latest Exploration result/.test(chamberState.footer), `governance testing period: footer mismatch: ${chamberState.footer}`);
+  assert(/What is happening now/.test(chamberState.chamberNow) && /Cooldown/.test(chamberState.chamberNow) && /No baker ballots|no-ballot/i.test(chamberState.chamberNow), `governance testing period: current state panel missing quiet-state copy: ${chamberState.chamberNow}`);
+  assert(/Promotion opens after Cooldown/.test(chamberState.chamberNow) && /Latest vote/.test(chamberState.chamberNow), `governance testing period: current state panel missing next milestone/latest vote: ${chamberState.chamberNow}`);
+  assert(chamberState.chamberNowCards === 3, `governance testing period: current state panel should expose 3 summary cards, saw ${chamberState.chamberNowCards}`);
+  assert(chamberState.chamberNowWatchItems >= 3, `governance testing period: current state panel should expose watch items, saw ${chamberState.chamberNowWatchItems}`);
   assert(/Proposal Intel/.test(chamberState.proposalIntel) && /activation window|Cooldown|window ends/i.test(chamberState.proposalIntel), `governance testing period: proposal intel missing: ${chamberState.proposalIntel}`);
   assert(/Gap Analysis/.test(chamberState.gapAnalysis) && /Quorum gap/.test(chamberState.gapAnalysis) && /Largest non-voters/.test(chamberState.gapAnalysis), `governance testing period: gap analysis missing: ${chamberState.gapAnalysis}`);
   assert(chamberState.currentVoteTitle === 'Exploration Vote Order', `governance testing period: current-stage vote order title mismatch: ${chamberState.currentVoteTitle}`);

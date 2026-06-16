@@ -890,6 +890,15 @@ export async function openTz4AdoptionChamber() {
     lockPageScroll();
     const content = overlay.querySelector('.tz4-content');
     if (content) content.scrollTop = 0;
+    const body = overlay.querySelector('.tz4-body');
+    if (body) {
+        body.innerHTML = `
+            <div class="chamber-loading">
+                <div class="chamber-loading-text">Loading tz4 adoption...</div>
+                <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
+            </div>
+        `;
+    }
 
     try {
         await refreshTz4AdoptionChamber({ initial: true });
