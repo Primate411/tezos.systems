@@ -156,11 +156,12 @@ inline modal styles in `js/core/app.js`.
 
 - Chambers section is visible by default and orders the chamber rows as Network
   Health <> The Chamber, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
-  Monitor, and a full-width ctez Recovery card. Each row is wrapped responsively so
-  wide cards keep their companion card instead of creating desktop grid holes;
-  cards also keep a canonical app-shell open affordance in the fixed footer
-  rail, card-level direct-link controls, and quiet `as of` freshness stamps on
-  the live chamber cards.
+  Monitor. ctez End of Life stays off the default Chambers grid and opens from
+  Explore or the small top-left ctez launcher. Each Chamber row is wrapped
+  responsively so wide cards keep their companion card instead of creating
+  desktop grid holes; cards also keep a canonical app-shell open affordance in
+  the fixed footer rail, card-level direct-link controls, and quiet `as of`
+  freshness stamps on the live chamber cards.
 - Tezos X Governance Chamber with direct `#l2chamber` access,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
   discovery, storage, bigmaps, and recent historical proposal submissions, plus
@@ -208,12 +209,12 @@ inline modal styles in `js/core/app.js`.
   timing, projection to 50%, largest holdouts, visible monthly switch-count
   momentum, power milestones, top-10 first movers, and a capped Baker Status
   table with a Show all control.
-- ctez Recovery with direct `#ctez` access, an official-app-inspired My Ovens
-  summary/detail console, an Octez.Connect wallet-first flow, TzKT contract
-  storage and big-map discovery for ovens owned by the connected wallet,
-  wallet-reviewed `mint_or_burn` and `withdraw` requests generated from detected
-  oven data, and signing-safety reminders for users recovering tez from old
-  ctez ovens.
+- ctez End of Life with direct `#ctez` access, a tiny top-left launcher, an
+  Explore entry, an official-app-inspired My Ovens summary/detail console,
+  Octez.Connect pairing, TzKT contract storage and big-map discovery for ovens
+  owned by the connected wallet, wallet-reviewed `mint_or_burn` and `withdraw`
+  requests generated from detected oven data, and signing-safety reminders for
+  users recovering tez from old ctez ovens.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
   LB vote state, Octez.Connect wallet sync, and recent baker delegator/staker
   activity.

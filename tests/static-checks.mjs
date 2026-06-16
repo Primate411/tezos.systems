@@ -397,8 +397,10 @@ async function checkSelectorContracts() {
   const index = await readText('index.html');
   const requiredIds = [
     'price-bar',
+    'ctez-launcher',
     'features-gear',
     'features-dropdown',
+    'ctez-feature-btn',
     'chambers-toggle',
     'chambers-section',
     'chambers-grid',
@@ -500,8 +502,12 @@ async function checkSelectorContracts() {
     ['LB EMA history panel', 'id="lb-ema-history"', lb],
     ['LB vote change feed', 'id="lb-vote-change-feed"', lb],
     ['ctez hash route', "hash === 'ctez'", app],
-    ['ctez card copy link', 'data-copy-hash="#ctez"', ctez],
+    ['ctez feature copy link', 'data-copy-hash="#ctez"', index],
+    ['ctez top-left launcher', 'id="ctez-launcher"', index],
+    ['ctez feature launcher', 'id="ctez-feature-btn"', index],
+    ['ctez end of life chamber copy', 'ctez End of Life', ctez],
     ['ctez chamber wiring', 'openCtezChamber', ctez],
+    ['ctez launcher wiring', 'wireCtezLauncher', ctez],
     ['ctez direct footer link', 'Direct: /ctez/', ctez],
     ['ctez contract address', 'KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2', ctez],
     ['ctez official-style console shell', 'ctez-console-shell', ctez],
@@ -559,7 +565,10 @@ async function checkSelectorContracts() {
     'ctez-tez-input',
     'ctez-outstanding-input',
     'CTEZ_STORAGE_URL',
-    'decimalToMicroString'
+    'decimalToMicroString',
+    'Wallet flow',
+    'chamber-entry-wide ctez-entry-card',
+    'ctez-entry-card'
   ];
   for (const snippet of forbiddenCtezInterfaceStrings) {
     if (ctez.includes(snippet)) fail(`ctez chamber should not expose manual recovery UI: ${snippet}`);

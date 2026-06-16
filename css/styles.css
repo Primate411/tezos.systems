@@ -1531,6 +1531,25 @@ body::before {
     line-height: 1;
 }
 
+.ctez-feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid rgba(144, 202, 255, 0.34);
+    border-radius: 50%;
+    background: rgba(72, 113, 255, 0.14);
+    color: #b9dcff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.52rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    line-height: 1;
+    text-transform: lowercase;
+    box-shadow: inset 0 0 14px rgba(144, 202, 255, 0.08);
+}
+
 .feature-copy-link,
 .section-copy-link,
 .card-copy-link {
@@ -1595,10 +1614,78 @@ body::before {
 
 .lb-entry-card .card-copy-link,
 .tz4-entry-card .card-copy-link,
-.ctez-entry-card .card-copy-link,
 .health-entry-card .card-copy-link,
 .stat-card[data-stat="network-health"] .card-copy-link {
     right: calc(1rem + 32px);
+}
+
+.ctez-launcher {
+    position: fixed;
+    top: 52px;
+    left: 14px;
+    z-index: 119;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid rgba(144, 202, 255, 0.32);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.16), transparent 30%),
+        rgba(14, 23, 48, 0.74);
+    color: #d5ecff;
+    cursor: pointer;
+    box-shadow:
+        0 0 0 1px rgba(72, 113, 255, 0.08),
+        0 8px 24px rgba(0, 0, 0, 0.26),
+        0 0 20px rgba(144, 202, 255, 0.08);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.ctez-launcher span {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.52rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 1;
+    text-transform: lowercase;
+    transform: translateY(0.5px);
+}
+
+.ctez-launcher:hover,
+.ctez-launcher:focus-visible {
+    transform: translateY(-1px) scale(1.06);
+    border-color: rgba(144, 202, 255, 0.62);
+    background:
+        radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.2), transparent 32%),
+        rgba(22, 35, 74, 0.88);
+    box-shadow:
+        0 0 0 1px rgba(144, 202, 255, 0.16),
+        0 10px 28px rgba(0, 0, 0, 0.3),
+        0 0 26px rgba(144, 202, 255, 0.2);
+}
+
+.ctez-launcher:focus-visible {
+    outline: 2px solid rgba(144, 202, 255, 0.78);
+    outline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+    .ctez-launcher {
+        top: 82px;
+        left: 12px;
+        width: 32px;
+        height: 32px;
+    }
+
+    .ctez-launcher span {
+        font-size: 0.5rem;
+    }
 }
 
 .deep-link-highlight {
@@ -15984,99 +16071,6 @@ body {
 
     .network-health-blocks {
         min-height: 2.25rem;
-    }
-}
-
-/* ctez Recovery Chamber */
-#chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="ctez-guide"] {
-    grid-template-columns: minmax(0, 1fr);
-}
-
-#chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="ctez-guide"] > .ctez-entry-card {
-    width: 100%;
-}
-
-#chambers-grid .ctez-entry-card {
-    overflow: visible;
-    border-color: rgba(245, 184, 75, 0.28) !important;
-    background:
-        linear-gradient(135deg, rgba(245, 184, 75, 0.09), rgba(56, 189, 248, 0.045)),
-        var(--glass-bg, rgba(255, 255, 255, 0.03));
-}
-
-#chambers-grid .ctez-entry-card:hover {
-    border-color: #f5b84b !important;
-    box-shadow: 0 0 22px rgba(245, 184, 75, 0.12), 0 0 42px rgba(56, 189, 248, 0.06) !important;
-}
-
-.ctez-entry-card .card-tooltip {
-    cursor: default;
-    pointer-events: none;
-    text-align: left;
-}
-
-.ctez-entry-card .card-tooltip.is-open {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-}
-
-.ctez-entry-value {
-    color: #f5b84b !important;
-    font-family: 'Orbitron', 'JetBrains Mono', monospace;
-    font-size: clamp(2rem, 5vw, 3rem) !important;
-    line-height: 1;
-    letter-spacing: 0;
-    text-shadow: 0 0 20px rgba(245, 184, 75, 0.22) !important;
-    white-space: nowrap;
-}
-
-.ctez-entry-front {
-    min-width: 0;
-}
-
-.ctez-entry-main {
-    min-width: 0;
-}
-
-.ctez-entry-metrics .chamber-entry-metric {
-    border-color: rgba(245, 184, 75, 0.12);
-    background: rgba(245, 184, 75, 0.035);
-}
-
-@media (min-width: 760px) {
-    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="ctez-guide"] > .ctez-entry-card.chamber-entry-wide {
-        grid-column: 1 / -1;
-        height: 220px;
-    }
-
-    .ctez-entry-card.chamber-entry-wide .ctez-entry-front {
-        display: grid;
-        grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
-        grid-template-rows: min-content min-content min-content min-content;
-        align-items: center;
-        gap: 0.5rem 1rem;
-        text-align: left;
-    }
-
-    .ctez-entry-card.chamber-entry-wide .ctez-entry-main {
-        grid-column: 1;
-    }
-
-    .ctez-entry-card.chamber-entry-wide .ctez-entry-metrics {
-        grid-column: 2;
-        align-self: center;
-    }
-}
-
-@media (max-width: 759px) {
-    #chambers-grid .ctez-entry-card.chamber-entry-wide {
-        min-height: 318px;
-    }
-
-    .ctez-entry-metrics {
-        grid-template-columns: repeat(2, minmax(76px, 1fr));
     }
 }
 

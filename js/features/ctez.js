@@ -1,6 +1,6 @@
 /**
- * ctez Oven Recovery Chamber
- * Wallet-first recovery flow for users withdrawing tez from old ctez ovens.
+ * ctez End of Life Chamber
+ * Opt-in recovery console for users withdrawing tez from old ctez ovens.
  */
 
 import { API_URLS } from '../core/config.js';
@@ -207,11 +207,11 @@ function renderCtezChamber() {
                 <span>ctez recovery</span>
             </div>
             <div class="chamber-title-row">
-                <h2 class="chamber-title">ctez Recovery</h2>
-                <span class="chamber-badge ctez-badge">Wallet flow</span>
+                <h2 class="chamber-title">ctez End of Life</h2>
+                <span class="chamber-badge ctez-badge">Oven recovery</span>
             </div>
             <div class="chamber-proposal-info">
-                <div class="proposal-name">My Ovens recovery console for old ctez balances</div>
+                <div class="proposal-name">Close old ovens and recover remaining tez</div>
                 <div class="proposal-hash">Contract ${escapeHtml(CTEZ_CONTRACT)}</div>
             </div>
         </div>
@@ -271,6 +271,7 @@ function renderCtezChamber() {
             <ul class="ctez-step-list">
                 <li>Verify your wallet shows the ctez contract address: <code>${escapeHtml(CTEZ_CONTRACT)}</code>.</li>
                 <li>Burn outstanding ctez debt before withdrawing tez from the same oven.</li>
+                <li>No manual contract pages or raw oven fields are required.</li>
                 <li>Never share your seed phrase, private key, wallet file, or wallet password.</li>
             </ul>
         </section>
@@ -278,7 +279,7 @@ function renderCtezChamber() {
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:220ms">
             <span>ctez contract ${escapeHtml(CTEZ_CONTRACT)}</span>
             <span class="chamber-footer-sep">·</span>
-            <a class="panel-direct-link" href="/ctez/" aria-label="Direct link to ctez Recovery">Direct: /ctez/</a>
+            <a class="panel-direct-link" href="/ctez/" aria-label="Direct link to ctez End of Life">Direct: /ctez/</a>
         </div>
     `;
 }
@@ -642,8 +643,22 @@ function handleEscape(event) {
     if (event.key === 'Escape') closeCtezChamber();
 }
 
-function isAbortableCardTarget(target) {
-    return Boolean(target?.closest?.('button, a, input, textarea, select, label, .card-info-btn, .card-tooltip'));
+function closeFeatureLauncher() {
+    const dropdown = document.getElementById('features-dropdown');
+    const owner = document.querySelector('[aria-controls="features-dropdown"]');
+    dropdown?.classList.remove('open');
+    owner?.setAttribute('aria-expanded', 'false');
+}
+
+function wireCtezLauncher(button) {
+    if (!button || button.dataset.ctezLauncherBound === 'true') return;
+    button.dataset.ctezLauncherBound = 'true';
+    button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeFeatureLauncher();
+        openCtezChamber();
+    });
 }
 
 export function openCtezChamber() {
@@ -683,85 +698,6 @@ export function closeCtezChamber() {
 }
 
 export function initCtezChamber() {
-    if (document.getElementById('ctez-entry-card')) return;
-
-    const grid = document.getElementById('chambers-grid') || document.getElementById('governance-section')?.querySelector('.stats-grid');
-    if (!grid) return;
-
-    const card = document.createElement('div');
-    card.id = 'ctez-entry-card';
-    card.className = 'stat-card chamber-entry-card chamber-entry-wide ctez-entry-card';
-    card.innerHTML = `
-        <button class="card-copy-link ctez-card-copy-link" type="button" data-copy-hash="#ctez" aria-label="Copy ctez Recovery link" title="Copy ctez recovery link">🔗</button>
-        <div class="card-info-btn" data-tooltip="ctez" aria-label="Explain ctez Recovery" title="What is this?">
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-            </svg>
-        </div>
-        <div class="card-tooltip" id="tooltip-ctez">
-            <div class="tooltip-content">
-                <h4>ctez Recovery</h4>
-                <p>Connect the wallet that owned old ctez ovens. Tezos Systems checks the contract state and prepares the burn or withdraw wallet request.</p>
-                <p>No manual contract pages or raw oven fields are required.</p>
-            </div>
-        </div>
-        <div class="card-inner">
-            <div class="card-front chamber-entry-front ctez-entry-front" role="button" tabindex="0" aria-label="Open ctez Recovery">
-                <div class="ctez-entry-main">
-                    <h2 class="stat-label">ctez Recovery</h2>
-                    <div class="stat-value ctez-entry-value">Wallet flow</div>
-                    <p class="stat-description">Find ovens, recover tez</p>
-                    <div class="chamber-entry-status live">Connect to check old ovens</div>
-                </div>
-                <div class="chamber-entry-metrics ctez-entry-metrics" aria-label="ctez recovery checkpoints">
-                    <div class="chamber-entry-metric">
-                        <span>Connect</span>
-                        <strong>Wallet</strong>
-                    </div>
-                    <div class="chamber-entry-metric">
-                        <span>Detect</span>
-                        <strong>Ovens</strong>
-                    </div>
-                    <div class="chamber-entry-metric">
-                        <span>Recover</span>
-                        <strong>Tez</strong>
-                    </div>
-                    <div class="chamber-entry-metric is-risk">
-                        <span>Review</span>
-                        <strong>Sign</strong>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    card.style.cursor = 'pointer';
-    card.title = 'Open ctez Recovery';
-
-    const infoBtn = card.querySelector('.card-info-btn');
-    const tooltip = card.querySelector('.card-tooltip');
-    infoBtn?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        tooltip?.classList.toggle('is-open');
-    });
-    tooltip?.addEventListener('click', (event) => event.stopPropagation());
-    document.addEventListener('click', (event) => {
-        if (!tooltip?.classList.contains('is-open')) return;
-        if (infoBtn?.contains(event.target) || tooltip.contains(event.target)) return;
-        tooltip.classList.remove('is-open');
-    });
-    document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape') tooltip?.classList.remove('is-open');
-    });
-    card.addEventListener('click', (event) => {
-        if (isAbortableCardTarget(event.target)) return;
-        openCtezChamber();
-    });
-    card.querySelector('.ctez-entry-front')?.addEventListener('keydown', (event) => {
-        if (event.key !== 'Enter' && event.key !== ' ') return;
-        event.preventDefault();
-        event.stopPropagation();
-        openCtezChamber();
-    });
-
-    grid.appendChild(card);
+    wireCtezLauncher(document.getElementById('ctez-launcher'));
+    wireCtezLauncher(document.getElementById('ctez-feature-btn'));
 }

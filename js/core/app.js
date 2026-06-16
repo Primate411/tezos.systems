@@ -1137,10 +1137,6 @@ const CHAMBER_CARD_PAIRS = [
     {
         key: 'tz4-liquidity',
         selectors: ['[data-stat="tz4-adoption"]', '#lb-entry-card']
-    },
-    {
-        key: 'ctez-guide',
-        selectors: ['#ctez-entry-card']
     }
 ];
 let _chamberPairObserver = null;
@@ -2887,11 +2883,11 @@ function applyDeepLink() {
             .catch((error) => console.warn('Failed to open tz4 Adoption Chamber', error));
     }
 
-    // #ctez / #ctez-oven / #ctez-guide
+    // #ctez / legacy #ctez-oven / #ctez-guide
     if (params.has('ctez') || hash === 'ctez' || params.has('ctez-oven') || hash === 'ctez-oven' || params.has('ctez-guide') || hash === 'ctez-guide') {
         import('../features/ctez.js')
             .then(({ openCtezChamber }) => openCtezChamber())
-            .catch((error) => console.warn('Failed to open ctez Oven Guide', error));
+            .catch((error) => console.warn('Failed to open ctez End of Life', error));
     }
 
     // #calculator

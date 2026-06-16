@@ -124,8 +124,7 @@ const EXPECTED_CHAMBER_ORDER = [
   'tezlink-entry-card',
   'etherlink-governance-entry-card',
   'tz4-adoption',
-  'lb-entry-card',
-  'ctez-entry-card'
+  'lb-entry-card'
 ];
 
 function usage() {
@@ -1399,8 +1398,7 @@ async function assertChamberOrder(page, label) {
   const expectedPairs = [
     ['network-health', 'chamber-entry-card'],
     ['tezlink-entry-card', 'etherlink-governance-entry-card'],
-    ['tz4-adoption', 'lb-entry-card'],
-    ['ctez-entry-card']
+    ['tz4-adoption', 'lb-entry-card']
   ];
   assert(
     expectedPairs.every((pair, index) => pair.every((key, innerIndex) => chamberState.pairs[index]?.[innerIndex] === key)),
@@ -1415,7 +1413,6 @@ async function assertChamberControlGeometry(page, label) {
       '#tezlink-entry-card',
       '#etherlink-governance-entry-card',
       '#lb-entry-card',
-      '#ctez-entry-card',
       '#chambers-section [data-stat="tz4-adoption"]',
       '#chambers-section [data-stat="network-health"]'
     ];
@@ -2102,7 +2099,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, 'header.header', 1, label);
   await expectCount(page, '#price-bar', 1, label);
   await expectCount(page, '#upgrade-clock', 1, label);
-  await expectCount(page, '.stat-card', 20, label);
+  await expectCount(page, '.stat-card', 19, label);
   await expectCount(page, '.card-share-btn, #share-btn, #upgrade-share-btn, #comparison-share-all-btn', 5, label);
   await expectCount(page, '#build-version', 1, label);
   await expectCount(page, '#widgets-gallery', 1, label);
@@ -2139,9 +2136,11 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await openDropdown(page, '#features-gear', '#features-dropdown');
   await expectCount(page, '#features-dropdown.feature-launcher', 1, label);
   await expectCount(page, '#features-dropdown .feature-launcher-group', 4, label);
-  await expectCount(page, '#features-dropdown .feature-copy-link', 10, label);
+  await expectCount(page, '#features-dropdown .feature-copy-link', 11, label);
   await expectCount(page, '#features-dropdown #chambers-toggle', 1, label);
   await expectCount(page, '#features-dropdown .feature-copy-link[data-copy-hash="#chambers"]', 1, label);
+  await expectCount(page, '#features-dropdown #ctez-feature-btn', 1, label);
+  await expectCount(page, '#features-dropdown .feature-copy-link[data-copy-hash="#ctez"]', 1, label);
   await assertLocatorCount(page.locator('#features-dropdown #chamber-toggle, #features-dropdown #liquidity-baking-toggle, #features-dropdown #tz4-adoption-toggle'), 0, `${label} individual chamber launchers`);
   assert((await page.locator('#features-dropdown a[href="/widgets/builder.html"]').innerText()).includes('Embed Builder'), `${label}: launcher should point widgets to Embed Builder`);
   await page.locator('.feature-copy-link[data-copy-hash="#compare"]').click();
@@ -3118,12 +3117,10 @@ async function smokeCtezChamber(browser, baseUrl) {
 
   const response = await page.goto(`${baseUrl}/#ctez`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `ctez chamber: dashboard failed with HTTP ${response?.status()}`);
-  await page.locator('#ctez-entry-card.chamber-entry-wide').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#ctez-modal.active .ctez-content').waitFor({ state: 'visible', timeout: 10000 });
 
   const ctezState = await page.evaluate(() => {
     const modal = document.querySelector('#ctez-modal');
-    const card = document.querySelector('#ctez-entry-card');
     const text = modal?.textContent || '';
     const bcdLinks = Array.from(modal?.querySelectorAll('a[href^="https://better-call.dev/mainnet/"]') || []).map((link) => link.href);
     return {
@@ -3140,28 +3137,41 @@ async function smokeCtezChamber(browser, baseUrl) {
       bcdLinks,
       directHref: modal?.querySelector('.panel-direct-link')?.getAttribute('href') || '',
       footer: modal?.querySelector('.chamber-footer')?.textContent || '',
-      cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
-      cardWide: card?.classList.contains('chamber-entry-wide') || false,
-      cardCue: Boolean(card?.querySelector('.chamber-expand-cue')),
-      cardText: card?.textContent?.replace(/\s+/g, ' ').trim() || ''
+      hasDefaultCard: Boolean(document.querySelector('#ctez-entry-card')),
+      hasTopLeftLauncher: Boolean(document.querySelector('#ctez-launcher')),
+      featureButtonText: document.querySelector('#ctez-feature-btn')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      featureCopyHash: document.querySelector('#features-dropdown .feature-copy-link[data-copy-hash="#ctez"]')?.dataset.copyHash || '',
+      chambersHint: document.querySelector('#chambers-toggle .dropdown-hint')?.textContent?.trim() || ''
     };
   });
 
-  assert(/ctez Recovery/.test(ctezState.title), `ctez chamber: title mismatch: ${ctezState.title}`);
-  assert(/Wallet flow/.test(ctezState.badge), `ctez chamber: badge mismatch: ${ctezState.badge}`);
+  assert(/ctez End of Life/.test(ctezState.title), `ctez chamber: title mismatch: ${ctezState.title}`);
+  assert(/Oven recovery/.test(ctezState.badge), `ctez chamber: badge mismatch: ${ctezState.badge}`);
   assert(ctezState.hasConsoleShell && ctezState.hasSunsetBanner && ctezState.hasSummaryStrip && ctezState.hasConnectControl && ctezState.hasOvenPanel && ctezState.hasRefresh, `ctez chamber: console shell missing: ${JSON.stringify(ctezState)}`);
   assert(!ctezState.manualFields, `ctez chamber: manual/guide controls should not render: ${JSON.stringify(ctezState)}`);
   assert(ctezState.bcdLinks.length === 0, `ctez chamber: Better Call Dev links should not render: ${ctezState.bcdLinks.join(', ')}`);
   assert(!/Better Call Dev|ctez_outstanding|tez_balance|oven ID/i.test(ctezState.text), `ctez chamber: raw recovery instructions leaked into UI: ${ctezState.text}`);
   assert(/KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2/.test(ctezState.text), 'ctez chamber: contract address missing');
-  assert(/My Ovens recovery console/.test(ctezState.text), `ctez chamber: recovery console header missing: ${ctezState.text}`);
+  assert(/Close old ovens and recover remaining tez/.test(ctezState.text), `ctez chamber: recovery console header missing: ${ctezState.text}`);
   assert(/Ctez is sunsetting, please close your ovens/.test(ctezState.text), `ctez chamber: sunset banner missing: ${ctezState.text}`);
   assert(/Never share your seed phrase/.test(ctezState.text), 'ctez chamber: safety copy missing');
   assert(/Direct: \/ctez\//.test(ctezState.footer), `ctez chamber: direct footer missing: ${ctezState.footer}`);
   assert(ctezState.directHref === '/ctez/', `ctez chamber: direct href mismatch: ${ctezState.directHref}`);
-  assert(ctezState.cardCopyHash === '#ctez', `ctez chamber: card copy hash mismatch: ${ctezState.cardCopyHash}`);
-  assert(ctezState.cardWide && ctezState.cardCue, `ctez chamber: card should be wide and have shared open cue: ${JSON.stringify(ctezState)}`);
-  assert(/Wallet flow/.test(ctezState.cardText) && /recover tez/i.test(ctezState.cardText), `ctez chamber: card copy mismatch: ${ctezState.cardText}`);
+  assert(!ctezState.hasDefaultCard, `ctez chamber: should be off by default in Chambers: ${JSON.stringify(ctezState)}`);
+  assert(ctezState.hasTopLeftLauncher, `ctez chamber: top-left launcher missing: ${JSON.stringify(ctezState)}`);
+  assert(ctezState.featureCopyHash === '#ctez', `ctez chamber: feature copy hash mismatch: ${ctezState.featureCopyHash}`);
+  assert(/ctez End of Life/.test(ctezState.featureButtonText) && /Close old ovens/.test(ctezState.featureButtonText), `ctez chamber: feature launcher copy mismatch: ${ctezState.featureButtonText}`);
+  assert(!/ctez/i.test(ctezState.chambersHint), `ctez chamber: Chambers hint should not advertise ctez as default: ${ctezState.chambersHint}`);
+
+  await page.locator('#ctez-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#ctez-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.locator('#ctez-launcher').click();
+  await page.locator('#ctez-modal.active .ctez-content').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#ctez-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#ctez-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await ensureDropdownOpen(page, '#features-gear', '#features-dropdown');
+  await page.locator('#ctez-feature-btn').click();
+  await page.locator('#ctez-modal.active .ctez-content').waitFor({ state: 'visible', timeout: 5000 });
 
   await page.locator('#ctez-wallet-connect').click();
   await page.waitForFunction((address) => localStorage.getItem('tezos-systems-octez-wallet-address') === address, SAMPLE_ADDRESS, { timeout: 5000 });
@@ -3252,7 +3262,7 @@ async function smokeCtezChamber(browser, baseUrl) {
       closeVisible: Boolean(document.querySelector('#ctez-modal .chamber-close')?.getBoundingClientRect().width)
     };
   });
-  assert(/ctez Recovery/.test(mobileState.title), `ctez chamber mobile: title mismatch: ${mobileState.title}`);
+  assert(/ctez End of Life/.test(mobileState.title), `ctez chamber mobile: title mismatch: ${mobileState.title}`);
   assert(mobileState.closeVisible, 'ctez chamber mobile: close button should remain visible');
   assert(mobileState.modalWidth <= mobileState.viewportWidth, `ctez chamber mobile: modal wider than viewport: ${JSON.stringify(mobileState)}`);
   assert(mobileState.pageOverflow <= 2 && mobileState.modalOverflow <= 2 && mobileState.gridOverflows.every((value) => value <= 2), `ctez chamber mobile: horizontal overflow: ${JSON.stringify(mobileState)}`);
@@ -3303,13 +3313,15 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#chambers-toggle', 1, 'governance testing period chambers launcher button');
   await expectCount(page, '.feature-copy-link[data-copy-hash="#chambers"]', 1, 'governance testing period chambers launcher link');
   await expectCount(page, '#lb-entry-card .card-copy-link[data-copy-hash="#lb"]', 1, 'governance testing period LB chamber link');
-  await expectCount(page, '#ctez-entry-card .card-copy-link[data-copy-hash="#ctez"]', 1, 'governance testing period ctez chamber link');
+  await expectCount(page, '#ctez-launcher', 1, 'governance testing period ctez top-left launcher');
+  await expectCount(page, '#ctez-feature-btn', 1, 'governance testing period ctez feature launcher');
+  await expectCount(page, '.feature-copy-link[data-copy-hash="#ctez"]', 1, 'governance testing period ctez feature link');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"] .card-copy-link[data-copy-hash="#tz4"]', 1, 'governance testing period tz4 tile link');
   await expectCount(page, '#chambers-section [data-stat="network-health"] .card-copy-link[data-copy-hash="#health"]', 1, 'governance testing period health tile link');
   await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
   await expectCount(page, '#chambers-section #tezlink-entry-card', 1, 'governance testing period Tezos X tile in Chambers');
   await expectCount(page, '#chambers-section #etherlink-governance-entry-card', 1, 'governance testing period Tezos X Governance tile in Chambers');
-  await expectCount(page, '#chambers-section #ctez-entry-card', 1, 'governance testing period ctez tile in Chambers');
+  await assertLocatorCount(page.locator('#chambers-section #ctez-entry-card'), 0, 'governance testing period ctez tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"]', 1, 'governance testing period tz4 tile in Chambers');
   await expectCount(page, '#chambers-section [data-stat="network-health"]', 1, 'governance testing period health tile in Chambers');
   await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]').length >= 6, null, { timeout: 10000 });
@@ -4563,7 +4575,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-deep-link-override', description: 'My Tezos direct address links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) },
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
-    { name: 'ctez', description: 'ctez Recovery opens #ctez with wallet-first oven discovery and wallet-reviewed operations', run: () => smokeCtezChamber(browser, baseUrl) },
+    { name: 'ctez', description: 'ctez End of Life opens #ctez with opt-in oven discovery and wallet-reviewed operations', run: () => smokeCtezChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
@@ -4609,7 +4621,7 @@ async function main() {
     ['my-tezos-deep-link-override', 'My Tezos direct address links override a stale saved baker on first load'],
     ['tezlink', 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape'],
     ['network-health', 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary'],
-    ['ctez', 'ctez Recovery opens #ctez with wallet-first oven discovery and wallet-reviewed operations'],
+    ['ctez', 'ctez End of Life opens #ctez with opt-in oven discovery and wallet-reviewed operations'],
     ['governance-lb', 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh'],
     ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
     ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],
