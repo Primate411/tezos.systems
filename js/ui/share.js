@@ -335,6 +335,367 @@ function addCardShareButtons() {
     document.querySelectorAll('.stat-card').forEach(ensureCardShareButton);
 }
 
+function isChamberShareCard(card) {
+    return card?.classList?.contains('chamber-entry-card');
+}
+
+function compactShareText(node) {
+    return node?.textContent?.replace(/\s+/g, ' ').trim() || '';
+}
+
+function isVisibleForShare(node) {
+    if (!node || node.hidden) return false;
+    const style = getComputedStyle(node);
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) return false;
+    const box = node.getBoundingClientRect();
+    return box.width > 0 && box.height > 0;
+}
+
+function pushUniqueLine(lines, value) {
+    const text = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!text || text === '...' || /^loading/i.test(text)) return;
+    if (lines.some((line) => line.toLowerCase() === text.toLowerCase())) return;
+    lines.push(text);
+}
+
+function getChamberShareRoute(card) {
+    const hash = card.querySelector(':scope > .card-copy-link')?.dataset?.copyHash || '';
+    const routes = {
+        '#chamber': '/chamber/',
+        '#health': '/health/',
+        '#tezosx': '/tezosx/',
+        '#l2chamber': '/l2chamber/',
+        '#tz4': '/tz4/',
+        '#lb': '/lb/'
+    };
+    return routes[hash] ? `tezos.systems${routes[hash]}` : 'tezos.systems/#chambers';
+}
+
+function getChamberShareSummary(card) {
+    const front = card.querySelector(':scope .card-front');
+    const title = getCardTitle(card);
+    const value = compactShareText(front?.querySelector('.stat-value')) || title;
+    const detailLines = [];
+    const highlightLines = [];
+
+    front?.querySelectorAll('.stat-description, .chamber-entry-status, .network-health-status, .tezlink-entry-value-label')
+        .forEach((node) => {
+            if (isVisibleForShare(node)) pushUniqueLine(detailLines, compactShareText(node));
+        });
+
+    front?.querySelectorAll([
+        '.chamber-entry-metric',
+        '.tezlink-entry-metric',
+        '.etherlink-gov-entry-metric',
+        '.network-health-period',
+        '.tz4-entry-preview-title',
+        '.tz4-entry-preview-row',
+        '.health-live-tape-row',
+        '.tezlink-tape-row'
+    ].join(',')).forEach((node) => {
+        if (isVisibleForShare(node)) pushUniqueLine(highlightLines, compactShareText(node));
+    });
+
+    const freshness = card.dataset.updatedLabel
+        || compactShareText(front?.querySelector('.chamber-entry-freshness'))
+        || new Date().toLocaleString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+    return {
+        title,
+        value,
+        details: detailLines.slice(0, 3),
+        highlights: highlightLines.slice(0, 5),
+        freshness,
+        route: getChamberShareRoute(card)
+    };
+}
+
+function convertCloneCanvases(sourceCard, clone) {
+    const sourceCanvases = new Map();
+    sourceCard.querySelectorAll('canvas').forEach((canvas) => {
+        if (canvas.id) sourceCanvases.set(canvas.id, canvas);
+    });
+
+    clone.querySelectorAll('canvas').forEach((cloneCanvas) => {
+        const sourceCanvas = sourceCanvases.get(cloneCanvas.id);
+        if (!sourceCanvas || sourceCanvas.width <= 0 || sourceCanvas.height <= 0) return;
+        try {
+            const img = document.createElement('img');
+            img.src = sourceCanvas.toDataURL('image/png');
+            img.width = sourceCanvas.width;
+            img.height = sourceCanvas.height;
+            img.style.cssText = cloneCanvas.style.cssText || 'width:100%;height:100%;display:block;';
+            cloneCanvas.replaceWith(img);
+        } catch {
+            // Some canvases may be tainted or mid-render; keep the live clone intact.
+        }
+    });
+}
+
+function cloneChamberPanel(card) {
+    const clone = card.cloneNode(true);
+    clone.classList.add('chamber-share-source-card');
+    clone.removeAttribute('title');
+    clone.removeAttribute('role');
+    clone.removeAttribute('tabindex');
+    clone.querySelectorAll([
+        '.card-share-btn',
+        '.card-copy-link',
+        '.card-info-btn',
+        '.card-tooltip',
+        '.card-history-btn',
+        '.card-back'
+    ].join(',')).forEach((node) => node.remove());
+    clone.querySelectorAll('.chamber-entry-footer > :not(.chamber-entry-freshness)')
+        .forEach((node) => node.remove());
+    clone.classList.remove('chamber-entry-live', 'chamber-entry-risk', 'chamber-data-stale');
+    clone.querySelectorAll('[role="button"]').forEach((node) => {
+        node.removeAttribute('role');
+        node.removeAttribute('tabindex');
+    });
+    convertCloneCanvases(card, clone);
+    return clone;
+}
+
+/**
+ * Capture a Chamber entry card with the visible panel content preserved.
+ */
+async function captureChamberCard(card) {
+    let wrapper = null;
+    let restoreSpacing = null;
+
+    try {
+        await loadHtml2Canvas();
+
+        const {
+            brand: brandColor,
+            bg: bgColor,
+            brandRgb,
+            isClean,
+            isDark
+        } = getThemeColors();
+        const summary = getChamberShareSummary(card);
+        const panelClone = cloneChamberPanel(card);
+        const textColor = isClean ? '#101827' : '#ffffff';
+        const softText = isClean ? 'rgba(0,0,0,0.58)' : isDark ? 'rgba(232,232,232,0.62)' : 'rgba(255,255,255,0.64)';
+        const mutedText = isClean ? 'rgba(0,0,0,0.40)' : isDark ? 'rgba(232,232,232,0.44)' : 'rgba(255,255,255,0.42)';
+        const panelBg = isClean ? 'rgba(255,255,255,0.78)' : isDark ? 'rgba(255,255,255,0.055)' : `rgba(${brandRgb},0.055)`;
+        const panelBorder = isClean ? 'rgba(37,99,235,0.16)' : isDark ? 'rgba(255,255,255,0.12)' : `rgba(${brandRgb},0.22)`;
+        const highlightHtml = summary.highlights.length
+            ? summary.highlights.map((line) => `
+                <div style="padding:12px 14px;border:1px solid ${panelBorder};border-radius:10px;background:${panelBg};font-size:17px;line-height:1.25;color:${softText};font-family:'JetBrains Mono',monospace;overflow-wrap:anywhere;">${escapeHtml(line)}</div>
+            `).join('')
+            : `<div style="padding:12px 14px;border:1px solid ${panelBorder};border-radius:10px;background:${panelBg};font-size:17px;line-height:1.25;color:${softText};">Live Chamber panel snapshot</div>`;
+
+        wrapper = document.createElement('div');
+        wrapper.style.cssText = `
+            position: fixed; top: -9999px; left: -9999px;
+            width: 1200px; height: 630px;
+            background: ${bgColor};
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
+            color: ${textColor};
+            overflow: hidden;
+            box-sizing: border-box;
+        `;
+
+        const shareStyle = document.createElement('style');
+        shareStyle.textContent = `
+            .chamber-share-panel *,
+            .chamber-share-panel *::before,
+            .chamber-share-panel *::after {
+                filter: none !important;
+                text-shadow: none !important;
+                box-shadow: none !important;
+                border-color: rgba(${brandRgb},0.22) !important;
+            }
+            .chamber-share-panel *::before,
+            .chamber-share-panel *::after {
+                content: none !important;
+            }
+            .chamber-share-panel .stat-card {
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 0 !important;
+                margin: 0 !important;
+                transform: none !important;
+                overflow: hidden !important;
+                border: 1px solid ${panelBorder} !important;
+                border-radius: 18px !important;
+                background: ${panelBg} !important;
+                box-shadow: 0 26px 68px rgba(0,0,0,0.28), inset 0 0 40px rgba(${brandRgb},0.035) !important;
+                pointer-events: none !important;
+            }
+            .chamber-share-panel .stat-card:hover {
+                transform: none !important;
+            }
+            .chamber-share-panel .card-inner {
+                position: relative !important;
+                width: 100% !important;
+                height: 100% !important;
+                transform: none !important;
+                pointer-events: none !important;
+            }
+            .chamber-share-panel .card-front {
+                position: relative !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 0 !important;
+                padding: 32px 36px 62px !important;
+                overflow: hidden !important;
+                box-sizing: border-box !important;
+                backface-visibility: visible !important;
+                -webkit-backface-visibility: visible !important;
+            }
+            .chamber-share-panel .card-back {
+                display: none !important;
+            }
+            .chamber-share-panel .stat-label {
+                font-size: 17px !important;
+                letter-spacing: 0 !important;
+            }
+            .chamber-share-panel .stat-description,
+            .chamber-share-panel .chamber-entry-status {
+                font-size: 16px !important;
+                line-height: 1.35 !important;
+            }
+            .chamber-share-panel .stat-value {
+                max-width: 100% !important;
+            }
+            .chamber-share-panel .chamber-entry-footer {
+                left: 36px !important;
+                right: 36px !important;
+                bottom: 22px !important;
+                min-height: 28px !important;
+                padding-top: 8px !important;
+            }
+            .chamber-share-panel .chamber-entry-freshness,
+            .chamber-share-panel .chamber-entry-footer > span:last-child {
+                font-size: 11px !important;
+            }
+            .chamber-share-panel .chamber-entry-footer > span:last-child {
+                min-height: 25px !important;
+            }
+            .chamber-share-panel .tz4-entry-preview-title,
+            .chamber-share-panel .tz4-entry-preview-row,
+            .chamber-share-panel .tezlink-tape-row,
+            .chamber-share-panel .network-health-period,
+            .chamber-share-panel .chamber-entry-metric span,
+            .chamber-share-panel .tezlink-entry-metric span,
+            .chamber-share-panel .etherlink-gov-entry-metric span {
+                font-size: 12px !important;
+            }
+            .chamber-share-panel .chamber-entry-metric strong,
+            .chamber-share-panel .tezlink-entry-metric strong,
+            .chamber-share-panel .etherlink-gov-entry-metric strong {
+                font-size: 15px !important;
+            }
+            .chamber-share-panel .tezlink-entry-tape,
+            .chamber-share-panel .health-live-tape {
+                max-height: 150px !important;
+                overflow: hidden !important;
+            }
+        `;
+        wrapper.appendChild(shareStyle);
+
+        const glow = document.createElement('div');
+        glow.style.cssText = `
+            position:absolute;inset:0;pointer-events:none;
+            background:
+                radial-gradient(ellipse at 17% 18%, rgba(${brandRgb},0.14), transparent 42%),
+                radial-gradient(ellipse at 86% 24%, rgba(124,92,246,0.14), transparent 38%),
+                radial-gradient(ellipse at 68% 90%, rgba(${brandRgb},0.08), transparent 44%);
+        `;
+        wrapper.appendChild(glow);
+
+        const border = document.createElement('div');
+        border.style.cssText = `
+            position:absolute;inset:18px;border:1px solid ${panelBorder};border-radius:18px;
+            box-shadow:${isClean || isDark ? '0 18px 52px rgba(0,0,0,0.12)' : `inset 0 0 48px rgba(${brandRgb},0.045), 0 0 30px rgba(${brandRgb},0.08)`};
+            pointer-events:none;
+        `;
+        wrapper.appendChild(border);
+
+        const content = document.createElement('div');
+        content.style.cssText = `
+            position:relative;z-index:1;width:100%;height:100%;box-sizing:border-box;
+            display:grid;grid-template-columns:390px minmax(0,1fr);gap:34px;
+            padding:44px 52px 40px;
+        `;
+
+        const left = document.createElement('section');
+        left.style.cssText = 'display:flex;flex-direction:column;min-width:0;';
+        left.innerHTML = `
+            <div style="font-family:'Orbitron',sans-serif;font-size:26px;font-weight:900;letter-spacing:0;text-transform:uppercase;color:${brandColor};text-shadow:${isClean || isDark ? 'none' : `0 0 28px rgba(${brandRgb},0.45)`};">TEZOS SYSTEMS</div>
+            <div style="width:210px;height:1px;background:${brandColor};opacity:0.72;margin:14px 0 26px;"></div>
+            <div style="font-size:13px;font-weight:850;letter-spacing:0;text-transform:uppercase;color:${mutedText};">Chambers · Panel Snapshot</div>
+            <h1 style="margin:13px 0 12px;font-size:${summary.title.length > 18 ? '42px' : '50px'};line-height:1.02;font-weight:850;letter-spacing:0;color:${brandColor};overflow-wrap:anywhere;">${escapeHtml(summary.title)}</h1>
+            <div style="font-size:${summary.value.length > 18 ? '30px' : '36px'};line-height:1.08;font-weight:850;color:${textColor};margin-bottom:14px;overflow-wrap:anywhere;">${escapeHtml(summary.value)}</div>
+            ${summary.details.map((line) => `<p style="margin:0 0 8px;font-size:18px;line-height:1.34;color:${softText};">${escapeHtml(line)}</p>`).join('')}
+            <div style="display:grid;gap:10px;margin-top:18px;">
+                ${highlightHtml}
+            </div>
+            <div style="margin-top:auto;padding-top:18px;display:flex;flex-direction:column;gap:8px;font-size:15px;color:${mutedText};">
+                <span>${escapeHtml(summary.freshness)}</span>
+                <span style="color:${brandColor};font-weight:850;letter-spacing:0;">${escapeHtml(summary.route)}</span>
+            </div>
+        `;
+
+        const right = document.createElement('section');
+        right.style.cssText = 'min-width:0;display:flex;flex-direction:column;gap:14px;';
+        right.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:18px;">
+                <div style="font-size:13px;font-weight:850;letter-spacing:0;text-transform:uppercase;color:${softText};">Visible Chamber Panel</div>
+                <div style="font-size:13px;color:${mutedText};">non-detailed view</div>
+            </div>
+        `;
+        const panel = document.createElement('div');
+        panel.className = 'chamber-share-panel';
+        panel.style.cssText = `
+            min-height:0;flex:1;display:flex;align-items:stretch;
+            border:1px solid ${panelBorder};border-radius:20px;background:${panelBg};
+            padding:18px;box-sizing:border-box;overflow:hidden;
+        `;
+        panel.appendChild(panelClone);
+        right.appendChild(panel);
+
+        content.appendChild(left);
+        content.appendChild(right);
+        wrapper.appendChild(content);
+        document.body.appendChild(wrapper);
+
+        restoreSpacing = await fixWordSpacing(wrapper);
+        const canvas = await window.html2canvas(wrapper, {
+            backgroundColor: bgColor,
+            scale: 1,
+            useCORS: true,
+            logging: false,
+            width: 1200,
+            height: 630,
+            windowWidth: 1200
+        });
+
+        restoreSpacing();
+        restoreSpacing = null;
+        wrapper.remove();
+        wrapper = null;
+
+        const allOptions = await getTweetOptions(card);
+        const displayOptions = pickRandomOptions(allOptions, 4);
+        showShareModal(canvas, displayOptions, `${summary.title} Chamber`, allOptions);
+    } catch (error) {
+        console.error('Chamber card screenshot failed:', error);
+        showNotification('Screenshot failed. Try again.', 'error');
+    } finally {
+        if (restoreSpacing) restoreSpacing();
+        if (wrapper?.isConnected) wrapper.remove();
+    }
+}
+
 /**
  * Capture a single card and show share modal
  */
@@ -348,6 +709,11 @@ async function captureCard(card) {
     }
     
     try {
+        if (isChamberShareCard(card)) {
+            await captureChamberCard(card);
+            return;
+        }
+
         await loadHtml2Canvas();
         
         const {

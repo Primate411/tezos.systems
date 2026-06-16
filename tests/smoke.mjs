@@ -3425,6 +3425,15 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]').length >= 6, null, { timeout: 10000 });
   await assertChamberOrder(page, 'governance testing period');
   await assertChamberControlGeometry(page, 'governance testing period');
+  await page.waitForFunction(() => /Latest switches/i.test(document.querySelector('#tz4-entry-preview')?.textContent || ''), null, { timeout: 10000 });
+  await page.locator('#chambers-section [data-stat="tz4-adoption"]').scrollIntoViewIfNeeded();
+  await page.evaluate(() => document.querySelector('#chambers-section [data-stat="tz4-adoption"] > .card-share-btn')?.click());
+  await page.locator('#share-modal.visible').waitFor({ state: 'visible', timeout: 10000 });
+  const chamberShareCapture = await page.evaluate(() => window.__lastHtml2CanvasText?.replace(/\s+/g, ' ').trim() || '');
+  assert(/chambers\s+·\s+panel snapshot/i.test(chamberShareCapture), `governance testing period: chamber share missing branded panel snapshot label: ${chamberShareCapture}`);
+  assert(/visible chamber panel/i.test(chamberShareCapture), `governance testing period: chamber share missing visible panel frame: ${chamberShareCapture}`);
+  assert(/tz4 Adoption/.test(chamberShareCapture) && /Latest switches/i.test(chamberShareCapture) && /Pending/i.test(chamberShareCapture), `governance testing period: chamber share should include visible tz4 panel content: ${chamberShareCapture}`);
+  await expectShareModal(page, 'governance testing period chamber card share', issues);
   await assertResponsiveChamberCards(browser, baseUrl, { width: 900, height: 1000 }, 'governance live chamber tablet', { governanceLiveVote: true });
   await assertResponsiveChamberCards(browser, baseUrl, { width: 375, height: 900 }, 'governance live chamber mobile', { governanceLiveVote: true });
   await page.waitForFunction(() => {
