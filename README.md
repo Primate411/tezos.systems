@@ -188,14 +188,14 @@ inline modal styles in `js/core/app.js`.
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
   `data/protocol-debates.json`.
-- Governance panel prompt and The Chamber for live and historical amendment
-  voting, including a current-stage chronological ballot feed and the bottom
-  historical vote log sourced from `data/governance-votes.json`. The Chamber
-  card refreshes every 60 seconds and expands during active ballot periods to
-  show proposal name, time left, quorum, supermajority, and ballot context. The
-  opened Chamber renders live vote instrumentation before the process explainer
-  and includes proposal intel, quorum/non-voter gap analysis, and a vote share
-  capture button.
+- Compact Current Protocol signal and The Chamber for live and historical
+  amendment voting, including a current-stage chronological ballot feed and the
+  bottom historical vote log sourced from `data/governance-votes.json`. The
+  Chamber card refreshes every 60 seconds and expands during active ballot
+  periods to show proposal name, time left, quorum, supermajority, and ballot
+  context. The opened Chamber renders live vote instrumentation before the
+  process explainer and includes proposal intel, quorum/non-voter gap analysis,
+  and a vote share capture button.
 - Liquidity Baking dashboard tile and monitor with EMA state, recent block
   votes, latest baker votes, contextual help, protocol-history lore, EMA
   threshold meter and auto-scaled trend sparkline, 6-second open-monitor

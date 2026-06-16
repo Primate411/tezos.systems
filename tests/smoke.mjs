@@ -3237,8 +3237,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   const dashboardState = await page.evaluate(() => ({
     banner: document.querySelector('#gov-countdown-banner')?.innerText || '',
     bannerClasses: document.querySelector('#gov-countdown-banner')?.className || '',
-    bannerInVotePanel: Boolean(document.querySelector('#gov-countdown-banner')?.closest('.voting-live-summary')),
+    bannerInProtocolPanel: Boolean(document.querySelector('#gov-countdown-banner')?.closest('#upgrade-status .voting-status-compact')),
     bannerAfterPriceBar: document.querySelector('#price-bar')?.nextElementSibling?.id === 'gov-countdown-banner',
+    governanceProcessCards: document.querySelectorAll('#upgrade-status .governance-process-card').length,
+    governanceTallyCards: document.querySelectorAll('#upgrade-status .voting-tally').length,
     votingTime: document.querySelector('.voting-time')?.textContent?.trim() || '',
     votingPeriod: document.querySelector('#voting-period-front')?.textContent?.trim() || '',
     participation: document.querySelector('#participation-front')?.textContent?.trim() || '',
@@ -3301,9 +3303,12 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   }));
   assert(/TESTING/.test(dashboardState.banner), `governance testing period: banner should say TESTING, saw ${dashboardState.banner}`);
   assert(/No ballots open/.test(dashboardState.banner), `governance testing period: banner should say no ballots are open, saw ${dashboardState.banner}`);
+  assert(!/Governance receipts|Governance Path|Time left|Quorum|Epoch/.test(dashboardState.banner), `governance testing period: protocol panel should stay a compact Chamber signal, saw ${dashboardState.banner}`);
   assert(!dashboardState.bannerClasses.includes('gov-vote-spotlight'), 'governance testing period: cooldown banner should not use live vote spotlight styling');
-  assert(dashboardState.bannerInVotePanel, 'governance testing period: Chamber prompt should live inside the vote panel');
+  assert(dashboardState.bannerInProtocolPanel, 'governance testing period: Chamber prompt should live inside the protocol panel');
   assert(!dashboardState.bannerAfterPriceBar, 'governance testing period: Chamber prompt should not render as a top-page banner');
+  assert(dashboardState.governanceProcessCards === 0, 'governance testing period: Current Protocol should not duplicate the Chamber governance path');
+  assert(dashboardState.governanceTallyCards === 0, 'governance testing period: Current Protocol should not duplicate Chamber vote tally data');
   assert(!dashboardState.votingTime || !dashboardState.banner.includes(dashboardState.votingTime), `governance testing period: Chamber prompt should not repeat panel countdown ${dashboardState.votingTime}`);
   assert(dashboardState.votingPeriod === 'Cooldown', `governance testing period: voting card should show Cooldown, saw ${dashboardState.votingPeriod}`);
   assert(dashboardState.participation === '---', `governance testing period: participation should be empty-state dashes, saw ${dashboardState.participation}`);

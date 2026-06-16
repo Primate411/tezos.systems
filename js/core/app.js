@@ -4,7 +4,7 @@
  */
 
 import './tzkt-throttle.js';
-import { fetchAllStats, fetchHeroStats, checkApiHealth, fetchVoteTally } from './api.js';
+import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js';
 import { initTheme, openThemePicker, setTheme, getAvailableThemes } from '../ui/theme.js';
 import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
 import {
@@ -26,7 +26,7 @@ import {
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric } from '../features/history.js';
 import { initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
-import { fetchProtocols, fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from '../features/governance.js';
+import { fetchProtocols, fetchVotingStatus, getVotingPeriodName } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js';
 import { initLiquidityBaking } from '../features/liquidity-baking.js';
 import { initTz4AdoptionChamber } from '../features/tz4-adoption.js';
@@ -34,7 +34,6 @@ import { initTezlinkChamber } from '../features/tezlink.js';
 import { initEtherlinkGovernanceChamber } from '../features/etherlink-governance.js';
 import { initCtezChamber } from '../features/ctez.js';
 
-let lastGovernancePromptTally = null;
 const SPARKLINE_LIVE_METRICS = [
     ['tz4_percentage', 'tz4Percentage'],
     ['staking_ratio', 'stakingRatio'],
@@ -53,88 +52,9 @@ const SPARKLINE_LIVE_METRICS = [
 
 /**
  * Governance Chamber Action
- * Shows a compact Chamber entry point inside the live governance panel.
+ * Shows a compact pipeline signal inside the Current Protocol panel.
  */
-function formatGovPromptPercent(value, decimals = 1) {
-    if (!Number.isFinite(value)) return null;
-    const precision = Math.abs(value) < 1 && value !== 0 ? 2 : decimals;
-    return `${value.toFixed(precision)}%`;
-}
-
-function buildGovernancePromptMetrics(votingStatus, tally) {
-    const metrics = [];
-    const quorumRequired = normalizeThreshold(votingStatus?.ballotsQuorum, 0);
-    const supermajorityRequired = normalizeThreshold(votingStatus?.supermajority, 80);
-    const epochIndex = typeof votingStatus?.epoch === 'object' ? votingStatus.epoch?.index : votingStatus?.epoch;
-
-    if (votingStatus?.endTime) {
-        metrics.push({
-            label: 'Time left',
-            value: formatTimeRemaining(votingStatus.endTime).replace(/\s*remaining$/i, '')
-        });
-    }
-
-    if (tally) {
-        const participation = formatGovPromptPercent(tally.participation);
-        const quorum = formatGovPromptPercent(quorumRequired);
-        const supermajority = formatGovPromptPercent(tally.supermajority);
-        const threshold = formatGovPromptPercent(supermajorityRequired, 0);
-
-        if (participation && quorum) {
-            metrics.push({
-                label: tally.participation >= quorumRequired ? 'Quorum met' : 'Quorum',
-                value: `${participation} / ${quorum}`
-            });
-        }
-        if (supermajority && threshold) {
-            metrics.push({
-                label: tally.supermajority >= supermajorityRequired ? 'Yay met' : 'Yay threshold',
-                value: `${supermajority} / ${threshold}`
-            });
-        }
-        if (Number.isFinite(tally.voterCount)) {
-            metrics.push({
-                label: 'Ballots',
-                value: `${tally.voterCount.toLocaleString()} cast`
-            });
-        }
-    } else {
-        const participationValue = Number(votingStatus?.participationPct);
-        const participation = formatGovPromptPercent(participationValue);
-        const quorum = formatGovPromptPercent(quorumRequired);
-        if (participation && quorum) {
-            metrics.push({
-                label: participationValue >= quorumRequired ? 'Quorum met' : 'Quorum',
-                value: `${participation} / ${quorum}`
-            });
-        } else if (participation) {
-            metrics.push({ label: 'Participation', value: participation });
-        }
-
-        const yay = Number(votingStatus?.yayVotingPower) || 0;
-        const nay = Number(votingStatus?.nayVotingPower) || 0;
-        const yayOfYayNay = (yay + nay) > 0 ? (yay / (yay + nay)) * 100 : null;
-        const supermajority = formatGovPromptPercent(yayOfYayNay);
-        const threshold = formatGovPromptPercent(supermajorityRequired, 0);
-        if (supermajority && threshold) {
-            metrics.push({
-                label: yayOfYayNay >= supermajorityRequired ? 'Yay met' : 'Yay threshold',
-                value: `${supermajority} / ${threshold}`
-            });
-        }
-    }
-
-    if (epochIndex && metrics.length < 4) {
-        metrics.push({
-            label: 'Epoch',
-            value: String(epochIndex)
-        });
-    }
-
-    return metrics.slice(0, 4);
-}
-
-function updateGovernanceBanner(stats, votingStatus, context = {}) {
+function updateGovernanceBanner(stats, votingStatus) {
     let banner = document.getElementById('gov-countdown-banner');
     
     // Only show when there's an actual proposal — not during empty proposal periods
@@ -153,7 +73,6 @@ function updateGovernanceBanner(stats, votingStatus, context = {}) {
     const isVotingActive = hasProposal || isVotingPhase;
     
     if (!isVotingActive) {
-        lastGovernancePromptTally = null;
         if (banner) { banner.remove(); }
         return;
     }
@@ -194,32 +113,21 @@ function updateGovernanceBanner(stats, votingStatus, context = {}) {
     let phase = 'proposal';
     let icon = '📋';
     let label = 'PROPOSAL';
-    let cta = 'View Proposal →';
-    let meta = 'Public baker ballots · Quorum watch';
+    let cta = 'Open Chamber →';
+    let meta = 'Protocol in pipeline';
     if (kind === 'exploration') {
         phase = 'exploration';
         icon = '🗳️';
         label = 'VOTE LIVE';
-        cta = '🏛️ Chamber →';
-        meta = 'Ballots · Quorum · Supermajority';
+        cta = 'Chamber →';
+        meta = 'Live vote in The Chamber';
     }
-    else if (kind === 'testing' || kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'TESTING'; cta = 'View Results →'; meta = 'No ballots open · Testing and review'; }
-    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = '🏛️ Chamber →'; meta = 'Ballots · Quorum · Supermajority'; }
-    else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'View Adoption →'; meta = 'Activation runway'; }
+    else if (kind === 'testing' || kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'TESTING'; cta = 'Chamber →'; meta = 'No ballots open · testing in The Chamber'; }
+    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = 'Chamber →'; meta = 'Live vote in The Chamber'; }
+    else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'Chamber →'; meta = 'Activation runway in The Chamber'; }
     
     const isHot = kind === 'exploration' || kind === 'promotion';
-    const chamberTitle = isHot ? 'Live baker roll call' : 'Governance receipts';
-    if (context.tally) lastGovernancePromptTally = context.tally;
-    const metrics = buildGovernancePromptMetrics(votingStatus, context.tally || lastGovernancePromptTally);
-    const metricsHtml = metrics.length ? `
-            <div class="gov-live-metrics" aria-label="Current vote status">
-                ${metrics.map(metric => `
-                    <span class="gov-live-metric">
-                        <span>${escapeHtml(metric.label)}</span>
-                        <strong>${escapeHtml(metric.value)}</strong>
-                    </span>
-                `).join('')}
-            </div>` : '';
+    const chamberTitle = proposal ? `${proposal} in pipeline` : `${periodName} in progress`;
     banner.setAttribute('aria-label', `Open The Chamber — ${proposal ? `${proposal} ` : ''}${periodName}`);
     
     banner.innerHTML = `
@@ -230,7 +138,6 @@ function updateGovernanceBanner(stats, votingStatus, context = {}) {
         <div class="gov-live-detail">
             <span class="gov-live-title">${escapeHtml(chamberTitle)}</span>
             <span class="gov-live-meta">${meta}</span>
-            ${metricsHtml}
         </div>
         <div class="gov-live-cta">${cta}</div>
     `;
@@ -2215,90 +2122,6 @@ function positionTooltip(e, tooltipEl) {
     tooltipEl.style.top = y + 'px';
 }
 
-const GOVERNANCE_FLOW = [
-    { key: 'proposal', label: 'Proposal', detail: 'Upvotes' },
-    { key: 'exploration', label: 'Exploration', detail: '1st vote' },
-    { key: 'cooldown', label: 'Cooldown', detail: 'Testing' },
-    { key: 'promotion', label: 'Promotion', detail: 'Final vote' },
-    { key: 'adoption', label: 'Adoption', detail: 'Activation' }
-];
-
-function normalizeGovernanceKind(kind) {
-    return kind === 'testing' ? 'cooldown' : kind;
-}
-
-function clampPercent(value) {
-    if (!Number.isFinite(value)) return 0;
-    return Math.max(0, Math.min(100, value));
-}
-
-function normalizeThreshold(value, fallback) {
-    if (!Number.isFinite(value)) return fallback;
-    return value > 100 ? value / 100 : value;
-}
-
-function governanceNextStepText(kind, nextStage, tally, quorumRequired = 0, supermajorityRequired = 80) {
-    if (kind === 'proposal') return 'Exploration if a proposal is selected';
-    if (kind === 'exploration') {
-        if (!tally) return 'Cooldown if the vote passes';
-        return tally.participation >= quorumRequired && tally.supermajority >= supermajorityRequired
-            ? 'Cooldown is next'
-            : 'Needs quorum and supermajority';
-    }
-    if (kind === 'cooldown') return 'Promotion vote opens after testing';
-    if (kind === 'promotion') {
-        if (!tally) return 'Adoption if the vote passes';
-        return tally.participation >= quorumRequired && tally.supermajority >= supermajorityRequired
-            ? 'Adoption is next'
-            : 'Needs quorum and supermajority';
-    }
-    if (kind === 'adoption') return 'Protocol activation';
-    return nextStage ? `${nextStage.label} next` : 'Protocol activation';
-}
-
-function renderGovernanceProcessSummary(votingStatus, progress, tally) {
-    const currentKind = normalizeGovernanceKind(votingStatus.kind);
-    const flowIndex = GOVERNANCE_FLOW.findIndex(stage => stage.key === currentKind);
-    const currentIndex = flowIndex >= 0 ? flowIndex : 0;
-    const phaseNumber = currentIndex + 1;
-    const currentProgress = clampPercent(progress);
-    const nextStage = GOVERNANCE_FLOW[currentIndex + 1];
-    const epochIndex = typeof votingStatus.epoch === 'object' ? votingStatus.epoch?.index : votingStatus.epoch;
-    const threshold = normalizeThreshold(votingStatus.supermajority, 80);
-    const quorumRequired = normalizeThreshold(votingStatus.ballotsQuorum, 0);
-    const nextText = governanceNextStepText(currentKind, nextStage, tally, quorumRequired, threshold);
-
-    return `
-        <aside class="governance-process-card" aria-label="Tezos governance process">
-            <div class="governance-process-head">
-                <span class="process-title">Governance Path</span>
-                <span class="process-phase">Phase ${phaseNumber}/${GOVERNANCE_FLOW.length}</span>
-            </div>
-            <div class="governance-stage-bars">
-                ${GOVERNANCE_FLOW.map((stage, index) => {
-                    const state = index < currentIndex ? 'complete' : index === currentIndex ? 'active' : 'future';
-                    const fill = state === 'complete' ? 100 : state === 'active' ? currentProgress : 0;
-                    return `
-                        <div class="governance-stage governance-stage-${state}">
-                            <div class="governance-stage-labels">
-                                <span>${escapeHtml(stage.label)}</span>
-                                <small>${escapeHtml(stage.detail)}</small>
-                            </div>
-                            <div class="governance-stage-track">
-                                <span class="governance-stage-fill" style="width:${fill}%"></span>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-            <div class="governance-next-step">
-                <span>${epochIndex ? `Epoch ${escapeHtml(String(epochIndex))}` : 'Live governance'}</span>
-                <strong>${escapeHtml(nextText)}</strong>
-            </div>
-        </aside>
-    `;
-}
-
 /**
  * Update the Upgrade Clock section
  */
@@ -2335,68 +2158,12 @@ async function updateUpgradeClock() {
             if (votingStatus.kind !== 'proposal' || votingStatus.proposalsCount > 0) {
                 statusEl.classList.add('active');
                 
-                const startTime = new Date(votingStatus.startTime);
-                const endTime = new Date(votingStatus.endTime);
-                const now = new Date();
-                const progress = ((now - startTime) / (endTime - startTime)) * 100;
-                
-                // Fetch vote tally for exploration/promotion — routed through the
-                // resilient api.js fetcher (429 backoff + cache) so the headline
-                // survives TzKT rate limits.
-                let tallyHtml = '';
-                let tally = null;
-                if (votingStatus.kind === 'exploration' || votingStatus.kind === 'promotion') {
-                    const agg = await fetchVoteTally();
-                    if (agg) {
-                        const { yay, nay, pass, total, voterCount } = agg;
-                        // Canonical participation comes from the refresh report; fall back
-                        // to a client estimate only if the report didn't cover this proposal.
-                        const eligible = votingStatus.totalVotingPower || votingStatus.topVotingPower || 1;
-                        const participationValue = Number.isFinite(votingStatus.participationPct)
-                            ? votingStatus.participationPct
-                            : (total / eligible) * 100;
-                        const yayOfYayNayValue = (yay + nay) > 0 ? (yay / (yay + nay)) * 100 : 0;
-                        const yayOfYayNay = yayOfYayNayValue.toFixed(1);
-                        const supermajorityRequired = normalizeThreshold(votingStatus.supermajority, 80);
-                        const smMet = yayOfYayNayValue >= supermajorityRequired;
-                        const smColor = smMet ? 'var(--color-success, #10b981)' : parseFloat(yayOfYayNay) >= 60 ? 'var(--color-warning, #f59e0b)' : 'var(--color-error, #ef4444)';
-                        tally = {
-                            participation: participationValue,
-                            supermajority: yayOfYayNayValue,
-                            voterCount
-                        };
-                        tallyHtml = `
-                            <div class="voting-tally">
-                                <div class="voting-tally-row"><span class="tally-label">Yay</span><span class="tally-bar"><span class="tally-fill tally-yay" style="width:${total > 0 ? (yay/total*100) : 0}%"></span></span><span class="tally-pct" style="color:${smColor}">${yayOfYayNay}%</span></div>
-                                <div class="voting-tally-row"><span class="tally-label">Nay</span><span class="tally-bar"><span class="tally-fill tally-nay" style="width:${total > 0 ? (nay/total*100) : 0}%"></span></span><span class="tally-pct">${(yay+nay) > 0 ? ((nay/(yay+nay))*100).toFixed(1) : '0.0'}%</span></div>
-                                <div class="voting-tally-row"><span class="tally-label">Pass</span><span class="tally-bar"><span class="tally-fill tally-pass" style="width:${total > 0 ? (pass/total*100) : 0}%"></span></span><span class="tally-pct">${total > 0 ? ((pass/total)*100).toFixed(1) : '0.0'}%</span></div>
-                            </div>`;
-                    }
-                }
-                
-                const proposal = votingStatus.proposal || votingStatus.epoch?.proposal || null;
-                const proposalName = votingStatus.proposalName
-                    || proposal?.alias
-                    || proposal?.extras?.alias
-                    || proposal?.metadata?.alias
-                    || (proposal?.hash ? `${proposal.hash.slice(0, 8)}...` : '');
-                const proposalLabel = proposalName ? `<span class="voting-proposal-name">${escapeHtml(proposalName)}</span>` : '';
-                
                 statusEl.innerHTML = `
-                    <div class="voting-status voting-status-grid">
-                        <div class="voting-live-summary">
-                            <div class="voting-period">
-                                <span class="voting-dot"></span>
-                                <span class="voting-period-name">${getVotingPeriodName(votingStatus.kind)}</span>
-                                ${proposalLabel}
-                            </div>
-                            <div class="gov-countdown-banner-slot" id="gov-countdown-banner-slot" aria-live="polite"></div>
-                            ${tallyHtml}
-                        </div>
-                        ${renderGovernanceProcessSummary(votingStatus, progress, tally)}
+                    <div class="voting-status voting-status-compact" aria-label="Protocol pipeline status">
+                        <div class="gov-countdown-banner-slot" id="gov-countdown-banner-slot" aria-live="polite"></div>
                     </div>
                 `;
-                updateGovernanceBanner(state.currentStats, votingStatus, { tally });
+                updateGovernanceBanner(state.currentStats, votingStatus);
             } else {
                 statusEl.classList.remove('active');
                 statusEl.innerHTML = '';

@@ -1103,8 +1103,8 @@ body::before {
 }
 
 .upgrade-status {
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: 10px;
+    padding-top: 10px;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     display: none;
 }
@@ -1114,13 +1114,11 @@ body::before {
 }
 
 .voting-status {
-    display: grid;
-    grid-template-columns: minmax(360px, 1.3fr) minmax(300px, 0.7fr);
-    align-items: start;
-    gap: 14px 18px;
+    display: block;
+    max-width: 640px;
 }
 
-.voting-live-summary {
+.voting-status-compact {
     min-width: 0;
 }
 
@@ -11887,12 +11885,12 @@ body {
 }
 
 .gov-countdown-banner.gov-panel-action {
-    grid-template-columns: auto minmax(360px, 1fr) auto;
-    gap: 14px;
-    width: min(100%, 920px);
-    max-width: 920px;
-    margin: 0 0 10px;
-    padding: 12px 14px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 12px;
+    width: min(100%, 620px);
+    max-width: 620px;
+    margin: 0;
+    padding: 9px 12px;
     border-width: 1px;
     border-radius: 8px;
     font-size: 0.66rem;
@@ -11908,7 +11906,7 @@ body {
 }
 
 .gov-countdown-banner.gov-panel-action.gov-vote-spotlight {
-    padding: 12px 14px;
+    padding: 9px 12px;
     border-width: 1px;
 }
 
@@ -11933,7 +11931,7 @@ body {
 }
 
 .gov-panel-action .gov-live-title {
-    font-size: 0.78rem;
+    font-size: 0.74rem;
     font-weight: 700;
 }
 
@@ -11945,9 +11943,9 @@ body {
 }
 
 .gov-panel-action .gov-live-cta {
-    padding: 8px 11px;
+    padding: 7px 10px;
     border-radius: 6px;
-    font-size: 0.64rem;
+    font-size: 0.62rem;
 }
 
 .gov-banner-icon {
@@ -13525,210 +13523,6 @@ body {
 .briefing-share-cta:hover {
     background: rgba(var(--accent-rgb, 0,255,136), 0.2);
     border-color: var(--accent-color, #00ff88);
-}
-
-/* ─── Vote Tally (Governance) ──────────────────────── */
-.voting-status {
-    align-items: start;
-}
-.voting-tally {
-    margin-top: 8px;
-    padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
-}
-.voting-tally-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
-}
-.tally-label {
-    width: 32px;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-.tally-bar {
-    flex: 1;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 3px;
-    overflow: hidden;
-}
-.tally-fill {
-    display: block;
-    height: 100%;
-    border-radius: 3px;
-    transition: width 0.5s ease;
-}
-.tally-yay { background: var(--color-success, #10b981); }
-.tally-nay { background: var(--color-error, #ef4444); }
-.tally-pass { background: var(--text-dim, #666); }
-.tally-pct {
-    width: 40px;
-    text-align: right;
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: var(--text-secondary);
-}
-.voting-proposal-name {
-    font-size: 0.85rem;
-    color: var(--accent-cyan);
-    font-weight: 500;
-}
-
-.governance-process-card {
-    padding: 10px 12px;
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
-    min-width: 0;
-}
-
-.governance-process-head,
-.governance-next-step {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.process-title,
-.process-phase {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 0.65rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.4px;
-}
-
-.process-title {
-    color: var(--accent-cyan);
-}
-
-.process-phase {
-    color: var(--text-tertiary);
-}
-
-.governance-stage-bars {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 5px;
-    margin: 10px 0;
-}
-
-.governance-stage {
-    display: grid;
-    grid-template-columns: minmax(86px, 0.34fr) minmax(0, 1fr);
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-
-.governance-stage-labels {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 1px;
-    margin-bottom: 0;
-    min-width: 0;
-}
-
-.governance-stage-labels span,
-.governance-stage-labels small {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.governance-stage-labels span {
-    font-size: 0.58rem;
-    font-weight: 700;
-    color: var(--text-secondary);
-}
-
-.governance-stage-labels small {
-    font-size: 0.52rem;
-    color: var(--text-tertiary);
-}
-
-.governance-stage-track {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.07);
-    border-radius: 999px;
-    overflow: hidden;
-}
-
-.governance-stage-fill {
-    display: block;
-    height: 100%;
-    border-radius: inherit;
-    background: rgba(255, 255, 255, 0.18);
-}
-
-.governance-stage-complete .governance-stage-fill {
-    background: linear-gradient(90deg, var(--accent-cyan), rgba(0, 255, 136, 0.75));
-}
-
-.governance-stage-active .governance-stage-labels span {
-    color: var(--accent-cyan);
-}
-
-.governance-stage-active .governance-stage-fill {
-    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
-    box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
-}
-
-.governance-stage-future {
-    opacity: 0.48;
-}
-
-.governance-next-step span {
-    display: block;
-    font-size: 0.58rem;
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    white-space: nowrap;
-}
-
-.governance-next-step strong {
-    display: block;
-    margin-top: 2px;
-    font-size: 0.7rem;
-    color: var(--text-primary);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.governance-next-step {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-@media (max-width: 768px) {
-    .governance-stage {
-        grid-template-columns: 1fr;
-        gap: 4px;
-    }
-
-    .governance-stage-labels {
-        justify-content: flex-start;
-        gap: 8px;
-    }
-
-    .governance-process-head,
-    .governance-next-step {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 4px;
-    }
 }
 
 /* ==========================================
