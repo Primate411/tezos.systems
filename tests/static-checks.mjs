@@ -503,16 +503,17 @@ async function checkSelectorContracts() {
     ['ctez card copy link', 'data-copy-hash="#ctez"', ctez],
     ['ctez chamber wiring', 'openCtezChamber', ctez],
     ['ctez direct footer link', 'Direct: /ctez/', ctez],
-    ['ctez exit workspace', 'ctez-exit-workspace', ctez],
-    ['ctez optional signer rail', 'Optional signer', ctez],
     ['ctez contract address', 'KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2', ctez],
-    ['ctez oven storage link', 'CTEZ_STORAGE_URL', ctez],
-    ['ctez mint-or-burn link', 'interact/mint_or_burn', ctez],
+    ['ctez wallet-first app shell', 'ctez-app-shell', ctez],
+    ['ctez detected oven list', 'ctez-oven-list', ctez],
+    ['ctez automatic oven lookup', 'fetchCtezOvens', ctez],
+    ['ctez TzKT big-map lookup', '/bigmaps/${ovensPtr}/keys', ctez],
     ['ctez Octez.Connect controls', 'ctez-wallet-connect', ctez],
+    ['ctez wallet refresh control', 'ctez-wallet-refresh', ctez],
+    ['ctez no manual raw fields copy', 'No manual contract pages or raw oven fields are required', ctez],
     ['ctez mint_or_burn operation builder', 'buildCtezMintOrBurnOperation', ctez],
     ['ctez withdraw operation builder', 'buildCtezWithdrawOperation', ctez],
     ['ctez wallet request path', 'requestWalletOperation([operation])', ctez],
-    ['ctez unit helper', 'decimalToMicroString', ctez],
     ['Octez.Connect SDK pin', '@tezos-x/octez.connect-sdk@${OCTEZ_CONNECT_VERSION}', wallet],
     ['Octez.Connect ESM loader', 'https://esm.sh/@tezos-x/octez.connect-sdk@${OCTEZ_CONNECT_VERSION}?bundle', wallet],
     ['Octez.Connect lazy loader', 'loadOctezConnect', wallet],
@@ -547,6 +548,18 @@ async function checkSelectorContracts() {
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
+  }
+  const forbiddenCtezInterfaceStrings = [
+    'better-call.dev',
+    'ctez-wallet-oven-id',
+    'ctez-wallet-withdraw-to',
+    'ctez-tez-input',
+    'ctez-outstanding-input',
+    'CTEZ_STORAGE_URL',
+    'decimalToMicroString'
+  ];
+  for (const snippet of forbiddenCtezInterfaceStrings) {
+    if (ctez.includes(snippet)) fail(`ctez chamber should not expose manual recovery UI: ${snippet}`);
   }
   if (wallet.includes('dist/octez.connect.min.js') || wallet.includes('loadScript(')) {
     fail('Octez.Connect wallet loader must avoid the CSP-hostile UMD script bundle');
@@ -616,10 +629,10 @@ async function checkSelectorContracts() {
     ['tz4 monthly bar visible count style', '.tz4-month-count', styles],
     ['tz4 monthly bar fill style', '.tz4-month-fill', styles],
     ['tz4 first movers top 10 cap', '.slice(0, 10)', tz4],
-    ['ctez action grid style', '.ctez-action-grid', styles],
-    ['ctez guide grid style', '.ctez-guide-grid', styles],
-    ['ctez exit workspace style', '.ctez-exit-workspace', styles],
-    ['ctez hero panel style', '.ctez-hero-panel', styles]
+    ['ctez app shell style', '.ctez-app-shell', styles],
+    ['ctez oven panel style', '.ctez-oven-panel', styles],
+    ['ctez oven card style', '.ctez-oven-card', styles],
+    ['ctez action button grid style', '.ctez-action-buttons', styles]
   ];
   for (const [label, snippet, text] of chamberRendererStyleContracts) {
     if (!text.includes(snippet)) fail(`missing chamber renderer style contract: ${label}`);

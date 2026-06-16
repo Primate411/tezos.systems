@@ -5,15 +5,21 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-16',
+        entries: [
+            { type: '🎨', text: 'ctez Recovery now presents a wallet-first interface that detects owned ovens automatically and hides manual recovery steps from users' },
+        ]
+    },
+    {
         date: '2026-06-15',
         entries: [
-            { type: '🎨', text: 'ctez Oven Guide now uses a calmer exit workspace with a primary three-step path, quieter reference links, and wallet signing moved into an optional side rail' },
+            { type: '🎨', text: 'ctez Recovery was added to Chambers as a focused old-oven recovery surface with direct access from the dashboard' },
             { type: '🔧', text: 'Octez.Connect wallet loading now uses a CSP-safe prewarmed ESM bundle so My Tezos and ctez wallet actions can open the dApp client' },
             { type: '🎨', text: 'Current Protocol now shows only a compact Chamber signal while detailed governance progress stays inside The Chamber' },
             { type: '🔧', text: 'My Tezos baker signal now ignores nonzero-round baking rights and shows a back-online state as soon as fresh attestations are realized' },
-            { type: '✨', text: 'ctez Oven Guide now supports Octez.Connect wallet requests for mint_or_burn and withdraw oven operations' },
+            { type: '✨', text: 'ctez Recovery supports Octez.Connect wallet requests for mint_or_burn and withdraw oven operations' },
             { type: '✨', text: 'My Tezos now has an Octez.Connect wallet path that syncs the connected account into the drawer without removing manual address entry' },
-            { type: '✨', text: 'ctez Oven Guide joins Chambers with Better Call Dev links, unit helpers, and safer burn/withdraw instructions' },
+            { type: '✨', text: 'ctez Recovery joins Chambers with safety reminders for users recovering tez from old ctez ovens' },
             { type: '🔧', text: 'Governance lore now covers Ushuaia Adoption with DAL, rollup, sTEZ, and tz5 context so the live protocol refresh stays unblocked' },
             { type: '🔧', text: 'My Tezos smoke coverage now exercises regular delegators and mostly-staked user accounts, not only bakers' },
         ]

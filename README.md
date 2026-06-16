@@ -156,7 +156,7 @@ inline modal styles in `js/core/app.js`.
 
 - Chambers section is visible by default and orders the chamber rows as Network
   Health <> The Chamber, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
-  Monitor, and a full-width ctez Oven Guide. Each row is wrapped responsively so
+  Monitor, and a full-width ctez Recovery card. Each row is wrapped responsively so
   wide cards keep their companion card instead of creating desktop grid holes;
   cards also keep a canonical app-shell open affordance in the fixed footer
   rail, card-level direct-link controls, and quiet `as of` freshness stamps on
@@ -208,13 +208,11 @@ inline modal styles in `js/core/app.js`.
   timing, projection to 50%, largest holdouts, visible monthly switch-count
   momentum, power milestones, top-10 first movers, and a capped Baker Status
   table with a Show all control.
-- ctez Oven Guide with direct `#ctez` access, a calmer three-step exit
-  workspace for finding ovens, burning outstanding ctez, and withdrawing tez,
-  Better Call Dev links for contract storage and `mint_or_burn`/`withdraw`,
-  oven ID plus `ctez_outstanding`/`tez_balance` checkpoints, raw mutez and
-  micro-ctez unit helpers, optional Octez.Connect wallet actions for
-  `mint_or_burn` and `withdraw`, and signing-safety reminders for users
-  withdrawing tez from old ctez ovens.
+- ctez Recovery with direct `#ctez` access, an Octez.Connect wallet-first flow,
+  TzKT contract storage and big-map discovery for ovens owned by the connected
+  wallet, wallet-reviewed `mint_or_burn` and `withdraw` requests generated from
+  detected oven data, and signing-safety reminders for users recovering tez
+  from old ctez ovens.
 - My Tezos drawer and My Baker lookup, including baker performance, latest
   LB vote state, Octez.Connect wallet sync, and recent baker delegator/staker
   activity.
@@ -256,7 +254,7 @@ room.
 
 | Source | Purpose |
 |--------|---------|
-| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, blocks, operations, governance, accounts, Etherlink governance contract discovery/storage/bigmaps |
+| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, blocks, operations, governance, accounts, Etherlink governance contract discovery/storage/bigmaps, and ctez oven discovery |
 | Octez RPC `https://eu.rpc.tez.capital` | Issuance, supply, constants, cycle/head metadata |
 | CoinGecko | XTZ price, market cap, 24h change, volume |
 | Tezos Domains GraphQL | Domain and reverse-record lookups |
@@ -266,7 +264,6 @@ room.
 | Etherlink Blockscout `https://explorer.etherlink.com/api/v2` | Tezos X chamber transaction, address, gas, and block stats |
 | Etherlink JSON-RPC `https://node.mainnet.etherlink.com` | Tezos X chamber RPC head and gas fallback |
 | Etherlink governance `https://governance.etherlink.com/governance` | Official FAST, SLOW, and Sequencer action pages linked from the read-only chamber |
-| Better Call Dev `https://better-call.dev` | External ctez contract storage and interaction pages linked from the read-only Oven Guide |
 | Octez.Connect `@tezos-x/octez.connect-sdk` via `https://esm.sh` | Lazy browser wallet pairing and ctez/My Tezos account actions |
 
 Live staking ratio and APY surfaces use TzKT `statistics/current` totals for

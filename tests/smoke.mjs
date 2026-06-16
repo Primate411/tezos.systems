@@ -630,6 +630,41 @@ async function installFeatureMocks(context, options = {}) {
     }
 
     if (url.includes('api.tzkt.io/v1')) {
+      if (url.includes('/contracts/KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2/storage')) {
+        return fulfillJson(route, {
+          drift: '0',
+          ovens: 20919,
+          target: '0',
+          metadata: 20918,
+          cfmm_address: 'KT1SmokeCtezCfmm1111111111111111111',
+          ctez_fa12_address: 'KT1SmokeCtezFa1211111111111111111',
+          last_drift_update: new Date().toISOString()
+        });
+      }
+      if (url.includes('/bigmaps/20919/keys')) {
+        const owner = parsedUrl.searchParams.get('key.owner') || '';
+        if (owner !== SAMPLE_ADDRESS) return fulfillJson(route, []);
+        return fulfillJson(route, [
+          {
+            key: { id: '42', owner: SAMPLE_ADDRESS },
+            value: {
+              address: 'KT1SmokeCtezOvenDebt1111111111111111',
+              tez_balance: '6543210',
+              ctez_outstanding: '123456'
+            },
+            lastLevel: 12345678
+          },
+          {
+            key: { id: '43', owner: SAMPLE_ADDRESS },
+            value: {
+              address: 'KT1SmokeCtezOvenReady111111111111111',
+              tez_balance: '987654',
+              ctez_outstanding: '0'
+            },
+            lastLevel: 12345679
+          }
+        ]);
+      }
       if (url.includes('/statistics/current')) {
         return fulfillJson(route, {
           totalSupply: 1050000000000000,
@@ -3095,15 +3130,12 @@ async function smokeCtezChamber(browser, baseUrl) {
       title: modal?.querySelector('.chamber-title')?.textContent || '',
       badge: modal?.querySelector('.chamber-badge')?.textContent || '',
       text,
-      hero: modal?.querySelector('.ctez-hero-panel')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      hasWorkspace: Boolean(modal?.querySelector('.ctez-exit-workspace')),
-      hasWalletRail: Boolean(modal?.querySelector('.ctez-side-rail .ctez-wallet-panel #ctez-wallet-connect')),
-      walletRailText: modal?.querySelector('.ctez-side-rail .ctez-wallet-panel')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      stepCards: modal?.querySelectorAll('.ctez-step-card').length || 0,
-      actionCards: modal?.querySelectorAll('.ctez-action-card').length || 0,
+      hasAppShell: Boolean(modal?.querySelector('.ctez-app-shell')),
+      hasConnectPanel: Boolean(modal?.querySelector('.ctez-connect-panel #ctez-wallet-connect')),
+      hasOvenPanel: Boolean(modal?.querySelector('.ctez-oven-panel #ctez-oven-list')),
+      hasRefresh: Boolean(modal?.querySelector('#ctez-wallet-refresh')),
+      manualFields: Boolean(modal?.querySelector('#ctez-wallet-oven-id, #ctez-tez-input, #ctez-outstanding-input, #ctez-wallet-withdraw-to, #ctez-wallet-withdraw-amount, .ctez-action-card, .ctez-guide-grid, .ctez-exit-workspace')),
       bcdLinks,
-      sourceLinks: modal?.querySelectorAll('a[href*="x.com/TezosCommons/article/2066606430384529532"]').length || 0,
-      repoLinks: modal?.querySelectorAll('a[href="https://github.com/Tezsure/ctez"]').length || 0,
       directHref: modal?.querySelector('.panel-direct-link')?.getAttribute('href') || '',
       footer: modal?.querySelector('.chamber-footer')?.textContent || '',
       cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
@@ -3113,52 +3145,49 @@ async function smokeCtezChamber(browser, baseUrl) {
     };
   });
 
-  assert(/ctez Oven Guide/.test(ctezState.title), `ctez chamber: title mismatch: ${ctezState.title}`);
-  assert(/Retired frontend fallback/.test(ctezState.badge), `ctez chamber: badge mismatch: ${ctezState.badge}`);
-  assert(ctezState.hasWorkspace && ctezState.hasWalletRail, `ctez chamber: calmer workspace and wallet rail missing: ${JSON.stringify(ctezState)}`);
-  assert(/Find the oven\. Clear the debt\. Withdraw the tez\./.test(ctezState.hero), `ctez chamber: hero sequence missing: ${ctezState.hero}`);
-  assert(/Optional signer/.test(ctezState.walletRailText) && /Connect only when/.test(ctezState.walletRailText), `ctez chamber: wallet rail should be contextual: ${ctezState.walletRailText}`);
+  assert(/ctez Recovery/.test(ctezState.title), `ctez chamber: title mismatch: ${ctezState.title}`);
+  assert(/Wallet flow/.test(ctezState.badge), `ctez chamber: badge mismatch: ${ctezState.badge}`);
+  assert(ctezState.hasAppShell && ctezState.hasConnectPanel && ctezState.hasOvenPanel && ctezState.hasRefresh, `ctez chamber: wallet-first app shell missing: ${JSON.stringify(ctezState)}`);
+  assert(!ctezState.manualFields, `ctez chamber: manual/guide controls should not render: ${JSON.stringify(ctezState)}`);
+  assert(ctezState.bcdLinks.length === 0, `ctez chamber: Better Call Dev links should not render: ${ctezState.bcdLinks.join(', ')}`);
+  assert(!/Better Call Dev|ctez_outstanding|tez_balance|oven ID/i.test(ctezState.text), `ctez chamber: raw recovery instructions leaked into UI: ${ctezState.text}`);
   assert(/KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2/.test(ctezState.text), 'ctez chamber: contract address missing');
-  assert(/ctez_outstanding/.test(ctezState.text) && /tez_balance/.test(ctezState.text), `ctez chamber: oven fields missing: ${ctezState.text}`);
+  assert(/Connect a Tezos wallet/.test(ctezState.text), `ctez chamber: connect prompt missing: ${ctezState.text}`);
   assert(/Never share your seed phrase/.test(ctezState.text), 'ctez chamber: safety copy missing');
-  assert(ctezState.stepCards === 3, `ctez chamber: expected 3 step cards, saw ${ctezState.stepCards}`);
-  assert(ctezState.actionCards >= 4, `ctez chamber: action cards missing, saw ${ctezState.actionCards}`);
-  assert(ctezState.bcdLinks.some((href) => href.endsWith('/storage')), `ctez chamber: storage link missing: ${ctezState.bcdLinks.join(', ')}`);
-  assert(ctezState.bcdLinks.some((href) => href.includes('/interact/mint_or_burn')), `ctez chamber: mint_or_burn link missing: ${ctezState.bcdLinks.join(', ')}`);
-  assert(ctezState.sourceLinks >= 1, 'ctez chamber: Tezos Commons source link missing');
-  assert(ctezState.repoLinks >= 1, 'ctez chamber: original ctez repo link missing');
   assert(/Direct: \/ctez\//.test(ctezState.footer), `ctez chamber: direct footer missing: ${ctezState.footer}`);
   assert(ctezState.directHref === '/ctez/', `ctez chamber: direct href mismatch: ${ctezState.directHref}`);
   assert(ctezState.cardCopyHash === '#ctez', `ctez chamber: card copy hash mismatch: ${ctezState.cardCopyHash}`);
   assert(ctezState.cardWide && ctezState.cardCue, `ctez chamber: card should be wide and have shared open cue: ${JSON.stringify(ctezState)}`);
-  assert(/Exit path/.test(ctezState.cardText) && /mutez/.test(ctezState.cardText), `ctez chamber: card copy mismatch: ${ctezState.cardText}`);
-
-  await page.locator('#ctez-tez-input').fill('12.345678');
-  await page.locator('#ctez-outstanding-input').fill('123456');
-  const helperState = await page.evaluate(() => ({
-    mutez: document.querySelector('#ctez-mutez-output')?.textContent || '',
-    burn: document.querySelector('#ctez-burn-output')?.textContent || ''
-  }));
-  assert(/12,345,678 mutez/.test(helperState.mutez), `ctez chamber: mutez helper mismatch: ${helperState.mutez}`);
-  assert(/-123,456/.test(helperState.burn), `ctez chamber: burn helper mismatch: ${helperState.burn}`);
+  assert(/Wallet flow/.test(ctezState.cardText) && /recover tez/i.test(ctezState.cardText), `ctez chamber: card copy mismatch: ${ctezState.cardText}`);
 
   await page.locator('#ctez-wallet-connect').click();
   await page.waitForFunction((address) => localStorage.getItem('tezos-systems-octez-wallet-address') === address, SAMPLE_ADDRESS, { timeout: 5000 });
+  await page.waitForFunction(() => document.querySelectorAll('#ctez-oven-list .ctez-oven-card').length >= 2, null, { timeout: 5000 });
   const walletConnectState = await page.evaluate(() => ({
     status: document.querySelector('#ctez-wallet-status')?.textContent || '',
+    ovenStatus: document.querySelector('#ctez-oven-status')?.textContent || '',
+    ovenCards: Array.from(document.querySelectorAll('#ctez-oven-list .ctez-oven-card')).map((card) => card.textContent.replace(/\s+/g, ' ').trim()),
+    selectedSummary: document.querySelector('#ctez-selected-summary')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     savedMyTezos: localStorage.getItem('tezos-systems-my-baker-address') || '',
-    withdrawTo: document.querySelector('#ctez-wallet-withdraw-to')?.value || ''
+    burnDisabled: document.querySelector('#ctez-wallet-burn')?.disabled ?? true,
+    withdrawDisabled: document.querySelector('#ctez-wallet-withdraw')?.disabled ?? true
   }));
   assert(walletConnectState.status.includes('Wallet tz1aWX…T1Z9'), `ctez wallet: status mismatch ${JSON.stringify(walletConnectState)}`);
   assert(walletConnectState.savedMyTezos === SAMPLE_ADDRESS, `ctez wallet: should sync My Tezos address ${JSON.stringify(walletConnectState)}`);
-  assert(walletConnectState.withdrawTo === SAMPLE_ADDRESS, `ctez wallet: withdraw recipient should default to wallet ${JSON.stringify(walletConnectState)}`);
+  assert(/2 ctez ovens found/.test(walletConnectState.ovenStatus), `ctez wallet: oven status mismatch ${JSON.stringify(walletConnectState)}`);
+  assert(walletConnectState.ovenCards.length === 2 && /6\.54321 tez/.test(walletConnectState.ovenCards[0]) && /0\.987654 tez/.test(walletConnectState.ovenCards[1]), `ctez wallet: detected oven cards mismatch ${JSON.stringify(walletConnectState)}`);
+  assert(/0\.123456 ctez/.test(walletConnectState.selectedSummary), `ctez wallet: selected debt summary mismatch ${JSON.stringify(walletConnectState)}`);
+  assert(!walletConnectState.burnDisabled && walletConnectState.withdrawDisabled, `ctez wallet: debt oven should enable burn only ${JSON.stringify(walletConnectState)}`);
 
-  await page.locator('#ctez-wallet-oven-id').fill('42');
-  await page.locator('#ctez-wallet-outstanding').fill('123456');
   await page.locator('#ctez-wallet-burn').click();
   await page.waitForFunction(() => window.__octezConnectRequests?.length >= 1, null, { timeout: 5000 });
 
-  await page.locator('#ctez-wallet-withdraw-amount').fill('987654');
+  await page.locator('#ctez-oven-list .ctez-oven-card[data-oven-index="1"]').click();
+  await page.waitForFunction(() => {
+    const burn = document.querySelector('#ctez-wallet-burn');
+    const withdraw = document.querySelector('#ctez-wallet-withdraw');
+    return burn?.disabled === true && withdraw?.disabled === false;
+  }, null, { timeout: 5000 });
   await page.locator('#ctez-wallet-withdraw').click();
   await page.waitForFunction(() => window.__octezConnectRequests?.length >= 2, null, { timeout: 5000 });
 
@@ -3177,7 +3206,7 @@ async function smokeCtezChamber(browser, baseUrl) {
   assert(JSON.stringify(withdrawDetail.parameters?.value) === JSON.stringify({
     prim: 'Pair',
     args: [
-      { int: '42' },
+      { int: '43' },
       { prim: 'Pair', args: [{ int: '987654' }, { string: SAMPLE_ADDRESS }] }
     ]
   }), `ctez wallet: withdraw Micheline mismatch ${JSON.stringify(withdrawDetail.parameters?.value)}`);
@@ -3207,7 +3236,7 @@ async function smokeCtezChamber(browser, baseUrl) {
   const mobileState = await mobilePage.evaluate(() => {
     const modal = document.querySelector('#ctez-modal .ctez-content');
     const box = modal?.getBoundingClientRect();
-    const grids = Array.from(document.querySelectorAll('#ctez-modal .ctez-action-grid, #ctez-modal .ctez-guide-grid, #ctez-modal .ctez-tool-grid, #ctez-modal .ctez-exit-workspace, #ctez-modal .ctez-side-rail'));
+    const grids = Array.from(document.querySelectorAll('#ctez-modal .ctez-app-shell, #ctez-modal .ctez-connect-panel, #ctez-modal .ctez-oven-panel, #ctez-modal .ctez-oven-list, #ctez-modal .ctez-action-panel, #ctez-modal .ctez-action-buttons, #ctez-modal .ctez-selected-summary'));
     return {
       modalWidth: box?.width || 0,
       viewportWidth: window.innerWidth,
@@ -3218,7 +3247,7 @@ async function smokeCtezChamber(browser, baseUrl) {
       closeVisible: Boolean(document.querySelector('#ctez-modal .chamber-close')?.getBoundingClientRect().width)
     };
   });
-  assert(/ctez Oven Guide/.test(mobileState.title), `ctez chamber mobile: title mismatch: ${mobileState.title}`);
+  assert(/ctez Recovery/.test(mobileState.title), `ctez chamber mobile: title mismatch: ${mobileState.title}`);
   assert(mobileState.closeVisible, 'ctez chamber mobile: close button should remain visible');
   assert(mobileState.modalWidth <= mobileState.viewportWidth, `ctez chamber mobile: modal wider than viewport: ${JSON.stringify(mobileState)}`);
   assert(mobileState.pageOverflow <= 2 && mobileState.modalOverflow <= 2 && mobileState.gridOverflows.every((value) => value <= 2), `ctez chamber mobile: horizontal overflow: ${JSON.stringify(mobileState)}`);
@@ -4529,7 +4558,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-deep-link-override', description: 'My Tezos direct address links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) },
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
-    { name: 'ctez', description: 'ctez Oven Guide opens #ctez with Better Call Dev links, unit helpers, and safety copy', run: () => smokeCtezChamber(browser, baseUrl) },
+    { name: 'ctez', description: 'ctez Recovery opens #ctez with wallet-first oven discovery and wallet-reviewed operations', run: () => smokeCtezChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
@@ -4575,7 +4604,7 @@ async function main() {
     ['my-tezos-deep-link-override', 'My Tezos direct address links override a stale saved baker on first load'],
     ['tezlink', 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape'],
     ['network-health', 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary'],
-    ['ctez', 'ctez Oven Guide opens #ctez with Better Call Dev links, unit helpers, and safety copy'],
+    ['ctez', 'ctez Recovery opens #ctez with wallet-first oven discovery and wallet-reviewed operations'],
     ['governance-lb', 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh'],
     ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
     ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],

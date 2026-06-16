@@ -1,8 +1,9 @@
 /**
- * ctez Oven Guide Chamber
- * Manual Better Call Dev walkthrough for users withdrawing tez from old ctez ovens.
+ * ctez Oven Recovery Chamber
+ * Wallet-first recovery flow for users withdrawing tez from old ctez ovens.
  */
 
+import { API_URLS } from '../core/config.js';
 import { escapeHtml } from '../core/utils.js';
 import {
     connectOctezWallet,
@@ -13,13 +14,19 @@ import {
 } from '../core/wallet.js';
 
 const CTEZ_CONTRACT = 'KT1GWnsoFZVHGh7roXEER3qeCcgJgrXT3de2';
-const CTEZ_STORAGE_URL = `https://better-call.dev/mainnet/${CTEZ_CONTRACT}/storage`;
-const CTEZ_MINT_BURN_URL = `https://better-call.dev/mainnet/${CTEZ_CONTRACT}/interact/mint_or_burn`;
-const CTEZ_SOURCE_URL = 'https://x.com/TezosCommons/article/2066606430384529532';
-const CTEZ_REPO_URL = 'https://github.com/Tezsure/ctez';
+const CTEZ_OVENS_LIMIT = 50;
+const TZKT = API_URLS.tzkt;
 
 let _savedBodyOverflow = null;
 let _savedHtmlOverflow = null;
+let _ctezState = {
+    address: '',
+    ovens: [],
+    selectedIndex: 0,
+    loading: false,
+    error: ''
+};
+let _ctezWalletBusy = false;
 
 function lockPageScroll() {
     _savedBodyOverflow = document.body.style.overflow || '';
@@ -39,26 +46,6 @@ function normalizeMicroInput(value) {
     return String(value || '').replace(/[,_\s]/g, '').trim();
 }
 
-function decimalToMicroString(value) {
-    const raw = normalizeMicroInput(value);
-    if (!raw) return '';
-    if (!/^\d*(?:\.\d*)?$/.test(raw) || raw === '.') return '';
-    const [wholeRaw = '0', fractionalRaw = ''] = raw.split('.');
-    const whole = wholeRaw || '0';
-    const fractional = fractionalRaw.slice(0, 6).padEnd(6, '0');
-    try {
-        return (BigInt(whole) * 1000000n + BigInt(fractional || '0')).toString();
-    } catch {
-        return '';
-    }
-}
-
-function formatGroupedNumber(value) {
-    const raw = normalizeMicroInput(value);
-    if (!/^\d+$/.test(raw)) return '';
-    return raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-}
-
 function isNatString(value) {
     return /^\d+$/.test(normalizeMicroInput(value));
 }
@@ -70,6 +57,75 @@ function isPositiveNatString(value) {
 
 function isTezosAccountAddress(address) {
     return /^(tz[1-4])[a-zA-Z0-9]{33}$/.test(String(address || '').trim());
+}
+
+function formatGroupedNumber(value) {
+    const raw = normalizeMicroInput(value);
+    if (!/^\d+$/.test(raw)) return '';
+    return raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
+function formatMicroAmount(value, symbol) {
+    const raw = normalizeMicroInput(value);
+    if (!/^\d+$/.test(raw)) return `0 ${symbol}`;
+    const amount = BigInt(raw);
+    const whole = amount / 1000000n;
+    const fraction = (amount % 1000000n).toString().padStart(6, '0').replace(/0+$/, '');
+    const wholeText = formatGroupedNumber(whole.toString()) || '0';
+    return `${wholeText}${fraction ? `.${fraction}` : ''} ${symbol}`;
+}
+
+function hasRecoverableBalance(oven) {
+    return BigInt(normalizeMicroInput(oven?.tezBalance || '0')) > 0n;
+}
+
+function hasOutstandingDebt(oven) {
+    return BigInt(normalizeMicroInput(oven?.ctezOutstanding || '0')) > 0n;
+}
+
+async function fetchJson(url) {
+    // Wallet-triggered recovery reads should not wait behind dashboard background TzKT fan-out.
+    const browserFetch = (typeof window !== 'undefined' && window.__tezosSystemsOriginalFetch) || fetch;
+    const response = await browserFetch(url, { cache: 'no-store' });
+    if (!response.ok) {
+        throw new Error(`TzKT returned HTTP ${response.status}`);
+    }
+    return response.json();
+}
+
+async function fetchCtezOvens(address) {
+    const storage = await fetchJson(`${TZKT}/contracts/${CTEZ_CONTRACT}/storage`);
+    const ovensPtr = normalizeMicroInput(storage?.ovens);
+    if (!isPositiveNatString(ovensPtr)) {
+        throw new Error('Could not locate the ctez ovens map');
+    }
+
+    const params = new URLSearchParams({
+        active: 'true',
+        'key.owner': address,
+        select: 'key,value,lastLevel',
+        limit: String(CTEZ_OVENS_LIMIT)
+    });
+    const rows = await fetchJson(`${TZKT}/bigmaps/${ovensPtr}/keys?${params.toString()}`);
+    if (!Array.isArray(rows)) return [];
+
+    return rows.map((row) => {
+        const key = row?.key || {};
+        const value = row?.value || {};
+        return {
+            id: normalizeMicroInput(key.id),
+            owner: key.owner || address,
+            ovenAddress: value.address || '',
+            tezBalance: normalizeMicroInput(value.tez_balance || '0'),
+            ctezOutstanding: normalizeMicroInput(value.ctez_outstanding || '0'),
+            lastLevel: row?.lastLevel || 0
+        };
+    }).filter((oven) => isNatString(oven.id)).sort((left, right) => {
+        const leftAction = hasOutstandingDebt(left) || hasRecoverableBalance(left);
+        const rightAction = hasOutstandingDebt(right) || hasRecoverableBalance(right);
+        if (leftAction !== rightAction) return rightAction ? 1 : -1;
+        return Number(left.id) - Number(right.id);
+    });
 }
 
 export function buildCtezMintOrBurnOperation(id, quantity) {
@@ -112,262 +168,76 @@ export function buildCtezWithdrawOperation(id, amount, to) {
     };
 }
 
-function renderActionLink({ href, title, body, meta }) {
-    return `
-        <a class="ctez-action-card" href="${escapeHtml(href)}" target="_blank" rel="noopener">
-            <span class="ctez-action-title">${escapeHtml(title)}</span>
-            <span class="ctez-action-body">${escapeHtml(body)}</span>
-            <span class="ctez-action-meta">${escapeHtml(meta)}</span>
-        </a>
-    `;
-}
-
-function renderStep({ number, title, body, items }) {
-    return `
-        <section class="ctez-step-card chamber-anim-fade" style="animation-delay:${120 + number * 50}ms">
-            <div class="ctez-step-number">${number}</div>
-            <div class="ctez-step-copy">
-                <div class="ctez-step-kicker">Step ${number}</div>
-                <h3>${escapeHtml(title)}</h3>
-                <p>${escapeHtml(body)}</p>
-            </div>
-            <ul class="ctez-step-list">
-                ${items.map((item) => `<li>${item}</li>`).join('')}
-            </ul>
-        </section>
-    `;
-}
-
 function renderCtezChamber() {
     return `
         <div class="chamber-header ctez-header chamber-anim-fade">
             <div class="lb-system-strip ctez-system-strip">
                 <span class="lb-system-brand">Tezos.Systems</span>
-                <span>ctez Oven Guide</span>
+                <span>ctez recovery</span>
             </div>
             <div class="chamber-title-row">
-                <h2 class="chamber-title">ctez Oven Guide</h2>
-                <span class="chamber-badge ctez-badge">Retired frontend fallback</span>
+                <h2 class="chamber-title">ctez Recovery</h2>
+                <span class="chamber-badge ctez-badge">Wallet flow</span>
             </div>
             <div class="chamber-proposal-info">
-                <div class="proposal-name">A calmer path for withdrawing tez from old ctez ovens</div>
+                <div class="proposal-name">Connect a Tezos wallet to recover old ctez oven balances</div>
                 <div class="proposal-hash">Contract ${escapeHtml(CTEZ_CONTRACT)}</div>
             </div>
         </div>
 
-        <section class="ctez-hero-panel chamber-anim-fade" style="animation-delay:80ms">
-            <div class="ctez-hero-copy">
-                <div class="ctez-hero-eyebrow">Use one clean sequence</div>
-                <h3>Find the oven. Clear the debt. Withdraw the tez.</h3>
-                <p>
-                    The retired ctez frontend used to hide the contract fields and unit math. Keep the raw values visible, then use the wallet only after the oven id and amounts are known.
-                </p>
-                <div class="ctez-pill-row" aria-label="ctez exit checkpoints">
-                    <span class="ctez-pill">Oven storage</span>
-                    <span class="ctez-pill">ctez_outstanding</span>
-                    <span class="ctez-pill">tez_balance</span>
-                    <span class="ctez-pill">Wallet review</span>
+        <section class="ctez-app-shell chamber-anim-fade" style="animation-delay:80ms">
+            <div class="ctez-connect-panel">
+                <div class="ctez-connect-mark">ctez</div>
+                <h3>Find recoverable tez automatically.</h3>
+                <p>Connect the wallet that owned the ctez oven. Tezos Systems checks the contract state and prepares wallet requests from the detected oven data.</p>
+                <div class="ctez-wallet-actions">
+                    <button id="ctez-wallet-connect" class="glass-button ctez-wallet-button" type="button">Connect wallet</button>
+                    <button id="ctez-wallet-refresh" class="glass-button ctez-wallet-refresh" type="button" disabled>Refresh</button>
                 </div>
-            </div>
-            <div class="ctez-flow-list">
-                <div class="ctez-flow-row">
-                    <span>1</span>
-                    <strong>Locate oven</strong>
-                    <small>Search storage with the owner wallet.</small>
-                </div>
-                <div class="ctez-flow-row">
-                    <span>2</span>
-                    <strong>Burn outstanding ctez</strong>
-                    <small>Use a negative mint_or_burn quantity.</small>
-                </div>
-                <div class="ctez-flow-row">
-                    <span>3</span>
-                    <strong>Withdraw tez</strong>
-                    <small>Send raw mutez to your wallet.</small>
-                </div>
-            </div>
-        </section>
-
-        <div class="ctez-exit-workspace">
-            <div class="ctez-primary-rail">
-                <div class="ctez-guide-grid">
-                    ${renderStep({
-                        number: 1,
-                        title: 'Locate your oven',
-                        body: 'Open contract storage, expand the ovens big map, and search with the wallet address that owns the oven.',
-                        items: [
-                            `Open <a href="${escapeHtml(CTEZ_STORAGE_URL)}" target="_blank" rel="noopener">storage</a> for <code>${escapeHtml(CTEZ_CONTRACT)}</code>.`,
-                            'Record the oven id from the big-map key.',
-                            'Record <code>ctez_outstanding</code> and <code>tez_balance</code> from the oven value.'
-                        ]
-                    })}
-                    ${renderStep({
-                        number: 2,
-                        title: 'Burn outstanding ctez',
-                        body: 'If ctez_outstanding is above zero, call mint_or_burn with a negative quantity.',
-                        items: [
-                            `Open <a href="${escapeHtml(CTEZ_MINT_BURN_URL)}" target="_blank" rel="noopener">mint_or_burn</a>.`,
-                            'Set <code>id</code> to the oven id.',
-                            'Set <code>quantity</code> to <code>-ctez_outstanding</code>, for example <code>10000000</code> becomes <code>-10000000</code>.',
-                            'Confirm your wallet holds at least that much ctez before signing.'
-                        ]
-                    })}
-                    ${renderStep({
-                        number: 3,
-                        title: 'Withdraw the tez',
-                        body: 'After outstanding ctez is cleared, use the withdraw entrypoint with the raw mutez amount.',
-                        items: [
-                            'Select <code>withdraw</code> on the Better Call Dev interact page.',
-                            'Set <code>id</code> to the oven id.',
-                            'Set <code>to</code> to your wallet address.',
-                            'Set <code>amount</code> to <code>tez_balance</code> in mutez. If it fails, retry with a slightly smaller amount.'
-                        ]
-                    })}
-                </div>
-
-                <section class="ctez-tool-panel chamber-anim-fade" style="animation-delay:300ms">
-                    <div class="lb-panel-title">Unit helpers</div>
-                    <div class="ctez-tool-grid">
-                        <label class="ctez-converter">
-                            <span>tez balance</span>
-                            <input id="ctez-tez-input" inputmode="decimal" autocomplete="off" placeholder="10">
-                            <strong id="ctez-mutez-output">10 tez = 10,000,000 mutez</strong>
-                        </label>
-                        <label class="ctez-converter">
-                            <span>ctez_outstanding</span>
-                            <input id="ctez-outstanding-input" inputmode="numeric" autocomplete="off" placeholder="10000000">
-                            <strong id="ctez-burn-output">Burn quantity: -10,000,000</strong>
-                        </label>
-                    </div>
-                    <p class="ctez-tool-note">
-                        Better Call Dev contract fields use raw micro-units. The retired frontend multiplied human tez/ctez amounts by 1,000,000 before sending the contract call.
-                    </p>
-                </section>
+                <span id="ctez-wallet-status" class="ctez-wallet-status">No wallet connected</span>
             </div>
 
-            <aside class="ctez-side-rail">
-                <section class="ctez-wallet-panel chamber-anim-fade" style="animation-delay:160ms">
-                    <div class="ctez-panel-kicker">Optional signer</div>
-                    <div class="ctez-wallet-header">
-                        <div>
-                            <div class="lb-panel-title">Wallet actions</div>
-                            <p class="ctez-tool-note">Connect only when the oven id and raw amounts are ready. Your wallet still shows the final operation before signing.</p>
-                        </div>
-                        <div class="ctez-wallet-actions">
-                            <button id="ctez-wallet-connect" class="glass-button ctez-wallet-button" type="button">Connect wallet</button>
-                            <span id="ctez-wallet-status" class="ctez-wallet-status">No wallet connected</span>
-                        </div>
+            <div class="ctez-oven-panel" id="ctez-oven-panel" data-state="idle">
+                <div class="ctez-oven-panel-head">
+                    <div>
+                        <div class="ctez-panel-kicker">Recovery status</div>
+                        <h3>Your ctez ovens</h3>
                     </div>
-                    <div class="ctez-wallet-grid">
-                        <div class="ctez-wallet-call">
-                            <div class="ctez-wallet-call-title">Burn debt</div>
-                            <label class="ctez-converter ctez-wallet-field">
-                                <span>oven id</span>
-                                <input id="ctez-wallet-oven-id" inputmode="numeric" autocomplete="off" placeholder="0">
-                            </label>
-                            <label class="ctez-converter ctez-wallet-field">
-                                <span>ctez_outstanding</span>
-                                <input id="ctez-wallet-outstanding" inputmode="numeric" autocomplete="off" placeholder="10000000">
-                            </label>
-                            <button id="ctez-wallet-burn" class="glass-button ctez-wallet-submit" type="button">Burn outstanding ctez</button>
-                        </div>
-                        <div class="ctez-wallet-call">
-                            <div class="ctez-wallet-call-title">Withdraw tez</div>
-                            <label class="ctez-converter ctez-wallet-field">
-                                <span>amount, mutez</span>
-                                <input id="ctez-wallet-withdraw-amount" inputmode="numeric" autocomplete="off" placeholder="10000000">
-                            </label>
-                            <label class="ctez-converter ctez-wallet-field ctez-wallet-field-wide">
-                                <span>withdraw to</span>
-                                <input id="ctez-wallet-withdraw-to" autocomplete="off" placeholder="tz1...">
-                            </label>
-                            <button id="ctez-wallet-withdraw" class="glass-button ctez-wallet-submit" type="button">Withdraw tez</button>
-                        </div>
+                    <span class="ctez-contract-pill">Verified contract</span>
+                </div>
+                <div id="ctez-oven-status" class="ctez-oven-status">Connect a wallet to check for ctez ovens.</div>
+                <div id="ctez-oven-list" class="ctez-oven-list"></div>
+                <div id="ctez-action-panel" class="ctez-action-panel" hidden>
+                    <div id="ctez-selected-summary" class="ctez-selected-summary"></div>
+                    <div class="ctez-action-buttons">
+                        <button id="ctez-wallet-burn" class="glass-button ctez-wallet-submit" type="button">Burn ctez debt</button>
+                        <button id="ctez-wallet-withdraw" class="glass-button ctez-wallet-submit" type="button">Withdraw tez</button>
                     </div>
-                    <div id="ctez-wallet-review" class="ctez-wallet-review">Wallet requests stay inactive until you connect and press a burn or withdraw button.</div>
+                    <div id="ctez-wallet-review" class="ctez-wallet-review">Wallet requests stay inactive until recoverable oven data is found.</div>
                     <div id="ctez-wallet-feedback" class="ctez-wallet-feedback" role="status" aria-live="polite"></div>
-                </section>
-
-                <section class="ctez-safety-panel chamber-anim-fade" style="animation-delay:360ms">
-                    <div class="lb-panel-title">Signing checklist</div>
-                    <ul class="ctez-step-list">
-                        <li>Verify the contract address before signing: <code>${escapeHtml(CTEZ_CONTRACT)}</code>.</li>
-                        <li>Only sign the expected <code>mint_or_burn</code> or <code>withdraw</code> call.</li>
-                        <li>Never share your seed phrase, private key, wallet file, or wallet password with anyone offering help.</li>
-                        <li>If you are unsure, ask in official Tezos community channels and ignore unsolicited direct messages.</li>
-                    </ul>
-                </section>
-            </aside>
-        </div>
-
-        <section class="ctez-reference-panel chamber-anim-fade" style="animation-delay:390ms">
-            <div class="lb-panel-title">Reference links</div>
-            <div class="ctez-action-grid">
-                ${renderActionLink({
-                    href: CTEZ_STORAGE_URL,
-                    title: 'Oven storage',
-                    body: 'Search the ovens big map with your wallet address.',
-                    meta: 'Better Call Dev'
-                })}
-                ${renderActionLink({
-                    href: CTEZ_MINT_BURN_URL,
-                    title: 'Contract interact',
-                    body: 'Use mint_or_burn first, then withdraw.',
-                    meta: 'Better Call Dev'
-                })}
-                ${renderActionLink({
-                    href: CTEZ_SOURCE_URL,
-                    title: 'Source walkthrough',
-                    body: 'Tezos Commons article with screenshots.',
-                    meta: 'X article'
-                })}
-                ${renderActionLink({
-                    href: CTEZ_REPO_URL,
-                    title: 'Original frontend',
-                    body: 'Contract and old UI source for reference.',
-                    meta: 'GitHub'
-                })}
+                </div>
             </div>
         </section>
 
-        <div class="chamber-footer chamber-anim-fade" style="animation-delay:420ms">
-            <a href="${escapeHtml(CTEZ_STORAGE_URL)}" target="_blank" rel="noopener">Oven storage</a>
+        <section class="ctez-safety-panel chamber-anim-fade" style="animation-delay:180ms">
+            <div class="lb-panel-title">Before you sign</div>
+            <ul class="ctez-step-list">
+                <li>Verify your wallet shows the ctez contract address: <code>${escapeHtml(CTEZ_CONTRACT)}</code>.</li>
+                <li>Burn outstanding ctez debt before withdrawing tez from the same oven.</li>
+                <li>Never share your seed phrase, private key, wallet file, or wallet password.</li>
+            </ul>
+        </section>
+
+        <div class="chamber-footer chamber-anim-fade" style="animation-delay:220ms">
+            <span>ctez contract ${escapeHtml(CTEZ_CONTRACT)}</span>
             <span class="chamber-footer-sep">·</span>
-            <a href="${escapeHtml(CTEZ_MINT_BURN_URL)}" target="_blank" rel="noopener">mint_or_burn / withdraw</a>
-            <span class="chamber-footer-sep">·</span>
-            <a href="${escapeHtml(CTEZ_SOURCE_URL)}" target="_blank" rel="noopener">Tezos Commons guide</a>
-            <span class="chamber-footer-sep">·</span>
-            <a class="panel-direct-link" href="/ctez/" aria-label="Direct link to ctez Oven Guide">Direct: /ctez/</a>
+            <a class="panel-direct-link" href="/ctez/" aria-label="Direct link to ctez Recovery">Direct: /ctez/</a>
         </div>
     `;
 }
 
-function updateUnitHelpers(root) {
-    const tezInput = root.querySelector('#ctez-tez-input');
-    const mutezOutput = root.querySelector('#ctez-mutez-output');
-    const outstandingInput = root.querySelector('#ctez-outstanding-input');
-    const burnOutput = root.querySelector('#ctez-burn-output');
-
-    const syncTez = () => {
-        const micro = decimalToMicroString(tezInput?.value || '10');
-        if (!mutezOutput) return;
-        mutezOutput.textContent = micro
-            ? `${tezInput.value || '10'} tez = ${formatGroupedNumber(micro)} mutez`
-            : 'Enter a valid tez amount';
-    };
-
-    const syncOutstanding = () => {
-        const raw = normalizeMicroInput(outstandingInput?.value || '10000000');
-        if (!burnOutput) return;
-        burnOutput.textContent = /^\d+$/.test(raw)
-            ? `Burn quantity: -${formatGroupedNumber(raw)}`
-            : 'Enter the raw ctez_outstanding integer';
-    };
-
-    tezInput?.addEventListener('input', syncTez);
-    outstandingInput?.addEventListener('input', syncOutstanding);
-    syncTez();
-    syncOutstanding();
+function selectedOven() {
+    return _ctezState.ovens[_ctezState.selectedIndex] || null;
 }
 
 function setWalletFeedback(root, message, state = 'neutral') {
@@ -383,31 +253,173 @@ function setWalletReview(root, message) {
 }
 
 function setWalletButtonsBusy(root, busy) {
-    root.querySelectorAll('#ctez-wallet-connect, #ctez-wallet-burn, #ctez-wallet-withdraw').forEach((button) => {
-        button.disabled = busy;
-    });
+    _ctezWalletBusy = busy;
+    updateCtezActionButtons(root);
 }
 
 function updateCtezWalletStatus(root, address = getStoredWalletAddress()) {
     const status = root.querySelector('#ctez-wallet-status');
-    const withdrawTo = root.querySelector('#ctez-wallet-withdraw-to');
+    const connect = root.querySelector('#ctez-wallet-connect');
+    const refresh = root.querySelector('#ctez-wallet-refresh');
     if (status) {
         status.textContent = address ? `Wallet ${shortAddress(address)}` : 'No wallet connected';
         status.dataset.connected = address ? 'true' : 'false';
     }
-    if (withdrawTo && address && !withdrawTo.value.trim()) withdrawTo.value = address;
+    if (connect) connect.textContent = address ? 'Switch wallet' : 'Connect wallet';
+    if (refresh) refresh.disabled = !address || _ctezState.loading;
+}
+
+function renderOvenCard(oven, index) {
+    const debt = hasOutstandingDebt(oven);
+    const balance = hasRecoverableBalance(oven);
+    const state = debt ? 'Debt first' : balance ? 'Ready' : 'Clear';
+    return `
+        <button class="ctez-oven-card ${index === _ctezState.selectedIndex ? 'is-selected' : ''} ${debt || balance ? 'has-action' : 'is-clear'}" type="button" data-oven-index="${index}">
+            <span class="ctez-oven-label">Detected oven</span>
+            <strong>${escapeHtml(formatMicroAmount(oven.tezBalance, 'tez'))}</strong>
+            <small>${debt ? `${escapeHtml(formatMicroAmount(oven.ctezOutstanding, 'ctez'))} to burn` : 'No ctez debt'}</small>
+            <em>${escapeHtml(state)}</em>
+        </button>
+    `;
+}
+
+function updateCtezActionButtons(root) {
+    const burnButton = root.querySelector('#ctez-wallet-burn');
+    const withdrawButton = root.querySelector('#ctez-wallet-withdraw');
+    const refreshButton = root.querySelector('#ctez-wallet-refresh');
+    const oven = selectedOven();
+    const busy = _ctezState.loading || _ctezWalletBusy;
+    const debt = hasOutstandingDebt(oven);
+    const balance = hasRecoverableBalance(oven);
+
+    if (refreshButton) refreshButton.disabled = busy || !_ctezState.address;
+    const connectButton = root.querySelector('#ctez-wallet-connect');
+    if (connectButton) connectButton.disabled = busy;
+    if (burnButton) {
+        burnButton.disabled = busy || !oven || !debt;
+        burnButton.textContent = debt ? 'Burn ctez debt' : 'No debt to burn';
+    }
+    if (withdrawButton) {
+        withdrawButton.disabled = busy || !oven || debt || !balance;
+        withdrawButton.textContent = balance ? 'Withdraw tez' : 'No tez to withdraw';
+    }
+}
+
+function renderCtezOvenState(root) {
+    const panel = root.querySelector('#ctez-oven-panel');
+    const status = root.querySelector('#ctez-oven-status');
+    const list = root.querySelector('#ctez-oven-list');
+    const actionPanel = root.querySelector('#ctez-action-panel');
+    const summary = root.querySelector('#ctez-selected-summary');
+    const oven = selectedOven();
+
+    updateCtezWalletStatus(root, _ctezState.address || getStoredWalletAddress());
+    if (panel) panel.dataset.state = _ctezState.loading ? 'loading' : _ctezState.error ? 'error' : _ctezState.ovens.length ? 'ready' : _ctezState.address ? 'empty' : 'idle';
+
+    if (_ctezState.loading) {
+        if (status) status.textContent = `Checking ctez ovens for ${shortAddress(_ctezState.address)}...`;
+        if (list) list.innerHTML = '<div class="ctez-oven-loading">Reading ctez contract state...</div>';
+        if (actionPanel) actionPanel.hidden = true;
+        updateCtezActionButtons(root);
+        return;
+    }
+
+    if (_ctezState.error) {
+        if (status) status.textContent = _ctezState.error;
+        if (list) list.innerHTML = '';
+        if (actionPanel) actionPanel.hidden = true;
+        updateCtezActionButtons(root);
+        return;
+    }
+
+    if (!_ctezState.address) {
+        if (status) status.textContent = 'Connect a wallet to check for ctez ovens.';
+        if (list) list.innerHTML = '';
+        if (actionPanel) actionPanel.hidden = true;
+        updateCtezActionButtons(root);
+        return;
+    }
+
+    if (!_ctezState.ovens.length) {
+        if (status) status.textContent = `No active ctez ovens found for ${shortAddress(_ctezState.address)}.`;
+        if (list) list.innerHTML = '<div class="ctez-empty-state">No recoverable ctez oven was found for this wallet.</div>';
+        if (actionPanel) actionPanel.hidden = true;
+        updateCtezActionButtons(root);
+        return;
+    }
+
+    if (status) {
+        const count = _ctezState.ovens.length;
+        status.textContent = `${count} ctez oven${count === 1 ? '' : 's'} found for ${shortAddress(_ctezState.address)}.`;
+    }
+    if (list) {
+        list.innerHTML = _ctezState.ovens.map((item, index) => renderOvenCard(item, index)).join('');
+        list.querySelectorAll('.ctez-oven-card').forEach((button) => {
+            button.addEventListener('click', () => {
+                _ctezState.selectedIndex = Number(button.dataset.ovenIndex || 0);
+                renderCtezOvenState(root);
+            });
+        });
+    }
+    if (actionPanel) actionPanel.hidden = false;
+    if (summary && oven) {
+        const debt = hasOutstandingDebt(oven);
+        const balance = hasRecoverableBalance(oven);
+        summary.innerHTML = `
+            <div>
+                <span>Recoverable tez</span>
+                <strong>${escapeHtml(formatMicroAmount(oven.tezBalance, 'tez'))}</strong>
+            </div>
+            <div>
+                <span>ctez debt</span>
+                <strong>${escapeHtml(formatMicroAmount(oven.ctezOutstanding, 'ctez'))}</strong>
+            </div>
+            <p>${debt ? 'Burn the outstanding ctez first. After it confirms, refresh this panel and withdraw the tez.' : balance ? 'This oven is ready to withdraw.' : 'This oven is already clear.'}</p>
+        `;
+        setWalletReview(root, debt
+            ? 'Ready to request a ctez debt burn from your wallet.'
+            : balance
+                ? 'Ready to request a tez withdrawal from your wallet.'
+                : 'No wallet request is needed for the selected oven.');
+    }
+    updateCtezActionButtons(root);
+}
+
+async function loadCtezOvens(root, address, { force = false } = {}) {
+    const owner = String(address || '').trim();
+    if (!isTezosAccountAddress(owner)) {
+        _ctezState = { address: '', ovens: [], selectedIndex: 0, loading: false, error: '' };
+        renderCtezOvenState(root);
+        return;
+    }
+    if (_ctezState.loading && _ctezState.address === owner && !force) return;
+
+    _ctezState = { address: owner, ovens: [], selectedIndex: 0, loading: true, error: '' };
+    setWalletFeedback(root, '', 'neutral');
+    renderCtezOvenState(root);
+    try {
+        const ovens = await fetchCtezOvens(owner);
+        _ctezState = { address: owner, ovens, selectedIndex: 0, loading: false, error: '' };
+    } catch (error) {
+        _ctezState = {
+            address: owner,
+            ovens: [],
+            selectedIndex: 0,
+            loading: false,
+            error: `Could not check ctez ovens: ${error?.message || error}`
+        };
+    }
+    renderCtezOvenState(root);
 }
 
 function wireCtezWalletActions(root) {
     const connectButton = root.querySelector('#ctez-wallet-connect');
+    const refreshButton = root.querySelector('#ctez-wallet-refresh');
     const burnButton = root.querySelector('#ctez-wallet-burn');
     const withdrawButton = root.querySelector('#ctez-wallet-withdraw');
-    const ovenIdInput = root.querySelector('#ctez-wallet-oven-id');
-    const outstandingInput = root.querySelector('#ctez-wallet-outstanding');
-    const withdrawAmountInput = root.querySelector('#ctez-wallet-withdraw-amount');
-    const withdrawToInput = root.querySelector('#ctez-wallet-withdraw-to');
 
     updateCtezWalletStatus(root);
+    renderCtezOvenState(root);
     preloadOctezConnect();
 
     const prewarmWallet = () => {
@@ -423,9 +435,10 @@ function wireCtezWalletActions(root) {
             const account = await connectOctezWallet({ syncMyTezos: true });
             updateCtezWalletStatus(root, account?.address);
             setWalletFeedback(root, account?.address
-                ? `Connected ${shortAddress(account.address)} and synced it to My Tezos.`
+                ? `Connected ${shortAddress(account.address)}. Checking ctez ovens...`
                 : 'Wallet connected, but no account address was returned.',
-                account?.address ? 'success' : 'warning');
+                account?.address ? 'pending' : 'warning');
+            if (account?.address) await loadCtezOvens(root, account.address, { force: true });
         } catch (error) {
             setWalletFeedback(root, `Wallet connection failed: ${error?.message || error}`, 'error');
         } finally {
@@ -433,26 +446,26 @@ function wireCtezWalletActions(root) {
         }
     });
 
-    burnButton?.addEventListener('click', async () => {
-        const id = normalizeMicroInput(ovenIdInput?.value);
-        const outstanding = normalizeMicroInput(outstandingInput?.value);
-        if (!isNatString(id)) {
-            setWalletFeedback(root, 'Enter the oven id as a non-negative integer.', 'error');
-            return;
-        }
-        if (!isPositiveNatString(outstanding)) {
-            setWalletFeedback(root, 'Enter ctez_outstanding as a positive raw micro-ctez integer.', 'error');
-            return;
-        }
+    refreshButton?.addEventListener('click', async () => {
+        const address = _ctezState.address || getStoredWalletAddress();
+        if (!address) return;
+        await loadCtezOvens(root, address, { force: true });
+    });
 
-        const quantity = `-${outstanding}`;
-        const operation = buildCtezMintOrBurnOperation(id, quantity);
-        setWalletReview(root, `Review: mint_or_burn on ${CTEZ_CONTRACT}, id ${id}, quantity ${quantity}.`);
+    burnButton?.addEventListener('click', async () => {
+        const oven = selectedOven();
+        if (!oven || !isNatString(oven.id) || !isPositiveNatString(oven.ctezOutstanding)) {
+            setWalletFeedback(root, 'No ctez debt is available to burn for the selected oven.', 'warning');
+            return;
+        }
+        const quantity = `-${oven.ctezOutstanding}`;
+        const operation = buildCtezMintOrBurnOperation(oven.id, quantity);
+        setWalletReview(root, `Wallet request: burn ${formatMicroAmount(oven.ctezOutstanding, 'ctez')} from the selected ctez oven.`);
         setWalletButtonsBusy(root, true);
         setWalletFeedback(root, 'Sending burn request to your wallet for review...', 'pending');
         try {
             await requestWalletOperation([operation]);
-            setWalletFeedback(root, 'Wallet accepted the burn operation request.', 'success');
+            setWalletFeedback(root, 'Wallet accepted the burn request. Refresh after it confirms.', 'success');
         } catch (error) {
             setWalletFeedback(root, `Burn request failed: ${error?.message || error}`, 'error');
         } finally {
@@ -461,29 +474,28 @@ function wireCtezWalletActions(root) {
     });
 
     withdrawButton?.addEventListener('click', async () => {
-        const id = normalizeMicroInput(ovenIdInput?.value);
-        const amount = normalizeMicroInput(withdrawAmountInput?.value);
-        const to = String(withdrawToInput?.value || '').trim();
-        if (!isNatString(id)) {
-            setWalletFeedback(root, 'Enter the oven id as a non-negative integer.', 'error');
+        const oven = selectedOven();
+        const to = _ctezState.address || getStoredWalletAddress();
+        if (!oven || !isNatString(oven.id) || !isPositiveNatString(oven.tezBalance)) {
+            setWalletFeedback(root, 'No tez is available to withdraw for the selected oven.', 'warning');
             return;
         }
-        if (!isPositiveNatString(amount)) {
-            setWalletFeedback(root, 'Enter the withdraw amount as a positive raw mutez integer.', 'error');
+        if (hasOutstandingDebt(oven)) {
+            setWalletFeedback(root, 'Burn the outstanding ctez before withdrawing tez.', 'warning');
             return;
         }
         if (!isTezosAccountAddress(to)) {
-            setWalletFeedback(root, 'Enter a tz1/tz2/tz3/tz4 recipient address for withdraw to.', 'error');
+            setWalletFeedback(root, 'Reconnect your wallet before withdrawing tez.', 'error');
             return;
         }
 
-        const operation = buildCtezWithdrawOperation(id, amount, to);
-        setWalletReview(root, `Review: withdraw on ${CTEZ_CONTRACT}, id ${id}, amount ${amount} mutez, to ${shortAddress(to)}.`);
+        const operation = buildCtezWithdrawOperation(oven.id, oven.tezBalance, to);
+        setWalletReview(root, `Wallet request: withdraw ${formatMicroAmount(oven.tezBalance, 'tez')} to ${shortAddress(to)}.`);
         setWalletButtonsBusy(root, true);
         setWalletFeedback(root, 'Sending withdraw request to your wallet for review...', 'pending');
         try {
             await requestWalletOperation([operation]);
-            setWalletFeedback(root, 'Wallet accepted the withdraw operation request.', 'success');
+            setWalletFeedback(root, 'Wallet accepted the withdraw request.', 'success');
         } catch (error) {
             setWalletFeedback(root, `Withdraw request failed: ${error?.message || error}`, 'error');
         } finally {
@@ -492,8 +504,21 @@ function wireCtezWalletActions(root) {
     });
 
     window.addEventListener('tezos-wallet-updated', (event) => {
-        updateCtezWalletStatus(root, event.detail?.address || '');
+        const address = event.detail?.address || '';
+        updateCtezWalletStatus(root, address);
+        if (address && address !== _ctezState.address) {
+            loadCtezOvens(root, address).catch((error) => {
+                console.warn('ctez oven refresh failed', error);
+            });
+        }
     });
+
+    const stored = getStoredWalletAddress();
+    if (stored) {
+        loadCtezOvens(root, stored).catch((error) => {
+            console.warn('ctez stored wallet refresh failed', error);
+        });
+    }
 }
 
 function handleEscape(event) {
@@ -522,7 +547,6 @@ export function openCtezChamber() {
         overlay.addEventListener('click', (event) => {
             if (event.target === overlay) closeCtezChamber();
         });
-        updateUnitHelpers(overlay);
         wireCtezWalletActions(overlay);
     }
 
@@ -551,51 +575,50 @@ export function initCtezChamber() {
     card.id = 'ctez-entry-card';
     card.className = 'stat-card chamber-entry-card chamber-entry-wide ctez-entry-card';
     card.innerHTML = `
-        <button class="card-copy-link ctez-card-copy-link" type="button" data-copy-hash="#ctez" aria-label="Copy ctez Oven Guide link" title="Copy ctez guide link">🔗</button>
-        <div class="card-info-btn" data-tooltip="ctez" aria-label="Explain ctez Oven Guide" title="What is this?">
+        <button class="card-copy-link ctez-card-copy-link" type="button" data-copy-hash="#ctez" aria-label="Copy ctez Recovery link" title="Copy ctez recovery link">🔗</button>
+        <div class="card-info-btn" data-tooltip="ctez" aria-label="Explain ctez Recovery" title="What is this?">
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                 <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
             </svg>
         </div>
         <div class="card-tooltip" id="tooltip-ctez">
             <div class="tooltip-content">
-                <h4>ctez Oven Guide</h4>
-                <p>A manual Better Call Dev walkthrough for finding a ctez oven, burning outstanding ctez, and withdrawing the tez balance.</p>
-                <p>No wallet is connected here. The chamber links out to the verified contract pages and keeps the raw unit math visible.</p>
-                <a href="${escapeHtml(CTEZ_SOURCE_URL)}" target="_blank" rel="noopener">Source guide</a>
+                <h4>ctez Recovery</h4>
+                <p>Connect the wallet that owned old ctez ovens. Tezos Systems checks the contract state and prepares the burn or withdraw wallet request.</p>
+                <p>No manual contract pages or raw oven fields are required.</p>
             </div>
         </div>
         <div class="card-inner">
-            <div class="card-front chamber-entry-front ctez-entry-front" role="button" tabindex="0" aria-label="Open ctez Oven Guide">
+            <div class="card-front chamber-entry-front ctez-entry-front" role="button" tabindex="0" aria-label="Open ctez Recovery">
                 <div class="ctez-entry-main">
-                    <h2 class="stat-label">ctez Oven Guide</h2>
-                    <div class="stat-value ctez-entry-value">Exit path</div>
-                    <p class="stat-description">Burn debt, withdraw tez</p>
-                    <div class="chamber-entry-status live">Manual Better Call Dev flow</div>
+                    <h2 class="stat-label">ctez Recovery</h2>
+                    <div class="stat-value ctez-entry-value">Wallet flow</div>
+                    <p class="stat-description">Find ovens, recover tez</p>
+                    <div class="chamber-entry-status live">Connect to check old ovens</div>
                 </div>
-                <div class="chamber-entry-metrics ctez-entry-metrics" aria-label="ctez guide checkpoints">
+                <div class="chamber-entry-metrics ctez-entry-metrics" aria-label="ctez recovery checkpoints">
                     <div class="chamber-entry-metric">
-                        <span>Find</span>
-                        <strong>Oven ID</strong>
+                        <span>Connect</span>
+                        <strong>Wallet</strong>
                     </div>
                     <div class="chamber-entry-metric">
-                        <span>Burn</span>
-                        <strong>-ctez</strong>
+                        <span>Detect</span>
+                        <strong>Ovens</strong>
                     </div>
                     <div class="chamber-entry-metric">
-                        <span>Withdraw</span>
-                        <strong>mutez</strong>
+                        <span>Recover</span>
+                        <strong>Tez</strong>
                     </div>
                     <div class="chamber-entry-metric is-risk">
-                        <span>Safety</span>
-                        <strong>Verify</strong>
+                        <span>Review</span>
+                        <strong>Sign</strong>
                     </div>
                 </div>
             </div>
         </div>
     `;
     card.style.cursor = 'pointer';
-    card.title = 'Open ctez Oven Guide';
+    card.title = 'Open ctez Recovery';
 
     const infoBtn = card.querySelector('.card-info-btn');
     const tooltip = card.querySelector('.card-tooltip');
