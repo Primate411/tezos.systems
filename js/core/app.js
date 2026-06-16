@@ -27,7 +27,7 @@ import {
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric } from '../features/history.js';
 import { ensureCardShareButton, initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
-import { fetchProtocols, fetchVotingStatus, getVotingPeriodName } from '../features/governance.js';
+import { fetchProtocols } from '../features/governance.js';
 import { initChamber } from '../features/chamber.js';
 import { initLiquidityBaking } from '../features/liquidity-baking.js';
 import { initTz4AdoptionChamber } from '../features/tz4-adoption.js';
@@ -51,99 +51,6 @@ const SPARKLINE_LIVE_METRICS = [
     ['active_contracts_24h', 'activeContracts24h']
 ];
 
-/**
- * Governance Chamber Action
- * Shows a compact pipeline signal inside the Current Protocol panel.
- */
-function updateGovernanceBanner(stats, votingStatus) {
-    let banner = document.getElementById('gov-countdown-banner');
-    
-    // Only show when there's an actual proposal — not during empty proposal periods
-    const statusProposal = votingStatus?.proposalName
-        || votingStatus?.proposal?.alias
-        || votingStatus?.proposal?.extras?.alias
-        || votingStatus?.proposal?.metadata?.alias
-        || (votingStatus?.proposal?.hash ? `${votingStatus.proposal.hash.slice(0, 8)}...` : '');
-    const statProposal = stats?.proposal && stats.proposal !== 'None' && stats.proposal !== 'N/A'
-        ? stats.proposal
-        : '';
-    const proposal = statusProposal || statProposal;
-    const hasProposal = Boolean(proposal);
-    const kind = votingStatus?.kind || '';
-    const isVotingPhase = ['exploration', 'testing', 'cooldown', 'promotion', 'adoption'].includes(kind);
-    const isVotingActive = hasProposal || isVotingPhase;
-    
-    if (!isVotingActive) {
-        if (banner) { banner.remove(); }
-        return;
-    }
-
-    const bannerSlot = document.getElementById('gov-countdown-banner-slot');
-    if (!bannerSlot) {
-        if (banner) { banner.remove(); }
-        return;
-    }
-    
-    if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'gov-countdown-banner';
-        // Click / Enter / Space opens The Chamber — keyboard-accessible button
-        banner.style.cursor = 'pointer';
-        banner.setAttribute('role', 'button');
-        banner.setAttribute('tabindex', '0');
-        const openChamberModal = async () => {
-            const { openChamber } = await import('../features/chamber.js');
-            openChamber();
-        };
-        banner.addEventListener('click', openChamberModal);
-        banner.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                openChamberModal();
-            }
-        });
-    }
-    if (banner.parentElement !== bannerSlot) {
-        bannerSlot.appendChild(banner);
-    }
-    
-    const periodName = votingStatus ? getVotingPeriodName(votingStatus.kind) : 'Proposal';
-    const spotlight = ['exploration', 'promotion'].includes(kind);
-    
-    // Phase-specific intensity
-    let phase = 'proposal';
-    let icon = '📋';
-    let label = 'PROPOSAL';
-    let cta = 'Open Chamber →';
-    let meta = 'Protocol in pipeline';
-    if (kind === 'exploration') {
-        phase = 'exploration';
-        icon = '🗳️';
-        label = 'VOTE LIVE';
-        cta = 'Chamber →';
-        meta = 'Live vote in The Chamber';
-    }
-    else if (kind === 'testing' || kind === 'cooldown') { phase = 'cooldown'; icon = '⏳'; label = 'TESTING'; cta = 'Chamber →'; meta = 'No ballots open · testing in The Chamber'; }
-    else if (kind === 'promotion') { phase = 'promotion'; icon = '🗳️'; label = 'FINAL VOTE'; cta = 'Chamber →'; meta = 'Live vote in The Chamber'; }
-    else if (kind === 'adoption') { phase = 'adoption'; icon = '🚀'; label = 'ADOPTING'; cta = 'Chamber →'; meta = 'Activation runway in The Chamber'; }
-    
-    const isHot = kind === 'exploration' || kind === 'promotion';
-    const chamberTitle = proposal ? `${proposal} in pipeline` : `${periodName} in progress`;
-    banner.setAttribute('aria-label', `Open The Chamber — ${proposal ? `${proposal} ` : ''}${periodName}`);
-    
-    banner.innerHTML = `
-        <div class="gov-live-indicator">
-            <span class="gov-live-dot ${isHot ? 'hot' : ''}"></span>
-            <span class="gov-live-label">${icon} ${label}</span>
-        </div>
-        <div class="gov-live-detail">
-            <span class="gov-live-title">${escapeHtml(chamberTitle)}</span>
-            <span class="gov-live-meta">${meta}</span>
-        </div>
-        <div class="gov-live-cta">${cta}</div>
-    `;
-    banner.className = `gov-countdown-banner gov-live gov-panel-action gov-phase-${phase}${spotlight ? ' gov-vote-spotlight' : ''}`;
-}
 import { saveStats, loadStats, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
 import { initWhaleTracker } from '../features/whales.js';
 import { initSleepingGiants } from '../features/sleeping-giants.js';
@@ -830,11 +737,11 @@ async function updateStats(newStats) {
     // Update network health pulse
     updateNetworkPulse();
 
-    // Update governance countdown banner
-    try {
-        const votingStatus = await fetchVotingStatus();
-        updateGovernanceBanner(state.currentStats, votingStatus);
-    } catch (e) { /* non-critical */ }
+    const statusEl = document.getElementById('upgrade-status');
+    if (statusEl) {
+        statusEl.classList.remove('active');
+        statusEl.innerHTML = '';
+    }
 }
 
 /**
@@ -2239,10 +2146,7 @@ function positionTooltip(e, tooltipEl) {
  */
 async function updateUpgradeClock() {
     try {
-        const [protocols, votingStatus] = await Promise.all([
-            fetchProtocols(),
-            fetchVotingStatus()
-        ]);
+        const protocols = await fetchProtocols();
         
         // Cache protocols for next visit
         saveProtocols(protocols);
@@ -2264,22 +2168,10 @@ async function updateUpgradeClock() {
             if (forkFreeDays) forkFreeDays.textContent = `${daysLive.toLocaleString()} days fork-free`;
         }
         
-        // Update voting status if in active voting
         const statusEl = document.getElementById('upgrade-status');
-        if (statusEl && votingStatus) {
-            if (votingStatus.kind !== 'proposal' || votingStatus.proposalsCount > 0) {
-                statusEl.classList.add('active');
-                
-                statusEl.innerHTML = `
-                    <div class="voting-status voting-status-compact" aria-label="Protocol pipeline status">
-                        <div class="gov-countdown-banner-slot" id="gov-countdown-banner-slot" aria-live="polite"></div>
-                    </div>
-                `;
-                updateGovernanceBanner(state.currentStats, votingStatus);
-            } else {
-                statusEl.classList.remove('active');
-                statusEl.innerHTML = '';
-            }
+        if (statusEl) {
+            statusEl.classList.remove('active');
+            statusEl.innerHTML = '';
         }
         
         debugLog('Upgrade clock updated');

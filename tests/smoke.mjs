@@ -393,6 +393,7 @@ async function installFeatureMocks(context, options = {}) {
   const etherlinkNullProposal = Boolean(options.etherlinkNullProposal);
   const governanceNoProposal = Boolean(options.governanceNoProposal);
   const governanceLiveVote = Boolean(options.governanceLiveVote);
+  const governanceAdoptionPeriod = Boolean(options.governanceAdoptionPeriod);
   const forwardDomainAddress = options.forwardDomainAddress || SAMPLE_ADDRESS;
   const operatorAttestationSequence = Array.isArray(options.operatorAttestationSequence)
     ? options.operatorAttestationSequence
@@ -1338,6 +1339,21 @@ async function installFeatureMocks(context, options = {}) {
             proposal: { hash: 'PtSmokeProposal', alias: 'Smoke' }
           });
         }
+        if (governanceAdoptionPeriod) {
+          return fulfillJson(route, {
+            index: 175,
+            kind: 'adoption',
+            status: 'active',
+            epoch: 91,
+            firstLevel: 12350801,
+            lastLevel: 12361600,
+            startTime: start,
+            endTime: end,
+            totalVotingPower: 12000,
+            proposalHash: 'PtSmokeProposal',
+            proposal: { hash: 'PtSmokeProposal', alias: 'Smoke' }
+          });
+        }
         return fulfillJson(route, {
           index: 174,
           kind: 'testing',
@@ -1367,7 +1383,10 @@ async function installFeatureMocks(context, options = {}) {
           periods: [
             { index: 172, kind: 'proposal', status: 'success', startTime: new Date(Date.now() - 4 * 86400000).toISOString(), endTime: new Date(Date.now() - 2 * 86400000).toISOString(), totalVotingPower: 12000 },
             { index: 173, kind: 'exploration', status: 'success', startTime: new Date(Date.now() - 2 * 86400000).toISOString(), endTime: new Date(Date.now() - 2 * 3600000).toISOString(), totalVotingPower: 12000, ballotsQuorum: 49.9, supermajority: 80, yayVotingPower: 6000, nayVotingPower: 0, passVotingPower: 1500 },
-            { index: 174, kind: 'testing', status: 'active', startTime: new Date(Date.now() - 3600000).toISOString(), endTime: new Date(Date.now() + 86400000).toISOString(), totalVotingPower: 12000 }
+            { index: 174, kind: 'testing', status: governanceAdoptionPeriod ? 'success' : 'active', startTime: new Date(Date.now() - 3600000).toISOString(), endTime: new Date(Date.now() + 86400000).toISOString(), totalVotingPower: 12000 },
+            ...(governanceAdoptionPeriod
+              ? [{ index: 175, kind: 'adoption', status: 'active', startTime: new Date(Date.now() - 1800000).toISOString(), endTime: new Date(Date.now() + 2 * 86400000 + 21 * 3600000 + 21 * 60000).toISOString(), totalVotingPower: 12000 }]
+              : [])
           ]
         });
       }
@@ -3397,7 +3416,6 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
 
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `governance testing period: dashboard failed with HTTP ${response?.status()}`);
-  await page.locator('#gov-countdown-banner.gov-phase-cooldown').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => {
     const breakdown = document.querySelector('#issuance-breakdown')?.textContent?.trim() || '';
     return /LB/.test(breakdown);
@@ -3436,6 +3454,47 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectShareModal(page, 'governance testing period chamber card share', issues);
   await assertResponsiveChamberCards(browser, baseUrl, { width: 900, height: 1000 }, 'governance live chamber tablet', { governanceLiveVote: true });
   await assertResponsiveChamberCards(browser, baseUrl, { width: 375, height: 900 }, 'governance live chamber mobile', { governanceLiveVote: true });
+
+  const adoptionContext = await browser.newContext({
+    viewport: { width: 960, height: 720 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(adoptionContext, { governanceAdoptionPeriod: true, etherlinkNullProposal: true });
+  await adoptionContext.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const adoptionPage = await adoptionContext.newPage();
+  attachIssueCollectors(adoptionPage, 'governance adoption entry card', issues);
+  const adoptionResponse = await adoptionPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(adoptionResponse?.ok(), `governance adoption entry card: dashboard failed with HTTP ${adoptionResponse?.status()}`);
+  await adoptionPage.locator('#chamber-entry-card.chamber-entry-adoption.chamber-entry-wide[data-chamber-entry-size="wide"]').waitFor({ state: 'visible', timeout: 10000 });
+  await assertChamberControlGeometry(adoptionPage, 'governance adoption entry card');
+  const adoptionState = await adoptionPage.evaluate(() => {
+    const card = document.querySelector('#chamber-entry-card');
+    return {
+      protocolPromptCount: document.querySelectorAll('#gov-countdown-banner, #gov-countdown-banner-slot, #upgrade-status .voting-status-compact').length,
+      text: card?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      description: card?.querySelector('.stat-description')?.textContent?.trim() || '',
+      mini: document.querySelector('#chamber-entry-mini')?.textContent?.trim() || '',
+      metrics: document.querySelector('#chamber-entry-metrics')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      metricsHidden: document.querySelector('#chamber-entry-metrics')?.hidden ?? true,
+      size: card?.dataset.chamberEntrySize || '',
+      adoptionClass: card?.classList.contains('chamber-entry-adoption') || false,
+      liveClass: card?.classList.contains('chamber-entry-live') || false
+    };
+  });
+  assert(adoptionState.protocolPromptCount === 0, `governance adoption entry card: protocol prompt should stay removed, saw ${adoptionState.protocolPromptCount}`);
+  assert(adoptionState.adoptionClass && !adoptionState.liveClass && adoptionState.size === 'wide', `governance adoption entry card: adoption state should be wide but not live, saw ${JSON.stringify(adoptionState)}`);
+  assert(adoptionState.description === 'Adoption period', `governance adoption entry card: description mismatch: ${adoptionState.description}`);
+  assert(/No ballots: final runway before the protocol switch/.test(adoptionState.mini), `governance adoption entry card: missing adoption explainer: ${adoptionState.mini}`);
+  assert(!adoptionState.metricsHidden, 'governance adoption entry card: adoption facts should be visible');
+  assert(/Time left/.test(adoptionState.metrics) && /Activation/.test(adoptionState.metrics) && /Ballots Closed/.test(adoptionState.metrics) && /Next Protocol switch/.test(adoptionState.metrics), `governance adoption entry card: facts mismatch: ${adoptionState.metrics}`);
+  await adoptionContext.close();
+
   await page.waitForFunction(() => {
     const canvas = document.getElementById('tz4-sparkline');
     const chart = canvas ? window.Chart?.getChart(canvas) : null;
@@ -3445,13 +3504,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   }, null, { timeout: 10000 });
 
   const dashboardState = await page.evaluate(() => ({
-    banner: document.querySelector('#gov-countdown-banner')?.innerText || '',
-    bannerClasses: document.querySelector('#gov-countdown-banner')?.className || '',
-    bannerInProtocolPanel: Boolean(document.querySelector('#gov-countdown-banner')?.closest('#upgrade-status .voting-status-compact')),
-    bannerAfterPriceBar: document.querySelector('#price-bar')?.nextElementSibling?.id === 'gov-countdown-banner',
+    protocolPromptCount: document.querySelectorAll('#gov-countdown-banner, #gov-countdown-banner-slot, #upgrade-status .voting-status-compact').length,
+    upgradeStatusActive: document.querySelector('#upgrade-status')?.classList.contains('active') || false,
     governanceProcessCards: document.querySelectorAll('#upgrade-status .governance-process-card').length,
     governanceTallyCards: document.querySelectorAll('#upgrade-status .voting-tally').length,
-    votingTime: document.querySelector('.voting-time')?.textContent?.trim() || '',
     votingPeriod: document.querySelector('#voting-period-front')?.textContent?.trim() || '',
     participation: document.querySelector('#participation-front')?.textContent?.trim() || '',
     participationDescription: document.querySelector('#participation-description')?.textContent?.trim() || '',
@@ -3511,15 +3567,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     extraTz4EntryCard: Boolean(document.querySelector('#tz4-entry-card')),
     intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
   }));
-  assert(/TESTING/.test(dashboardState.banner), `governance testing period: banner should say TESTING, saw ${dashboardState.banner}`);
-  assert(/No ballots open/.test(dashboardState.banner), `governance testing period: banner should say no ballots are open, saw ${dashboardState.banner}`);
-  assert(!/Governance receipts|Governance Path|Time left|Quorum|Epoch/.test(dashboardState.banner), `governance testing period: protocol panel should stay a compact Chamber signal, saw ${dashboardState.banner}`);
-  assert(!dashboardState.bannerClasses.includes('gov-vote-spotlight'), 'governance testing period: cooldown banner should not use live vote spotlight styling');
-  assert(dashboardState.bannerInProtocolPanel, 'governance testing period: Chamber prompt should live inside the protocol panel');
-  assert(!dashboardState.bannerAfterPriceBar, 'governance testing period: Chamber prompt should not render as a top-page banner');
+  assert(dashboardState.protocolPromptCount === 0, `governance testing period: Current Protocol should not render the old Chamber prompt, saw ${dashboardState.protocolPromptCount}`);
+  assert(!dashboardState.upgradeStatusActive, 'governance testing period: Current Protocol status slot should stay hidden when the Chamber prompt is removed');
   assert(dashboardState.governanceProcessCards === 0, 'governance testing period: Current Protocol should not duplicate the Chamber governance path');
   assert(dashboardState.governanceTallyCards === 0, 'governance testing period: Current Protocol should not duplicate Chamber vote tally data');
-  assert(!dashboardState.votingTime || !dashboardState.banner.includes(dashboardState.votingTime), `governance testing period: Chamber prompt should not repeat panel countdown ${dashboardState.votingTime}`);
   assert(dashboardState.votingPeriod === 'Cooldown', `governance testing period: voting card should show Cooldown, saw ${dashboardState.votingPeriod}`);
   assert(dashboardState.participation === '---', `governance testing period: participation should be empty-state dashes, saw ${dashboardState.participation}`);
   assert(/No ballots during Cooldown/.test(dashboardState.participationDescription), `governance testing period: participation description mismatch: ${dashboardState.participationDescription}`);
@@ -3657,7 +3708,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('#tz4-adoption-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#tz4-adoption-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
-  await page.locator('#gov-countdown-banner').click();
+  await page.locator('#chamber-entry-card .card-front').click();
   await page.locator('.chamber-overlay.active .chamber-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#chamber-modal.active .chamber-badge').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#chamber-modal.active .gauge-context-label').waitFor({ state: 'visible', timeout: 10000 });

@@ -566,6 +566,18 @@ async function checkSelectorContracts() {
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
   }
+  const removedProtocolPromptContracts = [
+    ['app banner renderer', 'updateGovernanceBanner', app],
+    ['app banner selector', 'gov-countdown-banner', app],
+    ['app banner slot', 'gov-countdown-banner-slot', app],
+    ['index banner slot', 'gov-countdown-banner-slot', index],
+    ['source banner styles', 'gov-countdown-banner', styles]
+  ];
+  for (const [label, snippet, text] of removedProtocolPromptContracts) {
+    if (text.includes(snippet)) fail(`removed Current Protocol prompt resurfaced: ${label}`);
+  }
+  pass(`removed Current Protocol prompt guard checked: ${removedProtocolPromptContracts.length}`);
+
   const forbiddenCtezInterfaceStrings = [
     'better-call.dev',
     'ctez-wallet-oven-id',

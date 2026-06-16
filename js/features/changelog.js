@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-16',
         entries: [
+            { type: '🎨', text: 'Current Protocol no longer shows the compact Chamber prompt; Adoption runway context now lives on the wider Chamber card with activation timing' },
             { type: '🎨', text: 'Chamber card share images now include the visible Chamber panel snapshot with live summary rows instead of only a bare headline and value' },
             { type: '🎨', text: 'Every Chamber card now gets consistent SVG share and info controls, including late-rendered Tezos X, governance, and Chamber entry cards' },
             { type: '🎨', text: 'Chamber card controls now stack vertically so camera, direct-link, and info icons stay clear of live preview rows' },

@@ -2166,7 +2166,7 @@ function setEntryMetrics(metricsEl, metrics) {
 }
 
 function clearEntryMetrics(card, metricsEl) {
-    card?.classList.remove('chamber-entry-wide', 'chamber-entry-risk');
+    card?.classList.remove('chamber-entry-wide', 'chamber-entry-risk', 'chamber-entry-adoption');
     if (card) card.dataset.chamberEntrySize = 'compact';
     if (!metricsEl) return;
     metricsEl.hidden = true;
@@ -2257,6 +2257,7 @@ async function loadEntryCardStatus({ force = false } = {}) {
             if (description) description.textContent = `${stageName} ballot open`;
             mini.innerHTML = `<span class="entry-live-dot"></span> Live ${stageName} vote · refresh 60s`;
             mini.classList.add('live');
+            card?.classList.remove('chamber-entry-adoption');
             card?.classList.add('chamber-entry-live', 'chamber-entry-wide');
             if (card) card.dataset.chamberEntrySize = 'wide';
             card?.classList.toggle('chamber-entry-risk', !quorumMet || !yayMet);
@@ -2280,17 +2281,41 @@ async function loadEntryCardStatus({ force = false } = {}) {
                 }
             ]);
         } else if (isActive) {
-            const detail = currentPeriod.kind === 'testing'
-                ? 'testing and review'
-                : currentPeriod.kind === 'adoption'
-                    ? 'activation runway'
-                    : 'no ballots open';
             setEntryHero(heroEl, proposalName || stageName);
             if (description) description.textContent = `${stageName} period`;
-            mini.innerHTML = `${stageName} · ${detail}`;
             mini.classList.remove('live');
             card?.classList.remove('chamber-entry-live');
-            clearEntryMetrics(card, metricsEl);
+            if (currentPeriod.kind === 'adoption') {
+                const activationTime = fmtUtcDateTime(currentPeriod.endTime);
+                mini.innerHTML = 'No ballots: final runway before the protocol switch.';
+                card?.classList.remove('chamber-entry-risk');
+                card?.classList.add('chamber-entry-adoption', 'chamber-entry-wide');
+                if (card) card.dataset.chamberEntrySize = 'wide';
+                setEntryMetrics(metricsEl, [
+                    {
+                        label: 'Time left',
+                        value: entryCountdown(currentPeriod.endTime)
+                    },
+                    {
+                        label: 'Activation',
+                        value: activationTime ? `${activationTime} UTC` : 'Date pending'
+                    },
+                    {
+                        label: 'Ballots',
+                        value: 'Closed'
+                    },
+                    {
+                        label: 'Next',
+                        value: 'Protocol switch'
+                    }
+                ]);
+            } else {
+                const detail = currentPeriod.kind === 'testing'
+                    ? 'testing and review'
+                    : 'no ballots open';
+                mini.innerHTML = `${stageName} · ${detail}`;
+                clearEntryMetrics(card, metricsEl);
+            }
         } else {
             setEntryHero(heroEl, currentPeriod.kind === 'proposal' ? 'Proposal period' : '');
             if (description) description.textContent = currentPeriod.kind === 'proposal'
