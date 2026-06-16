@@ -216,9 +216,9 @@ inline modal styles in `js/core/app.js`.
   burn outstanding ctez before withdrawing tez when both legs are needed,
   Purple Matter/community fallback links, and signing-safety reminders for users
   recovering tez from old ctez ovens.
-- My Tezos drawer and My Baker lookup, including baker performance, latest
-  LB vote state, Octez.Connect wallet sync, and recent baker delegator/staker
-  activity.
+- My Tezos drawer and My Baker lookup, including live baker signal refresh,
+  baker performance, latest LB vote state, Octez.Connect wallet sync, and
+  recent baker delegator/staker activity.
 - Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping
   giants, OBJKT/NFT profile lookup, HEN mode, changelog, share captures, and
   embeddable widgets.
@@ -388,7 +388,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v201`.
+- Current aligned shell cache stamp: `v204`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

@@ -23,6 +23,7 @@ const RECENT_BAKER_ACTIVITY_LIMIT = 40;
 const RECENT_BAKER_ACTIVITY_DISPLAY_LIMIT = 6;
 const RECENT_OPERATOR_ATTESTATIONS = 10;
 const RIGHTS_FETCH_TIMEOUT_MS = 12000;
+const OPERATOR_SIGNAL_REFRESH_MS = 15000;
 // Protocol eras — map block levels to protocol names
 const PROTOCOL_ERAS = [
     { name: 'Genesis', level: 0, date: '2018-06-30' },
@@ -1615,6 +1616,28 @@ let _briefRendering = false;
 let _briefRenderedAddr = null;
 let _pendingBriefAddr = null;
 let _briefRequestSeq = 0;
+let _operatorSignalTimer = null;
+let _operatorSignalInFlight = false;
+let _operatorSignalSeq = 0;
+let _operatorDrawerObserver = null;
+
+function isDrawerOpen() {
+    return document.getElementById('my-tezos-drawer')?.classList.contains('open') === true;
+}
+
+function getOperatorSignalRefreshMs() {
+    const override = Number(window.__MY_TEZOS_OPERATOR_REFRESH_MS__);
+    return Number.isFinite(override) && override >= 1000 ? override : OPERATOR_SIGNAL_REFRESH_MS;
+}
+
+function getActiveMyTezosContext(address) {
+    const data = window._myTezosData;
+    if (!data || data.fullAddress !== address) return null;
+    return {
+        bakerAddr: data.bakerAddr || null,
+        isBaker: data.isBaker === true
+    };
+}
 
 function renderBriefTabs(cards, data) {
     const container = document.getElementById('drawer-brief');
@@ -1731,6 +1754,7 @@ async function renderMorningBrief(address, force = false) {
         const data = {
             address: address.slice(0, 8) + '…' + address.slice(-4),
             fullAddress: address,
+            bakerAddr, isBaker,
             totalXTZ, staked, xtzPrice, apyRate, estDaily, estAnnual,
             rewardsLastCycle, rewardStreak,
             bakerName, bakerInactive, healthScore, health, attestRate,
@@ -1849,12 +1873,13 @@ async function renderMorningBrief(address, force = false) {
 }
 
 // Feature 10: Freshness indicator
-function updateFreshness() {
+function updateFreshness({ signalLive = false } = {}) {
     const el = document.getElementById('drawer-freshness');
     if (!el) return;
     const now = new Date();
+    const label = signalLive ? 'Live signal' : 'Updated';
     el.innerHTML = `
-        <span class="freshness-time">Updated ${now.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}</span>
+        <span class="freshness-time">${label} ${now.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}</span>
         <button id="drawer-refresh" class="freshness-refresh">↻ Refresh</button>
     `;
     document.getElementById('drawer-refresh')?.addEventListener('click', (e) => {
@@ -1875,11 +1900,88 @@ function updateFreshness() {
     });
 }
 
+async function getOperatorSignalContext(address) {
+    const loaded = getActiveMyTezosContext(address);
+    if (loaded?.bakerAddr) return loaded;
+    try {
+        const account = await fetchTzktJson(`${TZKT}/accounts/${encodeURIComponent(address)}`);
+        const isBaker = account.type === 'delegate' || account.delegate?.address === address;
+        return {
+            bakerAddr: isBaker ? address : account.delegate?.address || null,
+            isBaker
+        };
+    } catch {
+        return null;
+    }
+}
+
+async function refreshOperatorSignal({ force = false } = {}) {
+    const address = localStorage.getItem(STORAGE_KEY);
+    if (!address) return;
+    if (!force && (!isDrawerOpen() || document.visibilityState !== 'visible' || _briefRendering)) return;
+    if (_operatorSignalInFlight) return;
+
+    const requestSeq = ++_operatorSignalSeq;
+    _operatorSignalInFlight = true;
+
+    try {
+        const context = await getOperatorSignalContext(address);
+        if (requestSeq !== _operatorSignalSeq || localStorage.getItem(STORAGE_KEY) !== address) return;
+        if (!context?.bakerAddr) {
+            renderBakerOperatorStatus(null, false);
+            return;
+        }
+
+        const participation = await fetchParticipation(context.bakerAddr);
+        const operatorStatus = await fetchBakerOperatorStatus(context.bakerAddr, participation);
+        if (requestSeq !== _operatorSignalSeq || localStorage.getItem(STORAGE_KEY) !== address) return;
+
+        renderBakerOperatorStatus(operatorStatus, context.isBaker);
+        if (window._myTezosData?.fullAddress === address) {
+            window._myTezosData = {
+                ...window._myTezosData,
+                bakerAddr: context.bakerAddr,
+                isBaker: context.isBaker,
+                operatorStatus,
+            };
+        }
+        updateFreshness({ signalLive: true });
+        window.dispatchEvent(new Event('my-tezos-operator-signal-ready'));
+    } catch (error) {
+        console.warn('My Tezos operator signal refresh failed:', error);
+    } finally {
+        _operatorSignalInFlight = false;
+    }
+}
+
+function initOperatorSignalRefresh() {
+    if (!_operatorSignalTimer) {
+        _operatorSignalTimer = setInterval(() => {
+            refreshOperatorSignal().catch(() => {});
+        }, getOperatorSignalRefreshMs());
+    }
+
+    const drawer = document.getElementById('my-tezos-drawer');
+    if (drawer && !_operatorDrawerObserver) {
+        _operatorDrawerObserver = new MutationObserver(() => {
+            if (isDrawerOpen()) refreshOperatorSignal({ force: true }).catch(() => {});
+        });
+        _operatorDrawerObserver.observe(drawer, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && isDrawerOpen()) {
+            refreshOperatorSignal({ force: true }).catch(() => {});
+        }
+    }, { once: false });
+}
+
 // ─── Init & Export ───────────────────────────────────
 
 export function initMyTezos() {
     // Create minibar under price bar
     createMinibar();
+    initOperatorSignalRefresh();
 
     const address = localStorage.getItem(STORAGE_KEY);
 
