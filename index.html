@@ -50,13 +50,13 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=200">
+    <link rel="stylesheet" href="css/styles.min.css?v=201">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=200">
+    <link rel="modulepreload" href="js/core/app.js?v=201">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -213,7 +213,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=200"></script>
+    <script src="js/core/theme-preload.js?v=201"></script>
     <a id="hen-launcher" class="hen-launcher" href="/?hen=1" aria-label="Enter HEN mode" title="Enter HEN mode">
         <span aria-hidden="true">🐔</span>
     </a>
@@ -1860,7 +1860,7 @@
         <!-- Empty state (shown when no address) -->
         <div id="drawer-empty-state" class="drawer-empty-state">
           <div class="empty-state-content">
-            <p class="empty-headline">Connect once. My Tezos becomes your home for:</p>
+            <p class="empty-headline">Add an address once. My Tezos becomes your home for:</p>
             <ul class="empty-features">
               <li>📊 Live baker performance &amp; APY</li>
               <li>⏱ Reward tracking &amp; cycle timeline</li>
@@ -1869,11 +1869,11 @@
             </ul>
             <div class="my-baker-controls drawer-controls">
               <input type="text" id="drawer-address-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
-              <button id="drawer-connect-btn" class="glass-button my-baker-btn">Connect</button>
+              <button id="drawer-connect-btn" class="glass-button my-baker-btn">Track address</button>
             </div>
             <div class="wallet-connect-row">
-              <button id="drawer-wallet-connect-btn" class="glass-button wallet-connect-btn" type="button">Connect wallet</button>
-              <span id="drawer-wallet-status" class="wallet-connect-status">Octez.Connect available</span>
+              <button id="drawer-wallet-connect-btn" class="glass-button wallet-connect-btn" type="button">Use wallet</button>
+              <span id="drawer-wallet-status" class="wallet-connect-status">No wallet connected</span>
             </div>
           </div>
           <div class="empty-preview-blur">
@@ -1904,8 +1904,8 @@
               <button id="my-baker-share-link" class="glass-button my-baker-btn" style="display:none;">🔗</button>
             </div>
             <div class="wallet-connect-row wallet-connect-row-compact">
-              <button id="my-tezos-wallet-connect" class="glass-button wallet-connect-btn" type="button">Connect wallet</button>
-              <button id="my-tezos-wallet-disconnect" class="glass-button wallet-connect-btn wallet-disconnect-btn" type="button">Disconnect</button>
+              <button id="my-tezos-wallet-connect" class="glass-button wallet-connect-btn" type="button">Use wallet</button>
+              <button id="my-tezos-wallet-disconnect" class="glass-button wallet-connect-btn wallet-disconnect-btn" type="button">Disconnect wallet</button>
               <span id="my-tezos-wallet-status" class="wallet-connect-status">No wallet connected</span>
             </div>
             <div id="my-baker-error-msg" class="my-baker-error"></div>
@@ -1951,7 +1951,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=200"></script>
+    <script type="module" src="js/core/app.js?v=201"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

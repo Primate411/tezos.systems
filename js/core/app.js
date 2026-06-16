@@ -988,8 +988,8 @@ function initMyTezosButton() {
             document.getElementById('my-tezos-wallet-connect')
         ].filter(Boolean);
         buttons.forEach((btn) => { btn.disabled = true; });
-        if (button) button.textContent = 'Connecting...';
-        updateWalletDrawerState('', 'Opening Octez.Connect...');
+        if (button) button.textContent = 'Opening...';
+        updateWalletDrawerState('', 'Opening wallet...');
         try {
             const account = await connectOctezWallet({ syncMyTezos: true });
             if (account?.address) {
@@ -1003,7 +1003,7 @@ function initMyTezosButton() {
         } finally {
             buttons.forEach((btn) => {
                 btn.disabled = false;
-                btn.textContent = 'Connect wallet';
+                btn.textContent = 'Use wallet';
             });
         }
     }
