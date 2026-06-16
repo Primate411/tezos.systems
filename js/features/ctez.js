@@ -7,6 +7,7 @@ import { escapeHtml } from '../core/utils.js';
 import {
     connectOctezWallet,
     getStoredWalletAddress,
+    preloadOctezConnect,
     requestWalletOperation,
     shortAddress
 } from '../core/wallet.js';
@@ -370,6 +371,13 @@ function wireCtezWalletActions(root) {
     const withdrawToInput = root.querySelector('#ctez-wallet-withdraw-to');
 
     updateCtezWalletStatus(root);
+    preloadOctezConnect();
+
+    const prewarmWallet = () => {
+        preloadOctezConnect();
+    };
+    connectButton?.addEventListener('pointerenter', prewarmWallet);
+    connectButton?.addEventListener('focus', prewarmWallet);
 
     connectButton?.addEventListener('click', async () => {
         setWalletButtonsBusy(root, true);

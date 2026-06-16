@@ -266,7 +266,7 @@ room.
 | Etherlink JSON-RPC `https://node.mainnet.etherlink.com` | Tezos X chamber RPC head and gas fallback |
 | Etherlink governance `https://governance.etherlink.com/governance` | Official FAST, SLOW, and Sequencer action pages linked from the read-only chamber |
 | Better Call Dev `https://better-call.dev` | External ctez contract storage and interaction pages linked from the read-only Oven Guide |
-| Octez.Connect `@tezos-x/octez.connect-sdk` | Lazy browser wallet pairing and ctez/My Tezos account actions |
+| Octez.Connect `@tezos-x/octez.connect-sdk` via `https://esm.sh` | Lazy browser wallet pairing and ctez/My Tezos account actions |
 
 Live staking ratio and APY surfaces use TzKT `statistics/current` totals for
 `totalOwnStaked + totalExternalStaked`, paired with TzKT `totalSupply`. Octez
@@ -356,6 +356,7 @@ Current smoke suites:
 - `dashboard-mobile`
 - `my-tezos-baker-activity`
 - `my-tezos-wallet-connect`
+- `octez-connect-sdk-loader`
 - `my-tezos-baker-capacity`
 - `my-tezos-staker-rewards`
 - `my-tezos-delegator-rewards`

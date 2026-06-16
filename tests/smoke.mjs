@@ -2252,6 +2252,56 @@ async function smokeMyTezosWalletConnect(browser, baseUrl) {
   log('ok - my tezos wallet connect');
 }
 
+async function smokeOctezConnectSdkLoader(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'octez connect sdk loader', issues);
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `octez connect sdk loader: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  const sdkState = await page.evaluate(async () => {
+    const wallet = await import('/js/core/wallet.js');
+    const sdk = await wallet.loadOctezConnect();
+    const clientPrototype = sdk.DAppClient?.prototype || {};
+    return {
+      src: wallet.OCTEZ_CONNECT_SRC,
+      hasFactory: typeof sdk.getDAppClientInstance === 'function',
+      hasDAppClientClass: typeof sdk.DAppClient === 'function',
+      network: sdk.NetworkType?.MAINNET,
+      transaction: sdk.TezosOperationType?.TRANSACTION,
+      hasActiveEvent: Boolean(sdk.BeaconEvent?.ACTIVE_ACCOUNT_SET),
+      hasPermissionsRequest: typeof clientPrototype.requestPermissions === 'function',
+      hasOperationRequest: typeof clientPrototype.requestOperation === 'function',
+      hasActiveAccountRead: typeof clientPrototype.getActiveAccount === 'function'
+    };
+  });
+
+  assert(sdkState.src === 'https://esm.sh/@tezos-x/octez.connect-sdk@4.8.5?bundle', `octez connect sdk loader: unexpected SDK source ${JSON.stringify(sdkState)}`);
+  assert(sdkState.hasFactory, `octez connect sdk loader: missing dApp client factory ${JSON.stringify(sdkState)}`);
+  assert(sdkState.hasDAppClientClass, `octez connect sdk loader: missing DAppClient class ${JSON.stringify(sdkState)}`);
+  assert(sdkState.network === 'mainnet', `octez connect sdk loader: missing mainnet enum ${JSON.stringify(sdkState)}`);
+  assert(sdkState.transaction === 'transaction', `octez connect sdk loader: missing transaction operation kind ${JSON.stringify(sdkState)}`);
+  assert(sdkState.hasActiveEvent, `octez connect sdk loader: missing Beacon active account event ${JSON.stringify(sdkState)}`);
+  assert(sdkState.hasPermissionsRequest && sdkState.hasOperationRequest && sdkState.hasActiveAccountRead, `octez connect sdk loader: client shape mismatch ${JSON.stringify(sdkState)}`);
+
+  await context.close();
+  assert(issues.length === 0, `octez connect sdk loader browser issues:\n${issues.join('\n')}`);
+  log('ok - octez connect sdk loader');
+}
+
 async function smokeMyTezosBakerCapacity(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -4463,6 +4513,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
     { name: 'my-tezos-wallet-connect', description: 'My Tezos drawer connects through Octez.Connect and keeps the saved profile after wallet disconnect', run: () => smokeMyTezosWalletConnect(browser, baseUrl) },
+    { name: 'octez-connect-sdk-loader', description: 'Octez.Connect SDK imports through the real CSP-safe ESM loader and exposes the dApp client API', run: () => smokeOctezConnectSdkLoader(browser, baseUrl) },
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
     { name: 'my-tezos-staker-rewards', description: 'My Tezos connected drawer uses personal staker reward rows for regular and mostly-staked accounts', run: () => smokeMyTezosStakerRewards(browser, baseUrl) },
     { name: 'my-tezos-delegator-rewards', description: 'My Tezos connected drawer uses delegator estimate rows for zero-stake delegated accounts', run: () => smokeMyTezosDelegatorRewards(browser, baseUrl) },
@@ -4508,6 +4559,7 @@ async function main() {
     ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
     ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],
     ['my-tezos-wallet-connect', 'My Tezos drawer connects through Octez.Connect and keeps the saved profile after wallet disconnect'],
+    ['octez-connect-sdk-loader', 'Octez.Connect SDK imports through the real CSP-safe ESM loader and exposes the dApp client API'],
     ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
     ['my-tezos-staker-rewards', 'My Tezos connected drawer uses personal staker reward rows for regular and mostly-staked accounts'],
     ['my-tezos-delegator-rewards', 'My Tezos connected drawer uses delegator estimate rows for zero-stake delegated accounts'],

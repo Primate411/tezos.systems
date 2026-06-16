@@ -21,6 +21,7 @@ import {
     connectOctezWallet,
     disconnectOctezWallet,
     getStoredWalletAddress,
+    preloadOctezConnect,
     shortAddress
 } from './wallet.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
@@ -1007,11 +1008,22 @@ function initMyTezosButton() {
         }
     }
 
+    function prewarmWalletFromDrawer() {
+        preloadOctezConnect();
+    }
+
     document.getElementById('drawer-wallet-connect-btn')?.addEventListener('click', (event) => {
         connectWalletFromDrawer(event.currentTarget);
     });
     document.getElementById('my-tezos-wallet-connect')?.addEventListener('click', (event) => {
         connectWalletFromDrawer(event.currentTarget);
+    });
+    [
+        document.getElementById('drawer-wallet-connect-btn'),
+        document.getElementById('my-tezos-wallet-connect')
+    ].filter(Boolean).forEach((button) => {
+        button.addEventListener('pointerenter', prewarmWalletFromDrawer);
+        button.addEventListener('focus', prewarmWalletFromDrawer);
     });
     document.getElementById('my-tezos-wallet-disconnect')?.addEventListener('click', async (event) => {
         const button = event.currentTarget;
@@ -1039,6 +1051,7 @@ function initMyTezosButton() {
             drawer.classList.toggle('open', !isOpen);
             scrim.classList.toggle('open', !isOpen);
             if (!isOpen) {
+                prewarmWalletFromDrawer();
                 // Show correct state
                 const address = localStorage.getItem(STORAGE_KEY);
                 const emptyState = document.getElementById('drawer-empty-state');

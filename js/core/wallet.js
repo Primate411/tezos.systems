@@ -6,7 +6,7 @@
  */
 
 export const OCTEZ_CONNECT_VERSION = '4.8.5';
-export const OCTEZ_CONNECT_SRC = `https://cdn.jsdelivr.net/npm/@tezos-x/octez.connect-sdk@${OCTEZ_CONNECT_VERSION}/dist/octez.connect.min.js`;
+export const OCTEZ_CONNECT_SRC = `https://esm.sh/@tezos-x/octez.connect-sdk@${OCTEZ_CONNECT_VERSION}?bundle`;
 
 export const MY_TEZOS_ADDRESS_KEY = 'tezos-systems-my-baker-address';
 export const WALLET_ADDRESS_KEY = 'tezos-systems-octez-wallet-address';
@@ -60,36 +60,26 @@ function rememberAccount(account, status = 'ready') {
     return _activeAccount;
 }
 
-function loadScript(src) {
-    return new Promise((resolve, reject) => {
-        const existing = document.querySelector(`script[data-octez-connect-sdk="${OCTEZ_CONNECT_VERSION}"]`);
-        if (existing) {
-            existing.addEventListener('load', resolve, { once: true });
-            existing.addEventListener('error', reject, { once: true });
-            if (window.beacon?.getDAppClientInstance) resolve();
-            return;
-        }
-
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.defer = true;
-        script.crossOrigin = 'anonymous';
-        script.dataset.octezConnectSdk = OCTEZ_CONNECT_VERSION;
-        script.addEventListener('load', resolve, { once: true });
-        script.addEventListener('error', () => reject(new Error('Could not load Octez.Connect SDK')), { once: true });
-        document.head.appendChild(script);
-    });
+function findLoadedSdk(candidate = null) {
+    if (candidate?.getDAppClientInstance) return candidate;
+    if (candidate?.default?.getDAppClientInstance) return candidate.default;
+    if (window.beacon?.getDAppClientInstance) return window.beacon;
+    return null;
 }
 
 export async function loadOctezConnect() {
-    if (window.beacon?.getDAppClientInstance) return window.beacon;
+    const globalSdk = findLoadedSdk();
+    if (globalSdk) return globalSdk;
     if (!_sdkPromise) {
-        _sdkPromise = loadScript(OCTEZ_CONNECT_SRC).then(() => {
-            if (!window.beacon?.getDAppClientInstance) {
-                throw new Error('Octez.Connect SDK did not expose a dApp client');
+        _sdkPromise = import(OCTEZ_CONNECT_SRC).then((module) => {
+            const sdk = findLoadedSdk(module);
+            if (!sdk) {
+                throw new Error('Octez.Connect SDK did not expose getDAppClientInstance');
             }
-            return window.beacon;
+            return sdk;
+        }).catch((error) => {
+            _sdkPromise = null;
+            throw new Error(`Octez.Connect SDK failed to load: ${error?.message || error}`);
         });
     }
     return _sdkPromise;
@@ -145,6 +135,13 @@ export async function getDAppClient() {
         });
     }
     return _clientPromise;
+}
+
+export function preloadOctezConnect() {
+    return getDAppClient().catch((error) => {
+        console.warn('[wallet] Octez.Connect preload failed:', error?.message || error);
+        return null;
+    });
 }
 
 export async function getWalletAccount({ quiet = false } = {}) {

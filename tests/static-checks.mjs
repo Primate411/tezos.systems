@@ -322,6 +322,14 @@ async function checkCsp() {
   }
 
   const csp = cspMatch[1];
+  const requiredScript = [
+    'cdn.jsdelivr.net',
+    'https://esm.sh'
+  ];
+  for (const domain of requiredScript) {
+    if (!csp.includes(domain)) fail(`CSP script-src is missing ${domain}`);
+  }
+
   const requiredConnect = [
     'api.coingecko.com',
     '*.tzkt.io',
@@ -331,6 +339,7 @@ async function checkCsp() {
     'data.objkt.com',
     'api.github.com',
     'cdn.jsdelivr.net',
+    'https://esm.sh',
     '*.octez.io',
     'wss://*.octez.io',
     'https://*.papers.tech',
@@ -503,7 +512,9 @@ async function checkSelectorContracts() {
     ['ctez wallet request path', 'requestWalletOperation([operation])', ctez],
     ['ctez unit helper', 'decimalToMicroString', ctez],
     ['Octez.Connect SDK pin', '@tezos-x/octez.connect-sdk@${OCTEZ_CONNECT_VERSION}', wallet],
+    ['Octez.Connect ESM loader', 'https://esm.sh/@tezos-x/octez.connect-sdk@${OCTEZ_CONNECT_VERSION}?bundle', wallet],
     ['Octez.Connect lazy loader', 'loadOctezConnect', wallet],
+    ['Octez.Connect preload helper', 'preloadOctezConnect', wallet],
     ['Octez.Connect My Tezos sync key', 'tezos-systems-my-baker-address', wallet],
     ['Octez.Connect wallet storage key', 'tezos-systems-octez-wallet-address', wallet],
     ['My Tezos wallet connect control', 'id="drawer-wallet-connect-btn"', index],
@@ -534,6 +545,9 @@ async function checkSelectorContracts() {
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
+  }
+  if (wallet.includes('dist/octez.connect.min.js') || wallet.includes('loadScript(')) {
+    fail('Octez.Connect wallet loader must avoid the CSP-hostile UMD script bundle');
   }
   const fixedEtherlinkContracts = [
     'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo',

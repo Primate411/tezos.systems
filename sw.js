@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v195';
+const CACHE_NAME = 'tezos-systems-v196';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -134,7 +134,7 @@ self.addEventListener('fetch', (event) => {
     }
 
     // CDN resources (Chart.js, fonts): cache-first
-    if (url.hostname === 'cdn.jsdelivr.net' || url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com' || url.hostname === 'unpkg.com') {
+    if (url.hostname === 'cdn.jsdelivr.net' || url.hostname === 'esm.sh' || url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com' || url.hostname === 'unpkg.com') {
         event.respondWith(
             caches.match(event.request).then((cached) => {
                 return cached || fetch(event.request).then((response) => {
