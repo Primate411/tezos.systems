@@ -945,8 +945,13 @@ function initMyTezosButton() {
             button.disabled = false;
         }
     });
+    function walletStatusLabel(status) {
+        if (status === 'aborted') return 'Pairing cancelled';
+        if (status === 'disconnected') return 'Wallet disconnected';
+        return '';
+    }
     window.addEventListener('tezos-wallet-updated', (event) => {
-        updateWalletDrawerState(event.detail?.address || '', event.detail?.status === 'aborted' ? 'Pairing cancelled' : '');
+        updateWalletDrawerState(event.detail?.address || '', walletStatusLabel(event.detail?.status));
     });
     updateWalletDrawerState();
 

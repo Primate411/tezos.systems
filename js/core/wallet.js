@@ -16,6 +16,9 @@ let _clientPromise = null;
 let _eventsBound = false;
 let _activeAccount = null;
 
+const WALLET_DISCONNECT_TIMEOUT_MS = 2500;
+const WALLET_CLEAR_TIMEOUT_MS = 1000;
+
 export function isTezosAccountAddress(address) {
     return /^(tz[1-4])[a-zA-Z0-9]{33}$/.test(String(address || '').trim());
 }
@@ -58,6 +61,35 @@ function rememberAccount(account, status = 'ready') {
     } catch {}
     emitWalletUpdate(_activeAccount, status);
     return _activeAccount;
+}
+
+function withWalletTimeout(action, timeoutMs, label) {
+    let timeoutId = null;
+    return Promise.race([
+        Promise.resolve().then(action),
+        new Promise((_, reject) => {
+            timeoutId = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+        })
+    ]).finally(() => {
+        if (timeoutId) clearTimeout(timeoutId);
+    });
+}
+
+function isIgnorableDisconnectError(error) {
+    return /No transport available|Not connected|Disconnect timed out/i.test(String(error?.message || error));
+}
+
+async function clearActiveAccountQuietly(client) {
+    if (!client?.clearActiveAccount) return;
+    try {
+        await withWalletTimeout(
+            () => client.clearActiveAccount(),
+            WALLET_CLEAR_TIMEOUT_MS,
+            'Clear active account'
+        );
+    } catch (error) {
+        console.warn('[wallet] Octez.Connect account clear failed:', error?.message || error);
+    }
 }
 
 function findLoadedSdk(candidate = null) {
@@ -182,16 +214,24 @@ export async function disconnectOctezWallet() {
     const client = await getDAppClient();
     try {
         if (client.disconnect) {
-            await client.disconnect();
+            await withWalletTimeout(
+                () => client.disconnect(),
+                WALLET_DISCONNECT_TIMEOUT_MS,
+                'Disconnect'
+            );
         } else if (client.clearActiveAccount) {
-            await client.clearActiveAccount();
+            await withWalletTimeout(
+                () => client.clearActiveAccount(),
+                WALLET_CLEAR_TIMEOUT_MS,
+                'Clear active account'
+            );
         }
     } catch (error) {
-        if (!/No transport available|Not connected/i.test(String(error?.message || error))) {
+        if (!isIgnorableDisconnectError(error)) {
             throw error;
         }
-        if (client.clearActiveAccount) await client.clearActiveAccount();
     }
+    await clearActiveAccountQuietly(client);
     return rememberAccount(null, 'disconnected');
 }
 

@@ -1784,6 +1784,9 @@ async function installOctezConnectMock(context, address = SAMPLE_ADDRESS) {
     let currentAccount = null;
     window.__octezConnectRequests = [];
     window.__octezConnectDisconnected = false;
+    window.__octezConnectDisconnectAttempts = 0;
+    window.__octezConnectClearActiveCount = 0;
+    window.__octezConnectHangDisconnect = false;
     const client = {
       async requestPermissions() {
         currentAccount = activeAccount;
@@ -1799,11 +1802,16 @@ async function installOctezConnectMock(context, address = SAMPLE_ADDRESS) {
         return { transactionHash: `ooSmoke${window.__octezConnectRequests.length}` };
       },
       async disconnect() {
+        window.__octezConnectDisconnectAttempts += 1;
+        if (window.__octezConnectHangDisconnect) {
+          return new Promise(() => {});
+        }
         currentAccount = null;
         window.__octezConnectDisconnected = true;
         (listeners.ACTIVE_ACCOUNT_SET || []).forEach((callback) => callback(null));
       },
       async clearActiveAccount() {
+        window.__octezConnectClearActiveCount += 1;
         currentAccount = null;
         (listeners.ACTIVE_ACCOUNT_SET || []).forEach((callback) => callback(null));
       },
@@ -2602,16 +2610,25 @@ async function smokeMyTezosWalletConnect(browser, baseUrl) {
   assert(connectedState.emptyDisplay === 'none' && connectedState.connectedDisplay !== 'none', `my tezos wallet connect: drawer state mismatch ${JSON.stringify(connectedState)}`);
   assert(connectedState.status.includes('Wallet tz1aWX…T1Z9'), `my tezos wallet connect: status mismatch ${JSON.stringify(connectedState)}`);
 
+  await page.evaluate(() => {
+    window.__octezConnectHangDisconnect = true;
+  });
   await page.locator('#my-tezos-wallet-disconnect').click();
-  await page.waitForFunction(() => window.__octezConnectDisconnected === true, null, { timeout: 5000 });
+  await page.waitForFunction(() => {
+    const status = document.querySelector('#my-tezos-wallet-status')?.textContent || '';
+    return !localStorage.getItem('tezos-systems-octez-wallet-address') && !/Disconnecting wallet/i.test(status);
+  }, null, { timeout: 8000 });
   const disconnectedState = await page.evaluate(() => ({
     savedWallet: localStorage.getItem('tezos-systems-octez-wallet-address') || '',
     savedProfile: localStorage.getItem('tezos-systems-my-baker-address') || '',
-    status: document.querySelector('#my-tezos-wallet-status')?.textContent || ''
+    status: document.querySelector('#my-tezos-wallet-status')?.textContent || '',
+    disconnectAttempts: window.__octezConnectDisconnectAttempts || 0,
+    clearActiveCount: window.__octezConnectClearActiveCount || 0
   }));
   assert(disconnectedState.savedWallet === '', `my tezos wallet connect: disconnect should clear wallet storage ${JSON.stringify(disconnectedState)}`);
   assert(disconnectedState.savedProfile === SAMPLE_ADDRESS, `my tezos wallet connect: disconnect should keep My Tezos profile ${JSON.stringify(disconnectedState)}`);
   assert(/Wallet disconnected|No wallet connected/.test(disconnectedState.status), `my tezos wallet connect: disconnect status mismatch ${JSON.stringify(disconnectedState)}`);
+  assert(disconnectedState.disconnectAttempts === 1 && disconnectedState.clearActiveCount >= 1, `my tezos wallet connect: hanging disconnect should fall back to local clear ${JSON.stringify(disconnectedState)}`);
 
   await context.close();
   assert(issues.length === 0, `my tezos wallet connect browser issues:\n${issues.join('\n')}`);
