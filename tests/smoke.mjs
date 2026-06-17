@@ -400,6 +400,40 @@ async function installFeatureMocks(context, options = {}) {
     ? options.operatorAttestationSequence
     : null;
   let operatorAttestationCalls = 0;
+  const myTezosLiveRefresh = Boolean(options.myTezosLiveRefresh);
+  const isDrawerOpenForRequest = async (request) => {
+    if (!myTezosLiveRefresh) return false;
+    try {
+      return await request.frame().evaluate(() => document.querySelector('#my-tezos-drawer')?.classList.contains('open') === true);
+    } catch {
+      return false;
+    }
+  };
+  const sampleAddressAccount = async (request) => {
+    const fresh = await isDrawerOpenForRequest(request);
+    return {
+      address: SAMPLE_ADDRESS,
+      type: 'delegate',
+      alias: 'QA Baker',
+      active: true,
+      balance: fresh ? 1750000000000 : 1500000000000,
+      stakedBalance: fresh ? 725000000000 : 700000000000,
+      delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker', active: true },
+      firstActivity: 458753,
+      firstActivityTime: '2019-05-30T00:00:00Z'
+    };
+  };
+  const sampleAddressDelegate = async (request, baker) => {
+    const fresh = await isDrawerOpenForRequest(request);
+    return fresh ? {
+      ...baker,
+      stakingBalance: 1250000000000,
+      externalStakedBalance: 280000000000,
+      externalDelegatedBalance: 240000000000,
+      stakedBalance: 725000000000,
+      balance: 950000000000
+    } : baker;
+  };
   const dashboardHtml = options.dashboardHtml || '';
   const dashboardPathnames = new Set(options.dashboardPathnames || []);
   const dashboardOrigin = options.baseUrl ? new URL(options.baseUrl).origin : '';
@@ -1042,17 +1076,7 @@ async function installFeatureMocks(context, options = {}) {
         });
       }
       if (url.includes(`/accounts/${SAMPLE_ADDRESS}`) && !url.includes('/operations?')) {
-        return fulfillJson(route, {
-          address: SAMPLE_ADDRESS,
-          type: 'delegate',
-          alias: 'QA Baker',
-          active: true,
-          balance: 1500000000000,
-          stakedBalance: 700000000000,
-          delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker', active: true },
-          firstActivity: 458753,
-          firstActivityTime: '2019-05-30T00:00:00Z'
-        });
+        return fulfillJson(route, await sampleAddressAccount(request));
       }
       if (url.includes(`/accounts/${SAMPLE_ADDRESS_2}`) && !url.includes('/operations?')) {
         return fulfillJson(route, {
@@ -1410,7 +1434,8 @@ async function installFeatureMocks(context, options = {}) {
       if (url.includes(`/delegates/${OVERDELEGATED_ADDRESS}`)) return fulfillJson(route, overdelegatedBaker);
       if (url.includes('/delegates/')) {
         const address = decodeURIComponent(new URL(url).pathname.split('/').pop() || '');
-        return fulfillJson(route, sampleBakers.find((baker) => baker.address === address) || sampleBakers[0]);
+        const baker = sampleBakers.find((entry) => entry.address === address) || sampleBakers[0];
+        return fulfillJson(route, address === SAMPLE_ADDRESS ? await sampleAddressDelegate(request, baker) : baker);
       }
     }
 
@@ -2475,6 +2500,65 @@ async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
   await context.close();
   assert(issues.length === 0, `my tezos baker live signal browser issues:\n${issues.join('\n')}`);
   log('ok - my tezos baker live signal smoke');
+}
+
+async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context, { myTezosLiveRefresh: true });
+  await context.addInitScript((address) => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-my-baker-address', address);
+  }, SAMPLE_ADDRESS);
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'my tezos drawer live refresh', issues);
+
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `my tezos drawer live refresh: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  await page.waitForFunction((address) => {
+    const data = window._myTezosData;
+    return data?.fullAddress === address && Math.round(data.totalXTZ) === 1500000;
+  }, SAMPLE_ADDRESS, { timeout: 15000 });
+
+  await page.locator('#my-tezos-btn').click();
+  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos drawer live refresh drawer');
+  await page.waitForFunction(() => {
+    const data = window._myTezosData;
+    const bakerText = document.querySelector('#my-baker-results')?.innerText || '';
+    const header = document.querySelector('#my-tezos-btn .nav-label')?.textContent || '';
+    return Math.round(data?.totalXTZ || 0) === 1750000
+      && bakerText.includes('1,750,000.00')
+      && bakerText.includes('725,000.00')
+      && header.includes('1,750,000 XTZ');
+  }, null, { timeout: 15000 });
+
+  const state = await page.evaluate(() => ({
+    totalXTZ: window._myTezosData?.totalXTZ,
+    staked: window._myTezosData?.staked,
+    header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || '',
+    bakerText: document.querySelector('#my-baker-results')?.innerText || '',
+    freshness: document.querySelector('#drawer-freshness')?.innerText || ''
+  }));
+
+  assert(Math.round(state.totalXTZ) === 1750000, `my tezos drawer live refresh: brief kept stale balance ${JSON.stringify(state)}`);
+  assert(Math.round(state.staked) === 725000, `my tezos drawer live refresh: brief kept stale stake ${JSON.stringify(state)}`);
+  assert(state.bakerText.includes('1,750,000.00'), `my tezos drawer live refresh: baker grid kept stale balance ${JSON.stringify(state)}`);
+  assert(state.bakerText.includes('725,000.00'), `my tezos drawer live refresh: baker grid kept stale stake ${JSON.stringify(state)}`);
+  assert(state.header.includes('1,750,000 XTZ'), `my tezos drawer live refresh: header kept stale balance ${JSON.stringify(state)}`);
+  assert(state.freshness.toLowerCase().includes('updated'), `my tezos drawer live refresh: freshness stamp missing ${JSON.stringify(state)}`);
+
+  await context.close();
+  assert(issues.length === 0, `my tezos drawer live refresh browser issues:\n${issues.join('\n')}`);
+  log('ok - my tezos drawer live refresh smoke');
 }
 
 async function smokeMyTezosWalletConnect(browser, baseUrl) {
@@ -5119,6 +5203,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
     { name: 'my-tezos-live-signal', description: 'My Tezos open baker drawer refreshes stale operator signal without a manual reload', run: () => smokeMyTezosBakerLiveSignal(browser, baseUrl) },
+    { name: 'my-tezos-drawer-live-refresh', description: 'My Tezos opening drawer refreshes stale brief, header, and baker-grid stats together', run: () => smokeMyTezosDrawerLiveRefresh(browser, baseUrl) },
     { name: 'my-tezos-wallet-connect', description: 'My Tezos drawer connects through Octez.Connect and keeps the saved profile after wallet disconnect', run: () => smokeMyTezosWalletConnect(browser, baseUrl) },
     { name: 'octez-connect-sdk-loader', description: 'Octez.Connect SDK imports through the real CSP-safe ESM loader and exposes the dApp client API', run: () => smokeOctezConnectSdkLoader(browser, baseUrl) },
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },

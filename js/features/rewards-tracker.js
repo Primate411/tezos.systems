@@ -152,10 +152,10 @@ function secondsToHms(s) {
 
 // ─── API ────────────────────────────────────────────────────────────────────
 
-async function fetchRewards(address) {
+async function fetchRewards(address, { force = false } = {}) {
   const cacheKey = getCacheKey(address);
   const cached = localStorage.getItem(cacheKey);
-  if (cached) {
+  if (!force && cached) {
     try {
       const { ts, data } = JSON.parse(cached);
       if (Date.now() - ts < 2 * 60 * 1000) return data; // 2min cache
@@ -546,7 +546,7 @@ function startCountdown(stats) {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-export async function initRewardsTracker(stats, xtzPrice) {
+export async function initRewardsTracker(stats, xtzPrice, options = {}) {
   const address = getAddress();
   if (!address) return;
 
@@ -555,7 +555,7 @@ export async function initRewardsTracker(stats, xtzPrice) {
 
   let rewards = [];
   try {
-    rewards = await fetchRewards(address);
+    rewards = await fetchRewards(address, options);
   } catch (e) {
     console.warn('[rewards-tracker] fetch failed:', e);
   }

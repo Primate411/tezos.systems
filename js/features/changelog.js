@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-17',
         entries: [
+            { type: '🔧', text: 'My Tezos now refreshes the brief, rewards, header, and baker stat grid together when the drawer opens' },
             { type: '🔧', text: 'Mobile Liquidity Baking baker links now wrap instead of clipping inside narrow vote tables' },
             { type: '🔧', text: 'The top price bar once again shows the XTZ 24-hour change beside the live price' },
             { type: '🔧', text: 'Full protocol timeline sharing now attaches to the upgrade header when the older badge rail is absent' },

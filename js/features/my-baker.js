@@ -795,6 +795,7 @@ export function refresh() {
     const saved = localStorage.getItem(STORAGE_KEY);
     const results = document.getElementById('my-baker-results');
     if (saved && isValidAddress(saved) && results) {
-        renderBakerData(saved, results);
+        return renderBakerData(saved, results);
     }
+    return Promise.resolve();
 }

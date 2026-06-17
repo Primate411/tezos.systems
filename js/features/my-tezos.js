@@ -11,6 +11,8 @@ import { fetchXTZPrice } from './price.js';
 import { letterGrade } from './baker-report-card.js';
 import { fetchVotingStatus, getVotingPeriodName } from './governance.js';
 import { fetchObjktProfile } from './objkt.js';
+import { refresh as refreshMyBakerStats } from './my-baker.js';
+import { initRewardsTracker } from './rewards-tracker.js';
 
 const TZKT = API_URLS.tzkt;
 const OCTEZ = API_URLS.octez;
@@ -24,6 +26,7 @@ const RECENT_BAKER_ACTIVITY_DISPLAY_LIMIT = 6;
 const RECENT_OPERATOR_ATTESTATIONS = 10;
 const RIGHTS_FETCH_TIMEOUT_MS = 12000;
 const OPERATOR_SIGNAL_REFRESH_MS = 15000;
+const DRAWER_STATS_REFRESH_MS = 30000;
 // Protocol eras — map block levels to protocol names
 const PROTOCOL_ERAS = [
     { name: 'Genesis', level: 0, date: '2018-06-30' },
@@ -1620,6 +1623,8 @@ let _operatorSignalTimer = null;
 let _operatorSignalInFlight = false;
 let _operatorSignalSeq = 0;
 let _operatorDrawerObserver = null;
+let _drawerStatsTimer = null;
+let _drawerStatsInFlight = false;
 
 function isDrawerOpen() {
     return document.getElementById('my-tezos-drawer')?.classList.contains('open') === true;
@@ -1628,6 +1633,15 @@ function isDrawerOpen() {
 function getOperatorSignalRefreshMs() {
     const override = Number(window.__MY_TEZOS_OPERATOR_REFRESH_MS__);
     return Number.isFinite(override) && override >= 1000 ? override : OPERATOR_SIGNAL_REFRESH_MS;
+}
+
+function getDrawerStatsRefreshMs() {
+    const override = Number(window.__MY_TEZOS_DRAWER_REFRESH_MS__);
+    return Number.isFinite(override) && override >= 1000 ? override : DRAWER_STATS_REFRESH_MS;
+}
+
+function getCurrentDrawerXtzPrice() {
+    return parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '') || '0') || 0;
 }
 
 function getActiveMyTezosContext(address) {
@@ -1954,23 +1968,62 @@ async function refreshOperatorSignal({ force = false } = {}) {
     }
 }
 
-function initOperatorSignalRefresh() {
+async function refreshDrawerStats({ force = false } = {}) {
+    const address = localStorage.getItem(STORAGE_KEY);
+    if (!address) return;
+    if (!force && (!isDrawerOpen() || document.visibilityState !== 'visible')) return;
+    if (_drawerStatsInFlight) return;
+
+    _drawerStatsInFlight = true;
+    try {
+        const refreshes = [
+            Promise.resolve(refreshMyBakerStats()),
+            initRewardsTracker({}, getCurrentDrawerXtzPrice(), { force })
+        ];
+
+        if (_briefRendering) {
+            _pendingBriefAddr = address;
+        } else {
+            refreshes.push(renderMorningBrief(address, true));
+        }
+
+        const results = await Promise.allSettled(refreshes);
+        for (const result of results) {
+            if (result.status === 'rejected') {
+                console.warn('My Tezos drawer refresh failed:', result.reason);
+            }
+        }
+    } finally {
+        _drawerStatsInFlight = false;
+    }
+}
+
+function initDrawerLiveRefresh() {
     if (!_operatorSignalTimer) {
         _operatorSignalTimer = setInterval(() => {
             refreshOperatorSignal().catch(() => {});
         }, getOperatorSignalRefreshMs());
     }
 
+    if (!_drawerStatsTimer) {
+        _drawerStatsTimer = setInterval(() => {
+            refreshDrawerStats().catch(() => {});
+        }, getDrawerStatsRefreshMs());
+    }
+
     const drawer = document.getElementById('my-tezos-drawer');
     if (drawer && !_operatorDrawerObserver) {
         _operatorDrawerObserver = new MutationObserver(() => {
-            if (isDrawerOpen()) refreshOperatorSignal({ force: true }).catch(() => {});
+            if (!isDrawerOpen()) return;
+            refreshDrawerStats({ force: true }).catch(() => {});
+            refreshOperatorSignal({ force: true }).catch(() => {});
         });
         _operatorDrawerObserver.observe(drawer, { attributes: true, attributeFilter: ['class'] });
     }
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible' && isDrawerOpen()) {
+            refreshDrawerStats({ force: true }).catch(() => {});
             refreshOperatorSignal({ force: true }).catch(() => {});
         }
     }, { once: false });
@@ -1981,7 +2034,7 @@ function initOperatorSignalRefresh() {
 export function initMyTezos() {
     // Create minibar under price bar
     createMinibar();
-    initOperatorSignalRefresh();
+    initDrawerLiveRefresh();
 
     const address = localStorage.getItem(STORAGE_KEY);
 
