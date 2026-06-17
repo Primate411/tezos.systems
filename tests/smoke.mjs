@@ -54,7 +54,8 @@ const allowedWarningPatterns = [
   /api\.github\.com/i,
   /SW registration failed/i,
   /Service Worker registration blocked by Playwright/i,
-  /Using local protocol fallback/i
+  /Using local protocol fallback/i,
+  /preloaded using link preload/i
 ];
 
 const browserRoutes = [
@@ -724,6 +725,22 @@ async function installFeatureMocks(context, options = {}) {
       if (url.endsWith('/protocols') || url.includes('/protocols?')) {
         return fulfillJson(route, [
           { code: 4, extras: { alias: 'Athens' } },
+          { code: 5, extras: { alias: 'Babylon' } },
+          { code: 6, extras: { alias: 'Carthage' } },
+          { code: 7, extras: { alias: 'Delphi' } },
+          { code: 8, extras: { alias: 'Edo' } },
+          { code: 9, extras: { alias: 'Florence' } },
+          { code: 10, extras: { alias: 'Granada' } },
+          { code: 11, extras: { alias: 'Hangzhou' } },
+          { code: 12, extras: { alias: 'Ithaca' } },
+          { code: 13, extras: { alias: 'Jakarta' } },
+          { code: 14, extras: { alias: 'Kathmandu' } },
+          { code: 15, extras: { alias: 'Lima' } },
+          { code: 16, extras: { alias: 'Mumbai' } },
+          { code: 17, extras: { alias: 'Nairobi' } },
+          { code: 18, extras: { alias: 'Oxford' } },
+          { code: 19, extras: { alias: 'Paris' } },
+          { code: 20, extras: { alias: 'Quebec' } },
           { code: 21, extras: { alias: 'Tallinn' } }
         ]);
       }
@@ -1906,12 +1923,114 @@ async function expectShareModal(page, label, issues = []) {
   await page.locator('#share-modal').waitFor({ state: 'detached', timeout: 5000 });
 }
 
+async function waitForShareModal(page, label, issues = []) {
+  try {
+    await page.locator('#share-modal.visible').waitFor({ state: 'visible', timeout: 10000 });
+  } catch (error) {
+    const debug = await page.evaluate(() => ({
+      hasModal: Boolean(document.querySelector('#share-modal')),
+      notification: document.querySelector('.share-notification')?.textContent || '',
+      html2canvasLoaded: typeof window.html2canvas === 'function'
+    }));
+    throw new Error(`${label}: share modal did not open (${error.message}); debug=${JSON.stringify(debug)}; issues=${issues.join(' | ')}`);
+  }
+  await expectCount(page, '#share-modal .share-modal-preview img[src^="data:image/png"]', 1, label);
+  await expectCount(page, '#share-modal #share-download', 1, label);
+  await expectCount(page, '#share-modal #share-copy', 1, label);
+  await expectCount(page, '#share-modal #share-twitter', 1, label);
+}
+
+async function installShareActionMocks(context, { nativeShare = true } = {}) {
+  await context.addInitScript(({ nativeShare }) => {
+    window.__shareActions = {
+      clipboardWrites: [],
+      downloads: [],
+      nativeShares: [],
+      opens: []
+    };
+
+    HTMLCanvasElement.prototype.toBlob = function(callback, type = 'image/png') {
+      callback(new Blob(['smoke-share-png'], { type }));
+    };
+
+    window.ClipboardItem = class SmokeClipboardItem {
+      constructor(items) {
+        this.items = items;
+        this.types = Object.keys(items || {});
+      }
+    };
+
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        write: async (items) => {
+          window.__shareActions.clipboardWrites.push({
+            count: Array.isArray(items) ? items.length : 0,
+            types: Array.from(new Set((items || []).flatMap((item) => item?.types || Object.keys(item?.items || {}))))
+          });
+        },
+        writeText: async (text) => {
+          window.__shareActions.clipboardWrites.push({
+            count: 1,
+            text: String(text),
+            types: ['text/plain']
+          });
+        }
+      }
+    });
+
+    const originalOpen = window.open?.bind(window);
+    window.open = (url, target, features) => {
+      window.__shareActions.opens.push({ url: String(url), target: String(target || ''), features: String(features || '') });
+      return { closed: false, focus() {} };
+    };
+
+    const originalAnchorClick = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function() {
+      if (this.download || String(this.href || '').startsWith('data:image/')) {
+        window.__shareActions.downloads.push({
+          download: this.download || '',
+          href: this.href || ''
+        });
+        return;
+      }
+      return originalAnchorClick.call(this);
+    };
+
+    if (nativeShare) {
+      Object.defineProperty(navigator, 'canShare', {
+        configurable: true,
+        value: (payload) => Boolean(payload?.files?.length)
+      });
+      Object.defineProperty(navigator, 'share', {
+        configurable: true,
+        value: async (payload) => {
+          window.__shareActions.nativeShares.push({
+            fileCount: Array.isArray(payload?.files) ? payload.files.length : 0,
+            fileTypes: Array.isArray(payload?.files) ? payload.files.map((file) => file.type) : [],
+            text: String(payload?.text || ''),
+            url: String(payload?.url || '')
+          });
+        }
+      });
+    } else {
+      Object.defineProperty(navigator, 'canShare', { configurable: true, value: undefined });
+      Object.defineProperty(navigator, 'share', { configurable: true, value: undefined });
+    }
+  }, { nativeShare });
+}
+
 async function smokeAppShell(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'allow'
   });
+  await context.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => fulfillJson(route, {
+    sha: 'cafebabecafebabecafebabecafebabecafebabe',
+    html_url: 'https://github.com/Primate411/tezos.systems/commit/cafebabe',
+    commit: { committer: { date: '2026-06-07T00:00:00Z' } }
+  }));
   await context.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
     localStorage.setItem('tezos-toured', '1');
@@ -1986,6 +2105,8 @@ async function smokeAppShell(browser, baseUrl) {
     const cssVersion = stylesheet.match(/\?v=(\d+)/)?.[1] || '';
     const appScriptVersion = appScript.match(/\?v=(\d+)/)?.[1] || '';
     const appPreloadVersion = appPreload.match(/\?v=(\d+)/)?.[1] || '';
+    const buildVersionText = document.querySelector('#build-version')?.textContent?.trim() || '';
+    const buildVersionTitle = document.querySelector('#build-version')?.getAttribute('title') || '';
 
     return {
       appPreload,
@@ -1993,6 +2114,8 @@ async function smokeAppShell(browser, baseUrl) {
       appScript,
       appScriptVersion,
       assetResults,
+      buildVersionText,
+      buildVersionTitle,
       cacheVersion,
       canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') || '',
       csp,
@@ -2038,6 +2161,8 @@ async function smokeAppShell(browser, baseUrl) {
   assert(shell.cacheVersion && shell.cacheVersion === shell.cssVersion && shell.cacheVersion === shell.appPreloadVersion && shell.cacheVersion === shell.appScriptVersion, `app shell: cache stamps mismatch cache=${shell.cacheVersion} css=${shell.cssVersion} preload=${shell.appPreloadVersion} script=${shell.appScriptVersion}`);
   assert(shell.robots.text.includes('Sitemap:'), 'app shell: robots.txt should point at the sitemap');
   assert(shell.sitemap.text.includes('https://tezos.systems/'), 'app shell: sitemap should include the canonical root URL');
+  assert(/build \d+ · latest cafebab · stamp [a-f0-9]{7,12} · \d{4}-\d{2}-\d{2}/i.test(shell.buildVersionText), `app shell: build footer should include build/latest/stamp/date, saw: ${shell.buildVersionText}`);
+  assert(/Latest main commit: cafebabe/i.test(shell.buildVersionTitle), `app shell: build footer title missing latest commit, saw: ${shell.buildVersionTitle}`);
   assert(swReady.ready, `app shell: service worker did not become ready (${JSON.stringify(swReady)})`);
 
   const failedAssets = shell.assetResults.filter((asset) => !asset.ok);
@@ -2045,6 +2170,27 @@ async function smokeAppShell(browser, baseUrl) {
   assert(shell.assetResults.length >= 40, `app shell: expected broad shell asset coverage, saw ${shell.assetResults.length}`);
 
   await context.close();
+
+  const fallbackContext = await browser.newContext({
+    viewport: { width: 960, height: 720 },
+    serviceWorkers: 'block'
+  });
+  await fallbackContext.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => route.fulfill({ status: 403, body: '{}' }));
+  await fallbackContext.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const fallbackPage = await fallbackContext.newPage();
+  attachIssueCollectors(fallbackPage, 'app shell footer fallback', issues);
+  const fallbackResponse = await fallbackPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(fallbackResponse?.ok(), `app shell footer fallback: dashboard failed with HTTP ${fallbackResponse?.status()}`);
+  await fallbackPage.waitForFunction(() => /latest unavailable/.test(document.querySelector('#build-version')?.textContent || ''), null, { timeout: 10000 });
+  const fallbackFooter = await fallbackPage.locator('#build-version').innerText();
+  assert(/build \d+ · latest unavailable · stamp [a-f0-9]{7,12} · \d{4}-\d{2}-\d{2}/i.test(fallbackFooter), `app shell footer fallback: footer shape mismatch: ${fallbackFooter}`);
+  await fallbackContext.close();
+
   assert(issues.length === 0, `app shell browser issues:\n${issues.join('\n')}`);
   log(`ok - app shell smoke (${shell.assetResults.length} shell assets)`);
 }
@@ -3620,6 +3766,12 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       title: compactText('#etherlink-governance-modal .chamber-title'),
       badge: compactText('#etherlink-governance-modal .chamber-badge'),
       tabs: document.querySelectorAll('#etherlink-governance-modal [data-etherlink-track]').length,
+      tabsA11y: Array.from(document.querySelectorAll('#etherlink-governance-modal [data-etherlink-track]')).map((button) => ({
+        track: button.dataset.etherlinkTrack || '',
+        role: button.getAttribute('role') || '',
+        selected: button.getAttribute('aria-selected') || '',
+        active: button.classList.contains('active')
+      })),
       activeTab: document.querySelector('#etherlink-governance-modal [data-etherlink-track].active')?.dataset.etherlinkTrack || '',
       proposalHash: compactText('#etherlink-governance-modal .etherlink-gov-proposal-hash'),
       threshold: compactText('#etherlink-governance-modal .etherlink-gov-threshold-row'),
@@ -3658,6 +3810,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/Tezos X Governance Chamber/.test(etherlinkState.title), `governance testing period: Tezos X Governance title mismatch: ${etherlinkState.title}`);
   assert(/Proposal quorum met/.test(etherlinkState.badge), `governance testing period: Etherlink badge mismatch: ${etherlinkState.badge}`);
   assert(etherlinkState.tabs === 3, `governance testing period: Etherlink should expose three track tabs, saw ${etherlinkState.tabs}`);
+  assert(etherlinkState.tabsA11y.length === 3 && etherlinkState.tabsA11y.every((tab) => tab.role === 'tab'), `governance testing period: Etherlink tabs need role=tab: ${JSON.stringify(etherlinkState.tabsA11y)}`);
+  assert(etherlinkState.tabsA11y.every((tab) => tab.selected === String(tab.active)), `governance testing period: Etherlink tabs aria-selected mismatch: ${JSON.stringify(etherlinkState.tabsA11y)}`);
   assert(etherlinkState.activeTab === 'fast', `governance testing period: Etherlink FAST tab should start active, saw ${etherlinkState.activeTab}`);
   assert(etherlinkState.proposalHash === ETHERLINK_FAST_PROPOSAL, `governance testing period: Etherlink proposal hash mismatch: ${etherlinkState.proposalHash}`);
   assert(/93\.2M XTZ upvotes/.test(etherlinkState.threshold) && /14\.2% \/ 5% required/.test(etherlinkState.threshold), `governance testing period: Etherlink threshold mismatch: ${etherlinkState.threshold}`);
@@ -4135,6 +4289,54 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   log('ok - governance testing period smoke');
 }
 
+async function smokeHashModalCleanup(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context, { governanceLiveVote: true });
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'hash modal cleanup', issues);
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `hash modal cleanup: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  await page.evaluate(() => { window.location.hash = 'history'; });
+  await page.locator('#history-modal[aria-hidden="false"]').waitFor({ state: 'attached', timeout: 10000 });
+
+  await page.evaluate(() => { window.location.hash = 'chamber'; });
+  await page.locator('#chamber-modal.active').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector('#history-modal')?.classList.contains('active'), null, { timeout: 5000 });
+
+  await page.evaluate(() => { window.location.hash = 'l2chamber'; });
+  await page.locator('#etherlink-governance-modal.active').waitFor({ state: 'visible', timeout: 10000 });
+  const stackedState = await page.evaluate(() => ({
+    activeModals: Array.from(document.querySelectorAll('.modal-overlay.active, #history-modal.active')).map((modal) => modal.id || modal.className),
+    bodyOverflow: document.body.style.overflow,
+    htmlOverflow: document.documentElement.style.overflow
+  }));
+  assert(stackedState.activeModals.length === 1 && stackedState.activeModals[0] === 'etherlink-governance-modal', `hash modal cleanup: stale modals remain under L2: ${JSON.stringify(stackedState)}`);
+  assert(stackedState.bodyOverflow === 'hidden' && stackedState.htmlOverflow === 'hidden', `hash modal cleanup: active L2 should own scroll lock: ${JSON.stringify(stackedState)}`);
+
+  await page.locator('#etherlink-governance-modal.active .chamber-close').click();
+  await page.waitForFunction(() => {
+    const active = Array.from(document.querySelectorAll('.modal-overlay.active, #history-modal.active'));
+    return active.length === 0 && document.body.style.overflow !== 'hidden' && document.documentElement.style.overflow !== 'hidden';
+  }, null, { timeout: 5000 });
+
+  await context.close();
+  assert(issues.length === 0, `hash modal cleanup browser issues:\n${issues.join('\n')}`);
+  log('ok - hash modal cleanup smoke');
+}
+
 async function smokeFirstVisitTour(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -4287,6 +4489,22 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelector('#staking-ratio-front')?.textContent?.trim() === '27.62%', null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelector('#staking-apy-front')?.textContent?.trim() === '4.2% / 12.7%', null, { timeout: 10000 });
   await page.waitForFunction(() => /pp$/.test(document.querySelector('#staking-trend')?.textContent?.trim() || ''), null, { timeout: 10000 });
+  await page.waitForFunction(() => {
+    const price = document.querySelector('#price-bar .price-value')?.textContent?.trim() || '';
+    const change = document.querySelector('#price-bar .price-change')?.textContent?.trim() || '';
+    const sats = document.querySelector('#price-btc')?.textContent?.trim() || '';
+    const marketCap = document.querySelector('#price-bar .price-mcap')?.textContent?.trim() || '';
+    return price === '$0.740' && change === '+2.5%' && sats === '700 sats' && marketCap === 'MCap $780M';
+  }, null, { timeout: 10000 });
+  const priceLinks = await page.evaluate(() => ({
+    coinGecko: document.querySelector('#price-bar .price-link')?.href || '',
+    stake: document.querySelector('#price-bar .price-cta[title="Stake XTZ"]')?.href || '',
+    bake: document.querySelector('#price-bar .price-cta[title="Bake on Tezos"]')?.href || ''
+  }));
+  assert(priceLinks.coinGecko === 'https://www.coingecko.com/en/coins/tezos', `feature workflows price bar CoinGecko link mismatch: ${priceLinks.coinGecko}`);
+  assert(priceLinks.stake === 'https://gov.tez.capital/', `feature workflows price bar stake link mismatch: ${priceLinks.stake}`);
+  assert(priceLinks.bake === 'https://docs.tez.capital/', `feature workflows price bar bake link mismatch: ${priceLinks.bake}`);
+  log('ok - feature workflow: price bar');
   await assertAllSparklineLatestValues(page, 'feature workflows');
   log('ok - all sparkline card latest values match live stats');
   log('ok - staking ratio and APY use TzKT total staked with pp trend');
@@ -4297,6 +4515,9 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await expectCount(page, '#leaderboard-results .lb-row', 2, 'feature workflows leaderboard rows');
   await page.locator('#leaderboard-results .lb-th[data-col="name"]').click();
   await expectClassContains(page.locator('#leaderboard-results .lb-th[data-col="name"]'), 'active', 'feature workflows leaderboard sort');
+  await expectCount(page, '#leaderboard-results .lb-share-btn', 2, 'feature workflows leaderboard share buttons');
+  await page.locator('#leaderboard-results .lb-share-btn').first().click();
+  await expectShareModal(page, 'feature workflows leaderboard share', issues);
   log('ok - feature workflow: leaderboard');
 
   await clickFeatureLauncher(page, '#calc-toggle');
@@ -4361,6 +4582,8 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await expectCount(page, '#history-modal .time-range-btn', 4, 'feature workflows history ranges');
   await page.locator('#history-modal .time-range-btn[data-range="24h"]').click();
   await expectClassContains(page.locator('#history-modal .time-range-btn[data-range="24h"]'), 'active', 'feature workflows history range');
+  await page.locator('#history-share-btn').click();
+  await expectShareModal(page, 'feature workflows historical data share', issues);
   await page.locator('#history-modal-close').click();
   await page.locator('#history-modal[aria-hidden="true"]').waitFor({ state: 'attached', timeout: 5000 });
   log('ok - feature workflow: history modal');
@@ -4394,6 +4617,27 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.locator('#card-history-modal[aria-hidden="true"]').waitFor({ state: 'attached', timeout: 5000 });
   log('ok - feature workflow: card history');
 
+  await page.locator('#upgrade-share-btn').scrollIntoViewIfNeeded();
+  await page.locator('#upgrade-share-btn').click();
+  await expectShareModal(page, 'feature workflows upgrade share', issues);
+  log('ok - feature workflow: upgrade share');
+
+  await page.locator('.timeline-share-btn').waitFor({ state: 'attached', timeout: 10000 });
+  await page.locator('.upgrade-clock-content').scrollIntoViewIfNeeded();
+  await page.locator('.upgrade-clock-content').hover();
+  await page.locator('.timeline-share-btn').click();
+  await expectShareModal(page, 'feature workflows protocol timeline share', issues);
+  log('ok - feature workflow: protocol timeline share');
+
+  await page.locator('#upgrade-timeline .timeline-item[data-protocol="Quebec"]').scrollIntoViewIfNeeded();
+  await page.locator('#upgrade-timeline .timeline-item[data-protocol="Quebec"]').click();
+  await page.locator('#protocol-history-modal').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#protocol-history-modal #history-modal-share').click();
+  await expectShareModal(page, 'feature workflows protocol history share', issues);
+  await page.locator('#protocol-history-modal #history-modal-close').click();
+  await page.locator('#protocol-history-modal').waitFor({ state: 'detached', timeout: 5000 });
+  log('ok - feature workflow: protocol history share');
+
   await page.locator('[data-stat="total-bakers"]').scrollIntoViewIfNeeded();
   await page.locator('[data-stat="total-bakers"]').hover();
   await page.evaluate(() => document.querySelector('[data-stat="total-bakers"] .card-share-btn')?.click());
@@ -4420,6 +4664,95 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await context.close();
   assert(issues.length === 0, `feature workflows browser issues:\n${issues.join('\n')}`);
   log('ok - feature workflows smoke');
+}
+
+async function smokeShareActions(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
+  await installFeatureMocks(context);
+  await installShareActionMocks(context, { nativeShare: true });
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'share actions', issues);
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `share actions: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('[data-stat="total-bakers"] .card-share-btn').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('[data-stat="total-bakers"]').scrollIntoViewIfNeeded();
+  await page.evaluate(() => document.querySelector('[data-stat="total-bakers"] .card-share-btn')?.click());
+  await waitForShareModal(page, 'share actions card share', issues);
+
+  const refreshButton = page.locator('#share-modal #tweet-refresh-btn');
+  if (await refreshButton.count()) {
+    const initialChoiceText = await page.locator('#share-modal .tweet-option').first().innerText();
+    await refreshButton.click();
+    await page.waitForFunction((previous) => {
+      const first = document.querySelector('#share-modal .tweet-option')?.textContent || '';
+      return first && first !== previous;
+    }, initialChoiceText, { timeout: 5000 }).catch(() => {});
+    await expectCount(page, '#share-modal .tweet-option', 2, 'share actions refreshed tweet options');
+  }
+
+  await page.locator('#share-modal #share-copy').click();
+  await page.waitForFunction(() => window.__shareActions.clipboardWrites.some((entry) => entry.types?.includes('image/png')), null, { timeout: 5000 });
+  await page.locator('#share-modal #share-twitter').click();
+  await page.waitForFunction(() => window.__shareActions.opens.some((entry) => entry.url.startsWith('https://twitter.com/intent/tweet?text=')), null, { timeout: 5000 });
+  await page.locator('#share-modal #share-native').click();
+  await page.waitForFunction(() => window.__shareActions.nativeShares.some((entry) => entry.fileCount === 1 && entry.fileTypes.includes('image/png') && entry.url === 'https://tezos.systems'), null, { timeout: 5000 });
+  await page.locator('#share-modal #share-download').click();
+  await page.waitForFunction(() => window.__shareActions.downloads.some((entry) => /^tezos-systems-\d+\.png$/.test(entry.download) && entry.href.startsWith('data:image/png')), null, { timeout: 5000 });
+
+  const desktopActions = await page.evaluate(() => window.__shareActions);
+  assert(desktopActions.clipboardWrites.filter((entry) => entry.types?.includes('image/png')).length >= 2, `share actions: expected copy/twitter image clipboard writes: ${JSON.stringify(desktopActions)}`);
+  assert(desktopActions.opens.length === 1, `share actions: expected one X intent open: ${JSON.stringify(desktopActions.opens)}`);
+  assert(desktopActions.nativeShares.length === 1, `share actions: expected one native share: ${JSON.stringify(desktopActions.nativeShares)}`);
+  assert(desktopActions.downloads.length === 1, `share actions: expected one desktop download: ${JSON.stringify(desktopActions.downloads)}`);
+  await page.locator('#share-modal .share-modal-close').click();
+  await page.locator('#share-modal').waitFor({ state: 'detached', timeout: 5000 });
+  await context.close();
+
+  const mobileContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0 Mobile Safari/537.36',
+    hasTouch: true,
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(mobileContext);
+  await installShareActionMocks(mobileContext, { nativeShare: false });
+  await mobileContext.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-systems-stats-visible', 'true');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+
+  const mobilePage = await mobileContext.newPage();
+  attachIssueCollectors(mobilePage, 'share actions mobile fallback', issues);
+  const mobileResponse = await mobilePage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(mobileResponse?.ok(), `share actions mobile fallback: dashboard failed with HTTP ${mobileResponse?.status()}`);
+  await mobilePage.locator('[data-stat="total-bakers"] .card-share-btn').waitFor({ state: 'visible', timeout: 10000 });
+  await mobilePage.evaluate(() => document.querySelector('[data-stat="total-bakers"] .card-share-btn')?.click());
+  await waitForShareModal(mobilePage, 'share actions mobile fallback card share', issues);
+  await mobilePage.locator('#share-modal #share-download').click();
+  await mobilePage.waitForFunction(() => Array.from(document.querySelectorAll('body > div')).some((node) => /Save to Photos/.test(node.textContent || '') && node.querySelector('img[src^="data:image/png"]')), null, { timeout: 5000 });
+  await mobilePage.locator('body > div img[src^="data:image/png"] + button').last().click();
+  await mobilePage.locator('#share-modal .share-modal-close').click();
+  await mobilePage.locator('#share-modal').waitFor({ state: 'detached', timeout: 5000 });
+  await mobileContext.close();
+
+  assert(issues.length === 0, `share actions browser issues:\n${issues.join('\n')}`);
+  log('ok - share actions smoke');
 }
 
 async function smokeInfoModals(browser, baseUrl) {
@@ -4600,6 +4933,61 @@ async function crawlRoutes(browser, baseUrl) {
   assert(issues.length === 0, `route crawl browser issues:\n${issues.join('\n')}`);
 }
 
+async function smokeStandaloneLinks(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block'
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'standalone links', issues);
+  const checkedTargets = new Map();
+  const unsafeHrefs = [];
+
+  for (const route of browserRoutes) {
+    const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'domcontentloaded' });
+    assert((response?.status() || 0) < 500, `standalone links: route returned ${response?.status()}: ${route}`);
+
+    const links = await page.evaluate(() => Array.from(document.querySelectorAll('a[href]'))
+      .filter((anchor) => {
+        const box = anchor.getBoundingClientRect();
+        const style = getComputedStyle(anchor);
+        return box.width > 0 && box.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      })
+      .map((anchor) => ({
+        href: anchor.getAttribute('href') || '',
+        absolute: anchor.href,
+        text: (anchor.textContent || anchor.getAttribute('aria-label') || '').trim().replace(/\s+/g, ' ').slice(0, 80)
+      })));
+
+    for (const link of links) {
+      if (/^(javascript:|mailto:|tel:)/i.test(link.href)) continue;
+      if (/localhost|127\.0\.0\.1|file:\/\//i.test(link.href)) unsafeHrefs.push(`${route} ${link.href}`);
+      const target = new URL(link.absolute);
+      const isFirstParty = target.origin === new URL(baseUrl).origin || target.origin === 'https://tezos.systems';
+      if (!isFirstParty) continue;
+      const pathWithSearch = `${target.pathname || '/'}${target.search || ''}`;
+      checkedTargets.set(pathWithSearch, { route, text: link.text });
+    }
+  }
+
+  assert(unsafeHrefs.length === 0, `standalone links: unsafe local/file hrefs found:\n${unsafeHrefs.join('\n')}`);
+  assert(checkedTargets.size >= 12, `standalone links: expected broad first-party link coverage, saw ${checkedTargets.size}`);
+
+  const failures = [];
+  for (const [target, source] of checkedTargets) {
+    const response = await context.request.get(`${baseUrl}${target}`, { failOnStatusCode: false });
+    if (response.status() >= 500 || response.status() === 404) {
+      failures.push(`${source.route} -> ${target} (${response.status()}) "${source.text}"`);
+    }
+  }
+
+  await context.close();
+  assert(failures.length === 0, `standalone links: first-party targets failed:\n${failures.join('\n')}`);
+  assert(issues.length === 0, `standalone links browser issues:\n${issues.join('\n')}`);
+  log(`ok - standalone link integrity (${checkedTargets.size} first-party targets)`);
+}
+
 async function smokeRouteFormatting(browser, baseUrl) {
   const issues = [];
 
@@ -4743,13 +5131,16 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'ctez', description: 'ctez End of Life opens #ctez with opt-in oven discovery and wallet-reviewed operations', run: () => smokeCtezChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
+    { name: 'hash-modal-cleanup', description: 'Hash-routed modal navigation closes stale history and chamber overlays before opening the next room', run: () => smokeHashModalCleanup(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
     { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
+    { name: 'share-actions', description: 'Share modal copy, post, download, native share, and mobile photo fallback buttons', run: () => smokeShareActions(browser, baseUrl) },
     { name: 'info-modals', description: 'All section info modals and About Tezos launch-date copy', run: () => smokeInfoModals(browser, baseUrl) },
     { name: 'themes', description: 'Theme picker availability and representative light/dark/colorful theme switching', run: () => smokeThemeSelection(browser, baseUrl) },
     { name: 'widget-builder', description: 'Standalone widget builder type picker, preview sizing, and embed code tabs', run: () => smokeWidgetBuilder(browser, baseUrl) },
     { name: 'hen-mode', description: 'HEN overlay startup and exit path', run: () => smokeHenMode(browser, baseUrl) },
     { name: 'route-formatting', description: 'Public pages, widget pages, and 404 screen avoid horizontal overflow and clipped controls on desktop/mobile', run: () => smokeRouteFormatting(browser, baseUrl) },
+    { name: 'standalone-links', description: 'Visible first-party links on public and widget routes resolve without local/custom-domain drift', run: () => smokeStandaloneLinks(browser, baseUrl) },
     { name: 'route-crawl', description: 'Dashboard, SEO pages, compare pages, and standalone widget routes render non-empty bodies', run: () => crawlRoutes(browser, baseUrl) }
   ];
 }
@@ -4770,36 +5161,8 @@ async function main() {
     return;
   }
 
-  const suiteNames = [
-    ['first-visit-tour', 'Deep-link onboarding, first root visit, and tour prompt behavior'],
-    ['app-shell', 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets'],
-    ['tzkt-throttle', 'Browser-local TzKT fetch queue keeps visitor requests at six starts per second'],
-    ['dashboard-desktop', 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
-    ['dashboard-mobile', 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker'],
-    ['my-tezos-baker-activity', 'My Tezos connected baker drawer lists recent delegators and stakers'],
-    ['my-tezos-wallet-connect', 'My Tezos drawer connects through Octez.Connect and keeps the saved profile after wallet disconnect'],
-    ['octez-connect-sdk-loader', 'Octez.Connect SDK imports through the real CSP-safe ESM loader and exposes the dApp client API'],
-    ['my-tezos-baker-capacity', 'My Tezos connected baker drawer shows signed over-delegation capacity'],
-    ['my-tezos-staker-rewards', 'My Tezos connected drawer uses personal staker reward rows for regular and mostly-staked accounts'],
-    ['my-tezos-delegator-rewards', 'My Tezos connected drawer uses delegator estimate rows for zero-stake delegated accounts'],
-    ['my-tezos-address-switch', 'My Tezos connected drawer saves a newly typed address over a stale saved baker'],
-    ['my-tezos-proposal-attribution', 'My Tezos Story distinguishes a delegator from their baker when accepted proposals are shown'],
-    ['my-tezos-deep-link-override', 'My Tezos direct address links override a stale saved baker on first load'],
-    ['tezlink', 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape'],
-    ['network-health', 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary'],
-    ['ctez', 'ctez End of Life opens #ctez with opt-in oven discovery and wallet-reviewed operations'],
-    ['governance-lb', 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh'],
-    ['ux-regressions', 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility'],
-    ['feature-workflows', 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards'],
-    ['info-modals', 'All section info modals and About Tezos launch-date copy'],
-    ['themes', 'Theme picker availability and representative light/dark/colorful theme switching'],
-    ['widget-builder', 'Standalone widget builder type picker, preview sizing, and embed code tabs'],
-    ['hen-mode', 'HEN overlay startup and exit path'],
-    ['route-formatting', 'Public pages, widget pages, and 404 screen avoid horizontal overflow and clipped controls on desktop/mobile'],
-    ['route-crawl', 'Dashboard, SEO pages, compare pages, and standalone widget routes render non-empty bodies']
-  ];
   if (cli.list) {
-    for (const [name, description] of suiteNames) console.log(`${name} - ${description}`);
+    for (const { name, description } of getSuiteCatalog(null, '')) console.log(`${name} - ${description}`);
     return;
   }
 
@@ -4822,6 +5185,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(`fail - ${error.message}`);
+  console.error(`fail - ${error.stack || error.message}`);
   process.exit(1);
 });

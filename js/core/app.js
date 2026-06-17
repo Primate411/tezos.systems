@@ -2233,7 +2233,7 @@ async function renderBuildVersion() {
 
     const parts = [];
     if (version?.build) parts.push(`build ${version.build}`);
-    if (latest?.sha) parts.push(`latest ${shortSha(latest.sha)}`);
+    parts.push(latest?.sha ? `latest ${shortSha(latest.sha)}` : 'latest unavailable');
     if (version?.commit) parts.push(`stamp ${version.commit}`);
     if (version?.date) parts.push(version.date);
 
@@ -2242,6 +2242,7 @@ async function renderBuildVersion() {
     el.textContent = parts.join(' · ');
     const titleParts = [];
     if (latest?.sha) titleParts.push(`Latest main commit: ${latest.sha}`);
+    else titleParts.push('Latest main commit unavailable');
     if (version?.commit) titleParts.push(`Stamped parent commit: ${version.commit}`);
     if (latest?.date) titleParts.push(`Latest commit date: ${new Date(latest.date).toISOString().slice(0, 10)}`);
     el.title = titleParts.join(' · ');
@@ -2808,6 +2809,34 @@ function applyDeepLink() {
         });
     };
 
+    const closeHashModalSurfaces = async () => {
+        const historyModal = document.getElementById('history-modal');
+        if (historyModal) {
+            historyModal.classList.remove('active');
+            historyModal.setAttribute('aria-hidden', 'true');
+        }
+        document.getElementById('protocol-history-modal')?.remove();
+
+        await Promise.allSettled([
+            import('../features/chamber.js').then((module) => module.closeChamber?.()),
+            import('../features/tezlink.js').then((module) => module.closeTezlinkChamber?.()),
+            import('../features/etherlink-governance.js').then((module) => module.closeEtherlinkGovernanceChamber?.()),
+            import('../features/network-health.js').then((module) => module.closeNetworkHealthChamber?.()),
+            import('../features/liquidity-baking.js').then((module) => module.closeLiquidityBakingMonitor?.()),
+            import('../features/tz4-adoption.js').then((module) => module.closeTz4AdoptionChamber?.()),
+            import('../features/ctez.js').then((module) => module.closeCtezChamber?.())
+        ]);
+
+        document.body.style.overflow = '';
+        document.documentElement.style.overflow = '';
+    };
+
+    const openHashModal = (open, label) => {
+        closeHashModalSurfaces()
+            .then(open)
+            .catch((error) => console.warn(label, error));
+    };
+
     // #my-baker=tz1..., #my-baker=name.tez, or #my-baker (just open it)
     if (params.has('my-baker')) {
         const addr = params.get('my-baker');
@@ -2821,9 +2850,10 @@ function applyDeepLink() {
 
     // #chamber / #the-chamber
     if (params.has('chamber') || hash === 'chamber' || params.has('the-chamber') || hash === 'the-chamber') {
-        import('../features/chamber.js')
-            .then(({ openChamber }) => openChamber())
-            .catch((error) => console.warn('Failed to open The Chamber', error));
+        openHashModal(
+            () => import('../features/chamber.js').then(({ openChamber }) => openChamber()),
+            'Failed to open The Chamber'
+        );
     }
 
     // #chambers
@@ -2834,9 +2864,10 @@ function applyDeepLink() {
 
     // #tezosx / legacy #tezlink
     if (params.has('tezosx') || hash === 'tezosx' || params.has('tezlink') || hash === 'tezlink') {
-        import('../features/tezlink.js')
-            .then(({ openTezlinkChamber }) => openTezlinkChamber())
-            .catch((error) => console.warn('Failed to open Tezos X Chamber', error));
+        openHashModal(
+            () => import('../features/tezlink.js').then(({ openTezlinkChamber }) => openTezlinkChamber()),
+            'Failed to open Tezos X Chamber'
+        );
     }
 
     // #l2chamber / legacy #etherlink-governance / #etherlink-gov / #etherlink
@@ -2846,16 +2877,18 @@ function applyDeepLink() {
         params.has('etherlink-gov') || hash === 'etherlink-gov' ||
         params.has('etherlink') || hash === 'etherlink'
     ) {
-        import('../features/etherlink-governance.js')
-            .then(({ openEtherlinkGovernanceChamber }) => openEtherlinkGovernanceChamber())
-            .catch((error) => console.warn('Failed to open Tezos X Governance Chamber', error));
+        openHashModal(
+            () => import('../features/etherlink-governance.js').then(({ openEtherlinkGovernanceChamber }) => openEtherlinkGovernanceChamber()),
+            'Failed to open Tezos X Governance Chamber'
+        );
     }
 
     // #health / #network-health
     if (params.has('health') || hash === 'health' || params.has('network-health') || hash === 'network-health') {
-        import('../features/network-health.js')
-            .then(({ openNetworkHealthChamber }) => openNetworkHealthChamber())
-            .catch((error) => console.warn('Failed to open Network Health Chamber', error));
+        openHashModal(
+            () => import('../features/network-health.js').then(({ openNetworkHealthChamber }) => openNetworkHealthChamber()),
+            'Failed to open Network Health Chamber'
+        );
     }
 
     // #lb-tile / #liquidity-baking-tile
@@ -2866,23 +2899,26 @@ function applyDeepLink() {
 
     // #lb / #liquidity-baking
     if (params.has('lb') || hash === 'lb' || params.has('liquidity-baking') || hash === 'liquidity-baking') {
-        import('../features/liquidity-baking.js')
-            .then(({ openLiquidityBakingMonitor }) => openLiquidityBakingMonitor())
-            .catch((error) => console.warn('Failed to open Liquidity Baking monitor', error));
+        openHashModal(
+            () => import('../features/liquidity-baking.js').then(({ openLiquidityBakingMonitor }) => openLiquidityBakingMonitor()),
+            'Failed to open Liquidity Baking monitor'
+        );
     }
 
     // #tz4 / #tz4-adoption
     if (params.has('tz4') || hash === 'tz4' || params.has('tz4-adoption') || hash === 'tz4-adoption') {
-        import('../features/tz4-adoption.js')
-            .then(({ openTz4AdoptionChamber }) => openTz4AdoptionChamber())
-            .catch((error) => console.warn('Failed to open tz4 Adoption Chamber', error));
+        openHashModal(
+            () => import('../features/tz4-adoption.js').then(({ openTz4AdoptionChamber }) => openTz4AdoptionChamber()),
+            'Failed to open tz4 Adoption Chamber'
+        );
     }
 
     // #ctez / legacy #ctez-oven / #ctez-guide
     if (params.has('ctez') || hash === 'ctez' || params.has('ctez-oven') || hash === 'ctez-oven' || params.has('ctez-guide') || hash === 'ctez-guide') {
-        import('../features/ctez.js')
-            .then(({ openCtezChamber }) => openCtezChamber())
-            .catch((error) => console.warn('Failed to open ctez End of Life', error));
+        openHashModal(
+            () => import('../features/ctez.js').then(({ openCtezChamber }) => openCtezChamber()),
+            'Failed to open ctez End of Life'
+        );
     }
 
     // #calculator
@@ -2941,8 +2977,10 @@ function applyDeepLink() {
 
     // #history
     if (params.has('history') || hash === 'history') {
-        const btn = document.getElementById('history-btn');
-        if (btn) btn.click();
+        openHashModal(() => {
+            const btn = document.getElementById('history-btn');
+            if (btn) btn.click();
+        }, 'Failed to open history modal');
     }
 
     // #theme=<name>

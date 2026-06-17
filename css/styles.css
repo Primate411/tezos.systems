@@ -825,9 +825,8 @@ body::before {
     -webkit-text-fill-color: currentColor;
     background-clip: border-box;
     color: var(--accent-cyan);
-    color: color-mix(in srgb, var(--accent-cyan) 72%, #ffffff 28%);
     line-height: 1;
-    text-shadow: 0 0 18px color-mix(in srgb, var(--accent-cyan) 36%, transparent);
+    text-shadow: 0 0 18px rgba(91, 141, 239, 0.28);
 }
 
 .upgrade-label {
@@ -18598,11 +18597,15 @@ body {
 
 .lb-baker-cell {
     min-width: 0;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
 }
 
 .lb-baker-link-wrap {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 6px;
     min-width: 0;
 }
@@ -18611,9 +18614,11 @@ body {
     color: var(--text-primary);
     text-decoration: none;
     min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.22;
     border-bottom: 1px solid transparent;
 }
 

@@ -700,8 +700,9 @@ function renderEntryError() {
 
 function renderTab(track) {
     const status = trackStatus(track);
+    const isActive = track.key === activeTrackKey;
     return `
-        <button type="button" class="etherlink-gov-tab ${track.key === activeTrackKey ? 'active' : ''}" data-etherlink-track="${escapeHtml(track.key)}">
+        <button type="button" role="tab" aria-selected="${isActive ? 'true' : 'false'}" class="etherlink-gov-tab ${isActive ? 'active' : ''}" data-etherlink-track="${escapeHtml(track.key)}">
             <span>${escapeHtml(track.label)}</span>
             <strong class="${escapeHtml(status.className)}">${escapeHtml(status.label)}</strong>
         </button>

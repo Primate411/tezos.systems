@@ -2186,10 +2186,14 @@ export async function initProtocolShare() {
 
     // Add "Share Timeline" button
     const badgesContainer = document.querySelector('.upgrade-badges');
-    if (badgesContainer) {
+    const currentNameRow = document.querySelector('.current-name-row');
+    const timelineButtonHost = badgesContainer || currentNameRow;
+    if (timelineButtonHost) {
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.className = 'timeline-share-btn';
         btn.innerHTML = '📸';
+        btn.setAttribute('aria-label', 'Share the full protocol timeline');
         btn.title = 'Share the full protocol timeline';
         btn.style.cssText = `
             background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
@@ -2212,7 +2216,8 @@ export async function initProtocolShare() {
             btn.style.background = 'rgba(255,255,255,0.05)';
         });
         btn.addEventListener('click', () => captureTimeline(protocols));
-        badgesContainer.insertBefore(btn, badgesContainer.firstChild);
+        if (badgesContainer) badgesContainer.insertBefore(btn, badgesContainer.firstChild);
+        else timelineButtonHost.appendChild(btn);
 
         const clockSection = document.querySelector('.upgrade-clock-content');
         if (clockSection) {
@@ -2549,6 +2554,9 @@ async function captureHistoricalData() {
         // Convert Chart.js canvases to images (html2canvas can't render them)
         const chartCanvases = Array.from(modalContent.querySelectorAll('canvas'));
         chartCanvases.forEach(origCanvas => {
+            const parent = origCanvas.parentNode;
+            if (!parent) return;
+            const nextSib = origCanvas.nextSibling;
             if (origCanvas.width > 0 && origCanvas.height > 0) {
                 try {
                     const img = document.createElement('img');
@@ -2556,11 +2564,18 @@ async function captureHistoricalData() {
                     img.style.width = '100%';
                     img.style.height = origCanvas.offsetHeight + 'px';
                     img.style.display = 'block';
-                    const parent = origCanvas.parentNode;
-                    const nextSib = origCanvas.nextSibling;
                     parent.replaceChild(img, origCanvas);
                     canvasBackups.push({ canvas: origCanvas, img, parent, nextSib });
                 } catch(e) { /* ignore */ }
+            } else {
+                const placeholder = document.createElement('div');
+                placeholder.setAttribute('aria-hidden', 'true');
+                placeholder.style.width = '100%';
+                placeholder.style.height = `${Math.max(origCanvas.offsetHeight, origCanvas.parentElement?.clientHeight || 120)}px`;
+                placeholder.style.minHeight = '120px';
+                placeholder.style.display = 'block';
+                parent.replaceChild(placeholder, origCanvas);
+                canvasBackups.push({ canvas: origCanvas, img: placeholder, parent, nextSib });
             }
         });
 

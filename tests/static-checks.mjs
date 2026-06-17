@@ -413,6 +413,7 @@ async function checkSelectorContracts() {
     'calc-toggle',
     'calculator-section',
     'share-btn',
+    'upgrade-share-btn',
     'changelog-btn',
     'changelog-modal',
     'build-version'
@@ -430,7 +431,10 @@ async function checkSelectorContracts() {
     ['widget embed utility panel', 'class="widget-utility-panel"'],
     ['widget embed utility hidden by default', 'class="stats-section widget-utility-section toggleable-section"'],
     ['widget builder CTA', 'href="/widgets/builder.html"'],
-    ['share picker styles hook', 'section-picker-note']
+    ['share picker styles hook', 'section-picker-note'],
+    ['price bar change surface', 'class="price-change"'],
+    ['timeline share fallback host', 'document.querySelector(\'.upgrade-badges\')'],
+    ['timeline share current protocol fallback', 'document.querySelector(\'.current-name-row\')']
   ];
 
   for (const [label, snippet] of requiredSnippets) {
@@ -922,6 +926,46 @@ async function checkPortableTooling() {
   pass('portable npm scripts, lockfile, and shared git hook checked');
 }
 
+async function checkSmokeSuiteCatalogContracts() {
+  const smoke = await readText('tests/smoke.mjs');
+
+  if (smoke.includes('const suiteNames = [')) {
+    fail('tests/smoke.mjs --list must not maintain a separate hard-coded suite list');
+  }
+  if (!/if \(cli\.list\) \{\s*for \(const \{ name, description \} of getSuiteCatalog\(null, ''\)\)/.test(smoke)) {
+    fail('tests/smoke.mjs --list must derive from getSuiteCatalog so every runnable suite is discoverable');
+  }
+
+  pass('smoke suite list derives from the executable catalog');
+}
+
+async function checkTourAndShareCaptureContracts() {
+  const themeSource = await readText('js/ui/theme.js');
+  const tour = await readText('js/features/tooltip-tour.js');
+  const styles = await readText('css/styles.css');
+  const themeMatch = themeSource.match(/const THEMES = \[([^\]]+)\]/);
+  const themes = themeMatch ? Array.from(themeMatch[1].matchAll(/['"]([^'"]+)['"]/g)).map((match) => match[1]) : [];
+  if (!themes.length) {
+    fail('js/ui/theme.js theme list could not be parsed for tour copy checks');
+  }
+
+  if (/12 themes/i.test(tour)) {
+    fail('tooltip tour must not retain stale 12 themes copy');
+  }
+  if (!tour.includes(`${themes.length} themes`)) {
+    fail(`tooltip tour theme count must agree with theme.js (${themes.length} themes)`);
+  }
+
+  const upgradeNumberBlock = styles.match(/\.upgrade-number\s*\{[^}]*\}/)?.[0] || '';
+  if (!upgradeNumberBlock) {
+    fail('css/styles.css missing .upgrade-number block for share capture guard');
+  } else if (/color-mix|oklch|(?<!-)lch\(|lab\(/i.test(upgradeNumberBlock)) {
+    fail('.upgrade-number must avoid html2canvas-unsupported color functions because #upgrade-share-btn captures this live DOM');
+  } else {
+    pass('tour theme copy and upgrade share capture CSS contracts checked');
+  }
+}
+
 async function checkReadmeContracts() {
   const readme = await readText('README.md');
   const themeSource = await readText('js/ui/theme.js');
@@ -1013,6 +1057,8 @@ async function main() {
   await checkStylesheetFreshness();
   await checkAuroraDesktopTitleTreatment();
   await checkPortableTooling();
+  await checkSmokeSuiteCatalogContracts();
+  await checkTourAndShareCaptureContracts();
   await checkReadmeContracts();
 
   for (const message of passes) console.log(`ok - ${message}`);

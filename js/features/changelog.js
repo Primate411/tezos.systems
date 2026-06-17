@@ -5,6 +5,17 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-17',
+        entries: [
+            { type: '🔧', text: 'Mobile Liquidity Baking baker links now wrap instead of clipping inside narrow vote tables' },
+            { type: '🔧', text: 'The top price bar once again shows the XTZ 24-hour change beside the live price' },
+            { type: '🔧', text: 'Full protocol timeline sharing now attaches to the upgrade header when the older badge rail is absent' },
+            { type: '🔧', text: 'The build footer keeps its latest-main slot visible even when GitHub rate-limits the live commit lookup' },
+            { type: '🔧', text: 'First-visit tour copy now matches the current 13-theme picker' },
+            { type: '🔧', text: 'Smoke coverage now lists suites from the executable catalog and clicks more share-photo buttons across leaderboard, protocol history, and share-action surfaces' },
+        ]
+    },
+    {
         date: '2026-06-16',
         entries: [
             { type: '🎨', text: 'Current Protocol no longer shows the compact Chamber prompt; Adoption runway context now lives on the wider Chamber card with activation timing' },

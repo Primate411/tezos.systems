@@ -27,7 +27,7 @@
         {
             target: '#settings-gear',
             title: 'Customize Everything',
-            text: '12 themes, Ultra mode with canvas animations, social sharing, export your data.',
+            text: '13 themes, Ultra mode with canvas animations, social sharing, export your data.',
         },
         {
             target: '#theme-toggle',
