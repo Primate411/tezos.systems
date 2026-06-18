@@ -76,8 +76,6 @@ import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from 
 import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js';
 import { initStateOfTezos } from '../features/state-of-tezos.js';
 import { initNetworkHealth, refreshNetworkHealth } from '../features/network-health.js';
-import { initDeveloperIntelligence, updateDeveloperIntelligence } from '../features/developer-intelligence.js';
-import { initWatchCenter, updateWatchCenter } from '../features/watch-center.js';
 
 function isContentiousProtocol(protocol, lore = null) {
     return Boolean(protocol?.contention || lore?.contention || lore?.history);
@@ -106,30 +104,6 @@ function safe(name, fn) {
     try { fn(); } catch (e) { console.warn(`[feature] ${name} failed:`, e); }
 }
 
-function initHomepageIntelligenceOrder() {
-    const stack = document.getElementById('homepage-intelligence-stack');
-    const today = document.getElementById('today-section');
-    const myTezosHome = document.getElementById('my-tezos-home-section');
-    if (!stack || !today) return;
-    if (today.parentElement !== stack) stack.appendChild(today);
-    if (myTezosHome && myTezosHome.parentElement !== stack) stack.appendChild(myTezosHome);
-}
-
-async function loadFullStatsForSurfaces() {
-    const newStats = await fetchAllStats();
-    if (looksEmptyStats(newStats)) {
-        reportDataProblem();
-        return state.currentStats || {};
-    }
-    saveStats(newStats);
-    await updateStats(newStats);
-    syncLiveSparklineMetrics(newStats);
-    state.lastUpdate = new Date();
-    updateLastRefreshTime();
-    reportDataHealthy();
-    return state.currentStats || newStats;
-}
-
 /**
  * Initialize the dashboard
  */
@@ -141,7 +115,6 @@ async function init() {
 
     // Initialize arcade effects
     safe('arcadeEffects', initArcadeEffects);
-    safe('homepageOrder', initHomepageIntelligenceOrder);
     
     // Initialize share functionality
     safe('share', initShare);
@@ -193,13 +166,6 @@ async function init() {
     safe('leaderboard', initLeaderboard);
     safe('bakerReportCard', initBakerReportCard);
     safe('stateOfTezos', initStateOfTezos);
-    safe('developerIntelligence', () => initDeveloperIntelligence({
-        getStats: () => state.currentStats || {},
-        loadStats: loadFullStatsForSurfaces
-    }));
-    safe('watchCenter', () => initWatchCenter({
-        getStats: () => state.currentStats || {}
-    }));
 
     safe('momentsTimeline', initMomentsTimeline);
     safe('comparisonToggle', initComparisonToggle);
@@ -218,7 +184,6 @@ async function init() {
     safe('tezosStatsToggle', initTezosStatsToggle);
     safe('networkHealth', initNetworkHealth);
     safe('chambersOrder', orderChambersSurface);
-    safe('chamberInterpretation', initChamberInterpretation);
 
     // Upgrade section share button
     const upgradeShareBtn = document.getElementById('upgrade-share-btn');
@@ -492,8 +457,6 @@ async function refreshInBackground() {
         updateDailyBriefing(comparisonStats, bgXtzPrice);
         updateRewardsTracker(comparisonStats, bgXtzPrice);
         updatePriceIntelligence(comparisonStats, bgXtzPrice);
-        updateDeveloperIntelligence(comparisonStats);
-        updateWatchCenter(comparisonStats, bgXtzPrice);
 
         
         // Refresh My Baker/Leaderboard if visible
@@ -767,8 +730,6 @@ async function updateStats(newStats) {
     const xtzPrice = parseFloat(document.querySelector(".price-value")?.textContent?.replace(/[^0-9.]/g, "")) || 0;
     updateDailyBriefing(state.currentStats, xtzPrice);
     updateRewardsTracker(state.currentStats, xtzPrice);
-    updateDeveloperIntelligence(state.currentStats);
-    updateWatchCenter(state.currentStats, xtzPrice);
 
     // Update page title with live stats
     updatePageTitle(state.currentStats);
@@ -1069,21 +1030,7 @@ function initMyTezosButton() {
 // NAV INIT
 // ==========================================
 function initNavButtons() {
-    const todayBtn = document.getElementById('today-nav-btn');
-    if (todayBtn && !todayBtn.dataset.todayWired) {
-        todayBtn.dataset.todayWired = '1';
-        todayBtn.addEventListener('click', () => {
-            document.getElementById('today-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-    }
-
-    const todayMyTezos = document.getElementById('today-my-tezos-btn');
-    if (todayMyTezos && !todayMyTezos.dataset.myTezosWired) {
-        todayMyTezos.dataset.myTezosWired = '1';
-        todayMyTezos.addEventListener('click', () => {
-            document.getElementById('my-tezos-btn')?.click();
-        });
-    }
+    // Placeholder — nav buttons removed, kept for call compatibility
 }
 
 // ==========================================
@@ -1143,47 +1090,6 @@ const CHAMBER_INFO_COPY = {
         body: 'Measures recent block attestation power, sampled health windows, live activity tape, and saved My Tezos baker signal.',
         href: '/health/',
         link: 'Open Health ->'
-    }
-};
-const CHAMBER_INTERPRETATION_COPY = {
-    '[data-stat="network-health"]': {
-        signal: 'Are bakers attesting reliably right now?',
-        meaning: () => {
-            const status = document.getElementById('network-health-status')?.textContent?.trim();
-            const score = document.getElementById('network-health-front')?.textContent?.trim();
-            if (status && score && score !== '--') return `${status}: ${score} recent attestation power.`;
-            return 'Waiting for recent block and attestation power.';
-        },
-        action: 'Open health timeline'
-    },
-    '#chamber-entry-card': {
-        signal: 'Where the next Tezos protocol upgrade stands.',
-        meaning: () => document.getElementById('chamber-entry-mini')?.textContent?.trim() || 'Watching the current governance period.',
-        action: 'Open L1 governance'
-    },
-    '#tezlink-entry-card': {
-        signal: 'Etherlink activity and value settled on Tezos infrastructure.',
-        meaning: () => document.getElementById('tezlink-entry-description')?.textContent?.trim() || 'Tracking Tezos X activity and TVL.',
-        action: 'Open Tezos X'
-    },
-    '#etherlink-governance-entry-card': {
-        signal: 'Whether Tezos X governance tracks need attention.',
-        meaning: () => document.getElementById('etherlink-governance-entry-mini')?.textContent?.trim() || 'FAST, SLOW, and Sequencer tracks are being checked.',
-        action: 'Watch governance track'
-    },
-    '[data-stat="tz4-adoption"]': {
-        signal: 'How much stake has moved to BLS/tz4 consensus keys.',
-        meaning: () => {
-            const value = document.getElementById('tz4-adoption-front')?.textContent?.trim();
-            const detail = document.getElementById('tz4-description')?.textContent?.trim();
-            return [value, detail].filter(Boolean).join(' · ') || 'Tracking active, pending, and not-yet-switched bakers.';
-        },
-        action: 'Open tz4 adoption'
-    },
-    '#lb-entry-card': {
-        signal: 'Whether Liquidity Baking remains disabled.',
-        meaning: () => document.getElementById('lb-entry-mini')?.textContent?.trim() || 'Watching OFF-vote EMA and baker toggle pressure.',
-        action: 'Open LB details'
     }
 };
 
@@ -1294,50 +1200,6 @@ function updateChamberPairState(pair) {
     const wideCount = cards.filter((card) => card.classList.contains('chamber-entry-wide')).length;
     pair.dataset.cardCount = String(cards.length);
     pair.dataset.wideCount = String(wideCount);
-}
-
-function renderChamberInterpretation(card, config) {
-    if (!card || !config) return;
-    const front = card.querySelector('.card-front');
-    if (!front) return;
-    let panel = front.querySelector('.chamber-entry-interpretation');
-    if (!panel) {
-        panel = document.createElement('div');
-        panel.className = 'chamber-entry-interpretation';
-        const anchor = front.querySelector('.chamber-entry-footer');
-        if (anchor) {
-            front.insertBefore(panel, anchor);
-        } else {
-            front.appendChild(panel);
-        }
-    }
-    const meaning = typeof config.meaning === 'function' ? config.meaning(card) : config.meaning;
-    const nextSignature = JSON.stringify([config.signal, meaning || 'Live status is loading.', config.action]);
-    if (panel.dataset.interpretationSignature === nextSignature) return;
-    panel.dataset.interpretationSignature = nextSignature;
-    panel.innerHTML = `
-        <div class="chamber-entry-signal">${escapeHtml(config.signal)}</div>
-        <div class="chamber-entry-meaning">${escapeHtml(meaning || 'Live status is loading.')}</div>
-        <div class="chamber-entry-action">${escapeHtml(config.action)}</div>
-    `;
-}
-
-function refreshChamberInterpretation() {
-    Object.entries(CHAMBER_INTERPRETATION_COPY).forEach(([selector, config]) => {
-        document.querySelectorAll(selector).forEach((card) => renderChamberInterpretation(card, config));
-    });
-}
-
-function initChamberInterpretation() {
-    refreshChamberInterpretation();
-    const grid = document.getElementById('chambers-grid');
-    if (!grid || grid.dataset.chamberInterpretationObserver) return;
-    grid.dataset.chamberInterpretationObserver = '1';
-    const observer = new MutationObserver(() => refreshChamberInterpretation());
-    observer.observe(grid, { childList: true, subtree: true });
-    setInterval(() => {
-        if (document.visibilityState === 'visible') refreshChamberInterpretation();
-    }, 15000);
 }
 
 function updateAllChamberPairStates() {
@@ -2553,9 +2415,6 @@ function initDeepLinkAffordances() {
         { selector: '#calculator-section .section-header', hash: '#calculator', label: 'rewards calculator' },
         { selector: '#objkt-section .section-header', hash: '#nfts', label: 'NFT profile' },
         { selector: '#price-intelligence .section-header', hash: '#price', label: 'price intelligence' },
-        { selector: '#developer-intelligence .section-header', hash: '#developers', label: 'developer intelligence' },
-        { selector: '#watch-center .section-header', hash: '#watch', label: 'watch center' },
-        { selector: '#today-section .section-header', hash: '#today', label: 'today on Tezos' },
         { selector: '#widgets-gallery .section-header', hash: '#widgets', label: 'embed builder' },
         { selector: '#chambers-section .section-header', hash: '#chambers', label: 'chambers' },
         { selector: '#consensus-section .section-header', hash: '#section=consensus', label: 'consensus stats' },
@@ -2566,7 +2425,6 @@ function initDeepLinkAffordances() {
     ];
 
     function makeUrl(hash) {
-        if (hash?.startsWith('?')) return `${window.location.origin}/${hash}`;
         const prettyRoutes = {
             '#chamber': '/chamber/',
             '#health': '/health/',
@@ -2993,21 +2851,6 @@ function applyDeepLink() {
     // #price
     if (params.has('price') || hash === 'price') {
         showToggleSection('price-intel-toggle', 'price-intelligence', { delay: 800 });
-    }
-
-    // #today
-    if (params.has('today') || hash === 'today') {
-        scrollToElementAfterLayout(() => document.getElementById('today-section'), { block: 'start' });
-    }
-
-    // #developers
-    if (params.has('developers') || hash === 'developers' || params.has('dev') || hash === 'dev') {
-        showToggleSection('developer-intel-toggle', 'developer-intelligence', { delay: 500 });
-    }
-
-    // #watch
-    if (params.has('watch') || hash === 'watch' || params.has('alerts') || hash === 'alerts') {
-        showToggleSection('watch-center-toggle', 'watch-center', { delay: 500 });
     }
 
     // #chamber / #the-chamber

@@ -7,11 +7,6 @@ const CHANGELOG = [
     {
         date: '2026-06-18',
         entries: [
-            { type: '✨', text: 'Explore now includes Developer Intelligence, Watch Center, State RSS, and HEN culture filters with a local artist watchlist' },
-            { type: '✨', text: 'Today on Tezos can now copy or share the current brief, and returning visitors get compact changed-since-last-visit badges on Today and relevant Chamber cards' },
-            { type: '✨', text: 'My Tezos now shows a compact personal homepage panel with holder, baker, builder, artist, governance, and newcomer mode presets plus a copyable direct homepage link' },
-            { type: '✨', text: 'The homepage now opens with Today on Tezos, a live network brief with personal My Tezos context and a visible State snapshot action' },
-            { type: '🎨', text: 'Chamber cards now include compact plain-English interpretation rows so health, governance, Tezos X, tz4, and LB explain what to watch before opening the room' },
             { type: '🎨', text: 'The L1 governance room is now labeled Tezos L1 Governance, while the Tezos X Governance card explicitly notes that it is L2 Governance' },
         ]
     },

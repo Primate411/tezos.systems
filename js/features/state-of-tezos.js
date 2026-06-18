@@ -613,11 +613,9 @@ export async function showStateOfTezos() {
  * Wire up the button click handler.
  */
 export function initStateOfTezos() {
-    document.querySelectorAll('#state-of-tezos-btn, #today-state-btn').forEach((btn) => {
-        if (btn.dataset.stateOfTezosWired) return;
-        btn.dataset.stateOfTezosWired = '1';
-        btn.addEventListener('click', () => showStateOfTezos());
-    });
+    const btn = document.getElementById('state-of-tezos-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => showStateOfTezos());
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────

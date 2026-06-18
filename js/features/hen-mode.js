@@ -10,7 +10,6 @@ const HenMode = (() => {
     const PAGE_SIZE = 40;
     const POLL_INTERVAL = 15000;
     const TEZ_DOMAINS_API = 'https://api.tezos.domains/graphql';
-    const HEN_WATCH_KEY = 'tezos-systems-hen-watch-artists';
 
     let tokens = [];
     let loading = false;
@@ -20,8 +19,6 @@ const HenMode = (() => {
     let isActive = false;
     let searchMode = null;
     let artistMode = null;
-    let filterMode = 'fresh';
-    let activeExpandedCreator = null;
     let xtzUsd = null;
     const tezNameCache = {};
 
@@ -37,10 +34,6 @@ const HenMode = (() => {
     function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    function escapeGraphQl(str) {
-        return String(str || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     }
 
     function resolveUri(uri) {
@@ -108,29 +101,6 @@ const HenMode = (() => {
         }
     }
 
-    async function resolveTezAddress(name) {
-        const domain = String(name || '').trim().toLowerCase();
-        if (!domain.endsWith('.tez')) return null;
-        if (tezNameCache[domain] !== undefined) return tezNameCache[domain];
-        try {
-            const res = await fetch(TEZ_DOMAINS_API, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    query: 'query ResolveDomain($name: String!) { domain(name: $name) { address } }',
-                    variables: { name: domain }
-                })
-            });
-            const json = await res.json();
-            const address = json?.data?.domain?.address || null;
-            tezNameCache[domain] = address;
-            return address;
-        } catch (e) {
-            tezNameCache[domain] = null;
-            return null;
-        }
-    }
-
     async function resolveNamesForCards() {
         const cards = document.querySelectorAll('.hen-card[data-creator]');
         for (const card of cards) {
@@ -177,21 +147,8 @@ const HenMode = (() => {
             'fa: {collection_type: {_eq: "artist"}}'
         ];
         if (after) where.push('timestamp: {_gt: "' + after + '"}');
-        if (searchMode) {
-            const q = escapeGraphQl(searchMode);
-            where.push('_or: [{name: {_ilike: "%' + q + '%"}}, {fa: {name: {_ilike: "%' + q + '%"}}}]');
-        }
-        if (artistMode) where.push('creators: {creator_address: {_eq: "' + escapeGraphQl(artistMode) + '"}}');
-        if (filterMode === 'priced') where.push('lowest_ask: {_gt: "0"}');
-        if (filterMode === 'edition1') where.push('supply: {_eq: "1"}');
-        if (filterMode === 'watched') {
-            const watched = readWatchedArtists();
-            if (watched.length) {
-                where.push('creators: {creator_address: {_in: [' + watched.map(function(addr) { return '"' + escapeGraphQl(addr) + '"'; }).join(', ') + ']}}');
-            } else {
-                where.push('creators: {creator_address: {_eq: "__no_watched_artists__"}}');
-            }
-        }
+        if (searchMode) where.push('name: {_ilike: "%' + searchMode + '%"}');
+        if (artistMode) where.push('creators: {creator_address: {_eq: "' + artistMode + '"}}');
 
         const query = '{ token(order_by: {timestamp: desc}, limit: ' + limit + ', offset: ' + offsetVal + ', where: {' + where.join(', ') + '}) { token_id fa_contract name timestamp mime supply lowest_ask display_uri thumbnail_uri creators { creator_address } fa { name } } }';
 
@@ -285,7 +242,6 @@ const HenMode = (() => {
         var mediaUrl = escapeHtml(resolveUri(token.display_uri));
         var isVideo = token.mime && token.mime.startsWith('video/');
         var creator = (token.creators && token.creators[0]) ? token.creators[0].creator_address : '';
-        activeExpandedCreator = creator;
         var price = formatPrice(token.lowest_ask);
         var usd = formatUsd(token.lowest_ask);
         var shareUrl = pieceUrl(token);
@@ -333,11 +289,13 @@ const HenMode = (() => {
         exp.querySelector('.hen-clickable-artist').addEventListener('click', function() {
             exp.classList.remove('active');
             artistMode = creator;
-            searchMode = null;
-            filterMode = 'fresh';
-            loadFilteredFeed('> showing work by ' + escapeHtml(displayName));
+            tokens = [];
+            offset = 0;
+            grid().innerHTML = '';
+            clearCliOutput();
+            showCliOutput(['> showing work by ' + escapeHtml(displayName)]);
+            loadPage();
         });
-        updateToolbar();
 
         exp.classList.add('active');
 
@@ -372,19 +330,9 @@ const HenMode = (() => {
         try {
             var newTokens = await fetchTokens(PAGE_SIZE, offset);
             if (newTokens.length === 0) {
-                if (loader) loader.textContent = tokens.length ? 'end of feed.' : 'no matches.';
-                if (tokens.length === 0) {
-                    showHenEmptyState(
-                        filterMode === 'watched' ? 'No watched-artist mints yet' : 'No matching HEN pieces',
-                        filterMode === 'watched'
-                            ? 'Open a token, watch its artist, then this view becomes your culture radar.'
-                            : 'Try fresh, priced, 1/1, or a different artist/title search.',
-                        'Reset feed'
-                    );
-                }
+                if (loader) loader.textContent = 'nothing here yet.';
                 return;
             }
-            clearHenEmptyState();
             var g = grid();
             newTokens.forEach(function(t, i) {
                 tokens.push(t);
@@ -398,9 +346,6 @@ const HenMode = (() => {
             resolveNamesForCards();
         } catch (err) {
             console.error('[HEN] fetch error:', err);
-            if (tokens.length === 0) {
-                showHenEmptyState('Objkt feed unavailable', 'The HEN surface could not reach Objkt right now. Try again or use a narrower artist search.', 'Retry fresh feed');
-            }
         } finally {
             loading = false;
             if (loader) loader.classList.remove('active');
@@ -531,134 +476,6 @@ const HenMode = (() => {
         if (output) output.innerHTML = '';
     }
 
-    function readWatchedArtists() {
-        try {
-            var list = JSON.parse(localStorage.getItem(HEN_WATCH_KEY));
-            return Array.isArray(list) ? list.filter(Boolean) : [];
-        } catch (e) {
-            return [];
-        }
-    }
-
-    function saveWatchedArtists(list) {
-        localStorage.setItem(HEN_WATCH_KEY, JSON.stringify(Array.from(new Set(list)).slice(0, 30)));
-    }
-
-    function resetFeed() {
-        tokens = [];
-        offset = 0;
-        newestTimestamp = null;
-        clearHenEmptyState();
-        if (grid()) grid().innerHTML = '';
-    }
-
-    function clearHenEmptyState() {
-        document.getElementById('hen-empty-state')?.remove();
-    }
-
-    function showHenEmptyState(title, copy, actionText) {
-        var feed = document.querySelector('.hen-feed');
-        if (!feed) return;
-        var empty = document.getElementById('hen-empty-state');
-        if (!empty) {
-            empty = document.createElement('div');
-            empty.id = 'hen-empty-state';
-            empty.className = 'hen-empty-state';
-            feed.insertBefore(empty, grid());
-        }
-        empty.innerHTML =
-            '<strong>' + escapeHtml(title) + '</strong>' +
-            '<p>' + escapeHtml(copy) + '</p>' +
-            (actionText ? '<button class="hen-filter hen-empty-action" type="button" id="hen-empty-reset">' + escapeHtml(actionText) + '</button>' : '');
-        empty.querySelector('#hen-empty-reset')?.addEventListener('click', function() {
-            searchMode = null;
-            artistMode = null;
-            filterMode = 'fresh';
-            loadFilteredFeed('> reset to fresh feed');
-        });
-    }
-
-    function loadFilteredFeed(message) {
-        clearCliOutput();
-        resetFeed();
-        if (message) showCliOutput([message]);
-        updateToolbar();
-        loadPage();
-    }
-
-    function setFilter(mode) {
-        filterMode = mode || 'fresh';
-        loadFilteredFeed('> filter: ' + filterMode);
-    }
-
-    function toggleWatchArtist() {
-        var creator = artistMode || activeExpandedCreator;
-        if (!creator) {
-            showCliOutput(['> open a token or use artist <tz1...> first']);
-            return;
-        }
-        var watched = readWatchedArtists();
-        var idx = watched.indexOf(creator);
-        if (idx >= 0) {
-            watched.splice(idx, 1);
-            showCliOutput(['> unwatched artist: ' + escapeHtml(shortAddr(creator))]);
-        } else {
-            watched.unshift(creator);
-            showCliOutput(['> watching artist: ' + escapeHtml(shortAddr(creator))]);
-        }
-        saveWatchedArtists(watched);
-        updateToolbar();
-    }
-
-    function updateToolbar() {
-        document.querySelectorAll('.hen-filter[data-hen-filter]').forEach(function(btn) {
-            btn.classList.toggle('active', btn.dataset.henFilter === filterMode);
-        });
-        var input = document.getElementById('hen-filter-input');
-        if (input && document.activeElement !== input) {
-            input.value = artistMode || searchMode || '';
-        }
-        var watch = document.getElementById('hen-watch-artist');
-        if (watch) {
-            var creator = artistMode || activeExpandedCreator;
-            var watched = creator && readWatchedArtists().indexOf(creator) >= 0;
-            watch.textContent = watched ? 'watching' : 'watch artist';
-            watch.classList.toggle('active', Boolean(watched));
-            watch.disabled = !creator;
-        }
-    }
-
-    async function applyToolbarSearch(value) {
-        var raw = String(value || '').trim();
-        if (!raw) {
-            searchMode = null;
-            artistMode = null;
-            loadFilteredFeed('> cleared filters');
-            return;
-        }
-        if (raw.endsWith('.tez')) {
-            showCliOutput(['> resolving: ' + escapeHtml(raw)]);
-            const address = await resolveTezAddress(raw);
-            if (address) {
-                artistMode = address;
-                searchMode = null;
-                filterMode = 'fresh';
-                loadFilteredFeed('> artist: ' + escapeHtml(raw));
-                return;
-            }
-        }
-        if (/^(tz1|tz2|tz3|KT1)[1-9A-HJ-NP-Za-km-z]{20,}$/i.test(raw)) {
-            artistMode = raw;
-            searchMode = null;
-            filterMode = 'fresh';
-            loadFilteredFeed('> artist: ' + escapeHtml(shortAddr(raw)));
-            return;
-        }
-        searchMode = raw;
-        artistMode = null;
-        loadFilteredFeed('> searching: "' + escapeHtml(raw) + '"');
-    }
-
     function fadeGrid(callback) {
         var g = grid();
         g.classList.add('fading');
@@ -689,9 +506,10 @@ const HenMode = (() => {
                 fadeGrid(function() {
                     searchMode = null;
                     artistMode = null;
-                    filterMode = 'fresh';
-                    resetFeed();
-                    updateToolbar();
+                    tokens = [];
+                    offset = 0;
+                    newestTimestamp = null;
+                    grid().innerHTML = '';
                     loadPage();
                 });
                 break;
@@ -700,9 +518,14 @@ const HenMode = (() => {
                 if (!term) {
                     showCliOutput(['> usage: search <term>', '  searches token names']);
                 } else {
+                    clearCliOutput();
                     artistMode = null;
+                    tokens = [];
+                    offset = 0;
+                    grid().innerHTML = '';
                     searchMode = term;
-                    loadFilteredFeed('> searching: "' + escapeHtml(term) + '"');
+                    showCliOutput(['> searching: "' + escapeHtml(term) + '"']);
+                    loadPage();
                 }
                 break;
             case 'artist':
@@ -710,32 +533,36 @@ const HenMode = (() => {
                 if (!addr) {
                     showCliOutput(['> usage: artist <tz1...>', '  shows all work by an artist']);
                 } else {
+                    clearCliOutput();
                     searchMode = null;
+                    tokens = [];
+                    offset = 0;
+                    grid().innerHTML = '';
                     artistMode = addr;
-                    filterMode = 'fresh';
-                    loadFilteredFeed('> artist: ' + escapeHtml(addr));
+                    showCliOutput(['> artist: ' + escapeHtml(addr)]);
+                    loadPage();
                 }
                 break;
             case 'random':
                 clearCliOutput();
                 searchMode = null;
                 artistMode = null;
-                filterMode = 'fresh';
-                resetFeed();
+                tokens = [];
                 var randOffset = Math.floor(Math.random() * 2000);
                 offset = randOffset;
+                grid().innerHTML = '';
                 showCliOutput(['> random jump to offset ' + randOffset]);
-                updateToolbar();
                 loadPage();
                 break;
             case 'reset':
                 clearCliOutput();
                 searchMode = null;
                 artistMode = null;
-                filterMode = 'fresh';
-                resetFeed();
+                tokens = [];
+                offset = 0;
+                newestTimestamp = null;
+                grid().innerHTML = '';
                 history.replaceState(null, '', '/?hen=1');
-                updateToolbar();
                 loadPage();
                 break;
             case 'help':
@@ -745,7 +572,6 @@ const HenMode = (() => {
                     '  clear       \u2014 reload the feed',
                     '  search <term> \u2014 filter by name',
                     '  artist <tz1...> \u2014 show artist\'s work',
-                    '  toolbar    \u2014 fresh, priced, 1/1, watched filters',
                     '  random      \u2014 jump to random offset',
                     '  reset       \u2014 clear all filters',
                     '  help        \u2014 this message'
@@ -846,9 +672,6 @@ const HenMode = (() => {
         newestTimestamp = null;
         searchMode = null;
         artistMode = null;
-        filterMode = 'fresh';
-        activeExpandedCreator = null;
-        updateToolbar();
         if (grid()) grid().innerHTML = '';
     }
 
@@ -926,29 +749,6 @@ const HenMode = (() => {
             }
             if (e.key === 'Enter') handleCommand(e.target.value);
         });
-
-        document.querySelectorAll('.hen-filter[data-hen-filter]').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                setFilter(btn.dataset.henFilter || 'fresh');
-            });
-        });
-
-        var filterInput = document.getElementById('hen-filter-input');
-        if (filterInput) {
-            filterInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') applyToolbarSearch(e.target.value);
-                if (e.key === 'Escape') {
-                    e.target.value = '';
-                    searchMode = null;
-                    artistMode = null;
-                    filterMode = 'fresh';
-                    loadFilteredFeed('> cleared filters');
-                }
-            });
-        }
-
-        document.getElementById('hen-watch-artist')?.addEventListener('click', toggleWatchArtist);
-        updateToolbar();
 
         setupScroll();
 

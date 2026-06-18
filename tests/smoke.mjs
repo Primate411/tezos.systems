@@ -5011,72 +5011,6 @@ async function smokeHenMode(browser, baseUrl) {
   log('ok - HEN mode smoke');
 }
 
-async function smokeHomepageIntelligence(browser, baseUrl) {
-  const issues = [];
-  const context = await browser.newContext({
-    viewport: { width: 1360, height: 920 },
-    serviceWorkers: 'block'
-  });
-  await installFeatureMocks(context);
-  await context.addInitScript((sampleAddress) => {
-    localStorage.setItem('tezos-systems-theme', 'matrix');
-    localStorage.setItem('tezos-toured', '1');
-    localStorage.setItem('tezos-welcomed', '1');
-    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
-    localStorage.setItem('tezos-systems-hen-watch-artists', JSON.stringify([sampleAddress]));
-  }, SAMPLE_ADDRESS);
-
-  const page = await context.newPage();
-  attachIssueCollectors(page, 'homepage intelligence', issues);
-
-  const stateFeed = await page.request.get(`${baseUrl}/state.xml`);
-  assert(stateFeed.ok(), `homepage intelligence: state.xml failed with HTTP ${stateFeed.status()}`);
-  assert((await stateFeed.text()).includes('https://tezos.systems/#today'), 'homepage intelligence: state.xml should link to #today');
-
-  let response = await page.goto(`${baseUrl}/#today`, { waitUntil: 'domcontentloaded' });
-  assert(response?.ok(), `homepage intelligence: dashboard failed with HTTP ${response?.status()}`);
-  await page.locator('#today-section').waitFor({ state: 'visible', timeout: 15000 });
-  await expectCount(page, '#today-my-tezos-btn', 1, 'homepage intelligence');
-  await expectCount(page, '#today-share-btn', 1, 'homepage intelligence');
-  await expectCount(page, '#today-state-btn', 1, 'homepage intelligence');
-  await page.waitForFunction(() => document.querySelectorAll('#today-brief-list li').length >= 1, null, { timeout: 10000 });
-
-  response = await page.goto(`${baseUrl}/#developers`, { waitUntil: 'domcontentloaded' });
-  if (response) assert(response.ok(), `homepage intelligence: developer route failed with HTTP ${response.status()}`);
-  await page.locator('#developer-intelligence.visible').waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForFunction(() => document.querySelectorAll('#developer-intel-grid .developer-intel-card').length >= 8, null, { timeout: 15000 });
-  const developerText = await page.locator('#developer-intelligence').innerText();
-  assert(/RPC head|Contract calls|Build on Tezos/i.test(developerText), `homepage intelligence: developer surface missing expected text: ${developerText}`);
-
-  response = await page.goto(`${baseUrl}/#watch`, { waitUntil: 'domcontentloaded' });
-  if (response) assert(response.ok(), `homepage intelligence: watch route failed with HTTP ${response.status()}`);
-  await page.locator('#watch-center.visible').waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForFunction(() => document.querySelectorAll('#watch-center-grid .watch-card').length >= 7, null, { timeout: 10000 });
-  const watchText = await page.locator('#watch-center').innerText();
-  assert(/Protocol activation|My baker|HEN artists/i.test(watchText), `homepage intelligence: watch center missing expected rows: ${watchText}`);
-  const bakerWatchClass = await page.locator('#watch-center-grid .watch-card[data-watch-key="baker"]').getAttribute('class');
-  const bakerWatchButton = await page.locator('#watch-center-grid .watch-card[data-watch-key="baker"] .watch-toggle').innerText();
-  assert(!bakerWatchClass.includes('armed') && /setup/i.test(bakerWatchButton), 'homepage intelligence: My Baker watch should require setup before it can be armed');
-  await page.locator('#watch-center-grid .watch-card[data-watch-key="hen"] .watch-toggle').click();
-  assert((await page.locator('#watch-center-grid .watch-card[data-watch-key="hen"]').getAttribute('class')).includes('armed'), 'homepage intelligence: HEN watch row should arm when toggled');
-
-  response = await page.goto(`${baseUrl}/?hen=1`, { waitUntil: 'domcontentloaded' });
-  assert(response?.ok(), `homepage intelligence: HEN route failed with HTTP ${response?.status()}`);
-  await page.locator('#hen-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
-  await expectCount(page, '#hen-toolbar', 1, 'homepage intelligence');
-  await page.locator('.hen-filter[data-hen-filter="priced"]').click();
-  await expectClassContains(page.locator('.hen-filter[data-hen-filter="priced"]'), 'active', 'homepage intelligence priced HEN filter');
-  await page.locator('#hen-filter-input').fill('Smoke Collection');
-  await page.locator('#hen-filter-input').press('Enter');
-  await page.waitForFunction(() => document.querySelector('#hen-cli-output')?.textContent.includes('searching'), null, { timeout: 5000 });
-  await page.locator('.hen-filter[data-hen-filter="watched"]').click();
-  await expectClassContains(page.locator('.hen-filter[data-hen-filter="watched"]'), 'active', 'homepage intelligence watched HEN filter');
-
-  await context.close();
-  assert(issues.length === 0, `homepage intelligence browser issues:\n${issues.join('\n')}`);
-  log('ok - homepage intelligence smoke');
-}
-
 async function crawlRoutes(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -5284,7 +5218,6 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'tzkt-throttle', description: 'Browser-local TzKT fetch queue keeps visitor requests at six starts per second', run: () => smokeTzktThrottle(browser, baseUrl) },
     { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },
-    { name: 'homepage-intelligence', description: 'Today, Developer Intelligence, Watch Center, State RSS, and HEN filter/watch surfaces', run: () => smokeHomepageIntelligence(browser, baseUrl) },
     { name: 'my-tezos-baker-activity', description: 'My Tezos connected baker drawer lists recent delegators and stakers', run: () => smokeMyTezosBakerActivity(browser, baseUrl) },
     { name: 'my-tezos-live-signal', description: 'My Tezos open baker drawer refreshes stale operator signal without a manual reload', run: () => smokeMyTezosBakerLiveSignal(browser, baseUrl) },
     { name: 'my-tezos-drawer-live-refresh', description: 'My Tezos opening drawer refreshes stale brief, header, and baker-grid stats together', run: () => smokeMyTezosDrawerLiveRefresh(browser, baseUrl) },

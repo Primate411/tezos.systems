@@ -212,64 +212,6 @@
     border-color: #555;
 }
 
-.hen-toolbar {
-    position: relative;
-    z-index: 2;
-    display: grid;
-    grid-template-columns: repeat(4, minmax(64px, auto)) minmax(180px, 1fr) auto;
-    gap: 8px;
-    align-items: center;
-    padding: 0 20px 12px;
-    border-bottom: 1px solid #1c1c1c;
-    background: #111;
-}
-
-.hen-filter,
-.hen-filter-input {
-    height: 34px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.035);
-    color: #d7d7d7;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 0.66rem;
-    letter-spacing: 0.04em;
-}
-
-.hen-filter {
-    padding: 0 12px;
-    cursor: pointer;
-    text-transform: uppercase;
-}
-
-.hen-filter.active,
-.hen-filter:hover,
-.hen-filter:focus-visible {
-    border-color: rgba(0, 212, 255, 0.72);
-    color: #041015;
-    background: rgba(0, 212, 255, 0.86);
-    outline: none;
-}
-
-.hen-filter:disabled {
-    cursor: not-allowed;
-    opacity: 0.35;
-}
-
-.hen-filter-input {
-    min-width: 0;
-    padding: 0 12px;
-}
-
-.hen-filter-input:focus {
-    border-color: rgba(0, 212, 255, 0.8);
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.15);
-}
-
-.hen-watch-artist {
-    min-width: 114px;
-}
-
 /* ── New Mints Pill ── */
 .hen-new-pill {
     display: none;
@@ -308,40 +250,6 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 2px;
-}
-
-.hen-empty-state {
-    max-width: 520px;
-    margin: 18vh auto 24px;
-    padding: 24px;
-    border: 1px solid rgba(0, 212, 255, 0.24);
-    background: rgba(8, 12, 14, 0.82);
-    color: #d7d7d7;
-    font-family: 'JetBrains Mono', monospace;
-    text-align: center;
-}
-
-.hen-empty-state strong {
-    display: block;
-    color: #00d4ff;
-    font-size: 0.88rem;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-.hen-empty-state p {
-    margin: 12px 0 16px;
-    color: #888;
-    font-size: 0.76rem;
-    line-height: 1.55;
-}
-
-.hen-empty-action {
-    min-width: 140px;
-    border-color: rgba(0, 212, 255, 0.72);
-    color: #041015;
-    background: rgba(0, 212, 255, 0.86);
-    font-weight: 800;
 }
 
 /* ── Card ── */
@@ -578,19 +486,10 @@
 /* ── Responsive ── */
 @media (max-width: 900px) {
     .hen-grid { grid-template-columns: repeat(3, 1fr); }
-    .hen-toolbar { grid-template-columns: repeat(4, minmax(58px, 1fr)); }
-    .hen-filter-input,
-    .hen-watch-artist { grid-column: span 2; }
 }
 @media (max-width: 600px) {
     .hen-grid { grid-template-columns: repeat(2, 1fr); }
     .hen-header { padding: 10px 14px; }
-    .hen-toolbar {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        padding: 0 12px 10px;
-    }
-    .hen-filter-input,
-    .hen-watch-artist { grid-column: span 2; }
     .hen-feed { padding: 8px; }
     .hen-expanded { padding: 20px; }
 }
