@@ -17,6 +17,7 @@ import { initRewardsTracker } from './rewards-tracker.js';
 const TZKT = API_URLS.tzkt;
 const OCTEZ = API_URLS.octez;
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
+const PERSONA_MODE_KEY = 'tezos-systems-persona-mode';
 const REWARDS_HISTORY_KEY = 'tezos-systems-my-rewards-history';
 const LAST_PORTFOLIO_KEY = 'tezos-systems-my-last-portfolio';
 const OVERNIGHT_KEY = 'tezos-systems-overnight-snapshot';
@@ -27,6 +28,38 @@ const RECENT_OPERATOR_ATTESTATIONS = 10;
 const RIGHTS_FETCH_TIMEOUT_MS = 12000;
 const OPERATOR_SIGNAL_REFRESH_MS = 15000;
 const DRAWER_STATS_REFRESH_MS = 30000;
+const PERSONA_MODES = {
+    holder: {
+        label: 'Holder',
+        focus: 'Rewards, balance, baker health, and governance exposure.',
+        cta: 'Track rewards and baker exposure'
+    },
+    baker: {
+        label: 'Baker',
+        focus: 'Operator health, capacity, tz4, governance, and recent staker flow.',
+        cta: 'Watch operator readiness'
+    },
+    builder: {
+        label: 'Builder',
+        focus: 'Tezos X, contract activity, RPC/indexer health, and compare-chain context.',
+        cta: 'Open Tezos X and developer signals'
+    },
+    artist: {
+        label: 'Artist/HEN',
+        focus: 'Objkt identity, HEN mode, collector history, and shareable art profile context.',
+        cta: 'Open culture and profile tools'
+    },
+    governance: {
+        label: 'Governance',
+        focus: 'L1 votes, baker participation, Tezos X governance tracks, and upcoming milestones.',
+        cta: 'Open governance chambers'
+    },
+    newcomer: {
+        label: 'Newcomer',
+        focus: 'Plain-English explanations, staking basics, self-amendment, and safe exploration.',
+        cta: 'Keep explanations visible'
+    }
+};
 // Protocol eras — map block levels to protocol names
 const PROTOCOL_ERAS = [
     { name: 'Genesis', level: 0, date: '2018-06-30' },
@@ -1679,9 +1712,176 @@ function renderBriefTabs(cards, data) {
     });
 }
 
-// Minibar removed — address shown in nav button, details in drawer
-function createMinibar() {}
-function updateMinibar() {}
+function getSavedPersonaMode(data = null) {
+    const saved = localStorage.getItem(PERSONA_MODE_KEY);
+    if (saved && PERSONA_MODES[saved]) return saved;
+    if (data?.isBaker) return 'baker';
+    if (hasCreatorStats(data?.story?.creatorStats) || Number(data?.story?.nftAssetsCollected) > 0) return 'artist';
+    if (data?.bakerVote || data?.activeProposal) return 'governance';
+    return 'holder';
+}
+
+function setPersonaMode(mode) {
+    if (!PERSONA_MODES[mode]) return;
+    localStorage.setItem(PERSONA_MODE_KEY, mode);
+    document.body.dataset.personaMode = mode;
+    document.querySelectorAll('.my-tezos-mode-chip').forEach((chip) => {
+        const active = chip.dataset.personaMode === mode;
+        chip.classList.toggle('active', active);
+        chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+}
+
+function getPersonalHomepageTarget(data = null) {
+    const preferred = data?.story?.domainAlias && /\.tez$/i.test(data.story.domainAlias)
+        ? data.story.domainAlias
+        : data?.fullAddress || localStorage.getItem(STORAGE_KEY) || '';
+    return preferred ? `/${encodeURIComponent(preferred)}` : '/#my-baker';
+}
+
+function renderHomeMetric({ label, value, detail, tone = '' }) {
+    return `
+        <div class="my-tezos-home-metric ${tone ? `tone-${escapeHtml(tone)}` : ''}">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+            <small>${escapeHtml(detail || '')}</small>
+        </div>
+    `;
+}
+
+async function copyMyTezosHomepageLink() {
+    const data = window._myTezosData || null;
+    const path = getPersonalHomepageTarget(data);
+    const url = `${window.location.origin}${path}`;
+    const button = document.getElementById('my-tezos-home-copy');
+    const original = button?.textContent || 'Copy homepage link';
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(url);
+        } else {
+            const textarea = document.createElement('textarea');
+            textarea.value = url;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            textarea.remove();
+        }
+        if (button) {
+            button.textContent = 'Copied link';
+            button.classList.add('copied');
+            setTimeout(() => {
+                button.textContent = original;
+                button.classList.remove('copied');
+            }, 1400);
+        }
+    } catch (error) {
+        console.warn('My Tezos homepage copy failed:', error);
+    }
+}
+
+function showMyTezosHomeLoading(address) {
+    const section = document.getElementById('my-tezos-home-section');
+    const grid = document.getElementById('my-tezos-home-grid');
+    if (!section || !grid || !address) return;
+    section.hidden = false;
+    grid.innerHTML = `
+        <div class="my-tezos-home-empty">
+            Loading My Tezos home for ${escapeHtml(address.slice(0, 8))}…
+        </div>
+    `;
+    setPersonaMode(getSavedPersonaMode());
+}
+
+function hideMyTezosHome() {
+    const section = document.getElementById('my-tezos-home-section');
+    if (section) section.hidden = true;
+    delete document.body.dataset.personaMode;
+}
+
+function renderMyTezosHomepage(data) {
+    const section = document.getElementById('my-tezos-home-section');
+    const grid = document.getElementById('my-tezos-home-grid');
+    if (!section || !grid || !data?.fullAddress) return;
+
+    const mode = getSavedPersonaMode(data);
+    const modeConfig = PERSONA_MODES[mode] || PERSONA_MODES.holder;
+    setPersonaMode(mode);
+    section.hidden = false;
+
+    const subtitle = document.getElementById('my-tezos-home-subtitle');
+    if (subtitle) {
+        const target = getPersonalHomepageTarget(data);
+        subtitle.textContent = `${modeConfig.label} mode · Direct home ${target}`;
+    }
+
+    const total = Number.isFinite(data.totalXTZ) ? `${fmtCompact(data.totalXTZ)} XTZ` : '—';
+    const liquid = Math.max(0, (data.totalXTZ || 0) - (data.staked || 0));
+    const staked = data.staked > 0 ? `${fmtCompact(data.staked)} staked` : `${fmtCompact(liquid)} liquid`;
+    const health = data.bakerInactive
+        ? { text: 'Inactive', icon: '⚠️', tone: 'risk' }
+        : { text: data.health?.text || 'Watching', icon: data.health?.icon || '◎', tone: (data.healthScore || 0) >= 95 ? 'good' : 'watch' };
+    const governance = data.bakerVote
+        ? (data.bakerVote.voted ? `Voted ${data.bakerVote.vote || 'this period'}` : 'Vote not seen')
+        : (data.activeProposal ? 'Active vote context' : 'No urgent vote');
+    const story = data.story
+        ? `${data.story.upgradesSeen} upgrades witnessed${Number.isFinite(data.story.nftAssetsCollected) ? ` · ${fmtCount(data.story.nftAssetsCollected)} NFTs` : ''}`
+        : 'Story will appear after first on-chain activity is found';
+
+    grid.innerHTML = `
+        ${renderHomeMetric({
+            label: 'Account',
+            value: data.story?.domainAlias || data.address || data.fullAddress,
+            detail: `${total} · ${staked}`,
+            tone: 'account'
+        })}
+        ${renderHomeMetric({
+            label: data.isBaker ? 'Baker ops' : 'Baker',
+            value: data.bakerName || 'No baker',
+            detail: `${health.icon} ${health.text}${data.attestRate ? ` · ${data.attestRate}% attestation` : ''}`,
+            tone: health.tone
+        })}
+        ${renderHomeMetric({
+            label: 'Rewards',
+            value: data.rewardsLastCycle > 0 ? `+${data.rewardsLastCycle.toFixed(2)} XTZ` : `${data.apyRate}% APY`,
+            detail: `~${data.estDaily.toFixed(2)} XTZ/day${data.rewardStreak ? ` · ${data.rewardStreak}-cycle streak` : ''}`,
+            tone: 'good'
+        })}
+        ${renderHomeMetric({
+            label: 'Governance exposure',
+            value: governance,
+            detail: data.activeProposal || modeConfig.focus,
+            tone: data.bakerVote && !data.bakerVote.voted ? 'watch' : 'governance'
+        })}
+        ${renderHomeMetric({
+            label: 'Tezos identity',
+            value: modeConfig.label,
+            detail: story,
+            tone: mode
+        })}
+        ${renderHomeMetric({
+            label: 'Next action',
+            value: modeConfig.cta,
+            detail: modeConfig.focus,
+            tone: 'action'
+        })}
+    `;
+
+    const openButton = document.getElementById('my-tezos-home-open');
+    if (openButton) openButton.textContent = data.isBaker ? 'Open baker drawer' : 'Open drawer';
+}
+
+// Compact homepage panel — address still lives in the drawer for full detail.
+function createMinibar() {
+    const address = localStorage.getItem(STORAGE_KEY);
+    if (address) showMyTezosHomeLoading(address);
+}
+
+function updateMinibar(data) {
+    renderMyTezosHomepage(data);
+}
 
 async function renderMorningBrief(address, force = false) {
     // Prevent double-render of same address
@@ -2038,11 +2238,28 @@ export function initMyTezos() {
 
     const address = localStorage.getItem(STORAGE_KEY);
 
+    document.getElementById('my-tezos-home-open')?.addEventListener('click', () => {
+        document.getElementById('my-tezos-btn')?.click();
+    });
+    document.getElementById('my-tezos-home-copy')?.addEventListener('click', () => {
+        copyMyTezosHomepageLink();
+    });
+    document.querySelectorAll('.my-tezos-mode-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+            const mode = chip.dataset.personaMode;
+            setPersonaMode(mode);
+            const data = window._myTezosData;
+            if (data) renderMyTezosHomepage(data);
+        });
+    });
+
     window.addEventListener('my-baker-updated', (e) => {
         const newAddr = e.detail?.address;
         if (newAddr) {
+            showMyTezosHomeLoading(newAddr);
             renderMorningBrief(newAddr, true);
         } else {
+            hideMyTezosHome();
             // Clear drawer sections
             ['drawer-operator-status', 'drawer-brief', 'drawer-network', 'drawer-rewards', 'drawer-baker-activity'].forEach(id => {
                 const el = document.getElementById(id);

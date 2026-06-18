@@ -145,6 +145,7 @@ async function checkRequiredFiles() {
     'sw.js',
     'version.json',
     'feed.xml',
+    'state.xml',
     'data/governance-votes.json',
     'data/governance-refresh-report.json',
     'data/protocol-data.json',
@@ -249,6 +250,18 @@ async function checkGovernanceVotes() {
   }
 
   pass(`governance vote history checked: ${votes.length} vote periods, ${failed.length} failures`);
+}
+
+async function checkStateFeed() {
+  const stateFeed = await readText('state.xml');
+  const index = await readText('index.html');
+  if (!stateFeed.includes('<rss version="2.0"') || !stateFeed.includes('https://tezos.systems/#today')) {
+    fail('state.xml must be an RSS feed linking State of Tezos Today to #today');
+  }
+  if (!index.includes('https://tezos.systems/state.xml')) {
+    fail('index.html must advertise state.xml as an alternate RSS feed');
+  }
+  pass('State of Tezos RSS feed checked');
 }
 
 async function checkLocalReferences() {
@@ -1047,6 +1060,7 @@ async function main() {
   await checkRequiredFiles();
   await checkJsonFiles();
   await checkGovernanceVotes();
+  await checkStateFeed();
   await checkLocalReferences();
   await checkCacheBustAlignment();
   await checkCsp();

@@ -22,6 +22,7 @@
     <meta name="twitter:image" content="https://tezos.systems/og-image.png">
     <meta name="twitter:site" content="@TezCapital">
     <link rel="alternate" type="application/rss+xml" title="Tezos Systems Governance RSS" href="https://tezos.systems/feed.xml">
+    <link rel="alternate" type="application/rss+xml" title="Tezos Systems State RSS" href="https://tezos.systems/state.xml">
     
     <!-- AI/Agent discoverability -->
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
@@ -50,13 +51,13 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=208">
-    <link rel="stylesheet" href="css/hen-mode.css?v=76">
+    <link rel="stylesheet" href="css/styles.min.css?v=210">
+    <link rel="stylesheet" href="css/hen-mode.css?v=210">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=208">
+    <link rel="modulepreload" href="js/core/app.js?v=210">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -71,6 +72,8 @@
     <link rel="modulepreload" href="js/features/liquidity-baking.js">
     <link rel="modulepreload" href="js/features/etherlink-governance.js">
     <link rel="modulepreload" href="js/features/ctez.js">
+    <link rel="modulepreload" href="js/features/developer-intelligence.js">
+    <link rel="modulepreload" href="js/features/watch-center.js">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -213,7 +216,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=208"></script>
+    <script src="js/core/theme-preload.js?v=210"></script>
     <a id="hen-launcher" class="hen-launcher" href="/?hen=1" aria-label="Enter HEN mode" title="Enter HEN mode">
         <span aria-hidden="true">🐔</span>
     </a>
@@ -264,6 +267,9 @@
                 <!-- My Tezos — the one button that changes state -->
                 <button id="my-tezos-btn" class="glass-button header-nav-btn" aria-label="My Tezos — personalize your dashboard" title="My Tezos">
                     <span class="my-tezos-icon">👤</span> <span class="nav-label">My Tezos</span>
+                </button>
+                <button id="today-nav-btn" class="glass-button header-nav-btn" aria-label="Jump to Today on Tezos" title="Today on Tezos">
+                    <span aria-hidden="true">◎</span> <span class="nav-label">Today</span>
                 </button>
 
                 <!-- Feature launcher -->
@@ -319,6 +325,14 @@
                                 </button>
                                 <button class="feature-copy-link" type="button" data-copy-hash="#compare" aria-label="Copy Compare Chains link" title="Copy direct link">🔗</button>
                             </div>
+                            <div class="feature-launcher-row">
+                                <button id="developer-intel-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Developer Intelligence" title="Developer Intelligence: OFF">
+                                    <span class="developer-intel-toggle-icon">⌘</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Developer Intel</span><span class="dropdown-hint">RPC, contracts, rollups, docs, builder links</span></span>
+                                    <span class="feature-status">Tool</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#developers" aria-label="Copy Developer Intelligence link" title="Copy direct link">🔗</button>
+                            </div>
                         </div>
 
                         <div class="feature-launcher-group">
@@ -366,6 +380,22 @@
                                     <span class="feature-status">Tool</span>
                                 </button>
                                 <button class="feature-copy-link" type="button" data-copy-hash="#nfts" aria-label="Copy NFT Profile link" title="Copy direct link">🔗</button>
+                            </div>
+                            <div class="feature-launcher-row">
+                                <a href="/?hen=1" class="glass-button feature-launcher-item feature-launcher-link" aria-label="Open HEN culture mode" title="Open HEN mode">
+                                    <span>hen</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">HEN Culture</span><span class="dropdown-hint">Live art feed, filters, artist watchlist</span></span>
+                                    <span class="feature-status">Mode</span>
+                                </a>
+                                <button class="feature-copy-link" type="button" data-copy-hash="?hen=1" aria-label="Copy HEN mode link" title="Copy direct link">🔗</button>
+                            </div>
+                            <div class="feature-launcher-row">
+                                <button id="watch-center-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Watch Center" title="Watch Center: OFF">
+                                    <span class="watch-center-toggle-icon">⏱</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">Watch Center</span><span class="dropdown-hint">Local alerts for protocol, baker, tz4, LB, activity</span></span>
+                                    <span class="feature-status">Tool</span>
+                                </button>
+                                <button class="feature-copy-link" type="button" data-copy-hash="#watch" aria-label="Copy Watch Center link" title="Copy direct link">🔗</button>
                             </div>
                         </div>
 
@@ -433,6 +463,8 @@
             </div>
         </div>
     </header>
+
+    <div id="homepage-intelligence-stack" class="homepage-intelligence-stack" aria-label="Homepage intelligence"></div>
 
     <!-- Upgrade Clock -->
     <section class="upgrade-clock" id="upgrade-clock">
@@ -684,6 +716,115 @@
             </div>
             <div id="moments-timeline-content" class="moments-timeline">
                 <div class="moments-empty">No moments recorded yet. Keep watching!</div>
+            </div>
+        </section>
+
+        <!-- Today on Tezos -->
+        <section class="stats-section today-section" id="today-section" aria-labelledby="today-title">
+            <div class="section-header today-header">
+                <div>
+                    <h2 class="section-title" id="today-title">Today on Tezos</h2>
+                    <p class="section-subtitle">The network brief, what changed, and the next thing worth opening.</p>
+                </div>
+                <div class="today-actions" aria-label="Today actions">
+                    <button id="today-my-tezos-btn" class="glass-button today-action-btn" type="button">My Tezos</button>
+                    <button id="today-share-btn" class="glass-button today-action-btn" type="button">Share today</button>
+                    <button id="today-state-btn" class="glass-button today-action-btn" type="button">State snapshot</button>
+                </div>
+            </div>
+            <div class="today-panel" id="today-panel" aria-live="polite">
+                <div class="today-main">
+                    <span class="today-kicker" id="today-kicker">Network brief</span>
+                    <p class="today-headline" id="today-headline">Loading Tezos context…</p>
+                    <ul class="today-brief-list" id="today-brief-list">
+                        <li>Reading live network, market, governance, and activity signals.</li>
+                    </ul>
+                </div>
+                <div class="today-side">
+                    <div class="today-card today-personal-card" id="today-personal-card">
+                        <span class="today-card-label">Personal layer</span>
+                        <strong id="today-personal-title">Set My Tezos once</strong>
+                        <p id="today-personal-copy">Add a wallet, address, or .tez name to turn this into your personal Tezos homepage.</p>
+                    </div>
+                    <div class="today-card today-watch-card" id="today-watch-card">
+                        <span class="today-card-label">Watch next</span>
+                        <strong id="today-watch-title">Chambers</strong>
+                        <p id="today-watch-copy">Open the cards below for health, governance, Tezos X, tz4, and LB context.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- My Tezos Home -->
+        <section class="stats-section my-tezos-home-section" id="my-tezos-home-section" aria-labelledby="my-tezos-home-title" hidden>
+            <div class="section-header my-tezos-home-header">
+                <div>
+                    <h2 class="section-title" id="my-tezos-home-title">My Tezos Home</h2>
+                    <p class="section-subtitle" id="my-tezos-home-subtitle">Personal wallet, baker, rewards, governance, and culture context.</p>
+                </div>
+                <div class="my-tezos-home-actions">
+                    <button id="my-tezos-home-open" class="glass-button my-tezos-home-action" type="button">Open drawer</button>
+                    <button id="my-tezos-home-copy" class="glass-button my-tezos-home-action" type="button">Copy homepage link</button>
+                </div>
+            </div>
+            <div class="my-tezos-mode-row" role="group" aria-label="Homepage mode">
+                <button class="my-tezos-mode-chip" type="button" data-persona-mode="holder">Holder</button>
+                <button class="my-tezos-mode-chip" type="button" data-persona-mode="baker">Baker</button>
+                <button class="my-tezos-mode-chip" type="button" data-persona-mode="builder">Builder</button>
+                <button class="my-tezos-mode-chip" type="button" data-persona-mode="artist">Artist/HEN</button>
+                <button class="my-tezos-mode-chip" type="button" data-persona-mode="governance">Governance</button>
+                <button class="my-tezos-mode-chip" type="button" data-persona-mode="newcomer">Newcomer</button>
+            </div>
+            <div class="my-tezos-home-grid" id="my-tezos-home-grid">
+                <div class="my-tezos-home-empty">Connect My Tezos to personalize this panel.</div>
+            </div>
+        </section>
+
+        <!-- Developer Intelligence -->
+        <section class="stats-section developer-intel-section toggleable-section" id="developer-intelligence" aria-labelledby="developer-intel-title">
+            <div class="section-header developer-intel-header">
+                <div>
+                    <h2 class="section-title" id="developer-intel-title">Developer Intelligence</h2>
+                    <p class="section-subtitle">RPC health, contract activity, rollups, and builder links in one operational view.</p>
+                </div>
+                <div class="developer-intel-actions">
+                    <a class="glass-button developer-intel-action" href="https://docs.tezos.com" target="_blank" rel="noopener">Build on Tezos</a>
+                    <button id="developer-intel-refresh" class="glass-button developer-intel-action" type="button">Refresh</button>
+                </div>
+            </div>
+            <div class="developer-intel-panel" id="developer-intel-panel" aria-live="polite">
+                <div class="developer-intel-main">
+                    <div class="developer-intel-status" id="developer-intel-status">Waiting for live network data.</div>
+                    <div class="developer-intel-grid" id="developer-intel-grid"></div>
+                </div>
+                <div class="developer-intel-links" aria-label="Developer links">
+                    <a href="https://docs.tezos.com/developing" target="_blank" rel="noopener">Tezos docs</a>
+                    <a href="https://opentezos.com" target="_blank" rel="noopener">OpenTezos</a>
+                    <a href="https://smartpy.io" target="_blank" rel="noopener">SmartPy</a>
+                    <a href="https://ligolang.org" target="_blank" rel="noopener">LIGO</a>
+                    <a href="https://archetype-lang.org" target="_blank" rel="noopener">Archetype</a>
+                    <a href="https://faucet.ghostnet.teztnets.com" target="_blank" rel="noopener">Ghostnet faucet</a>
+                    <a href="https://tzkt.io" target="_blank" rel="noopener">TzKT explorer</a>
+                    <a href="https://explorer.etherlink.com" target="_blank" rel="noopener">Etherlink explorer</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Watch Center -->
+        <section class="stats-section watch-center-section toggleable-section" id="watch-center" aria-labelledby="watch-center-title">
+            <div class="section-header watch-center-header">
+                <div>
+                    <h2 class="section-title" id="watch-center-title">Watch Center</h2>
+                    <p class="section-subtitle">Local watchlist alerts for governance, bakers, tz4, LB, Tezos X, large moves, and HEN artists.</p>
+                </div>
+                <div class="watch-center-actions">
+                    <button id="watch-notifications-btn" class="glass-button watch-center-action" type="button">Enable browser alerts</button>
+                    <button id="watch-center-open-my-tezos" class="glass-button watch-center-action" type="button">My Tezos</button>
+                </div>
+            </div>
+            <div class="watch-center-panel">
+                <div class="watch-center-grid" id="watch-center-grid" aria-live="polite"></div>
+                <p class="watch-center-note" id="watch-center-note">Watch settings stay in this browser. No account, server, or wallet signature required.</p>
             </div>
         </section>
 
@@ -1771,7 +1912,7 @@
             <a href="/widgets/builder.html">🧩 Embed Widgets</a> — add live Tezos stats to your site
         </p>
         <p class="attribution">
-            <a href="/feed.xml" type="application/rss+xml">Governance RSS</a> · <a href="/chamber/">Tezos L1 Governance</a> · <a href="/health/">Network Health</a>
+            <a href="/feed.xml" type="application/rss+xml">Governance RSS</a> · <a href="/state.xml" type="application/rss+xml">State RSS</a> · <a href="/chamber/">Tezos L1 Governance</a> · <a href="/health/">Network Health</a>
         </p>
         <p class="attribution" style="margin-top: 1.5rem;">
             Feedback or want to contribute? <a href="https://github.com/Primate411/tezos.systems/issues" target="_blank" rel="noopener">Open an issue</a>
@@ -1951,8 +2092,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
-    <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=208"></script>
+    <script src="js/features/hen-mode.js?v=210"></script>
+    <script type="module" src="js/core/app.js?v=210"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
@@ -2125,6 +2266,14 @@
             <div class="hen-logo">hen</div>
             <div id="hen-mint-count" class="hen-mint-count"></div>
             <button class="hen-close" title="Exit HEN mode">×</button>
+        </div>
+        <div class="hen-toolbar" id="hen-toolbar" aria-label="HEN filters">
+            <button class="hen-filter active" type="button" data-hen-filter="fresh">fresh</button>
+            <button class="hen-filter" type="button" data-hen-filter="priced">priced</button>
+            <button class="hen-filter" type="button" data-hen-filter="edition1">1/1</button>
+            <button class="hen-filter" type="button" data-hen-filter="watched">watched</button>
+            <input id="hen-filter-input" class="hen-filter-input" type="text" placeholder="artist, title, collection" autocomplete="off" spellcheck="false">
+            <button id="hen-watch-artist" class="hen-filter hen-watch-artist" type="button">watch artist</button>
         </div>
         <div id="hen-new-pill" class="hen-new-pill"></div>
         <div class="hen-feed">
