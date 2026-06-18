@@ -7,6 +7,9 @@ const CHANGELOG = [
     {
         date: '2026-06-18',
         entries: [
+            { type: '✨', text: 'The History modal now includes Chamber history charts for market, Network Health, Tezos X, and governance-period snapshots from Supabase' },
+            { type: '🔧', text: 'Supabase history capture now has a freshness check and visible capture-status strip for global and Chamber domain tables' },
+            { type: '⚡', text: 'GitHub Actions workflows now use Node 24-era action pins for data collection, backfill, and generated governance refreshes' },
             { type: '⚡', text: 'A manual Supabase backfill workflow can now repair older history rows from timestamped TzKT statistics and archival Octez issuance state' },
             { type: '⚡', text: 'A 30-minute chamber history collector now snapshots market, Network Health, Tezos X, and L1 governance-period state into Supabase domain tables' },
             { type: '⚡', text: 'Historical capture now has a tracked Supabase migration for expanded staking, Liquidity Baking, tz4 power, market, health, governance, and Tezos X history fields' },

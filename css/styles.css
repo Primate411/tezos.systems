@@ -4435,6 +4435,57 @@ body.high-combo .stat-card {
     flex-wrap: wrap;
 }
 
+.history-freshness-strip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin: -4px 0 18px;
+}
+
+.history-freshness-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 32px;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    line-height: 1;
+}
+
+.history-freshness-pill strong {
+    color: var(--text-primary);
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.history-freshness-pill span {
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+}
+
+.history-freshness-pill.ok {
+    border-color: rgba(34, 197, 94, 0.22);
+    background: rgba(34, 197, 94, 0.055);
+}
+
+.history-freshness-pill.ok span {
+    color: #4ade80;
+}
+
+.history-freshness-pill.stale {
+    border-color: rgba(245, 158, 11, 0.28);
+    background: rgba(245, 158, 11, 0.07);
+}
+
+.history-freshness-pill.stale span {
+    color: #fbbf24;
+}
+
 .time-range-btn {
     padding: 10px 24px;
     background: rgba(255, 255, 255, 0.03);
@@ -4526,12 +4577,16 @@ body.high-combo .stat-card {
 .chart-stats {
     display: flex;
     gap: 20px;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
 }
 
 .chart-stats .stat-item {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
+    min-width: 0;
 }
 
 .chart-stats .stat-label {
@@ -4546,6 +4601,9 @@ body.high-combo .stat-card {
     font-weight: 700;
     font-family: 'SF Mono', 'Fira Code', monospace;
     color: var(--text-primary);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    text-align: right;
 }
 
 .chart-stats .stat-value.positive {
@@ -4563,6 +4621,9 @@ body.high-combo .stat-card {
 }
 
 .chart-section canvas {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
     height: 280px !important;
     max-height: 280px;
     filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.2));
@@ -4633,11 +4694,25 @@ body.high-combo .stat-card {
 
     .chart-stats {
         width: 100%;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        justify-content: stretch;
     }
 
     .chart-stats .stat-item {
-        align-items: center;
+        align-items: flex-start;
+    }
+
+    .chart-stats .stat-value {
+        font-size: 0.76rem;
+        line-height: 1.25;
+        text-align: left;
+    }
+
+    .chart-section h4 {
+        overflow-wrap: anywhere;
+        line-height: 1.25;
     }
 
     .chart-section {
@@ -4651,6 +4726,15 @@ body.high-combo .stat-card {
     .time-range-btn {
         padding: 8px 16px;
         font-size: 0.75rem;
+    }
+
+    .history-freshness-strip {
+        justify-content: flex-start;
+    }
+
+    .history-freshness-pill {
+        flex: 1 1 104px;
+        justify-content: space-between;
     }
 }
 

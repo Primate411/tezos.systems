@@ -1,7 +1,11 @@
 // Historical data visualization module
 // Handles sparklines and full charts using Chart.js
 
-import { fetchHistoricalData } from '../core/api.js';
+import {
+    fetchChamberHistoricalData,
+    fetchHistoricalData,
+    fetchSupabaseHistoryFreshness
+} from '../core/api.js';
 import { debugLog } from '../core/utils.js';
 import { getCurrentTheme } from '../ui/theme.js';
 
@@ -17,6 +21,50 @@ const FULL_CHART_POINT_LIMITS = {
 };
 const FAST_RENDER_POINT_THRESHOLD = 180;
 const latestLiveMetricPoints = new Map();
+const FRESHNESS_LABELS = {
+    tezos_history: 'Global',
+    market_history: 'Market',
+    network_health_history: 'Health',
+    tezosx_history: 'Tezos X',
+    governance_period_history: 'Governance'
+};
+const DOMAIN_HISTORY_CHARTS = [
+    {
+        source: 'market',
+        canvasId: 'chart-price',
+        metric: 'price_usd',
+        label: 'XTZ Price',
+        unit: ' USD'
+    },
+    {
+        source: 'networkHealth',
+        canvasId: 'chart-network-health',
+        metric: 'health_score',
+        label: 'Network Health',
+        unit: '%'
+    },
+    {
+        source: 'tezosx',
+        canvasId: 'chart-tezosx-tvl',
+        metric: 'tvl_usd',
+        label: 'Tezos X TVL',
+        unit: ' USD'
+    },
+    {
+        source: 'tezosx',
+        canvasId: 'chart-tezosx-transactions',
+        metric: 'transactions_24h',
+        label: 'Tezos X Transactions',
+        unit: ''
+    },
+    {
+        source: 'governance',
+        canvasId: 'chart-governance-participation',
+        metric: 'participation_pct',
+        label: 'Governance Participation',
+        unit: '%'
+    }
+];
 
 function destroyChartInstance(canvasId) {
     if (chartInstances[canvasId]) {
@@ -27,10 +75,65 @@ function destroyChartInstance(canvasId) {
 
 function normalizeMetricPoints(data, metric) {
     const points = data
-        .map(d => ({ value: Number(d[metric]), timestamp: new Date(d.timestamp) }))
+        .map(d => ({ value: metricValue(d[metric]), timestamp: new Date(d.timestamp) }))
         .filter(point => Number.isFinite(point.value) && !isNaN(point.timestamp.getTime()));
 
     return withLatestLiveMetricPoint(points, metric);
+}
+
+function metricValue(value) {
+    if (value === null || value === undefined || value === '') return NaN;
+    return Number(value);
+}
+
+function formatAgeLabel(ageMs) {
+    if (!Number.isFinite(ageMs) || ageMs < 0) return 'unknown';
+    const minutes = Math.round(ageMs / 60000);
+    if (minutes < 1) return 'now';
+    if (minutes < 90) return `${minutes}m`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 48) return `${hours}h`;
+    const days = Math.round(hours / 24);
+    return `${days}d`;
+}
+
+function escapeAttr(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
+function renderHistoryFreshness(rows) {
+    const el = document.getElementById('history-freshness-strip');
+    if (!el) return;
+
+    const items = Array.isArray(rows) ? rows : [];
+    if (!items.length) {
+        el.innerHTML = '<span class="history-freshness-pill stale"><strong>Capture</strong><span>unknown</span></span>';
+        return;
+    }
+
+    el.innerHTML = items.map(item => {
+        const label = FRESHNESS_LABELS[item.table] || item.table;
+        const state = item.ok ? 'ok' : 'stale';
+        const title = item.timestamp ? new Date(item.timestamp).toLocaleString() : (item.error || 'No snapshot');
+        return `
+            <span class="history-freshness-pill ${state}" title="${escapeAttr(title)}">
+                <strong>${label}</strong>
+                <span>${formatAgeLabel(item.ageMs)}</span>
+            </span>
+        `;
+    }).join('');
+}
+
+function clearChartStatus(canvasId, text = 'Collecting') {
+    const statsEl = document.getElementById(`stats-${canvasId}`);
+    if (statsEl) {
+        statsEl.innerHTML = `<span class="stat-item"><span class="stat-label">Status</span><span class="stat-value neutral">${text}</span></span>`;
+    }
+    destroyChartInstance(canvasId);
 }
 
 export function setLatestLiveMetric(metric, value, timestamp = new Date()) {
@@ -271,7 +374,7 @@ export function createSparkline(canvasId, data, metric) {
 function calculateStats(data, metric, unit = '') {
     const values = Array.isArray(data) && data.length && data[0]?.timestamp instanceof Date
         ? data.map(point => point.value)
-        : data.map(d => Number(d[metric])).filter(Number.isFinite);
+        : data.map(d => metricValue(d[metric])).filter(Number.isFinite);
     if (values.length === 0) return null;
     
     const current = values[values.length - 1];
@@ -300,7 +403,10 @@ export function createFullChart(canvasId, data, metric, label, unit = '', option
 
     // Extract values and timestamps
     const points = normalizeMetricPoints(data, metric);
-    if (points.length < 2) return;
+    if (points.length < 2) {
+        clearChartStatus(canvasId);
+        return;
+    }
 
     const range = options.range || '7d';
     const maxPoints = getFullChartPointLimit(range);
@@ -672,7 +778,12 @@ export function initHistoryModal() {
 // Update all charts in history modal
 async function updateHistoryCharts(range) {
     try {
-        const data = await fetchHistoricalData(range);
+        const [data, domainData, freshness] = await Promise.all([
+            fetchHistoricalData(range),
+            fetchChamberHistoricalData(range),
+            fetchSupabaseHistoryFreshness()
+        ]);
+        renderHistoryFreshness(freshness);
 
         if (data.length === 0) {
             debugLog('No historical data available yet');
@@ -726,8 +837,11 @@ async function updateHistoryCharts(range) {
         charts.forEach(({ canvasId, metric, label, unit }) => {
             createFullChart(canvasId, data, metric, label, unit, { range });
         });
+        DOMAIN_HISTORY_CHARTS.forEach(({ source, canvasId, metric, label, unit }) => {
+            createFullChart(canvasId, domainData?.[source] || [], metric, label, unit, { range });
+        });
 
-        debugLog(`Updated ${charts.length} history charts with ${data.length} data points`);
+        debugLog(`Updated ${charts.length + DOMAIN_HISTORY_CHARTS.length} history charts with ${data.length} core data points`);
     } catch (error) {
         console.error('Failed to update history charts:', error);
     }

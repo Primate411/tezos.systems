@@ -759,8 +759,10 @@ async function checkModuleImportVersions() {
 async function checkHistoricalPagination() {
   const api = await readText('js/core/api.js');
   const history = await readText('js/features/history.js');
+  const index = await readText('index.html');
   const collector = await readText('.github/scripts/collect-data.js');
   const backfill = await readText('scripts/backfill-supabase-history.mjs');
+  const freshness = await readText('scripts/check-supabase-history-freshness.mjs');
   const backfillWorkflow = await readText('.github/workflows/backfill-supabase-history.yml');
   const packageJson = await readText('package.json');
   const migration = await readText('supabase/migrations/20260618190000_expand_historical_capture.sql');
@@ -816,6 +818,25 @@ async function checkHistoricalPagination() {
     if (!migration.includes(`create table if not exists public.${table}`)) {
       fail(`Supabase migration must create ${table}`);
     }
+    if (!api.includes(table)) {
+      fail(`frontend API must fetch ${table}`);
+    }
+    if (!freshness.includes(table)) {
+      fail(`freshness checker must inspect ${table}`);
+    }
+  }
+  for (const snippet of [
+    'fetchChamberHistoricalData',
+    'fetchSupabaseHistoryFreshness',
+    'DOMAIN_HISTORY_TABLES',
+    'history-freshness-strip',
+    'DOMAIN_HISTORY_CHARTS',
+    'chart-tezosx-tvl',
+    'chart-governance-participation'
+  ]) {
+    if (!api.includes(snippet) && !history.includes(snippet) && !index.includes(snippet)) {
+      fail(`frontend historical surfaces must include ${snippet}`);
+    }
   }
   for (const snippet of [
     'statistics?timestamp.le=',
@@ -832,9 +853,24 @@ async function checkHistoricalPagination() {
   if (!packageJson.includes('"backfill:supabase": "node scripts/backfill-supabase-history.mjs"')) {
     fail('package scripts must expose backfill:supabase');
   }
-  for (const snippet of ['workflow_dispatch:', 'SUPABASE_KEY', 'BACKFILL_DRY_RUN', "node-version: '24'"]) {
+  if (!packageJson.includes('"check:supabase:freshness": "node scripts/check-supabase-history-freshness.mjs"')) {
+    fail('package scripts must expose check:supabase:freshness');
+  }
+  for (const snippet of ['workflow_dispatch:', 'SUPABASE_KEY', 'BACKFILL_DRY_RUN', "node-version: '24'", 'actions/checkout@v7', 'actions/setup-node@v6']) {
     if (!backfillWorkflow.includes(snippet)) {
       fail(`Supabase backfill workflow must include ${snippet}`);
+    }
+  }
+  const workflowFiles = [
+    '.github/workflows/backfill-supabase-history.yml',
+    '.github/workflows/collect-chamber-history.yml',
+    '.github/workflows/collect-data.yml',
+    '.github/workflows/refresh-governance-surfaces.yml'
+  ];
+  for (const file of workflowFiles) {
+    const workflow = await readText(file);
+    if (workflow.includes('actions/checkout@v4') || workflow.includes('actions/setup-node@v4') || workflow.includes("node-version: '20'")) {
+      fail(`${file} must use Node 24-era action pins`);
     }
   }
 

@@ -42,12 +42,44 @@ const LB_EMA_DISABLE_THRESHOLD = 1_000_000_000;
 const LB_EMA_DENOMINATOR = 2_000_000_000;
 const GOVERNANCE_SNAPSHOT_TTL = 60 * 1000;
 const historicalDataCache = new Map();
+const DOMAIN_HISTORY_TABLES = {
+    market: 'market_history',
+    networkHealth: 'network_health_history',
+    tezosx: 'tezosx_history',
+    governance: 'governance_period_history'
+};
+const HISTORY_FRESHNESS_LIMITS = {
+    tezos_history: 3 * 60 * 60 * 1000,
+    market_history: 90 * 60 * 1000,
+    network_health_history: 90 * 60 * 1000,
+    governance_period_history: 90 * 60 * 1000,
+    tezosx_history: 90 * 60 * 1000
+};
 
 /**
  * Check if cached data is still valid
  */
 function isCacheValid(key) {
     return cache.timestamps[key] && (Date.now() - cache.timestamps[key]) < cache.ttl;
+}
+
+function getHistoryStartTime(range = '7d') {
+    const now = new Date();
+
+    switch (range) {
+        case '24h':
+            return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+        case '7d':
+            return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        case '30d':
+            return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        case '90d':
+            return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        case 'all':
+            return new Date(HISTORY_START);
+        default:
+            return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
 }
 
 /**
@@ -963,30 +995,7 @@ export async function fetchHistoricalData(range = '7d') {
     }
 
     const { SUPABASE_CONFIG } = await import('./config.js');
-
-    // Calculate start time based on range
-    const now = new Date();
-    let startTime;
-
-    switch (range) {
-        case '24h':
-            startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-            break;
-        case '7d':
-            startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-            break;
-        case '30d':
-            startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-            break;
-        case '90d':
-            startTime = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-            break;
-        case 'all':
-            startTime = new Date(HISTORY_START);
-            break;
-        default:
-            startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    }
+    const startTime = getHistoryStartTime(range);
 
     const url = `${SUPABASE_CONFIG.url}/rest/v1/tezos_history?timestamp=gte.${startTime.toISOString()}&order=timestamp.asc`;
     const headers = {
@@ -1032,4 +1041,147 @@ export async function fetchHistoricalData(range = '7d') {
         console.error('Failed to fetch historical data:', error);
         return [];
     }
+}
+
+async function fetchSupabaseHistoryRows(table, range = '7d', select = '*') {
+    const allowedTables = new Set(['tezos_history', ...Object.values(DOMAIN_HISTORY_TABLES)]);
+    if (!allowedTables.has(table)) {
+        throw new Error(`Unsupported Supabase history table: ${table}`);
+    }
+
+    const cacheKey = `history-table:${table}:${range}:${select}`;
+    const cached = historicalDataCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < cache.ttl) {
+        return cached.promise || cached.data;
+    }
+
+    const { SUPABASE_CONFIG } = await import('./config.js');
+    const startTime = getHistoryStartTime(range);
+    const headers = {
+        'apikey': SUPABASE_CONFIG.key,
+        'Authorization': `Bearer ${SUPABASE_CONFIG.key}`
+    };
+    const url = `${SUPABASE_CONFIG.url}/rest/v1/${table}?select=${encodeURIComponent(select)}&timestamp=gte.${startTime.toISOString()}&order=timestamp.asc`;
+    const allRows = [];
+
+    const requestPromise = (async () => {
+        for (let offset = 0; ; offset += HISTORICAL_PAGE_SIZE) {
+            const response = await fetch(`${url}&limit=${HISTORICAL_PAGE_SIZE}&offset=${offset}`, { headers });
+            if (!response.ok) {
+                throw new Error(`${table} fetch failed: ${response.status}`);
+            }
+
+            const rows = await response.json();
+            if (!Array.isArray(rows)) {
+                throw new Error(`${table} fetch returned a non-array response`);
+            }
+
+            allRows.push(...rows);
+            if (rows.length < HISTORICAL_PAGE_SIZE) break;
+        }
+
+        return allRows;
+    })();
+
+    historicalDataCache.set(cacheKey, {
+        timestamp: Date.now(),
+        promise: requestPromise
+    });
+
+    try {
+        const rows = await requestPromise;
+        historicalDataCache.set(cacheKey, {
+            timestamp: Date.now(),
+            data: rows
+        });
+        return rows;
+    } catch (error) {
+        historicalDataCache.delete(cacheKey);
+        console.error(`Failed to fetch ${table}:`, error);
+        return [];
+    }
+}
+
+export async function fetchChamberHistoricalData(range = '7d') {
+    const [market, networkHealth, tezosx, governance] = await Promise.all([
+        fetchSupabaseHistoryRows(DOMAIN_HISTORY_TABLES.market, range),
+        fetchSupabaseHistoryRows(DOMAIN_HISTORY_TABLES.networkHealth, range),
+        fetchSupabaseHistoryRows(DOMAIN_HISTORY_TABLES.tezosx, range),
+        fetchSupabaseHistoryRows(DOMAIN_HISTORY_TABLES.governance, range)
+    ]);
+
+    return {
+        market,
+        networkHealth,
+        tezosx,
+        governance
+    };
+}
+
+async function fetchLatestHistoryRow(config, table) {
+    const response = await fetch(`${config.url}/rest/v1/${table}?select=timestamp&order=timestamp.desc&limit=1`, {
+        headers: {
+            'apikey': config.key,
+            'Authorization': `Bearer ${config.key}`
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(`${table} freshness fetch failed: ${response.status}`);
+    }
+
+    const rows = await response.json();
+    return Array.isArray(rows) ? rows[0] : null;
+}
+
+export async function fetchSupabaseHistoryFreshness() {
+    const cacheKey = 'history-freshness';
+    const cached = historicalDataCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < cache.ttl) {
+        return cached.promise || cached.data;
+    }
+
+    const { SUPABASE_CONFIG } = await import('./config.js');
+    const tables = ['tezos_history', ...Object.values(DOMAIN_HISTORY_TABLES)];
+    const requestPromise = (async () => {
+        const now = Date.now();
+        const rows = await Promise.all(tables.map(async table => {
+            try {
+                const latest = await fetchLatestHistoryRow(SUPABASE_CONFIG, table);
+                const timestamp = latest?.timestamp ? new Date(latest.timestamp) : null;
+                const ageMs = timestamp && !isNaN(timestamp.getTime()) ? now - timestamp.getTime() : null;
+                const limitMs = HISTORY_FRESHNESS_LIMITS[table] || 90 * 60 * 1000;
+                return {
+                    table,
+                    timestamp: timestamp ? timestamp.toISOString() : null,
+                    ageMs,
+                    limitMs,
+                    ok: ageMs !== null && ageMs <= limitMs
+                };
+            } catch (error) {
+                return {
+                    table,
+                    timestamp: null,
+                    ageMs: null,
+                    limitMs: HISTORY_FRESHNESS_LIMITS[table] || 90 * 60 * 1000,
+                    ok: false,
+                    error: error.message
+                };
+            }
+        }));
+
+        return rows;
+    })();
+
+    historicalDataCache.set(cacheKey, {
+        timestamp: Date.now(),
+        promise: requestPromise
+    });
+
+    const rows = await requestPromise;
+    historicalDataCache.set(cacheKey, {
+        timestamp: Date.now(),
+        data: rows
+    });
+    return rows;
 }
