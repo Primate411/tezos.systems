@@ -658,16 +658,16 @@ function renderEntryCard(data) {
     const metricsEl = document.getElementById('etherlink-governance-entry-metrics');
     if (valueEl) valueEl.textContent = value;
     if (descriptionEl) {
-        descriptionEl.textContent = 'FAST, SLOW, and Sequencer tracks';
+        descriptionEl.textContent = 'L2 Governance · FAST, SLOW, and Sequencer tracks';
         if (quiet) {
-            descriptionEl.textContent = 'FAST · SLOW · SEQ idle';
+            descriptionEl.textContent = 'L2 Governance · FAST · SLOW · SEQ idle';
         } else if (main.phase === 'proposal' && main.proposal) {
             descriptionEl.textContent = `${main.label} ${proposalLabel(main.proposal.winner)}`;
         }
     }
     if (miniEl) {
         miniEl.classList.toggle('live', status.className === 'live' || status.className === 'good');
-        miniEl.textContent = quiet ? 'All tracks idle · refresh 60s' : `${main.label}: ${status.label}`;
+        miniEl.textContent = quiet ? 'L2 Governance · All tracks idle · refresh 60s' : `L2 Governance · ${main.label}: ${status.label}`;
     }
     if (metricsEl) {
         metricsEl.hidden = false;
@@ -1000,11 +1000,11 @@ function renderChamber(data, container) {
         <div class="chamber-header lb-header etherlink-gov-header chamber-anim-fade">
             <div class="lb-system-strip">
                 <span class="lb-system-brand">Tezos.Systems</span>
-                <span>Tezos X Governance</span>
+                <span>L2 Governance</span>
                 <span>TzKT-discovered read-only mirror</span>
             </div>
             <div class="chamber-title-row">
-                <h2 class="chamber-title" id="etherlink-governance-title">Tezos X Governance Chamber</h2>
+                <h2 class="chamber-title" id="etherlink-governance-title">Tezos X Governance</h2>
                 <span class="chamber-badge ${escapeHtml(status.className)}">${escapeHtml(status.label)}</span>
                 <span class="lb-live-pill lb-refresh-pill" id="etherlink-governance-refresh-state">auto-refresh ${Math.round(CHAMBER_REFRESH_MS / 1000)}s</span>
             </div>
@@ -1172,17 +1172,17 @@ export function initEtherlinkGovernanceChamber() {
     card.className = 'stat-card chamber-entry-card etherlink-governance-entry-card';
     card.setAttribute('role', 'button');
     card.setAttribute('tabindex', '0');
-    card.setAttribute('aria-label', 'Open Tezos X Governance Chamber');
-    card.title = 'Open Tezos X Governance Chamber';
+    card.setAttribute('aria-label', 'Open Tezos X Governance L2 panel');
+    card.title = 'Open Tezos X Governance L2 panel';
     card.innerHTML = `
-        <button class="card-copy-link" type="button" data-copy-hash="#l2chamber" aria-label="Copy Tezos X Governance Chamber direct link" title="Copy Tezos X Governance link">🔗</button>
+        <button class="card-copy-link" type="button" data-copy-hash="#l2chamber" aria-label="Copy Tezos X Governance L2 direct link" title="Copy Tezos X Governance L2 link">🔗</button>
         <div class="card-inner">
             <div class="card-front chamber-entry-front etherlink-governance-entry-front">
                 <div class="tezlink-entry-main">
                     <h2 class="stat-label">Tezos X Governance</h2>
                     <div class="stat-value etherlink-gov-entry-value" id="etherlink-governance-entry-value"><span class="loading">...</span></div>
-                    <p class="stat-description" id="etherlink-governance-entry-description">FAST, SLOW, and Sequencer tracks</p>
-                    <div class="chamber-entry-status live" id="etherlink-governance-entry-mini">Loading governance tracks</div>
+                    <p class="stat-description" id="etherlink-governance-entry-description">L2 Governance · FAST, SLOW, and Sequencer tracks</p>
+                    <div class="chamber-entry-status live" id="etherlink-governance-entry-mini">L2 Governance · loading tracks</div>
                 </div>
                 <div class="tezlink-entry-metrics etherlink-gov-entry-metrics" id="etherlink-governance-entry-metrics" aria-label="Tezos X governance track status" hidden></div>
             </div>

@@ -123,7 +123,7 @@ async function init() {
     // Lift chamber entry cards out of the hidden network-stat sections.
     safe('chambersSurface', initChambersSurface);
     
-    // Initialize The Chamber governance modal
+    // Initialize Tezos L1 Governance modal
     safe('chamber', initChamber);
     safe('liquidityBaking', initLiquidityBaking);
     safe('tezlinkChamber', initTezlinkChamber);
@@ -1056,10 +1056,10 @@ const CHAMBER_EXPAND_CUE_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="cur
 const CHAMBER_INFO_ICON_SVG = '<svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/></svg>';
 const CHAMBER_INFO_COPY = {
     'chamber-entry-card': {
-        title: 'The Chamber',
+        title: 'Tezos L1 Governance',
         body: 'Current Tezos governance state, proposal context, vote receipts, next milestones, and historical amendment memory.',
         href: '/chamber/',
-        link: 'Open Chamber ->'
+        link: 'Open L1 Governance ->'
     },
     'tezlink-entry-card': {
         title: 'Tezos X',
@@ -1068,10 +1068,10 @@ const CHAMBER_INFO_COPY = {
         link: 'Open Tezos X ->'
     },
     'etherlink-governance-entry-card': {
-        title: 'Tezos X Governance',
-        body: 'Governance track monitor for FAST, SLOW, and Sequencer proposal lanes, including idle state and recent track memory.',
+        title: 'Tezos X Governance (L2)',
+        body: 'L2 governance track monitor for FAST, SLOW, and Sequencer proposal lanes, including idle state and recent track memory.',
         href: '/l2chamber/',
-        link: 'Open Governance ->'
+        link: 'Open L2 Governance ->'
     },
     'lb-entry-card': {
         title: 'Liquidity Baking Monitor',
@@ -2585,7 +2585,7 @@ function initOfflineIndicator() {
 //   #whales            → show whale tracker
 //   #giants            → show sleeping giants
 //   #history           → open history modal
-//   #chamber           → open The Chamber governance modal
+//   #chamber           → open Tezos L1 Governance modal
 //   #tezosx           -> open Tezos X Chamber
 //   #tezlink          -> legacy alias for Tezos X Chamber
 //   #l2chamber         -> open Tezos X Governance Chamber
@@ -2857,7 +2857,7 @@ function applyDeepLink() {
     if (params.has('chamber') || hash === 'chamber' || params.has('the-chamber') || hash === 'the-chamber') {
         openHashModal(
             () => import('../features/chamber.js').then(({ openChamber }) => openChamber()),
-            'Failed to open The Chamber'
+            'Failed to open Tezos L1 Governance'
         );
     }
 

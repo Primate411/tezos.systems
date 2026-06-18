@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-18',
+        entries: [
+            { type: '🎨', text: 'The L1 governance room is now labeled Tezos L1 Governance, while the Tezos X Governance card explicitly notes that it is L2 Governance' },
+        ]
+    },
+    {
         date: '2026-06-17',
         entries: [
             { type: '🔧', text: 'My Tezos wallet disconnect now clears locally if Octez.Connect does not answer, so the drawer no longer gets stuck on a disconnecting message' },

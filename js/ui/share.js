@@ -1307,7 +1307,7 @@ async function doCaptureAndShare(selectedSections) {
 }
 
 /**
- * Capture The Chamber's live vote panel inside a branded 1200x630 share frame.
+ * Capture Tezos L1 Governance's live vote panel inside a branded 1200x630 share frame.
  */
 export async function captureBrandedChamberShare(target, details = {}) {
     if (!target) throw new Error('Share target unavailable');
@@ -1377,7 +1377,7 @@ export async function captureBrandedChamberShare(target, details = {}) {
         left.innerHTML = `
             <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;letter-spacing:3px;text-transform:uppercase;color:${brandColor};text-shadow:${isClean || isDark ? 'none' : `0 0 28px rgba(${brandRgb},0.45)`};">TEZOS SYSTEMS</div>
             <div style="width:210px;height:1px;background:${brandColor};opacity:0.72;margin:14px 0 30px;"></div>
-            <div style="font-size:13px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:${softText};">The Chamber · ${escapeHtml(stage)}</div>
+            <div style="font-size:13px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:${softText};">Tezos L1 Governance · ${escapeHtml(stage)}</div>
             <h1 style="margin:16px 0 12px;font-size:${proposalName.length > 22 ? '52px' : '62px'};line-height:0.96;font-weight:850;letter-spacing:0;color:${brandColor};max-width:420px;overflow-wrap:anywhere;">${escapeHtml(proposalName)}</h1>
             <p style="margin:0 0 26px;font-size:19px;line-height:1.42;color:${softText};">${escapeHtml(summary)}</p>
         `;

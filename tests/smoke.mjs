@@ -1687,7 +1687,7 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
     };
   });
 
-  assert(!mockOptions.governanceLiveVote || state.chamberWide, `${label}: live vote should render The Chamber as a wide card: ${JSON.stringify(state)}`);
+  assert(!mockOptions.governanceLiveVote || state.chamberWide, `${label}: live vote should render Tezos L1 Governance as a wide card: ${JSON.stringify(state)}`);
   assert(state.metricTruncations.length === 0, `${label}: live vote metrics should not ellipsize: ${JSON.stringify(state.metricTruncations)}`);
   assert(viewport.width >= 760 ? state.metricColumns === 2 : state.metricColumns >= 1, `${label}: unexpected live vote metric columns: ${state.metricColumns}`);
   assert(!state.tezlinkTitleClip, `${label}: Tezos X title should remain inside the card: ${JSON.stringify({ card: state.tezlinkCardBox, label: state.tezlinkLabelBox })}`);
@@ -3822,8 +3822,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.participation === '---', `governance testing period: participation should be empty-state dashes, saw ${dashboardState.participation}`);
   assert(/No ballots during Cooldown/.test(dashboardState.participationDescription), `governance testing period: participation description mismatch: ${dashboardState.participationDescription}`);
   assert(/Cooldown/.test(dashboardState.entryMini) && /testing and review/.test(dashboardState.entryMini), `governance testing period: Chamber entry status mismatch: ${dashboardState.entryMini}`);
-  assert(!dashboardState.chamberEntryWide, 'governance testing period: The Chamber should be 1x1 when no baker ballots are open');
-  assert(dashboardState.chamberEntrySize === 'compact', `governance testing period: The Chamber size flag mismatch: ${dashboardState.chamberEntrySize}`);
+  assert(!dashboardState.chamberEntryWide, 'governance testing period: Tezos L1 Governance should be 1x1 when no baker ballots are open');
+  assert(dashboardState.chamberEntrySize === 'compact', `governance testing period: Tezos L1 Governance size flag mismatch: ${dashboardState.chamberEntrySize}`);
   assert(dashboardState.issuance === '4.50%', `governance testing period: disabled LB should be excluded from total issuance, saw ${dashboardState.issuance}`);
   assert(/4\.50% Protocol/.test(dashboardState.issuanceBreakdown), `governance testing period: protocol issuance breakdown mismatch: ${dashboardState.issuanceBreakdown}`);
   assert(/0\.00% LB \(disabled\)/.test(dashboardState.issuanceBreakdown), `governance testing period: disabled LB breakdown missing, saw ${dashboardState.issuanceBreakdown}`);
@@ -3837,7 +3837,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.etherlinkEntrySize === 'wide', `governance testing period: Tezos X Governance size flag mismatch: ${dashboardState.etherlinkEntrySize}`);
   assert(dashboardState.etherlinkEntryValue === '14.2%', `governance testing period: Tezos X Governance value mismatch: ${dashboardState.etherlinkEntryValue}`);
   assert(/FAST .*00625d22ab/.test(dashboardState.etherlinkEntryDescription), `governance testing period: Tezos X Governance description mismatch: ${dashboardState.etherlinkEntryDescription}`);
-  assert(/FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Tezos X Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
+  assert(/L2 Governance .*FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Tezos X Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
   assert(/FAST14\.2%\/5%/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezos X Governance FAST metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(/SLOW(5hago|Noactiveproposal)/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezos X Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(dashboardState.chamberUpdatedLabels.length >= 6 && dashboardState.chamberUpdatedLabels.every((label) => /^as of \d{2}:\d{2} UTC$/.test(label)), `governance testing period: chamber freshness stamps missing: ${dashboardState.chamberUpdatedLabels.join(', ')}`);
@@ -3908,7 +3908,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
   });
-  assert(/Tezos X Governance Chamber/.test(etherlinkState.title), `governance testing period: Tezos X Governance title mismatch: ${etherlinkState.title}`);
+  assert(/Tezos X Governance/.test(etherlinkState.title), `governance testing period: Tezos X Governance title mismatch: ${etherlinkState.title}`);
   assert(/Proposal quorum met/.test(etherlinkState.badge), `governance testing period: Etherlink badge mismatch: ${etherlinkState.badge}`);
   assert(etherlinkState.tabs === 3, `governance testing period: Etherlink should expose three track tabs, saw ${etherlinkState.tabs}`);
   assert(etherlinkState.tabsA11y.length === 3 && etherlinkState.tabsA11y.every((tab) => tab.role === 'tab'), `governance testing period: Etherlink tabs need role=tab: ${JSON.stringify(etherlinkState.tabsA11y)}`);
@@ -4377,8 +4377,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       })()
     };
   });
-  assert(!quietSizing.chamberWide && quietSizing.chamberSize === 'compact', `quiet governance sizing: The Chamber should be 1x1, saw ${JSON.stringify(quietSizing)}`);
-  assert(/Proposal period/.test(quietSizing.chamberText) && /no ballots open/i.test(quietSizing.chamberText), `quiet governance sizing: The Chamber quiet text mismatch: ${quietSizing.chamberText}`);
+  assert(!quietSizing.chamberWide && quietSizing.chamberSize === 'compact', `quiet governance sizing: Tezos L1 Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
+  assert(/Proposal period/.test(quietSizing.chamberText) && /no ballots open/i.test(quietSizing.chamberText), `quiet governance sizing: Tezos L1 Governance quiet text mismatch: ${quietSizing.chamberText}`);
   assert(!quietSizing.etherlinkWide && quietSizing.etherlinkSize === 'compact', `quiet governance sizing: Tezos X Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
   assert(/Tracks/.test(quietSizing.etherlinkText) && /All tracks idle/.test(quietSizing.etherlinkText) && /FAST/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink idle text mismatch: ${quietSizing.etherlinkText}`);
   assert(!quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should show compact track chips when all tracks are quiet');

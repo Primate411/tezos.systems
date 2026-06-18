@@ -155,14 +155,15 @@ inline modal styles in `js/core/app.js`.
 ## Main Surfaces
 
 - Chambers section is visible by default and orders the chamber rows as Network
-  Health <> The Chamber, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
+  Health <> Tezos L1 Governance, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
   Monitor. ctez End of Life stays off the default Chambers grid and opens from
   Explore or the small top-left ctez launcher. Each Chamber row is wrapped
   responsively so wide cards keep their companion card instead of creating
   desktop grid holes; cards also keep a canonical app-shell open affordance in
   the fixed footer rail, card-level direct-link controls, and quiet `as of`
   freshness stamps on the live chamber cards.
-- Tezos X Governance Chamber with direct `#l2chamber` access,
+- Tezos X Governance Chamber with direct `#l2chamber` access and visible L2
+  Governance labeling,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
   discovery, storage, bigmaps, and recent historical proposal submissions, plus
   official-track and TzKT links for action/audit. The dashboard card keeps
@@ -189,14 +190,14 @@ inline modal styles in `js/core/app.js`.
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
   `data/protocol-debates.json`.
-- The Chamber for live and historical amendment voting, including a
+- Tezos L1 Governance for live and historical amendment voting, including a
   current-stage chronological ballot feed and the bottom historical vote log
   sourced from `data/governance-votes.json`. The Current Protocol panel does
   not carry a separate Chamber prompt; live and quiet governance context lives
-  in the Chamber card and modal. The Chamber card refreshes every 60 seconds
+  in the Tezos L1 Governance card and modal. The Tezos L1 Governance card refreshes every 60 seconds
   and expands during active ballot periods to show proposal name, time left,
   quorum, supermajority, and ballot context; during Adoption it expands with a
-  no-ballot runway explanation and activation timing. The opened Chamber renders
+  no-ballot runway explanation and activation timing. The opened L1 governance panel renders
   live vote instrumentation before the process explainer and includes a
   phase-aware current-state panel for quiet proposal/cooldown/adoption moments,
   proposal intel, quorum/non-voter gap analysis, and a vote share capture
@@ -394,7 +395,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v207`.
+- Current aligned shell cache stamp: `v208`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

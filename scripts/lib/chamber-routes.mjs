@@ -2,10 +2,10 @@ export const CHAMBER_ROUTES = [
   {
     slug: 'chamber',
     hash: '#chamber',
-    title: 'The Chamber - Tezos Governance Vote Room',
-    shortTitle: 'The Chamber',
-    description: 'Track live Tezos governance votes, quorum, supermajority, baker ballots, and proposal context.',
-    eyebrow: 'Governance',
+    title: 'Tezos L1 Governance - Tezos Governance Vote Room',
+    shortTitle: 'Tezos L1 Governance',
+    description: 'Track live Tezos L1 governance votes, quorum, supermajority, baker ballots, and proposal context.',
+    eyebrow: 'L1 Governance',
     accent: '#00d4ff'
   },
   {
@@ -29,9 +29,9 @@ export const CHAMBER_ROUTES = [
   {
     slug: 'l2chamber',
     hash: '#l2chamber',
-    title: 'Tezos X Governance Chamber - Etherlink Governance Monitor',
+    title: 'Tezos X Governance - Etherlink L2 Governance Monitor',
     shortTitle: 'Tezos X Governance',
-    description: 'Track Etherlink governance contracts, track rules, proposal timelines, and quiet-state discovery.',
+    description: 'Track Etherlink L2 governance contracts, track rules, proposal timelines, and quiet-state discovery.',
     eyebrow: 'L2 Governance',
     accent: '#ff9f43'
   },

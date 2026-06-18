@@ -49,7 +49,7 @@ const GOVERNANCE_SURFACES = [
         update: 'Must resolve live TzKT proposal epochs, use protocol-data for lore, and avoid stale hardcoded protocol maps.'
     },
     {
-        surface: 'The Chamber',
+        surface: 'Tezos L1 Governance',
         files: ['js/features/chamber.js'],
         update: 'Uses local vote history plus protocol-data names for failed and active governance context.'
     },

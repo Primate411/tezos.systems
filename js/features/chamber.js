@@ -1,5 +1,5 @@
 /**
- * The Chamber — Tezos Governance War Room
+ * Tezos L1 Governance — Tezos Governance War Room
  * Full-screen governance modal with live voting data, baker heatmap,
  * vote momentum sparklines, and 5-stage pipeline visualization.
  * 
@@ -455,7 +455,7 @@ async function loadGovernanceReport() {
  * Resolve a live, not-yet-activated proposal (e.g. one in its Promotion period)
  * by name without polluting the activated-protocol timeline. The refresh report
  * carries the canonical proposalName/proposalHash; inject a name-only lookup entry
- * so The Chamber shows e.g. "Ushuaia" instead of a raw PsUshuai9… hash. Harmless
+ * so Tezos L1 Governance shows e.g. "Ushuaia" instead of a raw PsUshuai9… hash. Harmless
  * for historical epochs — the synthetic hash simply won't match their proposals.
  */
 function withActiveProposalName(protocols, report) {
@@ -1234,7 +1234,7 @@ function quietGovernanceSummary(data) {
         return 'Bakers are upvoting candidate protocol hashes. Quorum and Yay thresholds only become live once a proposal advances to Exploration.';
     }
     if (!data.isLive) {
-        return 'This governance epoch is complete. The Chamber is showing the recorded vote receipts and the wider memory of past amendment outcomes.';
+        return 'This governance epoch is complete. Tezos L1 Governance is showing the recorded vote receipts and the wider memory of past amendment outcomes.';
     }
     return `${periodTitle(stage)} is quiet for ballots right now. The useful signal is what just happened, what opens next, and what history says to watch.`;
 }
@@ -1750,7 +1750,7 @@ function renderProposalHeader(data) {
                 <span>${escapeHtml(systemState)}</span>
             </div>
             <div class="chamber-title-row">
-                <h2 class="chamber-title">The Chamber</h2>
+                <h2 class="chamber-title">Tezos L1 Governance</h2>
                 ${badge}
                 ${isLiveVote ? '<button type="button" class="chamber-share-btn" id="chamber-share-vote">Share vote</button>' : ''}
             </div>
@@ -1838,7 +1838,7 @@ function renderChamber(data, container) {
         <div class="chamber-no-votes">
             <div class="no-votes-icon">🏛️</div>
             <div class="no-votes-text">No active vote in this epoch</div>
-            <div class="no-votes-sub">The Chamber comes alive during Exploration and Promotion periods</div>
+            <div class="no-votes-sub">Tezos L1 Governance updates during Exploration and Promotion periods</div>
         </div>
         ${renderChronologicalVoteLog()}
     `;
@@ -1855,7 +1855,7 @@ function renderChamber(data, container) {
             <span class="chamber-footer-sep">·</span>
             <a href="https://www.tezosagora.org" target="_blank" rel="noopener">Agora →</a>
             <span class="chamber-footer-sep">·</span>
-            <a class="panel-direct-link" href="/chamber/" aria-label="Direct link to The Chamber">Direct: /chamber/</a>
+            <a class="panel-direct-link" href="/chamber/" aria-label="Direct link to Tezos L1 Governance">Direct: /chamber/</a>
             <span class="chamber-footer-sep">·</span>
             <span class="chamber-epoch">Epoch ${epoch.index}</span>
             ${footerNote ? `<span class="chamber-footer-sep">·</span><span class="chamber-historical-note">${escapeHtml(footerNote)}</span>` : ''}
@@ -1933,7 +1933,7 @@ function initChamberShare(data) {
                     label: 'Governance',
                     text: `${proposalName} is in a live ${stage} vote on Tezos.\n\nTrack quorum, supermajority, and baker votes at tezos.systems/chamber/`
                 }
-            ], `The Chamber: ${proposalName}`);
+            ], `Tezos L1 Governance: ${proposalName}`);
         } catch (error) {
             console.warn('Chamber share failed', error);
             button.textContent = 'Share failed';
@@ -2000,7 +2000,7 @@ export async function openChamber() {
                 <button class="modal-close chamber-close" aria-label="Close" style="z-index:3">&times;</button>
                 <div class="chamber-body">
                     <div class="chamber-loading">
-                        <div class="chamber-loading-text">Entering The Chamber…</div>
+                        <div class="chamber-loading-text">Opening Tezos L1 Governance...</div>
                         <div class="chamber-loading-subtext">Fetching current period, epoch votes, and protocol context</div>
                         <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
                     </div>
@@ -2076,7 +2076,7 @@ export function initChamber() {
     const header = govSection?.querySelector('.section-title');
     if (header) {
         header.style.cursor = 'pointer';
-        header.title = 'Open The Chamber — Governance War Room';
+        header.title = 'Open Tezos L1 Governance';
         header.addEventListener('click', openChamber);
     }
     
@@ -2091,10 +2091,10 @@ export function initChamber() {
         card.id = 'chamber-entry-card';
         card.className = 'stat-card chamber-entry-card';
         card.innerHTML = `
-            <button class="card-copy-link" type="button" data-copy-hash="#chamber" aria-label="Copy The Chamber direct link" title="Copy The Chamber link">🔗</button>
+            <button class="card-copy-link" type="button" data-copy-hash="#chamber" aria-label="Copy Tezos L1 Governance direct link" title="Copy Tezos L1 Governance link">🔗</button>
             <div class="card-inner">
                 <div class="card-front chamber-entry-front">
-                    <h2 class="stat-label">The Chamber</h2>
+                    <h2 class="stat-label">Tezos L1 Governance</h2>
                     <div class="stat-value chamber-entry-icon" id="chamber-entry-hero">${CHAMBER_MARK_SVG}</div>
                     <p class="stat-description">Enter governance war room</p>
                     <div class="chamber-entry-status" id="chamber-entry-mini"></div>
@@ -2327,7 +2327,7 @@ async function loadEntryCardStatus({ force = false } = {}) {
             clearEntryMetrics(card, metricsEl);
         }
     } catch (error) {
-        console.warn('The Chamber entry refresh failed:', error);
+        console.warn('Tezos L1 Governance entry refresh failed:', error);
     } finally {
         _chamberEntryRefreshInFlight = false;
     }
