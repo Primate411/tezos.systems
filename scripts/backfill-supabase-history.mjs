@@ -66,6 +66,11 @@ function cleanTimestamp(value) {
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
 }
 
+function shouldRetry(error) {
+  if (!error.status) return true;
+  return error.status === 429 || error.status >= 500;
+}
+
 async function fetchJson(url, options = {}, retries = 4) {
   let lastError;
   for (let attempt = 0; attempt < retries; attempt += 1) {
@@ -81,6 +86,7 @@ async function fetchJson(url, options = {}, retries = 4) {
         const text = await response.text();
         const retryAfter = Number(response.headers.get('retry-after') || 0);
         const error = new Error(`HTTP ${response.status} ${text}`);
+        error.status = response.status;
         error.retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 0;
         throw error;
       }
@@ -88,7 +94,7 @@ async function fetchJson(url, options = {}, retries = 4) {
       return await response.json();
     } catch (error) {
       lastError = error;
-      if (attempt === retries - 1) break;
+      if (attempt === retries - 1 || !shouldRetry(error)) break;
       const delay = error.retryAfterMs || 750 * (attempt + 1);
       await sleep(delay);
     }
@@ -105,13 +111,14 @@ async function fetchText(url, options = {}, retries = 4) {
         const text = await response.text();
         const retryAfter = Number(response.headers.get('retry-after') || 0);
         const error = new Error(`HTTP ${response.status} ${text}`);
+        error.status = response.status;
         error.retryAfterMs = Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter * 1000 : 0;
         throw error;
       }
       return await response.text();
     } catch (error) {
       lastError = error;
-      if (attempt === retries - 1) break;
+      if (attempt === retries - 1 || !shouldRetry(error)) break;
       const delay = error.retryAfterMs || 750 * (attempt + 1);
       await sleep(delay);
     }
