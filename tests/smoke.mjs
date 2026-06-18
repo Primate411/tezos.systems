@@ -1548,7 +1548,7 @@ async function assertChamberControlGeometry(page, label) {
         found.push({ card: selector, issue: 'missing-card' });
         continue;
       }
-      const controls = Array.from(card.querySelectorAll(':scope > .card-copy-link, :scope > .card-share-btn, :scope > .card-info-btn, :scope .chamber-entry-footer > .chamber-expand-cue'))
+      const controls = Array.from(card.querySelectorAll(':scope > .card-copy-link, :scope > .card-share-btn, :scope > .card-info-btn, :scope > .card-history-btn, :scope .chamber-entry-footer > .chamber-expand-cue'))
         .map((node) => ({ node, name: nameOf(node), box: visibleBox(node) }))
         .filter((item) => item.box);
       const topControls = controls.filter((item) => !item.node.classList.contains('chamber-expand-cue'));
@@ -1560,7 +1560,9 @@ async function assertChamberControlGeometry(page, label) {
         .filter((item) => item.box);
 
       const shareControl = card.querySelector(':scope > .card-share-btn');
+      const copyControl = card.querySelector(':scope > .card-copy-link');
       const infoControl = card.querySelector(':scope > .card-info-btn');
+      const historyControl = card.querySelector(':scope > .card-history-btn');
       const infoTooltip = card.querySelector(':scope > .card-tooltip');
       if (!shareControl) found.push({ card: selector, issue: 'missing-share-control' });
       else if (!shareControl.querySelector('svg')) found.push({ card: selector, issue: 'share-control-missing-svg' });
@@ -1568,6 +1570,22 @@ async function assertChamberControlGeometry(page, label) {
       else if (!infoControl.querySelector('svg')) found.push({ card: selector, issue: 'info-control-missing-svg' });
       if (!infoTooltip) found.push({ card: selector, issue: 'missing-info-tooltip' });
       else if (infoTooltip.previousElementSibling !== infoControl) found.push({ card: selector, issue: 'info-tooltip-not-adjacent' });
+      if (shareControl && copyControl && infoControl && historyControl) {
+        const stack = [
+          ['share', shareControl],
+          ['copy', copyControl],
+          ['info', infoControl],
+          ['history', historyControl]
+        ].map(([name, node]) => ({ name, box: visibleBox(node) })).filter((item) => item.box);
+        for (let index = 1; index < stack.length; index += 1) {
+          if (stack[index].box.top <= stack[index - 1].box.top + 1) {
+            found.push({ card: selector, issue: 'control-stack-order', before: stack[index - 1].name, after: stack[index].name, stack: stack.map((item) => ({ name: item.name, top: Number(item.box.top.toFixed(2)) })) });
+          }
+          if (Math.abs(stack[index].box.left - stack[0].box.left) > 2) {
+            found.push({ card: selector, issue: 'control-stack-column', control: stack[index].name, left: Number(stack[index].box.left.toFixed(2)), expected: Number(stack[0].box.left.toFixed(2)) });
+          }
+        }
+      }
 
       if (!footer || !footerBox) {
         found.push({ card: selector, issue: 'missing-footer-rail' });

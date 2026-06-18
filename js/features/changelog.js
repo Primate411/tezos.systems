@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-18',
         entries: [
+            { type: '🎨', text: 'Chamber card stats controls now sit at the bottom of the vertical icon rail below share, direct-link, and info actions' },
             { type: '🎨', text: 'The L1 governance room is now labeled Tezos L1 Governance, while the Tezos X Governance card explicitly notes that it is L2 Governance' },
         ]
     },
