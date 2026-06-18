@@ -307,6 +307,13 @@ collector should use a service-role or equivalent server-side secret for
 `.github/workflows/collect-data.yml` writes the 2-hour global `tezos_history`
 row, while `.github/workflows/collect-chamber-history.yml` writes 30-minute
 market, Network Health, Tezos X, and governance-period snapshots.
+`scripts/backfill-supabase-history.mjs` can repair old `tezos_history` rows
+after schema expansion by using each row's timestamp to pull historical TzKT
+statistics and archival Octez issuance/Liquidity Baking state. Run it through
+the manual `Backfill Supabase History` GitHub Action so it can use the
+service-role `SUPABASE_KEY`; it defaults to dry-run mode and intentionally
+leaves older tz4 power fields blank because TzKT exposes baker power as current
+delegate state rather than a reliable historical snapshot.
 
 ## Local Development
 
@@ -340,6 +347,7 @@ npm run refresh:governance
 npm run guard:readme
 npm run check:readme
 npm run check:supabase
+npm run backfill:supabase
 npm test
 npm run test:static
 npm run test:smoke

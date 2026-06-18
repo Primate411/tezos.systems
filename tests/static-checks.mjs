@@ -760,6 +760,9 @@ async function checkHistoricalPagination() {
   const api = await readText('js/core/api.js');
   const history = await readText('js/features/history.js');
   const collector = await readText('.github/scripts/collect-data.js');
+  const backfill = await readText('scripts/backfill-supabase-history.mjs');
+  const backfillWorkflow = await readText('.github/workflows/backfill-supabase-history.yml');
+  const packageJson = await readText('package.json');
   const migration = await readText('supabase/migrations/20260618190000_expand_historical_capture.sql');
   if (!api.includes('HISTORICAL_PAGE_SIZE')) {
     fail('fetchHistoricalData must page Supabase history results; default REST responses are capped at 1,000 rows');
@@ -812,6 +815,26 @@ async function checkHistoricalPagination() {
   for (const table of ['market_history', 'network_health_history', 'governance_period_history', 'tezosx_history']) {
     if (!migration.includes(`create table if not exists public.${table}`)) {
       fail(`Supabase migration must create ${table}`);
+    }
+  }
+  for (const snippet of [
+    'statistics?timestamp.le=',
+    'context/issuance/current_yearly_rate',
+    'lbToggleEma',
+    'totalOwnStaked',
+    'BACKFILL_DRY_RUN',
+    "method: 'PATCH'"
+  ]) {
+    if (!backfill.includes(snippet)) {
+      fail(`Supabase backfill script must include ${snippet}`);
+    }
+  }
+  if (!packageJson.includes('"backfill:supabase": "node scripts/backfill-supabase-history.mjs"')) {
+    fail('package scripts must expose backfill:supabase');
+  }
+  for (const snippet of ['workflow_dispatch:', 'SUPABASE_KEY', 'BACKFILL_DRY_RUN', "node-version: '24'"]) {
+    if (!backfillWorkflow.includes(snippet)) {
+      fail(`Supabase backfill workflow must include ${snippet}`);
     }
   }
 

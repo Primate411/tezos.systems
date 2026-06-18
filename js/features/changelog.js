@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-18',
         entries: [
+            { type: '⚡', text: 'A manual Supabase backfill workflow can now repair older history rows from timestamped TzKT statistics and archival Octez issuance state' },
             { type: '⚡', text: 'A 30-minute chamber history collector now snapshots market, Network Health, Tezos X, and L1 governance-period state into Supabase domain tables' },
             { type: '⚡', text: 'Historical capture now has a tracked Supabase migration for expanded staking, Liquidity Baking, tz4 power, market, health, governance, and Tezos X history fields' },
             { type: '🎨', text: 'Chamber card stats controls now sit at the bottom of the vertical icon rail below share, direct-link, and info actions' },

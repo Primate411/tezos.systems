@@ -1,0 +1,56 @@
+name: Backfill Supabase History
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Maximum tezos_history rows to backfill in this run'
+        required: true
+        default: '250'
+      dry_run:
+        description: 'Preview patches without writing to Supabase'
+        required: true
+        type: choice
+        default: 'true'
+        options:
+          - 'true'
+          - 'false'
+      start:
+        description: 'Optional inclusive ISO timestamp start'
+        required: false
+        default: ''
+      end:
+        description: 'Optional inclusive ISO timestamp end'
+        required: false
+        default: ''
+      skip_issuance:
+        description: 'Skip archival RPC issuance/LB-rate lookups'
+        required: true
+        type: choice
+        default: 'false'
+        options:
+          - 'false'
+          - 'true'
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Backfill historical Supabase rows
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          BACKFILL_LIMIT: ${{ inputs.limit }}
+          BACKFILL_DRY_RUN: ${{ inputs.dry_run }}
+          BACKFILL_START: ${{ inputs.start }}
+          BACKFILL_END: ${{ inputs.end }}
+          BACKFILL_SKIP_ISSUANCE: ${{ inputs.skip_issuance }}
+        run: node scripts/backfill-supabase-history.mjs
