@@ -4,6 +4,7 @@
 const TZKT_API = 'https://api.tzkt.io/v1';
 const OCTEZ_RPC = 'https://eu.rpc.tez.capital'; // Better for GitHub Actions
 const LB_EMA_DISABLE_THRESHOLD = 1000000000;
+const LB_EMA_DENOMINATOR = 2000000000;
 
 // Fetch with retry logic
 async function fetchWithRetry(url, options = {}, retries = 3) {
@@ -29,16 +30,28 @@ async function getCurrentCycle() {
 // Fetch tz4 baker stats (use consensusAddress field directly!)
 async function getTz4Stats() {
   // Get all active bakers with their consensus addresses
-  const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=address,consensusAddress`);
-  const totalBakers = bakers.length;
+  const bakers = await fetchWithRetry(`${TZKT_API}/delegates?active=true&limit=10000&select=address,consensusAddress,bakingPower`);
+  const poweredBakers = bakers.filter(b => Number(b.bakingPower || 0) > 0);
+  const totalBakers = poweredBakers.length;
+  const totalPowerMutez = poweredBakers.reduce((sum, baker) => sum + Number(baker.bakingPower || 0), 0);
 
   // Count bakers with tz4 consensus addresses
-  const tz4Bakers = bakers.filter(b => b.consensusAddress && b.consensusAddress.startsWith('tz4')).length;
+  const tz4PoweredBakers = poweredBakers.filter(b => b.consensusAddress && b.consensusAddress.startsWith('tz4'));
+  const tz4Bakers = tz4PoweredBakers.length;
+  const tz4PowerMutez = tz4PoweredBakers.reduce((sum, baker) => sum + Number(baker.bakingPower || 0), 0);
   const tz4Percentage = totalBakers > 0 ? (tz4Bakers / totalBakers) * 100 : 0;
+  const tz4PowerPercentage = totalPowerMutez > 0 ? (tz4PowerMutez / totalPowerMutez) * 100 : 0;
 
-  console.log(`Found ${totalBakers} active bakers, ${tz4Bakers} with tz4 consensus addresses (${tz4Percentage.toFixed(2)}%)`);
+  console.log(`Found ${totalBakers} powered active bakers, ${tz4Bakers} with tz4 consensus addresses (${tz4Percentage.toFixed(2)}%, ${tz4PowerPercentage.toFixed(2)}% by power)`);
 
-  return { tz4Bakers, totalBakers, tz4Percentage };
+  return {
+    tz4Bakers,
+    totalBakers,
+    tz4Percentage,
+    tz4PowerPercentage,
+    tz4PowerActive: tz4PowerMutez / 1e6,
+    tz4PowerTotal: totalPowerMutez / 1e6
+  };
 }
 
 // Fetch staking data (match frontend approach)
@@ -49,40 +62,46 @@ async function getStakingData(totalSupplyFromRPC, workingRPC) {
     const totalSupply = totalSupplyFromRPC || 0;
     console.log(`Using total supply: ${totalSupply} XTZ`);
 
-    // Use protocol-frozen stake so pending unstakes stay counted until finalized.
-    const stakeResponse = await fetch(`${workingRPC}/chains/main/blocks/head/context/total_frozen_stake`);
-    if (!stakeResponse.ok) {
-      console.error(`Frozen stake fetch failed: ${stakeResponse.status}`);
-      return { stakingRatio: 0, delegatedRatio: 0, totalSupply, totalStaked: 0 };
+    const [stakeResult, statsResult] = await Promise.allSettled([
+      workingRPC ? fetch(`${workingRPC}/chains/main/blocks/head/context/total_frozen_stake`) : null,
+      fetchWithRetry(`${TZKT_API}/statistics/current`)
+    ]);
+
+    const stats = statsResult.status === 'fulfilled' ? statsResult.value : {};
+    const statsStakedMutez = Number(stats.totalOwnStaked || 0) + Number(stats.totalExternalStaked || 0);
+    let totalStaked = statsStakedMutez > 0 ? statsStakedMutez / 1e6 : 0;
+
+    // Use protocol-frozen stake as a fallback so pending unstakes stay counted until finalized.
+    if (!totalStaked && stakeResult.status === 'fulfilled' && stakeResult.value?.ok) {
+      const stakeMutez = await stakeResult.value.text();
+      totalStaked = parseInt(stakeMutez.replace(/"/g, '')) / 1e6;
     }
 
-    const stakeMutez = await stakeResponse.text();
-    const totalStaked = parseInt(stakeMutez.replace(/"/g, '')) / 1e6;
     console.log(`Total frozen stake: ${totalStaked} XTZ`);
 
     const stakingRatio = totalSupply > 0 ? (totalStaked / totalSupply) * 100 : 0;
 
-    // Get delegated ratio from TzKT cycle data (same as frontend)
-    const head = await fetchWithRetry(`${TZKT_API}/head`);
-    const cycle = await fetchWithRetry(`${TZKT_API}/cycles/${head.cycle}`);
+    const totalDelegated = (Number(stats.totalOwnDelegated || 0) + Number(stats.totalExternalDelegated || 0)) / 1e6;
+    const totalBakingPower = Number(stats.totalBakingPower || 0) / 1e6;
 
-    console.log(`Cycle ${head.cycle} data:`, { totalDelegated: cycle.totalDelegated, totalBakingPower: cycle.totalBakingPower });
+    console.log('Staking data:', { totalDelegated, totalBakingPower });
 
-    const delegatedRatio = cycle.totalDelegated && totalSupply > 0
-      ? (cycle.totalDelegated / totalSupply) * 100
-      : 30; // fallback like frontend
-
+    const delegatedRatio = totalDelegated && totalSupply > 0
+      ? (totalDelegated / totalSupply) * 100
+      : 0;
     console.log(`Staking ratio: ${stakingRatio.toFixed(2)}%, Delegated ratio: ${delegatedRatio.toFixed(2)}%`);
 
     return {
       stakingRatio: isNaN(stakingRatio) ? 0 : stakingRatio,
       delegatedRatio: isNaN(delegatedRatio) ? 0 : delegatedRatio,
       totalSupply: isNaN(totalSupply) ? 0 : totalSupply,
-      totalStaked
+      totalStaked,
+      totalDelegated,
+      totalBakingPower
     };
   } catch (error) {
     console.error('Failed to fetch staking data:', error.message);
-    return { stakingRatio: 0, delegatedRatio: 0, totalSupply: 0, totalStaked: 0 };
+    return { stakingRatio: 0, delegatedRatio: 0, totalSupply: 0, totalStaked: 0, totalDelegated: 0, totalBakingPower: 0 };
   }
 }
 
@@ -94,13 +113,14 @@ async function getLiquidityBakingSubsidyState() {
     const ema = Number(latest?.lbToggleEma);
     const known = Number.isFinite(ema);
     const disabled = known && ema >= LB_EMA_DISABLE_THRESHOLD;
+    const emaPct = known ? (ema / LB_EMA_DENOMINATOR) * 100 : null;
     console.log(known
       ? `Liquidity Baking EMA: ${ema} (${disabled ? 'subsidy disabled' : 'subsidy active'})`
       : 'Liquidity Baking EMA unavailable');
-    return { disabled, ema: known ? ema : null, known };
+    return { disabled, ema: known ? ema : null, emaPct, known };
   } catch (error) {
     console.warn(`Liquidity Baking EMA fetch failed: ${error.message}; assuming subsidy active for snapshot compatibility`);
-    return { disabled: false, ema: null, known: false };
+    return { disabled: false, ema: null, emaPct: null, known: false };
   }
 }
 
@@ -177,6 +197,9 @@ async function getIssuanceRate() {
       protocolRate: adaptiveRate,
       lbRate,
       lbSubsidyDisabled: lbState.disabled,
+      lbEma: lbState.ema,
+      lbEmaPct: lbState.emaPct,
+      lbKnown: lbState.known,
       totalSupply: totalSupplyXTZ,
       workingRPC
     };
@@ -184,6 +207,34 @@ async function getIssuanceRate() {
     console.error('Failed to fetch issuance rate:', error.message);
     return { rate: 0, totalSupply: 0, workingRPC: null };
   }
+}
+
+function calculateStakingApy(protocolRate, stakingData) {
+  const totalSupply = Number(stakingData.totalSupply || 0);
+  const totalStaked = Number(stakingData.totalStaked || 0);
+  const totalDelegated = Number(stakingData.totalDelegated || 0);
+  const netIssuance = Number(protocolRate || 0);
+
+  if (!Number.isFinite(netIssuance) || netIssuance <= 0 || totalSupply <= 0 || totalStaked <= 0) {
+    return { stakeAPY: null, delegateAPY: null };
+  }
+
+  const stakedRatio = totalStaked / totalSupply;
+  const delegatedRatio = totalDelegated / totalSupply;
+  const edge = 2;
+  const effectiveStakeRatio = stakedRatio + delegatedRatio / (1 + edge);
+
+  if (!Number.isFinite(effectiveStakeRatio) || effectiveStakeRatio <= 0) {
+    return { stakeAPY: null, delegateAPY: null };
+  }
+
+  const stakeAPY = (netIssuance / 100) / effectiveStakeRatio * 100;
+  const delegateAPY = stakeAPY / (1 + edge);
+
+  return {
+    stakeAPY,
+    delegateAPY
+  };
 }
 
 // Fetch total burned (match frontend endpoint)
@@ -353,6 +404,11 @@ async function collectData() {
       const num = parseFloat(val);
       return isNaN(num) || !isFinite(num) ? 0 : parseFloat(num.toFixed(decimals));
     };
+    const safeNullableNumber = (val, decimals = 2) => {
+      const num = parseFloat(val);
+      return isNaN(num) || !isFinite(num) ? null : parseFloat(num.toFixed(decimals));
+    };
+    const apy = calculateStakingApy(issuanceData.protocolRate, stakingData);
 
     const dataPoint = {
       timestamp: new Date().toISOString(),
@@ -360,10 +416,23 @@ async function collectData() {
       tz4_bakers: tz4Stats.tz4Bakers || 0,
       tz4_percentage: safeNumber(tz4Stats.tz4Percentage),
       total_bakers: tz4Stats.totalBakers || 0,
+      tz4_power_pct: safeNullableNumber(tz4Stats.tz4PowerPercentage),
+      tz4_power_active: safeNullableNumber(tz4Stats.tz4PowerActive),
+      tz4_power_total: safeNullableNumber(tz4Stats.tz4PowerTotal),
       staking_ratio: safeNumber(stakingData.stakingRatio),
       delegated_ratio: safeNumber(stakingData.delegatedRatio),
+      total_staked: safeNullableNumber(stakingData.totalStaked),
+      total_delegated: safeNullableNumber(stakingData.totalDelegated),
+      total_baking_power: safeNullableNumber(stakingData.totalBakingPower),
+      staking_apy_stake: safeNullableNumber(apy.stakeAPY, 1),
+      staking_apy_delegate: safeNullableNumber(apy.delegateAPY, 1),
       total_supply: safeNumber(stakingData.totalSupply),
       current_issuance_rate: safeNumber(issuanceData.rate),
+      protocol_issuance_rate: safeNullableNumber(issuanceData.protocolRate, 4),
+      lb_issuance_rate: safeNullableNumber(issuanceData.lbRate, 4),
+      lb_ema: safeNullableNumber(issuanceData.lbEma, 0),
+      lb_ema_pct: safeNullableNumber(issuanceData.lbEmaPct, 2),
+      lb_subsidy_disabled: issuanceData.lbKnown ? Boolean(issuanceData.lbSubsidyDisabled) : null,
       total_burned: safeNumber(totalBurned),
       tx_volume_24h: txVolume || 0,
       contract_calls_24h: contractCalls || 0,
@@ -417,19 +486,7 @@ async function collectData() {
     let response = await postHistory(dataPoint);
     if (!response.ok) {
       const error = await response.text();
-      if (error.includes('new_accounts_24h') || error.includes('active_contracts_24h')) {
-        console.warn('Supabase schema is missing new activity columns; retrying legacy payload.');
-        const legacyDataPoint = { ...dataPoint };
-        delete legacyDataPoint.new_accounts_24h;
-        delete legacyDataPoint.active_contracts_24h;
-        response = await postHistory(legacyDataPoint);
-        if (!response.ok) {
-          const retryError = await response.text();
-          throw new Error(`Supabase error: ${response.status} - ${retryError}`);
-        }
-      } else {
-        throw new Error(`Supabase error: ${response.status} - ${error}`);
-      }
+      throw new Error(`Supabase error: ${response.status} - ${error}`);
     }
 
     console.log('Data stored successfully in Supabase');

@@ -69,6 +69,8 @@ tezos.systems/
 │                                      # Pretty share/OG routes into live Chambers
 ├── og/                                # Generated per-chamber OG images
 ├── feed.xml                           # Generated Tezos governance RSS feed
+├── supabase/
+│   └── migrations/                    # SQL contract for historical capture
 ├── tests/
 │   ├── static-checks.mjs              # Dependency-free repo contract checks
 │   └── smoke.mjs                      # Playwright browser smoke suites
@@ -81,6 +83,9 @@ tezos.systems/
 │   ├── update-governance-votes.mjs    # Compatibility wrapper
 │   ├── stamp-version.sh               # Pre-commit version metadata stamp
 │   └── generate-og-image.js           # OG image generator
+├── .github/scripts/
+│   ├── collect-data.js                # 2-hour global Supabase history row
+│   └── collect-chamber-history.js     # 30-minute chamber/domain snapshots
 ├── .githooks/pre-commit               # Shared local hook wrapper
 ├── sw.js                              # Service worker cache and offline strategy
 ├── version.json                       # Served build metadata
@@ -295,6 +300,13 @@ schedule and commits only when generated outputs change.
 
 The Supabase anon key in `js/core/config.js` is public client configuration, not
 a secret. Browser fetch domains must be allowed by the CSP in `index.html`.
+Tracked schema changes live in `supabase/migrations/`; apply them in Supabase
+before collector code that writes new columns is deployed. The GitHub Actions
+collector should use a service-role or equivalent server-side secret for
+`SUPABASE_KEY`; the browser anon key should remain read-only under RLS.
+`.github/workflows/collect-data.yml` writes the 2-hour global `tezos_history`
+row, while `.github/workflows/collect-chamber-history.yml` writes 30-minute
+market, Network Health, Tezos X, and governance-period snapshots.
 
 ## Local Development
 
@@ -327,6 +339,7 @@ npm run bake:compare
 npm run refresh:governance
 npm run guard:readme
 npm run check:readme
+npm run check:supabase
 npm test
 npm run test:static
 npm run test:smoke

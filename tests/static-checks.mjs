@@ -759,6 +759,8 @@ async function checkModuleImportVersions() {
 async function checkHistoricalPagination() {
   const api = await readText('js/core/api.js');
   const history = await readText('js/features/history.js');
+  const collector = await readText('.github/scripts/collect-data.js');
+  const migration = await readText('supabase/migrations/20260618190000_expand_historical_capture.sql');
   if (!api.includes('HISTORICAL_PAGE_SIZE')) {
     fail('fetchHistoricalData must page Supabase history results; default REST responses are capped at 1,000 rows');
   }
@@ -780,6 +782,37 @@ async function checkHistoricalPagination() {
   }
   if (!history.includes('parsing: false') || !history.includes('animation: fastRender ? false')) {
     fail('history charts must use fast Chart.js options for 30d+ rendering');
+  }
+
+  const expandedColumns = [
+    'new_accounts_24h',
+    'active_contracts_24h',
+    'total_staked',
+    'total_delegated',
+    'total_baking_power',
+    'staking_apy_stake',
+    'staking_apy_delegate',
+    'protocol_issuance_rate',
+    'lb_issuance_rate',
+    'lb_ema',
+    'lb_ema_pct',
+    'lb_subsidy_disabled',
+    'tz4_power_pct',
+    'tz4_power_active',
+    'tz4_power_total'
+  ];
+
+  for (const column of expandedColumns) {
+    if (!collector.includes(column)) fail(`historical collector must write ${column}`);
+    if (!migration.includes(column)) fail(`Supabase migration must add ${column}`);
+  }
+  if (/legacy payload|legacyDataPoint|retrying legacy/i.test(collector)) {
+    fail('historical collector must fail on Supabase schema drift instead of silently retrying a legacy payload');
+  }
+  for (const table of ['market_history', 'network_health_history', 'governance_period_history', 'tezosx_history']) {
+    if (!migration.includes(`create table if not exists public.${table}`)) {
+      fail(`Supabase migration must create ${table}`);
+    }
   }
 
   pass('historical data fetch paginates and long-range charts use fast render settings');
