@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-19',
         entries: [
+            { type: '✨', text: 'Network Health now tracks TzKT-reported Octez baker versions by baking power and flags the largest bakers not on the latest observed release' },
             { type: '🔧', text: 'Consensus Lens now uses the latest complete Teztale consensus sample for quorum timing and labels newer heads that are still collecting attestation data' },
             { type: '✨', text: 'Network Health now adds a Teztale-powered Consensus Lens for quorum timing, validation delay, source count, and simple operations reporting with Nomadic Labs credit' },
             { type: '🔧', text: 'Tezos X Governance now says No Proposal during quiet L2 periods instead of using track jargon on the front card' },

@@ -4095,6 +4095,153 @@ body::before {
     text-decoration: underline;
 }
 
+.health-octez-panel {
+    border-color: rgba(245, 214, 91, 0.16);
+    background:
+        linear-gradient(135deg, rgba(245, 214, 91, 0.065), rgba(77, 212, 255, 0.03)),
+        rgba(255, 255, 255, 0.025);
+}
+
+.health-octez-panel.unavailable {
+    border-color: rgba(245, 214, 91, 0.16);
+}
+
+.health-octez-hero {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 8px 0 14px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.035);
+}
+
+.health-octez-hero strong {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.32rem;
+    font-weight: 850;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.health-octez-hero span {
+    min-width: 0;
+    color: var(--text-secondary, #888);
+    font-size: 0.74rem;
+    line-height: 1.3;
+    text-align: right;
+}
+
+.health-octez-hero.peak strong {
+    color: #50e888;
+}
+
+.health-octez-hero.healthy strong {
+    color: #4dd4ff;
+}
+
+.health-octez-hero.watch strong {
+    color: #f5d65b;
+}
+
+.health-octez-hero.degraded strong {
+    color: #ff5e72;
+}
+
+.health-octez-version-list {
+    display: grid;
+    gap: 7px;
+    margin: 12px 0;
+}
+
+.health-octez-version-row {
+    display: grid;
+    grid-template-columns: minmax(78px, 0.5fr) minmax(0, 1fr) minmax(88px, 0.55fr);
+    gap: 9px;
+    align-items: center;
+    min-height: 38px;
+    padding: 7px 9px;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.025);
+}
+
+.health-octez-version-row.current {
+    border-color: rgba(80, 232, 136, 0.16);
+    background: rgba(80, 232, 136, 0.055);
+}
+
+.health-octez-version-main,
+.health-octez-version-share {
+    display: grid;
+    gap: 3px;
+    min-width: 0;
+}
+
+.health-octez-version-main strong,
+.health-octez-version-share strong,
+.health-octez-laggard-row > strong,
+.health-octez-laggard-row > span {
+    overflow: hidden;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 850;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.health-octez-version-main span,
+.health-octez-version-share span {
+    overflow: hidden;
+    color: var(--text-tertiary, #555);
+    font-size: 0.64rem;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.health-octez-version-meter {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.055);
+}
+
+.health-octez-version-meter span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #f5d65b, #4dd4ff);
+    box-shadow: 0 0 10px rgba(245, 214, 91, 0.25);
+}
+
+.health-octez-version-row.current .health-octez-version-meter span {
+    background: linear-gradient(90deg, #50e888, #4dd4ff);
+}
+
+.health-octez-laggard-table {
+    margin-bottom: 10px;
+}
+
+.health-octez-laggard-table .lb-table-head,
+.health-octez-laggard-table .lb-table-row {
+    grid-template-columns: minmax(0, 1.35fr) 78px minmax(84px, 0.7fr);
+}
+
+.health-octez-laggard-row > strong {
+    color: #f5d65b;
+}
+
+.health-octez-laggard-row > span {
+    color: var(--text-secondary, #888);
+}
+
 .health-cycle-panel {
     border-color: rgba(80, 232, 136, 0.14);
 }
@@ -20682,6 +20829,24 @@ body {
         grid-column: 1 / -1;
     }
 
+    .health-octez-hero {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .health-octez-hero span {
+        text-align: left;
+    }
+
+    .health-octez-version-row {
+        grid-template-columns: minmax(72px, 0.55fr) minmax(0, 1fr);
+    }
+
+    .health-octez-version-meter {
+        grid-column: 1 / -1;
+    }
+
     .lb-vote-bar-row {
         grid-template-columns: 42px minmax(70px, 1fr);
     }
@@ -20841,6 +21006,18 @@ body {
     .health-attester-table .lb-table-row > span:last-child,
     .health-missed-block-table .lb-table-head span:last-child,
     .health-missed-block-table .lb-table-row > div:last-child {
+        grid-column: 1 / -1;
+        font-size: 0.7rem;
+        color: var(--text-tertiary, #555);
+    }
+
+    .health-octez-laggard-table .lb-table-head,
+    .health-octez-laggard-table .lb-table-row {
+        grid-template-columns: minmax(0, 1fr) 72px;
+    }
+
+    .health-octez-laggard-table .lb-table-head span:last-child,
+    .health-octez-laggard-table .lb-table-row > span:last-child {
         grid-column: 1 / -1;
         font-size: 0.7rem;
         color: var(--text-tertiary, #555);

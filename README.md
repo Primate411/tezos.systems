@@ -195,13 +195,14 @@ inline modal styles in `js/core/app.js`.
   and ecosystem metrics are opt-in from Explore under Network Stats.
 - Network Health Chamber with direct `#health` access, recent block cadence,
   consensus round, missed attestation, missed baking-right detail, TzKT cyclic
-  cycle-time drift, Teztale quorum/validation/source observations credited to
-  Nomadic Labs, and a compact saved My Tezos baker summary. Its Chambers card
-  spans two tiles and includes compact block-power bars plus a deduped throttled
-  1,000+ XTZ live activity tape; the open chamber refreshes on the block cadence
-  with in-place row updates instead of a full rerender, and now adds incident
-  memory, cycle timing, period telemetry, network-load, and Consensus Lens
-  panels.
+  cycle-time drift, TzKT-reported Octez baker version distribution by baking
+  power, Teztale quorum/validation/source observations credited to Nomadic
+  Labs, and a compact saved My Tezos baker summary. Its Chambers card spans two
+  tiles and includes compact block-power bars plus a deduped throttled 1,000+
+  XTZ live activity tape; the open chamber refreshes on the block cadence with
+  in-place row updates instead of a full rerender, and now adds incident memory,
+  cycle timing, Octez versions, period telemetry, network-load, and Consensus
+  Lens panels.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
@@ -278,7 +279,7 @@ room.
 
 | Source | Purpose |
 |--------|---------|
-| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, blocks, operations, governance, accounts, Etherlink governance contract discovery/storage/bigmaps, and ctez oven discovery |
+| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, baker Octez software/version telemetry, blocks, operations, governance, accounts, Etherlink governance contract discovery/storage/bigmaps, and ctez oven discovery |
 | Octez RPC `https://eu.rpc.tez.capital` | Issuance, supply, constants, cycle/head metadata |
 | Teztale `https://teztale-server-mainnet-ro-prd.octez.tech` | Consensus timing lens for Network Health, including quorum delay, validation/application delay, source count, and operations-report observations; Teztale is by Nomadic Labs |
 | CoinGecko | XTZ price, market cap, 24h change, volume |
@@ -441,7 +442,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v238`.
+- Current aligned shell cache stamp: `v239`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

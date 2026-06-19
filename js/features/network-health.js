@@ -35,6 +35,8 @@ const CYCLE_DRIFT_PEAK_PCT = 1;
 const CYCLE_DRIFT_WATCH_PCT = 3;
 const CYCLE_DRIFT_DEGRADED_PCT = 4;
 const PROTOCOL_CONSTANTS_TTL = 30 * 60 * 1000;
+const OCTEZ_VERSIONS_TTL = 30 * 60 * 1000;
+const OCTEZ_VERSION_PAGE_LIMIT = 500;
 const STORAGE_KEY = 'tezos-systems-network-health';
 const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
 
@@ -64,6 +66,9 @@ let cycleTimingCacheAt = 0;
 let cycleTimingInFlight = null;
 let protocolConstantsCache = null;
 let protocolConstantsCacheAt = 0;
+let octezVersionsCache = null;
+let octezVersionsCacheAt = 0;
+let octezVersionsInFlight = null;
 
 function formatCount(value) {
     return Number(value || 0).toLocaleString('en-US');
@@ -219,6 +224,12 @@ function shortAddress(address) {
 
 function bakerName(baker) {
     return baker?.alias || shortAddress(baker?.address);
+}
+
+function formatBakingPower(value) {
+    const power = Number(value);
+    if (!Number.isFinite(power)) return '--';
+    return `${formatCompactPower(power / 1e6)} XTZ`;
 }
 
 function latestBlockStatus(block) {
@@ -756,6 +767,181 @@ async function fetchActivityTape({ force = false } = {}) {
     return activityTapeInFlight;
 }
 
+function normalizeOctezSoftware(software) {
+    const rawVersion = typeof software === 'string' ? software : software?.version;
+    const rawDate = typeof software === 'object' && software ? software.date : null;
+    const version = String(rawVersion || '').trim();
+    const known = Boolean(version) && !/^octez$/i.test(version);
+    return {
+        known,
+        version: known ? version : 'Unknown',
+        date: rawDate || null
+    };
+}
+
+function versionParts(version) {
+    const parts = String(version || '').match(/\d+/g);
+    return parts ? parts.map((part) => Number(part)) : [];
+}
+
+function compareVersionLabels(a, b) {
+    const left = versionParts(a);
+    const right = versionParts(b);
+    if (!left.length && !right.length) return String(a || '').localeCompare(String(b || ''));
+    if (!left.length) return -1;
+    if (!right.length) return 1;
+    const length = Math.max(left.length, right.length);
+    for (let index = 0; index < length; index += 1) {
+        const delta = (left[index] || 0) - (right[index] || 0);
+        if (delta) return delta;
+    }
+    return String(a || '').localeCompare(String(b || ''));
+}
+
+function normalizeOctezVersionBaker(row) {
+    const software = normalizeOctezSoftware(row?.software);
+    return {
+        address: row?.address || '',
+        alias: row?.alias || '',
+        bakingPower: Math.max(0, Number(row?.bakingPower) || 0),
+        software
+    };
+}
+
+function octezVersionsFallback(error = '') {
+    return {
+        available: false,
+        label: 'Unavailable',
+        className: 'unknown',
+        error,
+        latestVersion: 'Unknown',
+        latestPowerShare: null,
+        totalBakers: 0,
+        knownBakers: 0,
+        totalPower: 0,
+        latestPower: 0,
+        outdatedPower: 0,
+        versionRows: [],
+        laggingBakers: [],
+        freshestDate: null
+    };
+}
+
+function buildOctezVersions(rows) {
+    const bakers = (Array.isArray(rows) ? rows : [])
+        .map(normalizeOctezVersionBaker)
+        .filter((baker) => baker.address && baker.bakingPower > 0);
+    if (!bakers.length) return octezVersionsFallback('No active baker software data returned');
+
+    const totalPower = bakers.reduce((sum, baker) => sum + baker.bakingPower, 0);
+    const groups = new Map();
+    let freshestDate = null;
+
+    for (const baker of bakers) {
+        const key = baker.software.version;
+        const current = groups.get(key) || {
+            version: key,
+            known: baker.software.known,
+            bakerCount: 0,
+            power: 0,
+            latestDate: null
+        };
+        current.bakerCount += 1;
+        current.power += baker.bakingPower;
+        if (baker.software.date) {
+            const dateMs = new Date(baker.software.date).getTime();
+            const currentMs = current.latestDate ? new Date(current.latestDate).getTime() : 0;
+            const freshestMs = freshestDate ? new Date(freshestDate).getTime() : 0;
+            if (Number.isFinite(dateMs) && dateMs > currentMs) current.latestDate = baker.software.date;
+            if (Number.isFinite(dateMs) && dateMs > freshestMs) freshestDate = baker.software.date;
+        }
+        groups.set(key, current);
+    }
+
+    const knownVersions = [...groups.values()]
+        .filter((group) => group.known)
+        .map((group) => group.version)
+        .sort(compareVersionLabels);
+    const latestVersion = knownVersions[knownVersions.length - 1] || 'Unknown';
+    const latestPower = latestVersion === 'Unknown' ? 0 : (groups.get(latestVersion)?.power || 0);
+    const latestPowerShare = totalPower > 0 ? (latestPower / totalPower) * 100 : 0;
+    const versionRows = [...groups.values()].map((group) => ({
+        ...group,
+        powerShare: totalPower > 0 ? (group.power / totalPower) * 100 : 0,
+        current: group.version === latestVersion && group.known
+    })).sort((a, b) => {
+        if (a.current !== b.current) return a.current ? -1 : 1;
+        if (a.known !== b.known) return a.known ? -1 : 1;
+        const versionDelta = compareVersionLabels(b.version, a.version);
+        return versionDelta || b.power - a.power;
+    });
+
+    const laggingBakers = bakers
+        .filter((baker) => !baker.software.known || baker.software.version !== latestVersion)
+        .sort((a, b) => b.bakingPower - a.bakingPower)
+        .slice(0, 5);
+
+    let className = 'degraded';
+    let label = 'Upgrade gap';
+    if (latestPowerShare >= 90) {
+        className = 'peak';
+        label = 'Broadly current';
+    } else if (latestPowerShare >= 75) {
+        className = 'healthy';
+        label = 'Mostly current';
+    } else if (latestPowerShare >= 50) {
+        className = 'watch';
+        label = 'Split fleet';
+    }
+
+    return {
+        available: true,
+        className,
+        label,
+        latestVersion,
+        latestPowerShare,
+        totalBakers: bakers.length,
+        knownBakers: bakers.filter((baker) => baker.software.known).length,
+        totalPower,
+        latestPower,
+        outdatedPower: Math.max(0, totalPower - latestPower),
+        versionRows,
+        laggingBakers,
+        freshestDate
+    };
+}
+
+async function fetchOctezVersions({ force = false } = {}) {
+    if (!force && octezVersionsCache && Date.now() - octezVersionsCacheAt < OCTEZ_VERSIONS_TTL) {
+        return octezVersionsCache;
+    }
+    if (octezVersionsInFlight) return octezVersionsInFlight;
+
+    octezVersionsInFlight = (async () => {
+        const fields = 'address,alias,bakingPower,software';
+        const rows = [];
+        let offset = 0;
+        while (true) {
+            const url = `${TZKT}/delegates?active=true&select=${fields}&sort.desc=bakingPower&limit=${OCTEZ_VERSION_PAGE_LIMIT}&offset=${offset}`;
+            const page = await fetchJson(url, 1);
+            if (!Array.isArray(page)) break;
+            rows.push(...page);
+            if (page.length < OCTEZ_VERSION_PAGE_LIMIT) break;
+            offset += OCTEZ_VERSION_PAGE_LIMIT;
+        }
+        octezVersionsCache = buildOctezVersions(rows);
+        octezVersionsCacheAt = Date.now();
+        return octezVersionsCache;
+    })().catch((error) => {
+        console.warn('Network Health Octez version telemetry failed:', error);
+        return octezVersionsCache || octezVersionsFallback(error?.message || 'TzKT delegate software fetch failed');
+    }).finally(() => {
+        octezVersionsInFlight = null;
+    });
+
+    return octezVersionsInFlight;
+}
+
 async function fetchProtocolCycleTargetSeconds() {
     if (protocolConstantsCache && Date.now() - protocolConstantsCacheAt < PROTOCOL_CONSTANTS_TTL) {
         return protocolConstantsCache;
@@ -1152,14 +1338,24 @@ async function fetchNetworkHealthChamberData() {
     const headTimestamp = blocks[0]?.timestamp || null;
     const oldestLevel = blocks[blocks.length - 1]?.level || headLevel;
     const missedBlockStart = Math.max(1, headLevel - MISSED_BLOCK_LOOKBACK);
-    const [missedAttestations, missedBlocks, activityTape, teztaleLens] = headLevel
-        ? await Promise.all([
+    const octezVersionsPromise = fetchOctezVersions();
+    let missedAttestations = [];
+    let missedBlocks = [];
+    let activityTape = [];
+    let teztaleLens = teztaleFallback('TzKT head level unavailable');
+    let octezVersions = null;
+
+    if (headLevel) {
+        [missedAttestations, missedBlocks, activityTape, teztaleLens, octezVersions] = await Promise.all([
             fetchMissedRights('attestation', oldestLevel, headLevel),
             fetchMissedRights('baking', missedBlockStart, headLevel, 30),
             fetchActivityTape(),
-            fetchTeztaleConsensusLens(headLevel)
-        ])
-        : [[], [], [], teztaleFallback('TzKT head level unavailable')];
+            fetchTeztaleConsensusLens(headLevel),
+            octezVersionsPromise
+        ]);
+    } else {
+        octezVersions = await octezVersionsPromise;
+    }
 
     return {
         updatedAt: Date.now(),
@@ -1174,6 +1370,7 @@ async function fetchNetworkHealthChamberData() {
         missedBlocks,
         activityTape,
         teztaleLens,
+        octezVersions,
         periods: cachedData?.periods || [],
         cycleTiming: cycleTiming || cachedData?.cycleTiming || null
     };
@@ -1535,6 +1732,77 @@ function renderTeztaleConsensusPanel(data) {
     `;
 }
 
+function renderOctezVersionRows(rows) {
+    if (!rows?.length) return '<div class="health-consensus-empty">No Octez version distribution returned.</div>';
+    return rows.slice(0, 5).map((row) => {
+        const width = Math.max(2, Math.min(100, row.powerShare || 0));
+        return `
+            <div class="health-octez-version-row ${row.current ? 'current' : ''}">
+                <div class="health-octez-version-main">
+                    <strong>${escapeHtml(row.version)}</strong>
+                    <span>${row.current ? 'Latest observed' : `${formatCount(row.bakerCount)} bakers`}</span>
+                </div>
+                <div class="health-octez-version-meter" aria-hidden="true"><span style="width:${width.toFixed(2)}%"></span></div>
+                <div class="health-octez-version-share">
+                    <strong>${formatPct(row.powerShare)}%</strong>
+                    <span>${formatBakingPower(row.power)}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderOctezLaggardRows(rows) {
+    if (!rows?.length) {
+        return '<div class="lb-empty-inline">All known baking power is on the latest observed Octez version.</div>';
+    }
+    return rows.map((baker) => `
+        <div class="lb-table-row health-octez-laggard-row">
+            <div class="lb-baker-cell">${bakerLinks(baker.address, bakerName(baker))}</div>
+            <strong>${escapeHtml(baker.software.version)}</strong>
+            <span>${formatBakingPower(baker.bakingPower)}</span>
+        </div>
+    `).join('');
+}
+
+function renderOctezVersionsPanel(data) {
+    const versions = data.octezVersions || octezVersionsFallback();
+    if (!versions.available) {
+        return `
+            <section class="lb-panel health-panel health-octez-panel chamber-anim-fade unavailable" id="health-octez-versions" style="animation-delay:135ms">
+                <div class="lb-panel-title">Octez Versions <span class="lb-live-pill">TzKT delegates</span></div>
+                <div class="health-consensus-empty">
+                    Baker Octez version telemetry is unavailable right now; block and consensus health remain live.
+                </div>
+            </section>
+        `;
+    }
+
+    return `
+        <section class="lb-panel health-panel health-octez-panel chamber-anim-fade" id="health-octez-versions" style="animation-delay:135ms">
+            <div class="lb-panel-title">Octez Versions <span class="lb-live-pill">TzKT delegates</span></div>
+            <div class="health-octez-hero ${versions.className}">
+                <strong id="health-octez-current">${escapeHtml(versions.latestVersion)}</strong>
+                <span id="health-octez-status">${escapeHtml(versions.label)} · latest observed on ${formatPct(versions.latestPowerShare)}% of baking power</span>
+            </div>
+            <div class="lb-metric-grid health-metric-grid health-octez-metrics">
+                <div><span>Latest power</span><strong id="health-octez-latest-power">${formatPct(versions.latestPowerShare)}%</strong></div>
+                <div><span>Known bakers</span><strong id="health-octez-known">${formatCount(versions.knownBakers)} / ${formatCount(versions.totalBakers)}</strong></div>
+                <div><span>Freshest report</span><strong id="health-octez-updated"${healthAgeAttr(versions.freshestDate)}>${formatAge(versions.freshestDate)}</strong></div>
+            </div>
+            <div class="health-octez-version-list" id="health-octez-version-list">
+                ${renderOctezVersionRows(versions.versionRows)}
+            </div>
+            <div class="health-consensus-events-label">Largest not on latest observed</div>
+            <div class="lb-table health-octez-laggard-table">
+                <div class="lb-table-head"><span>Baker</span><span>Version</span><span>Power</span></div>
+                <div id="health-octez-laggards">${renderOctezLaggardRows(versions.laggingBakers)}</div>
+            </div>
+            <div class="health-timing-note">TzKT delegate software reports observed baker node versions; use it as upgrade-readiness telemetry, not a formal protocol requirement.</div>
+        </section>
+    `;
+}
+
 function renderMyTezosBakerPanel(data) {
     const baker = summarizeMyTezosBaker(data);
     if (!baker) return '';
@@ -1785,6 +2053,7 @@ function renderNetworkHealthChamber(data, container) {
             ${renderHealthScorePanel(data)}
             ${renderTimingPanel(data)}
             ${renderTeztaleConsensusPanel(data)}
+            ${renderOctezVersionsPanel(data)}
             ${renderCycleTimingPanel(data)}
             ${renderIncidentMemoryPanel(data)}
             ${renderPeriodTelemetryPanel(data)}
@@ -1941,6 +2210,11 @@ function updateRecentBlockRows(blocks) {
 function updateHealthStoryPanels(data) {
     const consensus = document.getElementById('health-teztale-consensus');
     if (consensus) consensus.outerHTML = renderTeztaleConsensusPanel(data);
+    const octez = document.getElementById('health-octez-versions');
+    if (octez) {
+        octez.outerHTML = renderOctezVersionsPanel(data);
+        initHealthBakerProfileLinks(document.getElementById('health-octez-versions') || document);
+    }
     const cycle = document.getElementById('health-cycle-timing');
     if (cycle) cycle.outerHTML = renderCycleTimingPanel(data);
     const incident = document.getElementById('health-incident-memory');

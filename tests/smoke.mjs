@@ -208,7 +208,7 @@ const sampleBakers = [
     bakingPower: 950000000000,
     consensusAddress: 'tz4QaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQaQa',
     balance: 900000000000,
-    software: 'Octez'
+    software: { version: 'v25.0', date: '2026-06-16T11:58:56Z' }
   },
   {
     address: SAMPLE_ADDRESS_2,
@@ -222,7 +222,7 @@ const sampleBakers = [
     bakingPower: 650000000000,
     consensusAddress: null,
     balance: 600000000000,
-    software: 'Octez'
+    software: { version: 'v24.4', date: '2026-04-17T10:26:39Z' }
   },
   {
     address: SAMPLE_ADDRESS_3,
@@ -236,7 +236,7 @@ const sampleBakers = [
     bakingPower: 420000000000,
     consensusAddress: null,
     balance: 500000000000,
-    software: 'Octez'
+    software: { version: 'v24.1', date: '2026-01-22T19:55:16Z' }
   }
 ];
 
@@ -254,7 +254,7 @@ const overdelegatedBaker = {
   bakingPower: 695000000000,
   consensusAddress: null,
   limitOfStakingOverBaking: 9000000,
-  software: 'Octez'
+  software: { version: 'v24.4', date: '2026-04-17T10:26:39Z' }
 };
 
 function sampleHistoryRows() {
@@ -3461,6 +3461,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#health-missed-attester-list .health-attester-row').length >= 2, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#health-activity-list .health-activity-row').length >= 1, null, { timeout: 10000 });
   await page.waitForFunction(() => /Teztale/.test(document.querySelector('#health-teztale-consensus')?.textContent || ''), null, { timeout: 10000 });
+  await page.waitForFunction(() => /Octez Versions/.test(document.querySelector('#health-octez-versions')?.textContent || ''), null, { timeout: 10000 });
   await page.waitForFunction(() => /Block/.test(document.querySelector('#block-ticker-line')?.textContent || ''), null, { timeout: 10000 });
 
   const healthState = await page.evaluate(() => {
@@ -3529,6 +3530,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       teztaleCreditHref: modal?.querySelector('#health-teztale-credit a[href*="teztale-dataviz"]')?.href || '',
       teztaleNomadicHref: modal?.querySelector('#health-teztale-credit a[href*="nomadic-labs/teztale"]')?.href || '',
       teztaleEvents: modal?.querySelectorAll('#health-teztale-events .health-consensus-event').length || 0,
+      octezVersions: modal?.querySelector('#health-octez-versions')?.textContent || '',
+      octezCurrent: modal?.querySelector('#health-octez-current')?.textContent || '',
+      octezLatestPower: modal?.querySelector('#health-octez-latest-power')?.textContent || '',
+      octezKnown: modal?.querySelector('#health-octez-known')?.textContent || '',
+      octezUpdatedAge: modal?.querySelector('#health-octez-updated')?.textContent || '',
+      octezRows: modal?.querySelectorAll('#health-octez-version-list .health-octez-version-row').length || 0,
+      octezLaggers: modal?.querySelectorAll('#health-octez-laggards .health-octez-laggard-row').length || 0,
       periodTelemetry: modal?.querySelector('#health-period-telemetry')?.textContent || '',
       networkLoad: modal?.querySelector('#health-network-load')?.textContent || '',
       myBaker: modal?.querySelector('.health-my-baker-panel')?.textContent || '',
@@ -3623,6 +3631,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.teztaleEvents >= 1, `network health chamber: Teztale report rows missing: ${healthState.teztaleEvents}`);
   assert(healthState.teztaleCreditHref.includes('nomadic-labs.gitlab.io/teztale-dataviz'), `network health chamber: Teztale dataviz link missing: ${healthState.teztaleCreditHref}`);
   assert(healthState.teztaleNomadicHref.includes('gitlab.com/nomadic-labs/teztale'), `network health chamber: Teztale source credit link missing: ${healthState.teztaleNomadicHref}`);
+  assert(/Octez Versions/.test(healthState.octezVersions) && /TzKT delegates/.test(healthState.octezVersions), `network health chamber: Octez versions panel missing source context: ${healthState.octezVersions}`);
+  assert(healthState.octezCurrent === 'v25.0', `network health chamber: latest observed Octez version mismatch: ${healthState.octezCurrent}`);
+  assert(/47\.0%/.test(healthState.octezLatestPower), `network health chamber: latest Octez power share mismatch: ${healthState.octezLatestPower}`);
+  assert(healthState.octezKnown === '3 / 3', `network health chamber: known Octez baker count mismatch: ${healthState.octezKnown}`);
+  assert(healthState.octezRows >= 3, `network health chamber: Octez version distribution missing rows: ${healthState.octezRows}`);
+  assert(healthState.octezLaggers >= 2 && /Second Baker/.test(healthState.octezVersions) && /v24\.4/.test(healthState.octezVersions), `network health chamber: Octez lagging baker list incomplete: ${healthState.octezVersions}`);
+  assert(/ago|just now/.test(healthState.octezUpdatedAge), `network health chamber: Octez freshness age missing: ${healthState.octezUpdatedAge}`);
   assert(/Period Telemetry/.test(healthState.periodTelemetry) && /24H/.test(healthState.periodTelemetry) && /31D/.test(healthState.periodTelemetry), `network health chamber: period telemetry missing: ${healthState.periodTelemetry}`);
   assert(/Network Load/.test(healthState.networkLoad) && /Large tx rows/.test(healthState.networkLoad), `network health chamber: network load panel missing: ${healthState.networkLoad}`);
   assert(/Second Baker/.test(healthState.myBaker), `network health chamber: My Tezos baker panel missing baker identity: ${healthState.myBaker}`);
