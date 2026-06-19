@@ -167,6 +167,363 @@ function escapeAttr(value) {
         .replace(/>/g, '&gt;');
 }
 
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function latestRow(data) {
+    return Array.isArray(data) && data.length ? data[data.length - 1] : null;
+}
+
+function latestNumericRow(data, metric) {
+    if (!Array.isArray(data)) return null;
+    for (let index = data.length - 1; index >= 0; index -= 1) {
+        if (Number.isFinite(metricValue(data[index]?.[metric]))) return data[index];
+    }
+    return latestRow(data);
+}
+
+function numericField(row, metric) {
+    return row ? metricValue(row[metric]) : NaN;
+}
+
+function formatCompact(value, options = {}) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '--';
+    const abs = Math.abs(number);
+    const maximumFractionDigits = options.maximumFractionDigits ?? (abs >= 100 ? 1 : 2);
+    const minimumFractionDigits = options.minimumFractionDigits ?? 0;
+    return new Intl.NumberFormat('en-US', {
+        notation: abs >= 10000 ? 'compact' : 'standard',
+        maximumFractionDigits,
+        minimumFractionDigits
+    }).format(number);
+}
+
+function formatPct(value, digits = 1) {
+    const number = Number(value);
+    return Number.isFinite(number) ? `${number.toFixed(digits)}%` : '--';
+}
+
+function formatUsd(value, options = {}) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '--';
+    if (options.price || Math.abs(number) < 10) {
+        return `$${number.toLocaleString('en-US', {
+            minimumFractionDigits: number < 1 ? 3 : 2,
+            maximumFractionDigits: number < 1 ? 4 : 2
+        })}`;
+    }
+    return `$${formatCompact(number, { maximumFractionDigits: 2 })}`;
+}
+
+function formatXTZ(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? `${formatCompact(number, { maximumFractionDigits: 2 })} XTZ` : '--';
+}
+
+function formatMaybe(value, formatter) {
+    const number = Number(value);
+    return Number.isFinite(number) ? formatter(number) : '--';
+}
+
+function formatMs(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '--';
+    if (number >= 1000) return `${(number / 1000).toFixed(2)}s`;
+    return `${Math.round(number)}ms`;
+}
+
+function shortHash(value) {
+    const text = String(value || '');
+    if (text.length <= 16) return text || '--';
+    return `${text.slice(0, 8)}...${text.slice(-5)}`;
+}
+
+function rangeLabel(range) {
+    return ({
+        '24h': '24h',
+        '7d': '7d',
+        '30d': '30d',
+        '90d': '90d',
+        all: 'all time'
+    })[range] || range || 'selected range';
+}
+
+function formatUtcDate(value) {
+    if (!value) return '--';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '--';
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC',
+        timeZoneName: 'short'
+    });
+}
+
+function trendForMetric(data, metric, unit = '', options = {}) {
+    const points = normalizeMetricPoints(data || [], metric);
+    if (points.length < 2) return null;
+    const first = points[0].value;
+    const current = points[points.length - 1].value;
+    if (!Number.isFinite(first) || !Number.isFinite(current)) return null;
+
+    const change = options.points || unit === '%'
+        ? current - first
+        : first !== 0
+            ? ((current - first) / first) * 100
+            : 0;
+    if (!Number.isFinite(change)) return null;
+
+    const abs = Math.abs(change);
+    const suffix = options.points || unit === '%' ? 'pp' : '%';
+    const digits = abs < 1 ? 2 : 1;
+    const sign = change > 0 ? '+' : change < 0 ? '-' : '';
+    const tone = change > 0 ? (options.inverted ? 'negative' : 'positive') : change < 0 ? (options.inverted ? 'positive' : 'negative') : 'neutral';
+
+    return {
+        tone,
+        text: `${sign}${abs.toFixed(digits)}${suffix}`,
+        raw: change
+    };
+}
+
+function digestMetric(label, value) {
+    return `
+        <div class="history-digest-metric">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+        </div>
+    `;
+}
+
+function renderDigestCard(card) {
+    const trend = card.trend || { text: card.status || 'steady', tone: 'neutral' };
+    return `
+        <article class="history-digest-card" data-tone="${escapeAttr(card.tone || 'default')}">
+            <div class="history-digest-kicker">${escapeHtml(card.kicker)}</div>
+            <div class="history-digest-main">
+                <div>
+                    <h4>${escapeHtml(card.title)}</h4>
+                    <strong>${escapeHtml(card.value)}</strong>
+                </div>
+                <span class="history-digest-trend ${escapeAttr(trend.tone)}">${escapeHtml(trend.text)}</span>
+            </div>
+            <p>${escapeHtml(card.body)}</p>
+            <div class="history-digest-metrics">
+                ${(card.metrics || []).map(item => digestMetric(item.label, item.value)).join('')}
+            </div>
+        </article>
+    `;
+}
+
+function buildConsensusDigest(data) {
+    const row = latestNumericRow(data, 'tz4_power_pct') || latestNumericRow(data, 'tz4_percentage');
+    const powerPct = numericField(row, 'tz4_power_pct');
+    const countPct = numericField(row, 'tz4_percentage');
+    const activePower = numericField(row, 'tz4_power_active');
+    const totalPower = numericField(row, 'tz4_power_total');
+    const gap = Number.isFinite(powerPct) && Number.isFinite(countPct) ? powerPct - countPct : NaN;
+    const body = Number.isFinite(gap)
+        ? `Power-weighted adoption is ${Math.abs(gap).toFixed(1)}pp ${gap >= 0 ? 'ahead of' : 'behind'} baker-count adoption.`
+        : 'Power-weighted tz4 capture is warming up from the expanded history rows.';
+
+    return {
+        tone: 'consensus',
+        kicker: 'Consensus',
+        title: 'tz4 power',
+        value: Number.isFinite(powerPct) ? formatPct(powerPct) : formatPct(countPct),
+        trend: trendForMetric(data, Number.isFinite(powerPct) ? 'tz4_power_pct' : 'tz4_percentage', '%'),
+        body,
+        metrics: [
+            { label: 'By count', value: formatPct(countPct) },
+            { label: 'Active power', value: formatXTZ(activePower) },
+            { label: 'Total power', value: formatXTZ(totalPower) }
+        ]
+    };
+}
+
+function buildEconomyDigest(data) {
+    const row = latestNumericRow(data, 'total_staked') || latestRow(data);
+    const staked = numericField(row, 'total_staked');
+    const delegated = numericField(row, 'total_delegated');
+    const supply = numericField(row, 'total_supply');
+    const stakePct = Number.isFinite(staked) && Number.isFinite(supply) && supply > 0 ? (staked / supply) * 100 : numericField(row, 'staking_ratio');
+    const delegatedPct = Number.isFinite(delegated) && Number.isFinite(supply) && supply > 0 ? (delegated / supply) * 100 : numericField(row, 'delegated_ratio');
+
+    return {
+        tone: 'economy',
+        kicker: 'Economy',
+        title: 'Staking base',
+        value: formatXTZ(staked),
+        trend: trendForMetric(data, 'total_staked', ' XTZ'),
+        body: `${formatPct(stakePct)} staked and ${formatPct(delegatedPct)} delegated in the latest global snapshot.`,
+        metrics: [
+            { label: 'Stake APY', value: formatPct(numericField(row, 'staking_apy_stake')) },
+            { label: 'Delegate APY', value: formatPct(numericField(row, 'staking_apy_delegate')) },
+            { label: 'Baking power', value: formatXTZ(numericField(row, 'total_baking_power')) }
+        ]
+    };
+}
+
+function buildLiquidityDigest(data) {
+    const row = latestNumericRow(data, 'lb_ema_pct') || latestRow(data);
+    const emaPct = numericField(row, 'lb_ema_pct');
+    const disabled = row?.lb_subsidy_disabled === true;
+    const distance = Number.isFinite(emaPct) ? Math.abs(emaPct - 50) : NaN;
+    const body = Number.isFinite(emaPct)
+        ? disabled
+            ? `Subsidy is disabled; OFF-vote EMA sits ${distance.toFixed(1)}pp past the 50% threshold.`
+            : `Subsidy is active; OFF-vote EMA is ${distance.toFixed(1)}pp from the 50% threshold.`
+        : 'Liquidity Baking EMA capture is warming up.';
+
+    return {
+        tone: disabled ? 'warning' : 'liquidity',
+        kicker: 'Liquidity Baking',
+        title: disabled ? 'Subsidy disabled' : 'Subsidy active',
+        value: formatPct(emaPct),
+        trend: trendForMetric(data, 'lb_ema_pct', '%', { inverted: true }),
+        body,
+        metrics: [
+            { label: 'Protocol issuance', value: formatPct(numericField(row, 'protocol_issuance_rate'), 2) },
+            { label: 'LB issuance', value: formatPct(numericField(row, 'lb_issuance_rate'), 2) },
+            { label: 'Raw EMA', value: formatCompact(numericField(row, 'lb_ema'), { maximumFractionDigits: 0 }) }
+        ]
+    };
+}
+
+function buildMarketDigest(rows) {
+    const row = latestNumericRow(rows, 'price_usd');
+    const change = numericField(row, 'change_24h_pct');
+    const body = Number.isFinite(change)
+        ? `CoinGecko 24h move is ${change >= 0 ? '+' : ''}${change.toFixed(2)}% with ${formatUsd(numericField(row, 'volume_24h_usd'))} in volume.`
+        : 'Market capture is warming up.';
+
+    return {
+        tone: 'market',
+        kicker: 'Market',
+        title: 'XTZ spot',
+        value: formatUsd(numericField(row, 'price_usd'), { price: true }),
+        trend: trendForMetric(rows, 'price_usd', ' USD'),
+        body,
+        metrics: [
+            { label: 'Market cap', value: formatUsd(numericField(row, 'market_cap_usd')) },
+            { label: 'Sats', value: formatMaybe(numericField(row, 'price_sats'), value => `${Math.round(value)} sats`) },
+            { label: 'EUR', value: formatUsd(numericField(row, 'price_eur'), { price: true }).replace('$', '€') }
+        ]
+    };
+}
+
+function buildHealthDigest(rows) {
+    const row = latestNumericRow(rows, 'health_score');
+    const missedSlots = numericField(row, 'missed_attestation_slots');
+    const sampleBlocks = numericField(row, 'sample_blocks');
+    const body = Number.isFinite(missedSlots)
+        ? `${formatCompact(missedSlots, { maximumFractionDigits: 0 })} missed attestation slots across the latest ${formatCompact(sampleBlocks, { maximumFractionDigits: 0 })}-block sample.`
+        : 'Network Health capture is warming up.';
+
+    return {
+        tone: 'health',
+        kicker: 'Network Health',
+        title: 'Attestation power',
+        value: formatPct(numericField(row, 'health_score'), 2),
+        trend: trendForMetric(rows, 'health_score', '%'),
+        body,
+        metrics: [
+            { label: 'Avg block', value: formatMaybe(numericField(row, 'avg_block_seconds'), value => `${value.toFixed(value < 10 ? 1 : 0)}s`) },
+            { label: 'Round zero', value: formatPct(numericField(row, 'round_zero_pct')) },
+            { label: 'Max round', value: formatCompact(numericField(row, 'max_round'), { maximumFractionDigits: 0 }) }
+        ]
+    };
+}
+
+function buildTezosXDigest(rows) {
+    const row = latestNumericRow(rows, 'tvl_usd');
+    const headGap = numericField(row, 'rpc_head') - numericField(row, 'explorer_head');
+    const share = numericField(row, 'tvl_share_pct');
+    const tx = numericField(row, 'transactions_24h');
+    const body = Number.isFinite(tx)
+        ? `${formatCompact(tx, { maximumFractionDigits: 1 })} L2 transactions in 24h${Number.isFinite(share) ? ` and ${formatPct(share)} of combined L1/L2 TVL` : ''}.`
+        : 'Tezos X capture is warming up.';
+
+    return {
+        tone: 'tezosx',
+        kicker: 'Tezos X',
+        title: 'Atomic L2 pulse',
+        value: formatUsd(numericField(row, 'tvl_usd')),
+        trend: trendForMetric(rows, 'tvl_usd', ' USD'),
+        body,
+        metrics: [
+            { label: 'Gas', value: formatMaybe(numericField(row, 'gas_gwei'), value => `${value.toFixed(2)} gwei`) },
+            { label: 'Block time', value: formatMs(numericField(row, 'average_block_time_ms')) },
+            { label: 'Head gap', value: Number.isFinite(headGap) ? formatCompact(Math.abs(headGap), { maximumFractionDigits: 0 }) : '--' }
+        ]
+    };
+}
+
+function buildGovernanceDigest(rows) {
+    const row = latestRow(rows);
+    const kind = String(row?.period_kind || 'period').replace(/_/g, ' ');
+    const status = String(row?.period_status || 'warming');
+    const participation = numericField(row, 'participation_pct');
+    const votePower = numericField(row, 'voting_power_voted');
+    const votersVoted = numericField(row, 'voters_voted');
+    const votersTotal = numericField(row, 'voters_total');
+    const body = Number.isFinite(participation)
+        ? `${formatPct(participation)} participation toward ${formatPct(numericField(row, 'quorum_pct'))} quorum.`
+        : `${kind || 'Governance'} is ${status}; ballot metrics appear during Exploration and Promotion.`;
+
+    return {
+        tone: 'governance',
+        kicker: 'Governance',
+        title: `${kind} ${status}`.trim(),
+        value: Number.isFinite(participation) ? formatPct(participation) : formatUtcDate(row?.period_end),
+        trend: trendForMetric(rows, 'participation_pct', '%') || { text: status, tone: status === 'active' ? 'positive' : 'neutral' },
+        body,
+        metrics: [
+            { label: 'Proposal', value: shortHash(row?.proposal) },
+            { label: 'Voters', value: Number.isFinite(votersVoted) && Number.isFinite(votersTotal) ? `${formatCompact(votersVoted, { maximumFractionDigits: 0 })}/${formatCompact(votersTotal, { maximumFractionDigits: 0 })}` : '--' },
+            { label: 'Vote power', value: formatXTZ(votePower) }
+        ]
+    };
+}
+
+function renderHistoryDigest(data, domainData, range) {
+    const el = document.getElementById('history-digest');
+    if (!el) return;
+
+    const coreRows = Array.isArray(data) ? data : [];
+    const cards = [
+        buildConsensusDigest(coreRows),
+        buildEconomyDigest(coreRows),
+        buildLiquidityDigest(coreRows),
+        buildMarketDigest(domainData?.market || []),
+        buildHealthDigest(domainData?.networkHealth || []),
+        buildTezosXDigest(domainData?.tezosx || []),
+        buildGovernanceDigest(domainData?.governance || [])
+    ];
+
+    el.innerHTML = `
+        <section class="history-digest-panel">
+            <div class="history-digest-head">
+                <span>Captured Signals</span>
+                <strong>${escapeHtml(rangeLabel(range))}</strong>
+            </div>
+            <div class="history-digest-grid">
+                ${cards.map(renderDigestCard).join('')}
+            </div>
+        </section>
+    `;
+}
+
 function renderHistoryFreshness(rows) {
     const el = document.getElementById('history-freshness-strip');
     if (!el) return;
@@ -743,9 +1100,13 @@ export async function updateSparklines() {
         const sparklines = [
             { canvasId: 'tz4-sparkline', metric: 'tz4_percentage', trendId: 'tz4-trend', changeMode: 'points' },
             { canvasId: 'staking-sparkline', metric: 'staking_ratio', trendId: 'staking-trend', changeMode: 'points' },
+            { canvasId: 'staking-apy-sparkline', metric: 'staking_apy_stake', trendId: 'staking-apy-trend', changeMode: 'points' },
+            { canvasId: 'delegated-sparkline', metric: 'delegated_ratio', trendId: 'delegated-trend', changeMode: 'points' },
             { canvasId: 'bakers-sparkline', metric: 'total_bakers', trendId: 'bakers-trend' },
             { canvasId: 'issuance-sparkline', metric: 'current_issuance_rate', trendId: 'issuance-trend', inverted: true, changeMode: 'points' },
             { canvasId: 'supply-sparkline', metric: 'total_supply', trendId: 'supply-trend' },
+            { canvasId: 'total-burned-sparkline', metric: 'total_burned', trendId: 'total-burned-trend' },
+            { canvasId: 'baking-power-sparkline', metric: 'total_baking_power', trendId: 'baking-power-trend' },
             // Network Activity
             { canvasId: 'tx-volume-sparkline', metric: 'tx_volume_24h', trendId: 'tx-volume-trend' },
             { canvasId: 'contract-calls-sparkline', metric: 'contract_calls_24h', trendId: 'contract-calls-trend' },
@@ -846,6 +1207,7 @@ async function updateHistoryCharts(range) {
             fetchSupabaseHistoryFreshness()
         ]);
         renderHistoryFreshness(freshness);
+        renderHistoryDigest(data, domainData, range);
 
         if (data.length === 0) {
             debugLog('No historical data available yet');
@@ -887,8 +1249,12 @@ const CARD_METRICS = {
         ]
     },
     'issuance-rate': { metric: 'current_issuance_rate', label: 'Issuance Rate', unit: '%' },
+    'staking-apy': { metric: 'staking_apy_stake', label: 'Stake APY', unit: '%' },
     'staking-ratio': { metric: 'staking_ratio', label: 'Staking Ratio', unit: '%' },
+    'delegated': { metric: 'delegated_ratio', label: 'Delegated Ratio', unit: '%' },
     'total-supply': { metric: 'total_supply', label: 'Total Supply', unit: ' XTZ' },
+    'total-burned': { metric: 'total_burned', label: 'Total Burned', unit: ' XTZ' },
+    'baking-power': { metric: 'total_baking_power', label: 'Baking Power', unit: ' XTZ' },
     'tx-volume': { metric: 'tx_volume_24h', label: 'TX Volume (24h)', unit: '' },
     'contract-calls': { metric: 'contract_calls_24h', label: 'Contract Calls (24h)', unit: '' },
     'funded-accounts': { metric: 'funded_accounts', label: 'Funded Accounts', unit: '' },

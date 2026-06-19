@@ -7,6 +7,9 @@ const CHANGELOG = [
     {
         date: '2026-06-19',
         entries: [
+            { type: '✨', text: 'Historical Data now opens with a captured-signal digest for tz4 power, staking, Liquidity Baking, market, Network Health, Tezos X, and governance-period history' },
+            { type: '✨', text: 'Network Health now monitors TzKT cyclic cycle-time drift so unusually slow or fast cycles are visible in the Health chamber' },
+            { type: '✨', text: 'Staking APY, delegated stake, total burned, and baking power cards now get sparkline history and direct chart controls from expanded Supabase rows' },
             { type: '🔧', text: 'Daily Briefing price copy now uses live CoinGecko 24-hour movement and refreshes same-cycle cache when market conditions change' },
             { type: '✨', text: 'A live block ticker now sits as its own island between Current Protocol and Chambers with latest block, compact baker names, stable-width health telemetry, and a clean whole-line transition' },
             { type: '🎨', text: 'Front-page panel borders now sit softer at rest while Chamber cards keep a sharper colored edge on hover' },

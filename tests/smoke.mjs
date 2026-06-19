@@ -265,8 +265,22 @@ function sampleHistoryRows() {
       tz4_percentage: 40 + step,
       staking_ratio: 28 + step / 10,
       total_bakers: 220 + step,
+      tz4_power_pct: 30 + step / 2,
+      tz4_power_active: 90000000 + step * 1000000,
+      tz4_power_total: 300000000 + step * 1000000,
       current_issuance_rate: 3.4 + step / 100,
+      protocol_issuance_rate: 3.15 + step / 1000,
+      lb_issuance_rate: step > 4 ? 0 : 0.25,
+      lb_ema: 1000000000 + step * 10000000,
+      lb_ema_pct: 50 + step / 3,
+      lb_subsidy_disabled: true,
       total_supply: 1050000000 + step * 1000,
+      total_staked: 320000000 + step * 100000,
+      total_delegated: 330000000 + step * 100000,
+      total_baking_power: 430000000 + step * 100000,
+      staking_apy_stake: 8 + step / 10,
+      staking_apy_delegate: 2.6 + step / 100,
+      total_burned: 2200000 + step * 100,
       tx_volume_24h: 120000 + step * 100,
       contract_calls_24h: 9000 + step * 10,
       funded_accounts: 520000 + step * 100,
@@ -275,6 +289,84 @@ function sampleHistoryRows() {
       tokens: 140000 + step,
       rollups: 18 + step,
       active_contracts_24h: 1200 + step
+    };
+  });
+}
+
+function sampleDomainHistoryRows(table) {
+  const now = Date.now();
+  return Array.from({ length: 8 }, (_, index) => {
+    const step = index + 1;
+    const timestamp = new Date(now - (8 - step) * 30 * 60 * 1000).toISOString();
+    if (table === 'market_history') {
+      return {
+        timestamp,
+        source: 'coingecko',
+        price_usd: 0.22 + step / 1000,
+        price_eur: 0.2 + step / 1200,
+        price_btc: 0.0000035 + step / 100000000,
+        price_sats: 350 + step,
+        market_cap_usd: 240000000 + step * 1000000,
+        volume_24h_usd: 9000000 + step * 100000,
+        change_24h_pct: -2 + step / 10
+      };
+    }
+    if (table === 'network_health_history') {
+      return {
+        timestamp,
+        head_level: 13600000 + step,
+        head_timestamp: timestamp,
+        sample_blocks: 16,
+        health_score: 99 + step / 20,
+        total_attestation_power: 111000 + step,
+        total_committee_power: 112000,
+        missing_attestation_power: 1000 - step,
+        avg_block_seconds: 6,
+        max_block_seconds: 7,
+        on_target_blocks: 15,
+        round_zero_pct: 99 + step / 10,
+        max_round: step % 2,
+        missed_blocks: step % 3,
+        missed_attestation_slots: 100 - step,
+        missed_attestation_rights: 10 + step
+      };
+    }
+    if (table === 'tezosx_history') {
+      return {
+        timestamp,
+        tvl_usd: 16000000 + step * 100000,
+        tezos_l1_tvl_usd: 22000000 + step * 100000,
+        tvl_share_pct: 42 + step / 3,
+        transactions_24h: 300000 + step * 1000,
+        total_transactions: 80000000 + step * 10000,
+        total_addresses: 1500000 + step * 1000,
+        active_addresses: 12000 + step * 100,
+        gas_gwei: 1.5,
+        average_block_time_ms: 680,
+        explorer_head: 45000000 + step,
+        rpc_head: 45000010 + step,
+        top_protocol_tvl_usd: 9000000 + step * 10000
+      };
+    }
+    return {
+      timestamp,
+      head_level: 13600000 + step,
+      epoch: 90,
+      period_index: 176,
+      period_kind: 'exploration',
+      period_status: 'active',
+      proposal: 'PsSmokeHistoryDigest1234567890abcdef',
+      participation_pct: 10 + step,
+      quorum_pct: 45,
+      supermajority_pct: 80 + step / 2,
+      yay_power: 1000000 + step * 1000,
+      nay_power: 100000 + step * 100,
+      pass_power: 50000 + step * 100,
+      voting_power_voted: 1150000 + step * 1000,
+      voters_voted: 40 + step,
+      voters_total: 220,
+      period_start: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
+      period_end: new Date(now + 24 * 60 * 60 * 1000).toISOString()
     };
   });
 }
@@ -466,6 +558,12 @@ async function installFeatureMocks(context, options = {}) {
           return canvas;
         };
       `, 'application/javascript');
+    }
+
+    for (const table of ['market_history', 'network_health_history', 'tezosx_history', 'governance_period_history']) {
+      if (url.includes(`iijpfczftroespicmufb.supabase.co/rest/v1/${table}`)) {
+        return fulfillJson(route, sampleDomainHistoryRows(table));
+      }
     }
 
     if (url.includes('iijpfczftroespicmufb.supabase.co/rest/v1/tezos_history')) {
@@ -703,6 +801,19 @@ async function installFeatureMocks(context, options = {}) {
             lastLevel: 12345679
           }
         ]);
+      }
+      if (url.includes('/statistics/cyclic')) {
+        const latestStart = Date.now() - 10 * 60 * 1000;
+        const intervals = [67000, 64500, 65200, 64800, 65100, 64700, 64900];
+        let elapsed = 0;
+        return fulfillJson(route, Array.from({ length: 8 }, (_, index) => {
+          if (index > 0) elapsed += intervals[index - 1];
+          return {
+            cycle: 1144 - index,
+            level: 12345678 - index * 10800,
+            timestamp: new Date(latestStart - elapsed * 1000).toISOString()
+          };
+        }));
       }
       if (url.includes('/statistics/current')) {
         return fulfillJson(route, {
@@ -3286,6 +3397,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       activityRows: modal?.querySelectorAll('#health-activity-list .health-activity-row').length || 0,
       activityText: modal?.querySelector('#health-activity-list')?.textContent || '',
       incidentMemory: modal?.querySelector('#health-incident-memory')?.textContent || '',
+      cycleTiming: modal?.querySelector('#health-cycle-timing')?.textContent || '',
+      cycleTimingCells: modal?.querySelectorAll('#health-cycle-strip .health-cycle-cell').length || 0,
+      cycleTimingStatus: modal?.querySelector('#health-cycle-status')?.textContent || '',
       periodTelemetry: modal?.querySelector('#health-period-telemetry')?.textContent || '',
       networkLoad: modal?.querySelector('#health-network-load')?.textContent || '',
       myBaker: modal?.querySelector('.health-my-baker-panel')?.textContent || '',
@@ -3369,6 +3483,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.activityRows >= 1, `network health chamber: activity tape rows missing, saw ${healthState.activityRows}`);
   assert(/QA Baker|Second Baker|XTZ/.test(healthState.activityText), `network health chamber: activity tape content mismatch: ${healthState.activityText}`);
   assert(/Incident Memory/.test(healthState.incidentMemory) && /Missed/.test(healthState.incidentMemory), `network health chamber: incident memory missing: ${healthState.incidentMemory}`);
+  assert(/Cycle Timing/.test(healthState.cycleTiming) && /Last cycle/.test(healthState.cycleTiming) && /Target/.test(healthState.cycleTiming), `network health chamber: cycle timing panel missing: ${healthState.cycleTiming}`);
+  assert(healthState.cycleTimingCells >= 4, `network health chamber: cycle timing strip too sparse: ${healthState.cycleTimingCells}`);
+  assert(/Watch|slow|target/i.test(healthState.cycleTimingStatus), `network health chamber: cycle timing status missing drift context: ${healthState.cycleTimingStatus}`);
   assert(/Period Telemetry/.test(healthState.periodTelemetry) && /24H/.test(healthState.periodTelemetry) && /31D/.test(healthState.periodTelemetry), `network health chamber: period telemetry missing: ${healthState.periodTelemetry}`);
   assert(/Network Load/.test(healthState.networkLoad) && /Large tx rows/.test(healthState.networkLoad), `network health chamber: network load panel missing: ${healthState.networkLoad}`);
   assert(/Second Baker/.test(healthState.myBaker), `network health chamber: My Tezos baker panel missing baker identity: ${healthState.myBaker}`);
@@ -4832,8 +4949,14 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await clickFeatureLauncher(page, '#history-btn');
   await page.locator('#history-modal[aria-hidden="false"]').waitFor({ state: 'attached', timeout: 10000 });
   await expectCount(page, '#history-modal .time-range-btn', 4, 'feature workflows history ranges');
+  await page.waitForFunction(() => document.querySelectorAll('#history-digest .history-digest-card').length === 7, null, { timeout: 10000 });
+  const digestText = (await page.locator('#history-digest').innerText()).toLowerCase();
+  for (const expected of ['Consensus', 'Economy', 'Liquidity Baking', 'Market', 'Network Health', 'Tezos X', 'Governance']) {
+    assert(digestText.includes(expected.toLowerCase()), `feature workflows history digest missing ${expected}: ${digestText}`);
+  }
   await page.locator('#history-modal .time-range-btn[data-range="24h"]').click();
   await expectClassContains(page.locator('#history-modal .time-range-btn[data-range="24h"]'), 'active', 'feature workflows history range');
+  await page.waitForFunction(() => document.querySelector('#history-digest')?.textContent?.includes('24h'), null, { timeout: 5000 });
   await page.locator('#history-share-btn').click();
   await expectShareModal(page, 'feature workflows historical data share', issues);
   await page.locator('#history-modal-close').click();
@@ -4867,6 +4990,10 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   }, await ninetyDayCardHistoryChartId.jsonValue(), { timeout: 10000 });
   await page.locator('#card-history-close').click();
   await page.locator('#card-history-modal[aria-hidden="true"]').waitFor({ state: 'attached', timeout: 5000 });
+  await expectCount(page, '[data-stat="staking-apy"] .card-history-btn', 1, 'feature workflows staking APY card history');
+  await expectCount(page, '[data-stat="delegated"] .card-history-btn', 1, 'feature workflows delegated card history');
+  await expectCount(page, '[data-stat="total-burned"] .card-history-btn', 1, 'feature workflows total burned card history');
+  await expectCount(page, '[data-stat="baking-power"] .card-history-btn', 1, 'feature workflows baking power card history');
   log('ok - feature workflow: card history');
 
   await page.locator('#upgrade-share-btn').scrollIntoViewIfNeeded();

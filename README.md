@@ -192,12 +192,12 @@ inline modal styles in `js/core/app.js`.
 - Live network stat cards for consensus, economy, governance, network activity,
   and ecosystem metrics are opt-in from Explore under Network Stats.
 - Network Health Chamber with direct `#health` access, recent block cadence,
-  consensus round, missed attestation, missed baking-right detail, and a
-  compact saved My Tezos baker summary. Its Chambers card spans two tiles and
-  includes compact block-power bars plus a deduped throttled 1,000+ XTZ live
-  activity tape; the open chamber refreshes on the block cadence with in-place
-  row updates instead of a full rerender, and now adds incident memory, period
-  telemetry, and network-load panels.
+  consensus round, missed attestation, missed baking-right detail, TzKT cyclic
+  cycle-time drift, and a compact saved My Tezos baker summary. Its Chambers
+  card spans two tiles and includes compact block-power bars plus a deduped
+  throttled 1,000+ XTZ live activity tape; the open chamber refreshes on the
+  block cadence with in-place row updates instead of a full rerender, and now
+  adds incident memory, cycle timing, period telemetry, and network-load panels.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - Protocol timeline and history modals backed by `data/protocol-data.json` and
@@ -316,7 +316,10 @@ row, while `.github/workflows/collect-chamber-history.yml` writes 30-minute
 market, Network Health, Tezos X, and governance-period snapshots.
 The History modal reads those domain tables directly for Chamber trend charts
 plus expanded `tezos_history` fields such as total staked, APY, tz4 power,
-protocol issuance, and Liquidity Baking EMA. Chamber entry cards use the `📊`
+protocol issuance, and Liquidity Baking EMA. It starts with a captured-signal
+digest so the extra rows become plain-language status for tz4 power, staking,
+Liquidity Baking, market, Network Health, Tezos X, and governance before the
+full chart grid. Chamber entry cards and expanded economy cards use the `📊`
 stats control to open their matching historical series where capture exists,
 and the modal shows a compact capture-status strip for the latest global,
 market, health, Tezos X, and governance rows.

@@ -23,6 +23,13 @@ const AGE_TICK_INTERVAL = 1000;
 const BLOCK_PULSE_THROTTLE = 4 * 1000;
 const ACTIVITY_TAPE_TTL = 60 * 1000;
 const ACTIVITY_TAPE_LIMIT = 5;
+const CYCLE_TIMING_LIMIT = 8;
+const CYCLE_TIMING_TTL = 10 * 60 * 1000;
+const CYCLE_TARGET_SECONDS_FALLBACK = 24 * 60 * 60;
+const CYCLE_DRIFT_PEAK_PCT = 1;
+const CYCLE_DRIFT_WATCH_PCT = 3;
+const CYCLE_DRIFT_DEGRADED_PCT = 4;
+const PROTOCOL_CONSTANTS_TTL = 30 * 60 * 1000;
 const STORAGE_KEY = 'tezos-systems-network-health';
 const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
 
@@ -47,6 +54,11 @@ let activityTapeCache = [];
 let activityTapeCacheAt = 0;
 let activityTapeInFlight = null;
 let blockTickerAnimationTimer = null;
+let cycleTimingCache = null;
+let cycleTimingCacheAt = 0;
+let cycleTimingInFlight = null;
+let protocolConstantsCache = null;
+let protocolConstantsCacheAt = 0;
 
 function formatCount(value) {
     return Number(value || 0).toLocaleString('en-US');
@@ -76,6 +88,31 @@ function formatSeconds(value) {
     if (!Number.isFinite(value)) return '--';
     if (value < 10 && value % 1 !== 0) return `${value.toFixed(1)}s`;
     return `${Math.round(value)}s`;
+}
+
+function formatDuration(value) {
+    const seconds = Math.abs(Number(value));
+    if (!Number.isFinite(seconds)) return '--';
+    const totalMinutes = Math.round(seconds / 60);
+    if (totalMinutes <= 0) return `${Math.round(seconds)}s`;
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+}
+
+function formatSignedDuration(value) {
+    const seconds = Number(value);
+    if (!Number.isFinite(seconds)) return '--';
+    if (Math.abs(seconds) < 30) return 'on target';
+    return `${seconds > 0 ? '+' : '-'}${formatDuration(seconds)}`;
+}
+
+function formatSignedPct(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return '--';
+    const sign = number > 0 ? '+' : '';
+    return `${sign}${number.toFixed(2)}%`;
 }
 
 function formatAge(timestamp) {
@@ -150,6 +187,24 @@ function timingClass(seconds) {
     if (seconds <= TARGET_BLOCK_SECONDS + 2) return 'peak';
     if (seconds <= TARGET_BLOCK_SECONDS + 6) return 'watch';
     return 'degraded';
+}
+
+function cycleTimingClass(driftPct) {
+    if (!Number.isFinite(driftPct)) return 'unknown';
+    const abs = Math.abs(driftPct);
+    if (abs <= CYCLE_DRIFT_PEAK_PCT) return 'peak';
+    if (abs <= CYCLE_DRIFT_WATCH_PCT) return 'healthy';
+    if (abs <= CYCLE_DRIFT_DEGRADED_PCT) return 'watch';
+    return 'degraded';
+}
+
+function cycleTimingLabel(driftPct) {
+    if (!Number.isFinite(driftPct)) return 'Warming';
+    const abs = Math.abs(driftPct);
+    if (abs <= CYCLE_DRIFT_PEAK_PCT) return 'On target';
+    if (abs <= CYCLE_DRIFT_WATCH_PCT) return driftPct > 0 ? 'Slightly slow' : 'Slightly fast';
+    if (abs <= CYCLE_DRIFT_DEGRADED_PCT) return 'Watch';
+    return driftPct > 0 ? 'Slow cycle' : 'Fast cycle';
 }
 
 function shortAddress(address) {
@@ -409,6 +464,111 @@ async function fetchActivityTape({ force = false } = {}) {
     return activityTapeInFlight;
 }
 
+async function fetchProtocolCycleTargetSeconds() {
+    if (protocolConstantsCache && Date.now() - protocolConstantsCacheAt < PROTOCOL_CONSTANTS_TTL) {
+        return protocolConstantsCache;
+    }
+
+    try {
+        const constants = await fetchJson(`${API_URLS.octez}/chains/main/blocks/head/context/constants`, 1);
+        const blockDelay = Array.isArray(constants?.minimal_block_delay)
+            ? Number(constants.minimal_block_delay[0])
+            : Number(constants?.minimal_block_delay);
+        const blocksPerCycle = Number(constants?.blocks_per_cycle);
+        const target = blocksPerCycle > 0 && blockDelay > 0
+            ? blocksPerCycle * blockDelay
+            : CYCLE_TARGET_SECONDS_FALLBACK;
+        protocolConstantsCache = target;
+        protocolConstantsCacheAt = Date.now();
+        return target;
+    } catch (error) {
+        console.warn('Network Health cycle target lookup failed:', error);
+        return protocolConstantsCache || CYCLE_TARGET_SECONDS_FALLBACK;
+    }
+}
+
+function normalizeCycleRow(row) {
+    const timestampMs = new Date(row?.timestamp).getTime();
+    return {
+        cycle: Number(row?.cycle),
+        level: Number(row?.level) || 0,
+        timestamp: row?.timestamp || null,
+        timestampMs
+    };
+}
+
+function buildCycleTiming(rows, targetSeconds) {
+    const sorted = (Array.isArray(rows) ? rows : [])
+        .map(normalizeCycleRow)
+        .filter((row) => Number.isFinite(row.cycle) && Number.isFinite(row.timestampMs))
+        .sort((a, b) => b.cycle - a.cycle);
+    const intervals = [];
+
+    for (let index = 0; index < sorted.length - 1; index += 1) {
+        const later = sorted[index];
+        const earlier = sorted[index + 1];
+        const seconds = (later.timestampMs - earlier.timestampMs) / 1000;
+        if (!Number.isFinite(seconds) || seconds <= 0) continue;
+        const driftSeconds = seconds - targetSeconds;
+        const driftPct = targetSeconds > 0 ? (driftSeconds / targetSeconds) * 100 : 0;
+        intervals.push({
+            cycle: earlier.cycle,
+            start: earlier.timestamp,
+            end: later.timestamp,
+            seconds,
+            driftSeconds,
+            driftPct,
+            className: cycleTimingClass(driftPct),
+            label: cycleTimingLabel(driftPct)
+        });
+    }
+
+    const latest = intervals[0] || null;
+    const averageSeconds = intervals.length
+        ? intervals.reduce((sum, interval) => sum + interval.seconds, 0) / intervals.length
+        : null;
+    const averageDriftPct = Number.isFinite(averageSeconds) && targetSeconds > 0
+        ? ((averageSeconds - targetSeconds) / targetSeconds) * 100
+        : null;
+    const worst = intervals.reduce((candidate, interval) => (
+        !candidate || Math.abs(interval.driftPct) > Math.abs(candidate.driftPct) ? interval : candidate
+    ), null);
+
+    return {
+        updatedAt: Date.now(),
+        targetSeconds,
+        latest,
+        averageSeconds,
+        averageDriftPct,
+        worst,
+        intervals
+    };
+}
+
+async function fetchCycleTiming({ force = false } = {}) {
+    if (!force && cycleTimingCache && Date.now() - cycleTimingCacheAt < CYCLE_TIMING_TTL) {
+        return cycleTimingCache;
+    }
+    if (cycleTimingInFlight) return cycleTimingInFlight;
+
+    const url = `${TZKT}/statistics/cyclic?limit=${CYCLE_TIMING_LIMIT}&sort.desc=cycle&select=cycle,level,timestamp`;
+    cycleTimingInFlight = Promise.all([
+        fetchJson(url, 2),
+        fetchProtocolCycleTargetSeconds()
+    ]).then(([rows, targetSeconds]) => {
+        cycleTimingCache = buildCycleTiming(rows, targetSeconds);
+        cycleTimingCacheAt = Date.now();
+        return cycleTimingCache;
+    }).catch((error) => {
+        console.warn('Network Health cycle timing failed:', error);
+        return cycleTimingCache;
+    }).finally(() => {
+        cycleTimingInFlight = null;
+    });
+
+    return cycleTimingInFlight;
+}
+
 function numericRound(value) {
     const number = Number(value);
     return Number.isFinite(number) ? number : 0;
@@ -606,7 +766,10 @@ function periodCacheIsFresh(data) {
 }
 
 async function fetchNetworkHealth({ forcePeriods = false } = {}) {
-    const lastBlocks = await fetchLastBlocks();
+    const [lastBlocks, cycleTiming] = await Promise.all([
+        fetchLastBlocks(),
+        fetchCycleTiming()
+    ]);
     const summary = summarizeBlocks(lastBlocks);
     const headLevel = lastBlocks[0]?.level || 0;
     const headTimestamp = lastBlocks[0]?.timestamp || null;
@@ -627,7 +790,8 @@ async function fetchNetworkHealth({ forcePeriods = false } = {}) {
         headLevel,
         blocks: lastBlocks,
         summary,
-        periods
+        periods,
+        cycleTiming
     };
 }
 
@@ -686,7 +850,10 @@ function chamberStatus(data) {
 }
 
 async function fetchNetworkHealthChamberData() {
-    const blocks = await fetchRecentBlocks(CHAMBER_BLOCK_LIMIT);
+    const [blocks, cycleTiming] = await Promise.all([
+        fetchRecentBlocks(CHAMBER_BLOCK_LIMIT),
+        fetchCycleTiming()
+    ]);
     const summary = summarizeBlocks(blocks);
     const timing = summarizeTiming(blocks);
     const headLevel = blocks[0]?.level || 0;
@@ -713,7 +880,8 @@ async function fetchNetworkHealthChamberData() {
         missedAttesters: summarizeMissedAttesters(missedAttestations),
         missedBlocks,
         activityTape,
-        periods: cachedData?.periods || []
+        periods: cachedData?.periods || [],
+        cycleTiming: cycleTiming || cachedData?.cycleTiming || null
     };
 }
 
@@ -743,6 +911,66 @@ function renderPeriod(period) {
     `;
 }
 
+function renderCycleTimingBackRow(cycleTiming) {
+    const latest = cycleTiming?.latest;
+    if (!latest) return '';
+    const title = `Cycle ${formatCount(latest.cycle)} ran ${formatDuration(latest.seconds)}, ${formatSignedDuration(latest.driftSeconds)} vs protocol target`;
+    return `
+        <div class="network-health-back-row network-health-cycle-row">
+            <span>Last cycle</span>
+            <strong title="${escapeHtml(title)}">${formatDuration(latest.seconds)} · ${formatSignedPct(latest.driftPct)}</strong>
+        </div>
+    `;
+}
+
+function renderCycleTimingCell(interval) {
+    const title = `Cycle ${formatCount(interval.cycle)}: ${formatDuration(interval.seconds)}, ${formatSignedDuration(interval.driftSeconds)} vs target`;
+    return `
+        <span class="health-cycle-cell ${interval.className}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">
+            <span>C${formatCount(interval.cycle)}</span>
+            <strong>${formatDuration(interval.seconds)}</strong>
+        </span>
+    `;
+}
+
+function renderCycleTimingPanel(data) {
+    const timing = data?.cycleTiming;
+    const latest = timing?.latest;
+    if (!latest) {
+        return `
+            <section class="lb-panel health-panel health-cycle-panel chamber-anim-fade" id="health-cycle-timing" style="animation-delay:120ms">
+                <div class="lb-panel-title">Cycle Timing <span class="lb-live-pill">TzKT cyclic</span></div>
+                <div class="lb-empty-inline">Cycle timing is warming up from TzKT cyclic statistics.</div>
+            </section>
+        `;
+    }
+
+    const cls = cycleTimingClass(latest.driftPct);
+    const average = Number.isFinite(timing.averageSeconds) ? formatDuration(timing.averageSeconds) : '--';
+    const averageDrift = Number.isFinite(timing.averageDriftPct) ? formatSignedPct(timing.averageDriftPct) : '--';
+    const worst = timing.worst;
+    const cells = timing.intervals.slice(0, 6).map(renderCycleTimingCell).join('');
+
+    return `
+        <section class="lb-panel health-panel health-cycle-panel chamber-anim-fade" id="health-cycle-timing" style="animation-delay:120ms">
+            <div class="lb-panel-title">Cycle Timing <span class="lb-live-pill">TzKT cyclic</span></div>
+            <div class="health-cycle-hero ${cls}">
+                <strong id="health-cycle-duration">${formatDuration(latest.seconds)}</strong>
+                <span id="health-cycle-status">${escapeHtml(latest.label)} · ${formatSignedPct(latest.driftPct)} vs target</span>
+            </div>
+            <div class="lb-metric-grid health-metric-grid">
+                <div><span>Last cycle</span><strong id="health-cycle-last">C${formatCount(latest.cycle)}</strong></div>
+                <div><span>Target</span><strong id="health-cycle-target">${formatDuration(timing.targetSeconds)}</strong></div>
+                <div><span>Recent avg</span><strong id="health-cycle-average">${average} · ${averageDrift}</strong></div>
+            </div>
+            <div class="health-cycle-strip" id="health-cycle-strip" aria-label="Recent completed cycle durations">${cells}</div>
+            <div class="health-timing-note" id="health-cycle-note">
+                Worst recent drift ${worst ? `${formatSignedPct(worst.driftPct)} on C${formatCount(worst.cycle)}` : '--'}; cycle-start deltas catch network-wide slowdowns without scanning every block.
+            </div>
+        </section>
+    `;
+}
+
 function renderNetworkHealth(data) {
     const scoreEl = document.getElementById('network-health-front');
     const statusEl = document.getElementById('network-health-status');
@@ -768,12 +996,12 @@ function renderNetworkHealth(data) {
     periodsEl.innerHTML = data.periods.map(renderPeriod).join('');
 
     if (backEl) {
-        backEl.innerHTML = data.periods.map((period) => `
+        backEl.innerHTML = `${renderCycleTimingBackRow(data.cycleTiming)}${data.periods.map((period) => `
             <div class="network-health-back-row">
                 <span>${period.label}</span>
                 <strong>${formatCompactPower(period.actualPower)} / ${formatCompactPower(period.possiblePower)}</strong>
             </div>
-        `).join('');
+        `).join('')}`;
     }
 
     if (descEl) {
@@ -1193,6 +1421,7 @@ function renderNetworkHealthChamber(data, container) {
         <div class="lb-dashboard-grid health-dashboard-grid">
             ${renderHealthScorePanel(data)}
             ${renderTimingPanel(data)}
+            ${renderCycleTimingPanel(data)}
             ${renderIncidentMemoryPanel(data)}
             ${renderPeriodTelemetryPanel(data)}
             ${renderNetworkLoadPanel(data)}
@@ -1344,6 +1573,8 @@ function updateRecentBlockRows(blocks) {
 }
 
 function updateHealthStoryPanels(data) {
+    const cycle = document.getElementById('health-cycle-timing');
+    if (cycle) cycle.outerHTML = renderCycleTimingPanel(data);
     const incident = document.getElementById('health-incident-memory');
     if (incident) incident.outerHTML = renderIncidentMemoryPanel(data);
     const periods = document.getElementById('health-period-telemetry');

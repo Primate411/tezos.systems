@@ -569,6 +569,8 @@ async function checkSelectorContracts() {
     ['health tile chamber wiring', 'openNetworkHealthChamber', health],
     ['health direct footer link', 'Direct: /health/', health],
     ['health incident memory panel', 'id="health-incident-memory"', health],
+    ['health cycle timing panel', 'id="health-cycle-timing"', health],
+    ['health cycle timing TzKT source', '/statistics/cyclic', health],
     ['health period telemetry panel', 'id="health-period-telemetry"', health],
     ['health network load panel', 'id="health-network-load"', health],
     ['live block ticker renderer', 'function updateBlockTicker', health],
@@ -577,6 +579,7 @@ async function checkSelectorContracts() {
     ['live block ticker health feed hook', 'updateBlockTicker(data)', health],
     ['live block ticker styles', '.block-ticker-strip', styles],
     ['live block ticker aperture transition styles', 'blockTickerAperture', styles],
+    ['health cycle timing styles', '.health-cycle-panel', styles],
     ['canonical chamber expand cue factory', 'function createChamberExpandCue()', app],
     ['canonical chamber expand cue class', "cue.className = 'chamber-expand-cue'", app],
     ['shared chamber footer rail style', '.chamber-entry-footer', styles],
@@ -843,6 +846,8 @@ async function checkHistoricalPagination() {
     'fetchSupabaseHistoryFreshness',
     'DOMAIN_HISTORY_TABLES',
     'history-freshness-strip',
+    'history-digest',
+    'renderHistoryDigest',
     'DOMAIN_HISTORY_CHARTS',
     'CORE_HISTORY_CHARTS',
     'chart-total-staked',
@@ -850,7 +855,15 @@ async function checkHistoricalPagination() {
     'chart-tz4-power',
     'chart-lb-ema',
     'chart-tezosx-tvl',
-    'chart-governance-participation'
+    'chart-governance-participation',
+    'market_cap_usd',
+    'missed_attestation_slots',
+    'tvl_share_pct',
+    'voting_power_voted',
+    'staking-apy-sparkline',
+    'delegated-sparkline',
+    'total-burned-sparkline',
+    'baking-power-sparkline'
   ]) {
     if (!api.includes(snippet) && !history.includes(snippet) && !index.includes(snippet)) {
       fail(`frontend historical surfaces must include ${snippet}`);
@@ -864,7 +877,11 @@ async function checkHistoricalPagination() {
     "source: 'governance'",
     "source: 'tezosx'",
     "metric: 'lb_ema_pct'",
-    "metric: 'tz4_power_pct'"
+    "metric: 'tz4_power_pct'",
+    "'staking-apy': { metric: 'staking_apy_stake'",
+    "'delegated': { metric: 'delegated_ratio'",
+    "'total-burned': { metric: 'total_burned'",
+    "'baking-power': { metric: 'total_baking_power'"
   ]) {
     if (!history.includes(snippet)) {
       fail(`card history buttons must wire chamber stats via ${snippet}`);
