@@ -497,6 +497,7 @@ function teztaleThresholdDelayMs(entries, powers, threshold) {
 }
 
 function emptyTeztaleRound(level, round, block, sourceCount, powers) {
+    const totalPower = [...powers.values()].reduce((sum, value) => sum + value, 0);
     return {
         level,
         round,
@@ -512,6 +513,8 @@ function emptyTeztaleRound(level, round, block, sourceCount, powers) {
         heldOps: 0,
         erroneousOps: 0,
         silentDelegates: 0,
+        delegateCount: powers.size,
+        totalPower,
         preattestations: [],
         attestations: [],
         powers
@@ -583,16 +586,25 @@ function summarizeTeztaleLevel(item) {
         });
     });
 
-    return [...byRound.values()].map((row) => ({
-        ...row,
-        preQuorumMs: teztaleThresholdDelayMs(row.preattestations, row.powers, TEZTALE_QUORUM_TARGET),
-        quorumMs: teztaleThresholdDelayMs(row.attestations, row.powers, TEZTALE_QUORUM_TARGET),
-        pre90Ms: teztaleThresholdDelayMs(row.preattestations, row.powers, 0.9),
-        quorum90Ms: teztaleThresholdDelayMs(row.attestations, row.powers, 0.9),
-        powers: undefined,
-        preattestations: undefined,
-        attestations: undefined
-    }));
+    return [...byRound.values()].map((row) => {
+        const preQuorumMs = teztaleThresholdDelayMs(row.preattestations, row.powers, TEZTALE_QUORUM_TARGET);
+        const quorumMs = teztaleThresholdDelayMs(row.attestations, row.powers, TEZTALE_QUORUM_TARGET);
+        const preattestationCount = row.preattestations.length;
+        const attestationCount = row.attestations.length;
+        return {
+            ...row,
+            preattestationCount,
+            attestationCount,
+            complete: Number.isFinite(quorumMs) && attestationCount > 0,
+            preQuorumMs,
+            quorumMs,
+            pre90Ms: teztaleThresholdDelayMs(row.preattestations, row.powers, 0.9),
+            quorum90Ms: teztaleThresholdDelayMs(row.attestations, row.powers, 0.9),
+            powers: undefined,
+            preattestations: undefined,
+            attestations: undefined
+        };
+    });
 }
 
 function teztaleFallback(error = '') {
@@ -611,14 +623,19 @@ function buildTeztaleLens(batch, teztaleHeadLevel) {
         .flatMap(summarizeTeztaleLevel)
         .filter((row) => row.level > 0)
         .sort((a, b) => b.level - a.level || b.round - a.round);
-    const latest = rows[0] || null;
+    const latestRaw = rows[0] || null;
+    const completeRows = rows.filter((row) => row.complete);
+    const latest = completeRows[0] || rows.find((row) => Number.isFinite(row.validationDelayMs)) || latestRaw;
     if (!latest) return teztaleFallback('No recent Teztale block data returned');
 
-    const recentRows = rows.slice(0, TEZTALE_BLOCK_LOOKBACK);
-    const maxRound = recentRows.reduce((max, row) => Math.max(max, row.round), 0);
+    const recentRows = (completeRows.length ? completeRows : rows).slice(0, TEZTALE_BLOCK_LOOKBACK);
+    const sampleLevelCount = new Set(rows.map((row) => row.level)).size;
+    const pendingHeadLevel = latestRaw && latestRaw.level > latest.level ? latestRaw.level : null;
+    const alertSampleRows = rows.slice(0, Math.max(TEZTALE_BLOCK_LOOKBACK, recentRows.length + 2));
+    const maxRound = alertSampleRows.reduce((max, row) => Math.max(max, row.round), 0);
     const maxQuorumMs = Math.max(...recentRows.map((row) => row.quorumMs).filter(Number.isFinite), 0);
-    const maxValidationMs = Math.max(...recentRows.map((row) => row.validationDelayMs).filter(Number.isFinite), 0);
-    const lateRows = recentRows.filter((row) => (
+    const maxValidationMs = Math.max(...alertSampleRows.map((row) => row.validationDelayMs).filter(Number.isFinite), 0);
+    const alertRows = alertSampleRows.filter((row) => (
         row.round > 0
         || row.missingBlocks > 0
         || (row.quorumMs || 0) > 7000
@@ -630,7 +647,7 @@ function buildTeztaleLens(batch, teztaleHeadLevel) {
     if (maxRound > 1 || maxQuorumMs > 8000 || maxValidationMs > 3500 || recentRows.some((row) => row.missingBlocks > 0)) {
         className = 'degraded';
         label = 'Investigate';
-    } else if (maxRound > 0 || maxQuorumMs > 6000 || maxValidationMs > 2200 || lateRows.length) {
+    } else if (maxRound > 0 || maxQuorumMs > 6000 || maxValidationMs > 2200 || alertRows.length) {
         className = 'watch';
         label = 'Watch';
     } else if (maxQuorumMs <= 3000 && maxValidationMs <= 1200) {
@@ -644,6 +661,9 @@ function buildTeztaleLens(batch, teztaleHeadLevel) {
         label,
         teztaleHeadLevel,
         windowCount: recentRows.length,
+        completeCount: completeRows.length,
+        sampleLevelCount,
+        pendingHeadLevel,
         latest,
         avgPreQuorumMs: averageFinite(recentRows.map((row) => row.preQuorumMs)),
         avgQuorumMs: averageFinite(recentRows.map((row) => row.quorumMs)),
@@ -655,7 +675,8 @@ function buildTeztaleLens(batch, teztaleHeadLevel) {
         erroneousOps: recentRows.reduce((sum, row) => sum + row.erroneousOps, 0),
         silentDelegates: recentRows.reduce((sum, row) => sum + row.silentDelegates, 0),
         missingBlocks: recentRows.reduce((sum, row) => sum + row.missingBlocks, 0),
-        reportRows: lateRows.slice(0, 5),
+        reportMode: alertRows.length ? 'alerts' : 'recent',
+        reportRows: (alertRows.length ? alertRows : recentRows).slice(0, 5),
         sourceUrl: `${TEZTALE_REPORT_URL}#block=${latest.level}&round=${latest.round}&server=${encodeURIComponent(TEZTALE)}`,
         creditUrl: TEZTALE_SOURCE_URL
     };
@@ -1447,13 +1468,13 @@ function renderTimingPanel(data) {
 
 function renderTeztaleReportRows(lens) {
     if (!lens.reportRows?.length) {
-        return '<div class="health-consensus-empty">No delayed rounds or missing block observations in the Teztale sample.</div>';
+        return '<div class="health-consensus-empty">Teztale is still collecting enough consensus data for a round summary.</div>';
     }
     return lens.reportRows.map((row) => `
         <div class="health-consensus-event ${row.round > 0 || row.missingBlocks ? 'watch' : 'healthy'}">
             <span>#${formatCount(row.level)} · R${formatCount(row.round)}</span>
             <strong>${formatMilliseconds(row.quorumMs)} quorum</strong>
-            <em>${row.missingBlocks ? `${formatCount(row.missingBlocks)} missing block report` : `validation ${formatMilliseconds(row.validationDelayMs)}`}</em>
+            <em>${row.missingBlocks ? `${formatCount(row.missingBlocks)} missing block report` : `${formatCount(row.sourceCount)} src · validation ${formatMilliseconds(row.validationDelayMs)}`}</em>
         </div>
     `).join('');
 }
@@ -1476,18 +1497,22 @@ function renderTeztaleConsensusPanel(data) {
 
     const latest = lens.latest;
     const levelLabel = `#${formatCount(latest.level)} · R${formatCount(latest.round)}`;
-    const opsReport = [
-        `${formatCount(lens.lostOps)} lost`,
-        `${formatCount(lens.heldOps)} held`,
-        `${formatCount(lens.silentDelegates)} silent`
+    const headStatus = lens.pendingHeadLevel
+        ? ` · head #${formatCount(lens.pendingHeadLevel)} collecting`
+        : '';
+    const coverageReport = [
+        `${formatCount(lens.windowCount)} complete rounds`,
+        `${formatCount(lens.sampleLevelCount)} sampled levels`,
+        `${formatCount(latest.totalPower)} power`
     ].join(' / ');
+    const rowsLabel = lens.reportMode === 'alerts' ? 'Rounds to inspect' : 'Recent complete rounds';
 
     return `
         <section class="lb-panel health-panel health-consensus-panel chamber-anim-fade" id="health-teztale-consensus" style="animation-delay:120ms">
             <div class="lb-panel-title">Consensus Lens <span class="lb-live-pill">Teztale</span></div>
             <div class="health-consensus-hero ${lens.className}">
                 <strong id="health-teztale-quorum">${formatMilliseconds(latest.quorumMs)}</strong>
-                <span id="health-teztale-status">${escapeHtml(lens.label)} · 66% attestation quorum at ${escapeHtml(levelLabel)}</span>
+                <span id="health-teztale-status">${escapeHtml(lens.label)} · 66% attestation quorum at ${escapeHtml(levelLabel)}${escapeHtml(headStatus)}</span>
             </div>
             <div class="lb-metric-grid health-metric-grid health-consensus-metrics">
                 <div><span>Pre-quorum</span><strong id="health-teztale-prequorum">${formatMilliseconds(latest.preQuorumMs)}</strong></div>
@@ -1495,9 +1520,10 @@ function renderTeztaleConsensusPanel(data) {
                 <div><span>Sources</span><strong id="health-teztale-source-count">${formatCount(latest.sourceCount)}</strong></div>
             </div>
             <div class="health-consensus-ops" id="health-teztale-ops">
-                <span>Ops report</span>
-                <strong>${escapeHtml(opsReport)}</strong>
+                <span>Coverage</span>
+                <strong>${escapeHtml(coverageReport)}</strong>
             </div>
+            <div class="health-consensus-events-label">${escapeHtml(rowsLabel)}</div>
             <div class="health-consensus-events" id="health-teztale-events">
                 ${renderTeztaleReportRows(lens)}
             </div>

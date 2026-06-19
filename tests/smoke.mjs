@@ -494,7 +494,7 @@ function sampleTeztaleBlock(level) {
     ? [{ baking_right: { delegate: SAMPLE_ADDRESS_2, round: 0 }, sources: ['NL-vigie-mainnet-gcp'] }]
     : [];
 
-  return {
+  const baseBlock = {
     cycle_info: { cycle: 1143, cycle_position: 3000 + offset, cycle_size: 10800 },
     blocks: [{
       hash: blockHash,
@@ -508,6 +508,13 @@ function sampleTeztaleBlock(level) {
       ],
       timestamp: isoFrom(timestampMs, 0)
     }],
+    missing_blocks: missingBlocks
+  };
+
+  if (level === 12345678) return baseBlock;
+
+  return {
+    ...baseBlock,
     endorsements: [
       {
         delegate: SAMPLE_ADDRESS,
@@ -565,8 +572,7 @@ function sampleTeztaleBlock(level) {
         endorsing_power: 300,
         operations: []
       }
-    ],
-    missing_blocks: missingBlocks
+    ]
   };
 }
 
@@ -3610,9 +3616,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.cycleTimingCells >= 4, `network health chamber: cycle timing strip too sparse: ${healthState.cycleTimingCells}`);
   assert(/Watch|slow|target/i.test(healthState.cycleTimingStatus), `network health chamber: cycle timing status missing drift context: ${healthState.cycleTimingStatus}`);
   assert(/Consensus Lens/.test(healthState.teztale) && /Teztale/.test(healthState.teztale) && /Nomadic Labs/.test(healthState.teztale), `network health chamber: Teztale consensus lens missing credit/context: ${healthState.teztale}`);
+  assert(/head #12,345,678 collecting/.test(healthState.teztale), `network health chamber: partial Teztale head context missing: ${healthState.teztale}`);
   assert(/s$/.test(healthState.teztaleQuorum), `network health chamber: Teztale quorum timing missing: ${healthState.teztaleQuorum}`);
   assert(healthState.teztaleSources === '3', `network health chamber: Teztale source count mismatch: ${healthState.teztaleSources}`);
-  assert(/lost/.test(healthState.teztaleOps) && /held/.test(healthState.teztaleOps) && /silent/.test(healthState.teztaleOps), `network health chamber: Teztale operations report missing: ${healthState.teztaleOps}`);
+  assert(/complete rounds/.test(healthState.teztaleOps) && /sampled levels/.test(healthState.teztaleOps) && /power/.test(healthState.teztaleOps), `network health chamber: Teztale coverage report missing: ${healthState.teztaleOps}`);
   assert(healthState.teztaleEvents >= 1, `network health chamber: Teztale report rows missing: ${healthState.teztaleEvents}`);
   assert(healthState.teztaleCreditHref.includes('nomadic-labs.gitlab.io/teztale-dataviz'), `network health chamber: Teztale dataviz link missing: ${healthState.teztaleCreditHref}`);
   assert(healthState.teztaleNomadicHref.includes('gitlab.com/nomadic-labs/teztale'), `network health chamber: Teztale source credit link missing: ${healthState.teztaleNomadicHref}`);
