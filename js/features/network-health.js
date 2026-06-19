@@ -771,7 +771,7 @@ function normalizeOctezSoftware(software) {
     const rawVersion = typeof software === 'string' ? software : software?.version;
     const rawDate = typeof software === 'object' && software ? software.date : null;
     const version = String(rawVersion || '').trim();
-    const known = Boolean(version) && !/^octez$/i.test(version);
+    const known = Boolean(version) && !/^unknown$/i.test(version) && !/^octez$/i.test(version);
     return {
         known,
         version: known ? version : 'Unknown',
@@ -796,6 +796,49 @@ function compareVersionLabels(a, b) {
         if (delta) return delta;
     }
     return String(a || '').localeCompare(String(b || ''));
+}
+
+export function classifyOctezVersion(version, latestVersion) {
+    const current = String(version || '').trim();
+    const latest = String(latestVersion || '').trim();
+    if (!current || /^unknown$/i.test(current) || !latest || /^unknown$/i.test(latest)) {
+        return {
+            state: 'unknown',
+            className: 'unknown',
+            label: 'Unknown',
+            latestVersion: latest || 'Unknown'
+        };
+    }
+
+    const comparison = compareVersionLabels(current, latest);
+    if (comparison >= 0) {
+        return {
+            state: 'ok',
+            className: 'current',
+            label: current === latest ? 'Latest observed' : 'Newer than latest observed',
+            latestVersion: latest
+        };
+    }
+
+    const currentParts = versionParts(current);
+    const latestParts = versionParts(latest);
+    const currentMajor = currentParts[0] || 0;
+    const latestMajor = latestParts[0] || 0;
+    if (latestMajor > currentMajor) {
+        return {
+            state: 'issue',
+            className: 'critical',
+            label: 'Major upgrade behind',
+            latestVersion: latest
+        };
+    }
+
+    return {
+        state: 'watch',
+        className: 'watch',
+        label: 'Behind latest observed',
+        latestVersion: latest
+    };
 }
 
 function normalizeOctezVersionBaker(row) {
@@ -911,7 +954,7 @@ function buildOctezVersions(rows) {
     };
 }
 
-async function fetchOctezVersions({ force = false } = {}) {
+export async function fetchOctezVersions({ force = false } = {}) {
     if (!force && octezVersionsCache && Date.now() - octezVersionsCacheAt < OCTEZ_VERSIONS_TTL) {
         return octezVersionsCache;
     }

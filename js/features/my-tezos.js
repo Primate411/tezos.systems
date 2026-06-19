@@ -10,6 +10,7 @@ import { fetchSharedStats, fetchWithRetry, getTzktTotalDelegated, getTzktTotalSt
 import { fetchXTZPrice } from './price.js';
 import { letterGrade } from './baker-report-card.js';
 import { fetchVotingStatus, getVotingPeriodName } from './governance.js';
+import { classifyOctezVersion, fetchOctezVersions } from './network-health.js';
 import { fetchObjktProfile } from './objkt.js';
 import { refresh as refreshMyBakerStats } from './my-baker.js';
 import { initRewardsTracker } from './rewards-tracker.js';
@@ -258,20 +259,25 @@ async function fetchJsonWithTimeout(url, fallback = null, timeoutMs = RIGHTS_FET
     }
 }
 
-function summarizeOctezSoftware(software) {
+function summarizeOctezSoftware(software, latestVersion = 'Unknown') {
     const rawVersion = typeof software === 'string'
         ? software
         : (software?.version || '');
     const version = String(rawVersion || '').trim();
     const known = Boolean(version) && !/^unknown$/i.test(version) && !/^octez$/i.test(version);
     const reportedAt = typeof software === 'object' && software ? software.date : null;
+    const status = classifyOctezVersion(known ? version : 'Unknown', latestVersion);
+    const reportDetail = reportedAt ? `reported ${relativeTime(reportedAt)}` : 'TzKT delegate software';
     const detail = known
-        ? (reportedAt ? `Reported ${relativeTime(reportedAt)}` : 'TzKT delegate software')
+        ? `${status.label}${status.latestVersion && status.latestVersion !== 'Unknown' ? ` · latest ${status.latestVersion}` : ''} · ${reportDetail}`
         : 'No TzKT version report yet';
     return {
         known,
         version: known ? version : 'Unknown',
-        detail
+        detail,
+        latestVersion: status.latestVersion,
+        state: status.state,
+        className: status.className
     };
 }
 
@@ -280,8 +286,11 @@ async function fetchBakerOctezSoftware(bakerAddr) {
     const cached = _octezSoftwareCache.get(bakerAddr);
     if (cached && now - cached.time < OCTEZ_VERSION_TTL_MS) return cached.value;
 
-    const delegate = await fetchJsonWithTimeout(`${TZKT}/delegates/${encodeURIComponent(bakerAddr)}`, null, 8000);
-    const value = summarizeOctezSoftware(delegate?.software);
+    const [delegate, versions] = await Promise.all([
+        fetchJsonWithTimeout(`${TZKT}/delegates/${encodeURIComponent(bakerAddr)}`, null, 8000),
+        fetchOctezVersions().catch(() => null)
+    ]);
+    const value = summarizeOctezSoftware(delegate?.software, versions?.latestVersion);
     _octezSoftwareCache.set(bakerAddr, { time: now, value });
     return value;
 }
@@ -836,7 +845,7 @@ function renderBakerActivity(activity) {
 }
 
 function renderOperatorTile(label, value, detail, state = 'unknown', extraClass = '') {
-    const safeState = ['ok', 'issue', 'unknown'].includes(state) ? state : 'unknown';
+    const safeState = ['ok', 'watch', 'issue', 'unknown'].includes(state) ? state : 'unknown';
     return `
         <div class="drawer-operator-tile drawer-operator-${safeState} ${extraClass}">
             <span class="drawer-operator-label">${escapeHtml(label)}</span>
@@ -870,7 +879,7 @@ function renderBakerOperatorStatus(status, isBaker) {
         'Octez',
         status.octez?.version || 'Unknown',
         status.octez?.detail || 'TzKT delegate software',
-        status.octez?.known ? 'ok' : 'unknown'
+        status.octez?.state || (status.octez?.known ? 'ok' : 'unknown')
     );
 
     container.hidden = false;

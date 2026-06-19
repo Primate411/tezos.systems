@@ -8769,6 +8769,37 @@ body.high-combo .stat-card {
     border-color: rgba(0, 255, 0, 0.3);
 }
 
+.my-baker-stat.my-baker-octez-current {
+    border-color: rgba(16, 185, 129, 0.28);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.095), rgba(255, 255, 255, 0.035));
+}
+
+.my-baker-stat.my-baker-octez-watch {
+    border-color: rgba(245, 214, 91, 0.38);
+    background: linear-gradient(135deg, rgba(245, 214, 91, 0.12), rgba(255, 255, 255, 0.035));
+}
+
+.my-baker-stat.my-baker-octez-critical {
+    border-color: rgba(239, 68, 68, 0.38);
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(255, 255, 255, 0.035));
+}
+
+.my-baker-stat.my-baker-octez-current .my-baker-stat-value {
+    color: var(--color-success, #10b981);
+}
+
+.my-baker-stat.my-baker-octez-watch .my-baker-stat-value,
+[data-theme="matrix"] .my-baker-stat.my-baker-octez-watch .my-baker-stat-value {
+    color: #f5d65b;
+    text-shadow: 0 0 8px rgba(245, 214, 91, 0.28);
+}
+
+.my-baker-stat.my-baker-octez-critical .my-baker-stat-value,
+[data-theme="matrix"] .my-baker-stat.my-baker-octez-critical .my-baker-stat-value {
+    color: var(--color-error, #ef4444);
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
+}
+
 @media (max-width: 640px) {
     .my-baker-grid {
         grid-template-columns: 1fr 1fr;
@@ -21555,6 +21586,14 @@ body[data-theme="nerv"]::after {
 }
 .drawer-operator-ok .drawer-operator-value {
     color: var(--color-success, #10b981);
+}
+.drawer-operator-watch {
+    border-color: rgba(245,214,91,0.36);
+    background: rgba(245,214,91,0.075);
+}
+.drawer-operator-watch .drawer-operator-value {
+    color: #f5d65b;
+    text-shadow: 0 0 14px rgba(245,214,91,0.14);
 }
 .drawer-operator-issue {
     border-color: rgba(239,68,68,0.34);

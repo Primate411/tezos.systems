@@ -236,7 +236,7 @@ const sampleBakers = [
     bakingPower: 420000000000,
     consensusAddress: null,
     balance: 500000000000,
-    software: { version: 'v24.1', date: '2026-01-22T19:55:16Z' }
+    software: { version: 'v25.1', date: '2026-06-18T19:55:16Z' }
   }
 ];
 
@@ -2705,11 +2705,20 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
     return text.includes('next round 0 block') && text.includes('back online') && text.includes('last 10 attestations ok') && text.includes('v25.0');
   }, null, { timeout: 15000 });
   const operatorText = (await page.locator('#drawer-operator-status').innerText()).toLowerCase();
+  const operatorOctezState = await page.evaluate(() => {
+    const tile = Array.from(document.querySelectorAll('#drawer-operator-status .drawer-operator-tile'))
+      .find((item) => (item.textContent || '').toLowerCase().includes('octez'));
+    return {
+      text: tile?.textContent || '',
+      className: tile?.className || ''
+    };
+  });
   assert(operatorText.includes('next round 0 block'), 'my tezos baker activity: should show the next round 0 block prominently');
   assert(operatorText.includes('18m'), `my tezos baker activity: should estimate next block ETA, saw: ${operatorText}`);
   assert(operatorText.includes('back online'), 'my tezos baker activity: should show recovered baker state from fresh attestations');
   assert(!operatorText.includes('round 5'), `my tezos baker activity: should not surface nonzero-round baking rights, saw: ${operatorText}`);
   assert(operatorText.includes('octez') && operatorText.includes('v25.0'), 'my tezos baker activity: should show the baker Octez version');
+  assert(operatorOctezState.className.includes('drawer-operator-watch') && operatorOctezState.text.includes('v25.1'), `my tezos baker activity: stale same-major Octez version should be yellow/watch ${JSON.stringify(operatorOctezState)}`);
   assert(operatorText.includes('attestation') && operatorText.includes('100.0%'), 'my tezos baker activity: should show prominent attestation rate');
   assert(operatorText.includes('dal') && operatorText.includes('14/14 dal slots'), 'my tezos baker activity: should show prominent DAL participation');
 
@@ -2816,12 +2825,15 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
       const data = window._myTezosData;
       const bakerText = document.querySelector('#my-baker-results')?.innerText || '';
       const bakerLower = bakerText.toLowerCase();
+      const octezStat = Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat'))
+        .find((item) => (item.textContent || '').toLowerCase().includes('octez version'));
       const header = document.querySelector('#my-tezos-btn .nav-label')?.textContent || '';
       return Math.round(data?.totalXTZ || 0) === 1750000
         && bakerText.includes('1,750,000.00')
         && bakerText.includes('725,000.00')
         && bakerLower.includes('octez version')
         && bakerLower.includes('v25.0')
+        && octezStat?.classList.contains('my-baker-octez-watch')
         && header.includes('1,750,000 XTZ');
     }, null, { timeout: 15000 });
   } catch {
@@ -2839,6 +2851,8 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
     staked: window._myTezosData?.staked,
     header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || '',
     bakerText: document.querySelector('#my-baker-results')?.innerText || '',
+    octezClass: Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat'))
+      .find((item) => (item.textContent || '').toLowerCase().includes('octez version'))?.className || '',
     freshness: document.querySelector('#drawer-freshness')?.innerText || ''
   }));
 
@@ -2847,6 +2861,7 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
   assert(state.bakerText.includes('1,750,000.00'), `my tezos drawer live refresh: baker grid kept stale balance ${JSON.stringify(state)}`);
   assert(state.bakerText.includes('725,000.00'), `my tezos drawer live refresh: baker grid kept stale stake ${JSON.stringify(state)}`);
   assert(state.bakerText.toLowerCase().includes('octez version') && state.bakerText.includes('v25.0'), `my tezos drawer live refresh: baker grid missed Octez version ${JSON.stringify(state)}`);
+  assert(state.octezClass.includes('my-baker-octez-watch'), `my tezos drawer live refresh: stale same-major Octez version should be yellow/watch ${JSON.stringify(state)}`);
   assert(state.header.includes('1,750,000 XTZ'), `my tezos drawer live refresh: header kept stale balance ${JSON.stringify(state)}`);
   assert(state.freshness.toLowerCase().includes('updated'), `my tezos drawer live refresh: freshness stamp missing ${JSON.stringify(state)}`);
 
@@ -3012,7 +3027,9 @@ async function smokeMyTezosBakerCapacity(browser, baseUrl) {
       details: card?.querySelector('.capacity-bar-details')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       isOver: card?.classList.contains('capacity-over') || false,
       fillWidth: card?.querySelector('.capacity-bar-fill')?.style.width || '',
-      bakerText: document.querySelector('#my-baker-results')?.innerText || ''
+      bakerText: document.querySelector('#my-baker-results')?.innerText || '',
+      octezClass: Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat'))
+        .find((item) => (item.textContent || '').toLowerCase().includes('octez version'))?.className || ''
     };
   });
 
@@ -3022,6 +3039,7 @@ async function smokeMyTezosBakerCapacity(browser, baseUrl) {
   assert(capacityState.isOver, 'my tezos baker capacity: over-capacity state class missing');
   assert(capacityState.fillWidth === '100%', `my tezos baker capacity: visual fill should cap at 100%, saw ${capacityState.fillWidth}`);
   assert(capacityState.bakerText.toLowerCase().includes('octez version') && capacityState.bakerText.includes('v24.4'), `my tezos baker capacity: Octez version missing from baker grid ${JSON.stringify(capacityState)}`);
+  assert(capacityState.octezClass.includes('my-baker-octez-critical'), `my tezos baker capacity: older major Octez version should be red/critical ${JSON.stringify(capacityState)}`);
 
   await context.close();
   assert(issues.length === 0, `my tezos baker capacity browser issues:\n${issues.join('\n')}`);
@@ -3649,8 +3667,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.teztaleCreditHref.includes('nomadic-labs.gitlab.io/teztale-dataviz'), `network health chamber: Teztale dataviz link missing: ${healthState.teztaleCreditHref}`);
   assert(healthState.teztaleNomadicHref.includes('gitlab.com/nomadic-labs/teztale'), `network health chamber: Teztale source credit link missing: ${healthState.teztaleNomadicHref}`);
   assert(/Octez Versions/.test(healthState.octezVersions) && /TzKT delegates/.test(healthState.octezVersions), `network health chamber: Octez versions panel missing source context: ${healthState.octezVersions}`);
-  assert(healthState.octezCurrent === 'v25.0', `network health chamber: latest observed Octez version mismatch: ${healthState.octezCurrent}`);
-  assert(/47\.0%/.test(healthState.octezLatestPower), `network health chamber: latest Octez power share mismatch: ${healthState.octezLatestPower}`);
+  assert(healthState.octezCurrent === 'v25.1', `network health chamber: latest observed Octez version mismatch: ${healthState.octezCurrent}`);
+  assert(/20\.8%/.test(healthState.octezLatestPower), `network health chamber: latest Octez power share mismatch: ${healthState.octezLatestPower}`);
   assert(healthState.octezKnown === '3 / 3', `network health chamber: known Octez baker count mismatch: ${healthState.octezKnown}`);
   assert(healthState.octezRows >= 3, `network health chamber: Octez version distribution missing rows: ${healthState.octezRows}`);
   assert(healthState.octezLaggers >= 2 && /Second Baker/.test(healthState.octezVersions) && /v24\.4/.test(healthState.octezVersions), `network health chamber: Octez lagging baker list incomplete: ${healthState.octezVersions}`);
