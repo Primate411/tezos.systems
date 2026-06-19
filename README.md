@@ -62,7 +62,7 @@ tezos.systems/
 │   ├── governance-votes.json          # Generated governance vote history
 │   ├── governance-refresh-report.json # Generated stale-data/lore audit
 │   └── tweets.json                    # Share-copy templates
-├── widgets/                           # Standalone embeddable widgets and builder
+├── widgets/                           # Standalone embeddable widgets, shared runtime, and builder
 ├── staking/ governance/ bakers/ hen/ compare/
 │                                      # SEO and standalone pages
 ├── chamber/ health/ tezosx/ l2chamber/ tz4/ lb/ ctez/
@@ -100,8 +100,10 @@ tezos.systems/
    module.
 2. `app.js` installs `js/core/tzkt-throttle.js` before feature startup so
    browser-side TzKT API fetches are queued at six request starts per second.
-   Standalone landing, compare, and TzKT widget entry points import the same
-   shim for their separate browser windows or iframes.
+   Standalone landing, compare, and widget entry points import the same shim
+   for their separate browser windows or iframes. Widget pages go through
+   `widgets/runtime.js`, which also shares the dashboard theme metadata,
+   endpoint config, fetch retry/cache helper, and widget catalog.
 3. `app.js` initializes feature modules behind safe wrappers, registers the
    service worker, handles deep links, and starts the refresh loop.
 4. Cached stats and protocol data are displayed first when available.
@@ -485,6 +487,9 @@ SEO and standalone pages:
 
 Widgets:
 
+- `widgets/runtime.js` is the shared embed runtime and catalog. Raw widget
+  pages import it for theme defaults, endpoint URLs, TzKT pacing, fetch
+  retry/cache behavior, refresh sanitization, and formatting helpers.
 - `widgets/baker-count.html`
 - `widgets/block-height.html`
 - `widgets/staking-ratio.html`
@@ -494,6 +499,12 @@ Widgets:
 - `widgets/combo.html`
 - `widgets/baker-card.html`
 - `widgets/builder.html`
+
+The builder renders its widget type buttons, theme swatches, combo-stat
+checkboxes, preview URLs, and embed snippets from `widgets/runtime.js`. The
+combo widget supports baker count, XTZ price, block height, staking ratio,
+current protocol, cycle, head freshness, and tz4 baking-power adoption, capped
+to four stats per embed.
 
 ## SEO And Analytics
 

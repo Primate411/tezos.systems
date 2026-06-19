@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-19',
         entries: [
+            { type: '🔧', text: 'Embed Widgets now share the dashboard theme, endpoint, retry, cache, and catalog runtime, with Combo Strip options for head freshness and tz4 power adoption' },
             { type: '✨', text: 'Historical Data now opens with a captured-signal digest for tz4 power, staking, Liquidity Baking, market, Network Health, Tezos X, and governance-period history' },
             { type: '✨', text: 'Network Health now monitors TzKT cyclic cycle-time drift so unusually slow or fast cycles are visible in the Health chamber' },
             { type: '✨', text: 'Staking APY, delegated stake, total burned, and baking power cards now get sparkline history and direct chart controls from expanded Supabase rows' },

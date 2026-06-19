@@ -11,6 +11,7 @@ export const SUPABASE_CONFIG = {
 export const API_URLS = {
   tzkt: 'https://api.tzkt.io/v1',
   octez: 'https://eu.rpc.tez.capital',
+  coingecko: 'https://api.coingecko.com/api/v3',
   defillama: 'https://api.llama.fi',
   tezlinkExplorer: 'https://explorer.etherlink.com/api/v2',
   tezlinkRpc: 'https://node.mainnet.etherlink.com'

@@ -4,13 +4,13 @@
  */
 
 const THEME_KEY = 'tezos-systems-theme';
-const THEMES = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
+export const THEMES = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
 // Aurora — bespoke animated default; striking but legible.
-const DEFAULT_THEME = 'aurora';
-const THEME_CSS_VERSION = '234';
+export const DEFAULT_THEME = 'aurora';
+const THEME_CSS_VERSION = '235';
 
 // Theme color definitions for the picker dots
-const THEME_COLORS = {
+export const THEME_COLORS = {
     'aurora': { bg: '#070B1A', accent: '#45E0C8', text: '#EAF0FF' },
     'matrix': { bg: '#0a0f0a', accent: '#00ff00', text: '#00ff41' },
     'void': { bg: '#06060C', accent: '#8B5CF6', text: '#D8D0FF' },

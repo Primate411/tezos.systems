@@ -5248,6 +5248,9 @@ async function smokeWidgetBuilder(browser, baseUrl) {
   assert(response?.ok(), `widget builder: failed with HTTP ${response?.status()}`);
   await page.locator('#preview-frame').waitFor({ state: 'visible', timeout: 10000 });
   await expectCount(page, '#widget-type-grid .widget-type-btn', 8, 'widget builder type buttons');
+  await expectCount(page, '#theme-grid .theme-btn[data-theme="aurora"]', 1, 'widget builder aurora theme');
+  await expectCount(page, '#theme-grid .theme-btn[data-theme="transparent"]', 1, 'widget builder transparent theme');
+  await page.waitForFunction(() => new URL(document.querySelector('#preview-frame')?.src || location.href).searchParams.get('theme') === 'aurora', null, { timeout: 5000 });
 
   await page.locator('.widget-type-btn[data-type="price"]').click();
   await expectClassContains(page.locator('.widget-type-btn[data-type="price"]'), 'active', 'widget builder price type');
@@ -5262,6 +5265,20 @@ async function smokeWidgetBuilder(browser, baseUrl) {
 
   await page.locator('.code-tab[data-tab="markdown"]').click();
   assert((await page.locator('#code-text').innerText()).includes('![Tezos'), 'widget builder markdown code should render');
+
+  await page.locator('.widget-type-btn[data-type="combo"]').click();
+  await expectClassContains(page.locator('.widget-type-btn[data-type="combo"]'), 'active', 'widget builder combo type');
+  await expectCount(page, '#combo-options input[value="health"]', 1, 'widget builder combo health stat');
+  await expectCount(page, '#combo-options input[value="tz4"]', 1, 'widget builder combo tz4 stat');
+  await page.locator('#combo-options input[value="price"]').uncheck();
+  await page.locator('#combo-options input[value="blocks"]').uncheck();
+  await page.locator('#combo-options input[value="health"]').check();
+  await page.locator('#combo-options input[value="tz4"]').check();
+  await page.waitForFunction(() => {
+    const frame = document.querySelector('#preview-frame');
+    const stats = new URL(frame?.src || location.href).searchParams.get('stats') || '';
+    return frame?.src.includes('/widgets/combo.html') && stats.includes('health') && stats.includes('tz4');
+  }, null, { timeout: 5000 });
 
   await context.close();
   assert(issues.length === 0, `widget builder browser issues:\n${issues.join('\n')}`);

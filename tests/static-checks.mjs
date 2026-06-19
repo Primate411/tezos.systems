@@ -144,6 +144,7 @@ async function checkRequiredFiles() {
     'js/core/wallet.js',
     'sw.js',
     'version.json',
+    'widgets/runtime.js',
     'feed.xml',
     'data/governance-votes.json',
     'data/governance-refresh-report.json',
@@ -717,6 +718,82 @@ async function checkSelectorContracts() {
   pass('dashboard widget utility avoids raw widget endpoint links');
 }
 
+async function checkWidgetRuntimeContracts() {
+  const runtimeSource = await readText('widgets/runtime.js');
+  const builder = await readText('widgets/builder.html');
+  const sw = await readText('sw.js');
+  const config = await readText('js/core/config.js');
+  const htmlFiles = await walk('widgets', (file) => file.endsWith('.html'));
+  const rawWidgetFiles = htmlFiles.filter((file) => file !== 'widgets/builder.html');
+  const catalog = Array.from(runtimeSource.matchAll(/type:\s*'([^']+)'[\s\S]*?path:\s*'([^']+)'/g))
+    .map((match) => ({ type: match[1], path: match[2] }));
+  const catalogPaths = new Set(catalog.map((widget) => `widgets/${widget.path}`));
+  const comboStatKeys = Array.from(runtimeSource.matchAll(/key:\s*'([^']+)'/g)).map((match) => match[1]);
+
+  if (!runtimeSource.includes("import '../js/core/tzkt-throttle.js';")) {
+    fail('widgets/runtime.js must install the shared TzKT throttle');
+  }
+  if (!runtimeSource.includes("import { fetchWithRetry } from '../js/core/api.js';")) {
+    fail('widgets/runtime.js must reuse the shared fetchWithRetry helper');
+  }
+  if (!runtimeSource.includes("import { API_URLS, FETCH_LIMITS, STAKING_TARGET } from '../js/core/config.js';")) {
+    fail('widgets/runtime.js must read endpoint/fetch/staking constants from js/core/config.js');
+  }
+  if (!runtimeSource.includes("import { DEFAULT_THEME, THEME_COLORS, THEMES } from '../js/ui/theme.js';")) {
+    fail('widgets/runtime.js must share dashboard theme metadata from js/ui/theme.js');
+  }
+  if (!config.includes("coingecko: 'https://api.coingecko.com/api/v3'")) {
+    fail('js/core/config.js must expose the CoinGecko API base for widgets and price surfaces');
+  }
+
+  if (!runtimeSource.includes('export const DEFAULT_WIDGET_THEME = DEFAULT_THEME')) {
+    fail('widget default theme should follow dashboard DEFAULT_THEME');
+  }
+  for (const snippet of ["WIDGET_THEME_ORDER = [...THEMES, 'transparent']", 'transparent: { bg:']) {
+    if (!runtimeSource.includes(snippet)) fail(`widget theme runtime missing ${snippet}`);
+  }
+  for (const key of ['health', 'tz4']) {
+    if (!comboStatKeys.includes(key)) {
+      fail(`combo widget options missing latest signal: ${key}`);
+    }
+  }
+
+  for (const file of rawWidgetFiles) {
+    const text = await readText(file);
+    if (!catalogPaths.has(file)) fail(`widgets/runtime.js catalog missing raw widget page ${file}`);
+    if (!text.includes("from './runtime.js'")) fail(`${file} must import widgets/runtime.js`);
+    if (/https:\/\/api\.tzkt\.io\/v1|https:\/\/api\.coingecko\.com\/api\/v3/.test(text)) {
+      fail(`${file} must not hardcode TzKT/CoinGecko API hosts; use widgets/runtime.js`);
+    }
+    if (text.includes("const THEMES") || text.includes('THEME_NAMES')) {
+      fail(`${file} must not maintain a private theme list`);
+    }
+  }
+
+  for (const widget of catalog) {
+    const file = `widgets/${widget.path}`;
+    if (!(await pathExists(file))) fail(`widgets/runtime.js catalog points at missing widget ${file}`);
+  }
+  if (catalog.length !== rawWidgetFiles.length) {
+    fail(`widgets/runtime.js catalog count ${catalog.length} must match raw widget pages ${rawWidgetFiles.length}`);
+  }
+
+  for (const snippet of ['WIDGET_CATALOG', 'WIDGET_THEME_ORDER', 'COMBO_STAT_OPTIONS', "from './runtime.js'"]) {
+    if (!builder.includes(snippet)) fail(`widgets/builder.html must derive ${snippet} from widgets/runtime.js`);
+  }
+  if (!builder.includes('max="3600"')) {
+    fail('widgets/builder.html refresh slider must support the runtime one-hour upper bound');
+  }
+
+  for (const file of ['widgets/runtime.js', ...htmlFiles]) {
+    if (!sw.includes(`'/${file}'`) && !sw.includes(`"/${file}"`)) {
+      fail(`sw.js shell assets must include /${file}`);
+    }
+  }
+
+  pass(`widget runtime contracts checked: ${catalog.length} widgets, ${comboStatKeys.length} combo stat options`);
+}
+
 async function checkMainnetLaunchCopy() {
   const config = await readText('js/core/config.js');
   if (!config.includes("MAINNET_LAUNCH = '2018-09-17T00:00:00Z'")) {
@@ -1221,6 +1298,7 @@ async function main() {
   await checkCsp();
   await checkSitemapCoverage();
   await checkSelectorContracts();
+  await checkWidgetRuntimeContracts();
   await checkMainnetLaunchCopy();
   await checkModuleImportVersions();
   await checkHistoricalPagination();

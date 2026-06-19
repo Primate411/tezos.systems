@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v234';
+const CACHE_NAME = 'tezos-systems-v235';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -62,6 +62,16 @@ const SHELL_ASSETS = [
     '/js/features/tz4-adoption.js',
     '/js/features/upgrade-effect.js',
     '/js/landing/live-data.js',
+    '/widgets/runtime.js',
+    '/widgets/baker-count.html',
+    '/widgets/block-height.html',
+    '/widgets/staking-ratio.html',
+    '/widgets/price.html',
+    '/widgets/protocol.html',
+    '/widgets/governance.html',
+    '/widgets/combo.html',
+    '/widgets/baker-card.html',
+    '/widgets/builder.html',
     '/data/governance-votes.json',
     '/data/governance-refresh-report.json',
     '/data/protocol-data.json',
