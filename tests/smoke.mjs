@@ -4309,6 +4309,26 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     lbEntryLive: document.querySelector('#lb-entry-card')?.dataset.lbLive || '',
     lbEntryRefreshInterval: document.querySelector('#lb-entry-card')?.dataset.lbRefreshInterval || '',
     lbEntryRefreshedAt: document.querySelector('#lb-entry-card')?.dataset.lbRefreshedAt || '',
+    lbEntryGeometry: (() => {
+      const card = document.querySelector('#lb-entry-card');
+      const ema = document.querySelector('#lb-entry-ema');
+      const tape = document.querySelector('#lb-entry-vote-tape');
+      const rect = (node) => {
+        if (!node) return null;
+        const box = node.getBoundingClientRect();
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+      };
+      const cardRect = rect(card);
+      const emaRect = rect(ema);
+      const tapeRect = rect(tape);
+      return {
+        cardHeight: cardRect ? Number(cardRect.height.toFixed(2)) : 0,
+        tapeRightOfEma: Boolean(emaRect && tapeRect && tapeRect.left >= emaRect.right + 8),
+        tapeEmaBandOverlap: Boolean(emaRect && tapeRect && tapeRect.top < emaRect.bottom && tapeRect.bottom > emaRect.top),
+        emaRect,
+        tapeRect
+      };
+    })(),
     etherlinkEntryValue: document.querySelector('#etherlink-governance-entry-value')?.textContent?.trim() || '',
     etherlinkEntryDescription: document.querySelector('#etherlink-governance-entry-description')?.textContent?.trim() || '',
     etherlinkEntryMini: document.querySelector('#etherlink-governance-entry-mini')?.textContent?.trim() || '',
@@ -4377,6 +4397,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.lbEntryLive === 'true', `governance testing period: LB entry should have live refresh enabled, saw ${dashboardState.lbEntryLive}`);
   assert(dashboardState.lbEntryRefreshInterval === '60000', `governance testing period: LB entry refresh interval mismatch: ${dashboardState.lbEntryRefreshInterval}`);
   assert(Number(dashboardState.lbEntryRefreshedAt) > 0, `governance testing period: LB entry refreshed timestamp missing: ${dashboardState.lbEntryRefreshedAt}`);
+  assert(dashboardState.lbEntryGeometry.tapeRightOfEma && dashboardState.lbEntryGeometry.tapeEmaBandOverlap, `governance testing period: LB vote tape should sit beside the EMA summary, not stack below it: ${JSON.stringify(dashboardState.lbEntryGeometry)}`);
+  assert(dashboardState.lbEntryGeometry.cardHeight <= 230, `governance testing period: LB entry card should stay compact after adding the vote tape: ${JSON.stringify(dashboardState.lbEntryGeometry)}`);
   assert(dashboardState.etherlinkEntryLive === 'true', `governance testing period: Tezos X Governance entry should show live data, saw ${dashboardState.etherlinkEntryLive}`);
   assert(dashboardState.etherlinkEntryWide, 'governance testing period: Tezos X Governance should be 2x1 while an Etherlink proposal is active');
   assert(dashboardState.etherlinkEntrySize === 'wide', `governance testing period: Tezos X Governance size flag mismatch: ${dashboardState.etherlinkEntrySize}`);

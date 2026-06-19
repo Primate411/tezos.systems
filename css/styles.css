@@ -17112,10 +17112,6 @@ body {
         height: 228px;
     }
 
-    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tz4-liquidity"] > .chamber-entry-card {
-        height: 286px;
-    }
-
     #chamber-entry-card.chamber-entry-wide .chamber-entry-front {
         display: grid;
         grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -17179,10 +17175,6 @@ body {
 
     #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tezlink-governance"] > .chamber-entry-card {
         height: 316px;
-    }
-
-    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tz4-liquidity"] > .chamber-entry-card {
-        height: 306px;
     }
 
     #chamber-entry-card.chamber-entry-wide .chamber-entry-front {
@@ -17278,10 +17270,6 @@ body {
         min-height: 258px;
     }
 
-    #chambers-grid .lb-entry-card {
-        min-height: 306px;
-    }
-
     .health-entry-card.chamber-entry-wide .card-front,
     .tezlink-entry-card.chamber-entry-wide .card-front {
         justify-content: flex-start;
@@ -17291,10 +17279,6 @@ body {
     .tezlink-entry-tape {
         max-height: 3.8rem;
         overflow: hidden;
-    }
-
-    #chambers-grid .lb-entry-vote-tape {
-        max-height: none;
     }
 
     .tezlink-entry-value {
@@ -17753,13 +17737,15 @@ body {
     font-size: 2rem !important;
     font-variant-numeric: tabular-nums;
     line-height: 0.98;
-    letter-spacing: 0;
     margin: 1px 0 0;
     white-space: nowrap;
 }
 
 .lb-entry-card .lb-entry-open-target {
-    gap: 0.28rem !important;
+    display: grid !important;
+    grid-template-columns: minmax(98px, 0.82fr) minmax(0, 1fr);
+    align-content: center;
+    gap: 0.28rem 0.62rem !important;
     padding-top: 0.95rem !important;
 }
 
@@ -17775,7 +17761,6 @@ body {
 
 .lb-entry-card .stat-description {
     margin-top: 0;
-    text-align: center;
     font-size: 0.68rem;
     line-height: 1.15;
 }
@@ -17823,6 +17808,20 @@ body {
     opacity: 0.72;
 }
 
+.lb-entry-card :is(.stat-label, .lb-entry-ema, .stat-description, .lb-entry-meter) {
+    grid-column: 1;
+    min-width: 0;
+}
+
+.lb-entry-card .lb-entry-vote-tape {
+    grid-column: 2;
+    grid-row: 1 / 5;
+    align-self: center;
+    max-height: 7.8rem;
+    overflow: hidden;
+    padding: 0.48rem 0.54rem;
+}
+
 .lb-entry-vote-row {
     grid-template-columns: minmax(0, 1fr) auto;
 }
@@ -17837,10 +17836,6 @@ body {
     height: 14px;
     padding: 0 4px;
     font-size: 0.48rem;
-}
-
-.lb-entry-vote-empty {
-    color: var(--text-tertiary);
 }
 
 .lb-content {
@@ -20796,6 +20791,10 @@ body {
 }
 
 @media (min-width: 760px) {
+    #chambers-grid .tz4-entry-card.chamber-entry-wide {
+        height: 228px;
+    }
+
     .tz4-entry-card.chamber-entry-wide .card-front {
         display: grid;
         grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
