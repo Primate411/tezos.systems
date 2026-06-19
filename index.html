@@ -50,13 +50,13 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=232">
+    <link rel="stylesheet" href="css/styles.min.css?v=233">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=232">
+    <link rel="modulepreload" href="js/core/app.js?v=233">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -1790,23 +1790,31 @@
                 <button class="footer-chad-chip" type="button" data-footer-chad="price" aria-pressed="false">Price watcher</button>
             </div>
         </section>
-        <p class="powered-by">
-            Powered by <a href="https://tez.capital" target="_blank" rel="noopener">Tez Capital</a>
-        </p>
-        <p class="attribution">
-            Data from <a href="https://tzkt.io" target="_blank" rel="noopener">TzKT</a>
-            and <a href="https://eu.rpc.tez.capital" target="_blank" rel="noopener">Tez.Capital</a>
-        </p>
-        <p class="attribution">
-            <a href="/widgets/builder.html">🧩 Embed Widgets</a> — add live Tezos stats to your site
-        </p>
-        <p class="attribution">
-            <a href="/feed.xml" type="application/rss+xml">Governance RSS</a> · <a href="/chamber/">Tezos L1 Governance</a> · <a href="/health/">Network Health</a>
-        </p>
-        <p class="attribution" style="margin-top: 1.5rem;">
-            Feedback or want to contribute? <a href="https://github.com/Primate411/tezos.systems/issues" target="_blank" rel="noopener">Open an issue</a>
-            or <a href="https://github.com/Primate411/tezos.systems/pulls" target="_blank" rel="noopener">submit a PR</a> on GitHub.
-        </p>
+        <div class="footer-meta" aria-label="Site attribution and links">
+            <p class="powered-by">
+                Powered by <a href="https://tez.capital" target="_blank" rel="noopener">Tez Capital</a>
+            </p>
+            <p class="footer-source-line">
+                Data from <a href="https://tzkt.io" target="_blank" rel="noopener">TzKT</a>
+                <span aria-hidden="true">+</span>
+                <a href="https://eu.rpc.tez.capital" target="_blank" rel="noopener">Tez.Capital</a>
+            </p>
+            <nav class="footer-link-rail" aria-label="Footer links">
+                <a class="footer-link footer-link-feature" href="/widgets/builder.html">
+                    <span class="footer-link-mark" aria-hidden="true">+</span>
+                    <span>Embed Widgets</span>
+                    <small>live stats for your site</small>
+                </a>
+                <a class="footer-link" href="/feed.xml" type="application/rss+xml">Governance RSS</a>
+                <a class="footer-link" href="/chamber/">Tezos L1 Governance</a>
+                <a class="footer-link" href="/health/">Network Health</a>
+            </nav>
+            <p class="footer-contribute">
+                Feedback? <a href="https://github.com/Primate411/tezos.systems/issues" target="_blank" rel="noopener">Open an issue</a>
+                <span aria-hidden="true">·</span>
+                <a href="https://github.com/Primate411/tezos.systems/pulls" target="_blank" rel="noopener">submit a PR</a>
+            </p>
+        </div>
         <p id="build-version" class="build-version"></p>
     </footer>
 
@@ -2055,7 +2063,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=232"></script>
+    <script type="module" src="js/core/app.js?v=233"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
