@@ -10,7 +10,8 @@ const TZKT = API_URLS.tzkt;
 const LB_THRESHOLD = 1000000000;
 const LB_EMA_DENOMINATOR = 2000000000;
 const LB_MODAL_BLOCK_LIMIT = 2500;
-const LB_ENTRY_BLOCK_LIMIT = 1;
+const LB_ENTRY_BLOCK_LIMIT = 5;
+const LB_ENTRY_VOTE_LIMIT = 5;
 const LB_LIVE_REFRESH_MS = 6000;
 const LB_ENTRY_REFRESH_MS = 60000;
 const CACHE_TTL = 60000;
@@ -362,6 +363,24 @@ function renderTopBakerSignalRows(data) {
             <span>${formatLevel(baker.level)} · ${escapeHtml(formatAge(baker.timestamp))}</span>
         </div>
     `).join('');
+}
+
+function renderEntryVoteRow(block) {
+    const vote = voteFromToggle(block.lbToggle);
+    const name = bakerName(block.producer);
+    const title = `${name} ${vote.label} at block ${formatLevel(block.level)} · ${formatAge(block.timestamp)}`;
+    return `
+        <div class="health-live-row lb-entry-vote-row lb-vote-${vote.className}" data-lb-entry-vote="${vote.key}" data-lb-level="${Number(block.level) || 0}" title="${escapeHtml(title)}">
+            <span class="health-live-method lb-entry-vote-baker">${escapeHtml(name)}</span>
+            <span class="lb-vote-badge lb-entry-vote-badge ${vote.className}">${vote.label}</span>
+        </div>
+    `;
+}
+
+function renderEntryVoteTape(blocks = []) {
+    const rows = (blocks || []).slice(0, LB_ENTRY_VOTE_LIMIT);
+    if (!rows.length) return '<div class="health-live-empty lb-entry-vote-empty">Latest votes unavailable</div>';
+    return rows.map(renderEntryVoteRow).join('');
 }
 
 async function fetchBlocks(limit) {
@@ -1248,7 +1267,12 @@ export function initLiquidityBaking() {
                     <span class="lb-entry-meter-threshold" style="left:50%"></span>
                     <span class="lb-entry-meter-fill" id="lb-entry-meter-fill"></span>
                 </div>
-                <div class="chamber-entry-status" id="lb-entry-mini"></div>
+                <div class="health-live-tape lb-entry-vote-tape" id="lb-entry-vote-tape" aria-label="Latest Liquidity Baking baker votes">
+                    <div class="health-live-tape-title chamber-entry-status" id="lb-entry-mini">Latest votes</div>
+                    <div class="health-live-tape-rows lb-entry-vote-rows" id="lb-entry-vote-rows">
+                        <div class="health-live-empty lb-entry-vote-empty">Loading votes</div>
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -1317,6 +1341,7 @@ async function loadEntryCardStatus({ force = false } = {}) {
     const ema = document.getElementById('lb-entry-ema');
     const description = document.getElementById('lb-entry-description');
     const meterFill = document.getElementById('lb-entry-meter-fill');
+    const voteRows = document.getElementById('lb-entry-vote-rows');
     if (!mini || _lbEntryRefreshInFlight) return;
 
     _lbEntryRefreshInFlight = true;
@@ -1325,12 +1350,13 @@ async function loadEntryCardStatus({ force = false } = {}) {
         const status = data.disabled ? 'disabled' : 'active';
         if (ema) ema.textContent = `${data.emaPct.toFixed(1)}%`;
         if (description) description.textContent = `Subsidy ${status}`;
+        if (voteRows) voteRows.innerHTML = renderEntryVoteTape(data.blocks);
         if (meterFill) {
             meterFill.style.width = `${Math.min(100, Math.max(0, data.emaPct)).toFixed(2)}%`;
             meterFill.classList.toggle('disabled', data.disabled);
             meterFill.classList.toggle('active', !data.disabled);
         }
-        mini.textContent = 'OFF-vote EMA + baker votes';
+        mini.textContent = 'Latest votes';
         mini.classList.toggle('live', !data.disabled);
         const card = mini.closest('.lb-entry-card');
         card?.classList.toggle('lb-subsidy-disabled', data.disabled);
@@ -1346,6 +1372,7 @@ async function loadEntryCardStatus({ force = false } = {}) {
     } catch {
         if (ema) ema.textContent = '--';
         if (description) description.textContent = 'EMA unavailable';
+        if (voteRows) voteRows.innerHTML = '<div class="health-live-empty lb-entry-vote-empty">Latest votes unavailable</div>';
         mini.textContent = 'LB status unavailable';
     } finally {
         _lbEntryRefreshInFlight = false;

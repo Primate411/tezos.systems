@@ -219,10 +219,11 @@ inline modal styles in `js/core/app.js`.
   phase-aware current-state panel for quiet proposal/cooldown/adoption moments,
   proposal intel, quorum/non-voter gap analysis, and a vote share capture
   button.
-- Liquidity Baking dashboard tile and monitor with EMA state, recent block
-  votes, latest baker votes, contextual help, protocol-history lore, EMA
-  threshold meter and auto-scaled trend sparkline, 6-second open-monitor
-  refreshes, and 60-second dashboard-tile refreshes. The open monitor also
+- Liquidity Baking dashboard tile and monitor with EMA state, a compact latest
+  baker vote tape on the tile, recent block votes, latest baker votes,
+  contextual help, protocol-history lore, EMA threshold meter and auto-scaled
+  trend sparkline, 6-second open-monitor refreshes, and 60-second
+  dashboard-tile refreshes. The open monitor also
   shows sampled EMA drift/forecasting, a history strip, vote-change feed, and
   top baker signals when no baker is saved.
 - tz4 Adoption Chamber with a wide Chambers tile for latest completed switches
@@ -422,7 +423,7 @@ Current smoke suites:
 - `tezlink`
 - `network-health`
 - `ctez`
-- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, fixed Chamber footer geometry, Tezos X Governance card geometry and rollover timing, Tezos X direction fallbacks, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
+- `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, fixed Chamber footer geometry, Tezos X Governance card geometry and rollover timing, Tezos X direction fallbacks, LB tile latest-vote tape, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
 - `info-modals`

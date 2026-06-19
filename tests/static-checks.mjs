@@ -518,6 +518,8 @@ async function checkSelectorContracts() {
     ['Tezos X gas oracle panel', 'id="tezlink-gas-oracle"', tezlink],
     ['Tezos X top tokens panel', 'id="tezlink-token-panel"', tezlink],
     ['LB chamber copy link', 'data-copy-hash="#lb"', lb],
+    ['LB entry vote tape rows', 'id="lb-entry-vote-rows"', lb],
+    ['LB entry vote tape limit', 'LB_ENTRY_VOTE_LIMIT', lb],
     ['LB EMA forecast panel', 'id="lb-ema-forecast"', lb],
     ['LB EMA history panel', 'id="lb-ema-history"', lb],
     ['LB vote change feed', 'id="lb-vote-change-feed"', lb],

@@ -17113,7 +17113,7 @@ body {
     }
 
     #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tz4-liquidity"] > .chamber-entry-card {
-        height: 236px;
+        height: 286px;
     }
 
     #chamber-entry-card.chamber-entry-wide .chamber-entry-front {
@@ -17182,7 +17182,7 @@ body {
     }
 
     #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tz4-liquidity"] > .chamber-entry-card {
-        height: 260px;
+        height: 306px;
     }
 
     #chamber-entry-card.chamber-entry-wide .chamber-entry-front {
@@ -17279,7 +17279,7 @@ body {
     }
 
     #chambers-grid .lb-entry-card {
-        min-height: 244px;
+        min-height: 306px;
     }
 
     .health-entry-card.chamber-entry-wide .card-front,
@@ -17291,6 +17291,10 @@ body {
     .tezlink-entry-tape {
         max-height: 3.8rem;
         overflow: hidden;
+    }
+
+    #chambers-grid .lb-entry-vote-tape {
+        max-height: none;
     }
 
     .tezlink-entry-value {
@@ -17746,7 +17750,7 @@ body {
 
 .lb-entry-ema {
     font-family: 'Orbitron', 'JetBrains Mono', monospace;
-    font-size: 2.48rem !important;
+    font-size: 2rem !important;
     font-variant-numeric: tabular-nums;
     line-height: 0.98;
     letter-spacing: 0;
@@ -17755,8 +17759,8 @@ body {
 }
 
 .lb-entry-card .lb-entry-open-target {
-    gap: 0.36rem !important;
-    padding-top: 1.05rem !important;
+    gap: 0.28rem !important;
+    padding-top: 0.95rem !important;
 }
 
 .lb-entry-card.lb-subsidy-active .lb-entry-ema {
@@ -17772,6 +17776,8 @@ body {
 .lb-entry-card .stat-description {
     margin-top: 0;
     text-align: center;
+    font-size: 0.68rem;
+    line-height: 1.15;
 }
 
 .lb-entry-card.lb-subsidy-disabled .chamber-entry-status {
@@ -17780,8 +17786,9 @@ body {
 
 .lb-entry-card .chamber-entry-status {
     margin-top: 0;
-    font-size: 0.6rem;
+    font-size: 0.54rem;
     line-height: 1.15;
+    letter-spacing: 0.08em;
 }
 
 .lb-entry-meter {
@@ -17814,6 +17821,26 @@ body {
     z-index: 1;
     background: var(--text-primary);
     opacity: 0.72;
+}
+
+.lb-entry-vote-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.lb-entry-vote-baker {
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+.lb-entry-vote-tape .lb-entry-vote-badge {
+    min-width: 38px;
+    height: 14px;
+    padding: 0 4px;
+    font-size: 0.48rem;
+}
+
+.lb-entry-vote-empty {
+    color: var(--text-tertiary);
 }
 
 .lb-content {

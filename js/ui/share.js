@@ -391,6 +391,7 @@ function getChamberShareSummary(card) {
         '.tz4-entry-preview-title',
         '.tz4-entry-preview-row',
         '.health-live-tape-row',
+        '.lb-entry-vote-row',
         '.tezlink-tape-row'
     ].join(',')).forEach((node) => {
         if (isVisibleForShare(node)) pushUniqueLine(highlightLines, compactShareText(node));

@@ -1738,6 +1738,10 @@ async function assertChamberControlGeometry(page, label) {
       '.card-front .health-live-tape',
       '.card-front .health-live-row',
       '.card-front .lb-entry-meter',
+      '.card-front .lb-entry-vote-tape',
+      '.card-front .lb-entry-vote-row',
+      '.card-front .lb-entry-vote-baker',
+      '.card-front .lb-entry-vote-badge',
       '.card-front .tz4-entry-preview',
       '.card-front .tz4-entry-preview-title',
       '.card-front .tz4-entry-preview-row',
@@ -4241,6 +4245,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     issuanceBreakdown: document.querySelector('#issuance-breakdown')?.textContent?.trim() || '',
     lbEntryEma: document.querySelector('#lb-entry-ema')?.textContent?.trim() || '',
     lbEntryDescription: document.querySelector('#lb-entry-description')?.textContent?.trim() || '',
+    lbEntryVotes: Array.from(document.querySelectorAll('#lb-entry-vote-rows .lb-entry-vote-row')).map((row) => ({
+      text: row.textContent?.replace(/\s+/g, ' ').trim() || '',
+      vote: row.dataset.lbEntryVote || '',
+      badgeClass: row.querySelector('.lb-entry-vote-badge')?.className || ''
+    })),
     lbEntryLive: document.querySelector('#lb-entry-card')?.dataset.lbLive || '',
     lbEntryRefreshInterval: document.querySelector('#lb-entry-card')?.dataset.lbRefreshInterval || '',
     lbEntryRefreshedAt: document.querySelector('#lb-entry-card')?.dataset.lbRefreshedAt || '',
@@ -4305,6 +4314,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/0\.00% LB \(disabled\)/.test(dashboardState.issuanceBreakdown), `governance testing period: disabled LB breakdown missing, saw ${dashboardState.issuanceBreakdown}`);
   assert(dashboardState.lbEntryEma === '51.5%', `governance testing period: LB entry EMA mismatch: ${dashboardState.lbEntryEma}`);
   assert(/Subsidy disabled/.test(dashboardState.lbEntryDescription), `governance testing period: LB entry description mismatch: ${dashboardState.lbEntryDescription}`);
+  assert(dashboardState.lbEntryVotes.length >= 4, `governance testing period: LB entry vote tape missing rows: ${JSON.stringify(dashboardState.lbEntryVotes)}`);
+  assert(dashboardState.lbEntryVotes.some((row) => /QA Baker/.test(row.text) && row.vote === 'off' && /\boff\b/.test(row.badgeClass)), `governance testing period: LB entry OFF vote row missing: ${JSON.stringify(dashboardState.lbEntryVotes)}`);
+  assert(dashboardState.lbEntryVotes.some((row) => /Second Baker/.test(row.text) && row.vote === 'on' && /\bon\b/.test(row.badgeClass)), `governance testing period: LB entry ON vote row missing: ${JSON.stringify(dashboardState.lbEntryVotes)}`);
+  assert(dashboardState.lbEntryVotes.some((row) => /Pass Baker/.test(row.text) && row.vote === 'pass' && /\bpass\b/.test(row.badgeClass)), `governance testing period: LB entry PASS vote row missing: ${JSON.stringify(dashboardState.lbEntryVotes)}`);
   assert(dashboardState.lbEntryLive === 'true', `governance testing period: LB entry should have live refresh enabled, saw ${dashboardState.lbEntryLive}`);
   assert(dashboardState.lbEntryRefreshInterval === '60000', `governance testing period: LB entry refresh interval mismatch: ${dashboardState.lbEntryRefreshInterval}`);
   assert(Number(dashboardState.lbEntryRefreshedAt) > 0, `governance testing period: LB entry refreshed timestamp missing: ${dashboardState.lbEntryRefreshedAt}`);
