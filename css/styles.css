@@ -21469,6 +21469,278 @@ body[data-theme="nerv"]::after {
     padding: 0.3rem 0;
     line-height: 1.5;
 }
+.brief-section-story {
+    padding-bottom: 1.15rem;
+}
+.tezos-story-dossier,
+.network-context-panel {
+    display: grid;
+    gap: 0.8rem;
+}
+.tezos-story-identity {
+    display: grid;
+    gap: 0.3rem;
+    padding: 0.9rem;
+    border: 1px solid rgba(69,224,200,0.18);
+    border-radius: 8px;
+    background: linear-gradient(135deg, rgba(69,224,200,0.08), rgba(155,140,255,0.045));
+}
+.tezos-story-persona {
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+.tezos-story-name {
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    line-height: 1.25;
+}
+.tezos-story-name strong,
+.tezos-story-summary strong {
+    color: var(--accent-cyan, #45e0c8);
+}
+.tezos-story-summary {
+    color: var(--text-secondary);
+    font-size: 0.86rem;
+    line-height: 1.4;
+}
+.tezos-story-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+.tezos-story-metric {
+    min-width: 0;
+    min-height: 86px;
+    display: grid;
+    align-content: center;
+    gap: 0.18rem;
+    padding: 0.72rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.035);
+}
+.tezos-story-metric span,
+.tezos-story-badge span,
+.tezos-story-next span,
+.network-signal-detail {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+.tezos-story-metric strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    font-size: 1.05rem;
+    line-height: 1.15;
+}
+.tezos-story-metric small {
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+    line-height: 1.25;
+}
+.tezos-story-metric-time { border-color: rgba(91,168,255,0.24); }
+.tezos-story-metric-era { border-color: rgba(155,140,255,0.24); }
+.tezos-story-metric-collector { border-color: rgba(244,154,209,0.24); }
+.tezos-story-metric-governance { border-color: rgba(245,184,75,0.28); }
+.tezos-story-badges {
+    display: grid;
+    gap: 0.5rem;
+}
+.tezos-story-badge {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 46px;
+    padding: 0.58rem 0.68rem;
+    border: 1px solid rgba(255,255,255,0.075);
+    border-radius: 8px;
+    background: rgba(0,0,0,0.14);
+}
+.tezos-story-badge strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+    font-size: 0.86rem;
+    line-height: 1.25;
+}
+.tezos-story-badge span {
+    max-width: 11rem;
+    text-align: right;
+    line-height: 1.2;
+}
+.tezos-story-badge-identity { border-color: rgba(69,224,200,0.24); }
+.tezos-story-badge-era { border-color: rgba(91,168,255,0.2); }
+.tezos-story-badge-governance { border-color: rgba(245,184,75,0.3); background: rgba(245,184,75,0.055); }
+.tezos-story-badge-collector { border-color: rgba(244,154,209,0.26); }
+.tezos-story-badge-creator { border-color: rgba(53,232,148,0.24); }
+.tezos-story-badge-baker { border-color: rgba(0,212,255,0.24); }
+.tezos-story-badge-rewards { border-color: rgba(53,232,148,0.24); background: rgba(53,232,148,0.045); }
+.tezos-story-era-rail {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    align-items: center;
+    padding: 0.35rem 0;
+}
+.tezos-story-era-dot {
+    width: 1.28rem;
+    height: 1.28rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 50%;
+    color: var(--text-tertiary);
+    background: rgba(255,255,255,0.03);
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 900;
+}
+.tezos-story-era-dot.witnessed {
+    color: var(--text-secondary);
+    border-color: rgba(69,224,200,0.18);
+    background: rgba(69,224,200,0.055);
+}
+.tezos-story-era-dot.joined {
+    color: #07131a;
+    border-color: var(--accent-cyan, #45e0c8);
+    background: var(--accent-cyan, #45e0c8);
+}
+.tezos-story-era-dot.current {
+    color: #0b0f18;
+    border-color: #f5b84b;
+    background: #f5b84b;
+}
+.tezos-story-next {
+    display: grid;
+    gap: 0.18rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.035);
+}
+.tezos-story-next strong {
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+.tezos-story-next-governance,
+.tezos-story-next-watch { border-color: rgba(245,184,75,0.3); background: rgba(245,184,75,0.055); }
+.tezos-story-next-risk { border-color: rgba(239,68,68,0.32); background: rgba(239,68,68,0.055); }
+.tezos-story-next-rewards { border-color: rgba(53,232,148,0.24); background: rgba(53,232,148,0.045); }
+.tezos-story-empty {
+    color: var(--text-secondary);
+    padding: 0.85rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+}
+.network-context-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+.network-context-header strong {
+    flex: 0 0 auto;
+    color: var(--accent-cyan, #45e0c8);
+    font-size: 0.8rem;
+}
+.network-context-lede {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+.network-context-focus {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+.network-focus-chip {
+    padding: 0.22rem 0.5rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+.network-context-signals {
+    display: grid;
+    gap: 0.55rem;
+}
+.network-signal {
+    display: grid;
+    grid-template-columns: 2rem minmax(0, 1fr);
+    gap: 0.62rem;
+    min-height: 76px;
+    padding: 0.65rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.035);
+}
+.network-signal-rank {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    color: var(--accent-cyan, #45e0c8);
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 900;
+}
+.network-signal-main {
+    min-width: 0;
+    display: grid;
+    gap: 0.25rem;
+}
+.network-signal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+.network-signal-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+    font-size: 0.84rem;
+    font-weight: 800;
+}
+.network-signal-detail {
+    flex: 0 1 auto;
+    max-width: 45%;
+    text-align: right;
+    line-height: 1.2;
+}
+.network-signal p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 0.86rem;
+    line-height: 1.42;
+}
+.network-signal-market-up,
+.network-signal-operator,
+.network-signal-staking,
+.network-signal-growth { border-color: rgba(53,232,148,0.22); }
+.network-signal-market-down,
+.network-signal-watch { border-color: rgba(245,184,75,0.3); background: rgba(245,184,75,0.05); }
+.network-signal-governance,
+.network-signal-governance-hot { border-color: rgba(155,140,255,0.26); background: rgba(155,140,255,0.045); }
+.network-signal-activity { border-color: rgba(91,168,255,0.22); }
+.network-signal-capital,
+.network-signal-capital-hot { border-color: rgba(244,154,209,0.26); }
+.network-signal-quiet { opacity: 0.82; }
 .drawer-freshness {
     display: flex;
     align-items: center;
@@ -21733,6 +22005,28 @@ body[data-theme="nerv"]::after {
         max-width: none;
         text-align: left;
     }
+    .tezos-story-metrics {
+        grid-template-columns: 1fr;
+    }
+    .tezos-story-badge {
+        grid-template-columns: 1fr;
+    }
+    .tezos-story-badge span,
+    .network-signal-detail {
+        max-width: none;
+        text-align: left;
+    }
+    .network-signal-head {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .network-signal {
+        grid-template-columns: 1.7rem minmax(0, 1fr);
+    }
+    .network-signal-rank {
+        width: 1.7rem;
+        height: 1.7rem;
+    }
 }
 
 /* ── Drawer theme backgrounds ── */
@@ -21748,6 +22042,29 @@ body[data-theme="nerv"]::after {
 [data-theme="warzone"] .my-tezos-drawer { background: #0e1206; border-left-color: rgba(255,192,0,0.15); }
 [data-theme="nerv"] .my-tezos-drawer { background: #040300; border-left-color: rgba(255,152,48,0.2); }
 [data-theme="default"] .my-tezos-drawer { background: #0a0e1a; border-left-color: rgba(91,141,239,0.15); }
+[data-theme="clean"] .tezos-story-identity,
+[data-theme="clean"] .tezos-story-metric,
+[data-theme="clean"] .tezos-story-badge,
+[data-theme="clean"] .tezos-story-next,
+[data-theme="clean"] .network-signal,
+[data-theme="clean"] .network-focus-chip {
+    background: rgba(37,99,235,0.04);
+    border-color: rgba(37,99,235,0.14);
+}
+[data-theme="clean"] .tezos-story-era-dot {
+    background: rgba(37,99,235,0.06);
+    border-color: rgba(37,99,235,0.14);
+}
+[data-theme="clean"] .tezos-story-era-dot.joined {
+    color: #ffffff;
+    background: #2563eb;
+    border-color: #2563eb;
+}
+[data-theme="clean"] .tezos-story-era-dot.current {
+    color: #111827;
+    background: #f59e0b;
+    border-color: #f59e0b;
+}
 
 /* ── Clean theme scrollbar ── */
 [data-theme="clean"] ::-webkit-scrollbar-track { background: rgba(0,0,50,0.05); }

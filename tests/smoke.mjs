@@ -3339,6 +3339,27 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   assert(storyText.includes('Created 501 NFTs') && storyText.includes('2.50 XTZ sales'), `my tezos proposal attribution: creator stats missing: ${storyText}`);
   assert(storyText.includes('Known as qa-baker.tez'), `my tezos proposal attribution: domain alias missing: ${storyText}`);
 
+  await page.waitForFunction(() => document.querySelectorAll('#drawer-brief .tezos-story-dossier .tezos-story-metric').length >= 4, null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelectorAll('#drawer-network .network-signal').length >= 4, null, { timeout: 15000 });
+  const storySurface = await page.evaluate(() => ({
+    metrics: document.querySelectorAll('#drawer-brief .tezos-story-dossier .tezos-story-metric').length,
+    badges: document.querySelectorAll('#drawer-brief .tezos-story-dossier .tezos-story-badge').length,
+    eras: document.querySelectorAll('#drawer-brief .tezos-story-dossier .tezos-story-era-dot.witnessed, #drawer-brief .tezos-story-dossier .tezos-story-era-dot.joined, #drawer-brief .tezos-story-dossier .tezos-story-era-dot.current').length,
+    next: document.querySelector('#drawer-brief .tezos-story-dossier .tezos-story-next')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    signals: document.querySelectorAll('#drawer-network .network-signal').length,
+    focus: document.querySelector('#drawer-network .network-context-focus')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    networkText: document.querySelector('#drawer-network')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    legacyList: document.querySelectorAll('#drawer-network .network-context-list li').length
+  }));
+  assert(storySurface.metrics >= 4, `my tezos proposal attribution: story metrics missing: ${JSON.stringify(storySurface)}`);
+  assert(storySurface.badges >= 5, `my tezos proposal attribution: story badges too thin: ${JSON.stringify(storySurface)}`);
+  assert(storySurface.eras >= 3, `my tezos proposal attribution: protocol era rail missing: ${JSON.stringify(storySurface)}`);
+  assert(storySurface.next.includes('Now watching') || storySurface.next.includes('Now compounding'), `my tezos proposal attribution: next signal missing: ${storySurface.next}`);
+  assert(storySurface.signals >= 4, `my tezos proposal attribution: network context signals missing: ${JSON.stringify(storySurface)}`);
+  assert(/Baker|Governance|Collector|Creator|Portfolio|Network/.test(storySurface.focus), `my tezos proposal attribution: network context focus chips missing: ${storySurface.focus}`);
+  assert(storySurface.networkText.includes('Network Context') && storySurface.networkText.includes('Cycle'), `my tezos proposal attribution: network context header missing: ${storySurface.networkText}`);
+  assert(storySurface.legacyList === 0, `my tezos proposal attribution: network context still renders legacy bullet list: ${storySurface.networkText}`);
+
   await page.locator('#drawer-brief .story-share-btn').click();
   await page.locator('#share-modal.visible').waitFor({ state: 'visible', timeout: 10000 });
   const shareState = await page.evaluate(() => ({

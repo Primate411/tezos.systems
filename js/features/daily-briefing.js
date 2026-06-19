@@ -4,12 +4,29 @@
  */
 
 import { API_URLS } from '../core/config.js';
+import { escapeHtml } from '../core/utils.js';
 import { fetchXTZPrice } from './price.js';
 
 const LS_BASELINE  = 'tezos-systems-briefing-baseline';
 const LS_BRIEFING  = 'tezos-systems-briefing-cache';
 const LS_LAST_SEEN = 'tezos-systems-briefing-last-seen';
 const PRICE_FETCH_TIMEOUT_MS = 2500;
+
+const CATEGORY_META = {
+  baker: { label: 'Baker', icon: '🍞', tone: 'operator', detail: 'Personal operator signal' },
+  price: { label: 'Market', icon: '💸', tone: 'market', detail: 'XTZ price movement' },
+  staking: { label: 'Staking', icon: '🥩', tone: 'staking', detail: 'Security and yield' },
+  volume: { label: 'Activity', icon: '⚡', tone: 'activity', detail: 'Transaction flow' },
+  contracts: { label: 'Contracts', icon: '🧩', tone: 'activity', detail: 'App and DeFi pulse' },
+  whales: { label: 'Whales', icon: '🐋', tone: 'capital', detail: 'Large value movement' },
+  governance: { label: 'Governance', icon: '🏛️', tone: 'governance', detail: 'Protocol decision lane' },
+  ecosystem: { label: 'Growth', icon: '🌱', tone: 'growth', detail: 'New account flow' },
+  network: { label: 'Network', icon: '🌐', tone: 'network', detail: 'Daily Tezos pulse' }
+};
+
+let lastStats = null;
+let lastXtzPrice = null;
+let personalizationWired = false;
 
 // ─── Template Library ────────────────────────────────────────────────────────
 
@@ -81,6 +98,75 @@ function finiteNumber(value) {
   return Number.isFinite(number) ? number : null;
 }
 
+function safeLocalStorageGet(key) {
+  try { return localStorage.getItem(key); } catch { return null; }
+}
+
+function categoryMeta(category) {
+  return CATEGORY_META[category] || CATEGORY_META.network;
+}
+
+function getCurrentMyTezosProfile() {
+  const data = typeof window !== 'undefined' ? window._myTezosData : null;
+  const story = data?.story || null;
+  const address = data?.fullAddress || safeLocalStorageGet('tezos-systems-my-baker-address') || '';
+  const interests = [];
+  const add = (key, label) => {
+    if (!interests.some(item => item.key === key)) interests.push({ key, label });
+  };
+
+  if (data?.isBaker) add('baker', 'Baker ops');
+  else if (data?.bakerAddr || address) add('baker', 'Baker health');
+  if ((Number(data?.totalXTZ) || 0) > 0) add('portfolio', 'Portfolio');
+  if (data?.isStaker || (Number(data?.staked) || 0) > 0) add('staking', 'Staking');
+  if (story?.proposalsInjected > 0 || story?.bakerProposalsInjected > 0 || data?.bakerVote) add('governance', 'Governance');
+  if ((Number(story?.nftAssetsCollected) || 0) > 0) add('collector', 'Collector');
+  if ((Number(story?.creatorStats?.totalCreated) || 0) > 0) add('creator', 'Creator');
+  if (!interests.length) add('network', 'Network pulse');
+
+  const keys = interests.map(item => item.key);
+  const key = [
+    address ? 'address' : 'global',
+    data?.isBaker ? 'baker' : data?.bakerAddr ? 'delegator' : 'observer',
+    ...keys
+  ].join('|');
+
+  return {
+    address,
+    isReady: Boolean(data?.fullAddress),
+    isBaker: data?.isBaker === true,
+    hasBaker: Boolean(data?.bakerAddr || address),
+    interests,
+    interestKeys: new Set(keys),
+    key
+  };
+}
+
+function scoreBoostFor(category, profile) {
+  const keys = profile?.interestKeys || new Set();
+  if (category === 'baker' && profile?.hasBaker) return 30;
+  if (category === 'governance' && keys.has('governance')) return 22;
+  if (category === 'staking' && keys.has('staking')) return 18;
+  if (category === 'price' && keys.has('portfolio')) return 16;
+  if (category === 'contracts' && (keys.has('creator') || keys.has('collector'))) return 12;
+  if (category === 'ecosystem' && (keys.has('creator') || keys.has('collector'))) return 8;
+  if (category === 'whales' && keys.has('portfolio')) return 8;
+  return 0;
+}
+
+function makeSignal(category, score, text, options = {}) {
+  const meta = categoryMeta(category);
+  return {
+    category,
+    score,
+    text,
+    title: options.title || meta.label,
+    icon: options.icon || meta.icon,
+    detail: options.detail || meta.detail,
+    tone: options.tone || meta.tone
+  };
+}
+
 function withTimeout(promise, timeoutMs) {
   return Promise.race([
     promise,
@@ -141,8 +227,11 @@ async function fetchBakerStats(address, cycle) {
 
 // ─── Sentence Selection ───────────────────────────────────────────────────────
 
-function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
+function buildSentences(stats, xtzPrice, baseline, whales, bakerStats, profile = getCurrentMyTezosProfile()) {
   const candidates = [];
+  const addSignal = (category, score, text, options = {}) => {
+    candidates.push(makeSignal(category, score + scoreBoostFor(category, profile), text, options));
+  };
 
   // PRICE
   if (xtzPrice) {
@@ -154,7 +243,10 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
     const score     = absPct24h > 2 ? 90 : absPct24h > 0.5 ? 60 : 30;
     const vars      = { pct: fmtPct(pct24h), dir, price: fmtPrice(xtzPrice) };
     const tmpl      = absPct24h < 0.4 ? TEMPLATES.price[2] : pick(TEMPLATES.price.filter((_,i) => i !== 2));
-    candidates.push({ score, text: tmpl(vars), category: 'price' });
+    addSignal('price', score, tmpl(vars), {
+      detail: absPct24h >= 2 ? 'Portfolio-sized move' : 'Market temperature',
+      tone: pct24h >= 0 ? 'market-up' : 'market-down'
+    });
   }
 
   // STAKING
@@ -162,10 +254,9 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
     const prev  = baseline?.stakingRatio ?? stats.stakingRatio;
     const delta = stats.stakingRatio - prev;
     const score = Math.abs(delta) > 0.5 ? 80 : Math.abs(delta) > 0.1 ? 50 : 35;
-    candidates.push({
-      score,
-      text: pick(TEMPLATES.staking)({ ratio: stats.stakingRatio.toFixed(1), delta }),
-      category: 'staking',
+    addSignal('staking', score, pick(TEMPLATES.staking)({ ratio: stats.stakingRatio.toFixed(1), delta }), {
+      detail: Math.abs(delta) > 0.1 ? `${delta > 0 ? '+' : ''}${delta.toFixed(2)} percentage points vs baseline` : 'Staking share is steady',
+      tone: delta >= 0 ? 'staking' : 'watch'
     });
   }
 
@@ -175,10 +266,9 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
     const sp    = signedPct(stats.transactionVolume24h, prev);
     const dir   = sp >= 0 ? 'above' : 'below';
     const score = Math.abs(sp) > 20 ? 85 : Math.abs(sp) > 10 ? 60 : 30;
-    candidates.push({
-      score,
-      text: pick(TEMPLATES.volume)({ vol: stats.transactionVolume24h, pct: fmtPct(sp), dir }),
-      category: 'volume',
+    addSignal('volume', score, pick(TEMPLATES.volume)({ vol: stats.transactionVolume24h, pct: fmtPct(sp), dir }), {
+      detail: Math.abs(sp) > 10 ? 'Activity changed meaningfully' : 'Activity baseline',
+      tone: sp >= 0 ? 'activity' : 'quiet'
     });
   }
 
@@ -187,10 +277,9 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
     const prev  = baseline?.contractCalls24h ?? stats.contractCalls24h;
     const delta = stats.contractCalls24h - prev;
     const score = Math.abs(delta) > 5000 ? 70 : 40;
-    candidates.push({
-      score,
-      text: pick(TEMPLATES.contracts)({ count: stats.contractCalls24h, delta }),
-      category: 'contracts',
+    addSignal('contracts', score, pick(TEMPLATES.contracts)({ count: stats.contractCalls24h, delta }), {
+      detail: Math.abs(delta) > 1000 ? `${delta > 0 ? '+' : ''}${delta.toLocaleString()} calls vs baseline` : 'App usage baseline',
+      tone: delta >= 0 ? 'activity' : 'quiet'
     });
   }
 
@@ -198,27 +287,24 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
   {
     const score = whales.count > 10 ? 88 : whales.count > 5 ? 70 : whales.count > 0 ? 50 : 20;
     const tmpl  = whales.count > 0 && whales.top > 0 ? pick(TEMPLATES.whales) : TEMPLATES.whales[0];
-    candidates.push({
-      score,
-      text: tmpl({ count: whales.count, top: whales.top }),
-      category: 'whales',
+    addSignal('whales', score, tmpl({ count: whales.count, top: whales.top }), {
+      detail: whales.top > 0 ? `Largest move ${whales.top.toLocaleString()} XTZ` : 'No major transfer spike',
+      tone: whales.count > 10 ? 'capital-hot' : whales.count > 0 ? 'capital' : 'quiet'
     });
   }
 
   // GOVERNANCE
   if (stats.proposal) {
     const pct = stats.participation != null ? stats.participation.toFixed(1) : '?';
-    candidates.push({
-      score: 75,
-      text: pick(TEMPLATES.governance.slice(0, 2).concat([TEMPLATES.governance[3], TEMPLATES.governance[4]]))(
-        { proposal: stats.proposal, period: stats.votingPeriod || 'current', pct, participation: pct }),
-      category: 'governance',
+    addSignal('governance', 75, pick(TEMPLATES.governance.slice(0, 2).concat([TEMPLATES.governance[3], TEMPLATES.governance[4]]))(
+      { proposal: stats.proposal, period: stats.votingPeriod || 'current', pct, participation: pct }), {
+      detail: 'Live governance period',
+      tone: 'governance-hot'
     });
   } else {
-    candidates.push({
-      score: 30,
-      text: TEMPLATES.governance[2]({ name: stats.lastUpgradeName || 'Tallinn' }),
-      category: 'governance',
+    addSignal('governance', 30, TEMPLATES.governance[2]({ name: stats.lastUpgradeName || 'Tallinn' }), {
+      detail: 'No active protocol vote',
+      tone: 'quiet'
     });
   }
 
@@ -228,10 +314,9 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
     const delta = stats.fundedAccounts - prev;
     const n     = Math.max(delta, stats.newAccounts || 0);
     const score = delta > 1000 ? 65 : delta > 200 ? 45 : 25;
-    candidates.push({
-      score,
-      text: pick(TEMPLATES.ecosystem)({ n, bakers: stats.totalBakers || '?' }),
-      category: 'ecosystem',
+    addSignal('ecosystem', score, pick(TEMPLATES.ecosystem)({ n, bakers: stats.totalBakers || '?' }), {
+      detail: n > 200 ? 'New accounts worth noticing' : 'Onboarding baseline',
+      tone: n > 200 ? 'growth' : 'quiet'
     });
   }
 
@@ -239,10 +324,9 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
   if (bakerStats) {
     const score = bakerStats.missed > 0 ? 95 : 55;
     const tmpl  = bakerStats.missed > 0 ? TEMPLATES.baker[1] : pick([TEMPLATES.baker[0], TEMPLATES.baker[2]]);
-    candidates.push({
-      score,
-      text: tmpl({ pct: bakerStats.attestPct, missed: bakerStats.missed }),
-      category: 'baker',
+    addSignal('baker', score, tmpl({ pct: bakerStats.attestPct, missed: bakerStats.missed }), {
+      detail: bakerStats.missed > 0 ? 'Personal baker watch item' : 'Personal baker check',
+      tone: bakerStats.missed > 0 ? 'watch' : 'operator'
     });
   }
 
@@ -253,14 +337,14 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
   for (const c of candidates) {
     if (!seen.has(c.category)) {
       seen.add(c.category);
-      chosen.push(c.text);
+      chosen.push(c);
     }
     if (chosen.length >= 6) break;
   }
   // Pad to 4 minimum
   if (chosen.length < 4) {
     for (const c of candidates) {
-      if (!chosen.includes(c.text)) { chosen.push(c.text); }
+      if (!chosen.some(signal => signal.text === c.text)) { chosen.push(c); }
       if (chosen.length >= 4) break;
     }
   }
@@ -276,6 +360,7 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
 async function generate(stats, xtzPrice) {
   const sourceStats = stats || {};
   const cycle = sourceStats.cycle ?? 0;
+  const profile = getCurrentMyTezosProfile();
   const priceContext = await resolvePriceContext(sourceStats, xtzPrice);
   const nextStats = priceContext.stats;
   const currentPrice = priceContext.xtzPrice;
@@ -292,11 +377,12 @@ async function generate(stats, xtzPrice) {
       const changeDrift = currentChange24h != null && cachedChange24h != null
         ? Math.abs(currentChange24h - cachedChange24h)
         : 0;
+      const profileChanged = cached.profileKey !== profile.key;
       const missingLiveMove = currentChange24h != null && cachedChange24h == null;
       const crossedSteadyBoundary = currentChange24h != null && cachedChange24h != null
         && (Math.abs(currentChange24h) < 0.4) !== (Math.abs(cachedChange24h) < 0.4);
       // Regenerate if: >4 hours old, price shifted >2%, or the real 24h move changed enough to affect narrative.
-      const isStale = ageHrs > 4 || priceDrift > 0.02 || missingLiveMove || changeDrift > 0.75 || crossedSteadyBoundary;
+      const isStale = ageHrs > 4 || priceDrift > 0.02 || profileChanged || missingLiveMove || changeDrift > 0.75 || crossedSteadyBoundary;
       if (!isStale) return cached;
     }
   } catch { /* ignore */ }
@@ -308,8 +394,8 @@ async function generate(stats, xtzPrice) {
     fetchBakerStats(localStorage.getItem('tezos-systems-my-baker-address'), cycle),
   ]);
 
-  const sentences = buildSentences(nextStats, currentPrice, baseline, whales, bakerStats);
-  const briefing  = { cycle, sentences, generatedAt: Date.now(), priceAt: currentPrice, priceChange24h: currentChange24h };
+  const sentences = buildSentences(nextStats, currentPrice, baseline, whales, bakerStats, profile);
+  const briefing  = { cycle, sentences, generatedAt: Date.now(), priceAt: currentPrice, priceChange24h: currentChange24h, profileKey: profile.key };
 
   try {
     localStorage.setItem(LS_BRIEFING,  JSON.stringify(briefing));
@@ -321,26 +407,125 @@ async function generate(stats, xtzPrice) {
 
 // ─── Public API ───────────────────────────────────────────────────────────────
 
+function safeCssToken(value) {
+  return String(value || 'network').replace(/[^a-z0-9-]/gi, '').toLowerCase() || 'network';
+}
+
+function normalizeSignal(signal, index = 0) {
+  if (typeof signal === 'string') {
+    return makeSignal('network', 20 - index, signal);
+  }
+  const category = safeCssToken(signal?.category || 'network');
+  const meta = categoryMeta(category);
+  return {
+    category,
+    score: finiteNumber(signal?.score) ?? (20 - index),
+    text: String(signal?.text || ''),
+    title: String(signal?.title || meta.label),
+    icon: String(signal?.icon || meta.icon),
+    detail: String(signal?.detail || meta.detail),
+    tone: safeCssToken(signal?.tone || meta.tone)
+  };
+}
+
+function getBriefingLead(profile, signals) {
+  const top = signals[0];
+  if (!top) return 'A compact read on the network signals most likely to matter today.';
+  if (profile.isBaker) return `Your baker lane leads today: ${top.detail.toLowerCase()}.`;
+  if (profile.interestKeys?.has('creator') || profile.interestKeys?.has('collector')) {
+    return `Your collector and creator lens is active; contract, account, and market pulses get extra weight.`;
+  }
+  if (profile.interestKeys?.has('governance')) {
+    return `Governance-aware context is active, with protocol decisions weighted ahead of routine noise.`;
+  }
+  if (profile.interestKeys?.has('portfolio')) {
+    return `Portfolio-aware context is active, so price, staking, and capital movement get priority.`;
+  }
+  return 'A compact read on the network signals most likely to matter today.';
+}
+
+function renderFocusChips(profile) {
+  return profile.interests.slice(0, 5).map(item => (
+    `<span class="network-focus-chip" data-focus="${safeCssToken(item.key)}">${escapeHtml(item.label)}</span>`
+  )).join('');
+}
+
+function renderSignalCard(signal, index) {
+  const label = `${signal.icon} ${signal.title}`;
+  return `
+    <article class="network-signal network-signal-${signal.tone}" data-category="${escapeHtml(signal.category)}">
+      <div class="network-signal-rank">${index + 1}</div>
+      <div class="network-signal-main">
+        <div class="network-signal-head">
+          <span class="network-signal-label">${escapeHtml(label)}</span>
+          <span class="network-signal-detail">${escapeHtml(signal.detail)}</span>
+        </div>
+        <p>${escapeHtml(signal.text)}</p>
+      </div>
+    </article>
+  `;
+}
+
+function rerenderCachedBriefing() {
+  try {
+    const cached = JSON.parse(localStorage.getItem(LS_BRIEFING) || 'null');
+    if (cached?.cycle && cached?.sentences) renderToDrawer(cached.cycle, cached.sentences);
+  } catch { /* ignore */ }
+}
+
+function wirePersonalizationRefresh() {
+  if (personalizationWired || typeof window === 'undefined') return;
+  personalizationWired = true;
+  window.addEventListener('my-tezos-data-ready', () => {
+    if (lastStats?.cycle) {
+      updateDailyBriefing(lastStats, lastXtzPrice).catch(() => rerenderCachedBriefing());
+    } else {
+      rerenderCachedBriefing();
+    }
+  });
+}
+
 function renderToDrawer(cycle, sentences) {
   const container = document.getElementById('drawer-network');
   if (!container) return;
+  const profile = getCurrentMyTezosProfile();
+  const signals = (Array.isArray(sentences) ? sentences : [])
+    .map(normalizeSignal)
+    .filter(signal => signal.text)
+    .slice(0, 6);
+  const lead = getBriefingLead(profile, signals);
   container.innerHTML = `
-    <div class="network-context-header">🌐 Network Context · Cycle ${cycle}</div>
-    <ul class="network-context-list">
-      ${sentences.map(s => `<li>${s}</li>`).join('')}
-    </ul>
+    <section class="network-context-panel">
+      <div class="network-context-header">
+        <span>🌐 Network Context</span>
+        <strong>Cycle ${escapeHtml(String(cycle))}</strong>
+      </div>
+      <p class="network-context-lede">${escapeHtml(lead)}</p>
+      <div class="network-context-focus" aria-label="Context focus">
+        ${renderFocusChips(profile)}
+      </div>
+      <div class="network-context-signals">
+        ${signals.map(renderSignalCard).join('')}
+      </div>
+    </section>
   `;
 }
 
 export async function initDailyBriefing(stats, xtzPrice) {
+  wirePersonalizationRefresh();
   if (!stats?.cycle) return;
+  lastStats = stats;
+  lastXtzPrice = xtzPrice;
   const briefing = await generate(stats, xtzPrice);
   renderToDrawer(briefing.cycle, briefing.sentences);
   try { localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle)); } catch {}
 }
 
 export async function updateDailyBriefing(stats, xtzPrice) {
+  wirePersonalizationRefresh();
   if (!stats?.cycle) return;
+  lastStats = stats;
+  lastXtzPrice = xtzPrice;
   const briefing = await generate(stats, xtzPrice);
   renderToDrawer(briefing.cycle, briefing.sentences);
   try { localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle)); } catch {}

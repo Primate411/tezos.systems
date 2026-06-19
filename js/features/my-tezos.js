@@ -928,6 +928,227 @@ function countUpgradesSince(firstActivityLevel) {
     return PROTOCOL_ERAS.filter(p => p.level > firstActivityLevel).length;
 }
 
+function escapeAttr(value) {
+    return escapeHtml(String(value ?? '')).replace(/"/g, '&quot;');
+}
+
+function safeTone(value) {
+    return String(value || 'default').replace(/[^a-z0-9-]/gi, '').toLowerCase() || 'default';
+}
+
+function formatStoryDate(value) {
+    const time = new Date(value).getTime();
+    if (!Number.isFinite(time)) return 'first activity';
+    return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(time));
+}
+
+function formatStoryTenure(days) {
+    const n = Number(days);
+    if (!Number.isFinite(n) || n < 0) return 'New';
+    if (n >= 365) return `${(n / 365.25).toFixed(1)} years`;
+    return `${Math.max(1, Math.trunc(n)).toLocaleString()} days`;
+}
+
+function getStoryPersona(data) {
+    const story = data.story;
+    const traits = [];
+    if (story.proposalsInjected > 0) traits.push('protocol author');
+    else if (story.bakerProposalsInjected > 0) traits.push('governance-linked');
+    if (data.isBaker) traits.push('baker');
+    else if (data.bakerAddr) traits.push('delegator');
+    if (hasCreatorStats(story.creatorStats)) traits.push('creator');
+    if ((Number(story.nftAssetsCollected) || 0) > 0) traits.push('collector');
+    if (data.isStaker) traits.push('staker');
+    if (!traits.length) traits.push('on-chain participant');
+
+    const era = story.upgradesSeen >= 15
+        ? 'deep-history'
+        : story.upgradesSeen >= 8
+            ? 'seasoned'
+            : 'new-era';
+    return `${era} ${traits.slice(0, 3).join(' · ')}`;
+}
+
+function renderStoryMetric(label, value, detail, tone = 'default') {
+    return `
+        <div class="tezos-story-metric tezos-story-metric-${safeTone(tone)}">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+            <small>${escapeHtml(detail)}</small>
+        </div>
+    `;
+}
+
+function renderStoryBadge(text, detail, tone = 'default') {
+    return `
+        <div class="tezos-story-badge tezos-story-badge-${safeTone(tone)}">
+            <strong>${text}</strong>
+            <span>${escapeHtml(detail)}</span>
+        </div>
+    `;
+}
+
+function renderStoryEraRail(story) {
+    const eras = PROTOCOL_ERAS.filter(p => p.name !== 'Genesis');
+    const joinIdx = eras.findIndex(p => p.name === story.joinedEra);
+    const safeJoinIdx = joinIdx >= 0 ? joinIdx : 0;
+    return `
+        <div class="tezos-story-era-rail" aria-label="Protocol eras witnessed">
+            ${eras.map((era, index) => {
+                const witnessed = index >= safeJoinIdx;
+                const joined = era.name === story.joinedEra;
+                const current = era.name === story.currentEra;
+                const state = joined ? 'joined' : current ? 'current' : witnessed ? 'witnessed' : 'before';
+                return `<span class="tezos-story-era-dot ${state}" title="${escapeAttr(era.name)}">${escapeHtml(era.name[0] || '')}</span>`;
+            }).join('')}
+        </div>
+    `;
+}
+
+function getStoryNextSignal(data) {
+    if (data.activeProposal) {
+        return {
+            label: 'Now watching',
+            value: `Active governance: ${data.activeProposal}`,
+            tone: 'governance'
+        };
+    }
+    if (data.bakerInactive) {
+        return {
+            label: 'Now watching',
+            value: `${data.bakerName || 'Your baker'} is inactive, so rewards need attention.`,
+            tone: 'risk'
+        };
+    }
+    if (data.bakerVote && !data.bakerVote.voted) {
+        const left = data.bakerVote.endTime ? ` · ${formatGovTimeLeft(data.bakerVote.endTime)} left` : '';
+        return {
+            label: 'Now watching',
+            value: `${data.bakerName || 'Your baker'} has not voted${data.bakerVote.proposal ? ` on ${data.bakerVote.proposal}` : ''}${left}.`,
+            tone: 'watch'
+        };
+    }
+    if (data.rewardStreak > 1) {
+        return {
+            label: 'Now compounding',
+            value: `${data.rewardStreak} reward cycles in a row with ${data.apyRate}% APY context.`,
+            tone: 'rewards'
+        };
+    }
+    return {
+        label: 'Now watching',
+        value: 'Quiet governance, live rewards, and the next cycle pulse.',
+        tone: 'default'
+    };
+}
+
+function buildStoryBadges(data) {
+    const story = data.story;
+    const badges = [];
+    if (story.domainAlias) {
+        badges.push(renderStoryBadge(`Known as ${escapeHtml(story.domainAlias)}`, 'Tezos Domains identity', 'identity'));
+    }
+    badges.push(renderStoryBadge(
+        `Joined under ${escapeHtml(story.joinedEra)} · ${escapeHtml(String(story.upgradesSeen))} upgrades witnessed`,
+        'Zero hard forks in your arc',
+        'era'
+    ));
+    if (story.proposalsInjected > 0) {
+        const names = story.proposalNames.length <= 4 ? ` · ${story.proposalNames.map(escapeHtml).join(', ')}` : '';
+        badges.push(renderStoryBadge(
+            `Injected ${escapeHtml(String(story.proposalsInjected))} accepted proposal${story.proposalsInjected > 1 ? 's' : ''}${names}`,
+            'Direct protocol authorship',
+            'governance'
+        ));
+    }
+    if (story.bakerProposalsInjected > 0) {
+        const names = story.bakerProposalNames.length <= 4 ? ` · ${story.bakerProposalNames.map(escapeHtml).join(', ')}` : '';
+        badges.push(renderStoryBadge(
+            `Baker injected ${escapeHtml(String(story.bakerProposalsInjected))} accepted proposal${story.bakerProposalsInjected > 1 ? 's' : ''}${names}`,
+            'Governance lineage through your baker',
+            'governance'
+        ));
+    }
+    if (Number.isFinite(story.nftAssetsCollected)) {
+        badges.push(renderStoryBadge(
+            `Collected ${escapeHtml(fmtCount(story.nftAssetsCollected))} ${pluralize(story.nftAssetsCollected, 'NFT')}`,
+            'Objkt collector trail',
+            'collector'
+        ));
+    }
+    if (hasCreatorStats(story.creatorStats)) {
+        badges.push(renderStoryBadge(
+            escapeHtml(getCreatorSummaryText(story.creatorStats)),
+            'Creator footprint',
+            'creator'
+        ));
+    }
+    if (data.isBaker) {
+        badges.push(renderStoryBadge('Baker account', 'Blocks, attestations, and delegators matter here', 'baker'));
+    } else if (data.bakerAddr) {
+        badges.push(renderStoryBadge(`Delegating to ${escapeHtml(data.bakerName || shortAddress(data.bakerAddr))}`, 'Your rewards depend on this baker lane', 'baker'));
+    }
+    if (data.isStaker) {
+        badges.push(renderStoryBadge('Staker', `${data.apyRate}% APY context`, 'rewards'));
+    }
+    return badges;
+}
+
+function renderTezosStoryBody(data) {
+    const story = data.story;
+    if (!story) {
+        return '<div class="tezos-story-empty">No on-chain history found for this address yet.</div>';
+    }
+
+    const identity = story.domainAlias
+        ? `Known as <strong>${escapeHtml(story.domainAlias)}</strong>`
+        : `Address <strong>${escapeHtml(data.address)}</strong>`;
+    const since = formatStoryDate(story.firstActivityTime || story.joinedDate);
+    const nftValue = Number.isFinite(story.nftAssetsCollected)
+        ? `${fmtCount(story.nftAssetsCollected)} ${pluralize(story.nftAssetsCollected, 'NFT')}`
+        : `${fmtCompact(data.totalXTZ)} XTZ`;
+    const nftDetail = Number.isFinite(story.nftAssetsCollected)
+        ? `Collected ${fmtCount(story.nftAssetsCollected)} ${pluralize(story.nftAssetsCollected, 'NFT')}`
+        : 'Portfolio footprint';
+    const governanceCount = story.proposalsInjected + story.bakerProposalsInjected;
+    const governanceValue = governanceCount > 0
+        ? `${governanceCount} accepted`
+        : (data.activeProposal ? 'active' : 'quiet');
+    const governanceDetail = story.proposalsInjected > 0
+        ? `${story.proposalsInjected} direct proposal${story.proposalsInjected > 1 ? 's' : ''}`
+        : story.bakerProposalsInjected > 0
+            ? `${story.bakerProposalsInjected} via baker`
+            : data.activeProposal || 'No live proposal';
+    const next = getStoryNextSignal(data);
+    const badges = buildStoryBadges(data);
+
+    return `
+        <div class="tezos-story-dossier">
+            <div class="tezos-story-identity">
+                <span class="tezos-story-persona">${escapeHtml(getStoryPersona(data))}</span>
+                <div class="tezos-story-name">${identity}</div>
+                <div class="tezos-story-summary">
+                    Joined under <strong>${escapeHtml(story.joinedEra)}</strong> · <strong>${escapeHtml(String(story.upgradesSeen))} upgrades</strong> witnessed · zero forks
+                </div>
+            </div>
+            <div class="tezos-story-metrics">
+                ${renderStoryMetric('On-chain since', formatStoryTenure(story.daysSinceJoin), `first seen ${since}`, 'time')}
+                ${renderStoryMetric('Protocol arc', story.joinedEra, `now ${story.currentEra}`, 'era')}
+                ${renderStoryMetric('Culture', nftValue, nftDetail, 'collector')}
+                ${renderStoryMetric('Governance', governanceValue, governanceDetail, 'governance')}
+            </div>
+            <div class="tezos-story-badges">
+                ${badges.join('')}
+            </div>
+            ${renderStoryEraRail(story)}
+            <div class="tezos-story-next tezos-story-next-${safeTone(next.tone)}">
+                <span>${escapeHtml(next.label)}</span>
+                <strong>${escapeHtml(next.value)}</strong>
+            </div>
+        </div>
+    `;
+}
+
 // ─── Morning Brief ─────────────────────────────────────
 
 /**
@@ -1118,41 +1339,10 @@ function buildMorningBrief(data) {
         accent: 'baker',
     });
 
-    // Card 3: Governance / Tezos Story teaser
-    let storyText;
-    if (data.story) {
-        storyText = data.story.domainAlias
-            ? `Known as <strong>${escapeHtml(data.story.domainAlias)}</strong><br>`
-            : '';
-        storyText += `Joined under <strong>${data.story.joinedEra}</strong> · <strong>${data.story.upgradesSeen} upgrades</strong> witnessed · zero forks`;
-        if (data.story.proposalsInjected > 0) {
-            storyText += `<br>📜 Injected <strong>${data.story.proposalsInjected} accepted proposal${data.story.proposalsInjected > 1 ? 's' : ''}</strong>`;
-            if (data.story.proposalNames.length <= 4) {
-                storyText += `: ${data.story.proposalNames.map(escapeHtml).join(', ')}`;
-            }
-        }
-        if (data.story.bakerProposalsInjected > 0) {
-            storyText += `<br>📜 Baker injected <strong>${data.story.bakerProposalsInjected} accepted proposal${data.story.bakerProposalsInjected > 1 ? 's' : ''}</strong>`;
-            if (data.story.bakerProposalNames.length <= 4) {
-                storyText += `: ${data.story.bakerProposalNames.map(escapeHtml).join(', ')}`;
-            }
-        }
-        if (Number.isFinite(data.story.nftAssetsCollected)) {
-            storyText += `<br>🖼️ Collected <strong>${fmtCount(data.story.nftAssetsCollected)} ${pluralize(data.story.nftAssetsCollected, 'NFT')}</strong>`;
-        }
-        if (hasCreatorStats(data.story.creatorStats)) {
-            storyText += `<br>🎨 ${getCreatorSummaryHtml(data.story.creatorStats)}`;
-        }
-    } else {
-        storyText = 'No on-chain history found for this address yet.';
-    }
-    const govText = data.activeProposal
-        ? `<br><span class="brief-sub">Active governance: ${escapeHtml(data.activeProposal)}</span>`
-        : '';
     cards.push({
         icon: '📜',
         title: 'Your Tezos Story',
-        body: `${storyText}${govText}`,
+        body: renderTezosStoryBody(data),
         accent: 'story',
         shareBtn: !!data.story,
     });
@@ -1706,13 +1896,14 @@ function renderBriefTabs(cards, data) {
     const container = document.getElementById('drawer-brief');
     if (!container) return;
     
-    const sectionsHtml = cards.map(card => 
-        `<div class="brief-section">
+    const sectionsHtml = cards.map(card => {
+        const accent = safeTone(card.accent);
+        return `<div class="brief-section brief-section-${accent}" data-brief-accent="${accent}">
             <h4 class="brief-section-title">${card.icon} ${card.title}</h4>
             <div class="brief-body">${card.body}</div>
             ${card.shareBtn ? `<button class="glass-button drawer-share-btn story-share-btn" style="margin-top:12px;width:100%;">📸 Share Your Story</button>` : ''}
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
     
     container.innerHTML = sectionsHtml;
 
