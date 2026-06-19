@@ -641,7 +641,7 @@ function renderEntryCard(data) {
     const quiet = allTracksQuiet(data);
     let value = main.label;
     if (quiet) {
-        value = 'Tracks';
+        value = 'No Proposal';
     } else if (main.phase === 'proposal' && main.proposal) {
         value = formatPercent(main.proposalProgress);
     } else if (main.phase === 'promotion' && main.promotion) {
@@ -658,16 +658,16 @@ function renderEntryCard(data) {
     const metricsEl = document.getElementById('etherlink-governance-entry-metrics');
     if (valueEl) valueEl.textContent = value;
     if (descriptionEl) {
-        descriptionEl.textContent = 'L2 Governance · FAST, SLOW, and Sequencer tracks';
+        descriptionEl.textContent = 'L2 Governance · FAST, SLOW, and Sequencer votes';
         if (quiet) {
-            descriptionEl.textContent = 'L2 Governance · FAST · SLOW · SEQ idle';
+            descriptionEl.textContent = 'L2 Governance · FAST · SLOW · Sequencer idle';
         } else if (main.phase === 'proposal' && main.proposal) {
             descriptionEl.textContent = `${main.label} ${proposalLabel(main.proposal.winner)}`;
         }
     }
     if (miniEl) {
         miniEl.classList.toggle('live', status.className === 'live' || status.className === 'good');
-        miniEl.textContent = quiet ? 'L2 Governance · All tracks idle · refresh 60s' : `L2 Governance · ${main.label}: ${status.label}`;
+        miniEl.textContent = quiet ? 'No active L2 governance proposal · refresh 60s' : `L2 Governance · ${main.label}: ${status.label}`;
     }
     if (metricsEl) {
         metricsEl.hidden = false;
@@ -1181,10 +1181,10 @@ export function initEtherlinkGovernanceChamber() {
                 <div class="tezlink-entry-main">
                     <h2 class="stat-label">Tezos X Governance</h2>
                     <div class="stat-value etherlink-gov-entry-value" id="etherlink-governance-entry-value"><span class="loading">...</span></div>
-                    <p class="stat-description" id="etherlink-governance-entry-description">L2 Governance · FAST, SLOW, and Sequencer tracks</p>
-                    <div class="chamber-entry-status live" id="etherlink-governance-entry-mini">L2 Governance · loading tracks</div>
+                    <p class="stat-description" id="etherlink-governance-entry-description">L2 Governance · FAST, SLOW, and Sequencer votes</p>
+                    <div class="chamber-entry-status live" id="etherlink-governance-entry-mini">L2 Governance · loading governance</div>
                 </div>
-                <div class="tezlink-entry-metrics etherlink-gov-entry-metrics" id="etherlink-governance-entry-metrics" aria-label="Tezos X governance track status" hidden></div>
+                <div class="tezlink-entry-metrics etherlink-gov-entry-metrics" id="etherlink-governance-entry-metrics" aria-label="Tezos X governance proposal status" hidden></div>
             </div>
         </div>
     `;

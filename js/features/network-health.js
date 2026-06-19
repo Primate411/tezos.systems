@@ -8,10 +8,15 @@ import { escapeHtml, refreshDataFreshnessStates, setDataFreshnessState } from '.
 import { fetchWithRetry } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
+const TEZTALE = API_URLS.teztale;
 const POWER_PER_BLOCK = 7000;
 const TARGET_BLOCK_SECONDS = 6;
 const LAST_BLOCK_LIMIT = 5;
 const CHAMBER_BLOCK_LIMIT = 16;
+const TEZTALE_BLOCK_LOOKBACK = 12;
+const TEZTALE_QUORUM_TARGET = 0.66;
+const TEZTALE_REPORT_URL = 'https://nomadic-labs.gitlab.io/teztale-dataviz/';
+const TEZTALE_SOURCE_URL = 'https://gitlab.com/nomadic-labs/teztale';
 const MISSED_BLOCK_LOOKBACK = 120;
 const MISSED_RIGHTS_LIMIT = 90;
 const RANGE_PAGE_LIMIT = 10000;
@@ -402,6 +407,272 @@ function summarizeMyTezosBaker(data) {
 
 async function fetchJson(url, retries = 2) {
     return fetchWithRetry(url, { cache: 'no-store', memoryCache: false }, retries + 1);
+}
+
+function formatMilliseconds(value) {
+    if (!Number.isFinite(value)) return '--';
+    return formatSeconds(value / 1000);
+}
+
+function teztaleUrl(path) {
+    const base = String(TEZTALE || '').replace(/\/+$/, '');
+    const cleanPath = String(path || '').replace(/^\/+/, '');
+    return `${base}/${cleanPath}`;
+}
+
+async function fetchTeztaleJson(path, retries = 1) {
+    if (!TEZTALE) throw new Error('Teztale endpoint is not configured');
+    return fetchJson(teztaleUrl(path), retries);
+}
+
+function timestampMs(value) {
+    const ms = new Date(value || '').getTime();
+    return Number.isFinite(ms) ? ms : null;
+}
+
+function minFinite(values) {
+    const finite = values.filter(Number.isFinite);
+    return finite.length ? Math.min(...finite) : null;
+}
+
+function averageFinite(values) {
+    const finite = values.filter(Number.isFinite);
+    return finite.length ? finite.reduce((sum, value) => sum + value, 0) / finite.length : null;
+}
+
+function teztaleReceptionMs(operation) {
+    return minFinite((operation?.received_in_mempools || [])
+        .map((item) => timestampMs(item.reception_time))
+        .filter(Number.isFinite));
+}
+
+function teztaleBlockDelayMs(block, key) {
+    const timestamp = timestampMs(block?.timestamp);
+    if (timestamp === null) return null;
+    const observed = minFinite((block?.reception_times || [])
+        .map((item) => timestampMs(item[key]))
+        .filter(Number.isFinite));
+    return observed === null ? null : observed - timestamp;
+}
+
+function teztalePowerByDelegate(data) {
+    const powers = new Map();
+    (data?.endorsements || []).forEach((item) => {
+        if (!item?.delegate) return;
+        powers.set(item.delegate, Math.max(1, Number(item.endorsing_power) || 1));
+    });
+    return powers;
+}
+
+function teztaleSourceCount(data) {
+    const sources = new Set();
+    (data?.blocks || []).forEach((block) => {
+        (block.reception_times || []).forEach((item) => {
+            if (item?.source) sources.add(item.source);
+        });
+    });
+    (data?.endorsements || []).forEach((endorsement) => {
+        (endorsement.operations || []).forEach((operation) => {
+            (operation.received_in_mempools || []).forEach((item) => {
+                if (item?.source) sources.add(item.source);
+            });
+        });
+    });
+    return sources.size;
+}
+
+function teztaleThresholdDelayMs(entries, powers, threshold) {
+    const totalPower = [...powers.values()].reduce((sum, value) => sum + value, 0);
+    if (!totalPower) return null;
+    const target = totalPower * threshold;
+    const sorted = entries
+        .filter((entry) => Number.isFinite(entry.delayMs))
+        .sort((a, b) => a.delayMs - b.delayMs);
+    let observedPower = 0;
+    for (const entry of sorted) {
+        observedPower += powers.get(entry.delegate) || 1;
+        if (observedPower >= target) return entry.delayMs;
+    }
+    return null;
+}
+
+function emptyTeztaleRound(level, round, block, sourceCount, powers) {
+    return {
+        level,
+        round,
+        blockHash: block?.hash || '',
+        baker: block?.delegate || '',
+        timestamp: block?.timestamp || null,
+        validationDelayMs: teztaleBlockDelayMs(block, 'validation'),
+        applicationDelayMs: teztaleBlockDelayMs(block, 'application'),
+        sourceCount,
+        missingBlocks: 0,
+        validOps: 0,
+        lostOps: 0,
+        heldOps: 0,
+        erroneousOps: 0,
+        silentDelegates: 0,
+        preattestations: [],
+        attestations: [],
+        powers
+    };
+}
+
+function summarizeTeztaleLevel(item) {
+    const level = Number(item?.level) || 0;
+    const data = item?.data || {};
+    const powers = teztalePowerByDelegate(data);
+    const sourceCount = teztaleSourceCount(data);
+    const byRound = new Map();
+    const ensureRound = (round, block = null) => {
+        const key = Number.isFinite(Number(round)) ? Number(round) : 0;
+        if (!byRound.has(key)) {
+            byRound.set(key, emptyTeztaleRound(level, key, block, sourceCount, powers));
+        } else if (block) {
+            const row = byRound.get(key);
+            row.blockHash = block.hash || row.blockHash;
+            row.baker = block.delegate || row.baker;
+            row.timestamp = block.timestamp || row.timestamp;
+            row.validationDelayMs = teztaleBlockDelayMs(block, 'validation');
+            row.applicationDelayMs = teztaleBlockDelayMs(block, 'application');
+        }
+        return byRound.get(key);
+    };
+
+    (data.blocks || []).forEach((block) => ensureRound(numericRound(block.round), block));
+    if (!byRound.size) ensureRound(0, null);
+
+    (data.missing_blocks || []).forEach((missing) => {
+        const row = ensureRound(missing?.baking_right?.round || 0);
+        row.missingBlocks += 1;
+        if (!row.baker && missing?.baking_right?.delegate) row.baker = missing.baking_right.delegate;
+    });
+
+    (data.endorsements || []).forEach((endorsement) => {
+        const operations = endorsement.operations || [];
+        if (!operations.length) {
+            ensureRound(0).silentDelegates += 1;
+            return;
+        }
+
+        operations.forEach((operation) => {
+            const row = ensureRound(operation.round || 0);
+            const receptionMs = teztaleReceptionMs(operation);
+            const blockTimestampMs = timestampMs(row.timestamp);
+            const delayMs = receptionMs !== null && blockTimestampMs !== null
+                ? receptionMs - blockTimestampMs
+                : null;
+            const entry = { delegate: endorsement.delegate, delayMs };
+            const hasErrors = (operation.received_in_mempools || []).some((item) => Boolean(item.errors));
+            const included = (operation.included_in_blocks || []).length > 0;
+
+            if (operation.kind === 'Preendorsement') {
+                row.preattestations.push(entry);
+            } else {
+                row.attestations.push(entry);
+            }
+
+            if (hasErrors) row.erroneousOps += 1;
+            if (receptionMs === null && included) {
+                row.heldOps += 1;
+            } else if (receptionMs !== null && !included && operation.kind !== 'Preendorsement') {
+                row.lostOps += 1;
+            } else {
+                row.validOps += 1;
+            }
+        });
+    });
+
+    return [...byRound.values()].map((row) => ({
+        ...row,
+        preQuorumMs: teztaleThresholdDelayMs(row.preattestations, row.powers, TEZTALE_QUORUM_TARGET),
+        quorumMs: teztaleThresholdDelayMs(row.attestations, row.powers, TEZTALE_QUORUM_TARGET),
+        pre90Ms: teztaleThresholdDelayMs(row.preattestations, row.powers, 0.9),
+        quorum90Ms: teztaleThresholdDelayMs(row.attestations, row.powers, 0.9),
+        powers: undefined,
+        preattestations: undefined,
+        attestations: undefined
+    }));
+}
+
+function teztaleFallback(error = '') {
+    return {
+        available: false,
+        label: 'Unavailable',
+        className: 'unknown',
+        error,
+        sourceUrl: TEZTALE_REPORT_URL,
+        creditUrl: TEZTALE_SOURCE_URL
+    };
+}
+
+function buildTeztaleLens(batch, teztaleHeadLevel) {
+    const rows = (Array.isArray(batch) ? batch : [])
+        .flatMap(summarizeTeztaleLevel)
+        .filter((row) => row.level > 0)
+        .sort((a, b) => b.level - a.level || b.round - a.round);
+    const latest = rows[0] || null;
+    if (!latest) return teztaleFallback('No recent Teztale block data returned');
+
+    const recentRows = rows.slice(0, TEZTALE_BLOCK_LOOKBACK);
+    const maxRound = recentRows.reduce((max, row) => Math.max(max, row.round), 0);
+    const maxQuorumMs = Math.max(...recentRows.map((row) => row.quorumMs).filter(Number.isFinite), 0);
+    const maxValidationMs = Math.max(...recentRows.map((row) => row.validationDelayMs).filter(Number.isFinite), 0);
+    const lateRows = recentRows.filter((row) => (
+        row.round > 0
+        || row.missingBlocks > 0
+        || (row.quorumMs || 0) > 7000
+        || (row.validationDelayMs || 0) > 3000
+    ));
+
+    let className = 'healthy';
+    let label = 'Comfortable';
+    if (maxRound > 1 || maxQuorumMs > 8000 || maxValidationMs > 3500 || recentRows.some((row) => row.missingBlocks > 0)) {
+        className = 'degraded';
+        label = 'Investigate';
+    } else if (maxRound > 0 || maxQuorumMs > 6000 || maxValidationMs > 2200 || lateRows.length) {
+        className = 'watch';
+        label = 'Watch';
+    } else if (maxQuorumMs <= 3000 && maxValidationMs <= 1200) {
+        className = 'peak';
+        label = 'Comfortable';
+    }
+
+    return {
+        available: true,
+        className,
+        label,
+        teztaleHeadLevel,
+        windowCount: recentRows.length,
+        latest,
+        avgPreQuorumMs: averageFinite(recentRows.map((row) => row.preQuorumMs)),
+        avgQuorumMs: averageFinite(recentRows.map((row) => row.quorumMs)),
+        maxQuorumMs,
+        maxValidationMs,
+        maxRound,
+        lostOps: recentRows.reduce((sum, row) => sum + row.lostOps, 0),
+        heldOps: recentRows.reduce((sum, row) => sum + row.heldOps, 0),
+        erroneousOps: recentRows.reduce((sum, row) => sum + row.erroneousOps, 0),
+        silentDelegates: recentRows.reduce((sum, row) => sum + row.silentDelegates, 0),
+        missingBlocks: recentRows.reduce((sum, row) => sum + row.missingBlocks, 0),
+        reportRows: lateRows.slice(0, 5),
+        sourceUrl: `${TEZTALE_REPORT_URL}#block=${latest.level}&round=${latest.round}&server=${encodeURIComponent(TEZTALE)}`,
+        creditUrl: TEZTALE_SOURCE_URL
+    };
+}
+
+async function fetchTeztaleConsensusLens(tzktHeadLevel = 0) {
+    try {
+        const head = await fetchTeztaleJson('head.json', 1);
+        const teztaleHeadLevel = Number(head?.level) || Number(tzktHeadLevel) || 0;
+        if (!teztaleHeadLevel) return teztaleFallback('No Teztale head level returned');
+        const first = Math.max(1, teztaleHeadLevel - TEZTALE_BLOCK_LOOKBACK + 1);
+        const batch = await fetchTeztaleJson(`${first}-${teztaleHeadLevel}.json`, 1);
+        return buildTeztaleLens(batch, teztaleHeadLevel);
+    } catch (error) {
+        console.warn('Network Health Teztale consensus lens failed:', error);
+        return teztaleFallback(error?.message || 'Teztale fetch failed');
+    }
 }
 
 function normalizeActivityTx(tx) {
@@ -860,13 +1131,14 @@ async function fetchNetworkHealthChamberData() {
     const headTimestamp = blocks[0]?.timestamp || null;
     const oldestLevel = blocks[blocks.length - 1]?.level || headLevel;
     const missedBlockStart = Math.max(1, headLevel - MISSED_BLOCK_LOOKBACK);
-    const [missedAttestations, missedBlocks, activityTape] = headLevel
+    const [missedAttestations, missedBlocks, activityTape, teztaleLens] = headLevel
         ? await Promise.all([
             fetchMissedRights('attestation', oldestLevel, headLevel),
             fetchMissedRights('baking', missedBlockStart, headLevel, 30),
-            fetchActivityTape()
+            fetchActivityTape(),
+            fetchTeztaleConsensusLens(headLevel)
         ])
-        : [[], [], []];
+        : [[], [], [], teztaleFallback('TzKT head level unavailable')];
 
     return {
         updatedAt: Date.now(),
@@ -880,6 +1152,7 @@ async function fetchNetworkHealthChamberData() {
         missedAttesters: summarizeMissedAttesters(missedAttestations),
         missedBlocks,
         activityTape,
+        teztaleLens,
         periods: cachedData?.periods || [],
         cycleTiming: cycleTiming || cachedData?.cycleTiming || null
     };
@@ -1172,6 +1445,70 @@ function renderTimingPanel(data) {
     `;
 }
 
+function renderTeztaleReportRows(lens) {
+    if (!lens.reportRows?.length) {
+        return '<div class="health-consensus-empty">No delayed rounds or missing block observations in the Teztale sample.</div>';
+    }
+    return lens.reportRows.map((row) => `
+        <div class="health-consensus-event ${row.round > 0 || row.missingBlocks ? 'watch' : 'healthy'}">
+            <span>#${formatCount(row.level)} · R${formatCount(row.round)}</span>
+            <strong>${formatMilliseconds(row.quorumMs)} quorum</strong>
+            <em>${row.missingBlocks ? `${formatCount(row.missingBlocks)} missing block report` : `validation ${formatMilliseconds(row.validationDelayMs)}`}</em>
+        </div>
+    `).join('');
+}
+
+function renderTeztaleConsensusPanel(data) {
+    const lens = data.teztaleLens || teztaleFallback();
+    if (!lens.available) {
+        return `
+            <section class="lb-panel health-panel health-consensus-panel chamber-anim-fade unavailable" id="health-teztale-consensus" style="animation-delay:120ms">
+                <div class="lb-panel-title">Consensus Lens <span class="lb-live-pill">Teztale</span></div>
+                <div class="health-consensus-empty">
+                    Teztale consensus data is unavailable right now; core TzKT health remains live.
+                </div>
+                <div class="health-consensus-credit">
+                    Credit: <a href="${TEZTALE_SOURCE_URL}" target="_blank" rel="noopener">Teztale by Nomadic Labs</a>
+                </div>
+            </section>
+        `;
+    }
+
+    const latest = lens.latest;
+    const levelLabel = `#${formatCount(latest.level)} · R${formatCount(latest.round)}`;
+    const opsReport = [
+        `${formatCount(lens.lostOps)} lost`,
+        `${formatCount(lens.heldOps)} held`,
+        `${formatCount(lens.silentDelegates)} silent`
+    ].join(' / ');
+
+    return `
+        <section class="lb-panel health-panel health-consensus-panel chamber-anim-fade" id="health-teztale-consensus" style="animation-delay:120ms">
+            <div class="lb-panel-title">Consensus Lens <span class="lb-live-pill">Teztale</span></div>
+            <div class="health-consensus-hero ${lens.className}">
+                <strong id="health-teztale-quorum">${formatMilliseconds(latest.quorumMs)}</strong>
+                <span id="health-teztale-status">${escapeHtml(lens.label)} · 66% attestation quorum at ${escapeHtml(levelLabel)}</span>
+            </div>
+            <div class="lb-metric-grid health-metric-grid health-consensus-metrics">
+                <div><span>Pre-quorum</span><strong id="health-teztale-prequorum">${formatMilliseconds(latest.preQuorumMs)}</strong></div>
+                <div><span>Validation</span><strong id="health-teztale-validation">${formatMilliseconds(latest.validationDelayMs)}</strong></div>
+                <div><span>Sources</span><strong id="health-teztale-source-count">${formatCount(latest.sourceCount)}</strong></div>
+            </div>
+            <div class="health-consensus-ops" id="health-teztale-ops">
+                <span>Ops report</span>
+                <strong>${escapeHtml(opsReport)}</strong>
+            </div>
+            <div class="health-consensus-events" id="health-teztale-events">
+                ${renderTeztaleReportRows(lens)}
+            </div>
+            <div class="health-consensus-credit" id="health-teztale-credit">
+                Powered by <a href="${escapeHtml(lens.sourceUrl)}" target="_blank" rel="noopener">Teztale consensus data</a>.
+                Credit: <a href="${TEZTALE_SOURCE_URL}" target="_blank" rel="noopener">Nomadic Labs</a>.
+            </div>
+        </section>
+    `;
+}
+
 function renderMyTezosBakerPanel(data) {
     const baker = summarizeMyTezosBaker(data);
     if (!baker) return '';
@@ -1421,6 +1758,7 @@ function renderNetworkHealthChamber(data, container) {
         <div class="lb-dashboard-grid health-dashboard-grid">
             ${renderHealthScorePanel(data)}
             ${renderTimingPanel(data)}
+            ${renderTeztaleConsensusPanel(data)}
             ${renderCycleTimingPanel(data)}
             ${renderIncidentMemoryPanel(data)}
             ${renderPeriodTelemetryPanel(data)}
@@ -1435,6 +1773,8 @@ function renderNetworkHealthChamber(data, container) {
             <a href="https://tzkt.io/blocks" target="_blank" rel="noopener">TzKT Blocks -></a>
             <span class="chamber-footer-sep">·</span>
             <a href="https://tzkt.io/rights" target="_blank" rel="noopener">TzKT Rights -></a>
+            <span class="chamber-footer-sep">·</span>
+            <a href="${TEZTALE_REPORT_URL}" target="_blank" rel="noopener">Teztale by Nomadic Labs -></a>
             <span class="chamber-footer-sep">·</span>
             <a class="panel-direct-link" href="/health/" aria-label="Direct link to Network Health Chamber">Direct: /health/</a>
         </div>
@@ -1573,6 +1913,8 @@ function updateRecentBlockRows(blocks) {
 }
 
 function updateHealthStoryPanels(data) {
+    const consensus = document.getElementById('health-teztale-consensus');
+    if (consensus) consensus.outerHTML = renderTeztaleConsensusPanel(data);
     const cycle = document.getElementById('health-cycle-timing');
     if (cycle) cycle.outerHTML = renderCycleTimingPanel(data);
     const incident = document.getElementById('health-incident-memory');

@@ -55,6 +55,10 @@ the highest-risk gotchas.
 
 - TzKT: `https://api.tzkt.io/v1`
 - Octez RPC: `https://eu.rpc.tez.capital`
+- Teztale: `https://teztale-server-mainnet-ro-prd.octez.tech`
+  - used as an extra Network Health consensus lens for quorum timing,
+    validation/application delay, source count, and operations-report context
+  - Teztale is by Nomadic Labs; keep visible credit when surfacing its data
 - CoinGecko: XTZ price data
 - Tezos Domains GraphQL: reverse/domain lookups
 - OBJKT GraphQL: NFT/profile mode
@@ -100,7 +104,7 @@ Current verified intervals in `js/core/config.js`:
 
 Cache/build details to verify when relevant:
 
-- Service worker cache name: `tezos-systems-v53`
+- Service worker cache name: `tezos-systems-v237`
 - `version.json` contains the served build stamp.
 - `git log -1 --oneline` shows the local current commit.
 

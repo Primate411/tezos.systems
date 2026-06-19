@@ -1079,7 +1079,7 @@ const CHAMBER_INFO_COPY = {
     },
     'etherlink-governance-entry-card': {
         title: 'Tezos X Governance (L2)',
-        body: 'L2 governance track monitor for FAST, SLOW, and Sequencer proposal lanes, including idle state and recent track memory.',
+        body: 'L2 governance monitor for FAST, SLOW, and Sequencer proposals, including quiet periods and recent vote activity.',
         href: '/l2chamber/',
         link: 'Open L2 Governance ->'
     },

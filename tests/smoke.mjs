@@ -48,6 +48,7 @@ const allowedWarningPatterns = [
   /HTTP 503/i,
   /api\.coingecko\.com/i,
   /api\.tzkt\.io/i,
+  /teztale-server-mainnet-ro-prd\.octez\.tech/i,
   /api\.llama\.fi/i,
   /explorer\.etherlink\.com/i,
   /node\.mainnet\.etherlink\.com/i,
@@ -479,6 +480,103 @@ function smokeCreatedToken(index) {
   };
 }
 
+function isoFrom(baseMs, offsetMs) {
+  return new Date(baseMs + offsetMs).toISOString();
+}
+
+function sampleTeztaleBlock(level) {
+  const offset = 12345678 - level;
+  const timestampMs = Date.now() - 90000 - offset * 6000;
+  const blockHash = `BMTeztaleSmoke${level}`;
+  const successorHash = `BKTeztaleSuccessor${level}`;
+  const round = level === 12345675 ? 1 : 0;
+  const missingBlocks = level === 12345676
+    ? [{ baking_right: { delegate: SAMPLE_ADDRESS_2, round: 0 }, sources: ['NL-vigie-mainnet-gcp'] }]
+    : [];
+
+  return {
+    cycle_info: { cycle: 1143, cycle_position: 3000 + offset, cycle_size: 10800 },
+    blocks: [{
+      hash: blockHash,
+      predecessor: `BMTeztalePrev${level}`,
+      delegate: offset % 2 === 0 ? SAMPLE_ADDRESS : SAMPLE_ADDRESS_2,
+      round,
+      reception_times: [
+        { source: 'NL-vigie-mainnet-gcp', validation: isoFrom(timestampMs, 900 + offset * 20), application: isoFrom(timestampMs, 1050 + offset * 20) },
+        { source: 'NL-vigie-mainnet-full-gcp', validation: isoFrom(timestampMs, 1120 + offset * 20), application: isoFrom(timestampMs, 1260 + offset * 20) },
+        { source: 'TF-North-America', validation: isoFrom(timestampMs, 1480 + offset * 20), application: isoFrom(timestampMs, 1630 + offset * 20) }
+      ],
+      timestamp: isoFrom(timestampMs, 0)
+    }],
+    endorsements: [
+      {
+        delegate: SAMPLE_ADDRESS,
+        endorsing_power: 3500,
+        operations: [
+          {
+            kind: 'Preendorsement',
+            round,
+            received_in_mempools: [
+              { source: 'NL-vigie-mainnet-gcp', reception_time: isoFrom(timestampMs, 1200 + offset * 15) },
+              { source: 'TF-North-America', reception_time: isoFrom(timestampMs, 1450 + offset * 15) }
+            ]
+          },
+          {
+            round,
+            received_in_mempools: [
+              { source: 'NL-vigie-mainnet-gcp', reception_time: isoFrom(timestampMs, 2400 + offset * 20) },
+              { source: 'TF-North-America', reception_time: isoFrom(timestampMs, 2650 + offset * 20) }
+            ],
+            included_in_blocks: [successorHash]
+          }
+        ]
+      },
+      {
+        delegate: SAMPLE_ADDRESS_2,
+        endorsing_power: 2500,
+        operations: [
+          {
+            kind: 'Preendorsement',
+            round,
+            received_in_mempools: [
+              { source: 'NL-vigie-mainnet-gcp', reception_time: isoFrom(timestampMs, 1800 + offset * 18) }
+            ]
+          },
+          {
+            round,
+            received_in_mempools: [
+              { source: 'NL-vigie-mainnet-gcp', reception_time: isoFrom(timestampMs, 3100 + offset * 22) }
+            ]
+          }
+        ]
+      },
+      {
+        delegate: 'tz1HeldTeztaleSmoke1111111111111111111',
+        endorsing_power: 700,
+        operations: [
+          {
+            round,
+            included_in_blocks: [successorHash]
+          }
+        ]
+      },
+      {
+        delegate: 'tz1SilentTeztaleSmoke11111111111111111',
+        endorsing_power: 300,
+        operations: []
+      }
+    ],
+    missing_blocks: missingBlocks
+  };
+}
+
+function sampleTeztaleBatch(first, last) {
+  return Array.from({ length: Math.max(0, last - first + 1) }, (_, index) => {
+    const level = first + index;
+    return { level, data: sampleTeztaleBlock(level) };
+  });
+}
+
 async function installFeatureMocks(context, options = {}) {
   let lbBlocksHead = 12345678;
   const blockHeadLagMs = Number(options.blockHeadLagMs) || 0;
@@ -576,6 +674,23 @@ async function installFeatureMocks(context, options = {}) {
         html_url: 'https://github.com/Primate411/tezos.systems/commit/cafebabe',
         commit: { committer: { date: '2026-06-07T00:00:00Z' } }
       });
+    }
+
+    if (url.includes('teztale-server-mainnet-ro-prd.octez.tech')) {
+      const pathname = parsedUrl.pathname.replace(/^\/+/, '');
+      if (pathname === 'head.json') {
+        return fulfillJson(route, { level: 12345678 });
+      }
+      const rangeMatch = pathname.match(/^(\d+)-(\d+)\.json$/);
+      if (rangeMatch) {
+        return fulfillJson(route, sampleTeztaleBatch(Number(rangeMatch[1]), Number(rangeMatch[2])));
+      }
+      const blockMatch = pathname.match(/^(\d+)\.json$/);
+      if (blockMatch) {
+        return fulfillJson(route, sampleTeztaleBlock(Number(blockMatch[1])));
+      }
+      if (pathname.endsWith('/available.json')) return fulfillJson(route, []);
+      if (pathname.endsWith('/missing.json')) return fulfillJson(route, []);
     }
 
     if (url.includes('api.tezos.domains/graphql')) {
@@ -3339,6 +3454,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#health-recent-block-list .health-block-row').length >= 4, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#health-missed-attester-list .health-attester-row').length >= 2, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#health-activity-list .health-activity-row').length >= 1, null, { timeout: 10000 });
+  await page.waitForFunction(() => /Teztale/.test(document.querySelector('#health-teztale-consensus')?.textContent || ''), null, { timeout: 10000 });
   await page.waitForFunction(() => /Block/.test(document.querySelector('#block-ticker-line')?.textContent || ''), null, { timeout: 10000 });
 
   const healthState = await page.evaluate(() => {
@@ -3400,6 +3516,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       cycleTiming: modal?.querySelector('#health-cycle-timing')?.textContent || '',
       cycleTimingCells: modal?.querySelectorAll('#health-cycle-strip .health-cycle-cell').length || 0,
       cycleTimingStatus: modal?.querySelector('#health-cycle-status')?.textContent || '',
+      teztale: modal?.querySelector('#health-teztale-consensus')?.textContent || '',
+      teztaleQuorum: modal?.querySelector('#health-teztale-quorum')?.textContent || '',
+      teztaleSources: modal?.querySelector('#health-teztale-source-count')?.textContent || '',
+      teztaleOps: modal?.querySelector('#health-teztale-ops')?.textContent || '',
+      teztaleCreditHref: modal?.querySelector('#health-teztale-credit a[href*="teztale-dataviz"]')?.href || '',
+      teztaleNomadicHref: modal?.querySelector('#health-teztale-credit a[href*="nomadic-labs/teztale"]')?.href || '',
+      teztaleEvents: modal?.querySelectorAll('#health-teztale-events .health-consensus-event').length || 0,
       periodTelemetry: modal?.querySelector('#health-period-telemetry')?.textContent || '',
       networkLoad: modal?.querySelector('#health-network-load')?.textContent || '',
       myBaker: modal?.querySelector('.health-my-baker-panel')?.textContent || '',
@@ -3486,6 +3609,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(/Cycle Timing/.test(healthState.cycleTiming) && /Last cycle/.test(healthState.cycleTiming) && /Target/.test(healthState.cycleTiming), `network health chamber: cycle timing panel missing: ${healthState.cycleTiming}`);
   assert(healthState.cycleTimingCells >= 4, `network health chamber: cycle timing strip too sparse: ${healthState.cycleTimingCells}`);
   assert(/Watch|slow|target/i.test(healthState.cycleTimingStatus), `network health chamber: cycle timing status missing drift context: ${healthState.cycleTimingStatus}`);
+  assert(/Consensus Lens/.test(healthState.teztale) && /Teztale/.test(healthState.teztale) && /Nomadic Labs/.test(healthState.teztale), `network health chamber: Teztale consensus lens missing credit/context: ${healthState.teztale}`);
+  assert(/s$/.test(healthState.teztaleQuorum), `network health chamber: Teztale quorum timing missing: ${healthState.teztaleQuorum}`);
+  assert(healthState.teztaleSources === '3', `network health chamber: Teztale source count mismatch: ${healthState.teztaleSources}`);
+  assert(/lost/.test(healthState.teztaleOps) && /held/.test(healthState.teztaleOps) && /silent/.test(healthState.teztaleOps), `network health chamber: Teztale operations report missing: ${healthState.teztaleOps}`);
+  assert(healthState.teztaleEvents >= 1, `network health chamber: Teztale report rows missing: ${healthState.teztaleEvents}`);
+  assert(healthState.teztaleCreditHref.includes('nomadic-labs.gitlab.io/teztale-dataviz'), `network health chamber: Teztale dataviz link missing: ${healthState.teztaleCreditHref}`);
+  assert(healthState.teztaleNomadicHref.includes('gitlab.com/nomadic-labs/teztale'), `network health chamber: Teztale source credit link missing: ${healthState.teztaleNomadicHref}`);
   assert(/Period Telemetry/.test(healthState.periodTelemetry) && /24H/.test(healthState.periodTelemetry) && /31D/.test(healthState.periodTelemetry), `network health chamber: period telemetry missing: ${healthState.periodTelemetry}`);
   assert(/Network Load/.test(healthState.networkLoad) && /Large tx rows/.test(healthState.networkLoad), `network health chamber: network load panel missing: ${healthState.networkLoad}`);
   assert(/Second Baker/.test(healthState.myBaker), `network health chamber: My Tezos baker panel missing baker identity: ${healthState.myBaker}`);
@@ -4648,8 +4778,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(!quietSizing.chamberWide && quietSizing.chamberSize === 'compact', `quiet governance sizing: Tezos L1 Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
   assert(/Proposal period/.test(quietSizing.chamberText) && /no ballots open/i.test(quietSizing.chamberText), `quiet governance sizing: Tezos L1 Governance quiet text mismatch: ${quietSizing.chamberText}`);
   assert(!quietSizing.etherlinkWide && quietSizing.etherlinkSize === 'compact', `quiet governance sizing: Tezos X Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
-  assert(/Tracks/.test(quietSizing.etherlinkText) && /All tracks idle/.test(quietSizing.etherlinkText) && /FAST/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink idle text mismatch: ${quietSizing.etherlinkText}`);
-  assert(!quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should show compact track chips when all tracks are quiet');
+  assert(/No Proposal/.test(quietSizing.etherlinkText) && /No active L2 governance proposal/.test(quietSizing.etherlinkText) && /FAST/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink idle text mismatch: ${quietSizing.etherlinkText}`);
+  assert(!quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should show compact status chips when all tracks are quiet');
   assert(Math.abs(quietSizing.chamberWidth - quietSizing.etherlinkWidth) < 8, `quiet governance sizing: compact cards should share 1x1 width, saw ${quietSizing.chamberWidth} vs ${quietSizing.etherlinkWidth}`);
   assert(quietSizing.etherlinkGeometry.overlap === 0, `quiet governance sizing: Tezos X Governance open cue overlaps Sequencer chip: ${JSON.stringify(quietSizing.etherlinkGeometry)}`);
   await quietContext.close();

@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-19',
         entries: [
+            { type: '✨', text: 'Network Health now adds a Teztale-powered Consensus Lens for quorum timing, validation delay, source count, and simple operations reporting with Nomadic Labs credit' },
+            { type: '🔧', text: 'Tezos X Governance now says No Proposal during quiet L2 periods instead of using track jargon on the front card' },
             { type: '🔧', text: 'Embed Widgets now share the dashboard theme, endpoint, retry, cache, and catalog runtime, with Combo Strip options for head freshness and tz4 power adoption' },
             { type: '✨', text: 'Historical Data now opens with a captured-signal digest for tz4 power, staking, Liquidity Baking, market, Network Health, Tezos X, and governance-period history' },
             { type: '✨', text: 'Network Health now monitors TzKT cyclic cycle-time drift so unusually slow or fast cycles are visible in the Health chamber' },
