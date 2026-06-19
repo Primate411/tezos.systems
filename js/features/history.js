@@ -65,6 +65,68 @@ const DOMAIN_HISTORY_CHARTS = [
         unit: '%'
     }
 ];
+const CORE_HISTORY_CHARTS = [
+    {
+        canvasId: 'chart-tz4',
+        metric: 'tz4_percentage',
+        label: 'tz4 Adoption',
+        unit: '%'
+    },
+    {
+        canvasId: 'chart-staking',
+        metric: 'staking_ratio',
+        label: 'Staking Ratio',
+        unit: '%'
+    },
+    {
+        canvasId: 'chart-total-staked',
+        metric: 'total_staked',
+        label: 'Total Staked',
+        unit: ' XTZ'
+    },
+    {
+        canvasId: 'chart-staking-apy',
+        metric: 'staking_apy_stake',
+        label: 'Stake APY',
+        unit: '%'
+    },
+    {
+        canvasId: 'chart-tz4-power',
+        metric: 'tz4_power_pct',
+        label: 'tz4 Power Adoption',
+        unit: '%'
+    },
+    {
+        canvasId: 'chart-bakers',
+        metric: 'total_bakers',
+        label: 'Total Active Bakers',
+        unit: ''
+    },
+    {
+        canvasId: 'chart-issuance',
+        metric: 'current_issuance_rate',
+        label: 'Issuance Rate',
+        unit: '%'
+    },
+    {
+        canvasId: 'chart-protocol-issuance',
+        metric: 'protocol_issuance_rate',
+        label: 'Protocol Issuance',
+        unit: '%'
+    },
+    {
+        canvasId: 'chart-lb-ema',
+        metric: 'lb_ema_pct',
+        label: 'Liquidity Baking EMA',
+        unit: '%'
+    },
+    {
+        canvasId: 'chart-supply',
+        metric: 'total_supply',
+        label: 'Total Supply',
+        unit: ' XTZ'
+    }
+];
 
 function destroyChartInstance(canvasId) {
     if (chartInstances[canvasId]) {
@@ -800,48 +862,14 @@ async function updateHistoryCharts(range) {
             return;
         }
 
-        // Create all charts
-        const charts = [
-            {
-                canvasId: 'chart-tz4',
-                metric: 'tz4_percentage',
-                label: 'tz4 Adoption',
-                unit: '%'
-            },
-            {
-                canvasId: 'chart-staking',
-                metric: 'staking_ratio',
-                label: 'Staking Ratio',
-                unit: '%'
-            },
-            {
-                canvasId: 'chart-bakers',
-                metric: 'total_bakers',
-                label: 'Total Active Bakers',
-                unit: ''
-            },
-            {
-                canvasId: 'chart-issuance',
-                metric: 'current_issuance_rate',
-                label: 'Issuance Rate',
-                unit: '%'
-            },
-            {
-                canvasId: 'chart-supply',
-                metric: 'total_supply',
-                label: 'Total Supply',
-                unit: ' XTZ'
-            }
-        ];
-
-        charts.forEach(({ canvasId, metric, label, unit }) => {
+        CORE_HISTORY_CHARTS.forEach(({ canvasId, metric, label, unit }) => {
             createFullChart(canvasId, data, metric, label, unit, { range });
         });
         DOMAIN_HISTORY_CHARTS.forEach(({ source, canvasId, metric, label, unit }) => {
             createFullChart(canvasId, domainData?.[source] || [], metric, label, unit, { range });
         });
 
-        debugLog(`Updated ${charts.length + DOMAIN_HISTORY_CHARTS.length} history charts with ${data.length} core data points`);
+        debugLog(`Updated ${CORE_HISTORY_CHARTS.length + DOMAIN_HISTORY_CHARTS.length} history charts with ${data.length} core data points`);
     } catch (error) {
         console.error('Failed to update history charts:', error);
     }
@@ -850,7 +878,14 @@ async function updateHistoryCharts(range) {
 // Card-to-metric mapping for history feature
 const CARD_METRICS = {
     'total-bakers': { metric: 'total_bakers', label: 'Total Bakers', unit: '' },
-    'tz4-adoption': { metric: 'tz4_percentage', label: 'tz4 Adoption', unit: '%' },
+    'tz4-adoption': {
+        metric: 'tz4_power_pct',
+        label: 'tz4 Power Adoption',
+        unit: '%',
+        fallbacks: [
+            { metric: 'tz4_percentage', label: 'tz4 Baker Adoption', unit: '%' }
+        ]
+    },
     'issuance-rate': { metric: 'current_issuance_rate', label: 'Issuance Rate', unit: '%' },
     'staking-ratio': { metric: 'staking_ratio', label: 'Staking Ratio', unit: '%' },
     'total-supply': { metric: 'total_supply', label: 'Total Supply', unit: ' XTZ' },
@@ -861,7 +896,28 @@ const CARD_METRICS = {
     'smart-contracts': { metric: 'smart_contracts', label: 'Smart Contracts', unit: '' },
     'tokens': { metric: 'tokens', label: 'Tokens', unit: '' },
     'rollups': { metric: 'rollups', label: 'Rollups', unit: '' },
-    'active-contracts': { metric: 'active_contracts_24h', label: 'Active Contracts (24h)', unit: '' }
+    'active-contracts': { metric: 'active_contracts_24h', label: 'Active Contracts (24h)', unit: '' },
+    'network-health': { source: 'networkHealth', metric: 'health_score', label: 'Network Health', unit: '%' },
+    'chamber-entry-card': {
+        selector: '#chamber-entry-card',
+        source: 'governance',
+        metric: 'participation_pct',
+        label: 'Tezos L1 Governance Participation',
+        unit: '%'
+    },
+    'lb-entry-card': {
+        selector: '#lb-entry-card',
+        metric: 'lb_ema_pct',
+        label: 'Liquidity Baking EMA',
+        unit: '%'
+    },
+    'tezlink-entry-card': {
+        selector: '#tezlink-entry-card',
+        source: 'tezosx',
+        metric: 'tvl_usd',
+        label: 'Tezos X TVL',
+        unit: ' USD'
+    }
 };
 
 const CARD_HISTORY_RANGES = [
@@ -872,25 +928,68 @@ const CARD_HISTORY_RANGES = [
 ];
 
 let cardHistoryRequestId = 0;
+let cardHistoryObserver = null;
+
+function getCardHistorySelector(cardId, config) {
+    return config.selector || `[data-stat="${cardId}"]`;
+}
+
+function attachCardHistoryButton(cardId, config, root = document) {
+    const selector = getCardHistorySelector(cardId, config);
+    const card = root.querySelector?.(selector) || document.querySelector(selector);
+    if (!card || card.dataset.cardHistoryWired === '1') return;
+
+    card.dataset.cardHistoryWired = '1';
+    const btn = document.createElement('button');
+    btn.className = 'card-history-btn';
+    btn.type = 'button';
+    btn.innerHTML = '📊';
+    btn.title = `View ${config.label} history`;
+    btn.setAttribute('aria-label', `View ${config.label} history`);
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        openCardHistoryModal(cardId);
+    });
+    card.appendChild(btn);
+}
+
+function countMetricPoints(data, metric) {
+    return data.reduce((count, row) => count + (Number.isFinite(metricValue(row?.[metric])) ? 1 : 0), 0);
+}
+
+function selectCardHistoryMetric(data, config) {
+    const candidates = [
+        { metric: config.metric, label: config.label, unit: config.unit },
+        ...(config.fallbacks || [])
+    ];
+
+    return candidates.find(candidate => countMetricPoints(data, candidate.metric) >= 2) || candidates[0];
+}
+
+async function fetchCardHistoryData(config, range) {
+    if (!config.source) return fetchHistoricalData(range);
+    const domainData = await fetchChamberHistoricalData(range);
+    return domainData?.[config.source] || [];
+}
 
 /**
  * Add history buttons to stat cards with sparklines
  */
 export function addCardHistoryButtons() {
-    Object.keys(CARD_METRICS).forEach(cardId => {
-        const card = document.querySelector(`[data-stat="${cardId}"]`);
-        if (!card) return;
-
-        const btn = document.createElement('button');
-        btn.className = 'card-history-btn';
-        btn.innerHTML = '📊';
-        btn.title = 'View history';
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openCardHistoryModal(cardId);
-        });
-        card.appendChild(btn);
+    Object.entries(CARD_METRICS).forEach(([cardId, config]) => {
+        attachCardHistoryButton(cardId, config);
     });
+
+    if (cardHistoryObserver) return;
+    const root = document.getElementById('chambers-grid') || document.body;
+    cardHistoryObserver = new MutationObserver((mutations) => {
+        if (!mutations.some(mutation => mutation.addedNodes.length)) return;
+        Object.entries(CARD_METRICS).forEach(([cardId, config]) => {
+            attachCardHistoryButton(cardId, config);
+        });
+    });
+    cardHistoryObserver.observe(root, { childList: true, subtree: true });
 }
 
 /**
@@ -944,13 +1043,14 @@ async function renderCardHistoryChart(modal, config, range) {
 
     // Load data and render chart
     try {
-        const data = await fetchHistoricalData(range);
+        const data = await fetchCardHistoryData(config, range);
 
         if (requestId !== cardHistoryRequestId || !modal.classList.contains('active')) {
             return;
         }
-        
-        const metricPoints = data.filter(row => Number.isFinite(Number(row[config.metric])));
+
+        const metricConfig = selectCardHistoryMetric(data, config);
+        const metricPoints = data.filter(row => Number.isFinite(metricValue(row[metricConfig.metric])));
         if (data.length === 0 || metricPoints.length < 2) {
             chartContainer.innerHTML = `
                 <div class="card-history-state">
@@ -965,7 +1065,7 @@ async function renderCardHistoryChart(modal, config, range) {
         chartContainer.innerHTML = `<canvas id="${canvasId}"></canvas>`;
         
         // Render the chart
-        createFullChart(canvasId, data, config.metric, config.label, config.unit, { range });
+        createFullChart(canvasId, data, metricConfig.metric, metricConfig.label, metricConfig.unit, { range });
     } catch (error) {
         if (requestId !== cardHistoryRequestId) {
             return;

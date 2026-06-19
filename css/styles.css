@@ -3958,6 +3958,267 @@ body::before {
     font-size: 0.875rem;
 }
 
+.footer-content:empty {
+    display: none;
+}
+
+.footer-chad-checkpoint {
+    width: min(100%, 860px);
+    margin: 0 auto 2rem;
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.9rem 1rem;
+    align-items: center;
+    text-align: left;
+    color: var(--text-secondary);
+    border: 1px solid rgba(0, 255, 136, 0.22);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(0, 255, 136, 0.08), rgba(0, 212, 255, 0.04)),
+        rgba(0, 0, 0, 0.18);
+    box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    position: relative;
+    overflow: hidden;
+}
+
+.footer-chad-checkpoint::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent),
+        repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 9px);
+    opacity: 0.28;
+    mix-blend-mode: screen;
+}
+
+.footer-chad-checkpoint[data-aura="collector"] {
+    border-color: rgba(255, 105, 180, 0.28);
+    background:
+        linear-gradient(135deg, rgba(255, 105, 180, 0.1), rgba(0, 212, 255, 0.04)),
+        rgba(0, 0, 0, 0.18);
+}
+
+.footer-chad-checkpoint[data-aura="governance"] {
+    border-color: rgba(255, 195, 77, 0.32);
+    background:
+        linear-gradient(135deg, rgba(255, 195, 77, 0.1), rgba(0, 255, 136, 0.04)),
+        rgba(0, 0, 0, 0.18);
+}
+
+.footer-chad-checkpoint[data-aura="price"] {
+    border-color: rgba(0, 212, 255, 0.28);
+    background:
+        linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 136, 0.04)),
+        rgba(0, 0, 0, 0.18);
+}
+
+.footer-chad-badge,
+.footer-chad-copy,
+.footer-chad-chips {
+    position: relative;
+    z-index: 1;
+}
+
+.footer-chad-badge {
+    width: 4.25rem;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(0, 255, 136, 0.42);
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 212, 255, 0.07)),
+        rgba(0, 0, 0, 0.24);
+    box-shadow: 0 0 28px rgba(0, 255, 136, 0.16);
+    transform: rotate(-3deg);
+}
+
+.footer-chad-sigil {
+    color: var(--accent-cyan);
+    font-family: 'Orbitron', 'SF Mono', monospace;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+    text-shadow: 0 0 14px rgba(0, 255, 136, 0.7);
+}
+
+.footer-chad-spark {
+    position: absolute;
+    width: 0.35rem;
+    height: 0.35rem;
+    border-radius: 2px;
+    background: var(--accent-cyan);
+    box-shadow: 0 0 10px currentColor;
+    opacity: 0.72;
+}
+
+.footer-chad-spark-a {
+    top: 0.55rem;
+    right: 0.65rem;
+}
+
+.footer-chad-spark-b {
+    bottom: 0.7rem;
+    left: 0.75rem;
+    animation: footerChadBlink 2.8s ease-in-out infinite;
+}
+
+.footer-chad-spark-c {
+    right: 0.9rem;
+    bottom: 1.05rem;
+    opacity: 0.45;
+}
+
+.footer-chad-kicker {
+    margin: 0 0 0.25rem;
+    color: var(--accent-cyan);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-transform: uppercase;
+}
+
+.footer-chad-title {
+    margin: 0;
+    color: var(--text-primary);
+    font-family: 'Orbitron', 'SF Mono', monospace;
+    font-size: 1.05rem;
+    line-height: 1.25;
+    letter-spacing: 0;
+}
+
+.footer-chad-line {
+    margin: 0.35rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.footer-chad-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.7rem;
+    color: var(--accent-cyan);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0;
+    text-decoration: none;
+}
+
+.footer-chad-link::after {
+    content: '->';
+}
+
+.footer-chad-link:hover,
+.footer-chad-link:focus-visible {
+    color: var(--accent-pink);
+    text-shadow: 0 0 12px rgba(0, 255, 136, 0.45);
+    outline: none;
+}
+
+.footer-chad-chips {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.footer-chad-chip {
+    min-height: 2rem;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 999px;
+    color: var(--text-tertiary);
+    background: rgba(255, 255, 255, 0.035);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.75rem;
+    line-height: 1;
+    letter-spacing: 0;
+    cursor: pointer;
+    transition: transform 0.2s ease, color 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.footer-chad-chip:hover,
+.footer-chad-chip:focus-visible {
+    color: var(--text-primary);
+    border-color: rgba(0, 255, 136, 0.34);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.footer-chad-chip.active {
+    color: var(--accent-cyan);
+    border-color: rgba(0, 255, 136, 0.46);
+    background: rgba(0, 255, 136, 0.1);
+    box-shadow: 0 0 16px rgba(0, 255, 136, 0.12);
+}
+
+[data-theme="clean"] .footer-chad-checkpoint {
+    color: #344054;
+    border-color: rgba(37, 99, 235, 0.2);
+    background:
+        linear-gradient(135deg, rgba(37, 99, 235, 0.07), rgba(16, 185, 129, 0.06)),
+        rgba(255, 255, 255, 0.86);
+    box-shadow: 0 14px 38px rgba(15, 23, 42, 0.08);
+}
+
+[data-theme="clean"] .footer-chad-checkpoint::before {
+    opacity: 0.18;
+    mix-blend-mode: multiply;
+}
+
+[data-theme="clean"] .footer-chad-badge {
+    background: rgba(255, 255, 255, 0.82);
+    border-color: rgba(37, 99, 235, 0.22);
+    box-shadow: none;
+}
+
+[data-theme="clean"] .footer-chad-line,
+[data-theme="clean"] .footer-chad-chip {
+    color: #475467;
+}
+
+[data-theme="clean"] .footer-chad-title {
+    color: #101828;
+}
+
+[data-theme="clean"] .footer-chad-chip {
+    border-color: rgba(15, 23, 42, 0.12);
+    background: rgba(255, 255, 255, 0.72);
+}
+
+[data-theme="clean"] .footer-chad-chip.active {
+    color: #2563eb;
+    border-color: rgba(37, 99, 235, 0.32);
+    background: rgba(37, 99, 235, 0.08);
+    box-shadow: none;
+}
+
+@keyframes footerChadBlink {
+    0%, 62%, 100% {
+        opacity: 0.35;
+        transform: scale(1);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.35);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .footer-chad-spark-b {
+        animation: none;
+    }
+}
+
 .update-info,
 .countdown-info {
     font-weight: 400;
@@ -4085,6 +4346,30 @@ body::before {
 
     .modal-title {
         font-size: 1.25rem;
+    }
+
+    .footer {
+        padding-inline: 1rem;
+    }
+
+    .footer-chad-checkpoint {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+        padding: 1rem 0.85rem;
+    }
+
+    .footer-chad-badge {
+        width: 3.75rem;
+    }
+
+    .footer-chad-chips {
+        justify-content: center;
+    }
+
+    .footer-chad-chip {
+        flex: 1 1 calc(50% - 0.45rem);
+        max-width: 10rem;
     }
 }
 

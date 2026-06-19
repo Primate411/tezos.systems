@@ -184,6 +184,7 @@ async function init() {
     safe('tezosStatsToggle', initTezosStatsToggle);
     safe('networkHealth', initNetworkHealth);
     safe('chambersOrder', orderChambersSurface);
+    safe('footerChadCheckpoint', initFooterChadCheckpoint);
 
     // Upgrade section share button
     const upgradeShareBtn = document.getElementById('upgrade-share-btn');
@@ -2144,6 +2145,79 @@ function positionTooltip(e, tooltipEl) {
     if (y + rect.height > window.innerHeight - 10) y = e.clientY - rect.height - 16;
     tooltipEl.style.left = x + 'px';
     tooltipEl.style.top = y + 'px';
+}
+
+const FOOTER_CHAD_STORAGE_KEY = 'tezos-systems-footer-aura';
+const FOOTER_CHAD_AURAS = {
+    builder: {
+        line: 'Builder aura minted. Borrow a live stat widget and make your own corner of the internet weirdly useful.',
+        href: '/widgets/builder.html',
+        label: 'Grab a live widget'
+    },
+    baker: {
+        line: 'Baker aura warm. Check your address, rewards, and tiny network weather before the next cycle sneaks up.',
+        href: '#my-baker',
+        label: 'Open My Tezos'
+    },
+    collector: {
+        line: 'Collector aura glossy. Art tabs open, taste calibrated, HEN mode very much within reach.',
+        href: '/hen/',
+        label: 'Enter HEN'
+    },
+    governance: {
+        line: 'Governance aura spicy. You scroll proposal lore for fun and The Chamber has receipts.',
+        href: '/chamber/',
+        label: 'Enter the Chamber'
+    },
+    price: {
+        line: 'Price watcher aura awake. XTZ blinking on the bar, conviction doing little pushups.',
+        href: '#price',
+        label: 'Open price intel'
+    }
+};
+
+function initFooterChadCheckpoint() {
+    const checkpoint = document.getElementById('footer-chad-checkpoint');
+    const line = document.getElementById('footer-chad-line');
+    const link = document.getElementById('footer-chad-link');
+    if (!checkpoint || !line || !link) return;
+
+    const chips = Array.from(checkpoint.querySelectorAll('[data-footer-chad]'));
+    if (!chips.length) return;
+
+    const getSavedAura = () => {
+        try {
+            return localStorage.getItem(FOOTER_CHAD_STORAGE_KEY) || '';
+        } catch (_) {
+            return '';
+        }
+    };
+
+    const saveAura = (aura) => {
+        try {
+            localStorage.setItem(FOOTER_CHAD_STORAGE_KEY, aura);
+        } catch (_) {}
+    };
+
+    const activate = (aura, persist = true) => {
+        const profile = FOOTER_CHAD_AURAS[aura] || FOOTER_CHAD_AURAS.builder;
+        checkpoint.dataset.aura = FOOTER_CHAD_AURAS[aura] ? aura : 'builder';
+        line.textContent = profile.line;
+        link.href = profile.href;
+        link.textContent = profile.label;
+        chips.forEach((chip) => {
+            const active = chip.dataset.footerChad === checkpoint.dataset.aura;
+            chip.classList.toggle('active', active);
+            chip.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        if (persist) saveAura(checkpoint.dataset.aura);
+    };
+
+    chips.forEach((chip) => {
+        chip.addEventListener('click', () => activate(chip.dataset.footerChad || 'builder'));
+    });
+
+    activate(getSavedAura() || 'builder', false);
 }
 
 /**

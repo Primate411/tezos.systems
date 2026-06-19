@@ -50,13 +50,13 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=210">
+    <link rel="stylesheet" href="css/styles.min.css?v=212">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=210">
+    <link rel="modulepreload" href="js/core/app.js?v=212">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -213,7 +213,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=210"></script>
+    <script src="js/core/theme-preload.js?v=212"></script>
     <a id="hen-launcher" class="hen-launcher" href="/?hen=1" aria-label="Enter HEN mode" title="Enter HEN mode">
         <span aria-hidden="true">🐔</span>
     </a>
@@ -1760,6 +1760,27 @@
         <div class="footer-content">
 
         </div>
+        <section class="footer-chad-checkpoint" id="footer-chad-checkpoint" aria-labelledby="footer-chad-title">
+            <div class="footer-chad-badge" aria-hidden="true">
+                <span class="footer-chad-sigil">ꜩ</span>
+                <span class="footer-chad-spark footer-chad-spark-a"></span>
+                <span class="footer-chad-spark footer-chad-spark-b"></span>
+                <span class="footer-chad-spark footer-chad-spark-c"></span>
+            </div>
+            <div class="footer-chad-copy">
+                <p class="footer-chad-kicker">Basement vibe check</p>
+                <h2 class="footer-chad-title" id="footer-chad-title">Still scrolling? Pick your Tezos aura.</h2>
+                <p class="footer-chad-line" id="footer-chad-line">Tiny badge generator for builders, bakers, collectors, governance maxis, and price-watchers.</p>
+                <a class="footer-chad-link" id="footer-chad-link" href="/widgets/builder.html">Grab a live widget</a>
+            </div>
+            <div class="footer-chad-chips" role="group" aria-label="Choose your Tezos aura">
+                <button class="footer-chad-chip active" type="button" data-footer-chad="builder" aria-pressed="true">Builder</button>
+                <button class="footer-chad-chip" type="button" data-footer-chad="baker" aria-pressed="false">Baker</button>
+                <button class="footer-chad-chip" type="button" data-footer-chad="collector" aria-pressed="false">Collector</button>
+                <button class="footer-chad-chip" type="button" data-footer-chad="governance" aria-pressed="false">Gov maxi</button>
+                <button class="footer-chad-chip" type="button" data-footer-chad="price" aria-pressed="false">Price watcher</button>
+            </div>
+        </section>
         <p class="powered-by">
             Powered by <a href="https://tez.capital" target="_blank" rel="noopener">Tez Capital</a>
         </p>
@@ -1815,54 +1836,89 @@
                 </div>
                 <div class="chart-section" style="--delay: 2">
                     <div class="chart-header">
+                        <h4>Total Staked</h4>
+                        <div class="chart-stats" id="stats-chart-total-staked"></div>
+                    </div>
+                    <canvas id="chart-total-staked"></canvas>
+                </div>
+                <div class="chart-section" style="--delay: 3">
+                    <div class="chart-header">
+                        <h4>Stake APY</h4>
+                        <div class="chart-stats" id="stats-chart-staking-apy"></div>
+                    </div>
+                    <canvas id="chart-staking-apy"></canvas>
+                </div>
+                <div class="chart-section" style="--delay: 4">
+                    <div class="chart-header">
+                        <h4>tz4 Power Adoption</h4>
+                        <div class="chart-stats" id="stats-chart-tz4-power"></div>
+                    </div>
+                    <canvas id="chart-tz4-power"></canvas>
+                </div>
+                <div class="chart-section" style="--delay: 5">
+                    <div class="chart-header">
                         <h4>Total Active Bakers</h4>
                         <div class="chart-stats" id="stats-chart-bakers"></div>
                     </div>
                     <canvas id="chart-bakers"></canvas>
                 </div>
-                <div class="chart-section" style="--delay: 3">
+                <div class="chart-section" style="--delay: 6">
                     <div class="chart-header">
                         <h4>Issuance Rate</h4>
                         <div class="chart-stats" id="stats-chart-issuance"></div>
                     </div>
                     <canvas id="chart-issuance"></canvas>
                 </div>
-                <div class="chart-section" style="--delay: 4">
+                <div class="chart-section" style="--delay: 7">
+                    <div class="chart-header">
+                        <h4>Protocol Issuance</h4>
+                        <div class="chart-stats" id="stats-chart-protocol-issuance"></div>
+                    </div>
+                    <canvas id="chart-protocol-issuance"></canvas>
+                </div>
+                <div class="chart-section" style="--delay: 8">
+                    <div class="chart-header">
+                        <h4>Liquidity Baking EMA</h4>
+                        <div class="chart-stats" id="stats-chart-lb-ema"></div>
+                    </div>
+                    <canvas id="chart-lb-ema"></canvas>
+                </div>
+                <div class="chart-section" style="--delay: 9">
                     <div class="chart-header">
                         <h4>Total Supply</h4>
                         <div class="chart-stats" id="stats-chart-supply"></div>
                     </div>
                     <canvas id="chart-supply"></canvas>
                 </div>
-                <div class="chart-section history-domain-chart" style="--delay: 5">
+                <div class="chart-section history-domain-chart" style="--delay: 10">
                     <div class="chart-header">
                         <h4>XTZ Price</h4>
                         <div class="chart-stats" id="stats-chart-price"></div>
                     </div>
                     <canvas id="chart-price"></canvas>
                 </div>
-                <div class="chart-section history-domain-chart" style="--delay: 6">
+                <div class="chart-section history-domain-chart" style="--delay: 11">
                     <div class="chart-header">
                         <h4>Network Health</h4>
                         <div class="chart-stats" id="stats-chart-network-health"></div>
                     </div>
                     <canvas id="chart-network-health"></canvas>
                 </div>
-                <div class="chart-section history-domain-chart" style="--delay: 7">
+                <div class="chart-section history-domain-chart" style="--delay: 12">
                     <div class="chart-header">
                         <h4>Tezos X TVL</h4>
                         <div class="chart-stats" id="stats-chart-tezosx-tvl"></div>
                     </div>
                     <canvas id="chart-tezosx-tvl"></canvas>
                 </div>
-                <div class="chart-section history-domain-chart" style="--delay: 8">
+                <div class="chart-section history-domain-chart" style="--delay: 13">
                     <div class="chart-header">
                         <h4>Tezos X Transactions</h4>
                         <div class="chart-stats" id="stats-chart-tezosx-transactions"></div>
                     </div>
                     <canvas id="chart-tezosx-transactions"></canvas>
                 </div>
-                <div class="chart-section history-domain-chart" style="--delay: 9">
+                <div class="chart-section history-domain-chart" style="--delay: 14">
                     <div class="chart-header">
                         <h4>Governance Participation</h4>
                         <div class="chart-stats" id="stats-chart-governance-participation"></div>
@@ -1989,7 +2045,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=210"></script>
+    <script type="module" src="js/core/app.js?v=212"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

@@ -308,8 +308,11 @@ collector should use a service-role or equivalent server-side secret for
 row, while `.github/workflows/collect-chamber-history.yml` writes 30-minute
 market, Network Health, Tezos X, and governance-period snapshots.
 The History modal reads those domain tables directly for Chamber trend charts
-and shows a compact capture-status strip for the latest global, market, health,
-Tezos X, and governance rows.
+plus expanded `tezos_history` fields such as total staked, APY, tz4 power,
+protocol issuance, and Liquidity Baking EMA. Chamber entry cards use the `📊`
+stats control to open their matching historical series where capture exists,
+and the modal shows a compact capture-status strip for the latest global,
+market, health, Tezos X, and governance rows.
 `scripts/backfill-supabase-history.mjs` can repair old `tezos_history` rows
 after schema expansion by using each row's timestamp to pull historical TzKT
 statistics and archival Octez issuance/Liquidity Baking state. Run it through

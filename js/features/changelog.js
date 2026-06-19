@@ -5,8 +5,16 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-19',
+        entries: [
+            { type: '🎨', text: 'The footer now has a playful Tezos aura checkpoint that routes bottom-scrollers into widgets, My Tezos, HEN, the Chamber, or price intel' },
+        ]
+    },
+    {
         date: '2026-06-18',
         entries: [
+            { type: '✨', text: 'Chamber stats buttons now open the matching historical series for Network Health, LB EMA, Tezos X TVL, L1 governance participation, and tz4 power adoption' },
+            { type: '✨', text: 'The History modal now charts expanded Supabase fields including total staked, stake APY, tz4 power, protocol issuance, and Liquidity Baking EMA' },
             { type: '✨', text: 'The History modal now includes Chamber history charts for market, Network Health, Tezos X, and governance-period snapshots from Supabase' },
             { type: '🔧', text: 'Supabase history capture now has a freshness check and visible capture-status strip for global and Chamber domain tables' },
             { type: '⚡', text: 'GitHub Actions workflows now use Node 24-era action pins for data collection, backfill, and generated governance refreshes' },

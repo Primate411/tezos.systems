@@ -416,6 +416,9 @@ async function checkSelectorContracts() {
     'upgrade-share-btn',
     'changelog-btn',
     'changelog-modal',
+    'footer-chad-checkpoint',
+    'footer-chad-line',
+    'footer-chad-link',
     'build-version'
   ];
 
@@ -433,6 +436,8 @@ async function checkSelectorContracts() {
     ['widget builder CTA', 'href="/widgets/builder.html"'],
     ['share picker styles hook', 'section-picker-note'],
     ['price bar change surface', 'class="price-change"'],
+    ['footer aura checkpoint', 'data-footer-chad="builder"'],
+    ['footer aura chip rail', 'class="footer-chad-chips"'],
     ['timeline share fallback host', 'document.querySelector(\'.upgrade-badges\')'],
     ['timeline share current protocol fallback', 'document.querySelector(\'.current-name-row\')']
   ];
@@ -831,11 +836,30 @@ async function checkHistoricalPagination() {
     'DOMAIN_HISTORY_TABLES',
     'history-freshness-strip',
     'DOMAIN_HISTORY_CHARTS',
+    'CORE_HISTORY_CHARTS',
+    'chart-total-staked',
+    'chart-staking-apy',
+    'chart-tz4-power',
+    'chart-lb-ema',
     'chart-tezosx-tvl',
     'chart-governance-participation'
   ]) {
     if (!api.includes(snippet) && !history.includes(snippet) && !index.includes(snippet)) {
       fail(`frontend historical surfaces must include ${snippet}`);
+    }
+  }
+  for (const snippet of [
+    "selector: '#lb-entry-card'",
+    "selector: '#tezlink-entry-card'",
+    "selector: '#chamber-entry-card'",
+    "source: 'networkHealth'",
+    "source: 'governance'",
+    "source: 'tezosx'",
+    "metric: 'lb_ema_pct'",
+    "metric: 'tz4_power_pct'"
+  ]) {
+    if (!history.includes(snippet)) {
+      fail(`card history buttons must wire chamber stats via ${snippet}`);
     }
   }
   for (const snippet of [
