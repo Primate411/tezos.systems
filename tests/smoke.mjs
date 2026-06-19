@@ -354,17 +354,17 @@ function sampleDomainHistoryRows(table) {
       head_level: 13600000 + step,
       epoch: 90,
       period_index: 176,
-      period_kind: 'exploration',
-      period_status: 'active',
+      period_kind: 'cooldown',
+      period_status: 'quiet',
       proposal: 'PsSmokeHistoryDigest1234567890abcdef',
-      participation_pct: 10 + step,
+      participation_pct: null,
       quorum_pct: 45,
-      supermajority_pct: 80 + step / 2,
-      yay_power: 1000000 + step * 1000,
-      nay_power: 100000 + step * 100,
-      pass_power: 50000 + step * 100,
-      voting_power_voted: 1150000 + step * 1000,
-      voters_voted: 40 + step,
+      supermajority_pct: null,
+      yay_power: 0,
+      nay_power: 0,
+      pass_power: 0,
+      voting_power_voted: 0,
+      voters_voted: 0,
       voters_total: 220,
       period_start: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
       period_end: new Date(now + 24 * 60 * 60 * 1000).toISOString()
@@ -5162,6 +5162,10 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   for (const expected of ['Consensus', 'Economy', 'Liquidity Baking', 'Market', 'Network Health', 'Tezos X', 'Governance']) {
     assert(digestText.includes(expected.toLowerCase()), `feature workflows history digest missing ${expected}: ${digestText}`);
   }
+  const governanceHistorySection = page.locator('#chart-governance-participation').locator('xpath=ancestor::*[contains(concat(" ", normalize-space(@class), " "), " chart-section ")]');
+  await expectClassContains(governanceHistorySection, 'is-empty', 'feature workflows governance history quiet-state');
+  const governanceHistoryText = (await governanceHistorySection.locator('.history-chart-empty').innerText()).toLowerCase();
+  assert(governanceHistoryText.includes('no ballot samples'), `feature workflows governance history should explain quiet participation data, saw: ${governanceHistoryText}`);
   await page.locator('#history-modal .time-range-btn[data-range="24h"]').click();
   await expectClassContains(page.locator('#history-modal .time-range-btn[data-range="24h"]'), 'active', 'feature workflows history range');
   await page.waitForFunction(() => document.querySelector('#history-digest')?.textContent?.includes('24h'), null, { timeout: 5000 });

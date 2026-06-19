@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-19',
         entries: [
+            { type: '🎨', text: 'Historical Data now shows a compact quiet-state explanation when governance participation has no ballot samples instead of leaving an empty chart panel' },
             { type: '✨', text: 'Your Tezos Story now reads like a personal Tezos dossier with identity, archetype, milestones, protocol-era trail, and a live next-signal panel' },
             { type: '✨', text: 'Network Context now ranks daily signals as personalized cards using baker, portfolio, staking, governance, collector, and creator focus chips' },
             { type: '🔧', text: 'My Tezos now colors baker Octez versions yellow when they trail the latest observed release and red when they are a major line behind' },

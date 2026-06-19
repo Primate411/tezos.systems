@@ -62,7 +62,10 @@ const DOMAIN_HISTORY_CHARTS = [
         canvasId: 'chart-governance-participation',
         metric: 'participation_pct',
         label: 'Governance Participation',
-        unit: '%'
+        unit: '%',
+        statusText: 'No ballots',
+        emptyTitle: 'No ballot samples in this range',
+        emptyBody: 'Governance participation only charts Exploration and Promotion ballot windows. Quiet periods stay tracked in the digest while the chart waits for ballot snapshots.'
     }
 ];
 const CORE_HISTORY_CHARTS = [
@@ -547,10 +550,58 @@ function renderHistoryFreshness(rows) {
     }).join('');
 }
 
-function clearChartStatus(canvasId, text = 'Collecting') {
+function chartContainerFor(canvas) {
+    return canvas?.closest('.chart-section') || canvas?.parentElement || null;
+}
+
+function clearChartEmptyState(canvas) {
+    const container = chartContainerFor(canvas);
+    if (!container) return;
+
+    container.classList.remove('is-empty');
+    canvas.removeAttribute('aria-hidden');
+    const emptyState = container.querySelector('.history-chart-empty');
+    if (emptyState && emptyState.parentElement === container) {
+        emptyState.remove();
+    }
+}
+
+function renderChartEmptyState(canvas, options = {}) {
+    const container = chartContainerFor(canvas);
+    if (!container) return;
+
+    const rangeText = options.range ? ` for ${rangeLabel(options.range)}` : '';
+    const title = options.emptyTitle || `Collecting ${options.label || 'history'}`;
+    const body = options.emptyBody || `This chart needs at least two captured samples${rangeText}. It will draw automatically once enough history exists.`;
+
+    container.classList.add('is-empty');
+    canvas.setAttribute('aria-hidden', 'true');
+
+    let emptyState = container.querySelector('.history-chart-empty');
+    if (!emptyState || emptyState.parentElement !== container) {
+        emptyState = document.createElement('div');
+        emptyState.className = 'history-chart-empty';
+        emptyState.setAttribute('role', 'status');
+        canvas.insertAdjacentElement('afterend', emptyState);
+    }
+
+    emptyState.innerHTML = `
+        <div class="history-chart-empty-kicker">Waiting for signal</div>
+        <strong class="history-chart-empty-title">${escapeHtml(title)}</strong>
+        <p>${escapeHtml(body)}</p>
+    `;
+}
+
+function clearChartStatus(canvasId, options = {}) {
+    const config = typeof options === 'string' ? { statusText: options } : options;
+    const text = config.statusText || 'Collecting';
     const statsEl = document.getElementById(`stats-${canvasId}`);
     if (statsEl) {
         statsEl.innerHTML = `<span class="stat-item"><span class="stat-label">Status</span><span class="stat-value neutral">${text}</span></span>`;
+    }
+    const canvas = document.getElementById(canvasId);
+    if (canvas) {
+        renderChartEmptyState(canvas, config);
     }
     destroyChartInstance(canvasId);
 }
@@ -823,9 +874,16 @@ export function createFullChart(canvasId, data, metric, label, unit = '', option
     // Extract values and timestamps
     const points = normalizeMetricPoints(data, metric);
     if (points.length < 2) {
-        clearChartStatus(canvasId);
+        clearChartStatus(canvasId, {
+            label,
+            range: options.range,
+            statusText: options.statusText || 'Collecting',
+            emptyTitle: options.emptyTitle,
+            emptyBody: options.emptyBody
+        });
         return;
     }
+    clearChartEmptyState(canvas);
 
     const range = options.range || '7d';
     const maxPoints = getFullChartPointLimit(range);
@@ -1227,8 +1285,8 @@ async function updateHistoryCharts(range) {
         CORE_HISTORY_CHARTS.forEach(({ canvasId, metric, label, unit }) => {
             createFullChart(canvasId, data, metric, label, unit, { range });
         });
-        DOMAIN_HISTORY_CHARTS.forEach(({ source, canvasId, metric, label, unit }) => {
-            createFullChart(canvasId, domainData?.[source] || [], metric, label, unit, { range });
+        DOMAIN_HISTORY_CHARTS.forEach(({ source, canvasId, metric, label, unit, statusText, emptyTitle, emptyBody }) => {
+            createFullChart(canvasId, domainData?.[source] || [], metric, label, unit, { range, statusText, emptyTitle, emptyBody });
         });
 
         debugLog(`Updated ${CORE_HISTORY_CHARTS.length + DOMAIN_HISTORY_CHARTS.length} history charts with ${data.length} core data points`);
