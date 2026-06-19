@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-19',
         entries: [
+            { type: '🔧', text: 'Daily Briefing price copy now uses live CoinGecko 24-hour movement and refreshes same-cycle cache when market conditions change' },
             { type: '✨', text: 'A live block ticker now sits as its own island between Current Protocol and Chambers with latest block, compact baker names, stable-width health telemetry, and a clean whole-line transition' },
             { type: '🎨', text: 'Front-page panel borders now sit softer at rest while Chamber cards keep a sharper colored edge on hover' },
             { type: '🎨', text: 'The aurora title now keeps the same slow color-shift treatment on desktop and mobile even when global motion settings are conservative' },

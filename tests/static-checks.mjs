@@ -1098,6 +1098,28 @@ async function checkTourAndShareCaptureContracts() {
   }
 }
 
+async function checkDailyBriefingPriceContracts() {
+  const briefing = await readText('js/features/daily-briefing.js');
+  const requiredSnippets = [
+    "import { fetchXTZPrice } from './price.js';",
+    'resolvePriceContext',
+    'priceChange24h: currentChange24h',
+    'cached.priceChange24h'
+  ];
+
+  for (const snippet of requiredSnippets) {
+    if (!briefing.includes(snippet)) fail(`daily briefing price contract missing: ${snippet}`);
+  }
+  if (briefing.includes('if (cached?.cycle === stats.cycle)')) {
+    fail('daily briefing update must not reuse same-cycle cache without price-movement stale checks');
+  }
+  if (!/absPct24h\s*<\s*0\.4\s*\?\s*TEMPLATES\.price\[2\]/.test(briefing)) {
+    fail('daily briefing steady-price template must stay gated behind sub-0.4% 24h movement');
+  }
+
+  pass('daily briefing price movement cache contracts checked');
+}
+
 async function checkReadmeContracts() {
   const readme = await readText('README.md');
   const themeSource = await readText('js/ui/theme.js');
@@ -1191,6 +1213,7 @@ async function main() {
   await checkPortableTooling();
   await checkSmokeSuiteCatalogContracts();
   await checkTourAndShareCaptureContracts();
+  await checkDailyBriefingPriceContracts();
   await checkReadmeContracts();
 
   for (const message of passes) console.log(`ok - ${message}`);

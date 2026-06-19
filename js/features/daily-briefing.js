@@ -4,20 +4,22 @@
  */
 
 import { API_URLS } from '../core/config.js';
+import { fetchXTZPrice } from './price.js';
 
 const LS_BASELINE  = 'tezos-systems-briefing-baseline';
 const LS_BRIEFING  = 'tezos-systems-briefing-cache';
 const LS_LAST_SEEN = 'tezos-systems-briefing-last-seen';
+const PRICE_FETCH_TIMEOUT_MS = 2500;
 
 // ─── Template Library ────────────────────────────────────────────────────────
 
 const TEMPLATES = {
   price: [
-    ({ pct, dir, price })       => `XTZ pushed ${dir} ${pct}% in the last 24h, trading around $${price}.`,
+    ({ pct, dir, price })       => `XTZ moved ${dir} ${pct}% in the last 24h, trading around $${price}.`,
     ({ pct, dir })              => `Price ${dir === 'up' ? 'climbed' : 'slid'} ${pct}% since yesterday — ${parseFloat(pct) > 3 ? 'notable move.' : 'modest drift.'}`,
     ({ price })                 => `XTZ is holding steady near $${price} with minimal 24h movement.`,
     ({ pct, dir, price })       => `Markets: XTZ ${dir === 'up' ? '▲' : '▼'} ${pct}% to $${price}.`,
-    ({ pct, dir })              => `XTZ ${dir === 'up' ? 'gained' : 'lost'} ${pct}% in 24h — ${parseFloat(pct) > 5 ? 'big swing.' : 'routine volatility.'}`,
+    ({ pct, dir })              => `XTZ ${dir === 'up' ? 'gained' : 'lost'} ${pct}% in 24h — ${parseFloat(pct) >= 4 ? 'sharp move.' : 'routine volatility.'}`,
   ],
   staking: [
     ({ ratio, delta })          => `Staked ratio ${delta >= 0 ? 'rose' : 'fell'} to ${ratio}% — network security is ${parseFloat(ratio) > 30 ? 'strong' : parseFloat(ratio) > 20 ? 'solid' : 'tightening'}.`,
@@ -74,6 +76,39 @@ function fmtPct(p)      { return Math.abs(p).toFixed(1); }
 function signedPct(a,b) { return b ? ((a - b) / b) * 100 : 0; }
 function pick(arr)      { return arr[Math.floor(Math.random() * arr.length)]; }
 
+function finiteNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+}
+
+function withTimeout(promise, timeoutMs) {
+  return Promise.race([
+    promise,
+    new Promise(resolve => setTimeout(() => resolve(null), timeoutMs))
+  ]);
+}
+
+async function resolvePriceContext(stats, xtzPrice) {
+  const nextStats = { ...(stats || {}) };
+  let price = finiteNumber(xtzPrice) || 0;
+
+  try {
+    const data = await withTimeout(fetchXTZPrice(), PRICE_FETCH_TIMEOUT_MS);
+    if (data) {
+      const livePrice = finiteNumber(data.usd);
+      const liveChange = finiteNumber(data.usd_24h_change);
+      if (livePrice && livePrice > 0) price = livePrice;
+      if (liveChange != null) nextStats.priceChange24h = liveChange;
+    }
+  } catch { /* keep DOM price and local baseline fallback */ }
+
+  return {
+    stats: nextStats,
+    xtzPrice: price,
+    priceChange24h: finiteNumber(nextStats.priceChange24h),
+  };
+}
+
 async function fetchWhaleCount() {
   try {
     const ago = new Date(Date.now() - 86400000).toISOString();
@@ -112,7 +147,8 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
   // PRICE
   if (xtzPrice) {
     const prevPrice = baseline?.xtzPrice || xtzPrice;
-    const pct24h    = stats.priceChange24h ?? signedPct(xtzPrice, prevPrice);
+    const livePct24h = finiteNumber(stats.priceChange24h);
+    const pct24h    = livePct24h ?? signedPct(xtzPrice, prevPrice);
     const absPct24h = Math.abs(pct24h);
     const dir       = pct24h >= 0 ? 'up' : 'down';
     const score     = absPct24h > 2 ? 90 : absPct24h > 0.5 ? 60 : 30;
@@ -238,7 +274,12 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats) {
 // ─── Core Generate ────────────────────────────────────────────────────────────
 
 async function generate(stats, xtzPrice) {
-  const cycle = stats.cycle ?? 0;
+  const sourceStats = stats || {};
+  const cycle = sourceStats.cycle ?? 0;
+  const priceContext = await resolvePriceContext(sourceStats, xtzPrice);
+  const nextStats = priceContext.stats;
+  const currentPrice = priceContext.xtzPrice;
+  const currentChange24h = priceContext.priceChange24h;
 
   // Return cached briefing if it's recent and data hasn't changed much
   try {
@@ -246,9 +287,16 @@ async function generate(stats, xtzPrice) {
     if (cached?.cycle === cycle && cached.generatedAt) {
       const ageMs = Date.now() - cached.generatedAt;
       const ageHrs = ageMs / 3600000;
-      // Regenerate if: >4 hours old, OR price shifted >2%, OR different visit session
-      const priceDrift = cached.priceAt && xtzPrice ? Math.abs(xtzPrice - cached.priceAt) / cached.priceAt : 0;
-      const isStale = ageHrs > 4 || priceDrift > 0.02;
+      const priceDrift = cached.priceAt && currentPrice ? Math.abs(currentPrice - cached.priceAt) / cached.priceAt : 0;
+      const cachedChange24h = finiteNumber(cached.priceChange24h);
+      const changeDrift = currentChange24h != null && cachedChange24h != null
+        ? Math.abs(currentChange24h - cachedChange24h)
+        : 0;
+      const missingLiveMove = currentChange24h != null && cachedChange24h == null;
+      const crossedSteadyBoundary = currentChange24h != null && cachedChange24h != null
+        && (Math.abs(currentChange24h) < 0.4) !== (Math.abs(cachedChange24h) < 0.4);
+      // Regenerate if: >4 hours old, price shifted >2%, or the real 24h move changed enough to affect narrative.
+      const isStale = ageHrs > 4 || priceDrift > 0.02 || missingLiveMove || changeDrift > 0.75 || crossedSteadyBoundary;
       if (!isStale) return cached;
     }
   } catch { /* ignore */ }
@@ -260,12 +308,12 @@ async function generate(stats, xtzPrice) {
     fetchBakerStats(localStorage.getItem('tezos-systems-my-baker-address'), cycle),
   ]);
 
-  const sentences = buildSentences(stats, xtzPrice, baseline, whales, bakerStats);
-  const briefing  = { cycle, sentences, generatedAt: Date.now(), priceAt: xtzPrice };
+  const sentences = buildSentences(nextStats, currentPrice, baseline, whales, bakerStats);
+  const briefing  = { cycle, sentences, generatedAt: Date.now(), priceAt: currentPrice, priceChange24h: currentChange24h };
 
   try {
     localStorage.setItem(LS_BRIEFING,  JSON.stringify(briefing));
-    localStorage.setItem(LS_BASELINE,  JSON.stringify({ ...stats, xtzPrice }));
+    localStorage.setItem(LS_BASELINE,  JSON.stringify({ ...nextStats, xtzPrice: currentPrice }));
   } catch { /* storage full */ }
 
   return briefing;
@@ -293,16 +341,7 @@ export async function initDailyBriefing(stats, xtzPrice) {
 
 export async function updateDailyBriefing(stats, xtzPrice) {
   if (!stats?.cycle) return;
-  try {
-    const cached = JSON.parse(localStorage.getItem(LS_BRIEFING) || 'null');
-    if (cached?.cycle === stats.cycle) {
-      // Same cycle — render from cache if drawer section is empty
-      const container = document.getElementById('drawer-network');
-      if (container && !container.innerHTML.trim()) {
-        renderToDrawer(cached.cycle, cached.sentences);
-      }
-      return;
-    }
-  } catch { /* ignore */ }
-  return initDailyBriefing(stats, xtzPrice);
+  const briefing = await generate(stats, xtzPrice);
+  renderToDrawer(briefing.cycle, briefing.sentences);
+  try { localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle)); } catch {}
 }
