@@ -16,6 +16,7 @@ const CHANGELOG = [
             { type: '🎨', text: 'The aurora title now keeps the same slow color-shift treatment on desktop and mobile even when global motion settings are conservative' },
             { type: '🎨', text: 'The footer now has a playful Tezos aura checkpoint that routes bottom-scrollers into widgets, My Tezos, HEN, the Chamber, or price intel' },
             { type: '🎨', text: 'Footer attribution and resource links now sit in a tighter balanced layout with clearer hierarchy and calmer build metadata' },
+            { type: '🎨', text: 'Footer chamber links now expose every public Chamber route while the Tez Capital credit gets a little more breathing room' },
         ]
     },
     {

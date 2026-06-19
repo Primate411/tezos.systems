@@ -4662,9 +4662,9 @@ body::before {
 }
 
 .powered-by {
-    margin: 0;
+    margin: 0 0 0.25rem;
     color: var(--text-secondary);
-    font-size: 1rem;
+    font-size: 1.1rem;
     line-height: 1.35;
     letter-spacing: 0;
 }
@@ -4733,6 +4733,23 @@ body::before {
     line-height: 1.35;
 }
 
+.footer-chamber-rail {
+    width: min(100%, 680px);
+    gap: 0.4rem 0.7rem;
+    font-size: 0.76rem;
+}
+
+.footer-rail-label {
+    display: inline-flex;
+    align-items: center;
+    color: var(--accent-cyan);
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-transform: uppercase;
+}
+
 .footer-link {
     position: relative;
     display: inline-flex;
@@ -4742,6 +4759,17 @@ body::before {
 }
 
 .footer-link + .footer-link::before {
+    content: '';
+    width: 0.22rem;
+    height: 0.22rem;
+    margin-right: 0.5rem;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.35;
+    transform: translateY(-0.05rem);
+}
+
+.footer-rail-label + .footer-link::before {
     content: '';
     width: 0.22rem;
     height: 0.22rem;
@@ -4894,7 +4922,8 @@ body::before {
     }
 
     .powered-by {
-        font-size: 0.95rem;
+        margin-bottom: 0.18rem;
+        font-size: 1.02rem;
     }
 
     .footer-source-line,
@@ -4909,6 +4938,19 @@ body::before {
     }
 
     .footer-link + .footer-link::before {
+        display: none;
+    }
+
+    .footer-chamber-rail {
+        gap: 0.42rem 0.8rem;
+    }
+
+    .footer-rail-label {
+        flex-basis: 100%;
+        justify-content: center;
+    }
+
+    .footer-rail-label + .footer-link::before {
         display: none;
     }
 }
