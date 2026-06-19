@@ -1954,14 +1954,19 @@ async function renderMorningBrief(address, force = false) {
         const bakerActive = isBaker ? account.active !== false : account.delegate?.active !== false;
         const bakerInactive = !bakerActive;
 
-        const [participation, rewards, story, bakerVote, bakerActivity] = await Promise.all([
-            bakerAddr ? fetchParticipation(bakerAddr) : Promise.resolve(null),
+        const participationPromise = bakerAddr ? fetchParticipation(bakerAddr) : Promise.resolve(null);
+        const operatorStatusPromise = bakerAddr
+            ? participationPromise.then((participation) => fetchBakerOperatorStatus(bakerAddr, participation))
+            : Promise.resolve(null);
+
+        const [participation, rewards, story, bakerVote, bakerActivity, operatorStatus] = await Promise.all([
+            participationPromise,
             fetchRecentRewards(address, account),
             fetchTezosStory(address, account, bakerAddr),
             bakerAddr ? fetchBakerVoteStatus(bakerAddr) : Promise.resolve(null),
             isBaker ? fetchRecentBakerActivity(address) : Promise.resolve(null),
+            operatorStatusPromise,
         ]);
-        const operatorStatus = bakerAddr ? await fetchBakerOperatorStatus(bakerAddr, participation) : null;
 
         const healthScore = calcBakerHealth(participation);
         const health = healthLabel(healthScore);

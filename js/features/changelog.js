@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-19',
         entries: [
+            { type: '✨', text: 'Network Context chips, header links, and ranked cards now open the matching My Tezos, price, staking, governance, NFT, whale, history, and health features' },
+            { type: '⚡', text: 'My Tezos address refresh now overlaps operator-status checks with the rest of the drawer brief so address switches publish faster' },
             { type: '✨', text: 'The Liquidity Baking monitor card now shows a compact live tape of the latest baker ON, OFF, and PASS toggle votes' },
             { type: '🎨', text: 'Historical Data now shows a compact quiet-state explanation when governance participation has no ballot samples instead of leaving an empty chart panel' },
             { type: '✨', text: 'Your Tezos Story now reads like a personal Tezos dossier with identity, archetype, milestones, protocol-era trail, and a live next-signal panel' },

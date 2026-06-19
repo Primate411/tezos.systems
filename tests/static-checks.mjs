@@ -1236,6 +1236,45 @@ async function checkDailyBriefingPriceContracts() {
   pass('daily briefing price movement cache contracts checked');
 }
 
+async function checkNetworkContextNavigationContracts() {
+  const briefing = await readText('js/features/daily-briefing.js');
+  const requiredRoutes = {
+    baker: '#my-baker',
+    portfolio: '#price',
+    staking: '#calculator',
+    governance: '#chamber',
+    collector: '#nfts',
+    creator: '#nfts',
+    price: '#price',
+    whales: '#whales',
+    volume: '#section=network',
+    contracts: '#section=ecosystem',
+    ecosystem: '#section=ecosystem',
+    network: '#health'
+  };
+
+  for (const [key, route] of Object.entries(requiredRoutes)) {
+    const pattern = new RegExp(`${key}:\\s*['"]${route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]`);
+    if (!pattern.test(briefing)) {
+      fail(`Network Context route map missing ${key} -> ${route}`);
+    }
+  }
+
+  const requiredSnippets = [
+    '<a class="network-focus-chip"',
+    '<a class="network-signal',
+    'data-network-route',
+    'wireNetworkContextNavigation(container)',
+    'closeDrawerForNetworkRoute(route)',
+    "window.dispatchEvent(new Event('hashchange'))"
+  ];
+  for (const snippet of requiredSnippets) {
+    if (!briefing.includes(snippet)) fail(`Network Context clickable contract missing snippet: ${snippet}`);
+  }
+
+  pass('Network Context feature routes stay clickable');
+}
+
 async function checkReadmeContracts() {
   const readme = await readText('README.md');
   const themeSource = await readText('js/ui/theme.js');
@@ -1331,6 +1370,7 @@ async function main() {
   await checkSmokeSuiteCatalogContracts();
   await checkTourAndShareCaptureContracts();
   await checkDailyBriefingPriceContracts();
+  await checkNetworkContextNavigationContracts();
   await checkReadmeContracts();
 
   for (const message of passes) console.log(`ok - ${message}`);

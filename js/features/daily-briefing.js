@@ -24,6 +24,36 @@ const CATEGORY_META = {
   network: { label: 'Network', icon: '🌐', tone: 'network', detail: 'Daily Tezos pulse' }
 };
 
+const NETWORK_FEATURE_ROUTES = {
+  baker: '#my-baker',
+  portfolio: '#price',
+  staking: '#calculator',
+  governance: '#chamber',
+  collector: '#nfts',
+  creator: '#nfts',
+  price: '#price',
+  whales: '#whales',
+  volume: '#section=network',
+  contracts: '#section=ecosystem',
+  ecosystem: '#section=ecosystem',
+  network: '#health'
+};
+
+const NETWORK_FEATURE_LABELS = {
+  baker: 'Open My Tezos baker stats',
+  portfolio: 'Open price intelligence',
+  staking: 'Open rewards calculator',
+  governance: 'Enter The Chamber',
+  collector: 'Open NFT profile',
+  creator: 'Open NFT profile',
+  price: 'Open price intelligence',
+  whales: 'Open whale tracker',
+  volume: 'Open network activity stats',
+  contracts: 'Open ecosystem stats',
+  ecosystem: 'Open ecosystem stats',
+  network: 'Open Network Health'
+};
+
 let lastStats = null;
 let lastXtzPrice = null;
 let personalizationWired = false;
@@ -411,6 +441,14 @@ function safeCssToken(value) {
   return String(value || 'network').replace(/[^a-z0-9-]/gi, '').toLowerCase() || 'network';
 }
 
+function networkFeatureRoute(key) {
+  return NETWORK_FEATURE_ROUTES[safeCssToken(key)] || NETWORK_FEATURE_ROUTES.network;
+}
+
+function networkFeatureLabel(key) {
+  return NETWORK_FEATURE_LABELS[safeCssToken(key)] || NETWORK_FEATURE_LABELS.network;
+}
+
 function normalizeSignal(signal, index = 0) {
   if (typeof signal === 'string') {
     return makeSignal('network', 20 - index, signal);
@@ -445,15 +483,20 @@ function getBriefingLead(profile, signals) {
 }
 
 function renderFocusChips(profile) {
-  return profile.interests.slice(0, 5).map(item => (
-    `<span class="network-focus-chip" data-focus="${safeCssToken(item.key)}">${escapeHtml(item.label)}</span>`
-  )).join('');
+  return profile.interests.slice(0, 5).map(item => {
+    const key = safeCssToken(item.key);
+    const route = networkFeatureRoute(key);
+    const label = networkFeatureLabel(key);
+    return `<a class="network-focus-chip" href="${escapeHtml(route)}" data-focus="${escapeHtml(key)}" data-network-route="${escapeHtml(route)}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${escapeHtml(item.label)}</a>`;
+  }).join('');
 }
 
 function renderSignalCard(signal, index) {
   const label = `${signal.icon} ${signal.title}`;
+  const route = networkFeatureRoute(signal.category);
+  const routeLabel = networkFeatureLabel(signal.category);
   return `
-    <article class="network-signal network-signal-${signal.tone}" data-category="${escapeHtml(signal.category)}">
+    <a class="network-signal network-signal-${signal.tone}" href="${escapeHtml(route)}" data-category="${escapeHtml(signal.category)}" data-network-route="${escapeHtml(route)}" aria-label="${escapeHtml(`${routeLabel}: ${signal.detail}`)}">
       <div class="network-signal-rank">${index + 1}</div>
       <div class="network-signal-main">
         <div class="network-signal-head">
@@ -462,7 +505,7 @@ function renderSignalCard(signal, index) {
         </div>
         <p>${escapeHtml(signal.text)}</p>
       </div>
-    </article>
+    </a>
   `;
 }
 
@@ -485,6 +528,43 @@ function wirePersonalizationRefresh() {
   });
 }
 
+function closeDrawerForNetworkRoute(route) {
+  if (route === '#my-baker') return;
+  document.getElementById('my-tezos-drawer')?.classList.remove('open');
+  document.getElementById('my-tezos-drawer-scrim')?.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function scrollDrawerToBakerStats() {
+  const target = document.getElementById('drawer-baker') || document.getElementById('drawer-operator-status');
+  target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function wireNetworkContextNavigation(container) {
+  if (!container || container.dataset.networkNavigationWired === 'true') return;
+  container.dataset.networkNavigationWired = 'true';
+  container.addEventListener('click', (event) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const link = event.target.closest('[data-network-route]');
+    if (!link || !container.contains(link)) return;
+    const route = link.getAttribute('data-network-route') || '';
+    if (!route.startsWith('#')) return;
+
+    event.preventDefault();
+    closeDrawerForNetworkRoute(route);
+
+    if (window.location.hash === route) {
+      window.dispatchEvent(new Event('hashchange'));
+    } else {
+      window.location.hash = route;
+    }
+
+    if (route === '#my-baker') {
+      setTimeout(scrollDrawerToBakerStats, 120);
+    }
+  });
+}
+
 function renderToDrawer(cycle, sentences) {
   const container = document.getElementById('drawer-network');
   if (!container) return;
@@ -497,8 +577,8 @@ function renderToDrawer(cycle, sentences) {
   container.innerHTML = `
     <section class="network-context-panel">
       <div class="network-context-header">
-        <span>🌐 Network Context</span>
-        <strong>Cycle ${escapeHtml(String(cycle))}</strong>
+        <a class="network-context-title" href="#health" data-network-route="#health" aria-label="Open Network Health" style="color:inherit;">🌐 Network Context</a>
+        <a class="network-context-cycle" href="#history" data-network-route="#history" aria-label="${escapeHtml(`Open protocol history for cycle ${cycle}`)}">Cycle ${escapeHtml(String(cycle))}</a>
       </div>
       <p class="network-context-lede">${escapeHtml(lead)}</p>
       <div class="network-context-focus" aria-label="Context focus">
@@ -509,6 +589,7 @@ function renderToDrawer(cycle, sentences) {
       </div>
     </section>
   `;
+  wireNetworkContextNavigation(container);
 }
 
 export async function initDailyBriefing(stats, xtzPrice) {

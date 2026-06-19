@@ -3267,7 +3267,31 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelector('#my-baker-save')?.textContent?.trim() === 'Save', null, { timeout: 3000 });
   await page.locator('#my-baker-save').click();
   await page.waitForFunction((address) => localStorage.getItem('tezos-systems-my-baker-address') === address, SAMPLE_ADDRESS_2, { timeout: 5000 });
-  await page.waitForFunction((address) => window._myTezosData?.fullAddress === address, SAMPLE_ADDRESS_2, { timeout: 15000 });
+  try {
+    await page.waitForFunction((address) => window._myTezosData?.fullAddress === address, SAMPLE_ADDRESS_2, { timeout: 15000 });
+  } catch (error) {
+    const debug = await page.evaluate(() => ({
+      stored: localStorage.getItem('tezos-systems-my-baker-address'),
+      myTezosData: window._myTezosData ? {
+        fullAddress: window._myTezosData.fullAddress,
+        address: window._myTezosData.address,
+        bakerAddr: window._myTezosData.bakerAddr,
+        isBaker: window._myTezosData.isBaker
+      } : null,
+      briefText: document.querySelector('#drawer-brief')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      errorText: document.querySelector('#my-baker-error-msg')?.textContent?.trim() || '',
+      saveButton: document.querySelector('#my-baker-save')?.textContent?.trim() || '',
+      resources: performance.getEntriesByType('resource')
+        .filter((entry) => /api\.tzkt|objkt|tezos\.domains|tez\.capital|coingecko/.test(entry.name))
+        .map((entry) => ({
+          name: entry.name,
+          duration: Math.round(entry.duration),
+          responseEnd: Math.round(entry.responseEnd)
+        }))
+        .slice(-25)
+    }));
+    throw new Error(`my tezos address switch: My Tezos data did not refresh after save (${error.message}); debug=${JSON.stringify(debug)}; issues=${issues.join(' | ')}`);
+  }
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).some((stat) => (
       stat.textContent.includes('Ext. Delegated') && stat.textContent.includes('220,000.00')
@@ -3364,6 +3388,34 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   assert(storySurface.networkText.includes('Network Context') && storySurface.networkText.includes('Cycle'), `my tezos proposal attribution: network context header missing: ${storySurface.networkText}`);
   assert(storySurface.legacyList === 0, `my tezos proposal attribution: network context still renders legacy bullet list: ${storySurface.networkText}`);
 
+  const networkRoutes = await page.evaluate(() => ({
+    header: {
+      title: document.querySelector('#drawer-network .network-context-title')?.getAttribute('data-network-route') || '',
+      cycle: document.querySelector('#drawer-network .network-context-cycle')?.getAttribute('data-network-route') || ''
+    },
+    focus: Object.fromEntries(Array.from(document.querySelectorAll('#drawer-network .network-focus-chip')).map((chip) => [
+      chip.getAttribute('data-focus'),
+      {
+        tag: chip.tagName,
+        href: chip.getAttribute('href') || '',
+        route: chip.getAttribute('data-network-route') || '',
+        aria: chip.getAttribute('aria-label') || ''
+      }
+    ])),
+    signals: Array.from(document.querySelectorAll('#drawer-network .network-signal')).map((signal) => ({
+      tag: signal.tagName,
+      category: signal.getAttribute('data-category') || '',
+      href: signal.getAttribute('href') || '',
+      route: signal.getAttribute('data-network-route') || '',
+      aria: signal.getAttribute('aria-label') || ''
+    }))
+  }));
+  assert(networkRoutes.header.title === '#health' && networkRoutes.header.cycle === '#history', `my tezos proposal attribution: network context header routes missing: ${JSON.stringify(networkRoutes.header)}`);
+  const renderedFocusRoutes = Object.values(networkRoutes.focus);
+  assert(renderedFocusRoutes.length >= 1 && renderedFocusRoutes.every((chip) => chip.tag === 'A' && chip.href.startsWith('#') && chip.route.startsWith('#') && /Open|Enter/.test(chip.aria)), `my tezos proposal attribution: rendered focus chips are not clickable routes: ${JSON.stringify(networkRoutes.focus)}`);
+  assert(networkRoutes.focus.baker?.tag === 'A' && networkRoutes.focus.baker.route === '#my-baker', `my tezos proposal attribution: baker chip route mismatch: ${JSON.stringify(networkRoutes.focus)}`);
+  assert(networkRoutes.signals.length >= 4 && networkRoutes.signals.every((signal) => signal.tag === 'A' && signal.href.startsWith('#') && signal.route.startsWith('#') && /Open|Enter/.test(signal.aria)), `my tezos proposal attribution: network signal routes missing: ${JSON.stringify(networkRoutes.signals)}`);
+
   await page.locator('#drawer-brief .story-share-btn').click();
   await page.locator('#share-modal.visible').waitFor({ state: 'visible', timeout: 10000 });
   const shareState = await page.evaluate(() => ({
@@ -3378,6 +3430,10 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   assert(shareState.captured.includes('Created 501 NFTs') && shareState.captured.includes('2.50 XTZ sales'), `my tezos proposal attribution: share card capture missing creator stats: ${shareState.captured}`);
   assert(!shareState.captured.includes('Lived through'), `my tezos proposal attribution: share card still includes governance cycles: ${shareState.captured}`);
   await expectShareModal(page, 'my tezos proposal attribution share', issues);
+
+  await page.locator('#drawer-network .network-context-cycle').click();
+  await page.waitForFunction(() => window.location.hash === '#history' && !document.querySelector('#my-tezos-drawer')?.classList.contains('open'), null, { timeout: 5000 });
+  await page.locator('#history-modal[aria-hidden="false"]').waitFor({ state: 'attached', timeout: 10000 });
 
   await context.close();
   assert(issues.length === 0, `my tezos proposal attribution browser issues:\n${issues.join('\n')}`);
