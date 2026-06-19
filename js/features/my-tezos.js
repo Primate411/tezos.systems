@@ -25,8 +25,10 @@ const RECENT_BAKER_ACTIVITY_LIMIT = 40;
 const RECENT_BAKER_ACTIVITY_DISPLAY_LIMIT = 6;
 const RECENT_OPERATOR_ATTESTATIONS = 10;
 const RIGHTS_FETCH_TIMEOUT_MS = 12000;
+const OCTEZ_VERSION_TTL_MS = 10 * 60 * 1000;
 const OPERATOR_SIGNAL_REFRESH_MS = 15000;
 const DRAWER_STATS_REFRESH_MS = 30000;
+const _octezSoftwareCache = new Map();
 // Protocol eras — map block levels to protocol names
 const PROTOCOL_ERAS = [
     { name: 'Genesis', level: 0, date: '2018-06-30' },
@@ -256,6 +258,34 @@ async function fetchJsonWithTimeout(url, fallback = null, timeoutMs = RIGHTS_FET
     }
 }
 
+function summarizeOctezSoftware(software) {
+    const rawVersion = typeof software === 'string'
+        ? software
+        : (software?.version || '');
+    const version = String(rawVersion || '').trim();
+    const known = Boolean(version) && !/^unknown$/i.test(version) && !/^octez$/i.test(version);
+    const reportedAt = typeof software === 'object' && software ? software.date : null;
+    const detail = known
+        ? (reportedAt ? `Reported ${relativeTime(reportedAt)}` : 'TzKT delegate software')
+        : 'No TzKT version report yet';
+    return {
+        known,
+        version: known ? version : 'Unknown',
+        detail
+    };
+}
+
+async function fetchBakerOctezSoftware(bakerAddr) {
+    const now = Date.now();
+    const cached = _octezSoftwareCache.get(bakerAddr);
+    if (cached && now - cached.time < OCTEZ_VERSION_TTL_MS) return cached.value;
+
+    const delegate = await fetchJsonWithTimeout(`${TZKT}/delegates/${encodeURIComponent(bakerAddr)}`, null, 8000);
+    const value = summarizeOctezSoftware(delegate?.software);
+    _octezSoftwareCache.set(bakerAddr, { time: now, value });
+    return value;
+}
+
 function rightsUrl(params) {
     return `${TZKT}/rights?${new URLSearchParams(params).toString()}`;
 }
@@ -411,10 +441,11 @@ function summarizeLiveOperatorStatus(latestBlock, recentAttestations) {
 
 async function fetchBakerOperatorStatus(bakerAddr, participation) {
     if (!bakerAddr) return null;
-    const [head, blockDelaySeconds, dalParticipation] = await Promise.all([
+    const [head, blockDelaySeconds, dalParticipation, octez] = await Promise.all([
         fetchJsonWithTimeout(`${TZKT}/head`, null, 8000),
         fetchBlockDelaySeconds(),
-        fetchDALParticipation(bakerAddr)
+        fetchDALParticipation(bakerAddr),
+        fetchBakerOctezSoftware(bakerAddr)
     ]);
     const headLevel = Number(head?.level);
     if (!Number.isFinite(headLevel)) {
@@ -426,6 +457,7 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
             lastBlock: null,
             attestation,
             dal,
+            octez,
         };
     }
 
@@ -481,6 +513,7 @@ async function fetchBakerOperatorStatus(bakerAddr, participation) {
         lastBlock: latestBlock,
         attestation,
         dal,
+        octez,
     };
 }
 
@@ -833,16 +866,23 @@ function renderBakerOperatorStatus(status, isBaker) {
     );
     const attest = renderOperatorTile('Attestation', status.attestation.value, status.attestation.detail, status.attestation.state);
     const dal = renderOperatorTile('DAL', status.dal.value, status.dal.detail, status.dal.state);
+    const octez = renderOperatorTile(
+        'Octez',
+        status.octez?.version || 'Unknown',
+        status.octez?.detail || 'TzKT delegate software',
+        status.octez?.known ? 'ok' : 'unknown'
+    );
 
     container.hidden = false;
     container.innerHTML = `
         <div class="drawer-operator-panel">
             <div class="drawer-operator-header">
                 <h3>${isBaker ? 'Baker signal' : 'Your baker signal'}</h3>
-                <p>Fresh round 0 rights and last ${RECENT_OPERATOR_ATTESTATIONS} attestations</p>
+                <p>Fresh round 0 rights, Octez version, and last ${RECENT_OPERATOR_ATTESTATIONS} attestations</p>
             </div>
             <div class="drawer-operator-grid">
                 ${next}
+                ${octez}
                 ${live}
                 ${attest}
                 ${dal}

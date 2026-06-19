@@ -2702,13 +2702,14 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
 
   await page.waitForFunction(() => {
     const text = (document.querySelector('#drawer-operator-status')?.innerText || '').toLowerCase();
-    return text.includes('next round 0 block') && text.includes('back online') && text.includes('last 10 attestations ok');
+    return text.includes('next round 0 block') && text.includes('back online') && text.includes('last 10 attestations ok') && text.includes('v25.0');
   }, null, { timeout: 15000 });
   const operatorText = (await page.locator('#drawer-operator-status').innerText()).toLowerCase();
   assert(operatorText.includes('next round 0 block'), 'my tezos baker activity: should show the next round 0 block prominently');
   assert(operatorText.includes('18m'), `my tezos baker activity: should estimate next block ETA, saw: ${operatorText}`);
   assert(operatorText.includes('back online'), 'my tezos baker activity: should show recovered baker state from fresh attestations');
   assert(!operatorText.includes('round 5'), `my tezos baker activity: should not surface nonzero-round baking rights, saw: ${operatorText}`);
+  assert(operatorText.includes('octez') && operatorText.includes('v25.0'), 'my tezos baker activity: should show the baker Octez version');
   assert(operatorText.includes('attestation') && operatorText.includes('100.0%'), 'my tezos baker activity: should show prominent attestation rate');
   assert(operatorText.includes('dal') && operatorText.includes('14/14 dal slots'), 'my tezos baker activity: should show prominent DAL participation');
 
@@ -2810,15 +2811,28 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
 
   await page.locator('#my-tezos-btn').click();
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos drawer live refresh drawer');
-  await page.waitForFunction(() => {
-    const data = window._myTezosData;
-    const bakerText = document.querySelector('#my-baker-results')?.innerText || '';
-    const header = document.querySelector('#my-tezos-btn .nav-label')?.textContent || '';
-    return Math.round(data?.totalXTZ || 0) === 1750000
-      && bakerText.includes('1,750,000.00')
-      && bakerText.includes('725,000.00')
-      && header.includes('1,750,000 XTZ');
-  }, null, { timeout: 15000 });
+  try {
+    await page.waitForFunction(() => {
+      const data = window._myTezosData;
+      const bakerText = document.querySelector('#my-baker-results')?.innerText || '';
+      const bakerLower = bakerText.toLowerCase();
+      const header = document.querySelector('#my-tezos-btn .nav-label')?.textContent || '';
+      return Math.round(data?.totalXTZ || 0) === 1750000
+        && bakerText.includes('1,750,000.00')
+        && bakerText.includes('725,000.00')
+        && bakerLower.includes('octez version')
+        && bakerLower.includes('v25.0')
+        && header.includes('1,750,000 XTZ');
+    }, null, { timeout: 15000 });
+  } catch {
+    const state = await page.evaluate(() => ({
+      data: window._myTezosData,
+      header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || '',
+      bakerText: document.querySelector('#my-baker-results')?.innerText || '',
+      freshness: document.querySelector('#drawer-freshness')?.innerText || ''
+    }));
+    throw new Error(`my tezos drawer live refresh: drawer did not refresh into Octez-aware state ${JSON.stringify(state)}`);
+  }
 
   const state = await page.evaluate(() => ({
     totalXTZ: window._myTezosData?.totalXTZ,
@@ -2832,6 +2846,7 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
   assert(Math.round(state.staked) === 725000, `my tezos drawer live refresh: brief kept stale stake ${JSON.stringify(state)}`);
   assert(state.bakerText.includes('1,750,000.00'), `my tezos drawer live refresh: baker grid kept stale balance ${JSON.stringify(state)}`);
   assert(state.bakerText.includes('725,000.00'), `my tezos drawer live refresh: baker grid kept stale stake ${JSON.stringify(state)}`);
+  assert(state.bakerText.toLowerCase().includes('octez version') && state.bakerText.includes('v25.0'), `my tezos drawer live refresh: baker grid missed Octez version ${JSON.stringify(state)}`);
   assert(state.header.includes('1,750,000 XTZ'), `my tezos drawer live refresh: header kept stale balance ${JSON.stringify(state)}`);
   assert(state.freshness.toLowerCase().includes('updated'), `my tezos drawer live refresh: freshness stamp missing ${JSON.stringify(state)}`);
 
@@ -2996,7 +3011,8 @@ async function smokeMyTezosBakerCapacity(browser, baseUrl) {
       pct: card?.querySelector('.capacity-bar-pct')?.textContent?.trim() || '',
       details: card?.querySelector('.capacity-bar-details')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       isOver: card?.classList.contains('capacity-over') || false,
-      fillWidth: card?.querySelector('.capacity-bar-fill')?.style.width || ''
+      fillWidth: card?.querySelector('.capacity-bar-fill')?.style.width || '',
+      bakerText: document.querySelector('#my-baker-results')?.innerText || ''
     };
   });
 
@@ -3005,6 +3021,7 @@ async function smokeMyTezosBakerCapacity(browser, baseUrl) {
   assert(capacityState.details.includes('-45,000 ꜩ free'), `my tezos baker capacity: free capacity should be signed: ${capacityState.details}`);
   assert(capacityState.isOver, 'my tezos baker capacity: over-capacity state class missing');
   assert(capacityState.fillWidth === '100%', `my tezos baker capacity: visual fill should cap at 100%, saw ${capacityState.fillWidth}`);
+  assert(capacityState.bakerText.toLowerCase().includes('octez version') && capacityState.bakerText.includes('v24.4'), `my tezos baker capacity: Octez version missing from baker grid ${JSON.stringify(capacityState)}`);
 
   await context.close();
   assert(issues.length === 0, `my tezos baker capacity browser issues:\n${issues.join('\n')}`);

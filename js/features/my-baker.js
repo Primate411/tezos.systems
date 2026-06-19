@@ -57,6 +57,33 @@ function fmtXTZ(mutez) {
     return xtz.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ꜩ';
 }
 
+function normalizeOctezSoftware(software) {
+    const rawVersion = typeof software === 'string'
+        ? software
+        : (software?.version || '');
+    const version = String(rawVersion || '').trim();
+    const known = Boolean(version) && !/^unknown$/i.test(version) && !/^octez$/i.test(version);
+    const reportedAt = typeof software === 'object' && software ? software.date : null;
+    return {
+        known,
+        version: known ? version : 'Unknown',
+        reportedAt
+    };
+}
+
+function formatOctezVersion(software) {
+    return normalizeOctezSoftware(software).version;
+}
+
+function octezVersionTooltip(software) {
+    const info = normalizeOctezSoftware(software);
+    if (!info.known) return 'TzKT has no Octez version report for this baker yet';
+    if (!info.reportedAt) return 'TzKT-reported delegate software version';
+    const date = new Date(info.reportedAt);
+    if (!Number.isFinite(date.getTime())) return 'TzKT-reported delegate software version';
+    return `TzKT reported this baker software version on ${date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+}
+
 /**
  * Resolve Tezos Domains name for an address
  */
@@ -384,6 +411,7 @@ async function renderBakerData(address, container) {
 
         // Show delegate's baker stats for non-baker addresses
         if (!bakerData && delegateBakerData) {
+            grid.appendChild(createStatItem('Bkr Octez', formatOctezVersion(delegateBakerData.software), octezVersionTooltip(delegateBakerData.software)));
             grid.appendChild(createStatItem('Bkr Staking Power', fmtXTZ(delegateBakerData.stakingBalance)));
             grid.appendChild(createStatItem('Bkr Stakers', formatNumber(delegateBakerData.stakersCount || 0, { decimals: 0, useAbbreviation: false })));
             grid.appendChild(createStatItem('Bkr Delegators', formatNumber(delegateBakerData.numDelegators || 0, { decimals: 0, useAbbreviation: false })));
@@ -399,6 +427,7 @@ async function renderBakerData(address, container) {
 
         // If baker, show baker-specific stats
         if (bakerData) {
+            grid.appendChild(createStatItem('Octez Version', formatOctezVersion(bakerData.software), octezVersionTooltip(bakerData.software)));
             grid.appendChild(createStatItem('Staking Power', fmtXTZ(bakerData.stakingBalance)));
             grid.appendChild(createStatItem('Ext. Staked', fmtXTZ(bakerData.externalStakedBalance)));
             grid.appendChild(createStatItem('Ext. Delegated', fmtXTZ(bakerData.externalDelegatedBalance)));

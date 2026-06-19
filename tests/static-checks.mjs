@@ -474,6 +474,8 @@ async function checkSelectorContracts() {
   const wallet = await readText('js/core/wallet.js');
   const health = await readText('js/features/network-health.js');
   const share = await readText('js/ui/share.js');
+  const myTezos = await readText('js/features/my-tezos.js');
+  const myBaker = await readText('js/features/my-baker.js');
   const styles = await readText('css/styles.css');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
@@ -554,6 +556,10 @@ async function checkSelectorContracts() {
     ['Octez.Connect wallet storage key', 'tezos-systems-octez-wallet-address', wallet],
     ['My Tezos wallet connect control', 'id="drawer-wallet-connect-btn"', index],
     ['My Tezos connected wallet control', 'id="my-tezos-wallet-connect"', index],
+    ['My Tezos Octez operator fetch', '/delegates/${encodeURIComponent(bakerAddr)}', myTezos],
+    ['My Tezos Octez operator tile', "renderOperatorTile(\n        'Octez'", myTezos],
+    ['My Baker Octez version stat', 'Octez Version', myBaker],
+    ['My Baker delegate Octez version stat', 'Bkr Octez', myBaker],
     ['tz4 tile card copy link', 'data-copy-hash="#tz4"', index],
     ['tz4 tile expand cue', 'data-stat="tz4-adoption"', index],
     ['tz4 tile chamber wiring', 'openTz4AdoptionChamber', tz4],
