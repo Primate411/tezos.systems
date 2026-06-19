@@ -167,6 +167,13 @@ inline modal styles in `js/core/app.js`.
   desktop grid holes; cards also keep a canonical app-shell open affordance in
   the fixed footer rail, card-level direct-link controls, and quiet `as of`
   freshness stamps on the live chamber cards.
+- A live block ticker sits as its own island below the Current Protocol panel
+  and above Chambers.
+  It uses the Network Health block feed to show the latest block, baker,
+  attestation health, attested power, round, and age in a single
+  animated strip with stable-width volatile numbers, compact baker names, and a
+  clean whole-line transition.
+  Clicking the strip opens the Network Health Chamber.
 - Tezos X Governance Chamber with direct `#l2chamber` access and visible L2
   Governance labeling,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract

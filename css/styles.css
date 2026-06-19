@@ -787,17 +787,334 @@ body::before {
 
 .upgrade-clock {
     max-width: 1200px;
-    margin: 0 auto 1.5rem;
+    margin: 0 auto 0.95rem;
     padding: 0 2rem;
+}
+
+.block-ticker-strip {
+    max-width: 1200px;
+    margin: 0 auto 1.35rem;
+    padding: 0 2rem;
+}
+
+.block-ticker-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    width: 100%;
+    min-height: 42px;
+    overflow: hidden;
+    isolation: isolate;
+    padding: 0.56rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 13%, transparent);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--accent-cyan) 8%, transparent), transparent 32%, color-mix(in srgb, var(--accent-purple) 7%, transparent)),
+        rgba(255, 255, 255, 0.024);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 0 24px color-mix(in srgb, var(--accent-cyan) 5%, transparent);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.block-ticker-button::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 18% 50%, color-mix(in srgb, var(--accent-cyan) 18%, transparent), transparent 35%),
+        linear-gradient(90deg, color-mix(in srgb, var(--accent-cyan) 12%, transparent), transparent 42%, color-mix(in srgb, var(--accent-purple) 10%, transparent));
+    opacity: 0;
+    transform: scaleX(0.92);
+    transform-origin: left center;
+}
+
+.block-ticker-strip.is-updating .block-ticker-button::before {
+    animation: blockTickerPanelPulse 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.block-ticker-kicker {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    flex: 0 0 18px;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    color: color-mix(in srgb, var(--accent-cyan) 82%, var(--text-primary));
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.block-ticker-pulse,
+[data-theme] .block-ticker-pulse {
+    width: 8px;
+    height: 8px;
+    color: #35e894 !important;
+    background: #35e894 !important;
+    box-shadow: 0 0 9px rgba(53, 232, 148, 0.9), 0 0 20px rgba(53, 232, 148, 0.35) !important;
+}
+
+.block-ticker-pulse::after,
+[data-theme] .block-ticker-pulse::after {
+    inset: -4px;
+    border-color: #35e894;
+}
+
+.block-ticker-pulse.stale,
+[data-theme] .block-ticker-pulse.stale {
+    color: #ff6b7a !important;
+    background: #ff6b7a !important;
+    box-shadow: 0 0 9px rgba(255, 107, 122, 0.85), 0 0 20px rgba(255, 107, 122, 0.3) !important;
+}
+
+.block-ticker-pulse.stale::after,
+[data-theme] .block-ticker-pulse.stale::after {
+    border-color: #ff6b7a;
+}
+
+.block-ticker-line {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.64rem;
+    overflow: hidden;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.block-ticker-strip.is-updating .block-ticker-line {
+    animation: blockTickerAperture 0.46s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.block-ticker-placeholder {
+    overflow: hidden;
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.block-ticker-segment {
+    display: inline-flex;
+    flex: 0 0 auto;
+    min-width: 0;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: 0.22rem;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1;
+    text-align: left;
+}
+
+.block-ticker-baker {
+    flex: 0 1 25ch;
+    max-width: 25ch;
+}
+
+.block-ticker-label {
+    flex: 0 0 auto;
+    color: var(--text-muted);
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.block-ticker-value {
+    position: relative;
+    display: inline-block;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.block-ticker-level .block-ticker-value {
+    width: 13.4ch;
+}
+
+.block-ticker-baker .block-ticker-value {
+    display: block;
+    width: 100%;
+}
+
+.block-ticker-health .block-ticker-value {
+    width: 11ch;
+}
+
+.block-ticker-power .block-ticker-value {
+    width: 10.4ch;
+}
+
+.block-ticker-round .block-ticker-value {
+    width: 3.4ch;
+}
+
+.block-ticker-age .block-ticker-value {
+    width: 7.2ch;
+}
+
+.block-ticker-value small {
+    color: var(--text-tertiary);
+    font-size: 0.7em;
+}
+
+.block-ticker-health.peak .block-ticker-value,
+.block-ticker-health.healthy .block-ticker-value,
+.block-ticker-strip[data-block-health="peak"] .block-ticker-dot,
+.block-ticker-strip[data-block-health="healthy"] .block-ticker-dot {
+    color: #35e894;
+}
+
+.block-ticker-health.watch .block-ticker-value,
+.block-ticker-strip[data-block-health="watch"] .block-ticker-dot {
+    color: #f5b84b;
+}
+
+.block-ticker-health.degraded .block-ticker-value,
+.block-ticker-strip[data-block-health="degraded"] .block-ticker-dot {
+    color: #ff6b7a;
+}
+
+@keyframes blockTickerAperture {
+    0% { opacity: 0; filter: blur(2px); transform: translateY(0.32rem); clip-path: inset(48% 0 48% 0); }
+    52% { opacity: 1; filter: blur(0); transform: translateY(-0.03rem); clip-path: inset(0 0 0 0); }
+    100% { opacity: 1; filter: blur(0); transform: translateY(0); clip-path: inset(0 0 0 0); }
+}
+
+@keyframes blockTickerPanelPulse {
+    0% { opacity: 0; transform: scaleX(0.88); }
+    42% { opacity: 0.72; transform: scaleX(1); }
+    100% { opacity: 0; transform: scaleX(1.02); }
+}
+
+[data-theme="dark"] .block-ticker-button {
+    border-color: rgba(255, 255, 255, 0.06);
+    background:
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035), transparent 34%, rgba(255, 255, 255, 0.025)),
+        #202020;
+}
+
+[data-theme="dark"] .upgrade-clock-content {
+    border-color: rgba(255, 255, 255, 0.06);
+    background: #202020;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.018), 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+
+[data-theme="dark"] .block-ticker-label {
+    color: #777;
+}
+
+@media (max-width: 900px) {
+    .block-ticker-segment[data-ticker-priority="wide"] {
+        display: none;
+    }
+}
+
+@media (max-width: 720px) {
+    .upgrade-clock {
+        padding: 0 1rem;
+    }
+
+    .block-ticker-strip {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        padding: 0 1rem;
+    }
+
+    .block-ticker-button {
+        gap: 0.55rem;
+        min-height: 40px;
+        padding: 0.48rem 0.62rem;
+    }
+
+    .block-ticker-line {
+        gap: 0.5rem;
+    }
+
+    .block-ticker-segment[data-ticker-priority="optional"] {
+        display: none;
+    }
+
+    .block-ticker-baker {
+        flex-basis: 20ch;
+        max-width: 20ch;
+    }
+
+    .block-ticker-label {
+        font-size: 0.5rem;
+    }
+
+    .block-ticker-value {
+        font-size: 0.72rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .block-ticker-kicker {
+        width: 10px;
+        overflow: hidden;
+        gap: 0;
+        color: var(--accent-cyan);
+        font-size: 0;
+        letter-spacing: 0;
+    }
+
+    .block-ticker-dot {
+        width: 8px;
+        height: 8px;
+    }
+
+    .block-ticker-label {
+        display: none;
+    }
+
+    .block-ticker-baker {
+        flex-basis: 14ch;
+        max-width: 14ch;
+    }
+
+    .block-ticker-power {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .block-ticker-strip.is-updating .block-ticker-button::before,
+    .block-ticker-strip.is-updating .block-ticker-line {
+        animation: none;
+    }
 }
 
 .upgrade-clock-content {
     position: relative;
     background: rgba(255, 255, 255, 0.02);
-    border: none;
-    border-radius: 16px;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 8%, var(--glass-border));
+    border-radius: 8px;
     padding: 16px 24px 12px;
     backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025), 0 8px 24px rgba(0, 0, 0, 0.06);
     overflow: visible;
 }
 
@@ -2064,6 +2381,12 @@ body::before {
     letter-spacing: 0.1em;
 }
 
+@media (max-width: 720px) {
+    .main-content {
+        padding-inline: 1rem;
+    }
+}
+
 .info-button {
     background: transparent;
     border: 1px solid var(--glass-border);
@@ -2126,7 +2449,7 @@ body::before {
     background: var(--glass-bg);
     backdrop-filter: blur(var(--blur-amount));
     -webkit-backdrop-filter: blur(var(--blur-amount));
-    border: 1px solid var(--glass-border);
+    border: 1px solid color-mix(in srgb, var(--glass-border) 68%, transparent);
     border-radius: 20px;
     padding: 0;
     perspective: 1000px;
@@ -2137,7 +2460,7 @@ body::before {
 }
 
 .stat-card:hover {
-    border-color: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.09);
     transform: translateY(-4px);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
@@ -2680,7 +3003,7 @@ body::before {
 }
 
 .health-entry-card {
-    border-color: rgba(80, 232, 136, 0.24) !important;
+    border-color: rgba(80, 232, 136, 0.14) !important;
 }
 
 .health-entry-card:hover {
@@ -2869,7 +3192,7 @@ body::before {
 
 /* Tezos X Chamber */
 .tezlink-entry-card {
-    border-color: rgba(77, 212, 255, 0.26) !important;
+    border-color: rgba(77, 212, 255, 0.15) !important;
     background:
         linear-gradient(135deg, rgba(77, 212, 255, 0.07), rgba(80, 232, 136, 0.035)),
         var(--glass-bg, rgba(255, 255, 255, 0.03));
@@ -3076,7 +3399,7 @@ body::before {
 
 /* Tezos X Governance Chamber */
 .etherlink-governance-entry-card {
-    border-color: rgba(89, 243, 166, 0.26) !important;
+    border-color: rgba(89, 243, 166, 0.15) !important;
     background:
         linear-gradient(135deg, rgba(89, 243, 166, 0.065), rgba(143, 179, 255, 0.04), rgba(245, 214, 91, 0.025)),
         var(--glass-bg, rgba(255, 255, 255, 0.03));
@@ -4381,6 +4704,10 @@ body::before {
     * {
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
+    }
+
+    [data-theme="aurora"] .title {
+        animation: auroraTitleShift 9s linear infinite !important;
     }
 
     .card-inner {
@@ -13175,7 +13502,7 @@ body {
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
-    min-width: 230px;
+    min-width: 0;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.72rem;
     font-weight: 500;
@@ -14526,7 +14853,7 @@ body {
 
 /* Chamber entry card */
 .chamber-entry-card {
-    border: 1px dashed rgba(0, 212, 255, 0.3) !important;
+    border: 1px dashed rgba(0, 212, 255, 0.16) !important;
     transition: all 0.3s ease !important;
 }
 
@@ -15632,7 +15959,7 @@ body {
 .chamber-entry-card {
     --chamber-control-lane: 3.65rem;
     --chamber-card-inline-padding: 1.45rem;
-    border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, transparent) !important;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 12%, transparent) !important;
     transition: all 0.3s ease !important;
     position: relative;
     overflow: hidden;
@@ -15736,7 +16063,7 @@ body {
 
 @keyframes entryCardPulse {
     0%, 100% { opacity: 0; }
-    50% { opacity: 0.16; }
+    50% { opacity: 0.08; }
 }
 
 .chamber-entry-card:hover {
@@ -15746,29 +16073,29 @@ body {
 }
 
 .chamber-entry-card.chamber-entry-live {
-    border-color: var(--chamber-live-color) !important;
+    border-color: color-mix(in srgb, var(--chamber-live-color) 28%, transparent) !important;
     background:
         linear-gradient(135deg, color-mix(in srgb, var(--chamber-live-color) 14%, transparent), rgba(0, 212, 255, 0.035)),
         var(--glass-bg, rgba(255,255,255,0.03));
-    box-shadow: 0 0 24px color-mix(in srgb, var(--chamber-live-color) 18%, transparent), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    box-shadow: 0 0 20px color-mix(in srgb, var(--chamber-live-color) 11%, transparent), inset 0 1px 0 rgba(255,255,255,0.035) !important;
 }
 
 .chamber-entry-card.chamber-entry-live::before {
-    opacity: 0.18;
+    opacity: 0.1;
     border-color: var(--chamber-live-color);
 }
 
 .chamber-entry-card.chamber-entry-adoption {
     --chamber-adoption-color: #5b8def;
-    border-color: color-mix(in srgb, var(--chamber-adoption-color) 46%, transparent) !important;
+    border-color: color-mix(in srgb, var(--chamber-adoption-color) 24%, transparent) !important;
     background:
         linear-gradient(135deg, color-mix(in srgb, var(--chamber-adoption-color) 13%, transparent), rgba(0, 212, 255, 0.025)),
         var(--glass-bg, rgba(255,255,255,0.03));
-    box-shadow: 0 0 24px color-mix(in srgb, var(--chamber-adoption-color) 16%, transparent), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    box-shadow: 0 0 20px color-mix(in srgb, var(--chamber-adoption-color) 10%, transparent), inset 0 1px 0 rgba(255,255,255,0.035) !important;
 }
 
 .chamber-entry-card.chamber-entry-adoption::before {
-    opacity: 0.14;
+    opacity: 0.08;
     border-color: var(--chamber-adoption-color);
 }
 
@@ -15918,8 +16245,8 @@ body {
 }
 
 .chamber-entry-card.chamber-entry-risk {
-    border-color: color-mix(in srgb, var(--chamber-watch-color) 42%, transparent) !important;
-    box-shadow: 0 0 24px color-mix(in srgb, var(--chamber-watch-color) 12%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+    border-color: color-mix(in srgb, var(--chamber-watch-color) 24%, transparent) !important;
+    box-shadow: 0 0 20px color-mix(in srgb, var(--chamber-watch-color) 8%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
 }
 
 @media (min-width: 760px) {
@@ -16554,7 +16881,7 @@ body {
 
 /* Liquidity Baking Monitor */
 .lb-entry-card {
-    border-color: rgba(80, 232, 136, 0.24) !important;
+    border-color: rgba(80, 232, 136, 0.14) !important;
     overflow: visible;
 }
 
@@ -19101,7 +19428,7 @@ body {
 }
 
 .tz4-entry-card {
-    border-color: rgba(77, 212, 255, 0.28) !important;
+    border-color: rgba(77, 212, 255, 0.16) !important;
 }
 
 .tz4-entry-card:hover {
@@ -19109,8 +19436,44 @@ body {
     box-shadow: 0 0 22px rgba(77, 212, 255, 0.12) !important;
 }
 
+#chambers-section .stat-card:hover {
+    border-color: color-mix(in srgb, var(--accent-cyan) 62%, transparent);
+}
+
+#chambers-grid .chamber-entry-card:hover {
+    border-color: var(--accent-cyan) !important;
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent-cyan) 10%, transparent), 0 0 42px color-mix(in srgb, var(--accent-cyan) 4%, transparent) !important;
+}
+
+#chambers-grid .chamber-entry-card.chamber-entry-live:hover,
+#chambers-grid .health-entry-card:hover,
+#chambers-grid .lb-entry-card:hover {
+    border-color: #50e888 !important;
+}
+
+#chambers-grid .chamber-entry-card.chamber-entry-adoption:hover {
+    border-color: #5b8def !important;
+}
+
+#chambers-grid .chamber-entry-card.chamber-entry-risk:hover {
+    border-color: var(--chamber-watch-color) !important;
+}
+
+#chambers-grid .tezlink-entry-card:hover,
+#chambers-grid .tz4-entry-card:hover {
+    border-color: #4dd4ff !important;
+}
+
+#chambers-grid .tz4-entry-card.tz4-entry-pending:hover {
+    border-color: #f5d65b !important;
+}
+
+#chambers-grid .etherlink-governance-entry-card:hover {
+    border-color: #59f3a6 !important;
+}
+
 .tz4-entry-card.tz4-entry-pending {
-    border-color: rgba(245, 214, 91, 0.34) !important;
+    border-color: rgba(245, 214, 91, 0.2) !important;
 }
 
 .tz4-entry-value {

@@ -1503,25 +1503,27 @@ function initUptimeClock() {
     function tickBlockAge() {
         if (!lastBlockTime) return;
         const ago = Math.floor((Date.now() - lastBlockTime) / 1000);
-        if (ago < 60) {
-            blockAgeEl.textContent = `${ago}s ago`;
-        } else {
-            blockAgeEl.textContent = `${Math.floor(ago / 60)}m ago`;
+        if (blockAgeEl) {
+            if (ago < 60) {
+                blockAgeEl.textContent = `${ago}s ago`;
+            } else {
+                blockAgeEl.textContent = `${Math.floor(ago / 60)}m ago`;
+            }
         }
         // Status based on block age
         if (pulseDot) {
             if (ago > 120) {
                 pulseDot.style.color = '#ff4444';
                 pulseDot.title = `Last block ${ago}s ago — possible issue`;
-                pulseDot.className = 'uptime-pulse-dot stale';
+                pulseDot.classList.add('stale');
             } else if (ago > 18) {
                 pulseDot.style.color = '#ff4444';
                 pulseDot.title = `Block ${ago}s old — slight delay`;
-                pulseDot.className = 'uptime-pulse-dot stale';
+                pulseDot.classList.add('stale');
             } else {
                 pulseDot.style.color = '';
                 pulseDot.title = 'Network healthy — blocks on schedule';
-                pulseDot.className = 'uptime-pulse-dot';
+                pulseDot.classList.remove('stale');
             }
         }
     }

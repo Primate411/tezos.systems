@@ -46,6 +46,7 @@ let savedHtmlOverflow = null;
 let activityTapeCache = [];
 let activityTapeCacheAt = 0;
 let activityTapeInFlight = null;
+let blockTickerAnimationTimer = null;
 
 function formatCount(value) {
     return Number(value || 0).toLocaleString('en-US');
@@ -93,6 +94,22 @@ function formatAge(timestamp) {
     return `${days}d ${hours % 24}h ago`;
 }
 
+function formatTickerAge(timestamp) {
+    if (!timestamp) return '--';
+    const timestampMs = new Date(timestamp).getTime();
+    if (!Number.isFinite(timestampMs)) return '--';
+    const diff = Date.now() - timestampMs;
+    if (diff < 0) return '00s ago';
+    const seconds = Math.floor(diff / 1000);
+    if (seconds < 60) return `${String(seconds).padStart(2, '0')}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${String(minutes).padStart(2, '0')}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${String(hours).padStart(2, '0')}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${Math.min(days, 99).toString().padStart(2, '0')}d ago`;
+}
+
 function getHeadTimestamp(data) {
     return data?.headTimestamp || data?.blocks?.[0]?.timestamp || null;
 }
@@ -103,7 +120,8 @@ function healthAgeAttr(timestamp) {
 
 function refreshHealthAgeLabels(root = document) {
     root.querySelectorAll('[data-health-age]').forEach((element) => {
-        element.textContent = formatAge(element.dataset.healthAge);
+        const formatter = element.dataset.healthAgeFormat === 'ticker' ? formatTickerAge : formatAge;
+        element.textContent = formatter(element.dataset.healthAge);
     });
     refreshDataFreshnessStates(root);
 }
@@ -141,6 +159,119 @@ function shortAddress(address) {
 
 function bakerName(baker) {
     return baker?.alias || shortAddress(baker?.address);
+}
+
+function latestBlockStatus(block) {
+    const score = Number(block?.score);
+    return {
+        label: healthLabel(score),
+        className: healthClass(score)
+    };
+}
+
+function blockTickerFallback(message, className = 'loading') {
+    const line = document.getElementById('block-ticker-line');
+    const strip = document.getElementById('block-ticker-strip');
+    if (!line || !strip) return;
+    const signature = `fallback:${className}:${message}`;
+    if (line.dataset.blockTickerSignature === signature) return;
+    line.dataset.blockTickerSignature = signature;
+    line.dataset.blockTickerTransitionCount = '0';
+    strip.dataset.blockHealth = className;
+    line.innerHTML = `<span class="block-ticker-placeholder">${escapeHtml(message)}</span>`;
+}
+
+function animateBlockTicker(strip, line, changed) {
+    if (!strip) return;
+    strip.classList.remove('is-updating');
+    void strip.offsetWidth;
+    if (line) line.dataset.blockTickerTransitionCount = changed ? '1' : '0';
+    strip.dataset.tickerTransitionCount = changed ? '1' : '0';
+    if (!changed) return;
+    strip.classList.add('is-updating');
+    if (blockTickerAnimationTimer) window.clearTimeout(blockTickerAnimationTimer);
+    blockTickerAnimationTimer = window.setTimeout(() => {
+        strip.classList.remove('is-updating');
+        blockTickerAnimationTimer = null;
+    }, 520);
+}
+
+function renderBlockTickerLine(block, timestamp) {
+    const status = latestBlockStatus(block);
+    const producer = block?.producer || {};
+    const name = bakerName(producer);
+    const round = Number.isFinite(Number(block?.blockRound)) ? `R${formatCount(block.blockRound)}` : 'R--';
+
+    return `
+        <span class="block-ticker-segment block-ticker-level">
+            <span class="block-ticker-label">Block</span>
+            <strong class="block-ticker-value">#${formatCount(block.level)}</strong>
+        </span>
+        <span class="block-ticker-segment block-ticker-baker">
+            <span class="block-ticker-label">Baker</span>
+            <strong class="block-ticker-value" title="${escapeHtml(producer.address || name)}">${escapeHtml(name)}</strong>
+        </span>
+        <span class="block-ticker-segment block-ticker-health ${status.className}">
+            <span class="block-ticker-label">Health</span>
+            <strong class="block-ticker-value">${escapeHtml(status.label)}</strong>
+        </span>
+        <span class="block-ticker-segment block-ticker-power" data-ticker-priority="core">
+            <span class="block-ticker-label">Attested</span>
+            <strong class="block-ticker-value">${formatCount(block.power)}<small>/${formatCount(block.committee)}</small></strong>
+        </span>
+        <span class="block-ticker-segment block-ticker-round" data-ticker-priority="optional">
+            <span class="block-ticker-label">Round</span>
+            <strong class="block-ticker-value">${escapeHtml(round)}</strong>
+        </span>
+        <span class="block-ticker-segment block-ticker-age" data-ticker-priority="optional">
+            <span class="block-ticker-label">Age</span>
+            <strong class="block-ticker-value" data-health-age="${escapeHtml(timestamp || '')}" data-health-age-format="ticker">${escapeHtml(formatTickerAge(timestamp))}</strong>
+        </span>
+    `;
+}
+
+function updateBlockTicker(data, { error = false } = {}) {
+    const strip = document.getElementById('block-ticker-strip');
+    const button = document.getElementById('block-ticker-button');
+    const line = document.getElementById('block-ticker-line');
+    if (!strip || !button || !line) return;
+
+    if (!button.dataset.blockTickerWired) {
+        button.dataset.blockTickerWired = '1';
+        button.addEventListener('click', openNetworkHealthChamber);
+    }
+
+    const latest = data?.blocks?.[0] || null;
+    if (!latest) {
+        blockTickerFallback(error ? 'Live block feed unavailable' : 'Syncing latest head block', error ? 'degraded' : 'loading');
+        return;
+    }
+
+    const timestamp = getHeadTimestamp(data);
+    const status = latestBlockStatus(latest);
+    const producerName = bakerName(latest.producer);
+    const signature = [
+        latest.level,
+        latest.producer?.address || producerName,
+        latest.power,
+        latest.committee,
+        latest.blockRound
+    ].join(':');
+    const title = `Block ${formatCount(latest.level)} baked by ${producerName}. ${status.label}: ${formatCount(latest.power)} / ${formatCount(latest.committee)} attested, ${formatCount(latest.missedPower)} missed, round ${formatCount(latest.blockRound)}.`;
+
+    strip.dataset.blockHealth = status.className;
+    button.title = title;
+    button.setAttribute('aria-label', `Open Network Health Chamber. ${title}`);
+
+    if (line.dataset.blockTickerSignature === signature) {
+        refreshHealthAgeLabels(strip);
+        return;
+    }
+
+    const previousSignature = line.dataset.blockTickerSignature || '';
+    line.dataset.blockTickerSignature = signature;
+    line.innerHTML = renderBlockTickerLine(latest, timestamp);
+    animateBlockTicker(strip, line, Boolean(previousSignature && previousSignature !== signature));
 }
 
 function bakerLinks(address, name) {
@@ -660,6 +791,7 @@ function renderNetworkHealth(data) {
 
     ensureHealthEntryTape();
     refreshNetworkHealthTape();
+    updateBlockTicker(data);
 }
 
 function renderNetworkHealthError() {
@@ -679,6 +811,7 @@ function renderNetworkHealthError() {
     if (blocksEl) blocksEl.innerHTML = '<span class="network-health-muted">TzKT unavailable</span>';
     if (periodsEl) periodsEl.innerHTML = '';
     renderHealthEntryTape([]);
+    updateBlockTicker(null, { error: true });
 }
 
 function ensureHealthEntryTape() {
@@ -1255,6 +1388,7 @@ function updateNetworkHealthInPlace(data, container) {
         (data.activityTape || []).map((row) => `${row.hash}:${row.amount}:${row.timestamp}`).join('|')
     );
     updateRecentBlockRows(data.blocks);
+    updateBlockTicker(data);
     refreshHealthAgeLabels(container);
 }
 
@@ -1453,6 +1587,8 @@ export function initNetworkHealth() {
     if (cachedData) {
         lastFullFetch = cachedData.periodUpdatedAt || cachedData.updatedAt || 0;
         renderNetworkHealth(cachedData);
+    } else {
+        updateBlockTicker(null);
     }
 
     refreshNetworkHealth({ force: !periodCacheIsFresh(cachedData) });

@@ -404,6 +404,8 @@ async function checkSelectorContracts() {
     'chambers-toggle',
     'chambers-section',
     'chambers-grid',
+    'block-ticker-strip',
+    'block-ticker-line',
     'widgets-gallery',
     'settings-gear',
     'settings-dropdown',
@@ -569,6 +571,12 @@ async function checkSelectorContracts() {
     ['health incident memory panel', 'id="health-incident-memory"', health],
     ['health period telemetry panel', 'id="health-period-telemetry"', health],
     ['health network load panel', 'id="health-network-load"', health],
+    ['live block ticker renderer', 'function updateBlockTicker', health],
+    ['live block ticker fixed age formatter', 'function formatTickerAge', health],
+    ['live block ticker transition count hook', 'blockTickerTransitionCount', health],
+    ['live block ticker health feed hook', 'updateBlockTicker(data)', health],
+    ['live block ticker styles', '.block-ticker-strip', styles],
+    ['live block ticker aperture transition styles', 'blockTickerAperture', styles],
     ['canonical chamber expand cue factory', 'function createChamberExpandCue()', app],
     ['canonical chamber expand cue class', "cue.className = 'chamber-expand-cue'", app],
     ['shared chamber footer rail style', '.chamber-entry-footer', styles],
@@ -992,6 +1000,9 @@ async function checkAuroraDesktopTitleTreatment() {
   }
   if (css.includes('auroraTitleSweep')) {
     fail('desktop aurora title should not use a separate sweep animation from mobile');
+  }
+  if (!css.includes('[data-theme="aurora"] .title {\n        animation: auroraTitleShift 9s linear infinite !important;')) {
+    fail('aurora title must keep its shared color-shift animation when desktop reduced-motion clamps global animations');
   }
 
   pass('desktop aurora title shares the mobile multicolor shift treatment');
