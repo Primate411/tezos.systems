@@ -275,6 +275,7 @@ async function init() {
         window._updateUptimeClock({
             activeBakers: cachedStats.totalBakers,
             stakedRatio: cachedStats.stakingRatio,
+            currentIssuanceRate: cachedStats.currentIssuanceRate,
         });
     }
     if (cachedStats) updateTz4ChamberTile(cachedStats);
@@ -430,6 +431,7 @@ async function refreshInBackground() {
             window._updateUptimeClock({
                 activeBakers: heroStats.totalBakers,
                 stakedRatio: heroStats.stakingRatio,
+                currentIssuanceRate: heroStats.currentIssuanceRate,
             });
         }
         updateTz4ChamberTile(heroStats);
@@ -618,6 +620,7 @@ async function updateStats(newStats) {
             window._updateUptimeClock({
                 activeBakers: newStats.totalBakers,
                 stakedRatio: newStats.stakingRatio,
+                currentIssuanceRate: newStats.currentIssuanceRate,
             });
         }
     } else {
@@ -714,6 +717,7 @@ async function updateStats(newStats) {
         window._updateUptimeClock({
             activeBakers: newStats.totalBakers,
             stakedRatio: newStats.stakingRatio,
+            currentIssuanceRate: newStats.currentIssuanceRate,
         });
     }
 
@@ -1483,6 +1487,7 @@ function initUptimeClock() {
     const pulseDot = document.getElementById('uptime-pulse-dot');
     const bakersEl = document.getElementById('uptime-bakers');
     const stakedEl = document.getElementById('uptime-staked');
+    const issuanceEl = document.getElementById('uptime-issuance');
 
     if (!counterEl) return;
 
@@ -1590,9 +1595,9 @@ function initUptimeClock() {
     pollBlock();
     setInterval(pollBlock, 6000);
 
-    // Expose update function for baker/staking data from main refresh cycle
+    // Expose update function for baker/staking/issuance data from main refresh cycle
     window._updateUptimeClock = function(data) {
-        // Block data now comes from RPC poller above — only use this for baker/staking metrics
+        // Block data now comes from RPC poller above — only use this for hero metrics
         if (data.blockLevel && data.blockLevel !== lastBlockLevel) {
             lastBlockLevel = data.blockLevel;
             lastBlockTime = data.blockTime ? new Date(data.blockTime).getTime() : Date.now();
@@ -1611,6 +1616,9 @@ function initUptimeClock() {
         }
         if (data.stakedRatio && stakedEl) {
             stakedEl.textContent = data.stakedRatio.toFixed(1) + '%';
+        }
+        if (data.currentIssuanceRate !== undefined && issuanceEl) {
+            issuanceEl.textContent = formatPercentage(Number(data.currentIssuanceRate), 2);
         }
     };
 }

@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-20',
         entries: [
+            { type: '✨', text: 'The living uptime panel now shows live annual issuance beside bakers, finality, and staked share' },
             { type: '✨', text: 'The live block ticker now shows the latest baker Octez version between Health and Attested so upgrade readiness is visible at a glance' },
             { type: '✨', text: 'Tezos vs Other Chains now opens with a standing summary for where Tezos, Ethereum, Solana, Cardano, and Algorand each lead or lag' },
         ]
