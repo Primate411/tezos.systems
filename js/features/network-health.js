@@ -240,6 +240,31 @@ function latestBlockStatus(block) {
     };
 }
 
+function findOctezVersionBaker(octezVersions, address) {
+    if (!address || !Array.isArray(octezVersions?.bakers)) return null;
+    return octezVersions.bakers.find((baker) => baker.address === address) || null;
+}
+
+function tickerOctezSignal(producer, octezVersions) {
+    const software = findOctezVersionBaker(octezVersions, producer?.address)?.software
+        || normalizeOctezSoftware(producer?.software);
+    const latestVersion = octezVersions?.latestVersion || '';
+    const status = classifyOctezVersion(software.version, latestVersion);
+    const colors = {
+        current: '#35e894',
+        watch: '#f5b84b',
+        critical: '#ff6b7a'
+    };
+    return {
+        value: software.known ? software.version : '--',
+        className: status.className,
+        label: status.label,
+        latestVersion: status.latestVersion,
+        known: software.known,
+        color: colors[status.className] || ''
+    };
+}
+
 function blockTickerFallback(message, className = 'loading') {
     const line = document.getElementById('block-ticker-line');
     const strip = document.getElementById('block-ticker-strip');
@@ -267,11 +292,16 @@ function animateBlockTicker(strip, line, changed) {
     }, 520);
 }
 
-function renderBlockTickerLine(block, timestamp) {
+function renderBlockTickerLine(block, timestamp, octezVersions) {
     const status = latestBlockStatus(block);
     const producer = block?.producer || {};
     const name = bakerName(producer);
     const round = Number.isFinite(Number(block?.blockRound)) ? `R${formatCount(block.blockRound)}` : 'R--';
+    const octez = tickerOctezSignal(producer, octezVersions);
+    const octezTitle = octez.known
+        ? `Octez ${octez.value}: ${octez.label}${octez.latestVersion ? `; latest observed ${octez.latestVersion}` : ''}`
+        : 'Octez version unavailable for this baker';
+    const octezStyle = octez.color ? ` style="color:${octez.color}"` : '';
 
     return `
         <span class="block-ticker-segment block-ticker-level">
@@ -285,6 +315,10 @@ function renderBlockTickerLine(block, timestamp) {
         <span class="block-ticker-segment block-ticker-health ${status.className}">
             <span class="block-ticker-label">Health</span>
             <strong class="block-ticker-value">${escapeHtml(status.label)}</strong>
+        </span>
+        <span class="block-ticker-segment block-ticker-octez ${octez.className}" data-ticker-priority="core">
+            <span class="block-ticker-label">Octez</span>
+            <strong class="block-ticker-value" title="${escapeHtml(octezTitle)}"${octezStyle}>${escapeHtml(octez.value)}</strong>
         </span>
         <span class="block-ticker-segment block-ticker-power" data-ticker-priority="core">
             <span class="block-ticker-label">Attested</span>
@@ -321,14 +355,21 @@ function updateBlockTicker(data, { error = false } = {}) {
     const timestamp = getHeadTimestamp(data);
     const status = latestBlockStatus(latest);
     const producerName = bakerName(latest.producer);
+    const octez = tickerOctezSignal(latest.producer, data?.octezVersions);
     const signature = [
         latest.level,
         latest.producer?.address || producerName,
         latest.power,
         latest.committee,
-        latest.blockRound
+        latest.blockRound,
+        octez.value,
+        octez.className,
+        octez.latestVersion
     ].join(':');
-    const title = `Block ${formatCount(latest.level)} baked by ${producerName}. ${status.label}: ${formatCount(latest.power)} / ${formatCount(latest.committee)} attested, ${formatCount(latest.missedPower)} missed, round ${formatCount(latest.blockRound)}.`;
+    const octezTitle = octez.known
+        ? ` Octez ${octez.value}: ${octez.label}${octez.latestVersion ? `; latest observed ${octez.latestVersion}.` : '.'}`
+        : ' Octez version unavailable for this baker.';
+    const title = `Block ${formatCount(latest.level)} baked by ${producerName}. ${status.label}: ${formatCount(latest.power)} / ${formatCount(latest.committee)} attested, ${formatCount(latest.missedPower)} missed, round ${formatCount(latest.blockRound)}.${octezTitle}`;
 
     strip.dataset.blockHealth = status.className;
     button.title = title;
@@ -341,7 +382,7 @@ function updateBlockTicker(data, { error = false } = {}) {
 
     const previousSignature = line.dataset.blockTickerSignature || '';
     line.dataset.blockTickerSignature = signature;
-    line.innerHTML = renderBlockTickerLine(latest, timestamp);
+    line.innerHTML = renderBlockTickerLine(latest, timestamp, data?.octezVersions);
     animateBlockTicker(strip, line, Boolean(previousSignature && previousSignature !== signature));
 }
 
@@ -864,6 +905,7 @@ function octezVersionsFallback(error = '') {
         totalPower: 0,
         latestPower: 0,
         outdatedPower: 0,
+        bakers: [],
         versionRows: [],
         laggingBakers: [],
         freshestDate: null
@@ -948,6 +990,7 @@ function buildOctezVersions(rows) {
         totalPower,
         latestPower,
         outdatedPower: Math.max(0, totalPower - latestPower),
+        bakers,
         versionRows,
         laggingBakers,
         freshestDate
@@ -1287,9 +1330,10 @@ function periodCacheIsFresh(data) {
 }
 
 async function fetchNetworkHealth({ forcePeriods = false } = {}) {
-    const [lastBlocks, cycleTiming] = await Promise.all([
+    const [lastBlocks, cycleTiming, octezVersions] = await Promise.all([
         fetchLastBlocks(),
-        fetchCycleTiming()
+        fetchCycleTiming(),
+        fetchOctezVersions()
     ]);
     const summary = summarizeBlocks(lastBlocks);
     const headLevel = lastBlocks[0]?.level || 0;
@@ -1312,7 +1356,8 @@ async function fetchNetworkHealth({ forcePeriods = false } = {}) {
         blocks: lastBlocks,
         summary,
         periods,
-        cycleTiming
+        cycleTiming,
+        octezVersions: octezVersions || cachedData?.octezVersions || null
     };
 }
 

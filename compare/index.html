@@ -3,58 +3,397 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tezos vs Other Blockchains — Live Comparisons | tezos.systems</title>
-    <meta name="description" content="Compare Tezos against Ethereum, Solana, Cardano, and Algorand with live blockchain data. Side-by-side metrics updated every block.">
+    <title>Tezos vs Other Blockchains — Where Each Chain Stands | tezos.systems</title>
+    <meta name="description" content="Compare Tezos, Ethereum, Solana, Cardano, and Algorand at a glance, then open the detailed head-to-head blockchain comparisons.">
     <meta name="robots" content="index, follow">
     <link rel="canonical" href="https://tezos.systems/compare/">
-    <meta property="og:title" content="Tezos vs Other Blockchains — Live Comparisons">
-    <meta property="og:description" content="Compare Tezos against Ethereum, Solana, Cardano, and Algorand with live blockchain data.">
+    <meta property="og:title" content="Tezos vs Other Blockchains — Where Each Chain Stands">
+    <meta property="og:description" content="At-a-glance summary of Tezos, Ethereum, Solana, Cardano, and Algorand, with detailed head-to-head comparison pages.">
     <meta property="og:url" content="https://tezos.systems/compare/">
     <meta property="og:image" content="https://tezos.systems/og-image.png">
     <meta name="twitter:card" content="summary_large_image">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;900&display=swap" rel="stylesheet">
     <style>
-        :root { --bg:#0a0a1a; --bg-card:#12122a; --accent:#00d4ff; --text-primary:#e0e0e0; --text-secondary:#8888aa; --border:rgba(255,255,255,0.08); }
-        * { margin:0; padding:0; box-sizing:border-box; }
-        body { font-family:-apple-system,system-ui,sans-serif; background:var(--bg); color:var(--text-primary); min-height:100vh; }
-        .wrap { max-width:600px; margin:0 auto; padding:60px 20px; text-align:center; }
-        .brand a { font-family:'Orbitron',monospace; font-size:1rem; color:var(--accent); text-decoration:none; letter-spacing:.15em; opacity:.7; }
-        .brand a:hover { opacity:1; }
-        h1 { font-family:'Orbitron',monospace; font-size:clamp(1.4rem,4vw,2rem); margin:24px 0 8px; }
-        .sub { color:var(--text-secondary); margin-bottom:40px; }
-        .chains { display:grid; gap:12px; }
-        .chain-link { display:block; padding:20px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; text-decoration:none; color:var(--text-primary); transition:all .2s; }
-        .chain-link:hover { border-color:var(--accent); transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,212,255,.1); }
-        .chain-link h2 { font-family:'Orbitron',monospace; font-size:1rem; margin-bottom:4px; }
-        .chain-link p { font-size:.8rem; color:var(--text-secondary); }
-        .back { display:inline-block; margin-top:32px; color:var(--accent); text-decoration:none; font-size:.85rem; }
+        :root {
+            --bg: #0a0a1a;
+            --bg-card: #12122a;
+            --bg-soft: rgba(255, 255, 255, 0.035);
+            --accent: #00d4ff;
+            --accent-soft: rgba(0, 212, 255, 0.14);
+            --text-primary: #e0e0e0;
+            --text-secondary: #8888aa;
+            --text-muted: #5e6384;
+            --border: rgba(255, 255, 255, 0.08);
+            --winner: #00ff88;
+            --watch: #f5b84b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .wrap {
+            max-width: 1080px;
+            margin: 0 auto;
+            padding: 48px 20px 64px;
+        }
+        .brand {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        .brand a {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent);
+            text-decoration: none;
+            opacity: 0.78;
+            transition: opacity 0.2s;
+        }
+        .brand a:hover { opacity: 1; }
+        .brand img {
+            width: 28px;
+            height: 28px;
+        }
+        .brand span {
+            font-family: "Orbitron", monospace;
+            font-size: 1rem;
+            letter-spacing: 0.15em;
+        }
+        .hero {
+            max-width: 780px;
+            margin: 0 auto 32px;
+            text-align: center;
+        }
+        .kicker {
+            color: var(--accent);
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        h1 {
+            font-family: "Orbitron", monospace;
+            font-size: clamp(1.65rem, 4vw, 2.8rem);
+            line-height: 1.12;
+            margin: 10px 0 12px;
+        }
+        .sub {
+            color: var(--text-secondary);
+            font-size: 0.98rem;
+        }
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 28px;
+        }
+        .summary-card {
+            min-width: 0;
+            min-height: 248px;
+            display: flex;
+            flex-direction: column;
+            padding: 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+        .summary-card.primary {
+            border-color: rgba(0, 212, 255, 0.32);
+            background: linear-gradient(135deg, var(--accent-soft), rgba(255, 255, 255, 0.025));
+        }
+        a.summary-card {
+            transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+        }
+        a.summary-card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 28px rgba(0, 212, 255, 0.1);
+        }
+        .card-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .chain {
+            font-family: "Orbitron", monospace;
+            font-size: 0.92rem;
+            line-height: 1.2;
+        }
+        .score {
+            min-width: 44px;
+            padding: 5px 7px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-align: center;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            line-height: 1.05;
+        }
+        .score strong {
+            display: block;
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+        .score span {
+            color: var(--text-muted);
+            font-size: 0.58rem;
+        }
+        .role {
+            color: var(--text-muted);
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        .summary-card p {
+            margin: 10px 0 0;
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            line-height: 1.42;
+            overflow-wrap: anywhere;
+        }
+        .lead-list {
+            display: grid;
+            gap: 6px;
+            margin-top: auto;
+            padding-top: 14px;
+            border-top: 1px solid var(--border);
+        }
+        .lead-list dt {
+            color: var(--text-muted);
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .lead-list dd {
+            margin: 0 0 4px;
+            color: var(--text-secondary);
+            font-size: 0.74rem;
+            line-height: 1.32;
+        }
+        .lead-list .wins { color: var(--winner); }
+        .lead-list .watch { color: var(--watch); }
+        .scoreboard {
+            display: grid;
+            gap: 10px;
+            margin: 0 0 28px;
+            padding: 18px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+        .scoreboard h2 {
+            font-family: "Orbitron", monospace;
+            font-size: 1rem;
+        }
+        .score-row {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr 1.4fr auto;
+            gap: 14px;
+            align-items: center;
+            min-height: 52px;
+            padding: 10px 0;
+            border-top: 1px solid var(--border);
+            font-size: 0.86rem;
+        }
+        .score-row:first-of-type {
+            border-top: none;
+        }
+        .score-row strong {
+            color: var(--text-primary);
+        }
+        .score-row span {
+            color: var(--text-secondary);
+        }
+        .score-row a {
+            color: var(--accent);
+            text-decoration: none;
+            white-space: nowrap;
+        }
+        .note {
+            max-width: 780px;
+            margin: 0 auto;
+            color: var(--text-muted);
+            font-size: 0.78rem;
+            text-align: center;
+        }
+        .note a, .back {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .back {
+            display: inline-block;
+            margin-top: 24px;
+            font-size: 0.86rem;
+        }
+        .back-wrap {
+            text-align: center;
+        }
+        @media (max-width: 980px) {
+            .summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .summary-card {
+                min-height: 0;
+            }
+        }
+        @media (max-width: 720px) {
+            .wrap { padding-top: 34px; }
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            .score-row {
+                grid-template-columns: 1fr;
+                gap: 4px;
+            }
+            .score-row a {
+                white-space: normal;
+            }
+        }
     </style>
 </head>
 <body>
-    <div class="wrap">
-        <div class="brand"><a href="/">TEZOS SYSTEMS</a></div>
-        <h1>Tezos vs Others</h1>
-        <p class="sub">Live blockchain comparisons · Updated every block</p>
-        <div class="chains">
-            <a href="/compare/tezos-vs-ethereum.html" class="chain-link">
-                <h2>Tezos vs Ethereum</h2>
-                <p>Governance, finality, staking concentration, energy efficiency</p>
+    <main class="wrap">
+        <nav class="brand" aria-label="tezos.systems">
+            <a href="/">
+                <img src="/favicon-48.png" alt="" width="28" height="28">
+                <span>TEZOS SYSTEMS</span>
             </a>
-            <a href="/compare/tezos-vs-solana.html" class="chain-link">
-                <h2>Tezos vs Solana</h2>
-                <p>Speed, uptime, governance, decentralization</p>
+        </nav>
+
+        <header class="hero">
+            <p class="kicker">Chain comparison</p>
+            <h1>Where the major proof-of-stake chains stand</h1>
+            <p class="sub">A compact read before the head-to-head pages: what each chain leads on, what to watch, and how Tezos fits into the field.</p>
+        </header>
+
+        <section class="summary-grid" aria-label="At-a-glance standing by chain">
+            <article class="summary-card primary">
+                <div class="card-top">
+                    <div>
+                        <h2 class="chain">Tezos</h2>
+                        <div class="role">Self-upgrading baseline</div>
+                    </div>
+                    <div class="score"><strong>3</strong><span>of 10</span></div>
+                </div>
+                <p>Tezos is the continuity play: deterministic finality, protocol-level self-amendment, adaptive slashing, and zero hard forks.</p>
+                <dl class="lead-list">
+                    <dt>Leads</dt>
+                    <dd class="wins">Slashing, self-amendments, hard forks</dd>
+                    <dt>Watch</dt>
+                    <dd>Not the fastest block time or absolute lowest transaction fee.</dd>
+                </dl>
+            </article>
+
+            <a class="summary-card" href="/compare/tezos-vs-ethereum.html">
+                <div class="card-top">
+                    <div>
+                        <h2 class="chain">Ethereum</h2>
+                        <div class="role">Issuance heavyweight</div>
+                    </div>
+                    <div class="score"><strong>1</strong><span>of 10</span></div>
+                </div>
+                <p>Ethereum leads the tracked set on gross issuance, but keeps a hard-fork upgrade model and slower finality window.</p>
+                <dl class="lead-list">
+                    <dt>Leads</dt>
+                    <dd class="wins">Annual issuance</dd>
+                    <dt>Watch</dt>
+                    <dd>Slower finality and large staking-entity concentration.</dd>
+                </dl>
             </a>
-            <a href="/compare/tezos-vs-cardano.html" class="chain-link">
-                <h2>Tezos vs Cardano</h2>
-                <p>Self-amendment, staking, finality, governance maturity</p>
+
+            <a class="summary-card" href="/compare/tezos-vs-solana.html">
+                <div class="card-top">
+                    <div>
+                        <h2 class="chain">Solana</h2>
+                        <div class="role">Speed specialist</div>
+                    </div>
+                    <div class="score"><strong>3</strong><span>of 10</span></div>
+                </div>
+                <p>Solana wins raw block speed, staking participation, and validator concentration metrics in this snapshot.</p>
+                <dl class="lead-list">
+                    <dt>Leads</dt>
+                    <dd class="wins">Block time, Nakamoto coefficient, staking percent</dd>
+                    <dt>Watch</dt>
+                    <dd>No on-chain self-amendment and a more brittle uptime history.</dd>
+                </dl>
             </a>
-            <a href="/compare/tezos-vs-algorand.html" class="chain-link">
-                <h2>Tezos vs Algorand</h2>
-                <p>Finality, energy, fees, governance models</p>
+
+            <a class="summary-card" href="/compare/tezos-vs-cardano.html">
+                <div class="card-top">
+                    <div>
+                        <h2 class="chain">Cardano</h2>
+                        <div class="role">Governance entrant</div>
+                    </div>
+                    <div class="score"><strong>0</strong><span>of 10</span></div>
+                </div>
+                <p>Cardano is staking-heavy and now has Voltaire-era governance, but this baseline does not give it an outright category lead.</p>
+                <dl class="lead-list">
+                    <dt>Leads</dt>
+                    <dd>No outright metric lead in this set</dd>
+                    <dt>Watch</dt>
+                    <dd>Slower finality and a shorter production record for on-chain upgrades.</dd>
+                </dl>
             </a>
-        </div>
-        <a href="/" class="back">← Back to dashboard</a>
-    </div>
+
+            <a class="summary-card" href="/compare/tezos-vs-algorand.html">
+                <div class="card-top">
+                    <div>
+                        <h2 class="chain">Algorand</h2>
+                        <div class="role">Finality and efficiency</div>
+                    </div>
+                    <div class="score"><strong>3</strong><span>of 10</span></div>
+                </div>
+                <p>Algorand leads on instant finality, energy per transaction, and average fee in the current peer snapshot.</p>
+                <dl class="lead-list">
+                    <dt>Leads</dt>
+                    <dd class="wins">Finality, energy per transaction, average fee</dd>
+                    <dt>Watch</dt>
+                    <dd>Upgrade path is more foundation-coordinated than self-amending.</dd>
+                </dl>
+            </a>
+        </section>
+
+        <section class="scoreboard" aria-label="Detailed comparison links">
+            <h2>Open The Head-To-Head Pages</h2>
+            <div class="score-row">
+                <strong>Tezos vs Ethereum</strong>
+                <span>Governance continuity versus the hard-fork upgrade path.</span>
+                <span>Finality, staking concentration, issuance, energy, fees.</span>
+                <a href="/compare/tezos-vs-ethereum.html">Open comparison</a>
+            </div>
+            <div class="score-row">
+                <strong>Tezos vs Solana</strong>
+                <span>Protocol continuity versus raw speed and low fees.</span>
+                <span>Block time, finality, uptime, governance, decentralization.</span>
+                <a href="/compare/tezos-vs-solana.html">Open comparison</a>
+            </div>
+            <div class="score-row">
+                <strong>Tezos vs Cardano</strong>
+                <span>Long-running self-amendment versus newer governance.</span>
+                <span>Staking, finality, protocol upgrades, hard forks.</span>
+                <a href="/compare/tezos-vs-cardano.html">Open comparison</a>
+            </div>
+            <div class="score-row">
+                <strong>Tezos vs Algorand</strong>
+                <span>Self-amendment versus instant-finality efficiency.</span>
+                <span>Finality, fees, energy, governance model, forks.</span>
+                <a href="/compare/tezos-vs-algorand.html">Open comparison</a>
+            </div>
+        </section>
+
+        <p class="note">Static peer-chain snapshot last verified February 28, 2026. The live dashboard upgrades Tezos values in-browser from public network data.</p>
+        <div class="back-wrap"><a href="/" class="back">Back to dashboard</a></div>
+    </main>
 </body>
 </html>

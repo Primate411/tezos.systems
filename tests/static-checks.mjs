@@ -408,6 +408,7 @@ async function checkSelectorContracts() {
     'chambers-grid',
     'block-ticker-strip',
     'block-ticker-line',
+    'comparison-summary',
     'widgets-gallery',
     'settings-gear',
     'settings-dropdown',
@@ -476,6 +477,8 @@ async function checkSelectorContracts() {
   const share = await readText('js/ui/share.js');
   const myTezos = await readText('js/features/my-tezos.js');
   const myBaker = await readText('js/features/my-baker.js');
+  const comparison = await readText('js/features/comparison.js');
+  const compareIndex = await readText('compare/index.html');
   const styles = await readText('css/styles.css');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
@@ -486,6 +489,11 @@ async function checkSelectorContracts() {
     ['Health hash route', "hash === 'health'", app],
     ['LB tile hash route', "hash === 'lb-tile'", app],
     ['tz4 hash route', "hash === 'tz4'", app],
+    ['comparison summary renderer', 'function renderComparisonSummary', comparison],
+    ['comparison summary standing copy', 'Self-upgrading baseline', comparison],
+    ['comparison summary grid', 'comparison-standing-grid comparison-grid', comparison],
+    ['comparison hub standing summary', 'Where the major proof-of-stake chains stand', compareIndex],
+    ['comparison hub all peer links', '/compare/tezos-vs-algorand.html', compareIndex],
     ['Chambers launcher button', 'id="chambers-toggle"', index],
     ['Chambers launcher copy link', 'data-copy-hash="#chambers"', index],
     ['Chambers visibility storage', 'tezos-systems-chambers-visible', app],
@@ -595,8 +603,10 @@ async function checkSelectorContracts() {
     ['live block ticker renderer', 'function updateBlockTicker', health],
     ['live block ticker fixed age formatter', 'function formatTickerAge', health],
     ['live block ticker transition count hook', 'blockTickerTransitionCount', health],
+    ['live block ticker Octez slot', 'block-ticker-octez', health],
     ['live block ticker health feed hook', 'updateBlockTicker(data)', health],
     ['live block ticker styles', '.block-ticker-strip', styles],
+    ['live block ticker Octez styles', '.block-ticker-octez', styles],
     ['live block ticker aperture transition styles', 'blockTickerAperture', styles],
     ['health cycle timing styles', '.health-cycle-panel', styles],
     ['health Teztale consensus styles', '.health-consensus-panel', styles],

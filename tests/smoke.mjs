@@ -3605,7 +3605,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const tickerBlockValue = tickerLine?.querySelector('.block-ticker-level .block-ticker-value');
     const tickerBakerValue = tickerLine?.querySelector('.block-ticker-baker .block-ticker-value');
     const tickerHealthValue = tickerLine?.querySelector('.block-ticker-health .block-ticker-value');
+    const tickerOctezSegment = tickerLine?.querySelector('.block-ticker-octez');
+    const tickerOctezValue = tickerLine?.querySelector('.block-ticker-octez .block-ticker-value');
     const tickerAgeValue = tickerLine?.querySelector('.block-ticker-age .block-ticker-value');
+    const tickerSegmentOrder = Array.from(tickerLine?.querySelectorAll('.block-ticker-segment') || []).map((segment) => {
+      const keys = ['level', 'baker', 'health', 'octez', 'power', 'round', 'age'];
+      return keys.find((key) => segment.classList.contains(`block-ticker-${key}`)) || '';
+    });
     const measureTickerText = (source, text) => {
       if (!source) return 0;
       const probe = document.createElement('span');
@@ -3693,6 +3699,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       blockTickerText: tickerLine?.textContent || '',
       blockTickerHealth: ticker?.dataset.blockHealth || '',
       blockTickerSignature: tickerLine?.dataset.blockTickerSignature || '',
+      blockTickerSegmentOrder: tickerSegmentOrder,
       blockTickerTransitionCount: tickerLine?.dataset.blockTickerTransitionCount || '',
       blockTickerWired: tickerButton?.dataset.blockTickerWired || '',
       blockTickerTitle: tickerButton?.getAttribute('title') || '',
@@ -3709,7 +3716,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       blockTickerBakerWidth: tickerBakerValue ? parseFloat(getComputedStyle(tickerBakerValue).width) : 0,
       blockTickerHealthWidth: tickerHealthValue ? parseFloat(getComputedStyle(tickerHealthValue).width) : 0,
       blockTickerDegradedWidth: measureTickerText(tickerHealthValue, 'Degraded'),
-      blockTickerValueAlignments: [tickerBlockValue, tickerBakerValue, tickerHealthValue, tickerAgeValue]
+      blockTickerOctezText: tickerOctezValue?.textContent || '',
+      blockTickerOctezClass: tickerOctezSegment?.className || '',
+      blockTickerOctezWidth: tickerOctezValue ? parseFloat(getComputedStyle(tickerOctezValue).width) : 0,
+      blockTickerValueAlignments: [tickerBlockValue, tickerBakerValue, tickerHealthValue, tickerOctezValue, tickerAgeValue]
         .map((el) => el ? getComputedStyle(el).textAlign : ''),
       blockTickerAgeText: tickerAgeValue?.textContent || '',
       blockTickerAgeWidth: tickerAgeValue ? parseFloat(getComputedStyle(tickerAgeValue).width) : 0,
@@ -3789,11 +3799,16 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(/Block#?[\d,]+/.test(healthState.blockTickerText.replace(/\s+/g, '')), `network health chamber: live block ticker missing block: ${healthState.blockTickerText}`);
   assert(/Baker (QA Baker|Second Baker)/.test(healthState.blockTickerText.replace(/\s+/g, ' ')), `network health chamber: live block ticker missing baker: ${healthState.blockTickerText}`);
   assert(/Health(Peak|Healthy|Watch|Degraded)/.test(healthState.blockTickerText.replace(/\s+/g, '')), `network health chamber: live block ticker missing health: ${healthState.blockTickerText}`);
+  assert(/Octezv25\.0/.test(healthState.blockTickerText.replace(/\s+/g, '')), `network health chamber: live block ticker missing baker Octez version: ${healthState.blockTickerText}`);
   assert(/Attested[\d,]+\/7,000/.test(healthState.blockTickerText.replace(/\s+/g, '')), `network health chamber: live block ticker missing attestation power: ${healthState.blockTickerText}`);
   assert(!/\\b(Missed|Cadence)\\b/.test(healthState.blockTickerText), `network health chamber: live block ticker should not show Missed or Cadence: ${healthState.blockTickerText}`);
   assert(['peak', 'healthy', 'watch', 'degraded'].includes(healthState.blockTickerHealth), `network health chamber: ticker health tone mismatch: ${healthState.blockTickerHealth}`);
+  assert(healthState.blockTickerSegmentOrder.join('>') === 'level>baker>health>octez>power>round>age', `network health chamber: ticker slot order mismatch: ${healthState.blockTickerSegmentOrder.join('>')}`);
+  assert(healthState.blockTickerOctezText === 'v25.0', `network health chamber: latest baker Octez version mismatch: ${healthState.blockTickerOctezText}`);
+  assert(healthState.blockTickerOctezClass.includes('watch'), `network health chamber: lagging same-major Octez version should be yellow/watch: ${healthState.blockTickerOctezClass}`);
   assert(healthState.blockTickerWired === '1', `network health chamber: ticker click wiring missing: ${healthState.blockTickerWired}`);
   assert(/baked by/.test(healthState.blockTickerTitle), `network health chamber: ticker title missing block context: ${healthState.blockTickerTitle}`);
+  assert(/Octez v25\.0/.test(healthState.blockTickerTitle), `network health chamber: ticker title missing Octez version context: ${healthState.blockTickerTitle}`);
   assert(healthState.blockTickerKickerText === '', `network health chamber: ticker kicker should be the pulse only, saw ${healthState.blockTickerKickerText}`);
   assert(healthState.blockTickerPulseCount === 1 && healthState.blockTickerPulseInTicker, `network health chamber: live pulse should live only in ticker, saw count ${healthState.blockTickerPulseCount}`);
   assert(healthState.blockTickerPulseWidth >= 8 && /rgb\(53, 232, 148\)/.test(healthState.blockTickerPulseBg), `network health chamber: ticker pulse should be the green live signal, saw ${healthState.blockTickerPulseWidth}px ${healthState.blockTickerPulseBg}`);
@@ -3802,6 +3817,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.blockTickerBlockWidth >= 90, `network health chamber: block column too narrow: ${healthState.blockTickerBlockWidth}`);
   assert(healthState.blockTickerBakerWidth >= 190 && healthState.blockTickerBakerWidth <= 220, `network health chamber: baker column should fit longer names without taking over: ${healthState.blockTickerBakerWidth}`);
   assert(healthState.blockTickerHealthWidth >= healthState.blockTickerDegradedWidth + 1, `network health chamber: health slot cannot fit Degraded: slot ${healthState.blockTickerHealthWidth}, degraded ${healthState.blockTickerDegradedWidth}`);
+  assert(healthState.blockTickerOctezWidth >= 45, `network health chamber: Octez slot is too narrow: ${healthState.blockTickerOctezWidth}`);
   assert(healthState.blockTickerValueAlignments.every((align) => ['left', 'start'].includes(align)), `network health chamber: ticker values should sit near their labels, saw ${healthState.blockTickerValueAlignments.join(', ')}`);
   assert(/^\d{2}[smhd] ago$/.test(healthState.blockTickerAgeText), `network health chamber: ticker age should use fixed-width text, saw ${healthState.blockTickerAgeText}`);
   assert(healthState.blockTickerAgeWidth >= 40, `network health chamber: ticker age slot is too narrow: ${healthState.blockTickerAgeWidth}`);
@@ -5221,6 +5237,7 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
 
   await clickFeatureLauncher(page, '#comparison-toggle');
   await page.locator('#comparison-section.visible').waitFor({ state: 'visible', timeout: 5000 });
+  await expectCount(page, '#comparison-summary .comparison-standing-card', 5, 'feature workflows comparison standing cards');
   await expectCount(page, '#comparison-grid .comparison-card', 5, 'feature workflows comparison cards');
   log('ok - feature workflow: comparison');
 

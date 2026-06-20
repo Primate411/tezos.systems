@@ -5,6 +5,13 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-20',
+        entries: [
+            { type: '✨', text: 'The live block ticker now shows the latest baker Octez version between Health and Attested so upgrade readiness is visible at a glance' },
+            { type: '✨', text: 'Tezos vs Other Chains now opens with a standing summary for where Tezos, Ethereum, Solana, Cardano, and Algorand each lead or lag' },
+        ]
+    },
+    {
         date: '2026-06-19',
         entries: [
             { type: '✨', text: 'Network Context chips, header links, and ranked cards now open the matching My Tezos, price, staking, governance, NFT, whale, history, and health features' },

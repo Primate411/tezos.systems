@@ -50,13 +50,13 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=243">
+    <link rel="stylesheet" href="css/styles.min.css?v=244">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=243">
+    <link rel="modulepreload" href="js/core/app.js?v=244">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -1534,6 +1534,9 @@
                 </button>
                 <button class="info-button" id="comparison-share-all-btn" aria-label="Share all comparisons" title="Share all comparisons">📸</button>
             </div>
+            <div class="comparison-summary" id="comparison-summary" aria-label="Where each compared chain stands">
+                <!-- Standing summary rendered by comparison.js -->
+            </div>
             <div class="comparison-grid" id="comparison-grid">
                 <!-- Comparison cards rendered by comparison.js -->
             </div>
@@ -1550,8 +1553,8 @@
             <h3 class="modal-title">How Tezos Compares</h3>
             <div class="modal-body">
                 <p>
-                    Side-by-side comparison of Tezos with Ethereum and Solana across key blockchain metrics.
-                    <strong>Tezos data is live</strong> from the network; Ethereum and Solana data is static and updated periodically.
+                    Side-by-side comparison of Tezos with Ethereum, Solana, Cardano, and Algorand across key blockchain metrics.
+                    <strong>Tezos data is live</strong> from the network; peer-chain data is static and updated periodically.
                 </p>
                 <ul>
                     <li><strong>Green highlight</strong>: The winner for each metric</li>
@@ -1560,7 +1563,7 @@
                     <li><strong>Self-Amendments</strong>: On-chain upgrades without hard forks — unique to Tezos</li>
                 </ul>
                 <div class="modal-note">
-                    <p>All comparison data is verifiable from public sources. ETH/SOL values are approximate and may vary.</p>
+                    <p>All comparison data is verifiable from public sources. ETH/SOL/ADA/ALGO values are approximate and may vary.</p>
                 </div>
             </div>
         </div>
@@ -2073,7 +2076,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=243"></script>
+    <script type="module" src="js/core/app.js?v=244"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

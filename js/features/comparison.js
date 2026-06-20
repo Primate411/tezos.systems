@@ -489,6 +489,48 @@ const METRICS = [
     },
 ];
 
+const CHAIN_ORDER = ['tezos', 'ethereum', 'solana', 'cardano', 'algorand'];
+
+const CHAIN_STANDINGS = {
+    tezos: {
+        name: 'Tezos',
+        role: 'Self-upgrading baseline',
+        body: (stats) => {
+            const upgradeCount = stats?.protocolCount || document.querySelectorAll('.upgrade-chip').length || 21;
+            return `${upgradeCount} on-chain upgrades, 0 hard forks, ${CHAIN_COMPARISON.tezosStatic.finality} deterministic finality.`;
+        },
+        watch: 'Not the fastest block time or absolute lowest fee.',
+    },
+    ethereum: {
+        name: 'Ethereum',
+        role: 'Issuance heavyweight',
+        href: '/compare/tezos-vs-ethereum.html',
+        body: () => 'Lowest gross issuance in this tracked set, with the largest hard-fork upgrade legacy.',
+        watch: 'Slow finality, hard-fork upgrade path, and concentrated staking entities.',
+    },
+    solana: {
+        name: 'Solana',
+        role: 'Speed specialist',
+        href: '/compare/tezos-vs-solana.html',
+        body: () => 'Fastest blocks, high staking participation, and very low transaction fees.',
+        watch: 'No on-chain self-amendment and a more brittle uptime history.',
+    },
+    cardano: {
+        name: 'Cardano',
+        role: 'Staking-heavy governance entrant',
+        href: '/compare/tezos-vs-cardano.html',
+        body: () => 'High staking participation with newer Voltaire-era governance live.',
+        watch: 'Slow finality and a shorter production record for on-chain upgrades.',
+    },
+    algorand: {
+        name: 'Algorand',
+        role: 'Finality and efficiency leader',
+        href: '/compare/tezos-vs-algorand.html',
+        body: () => 'Instant finality, lowest fees, and the smallest energy footprint here.',
+        watch: 'Upgrade process is more foundation-coordinated than self-amending.',
+    },
+};
+
 /**
  * Get the value for a chain from static config
  */
@@ -514,6 +556,87 @@ function getStaticTooltip(chain, key) {
     const c = CHAIN_COMPARISON[chain];
     if (!c) return '';
     return c[key + 'Tooltip'] || '';
+}
+
+function appendText(parent, tag, className, text) {
+    const el = document.createElement(tag);
+    if (className) el.className = className;
+    el.textContent = text;
+    parent.appendChild(el);
+    return el;
+}
+
+function metricWinLabels(chainKey) {
+    return METRICS
+        .filter((metric) => metric.winner === chainKey)
+        .map((metric) => metric.label);
+}
+
+function buildStandingCard(chainKey, stats) {
+    const standing = CHAIN_STANDINGS[chainKey];
+    const winLabels = metricWinLabels(chainKey);
+    const card = document.createElement(standing.href ? 'a' : 'article');
+    card.className = `comparison-card comparison-standing-card comparison-standing-${chainKey}`;
+    card.style.cssText = 'display:flex;flex-direction:column;gap:.85rem;min-height:14rem;color:var(--text-primary);text-decoration:none;';
+    if (standing.href) {
+        card.href = standing.href;
+        card.setAttribute('aria-label', `${standing.name} comparison details`);
+    }
+
+    const head = document.createElement('div');
+    head.className = 'comparison-card-header';
+    head.style.gap = '.75rem';
+
+    appendText(head, 'span', 'comparison-metric-name', `${standing.name} · ${standing.role}`);
+    const score = document.createElement('div');
+    score.className = 'comparison-win-badge';
+    score.textContent = `${winLabels.length}/${METRICS.length} leads`;
+    head.appendChild(score);
+    card.appendChild(head);
+
+    const body = appendText(card, 'p', 'comparison-standing-body', standing.body(stats || {}));
+    body.style.cssText = 'margin:0;color:var(--text-secondary);font-size:.84rem;line-height:1.45;overflow-wrap:anywhere;';
+
+    const detail = document.createElement('div');
+    detail.className = 'comparison-standing-detail';
+    detail.style.cssText = 'display:grid;gap:.45rem;margin-top:auto;padding-top:.75rem;border-top:1px solid var(--glass-border);';
+
+    for (const item of [
+        ['Leads', winLabels.length ? winLabels.join(', ') : 'No outright metric lead in this set'],
+        ['Watch', standing.watch],
+    ]) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:grid;gap:.15rem;';
+        appendText(row, 'div', 'comparison-chain-name', item[0]);
+        const value = appendText(row, 'div', 'comparison-chain-note', item[1]);
+        value.style.cssText = 'margin:0;color:var(--text-secondary);font-size:.72rem;word-spacing:normal;line-height:1.35;';
+        detail.appendChild(row);
+    }
+    card.appendChild(detail);
+
+    return card;
+}
+
+function renderComparisonSummary(stats) {
+    const container = document.getElementById('comparison-summary');
+    if (!container) return;
+
+    container.textContent = '';
+    const intro = document.createElement('div');
+    intro.className = 'comparison-card';
+    intro.style.cssText = 'margin-bottom:1rem;padding:1rem;';
+    appendText(intro, 'span', 'comparison-summary-kicker', 'Standing summary');
+    const introCopy = appendText(intro, 'p', '', 'Each chain has a clear job: Tezos leads on protocol continuity, Solana on speed, Algorand on finality/efficiency, Ethereum on low gross issuance, and Cardano on staking-heavy governance.');
+    introCopy.style.cssText = 'margin:.5rem 0 0;color:var(--text-secondary);font-size:.84rem;line-height:1.45;';
+    container.appendChild(intro);
+
+    const grid = document.createElement('div');
+    grid.className = 'comparison-standing-grid comparison-grid';
+    grid.style.marginBottom = '1.25rem';
+    for (const chainKey of CHAIN_ORDER) {
+        grid.appendChild(buildStandingCard(chainKey, stats || {}));
+    }
+    container.appendChild(grid);
 }
 
 /**
@@ -833,6 +956,8 @@ async function captureComparisonImage(cardEl, label) {
 export function initComparison(stats) {
     const container = document.getElementById('comparison-grid');
     if (!container) return;
+
+    renderComparisonSummary(stats || {});
 
     // Clear existing
     container.textContent = '';
