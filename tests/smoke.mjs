@@ -4313,6 +4313,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       const card = document.querySelector('#lb-entry-card');
       const ema = document.querySelector('#lb-entry-ema');
       const tape = document.querySelector('#lb-entry-vote-tape');
+      const tz4 = document.querySelector('#chambers-section [data-stat="tz4-adoption"]');
       const rect = (node) => {
         if (!node) return null;
         const box = node.getBoundingClientRect();
@@ -4321,12 +4322,15 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       const cardRect = rect(card);
       const emaRect = rect(ema);
       const tapeRect = rect(tape);
+      const tz4Rect = rect(tz4);
       return {
         cardHeight: cardRect ? Number(cardRect.height.toFixed(2)) : 0,
         tapeRightOfEma: Boolean(emaRect && tapeRect && tapeRect.left >= emaRect.right + 8),
         tapeEmaBandOverlap: Boolean(emaRect && tapeRect && tapeRect.top < emaRect.bottom && tapeRect.bottom > emaRect.top),
+        pairedWithTz4: Boolean(cardRect && tz4Rect && Math.abs(cardRect.top - tz4Rect.top) <= 1 && Math.abs(cardRect.bottom - tz4Rect.bottom) <= 1),
         emaRect,
-        tapeRect
+        tapeRect,
+        tz4Rect
       };
     })(),
     etherlinkEntryValue: document.querySelector('#etherlink-governance-entry-value')?.textContent?.trim() || '',
@@ -4399,6 +4403,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(Number(dashboardState.lbEntryRefreshedAt) > 0, `governance testing period: LB entry refreshed timestamp missing: ${dashboardState.lbEntryRefreshedAt}`);
   assert(dashboardState.lbEntryGeometry.tapeRightOfEma && dashboardState.lbEntryGeometry.tapeEmaBandOverlap, `governance testing period: LB vote tape should sit beside the EMA summary, not stack below it: ${JSON.stringify(dashboardState.lbEntryGeometry)}`);
   assert(dashboardState.lbEntryGeometry.cardHeight <= 230, `governance testing period: LB entry card should stay compact after adding the vote tape: ${JSON.stringify(dashboardState.lbEntryGeometry)}`);
+  assert(dashboardState.lbEntryGeometry.pairedWithTz4, `governance testing period: LB and tz4 cards should line up in their paired Chambers row: ${JSON.stringify(dashboardState.lbEntryGeometry)}`);
   assert(dashboardState.etherlinkEntryLive === 'true', `governance testing period: Tezos X Governance entry should show live data, saw ${dashboardState.etherlinkEntryLive}`);
   assert(dashboardState.etherlinkEntryWide, 'governance testing period: Tezos X Governance should be 2x1 while an Etherlink proposal is active');
   assert(dashboardState.etherlinkEntrySize === 'wide', `governance testing period: Tezos X Governance size flag mismatch: ${dashboardState.etherlinkEntrySize}`);

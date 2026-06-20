@@ -17108,7 +17108,7 @@ body {
         grid-column: span 2;
     }
 
-    #chambers-grid.chambers-paired-grid > .chamber-card-pair[data-chamber-pair="tezlink-governance"] > .chamber-entry-card {
+    #chambers-grid > .chamber-card-pair:is([data-chamber-pair="tezlink-governance"], [data-chamber-pair="tz4-liquidity"]) > .chamber-entry-card {
         height: 228px;
     }
 
@@ -20791,10 +20791,6 @@ body {
 }
 
 @media (min-width: 760px) {
-    #chambers-grid .tz4-entry-card.chamber-entry-wide {
-        height: 228px;
-    }
-
     .tz4-entry-card.chamber-entry-wide .card-front {
         display: grid;
         grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
