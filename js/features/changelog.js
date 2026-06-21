@@ -9,8 +9,8 @@ const CHANGELOG = [
         entries: [
             { type: '🔧', text: 'Protocol History Chamber now exposes View Timeline and View Impact controls at the top of the anthology instead of burying them below the timeline' },
             { type: '✨', text: 'The header uptime rail now decrypt-shuffles changed values for 1.5 seconds and opens Historical Data when clicked' },
-            { type: '🎨', text: 'The header uptime rail now uses a simple pipe into right-aligned live stats instead of spelling out zero-fork and zero-outage copy' },
-            { type: '🎨', text: 'The front-page uptime proof is now a single-line header rail starting with Uptime instead of a large continuity card' },
+            { type: '🎨', text: 'The header uptime rail now starts with full uptime, then green zero-fork and zero-outage proof badges, then live stats' },
+            { type: '🎨', text: 'The front-page uptime proof is now a borderless header rail instead of a large continuity card' },
             { type: '🎨', text: 'The zero-fork continuity proof now sits beside the Tezos Systems identity with live bakers, finality, staked share, and issuance before the command bar' },
             { type: '🎨', text: 'The duplicate recruit cards and footer aura prompt are now one Tezos Loop Console with persona lanes, command-bar seeds, and direct next-step routes' },
             { type: '🎨', text: 'Protocol History now appears in Chambers as a Protocol Anthology card with current chapter, lore, impact, memory, and recent protocol spines' },

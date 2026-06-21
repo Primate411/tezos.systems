@@ -177,10 +177,12 @@ inline modal styles in `js/core/app.js`.
   animated strip with stable-width volatile numbers, compact baker names, and a
   clean whole-line transition.
   Clicking the strip opens the Network Health Chamber.
-- The Network Health Chamber contains a Continuity Proof panel: long-running
-  live uptime, zero-forks/zero-outages claim, active baker count, finality,
-  staked share, and issuance rate, keeping proof data inside the deep Health
-  surface instead of crowding the front card or global block tape.
+- The header contains a borderless uptime rail: long-running live uptime down
+  to minutes and seconds, zero-forks/zero-outages status, active baker count,
+  finality, staked share, and issuance rate. Clicking the rail
+  opens the historical stats surface.
+- The Network Health Chamber contains the fuller Continuity Proof panel with
+  the same core proof data in the deep Health context.
 - Tezos X Governance Chamber with direct `#l2chamber` access and visible L2
   Governance labeling,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract

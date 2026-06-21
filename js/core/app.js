@@ -1657,7 +1657,7 @@ function initUptimeClock() {
         }).join('');
     }
 
-    function setTopContinuityText(id, text) {
+    function setTopContinuityText(id, text, options = {}) {
         const el = document.getElementById(id);
         if (!el || text === undefined || text === null || text === '') return;
 
@@ -1666,7 +1666,8 @@ function initUptimeClock() {
 
         const hadFinalText = Boolean(el.dataset.finalText);
         const currentText = el.dataset.finalText || el.textContent.trim();
-        const shouldShuffle = hadFinalText && currentText && currentText !== '—' && currentText !== nextText && !prefersReducedMotion();
+        const allowShuffle = options.shuffle !== false;
+        const shouldShuffle = allowShuffle && hadFinalText && currentText && currentText !== '—' && currentText !== nextText && !prefersReducedMotion();
         const existingFrame = topContinuityAnimations.get(id);
         if (existingFrame) {
             cancelAnimationFrame(existingFrame);
@@ -1741,7 +1742,7 @@ function initUptimeClock() {
         const secs = Math.floor((remAfterYears % 60000) / 1000);
         const str = `${years}y ${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
         const plural = (value, singular, pluralForm = singular + 's') => `${value} ${value === 1 ? singular : pluralForm}`;
-        const heroStr = `${plural(years, 'year')} ${plural(days, 'day')}`;
+        const heroStr = `${plural(years, 'year')} ${plural(days, 'day')} ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
         // Wrap each character in a fixed-width span to prevent layout shift
         const html = str.split('').map(ch =>
             /\d/.test(ch) ? `<span class="uptime-digit">${ch}</span>` : `<span class="uptime-sep">${ch}</span>`
@@ -1749,7 +1750,7 @@ function initUptimeClock() {
         if (counterEl) counterEl.innerHTML = html;
         const chainCounterEl = document.getElementById('chain-uptime-counter');
         if (chainCounterEl) chainCounterEl.innerHTML = html;
-        setTopContinuityText('hero-chain-uptime-counter', heroStr);
+        setTopContinuityText('hero-chain-uptime-counter', heroStr, { shuffle: false });
         syncChainProofMetrics();
     }
 

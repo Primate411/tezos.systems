@@ -3922,9 +3922,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.topProofInHeader, 'network health chamber: continuity proof should live in the top header');
   assert(healthState.topProofTag === 'BUTTON' && healthState.topProofType === 'button', `network health chamber: continuity proof should be a button launcher, saw ${healthState.topProofTag}/${healthState.topProofType}`);
   assert(healthState.topProofAriaControls === 'history-modal' && healthState.topProofHistoryWired === '1', `network health chamber: continuity proof history launcher missing: ${healthState.topProofAriaControls}/${healthState.topProofHistoryWired}`);
-  assert(/^Uptime:/.test(healthState.topProofText.trim()) && /\|/.test(healthState.topProofText), `network health chamber: top proof line should start with Uptime and pipe into stats: ${healthState.topProofText}`);
-  assert(!/zero forks|zero outages/i.test(healthState.topProofText), `network health chamber: top proof line should not spell out zero fork/outage copy: ${healthState.topProofText}`);
-  assert(/\d+\s+years?\s+\d+\s+days?/.test(healthState.topProofCounter), `network health chamber: top proof runtime missing: ${healthState.topProofCounter}`);
+  assert(/^Uptime:/i.test(healthState.topProofText.trim()) && /zero forks/i.test(healthState.topProofText) && /zero outages/i.test(healthState.topProofText), `network health chamber: top proof line should start with uptime and include zero-status proof: ${healthState.topProofText}`);
+  assert(!/\|/.test(healthState.topProofText), `network health chamber: top proof line should not add a pipe after zero outages: ${healthState.topProofText}`);
+  assert(/\d+\s+years?\s+\d+\s+days?\s+\d{2}h\s+\d{2}m\s+\d{2}s/.test(healthState.topProofCounter), `network health chamber: top proof runtime missing minutes/seconds: ${healthState.topProofCounter}`);
   assert(/^\d+$/.test(healthState.topProofBakers) && Number(healthState.topProofBakers) >= 1, `network health chamber: top proof baker count mismatch: ${healthState.topProofBakers}`);
   assert(/\d+s/.test(healthState.topProofFinality), `network health chamber: top proof finality missing: ${healthState.topProofFinality}`);
   assert(/^\d+(?:\.\d+)?%$/.test(healthState.topProofStaked), `network health chamber: top proof staked ratio mismatch: ${healthState.topProofStaked}`);
