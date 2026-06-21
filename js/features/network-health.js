@@ -1726,6 +1726,39 @@ function renderHealthScorePanel(data) {
     `;
 }
 
+function renderContinuityProofPanel() {
+    const runtimeHtml = document.getElementById('uptime-counter')?.innerHTML || '—';
+    const bakersText = document.getElementById('uptime-bakers')?.textContent || '—';
+    const finalityText = document.getElementById('uptime-finality')?.textContent || '12s';
+    const stakedText = document.getElementById('uptime-staked')?.textContent || '—';
+    const issuanceText = document.getElementById('uptime-issuance')?.textContent || '—';
+    return `
+        <section class="lb-panel health-panel health-continuity-panel chamber-anim-fade" id="health-chain-proof" aria-label="Tezos chain continuity proof" style="animation-delay:40ms">
+            <div class="lb-panel-title">Continuity Proof <span class="lb-live-pill">zero forks · zero outages</span></div>
+            <div class="health-continuity-runtime" id="chain-uptime-counter">${runtimeHtml}</div>
+            <p class="health-continuity-copy">Mainnet keeps producing blocks while the protocol upgrades underneath it.</p>
+            <div class="health-continuity-grid">
+                <div>
+                    <span>Bakers</span>
+                    <strong id="chain-uptime-bakers">${escapeHtml(bakersText)}</strong>
+                </div>
+                <div>
+                    <span>Finality</span>
+                    <strong id="chain-uptime-finality">${escapeHtml(finalityText)}</strong>
+                </div>
+                <div>
+                    <span>Staked</span>
+                    <strong id="chain-uptime-staked">${escapeHtml(stakedText)}</strong>
+                </div>
+                <div>
+                    <span>Issuance</span>
+                    <strong id="chain-uptime-issuance">${escapeHtml(issuanceText)}</strong>
+                </div>
+            </div>
+        </section>
+    `;
+}
+
 function renderTimingPanel(data) {
     const onTargetPct = data.timing.intervalCount ? (data.timing.onTarget / data.timing.intervalCount) * 100 : 0;
     const cells = data.blocks.slice(0, -1).map((block) => {
@@ -2137,6 +2170,7 @@ function renderNetworkHealthChamber(data, container) {
                 <span><strong>Power</strong> ${formatCount(POWER_PER_BLOCK)} per block</span>
             </div>
         </section>
+        ${renderContinuityProofPanel()}
         <div class="lb-dashboard-grid health-dashboard-grid">
             ${renderHealthScorePanel(data)}
             ${renderTimingPanel(data)}

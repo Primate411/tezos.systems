@@ -237,7 +237,7 @@ export function initUpgradeEffect() {
     // Toggle button
     const toggleDiv = document.createElement('div');
     toggleDiv.className = 'infographic-toggle';
-    toggleDiv.innerHTML = '<button class="infographic-toggle-btn upgrade-effect-toggle-btn">View Impact ▾</button>';
+    toggleDiv.innerHTML = '<button class="infographic-toggle-btn upgrade-effect-toggle-btn" type="button" aria-expanded="false">View Impact ▾</button>';
     upgradeCount.appendChild(toggleDiv);
 
     // Panel
@@ -269,6 +269,7 @@ export function initUpgradeEffect() {
     btn.addEventListener('click', () => {
         const expanded = panel.classList.toggle('expanded');
         btn.textContent = expanded ? 'Hide Impact ▴' : 'View Impact ▾';
+        btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
         if (expanded) {
             renderChart(chartContainer, currentMetric);
         }

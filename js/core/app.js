@@ -85,6 +85,7 @@ import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from 
 import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js';
 import { initStateOfTezos } from '../features/state-of-tezos.js';
 import { initNetworkHealth, refreshNetworkHealth } from '../features/network-health.js';
+import { initHeroSearch } from '../features/search.js';
 
 function isContentiousProtocol(protocol, lore = null) {
     return Boolean(protocol?.contention || lore?.contention || lore?.history);
@@ -103,6 +104,7 @@ const ALL_CARD_IDS = [
 // Application state
 const state = {
     currentStats: {},
+    protocols: [],
     lastUpdate: null,
     refreshInterval: REFRESH_INTERVALS.main,
     refreshTimer: null,
@@ -139,6 +141,8 @@ async function init() {
     safe('etherlinkGovernanceChamber', initEtherlinkGovernanceChamber);
     safe('tz4AdoptionChamber', initTz4AdoptionChamber);
     safe('ctezChamber', initCtezChamber);
+    safe('protocolHistoryChamber', initProtocolHistoryChamber);
+    safe('protocolHistoryHeaderLauncher', initProtocolHistoryHeaderLauncher);
     
     // Initialize changelog modal
     safe('changelog', initChangelog);
@@ -188,45 +192,13 @@ async function init() {
         }
     });
     safe('navButtons', initNavButtons);
+    safe('heroSearch', initHeroSearch);
     safe('uptimeClock', initUptimeClock);
     safe('chambersToggle', initChambersToggle);
     safe('tezosStatsToggle', initTezosStatsToggle);
     safe('networkHealth', initNetworkHealth);
     safe('chambersOrder', orderChambersSurface);
-    safe('footerChadCheckpoint', initFooterChadCheckpoint);
-
-    // Upgrade section share button
-    const upgradeShareBtn = document.getElementById('upgrade-share-btn');
-    if (upgradeShareBtn) {
-        upgradeShareBtn.addEventListener('click', async () => {
-            const section = document.querySelector('.upgrade-clock-content');
-            if (!section) return;
-            const controlsToHide = Array.from(section.querySelectorAll(
-                '.upgrade-share-btn, .section-copy-link, .card-copy-link, .infographic-toggle, .timeline-share-btn'
-            ));
-            const originalVisibility = controlsToHide.map(el => el.style.visibility);
-            try {
-                controlsToHide.forEach(el => { el.style.visibility = 'hidden'; });
-                await loadHtml2Canvas();
-                const canvas = await window.html2canvas(section, { backgroundColor: '#0a0e1a', scale: 2 });
-                // Dynamic upgrade count from timeline chips
-                const upgradeChips = document.querySelectorAll('.upgrade-chip');
-                const upgradeCount = upgradeChips.length || 21;
-                const daysLive = Math.floor((Date.now() - new Date(MAINNET_LAUNCH).getTime()) / 86400000);
-                const tweetOptions = [
-                    { label: '📜 Story', text: `${upgradeCount} protocol upgrades. Zero forks. Zero outages. ${daysLive.toLocaleString()}+ days.\n\nTezos doesn't break. It evolves.\n\ntezos.systems` },
-                    { label: '⚡ Stats', text: `Tezos network pulse:\n• ${upgradeCount} self-amendments\n• Zero contentious forks\n• Zero outages since 2018\n• 6-second blocks\n\ntezos.systems` },
-                ];
-                showShareModal(canvas, tweetOptions, 'Tezos Protocol History');
-            } catch (err) {
-                console.error('Upgrade share capture failed:', err);
-            } finally {
-                controlsToHide.forEach((el, index) => {
-                    el.style.visibility = originalVisibility[index];
-                });
-            }
-        });
-    }
+    safe('tezosLoopConsole', initTezosLoopConsole);
 
     // Setup event listeners
     setupEventListeners();
@@ -1063,6 +1035,10 @@ const CHAMBER_CARD_PAIRS = [
     {
         key: 'tz4-liquidity',
         selectors: ['[data-stat="tz4-adoption"]', '#lb-entry-card']
+    },
+    {
+        key: 'protocol-history',
+        selectors: ['#protocol-history-entry-card']
     }
 ];
 let _chamberPairObserver = null;
@@ -1104,6 +1080,12 @@ const CHAMBER_INFO_COPY = {
         body: 'Measures recent block attestation power, sampled health windows, live activity tape, and saved My Tezos baker signal.',
         href: '/health/',
         link: 'Open Health ->'
+    },
+    'protocol-history-entry-card': {
+        title: 'Protocol Anthology',
+        body: 'A current-first archive of Tezos lore, amendment memory, protocol timeline, and impact views.',
+        href: '#protocol-history',
+        link: 'Open Anthology ->'
     }
 };
 
@@ -1220,6 +1202,128 @@ function updateAllChamberPairStates() {
     document.querySelectorAll('#chambers-grid > .chamber-card-pair').forEach(updateChamberPairState);
 }
 
+function getKnownProtocols() {
+    if (Array.isArray(state.protocols) && state.protocols.length) return state.protocols;
+    const cached = loadProtocols();
+    return Array.isArray(cached) ? cached : [];
+}
+
+function buildProtocolEntryRail(protocols) {
+    const hasProtocols = Array.isArray(protocols) && protocols.length;
+    const list = hasProtocols
+        ? protocols
+        : ['Paris', 'Paris C', 'Quebec', 'Rio', 'Seoul', 'Tallinn'].map((name, index, names) => ({
+            name,
+            isCurrent: index === names.length - 1
+        }));
+    const chapterBase = hasProtocols ? list.length : 21;
+    const currentFirst = [...list].reverse().slice(0, 6);
+    return currentFirst.map((protocol, index) => {
+        const name = protocol?.name || `Chapter ${currentFirst.length - index}`;
+        const classes = ['protocol-history-entry-spine-item'];
+        if (protocol?.isCurrent || index === 0) classes.push('current');
+        const chapter = index === 0 ? 'Now' : `Ch. ${Math.max(1, chapterBase - index)}`;
+        return `
+            <span class="${classes.join(' ')}" title="${escapeHtml(name)}">
+                <strong>${escapeHtml(name)}</strong>
+                <small>${escapeHtml(chapter)}</small>
+            </span>
+        `;
+    }).join('');
+}
+
+function updateProtocolHistoryEntryCard(protocols = getKnownProtocols()) {
+    const card = document.getElementById('protocol-history-entry-card');
+    if (!card) return;
+
+    const list = Array.isArray(protocols) ? protocols : [];
+    const currentProtocol = list.find((protocol) => protocol.isCurrent) || list[list.length - 1] || null;
+    const count = list.length || 21;
+    const currentName = currentProtocol?.name || document.getElementById('header-current-protocol')?.textContent?.trim() || 'Tallinn';
+
+    const countEl = card.querySelector('#protocol-history-entry-count');
+    if (countEl) countEl.textContent = String(count);
+    const currentEl = card.querySelector('#protocol-history-entry-current');
+    if (currentEl) currentEl.textContent = currentName;
+    const railEl = card.querySelector('#protocol-history-entry-rail');
+    if (railEl) railEl.innerHTML = buildProtocolEntryRail(list);
+
+    card.dataset.updatedLabel = `Current chapter: ${currentName}`;
+    const description = card.querySelector('#protocol-history-entry-description');
+    if (description) {
+        description.textContent = `Start at ${currentName}, then unfold the amendment anthology backward through lore, impact views, disputes, and receipts.`;
+    }
+    syncChamberEntryFooter(card);
+    updateAllChamberPairStates();
+}
+
+function ensureProtocolHistoryEntryCard() {
+    const grid = document.getElementById('chambers-grid');
+    if (!grid) return null;
+
+    let card = document.getElementById('protocol-history-entry-card');
+    if (!card) {
+        card = document.createElement('div');
+        card.id = 'protocol-history-entry-card';
+        card.className = 'stat-card chamber-entry-card chamber-entry-wide protocol-history-entry-card chamber-entry-adoption';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', 'Open Protocol Anthology Chamber');
+        card.innerHTML = `
+            <button class="card-copy-link" type="button" data-copy-hash="#protocol-history" aria-label="Copy Protocol Anthology direct link" title="Copy Protocol Anthology link">🔗</button>
+            <div class="card-inner">
+                <div class="card-front protocol-history-entry-front">
+                    <h2 class="stat-label">Protocol Anthology</h2>
+                    <div class="protocol-history-entry-anthology">
+                        <div class="protocol-history-entry-count">
+                            <span>Volume</span>
+                            <strong id="protocol-history-entry-count">21</strong>
+                            <em>chapters</em>
+                        </div>
+                        <div class="protocol-history-entry-core">
+                            <div class="protocol-history-entry-current">
+                                <span>Current chapter</span>
+                                <strong id="protocol-history-entry-current">Tallinn</strong>
+                                <small>Running now on Tezos</small>
+                            </div>
+                            <p class="stat-description" id="protocol-history-entry-description">Start at Tallinn, then unfold the amendment anthology backward through lore, impact views, disputes, and receipts.</p>
+                            <div class="protocol-history-entry-facets" aria-label="Protocol anthology sections">
+                                <span><strong>Lore</strong><small>why it mattered</small></span>
+                                <span><strong>Impact</strong><small>what changed</small></span>
+                                <span><strong>Memory</strong><small>amendment trail</small></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="protocol-history-entry-rail protocol-history-entry-spine" id="protocol-history-entry-rail" aria-label="Recent Tezos protocol chapters"></div>
+                </div>
+                <div class="card-back" aria-hidden="true">
+                    <h2 class="stat-label">Protocol Anthology</h2>
+                    <div class="stat-value">Lore</div>
+                    <p class="stat-description">Open the self-amendment anthology.</p>
+                </div>
+            </div>
+        `;
+        grid.appendChild(card);
+    }
+
+    if (!card.dataset.protocolHistoryWired) {
+        const open = (event) => {
+            if (event?.target?.closest?.('button, a, .card-tooltip')) return;
+            openProtocolHistoryChamber();
+        };
+        card.addEventListener('click', open);
+        card.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            open(event);
+        });
+        card.dataset.protocolHistoryWired = '1';
+    }
+
+    updateProtocolHistoryEntryCard(getKnownProtocols());
+    return card;
+}
+
 function orderChambersSurface() {
     const grid = document.getElementById('chambers-grid');
     if (!grid) return;
@@ -1266,7 +1370,27 @@ function orderChambersSurface() {
 }
 
 function initChambersSurface() {
+    ensureProtocolHistoryEntryCard();
     orderChambersSurface();
+}
+
+function initProtocolHistoryChamber() {
+    ensureProtocolHistoryEntryCard();
+    orderChambersSurface();
+}
+
+function initProtocolHistoryHeaderLauncher() {
+    const chip = document.getElementById('header-protocol-chip');
+    if (!chip || chip.dataset.protocolHistoryLauncher === 'ready') return;
+    chip.dataset.protocolHistoryLauncher = 'ready';
+    chip.addEventListener('click', (event) => {
+        event.preventDefault();
+        if (window.location.hash === '#protocol-history') {
+            openProtocolHistoryChamber();
+            return;
+        }
+        window.location.hash = 'protocol-history';
+    });
 }
 
 function initChambersToggle() {
@@ -1290,7 +1414,7 @@ function initChambersToggle() {
         updateVis(newState);
     });
 
-    // Default ON: first visitors see the protocol panel and the four chambers.
+    // Default ON: first visitors see the command deck and Chambers.
     const stored = localStorage.getItem(CHAMBERS_VISIBLE_KEY);
     updateVis(stored !== 'false');
 }
@@ -1488,13 +1612,122 @@ function initUptimeClock() {
     const bakersEl = document.getElementById('uptime-bakers');
     const stakedEl = document.getElementById('uptime-staked');
     const issuanceEl = document.getElementById('uptime-issuance');
+    const topContinuityPanel = document.getElementById('top-continuity-panel');
 
     if (!counterEl) return;
 
     const LAUNCH = new Date(MAINNET_LAUNCH).getTime();
+    const TOP_CONTINUITY_SHUFFLE_MS = 1500;
+    const TOP_CONTINUITY_SHUFFLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%/+-:·|';
     let lastBlockLevel = 0;
     let lastBlockTime = null;
     let recentBlockTimes = []; // last N block timestamps for finality avg
+    let chainBakersText = '';
+    let chainFinalityText = '12s';
+    let chainStakedText = '';
+    let chainIssuanceText = '';
+    const topContinuityAnimations = new Map();
+    const chainMetricAliases = {
+        'chain-uptime-bakers': ['hero-chain-uptime-bakers'],
+        'chain-uptime-finality': ['hero-chain-uptime-finality'],
+        'chain-uptime-staked': ['hero-chain-uptime-staked'],
+        'chain-uptime-issuance': ['hero-chain-uptime-issuance']
+    };
+
+    function prefersReducedMotion() {
+        return window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches === true;
+    }
+
+    function updateTopContinuityShuffleState() {
+        if (!topContinuityPanel) return;
+        topContinuityPanel.classList.toggle('is-shuffling', topContinuityAnimations.size > 0);
+    }
+
+    function randomShuffleChar() {
+        return TOP_CONTINUITY_SHUFFLE_CHARS[Math.floor(Math.random() * TOP_CONTINUITY_SHUFFLE_CHARS.length)] || '0';
+    }
+
+    function shuffleTowardText(text, progress) {
+        const reveal = Math.floor(text.length * progress);
+        return text.split('').map((ch, index) => {
+            if (index < reveal) return ch;
+            if (/\s/.test(ch)) return ' ';
+            if (/[,%.]/.test(ch)) return ch;
+            return randomShuffleChar();
+        }).join('');
+    }
+
+    function setTopContinuityText(id, text) {
+        const el = document.getElementById(id);
+        if (!el || text === undefined || text === null || text === '') return;
+
+        const nextText = String(text);
+        if (el.dataset.finalText === nextText) return;
+
+        const hadFinalText = Boolean(el.dataset.finalText);
+        const currentText = el.dataset.finalText || el.textContent.trim();
+        const shouldShuffle = hadFinalText && currentText && currentText !== '—' && currentText !== nextText && !prefersReducedMotion();
+        const existingFrame = topContinuityAnimations.get(id);
+        if (existingFrame) {
+            cancelAnimationFrame(existingFrame);
+            topContinuityAnimations.delete(id);
+        }
+
+        el.dataset.finalText = nextText;
+
+        if (!shouldShuffle) {
+            el.textContent = nextText;
+            el.classList.remove('is-shuffling');
+            updateTopContinuityShuffleState();
+            return;
+        }
+
+        const startedAt = performance.now();
+        const tick = (now) => {
+            const progress = Math.min(1, (now - startedAt) / TOP_CONTINUITY_SHUFFLE_MS);
+            el.textContent = progress >= 1 ? nextText : shuffleTowardText(nextText, progress);
+
+            if (progress < 1) {
+                topContinuityAnimations.set(id, requestAnimationFrame(tick));
+                return;
+            }
+
+            topContinuityAnimations.delete(id);
+            el.classList.remove('is-shuffling');
+            updateTopContinuityShuffleState();
+        };
+
+        el.classList.add('is-shuffling');
+        topContinuityAnimations.set(id, requestAnimationFrame(tick));
+        updateTopContinuityShuffleState();
+    }
+
+    function setChainText(id, text) {
+        const el = document.getElementById(id);
+        if (el && text) el.textContent = text;
+        (chainMetricAliases[id] || []).forEach((targetId) => {
+            setTopContinuityText(targetId, text);
+        });
+    }
+
+    if (topContinuityPanel && topContinuityPanel.dataset.historyWired !== '1') {
+        topContinuityPanel.dataset.historyWired = '1';
+        topContinuityPanel.addEventListener('click', () => {
+            const historyBtn = document.getElementById('history-btn');
+            if (!historyBtn) return;
+            if (window.location.hash !== '#history') {
+                window.history.pushState(null, '', '#history');
+            }
+            historyBtn.click();
+        });
+    }
+
+    function syncChainProofMetrics() {
+        setChainText('chain-uptime-bakers', chainBakersText);
+        setChainText('chain-uptime-finality', chainFinalityText);
+        setChainText('chain-uptime-staked', chainStakedText);
+        setChainText('chain-uptime-issuance', chainIssuanceText);
+    }
 
     // Tick the uptime counter every second — fixed-width digits
     function tickUptime() {
@@ -1507,10 +1740,17 @@ function initUptimeClock() {
         const mins = Math.floor((remAfterYears % 3600000) / 60000);
         const secs = Math.floor((remAfterYears % 60000) / 1000);
         const str = `${years}y ${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
+        const plural = (value, singular, pluralForm = singular + 's') => `${value} ${value === 1 ? singular : pluralForm}`;
+        const heroStr = `${plural(years, 'year')} ${plural(days, 'day')}`;
         // Wrap each character in a fixed-width span to prevent layout shift
-        counterEl.innerHTML = str.split('').map(ch =>
+        const html = str.split('').map(ch =>
             /\d/.test(ch) ? `<span class="uptime-digit">${ch}</span>` : `<span class="uptime-sep">${ch}</span>`
         ).join('');
+        if (counterEl) counterEl.innerHTML = html;
+        const chainCounterEl = document.getElementById('chain-uptime-counter');
+        if (chainCounterEl) chainCounterEl.innerHTML = html;
+        setTopContinuityText('hero-chain-uptime-counter', heroStr);
+        syncChainProofMetrics();
     }
 
     // Tick block age
@@ -1568,12 +1808,16 @@ function initUptimeClock() {
                 // Update finality: Tenderbake = 2 confirmations on top of block
                 // So finality ≈ 2 × avg block time
                 const finalityEl = document.getElementById('uptime-finality');
-                if (finalityEl && recentBlockTimes.length >= 3) {
+                const chainFinalityEl = document.getElementById('chain-uptime-finality');
+                if ((finalityEl || chainFinalityEl) && recentBlockTimes.length >= 3) {
                     const first = recentBlockTimes[0];
                     const last = recentBlockTimes[recentBlockTimes.length - 1];
                     const avgBlockTime = (last - first) / (recentBlockTimes.length - 1);
                     const finality = Math.round((avgBlockTime * 2) / 1000);
-                    finalityEl.textContent = `${finality}s`;
+                    const finalityText = `${finality}s`;
+                    chainFinalityText = finalityText;
+                    if (finalityEl) finalityEl.textContent = finalityText;
+                    if (chainFinalityEl) chainFinalityEl.textContent = finalityText;
                 }
 
                 // Flash the pulse dot
@@ -1612,13 +1856,25 @@ function initUptimeClock() {
             }
         }
         if (data.activeBakers && bakersEl) {
-            bakersEl.textContent = data.activeBakers.toLocaleString();
+            const bakersText = data.activeBakers.toLocaleString();
+            chainBakersText = bakersText;
+            bakersEl.textContent = bakersText;
+            setChainText('chain-uptime-bakers', bakersText);
+        } else if (data.activeBakers) {
+            chainBakersText = data.activeBakers.toLocaleString();
+            setChainText('chain-uptime-bakers', chainBakersText);
         }
-        if (data.stakedRatio && stakedEl) {
-            stakedEl.textContent = data.stakedRatio.toFixed(1) + '%';
+        if (data.stakedRatio) {
+            const stakedText = data.stakedRatio.toFixed(1) + '%';
+            chainStakedText = stakedText;
+            if (stakedEl) stakedEl.textContent = stakedText;
+            setChainText('chain-uptime-staked', stakedText);
         }
-        if (data.currentIssuanceRate !== undefined && issuanceEl) {
-            issuanceEl.textContent = formatPercentage(Number(data.currentIssuanceRate), 2);
+        if (data.currentIssuanceRate !== undefined) {
+            const issuanceText = formatPercentage(Number(data.currentIssuanceRate), 2);
+            chainIssuanceText = issuanceText;
+            if (issuanceEl) issuanceEl.textContent = issuanceText;
+            setChainText('chain-uptime-issuance', issuanceText);
         }
     };
 }
@@ -1762,14 +2018,31 @@ function handleVisibilityChange() {
  * Render protocol timeline from data (used for both cached and fresh)
  */
 function renderProtocolTimeline(protocols) {
+    if (!Array.isArray(protocols) || !protocols.length) return;
+    state.protocols = protocols;
+    updateProtocolHistoryEntryCard(protocols);
+
+    const countEl = document.getElementById('upgrade-count');
+    if (countEl) countEl.textContent = protocols.length;
+    const aboutUpgrades = document.getElementById('about-upgrades');
+    if (aboutUpgrades) aboutUpgrades.textContent = protocols.length;
+
+    const currentProtocol = protocols.find(p => p.isCurrent) || protocols[protocols.length - 1];
+    if (currentProtocol) {
+        const headerProtocolEl = document.getElementById('header-current-protocol');
+        if (headerProtocolEl) headerProtocolEl.textContent = currentProtocol.name;
+    }
+
     const timelineEl = document.getElementById('upgrade-timeline');
-    if (!timelineEl || !protocols.length) return;
+    if (!timelineEl) return;
+    const isHistoryChamber = Boolean(timelineEl.closest('#protocol-history-chamber-modal'));
+    const displayProtocols = isHistoryChamber ? [...protocols].reverse() : protocols;
     
     // Track which years to show labels for (first protocol of each year)
     const yearSeen = new Set();
     const timelineHTML = `
         <div class="timeline-track">
-            ${protocols.map(p => {
+            ${displayProtocols.map(p => {
                 const contentious = isContentiousProtocol(p);
                 const year = p.date ? new Date(p.date).getFullYear() : null;
                 const showYear = year && !yearSeen.has(year);
@@ -1787,7 +2060,7 @@ function renderProtocolTimeline(protocols) {
     timelineEl.innerHTML = timelineHTML;
     
     // Render expanded infographic below timeline
-    renderInfographic(protocols, timelineEl);
+    renderInfographic(displayProtocols, timelineEl, { currentFirst: isHistoryChamber });
     
     // Load protocol-data.json for rich tooltips, then attach JS tooltips
     initRichTooltips(protocols);
@@ -1795,27 +2068,12 @@ function renderProtocolTimeline(protocols) {
     // Initialize Upgrade Effect chart (toggle below timeline)
     initUpgradeEffect();
     
-    // Update count
-    const countEl = document.getElementById('upgrade-count');
-    if (countEl) countEl.textContent = protocols.length;
-    const aboutUpgrades = document.getElementById('about-upgrades');
-    if (aboutUpgrades) aboutUpgrades.textContent = protocols.length;
-    
-    // Update current protocol name and highlight
-    const currentProtocol = protocols.find(p => p.isCurrent) || protocols[protocols.length - 1];
-    if (currentProtocol) {
-        const protocolEl = document.getElementById('current-protocol');
-        if (protocolEl) protocolEl.textContent = currentProtocol.name;
-        
-        const highlightEl = document.getElementById('upgrade-highlight');
-        if (highlightEl) highlightEl.textContent = currentProtocol.highlight;
-    }
 }
 
 /**
  * Render expanded protocol infographic below the letter timeline
  */
-async function renderInfographic(protocols, timelineEl) {
+async function renderInfographic(protocols, timelineEl, options = {}) {
     // Clean up old instances (timeline gets rebuilt on data refresh)
     document.querySelectorAll('.infographic-toggle').forEach(function(el) { el.remove(); });
     document.querySelectorAll('.protocol-infographic').forEach(function(el) { el.remove(); });
@@ -1829,7 +2087,7 @@ async function renderInfographic(protocols, timelineEl) {
     // Toggle button
     const toggleDiv = document.createElement('div');
     toggleDiv.className = 'infographic-toggle';
-    toggleDiv.innerHTML = `<button class="infographic-toggle-btn">View Timeline ▾</button>`;
+    toggleDiv.innerHTML = `<button class="infographic-toggle-btn protocol-timeline-toggle-btn" type="button" aria-expanded="false">View Timeline ▾</button>`;
     // Place below the upgrade count (21 UPGRADES)
     const upgradeCount = document.querySelector('.upgrade-count');
     if (upgradeCount) {
@@ -1855,9 +2113,12 @@ async function renderInfographic(protocols, timelineEl) {
         return null;
     }
     
+    const explicitCurrent = protocols.find(p => p.isCurrent);
+    const fallbackCurrent = options.currentFirst ? protocols[0] : protocols[protocols.length - 1];
+    const currentName = (explicitCurrent || fallbackCurrent)?.name || '';
     let rowsHTML = '';
     protocols.forEach((p, i) => {
-        const isCurrent = p.isCurrent || i === protocols.length - 1;
+        const isCurrent = p.isCurrent || p.name === currentName;
         const rich = richMap[p.name];
         const contentious = isContentiousProtocol(p, rich);
         const dateStr = rich?.date
@@ -1909,6 +2170,7 @@ async function renderInfographic(protocols, timelineEl) {
     btn.addEventListener('click', () => {
         const expanded = infographic.classList.toggle('expanded');
         btn.textContent = expanded ? 'Hide Timeline ▴' : 'View Timeline ▾';
+        btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     });
 }
 
@@ -1924,6 +2186,55 @@ async function loadProtocolData() {
         return _protocolDataCache;
     } catch (e) { return null; }
 }
+
+function protocolToHistory(protocol) {
+    if (protocol?.history) return protocol.history;
+    if (!protocol) return null;
+
+    const date = protocol.date
+        ? new Date(protocol.date + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+        : 'Activation date unavailable';
+    const changes = Array.isArray(protocol.changes) && protocol.changes.length
+        ? protocol.changes.map((change) => `• ${change}`).join('\n\n')
+        : 'No curated change list is available yet.';
+    const blockLine = protocol.block ? `Activated at block ${Number(protocol.block).toLocaleString('en-US')}.` : '';
+    const blockTimeLine = protocol.blockTime ? `Block time target: ${protocol.blockTime} seconds.` : '';
+    const debateLine = protocol.debate ? `\n\n${protocol.debate}` : '';
+    const contentionLine = protocol.contention ? `\n\n${protocol.contention}` : '';
+
+    return {
+        title: `${protocol.name} Protocol`,
+        subtitle: [date, protocol.hash].filter(Boolean).join(' · '),
+        sections: [
+            {
+                heading: 'Protocol Context',
+                content: [
+                    protocol.headline || 'Self-amendment protocol upgrade.',
+                    blockLine,
+                    blockTimeLine
+                ].filter(Boolean).join('\n\n') + debateLine + contentionLine
+            },
+            {
+                heading: 'What Changed',
+                content: changes
+            }
+        ]
+    };
+}
+
+async function openProtocolHistoryByName(protocolName) {
+    const target = String(protocolName || '').trim();
+    if (!target) return false;
+    const data = await loadProtocolData();
+    const match = data?.protocols?.find((protocol) => protocol.name.toLowerCase() === target.toLowerCase())
+        || data?.protocols?.find((protocol) => protocol.name.toLowerCase().includes(target.toLowerCase()));
+    const history = protocolToHistory(match);
+    if (!match || !history) return false;
+    showProtocolHistoryModal(history, match.name);
+    return true;
+}
+
+window.openProtocolHistoryByName = openProtocolHistoryByName;
 
 async function initRichTooltips(protocols) {
     const data = await loadProtocolData();
@@ -2155,6 +2466,168 @@ function showProtocolHistoryModal(history, protocolName) {
     document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { closeModal(); document.removeEventListener('keydown', esc); } });
 }
 
+let protocolHistoryChamberCloseTimer = null;
+
+function handleProtocolHistoryChamberEscape(event) {
+    if (event.key === 'Escape') closeProtocolHistoryChamber();
+}
+
+function ensureProtocolHistoryChamberModal() {
+    let overlay = document.getElementById('protocol-history-chamber-modal');
+    if (overlay) return overlay;
+
+    overlay = document.createElement('div');
+    overlay.id = 'protocol-history-chamber-modal';
+    overlay.className = 'modal-overlay chamber-overlay protocol-history-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.innerHTML = `
+        <div class="modal-content modal-large chamber-content protocol-history-content" role="dialog" aria-modal="true" aria-labelledby="protocol-history-chamber-title">
+            <button class="modal-close chamber-close" aria-label="Close Protocol History Chamber" style="z-index:3">&times;</button>
+            <div class="chamber-body protocol-history-body">
+                <div class="chamber-loading">
+                    <div class="chamber-loading-text">Opening Protocol History Chamber...</div>
+                    <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    overlay.querySelector('.chamber-close')?.addEventListener('click', closeProtocolHistoryChamber);
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closeProtocolHistoryChamber();
+    });
+
+    return overlay;
+}
+
+function renderProtocolHistoryChamberShell(overlay) {
+    const body = overlay?.querySelector('.protocol-history-body');
+    if (!body) return;
+    body.innerHTML = `
+        <div class="chamber-header protocol-history-chamber-header">
+            <div class="chamber-title-row">
+                <h2 class="chamber-title" id="protocol-history-chamber-title">Protocol History Chamber</h2>
+            </div>
+            <p class="protocol-history-chamber-lede">
+                The Tezos self-amendment archive: protocol lore, proposal context, impact views, and the path from Tallinn back through every prior era.
+            </p>
+            <div class="protocol-history-chamber-actions">
+                <button class="protocol-history-chamber-link protocol-history-chamber-action" type="button" data-protocol-history-jump="timeline">View Timeline</button>
+                <button class="protocol-history-chamber-link protocol-history-chamber-action" type="button" data-protocol-history-jump="impact">View Impact</button>
+                <a class="protocol-history-chamber-link" href="#history">Open network charts</a>
+                <button class="protocol-history-chamber-link" type="button" data-copy-hash="#protocol-history">Copy chamber link</button>
+            </div>
+        </div>
+        <div class="protocol-history-chamber-panel protocol-history-feature-panel">
+            <div class="upgrade-count">
+                <span class="upgrade-number" id="upgrade-count">--</span>
+                <span class="upgrade-label">Upgrades</span>
+            </div>
+            <div class="protocol-history-feature-copy">
+                <span class="feature-kicker">Self-amendment archive</span>
+                <p>Start at the current operating protocol, then fold backward through individual protocol lore and impact views.</p>
+            </div>
+            <div class="upgrade-status" id="upgrade-status">
+                <!-- Voting status will be inserted here -->
+            </div>
+            <div class="upgrade-timeline" id="upgrade-timeline">
+                <div class="chamber-loading">
+                    <div class="chamber-loading-text">Loading protocol timeline...</div>
+                    <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
+                </div>
+            </div>
+        </div>
+    `;
+    wireProtocolHistoryChamberActions(overlay);
+}
+
+function revealProtocolHistorySection(section, attempt = 0) {
+    const overlay = document.getElementById('protocol-history-chamber-modal');
+    if (!overlay) return;
+
+    const isTimeline = section === 'timeline';
+    const toggle = isTimeline
+        ? overlay.querySelector('.protocol-timeline-toggle-btn')
+        : overlay.querySelector('.upgrade-effect-toggle-btn');
+    const target = isTimeline
+        ? overlay.querySelector('#protocol-infographic')
+        : overlay.querySelector('#upgrade-effect-panel');
+
+    if (!toggle || !target) {
+        if (attempt < 16) {
+            window.setTimeout(() => revealProtocolHistorySection(section, attempt + 1), 120);
+        }
+        return;
+    }
+
+    const isExpanded = target.classList.contains('expanded');
+    if (!isExpanded) toggle.click();
+
+    window.requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+    });
+}
+
+function wireProtocolHistoryChamberActions(overlay) {
+    overlay.querySelectorAll('[data-protocol-history-jump]').forEach((button) => {
+        button.addEventListener('click', () => {
+            revealProtocolHistorySection(button.dataset.protocolHistoryJump);
+        });
+    });
+}
+
+function closeProtocolHistoryChamber() {
+    const overlay = document.getElementById('protocol-history-chamber-modal');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.removeEventListener('keydown', handleProtocolHistoryChamberEscape);
+    document.body.style.overflow = '';
+    document.documentElement.style.overflow = '';
+    window.clearTimeout(protocolHistoryChamberCloseTimer);
+    protocolHistoryChamberCloseTimer = window.setTimeout(() => overlay.remove(), 220);
+}
+
+async function openProtocolHistoryChamber() {
+    document.getElementById('tooltip-protocol-history-entry-card')?.classList.remove('is-open');
+    const overlay = ensureProtocolHistoryChamberModal();
+    window.clearTimeout(protocolHistoryChamberCloseTimer);
+    renderProtocolHistoryChamberShell(overlay);
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleProtocolHistoryChamberEscape);
+
+    const cachedProtocols = getKnownProtocols();
+    if (cachedProtocols.length) {
+        renderProtocolTimeline(cachedProtocols);
+        await initProtocolShare();
+        return;
+    }
+
+    try {
+        const protocols = await fetchProtocols();
+        saveProtocols(protocols);
+        renderProtocolTimeline(protocols);
+        await initProtocolShare();
+    } catch (error) {
+        console.warn('Failed to open Protocol History Chamber:', error);
+        const timelineEl = document.getElementById('upgrade-timeline');
+        if (timelineEl) {
+            timelineEl.innerHTML = `
+                <div class="chamber-error">
+                    <h3>Protocol timeline unavailable</h3>
+                    <p>Cached protocol data was empty and the live fetch failed. Try again after the network settles.</p>
+                </div>
+            `;
+        }
+    }
+}
+
+window.openProtocolHistoryChamber = openProtocolHistoryChamber;
+
 function positionTooltip(e, tooltipEl) {
     const rect = tooltipEl.getBoundingClientRect();
     let x = e.clientX + 12;
@@ -2166,47 +2639,74 @@ function positionTooltip(e, tooltipEl) {
     tooltipEl.style.top = y + 'px';
 }
 
-const FOOTER_CHAD_STORAGE_KEY = 'tezos-systems-footer-aura';
-const FOOTER_CHAD_AURAS = {
+const TEZOS_LOOP_STORAGE_KEY = 'tezos-systems-loop-aura';
+const TEZOS_LOOP_AURAS = {
+    holder: {
+        title: 'Make Tezos personal',
+        line: 'Lock in a wallet or .tez name, then keep your baker, NFTs, governance, and network context within reach.',
+        query: 'my tezos',
+        searchLabel: 'Search My Tezos',
+        href: '#my-tezos',
+        action: 'my-tezos',
+        label: 'Open My Tezos'
+    },
+    baker: {
+        title: 'Read the operator map',
+        line: 'Baker aura warm: capacity, health, Octez versions, rights, rewards, and delegation paths before the next cycle sneaks up.',
+        query: 'baker',
+        searchLabel: 'Search bakers',
+        href: '#leaderboard',
+        label: 'Open baker map'
+    },
     builder: {
-        line: 'Builder aura minted. Borrow a live stat widget and make your own corner of the internet weirdly useful.',
+        title: 'Build with live network signal',
+        line: 'Builder aura minted: search KT1s and operations, then borrow a live stat widget for your own corner of the internet.',
+        query: 'KT1',
+        searchLabel: 'Search KT1 / ops',
         href: '/widgets/builder.html',
         label: 'Grab a live widget'
     },
-    baker: {
-        line: 'Baker aura warm. Check your address, rewards, and tiny network weather before the next cycle sneaks up.',
-        href: '#my-baker',
-        label: 'Open My Tezos'
-    },
     collector: {
-        line: 'Collector aura glossy. Art tabs open, taste calibrated, HEN mode very much within reach.',
+        title: 'Surface your on-chain culture',
+        line: 'Collector aura glossy: connect creator and collector profiles, Objkt activity, and HEN-mode weirdness to a Tezos identity.',
+        query: '/nfts',
+        searchLabel: 'Open NFT profile',
         href: '/hen/',
         label: 'Enter HEN'
     },
     governance: {
-        line: 'Governance aura spicy. You scroll proposal lore for fun and The Chamber has receipts.',
+        title: 'Read the amendment room',
+        line: 'Governance aura spicy: live votes, protocol lore, proposal receipts, and the anthology of what changed.',
+        query: '/chamber',
+        searchLabel: 'Search governance',
         href: '/chamber/',
         label: 'Enter the Chamber'
     },
     price: {
-        line: 'Price watcher aura awake. XTZ blinking on the bar, conviction doing little pushups.',
+        title: 'Track the market pulse',
+        line: 'Price watcher aura awake: XTZ price, market cap, cycle context, issuance, and comparison surfaces in one lane.',
+        query: 'price',
+        searchLabel: 'Search price intel',
         href: '#price',
         label: 'Open price intel'
     }
 };
 
-function initFooterChadCheckpoint() {
-    const checkpoint = document.getElementById('footer-chad-checkpoint');
-    const line = document.getElementById('footer-chad-line');
-    const link = document.getElementById('footer-chad-link');
-    if (!checkpoint || !line || !link) return;
+function initTezosLoopConsole() {
+    const consoleEl = document.getElementById('tezos-loop-console');
+    const title = document.getElementById('tezos-loop-title');
+    const line = document.getElementById('tezos-loop-line');
+    const link = document.getElementById('tezos-loop-link');
+    const search = document.getElementById('tezos-loop-search');
+    if (!consoleEl || !title || !line || !link || !search) return;
 
-    const chips = Array.from(checkpoint.querySelectorAll('[data-footer-chad]'));
-    if (!chips.length) return;
+    const chips = Array.from(consoleEl.querySelectorAll('.tezos-loop-chip[data-loop-aura]'));
+    const cards = Array.from(consoleEl.querySelectorAll('.recruit-card[data-loop-aura]'));
+    if (!chips.length || !cards.length) return;
 
     const getSavedAura = () => {
         try {
-            return localStorage.getItem(FOOTER_CHAD_STORAGE_KEY) || '';
+            return localStorage.getItem(TEZOS_LOOP_STORAGE_KEY) || '';
         } catch (_) {
             return '';
         }
@@ -2214,29 +2714,46 @@ function initFooterChadCheckpoint() {
 
     const saveAura = (aura) => {
         try {
-            localStorage.setItem(FOOTER_CHAD_STORAGE_KEY, aura);
+            localStorage.setItem(TEZOS_LOOP_STORAGE_KEY, aura);
         } catch (_) {}
     };
 
     const activate = (aura, persist = true) => {
-        const profile = FOOTER_CHAD_AURAS[aura] || FOOTER_CHAD_AURAS.builder;
-        checkpoint.dataset.aura = FOOTER_CHAD_AURAS[aura] ? aura : 'builder';
+        const profile = TEZOS_LOOP_AURAS[aura] || TEZOS_LOOP_AURAS.holder;
+        consoleEl.dataset.aura = TEZOS_LOOP_AURAS[aura] ? aura : 'holder';
+        title.textContent = profile.title;
         line.textContent = profile.line;
         link.href = profile.href;
+        link.dataset.loopAction = profile.action || '';
         link.textContent = profile.label;
+        search.dataset.heroQuery = profile.query;
+        search.textContent = profile.searchLabel || `Search ${profile.query}`;
         chips.forEach((chip) => {
-            const active = chip.dataset.footerChad === checkpoint.dataset.aura;
+            const active = chip.dataset.loopAura === consoleEl.dataset.aura;
             chip.classList.toggle('active', active);
             chip.setAttribute('aria-pressed', active ? 'true' : 'false');
         });
-        if (persist) saveAura(checkpoint.dataset.aura);
+        cards.forEach((card) => {
+            card.classList.toggle('is-active', card.dataset.loopAura === consoleEl.dataset.aura);
+        });
+        if (persist) saveAura(consoleEl.dataset.aura);
     };
 
     chips.forEach((chip) => {
-        chip.addEventListener('click', () => activate(chip.dataset.footerChad || 'builder'));
+        chip.addEventListener('click', () => activate(chip.dataset.loopAura || 'holder'));
+    });
+    cards.forEach((card) => {
+        card.addEventListener('click', () => activate(card.dataset.loopAura || 'holder'));
+    });
+    link.addEventListener('click', (event) => {
+        if (link.dataset.loopAction !== 'my-tezos') return;
+        const myTezosButton = document.getElementById('my-tezos-btn');
+        if (!myTezosButton) return;
+        event.preventDefault();
+        myTezosButton.click();
     });
 
-    activate(getSavedAura() || 'builder', false);
+    activate(getSavedAura() || 'holder', false);
 }
 
 /**
@@ -2500,7 +3017,6 @@ function initSmartDock() {
 
 function initDeepLinkAffordances() {
     const headerLinks = [
-        { selector: '#upgrade-clock .current-name-row', hash: '#history', label: 'protocol history' },
         { selector: '#leaderboard-section .section-header', hash: '#leaderboard', label: 'leaderboard' },
         { selector: '#comparison-section .section-header', hash: '#compare', label: 'chain comparison' },
         { selector: '#whale-section .section-header', hash: '#whales', label: 'whale feed' },
@@ -2687,6 +3203,8 @@ function initOfflineIndicator() {
 //   #lb-tile           → scroll to the Liquidity Baking dashboard tile
 //   #tz4               → open tz4 Adoption Chamber
 //   #ctez              → open ctez Oven Guide
+//   #protocol-history  → open Protocol History Chamber
+//   #protocol=Tallinn  → open protocol lore/history
 //   #theme=dark        → switch to theme
 //   #section=consensus → scroll to section
 // Account path shortcuts:
@@ -2914,6 +3432,8 @@ function applyDeepLink() {
             historyModal.setAttribute('aria-hidden', 'true');
         }
         document.getElementById('protocol-history-modal')?.remove();
+        document.getElementById('protocol-history-chamber-modal')?.remove();
+        document.removeEventListener('keydown', handleProtocolHistoryChamberEscape);
 
         await Promise.allSettled([
             import('../features/chamber.js').then((module) => module.closeChamber?.()),
@@ -3029,12 +3549,12 @@ function applyDeepLink() {
         showToggleSection('comparison-toggle', 'comparison-section', { delay: 500 });
     }
 
-    // #history — scroll to protocol/history area
-    if (params.has('history') || hash === 'history') {
-        setTimeout(() => {
-            const timeline = document.getElementById('upgrade-clock');
-            if (timeline) timeline.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 500);
+    // #protocol-history — open Protocol History Chamber
+    if (params.has('protocol-history') || hash === 'protocol-history') {
+        openHashModal(
+            () => openProtocolHistoryChamber(),
+            'Failed to open Protocol History Chamber'
+        );
     }
 
     // #leaderboard
@@ -3079,6 +3599,15 @@ function applyDeepLink() {
             const btn = document.getElementById('history-btn');
             if (btn) btn.click();
         }, 'Failed to open history modal');
+    }
+
+    // #protocol=Tallinn
+    if (params.has('protocol')) {
+        const protocolName = params.get('protocol');
+        openHashModal(
+            () => openProtocolHistoryByName(protocolName),
+            `Failed to open protocol history for ${protocolName || 'selected protocol'}`
+        );
     }
 
     // #theme=<name>

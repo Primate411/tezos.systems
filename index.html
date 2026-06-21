@@ -50,13 +50,14 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=244">
+    <link rel="stylesheet" href="css/styles.min.css?v=254">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=254">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=244">
+    <link rel="modulepreload" href="js/core/app.js?v=254">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -213,7 +214,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=213"></script>
+    <script src="js/core/theme-preload.js?v=254"></script>
     <a id="hen-launcher" class="hen-launcher" href="/?hen=1" aria-label="Enter HEN mode" title="Enter HEN mode">
         <span aria-hidden="true">🐔</span>
     </a>
@@ -256,7 +257,27 @@
         <div class="header-content">
             <div class="header-left">
                 <h1 class="title">Tezos Systems</h1>
+                <a class="header-protocol-chip" id="header-protocol-chip" href="#protocol-history" aria-label="Open Protocol History Chamber">
+                    <span>Running on</span>
+                    <strong id="header-current-protocol">Tallinn</strong>
+                </a>
             </div>
+            <button class="top-continuity-panel" id="top-continuity-panel" type="button" aria-label="Open historical Tezos network stats" aria-haspopup="dialog" aria-controls="history-modal" title="Open Historical Data">
+                <span class="top-continuity-uptime">
+                    <span class="top-continuity-prefix">Uptime:</span>
+                    <strong class="top-continuity-runtime" id="hero-chain-uptime-counter">—</strong>
+                </span>
+                <span class="top-continuity-divider">|</span>
+                <span class="top-continuity-stats" aria-label="Critical Tezos network signals">
+                    <span><strong id="hero-chain-uptime-bakers">—</strong><span class="top-continuity-label"> bakers</span></span>
+                    <span class="top-continuity-separator">·</span>
+                    <span><strong id="hero-chain-uptime-finality">12s</strong><span class="top-continuity-label"> finality</span></span>
+                    <span class="top-continuity-separator">·</span>
+                    <span><strong id="hero-chain-uptime-staked">—</strong><span class="top-continuity-label"> staked</span></span>
+                    <span class="top-continuity-separator">·</span>
+                    <span><strong id="hero-chain-uptime-issuance">—</strong><span class="top-continuity-label"> issuance</span></span>
+                </span>
+            </button>
             <div class="controls">
                 <!-- My Tezos — the one button that changes state -->
                 <button id="my-tezos-btn" class="glass-button header-nav-btn" aria-label="My Tezos — personalize your dashboard" title="My Tezos">
@@ -431,55 +452,6 @@
         </div>
     </header>
 
-    <!-- Upgrade Clock -->
-    <section class="upgrade-clock" id="upgrade-clock">
-        <div class="upgrade-clock-content">
-            <div class="upgrade-main">
-                <div class="upgrade-count">
-                    <span class="upgrade-number" id="upgrade-count">--</span>
-                    <span class="upgrade-label">Upgrades</span>
-                </div>
-                <div class="upgrade-info">
-                    <div class="upgrade-current">
-                        <span class="current-label">Current Protocol</span>
-                        <div class="current-name-row"><span class="current-name" id="current-protocol">Loading...</span> <button class="info-button upgrade-share-btn" id="upgrade-share-btn" aria-label="Share upgrade section" title="Share this section">📸</button></div>
-                    </div>
-                    <div class="upgrade-highlight" id="upgrade-highlight"></div>
-                </div>
-                <!-- Living Uptime Clock -->
-                <div class="uptime-clock" id="uptime-clock">
-                    <div class="uptime-counter" id="uptime-counter">—</div>
-                    <div class="uptime-tagline">LIVE · ZERO FORKS · ZERO OUTAGES</div>
-                    <div class="uptime-metrics">
-                        <div class="uptime-metric">
-                            <span class="uptime-metric-value" id="uptime-bakers">—</span>
-                            <span class="uptime-metric-label">bakers</span>
-                        </div>
-                        <div class="uptime-metric">
-                            <span class="uptime-metric-value" id="uptime-finality">12s</span>
-                            <span class="uptime-metric-label">finality</span>
-                        </div>
-                        <div class="uptime-metric">
-                            <span class="uptime-metric-value" id="uptime-staked">—</span>
-                            <span class="uptime-metric-label">staked</span>
-                        </div>
-                        <div class="uptime-metric">
-                            <span class="uptime-metric-value" id="uptime-issuance">—</span>
-                            <span class="uptime-metric-label">issuance</span>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-            <div class="upgrade-status" id="upgrade-status">
-                <!-- Voting status will be inserted here -->
-            </div>
-            <div class="upgrade-timeline" id="upgrade-timeline">
-                <!-- Timeline will be inserted here -->
-            </div>
-        </div>
-    </section>
-
     <!-- Live block ticker -->
     <section class="block-ticker-strip" id="block-ticker-strip" aria-label="Latest Tezos block">
         <button class="block-ticker-button" id="block-ticker-button" type="button" aria-label="Open Network Health Chamber">
@@ -492,8 +464,119 @@
         </button>
     </section>
 
+    <!-- Command Deck -->
+    <section class="upgrade-clock command-deck" id="upgrade-clock" aria-label="Tezos Systems command surface">
+        <div class="upgrade-clock-content command-deck-content">
+            <div class="hero-slot" id="hero-slot">
+                <form class="hero-search-form" id="hero-search-form" role="search" autocomplete="off">
+                    <span class="hero-search-mark" aria-hidden="true">⌕</span>
+                    <input
+                        class="hero-search-input"
+                        id="hero-search-input"
+                        type="search"
+                        aria-label="Search Tezos Systems"
+                        role="combobox"
+                        aria-controls="hero-search-panel"
+                        aria-expanded="false"
+                        aria-autocomplete="list"
+                        aria-activedescendant=""
+                        placeholder="Search address · baker · KT1 · op hash · block · .tez · My Tezos"
+                        spellcheck="false"
+                        autocomplete="off"
+                    >
+                    <button class="hero-search-submit" type="submit" aria-label="Open selected Tezos Systems result">↵</button>
+                </form>
+                <div class="hero-search-chips" id="hero-search-chips" aria-label="Suggested searches"></div>
+                <div class="hero-search-panel" id="hero-search-panel" role="listbox" aria-label="Tezos Systems search results" hidden></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="uptime-clock runtime-only" id="uptime-clock" aria-hidden="true">
+        <div class="uptime-counter" id="uptime-counter">—</div>
+        <span id="uptime-bakers">—</span>
+        <span id="uptime-finality">12s</span>
+        <span id="uptime-staked">—</span>
+        <span id="uptime-issuance">—</span>
+    </div>
+
     <!-- Main content -->
     <main class="main-content" role="main">
+
+        <!-- Chambers Section -->
+        <section class="stats-section chamber-suite-section" id="chambers-section">
+            <div class="section-header">
+                <h2 class="section-title">🏛️ Chambers</h2>
+            </div>
+
+            <div class="stats-grid" id="chambers-grid"></div>
+        </section>
+
+        <section class="stats-section recruit-section" id="recruit-section" aria-labelledby="tezos-loop-title">
+            <div class="tezos-loop-console" id="tezos-loop-console" data-aura="holder">
+                <div class="tezos-loop-badge" aria-hidden="true">
+                    <span class="tezos-loop-sigil">ꜩ</span>
+                    <span class="tezos-loop-spark tezos-loop-spark-a"></span>
+                    <span class="tezos-loop-spark tezos-loop-spark-b"></span>
+                    <span class="tezos-loop-spark tezos-loop-spark-c"></span>
+                </div>
+                <div class="tezos-loop-copy">
+                    <p class="tezos-loop-kicker">Find your Tezos loop</p>
+                    <h2 class="tezos-loop-title" id="tezos-loop-title">Pick your Tezos aura. Then get moving.</h2>
+                    <p class="tezos-loop-line" id="tezos-loop-line">Lock in a wallet or .tez name, then keep your own state within reach.</p>
+                    <div class="tezos-loop-actions">
+                        <button class="tezos-loop-link tezos-loop-link-primary" id="tezos-loop-search" type="button" data-hero-query="my tezos">Start with My Tezos</button>
+                        <a class="tezos-loop-link" id="tezos-loop-link" href="#my-tezos">Open My Tezos</a>
+                    </div>
+                </div>
+                <div class="tezos-loop-chips" role="group" aria-label="Choose your Tezos aura">
+                    <button class="tezos-loop-chip active" type="button" data-loop-aura="holder" aria-pressed="true">Holder</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="baker" aria-pressed="false">Baker</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="builder" aria-pressed="false">Builder</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="collector" aria-pressed="false">Collector</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="governance" aria-pressed="false">Gov maxi</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="price" aria-pressed="false">Price watcher</button>
+                </div>
+                <div class="recruit-grid">
+                    <button class="recruit-card is-active" type="button" data-loop-aura="holder" data-hero-query="my tezos">
+                        <span class="recruit-card-kicker">Holder</span>
+                        <strong>Make Tezos personal</strong>
+                        <span>Wallet, .tez name, baker, NFTs, governance, and daily context in one retrieval lane.</span>
+                        <span class="recruit-card-action">Search My Tezos</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="baker" data-hero-query="baker">
+                        <span class="recruit-card-kicker">Baker</span>
+                        <strong>Read the operator map</strong>
+                        <span>Capacity, health, Octez versions, rights, rewards, and delegation paths.</span>
+                        <span class="recruit-card-action">Search bakers</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="builder" data-hero-query="KT1">
+                        <span class="recruit-card-kicker">Builder</span>
+                        <strong>Follow contracts and operations</strong>
+                        <span>Paste KT1s, blocks, and operation hashes; turn live stats into embeddable tools.</span>
+                        <span class="recruit-card-action">Search KT1 / ops</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="collector" data-hero-query="/nfts">
+                        <span class="recruit-card-kicker">Collector</span>
+                        <strong>Surface your on-chain culture</strong>
+                        <span>Creator and collector profiles connect Objkt activity to your Tezos identity.</span>
+                        <span class="recruit-card-action">Open NFT profile</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="governance" data-hero-query="/chamber">
+                        <span class="recruit-card-kicker">Gov maxi</span>
+                        <strong>Read the amendment room</strong>
+                        <span>Live votes, protocol lore, proposal receipts, and the anthology of what changed.</span>
+                        <span class="recruit-card-action">Enter governance</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="price" data-hero-query="price">
+                        <span class="recruit-card-kicker">Price watcher</span>
+                        <strong>Track the market pulse</strong>
+                        <span>XTZ price, market cap, cycle context, issuance, and comparison surfaces.</span>
+                        <span class="recruit-card-action">Open price intel</span>
+                    </button>
+                </div>
+            </div>
+        </section>
 
         <!-- Baker Leaderboard -->
     <section class="my-baker-section" id="leaderboard-section">
@@ -701,15 +784,6 @@
                 <div class="moments-empty">No moments recorded yet. Keep watching!</div>
             </div>
         </section>
-
-        <!-- Chambers Section -->
-            <section class="stats-section chamber-suite-section" id="chambers-section">
-                <div class="section-header">
-                    <h2 class="section-title">🏛️ Chambers</h2>
-                </div>
-
-                <div class="stats-grid" id="chambers-grid"></div>
-            </section>
 
         <!-- Consensus Section -->
         <section class="stats-section tezos-stats-section" style="display:none" id="consensus-section">
@@ -1778,27 +1852,6 @@
         <div class="footer-content">
 
         </div>
-        <section class="footer-chad-checkpoint" id="footer-chad-checkpoint" aria-labelledby="footer-chad-title">
-            <div class="footer-chad-badge" aria-hidden="true">
-                <span class="footer-chad-sigil">ꜩ</span>
-                <span class="footer-chad-spark footer-chad-spark-a"></span>
-                <span class="footer-chad-spark footer-chad-spark-b"></span>
-                <span class="footer-chad-spark footer-chad-spark-c"></span>
-            </div>
-            <div class="footer-chad-copy">
-                <p class="footer-chad-kicker">Basement vibe check</p>
-                <h2 class="footer-chad-title" id="footer-chad-title">Still scrolling? Pick your Tezos aura.</h2>
-                <p class="footer-chad-line" id="footer-chad-line">Tiny badge generator for builders, bakers, collectors, governance maxis, and price-watchers.</p>
-                <a class="footer-chad-link" id="footer-chad-link" href="/widgets/builder.html">Grab a live widget</a>
-            </div>
-            <div class="footer-chad-chips" role="group" aria-label="Choose your Tezos aura">
-                <button class="footer-chad-chip active" type="button" data-footer-chad="builder" aria-pressed="true">Builder</button>
-                <button class="footer-chad-chip" type="button" data-footer-chad="baker" aria-pressed="false">Baker</button>
-                <button class="footer-chad-chip" type="button" data-footer-chad="collector" aria-pressed="false">Collector</button>
-                <button class="footer-chad-chip" type="button" data-footer-chad="governance" aria-pressed="false">Gov maxi</button>
-                <button class="footer-chad-chip" type="button" data-footer-chad="price" aria-pressed="false">Price watcher</button>
-            </div>
-        </section>
         <div class="footer-meta" aria-label="Site attribution and links">
             <p class="powered-by">
                 Powered by <a href="https://tez.capital" target="_blank" rel="noopener">Tez Capital</a>
@@ -2080,7 +2133,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=244"></script>
+    <script type="module" src="js/core/app.js?v=254"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

@@ -5,8 +5,27 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-21',
+        entries: [
+            { type: '🔧', text: 'Protocol History Chamber now exposes View Timeline and View Impact controls at the top of the anthology instead of burying them below the timeline' },
+            { type: '✨', text: 'The header uptime rail now decrypt-shuffles changed values for 1.5 seconds and opens Historical Data when clicked' },
+            { type: '🎨', text: 'The header uptime rail now uses a simple pipe into right-aligned live stats instead of spelling out zero-fork and zero-outage copy' },
+            { type: '🎨', text: 'The front-page uptime proof is now a single-line header rail starting with Uptime instead of a large continuity card' },
+            { type: '🎨', text: 'The zero-fork continuity proof now sits beside the Tezos Systems identity with live bakers, finality, staked share, and issuance before the command bar' },
+            { type: '🎨', text: 'The duplicate recruit cards and footer aura prompt are now one Tezos Loop Console with persona lanes, command-bar seeds, and direct next-step routes' },
+            { type: '🎨', text: 'Protocol History now appears in Chambers as a Protocol Anthology card with current chapter, lore, impact, memory, and recent protocol spines' },
+            { type: '🎨', text: 'The live block ticker and Network Health entry card are clean again, with uptime and zero-outage proof moved into a dedicated Continuity Proof panel inside the Network Health Chamber' },
+            { type: '🎨', text: 'The command deck is now pure search, with the Running on Tallinn header chip launching Protocol History instead of repeating protocol copy above the bar' },
+            { type: '✨', text: 'Protocol History now opens current-first from Tallinn and folds backward through prior protocol eras inside its Chamber' },
+            { type: '🔧', text: 'Active search now transforms the page into a focused retrieval mode so Chambers recede behind the command surface instead of overlapping it' },
+        ]
+    },
+    {
         date: '2026-06-20',
         entries: [
+            { type: '✨', text: 'Protocol History is now a full Chamber with the timeline, protocol lore, sharing, and impact views preserved behind #protocol-history' },
+            { type: '✨', text: 'The front page now opens with a command deck: Running on Tallinn, live block ticker, primary search, Chambers, and persona loops before the protocol archive' },
+            { type: '✨', text: 'The command bar now treats My Tezos as a retrieval surface for wallets, .tez names, bakers, Chambers, protocol lore, and dashboard commands' },
             { type: '✨', text: 'The living uptime panel now shows live annual issuance beside bakers, finality, and staked share' },
             { type: '✨', text: 'The live block ticker now shows the latest baker Octez version between Health and Attested so upgrade readiness is visible at a glance' },
             { type: '✨', text: 'Tezos vs Other Chains now opens with a standing summary for where Tezos, Ethereum, Solana, Cardano, and Algorand each lead or lag' },

@@ -107,7 +107,7 @@ tezos.systems/
 3. `app.js` initializes feature modules behind safe wrappers, registers the
    service worker, handles deep links, and starts the refresh loop.
 4. Cached stats and protocol data are displayed first when available.
-5. First-visit default content is the protocol panel plus the Chambers section.
+5. First-visit default content is the command deck plus the Chambers section.
    Network Stats sections are hidden until the user enables Network Stats from
    Explore.
 6. Background refreshes update hero stats, comparison data, governance state,
@@ -163,19 +163,24 @@ inline modal styles in `js/core/app.js`.
 
 - Chambers section is visible by default and orders the chamber rows as Network
   Health <> Tezos L1 Governance, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
-  Monitor. ctez End of Life stays off the default Chambers grid and opens from
-  Explore or the small top-left ctez launcher. Each Chamber row is wrapped
-  responsively so wide cards keep their companion card instead of creating
-  desktop grid holes; cards also keep a canonical app-shell open affordance in
-  the fixed footer rail, card-level direct-link controls, and quiet `as of`
-  freshness stamps on the live chamber cards.
-- A live block ticker sits as its own island below the Current Protocol panel
-  and above Chambers.
+  Monitor, then Protocol History as its own Chamber row. ctez End of Life stays
+  off the default Chambers grid and opens from Explore or the small top-left ctez
+  launcher. Each Chamber row is wrapped responsively so wide cards keep their
+  companion card instead of creating desktop grid holes; cards also keep a
+  canonical app-shell open affordance in the fixed footer rail, card-level
+  direct-link controls, and quiet `as of` freshness stamps on the live chamber
+  cards.
+- A live block ticker sits as its own island below the header/title row and
+  above the command deck.
   It uses the Network Health block feed to show the latest block, baker,
   attestation health, attested power, round, and age in a single
   animated strip with stable-width volatile numbers, compact baker names, and a
   clean whole-line transition.
   Clicking the strip opens the Network Health Chamber.
+- The Network Health Chamber contains a Continuity Proof panel: long-running
+  live uptime, zero-forks/zero-outages claim, active baker count, finality,
+  staked share, and issuance rate, keeping proof data inside the deep Health
+  surface instead of crowding the front card or global block tape.
 - Tezos X Governance Chamber with direct `#l2chamber` access and visible L2
   Governance labeling,
   live FAST, SLOW, and Sequencer track status sourced from TzKT contract
@@ -205,12 +210,34 @@ inline modal styles in `js/core/app.js`.
   Lens panels.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
-- Protocol timeline and history modals backed by `data/protocol-data.json` and
-  `data/protocol-debates.json`.
+- First-screen command deck built for retrieval: the top of the page moves from
+  live cycle/market data to `Tezos Systems`, a clickable
+  `Running on <current protocol>` Protocol History launcher, a live
+  block-health ticker, then a pure command bar before Chambers. The bar accepts
+  Tezos addresses, `.tez` names, protocol names, block levels, block hashes,
+  operation hashes, KT1 contracts, and slash commands. While active, the command
+  bar switches the page into a focused search mode that pushes Chambers into a
+  barely-visible background layer. Phase-one internal routes open My Tezos,
+  baker profiles, protocol lore/history, Chambers, themes, calculator,
+  comparisons, leaderboard, whale/giant feeds, NFT lookup, and History; KT1,
+  operation, and block results are marked as TzKT explorer boundaries until
+  native rooms exist.
+- Protocol History Chamber with direct `#protocol-history` access, backed by
+  `data/protocol-data.json` and `data/protocol-debates.json`. It preserves the
+  protocol timeline, individual protocol lore modals, share capture, and impact
+  views while keeping proposal history out of the first-visitor hero path. The
+  Chambers entry presents this as a Protocol Anthology: a current chapter,
+  lore/impact/memory facets, and recent protocol spines that open into a
+  current-first fold-out archive.
+- Tezos Loop Console below Chambers replaces the duplicate recruit/footer aura
+  prompts with one persona surface. Holder, Baker, Builder, Collector,
+  Governance, and Price lanes update the active aura, seed the command bar, and
+  expose direct next-step links such as My Tezos, widgets, HEN, The Chamber, and
+  price intelligence.
 - Tezos L1 Governance for live and historical amendment voting, including a
   current-stage chronological ballot feed and the bottom historical vote log
-  sourced from `data/governance-votes.json`. The Current Protocol panel does
-  not carry a separate Chamber prompt; live and quiet governance context lives
+  sourced from `data/governance-votes.json`. The command deck does not carry a
+  separate governance prompt; live and quiet governance context lives
   in the Tezos L1 Governance card and modal. The Tezos L1 Governance card refreshes every 60 seconds
   and expands during active ballot periods to show proposal name, time left,
   quorum, supermajority, and ballot context; during Adoption it expands with a
@@ -258,6 +285,8 @@ Useful deep links include:
 - `#whales`
 - `#giants`
 - `#history`
+- `#protocol-history`
+- `#protocol=Tallinn`
 - `#theme=...`
 - `#section=...`
 - `#price`

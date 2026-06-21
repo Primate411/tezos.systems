@@ -2482,6 +2482,132 @@ async function smokeAppShell(browser, baseUrl) {
   log(`ok - app shell smoke (${shell.assetResults.length} shell assets)`);
 }
 
+async function smokeHeroCommandBar(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'hero command bar', issues);
+
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `hero command bar: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('#hero-search-input').waitFor({ state: 'visible', timeout: 10000 });
+  const frontDoorOrder = await page.evaluate(() => {
+    const ids = ['block-ticker-strip', 'upgrade-clock', 'chambers-section', 'recruit-section'];
+    return ids.map((id) => {
+      const el = document.getElementById(id);
+      return { id, position: el ? Array.prototype.indexOf.call(document.body.querySelectorAll('*'), el) : -1 };
+    });
+  });
+  for (const item of frontDoorOrder) {
+    assert(item.position >= 0, `hero command bar: missing front-door section #${item.id}`);
+  }
+  const orderPositions = frontDoorOrder.map((item) => item.position);
+  assert(orderPositions.every((position, index) => index === 0 || position > orderPositions[index - 1]), `hero command bar: first-screen order mismatch: ${JSON.stringify(frontDoorOrder)}`);
+  const deckChromeState = await page.evaluate(() => ({
+    commandDeckHeadCount: document.querySelectorAll('.command-deck-head').length,
+    upgradeShareCount: document.querySelectorAll('#upgrade-share-btn').length
+  }));
+  assert(deckChromeState.commandDeckHeadCount === 0, 'hero command bar: command deck should not show protocol chrome above search');
+  assert(deckChromeState.upgradeShareCount === 0, 'hero command bar: old upgrade share button should not remain in the first-screen search deck');
+
+  await page.locator('#header-protocol-chip').click();
+  await page.waitForFunction(() => window.location.hash === '#protocol-history', null, { timeout: 5000 });
+  await page.locator('#protocol-history-chamber-modal.active #upgrade-timeline .timeline-item').first().waitFor({ state: 'visible', timeout: 10000 });
+  const firstProtocolInHistory = await page.locator('#protocol-history-chamber-modal #upgrade-timeline .timeline-item').first().getAttribute('data-protocol');
+  assert(firstProtocolInHistory === 'Tallinn', `hero command bar: Protocol History Chamber should start at current protocol, saw ${firstProtocolInHistory}`);
+  await page.locator('#protocol-history-chamber-modal .chamber-close').click();
+  await page.locator('#protocol-history-chamber-modal').waitFor({ state: 'detached', timeout: 5000 });
+
+  await page.keyboard.press('/');
+  await page.waitForFunction(() => document.activeElement?.id === 'hero-search-input', null, { timeout: 5000 });
+  await page.locator('#hero-search-panel').waitFor({ state: 'visible', timeout: 5000 });
+  await page.waitForFunction(() => {
+    const main = document.querySelector('.main-content');
+    return main && Number.parseFloat(getComputedStyle(main).opacity) <= 0.2;
+  }, null, { timeout: 5000 });
+  const focusModeState = await page.evaluate(() => {
+    const main = document.querySelector('.main-content');
+    const commandDeck = document.querySelector('.command-deck');
+    const panel = document.querySelector('#hero-search-panel');
+    return {
+      bodyMode: document.body.classList.contains('hero-search-mode'),
+      mainOpacity: Number.parseFloat(getComputedStyle(main).opacity),
+      mainPointerEvents: getComputedStyle(main).pointerEvents,
+      commandDeckZ: Number.parseInt(getComputedStyle(commandDeck).zIndex, 10),
+      panelZ: Number.parseInt(getComputedStyle(panel).zIndex, 10)
+    };
+  });
+  assert(focusModeState.bodyMode, 'hero command bar: search focus should transform the page');
+  assert(focusModeState.mainOpacity <= 0.2, `hero command bar: Chambers should recede behind search, opacity ${focusModeState.mainOpacity}`);
+  assert(focusModeState.mainPointerEvents === 'none', `hero command bar: background chambers should not sit above active search, pointer events ${focusModeState.mainPointerEvents}`);
+  assert(focusModeState.commandDeckZ >= 3000 && focusModeState.panelZ > focusModeState.commandDeckZ, `hero command bar: search layer z-index mismatch ${JSON.stringify(focusModeState)}`);
+  const emptyStateText = await page.locator('#hero-search-panel').innerText();
+  assert(/my tezos/i.test(emptyStateText) && /network health/i.test(emptyStateText) && /liquidity baking/i.test(emptyStateText), `hero command bar: empty state missing retrieval rows: ${emptyStateText}`);
+  assert(!/protocol history/i.test(emptyStateText), `hero command bar: empty state should not push protocol history first: ${emptyStateText}`);
+  await page.mouse.click(10, 10);
+  await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.getElementById('hero-search-panel')?.hidden, null, { timeout: 5000 });
+
+  await page.locator('#protocol-history-entry-card').waitFor({ state: 'visible', timeout: 10000 });
+  const protocolEntryText = await page.locator('#protocol-history-entry-card').innerText();
+  assert(/Protocol Anthology/i.test(protocolEntryText) && /Lore/i.test(protocolEntryText) && /Impact/i.test(protocolEntryText), `hero command bar: Protocol Anthology card missing expected copy: ${protocolEntryText}`);
+
+  await page.keyboard.press('/');
+  await page.locator('#hero-search-input').fill('/protocol-history');
+  await page.waitForFunction(() => /Protocol Anthology|protocol-history/i.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.location.hash === '#protocol-history', null, { timeout: 5000 });
+  await page.locator('#protocol-history-chamber-modal.active #upgrade-timeline .timeline-item').first().waitFor({ state: 'visible', timeout: 10000 });
+  const historyChamberText = await page.locator('#protocol-history-chamber-modal').innerText();
+  assert(/Protocol History Chamber/i.test(historyChamberText) && /Impact/i.test(historyChamberText), `hero command bar: Protocol History Chamber did not preserve timeline/impact surface: ${historyChamberText.slice(0, 320)}`);
+  await page.locator('#protocol-history-chamber-modal .chamber-close').click();
+  await page.locator('#protocol-history-chamber-modal').waitFor({ state: 'detached', timeout: 5000 });
+
+  await page.locator('#hero-search-input').fill('Granada');
+  await page.waitForFunction(() => /Granada/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.location.hash === '#protocol=Granada', null, { timeout: 5000 });
+  await page.locator('#protocol-history-modal').waitFor({ state: 'visible', timeout: 10000 });
+  const protocolText = await page.locator('#protocol-history-modal').innerText();
+  assert(/Liquidity Baking Wars Begin|Granada Protocol/.test(protocolText), `hero command bar: protocol modal text mismatch: ${protocolText.slice(0, 320)}`);
+  await page.locator('#protocol-history-modal #history-modal-close').click();
+  await page.locator('#protocol-history-modal').waitFor({ state: 'detached', timeout: 5000 });
+
+  await page.keyboard.press('/');
+  await page.locator('#hero-search-input').fill('/calculator');
+  await page.waitForFunction(() => /\/calculator/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.location.hash === '#calculator', null, { timeout: 5000 });
+  await page.locator('#calculator-section.visible').waitFor({ state: 'visible', timeout: 5000 });
+
+  await page.locator('.recruit-card[data-hero-query="my tezos"]').scrollIntoViewIfNeeded();
+  await page.locator('.recruit-card[data-hero-query="my tezos"]').click();
+  await page.waitForFunction(() => document.activeElement?.id === 'hero-search-input', null, { timeout: 5000 });
+  await page.waitForFunction(() => /My Tezos/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+  assert((await page.locator('#hero-search-input').inputValue()).toLowerCase() === 'my tezos', 'hero command bar: recruit card should seed My Tezos query');
+  const loopState = await page.evaluate(() => ({
+    aura: document.querySelector('#tezos-loop-console')?.dataset.aura || '',
+    title: document.querySelector('#tezos-loop-title')?.textContent || '',
+    activeCards: document.querySelectorAll('.recruit-card.is-active').length,
+    activeChips: document.querySelectorAll('.tezos-loop-chip.active').length
+  }));
+  assert(loopState.aura === 'holder' && /personal/i.test(loopState.title), `hero command bar: Tezos loop holder state mismatch ${JSON.stringify(loopState)}`);
+  assert(loopState.activeCards === 1 && loopState.activeChips === 1, `hero command bar: Tezos loop active state mismatch ${JSON.stringify(loopState)}`);
+
+  await context.close();
+  assert(issues.length === 0, `hero command bar browser issues:\n${issues.join('\n')}`);
+  log('ok - hero command bar smoke');
+}
+
 async function smokeTzktThrottle(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -2571,7 +2697,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, '#price-bar', 1, label);
   await expectCount(page, '#upgrade-clock', 1, label);
   await expectCount(page, '.stat-card', 19, label);
-  await expectCount(page, '.card-share-btn, #share-btn, #upgrade-share-btn, #comparison-share-all-btn', 5, label);
+  await expectCount(page, '.card-share-btn, #share-btn, #comparison-share-all-btn', 4, label);
   await expectCount(page, '#build-version', 1, label);
   await expectCount(page, '#widgets-gallery', 1, label);
   await expectCount(page, '#chambers-section', 1, label);
@@ -3579,28 +3705,30 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.waitForFunction(() => /Teztale/.test(document.querySelector('#health-teztale-consensus')?.textContent || ''), null, { timeout: 10000 });
   await page.waitForFunction(() => /Octez Versions/.test(document.querySelector('#health-octez-versions')?.textContent || ''), null, { timeout: 10000 });
   await page.waitForFunction(() => /Block/.test(document.querySelector('#block-ticker-line')?.textContent || ''), null, { timeout: 10000 });
+  await page.waitForFunction(() => /^\d+$/.test(document.querySelector('#hero-chain-uptime-bakers')?.textContent || ''), null, { timeout: 10000 });
 
   const healthState = await page.evaluate(() => {
     const modal = document.querySelector('#network-health-modal');
+    const header = document.querySelector('.header');
+    const topProof = document.querySelector('#top-continuity-panel');
     const card = document.querySelector('[data-stat="network-health"]');
     const ticker = document.querySelector('#block-ticker-strip');
     const tickerButton = document.querySelector('#block-ticker-button');
     const tickerLine = document.querySelector('#block-ticker-line');
+    const healthProof = modal?.querySelector('#health-chain-proof');
     const tickerKicker = ticker?.querySelector('.block-ticker-kicker');
     const tickerPulse = ticker?.querySelector('#uptime-pulse-dot.block-ticker-pulse');
     const priceBar = document.querySelector('#price-bar');
     const upgradeClock = document.querySelector('#upgrade-clock');
-    const protocolPanel = document.querySelector('.upgrade-clock-content');
+    const commandDeckPanel = document.querySelector('.upgrade-clock-content');
     const main = document.querySelector('main.main-content');
     const chambersSection = document.querySelector('#chambers-section');
-    const header = document.querySelector('.header');
     const tickerRect = ticker?.getBoundingClientRect();
     const upgradeClockRect = upgradeClock?.getBoundingClientRect();
     const mainRect = main?.getBoundingClientRect();
     const chambersRect = chambersSection?.getBoundingClientRect();
-    const headerRect = header?.getBoundingClientRect();
     const tickerStyles = ticker ? getComputedStyle(ticker) : null;
-    const protocolPanelStyles = protocolPanel ? getComputedStyle(protocolPanel) : null;
+    const commandDeckPanelStyles = commandDeckPanel ? getComputedStyle(commandDeckPanel) : null;
     const tickerPulseStyles = tickerPulse ? getComputedStyle(tickerPulse) : null;
     const tickerBlockValue = tickerLine?.querySelector('.block-ticker-level .block-ticker-value');
     const tickerBakerValue = tickerLine?.querySelector('.block-ticker-baker .block-ticker-value');
@@ -3664,6 +3792,17 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       myBaker: modal?.querySelector('.health-my-baker-panel')?.textContent || '',
       myBakerStatus: modal?.querySelector('.health-my-baker-status')?.textContent || '',
       myBakerMetrics: Array.from(modal?.querySelectorAll('.health-my-baker-metrics strong') || []).map((el) => el.textContent || ''),
+      topProofText: topProof?.textContent || '',
+      topProofInHeader: Boolean(topProof && header?.contains(topProof)),
+      topProofTag: topProof?.tagName || '',
+      topProofType: topProof?.getAttribute('type') || '',
+      topProofAriaControls: topProof?.getAttribute('aria-controls') || '',
+      topProofHistoryWired: topProof?.dataset.historyWired || '',
+      topProofCounter: topProof?.querySelector('#hero-chain-uptime-counter')?.textContent || '',
+      topProofBakers: topProof?.querySelector('#hero-chain-uptime-bakers')?.textContent || '',
+      topProofFinality: topProof?.querySelector('#hero-chain-uptime-finality')?.textContent || '',
+      topProofStaked: topProof?.querySelector('#hero-chain-uptime-staked')?.textContent || '',
+      topProofIssuance: topProof?.querySelector('#hero-chain-uptime-issuance')?.textContent || '',
       systemLinks: modal?.querySelectorAll('.health-baker-name-link[href^="#baker="]').length || 0,
       tzktLinks: modal?.querySelectorAll('.lb-baker-source-link[href^="https://tzkt.io/"]').length || 0,
       footer: modal?.querySelector('.chamber-footer')?.textContent || '',
@@ -3688,15 +3827,24 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
         : 0,
       cardStale: card?.classList.contains('chamber-data-stale') || false,
       cardTape: card?.querySelector('#network-health-live-tape')?.textContent || '',
+      cardHasProofStrip: Boolean(card?.querySelector('#network-health-proof, #chain-uptime-counter')),
       blockTickerOwnIsland: ticker?.tagName === 'SECTION' && ticker?.parentElement === document.body,
-      blockTickerAfterProtocolPanel: ticker?.previousElementSibling?.id === 'upgrade-clock',
-      blockTickerBeforeMainContent: ticker?.nextElementSibling === main,
-      blockTickerBelowProtocolPanel: Boolean(tickerRect && upgradeClockRect && upgradeClockRect.bottom < tickerRect.top),
+      blockTickerAfterHeader: ticker?.previousElementSibling?.classList.contains('header') || false,
+      blockTickerBeforeCommandDeck: ticker?.nextElementSibling?.id === 'upgrade-clock',
+      blockTickerBeforeMainContent: Boolean(ticker && main && (ticker.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING)),
+      blockTickerAboveCommandDeck: Boolean(tickerRect && upgradeClockRect && tickerRect.bottom < upgradeClockRect.top),
       blockTickerAboveChambers: Boolean(tickerRect && chambersRect && tickerRect.bottom < chambersRect.top),
-      blockTickerClearOfProtocolPanel: Boolean(tickerRect && upgradeClockRect && tickerRect.top - upgradeClockRect.bottom >= 8),
+      blockTickerClearOfCommandDeck: Boolean(tickerRect && upgradeClockRect && upgradeClockRect.top - tickerRect.bottom >= 8),
       blockTickerClearOfMainContent: Boolean(tickerRect && mainRect && mainRect.top - tickerRect.bottom >= 0),
       blockTickerMarginTop: tickerStyles?.marginTop || '',
       blockTickerText: tickerLine?.textContent || '',
+      blockTickerHasUptimeProof: Boolean(ticker?.querySelector('#block-ticker-uptime, #chain-uptime-counter')),
+      networkHealthProofText: healthProof?.textContent || '',
+      networkHealthProofCounter: healthProof?.querySelector('#chain-uptime-counter')?.textContent || '',
+      networkHealthProofBakers: healthProof?.querySelector('#chain-uptime-bakers')?.textContent || '',
+      networkHealthProofFinality: healthProof?.querySelector('#chain-uptime-finality')?.textContent || '',
+      networkHealthProofStaked: healthProof?.querySelector('#chain-uptime-staked')?.textContent || '',
+      networkHealthProofIssuance: healthProof?.querySelector('#chain-uptime-issuance')?.textContent || '',
       blockTickerHealth: ticker?.dataset.blockHealth || '',
       blockTickerSignature: tickerLine?.dataset.blockTickerSignature || '',
       blockTickerSegmentOrder: tickerSegmentOrder,
@@ -3726,9 +3874,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       blockTickerAgeMs: tickerLine?.querySelector('[data-health-age]')?.dataset.healthAge
         ? Date.now() - new Date(tickerLine.querySelector('[data-health-age]').dataset.healthAge).getTime()
         : 0,
-      protocolPanelBorderWidth: protocolPanelStyles ? parseFloat(protocolPanelStyles.borderTopWidth) : 0,
-      protocolPanelBorderStyle: protocolPanelStyles?.borderTopStyle || '',
-      protocolPanelBorderRadius: protocolPanelStyles ? parseFloat(protocolPanelStyles.borderTopLeftRadius) : 0,
+      commandDeckPanelBorderWidth: commandDeckPanelStyles ? parseFloat(commandDeckPanelStyles.borderTopWidth) : 0,
+      commandDeckPanelBorderStyle: commandDeckPanelStyles?.borderTopStyle || '',
+      commandDeckPanelBorderRadius: commandDeckPanelStyles ? parseFloat(commandDeckPanelStyles.borderTopLeftRadius) : 0,
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
   });
@@ -3771,6 +3919,16 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.myBakerMetrics[0] === '7', `network health chamber: My Tezos attestation misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
   assert(healthState.myBakerMetrics[1] === '1', `network health chamber: My Tezos block misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
   assert(!/Not in sample/.test(healthState.myBakerMetrics[2] || ''), `network health chamber: My Tezos latest block missing: ${healthState.myBakerMetrics.join(', ')}`);
+  assert(healthState.topProofInHeader, 'network health chamber: continuity proof should live in the top header');
+  assert(healthState.topProofTag === 'BUTTON' && healthState.topProofType === 'button', `network health chamber: continuity proof should be a button launcher, saw ${healthState.topProofTag}/${healthState.topProofType}`);
+  assert(healthState.topProofAriaControls === 'history-modal' && healthState.topProofHistoryWired === '1', `network health chamber: continuity proof history launcher missing: ${healthState.topProofAriaControls}/${healthState.topProofHistoryWired}`);
+  assert(/^Uptime:/.test(healthState.topProofText.trim()) && /\|/.test(healthState.topProofText), `network health chamber: top proof line should start with Uptime and pipe into stats: ${healthState.topProofText}`);
+  assert(!/zero forks|zero outages/i.test(healthState.topProofText), `network health chamber: top proof line should not spell out zero fork/outage copy: ${healthState.topProofText}`);
+  assert(/\d+\s+years?\s+\d+\s+days?/.test(healthState.topProofCounter), `network health chamber: top proof runtime missing: ${healthState.topProofCounter}`);
+  assert(/^\d+$/.test(healthState.topProofBakers) && Number(healthState.topProofBakers) >= 1, `network health chamber: top proof baker count mismatch: ${healthState.topProofBakers}`);
+  assert(/\d+s/.test(healthState.topProofFinality), `network health chamber: top proof finality missing: ${healthState.topProofFinality}`);
+  assert(/^\d+(?:\.\d+)?%$/.test(healthState.topProofStaked), `network health chamber: top proof staked ratio mismatch: ${healthState.topProofStaked}`);
+  assert(/^\d+(?:\.\d+)?%$/.test(healthState.topProofIssuance), `network health chamber: top proof issuance mismatch: ${healthState.topProofIssuance}`);
   assert(healthState.systemLinks >= healthState.attesterRows, `network health chamber: baker profile links missing, saw ${healthState.systemLinks}`);
   assert(healthState.tzktLinks >= healthState.attesterRows, `network health chamber: TzKT links missing, saw ${healthState.tzktLinks}`);
   assert(/Direct: \/health\//.test(healthState.footer), `network health chamber: direct footer missing: ${healthState.footer}`);
@@ -3779,6 +3937,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.headMeta.includes(healthState.updatedAge), `network health chamber: header head age should match Updated metric: ${healthState.headMeta} vs ${healthState.updatedAge}`);
   assert(healthState.cardWide, 'network health chamber: entry card should be double-width');
   assert(/Live Tape/.test(healthState.cardTape) && /XTZ/.test(healthState.cardTape), `network health chamber: entry live tape missing: ${healthState.cardTape}`);
+  assert(!healthState.cardHasProofStrip, 'network health chamber: entry card should stay a clean health overview, not carry the continuity proof');
   assert(healthState.ageLabelCount >= 3, `network health chamber: age labels should be live-tickable, saw ${healthState.ageLabelCount}`);
   assert(healthState.cardWired === '1', `network health chamber: card wiring missing: ${healthState.cardWired}`);
   assert(healthState.cardRole === 'button', `network health chamber: card role mismatch: ${healthState.cardRole}`);
@@ -3790,17 +3949,25 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.cardFreshnessStaleAfter === '12000', `network health chamber: freshness threshold should track 2x live refresh interval, saw ${healthState.cardFreshnessStaleAfter}`);
   assert(healthState.cardFreshnessAgeMs < 12000, `network health chamber: freshness timestamp should come from fetch time, saw ${healthState.cardFreshnessAgeMs}ms`);
   assert(healthState.blockTickerOwnIsland, 'network health chamber: live block ticker should be its own top-level island');
-  assert(healthState.blockTickerAfterProtocolPanel, 'network health chamber: live block ticker should sit directly below the Current Protocol panel');
+  assert(healthState.blockTickerAfterHeader, 'network health chamber: live block ticker should sit directly below the header');
+  assert(healthState.blockTickerBeforeCommandDeck, 'network health chamber: live block ticker should sit directly above the command deck');
   assert(healthState.blockTickerBeforeMainContent, 'network health chamber: live block ticker should stay above the Chambers/main area');
-  assert(healthState.blockTickerBelowProtocolPanel, 'network health chamber: live block ticker should render below the Current Protocol panel');
+  assert(healthState.blockTickerAboveCommandDeck, 'network health chamber: live block ticker should render above the command deck');
   assert(healthState.blockTickerAboveChambers, 'network health chamber: live block ticker should render above the Chambers area');
-  assert(healthState.blockTickerClearOfProtocolPanel, `network health chamber: live block ticker crowds the protocol panel, margin ${healthState.blockTickerMarginTop}`);
+  assert(healthState.blockTickerClearOfCommandDeck, `network health chamber: live block ticker crowds the command deck, margin ${healthState.blockTickerMarginTop}`);
   assert(healthState.blockTickerClearOfMainContent, 'network health chamber: live block ticker should not overlap the main content');
   assert(/Block#?[\d,]+/.test(healthState.blockTickerText.replace(/\s+/g, '')), `network health chamber: live block ticker missing block: ${healthState.blockTickerText}`);
   assert(/Baker (QA Baker|Second Baker)/.test(healthState.blockTickerText.replace(/\s+/g, ' ')), `network health chamber: live block ticker missing baker: ${healthState.blockTickerText}`);
   assert(/Health(Peak|Healthy|Watch|Degraded)/.test(healthState.blockTickerText.replace(/\s+/g, '')), `network health chamber: live block ticker missing health: ${healthState.blockTickerText}`);
   assert(/Octezv25\.0/.test(healthState.blockTickerText.replace(/\s+/g, '')), `network health chamber: live block ticker missing baker Octez version: ${healthState.blockTickerText}`);
   assert(/Attested[\d,]+\/7,000/.test(healthState.blockTickerText.replace(/\s+/g, '')), `network health chamber: live block ticker missing attestation power: ${healthState.blockTickerText}`);
+  assert(!healthState.blockTickerHasUptimeProof, 'network health chamber: uptime proof should not live inside the live block ticker');
+  assert(/zero forks/i.test(healthState.networkHealthProofText) && /zero outages/i.test(healthState.networkHealthProofText), `network health chamber: health proof missing zero-fork/zero-outage copy: ${healthState.networkHealthProofText}`);
+  assert(/\d+y\s+\d+d\s+\d{2}h\s+\d{2}m\s+\d{2}s/.test(healthState.networkHealthProofCounter), `network health chamber: uptime counter missing fixed-width runtime: ${healthState.networkHealthProofCounter}`);
+  assert(/^\d+$/.test(healthState.networkHealthProofBakers) && Number(healthState.networkHealthProofBakers) >= 1, `network health chamber: health proof baker count mismatch: ${healthState.networkHealthProofBakers}`);
+  assert(/\d+s/.test(healthState.networkHealthProofFinality), `network health chamber: health proof finality missing: ${healthState.networkHealthProofFinality}`);
+  assert(/^\d+(?:\.\d+)?%$/.test(healthState.networkHealthProofStaked), `network health chamber: health proof staked ratio mismatch: ${healthState.networkHealthProofStaked}`);
+  assert(/^\d+(?:\.\d+)?%$/.test(healthState.networkHealthProofIssuance), `network health chamber: health proof issuance mismatch: ${healthState.networkHealthProofIssuance}`);
   assert(!/\\b(Missed|Cadence)\\b/.test(healthState.blockTickerText), `network health chamber: live block ticker should not show Missed or Cadence: ${healthState.blockTickerText}`);
   assert(['peak', 'healthy', 'watch', 'degraded'].includes(healthState.blockTickerHealth), `network health chamber: ticker health tone mismatch: ${healthState.blockTickerHealth}`);
   assert(healthState.blockTickerSegmentOrder.join('>') === 'level>baker>health>octez>power>round>age', `network health chamber: ticker slot order mismatch: ${healthState.blockTickerSegmentOrder.join('>')}`);
@@ -3822,8 +3989,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(/^\d{2}[smhd] ago$/.test(healthState.blockTickerAgeText), `network health chamber: ticker age should use fixed-width text, saw ${healthState.blockTickerAgeText}`);
   assert(healthState.blockTickerAgeWidth >= 40, `network health chamber: ticker age slot is too narrow: ${healthState.blockTickerAgeWidth}`);
   assert(healthState.blockTickerAgeMs >= 85000, `network health chamber: ticker age should come from stale head timestamp, saw ${healthState.blockTickerAgeMs}ms`);
-  assert(healthState.protocolPanelBorderWidth > 0 && healthState.protocolPanelBorderStyle === 'solid', `network health chamber: protocol panel should have a defined edge, saw ${healthState.protocolPanelBorderWidth}px ${healthState.protocolPanelBorderStyle}`);
-  assert(healthState.protocolPanelBorderRadius <= 10, `network health chamber: protocol panel edge should stay sharp, saw radius ${healthState.protocolPanelBorderRadius}`);
+  assert(healthState.commandDeckPanelBorderWidth > 0 && healthState.commandDeckPanelBorderStyle === 'solid', `network health chamber: command deck panel should have a defined edge, saw ${healthState.commandDeckPanelBorderWidth}px ${healthState.commandDeckPanelBorderStyle}`);
+  assert(healthState.commandDeckPanelBorderRadius <= 10, `network health chamber: command deck panel edge should stay sharp, saw radius ${healthState.commandDeckPanelBorderRadius}`);
   assert(healthState.intervalDelays.includes(1000), `network health chamber: 1s freshness ticker was not registered: ${healthState.intervalDelays.join(', ')}`);
   assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
 
@@ -5321,25 +5488,24 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await expectCount(page, '[data-stat="baking-power"] .card-history-btn', 1, 'feature workflows baking power card history');
   log('ok - feature workflow: card history');
 
-  await page.locator('#upgrade-share-btn').scrollIntoViewIfNeeded();
-  await page.locator('#upgrade-share-btn').click();
-  await expectShareModal(page, 'feature workflows upgrade share', issues);
-  log('ok - feature workflow: upgrade share');
-
+  await page.locator('#protocol-history-entry-card').scrollIntoViewIfNeeded();
+  await page.locator('#protocol-history-entry-card').click();
+  await page.locator('#protocol-history-chamber-modal.active #upgrade-timeline .timeline-item[data-protocol="Quebec"]').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('.timeline-share-btn').waitFor({ state: 'attached', timeout: 10000 });
-  await page.locator('.upgrade-clock-content').scrollIntoViewIfNeeded();
-  await page.locator('.upgrade-clock-content').hover();
+  await page.locator('#protocol-history-chamber-modal .protocol-history-content').hover();
   await page.locator('.timeline-share-btn').click();
   await expectShareModal(page, 'feature workflows protocol timeline share', issues);
   log('ok - feature workflow: protocol timeline share');
 
-  await page.locator('#upgrade-timeline .timeline-item[data-protocol="Quebec"]').scrollIntoViewIfNeeded();
-  await page.locator('#upgrade-timeline .timeline-item[data-protocol="Quebec"]').click();
+  await page.locator('#protocol-history-chamber-modal #upgrade-timeline .timeline-item[data-protocol="Quebec"]').scrollIntoViewIfNeeded();
+  await page.locator('#protocol-history-chamber-modal #upgrade-timeline .timeline-item[data-protocol="Quebec"]').click();
   await page.locator('#protocol-history-modal').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#protocol-history-modal #history-modal-share').click();
   await expectShareModal(page, 'feature workflows protocol history share', issues);
   await page.locator('#protocol-history-modal #history-modal-close').click();
   await page.locator('#protocol-history-modal').waitFor({ state: 'detached', timeout: 5000 });
+  await page.locator('#protocol-history-chamber-modal .chamber-close').click();
+  await page.locator('#protocol-history-chamber-modal').waitFor({ state: 'detached', timeout: 5000 });
   log('ok - feature workflow: protocol history share');
 
   await page.locator('[data-stat="total-bakers"]').scrollIntoViewIfNeeded();
@@ -5835,6 +6001,7 @@ function getSuiteCatalog(browser, baseUrl) {
   return [
     { name: 'first-visit-tour', description: 'Deep-link onboarding, first root visit, and tour prompt behavior', run: () => smokeFirstVisitTour(browser, baseUrl) },
     { name: 'app-shell', description: 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets', run: () => smokeAppShell(browser, baseUrl) },
+    { name: 'hero-command-bar', description: 'Hero command bar owns the first-screen retrieval path, protocol deep dives, and command routing', run: () => smokeHeroCommandBar(browser, baseUrl) },
     { name: 'tzkt-throttle', description: 'Browser-local TzKT fetch queue keeps visitor requests at six starts per second', run: () => smokeTzktThrottle(browser, baseUrl) },
     { name: 'dashboard-desktop', description: 'Desktop dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 1440, height: 1000 }, 'desktop') },
     { name: 'dashboard-mobile', description: 'Mobile dashboard chrome, menus, widgets utility, calculator, drawer, share picker', run: () => smokeDashboard(browser, baseUrl, { width: 390, height: 844 }, 'mobile') },

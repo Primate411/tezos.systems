@@ -137,11 +137,13 @@ async function checkRequiredFiles() {
     'landing.html',
     'css/styles.css',
     'css/styles.min.css',
+    'css/hero-search.css',
     'js/core/app.js',
     'js/core/api.js',
     'js/core/config.js',
     'js/core/tzkt-throttle.js',
     'js/core/wallet.js',
+    'js/features/search.js',
     'sw.js',
     'version.json',
     'widgets/runtime.js',
@@ -276,26 +278,41 @@ async function checkLocalReferences() {
 async function checkCacheBustAlignment() {
   const index = await readText('index.html');
   const sw = await readText('sw.js');
+  const heroSearch = await readText('js/features/search.js');
   const themePreload = await readText('js/core/theme-preload.js');
   const themeUi = await readText('js/ui/theme.js');
   const cssMatch = index.match(/css\/styles\.min\.css\?v=(\d+)/);
+  const heroCssLinkMatch = index.match(/css\/hero-search\.css\?v=(\d+)/);
   const appPreloadMatch = index.match(/js\/core\/app\.js\?v=(\d+)/);
   const appScriptMatch = index.match(/<script[^>]+src=["']js\/core\/app\.js\?v=(\d+)["']/);
+  const themePreloadScriptMatch = index.match(/js\/core\/theme-preload\.js\?v=(\d+)/);
   const cacheMatch = sw.match(/CACHE_NAME\s*=\s*['"]tezos-systems-v(\d+)['"]/);
+  const heroSearchCssMatch = heroSearch.match(/HERO_SEARCH_CSS_URL\s*=\s*['"]\/css\/hero-search\.css\?v=(\d+)['"]/);
   const themePreloadMatch = themePreload.match(/THEME_CSS_VERSION\s*=\s*['"](\d+)['"]/);
   const themeUiMatch = themeUi.match(/THEME_CSS_VERSION\s*=\s*['"](\d+)['"]/);
 
   if (!cssMatch) fail('index.html must serve css/styles.min.css with a ?v= cache stamp');
+  if (!heroCssLinkMatch) fail('index.html must serve css/hero-search.css with a ?v= cache stamp');
   if (!appPreloadMatch) fail('index.html modulepreload for js/core/app.js must carry a ?v= cache stamp');
   if (!appScriptMatch) fail('index.html app module script must carry a ?v= cache stamp');
+  if (!themePreloadScriptMatch) fail('index.html theme-preload.js script must carry a ?v= cache stamp');
   if (!cacheMatch) fail('sw.js CACHE_NAME must be tezos-systems-vNN');
+  if (!heroSearchCssMatch) fail('search.js hero-search.css loader must carry a ?v= cache stamp');
   if (!themePreloadMatch) fail('theme-preload.js must expose THEME_CSS_VERSION');
   if (!themeUiMatch) fail('theme.js must expose THEME_CSS_VERSION');
 
-  const versions = [cssMatch?.[1], appPreloadMatch?.[1], appScriptMatch?.[1], cacheMatch?.[1]].filter(Boolean);
+  const versions = [
+    cssMatch?.[1],
+    heroCssLinkMatch?.[1],
+    appPreloadMatch?.[1],
+    appScriptMatch?.[1],
+    themePreloadScriptMatch?.[1],
+    cacheMatch?.[1],
+    heroSearchCssMatch?.[1]
+  ].filter(Boolean);
   if (new Set(versions).size > 1) {
     fail(`cache stamps are out of sync: ${versions.join(', ')}`);
-  } else if (versions.length === 4) {
+  } else if (versions.length === 7) {
     pass(`cache stamps aligned at v${versions[0]}`);
   }
 
@@ -408,6 +425,19 @@ async function checkSelectorContracts() {
     'chambers-grid',
     'block-ticker-strip',
     'block-ticker-line',
+    'header-protocol-chip',
+    'header-current-protocol',
+    'upgrade-clock',
+    'hero-slot',
+    'hero-search-form',
+    'hero-search-input',
+    'hero-search-panel',
+    'recruit-section',
+    'tezos-loop-console',
+    'tezos-loop-title',
+    'tezos-loop-line',
+    'tezos-loop-search',
+    'tezos-loop-link',
     'comparison-summary',
     'widgets-gallery',
     'settings-gear',
@@ -418,12 +448,8 @@ async function checkSelectorContracts() {
     'calc-toggle',
     'calculator-section',
     'share-btn',
-    'upgrade-share-btn',
     'changelog-btn',
     'changelog-modal',
-    'footer-chad-checkpoint',
-    'footer-chad-line',
-    'footer-chad-link',
     'build-version'
   ];
 
@@ -441,10 +467,16 @@ async function checkSelectorContracts() {
     ['widget builder CTA', 'href="/widgets/builder.html"'],
     ['share picker styles hook', 'section-picker-note'],
     ['price bar change surface', 'class="price-change"'],
-    ['footer aura checkpoint', 'data-footer-chad="builder"'],
-    ['footer aura chip rail', 'class="footer-chad-chips"'],
+    ['Tezos loop console', 'class="tezos-loop-console"'],
+    ['Tezos loop aura chip rail', 'class="tezos-loop-chips"'],
     ['timeline share fallback host', 'document.querySelector(\'.upgrade-badges\')'],
-    ['timeline share current protocol fallback', 'document.querySelector(\'.current-name-row\')']
+    ['timeline share protocol history chamber fallback', 'document.querySelector(\'#protocol-history-chamber-modal .protocol-history-chamber-header\')'],
+    ['header protocol chip', 'id="header-protocol-chip" href="#protocol-history"'],
+    ['command deck shell', 'class="upgrade-clock command-deck"'],
+    ['hero command bar slot', 'class="hero-slot" id="hero-slot"'],
+    ['hero command bar combobox', 'aria-controls="hero-search-panel"'],
+    ['My Tezos recruit prompt', 'data-hero-query="my tezos"'],
+    ['Price watcher recruit prompt', 'data-hero-query="price"']
   ];
 
   for (const [label, snippet] of requiredSnippets) {
@@ -466,6 +498,8 @@ async function checkSelectorContracts() {
   pass(`retired chamber launcher contracts checked: ${retiredLauncherSnippets.length}`);
 
   const app = await readText('js/core/app.js');
+  const search = await readText('js/features/search.js');
+  const heroSearchCss = await readText('css/hero-search.css');
   const chamber = await readText('js/features/chamber.js');
   const lb = await readText('js/features/liquidity-baking.js');
   const tezlink = await readText('js/features/tezlink.js');
@@ -487,6 +521,30 @@ async function checkSelectorContracts() {
     ['Tezos X hash route', "hash === 'tezosx'", app],
     ['Legacy Tezlink hash route', "hash === 'tezlink'", app],
     ['Health hash route', "hash === 'health'", app],
+    ['Protocol history hash route', "params.has('protocol')", app],
+    ['Protocol History Chamber hash route', "hash === 'protocol-history'", app],
+    ['Protocol history global opener', 'window.openProtocolHistoryByName = openProtocolHistoryByName', app],
+    ['Protocol History Chamber global opener', 'window.openProtocolHistoryChamber = openProtocolHistoryChamber', app],
+    ['Protocol History header launcher', 'function initProtocolHistoryHeaderLauncher', app],
+    ['Protocol History chamber current-first timeline', 'const displayProtocols = isHistoryChamber ? [...protocols].reverse() : protocols', app],
+    ['Protocol History Chamber card', "card.id = 'protocol-history-entry-card'", app],
+    ['Protocol Anthology card copy', 'Protocol Anthology', app],
+    ['Protocol Anthology card anatomy', 'protocol-history-entry-anthology', app],
+    ['Protocol Anthology recent spines', 'protocol-history-entry-spine-item', app],
+    ['Protocol History Chamber modal', "overlay.id = 'protocol-history-chamber-modal'", app],
+    ['Protocol History Chamber timeline launcher', 'data-protocol-history-jump="timeline"', app],
+    ['Protocol History Chamber impact launcher', 'data-protocol-history-jump="impact"', app],
+    ['Protocol History Chamber reveal helper', 'function revealProtocolHistorySection', app],
+    ['Protocol History Chamber timeline toggle target', 'protocol-timeline-toggle-btn', app],
+    ['Protocol History Chamber action styles', '.protocol-history-chamber-action', heroSearchCss],
+    ['Hero search mode body class', "document.body.classList.toggle('hero-search-mode'", search],
+    ['Hero search dims background content', 'body.hero-search-mode .main-content', heroSearchCss],
+    ['Hero search raises command deck', 'body.hero-search-mode .command-deck', heroSearchCss],
+    ['Tezos loop console initializer', 'function initTezosLoopConsole()', app],
+    ['Tezos loop aura persistence', 'TEZOS_LOOP_STORAGE_KEY', app],
+    ['Tezos loop console styles', '.tezos-loop-console', heroSearchCss],
+    ['Tezos loop active card styles', '.recruit-card.is-active', heroSearchCss],
+    ['Hero search price command', "id: 'price'", search],
     ['LB tile hash route', "hash === 'lb-tile'", app],
     ['tz4 hash route', "hash === 'tz4'", app],
     ['comparison summary renderer', 'function renderComparisonSummary', comparison],
@@ -600,6 +658,14 @@ async function checkSelectorContracts() {
     ['health Octez versions cache TTL', 'OCTEZ_VERSIONS_TTL', health],
     ['health period telemetry panel', 'id="health-period-telemetry"', health],
     ['health network load panel', 'id="health-network-load"', health],
+    ['health chain proof panel', 'id="health-chain-proof"', health],
+    ['health chain proof slogan', 'zero forks · zero outages', health],
+    ['health chain uptime counter', 'id="chain-uptime-counter"', health],
+    ['top continuity proof panel', 'id="top-continuity-panel"', index],
+    ['top continuity proof panel is button launcher', '<button class="top-continuity-panel"', index],
+    ['top continuity uptime label', 'Uptime:', index],
+    ['top continuity pipe divider', 'top-continuity-divider">|', index],
+    ['top continuity proof baker metric', 'id="hero-chain-uptime-bakers"', index],
     ['live block ticker renderer', 'function updateBlockTicker', health],
     ['live block ticker fixed age formatter', 'function formatTickerAge', health],
     ['live block ticker transition count hook', 'blockTickerTransitionCount', health],
@@ -607,6 +673,15 @@ async function checkSelectorContracts() {
     ['live block ticker health feed hook', 'updateBlockTicker(data)', health],
     ['live block ticker styles', '.block-ticker-strip', styles],
     ['live block ticker Octez styles', '.block-ticker-octez', styles],
+    ['network health continuity panel styles', '.health-continuity-panel', styles],
+    ['network health continuity runtime styles', '.health-continuity-runtime', styles],
+    ['chain uptime counter updater', "document.getElementById('chain-uptime-counter')", app],
+    ['top continuity counter updater', "setTopContinuityText('hero-chain-uptime-counter'", app],
+    ['top continuity decrypt duration', 'TOP_CONTINUITY_SHUFFLE_MS = 1500', app],
+    ['top continuity history launcher wiring', "document.getElementById('history-btn')", app],
+    ['chain uptime baker updater', "setChainText('chain-uptime-bakers'", app],
+    ['top continuity proof styles', '.top-continuity-panel', styles],
+    ['top continuity decrypt styles', '.top-continuity-panel.is-shuffling', styles],
     ['live block ticker aperture transition styles', 'blockTickerAperture', styles],
     ['health cycle timing styles', '.health-cycle-panel', styles],
     ['health Teztale consensus styles', '.health-consensus-panel', styles],
@@ -1218,9 +1293,9 @@ async function checkTourAndShareCaptureContracts() {
   if (!upgradeNumberBlock) {
     fail('css/styles.css missing .upgrade-number block for share capture guard');
   } else if (/color-mix|oklch|(?<!-)lch\(|lab\(/i.test(upgradeNumberBlock)) {
-    fail('.upgrade-number must avoid html2canvas-unsupported color functions because #upgrade-share-btn captures this live DOM');
+    fail('.upgrade-number must avoid html2canvas-unsupported color functions because protocol timeline sharing captures this live DOM');
   } else {
-    pass('tour theme copy and upgrade share capture CSS contracts checked');
+    pass('tour theme copy and protocol timeline share CSS contracts checked');
   }
 }
 

@@ -2173,7 +2173,7 @@ export async function initProtocolShare() {
 
     // Wire up per-protocol share on timeline items
     const timelineEl = document.getElementById('upgrade-timeline');
-    if (timelineEl) {
+    if (timelineEl && !timelineEl.dataset.protocolShareWired) {
         timelineEl.addEventListener('click', (e) => {
             const item = e.target.closest('.timeline-item');
             if (!item) return;
@@ -2183,53 +2183,64 @@ export async function initProtocolShare() {
             const protocol = protocols.find(p => p.name === name);
             if (protocol) captureProtocol(protocol);
         });
+        timelineEl.dataset.protocolShareWired = '1';
     }
 
     // Add "Share Timeline" button
     const badgesContainer = document.querySelector('.upgrade-badges');
-    const currentNameRow = document.querySelector('.current-name-row');
-    const timelineButtonHost = badgesContainer || currentNameRow;
+    const historyHeader = document.querySelector('#protocol-history-chamber-modal .protocol-history-chamber-header')
+        || document.querySelector('#protocol-history-feature .section-header');
+    const timelineButtonHost = badgesContainer || historyHeader;
     if (timelineButtonHost) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'timeline-share-btn';
-        btn.innerHTML = '📸';
-        btn.setAttribute('aria-label', 'Share the full protocol timeline');
-        btn.title = 'Share the full protocol timeline';
-        btn.style.cssText = `
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.5); width: 36px; height: 36px; border-radius: 8px;
-            cursor: pointer; font-size: 16px;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            flex-shrink: 0;
-            opacity: 0; pointer-events: none;
-        `;
-        btn.addEventListener('mouseenter', () => {
-            const c = getThemeColors();
-            btn.style.borderColor = c.brand;
-            btn.style.color = c.brand;
-            btn.style.background = `rgba(${c.brand === '#00d4ff' ? '0,212,255' : '0,255,0'},0.1)`;
-        });
-        btn.addEventListener('mouseleave', () => {
-            btn.style.borderColor = 'rgba(255,255,255,0.1)';
-            btn.style.color = 'rgba(255,255,255,0.5)';
-            btn.style.background = 'rgba(255,255,255,0.05)';
-        });
-        btn.addEventListener('click', () => captureTimeline(protocols));
-        if (badgesContainer) badgesContainer.insertBefore(btn, badgesContainer.firstChild);
-        else timelineButtonHost.appendChild(btn);
+        let btn = timelineButtonHost.querySelector(':scope > .timeline-share-btn');
+        if (!btn) {
+            btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'timeline-share-btn';
+            btn.innerHTML = '📸';
+            btn.setAttribute('aria-label', 'Share the full protocol timeline');
+            btn.title = 'Share the full protocol timeline';
+            btn.style.cssText = `
+                background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+                color: rgba(255,255,255,0.5); width: 36px; height: 36px; border-radius: 8px;
+                cursor: pointer; font-size: 16px;
+                display: flex; align-items: center; justify-content: center;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                flex-shrink: 0;
+                opacity: 0; pointer-events: none;
+            `;
+            if (badgesContainer) badgesContainer.insertBefore(btn, badgesContainer.firstChild);
+            else timelineButtonHost.appendChild(btn);
+        }
+        if (!btn.dataset.protocolShareButtonWired) {
+            btn.addEventListener('mouseenter', () => {
+                const c = getThemeColors();
+                btn.style.borderColor = c.brand;
+                btn.style.color = c.brand;
+                btn.style.background = `rgba(${c.brand === '#00d4ff' ? '0,212,255' : '0,255,0'},0.1)`;
+            });
+            btn.addEventListener('mouseleave', () => {
+                btn.style.borderColor = 'rgba(255,255,255,0.1)';
+                btn.style.color = 'rgba(255,255,255,0.5)';
+                btn.style.background = 'rgba(255,255,255,0.05)';
+            });
+            btn.addEventListener('click', () => captureTimeline(protocols));
+            btn.dataset.protocolShareButtonWired = '1';
+        }
 
-        const clockSection = document.querySelector('.upgrade-clock-content');
-        if (clockSection) {
-            clockSection.addEventListener('mouseenter', () => {
+        const timelineSection = document.querySelector('#protocol-history-chamber-modal .protocol-history-content')
+            || document.querySelector('#protocol-history-feature')
+            || document.querySelector('.upgrade-clock-content');
+        if (timelineSection && !timelineSection.dataset.timelineShareHoverWired) {
+            timelineSection.addEventListener('mouseenter', () => {
                 btn.style.opacity = '1';
                 btn.style.pointerEvents = 'auto';
             });
-            clockSection.addEventListener('mouseleave', () => {
+            timelineSection.addEventListener('mouseleave', () => {
                 btn.style.opacity = '0';
                 btn.style.pointerEvents = 'none';
             });
+            timelineSection.dataset.timelineShareHoverWired = '1';
         }
     }
 }
