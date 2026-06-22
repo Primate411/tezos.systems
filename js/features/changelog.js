@@ -7,6 +7,9 @@ const CHANGELOG = [
     {
         date: '2026-06-21',
         entries: [
+            { type: '🔧', text: 'Tezos X Governance mobile Chamber cards now keep footer controls clear of live proposal content' },
+            { type: '🔧', text: 'First-visit help now centers the command bar and stays optional, with search examples for early entrants and easy dismissal for returning users' },
+            { type: '🎨', text: 'The Tezos Loop Console now doubles as a search recipe guide with wallet, baker, contract, governance, NFT, and market examples' },
             { type: '🔧', text: 'Protocol History Chamber now exposes View Timeline and View Impact controls at the top of the anthology instead of burying them below the timeline' },
             { type: '✨', text: 'The header uptime rail now decrypt-shuffles changed values for 1.5 seconds and opens Historical Data when clicked' },
             { type: '🎨', text: 'The header uptime rail now starts with full uptime, then green zero-fork and zero-outage proof badges, then live stats' },

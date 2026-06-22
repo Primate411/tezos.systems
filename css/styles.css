@@ -3761,7 +3761,7 @@ body::before {
     }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 768px) {
     #chambers-grid .etherlink-governance-entry-card.chamber-entry-wide {
         min-height: 258px;
     }
@@ -14400,34 +14400,34 @@ body {
 
 .tour-nudge {
     position: fixed;
-    right: 24px;
-    bottom: 24px;
-    width: min(360px, calc(100vw - 32px));
+    right: 20px;
+    bottom: 20px;
+    width: min(420px, calc(100vw - 32px));
     z-index: 99997;
     display: grid;
     grid-template-columns: 1fr auto;
-    gap: 10px 14px;
+    gap: 10px 12px;
     align-items: center;
-    padding: 14px;
-    border: 1px solid var(--glass-border);
-    border-radius: 12px;
-    background: rgba(10, 14, 26, 0.92);
+    padding: 12px;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 18%, var(--glass-border));
+    border-radius: 8px;
+    background: rgba(10, 14, 26, 0.88);
     color: var(--text-primary);
-    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 10px 34px rgba(0, 0, 0, 0.26);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
 }
 
 .tour-nudge strong {
     display: block;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     margin-bottom: 2px;
 }
 
 .tour-nudge span {
     display: block;
     color: var(--text-secondary);
-    font-size: 0.74rem;
+    font-size: 0.72rem;
     line-height: 1.35;
 }
 
@@ -14450,7 +14450,7 @@ body {
 .tour-nudge .tour-start {
     border-color: var(--accent-cyan);
     color: var(--accent-cyan);
-    background: rgba(0, 212, 255, 0.08);
+    background: color-mix(in srgb, var(--accent-cyan) 9%, transparent);
 }
 
 .tour-nudge button:hover {
@@ -17177,12 +17177,17 @@ body {
         min-height: 224px;
     }
 
+    #chambers-grid .etherlink-governance-entry-card.chamber-entry-wide {
+        min-height: 306px;
+    }
+
     #chambers-grid .health-entry-card.chamber-entry-wide {
         min-height: 258px;
     }
 
     .health-entry-card.chamber-entry-wide .card-front,
-    .tezlink-entry-card.chamber-entry-wide .card-front {
+    .tezlink-entry-card.chamber-entry-wide .card-front,
+    .etherlink-governance-entry-card.chamber-entry-wide .card-front {
         justify-content: flex-start;
     }
 
@@ -17200,6 +17205,27 @@ body {
         min-height: 2.25rem;
     }
 
+}
+
+@media (max-width: 768px) {
+    #chambers-grid .etherlink-governance-entry-card {
+        height: auto !important;
+        min-height: 306px;
+    }
+
+    #chambers-grid .etherlink-governance-entry-card.chamber-entry-wide {
+        height: auto !important;
+        min-height: 306px;
+    }
+
+    .etherlink-governance-entry-card .etherlink-governance-entry-front,
+    .etherlink-governance-entry-card.chamber-entry-wide .etherlink-governance-entry-front {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 0.5rem;
+    }
 }
 
 /* Chamber: intel and trust panels */

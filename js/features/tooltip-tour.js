@@ -1,4 +1,4 @@
-// Guided tour — 5 steps through the best parts of tezos.systems
+// Optional help map — 5 steps through the core ways to move around tezos.systems
 (function () {
     const TOUR_KEY = 'tezos-toured';
     const WELCOMED_KEY = 'tezos-welcomed'; // respect welcome-terminal key too
@@ -10,31 +10,31 @@
 
     const steps = [
         {
-            target: '.upgrade-clock',
-            title: 'The Living Timeline',
-            text: '21 self-amendments. Zero hard forks. Click any letter to explore the full protocol history.',
+            target: '#hero-search-form',
+            title: 'Search is the map',
+            text: 'Press / from anywhere or paste a wallet, .tez name, baker, KT1, operation hash, block, protocol, or slash command.',
+        },
+        {
+            target: '#chambers-section',
+            title: 'Live rooms explain the chain',
+            text: 'Chambers are the deeper rooms: health, governance, Tezos X, Liquidity Baking, tz4, ctez, and protocol history.',
         },
         {
             target: '#my-tezos-btn',
-            title: 'Make It Yours',
-            text: 'Paste your tz address to see your baker, rewards, delegation history, and Tezos story.',
+            title: 'Make it yours when useful',
+            text: 'Add a wallet or .tez name to personalize baker, rewards, NFTs, governance, and daily context. Skip it if you are just browsing.',
         },
         {
             target: '#features-gear',
-            title: 'Explore By Goal',
-            text: 'Open market, baker, activity, history, and widget tools from one launcher. Pin only what you need.',
-        },
-        {
-            target: '#settings-gear',
-            title: 'Customize Everything',
-            text: '13 themes, Ultra mode with canvas animations, social sharing, export your data.',
+            title: 'Everything else is optional',
+            text: 'Open market, baker, history, widgets, and activity tools from one launcher. Pin only what matters today.',
         },
         {
             target: '#theme-toggle',
-            title: '🐔 HEN MODE',
-            text: 'A full-screen NFT art gallery powered by Objkt — launch it from the little HEN button or the theme picker.',
+            title: 'Tune the surface',
+            text: '13 themes, HEN mode, share tools, and export controls live here. Treat it as customization, not homework.',
             action: function () { if (typeof HenMode !== 'undefined') HenMode.activate(); },
-            actionLabel: 'launch HEN mode 🐔',
+            actionLabel: 'launch HEN mode',
         },
     ];
 
@@ -196,14 +196,16 @@
     function createNudge() {
         nudge = document.createElement('div');
         nudge.className = 'tour-nudge';
+        nudge.setAttribute('role', 'dialog');
+        nudge.setAttribute('aria-label', 'Tezos Systems help');
         nudge.innerHTML =
             '<div>' +
-                '<strong>Want the 60-second tour?</strong>' +
-                '<span>The dashboard is ready. Take the quick tour when you want it.</span>' +
+                '<strong>Need a map?</strong>' +
+                '<span>Search handles addresses, .tez names, bakers, KT1s, blocks, operations, protocols, and slash commands. Help is available when you want it.</span>' +
             '</div>' +
             '<div class="tour-nudge-actions">' +
-                '<button class="tour-dismiss" type="button">Skip</button>' +
-                '<button class="tour-start" type="button">Start</button>' +
+                '<button class="tour-dismiss" type="button">Not now</button>' +
+                '<button class="tour-start" type="button">Show help</button>' +
             '</div>';
         document.body.appendChild(nudge);
         nudge.querySelector('.tour-start').addEventListener('click', startTour);
@@ -213,6 +215,7 @@
     // Offer the tour after page settles without blocking the dashboard.
     setTimeout(function () {
         if (window.scrollY > 300) return;
+        if (document.activeElement && document.activeElement.id === 'hero-search-input') return;
         createNudge();
-    }, 2500);
+    }, 4000);
 })();

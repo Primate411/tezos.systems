@@ -436,6 +436,7 @@ async function checkSelectorContracts() {
     'tezos-loop-console',
     'tezos-loop-title',
     'tezos-loop-line',
+    'tezos-loop-hints',
     'tezos-loop-search',
     'tezos-loop-link',
     'comparison-summary',
@@ -469,6 +470,8 @@ async function checkSelectorContracts() {
     ['price bar change surface', 'class="price-change"'],
     ['Tezos loop console', 'class="tezos-loop-console"'],
     ['Tezos loop aura chip rail', 'class="tezos-loop-chips"'],
+    ['Tezos loop search map copy', 'Search is the map'],
+    ['Tezos loop accepted inputs', 'Paste a wallet, .tez name, baker, KT1, operation hash, block, protocol, or slash command'],
     ['timeline share fallback host', 'document.querySelector(\'.upgrade-badges\')'],
     ['timeline share protocol history chamber fallback', 'document.querySelector(\'#protocol-history-chamber-modal .protocol-history-chamber-header\')'],
     ['header protocol chip', 'id="header-protocol-chip" href="#protocol-history"'],
@@ -540,6 +543,8 @@ async function checkSelectorContracts() {
     ['Hero search mode body class', "document.body.classList.toggle('hero-search-mode'", search],
     ['Hero search dims background content', 'body.hero-search-mode .main-content', heroSearchCss],
     ['Hero search raises command deck', 'body.hero-search-mode .command-deck', heroSearchCss],
+    ['Hero search empty-state guide', 'hero-search-guide', search],
+    ['Hero search guide styles', '.hero-search-guide', heroSearchCss],
     ['Tezos loop console initializer', 'function initTezosLoopConsole()', app],
     ['Tezos loop aura persistence', 'TEZOS_LOOP_STORAGE_KEY', app],
     ['Tezos loop console styles', '.tezos-loop-console', heroSearchCss],
@@ -1290,6 +1295,14 @@ async function checkTourAndShareCaptureContracts() {
   }
   if (!tour.includes(`${themes.length} themes`)) {
     fail(`tooltip tour theme count must agree with theme.js (${themes.length} themes)`);
+  }
+  for (const snippet of [
+    'Search is the map',
+    'Help is available when you want it',
+    'Show help',
+    'Not now'
+  ]) {
+    if (!tour.includes(snippet)) fail(`tooltip tour must retain passive search-help copy: ${snippet}`);
   }
 
   const upgradeNumberBlock = styles.match(/\.upgrade-number\s*\{[^}]*\}/)?.[0] || '';

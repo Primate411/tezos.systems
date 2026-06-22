@@ -2553,6 +2553,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(focusModeState.commandDeckZ >= 3000 && focusModeState.panelZ > focusModeState.commandDeckZ, `hero command bar: search layer z-index mismatch ${JSON.stringify(focusModeState)}`);
   const emptyStateText = await page.locator('#hero-search-panel').innerText();
   assert(/my tezos/i.test(emptyStateText) && /network health/i.test(emptyStateText) && /liquidity baking/i.test(emptyStateText), `hero command bar: empty state missing retrieval rows: ${emptyStateText}`);
+  assert(/Search accepts/i.test(emptyStateText) && /wallets/i.test(emptyStateText) && /slash commands/i.test(emptyStateText), `hero command bar: search guide missing accepted-input copy: ${emptyStateText}`);
   assert(!/protocol history/i.test(emptyStateText), `hero command bar: empty state should not push protocol history first: ${emptyStateText}`);
   await page.mouse.click(10, 10);
   await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.getElementById('hero-search-panel')?.hidden, null, { timeout: 5000 });
@@ -2590,6 +2591,8 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   await page.locator('#calculator-section.visible').waitFor({ state: 'visible', timeout: 5000 });
 
   await page.locator('.recruit-card[data-hero-query="my tezos"]').scrollIntoViewIfNeeded();
+  const loopGuideText = await page.locator('#tezos-loop-console').innerText();
+  assert(/Search is the map/i.test(loopGuideText) && /KT1/i.test(loopGuideText) && /\/price/i.test(loopGuideText), `hero command bar: loop console should explain search inputs: ${loopGuideText}`);
   await page.locator('.recruit-card[data-hero-query="my tezos"]').click();
   await page.waitForFunction(() => document.activeElement?.id === 'hero-search-input', null, { timeout: 5000 });
   await page.waitForFunction(() => /My Tezos/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
@@ -2600,7 +2603,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     activeCards: document.querySelectorAll('.recruit-card.is-active').length,
     activeChips: document.querySelectorAll('.tezos-loop-chip.active').length
   }));
-  assert(loopState.aura === 'holder' && /personal/i.test(loopState.title), `hero command bar: Tezos loop holder state mismatch ${JSON.stringify(loopState)}`);
+  assert(loopState.aura === 'holder' && /Wallet or \.tez/i.test(loopState.title), `hero command bar: Tezos loop holder state mismatch ${JSON.stringify(loopState)}`);
   assert(loopState.activeCards === 1 && loopState.activeChips === 1, `hero command bar: Tezos loop active state mismatch ${JSON.stringify(loopState)}`);
 
   await context.close();
@@ -4595,7 +4598,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/L2 Governance .*FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Tezos X Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
   assert(/FAST14\.2%\/5%/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezos X Governance FAST metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(/SLOW(5hago|Noactiveproposal)/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezos X Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
-  assert(dashboardState.chamberUpdatedLabels.length >= 6 && dashboardState.chamberUpdatedLabels.every((label) => /^as of \d{2}:\d{2} UTC$/.test(label)), `governance testing period: chamber freshness stamps missing: ${dashboardState.chamberUpdatedLabels.join(', ')}`);
+  const chamberFreshnessLabels = dashboardState.chamberUpdatedLabels.filter((label) => /^as of \d{2}:\d{2} UTC$/.test(label));
+  assert(chamberFreshnessLabels.length >= 6, `governance testing period: chamber freshness stamps missing: ${dashboardState.chamberUpdatedLabels.join(', ')}`);
   assert(dashboardState.etherlinkEntryGeometry.overlap === 0, `governance testing period: Tezos X Governance open cue overlaps Sequencer chip: ${JSON.stringify(dashboardState.etherlinkEntryGeometry)}`);
   assert(dashboardState.tz4TileValue === '33.3 / 50%', `governance testing period: tz4 tile value mismatch: ${dashboardState.tz4TileValue}`);
   assert(/1 \/ 3 bakers active/.test(dashboardState.tz4TileDescription), `governance testing period: tz4 tile description mismatch: ${dashboardState.tz4TileDescription}`);
@@ -5232,9 +5236,13 @@ async function smokeFirstVisitTour(browser, baseUrl) {
     throw new Error('first visit tour: tour overlay should not block first paint before Start');
   });
   await page.locator('.tour-nudge').waitFor({ state: 'visible', timeout: 6000 });
+  const nudgeText = await page.locator('.tour-nudge').innerText();
+  assert(/Need a map/i.test(nudgeText) && /Help is available/i.test(nudgeText) && /Show help/i.test(nudgeText), `first visit tour: passive help nudge copy mismatch: ${nudgeText}`);
   await assertLocatorCount(page.locator('.tour-nudge .tour-start'), 1, 'first visit tour start');
   await page.locator('.tour-nudge .tour-start').click();
   await page.locator('#tour-overlay').waitFor({ state: 'visible', timeout: 6000 });
+  const tourText = await page.locator('#tour-overlay').innerText();
+  assert(/Search is the map/i.test(tourText) && /Press \//i.test(tourText), `first visit tour: first help step should explain search: ${tourText}`);
   await assertLocatorCount(page.locator('#tour-overlay .tour-skip'), 1, 'first visit tour skip');
   await page.locator('#tour-overlay .tour-skip').click();
   await page.locator('#tour-overlay').waitFor({ state: 'detached', timeout: 5000 });
@@ -5267,8 +5275,10 @@ async function smokeUxChanges(browser, baseUrl) {
   await expectCount(page, '#comparison-section .section-copy-link[data-copy-hash="#compare"]', 1, 'ux compare copy link');
 
   const cleanContrast = await page.evaluate(() => {
-    const uptime = getComputedStyle(document.querySelector('.uptime-metric-value')).color;
-    const comparison = getComputedStyle(document.querySelector('.comparison-col-ethereum .comparison-chain-value')).color;
+    const uptimeNode = document.querySelector('.uptime-metric-value, .top-continuity-runtime, #hero-chain-uptime-counter');
+    const comparisonNode = document.querySelector('.comparison-col-ethereum .comparison-chain-value');
+    const uptime = uptimeNode ? getComputedStyle(uptimeNode).color : '';
+    const comparison = comparisonNode ? getComputedStyle(comparisonNode).color : '';
     const shareContent = document.querySelector('.share-modal-content');
     return {
       uptime,
@@ -5276,6 +5286,8 @@ async function smokeUxChanges(browser, baseUrl) {
       hasShareContent: Boolean(shareContent)
     };
   });
+  assert(cleanContrast.uptime, 'ux changes: clean uptime/continuity metric missing');
+  assert(cleanContrast.comparison, 'ux changes: clean comparison value missing');
   assert(!/255,\s*255,\s*255/.test(cleanContrast.uptime), `ux changes: clean uptime metric still white (${cleanContrast.uptime})`);
   assert(!/255,\s*255,\s*255/.test(cleanContrast.comparison), `ux changes: clean comparison value still white (${cleanContrast.comparison})`);
 

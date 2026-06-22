@@ -223,7 +223,9 @@ inline modal styles in `js/core/app.js`.
   baker profiles, protocol lore/history, Chambers, themes, calculator,
   comparisons, leaderboard, whale/giant feeds, NFT lookup, and History; KT1,
   operation, and block results are marked as TzKT explorer boundaries until
-  native rooms exist.
+  native rooms exist. The empty search panel and Tezos Loop Console both double
+  as low-pressure search guides so first-time entrants can see what the bar
+  accepts without blocking experienced visitors.
 - Protocol History Chamber with direct `#protocol-history` access, backed by
   `data/protocol-data.json` and `data/protocol-debates.json`. It preserves the
   protocol timeline, individual protocol lore modals, share capture, and impact
@@ -232,10 +234,10 @@ inline modal styles in `js/core/app.js`.
   lore/impact/memory facets, and recent protocol spines that open into a
   current-first fold-out archive.
 - Tezos Loop Console below Chambers replaces the duplicate recruit/footer aura
-  prompts with one persona surface. Holder, Baker, Builder, Collector,
-  Governance, and Price lanes update the active aura, seed the command bar, and
-  expose direct next-step links such as My Tezos, widgets, HEN, The Chamber, and
-  price intelligence.
+  prompts with one search recipe surface. Wallet, Baker, Contracts, NFTs,
+  Governance, and Market lanes explain accepted search inputs, seed the command
+  bar, and expose direct next-step links such as My Tezos, widgets, HEN, The
+  Chamber, and price intelligence.
 - Tezos L1 Governance for live and historical amendment voting, including a
   current-stage chronological ballot feed and the bottom historical vote log
   sourced from `data/governance-votes.json`. The command deck does not carry a

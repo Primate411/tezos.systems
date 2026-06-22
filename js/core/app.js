@@ -2643,51 +2643,51 @@ function positionTooltip(e, tooltipEl) {
 const TEZOS_LOOP_STORAGE_KEY = 'tezos-systems-loop-aura';
 const TEZOS_LOOP_AURAS = {
     holder: {
-        title: 'Make Tezos personal',
-        line: 'Lock in a wallet or .tez name, then keep your baker, NFTs, governance, and network context within reach.',
+        title: 'Wallet or .tez names',
+        line: 'Search accepts a raw address or a .tez name. Use My Tezos when you want the dashboard to remember the account and explain its daily state.',
         query: 'my tezos',
-        searchLabel: 'Search My Tezos',
+        searchLabel: 'Try My Tezos',
         href: '#my-tezos',
         action: 'my-tezos',
         label: 'Open My Tezos'
     },
     baker: {
-        title: 'Read the operator map',
-        line: 'Baker aura warm: capacity, health, Octez versions, rights, rewards, and delegation paths before the next cycle sneaks up.',
+        title: 'Baker lookup',
+        line: 'Type a baker name or address to reach operator capacity, health, Octez version status, rights, rewards, and delegation context.',
         query: 'baker',
         searchLabel: 'Search bakers',
         href: '#leaderboard',
         label: 'Open baker map'
     },
     builder: {
-        title: 'Build with live network signal',
-        line: 'Builder aura minted: search KT1s and operations, then borrow a live stat widget for your own corner of the internet.',
+        title: 'Contracts, operations, blocks',
+        line: 'Paste KT1 contracts, operation hashes, block hashes, or levels. Search opens native routes where they exist and TzKT boundaries where they do not.',
         query: 'KT1',
-        searchLabel: 'Search KT1 / ops',
+        searchLabel: 'Try KT1 / ops',
         href: '/widgets/builder.html',
         label: 'Grab a live widget'
     },
     collector: {
-        title: 'Surface your on-chain culture',
-        line: 'Collector aura glossy: connect creator and collector profiles, Objkt activity, and HEN-mode weirdness to a Tezos identity.',
+        title: 'NFT and profile lane',
+        line: 'Type /nfts or a Tezos identity when Objkt activity, creator history, and collector context are the useful path.',
         query: '/nfts',
-        searchLabel: 'Open NFT profile',
+        searchLabel: 'Open NFT lane',
         href: '/hen/',
         label: 'Enter HEN'
     },
     governance: {
-        title: 'Read the amendment room',
-        line: 'Governance aura spicy: live votes, protocol lore, proposal receipts, and the anthology of what changed.',
+        title: 'Governance and protocol lore',
+        line: 'Try /chamber, /health, Tallinn, or Liquidity Baking to jump into live rooms, current vote state, and protocol memory.',
         query: '/chamber',
         searchLabel: 'Search governance',
         href: '/chamber/',
         label: 'Enter the Chamber'
     },
     price: {
-        title: 'Track the market pulse',
-        line: 'Price watcher aura awake: XTZ price, market cap, cycle context, issuance, and comparison surfaces in one lane.',
+        title: 'Market and history context',
+        line: 'Search price, /compare, /history, or cycle terms for XTZ market data, captured history, chain comparison, and issuance context.',
         query: 'price',
-        searchLabel: 'Search price intel',
+        searchLabel: 'Open price intel',
         href: '#price',
         label: 'Open price intel'
     }

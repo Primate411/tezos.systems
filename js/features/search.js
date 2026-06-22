@@ -7,7 +7,7 @@ import { debounce, escapeHtml } from '../core/utils.js';
 import { getAvailableThemes, openThemePicker, setTheme } from '../ui/theme.js';
 
 const PROTOCOL_DATA_URL = '/data/protocol-data.json?v=2';
-const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=259';
+const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=260';
 const TZKT_URL = 'https://tzkt.io';
 
 const ADDRESS_RE = /^(tz[1-4]|KT1)[0-9A-Za-z]{33}$/;
@@ -17,10 +17,10 @@ const BLOCK_HASH_RE = /^B[0-9A-Za-z]{50}$/;
 const BLOCK_LEVEL_RE = /^\d{4,}$/;
 
 const QUICK_CHIPS = [
-    { label: 'My Tezos', value: 'my tezos' },
-    { label: 'Network Health', value: '/health' },
-    { label: 'Liquidity Baking', value: 'liquidity baking' },
-    { label: 'baker', value: 'baker' },
+    { label: 'Wallet/.tez', value: 'my tezos' },
+    { label: '/health', value: '/health' },
+    { label: '/chamber', value: '/chamber' },
+    { label: 'Protocol', value: 'Tallinn' },
     { label: 'KT1', value: 'KT1' },
     { label: '/theme', value: '/theme' }
 ];
@@ -529,13 +529,16 @@ export function initHeroSearch() {
         if (selectedIndex < 0 && normalizeQuery(input.value) && results.length) selectedIndex = 0;
 
         if (!results.length) {
-            panel.innerHTML = '<div class="hero-search-empty">No Tezos.Systems room matched that yet.</div>';
+            panel.innerHTML = '<div class="hero-search-empty">No Tezos.Systems room matched that yet. Try a wallet, .tez name, baker, KT1, operation hash, block, protocol, or slash command.</div>';
             syncActiveDescendant();
             return;
         }
 
         let index = 0;
-        panel.innerHTML = groupedResults(results).map((group) => {
+        const guide = normalizeQuery(input.value)
+            ? ''
+            : '<div class="hero-search-guide"><strong>Search accepts:</strong> wallets, .tez names, bakers, KT1 contracts, operation hashes, block levels, protocols, Chambers, and slash commands. Press / from anywhere.</div>';
+        panel.innerHTML = guide + groupedResults(results).map((group) => {
             const rows = group.results.map((result) => resultHtml(result, index++, selectedIndex)).join('');
             return `
                 <section class="hero-search-group" aria-label="${escapeHtml(group.label)}">
