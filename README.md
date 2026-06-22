@@ -177,9 +177,10 @@ inline modal styles in `js/core/app.js`.
   animated strip with stable-width volatile numbers, compact baker names, and a
   clean whole-line transition.
   Clicking the strip opens the Network Health Chamber.
-- The header contains a borderless uptime rail: long-running live uptime down
-  to minutes and seconds, zero-forks/zero-outages status, active baker count,
-  finality, staked share, and issuance rate. Clicking the rail
+- The header contains a borderless continuity ticker tape:
+  `Mainnet Uptime` as a prominent live counter, zero-forks/zero-outages proof
+  stamps, active baker count, finality, staked share, and issuance rate.
+  Clicking the tape
   opens the historical stats surface.
 - The Network Health Chamber contains the fuller Continuity Proof panel with
   the same core proof data in the deep Health context.
@@ -477,7 +478,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v261`.
+- Current aligned shell cache stamp: `v265`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

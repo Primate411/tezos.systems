@@ -447,30 +447,39 @@ body::before {
     appearance: none;
     position: relative;
     display: flex;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-end;
+    gap: 8px 14px;
     order: 3;
     flex: 1 0 100%;
     width: 100%;
     min-width: 0;
-    max-width: none;
     overflow: visible;
-    padding: 1px 0 0;
+    padding: 7px 0 0 16px;
     border: 0;
     border-radius: 0;
-    background: transparent;
+    background: linear-gradient(90deg, rgba(53, 232, 148, 0.08), transparent 58%);
     color: var(--text-secondary);
     font-family: 'JetBrains Mono', monospace;
-    font-size: clamp(0.62rem, 0.8vw, 0.78rem);
+    font-size: clamp(0.66rem, 0.84vw, 0.82rem);
     font-weight: 650;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
     line-height: 1.2;
     text-align: left;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
     cursor: pointer;
-    box-shadow: none;
     transition: color 180ms ease, filter 180ms ease;
+}
+
+.top-continuity-panel::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    bottom: 4px;
+    width: 4px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #35e894, var(--accent-cyan));
+    box-shadow: 0 0 18px rgba(53, 232, 148, 0.45);
 }
 
 .top-continuity-panel:hover,
@@ -487,78 +496,87 @@ body::before {
     filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent-cyan) 22%, transparent));
 }
 
-.top-continuity-proof,
-.top-continuity-uptime,
+.top-continuity-core {
+    display: flex;
+    align-items: flex-end;
+    gap: clamp(10px, 1.35vw, 18px);
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+.top-continuity-claim {
+    color: #35e894;
+    font-family: 'Orbitron', 'JetBrains Mono', monospace;
+    font-size: clamp(0.84rem, 1.25vw, 1.12rem);
+    font-weight: 900;
+    letter-spacing: 0.11em;
+    line-height: 1.02;
+    text-transform: uppercase;
+}
+
 .top-continuity-stats {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    min-width: max-content;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    margin-left: 0;
+    min-width: 0;
+    text-align: left;
+    gap: 5px 16px;
+    color: color-mix(in srgb, var(--text-secondary) 88%, var(--accent-cyan));
+    font-size: clamp(0.62rem, 0.78vw, 0.74rem);
 }
 
-.top-continuity-proof {
-    flex: 0 0 auto;
-    gap: 6px;
-}
-
-.top-continuity-uptime {
-    flex: 0 0 auto;
-}
-
-.top-continuity-stats {
-    flex: 0 0 auto;
-    justify-content: flex-end;
-    margin-left: auto;
+.top-continuity-stat {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
 }
 
 .top-continuity-runtime,
-.top-continuity-uptime-label,
 .top-continuity-panel strong {
     color: color-mix(in srgb, var(--accent-cyan) 82%, var(--text-primary));
     font-weight: 850;
 }
 
-.top-continuity-proof-pill {
+.top-continuity-proof {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 7px;
+    min-width: 0;
+}
+
+.top-continuity-proof-item {
     display: inline-flex;
     align-items: center;
-    min-height: 20px;
-    padding: 3px 8px;
-    border-radius: 5px;
-    background: color-mix(in srgb, #35e894 16%, rgba(255, 255, 255, 0.025));
+    min-height: 24px;
+    padding: 4px 8px;
+    border: 1px solid rgba(53, 232, 148, 0.32);
+    border-radius: 4px;
+    background: rgba(53, 232, 148, 0.1);
     color: #35e894;
-    font-size: clamp(0.5rem, 0.62vw, 0.62rem);
-    font-weight: 850;
-    letter-spacing: 0.12em;
+    font-size: clamp(0.55rem, 0.68vw, 0.68rem);
+    font-weight: 900;
+    letter-spacing: 0.1em;
     line-height: 1;
     text-transform: uppercase;
 }
 
-.top-continuity-proof-dot {
-    color: #35e894;
-    font-weight: 850;
-    text-shadow: 0 0 10px rgba(53, 232, 148, 0.55);
-}
-
-.top-continuity-uptime-label {
-    color: var(--text-secondary);
-}
-
 .top-continuity-runtime {
+    color: color-mix(in srgb, var(--accent-cyan) 92%, white);
+    font-size: clamp(1.32rem, 2.35vw, 2.42rem);
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 0.92;
     font-variant-numeric: tabular-nums;
+    text-shadow: 0 0 18px rgba(91, 141, 239, 0.22);
 }
 
 .top-continuity-panel strong.is-shuffling {
     color: color-mix(in srgb, var(--accent-cyan) 92%, white);
     text-shadow: 0 0 8px color-mix(in srgb, var(--accent-cyan) 48%, transparent);
-}
-
-.top-continuity-divider,
-.top-continuity-separator {
-    color: var(--text-tertiary);
-}
-
-.top-continuity-divider {
-    margin-inline: 2px;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3925,7 +3943,6 @@ body::before {
     font-size: 0.58rem;
     font-weight: 850;
     letter-spacing: 0.1em;
-    line-height: 1;
     text-transform: uppercase;
 }
 
@@ -5027,58 +5044,53 @@ body::before {
     }
 
     .top-continuity-panel {
-        gap: 5px 7px;
+        gap: 7px;
         flex-basis: auto;
         flex-wrap: wrap;
-        width: 100%;
         min-width: 0;
-        max-width: none;
-        padding: 0;
-        overflow-x: visible;
-        text-overflow: clip;
-        font-size: clamp(0.5rem, 2.1vw, 0.56rem);
+        padding: 7px 0 0 12px;
+        overflow: visible;
+        font-size: clamp(0.53rem, 2vw, 0.58rem);
         scrollbar-width: none;
     }
 
-    .top-continuity-proof,
-    .top-continuity-uptime,
+    .top-continuity-claim {
+        font-size: clamp(0.72rem, 3.1vw, 0.9rem);
+        letter-spacing: 0.08em;
+    }
+
+    .top-continuity-core {
+        flex-wrap: wrap;
+        gap: 5px 9px;
+    }
+
     .top-continuity-stats {
         gap: 4px;
         min-width: 0;
     }
 
     .top-continuity-proof {
-        flex: 0 1 auto;
-        gap: 7px;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 5px;
     }
 
-    .top-continuity-uptime {
-        flex: 1 1 100%;
+    .top-continuity-runtime {
+        font-size: clamp(1.12rem, 6.4vw, 1.52rem);
     }
 
-    .top-continuity-proof-pill {
-        min-height: 18px;
+    .top-continuity-proof-item {
+        min-height: 20px;
         padding: 3px 6px;
-        font-size: clamp(0.43rem, 1.85vw, 0.5rem);
-        letter-spacing: 0.1em;
-    }
-
-    .top-continuity-proof-dot:first-child {
-        display: none;
+        font-size: clamp(0.47rem, 1.9vw, 0.54rem);
+        letter-spacing: 0.08em;
     }
 
     .top-continuity-stats {
-        flex: 1 1 100%;
+        flex-wrap: wrap;
         justify-content: flex-start;
         margin-left: 0;
-    }
-
-    .top-continuity-divider {
-        display: none;
-    }
-
-    .top-continuity-label {
-        display: none;
+        gap: 4px 11px;
     }
 
     .top-continuity-panel::-webkit-scrollbar {

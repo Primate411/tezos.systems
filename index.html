@@ -50,14 +50,14 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=261">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=261">
+    <link rel="stylesheet" href="css/styles.min.css?v=265">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=265">
     <link rel="stylesheet" href="css/hen-mode.css?v=76">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=261">
+    <link rel="modulepreload" href="js/core/app.js?v=265">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -214,7 +214,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=261"></script>
+    <script src="js/core/theme-preload.js?v=265"></script>
     <a id="hen-launcher" class="hen-launcher" href="/?hen=1" aria-label="Enter HEN mode" title="Enter HEN mode">
         <span aria-hidden="true">🐔</span>
     </a>
@@ -262,25 +262,20 @@
                     <strong id="header-current-protocol">Tallinn</strong>
                 </a>
             </div>
-            <button class="top-continuity-panel" id="top-continuity-panel" type="button" aria-label="Open historical Tezos network stats" aria-haspopup="dialog" aria-controls="history-modal" title="Open Historical Data">
-                <span class="top-continuity-uptime">
-                    <span class="top-continuity-uptime-label">Uptime:</span>
+            <button class="top-continuity-panel" id="top-continuity-panel" type="button" aria-label="Mainnet uptime. Zero forks. Zero outages. Open historical Tezos network stats" aria-haspopup="dialog" aria-controls="history-modal" title="Open Historical Data">
+                <span class="top-continuity-core">
+                    <span class="top-continuity-claim">Mainnet Uptime</span>
                     <strong class="top-continuity-runtime" id="hero-chain-uptime-counter">—</strong>
                 </span>
                 <span class="top-continuity-proof" aria-label="Continuity proof status">
-                    <span class="top-continuity-proof-dot" aria-hidden="true">·</span>
-                    <span class="top-continuity-proof-pill">zero forks</span>
-                    <span class="top-continuity-proof-dot" aria-hidden="true">·</span>
-                    <span class="top-continuity-proof-pill">zero outages</span>
+                    <span class="top-continuity-proof-item">Zero Forks</span>
+                    <span class="top-continuity-proof-item">Zero Outages</span>
                 </span>
                 <span class="top-continuity-stats" aria-label="Critical Tezos network signals">
-                    <span><strong id="hero-chain-uptime-bakers">—</strong><span class="top-continuity-label"> bakers</span></span>
-                    <span class="top-continuity-separator">·</span>
-                    <span><strong id="hero-chain-uptime-finality">12s</strong><span class="top-continuity-label"> finality</span></span>
-                    <span class="top-continuity-separator">·</span>
-                    <span><strong id="hero-chain-uptime-staked">—</strong><span class="top-continuity-label"> staked</span></span>
-                    <span class="top-continuity-separator">·</span>
-                    <span><strong id="hero-chain-uptime-issuance">—</strong><span class="top-continuity-label"> issuance</span></span>
+                    <span class="top-continuity-stat"><strong id="hero-chain-uptime-bakers">—</strong><span class="top-continuity-label"> bakers</span></span>
+                    <span class="top-continuity-stat"><strong id="hero-chain-uptime-finality">12s</strong><span class="top-continuity-label"> finality</span></span>
+                    <span class="top-continuity-stat"><strong id="hero-chain-uptime-staked">—</strong><span class="top-continuity-label"> staked</span></span>
+                    <span class="top-continuity-stat"><strong id="hero-chain-uptime-issuance">—</strong><span class="top-continuity-label"> issuance</span></span>
                 </span>
             </button>
             <div class="controls">
@@ -2143,7 +2138,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=261"></script>
+    <script type="module" src="js/core/app.js?v=265"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

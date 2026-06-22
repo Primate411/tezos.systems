@@ -1943,8 +1943,7 @@ function initUptimeClock() {
         const mins = Math.floor((remAfterYears % 3600000) / 60000);
         const secs = Math.floor((remAfterYears % 60000) / 1000);
         const str = `${years}y ${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
-        const plural = (value, singular, pluralForm = singular + 's') => `${value} ${value === 1 ? singular : pluralForm}`;
-        const heroStr = `${plural(years, 'year')} ${plural(days, 'day')} ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
+        const topStr = `${years}Y ${days}D ${hours}H ${mins}M`;
         // Wrap each character in a fixed-width span to prevent layout shift
         const html = str.split('').map(ch =>
             /\d/.test(ch) ? `<span class="uptime-digit">${ch}</span>` : `<span class="uptime-sep">${ch}</span>`
@@ -1952,7 +1951,7 @@ function initUptimeClock() {
         if (counterEl) counterEl.innerHTML = html;
         const chainCounterEl = document.getElementById('chain-uptime-counter');
         if (chainCounterEl) chainCounterEl.innerHTML = html;
-        setTopContinuityText('hero-chain-uptime-counter', heroStr, { shuffle: false });
+        setTopContinuityText('hero-chain-uptime-counter', topStr, { shuffle: false });
         syncChainProofMetrics();
     }
 
