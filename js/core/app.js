@@ -4053,15 +4053,17 @@ function exportData(format) {
 function initKeyboardShortcuts() {
     // Build help overlay content
     const shortcuts = [
+        { key: '/', desc: 'Focus command bar' },
+        { key: 'Enter', desc: 'Open selected command result' },
         { key: 'r', desc: 'Refresh data' },
+        { key: 'm', desc: 'Open or close My Tezos' },
+        { key: 'h', desc: 'Open Historical Data' },
         { key: 't', desc: 'Cycle theme' },
-        { key: 'm', desc: 'Toggle My Tezos drawer' },
-        { key: 'c', desc: 'Toggle Calculator' },
-        { key: 'h', desc: 'Open History' },
+        { key: 'c', desc: 'Toggle Rewards Calculator' },
+        { key: 'k', desc: 'Open Compare Chains' },
+        { key: 'l', desc: 'Toggle Baker Leaderboard' },
         { key: 'w', desc: 'Toggle Whales' },
         { key: 'g', desc: 'Toggle Giants' },
-        { key: 'k', desc: 'Toggle Compare' },
-        { key: 'l', desc: 'Toggle Leaderboard' },
         { key: '?', desc: 'Show this help' },
         { key: 'Esc', desc: 'Close modals/help' },
     ];

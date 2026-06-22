@@ -694,6 +694,7 @@ async function checkSelectorContracts() {
     ['top continuity proof styles', '.top-continuity-panel', styles],
     ['top continuity rail is borderless tape', 'border: 0;', styles],
     ['top continuity identity claim styles', '.top-continuity-claim', styles],
+    ['top continuity runtime fixed-width slot', 'flex: 0 0 15ch;', styles],
     ['top continuity proof stamp styles', '.top-continuity-proof-item', styles],
     ['top continuity decrypt styles', '.top-continuity-panel.is-shuffling', styles],
     ['live block ticker aperture transition styles', 'blockTickerAperture', styles],
@@ -1289,6 +1290,7 @@ async function checkSmokeSuiteCatalogContracts() {
 async function checkTourAndShareCaptureContracts() {
   const themeSource = await readText('js/ui/theme.js');
   const tour = await readText('js/features/tooltip-tour.js');
+  const app = await readText('js/core/app.js');
   const styles = await readText('css/styles.css');
   const themeMatch = themeSource.match(/const THEMES = \[([^\]]+)\]/);
   const themes = themeMatch ? Array.from(themeMatch[1].matchAll(/['"]([^'"]+)['"]/g)).map((match) => match[1]) : [];
@@ -1304,11 +1306,38 @@ async function checkTourAndShareCaptureContracts() {
   }
   for (const snippet of [
     'Search is the map',
+    'Start with live proof',
+    'Read the latest head',
+    'Protocol Anthology',
+    'Network Context',
+    'Explore opens optional tools',
     'Help is available when you want it',
     'Show help',
     'Not now'
   ]) {
     if (!tour.includes(snippet)) fail(`tooltip tour must retain passive search-help copy: ${snippet}`);
+  }
+  for (const selector of [
+    '#top-continuity-panel',
+    '#block-ticker-button',
+    '#hero-search-form',
+    '#chambers-section',
+    '#my-tezos-btn',
+    '#tezos-loop-console',
+    '#features-gear',
+    '#settings-gear'
+  ]) {
+    if (!tour.includes(`target: '${selector}'`)) fail(`tooltip tour must cover current help target ${selector}`);
+  }
+  if (!tour.includes('window.innerWidth - (viewportPad * 2)')) {
+    fail('tooltip tour must size its tooltip from the viewport so mobile help never starts off-screen');
+  }
+  for (const snippet of [
+    'Focus command bar',
+    'Open selected command result',
+    'Open Historical Data'
+  ]) {
+    if (!app.includes(snippet)) fail(`keyboard help overlay must include current command shortcut copy: ${snippet}`);
   }
 
   const upgradeNumberBlock = styles.match(/\.upgrade-number\s*\{[^}]*\}/)?.[0] || '';

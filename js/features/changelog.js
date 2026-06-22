@@ -5,6 +5,16 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-22',
+        entries: [
+            { type: '🔧', text: 'Bubblegum now starts with visible drifting bubbles instead of waiting for off-screen bubbles to rise into view' },
+            { type: '🔧', text: 'Chamber loading bars now animate in place so mobile rooms stay inside the viewport while data syncs' },
+            { type: '🎨', text: 'The header uptime live signals now sit in larger individual pills for easier scanning' },
+            { type: '🔧', text: 'The header uptime counter now keeps a fixed-width slot so minute changes do not nudge nearby network metrics' },
+            { type: '🔧', text: 'Need Help now walks through the current uptime proof, block ticker, command bar, Chambers, My Tezos, Loop Console, Explore, and Settings surfaces with mobile-safe tour placement' },
+        ]
+    },
+    {
         date: '2026-06-21',
         entries: [
             { type: '✨', text: 'Protocol Anthology now opens with a curator desk, archive evidence, featured long reads, and era shelves that route into real protocol histories' },

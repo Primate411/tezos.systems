@@ -445,9 +445,13 @@ class BubblegumEffect {
         }
 
         const life = 6000 + Math.random() * 6000;
+        const age = randomAge ? Math.random() * life * 0.82 : 0;
+        const startY = randomAge
+            ? Math.random() * (h + radius * 2) - radius
+            : h + radius + Math.random() * 100;
         this.bubbles.push({
             x: Math.random() * w,
-            y: h + radius + Math.random() * 100,
+            y: startY,
             radius,
             opacity,
             maxOpacity: opacity,
@@ -458,7 +462,7 @@ class BubblegumEffect {
             swayFreq: 0.001 + Math.random() * 0.002,
             swayPhase: Math.random() * Math.PI * 2,
             life,
-            age: randomAge ? Math.random() * life : 0,
+            age,
             scale: 1,
         });
     }

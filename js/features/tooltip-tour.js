@@ -1,4 +1,4 @@
-// Optional help map — 5 steps through the core ways to move around tezos.systems
+// Optional help map through the core ways to move around tezos.systems.
 (function () {
     const TOUR_KEY = 'tezos-toured';
     const WELCOMED_KEY = 'tezos-welcomed'; // respect welcome-terminal key too
@@ -10,31 +10,44 @@
 
     const steps = [
         {
+            target: '#top-continuity-panel',
+            title: 'Start with live proof',
+            text: 'Mainnet Uptime shows the zero-fork, zero-outage proof rail plus live bakers, finality, staked share, and issuance. Click it for Historical Data.',
+        },
+        {
+            target: '#block-ticker-button',
+            title: 'Read the latest head',
+            text: 'The block ticker tracks the current head, baker, Octez version, freshness, and attestation health. Click it for the Network Health Chamber.',
+        },
+        {
             target: '#hero-search-form',
             title: 'Search is the map',
-            text: 'Press / from anywhere or paste a wallet, .tez name, baker, KT1, operation hash, block, protocol, or slash command.',
+            text: 'Press / from anywhere or paste a wallet, .tez name, baker, KT1, operation hash, block, protocol, Chamber, or slash command.',
         },
         {
             target: '#chambers-section',
-            title: 'Live rooms explain the chain',
-            text: 'Chambers are the deeper rooms: health, governance, Tezos X, Liquidity Baking, tz4, ctez, and protocol history.',
+            title: 'Chambers explain the chain',
+            text: 'Open Network Health, L1 Governance, Tezos X, Tezos X Governance, tz4, Liquidity Baking, and Protocol Anthology from here or with direct routes.',
         },
         {
             target: '#my-tezos-btn',
             title: 'Make it yours when useful',
-            text: 'Add a wallet or .tez name to personalize baker, rewards, NFTs, governance, and daily context. Skip it if you are just browsing.',
+            text: 'Add a wallet or .tez name to pull baker activity, rewards, NFTs, governance attribution, Your Tezos Story, and Network Context into one drawer.',
+        },
+        {
+            target: '#tezos-loop-console',
+            title: 'Use the recipe console',
+            text: 'Wallet, Baker, Contracts, NFTs, Governance, and Market lanes seed the command bar when you are not sure what to type.',
         },
         {
             target: '#features-gear',
-            title: 'Everything else is optional',
-            text: 'Open market, baker, history, widgets, and activity tools from one launcher. Pin only what matters today.',
+            title: 'Explore without clutter',
+            text: 'Explore opens optional tools: Network Stats, ctez, Price Intel, Compare, leaderboard, calculator, activity feeds, NFT Profile, History, State of Tezos, and widgets.',
         },
         {
-            target: '#theme-toggle',
-            title: 'Tune the surface',
-            text: '13 themes, HEN mode, share tools, and export controls live here. Treat it as customization, not homework.',
-            action: function () { if (typeof HenMode !== 'undefined') HenMode.activate(); },
-            actionLabel: 'launch HEN mode',
+            target: '#settings-gear',
+            title: 'Tune and export',
+            text: 'Settings keeps 13 themes, Ultra, share captures, data export, About, shortcuts, and changelog nearby. HEN mode stays available from the corner launcher.',
         },
     ];
 
@@ -60,9 +73,9 @@
             '<div class="tour-footer">' +
                 '<span class="tour-progress"></span>' +
                 '<div class="tour-actions">' +
-                    '<button class="tour-skip">skip</button>' +
-                    '<button class="tour-action" style="display:none"></button>' +
-                    '<button class="tour-next">next →</button>' +
+                    '<button class="tour-skip" type="button">skip</button>' +
+                    '<button class="tour-action" type="button" style="display:none"></button>' +
+                    '<button class="tour-next" type="button">next →</button>' +
                 '</div>' +
             '</div>';
         overlay.appendChild(tooltip);
@@ -84,18 +97,7 @@
         var step = steps[index];
         var el = document.querySelector(step.target);
 
-        // If target missing, try to open the settings dropdown for theme-toggle
-        if (!el && step.target === '#theme-toggle') {
-            var gear = document.querySelector('#settings-gear');
-            if (gear) { gear.click(); el = document.querySelector(step.target); }
-        }
         if (!el) { next(); return; }
-
-        // For header buttons, we may need to open their dropdown first
-        if (step.target === '#theme-toggle') {
-            var dropdown = document.querySelector('#settings-dropdown');
-            if (dropdown) dropdown.classList.add('show');
-        }
 
         tooltip.querySelector('.tour-title').textContent = step.title;
         tooltip.querySelector('.tour-text').textContent = step.text;
@@ -120,24 +122,34 @@
         setTimeout(function () {
             var rect = el.getBoundingClientRect();
             var pad = 10;
+            var highlightLeft = Math.max(0, rect.left - pad);
+            var highlightTop = Math.max(0, rect.top - pad);
+            var highlightRight = Math.min(window.innerWidth, rect.right + pad);
+            var highlightBottom = Math.min(window.innerHeight, rect.bottom + pad);
 
             // Spotlight cutout
             backdrop.style.clipPath = 'polygon(' +
                 '0 0, 100% 0, 100% 100%, 0 100%, 0 0, ' +
-                (rect.left - pad) + 'px ' + (rect.top - pad) + 'px, ' +
-                (rect.left - pad) + 'px ' + (rect.bottom + pad) + 'px, ' +
-                (rect.right + pad) + 'px ' + (rect.bottom + pad) + 'px, ' +
-                (rect.right + pad) + 'px ' + (rect.top - pad) + 'px, ' +
-                (rect.left - pad) + 'px ' + (rect.top - pad) + 'px)';
+                highlightLeft + 'px ' + highlightTop + 'px, ' +
+                highlightLeft + 'px ' + highlightBottom + 'px, ' +
+                highlightRight + 'px ' + highlightBottom + 'px, ' +
+                highlightRight + 'px ' + highlightTop + 'px, ' +
+                highlightLeft + 'px ' + highlightTop + 'px)';
 
             // Position tooltip
-            var ttWidth = 340;
-            var left = Math.max(16, rect.left + rect.width / 2 - ttWidth / 2);
-            left = Math.min(left, window.innerWidth - ttWidth - 16);
+            var viewportPad = 16;
+            var ttWidth = Math.min(360, Math.max(260, window.innerWidth - (viewportPad * 2)));
+            var ttHeight = Math.min(tooltip.offsetHeight || 190, window.innerHeight - (viewportPad * 2));
+            var left = Math.max(viewportPad, rect.left + rect.width / 2 - ttWidth / 2);
+            left = Math.min(left, Math.max(0, window.innerWidth - ttWidth - viewportPad));
+            left = Math.max(0, left);
 
             var top = rect.bottom + 16;
-            if (top + 160 > window.innerHeight) {
-                top = Math.max(16, rect.top - 160);
+            if (top + ttHeight > window.innerHeight - viewportPad) {
+                top = Math.max(viewportPad, rect.top - ttHeight - 16);
+            }
+            if (top + ttHeight > window.innerHeight - viewportPad) {
+                top = Math.max(viewportPad, window.innerHeight - ttHeight - viewportPad);
             }
 
             tooltip.style.left = left + 'px';
@@ -154,12 +166,6 @@
     function next() {
         tooltip.classList.remove('tour-visible');
 
-        // Close settings dropdown if it was opened for theme step
-        if (steps[current] && steps[current].target === '#theme-toggle') {
-            var dropdown = document.querySelector('#settings-dropdown');
-            if (dropdown) dropdown.classList.remove('show');
-        }
-
         current++;
         if (current >= steps.length) { end(); return; }
 
@@ -169,10 +175,6 @@
     function end() {
         localStorage.setItem(TOUR_KEY, '1');
         document.removeEventListener('keydown', onKey);
-
-        // Close any dropdown we opened
-        var dropdown = document.querySelector('#settings-dropdown');
-        if (dropdown) dropdown.classList.remove('show');
 
         if (overlay) {
             overlay.style.opacity = '0';
@@ -201,7 +203,7 @@
         nudge.innerHTML =
             '<div>' +
                 '<strong>Need a map?</strong>' +
-                '<span>Search handles addresses, .tez names, bakers, KT1s, blocks, operations, protocols, and slash commands. Help is available when you want it.</span>' +
+                '<span>Start with live uptime proof, then use / search for wallets, .tez names, bakers, KT1s, blocks, operations, protocols, Chambers, and tools. Help is available when you want it.</span>' +
             '</div>' +
             '<div class="tour-nudge-actions">' +
                 '<button class="tour-dismiss" type="button">Not now</button>' +

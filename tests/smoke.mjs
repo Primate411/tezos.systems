@@ -5226,6 +5226,21 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   const page = await context.newPage();
   attachIssueCollectors(page, 'first visit tour', issues);
 
+  async function expectTourStep(currentPage, label, snippets) {
+    await currentPage.waitForFunction((items) => {
+      const text = document.querySelector('#tour-overlay')?.innerText || '';
+      return items.every((item) => text.toLowerCase().includes(item.toLowerCase()));
+    }, snippets, { timeout: 6000 });
+    const text = await currentPage.locator('#tour-overlay').innerText();
+    for (const snippet of snippets) {
+      assert(text.toLowerCase().includes(snippet.toLowerCase()), `first visit tour: ${label} missing "${snippet}" in ${text}`);
+    }
+  }
+
+  async function advanceTour(currentPage) {
+    await currentPage.locator('#tour-overlay .tour-next').click();
+  }
+
   let response = await page.goto(`${baseUrl}/#lb`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `first visit tour deep link: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
@@ -5255,13 +5270,65 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   await assertLocatorCount(page.locator('.tour-nudge .tour-start'), 1, 'first visit tour start');
   await page.locator('.tour-nudge .tour-start').click();
   await page.locator('#tour-overlay').waitFor({ state: 'visible', timeout: 6000 });
-  const tourText = await page.locator('#tour-overlay').innerText();
-  assert(/Search is the map/i.test(tourText) && /Press \//i.test(tourText), `first visit tour: first help step should explain search: ${tourText}`);
+  await expectTourStep(page, 'uptime proof step', ['Start with live proof', 'Mainnet Uptime', 'Historical Data']);
+  await advanceTour(page);
+  await expectTourStep(page, 'block ticker step', ['Read the latest head', 'Network Health Chamber']);
+  await advanceTour(page);
+  await expectTourStep(page, 'command bar step', ['Search is the map', 'Press /', 'Chamber']);
+  await advanceTour(page);
+  await expectTourStep(page, 'chambers step', ['Chambers explain the chain', 'Protocol Anthology']);
+  await advanceTour(page);
+  await expectTourStep(page, 'my tezos step', ['Make it yours', 'Network Context']);
+  await advanceTour(page);
+  await expectTourStep(page, 'loop console step', ['Use the recipe console', 'Market lanes']);
+  await advanceTour(page);
+  await expectTourStep(page, 'explore step', ['Explore without clutter', 'State of Tezos']);
+  await advanceTour(page);
+  await expectTourStep(page, 'settings step', ['Tune and export', '13 themes']);
   await assertLocatorCount(page.locator('#tour-overlay .tour-skip'), 1, 'first visit tour skip');
   await page.locator('#tour-overlay .tour-skip').click();
   await page.locator('#tour-overlay').waitFor({ state: 'detached', timeout: 5000 });
+  await openDropdown(page, '#settings-gear', '#settings-dropdown');
+  await page.locator('#shortcuts-btn').click();
+  await page.locator('#keyboard-help.visible').waitFor({ state: 'visible', timeout: 5000 });
+  const keyboardHelpText = await page.locator('#keyboard-help').innerText();
+  assert(/Focus command bar/i.test(keyboardHelpText) && /Open selected command result/i.test(keyboardHelpText) && /Open Historical Data/i.test(keyboardHelpText), `keyboard help overlay copy mismatch: ${keyboardHelpText}`);
+  await page.keyboard.press('Escape');
+  await page.locator('#keyboard-help').waitFor({ state: 'detached', timeout: 5000 });
 
   await context.close();
+
+  const mobileContext = await browser.newContext({
+    viewport: { width: 360, height: 720 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(mobileContext);
+  await mobileContext.addInitScript(() => {
+    localStorage.removeItem('tezos-toured');
+    localStorage.removeItem('tezos-welcomed');
+    localStorage.removeItem('tezos-systems-theme');
+  });
+  const mobilePage = await mobileContext.newPage();
+  attachIssueCollectors(mobilePage, 'first visit tour mobile', issues);
+  response = await mobilePage.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `first visit tour mobile: dashboard failed with HTTP ${response?.status()}`);
+  await mobilePage.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  await mobilePage.locator('.tour-nudge').waitFor({ state: 'visible', timeout: 6000 });
+  await mobilePage.locator('.tour-nudge .tour-start').click();
+  await expectTourStep(mobilePage, 'mobile uptime proof step', ['Start with live proof', 'Mainnet Uptime']);
+  const mobileTourBox = await mobilePage.evaluate(() => {
+    const rect = document.querySelector('.tour-tooltip')?.getBoundingClientRect();
+    return rect ? {
+      left: rect.left,
+      right: rect.right,
+      width: rect.width,
+      viewportWidth: window.innerWidth
+    } : null;
+  });
+  assert(mobileTourBox, 'first visit tour mobile: tooltip was not rendered');
+  assert(mobileTourBox.left >= 0 && mobileTourBox.right <= mobileTourBox.viewportWidth, `first visit tour mobile: tooltip off-screen ${JSON.stringify(mobileTourBox)}`);
+  await mobileContext.close();
+
   assert(issues.length === 0, `first visit tour browser issues:\n${issues.join('\n')}`);
   log('ok - first visit tour smoke');
 }
