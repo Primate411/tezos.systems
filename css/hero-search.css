@@ -414,6 +414,203 @@ body.hero-search-mode .main-content {
     text-align: center;
 }
 
+.protocol-history-anthology-host {
+    width: min(100%, 980px);
+}
+
+.protocol-anthology-loading {
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 12%, var(--glass-border));
+    border-radius: 8px;
+    color: var(--text-tertiary);
+    background: rgba(255, 255, 255, 0.024);
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.protocol-anthology-board {
+    display: grid;
+    gap: 0.75rem;
+    width: 100%;
+    text-align: left;
+}
+
+.protocol-anthology-brief {
+    display: grid;
+    gap: 0.38rem;
+    padding: 0.95rem;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 18%, var(--glass-border));
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 7%, transparent), color-mix(in srgb, var(--accent-purple) 5%, transparent)),
+        rgba(255, 255, 255, 0.03);
+}
+
+.protocol-anthology-brief h3 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: clamp(1rem, 2.4vw, 1.36rem);
+    line-height: 1.18;
+}
+
+.protocol-anthology-brief p,
+.protocol-anthology-shelf p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.protocol-anthology-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.protocol-anthology-metric,
+.protocol-anthology-feature,
+.protocol-anthology-shelf {
+    min-width: 0;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.028);
+}
+
+.protocol-anthology-metric {
+    display: grid;
+    gap: 0.22rem;
+    min-height: 78px;
+    padding: 0.64rem;
+}
+
+.protocol-anthology-metric span,
+.protocol-anthology-metric small,
+.protocol-anthology-feature span,
+.protocol-anthology-feature small,
+.protocol-anthology-chip small,
+.protocol-anthology-shelf-head span {
+    display: block;
+    overflow: hidden;
+    color: var(--text-tertiary);
+    font-size: 0.58rem;
+    font-weight: 850;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.protocol-anthology-metric strong {
+    overflow: hidden;
+    color: color-mix(in srgb, var(--accent-cyan) 82%, var(--text-primary));
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    font-size: 1.08rem;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.protocol-anthology-featured {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.protocol-anthology-feature,
+.protocol-anthology-chip {
+    color: inherit;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+}
+
+.protocol-anthology-feature {
+    display: grid;
+    gap: 0.28rem;
+    min-height: 116px;
+    padding: 0.72rem;
+    transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.protocol-anthology-feature:hover,
+.protocol-anthology-chip:hover {
+    border-color: color-mix(in srgb, var(--accent-cyan) 42%, var(--glass-border));
+    background: color-mix(in srgb, var(--accent-cyan) 8%, transparent);
+}
+
+.protocol-anthology-feature:hover {
+    transform: translateY(-1px);
+}
+
+.protocol-anthology-feature strong {
+    overflow: hidden;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    font-size: 0.94rem;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.protocol-anthology-feature small {
+    white-space: normal;
+}
+
+.protocol-anthology-shelves {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+}
+
+.protocol-anthology-shelf {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.72rem;
+}
+
+.protocol-anthology-shelf-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.protocol-anthology-shelf-head strong {
+    color: color-mix(in srgb, var(--accent-cyan) 70%, var(--text-primary));
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1;
+}
+
+.protocol-anthology-shelf-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.protocol-anthology-chip {
+    display: grid;
+    gap: 0.16rem;
+    max-width: 9.6rem;
+    min-height: 38px;
+    padding: 0.34rem 0.48rem;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.024);
+}
+
+.protocol-anthology-chip strong {
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', 'IBM Plex Mono', monospace;
+    font-size: 0.66rem;
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .protocol-history-chamber-actions {
     display: flex;
     flex-wrap: wrap;
@@ -1192,6 +1389,20 @@ body.hero-search-mode .main-content {
 
     .protocol-history-chamber-lede {
         text-align: left;
+    }
+
+    .protocol-history-anthology-host {
+        width: 100%;
+    }
+
+    .protocol-anthology-metrics,
+    .protocol-anthology-featured,
+    .protocol-anthology-shelves {
+        grid-template-columns: 1fr;
+    }
+
+    .protocol-anthology-feature {
+        min-height: 92px;
     }
 
     .hero-slot {

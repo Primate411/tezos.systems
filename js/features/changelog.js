@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-21',
         entries: [
+            { type: '✨', text: 'Protocol Anthology now opens with a curator desk, archive evidence, featured long reads, and era shelves that route into real protocol histories' },
             { type: '🔧', text: 'Tezos X Governance mobile Chamber cards now keep footer controls clear of live proposal content' },
             { type: '🔧', text: 'First-visit help now centers the command bar and stays optional, with search examples for early entrants and easy dismissal for returning users' },
             { type: '🎨', text: 'The Tezos Loop Console now doubles as a search recipe guide with wallet, baker, contract, governance, NFT, and market examples' },

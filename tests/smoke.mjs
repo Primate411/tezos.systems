@@ -2570,6 +2570,20 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   await page.locator('#protocol-history-chamber-modal.active #upgrade-timeline .timeline-item').first().waitFor({ state: 'visible', timeout: 10000 });
   const historyChamberText = await page.locator('#protocol-history-chamber-modal').innerText();
   assert(/Protocol History Chamber/i.test(historyChamberText) && /Impact/i.test(historyChamberText), `hero command bar: Protocol History Chamber did not preserve timeline/impact surface: ${historyChamberText.slice(0, 320)}`);
+  assert(/Curator's desk/i.test(historyChamberText) && /Long reads/i.test(historyChamberText) && /Economic governance shelf/i.test(historyChamberText), `hero command bar: Protocol Anthology board missing real archive context: ${historyChamberText.slice(0, 420)}`);
+  const anthologyState = await page.evaluate(() => ({
+    metricCount: document.querySelectorAll('#protocol-history-chamber-modal .protocol-anthology-metric').length,
+    featureCount: document.querySelectorAll('#protocol-history-chamber-modal .protocol-anthology-feature').length,
+    shelfCount: document.querySelectorAll('#protocol-history-chamber-modal .protocol-anthology-shelf').length,
+    quebecLinks: document.querySelectorAll('#protocol-history-chamber-modal [data-protocol-open="Quebec"]').length
+  }));
+  assert(anthologyState.metricCount >= 4 && anthologyState.featureCount >= 3 && anthologyState.shelfCount >= 3 && anthologyState.quebecLinks >= 1, `hero command bar: Protocol Anthology anatomy incomplete: ${JSON.stringify(anthologyState)}`);
+  await page.locator('#protocol-history-chamber-modal [data-protocol-open="Quebec"]').first().click();
+  await page.locator('#protocol-history-modal').waitFor({ state: 'visible', timeout: 10000 });
+  const anthologyProtocolText = await page.locator('#protocol-history-modal').innerText();
+  assert(/Quebec\/Qena Wars|Quebec Protocol/i.test(anthologyProtocolText), `hero command bar: anthology protocol chip did not open real Quebec history: ${anthologyProtocolText.slice(0, 320)}`);
+  await page.locator('#protocol-history-modal #history-modal-close').click();
+  await page.locator('#protocol-history-modal').waitFor({ state: 'detached', timeout: 5000 });
   await page.locator('#protocol-history-chamber-modal .chamber-close').click();
   await page.locator('#protocol-history-chamber-modal').waitFor({ state: 'detached', timeout: 5000 });
 

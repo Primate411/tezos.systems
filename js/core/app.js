@@ -1232,6 +1232,208 @@ function buildProtocolEntryRail(protocols) {
     }).join('');
 }
 
+function protocolDate(protocol) {
+    const raw = protocol?.date || protocol?.startTime;
+    if (!raw) return null;
+    const date = new Date(String(raw).includes('T') ? raw : `${raw}T00:00:00Z`);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function protocolYear(protocol) {
+    return protocolDate(protocol)?.getUTCFullYear() || null;
+}
+
+function formatProtocolDate(protocol) {
+    const date = protocolDate(protocol);
+    if (!date) return '';
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
+function buildProtocolLoreMap(data) {
+    const map = new Map();
+    if (!Array.isArray(data?.protocols)) return map;
+    data.protocols.forEach((protocol) => {
+        if (protocol?.name) map.set(protocol.name.toLowerCase(), protocol);
+        if (protocol?.hash) map.set(protocol.hash.slice(0, 8).toLowerCase(), protocol);
+    });
+    return map;
+}
+
+function findRichProtocol(protocol, loreMap) {
+    if (!protocol || !loreMap) return null;
+    const nameMatch = protocol.name ? loreMap.get(String(protocol.name).toLowerCase()) : null;
+    if (nameMatch) return nameMatch;
+    const hash = protocol.hash ? String(protocol.hash).slice(0, 8).toLowerCase() : '';
+    return hash ? loreMap.get(hash) || null : null;
+}
+
+function mergeProtocolLore(protocols, loreData) {
+    const loreMap = buildProtocolLoreMap(loreData);
+    const source = Array.isArray(protocols) && protocols.length
+        ? protocols
+        : (Array.isArray(loreData?.protocols) ? loreData.protocols : []);
+
+    return source.map((protocol) => {
+        const rich = findRichProtocol(protocol, loreMap) || {};
+        return {
+            ...rich,
+            ...protocol,
+            date: rich.date || protocol.date || protocol.startTime || null,
+            block: rich.block ?? protocol.block ?? protocol.firstLevel ?? null,
+            headline: rich.headline || protocol.headline || protocol.highlight || 'Self-amendment protocol upgrade',
+            changes: Array.isArray(rich.changes) ? rich.changes : (Array.isArray(protocol.changes) ? protocol.changes : []),
+            blockTime: rich.blockTime ?? protocol.blockTime ?? null,
+            debate: rich.debate || protocol.debate || null,
+            history: rich.history || protocol.history || null,
+            contention: Boolean(protocol.contention || rich.contention || rich.history),
+            isCurrent: Boolean(protocol.isCurrent)
+        };
+    });
+}
+
+function protocolEraLabel(protocol) {
+    const year = protocolYear(protocol);
+    if (!year) return 'Archive shelf';
+    if (year <= 2020) return 'Origins shelf';
+    if (year === 2021) return 'Capability shelf';
+    if (year <= 2023) return 'Finality and rollups shelf';
+    if (year <= 2025) return 'Economic governance shelf';
+    return 'Tezos X runway shelf';
+}
+
+function summarizeProtocolSpan(protocols) {
+    const dates = protocols.map(protocolDate).filter(Boolean).sort((a, b) => a - b);
+    if (!dates.length) return 'dates syncing';
+    const first = dates[0].getUTCFullYear();
+    const last = dates[dates.length - 1].getUTCFullYear();
+    return first === last ? String(first) : `${first}-${last}`;
+}
+
+function chooseFeaturedAnthologyChapters(protocols, currentProtocol) {
+    const chosen = [];
+    const add = (protocol, label) => {
+        if (!protocol?.name || chosen.some((item) => item.protocol.name === protocol.name)) return;
+        chosen.push({ protocol, label });
+    };
+
+    add(currentProtocol, 'Current chapter');
+    add(protocols.find((protocol) => protocol.history && protocol.name !== currentProtocol?.name), 'Newest long read');
+    add(protocols.find((protocol) => protocol.name === 'Oxford')
+        || protocols.find((protocol) => /rejected|rejection|promotion/i.test(`${protocol.debate || ''} ${protocol.history?.title || ''}`)), 'Governance could say no');
+    add(protocols.find((protocol) => protocol.name === 'Granada'), 'Economic fault line');
+    add(protocols.find((protocol) => protocol.name === 'Ithaca'), 'Finality arrives');
+
+    return chosen.slice(0, 4);
+}
+
+function buildAnthologyMetric(label, value, note) {
+    return `
+        <div class="protocol-anthology-metric">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+            <small>${escapeHtml(note)}</small>
+        </div>
+    `;
+}
+
+function buildAnthologyChapterButton(protocol, label = null) {
+    const historyCount = Array.isArray(protocol?.history?.sections) ? protocol.history.sections.length : 0;
+    const detail = label || (historyCount ? `${historyCount} scene${historyCount === 1 ? '' : 's'}` : formatProtocolDate(protocol) || 'open');
+    return `
+        <button class="protocol-anthology-chip" type="button" data-protocol-open="${escapeHtml(protocol.name)}">
+            <strong>${escapeHtml(protocol.name)}</strong>
+            <small>${escapeHtml(detail)}</small>
+        </button>
+    `;
+}
+
+async function renderProtocolAnthologyBoard(protocols, currentProtocol = null) {
+    const board = document.getElementById('protocol-history-anthology-board');
+    if (!board) return;
+
+    const data = await loadProtocolData();
+    const enriched = mergeProtocolLore(protocols, data);
+    if (!enriched.length) {
+        board.innerHTML = '<div class="protocol-anthology-loading">Protocol archive is still syncing.</div>';
+        return;
+    }
+
+    const ordered = [...enriched].reverse();
+    const current = currentProtocol
+        ? enriched.find((protocol) => protocol.name === currentProtocol.name) || currentProtocol
+        : enriched.find((protocol) => protocol.isCurrent) || enriched[enriched.length - 1];
+    const longReads = enriched.filter((protocol) => protocol.history?.sections?.length);
+    const debated = enriched.filter((protocol) => protocol.debate || protocol.contention || protocol.history);
+    const blockTimes = enriched.map((protocol) => Number(protocol.blockTime)).filter((time) => Number.isFinite(time) && time > 0);
+    const slowest = blockTimes.length ? Math.max(...blockTimes) : null;
+    const fastest = blockTimes.length ? Math.min(...blockTimes) : null;
+    const latestLongRead = ordered.find((protocol) => protocol.history && protocol.name !== current?.name) || longReads[longReads.length - 1] || current;
+    const features = chooseFeaturedAnthologyChapters(ordered, current);
+    const shelves = new Map();
+
+    enriched.forEach((protocol) => {
+        const label = protocolEraLabel(protocol);
+        if (!shelves.has(label)) shelves.set(label, []);
+        shelves.get(label).push(protocol);
+    });
+
+    const shelfHtml = Array.from(shelves.entries()).map(([label, shelfProtocols]) => {
+        const storyProtocol = [...shelfProtocols].reverse().find((protocol) => protocol.history || protocol.debate || protocol.contention)
+            || shelfProtocols[shelfProtocols.length - 1];
+        const visible = [...shelfProtocols].reverse().slice(0, 4);
+        return `
+            <section class="protocol-anthology-shelf">
+                <div class="protocol-anthology-shelf-head">
+                    <span>${escapeHtml(label)}</span>
+                    <strong>${escapeHtml(summarizeProtocolSpan(shelfProtocols))}</strong>
+                </div>
+                <p>${escapeHtml(storyProtocol?.headline || 'Protocol context captured from the amendment trail.')}</p>
+                <div class="protocol-anthology-shelf-chips">
+                    ${visible.map((protocol) => buildAnthologyChapterButton(protocol)).join('')}
+                </div>
+            </section>
+        `;
+    }).join('');
+
+    board.innerHTML = `
+        <div class="protocol-anthology-board">
+            <div class="protocol-anthology-brief">
+                <span class="feature-kicker">Curator's desk</span>
+                <h3>${escapeHtml(current?.name || 'Current')} is the live chapter. ${escapeHtml(latestLongRead?.name || 'Quebec')} is the closest deep read.</h3>
+                <p>The anthology is built from the protocol archive in this repo: activation dates, block receipts, change lists, debate notes, and long-form histories where the governance fight left a mark.</p>
+            </div>
+            <div class="protocol-anthology-metrics" aria-label="Protocol anthology evidence">
+                ${buildAnthologyMetric('Chapters', String(enriched.length), 'activated or accepted records')}
+                ${buildAnthologyMetric('Long reads', String(longReads.length), 'curated history scenes')}
+                ${buildAnthologyMetric('Debate marks', String(debated.length), 'upgrades with dispute context')}
+                ${buildAnthologyMetric('Block time', slowest && fastest ? `${slowest}s -> ${fastest}s` : 'syncing', 'fastest recorded target')}
+            </div>
+            <div class="protocol-anthology-featured" aria-label="Featured protocol chapters">
+                ${features.map(({ protocol, label }) => `
+                    <button class="protocol-anthology-feature" type="button" data-protocol-open="${escapeHtml(protocol.name)}">
+                        <span>${escapeHtml(label)}</span>
+                        <strong>${escapeHtml(protocol.name)}</strong>
+                        <small>${escapeHtml(protocol.history?.title || protocol.headline || 'Open protocol context')}</small>
+                    </button>
+                `).join('')}
+            </div>
+            <div class="protocol-anthology-shelves" aria-label="Protocol era shelves">
+                ${shelfHtml}
+            </div>
+        </div>
+    `;
+
+    if (!board.dataset.protocolAnthologyWired) {
+        board.addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-protocol-open]');
+            const name = trigger?.getAttribute('data-protocol-open');
+            if (!name) return;
+            openProtocolHistoryByName(name);
+        });
+        board.dataset.protocolAnthologyWired = '1';
+    }
+}
+
 function updateProtocolHistoryEntryCard(protocols = getKnownProtocols()) {
     const card = document.getElementById('protocol-history-entry-card');
     if (!card) return;
@@ -2033,6 +2235,7 @@ function renderProtocolTimeline(protocols) {
         const headerProtocolEl = document.getElementById('header-current-protocol');
         if (headerProtocolEl) headerProtocolEl.textContent = currentProtocol.name;
     }
+    renderProtocolAnthologyBoard(protocols, currentProtocol);
 
     const timelineEl = document.getElementById('upgrade-timeline');
     if (!timelineEl) return;
@@ -2518,6 +2721,9 @@ function renderProtocolHistoryChamberShell(overlay) {
                 <button class="protocol-history-chamber-link protocol-history-chamber-action" type="button" data-protocol-history-jump="impact">View Impact</button>
                 <a class="protocol-history-chamber-link" href="#history">Open network charts</a>
                 <button class="protocol-history-chamber-link" type="button" data-copy-hash="#protocol-history">Copy chamber link</button>
+            </div>
+            <div class="protocol-history-anthology-host" id="protocol-history-anthology-board" aria-live="polite">
+                <div class="protocol-anthology-loading">Reading the protocol archive...</div>
             </div>
         </div>
         <div class="protocol-history-chamber-panel protocol-history-feature-panel">
