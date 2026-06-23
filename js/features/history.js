@@ -191,6 +191,14 @@ function latestNumericRow(data, metric) {
     return latestRow(data);
 }
 
+function prepareCardHistoryData(data, config) {
+    if (!Array.isArray(data) || typeof config?.deriveValue !== 'function') return data;
+    return data.map(row => ({
+        ...row,
+        [config.metric]: config.deriveValue(row)
+    }));
+}
+
 function numericField(row, metric) {
     return row ? metricValue(row[metric]) : NaN;
 }
@@ -1298,6 +1306,16 @@ async function updateHistoryCharts(range) {
 // Card-to-metric mapping for history feature
 const CARD_METRICS = {
     'total-bakers': { metric: 'total_bakers', label: 'Total Bakers', unit: '' },
+    'finality': {
+        source: 'networkHealth',
+        metric: 'finality_seconds',
+        label: 'Finality Estimate',
+        unit: 's',
+        deriveValue: (row) => {
+            const avgBlockSeconds = metricValue(row?.avg_block_seconds);
+            return Number.isFinite(avgBlockSeconds) ? avgBlockSeconds * 2 : NaN;
+        }
+    },
     'tz4-adoption': {
         metric: 'tz4_power_pct',
         label: 'tz4 Power Adoption',
@@ -1309,6 +1327,7 @@ const CARD_METRICS = {
     'issuance-rate': { metric: 'current_issuance_rate', label: 'Issuance Rate', unit: '%' },
     'staking-apy': { metric: 'staking_apy_stake', label: 'Stake APY', unit: '%' },
     'staking-ratio': { metric: 'staking_ratio', label: 'Staking Ratio', unit: '%' },
+    'total-staked': { metric: 'total_staked', label: 'Total Staked', unit: ' XTZ' },
     'delegated': { metric: 'delegated_ratio', label: 'Delegated Ratio', unit: '%' },
     'total-supply': { metric: 'total_supply', label: 'Total Supply', unit: ' XTZ' },
     'total-burned': { metric: 'total_burned', label: 'Total Burned', unit: ' XTZ' },
@@ -1419,7 +1438,7 @@ export function addCardHistoryButtons() {
 /**
  * Open the card history modal for a specific metric
  */
-async function openCardHistoryModal(cardId) {
+export async function openCardHistoryModal(cardId, initialRange = '30d') {
     const config = CARD_METRICS[cardId];
     if (!config) return;
 
@@ -1443,7 +1462,7 @@ async function openCardHistoryModal(cardId) {
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
 
-    await renderCardHistoryChart(modal, config, '30d');
+    await renderCardHistoryChart(modal, config, initialRange);
 }
 
 function setCardHistoryRangeState(modal, range) {
@@ -1467,7 +1486,7 @@ async function renderCardHistoryChart(modal, config, range) {
 
     // Load data and render chart
     try {
-        const data = await fetchCardHistoryData(config, range);
+        const data = prepareCardHistoryData(await fetchCardHistoryData(config, range), config);
 
         if (requestId !== cardHistoryRequestId || !modal.classList.contains('active')) {
             return;

@@ -25,7 +25,7 @@ import {
     shortAddress
 } from './wallet.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
-import { initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric } from '../features/history.js';
+import { initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric, openCardHistoryModal } from '../features/history.js';
 import { ensureCardShareButton, initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
 import { fetchProtocols } from '../features/governance.js';
 import { initGovernanceAlerts } from '../features/governance-alerts.js';
@@ -210,6 +210,7 @@ async function init() {
 
     // Initialize Smart Dock (gear dropdown)
     initSmartDock();
+    safe('cornerGiftTray', initCornerGiftTray);
 
     // Add copyable deep-link affordances to major feature surfaces
     safe('deepLinkAffordances', initDeepLinkAffordances);
@@ -1817,6 +1818,7 @@ function initUptimeClock() {
     const stakedEl = document.getElementById('uptime-staked');
     const issuanceEl = document.getElementById('uptime-issuance');
     const topContinuityPanel = document.getElementById('top-continuity-panel');
+    const topContinuityHistory = document.getElementById('top-continuity-history');
 
     if (!counterEl) return;
 
@@ -1915,15 +1917,20 @@ function initUptimeClock() {
         });
     }
 
-    if (topContinuityPanel && topContinuityPanel.dataset.historyWired !== '1') {
+    if (topContinuityPanel && topContinuityHistory && topContinuityPanel.dataset.historyWired !== '1') {
         topContinuityPanel.dataset.historyWired = '1';
-        topContinuityPanel.addEventListener('click', () => {
-            const historyBtn = document.getElementById('history-btn');
-            if (!historyBtn) return;
-            if (window.location.hash !== '#history') {
-                window.history.pushState(null, '', '#history');
+        topContinuityHistory.addEventListener('click', () => {
+            if (window.location.hash !== '#protocol-history') {
+                window.history.pushState(null, '', '#protocol-history');
             }
-            historyBtn.click();
+            openProtocolHistoryChamber();
+        });
+        topContinuityPanel.querySelectorAll('.top-continuity-stat[data-card-history]').forEach((pill) => {
+            if (pill.dataset.topContinuityHistoryPillWired === '1') return;
+            pill.dataset.topContinuityHistoryPillWired = '1';
+            pill.addEventListener('click', () => {
+                openCardHistoryModal(pill.dataset.cardHistory, 'all');
+            });
         });
     }
 
@@ -3177,6 +3184,53 @@ function initCollapsibleSections() {
 // ==========================================
 // SMART DOCK — Overflow + Bottom Sheet
 // ==========================================
+function initCornerGiftTray() {
+    const tray = document.getElementById('corner-gift-tray');
+    const toggle = document.getElementById('corner-gift-toggle');
+    if (!tray || !toggle) return;
+
+    const setOpen = (open) => {
+        tray.classList.toggle('open', open);
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+
+    tray.addEventListener('pointerenter', (e) => {
+        if (e.pointerType !== 'touch') setOpen(true);
+    });
+    tray.addEventListener('pointerleave', (e) => {
+        if (e.pointerType === 'touch') return;
+        if (!tray.contains(document.activeElement)) setOpen(false);
+    });
+
+    tray.addEventListener('focusin', () => setOpen(true));
+    tray.addEventListener('focusout', () => {
+        setTimeout(() => {
+            if (!tray.contains(document.activeElement)) setOpen(false);
+        }, 0);
+    });
+
+    toggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.matchMedia?.('(hover: hover)').matches) {
+            setOpen(true);
+            return;
+        }
+        const shouldOpen = !tray.classList.contains('open');
+        setOpen(shouldOpen);
+        if (!shouldOpen) toggle.blur();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!tray.contains(e.target)) setOpen(false);
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        setOpen(false);
+        if (tray.contains(document.activeElement)) toggle.focus();
+    });
+}
+
 function initSmartDock() {
     // Generic dropdown setup
     function setupDropdown(gearId, dropdownId) {

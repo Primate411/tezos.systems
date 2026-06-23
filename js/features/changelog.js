@@ -5,6 +5,18 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-23',
+        entries: [
+            { type: '🔧', text: 'Price Intelligence deep links now open even when live cycle metadata is slow to answer' },
+            { type: '🔧', text: 'The first-visit tour now follows all eight steps cleanly after the larger Chambers and Loop Console layouts on desktop and mobile' },
+            { type: '🎨', text: 'The header uptime proof now reads as a tighter left-side instrument block while the stat pills stay right-aligned' },
+            { type: '🎨', text: 'The header continuity strip now anchors uptime and zero-fork proof on the left, pushes high-contrast stat pills right, and opens Protocol Anthology from the proof block' },
+            { type: '🎨', text: 'The Zero Forks and Zero Outages badges now sit directly with Mainnet Uptime and read slightly larger in the header' },
+            { type: '✨', text: 'The header uptime stat pills now open their own all-time history charts' },
+            { type: '🎨', text: 'The tiny HEN and ctez corner launchers now live inside one gift tray that expands downward for current and future quick tools' },
+        ]
+    },
+    {
         date: '2026-06-22',
         entries: [
             { type: '✨', text: 'Governance Alert now appears only during live voting windows with saved-baker vote checks, RSS access, and optional browser reminders' },

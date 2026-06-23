@@ -167,7 +167,7 @@ inline modal styles in `js/core/app.js`.
 - Chambers section is visible by default and orders the chamber rows as Network
   Health <> Tezos L1 Governance, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
   Monitor, then Protocol History as its own Chamber row. ctez End of Life stays
-  off the default Chambers grid and opens from Explore or the small top-left ctez
+  off the default Chambers grid and opens from Explore or the corner gift tray
   launcher. Each Chamber row is wrapped responsively so wide cards keep their
   companion card instead of creating desktop grid holes; cards also keep a
   canonical app-shell open affordance in the fixed footer rail, card-level
@@ -271,7 +271,7 @@ inline modal styles in `js/core/app.js`.
   timing, projection to 50%, largest holdouts, visible monthly switch-count
   momentum, power milestones, top-10 first movers, and a capped Baker Status
   table with a Show all control.
-- ctez End of Life with direct `#ctez` access, a tiny top-left launcher, an
+- ctez End of Life with direct `#ctez` access, a corner gift-tray launcher, an
   Explore entry, a native Tezos.Systems My Ovens summary/detail console,
   Octez.Connect pairing, TzKT contract storage and big-map discovery for ovens
   owned by the connected wallet, wallet-reviewed one-batch close requests that
@@ -487,7 +487,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v265`.
+- Current aligned shell cache stamp: `v274`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

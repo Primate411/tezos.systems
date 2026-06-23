@@ -50,14 +50,14 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=268">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=268">
-    <link rel="stylesheet" href="css/hen-mode.css?v=76">
+    <link rel="stylesheet" href="css/styles.min.css?v=274">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=274">
+    <link rel="stylesheet" href="css/hen-mode.css?v=77">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=268">
+    <link rel="modulepreload" href="js/core/app.js?v=274">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -214,13 +214,20 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=268"></script>
-    <a id="hen-launcher" class="hen-launcher" href="/?hen=1" aria-label="Enter HEN mode" title="Enter HEN mode">
-        <span aria-hidden="true">🐔</span>
-    </a>
-    <button id="ctez-launcher" class="ctez-launcher" type="button" aria-label="Open ctez End of Life" title="ctez End of Life">
-        <span aria-hidden="true">ctez</span>
-    </button>
+    <script src="js/core/theme-preload.js?v=274"></script>
+    <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
+        <button id="corner-gift-toggle" class="corner-gift-toggle" type="button" aria-label="Open corner tools" aria-expanded="false" aria-controls="corner-gift-items" title="Corner tools">
+            <span aria-hidden="true">🎁</span>
+        </button>
+        <div id="corner-gift-items" class="corner-gift-items">
+            <a id="hen-launcher" class="hen-launcher corner-gift-item" href="/?hen=1" aria-label="Enter HEN mode" title="Enter HEN mode">
+                <span aria-hidden="true">🐔</span>
+            </a>
+            <button id="ctez-launcher" class="ctez-launcher corner-gift-item" type="button" aria-label="Open ctez End of Life" title="ctez End of Life">
+                <span aria-hidden="true">ctez</span>
+            </button>
+        </div>
+    </div>
 
     <!-- XTZ Price Bar -->
     <div id="price-bar" class="price-bar">
@@ -262,22 +269,26 @@
                     <strong id="header-current-protocol">Tallinn</strong>
                 </a>
             </div>
-            <button class="top-continuity-panel" id="top-continuity-panel" type="button" aria-label="Mainnet uptime. Zero forks. Zero outages. Open historical Tezos network stats" aria-haspopup="dialog" aria-controls="history-modal" title="Open Historical Data">
-                <span class="top-continuity-core">
-                    <span class="top-continuity-claim">Mainnet Uptime</span>
-                    <strong class="top-continuity-runtime" id="hero-chain-uptime-counter">—</strong>
-                </span>
-                <span class="top-continuity-proof" aria-label="Continuity proof status">
-                    <span class="top-continuity-proof-item">Zero Forks</span>
-                    <span class="top-continuity-proof-item">Zero Outages</span>
-                </span>
+            <div class="top-continuity-panel" id="top-continuity-panel" aria-label="Mainnet uptime. Zero forks. Zero outages. Open Protocol Anthology" aria-controls="protocol-history-chamber-modal">
+                <button class="top-continuity-history" id="top-continuity-history" type="button" aria-label="Open Protocol Anthology Chamber" aria-haspopup="dialog" aria-controls="protocol-history-chamber-modal" title="Open Protocol Anthology">
+                    <span class="top-continuity-core">
+                        <span class="top-continuity-identity">
+                            <span class="top-continuity-claim">Mainnet Uptime</span>
+                            <span class="top-continuity-proof" aria-label="Continuity proof status">
+                                <span class="top-continuity-proof-item">Zero Forks</span>
+                                <span class="top-continuity-proof-item">Zero Outages</span>
+                            </span>
+                        </span>
+                        <strong class="top-continuity-runtime" id="hero-chain-uptime-counter">—</strong>
+                    </span>
+                </button>
                 <span class="top-continuity-stats" aria-label="Critical Tezos network signals">
-                    <span class="top-continuity-stat"><strong id="hero-chain-uptime-bakers">—</strong><span class="top-continuity-label"> bakers</span></span>
-                    <span class="top-continuity-stat"><strong id="hero-chain-uptime-finality">12s</strong><span class="top-continuity-label"> finality</span></span>
-                    <span class="top-continuity-stat"><strong id="hero-chain-uptime-staked">—</strong><span class="top-continuity-label"> staked</span></span>
-                    <span class="top-continuity-stat"><strong id="hero-chain-uptime-issuance">—</strong><span class="top-continuity-label"> issuance</span></span>
+                    <button class="top-continuity-stat" type="button" data-card-history="total-bakers" style="--pill-color:#22d3ee" aria-label="Open all-time total baker history"><strong id="hero-chain-uptime-bakers">—</strong><span class="top-continuity-label"> bakers</span></button>
+                    <button class="top-continuity-stat" type="button" data-card-history="finality" style="--pill-color:#4ade80" aria-label="Open all-time finality history"><strong id="hero-chain-uptime-finality">12s</strong><span class="top-continuity-label"> finality</span></button>
+                    <button class="top-continuity-stat" type="button" data-card-history="staking-ratio" style="--pill-color:#facc15" aria-label="Open all-time staked ratio history"><strong id="hero-chain-uptime-staked">—</strong><span class="top-continuity-label"> staked</span></button>
+                    <button class="top-continuity-stat" type="button" data-card-history="issuance-rate" style="--pill-color:#f472b6" aria-label="Open all-time issuance history"><strong id="hero-chain-uptime-issuance">—</strong><span class="top-continuity-label"> issuance</span></button>
                 </span>
-            </button>
+            </div>
             <div class="controls">
                 <!-- My Tezos — the one button that changes state -->
                 <button id="my-tezos-btn" class="glass-button header-nav-btn" aria-label="My Tezos — personalize your dashboard" title="My Tezos">
@@ -536,7 +547,7 @@
                         <a class="tezos-loop-link" id="tezos-loop-link" href="#my-tezos">Open My Tezos</a>
                     </div>
                 </div>
-                <div class="tezos-loop-chips" role="group" aria-label="Choose a search recipe">
+                <div class="tezos-loop-chips" id="tezos-loop-chips" role="group" aria-label="Choose a search recipe">
                     <button class="tezos-loop-chip active" type="button" data-loop-aura="holder" aria-pressed="true">Wallet</button>
                     <button class="tezos-loop-chip" type="button" data-loop-aura="baker" aria-pressed="false">Baker</button>
                     <button class="tezos-loop-chip" type="button" data-loop-aura="builder" aria-pressed="false">Contracts</button>
@@ -2143,7 +2154,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=268"></script>
+    <script type="module" src="js/core/app.js?v=274"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
@@ -2331,7 +2342,7 @@
             <div class="hen-expanded-inner"></div>
         </div>
     </div>
-    <script src="js/features/tooltip-tour.js?v=268" defer></script>
+    <script src="js/features/tooltip-tour.js?v=274" defer></script>
 </body>
 </html>
 >

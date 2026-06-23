@@ -692,11 +692,16 @@ async function checkSelectorContracts() {
     ['health chain proof slogan', 'zero forks · zero outages', health],
     ['health chain uptime counter', 'id="chain-uptime-counter"', health],
     ['top continuity proof panel', 'id="top-continuity-panel"', index],
-    ['top continuity proof panel is button launcher', '<button class="top-continuity-panel"', index],
+    ['top continuity proof panel has button launcher', 'id="top-continuity-history"', index],
+    ['top continuity proof opens Protocol Anthology', 'aria-controls="protocol-history-chamber-modal"', index],
     ['top continuity identity claim', 'top-continuity-claim">Mainnet Uptime', index],
     ['top continuity zero fork proof stamp', 'top-continuity-proof-item">Zero Forks', index],
     ['top continuity zero outage proof stamp', 'top-continuity-proof-item">Zero Outages', index],
     ['top continuity proof baker metric', 'id="hero-chain-uptime-bakers"', index],
+    ['top continuity baker all-time pill', 'data-card-history="total-bakers"', index],
+    ['top continuity finality all-time pill', 'data-card-history="finality"', index],
+    ['top continuity staked all-time pill', 'data-card-history="staking-ratio"', index],
+    ['top continuity issuance all-time pill', 'data-card-history="issuance-rate"', index],
     ['live block ticker renderer', 'function updateBlockTicker', health],
     ['live block ticker fixed age formatter', 'function formatTickerAge', health],
     ['live block ticker transition count hook', 'blockTickerTransitionCount', health],
@@ -709,12 +714,19 @@ async function checkSelectorContracts() {
     ['chain uptime counter updater', "document.getElementById('chain-uptime-counter')", app],
     ['top continuity counter updater', "setTopContinuityText('hero-chain-uptime-counter'", app],
     ['top continuity decrypt duration', 'TOP_CONTINUITY_SHUFFLE_MS = 1500', app],
-    ['top continuity history launcher wiring', "document.getElementById('history-btn')", app],
+    ['top continuity Protocol Anthology launcher wiring', 'openProtocolHistoryChamber();', app],
+    ['top continuity Protocol Anthology hash wiring', "window.history.pushState(null, '', '#protocol-history');", app],
+    ['top continuity all-time pill history wiring', "openCardHistoryModal(pill.dataset.cardHistory, 'all')", app],
+    ['top continuity finality history metric', "metric: 'finality_seconds'", await readText('js/features/history.js')],
     ['chain uptime baker updater', "setChainText('chain-uptime-bakers'", app],
     ['top continuity proof styles', '.top-continuity-panel', styles],
+    ['top continuity desktop split layout', 'grid-template-columns: minmax(0, 1fr) auto', styles],
     ['top continuity rail is borderless tape', 'border: 0;', styles],
+    ['top continuity proof owns left rail', '.top-continuity-history::before', styles],
     ['top continuity identity claim styles', '.top-continuity-claim', styles],
     ['top continuity runtime fixed-width slot', 'flex: 0 0 15ch;', styles],
+    ['top continuity value color tokens', 'var(--pill-color, #22d3ee)', styles],
+    ['top continuity mobile pill grid', 'grid-template-columns: repeat(2, minmax(0, 1fr))', styles],
     ['top continuity proof stamp styles', '.top-continuity-proof-item', styles],
     ['top continuity decrypt styles', '.top-continuity-panel.is-shuffling', styles],
     ['live block ticker aperture transition styles', 'blockTickerAperture', styles],
@@ -1389,15 +1401,15 @@ async function checkTourAndShareCaptureContracts() {
     '#top-continuity-panel',
     '#block-ticker-button',
     '#hero-search-form',
-    '#chambers-section',
+    '#chambers-section .section-header',
     '#my-tezos-btn',
-    '#tezos-loop-console',
+    '#tezos-loop-chips',
     '#features-gear',
     '#settings-gear'
   ]) {
     if (!tour.includes(`target: '${selector}'`)) fail(`tooltip tour must cover current help target ${selector}`);
   }
-  if (!tour.includes('window.innerWidth - (viewportPad * 2)')) {
+  if (!tour.includes('window.innerWidth - (VIEWPORT_PAD * 2)')) {
     fail('tooltip tour must size its tooltip from the viewport so mobile help never starts off-screen');
   }
   for (const snippet of [

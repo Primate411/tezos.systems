@@ -3727,7 +3727,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const healthState = await page.evaluate(() => {
     const modal = document.querySelector('#network-health-modal');
     const header = document.querySelector('.header');
-    const topProof = document.querySelector('#top-continuity-panel');
+	    const topProof = document.querySelector('#top-continuity-panel');
+	    const topProofHistory = topProof?.querySelector('#top-continuity-history');
     const card = document.querySelector('[data-stat="network-health"]');
     const ticker = document.querySelector('#block-ticker-strip');
     const tickerButton = document.querySelector('#block-ticker-button');
@@ -3810,11 +3811,14 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       myBakerStatus: modal?.querySelector('.health-my-baker-status')?.textContent || '',
       myBakerMetrics: Array.from(modal?.querySelectorAll('.health-my-baker-metrics strong') || []).map((el) => el.textContent || ''),
       topProofText: topProof?.textContent || '',
-      topProofInHeader: Boolean(topProof && header?.contains(topProof)),
-      topProofTag: topProof?.tagName || '',
-      topProofType: topProof?.getAttribute('type') || '',
-      topProofAriaControls: topProof?.getAttribute('aria-controls') || '',
-      topProofHistoryWired: topProof?.dataset.historyWired || '',
+	      topProofInHeader: Boolean(topProof && header?.contains(topProof)),
+	      topProofTag: topProof?.tagName || '',
+	      topProofHistoryTag: topProofHistory?.tagName || '',
+	      topProofHistoryType: topProofHistory?.getAttribute('type') || '',
+	      topProofAriaControls: topProof?.getAttribute('aria-controls') || '',
+	      topProofHistoryWired: topProof?.dataset.historyWired || '',
+	      topProofPillCards: Array.from(topProof?.querySelectorAll('.top-continuity-stat[data-card-history]') || []).map((pill) => pill.dataset.cardHistory || ''),
+	      topProofPillsWired: Array.from(topProof?.querySelectorAll('.top-continuity-stat[data-card-history]') || []).every((pill) => pill.dataset.topContinuityHistoryPillWired === '1'),
       topProofCounter: topProof?.querySelector('#hero-chain-uptime-counter')?.textContent || '',
       topProofBakers: topProof?.querySelector('#hero-chain-uptime-bakers')?.textContent || '',
       topProofFinality: topProof?.querySelector('#hero-chain-uptime-finality')?.textContent || '',
@@ -3935,11 +3939,12 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(/Missed block/.test(healthState.myBakerStatus), `network health chamber: My Tezos baker status mismatch: ${healthState.myBakerStatus}`);
   assert(healthState.myBakerMetrics[0] === '7', `network health chamber: My Tezos attestation misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
   assert(healthState.myBakerMetrics[1] === '1', `network health chamber: My Tezos block misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
-  assert(!/Not in sample/.test(healthState.myBakerMetrics[2] || ''), `network health chamber: My Tezos latest block missing: ${healthState.myBakerMetrics.join(', ')}`);
-  assert(healthState.topProofInHeader, 'network health chamber: continuity proof should live in the top header');
-  assert(healthState.topProofTag === 'BUTTON' && healthState.topProofType === 'button', `network health chamber: continuity proof should be a button launcher, saw ${healthState.topProofTag}/${healthState.topProofType}`);
-  assert(healthState.topProofAriaControls === 'history-modal' && healthState.topProofHistoryWired === '1', `network health chamber: continuity proof history launcher missing: ${healthState.topProofAriaControls}/${healthState.topProofHistoryWired}`);
-  assert(/Mainnet Uptime/i.test(healthState.topProofText) && /zero forks/i.test(healthState.topProofText) && /zero outages/i.test(healthState.topProofText), `network health chamber: top proof line should include uptime identity and zero-status proof: ${healthState.topProofText}`);
+	  assert(!/Not in sample/.test(healthState.myBakerMetrics[2] || ''), `network health chamber: My Tezos latest block missing: ${healthState.myBakerMetrics.join(', ')}`);
+	  assert(healthState.topProofInHeader, 'network health chamber: continuity proof should live in the top header');
+	  assert(healthState.topProofTag === 'DIV' && healthState.topProofHistoryTag === 'BUTTON' && healthState.topProofHistoryType === 'button', `network health chamber: continuity proof should use a container with a button launcher, saw ${healthState.topProofTag}/${healthState.topProofHistoryTag}/${healthState.topProofHistoryType}`);
+	  assert(healthState.topProofAriaControls === 'protocol-history-chamber-modal' && healthState.topProofHistoryWired === '1', `network health chamber: continuity proof Protocol Anthology launcher missing: ${healthState.topProofAriaControls}/${healthState.topProofHistoryWired}`);
+	  assert(['total-bakers', 'finality', 'staking-ratio', 'issuance-rate'].every((key) => healthState.topProofPillCards.includes(key)) && healthState.topProofPillsWired, `network health chamber: continuity proof all-time pills missing or unwired: ${healthState.topProofPillCards.join(',')}/${healthState.topProofPillsWired}`);
+	  assert(/Mainnet Uptime/i.test(healthState.topProofText) && /zero forks/i.test(healthState.topProofText) && /zero outages/i.test(healthState.topProofText), `network health chamber: top proof line should include uptime identity and zero-status proof: ${healthState.topProofText}`);
   assert(!/\|/.test(healthState.topProofText), `network health chamber: top proof line should not add a pipe after zero outages: ${healthState.topProofText}`);
   assert(/\d+Y\s+\d+D\s+\d+H\s+\d+M/.test(healthState.topProofCounter), `network health chamber: top proof runtime missing compact minutes: ${healthState.topProofCounter}`);
   assert(/^\d+$/.test(healthState.topProofBakers) && Number(healthState.topProofBakers) >= 1, `network health chamber: top proof baker count mismatch: ${healthState.topProofBakers}`);
@@ -4253,6 +4258,8 @@ async function smokeCtezChamber(browser, baseUrl) {
 
   await page.locator('#ctez-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#ctez-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.locator('#corner-gift-toggle').click();
+  await page.waitForFunction(() => document.querySelector('#corner-gift-tray')?.classList.contains('open'), null, { timeout: 5000 });
   await page.locator('#ctez-launcher').click();
   await page.locator('#ctez-modal.active .ctez-content').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#ctez-modal.active .chamber-close').click();
@@ -5241,6 +5248,91 @@ async function smokeFirstVisitTour(browser, baseUrl) {
     await currentPage.locator('#tour-overlay .tour-next').click();
   }
 
+  const tourSteps = [
+    { selector: '#top-continuity-panel', label: 'uptime proof step', snippets: ['Start with live proof', 'Mainnet Uptime', 'Protocol Anthology'] },
+    { selector: '#block-ticker-button', label: 'block ticker step', snippets: ['Read the latest head', 'Network Health Chamber'] },
+    { selector: '#hero-search-form', label: 'command bar step', snippets: ['Search is the map', 'Press /', 'Chamber'] },
+    { selector: '#chambers-section .section-header', label: 'chambers step', snippets: ['Chambers explain the chain', 'Protocol Anthology'] },
+    { selector: '#my-tezos-btn', label: 'my tezos step', snippets: ['Make it yours', 'Network Context'] },
+    { selector: '#tezos-loop-chips', label: 'loop console step', snippets: ['Use the recipe console', 'Market lanes'] },
+    { selector: '#features-gear', label: 'explore step', snippets: ['Explore without clutter', 'State of Tezos'] },
+    { selector: '#settings-gear', label: 'settings step', snippets: ['Tune and export', '13 themes'] }
+  ];
+
+  async function readTourGeometry(currentPage, selector) {
+    return currentPage.evaluate((targetSelector) => {
+      const target = document.querySelector(targetSelector);
+      const tooltip = document.querySelector('.tour-tooltip');
+      const targetRect = target?.getBoundingClientRect();
+      const tooltipRect = tooltip?.getBoundingClientRect();
+      const verticalOverlap = targetRect && tooltipRect
+        ? Math.max(0, Math.min(targetRect.bottom, tooltipRect.bottom) - Math.max(targetRect.top, tooltipRect.top))
+        : 0;
+      const horizontalOverlap = targetRect && tooltipRect
+        ? Math.max(0, Math.min(targetRect.right, tooltipRect.right) - Math.max(targetRect.left, tooltipRect.left))
+        : 0;
+
+      return {
+        selector: targetSelector,
+        progress: document.querySelector('.tour-progress')?.textContent || '',
+        scrollY: window.scrollY,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        target: targetRect ? {
+          left: targetRect.left,
+          top: targetRect.top,
+          right: targetRect.right,
+          bottom: targetRect.bottom,
+          width: targetRect.width,
+          height: targetRect.height
+        } : null,
+        tooltip: tooltipRect ? {
+          left: tooltipRect.left,
+          top: tooltipRect.top,
+          right: tooltipRect.right,
+          bottom: tooltipRect.bottom,
+          width: tooltipRect.width,
+          height: tooltipRect.height
+        } : null,
+        overlap: verticalOverlap > 1 && horizontalOverlap > 1
+      };
+    }, selector);
+  }
+
+  async function expectTourGeometry(currentPage, step, label) {
+    await currentPage.waitForFunction((targetSelector) => {
+      const target = document.querySelector(targetSelector);
+      const tooltip = document.querySelector('.tour-tooltip');
+      if (!target || !tooltip) return false;
+
+      const targetRect = target.getBoundingClientRect();
+      const tooltipRect = tooltip.getBoundingClientRect();
+      const tooltipStyle = window.getComputedStyle(tooltip);
+      const targetVisible = targetRect.bottom > 0
+        && targetRect.top < window.innerHeight
+        && targetRect.right > 0
+        && targetRect.left < window.innerWidth;
+      const targetSizedForTour = targetRect.height <= window.innerHeight * 0.72;
+      const tooltipVisible = Number(tooltipStyle.opacity) > 0.9 && tooltipRect.width > 0 && tooltipRect.height > 0;
+      const tooltipOnscreen = tooltipRect.left >= 0
+        && tooltipRect.top >= 0
+        && tooltipRect.right <= window.innerWidth
+        && tooltipRect.bottom <= window.innerHeight;
+      const verticalOverlap = Math.max(0, Math.min(targetRect.bottom, tooltipRect.bottom) - Math.max(targetRect.top, tooltipRect.top));
+      const horizontalOverlap = Math.max(0, Math.min(targetRect.right, tooltipRect.right) - Math.max(targetRect.left, tooltipRect.left));
+      const hasCollision = verticalOverlap > 1 && horizontalOverlap > 1;
+
+      return targetVisible && targetSizedForTour && tooltipVisible && tooltipOnscreen && !hasCollision;
+    }, step.selector, { timeout: 6000 });
+
+    const geometry = await readTourGeometry(currentPage, step.selector);
+    assert(geometry.target, `first visit tour: ${label} target missing for ${step.selector}`);
+    assert(geometry.tooltip, `first visit tour: ${label} tooltip missing`);
+    assert(geometry.target.height <= geometry.viewport.height * 0.72, `first visit tour: ${label} target is too tall for a useful spotlight: ${JSON.stringify(geometry)}`);
+    assert(geometry.target.bottom > 0 && geometry.target.top < geometry.viewport.height, `first visit tour: ${label} target off-screen: ${JSON.stringify(geometry)}`);
+    assert(geometry.tooltip.left >= 0 && geometry.tooltip.top >= 0 && geometry.tooltip.right <= geometry.viewport.width && geometry.tooltip.bottom <= geometry.viewport.height, `first visit tour: ${label} tooltip off-screen: ${JSON.stringify(geometry)}`);
+    assert(!geometry.overlap, `first visit tour: ${label} tooltip overlaps target: ${JSON.stringify(geometry)}`);
+  }
+
   let response = await page.goto(`${baseUrl}/#lb`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `first visit tour deep link: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
@@ -5270,21 +5362,12 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   await assertLocatorCount(page.locator('.tour-nudge .tour-start'), 1, 'first visit tour start');
   await page.locator('.tour-nudge .tour-start').click();
   await page.locator('#tour-overlay').waitFor({ state: 'visible', timeout: 6000 });
-  await expectTourStep(page, 'uptime proof step', ['Start with live proof', 'Mainnet Uptime', 'Historical Data']);
-  await advanceTour(page);
-  await expectTourStep(page, 'block ticker step', ['Read the latest head', 'Network Health Chamber']);
-  await advanceTour(page);
-  await expectTourStep(page, 'command bar step', ['Search is the map', 'Press /', 'Chamber']);
-  await advanceTour(page);
-  await expectTourStep(page, 'chambers step', ['Chambers explain the chain', 'Protocol Anthology']);
-  await advanceTour(page);
-  await expectTourStep(page, 'my tezos step', ['Make it yours', 'Network Context']);
-  await advanceTour(page);
-  await expectTourStep(page, 'loop console step', ['Use the recipe console', 'Market lanes']);
-  await advanceTour(page);
-  await expectTourStep(page, 'explore step', ['Explore without clutter', 'State of Tezos']);
-  await advanceTour(page);
-  await expectTourStep(page, 'settings step', ['Tune and export', '13 themes']);
+  for (let index = 0; index < tourSteps.length; index += 1) {
+    const step = tourSteps[index];
+    await expectTourStep(page, step.label, step.snippets);
+    await expectTourGeometry(page, step, `desktop ${step.label}`);
+    if (index < tourSteps.length - 1) await advanceTour(page);
+  }
   await assertLocatorCount(page.locator('#tour-overlay .tour-skip'), 1, 'first visit tour skip');
   await page.locator('#tour-overlay .tour-skip').click();
   await page.locator('#tour-overlay').waitFor({ state: 'detached', timeout: 5000 });
@@ -5315,18 +5398,12 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   await mobilePage.locator('main').waitFor({ state: 'visible', timeout: 15000 });
   await mobilePage.locator('.tour-nudge').waitFor({ state: 'visible', timeout: 6000 });
   await mobilePage.locator('.tour-nudge .tour-start').click();
-  await expectTourStep(mobilePage, 'mobile uptime proof step', ['Start with live proof', 'Mainnet Uptime']);
-  const mobileTourBox = await mobilePage.evaluate(() => {
-    const rect = document.querySelector('.tour-tooltip')?.getBoundingClientRect();
-    return rect ? {
-      left: rect.left,
-      right: rect.right,
-      width: rect.width,
-      viewportWidth: window.innerWidth
-    } : null;
-  });
-  assert(mobileTourBox, 'first visit tour mobile: tooltip was not rendered');
-  assert(mobileTourBox.left >= 0 && mobileTourBox.right <= mobileTourBox.viewportWidth, `first visit tour mobile: tooltip off-screen ${JSON.stringify(mobileTourBox)}`);
+  for (let index = 0; index < tourSteps.length; index += 1) {
+    const step = tourSteps[index];
+    await expectTourStep(mobilePage, `mobile ${step.label}`, step.snippets);
+    await expectTourGeometry(mobilePage, step, `mobile ${step.label}`);
+    if (index < tourSteps.length - 1) await advanceTour(mobilePage);
+  }
   await mobileContext.close();
 
   assert(issues.length === 0, `first visit tour browser issues:\n${issues.join('\n')}`);

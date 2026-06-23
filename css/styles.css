@@ -444,17 +444,17 @@ body::before {
 }
 
 .top-continuity-panel {
-    appearance: none;
     position: relative;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: flex-end;
-    gap: 8px 14px;
+    gap: 8px 3vw;
     order: 3;
     flex: 1 0 100%;
     width: 100%;
     min-width: 0;
     overflow: visible;
-    padding: 7px 0 0 16px;
+    padding: 5px 0 0;
     border: 0;
     border-radius: 0;
     background: linear-gradient(90deg, rgba(53, 232, 148, 0.08), transparent 58%);
@@ -466,42 +466,50 @@ body::before {
     line-height: 1.2;
     text-align: left;
     white-space: normal;
-    cursor: pointer;
-    transition: color 180ms ease, filter 180ms ease;
 }
 
-.top-continuity-panel::before {
+.top-continuity-history::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 8px;
-    bottom: 4px;
+    top: 3px;
+    bottom: 3px;
     width: 4px;
     border-radius: 999px;
     background: linear-gradient(180deg, #35e894, var(--accent-cyan));
     box-shadow: 0 0 18px rgba(53, 232, 148, 0.45);
 }
 
-.top-continuity-panel:hover,
-.top-continuity-panel:focus-visible {
-    color: var(--text-primary);
-    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent-cyan) 12%, transparent));
-}
-
-.top-continuity-panel:focus-visible {
-    outline: none;
-}
-
 .top-continuity-panel.is-shuffling {
     filter: drop-shadow(0 0 16px color-mix(in srgb, var(--accent-cyan) 22%, transparent));
 }
 
+.top-continuity-history,
+.top-continuity-stat {
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+.top-continuity-history {
+    position: relative;
+    display: inline-grid;
+    justify-self: start;
+    padding: 3px 0 4px 16px;
+    background: transparent;
+    color: inherit;
+}
+
 .top-continuity-core {
-    display: flex;
-    align-items: flex-end;
-    gap: clamp(10px, 1.35vw, 18px);
-    flex-wrap: wrap;
+    display: grid;
+    gap: 5px;
     min-width: 0;
+}
+
+.top-continuity-identity {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 .top-continuity-claim {
@@ -517,26 +525,21 @@ body::before {
 .top-continuity-stats {
     display: inline-flex;
     align-items: center;
-    flex: 1 1 100%;
-    justify-content: flex-start;
-    margin-left: 0;
-    min-width: 0;
-    text-align: left;
-    gap: 7px 10px;
-    color: color-mix(in srgb, var(--text-secondary) 88%, var(--accent-cyan));
-    font-size: 0.86rem;
+    justify-content: flex-end;
+    gap: 8px 12px;
+    font-size: 1.08rem;
 }
 
 .top-continuity-stat {
     display: inline-flex;
     align-items: baseline;
-    gap: 5px;
-    min-width: 0;
-    min-height: 30px;
-    padding: 5px 10px;
-    border: 1px solid var(--glass-border);
+    gap: 6px;
+    min-height: 40px;
+    padding: 8px 14px;
+    border: 1px solid var(--pill-color, #22d3ee);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(8, 17, 42, 0.56);
+    color: rgba(255, 255, 255, 0.76);
     white-space: nowrap;
 }
 
@@ -546,24 +549,25 @@ body::before {
     font-weight: 850;
 }
 
+.top-continuity-stat strong {
+    color: var(--pill-color, #22d3ee);
+}
+
 .top-continuity-proof {
     display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 7px;
-    min-width: 0;
+    gap: 8px;
 }
 
 .top-continuity-proof-item {
     display: inline-flex;
     align-items: center;
-    min-height: 24px;
-    padding: 4px 8px;
+    min-height: 28px;
+    padding: 6px 10px;
     border: 1px solid rgba(53, 232, 148, 0.32);
     border-radius: 4px;
     background: rgba(53, 232, 148, 0.1);
     color: #35e894;
-    font-size: clamp(0.55rem, 0.68vw, 0.68rem);
+    font-size: 0.74rem;
     font-weight: 900;
     letter-spacing: 0.1em;
     line-height: 1;
@@ -572,6 +576,7 @@ body::before {
 
 .top-continuity-runtime {
     flex: 0 0 15ch;
+    inline-size: 15ch;
     color: color-mix(in srgb, var(--accent-cyan) 92%, white);
     font-size: clamp(1.32rem, 2.35vw, 2.42rem);
     font-weight: 900;
@@ -580,6 +585,11 @@ body::before {
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     text-shadow: 0 0 18px rgba(91, 141, 239, 0.22);
+}
+
+.top-continuity-history:focus-visible,
+.top-continuity-stat:focus-visible {
+    outline: 2px solid var(--accent-cyan);
 }
 
 .top-continuity-panel strong.is-shuffling {
@@ -1968,10 +1978,8 @@ body::before {
 }
 
 .ctez-launcher {
-    position: fixed;
-    top: 52px;
-    left: 14px;
-    z-index: 119;
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -2025,8 +2033,6 @@ body::before {
 
 @media (max-width: 640px) {
     .ctez-launcher {
-        top: 82px;
-        left: 12px;
         width: 32px;
         height: 32px;
     }
@@ -5052,11 +5058,11 @@ body::before {
     }
 
     .top-continuity-panel {
-        gap: 7px;
+        grid-template-columns: 1fr;
+        gap: 9px;
         flex-basis: auto;
-        flex-wrap: wrap;
         min-width: 0;
-        padding: 7px 0 0 12px;
+        padding: 6px 0 0;
         overflow: visible;
         font-size: clamp(0.53rem, 2vw, 0.58rem);
         scrollbar-width: none;
@@ -5068,7 +5074,6 @@ body::before {
     }
 
     .top-continuity-core {
-        flex-wrap: wrap;
         gap: 5px 9px;
     }
 
@@ -5083,23 +5088,27 @@ body::before {
     }
 
     .top-continuity-proof-item {
-        min-height: 20px;
-        padding: 3px 6px;
-        font-size: clamp(0.47rem, 1.9vw, 0.54rem);
+        min-height: 22px;
+        padding: 4px 7px;
+        font-size: clamp(0.52rem, 2.1vw, 0.6rem);
         letter-spacing: 0.08em;
     }
 
     .top-continuity-stats {
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         justify-content: flex-start;
-        margin-left: 0;
         gap: 6px;
-        font-size: 0.74rem;
+        width: 100%;
+        font-size: 0.8rem;
     }
 
     .top-continuity-stat {
-        min-height: 25px;
-        padding: 4px 8px;
+        min-height: 29px;
+        justify-content: center;
+        gap: 4px;
+        min-width: 0;
+        padding: 5px 7px;
     }
 
     .top-continuity-panel::-webkit-scrollbar {

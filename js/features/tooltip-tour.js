@@ -2,6 +2,8 @@
 (function () {
     const TOUR_KEY = 'tezos-toured';
     const WELCOMED_KEY = 'tezos-welcomed'; // respect welcome-terminal key too
+    const VIEWPORT_PAD = 16;
+    const TOOLTIP_GAP = 16;
     if (localStorage.getItem(TOUR_KEY) || localStorage.getItem(WELCOMED_KEY)) return;
 
     // Deep links should go straight to their target. Do not consume the tour flag.
@@ -12,7 +14,7 @@
         {
             target: '#top-continuity-panel',
             title: 'Start with live proof',
-            text: 'Mainnet Uptime shows the zero-fork, zero-outage proof rail plus live bakers, finality, staked share, and issuance. Click it for Historical Data.',
+            text: 'Mainnet Uptime opens Protocol Anthology; each bright stat pill opens its own all-time chart.',
         },
         {
             target: '#block-ticker-button',
@@ -25,7 +27,7 @@
             text: 'Press / from anywhere or paste a wallet, .tez name, baker, KT1, operation hash, block, protocol, Chamber, or slash command.',
         },
         {
-            target: '#chambers-section',
+            target: '#chambers-section .section-header',
             title: 'Chambers explain the chain',
             text: 'Open Network Health, L1 Governance, Tezos X, Tezos X Governance, tz4, Liquidity Baking, and Protocol Anthology from here or with direct routes.',
         },
@@ -35,7 +37,7 @@
             text: 'Add a wallet or .tez name to pull baker activity, rewards, NFTs, governance attribution, Your Tezos Story, and Network Context into one drawer.',
         },
         {
-            target: '#tezos-loop-console',
+            target: '#tezos-loop-chips',
             title: 'Use the recipe console',
             text: 'Wallet, Baker, Contracts, NFTs, Governance, and Market lanes seed the command bar when you are not sure what to type.',
         },
@@ -56,6 +58,8 @@
     let tooltip = null;
     let backdrop = null;
     let nudge = null;
+    let activeTarget = null;
+    let positionFrame = 0;
 
     function create() {
         overlay = document.createElement('div');
@@ -84,6 +88,8 @@
         overlay.querySelector('.tour-skip').addEventListener('click', end);
         overlay.querySelector('.tour-next').addEventListener('click', next);
         document.addEventListener('keydown', onKey);
+        window.addEventListener('resize', schedulePosition, { passive: true });
+        window.addEventListener('scroll', schedulePosition, { passive: true });
         backdrop.addEventListener('click', end);
     }
 
@@ -91,6 +97,96 @@
         if (e.key === 'Escape') end();
         if (e.key === 'Enter' || e.key === 'ArrowRight') next();
         if (e.key === 'ArrowLeft' && current > 0) { current -= 2; next(); }
+    }
+
+    function getTargetScrollTop(el) {
+        var rect = el.getBoundingClientRect();
+        var absoluteTop = rect.top + window.scrollY;
+        var viewportHeight = window.innerHeight;
+        var targetIsTall = rect.height > viewportHeight * 0.72;
+
+        if (targetIsTall) {
+            return Math.max(0, absoluteTop - VIEWPORT_PAD);
+        }
+
+        return Math.max(0, absoluteTop + (rect.height / 2) - (viewportHeight / 2));
+    }
+
+    function scrollTargetIntoView(el) {
+        var root = document.documentElement;
+        var body = document.body;
+        var previousRootScroll = root.style.scrollBehavior;
+        var previousBodyScroll = body.style.scrollBehavior;
+
+        root.style.scrollBehavior = 'auto';
+        body.style.scrollBehavior = 'auto';
+        window.scrollTo({
+            top: getTargetScrollTop(el),
+            left: window.scrollX,
+            behavior: 'auto',
+        });
+
+        requestAnimationFrame(function () {
+            root.style.scrollBehavior = previousRootScroll;
+            body.style.scrollBehavior = previousBodyScroll;
+        });
+    }
+
+    function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+    }
+
+    function schedulePosition() {
+        if (!activeTarget || !tooltip) return;
+        if (positionFrame) return;
+
+        positionFrame = requestAnimationFrame(function () {
+            positionFrame = 0;
+            positionTooltip(activeTarget);
+        });
+    }
+
+    function positionTooltip(el) {
+        if (!tooltip || !backdrop || !el) return;
+
+        var rect = el.getBoundingClientRect();
+        var pad = Math.max(8, Math.min(10, window.innerWidth * 0.025));
+        var highlightLeft = Math.max(0, rect.left - pad);
+        var highlightTop = Math.max(0, rect.top - pad);
+        var highlightRight = Math.min(window.innerWidth, rect.right + pad);
+        var highlightBottom = Math.min(window.innerHeight, rect.bottom + pad);
+
+        // Spotlight cutout
+        backdrop.style.clipPath = 'polygon(' +
+            '0 0, 100% 0, 100% 100%, 0 100%, 0 0, ' +
+            highlightLeft + 'px ' + highlightTop + 'px, ' +
+            highlightLeft + 'px ' + highlightBottom + 'px, ' +
+            highlightRight + 'px ' + highlightBottom + 'px, ' +
+            highlightRight + 'px ' + highlightTop + 'px, ' +
+            highlightLeft + 'px ' + highlightTop + 'px)';
+
+        // Position tooltip
+        var ttWidth = Math.min(360, Math.max(260, window.innerWidth - (VIEWPORT_PAD * 2)));
+        tooltip.style.width = ttWidth + 'px';
+        tooltip.style.maxHeight = Math.max(160, window.innerHeight - (VIEWPORT_PAD * 2)) + 'px';
+        tooltip.style.overflowY = 'auto';
+
+        var ttHeight = Math.min(tooltip.offsetHeight || 190, window.innerHeight - (VIEWPORT_PAD * 2));
+        var leftMax = Math.max(VIEWPORT_PAD, window.innerWidth - ttWidth - VIEWPORT_PAD);
+        var left = clamp(rect.left + rect.width / 2 - ttWidth / 2, VIEWPORT_PAD, leftMax);
+
+        var spaceBelow = window.innerHeight - rect.bottom - TOOLTIP_GAP - VIEWPORT_PAD;
+        var spaceAbove = rect.top - TOOLTIP_GAP - VIEWPORT_PAD;
+        var top = rect.bottom + TOOLTIP_GAP;
+        if (spaceBelow < ttHeight && spaceAbove > spaceBelow) {
+            top = rect.top - ttHeight - TOOLTIP_GAP;
+        }
+
+        var topMax = Math.max(VIEWPORT_PAD, window.innerHeight - ttHeight - VIEWPORT_PAD);
+        top = clamp(top, VIEWPORT_PAD, topMax);
+
+        tooltip.style.left = left + 'px';
+        tooltip.style.top = top + 'px';
     }
 
     function show(index) {
@@ -117,50 +213,16 @@
             nextBtn.textContent = index === steps.length - 1 ? 'dive in ✓' : 'next →';
         }
 
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        activeTarget = el;
+        scrollTargetIntoView(el);
 
-        setTimeout(function () {
-            var rect = el.getBoundingClientRect();
-            var pad = 10;
-            var highlightLeft = Math.max(0, rect.left - pad);
-            var highlightTop = Math.max(0, rect.top - pad);
-            var highlightRight = Math.min(window.innerWidth, rect.right + pad);
-            var highlightBottom = Math.min(window.innerHeight, rect.bottom + pad);
-
-            // Spotlight cutout
-            backdrop.style.clipPath = 'polygon(' +
-                '0 0, 100% 0, 100% 100%, 0 100%, 0 0, ' +
-                highlightLeft + 'px ' + highlightTop + 'px, ' +
-                highlightLeft + 'px ' + highlightBottom + 'px, ' +
-                highlightRight + 'px ' + highlightBottom + 'px, ' +
-                highlightRight + 'px ' + highlightTop + 'px, ' +
-                highlightLeft + 'px ' + highlightTop + 'px)';
-
-            // Position tooltip
-            var viewportPad = 16;
-            var ttWidth = Math.min(360, Math.max(260, window.innerWidth - (viewportPad * 2)));
-            var ttHeight = Math.min(tooltip.offsetHeight || 190, window.innerHeight - (viewportPad * 2));
-            var left = Math.max(viewportPad, rect.left + rect.width / 2 - ttWidth / 2);
-            left = Math.min(left, Math.max(0, window.innerWidth - ttWidth - viewportPad));
-            left = Math.max(0, left);
-
-            var top = rect.bottom + 16;
-            if (top + ttHeight > window.innerHeight - viewportPad) {
-                top = Math.max(viewportPad, rect.top - ttHeight - 16);
-            }
-            if (top + ttHeight > window.innerHeight - viewportPad) {
-                top = Math.max(viewportPad, window.innerHeight - ttHeight - viewportPad);
-            }
-
-            tooltip.style.left = left + 'px';
-            tooltip.style.top = top + 'px';
-            tooltip.style.width = ttWidth + 'px';
-
-            // Animate in
+        requestAnimationFrame(function () {
+            positionTooltip(el);
             requestAnimationFrame(function () {
+                positionTooltip(el);
                 tooltip.classList.add('tour-visible');
             });
-        }, 400);
+        });
     }
 
     function next() {
@@ -175,6 +237,13 @@
     function end() {
         localStorage.setItem(TOUR_KEY, '1');
         document.removeEventListener('keydown', onKey);
+        window.removeEventListener('resize', schedulePosition);
+        window.removeEventListener('scroll', schedulePosition);
+        activeTarget = null;
+        if (positionFrame) {
+            cancelAnimationFrame(positionFrame);
+            positionFrame = 0;
+        }
 
         if (overlay) {
             overlay.style.opacity = '0';
