@@ -742,9 +742,10 @@ body::before {
 }
 
 .top-continuity-core {
-    display: inline-flex;
+    display: inline-grid;
+    grid-template-columns: max-content max-content max-content;
     align-items: center;
-    gap: 0;
+    column-gap: 2ch;
     min-width: 0;
 }
 
@@ -814,6 +815,7 @@ body::before {
     font-weight: 900;
     letter-spacing: 0;
     line-height: 1;
+    text-align: end;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     text-shadow: var(--uptime-badge-value-shadow);
@@ -5324,10 +5326,13 @@ body::before {
     }
 
     .top-continuity-core {
-        gap: 0;
+        grid-template-columns: max-content max-content max-content;
+        column-gap: 2ch;
     }
 
     .top-continuity-runtime {
+        flex-basis: 16ch;
+        inline-size: 16ch;
         font-size: clamp(0.54rem, 1.95vw, 0.62rem);
     }
 
