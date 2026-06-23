@@ -1294,8 +1294,12 @@ body.hero-search-mode .main-content {
     }
 
     .header-left {
+        display: grid;
+        grid-template-columns: max-content max-content;
         align-items: center;
-        flex-direction: column;
+        justify-content: center;
+        column-gap: 6px;
+        row-gap: 6px;
         width: 100%;
         text-align: center;
     }
@@ -1304,9 +1308,39 @@ body.hero-search-mode .main-content {
         gap: 1rem;
     }
 
+    .header-brand-stack {
+        display: contents;
+    }
+
+    .header-brand-stack .title {
+        grid-column: 1 / -1;
+        justify-self: center;
+    }
+
+    .top-continuity-history {
+        grid-column: 1;
+        justify-self: end;
+    }
+
     .header-protocol-chip {
+        grid-column: 2;
+        justify-self: start;
         min-height: 28px;
-        font-size: 0.66rem;
+        padding: 0.35rem 0.6rem;
+        border-color: var(--uptime-badge-border);
+        border-radius: 8px;
+        background: var(--uptime-badge-bg);
+        color: var(--uptime-badge-color);
+        box-shadow: var(--uptime-badge-shadow);
+        font-size: clamp(0.56rem, 2vw, 0.64rem);
+        gap: 0.32rem;
+    }
+
+    .header-protocol-chip strong {
+        color: var(--uptime-badge-label);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: clamp(0.58rem, 2.1vw, 0.68rem);
+        font-weight: 900;
     }
 
     .command-deck-content {

@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-23',
         entries: [
+            { type: '🎨', text: 'Mobile now keeps the Running on Tallinn chip beside the uptime pill with matching compact header styling' },
             { type: '🎨', text: 'The header uptime badge now uses a tighter fixed uptime slot so the visible separators read like two spaces' },
             { type: '🎨', text: 'The header uptime badge now anchors the since marker while keeping two-space visual separators' },
             { type: '🎨', text: 'The header uptime proof now uses Aurora teal-to-violet colors and theme-matched title, uptime, and stat pill palettes' },

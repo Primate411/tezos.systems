@@ -8,7 +8,7 @@
  */
 (function () {
     var DEFAULT = 'aurora';
-    var THEME_CSS_VERSION = '283';
+    var THEME_CSS_VERSION = '284';
     var VALID = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
     var t = null;
     try {
