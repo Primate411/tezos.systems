@@ -7,7 +7,7 @@ import { debounce, escapeHtml } from '../core/utils.js';
 import { getAvailableThemes, openThemePicker, setTheme } from '../ui/theme.js';
 
 const PROTOCOL_DATA_URL = '/data/protocol-data.json?v=2';
-const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=284';
+const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=285';
 const TZKT_URL = 'https://tzkt.io';
 
 const ADDRESS_RE = /^(tz[1-4]|KT1)[0-9A-Za-z]{33}$/;
@@ -20,6 +20,7 @@ const QUICK_CHIPS = [
     { label: 'Wallet or .tez', value: 'my tezos' },
     { label: '/health', value: '/health' },
     { label: '/chamber', value: '/chamber' },
+    { label: '/flow', value: '/ledger-flow' },
     { label: 'Protocol', value: 'Tallinn' },
     { label: 'KT1', value: 'KT1' },
     { label: '/theme', value: '/theme' }
@@ -46,6 +47,7 @@ const CHAMBERS = [
     { id: 'l2chamber', title: 'Tezos X Governance', detail: 'FAST, SLOW, sequencer governance tracks', hash: '#l2chamber', aliases: ['/l2chamber', 'etherlink governance'] },
     { id: 'tz4', title: 'tz4 Adoption', detail: 'BLS adoption, pending switches, holdouts, milestones', hash: '#tz4', aliases: ['/tz4', 'bls'] },
     { id: 'lb', title: 'Liquidity Baking', detail: 'LB votes, EMA threshold, and live liquidity signals', hash: '#lb', aliases: ['/lb', 'liquidity baking'] },
+    { id: 'ledger-flow', title: 'Ledger Flow', detail: 'Account transfer diagram for sent, received, and first-funding paths', hash: '#ledger-flow', aliases: ['/ledger-flow', '/flow', 'flow', 'ledger', 'transfer graph', 'account flow'] },
     { id: 'protocol-history', title: 'Protocol Anthology', detail: 'Self-amendment lore, impact views, and amendment memory', hash: '#protocol-history', aliases: ['/protocol-history', 'protocol history', 'protocol archive', 'upgrades', 'impact', 'lore', 'anthology'] },
     { id: 'ctez', title: 'ctez End of Life', detail: 'Oven discovery and wallet-reviewed close flow', hash: '#ctez', aliases: ['/ctez', 'oven'] }
 ];
@@ -68,6 +70,15 @@ const EMPTY_STATE_ROWS = [
         badge: 'chamber',
         action: 'hash',
         value: '#health'
+    },
+    {
+        kind: 'chamber',
+        group: 'Chambers',
+        title: 'Ledger Flow',
+        detail: 'Map sent, received, and first-funding paths around an account',
+        badge: 'chamber',
+        action: 'hash',
+        value: '#ledger-flow'
     },
     {
         kind: 'chamber',
@@ -250,6 +261,15 @@ function entityResults(query) {
                 value: `#my-baker=${encodeURIComponent(q)}`
             },
             {
+                kind: 'chamber',
+                group: 'Governance & Chambers',
+                title: 'Open in Ledger Flow',
+                detail: 'Map sent, received, and first-funding transfer paths',
+                badge: 'flow',
+                action: 'hash',
+                value: `#ledger-flow=${encodeURIComponent(q)}`
+            },
+            {
                 kind: 'baker',
                 group: 'Bakers & Accounts',
                 title: 'Try as baker profile',
@@ -272,6 +292,15 @@ function entityResults(query) {
                 badge: '.tez',
                 action: 'hash',
                 value: `#my-baker=${encodeURIComponent(domain)}`
+            },
+            {
+                kind: 'chamber',
+                group: 'Governance & Chambers',
+                title: `Open ${domain} in Ledger Flow`,
+                detail: 'Resolve this Tezos Domains name and map account transfers',
+                badge: 'flow',
+                action: 'hash',
+                value: `#ledger-flow=${encodeURIComponent(domain)}`
             },
             {
                 kind: 'baker',

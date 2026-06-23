@@ -35,6 +35,7 @@ import { initTz4AdoptionChamber } from '../features/tz4-adoption.js';
 import { initTezlinkChamber } from '../features/tezlink.js';
 import { initEtherlinkGovernanceChamber } from '../features/etherlink-governance.js';
 import { initCtezChamber } from '../features/ctez.js';
+import { initLedgerFlowChamber } from '../features/ledger-flow.js';
 
 const SPARKLINE_LIVE_METRICS = [
     ['tz4_percentage', 'tz4Percentage'],
@@ -142,6 +143,7 @@ async function init() {
     safe('etherlinkGovernanceChamber', initEtherlinkGovernanceChamber);
     safe('tz4AdoptionChamber', initTz4AdoptionChamber);
     safe('ctezChamber', initCtezChamber);
+    safe('ledgerFlowChamber', initLedgerFlowChamber);
     safe('governanceAlerts', initGovernanceAlerts);
     safe('protocolHistoryChamber', initProtocolHistoryChamber);
     safe('protocolHistoryHeaderLauncher', initProtocolHistoryHeaderLauncher);
@@ -1040,8 +1042,8 @@ const CHAMBER_CARD_PAIRS = [
         selectors: ['[data-stat="tz4-adoption"]', '#lb-entry-card']
     },
     {
-        key: 'protocol-history',
-        selectors: ['#protocol-history-entry-card']
+        key: 'ledger-history',
+        selectors: ['#ledger-flow-entry-card', '#protocol-history-entry-card']
     }
 ];
 let _chamberPairObserver = null;
@@ -1083,6 +1085,12 @@ const CHAMBER_INFO_COPY = {
         body: 'Measures recent block attestation power, sampled health windows, live activity tape, and saved My Tezos baker signal.',
         href: '/health/',
         link: 'Open Health ->'
+    },
+    'ledger-flow-entry-card': {
+        title: 'Ledger Flow',
+        body: 'Maps sent, received, and first-funding transfer paths around any Tezos account with amount-weighted connections.',
+        href: '/ledger-flow/',
+        link: 'Open Ledger Flow ->'
     },
     'protocol-history-entry-card': {
         title: 'Protocol Anthology',
@@ -3305,7 +3313,8 @@ function initDeepLinkAffordances() {
             '#lb': '/lb/',
             '#lb-tile': '/lb/',
             '#tz4': '/tz4/',
-            '#ctez': '/ctez/'
+            '#ctez': '/ctez/',
+            '#ledger-flow': '/ledger-flow/'
         };
         const pretty = prettyRoutes[hash];
         if (pretty) return `${window.location.origin}${pretty}`;
@@ -3704,7 +3713,8 @@ function applyDeepLink() {
             import('../features/network-health.js').then((module) => module.closeNetworkHealthChamber?.()),
             import('../features/liquidity-baking.js').then((module) => module.closeLiquidityBakingMonitor?.()),
             import('../features/tz4-adoption.js').then((module) => module.closeTz4AdoptionChamber?.()),
-            import('../features/ctez.js').then((module) => module.closeCtezChamber?.())
+            import('../features/ctez.js').then((module) => module.closeCtezChamber?.()),
+            import('../features/ledger-flow.js').then((module) => module.closeLedgerFlowChamber?.())
         ]);
 
         document.body.style.overflow = '';
@@ -3798,6 +3808,15 @@ function applyDeepLink() {
         openHashModal(
             () => import('../features/ctez.js').then(({ openCtezChamber }) => openCtezChamber()),
             'Failed to open ctez End of Life'
+        );
+    }
+
+    // #ledger-flow / #ledger-flow=tz1... / #flow=tz1...
+    if (params.has('ledger-flow') || hash === 'ledger-flow' || params.has('flow') || hash === 'flow') {
+        const target = params.get('ledger-flow') || params.get('flow') || '';
+        openHashModal(
+            () => import('../features/ledger-flow.js').then(({ openLedgerFlowChamber }) => openLedgerFlowChamber(target)),
+            'Failed to open Ledger Flow'
         );
     }
 

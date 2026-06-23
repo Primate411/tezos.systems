@@ -65,7 +65,7 @@ tezos.systems/
 ├── widgets/                           # Standalone embeddable widgets, shared runtime, and builder
 ├── staking/ governance/ bakers/ hen/ compare/
 │                                      # SEO and standalone pages
-├── chamber/ health/ tezosx/ l2chamber/ tz4/ lb/ ctez/
+├── chamber/ health/ tezosx/ l2chamber/ tz4/ lb/ ledger-flow/ ctez/
 │                                      # Pretty share/OG routes into live Chambers
 ├── og/                                # Generated per-chamber OG images
 ├── feed.xml                           # Generated Tezos governance RSS feed
@@ -166,13 +166,12 @@ inline modal styles in `js/core/app.js`.
 
 - Chambers section is visible by default and orders the chamber rows as Network
   Health <> Tezos L1 Governance, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
-  Monitor, then Protocol History as its own Chamber row. ctez End of Life stays
-  off the default Chambers grid and opens from Explore or the corner gift tray
-  launcher. Each Chamber row is wrapped responsively so wide cards keep their
-  companion card instead of creating desktop grid holes; cards also keep a
-  canonical app-shell open affordance in the fixed footer rail, card-level
-  direct-link controls, and quiet `as of` freshness stamps on the live chamber
-  cards.
+  Monitor, then Ledger Flow <> Protocol History. ctez End of Life stays off the
+  default Chambers grid and opens from Explore or the corner gift tray launcher.
+  Each Chamber row is wrapped responsively so wide cards keep their companion
+  card instead of creating desktop grid holes; cards also keep a canonical
+  app-shell open affordance in the fixed footer rail, card-level direct-link
+  controls, and quiet `as of` freshness stamps on the live chamber cards.
 - A live block ticker sits as its own island below the header/title row and
   above the command deck.
   It uses the Network Health block feed to show the latest block, baker,
@@ -215,6 +214,11 @@ inline modal styles in `js/core/app.js`.
   in-place row updates instead of a full rerender, and now adds incident memory,
   cycle timing, Octez versions, period telemetry, network-load, and Consensus
   Lens panels.
+- Ledger Flow Chamber with direct `#ledger-flow` and `/ledger-flow/` access,
+  plus address-scoped hashes such as `#ledger-flow=tz1...`. It resolves tz/KT
+  accounts and `.tez` names, queries TzKT account transaction history, and
+  renders an SVG transfer diagram with separate sent, received, and first-in
+  colors plus amount-weighted connection strength.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - First-screen command deck built for retrieval: the top of the page moves from
@@ -311,12 +315,13 @@ Useful deep links include:
 - `#lb`
 - `#lb-tile`
 - `#tz4`
+- `#ledger-flow` or `#ledger-flow=tz1...`
 - `#ctez`
 
 Public share routes are also available at `/chamber/`, `/health/`,
-`/tezosx/`, `/l2chamber/`, `/tz4/`, `/lb/`, and `/ctez/`. These routes carry
-unique Open Graph metadata and redirect into the corresponding live dashboard
-room.
+`/tezosx/`, `/l2chamber/`, `/tz4/`, `/lb/`, `/ledger-flow/`, and `/ctez/`.
+These routes carry unique Open Graph metadata and redirect into the
+corresponding live dashboard room.
 `/feed.xml` exposes the generated governance RSS feed for relay bots.
 The governance SEO page also funnels high-intent searches into `/chamber/`,
 `/#my-tezos`, and `/feed.xml` for live vote checks and syndication.
@@ -325,7 +330,7 @@ The governance SEO page also funnels high-intent searches into `/chamber/`,
 
 | Source | Purpose |
 |--------|---------|
-| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, baker Octez software/version telemetry, blocks, operations, governance, accounts, Etherlink governance contract discovery/storage/bigmaps, and ctez oven discovery |
+| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, baker Octez software/version telemetry, blocks, operations, account transfer flow, governance, accounts, Etherlink governance contract discovery/storage/bigmaps, and ctez oven discovery |
 | Octez RPC `https://eu.rpc.tez.capital` | Issuance, supply, constants, cycle/head metadata |
 | Teztale `https://teztale-server-mainnet-ro-prd.octez.tech` | Consensus timing lens for Network Health, including quorum delay, validation/application delay, source count, and operations-report observations; Teztale is by Nomadic Labs |
 | CoinGecko | XTZ price, market cap, 24h change, volume |

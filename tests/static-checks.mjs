@@ -523,6 +523,7 @@ async function checkSelectorContracts() {
   const etherlinkGovernance = await readText('js/features/etherlink-governance.js');
   const tz4 = await readText('js/features/tz4-adoption.js');
   const ctez = await readText('js/features/ctez.js');
+  const ledgerFlow = await readText('js/features/ledger-flow.js');
   const wallet = await readText('js/core/wallet.js');
   const health = await readText('js/features/network-health.js');
   const share = await readText('js/ui/share.js');
@@ -531,8 +532,10 @@ async function checkSelectorContracts() {
   const myBaker = await readText('js/features/my-baker.js');
   const comparison = await readText('js/features/comparison.js');
   const compareIndex = await readText('compare/index.html');
+  const chamberRoutes = await readText('scripts/lib/chamber-routes.mjs');
   const themeUi = await readText('js/ui/theme.js');
   const styles = await readText('css/styles.css');
+  const ledgerFlowCss = await readText('css/ledger-flow.css');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
     ['Chambers hash route', "hash === 'chambers'", app],
@@ -540,6 +543,9 @@ async function checkSelectorContracts() {
     ['Tezos X hash route', "hash === 'tezosx'", app],
     ['Legacy Tezlink hash route', "hash === 'tezlink'", app],
     ['Health hash route', "hash === 'health'", app],
+    ['Ledger Flow hash route', "hash === 'ledger-flow'", app],
+    ['Ledger Flow scoped hash route', "params.has('ledger-flow')", app],
+    ['Ledger Flow modal cleanup', 'closeLedgerFlowChamber', app],
     ['Protocol history hash route', "params.has('protocol')", app],
     ['Protocol History Chamber hash route', "hash === 'protocol-history'", app],
     ['Protocol history global opener', 'window.openProtocolHistoryByName = openProtocolHistoryByName', app],
@@ -567,6 +573,8 @@ async function checkSelectorContracts() {
     ['Hero search empty-state guide', 'hero-search-guide', search],
     ['Hero search guide styles', '.hero-search-guide', heroSearchCss],
     ['Hero search wallet chip clear copy', 'Wallet or .tez', search],
+    ['Hero search Ledger Flow command', 'Ledger Flow', search],
+    ['Hero search Ledger Flow scoped account route', '#ledger-flow=${encodeURIComponent(q)}', search],
     ['Hero search KT1 starter route', "['kt1', 'KT1 Contracts']", search],
     ['Tezos loop console initializer', 'function initTezosLoopConsole()', app],
     ['Tezos loop aura persistence', 'TEZOS_LOOP_STORAGE_KEY', app],
@@ -623,6 +631,20 @@ async function checkSelectorContracts() {
     ['LB EMA forecast panel', 'id="lb-ema-forecast"', lb],
     ['LB EMA history panel', 'id="lb-ema-history"', lb],
     ['LB vote change feed', 'id="lb-vote-change-feed"', lb],
+    ['Ledger Flow feature import', 'initLedgerFlowChamber', app],
+    ['Ledger Flow card copy link', 'data-copy-hash="#ledger-flow"', ledgerFlow],
+    ['Ledger Flow card info copy', 'ledger-flow-entry-card', app],
+    ['Ledger Flow direct footer link', 'Direct: /ledger-flow/', ledgerFlow],
+    ['Ledger Flow pretty route', "slug: 'ledger-flow'", chamberRoutes],
+    ['Ledger Flow lazy CSS loader', 'ledger-flow-css', ledgerFlow],
+    ['Ledger Flow sent color class', '.ledger-flow-edge-sent', ledgerFlowCss],
+    ['Ledger Flow received color class', '.ledger-flow-edge-received', ledgerFlowCss],
+    ['Ledger Flow first-funding color class', '.ledger-flow-edge-first', ledgerFlowCss],
+    ['Ledger Flow threshold slider', 'id="ledger-flow-threshold"', ledgerFlow],
+    ['Ledger Flow amount-weighted edge width', 'function edgeWidth', ledgerFlow],
+    ['Ledger Flow first inbound fetch', 'async function fetchFirstInbound', ledgerFlow],
+    ['Ledger Flow TzKT sender query', 'params.sender = address', ledgerFlow],
+    ['Ledger Flow TzKT target query', 'params.target = address', ledgerFlow],
     ['ctez hash route', "hash === 'ctez'", app],
     ['ctez feature copy link', 'data-copy-hash="#ctez"', index],
     ['ctez top-left launcher', 'id="ctez-launcher"', index],
@@ -658,6 +680,9 @@ async function checkSelectorContracts() {
     ['Octez.Connect wallet storage key', 'tezos-systems-octez-wallet-address', wallet],
     ['My Tezos wallet connect control', 'id="drawer-wallet-connect-btn"', index],
     ['My Tezos connected wallet control', 'id="my-tezos-wallet-connect"', index],
+    ['My Tezos Ledger Flow link control', 'id="my-tezos-ledger-flow-link"', index],
+    ['My Tezos Ledger Flow address route', '#ledger-flow=${encodeURIComponent(addr)}', myBaker],
+    ['My Tezos Ledger Flow link style', '.drawer-ledger-flow-link', styles],
     ['My Tezos Octez operator fetch', '/delegates/${encodeURIComponent(bakerAddr)}', myTezos],
     ['My Tezos Octez version classifier', 'classifyOctezVersion', myTezos],
     ['My Tezos Octez operator tile', "renderOperatorTile(\n        'Octez'", myTezos],

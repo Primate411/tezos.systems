@@ -613,6 +613,7 @@ export function init() {
     const saveBtn = document.getElementById('my-baker-save');
     const clearBtn = document.getElementById('my-baker-clear');
     const shareLinkBtn = document.getElementById('my-baker-share-link');
+    const ledgerFlowLink = document.getElementById('my-tezos-ledger-flow-link');
     const results = document.getElementById('my-baker-results');
     const errorMsg = document.getElementById('my-baker-error-msg');
 
@@ -689,6 +690,7 @@ export function init() {
                 localStorage.setItem(STORAGE_KEY, addr);
                 input.value = addr;
                 renderBakerData(addr, results);
+                updateLedgerFlowLink(addr);
                 showCopyMode(addr);
                 window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr } }));
                 renderSavedAddresses();
@@ -728,13 +730,29 @@ export function init() {
         }
     }
 
+    function updateLedgerFlowLink(addr) {
+        if (!ledgerFlowLink) return;
+        if (!addr) {
+            ledgerFlowLink.hidden = true;
+            ledgerFlowLink.href = '#ledger-flow';
+            ledgerFlowLink.removeAttribute('title');
+            return;
+        }
+        ledgerFlowLink.hidden = false;
+        ledgerFlowLink.href = `#ledger-flow=${encodeURIComponent(addr)}`;
+        ledgerFlowLink.title = `Open Ledger Flow for ${addr}`;
+    }
+
     // Load saved address
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && isValidAddress(saved)) {
         input.value = saved;
         renderBakerData(saved, results);
         updateShareLink(saved);
+        updateLedgerFlowLink(saved);
         showCopyMode(saved);
+    } else {
+        updateLedgerFlowLink(null);
     }
     renderSavedAddresses();
 
@@ -781,6 +799,7 @@ export function init() {
         localStorage.setItem(STORAGE_KEY, addr);
         renderBakerData(addr, results);
         updateShareLink(addr);
+        updateLedgerFlowLink(addr);
         showCopyMode(addr);
         addToSavedAddresses(addr);
         // Notify My Tezos strip to refresh with new address
@@ -799,6 +818,7 @@ export function init() {
         results.innerHTML = '';
         errorMsg.textContent = '';
         updateShareLink(null);
+        updateLedgerFlowLink(null);
         restoreSaveMode();
         // Notify My Tezos strip
         window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: null } }));

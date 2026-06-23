@@ -71,6 +71,7 @@ const browserRoutes = [
   '/l2chamber/',
   '/tz4/',
   '/lb/',
+  '/ledger-flow/',
   '/ctez/',
   '/bakers/',
   '/hen/',
@@ -101,6 +102,9 @@ const formattingViewports = [
 const SAMPLE_ADDRESS = 'tz1aWXP237BLwNHJcCD4b3DutCevhqq2T1Z9';
 const SAMPLE_ADDRESS_2 = 'tz1hThMBD8jQjFt78heuCnKxJnJtQo9Ao25X';
 const SAMPLE_ADDRESS_3 = 'tz1PendingBaker1111111111111111111111';
+const SAMPLE_LEDGER_ORIGIN = 'tz1LedgerOrigin1111111111111111111111';
+const SAMPLE_LEDGER_MARKET = 'tz1LedgerMarket1111111111111111111111';
+const SAMPLE_LEDGER_SMALL = 'tz1LedgerSmall11111111111111111111111';
 const SAMPLE_DELEGATOR_ADDRESS = 'tz1iJP1EtP9iSkmaEKCZznDMst91oJGB9SZ5';
 const SAMPLE_REGULAR_DELEGATOR_ADDRESS = 'tz1iKT2pvdbEHuVC3zugnJfVoQZbbyUzgToW';
 const SAMPLE_SMALL_DELEGATOR_ADDRESS = 'tz1hh3pqYnm3umz3U7zJ6xkaCmpXbnKA7aAm';
@@ -126,7 +130,9 @@ const EXPECTED_CHAMBER_ORDER = [
   'tezlink-entry-card',
   'etherlink-governance-entry-card',
   'tz4-adoption',
-  'lb-entry-card'
+  'lb-entry-card',
+  'ledger-flow-entry-card',
+  'protocol-history-entry-card'
 ];
 
 function usage() {
@@ -581,6 +587,89 @@ function sampleTeztaleBatch(first, last) {
     const level = first + index;
     return { level, data: sampleTeztaleBlock(level) };
   });
+}
+
+function sampleLedgerFlowSentRows() {
+  return [
+    {
+      id: 9104,
+      hash: 'opLedgerSentLarge111111111111111111111111111111',
+      level: 12345670,
+      timestamp: new Date(Date.now() - 36 * 60000).toISOString(),
+      amount: 4200000000,
+      status: 'applied',
+      sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+      target: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }
+    },
+    {
+      id: 9103,
+      hash: 'opLedgerSentMedium11111111111111111111111111111',
+      level: 12345612,
+      timestamp: new Date(Date.now() - 3 * 3600000).toISOString(),
+      amount: 650000000,
+      status: 'applied',
+      sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+      target: { address: SAMPLE_LEDGER_MARKET, alias: 'Smoke Market' }
+    },
+    {
+      id: 9102,
+      hash: 'opLedgerSentSmall111111111111111111111111111111',
+      level: 12345590,
+      timestamp: new Date(Date.now() - 7 * 3600000).toISOString(),
+      amount: 25000000,
+      status: 'applied',
+      sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+      target: { address: SAMPLE_LEDGER_SMALL, alias: 'Dust Tester' }
+    }
+  ];
+}
+
+function sampleLedgerFlowReceivedRows() {
+  return [
+    {
+      id: 9205,
+      hash: 'opLedgerReceivedLarge11111111111111111111111111',
+      level: 12345674,
+      timestamp: new Date(Date.now() - 22 * 60000).toISOString(),
+      amount: 1800000000,
+      status: 'applied',
+      sender: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+      target: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }
+    },
+    {
+      id: 9204,
+      hash: 'opLedgerReceivedMedium1111111111111111111111111',
+      level: 12345620,
+      timestamp: new Date(Date.now() - 2 * 3600000).toISOString(),
+      amount: 950000000,
+      status: 'applied',
+      sender: { address: SAMPLE_LEDGER_MARKET, alias: 'Smoke Market' },
+      target: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }
+    },
+    {
+      id: 9203,
+      hash: 'opLedgerReceivedSmall11111111111111111111111111',
+      level: 12345510,
+      timestamp: new Date(Date.now() - 4 * 3600000).toISOString(),
+      amount: 12000000,
+      status: 'applied',
+      sender: { address: SAMPLE_LEDGER_SMALL, alias: 'Dust Tester' },
+      target: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }
+    }
+  ];
+}
+
+function sampleLedgerFlowFirstRow() {
+  return [{
+    id: 8801,
+    hash: 'opLedgerFirstFunding111111111111111111111111111',
+    level: 458753,
+    timestamp: '2019-05-30T00:00:00Z',
+    amount: 1000000,
+    status: 'applied',
+    sender: { address: SAMPLE_LEDGER_ORIGIN, alias: 'Genesis Fund' },
+    target: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }
+  }];
 }
 
 async function installFeatureMocks(context, options = {}) {
@@ -1257,6 +1346,22 @@ async function installFeatureMocks(context, options = {}) {
       if (url.includes('/operations/transactions?') && (url.includes(`target=${ETHERLINK_SLOW_CONTRACT}`) || url.includes(`target=${ETHERLINK_SEQUENCER_CONTRACT}`))) {
         return fulfillJson(route, []);
       }
+      if (url.includes('/operations/transactions?')) {
+        const txParams = parsedUrl.searchParams;
+        const isLedgerFlowSender = txParams.get('sender') === SAMPLE_ADDRESS;
+        const isLedgerFlowTarget = txParams.get('target') === SAMPLE_ADDRESS;
+        const isSpecializedTxQuery = txParams.has('targetCodeHash.in')
+          || txParams.get('target') === ETHERLINK_FAST_CONTRACT
+          || txParams.get('target') === ETHERLINK_SLOW_CONTRACT
+          || txParams.get('target') === ETHERLINK_SEQUENCER_CONTRACT;
+        if (!isSpecializedTxQuery && isLedgerFlowSender) {
+          return fulfillJson(route, sampleLedgerFlowSentRows());
+        }
+        if (!isSpecializedTxQuery && isLedgerFlowTarget) {
+          if (txParams.get('sort.asc') === 'level') return fulfillJson(route, sampleLedgerFlowFirstRow());
+          return fulfillJson(route, sampleLedgerFlowReceivedRows());
+        }
+      }
       if (url.includes('/operations/transactions/count')) return fulfillJson(route, 12345);
       if (url.includes('/operations/transactions?')) {
         return fulfillJson(route, [{
@@ -1700,7 +1805,8 @@ async function assertChamberOrder(page, label) {
   const expectedPairs = [
     ['network-health', 'chamber-entry-card'],
     ['tezlink-entry-card', 'etherlink-governance-entry-card'],
-    ['tz4-adoption', 'lb-entry-card']
+    ['tz4-adoption', 'lb-entry-card'],
+    ['ledger-flow-entry-card', 'protocol-history-entry-card']
   ];
   assert(
     expectedPairs.every((pair, index) => pair.every((key, innerIndex) => chamberState.pairs[index]?.[innerIndex] === key)),
@@ -1715,6 +1821,7 @@ async function assertChamberControlGeometry(page, label) {
       '#tezlink-entry-card',
       '#etherlink-governance-entry-card',
       '#lb-entry-card',
+      '#ledger-flow-entry-card',
       '#chambers-section [data-stat="tz4-adoption"]',
       '#chambers-section [data-stat="network-health"]'
     ];
@@ -1733,6 +1840,8 @@ async function assertChamberControlGeometry(page, label) {
       '.card-front .tezlink-tape-row',
       '.card-front .etherlink-gov-entry-metrics',
       '.card-front .etherlink-gov-entry-metric',
+      '.card-front .ledger-flow-entry-main',
+      '.card-front .ledger-flow-entry-metrics',
       '.card-front .network-health-blocks',
       '.card-front .network-health-block',
       '.card-front .health-live-tape',
@@ -3455,6 +3564,8 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
     stored: localStorage.getItem('tezos-systems-my-baker-address'),
     input: document.querySelector('#my-baker-input')?.value || '',
     button: document.querySelector('#my-baker-save')?.textContent?.trim() || '',
+    ledgerFlowHref: document.querySelector('#my-tezos-ledger-flow-link')?.getAttribute('href') || '',
+    ledgerFlowHidden: document.querySelector('#my-tezos-ledger-flow-link')?.hidden === true,
     extDelegated: Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).find((stat) => (
       stat.textContent.includes('Ext. Delegated')
     ))?.textContent?.replace(/\s+/g, ' ').trim() || '',
@@ -3464,6 +3575,7 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
   assert(state.stored === SAMPLE_ADDRESS_2, `my tezos address switch: localStorage kept stale address ${state.stored}`);
   assert(state.input === SAMPLE_ADDRESS_2, `my tezos address switch: connected input mismatch ${state.input}`);
   assert(state.button === '📋 Copy', `my tezos address switch: save button did not return to copy mode, saw ${state.button}`);
+  assert(!state.ledgerFlowHidden && state.ledgerFlowHref === `#ledger-flow=${encodeURIComponent(SAMPLE_ADDRESS_2)}`, `my tezos address switch: Ledger Flow link not scoped to active address ${JSON.stringify(state)}`);
   assert(state.extDelegated.includes('220,000.00'), `my tezos address switch: drawer still shows stale baker metrics: ${state.extDelegated}`);
   assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `my tezos address switch: header still points at old baker: ${state.header}`);
 
@@ -4119,6 +4231,102 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await context.close();
   assert(issues.length === 0, `network health chamber browser issues:\n${issues.join('\n')}`);
   log('ok - network health chamber smoke');
+}
+
+async function smokeLedgerFlowChamber(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'ledger flow chamber', issues);
+
+  const response = await page.goto(`${baseUrl}/#ledger-flow=${encodeURIComponent(SAMPLE_ADDRESS)}`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `ledger flow chamber: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('#ledger-flow-entry-card.chamber-entry-wide').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#ledger-flow-modal.active .ledger-flow-content').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction(() => document.querySelector('#ledger-flow-modal .ledger-flow-svg'), null, { timeout: 15000 });
+
+  const state = await page.evaluate(() => {
+    const modal = document.querySelector('#ledger-flow-modal');
+    const svg = modal?.querySelector('.ledger-flow-svg');
+    const edgeWidths = Array.from(modal?.querySelectorAll('.ledger-flow-edge') || [])
+      .map((edge) => Number(edge.getAttribute('stroke-width') || 0))
+      .filter((value) => Number.isFinite(value) && value > 0);
+    const rect = svg?.getBoundingClientRect();
+    return {
+      title: modal?.querySelector('.chamber-title')?.textContent?.trim() || '',
+      info: modal?.querySelector('.chamber-proposal-info')?.textContent?.trim() || '',
+      stats: modal?.querySelector('.ledger-flow-stats')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      detail: modal?.querySelector('#ledger-flow-detail-panel')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      counterparties: modal?.querySelector('.ledger-flow-counterparty-list')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      sentEdges: modal?.querySelectorAll('.ledger-flow-edge-sent').length || 0,
+      receivedEdges: modal?.querySelectorAll('.ledger-flow-edge-received').length || 0,
+      firstEdges: modal?.querySelectorAll('.ledger-flow-edge-first').length || 0,
+      edgeWidths,
+      minWidth: Math.min(...edgeWidths),
+      maxWidth: Math.max(...edgeWidths),
+      directHref: modal?.querySelector('a[href="/ledger-flow/"]')?.getAttribute('href') || '',
+      svgWidth: rect?.width || 0,
+      svgHeight: rect?.height || 0,
+      horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    };
+  });
+  assert(state.title === 'Ledger Flow', `ledger flow chamber: title mismatch ${state.title}`);
+  assert(/QA Baker/.test(state.info) && /30D/.test(state.info), `ledger flow chamber: account context missing ${state.info}`);
+  assert(/Received/.test(state.stats) && /Sent/.test(state.stats) && /First in/.test(state.stats), `ledger flow chamber: summary stats missing ${state.stats}`);
+  assert(/First funded by/.test(state.detail) && /Genesis Fund/.test(state.detail), `ledger flow chamber: first-funding detail missing ${state.detail}`);
+  assert(/Second Baker/.test(state.counterparties) && /Smoke Market/.test(state.counterparties) && /Dust Tester/.test(state.counterparties), `ledger flow chamber: counterparty list incomplete ${state.counterparties}`);
+  assert(state.sentEdges >= 2, `ledger flow chamber: sent edges missing ${state.sentEdges}`);
+  assert(state.receivedEdges >= 2, `ledger flow chamber: received edges missing ${state.receivedEdges}`);
+  assert(state.firstEdges === 1, `ledger flow chamber: first-funding edge mismatch ${state.firstEdges}`);
+  assert(state.maxWidth - state.minWidth >= 1.5, `ledger flow chamber: edge widths should reflect amount scale ${state.edgeWidths.join(', ')}`);
+  assert(state.directHref === '/ledger-flow/', `ledger flow chamber: direct route link missing ${state.directHref}`);
+  assert(state.svgWidth > 500 && state.svgHeight > 250, `ledger flow chamber: diagram dimensions too small ${state.svgWidth}x${state.svgHeight}`);
+  assert(state.horizontalOverflow <= 1, `ledger flow chamber: horizontal overflow ${state.horizontalOverflow}`);
+
+  await page.locator('.ledger-flow-counterparty-row[data-ledger-edge$=":sent"]').first().click();
+  const sentDetail = await page.locator('#ledger-flow-detail-panel').innerText();
+  assert(/Sent to/i.test(sentDetail) && /Second Baker/.test(sentDetail), `ledger flow chamber: sent edge detail mismatch ${sentDetail}`);
+
+  await page.locator('#ledger-flow-threshold').evaluate((input) => {
+    input.value = '4';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const text = document.querySelector('.ledger-flow-counterparty-list')?.textContent || '';
+    return !/Dust Tester/.test(text);
+  }, null, { timeout: 5000 });
+  const filteredState = await page.evaluate(() => ({
+    threshold: document.querySelector('#ledger-flow-threshold-label')?.textContent || '',
+    counterparties: document.querySelector('.ledger-flow-counterparty-list')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    firstEdges: document.querySelectorAll('.ledger-flow-edge-first').length
+  }));
+  assert(filteredState.threshold === '1K XTZ', `ledger flow chamber: threshold label mismatch ${filteredState.threshold}`);
+  assert(!/Dust Tester/.test(filteredState.counterparties), `ledger flow chamber: minimum amount did not hide small counterparty ${filteredState.counterparties}`);
+  assert(/Genesis Fund/.test(filteredState.counterparties) && filteredState.firstEdges === 1, `ledger flow chamber: first funding should remain visible under threshold ${JSON.stringify(filteredState)}`);
+
+  await page.locator('#ledger-flow-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#ledger-flow-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.locator('#hero-search-input').fill('ledger flow');
+  await page.waitForFunction(() => /Ledger Flow/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+
+  const routeResponse = await page.goto(`${baseUrl}/ledger-flow/`, { waitUntil: 'domcontentloaded' });
+  assert(routeResponse?.ok(), `ledger flow route: pretty route failed with HTTP ${routeResponse?.status()}`);
+  await page.waitForFunction(() => window.location.hash === '#ledger-flow', null, { timeout: 5000 });
+  await page.locator('#ledger-flow-modal.active .ledger-flow-content').waitFor({ state: 'visible', timeout: 10000 });
+
+  await context.close();
+  assert(issues.length === 0, `ledger flow chamber browser issues:\n${issues.join('\n')}`);
+  log('ok - ledger flow chamber smoke');
 }
 
 async function smokeTezlinkChamber(browser, baseUrl) {
@@ -6230,6 +6438,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-deep-link-override', description: 'My Tezos direct address links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) },
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
+    { name: 'ledger-flow', description: 'Ledger Flow opens #ledger-flow with sent, received, first-funding, and amount-weighted transfer paths', run: () => smokeLedgerFlowChamber(browser, baseUrl) },
     { name: 'ctez', description: 'ctez End of Life opens #ctez with opt-in oven discovery and wallet-reviewed operations', run: () => smokeCtezChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'hash-modal-cleanup', description: 'Hash-routed modal navigation closes stale history and chamber overlays before opening the next room', run: () => smokeHashModalCleanup(browser, baseUrl) },

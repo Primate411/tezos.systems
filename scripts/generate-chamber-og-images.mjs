@@ -134,6 +134,12 @@ function routeDetails(route, report) {
       chips: ['50% threshold', 'baker votes', 'subsidy state'],
       body: 'Monitor Tezos Liquidity Baking vote flow, EMA drift, history strip, and subsidy re-enable or disable risk.'
     },
+    'ledger-flow': {
+      kicker: 'Account Flows',
+      value: 'Sent + received paths',
+      chips: ['first funding', 'amount-weighted edges', 'counterparty map'],
+      body: 'Map Tezos account transfers with separate sent and received colors, first-funding highlights, and bolder paths for larger movements.'
+    },
     ctez: {
       kicker: 'ctez Oven Guide',
       value: 'Better Call Dev',

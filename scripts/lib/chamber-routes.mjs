@@ -54,6 +54,15 @@ export const CHAMBER_ROUTES = [
     accent: '#f5b84b'
   },
   {
+    slug: 'ledger-flow',
+    hash: '#ledger-flow',
+    title: 'Ledger Flow - Tezos Account Transfer Diagram',
+    shortTitle: 'Ledger Flow',
+    description: 'Map Tezos account transfer paths with sent, received, first-funding, and amount-weighted connections.',
+    eyebrow: 'Account Flows',
+    accent: '#4dd4ff'
+  },
+  {
     slug: 'ctez',
     hash: '#ctez',
     title: 'ctez Oven Guide - Withdraw Tez From ctez Ovens',
