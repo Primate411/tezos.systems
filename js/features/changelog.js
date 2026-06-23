@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-23',
         entries: [
+            { type: '🎨', text: 'Mobile now scales the Tezos Systems wordmark wider across the header so it lines up more closely with the panels below' },
             { type: '✨', text: 'Ledger Flow is now a Chamber for mapping sent, received, and first-funding account transfer paths with amount-weighted lines, with My Tezos linking saved addresses straight into it' },
             { type: '🎨', text: 'Mobile now keeps the Running on Tallinn chip beside the uptime pill with matching compact header styling' },
             { type: '🎨', text: 'The header uptime badge now uses a tighter fixed uptime slot so the visible separators read like two spaces' },
