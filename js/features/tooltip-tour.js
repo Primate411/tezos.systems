@@ -14,7 +14,7 @@
         {
             target: '#top-continuity-history',
             title: 'Start with live proof',
-            text: 'Mainnet Uptime opens Protocol Anthology; each bright stat pill opens its own all-time chart.',
+            text: 'The uptime badge opens Protocol Anthology; each bright stat pill opens its own all-time chart.',
         },
         {
             target: '#block-ticker-button',

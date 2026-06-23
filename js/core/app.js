@@ -1952,7 +1952,7 @@ function initUptimeClock() {
         const mins = Math.floor((remAfterYears % 3600000) / 60000);
         const secs = Math.floor((remAfterYears % 60000) / 1000);
         const str = `${years}y ${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
-        const topStr = `${years}Y ${days}D ${hours}H ${mins}M`;
+        const topStr = `${years}y ${days}d ${hours}h ${mins}m`;
         // Wrap each character in a fixed-width span to prevent layout shift
         const html = str.split('').map(ch =>
             /\d/.test(ch) ? `<span class="uptime-digit">${ch}</span>` : `<span class="uptime-sep">${ch}</span>`

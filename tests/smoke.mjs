@@ -3964,12 +3964,12 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.topProofTag === 'DIV' && healthState.topProofHistoryTag === 'BUTTON' && healthState.topProofHistoryType === 'button', `network health chamber: continuity surface should use a stat container with a button uptime launcher, saw ${healthState.topProofTag}/${healthState.topProofHistoryTag}/${healthState.topProofHistoryType}`);
   assert(healthState.topProofHistoryAriaControls === 'protocol-history-chamber-modal' && healthState.topProofHistoryWired === '1', `network health chamber: continuity proof Protocol Anthology launcher missing: ${healthState.topProofHistoryAriaControls}/${healthState.topProofHistoryWired}`);
   assert(['total-bakers', 'finality', 'staking-ratio', 'issuance-rate'].every((key) => healthState.topProofPillCards.includes(key)) && healthState.topProofPillsWired, `network health chamber: continuity proof all-time pills missing or unwired: ${healthState.topProofPillCards.join(',')}/${healthState.topProofPillsWired}`);
-  assert(/Mainnet Uptime/i.test(healthState.topProofHistoryText) && !/zero forks|zero outages/i.test(healthState.topProofHistoryText), `network health chamber: uptime badge should include only uptime identity/counter: ${healthState.topProofHistoryText}`);
+  assert(/uptime/i.test(healthState.topProofHistoryText) && /since 2018/i.test(healthState.topProofHistoryText) && !/mainnet uptime|zero forks|zero outages/i.test(healthState.topProofHistoryText), `network health chamber: uptime badge should include the uptime identity/counter only: ${healthState.topProofHistoryText}`);
   assert(healthState.topProofBadgeUnderTitle && healthState.topProofBadgeLeftAligned, `network health chamber: uptime badge should sit directly under Tezos Systems title: ${JSON.stringify({ under: healthState.topProofBadgeUnderTitle, aligned: healthState.topProofBadgeLeftAligned })}`);
   assert(healthState.topProofBadgeHeight > 0 && healthState.topProofPillHeight > 0 && healthState.topProofBadgeHeight <= healthState.topProofPillHeight * 0.82, `network health chamber: uptime badge should be about 70-80% of right pill height: ${healthState.topProofBadgeHeight}/${healthState.topProofPillHeight}`);
   assert(healthState.topProofBadgeRadius > 0 && healthState.topProofBadgeRadius < healthState.topProofPillRadius, `network health chamber: uptime badge should be squarer than right pills: ${healthState.topProofBadgeRadius}/${healthState.topProofPillRadius}`);
   assert(!/\|/.test(healthState.topProofHistoryText), `network health chamber: top uptime badge should not add a pipe: ${healthState.topProofHistoryText}`);
-  assert(/\d+Y\s+\d+D\s+\d+H\s+\d+M/.test(healthState.topProofCounter), `network health chamber: top proof runtime missing compact minutes: ${healthState.topProofCounter}`);
+  assert(/\d+y\s+\d+d\s+\d+h\s+\d+m/.test(healthState.topProofCounter), `network health chamber: top proof runtime missing compact minutes: ${healthState.topProofCounter}`);
   assert(/^\d+$/.test(healthState.topProofBakers) && Number(healthState.topProofBakers) >= 1, `network health chamber: top proof baker count mismatch: ${healthState.topProofBakers}`);
   assert(/\d+s/.test(healthState.topProofFinality), `network health chamber: top proof finality missing: ${healthState.topProofFinality}`);
   assert(/^\d+(?:\.\d+)?%$/.test(healthState.topProofStaked), `network health chamber: top proof staked ratio mismatch: ${healthState.topProofStaked}`);
@@ -5272,7 +5272,7 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   }
 
   const tourSteps = [
-    { selector: '#top-continuity-history', label: 'uptime proof step', snippets: ['Start with live proof', 'Mainnet Uptime', 'Protocol Anthology'] },
+    { selector: '#top-continuity-history', label: 'uptime proof step', snippets: ['Start with live proof', 'uptime badge', 'Protocol Anthology'] },
     { selector: '#block-ticker-button', label: 'block ticker step', snippets: ['Read the latest head', 'Network Health Chamber'] },
     { selector: '#hero-search-form', label: 'command bar step', snippets: ['Search is the map', 'Press /', 'Chamber'] },
     { selector: '#chambers-section .section-header', label: 'chambers step', snippets: ['Chambers explain the chain', 'Protocol Anthology'] },

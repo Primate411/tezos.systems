@@ -1,0 +1,88 @@
+/* Generated from css/styles.css by scripts/build-css.mjs. Do not edit directly. */
+[data-theme="aurora"]{
+    --bg-primary: #070B1A;
+    --bg-secondary: #0C1230;
+    --bg-tertiary: #141C44;
+    --glass-bg: rgba(16, 22, 52, 0.55);
+    --glass-border: rgba(124, 140, 255, 0.20);
+    --text-primary: #EAF0FF;
+    --text-secondary: #AAB8EC;
+    --text-tertiary: #7E8CC8;
+    --text-muted: #4A5588;
+    /* Distinct aurora hues so cards span the spectrum (teal/sky/violet/magenta) */
+    --accent-cyan: #45E0C8;
+    --accent-blue: #5BA8FF;
+    --accent-purple: #9B8CFF;
+    --accent-pink: #F49AD1;
+    --accent: var(--accent-cyan);
+    --accent-color: var(--accent-cyan);
+    --border: var(--glass-border);
+    --border-color: var(--glass-border);
+    --text-dim: var(--text-tertiary);
+}
+body[data-theme="aurora"]::before{
+    inset: -20%;
+    background:
+        radial-gradient(38% 44% at 18% 22%, rgba(64, 224, 200, 0.20), transparent 62%),
+        radial-gradient(42% 50% at 82% 18%, rgba(124, 140, 255, 0.20), transparent 64%),
+        radial-gradient(46% 52% at 72% 82%, rgba(244, 138, 209, 0.16), transparent 62%),
+        radial-gradient(40% 46% at 26% 80%, rgba(91, 168, 255, 0.16), transparent 62%);
+    filter: blur(48px) saturate(125%);
+    animation: auroraDrift1 26s ease-in-out infinite alternate;
+    will-change: transform;
+}
+body[data-theme="aurora"]::after{
+    content: '';
+    position: fixed;
+    inset: -20%;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(34% 40% at 62% 28%, rgba(157, 120, 255, 0.16), transparent 60%),
+        radial-gradient(40% 46% at 28% 60%, rgba(0, 209, 178, 0.14), transparent 62%),
+        radial-gradient(36% 42% at 86% 66%, rgba(91, 168, 255, 0.12), transparent 60%);
+    filter: blur(56px) saturate(120%);
+    animation: auroraDrift2 34s ease-in-out infinite alternate;
+    will-change: transform;
+}
+[data-theme="aurora"] .title{
+    background: linear-gradient(110deg, #45E0C8 0%, #5BA8FF 28%, #9B8CFF 56%, #F49AD1 80%, #45E0C8 100%);
+    background-size: 220% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    text-shadow: 0 0 44px rgba(124, 140, 255, 0.35);
+    animation: auroraTitleShift 9s linear infinite;
+}
+[data-theme="aurora"] .stat-card:hover{
+    border-color: rgba(124, 140, 255, 0.40);
+    box-shadow: 0 10px 44px rgba(64, 224, 200, 0.12), inset 0 0 0 1px rgba(157, 140, 255, 0.16);
+}
+[data-theme="aurora"] .uptime-pulse-dot{ color: #45E0C8; background: #45E0C8; box-shadow: 0 0 8px rgba(64, 224, 200, 0.7); }
+[data-theme="aurora"] .comparison-winner{ color: #7C8CFF; }
+[data-theme="aurora"] .hero-cta-primary{ background: linear-gradient(120deg, #45E0C8, #7C8CFF); color: #070B1A; box-shadow: 0 0 20px rgba(124, 140, 255, 0.30); }
+[data-theme="aurora"] .price-change.positive{ color: #45E0C8; }
+[data-theme="aurora"] .trend-arrow.up{ color: #45E0C8; }
+[data-theme="aurora"] .price-change.negative{ color: #F472B6; }
+[data-theme="aurora"] .trend-arrow.down{ color: #F472B6; }
+[data-theme="aurora"] ::-webkit-scrollbar-thumb{ background: rgba(124, 140, 255, 0.30); border: 1px solid rgba(64, 224, 200, 0.15); }
+[data-theme="aurora"] ::-webkit-scrollbar-thumb:hover{ background: rgba(124, 140, 255, 0.55); box-shadow: 0 0 6px rgba(124, 140, 255, 0.4); }
+
+
+/* ==========================================
+   Accessibility
+   ========================================== */
+
+@media (prefers-reduced-motion: reduce) {[data-theme="aurora"] .title{
+        animation: auroraTitleShift 9s linear infinite !important;
+    }
+}
+[data-theme="aurora"] .visit-streak-toast{
+    --streak-toast-bg: rgba(9, 13, 32, 0.92);
+    --streak-toast-border: rgba(124, 140, 255, 0.3);
+    --streak-toast-strong-border: rgba(69, 224, 200, 0.5);
+    --streak-toast-color: #EAF0FF;
+    --streak-toast-glow: rgba(69, 224, 200, 0.18);
+    --streak-toast-pop-glow: rgba(124, 140, 255, 0.42);
+}

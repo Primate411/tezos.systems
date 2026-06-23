@@ -180,9 +180,10 @@ inline modal styles in `js/core/app.js`.
   animated strip with stable-width volatile numbers, compact baker names, and a
   clean whole-line transition.
   Clicking the strip opens the Network Health Chamber.
-- The header keeps `Mainnet Uptime` in a compact badge directly under the
-  Tezos Systems title, with active baker count, finality, staked share, and
-  issuance rate in the right-side stat pills.
+- The header keeps `uptime` in a theme-aware status badge directly under the
+  Tezos Systems title, with years/days/hours/minutes, a since-2018 marker,
+  active baker count, finality, staked share, and issuance rate in
+  theme-matched stat pills.
   Clicking the uptime badge opens Protocol Anthology; clicking a stat pill
   opens that metric's historical stats surface.
 - The Network Health Chamber contains the fuller Continuity Proof panel with

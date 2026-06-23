@@ -7,7 +7,7 @@ const THEME_KEY = 'tezos-systems-theme';
 export const THEMES = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
 // Aurora — bespoke animated default; striking but legible.
 export const DEFAULT_THEME = 'aurora';
-const THEME_CSS_VERSION = '277';
+const THEME_CSS_VERSION = '278';
 
 // Theme color definitions for the picker dots
 export const THEME_COLORS = {
@@ -34,7 +34,7 @@ function themeCssHref(theme) {
 }
 
 function ensureThemeStylesheet(theme) {
-    if (theme === DEFAULT_THEME || !THEMES.includes(theme)) return;
+    if (!THEMES.includes(theme)) return;
     const id = `theme-css-${theme}`;
     if (document.getElementById(id)) return;
 
@@ -54,7 +54,7 @@ function ensureThemeStylesheet(theme) {
 }
 
 function preloadThemeStylesheets() {
-    THEMES.filter((theme) => theme !== DEFAULT_THEME).forEach((theme) => {
+    THEMES.forEach((theme) => {
         if (document.getElementById(`theme-css-${theme}`) || document.getElementById(`theme-css-preload-${theme}`)) return;
         const link = document.createElement('link');
         link.id = `theme-css-preload-${theme}`;

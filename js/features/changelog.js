@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-23',
         entries: [
+            { type: '🎨', text: 'The header uptime proof now uses Aurora teal-to-violet colors and theme-matched title, uptime, and stat pill palettes' },
             { type: '🔧', text: 'The command bar now labels wallet and .tez searches clearly and routes KT1 starter searches to contracts instead of bakers' },
             { type: '🎨', text: 'Mobile now gives the cycle number more room beside the gift tray' },
             { type: '🎨', text: 'Mobile now keeps the gift tray in the top-left price row while centering the Tezos Systems title stack' },

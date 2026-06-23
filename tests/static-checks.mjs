@@ -531,6 +531,7 @@ async function checkSelectorContracts() {
   const myBaker = await readText('js/features/my-baker.js');
   const comparison = await readText('js/features/comparison.js');
   const compareIndex = await readText('compare/index.html');
+  const themeUi = await readText('js/ui/theme.js');
   const styles = await readText('css/styles.css');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
@@ -697,7 +698,8 @@ async function checkSelectorContracts() {
     ['top continuity stat panel', 'id="top-continuity-panel"', index],
     ['top continuity title-stack uptime launcher', 'id="top-continuity-history"', index],
     ['top continuity proof opens Protocol Anthology', 'aria-controls="protocol-history-chamber-modal"', index],
-    ['top continuity identity claim', 'top-continuity-claim">Mainnet Uptime', index],
+    ['top continuity identity claim', 'top-continuity-claim">uptime', index],
+    ['top continuity since-2018 marker', 'top-continuity-origin">since 2018', index],
     ['top continuity proof baker metric', 'id="hero-chain-uptime-bakers"', index],
     ['top continuity baker all-time pill', 'data-card-history="total-bakers"', index],
     ['top continuity finality all-time pill', 'data-card-history="finality"', index],
@@ -727,7 +729,16 @@ async function checkSelectorContracts() {
     ['top continuity uptime badge glint', '.top-continuity-history::before', styles],
     ['top continuity identity claim styles', '.top-continuity-claim', styles],
     ['top continuity runtime fixed-width slot', 'flex: 0 0 16ch;', styles],
-    ['top continuity value color tokens', 'var(--pill-color, #22d3ee)', styles],
+    ['top continuity title theme token', '--header-title-color', styles],
+    ['top continuity uptime badge theme bg', 'background: var(--uptime-badge-bg);', styles],
+    ['top continuity uptime badge theme border', 'border: 1px solid var(--uptime-badge-border);', styles],
+    ['top continuity uptime badge label token', 'color: var(--uptime-badge-label);', styles],
+    ['top continuity uptime value token', 'color: var(--uptime-badge-value);', styles],
+    ['top continuity value color tokens', 'var(--pill-color, var(--top-pill-bakers))', styles],
+    ['top continuity baker color selector', '.top-continuity-stat[data-card-history="total-bakers"]', styles],
+    ['top continuity finality color selector', '.top-continuity-stat[data-card-history="finality"]', styles],
+    ['top continuity staked color selector', '.top-continuity-stat[data-card-history="staking-ratio"]', styles],
+    ['top continuity issuance color selector', '.top-continuity-stat[data-card-history="issuance-rate"]', styles],
     ['top continuity mobile pill grid', 'grid-template-columns: repeat(2, minmax(0, 1fr))', styles],
     ['top continuity decrypt styles', '.top-continuity-panel.is-shuffling', styles],
     ['live block ticker aperture transition styles', 'blockTickerAperture', styles],
@@ -750,6 +761,49 @@ async function checkSelectorContracts() {
   if (index.includes('top-continuity-proof-item') || styles.includes('.top-continuity-proof-item')) {
     fail('top header uptime badge should not retain the old Zero Forks / Zero Outages proof stamps');
   }
+  if (/style=["'][^"']*--pill-color/.test(index)) {
+    fail('top header stat pills should use theme palette tokens, not inline --pill-color styles');
+  }
+  const themeListMatch = themeUi.match(/export const THEMES\s*=\s*\[([\s\S]*?)\];/);
+  const registeredThemes = themeListMatch ? Array.from(themeListMatch[1].matchAll(/'([^']+)'/g), (match) => match[1]) : [];
+  if (!registeredThemes.length) {
+    fail('theme registry should expose the active THEMES list');
+  }
+  const headerPaletteTokens = [
+    '--header-title-color',
+    '--header-title-glow',
+    '--uptime-badge-bg',
+    '--uptime-badge-border',
+    '--uptime-badge-label',
+    '--uptime-badge-value',
+    '--uptime-badge-note',
+    '--top-pill-bg',
+    '--top-pill-bakers',
+    '--top-pill-finality',
+    '--top-pill-staked',
+    '--top-pill-issuance'
+  ];
+  const rootPaletteBlock = styles.match(/:root\s*\{([\s\S]*?)\n\}/)?.[1] || '';
+  for (const theme of registeredThemes) {
+    const themeBlockMatch = styles.match(new RegExp(`\\[data-theme="${theme}"\\]\\s*\\{([\\s\\S]*?)\\n\\}`));
+    if (!themeBlockMatch) {
+      fail(`theme ${theme} should define a CSS variable block for header palette tokens`);
+      continue;
+    }
+    const paletteScope = theme === 'aurora' ? `${rootPaletteBlock}\n${themeBlockMatch[1]}` : themeBlockMatch[1];
+    for (const token of headerPaletteTokens) {
+      if (!paletteScope.includes(`${token}:`)) {
+        fail(`theme ${theme} should define ${token} for title, uptime, and pill colors`);
+      }
+    }
+  }
+  const auroraBlock = `${rootPaletteBlock}\n${styles.match(/\[data-theme="aurora"\]\s*\{([\s\S]*?)\n\}/)?.[1] || ''}`;
+  for (const color of ['#07111F', '#0D102A', '#45E0C8', '#9B8CFF']) {
+    if (!auroraBlock.includes(color)) {
+      fail(`Aurora uptime palette should keep the recommended teal-to-violet token ${color}`);
+    }
+  }
+  pass(`top header theme palette tokens checked: ${registeredThemes.length} themes`);
   const removedProtocolPromptContracts = [
     ['app banner renderer', 'updateGovernanceBanner', app],
     ['app banner selector', 'gov-countdown-banner', app],
@@ -1256,7 +1310,12 @@ async function checkStylesheetFreshness() {
   }
 
   const themeFiles = await walk('css/themes', (file) => file.endsWith('.min.css')).catch(() => []);
-  const expectedThemes = ['matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
+  const themeSource = await readText('js/ui/theme.js');
+  const themeMatch = themeSource.match(/export const THEMES\s*=\s*\[([\s\S]*?)\];/);
+  const expectedThemes = themeMatch ? Array.from(themeMatch[1].matchAll(/['"]([^'"]+)['"]/g), (match) => match[1]) : [];
+  if (!expectedThemes.length) {
+    fail('js/ui/theme.js theme list could not be parsed for lazy theme CSS checks');
+  }
   const baseCss = await readText('css/styles.min.css');
   const leakedThemes = expectedThemes.filter((theme) => new RegExp(`data-theme\\s*=\\s*["']?${theme}["']?`, 'i').test(baseCss));
   if (leakedThemes.length) {

@@ -12,7 +12,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SOURCE = path.join(ROOT, 'css', 'styles.css');
 const BASE_MIN = path.join(ROOT, 'css', 'styles.min.css');
 const THEME_DIR = path.join(ROOT, 'css', 'themes');
-const THEMES = ['matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
+const THEMES = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
 
 function emptyBuckets() {
   return Object.fromEntries(THEMES.map((theme) => [theme, '']));
