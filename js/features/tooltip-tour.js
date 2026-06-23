@@ -12,7 +12,7 @@
 
     const steps = [
         {
-            target: '#top-continuity-panel',
+            target: '#top-continuity-history',
             title: 'Start with live proof',
             text: 'Mainnet Uptime opens Protocol Anthology; each bright stat pill opens its own all-time chart.',
         },
@@ -24,7 +24,7 @@
         {
             target: '#hero-search-form',
             title: 'Search is the map',
-            text: 'Press / from anywhere or paste a wallet, .tez name, baker, KT1, operation hash, block, protocol, Chamber, or slash command.',
+            text: 'Press / from anywhere or paste a wallet address, .tez name, baker, KT1 contract, operation hash, block, protocol, Chamber, or slash command.',
         },
         {
             target: '#chambers-section .section-header',
@@ -272,7 +272,7 @@
         nudge.innerHTML =
             '<div>' +
                 '<strong>Need a map?</strong>' +
-                '<span>Start with live uptime proof, then use / search for wallets, .tez names, bakers, KT1s, blocks, operations, protocols, Chambers, and tools. Help is available when you want it.</span>' +
+                '<span>Start with live uptime proof, then use / search for wallet addresses, .tez names, bakers, KT1 contracts, blocks, operations, protocols, Chambers, and tools. Help is available when you want it.</span>' +
             '</div>' +
             '<div class="tour-nudge-actions">' +
                 '<button class="tour-dismiss" type="button">Not now</button>' +

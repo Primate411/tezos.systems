@@ -50,14 +50,14 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=276">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=276">
+    <link rel="stylesheet" href="css/styles.min.css?v=277">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=277">
     <link rel="stylesheet" href="css/hen-mode.css?v=78">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=276">
+    <link rel="modulepreload" href="js/core/app.js?v=277">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -214,7 +214,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=276"></script>
+    <script src="js/core/theme-preload.js?v=277"></script>
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
         <button id="corner-gift-toggle" class="corner-gift-toggle" type="button" aria-label="Open corner tools" aria-expanded="false" aria-controls="corner-gift-items" title="Corner tools">
             <span aria-hidden="true">🎁</span>
@@ -263,25 +263,21 @@
     <header class="header" role="banner">
         <div class="header-content">
             <div class="header-left">
-                <h1 class="title">Tezos Systems</h1>
+                <div class="header-brand-stack">
+                    <h1 class="title">Tezos Systems</h1>
+                    <button class="top-continuity-history" id="top-continuity-history" type="button" aria-label="Mainnet uptime. Open Protocol Anthology Chamber" aria-haspopup="dialog" aria-controls="protocol-history-chamber-modal" title="Open Protocol Anthology">
+                        <span class="top-continuity-core">
+                            <span class="top-continuity-claim">Mainnet Uptime</span>
+                            <strong class="top-continuity-runtime" id="hero-chain-uptime-counter">—</strong>
+                        </span>
+                    </button>
+                </div>
                 <a class="header-protocol-chip" id="header-protocol-chip" href="#protocol-history" aria-label="Open Protocol History Chamber">
                     <span>Running on</span>
                     <strong id="header-current-protocol">Tallinn</strong>
                 </a>
             </div>
-            <div class="top-continuity-panel" id="top-continuity-panel" aria-label="Mainnet uptime. Zero forks. Zero outages. Open Protocol Anthology" aria-controls="protocol-history-chamber-modal">
-                <button class="top-continuity-history" id="top-continuity-history" type="button" aria-label="Open Protocol Anthology Chamber" aria-haspopup="dialog" aria-controls="protocol-history-chamber-modal" title="Open Protocol Anthology">
-                    <span class="top-continuity-core">
-                        <span class="top-continuity-identity">
-                            <span class="top-continuity-claim">Mainnet Uptime</span>
-                            <span class="top-continuity-proof" aria-label="Continuity proof status">
-                                <span class="top-continuity-proof-item">Zero Forks</span>
-                                <span class="top-continuity-proof-item">Zero Outages</span>
-                            </span>
-                        </span>
-                        <strong class="top-continuity-runtime" id="hero-chain-uptime-counter">—</strong>
-                    </span>
-                </button>
+            <div class="top-continuity-panel" id="top-continuity-panel" aria-label="Critical Tezos network signals">
                 <span class="top-continuity-stats" aria-label="Critical Tezos network signals">
                     <button class="top-continuity-stat" type="button" data-card-history="total-bakers" style="--pill-color:#22d3ee" aria-label="Open all-time total baker history"><strong id="hero-chain-uptime-bakers">—</strong><span class="top-continuity-label"> bakers</span></button>
                     <button class="top-continuity-stat" type="button" data-card-history="finality" style="--pill-color:#4ade80" aria-label="Open all-time finality history"><strong id="hero-chain-uptime-finality">12s</strong><span class="top-continuity-label"> finality</span></button>
@@ -491,7 +487,7 @@
                         aria-expanded="false"
                         aria-autocomplete="list"
                         aria-activedescendant=""
-                        placeholder="Search address · baker · KT1 · op hash · block · .tez · My Tezos"
+                        placeholder="Search wallet · .tez name · baker · KT1 contract · operation hash · block"
                         spellcheck="false"
                         autocomplete="off"
                     >
@@ -536,7 +532,7 @@
                 <div class="tezos-loop-copy">
                     <p class="tezos-loop-kicker">Search is the map</p>
                     <h2 class="tezos-loop-title" id="tezos-loop-title">Use the command bar like a Tezos address book.</h2>
-                    <p class="tezos-loop-line" id="tezos-loop-line">Paste a wallet, .tez name, baker, KT1, operation hash, block, protocol, or slash command. Already know the route? Press / and jump.</p>
+                    <p class="tezos-loop-line" id="tezos-loop-line">Paste a wallet address or .tez name, baker, KT1 contract, operation hash, block, protocol, or slash command. Already know the route? Press / and jump.</p>
                     <div class="tezos-loop-hints" id="tezos-loop-hints" aria-label="Search bar accepts">
                         <span><strong>Paste</strong> tz / .tez / KT1 / op / block</span>
                         <span><strong>Type</strong> baker / protocol / chamber</span>
@@ -2154,7 +2150,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=276"></script>
+    <script type="module" src="js/core/app.js?v=277"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
@@ -2342,7 +2338,7 @@
             <div class="hen-expanded-inner"></div>
         </div>
     </div>
-    <script src="js/features/tooltip-tour.js?v=276" defer></script>
+    <script src="js/features/tooltip-tour.js?v=277" defer></script>
 </body>
 </html>
 >

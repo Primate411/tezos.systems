@@ -2553,8 +2553,18 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(focusModeState.commandDeckZ >= 3000 && focusModeState.panelZ > focusModeState.commandDeckZ, `hero command bar: search layer z-index mismatch ${JSON.stringify(focusModeState)}`);
   const emptyStateText = await page.locator('#hero-search-panel').innerText();
   assert(/my tezos/i.test(emptyStateText) && /network health/i.test(emptyStateText) && /liquidity baking/i.test(emptyStateText), `hero command bar: empty state missing retrieval rows: ${emptyStateText}`);
-  assert(/Search accepts/i.test(emptyStateText) && /wallets/i.test(emptyStateText) && /slash commands/i.test(emptyStateText), `hero command bar: search guide missing accepted-input copy: ${emptyStateText}`);
+  assert(/Search accepts/i.test(emptyStateText) && /wallet addresses/i.test(emptyStateText) && /slash commands/i.test(emptyStateText), `hero command bar: search guide missing accepted-input copy: ${emptyStateText}`);
   assert(!/protocol history/i.test(emptyStateText), `hero command bar: empty state should not push protocol history first: ${emptyStateText}`);
+  const chipLabels = await page.locator('#hero-search-chips .hero-search-chip').allTextContents();
+  assert(chipLabels.includes('Wallet or .tez') && !chipLabels.some((label) => /Wallet\/\.tez/i.test(label)), `hero command bar: wallet/.tez chip copy should read clearly: ${chipLabels.join(', ')}`);
+  await page.locator('#hero-search-input').fill('KT1');
+  await page.waitForFunction(() => /KT1 Contracts/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+  const kt1StarterText = await page.locator('#hero-search-panel').innerText();
+  assert(/KT1 Contracts/i.test(kt1StarterText) && /TzKT contracts index/i.test(kt1StarterText) && !/Search bakers for "KT1"/i.test(kt1StarterText), `hero command bar: KT1 starter should route to contract help, not baker fallback: ${kt1StarterText}`);
+  await page.locator('#hero-search-input').fill('operation hash');
+  await page.waitForFunction(() => /Blocks & Operations/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+  const operationStarterText = await page.locator('#hero-search-panel').innerText();
+  assert(/Blocks & Operations/i.test(operationStarterText) && !/Search bakers/i.test(operationStarterText), `hero command bar: operation starter should route to operations help, not baker fallback: ${operationStarterText}`);
   await page.mouse.click(10, 10);
   await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.getElementById('hero-search-panel')?.hidden, null, { timeout: 5000 });
 
@@ -2617,7 +2627,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     activeCards: document.querySelectorAll('.recruit-card.is-active').length,
     activeChips: document.querySelectorAll('.tezos-loop-chip.active').length
   }));
-  assert(loopState.aura === 'holder' && /Wallet or \.tez/i.test(loopState.title), `hero command bar: Tezos loop holder state mismatch ${JSON.stringify(loopState)}`);
+  assert(loopState.aura === 'holder' && /Wallets and \.tez/i.test(loopState.title), `hero command bar: Tezos loop holder state mismatch ${JSON.stringify(loopState)}`);
   assert(loopState.activeCards === 1 && loopState.activeChips === 1, `hero command bar: Tezos loop active state mismatch ${JSON.stringify(loopState)}`);
 
   await context.close();
@@ -3727,8 +3737,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const healthState = await page.evaluate(() => {
     const modal = document.querySelector('#network-health-modal');
     const header = document.querySelector('.header');
-	    const topProof = document.querySelector('#top-continuity-panel');
-	    const topProofHistory = topProof?.querySelector('#top-continuity-history');
+    const title = document.querySelector('.title');
+    const topProof = document.querySelector('#top-continuity-panel');
+    const topProofHistory = document.querySelector('#top-continuity-history');
+    const topProofFirstPill = topProof?.querySelector('.top-continuity-stat');
     const card = document.querySelector('[data-stat="network-health"]');
     const ticker = document.querySelector('#block-ticker-strip');
     const tickerButton = document.querySelector('#block-ticker-button');
@@ -3811,15 +3823,23 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       myBakerStatus: modal?.querySelector('.health-my-baker-status')?.textContent || '',
       myBakerMetrics: Array.from(modal?.querySelectorAll('.health-my-baker-metrics strong') || []).map((el) => el.textContent || ''),
       topProofText: topProof?.textContent || '',
-	      topProofInHeader: Boolean(topProof && header?.contains(topProof)),
-	      topProofTag: topProof?.tagName || '',
-	      topProofHistoryTag: topProofHistory?.tagName || '',
-	      topProofHistoryType: topProofHistory?.getAttribute('type') || '',
-	      topProofAriaControls: topProof?.getAttribute('aria-controls') || '',
-	      topProofHistoryWired: topProof?.dataset.historyWired || '',
-	      topProofPillCards: Array.from(topProof?.querySelectorAll('.top-continuity-stat[data-card-history]') || []).map((pill) => pill.dataset.cardHistory || ''),
-	      topProofPillsWired: Array.from(topProof?.querySelectorAll('.top-continuity-stat[data-card-history]') || []).every((pill) => pill.dataset.topContinuityHistoryPillWired === '1'),
-      topProofCounter: topProof?.querySelector('#hero-chain-uptime-counter')?.textContent || '',
+      topProofHistoryText: topProofHistory?.textContent || '',
+      topProofInHeader: Boolean(topProof && header?.contains(topProof)),
+      topProofHistoryInHeader: Boolean(topProofHistory && header?.contains(topProofHistory)),
+      topProofTag: topProof?.tagName || '',
+      topProofHistoryTag: topProofHistory?.tagName || '',
+      topProofHistoryType: topProofHistory?.getAttribute('type') || '',
+      topProofHistoryAriaControls: topProofHistory?.getAttribute('aria-controls') || '',
+      topProofHistoryWired: topProof?.dataset.historyWired || '',
+      topProofPillCards: Array.from(topProof?.querySelectorAll('.top-continuity-stat[data-card-history]') || []).map((pill) => pill.dataset.cardHistory || ''),
+      topProofPillsWired: Array.from(topProof?.querySelectorAll('.top-continuity-stat[data-card-history]') || []).every((pill) => pill.dataset.topContinuityHistoryPillWired === '1'),
+      topProofCounter: topProofHistory?.querySelector('#hero-chain-uptime-counter')?.textContent || '',
+      topProofBadgeUnderTitle: Boolean(topProofHistory && title && topProofHistory.getBoundingClientRect().top >= title.getBoundingClientRect().bottom - 2),
+      topProofBadgeLeftAligned: Boolean(topProofHistory && title && Math.abs(topProofHistory.getBoundingClientRect().left - title.getBoundingClientRect().left) <= 2),
+      topProofBadgeHeight: topProofHistory?.getBoundingClientRect().height || 0,
+      topProofPillHeight: topProofFirstPill?.getBoundingClientRect().height || 0,
+      topProofBadgeRadius: topProofHistory ? parseFloat(getComputedStyle(topProofHistory).borderTopLeftRadius) : 0,
+      topProofPillRadius: topProofFirstPill ? parseFloat(getComputedStyle(topProofFirstPill).borderTopLeftRadius) : 0,
       topProofBakers: topProof?.querySelector('#hero-chain-uptime-bakers')?.textContent || '',
       topProofFinality: topProof?.querySelector('#hero-chain-uptime-finality')?.textContent || '',
       topProofStaked: topProof?.querySelector('#hero-chain-uptime-staked')?.textContent || '',
@@ -3939,13 +3959,16 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(/Missed block/.test(healthState.myBakerStatus), `network health chamber: My Tezos baker status mismatch: ${healthState.myBakerStatus}`);
   assert(healthState.myBakerMetrics[0] === '7', `network health chamber: My Tezos attestation misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
   assert(healthState.myBakerMetrics[1] === '1', `network health chamber: My Tezos block misses mismatch: ${healthState.myBakerMetrics.join(', ')}`);
-	  assert(!/Not in sample/.test(healthState.myBakerMetrics[2] || ''), `network health chamber: My Tezos latest block missing: ${healthState.myBakerMetrics.join(', ')}`);
-	  assert(healthState.topProofInHeader, 'network health chamber: continuity proof should live in the top header');
-	  assert(healthState.topProofTag === 'DIV' && healthState.topProofHistoryTag === 'BUTTON' && healthState.topProofHistoryType === 'button', `network health chamber: continuity proof should use a container with a button launcher, saw ${healthState.topProofTag}/${healthState.topProofHistoryTag}/${healthState.topProofHistoryType}`);
-	  assert(healthState.topProofAriaControls === 'protocol-history-chamber-modal' && healthState.topProofHistoryWired === '1', `network health chamber: continuity proof Protocol Anthology launcher missing: ${healthState.topProofAriaControls}/${healthState.topProofHistoryWired}`);
-	  assert(['total-bakers', 'finality', 'staking-ratio', 'issuance-rate'].every((key) => healthState.topProofPillCards.includes(key)) && healthState.topProofPillsWired, `network health chamber: continuity proof all-time pills missing or unwired: ${healthState.topProofPillCards.join(',')}/${healthState.topProofPillsWired}`);
-	  assert(/Mainnet Uptime/i.test(healthState.topProofText) && /zero forks/i.test(healthState.topProofText) && /zero outages/i.test(healthState.topProofText), `network health chamber: top proof line should include uptime identity and zero-status proof: ${healthState.topProofText}`);
-  assert(!/\|/.test(healthState.topProofText), `network health chamber: top proof line should not add a pipe after zero outages: ${healthState.topProofText}`);
+  assert(!/Not in sample/.test(healthState.myBakerMetrics[2] || ''), `network health chamber: My Tezos latest block missing: ${healthState.myBakerMetrics.join(', ')}`);
+  assert(healthState.topProofInHeader && healthState.topProofHistoryInHeader, 'network health chamber: continuity stats and uptime badge should live in the top header');
+  assert(healthState.topProofTag === 'DIV' && healthState.topProofHistoryTag === 'BUTTON' && healthState.topProofHistoryType === 'button', `network health chamber: continuity surface should use a stat container with a button uptime launcher, saw ${healthState.topProofTag}/${healthState.topProofHistoryTag}/${healthState.topProofHistoryType}`);
+  assert(healthState.topProofHistoryAriaControls === 'protocol-history-chamber-modal' && healthState.topProofHistoryWired === '1', `network health chamber: continuity proof Protocol Anthology launcher missing: ${healthState.topProofHistoryAriaControls}/${healthState.topProofHistoryWired}`);
+  assert(['total-bakers', 'finality', 'staking-ratio', 'issuance-rate'].every((key) => healthState.topProofPillCards.includes(key)) && healthState.topProofPillsWired, `network health chamber: continuity proof all-time pills missing or unwired: ${healthState.topProofPillCards.join(',')}/${healthState.topProofPillsWired}`);
+  assert(/Mainnet Uptime/i.test(healthState.topProofHistoryText) && !/zero forks|zero outages/i.test(healthState.topProofHistoryText), `network health chamber: uptime badge should include only uptime identity/counter: ${healthState.topProofHistoryText}`);
+  assert(healthState.topProofBadgeUnderTitle && healthState.topProofBadgeLeftAligned, `network health chamber: uptime badge should sit directly under Tezos Systems title: ${JSON.stringify({ under: healthState.topProofBadgeUnderTitle, aligned: healthState.topProofBadgeLeftAligned })}`);
+  assert(healthState.topProofBadgeHeight > 0 && healthState.topProofPillHeight > 0 && healthState.topProofBadgeHeight <= healthState.topProofPillHeight * 0.82, `network health chamber: uptime badge should be about 70-80% of right pill height: ${healthState.topProofBadgeHeight}/${healthState.topProofPillHeight}`);
+  assert(healthState.topProofBadgeRadius > 0 && healthState.topProofBadgeRadius < healthState.topProofPillRadius, `network health chamber: uptime badge should be squarer than right pills: ${healthState.topProofBadgeRadius}/${healthState.topProofPillRadius}`);
+  assert(!/\|/.test(healthState.topProofHistoryText), `network health chamber: top uptime badge should not add a pipe: ${healthState.topProofHistoryText}`);
   assert(/\d+Y\s+\d+D\s+\d+H\s+\d+M/.test(healthState.topProofCounter), `network health chamber: top proof runtime missing compact minutes: ${healthState.topProofCounter}`);
   assert(/^\d+$/.test(healthState.topProofBakers) && Number(healthState.topProofBakers) >= 1, `network health chamber: top proof baker count mismatch: ${healthState.topProofBakers}`);
   assert(/\d+s/.test(healthState.topProofFinality), `network health chamber: top proof finality missing: ${healthState.topProofFinality}`);
@@ -5249,7 +5272,7 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   }
 
   const tourSteps = [
-    { selector: '#top-continuity-panel', label: 'uptime proof step', snippets: ['Start with live proof', 'Mainnet Uptime', 'Protocol Anthology'] },
+    { selector: '#top-continuity-history', label: 'uptime proof step', snippets: ['Start with live proof', 'Mainnet Uptime', 'Protocol Anthology'] },
     { selector: '#block-ticker-button', label: 'block ticker step', snippets: ['Read the latest head', 'Network Health Chamber'] },
     { selector: '#hero-search-form', label: 'command bar step', snippets: ['Search is the map', 'Press /', 'Chamber'] },
     { selector: '#chambers-section .section-header', label: 'chambers step', snippets: ['Chambers explain the chain', 'Protocol Anthology'] },

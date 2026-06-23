@@ -7,7 +7,7 @@ import { debounce, escapeHtml } from '../core/utils.js';
 import { getAvailableThemes, openThemePicker, setTheme } from '../ui/theme.js';
 
 const PROTOCOL_DATA_URL = '/data/protocol-data.json?v=2';
-const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=276';
+const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=277';
 const TZKT_URL = 'https://tzkt.io';
 
 const ADDRESS_RE = /^(tz[1-4]|KT1)[0-9A-Za-z]{33}$/;
@@ -17,7 +17,7 @@ const BLOCK_HASH_RE = /^B[0-9A-Za-z]{50}$/;
 const BLOCK_LEVEL_RE = /^\d{4,}$/;
 
 const QUICK_CHIPS = [
-    { label: 'Wallet/.tez', value: 'my tezos' },
+    { label: 'Wallet or .tez', value: 'my tezos' },
     { label: '/health', value: '/health' },
     { label: '/chamber', value: '/chamber' },
     { label: 'Protocol', value: 'Tallinn' },
@@ -55,7 +55,7 @@ const EMPTY_STATE_ROWS = [
         kind: 'account',
         group: 'My Tezos',
         title: 'My Tezos',
-        detail: 'Lock in or change the wallet or .tez name that makes this yours',
+        detail: 'Save or switch the wallet address or .tez name that makes this yours',
         badge: 'my tezos',
         action: 'button',
         value: 'my-tezos-btn'
@@ -82,7 +82,7 @@ const EMPTY_STATE_ROWS = [
         kind: 'contract',
         group: 'Contracts & Operations',
         title: 'KT1 Contracts',
-        detail: 'Paste a contract address to follow the TzKT boundary for now',
+        detail: 'Paste a full KT1 address, or open the TzKT contracts index for now',
         badge: 'contract',
         action: 'external',
         value: `${TZKT_URL}/contracts`
@@ -100,6 +100,22 @@ const EMPTY_STATE_ROWS = [
 
 let protocols = [];
 let protocolsPromise = null;
+
+const STARTER_QUERY_RESULTS = new Map([
+    ['kt1', 'KT1 Contracts'],
+    ['contract', 'KT1 Contracts'],
+    ['contracts', 'KT1 Contracts'],
+    ['operation', 'Blocks & Operations'],
+    ['operations', 'Blocks & Operations'],
+    ['op', 'Blocks & Operations'],
+    ['ops', 'Blocks & Operations'],
+    ['op hash', 'Blocks & Operations'],
+    ['operation hash', 'Blocks & Operations'],
+    ['block', 'Blocks & Operations'],
+    ['blocks', 'Blocks & Operations'],
+    ['block hash', 'Blocks & Operations'],
+    ['block level', 'Blocks & Operations']
+]);
 
 function ensureHeroSearchStyles() {
     if (document.getElementById('hero-search-css')) return;
@@ -217,7 +233,7 @@ function entityResults(query) {
                 kind: 'contract',
                 group: 'Contracts',
                 title: q,
-                detail: 'Contract room is next; open the TzKT boundary for now',
+                detail: 'Open this contract on TzKT for now',
                 badge: 'contract',
                 action: 'external',
                 value: `${TZKT_URL}/${encodeURIComponent(q)}`
@@ -228,7 +244,7 @@ function entityResults(query) {
                 kind: 'account',
                 group: 'Bakers & Accounts',
                 title: 'Track as My Tezos',
-                detail: `${q} · make this the wallet/domain retrieval surface`,
+                detail: `${q} · save this as your My Tezos account`,
                 badge: 'account',
                 action: 'hash',
                 value: `#my-baker=${encodeURIComponent(q)}`
@@ -274,7 +290,7 @@ function entityResults(query) {
             kind: 'operation',
             group: 'Operations & Blocks',
             title: q,
-            detail: 'Operation room is next; open the TzKT boundary for now',
+            detail: 'Open this operation on TzKT for now',
             badge: 'operation',
             action: 'external',
             value: `${TZKT_URL}/${encodeURIComponent(q)}`
@@ -286,7 +302,7 @@ function entityResults(query) {
             kind: 'block',
             group: 'Operations & Blocks',
             title: q,
-            detail: 'Block room is next; open the TzKT boundary for now',
+            detail: 'Open this block on TzKT for now',
             badge: 'block',
             action: 'external',
             value: `${TZKT_URL}/${encodeURIComponent(q)}`
@@ -298,7 +314,7 @@ function entityResults(query) {
             kind: 'block',
             group: 'Operations & Blocks',
             title: `Block #${Number(q).toLocaleString('en-US')}`,
-            detail: 'Block room is next; open the TzKT boundary for now',
+            detail: 'Open this block on TzKT for now',
             badge: 'block',
             action: 'external',
             value: `${TZKT_URL}/${encodeURIComponent(q)}`
@@ -306,6 +322,14 @@ function entityResults(query) {
     }
 
     return [];
+}
+
+function starterResults(query) {
+    const key = normalizeQuery(query).toLowerCase().replace(/\s+/g, ' ');
+    const title = STARTER_QUERY_RESULTS.get(key);
+    if (!title) return [];
+    const result = EMPTY_STATE_ROWS.find((row) => row.title === title);
+    return result ? [result] : [];
 }
 
 function textFallbackResults(query) {
@@ -374,6 +398,7 @@ function buildResults(query) {
     const chamberMatches = CHAMBERS.map(chamberResult).filter((result) => matchesQuery(result, q));
     const entityMatches = entityResults(q);
     const themeMatches = themeResults(q);
+    const starterMatches = starterResults(q);
 
     if (!q) {
         return dedupeResults([
@@ -385,6 +410,7 @@ function buildResults(query) {
     const directMatches = [
         ...entityMatches,
         ...themeMatches,
+        ...starterMatches,
         ...protocolMatches.slice(0, 5),
         ...chamberMatches.slice(0, 4),
         ...commandMatches.slice(0, 4)
@@ -529,7 +555,7 @@ export function initHeroSearch() {
         if (selectedIndex < 0 && normalizeQuery(input.value) && results.length) selectedIndex = 0;
 
         if (!results.length) {
-            panel.innerHTML = '<div class="hero-search-empty">No Tezos.Systems room matched that yet. Try a wallet, .tez name, baker, KT1, operation hash, block, protocol, or slash command.</div>';
+            panel.innerHTML = '<div class="hero-search-empty">No Tezos Systems room matched that yet. Try a wallet address, .tez name, baker, KT1 contract, operation hash, block, protocol, or slash command.</div>';
             syncActiveDescendant();
             return;
         }
@@ -537,7 +563,7 @@ export function initHeroSearch() {
         let index = 0;
         const guide = normalizeQuery(input.value)
             ? ''
-            : '<div class="hero-search-guide"><strong>Search accepts:</strong> wallets, .tez names, bakers, KT1 contracts, operation hashes, block levels, protocols, Chambers, and slash commands. Press / from anywhere.</div>';
+            : '<div class="hero-search-guide"><strong>Search accepts:</strong> wallet addresses, .tez names, bakers, KT1 contracts, operation hashes, block levels, protocols, Chambers, and slash commands. Press / from anywhere.</div>';
         panel.innerHTML = guide + groupedResults(results).map((group) => {
             const rows = group.results.map((result) => resultHtml(result, index++, selectedIndex)).join('');
             return `

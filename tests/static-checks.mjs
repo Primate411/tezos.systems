@@ -477,7 +477,8 @@ async function checkSelectorContracts() {
     ['Tezos loop console', 'class="tezos-loop-console"'],
     ['Tezos loop aura chip rail', 'class="tezos-loop-chips"'],
     ['Tezos loop search map copy', 'Search is the map'],
-    ['Tezos loop accepted inputs', 'Paste a wallet, .tez name, baker, KT1, operation hash, block, protocol, or slash command'],
+    ['Tezos loop accepted inputs', 'Paste a wallet address or .tez name, baker, KT1 contract, operation hash, block, protocol, or slash command'],
+    ['hero command bar placeholder copy', 'Search wallet · .tez name · baker · KT1 contract · operation hash · block'],
     ['timeline share fallback host', 'document.querySelector(\'.upgrade-badges\')'],
     ['timeline share protocol history chamber fallback', 'document.querySelector(\'#protocol-history-chamber-modal .protocol-history-chamber-header\')'],
     ['header protocol chip', 'id="header-protocol-chip" href="#protocol-history"'],
@@ -564,6 +565,8 @@ async function checkSelectorContracts() {
     ['Hero search raises command deck', 'body.hero-search-mode .command-deck', heroSearchCss],
     ['Hero search empty-state guide', 'hero-search-guide', search],
     ['Hero search guide styles', '.hero-search-guide', heroSearchCss],
+    ['Hero search wallet chip clear copy', 'Wallet or .tez', search],
+    ['Hero search KT1 starter route', "['kt1', 'KT1 Contracts']", search],
     ['Tezos loop console initializer', 'function initTezosLoopConsole()', app],
     ['Tezos loop aura persistence', 'TEZOS_LOOP_STORAGE_KEY', app],
     ['Tezos loop console styles', '.tezos-loop-console', heroSearchCss],
@@ -691,12 +694,10 @@ async function checkSelectorContracts() {
     ['health chain proof panel', 'id="health-chain-proof"', health],
     ['health chain proof slogan', 'zero forks · zero outages', health],
     ['health chain uptime counter', 'id="chain-uptime-counter"', health],
-    ['top continuity proof panel', 'id="top-continuity-panel"', index],
-    ['top continuity proof panel has button launcher', 'id="top-continuity-history"', index],
+    ['top continuity stat panel', 'id="top-continuity-panel"', index],
+    ['top continuity title-stack uptime launcher', 'id="top-continuity-history"', index],
     ['top continuity proof opens Protocol Anthology', 'aria-controls="protocol-history-chamber-modal"', index],
     ['top continuity identity claim', 'top-continuity-claim">Mainnet Uptime', index],
-    ['top continuity zero fork proof stamp', 'top-continuity-proof-item">Zero Forks', index],
-    ['top continuity zero outage proof stamp', 'top-continuity-proof-item">Zero Outages', index],
     ['top continuity proof baker metric', 'id="hero-chain-uptime-bakers"', index],
     ['top continuity baker all-time pill', 'data-card-history="total-bakers"', index],
     ['top continuity finality all-time pill', 'data-card-history="finality"', index],
@@ -720,14 +721,14 @@ async function checkSelectorContracts() {
     ['top continuity finality history metric', "metric: 'finality_seconds'", await readText('js/features/history.js')],
     ['chain uptime baker updater', "setChainText('chain-uptime-bakers'", app],
     ['top continuity proof styles', '.top-continuity-panel', styles],
-    ['top continuity desktop split layout', 'grid-template-columns: minmax(0, 1fr) auto', styles],
+    ['header uptime badge title stack styles', '.header-brand-stack', styles],
+    ['top continuity stat rail right aligned', 'justify-content: flex-end', styles],
     ['top continuity rail is borderless tape', 'border: 0;', styles],
-    ['top continuity proof owns left rail', '.top-continuity-history::before', styles],
+    ['top continuity uptime badge glint', '.top-continuity-history::before', styles],
     ['top continuity identity claim styles', '.top-continuity-claim', styles],
-    ['top continuity runtime fixed-width slot', 'flex: 0 0 15ch;', styles],
+    ['top continuity runtime fixed-width slot', 'flex: 0 0 16ch;', styles],
     ['top continuity value color tokens', 'var(--pill-color, #22d3ee)', styles],
     ['top continuity mobile pill grid', 'grid-template-columns: repeat(2, minmax(0, 1fr))', styles],
-    ['top continuity proof stamp styles', '.top-continuity-proof-item', styles],
     ['top continuity decrypt styles', '.top-continuity-panel.is-shuffling', styles],
     ['live block ticker aperture transition styles', 'blockTickerAperture', styles],
     ['health cycle timing styles', '.health-cycle-panel', styles],
@@ -742,6 +743,12 @@ async function checkSelectorContracts() {
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
+  }
+  for (const retiredSearchCopy of ['Wallet/.tez', 'wallet/domain retrieval surface', 'TzKT boundary', 'No Tezos.Systems room']) {
+    if (search.includes(retiredSearchCopy)) fail(`hero search should not retain confusing copy: ${retiredSearchCopy}`);
+  }
+  if (index.includes('top-continuity-proof-item') || styles.includes('.top-continuity-proof-item')) {
+    fail('top header uptime badge should not retain the old Zero Forks / Zero Outages proof stamps');
   }
   const removedProtocolPromptContracts = [
     ['app banner renderer', 'updateGovernanceBanner', app],
@@ -1398,7 +1405,7 @@ async function checkTourAndShareCaptureContracts() {
     if (!tour.includes(snippet)) fail(`tooltip tour must retain passive search-help copy: ${snippet}`);
   }
   for (const selector of [
-    '#top-continuity-panel',
+    '#top-continuity-history',
     '#block-ticker-button',
     '#hero-search-form',
     '#chambers-section .section-header',

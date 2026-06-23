@@ -7,13 +7,13 @@ const CHANGELOG = [
     {
         date: '2026-06-23',
         entries: [
+            { type: '🔧', text: 'The command bar now labels wallet and .tez searches clearly and routes KT1 starter searches to contracts instead of bakers' },
             { type: '🎨', text: 'Mobile now gives the cycle number more room beside the gift tray' },
             { type: '🎨', text: 'Mobile now keeps the gift tray in the top-left price row while centering the Tezos Systems title stack' },
             { type: '🔧', text: 'Price Intelligence deep links now open even when live cycle metadata is slow to answer' },
             { type: '🔧', text: 'The first-visit tour now follows all eight steps cleanly after the larger Chambers and Loop Console layouts on desktop and mobile' },
-            { type: '🎨', text: 'The header uptime proof now reads as a tighter left-side instrument block while the stat pills stay right-aligned' },
-            { type: '🎨', text: 'The header continuity strip now anchors uptime and zero-fork proof on the left, pushes high-contrast stat pills right, and opens Protocol Anthology from the proof block' },
-            { type: '🎨', text: 'The Zero Forks and Zero Outages badges now sit directly with Mainnet Uptime and read slightly larger in the header' },
+            { type: '🎨', text: 'The header uptime proof now sits as a compact square-edged badge directly under Tezos Systems while the stat pills stay right-aligned' },
+            { type: '🎨', text: 'The Zero Forks and Zero Outages badges are gone from the top header so Mainnet Uptime can read as one small live proof pill' },
             { type: '✨', text: 'The header uptime stat pills now open their own all-time history charts' },
             { type: '🎨', text: 'The tiny HEN and ctez corner launchers now live inside one gift tray that expands downward for current and future quick tools' },
         ]

@@ -180,11 +180,11 @@ inline modal styles in `js/core/app.js`.
   animated strip with stable-width volatile numbers, compact baker names, and a
   clean whole-line transition.
   Clicking the strip opens the Network Health Chamber.
-- The header contains a borderless continuity ticker tape:
-  `Mainnet Uptime` as a prominent live counter, zero-forks/zero-outages proof
-  stamps, active baker count, finality, staked share, and issuance rate.
-  Clicking the tape
-  opens the historical stats surface.
+- The header keeps `Mainnet Uptime` in a compact badge directly under the
+  Tezos Systems title, with active baker count, finality, staked share, and
+  issuance rate in the right-side stat pills.
+  Clicking the uptime badge opens Protocol Anthology; clicking a stat pill
+  opens that metric's historical stats surface.
 - The Network Health Chamber contains the fuller Continuity Proof panel with
   the same core proof data in the deep Health context.
 - Tezos X Governance Chamber with direct `#l2chamber` access and visible L2

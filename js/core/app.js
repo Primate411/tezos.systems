@@ -2857,8 +2857,8 @@ function positionTooltip(e, tooltipEl) {
 const TEZOS_LOOP_STORAGE_KEY = 'tezos-systems-loop-aura';
 const TEZOS_LOOP_AURAS = {
     holder: {
-        title: 'Wallet or .tez names',
-        line: 'Search accepts a raw address or a .tez name. Use My Tezos when you want the dashboard to remember the account and explain its daily state.',
+        title: 'Wallets and .tez names',
+        line: 'Search accepts a raw wallet address or a .tez name. Use My Tezos when you want the dashboard to remember the account and explain its daily state.',
         query: 'my tezos',
         searchLabel: 'Try My Tezos',
         href: '#my-tezos',
@@ -2874,8 +2874,8 @@ const TEZOS_LOOP_AURAS = {
         label: 'Open baker map'
     },
     builder: {
-        title: 'Contracts, operations, blocks',
-        line: 'Paste KT1 contracts, operation hashes, block hashes, or levels. Search opens native routes where they exist and TzKT boundaries where they do not.',
+        title: 'Contracts, operations, and blocks',
+        line: 'Paste a KT1 contract, operation hash, block hash, or level. Search opens native routes where they exist and TzKT where they do not.',
         query: 'KT1',
         searchLabel: 'Try KT1 / ops',
         href: '/widgets/builder.html',
