@@ -108,8 +108,11 @@ tezos.systems/
    service worker, handles deep links, and starts the refresh loop.
 4. Cached stats and protocol data are displayed first when available.
 5. First-visit default content is the command deck plus the Chambers section.
-   Network Stats sections are hidden until the user enables Network Stats from
-   Explore.
+   During proposal and ballot windows, a compact Governance Alert strip sits
+   above Chambers and reuses the live voting/My Tezos baker-vote logic to expose
+   Chamber, My Tezos, RSS, and browser-reminder actions. Outside active voting
+   windows, the strip stays hidden. Network Stats sections are hidden until the
+   user enables Network Stats from Explore.
 6. Background refreshes update hero stats, comparison data, governance state,
    cycle pulse, daily briefing, rewards tracker, price intelligence, baker
    tools, leaderboard, My Tezos, and share-ready UI.
@@ -251,6 +254,10 @@ inline modal styles in `js/core/app.js`.
   phase-aware current-state panel for quiet proposal/cooldown/adoption moments,
   proposal intel, quorum/non-voter gap analysis, and a vote share capture
   button.
+- Governance Alert strip above Chambers during Proposal, Exploration, or
+  Promotion only. It turns a saved My Tezos baker into a visible vote/upvote
+  check with Chamber, RSS, My Tezos, and optional browser-reminder actions; it
+  stays hidden outside active voting windows.
 - Liquidity Baking dashboard tile and monitor with EMA state, a compact latest
   baker vote tape on the tile, recent block votes, latest baker votes,
   contextual help, protocol-history lore, EMA threshold meter and auto-scaled
@@ -310,6 +317,8 @@ Public share routes are also available at `/chamber/`, `/health/`,
 unique Open Graph metadata and redirect into the corresponding live dashboard
 room.
 `/feed.xml` exposes the generated governance RSS feed for relay bots.
+The governance SEO page also funnels high-intent searches into `/chamber/`,
+`/#my-tezos`, and `/feed.xml` for live vote checks and syndication.
 
 ## Data Sources
 
@@ -529,7 +538,8 @@ Widgets:
 
 - `widgets/runtime.js` is the shared embed runtime and catalog. Raw widget
   pages import it for theme defaults, endpoint URLs, TzKT pacing, fetch
-  retry/cache behavior, refresh sanitization, and formatting helpers.
+  retry/cache behavior, refresh sanitization, formatting helpers, and tracked
+  dashboard attribution links.
 - `widgets/baker-count.html`
 - `widgets/block-height.html`
 - `widgets/staking-ratio.html`
@@ -544,7 +554,9 @@ The builder renders its widget type buttons, theme swatches, combo-stat
 checkboxes, preview URLs, and embed snippets from `widgets/runtime.js`. The
 combo widget supports baker count, XTZ price, block height, staking ratio,
 current protocol, cycle, head freshness, and tz4 baking-power adoption, capped
-to four stats per embed.
+to four stats per embed. Builder iframe and Markdown snippets add widget UTM
+params, and raw widgets load the shared GoatCounter initializer so embed
+impressions and copy events can be measured.
 
 ## SEO And Analytics
 
@@ -552,7 +564,15 @@ to four stats per embed.
 - `sitemap.xml` includes the canonical site, SEO pages, compare pages, and
   widget endpoints.
 - `index.html` includes CSP, Open Graph/Twitter metadata, and JSON-LD.
+- `.well-known/ai-plugin.json` describes the current live/historical data model
+  using the canonical September 17, 2018 mainnet date and avoids stale
+  two-minute refresh claims.
 - GoatCounter is used for privacy-friendly analytics: `tezsys.goatcounter.com`.
+  The shared initializer also exposes loop events for share actions,
+  governance-alert actions, and widget-builder copy events.
+- Shared PNG/tweet/native share flows rewrite Tezos Systems links with campaign
+  params; the History modal has a direct `#history` copy control plus tracked
+  share copy.
 
 ## Gotchas
 

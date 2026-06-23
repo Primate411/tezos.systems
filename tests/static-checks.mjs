@@ -143,6 +143,7 @@ async function checkRequiredFiles() {
     'js/core/config.js',
     'js/core/tzkt-throttle.js',
     'js/core/wallet.js',
+    'js/features/governance-alerts.js',
     'js/features/search.js',
     'sw.js',
     'version.json',
@@ -414,6 +415,9 @@ async function checkSitemapCoverage() {
 
 async function checkSelectorContracts() {
   const index = await readText('index.html');
+  const governanceLanding = await readText('governance/index.html');
+  const landingLiveData = await readText('js/landing/live-data.js');
+  const shareSnippetSource = await readText('js/ui/share.js');
   const requiredIds = [
     'price-bar',
     'ctez-launcher',
@@ -451,6 +455,8 @@ async function checkSelectorContracts() {
     'share-btn',
     'changelog-btn',
     'changelog-modal',
+    'history-copy-link',
+    'governance-alert-strip',
     'build-version'
   ];
 
@@ -479,11 +485,18 @@ async function checkSelectorContracts() {
     ['hero command bar slot', 'class="hero-slot" id="hero-slot"'],
     ['hero command bar combobox', 'aria-controls="hero-search-panel"'],
     ['My Tezos recruit prompt', 'data-hero-query="my tezos"'],
-    ['Price watcher recruit prompt', 'data-hero-query="price"']
+    ['Price watcher recruit prompt', 'data-hero-query="price"'],
+    ['Governance alert strip shell', 'class="stats-section governance-alert-section"'],
+    ['History modal direct link copy button', 'id="history-copy-link" data-copy-hash="#history"'],
+    ['Governance SEO nonblank voting fallback', 'data-live="voting-period">Checking TzKT', governanceLanding],
+    ['Governance SEO source freshness note', 'data-live="governance-freshness"', governanceLanding],
+    ['Governance SEO retry fallback', 'Live governance status is retrying', landingLiveData],
+    ['Governance SEO checked-at freshness helper', 'function checkedAtLabel', landingLiveData]
   ];
 
-  for (const [label, snippet] of requiredSnippets) {
-    if (!index.includes(snippet) && !(await readText('js/ui/share.js')).includes(snippet)) {
+  for (const [label, snippet, source] of requiredSnippets) {
+    const text = source || `${index}\n${shareSnippetSource}`;
+    if (!text.includes(snippet)) {
       fail(`missing selector contract: ${label}`);
     }
   }
@@ -512,6 +525,7 @@ async function checkSelectorContracts() {
   const wallet = await readText('js/core/wallet.js');
   const health = await readText('js/features/network-health.js');
   const share = await readText('js/ui/share.js');
+  const governanceAlerts = await readText('js/features/governance-alerts.js');
   const myTezos = await readText('js/features/my-tezos.js');
   const myBaker = await readText('js/features/my-baker.js');
   const comparison = await readText('js/features/comparison.js');
@@ -575,6 +589,12 @@ async function checkSelectorContracts() {
     ['Chamber promotion delta uses epoch periods', '(epoch.periods || []).find', chamber],
     ['Chamber branded share capture helper', 'captureBrandedChamberShare', share],
     ['Chamber share direct link baked into image', 'tezos.systems/chamber/', chamber],
+    ['Governance alerts reuse voting status', 'fetchVotingStatus', governanceAlerts],
+    ['Governance alerts reuse My Tezos vote signal', 'fetchBakerVoteStatus', governanceAlerts],
+    ['Governance alerts expose RSS action', 'href="/feed.xml"', governanceAlerts],
+    ['Governance alerts browser reminder opt-in', 'Notification.requestPermission', governanceAlerts],
+    ['My Tezos exports baker vote check', 'export async function fetchBakerVoteStatus', myTezos],
+    ['My Tezos Morning Brief vote card', "title: 'Vote Check'", myTezos],
     ['Tezos X Governance card copy link', 'data-copy-hash="#l2chamber"', etherlinkGovernance],
     ['Tezos X Governance L2 dashboard note', 'L2 Governance · FAST', etherlinkGovernance],
     ['Tezos X Governance direct footer link', 'Direct: /l2chamber/', etherlinkGovernance],
@@ -827,6 +847,22 @@ async function checkSelectorContracts() {
   }
   pass(`chamber renderer style contracts checked: ${chamberRendererStyleContracts.length}`);
 
+  const goatcounterInit = await readText('js/core/goatcounter-init.js');
+  const shareTrackingContracts = [
+    ['tracked Tezos URL helper', 'export function trackedTezosUrl', share],
+    ['share text tracking rewrite', 'addShareTrackingToText', share],
+    ['share modal event tracking', "trackShareEvent('modal_opened'", share],
+    ['native share tracked URL', "'native_share'", share],
+    ['X post event tracking', "trackShareEvent('post_x'", share],
+    ['history share deep link', 'tezos.systems/#history', share],
+    ['history copy hidden during capture', 'copyBtn.style.display', share],
+    ['GoatCounter event helper', 'trackTezosSystemsEvent', goatcounterInit]
+  ];
+  for (const [label, snippet, text] of shareTrackingContracts) {
+    if (!text.includes(snippet)) fail(`missing share/tracking contract: ${label}`);
+  }
+  pass(`share and loop tracking contracts checked: ${shareTrackingContracts.length}`);
+
   const rawWidgetLinks = [
     'href="/widgets/price.html"',
     'href="/widgets/baker-card.html"',
@@ -874,6 +910,16 @@ async function checkWidgetRuntimeContracts() {
   for (const snippet of ["WIDGET_THEME_ORDER = [...THEMES, 'transparent']", 'transparent: { bg:']) {
     if (!runtimeSource.includes(snippet)) fail(`widget theme runtime missing ${snippet}`);
   }
+  for (const snippet of [
+    'WIDGET_UTM_CAMPAIGN',
+    'export function trackedDashboardUrl',
+    "params.set('utm_medium', 'widget')",
+    "trackWidgetEvent('impression'",
+    'widget_attribution',
+    'widget_markdown'
+  ]) {
+    if (!runtimeSource.includes(snippet)) fail(`widget attribution runtime missing ${snippet}`);
+  }
   for (const key of ['health', 'tz4']) {
     if (!comboStatKeys.includes(key)) {
       fail(`combo widget options missing latest signal: ${key}`);
@@ -890,6 +936,15 @@ async function checkWidgetRuntimeContracts() {
     if (text.includes("const THEMES") || text.includes('THEME_NAMES')) {
       fail(`${file} must not maintain a private theme list`);
     }
+    if (!text.includes('utm_medium=widget_attribution')) {
+      fail(`${file} footer must link back with widget attribution params`);
+    }
+    if (!text.includes('powered by tezos.systems ->')) {
+      fail(`${file} footer must visibly credit tezos.systems`);
+    }
+    if (!text.includes('../js/core/goatcounter-init.js')) {
+      fail(`${file} must load the shared GoatCounter initializer for widget impressions`);
+    }
   }
 
   for (const widget of catalog) {
@@ -905,6 +960,9 @@ async function checkWidgetRuntimeContracts() {
   }
   if (!builder.includes('max="3600"')) {
     fail('widgets/builder.html refresh slider must support the runtime one-hour upper bound');
+  }
+  if (!builder.includes('widget_builder_copy')) {
+    fail('widgets/builder.html must track embed-code copy events');
   }
 
   for (const file of ['widgets/runtime.js', ...htmlFiles]) {
@@ -924,6 +982,7 @@ async function checkMainnetLaunchCopy() {
 
   const userFacingFiles = [
     'index.html',
+    '.well-known/ai-plugin.json',
     'data/tweets.json',
     'js/core/app.js',
     'js/features/state-of-tezos.js',
@@ -936,7 +995,8 @@ async function checkMainnetLaunchCopy() {
     /Proof of Stake from genesis\s+—\s+June 2018/i,
     /already PoS since genesis\.\s+June 2018/i,
     /temporalCoverage["']?\s*:\s*["']2018-06-30\/\.\./i,
-    /mainnet launched June 30, 2018/i
+    /mainnet launched June 30, 2018/i,
+    /refreshed every 2 minutes/i
   ];
 
   for (const file of userFacingFiles) {
@@ -951,6 +1011,14 @@ async function checkMainnetLaunchCopy() {
   const index = await readText('index.html');
   if (!index.includes('September 17, 2018')) {
     fail('index.html should spell out the canonical September 17, 2018 mainnet launch date');
+  }
+
+  const aiPlugin = await readText('.well-known/ai-plugin.json');
+  if (!aiPlugin.includes('September 17, 2018')) {
+    fail('.well-known/ai-plugin.json must use the canonical September 17, 2018 mainnet launch date');
+  }
+  if (!aiPlugin.includes('visible freshness markers')) {
+    fail('.well-known/ai-plugin.json must describe freshness without stale two-minute claims');
   }
 
   pass('mainnet launch copy uses Sep 17, 2018 in user-facing surfaces');

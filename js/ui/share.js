@@ -1502,17 +1502,61 @@ export async function captureBrandedChamberShare(target, details = {}) {
     }
 }
 
+const TEZOS_SHARE_LINK_RE = /\b(?:https?:\/\/)?tezos\.systems(?:\/[^\s<>"']*)?/gi;
+
+function shareSlug(value) {
+    return String(value || 'share')
+        .toLowerCase()
+        .replace(/[^a-z0-9_]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 64) || 'share';
+}
+
+function trackShareEvent(action, context, extra = {}) {
+    window.trackTezosSystemsEvent?.(`share_${action}`, {
+        context,
+        ...extra
+    });
+}
+
+export function trackedTezosUrl(raw = 'https://tezos.systems/', context = 'share', medium = 'social') {
+    try {
+        const url = new URL(String(raw).startsWith('http') ? raw : `https://${raw}`);
+        if (url.hostname !== 'tezos.systems') return raw;
+        url.searchParams.set('utm_source', 'tezos_systems');
+        url.searchParams.set('utm_medium', shareSlug(medium));
+        url.searchParams.set('utm_campaign', 'growth_loops');
+        url.searchParams.set('utm_content', shareSlug(context));
+        return url.toString();
+    } catch (_) {
+        return raw;
+    }
+}
+
+function addShareTrackingToText(text, context, medium = 'social') {
+    const rawText = String(text || '').trim();
+    let replaced = false;
+    const updated = rawText.replace(TEZOS_SHARE_LINK_RE, (match) => {
+        const trailing = match.match(/[),.!?:;]+$/)?.[0] || '';
+        const core = trailing ? match.slice(0, -trailing.length) : match;
+        replaced = true;
+        return `${trackedTezosUrl(core, context, medium)}${trailing}`;
+    });
+    return replaced ? updated : `${rawText}\n\n${trackedTezosUrl('https://tezos.systems/', context, medium)}`;
+}
+
 /**
  * Native share via Web Share API
  */
-async function nativeShare(canvas, text) {
+async function nativeShare(canvas, text, context) {
     const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
     if (!blob) throw new Error('Failed to create share image');
     const file = new File([blob], 'tezos-stats.png', { type: 'image/png' });
+    const url = trackedTezosUrl('https://tezos.systems/', context, 'native_share');
     if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ text, url: 'https://tezos.systems', files: [file] });
+        await navigator.share({ text, url, files: [file] });
     } else if (typeof navigator.share === 'function') {
-        await navigator.share({ text, url: 'https://tezos.systems' });
+        await navigator.share({ text, url });
     } else {
         throw new Error('Native share unavailable');
     }
@@ -1529,20 +1573,23 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
         existing.remove();
     }
     
+    const shareContext = shareSlug(title || 'snapshot');
+
     // Normalize to options array
     let tweetOptions = Array.isArray(tweetTextOrOptions)
         ? tweetTextOrOptions
         : [{ label: '📊 Standard', text: tweetTextOrOptions }];
     tweetOptions = tweetOptions.map((option, index) => ({
         label: String(option?.label || `Option ${index + 1}`),
-        text: String(option?.text ?? '')
+        text: addShareTrackingToText(option?.text ?? '', shareContext)
     }));
     
     // Keep all options for refresh functionality
     const allTweetOptions = (allOptionsForRefresh || tweetOptions).map((option, index) => ({
         label: String(option?.label || `Option ${index + 1}`),
-        text: String(option?.text ?? '')
+        text: addShareTrackingToText(option?.text ?? '', shareContext)
     }));
+    trackShareEvent('modal_opened', shareContext, { title });
     
     const { brand: accent, brandRgb: accentRgb, isClean, isDark } = getThemeColors();
     
@@ -1702,6 +1749,7 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     
     // Download / Save
     modal.querySelector('#share-download').addEventListener('click', async () => {
+        trackShareEvent('download', shareContext);
         const isApple = /iPhone|iPad|iPod|Mac/i.test(navigator.userAgent) && 'ontouchend' in document;
         const isMobile = isApple || /Android/i.test(navigator.userAgent);
         
@@ -1744,6 +1792,7 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     
     // Copy to clipboard
     modal.querySelector('#share-copy').addEventListener('click', async () => {
+        trackShareEvent('copy_image', shareContext);
         try {
             // Pass a Promise to ClipboardItem to preserve the user gesture context
             // (required by Chrome — resolving the blob async loses the gesture)
@@ -1777,6 +1826,7 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     modal.querySelector('#share-twitter').addEventListener('click', async () => {
         const selectedTweet = getSelectedTweet();
         const text = encodeURIComponent(selectedTweet);
+        trackShareEvent('post_x', shareContext);
         // Open X immediately to preserve user gesture (mobile Safari blocks async window.open)
         window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
         // Then try clipboard copy in background (use Promise-based ClipboardItem)
@@ -1798,7 +1848,8 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     if (nativeBtn) {
         nativeBtn.addEventListener('click', async () => {
             try {
-                await nativeShare(canvas, getSelectedTweet());
+                trackShareEvent('native', shareContext);
+                await nativeShare(canvas, getSelectedTweet(), shareContext);
             } catch (err) {
                 if (err.name !== 'AbortError') {
                     showNotification('Share failed.', 'error');
@@ -2522,6 +2573,7 @@ async function captureHistoricalData() {
     let modalContent = null;
     let closeBtn = null;
     let shareBtn = null;
+    let copyBtn = null;
     let modalTitle = null;
     let origTitleStyle = '';
     let origMaxHeight = '';
@@ -2540,8 +2592,10 @@ async function captureHistoricalData() {
         // Hide close & share buttons during capture
         closeBtn = modalContent.querySelector('.modal-close');
         shareBtn = modalContent.querySelector('#history-share-btn');
+        copyBtn = modalContent.querySelector('#history-copy-link');
         if (closeBtn) closeBtn.style.display = 'none';
         if (shareBtn) shareBtn.style.display = 'none';
+        if (copyBtn) copyBtn.style.display = 'none';
 
         // Fix gradient text (html2canvas can't render background-clip: text)
         const theme = document.body.getAttribute('data-theme') || 'default';
@@ -2625,11 +2679,11 @@ async function captureHistoricalData() {
         modalContent.style.overflow = origOverflow;
         if (closeBtn) closeBtn.style.display = '';
         if (shareBtn) shareBtn.style.display = '';
+        if (copyBtn) copyBtn.style.display = '';
         if (modalTitle) modalTitle.style.cssText = origTitleStyle;
 
-        const suffix = '\n\ntezos.systems';
         const tweetOptions = [
-            { label: '📊 Standard', text: `Tezos historical data — ${range} view${suffix}` }
+            { label: '📊 Standard', text: `Tezos historical data — ${range} view\n\ntezos.systems/#history` }
         ];
         showShareModal(canvas, tweetOptions, `📈 Historical Data (${range})`);
     } catch (error) {
@@ -2646,6 +2700,7 @@ async function captureHistoricalData() {
         }
         if (closeBtn) closeBtn.style.display = '';
         if (shareBtn) shareBtn.style.display = '';
+        if (copyBtn) copyBtn.style.display = '';
         if (modalTitle) modalTitle.style.cssText = origTitleStyle;
     }
 }

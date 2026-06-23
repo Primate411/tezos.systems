@@ -3,7 +3,7 @@
  * Cache-first for shell assets, network-first for API data
  */
 
-const CACHE_NAME = 'tezos-systems-v267';
+const CACHE_NAME = 'tezos-systems-v268';
 
 // Shell assets to precache
 const SHELL_ASSETS = [
@@ -18,6 +18,7 @@ const SHELL_ASSETS = [
     '/js/core/app.js',
     '/js/core/api.js',
     '/js/core/config.js',
+    '/js/core/goatcounter-init.js',
     '/js/core/hen-init.js',
     '/js/core/utils.js',
     '/js/core/wallet.js',
@@ -36,6 +37,7 @@ const SHELL_ASSETS = [
     '/js/features/etherlink-governance.js',
     '/js/features/sleeping-giants.js',
     '/js/features/governance.js',
+    '/js/features/governance-alerts.js',
     '/js/features/history.js',
     '/js/features/price.js',
     '/js/features/changelog.js',

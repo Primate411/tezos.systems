@@ -1487,6 +1487,60 @@ body.hero-search-mode .main-content {
     }
 }
 
+.governance-alert-section { margin-top: 1rem; }
+.governance-alert-section[hidden] { display: none; }
+.governance-alert-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.9rem;
+    align-items: center;
+    padding: 0.95rem 1rem;
+    border: 1px solid rgba(var(--accent-rgb, 0, 212, 255), 0.24);
+    border-radius: 8px;
+    background: rgba(7,11,20,0.62);
+}
+.governance-alert-copy { min-width: 0; }
+.governance-alert-card strong,
+.governance-alert-card p,
+.governance-alert-card small { display: block; }
+.governance-alert-kicker {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent-cyan);
+}
+.governance-alert-card strong { font-size: clamp(1rem, 2vw, 1.25rem); line-height: 1.2; color: var(--text-primary); }
+.governance-alert-card p { margin: 0.35rem 0 0; color: var(--text-secondary); line-height: 1.45; }
+.governance-alert-card small { margin-top: 0.4rem; color: var(--text-dim); font-size: 0.75rem; }
+.governance-alert-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.45rem; }
+.governance-alert-actions a,
+.governance-alert-actions button {
+    min-height: 34px;
+    padding: 0.42rem 0.72rem;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 7px;
+    background: rgba(255,255,255,0.055);
+    color: var(--text-primary);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-decoration: none;
+    cursor: pointer;
+}
+.governance-alert-actions button:disabled { opacity: 0.48; cursor: not-allowed; }
+.governance-alert-primary { color: var(--accent-cyan) !important; }
+.governance-alert-urgent { border-color: rgba(239,68,68,0.52); }
+.governance-alert-watch { border-color: rgba(245,158,11,0.48); }
+.governance-alert-settled { border-color: rgba(16,185,129,0.42); }
+@media (max-width: 760px) {
+    .governance-alert-card { grid-template-columns: 1fr; }
+    .governance-alert-actions { justify-content: stretch; }
+    .governance-alert-actions a,
+    .governance-alert-actions button { flex: 1 1 calc(50% - 0.45rem); text-align: center; }
+}
+
 @media (max-width: 480px) {
     .hero-search-input {
         font-size: 0.74rem;

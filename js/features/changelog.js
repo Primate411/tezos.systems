@@ -7,6 +7,11 @@ const CHANGELOG = [
     {
         date: '2026-06-22',
         entries: [
+            { type: '✨', text: 'Governance Alert now appears only during live voting windows with saved-baker vote checks, RSS access, and optional browser reminders' },
+            { type: '⚡', text: 'Share and widget loops now add tracked Tezos Systems links, widget attribution, and GoatCounter events for share, governance, and embed-builder actions' },
+            { type: '🔧', text: 'The AI plugin manifest now matches the actual freshness model and September 17, 2018 mainnet launch date' },
+            { type: '🎨', text: 'Historical Data now has a direct #history copy link and share copy that points people back into the live chart surface' },
+            { type: '🎨', text: 'Baker Report Card share copy now speaks directly to bakers and delegators without changing the existing scoring model' },
             { type: '🔧', text: 'Bubblegum now starts with visible drifting bubbles instead of waiting for off-screen bubbles to rise into view' },
             { type: '🔧', text: 'Chamber loading bars now animate in place so mobile rooms stay inside the viewport while data syncs' },
             { type: '🎨', text: 'The header uptime live signals now sit in larger individual pills for easier scanning' },

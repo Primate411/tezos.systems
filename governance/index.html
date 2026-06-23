@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tezos Governance — On-Chain Self-Amendment | Live Voting Status</title>
-    <meta name="description" content="Tezos upgrades itself through on-chain governance. 20+ protocol amendments, zero hard forks since 2018. Track live voting periods, proposals, and participation.">
-    <meta name="keywords" content="Tezos governance, on-chain governance, protocol upgrade, self-amending blockchain, Tezos voting, baker voting, protocol proposal">
+    <meta name="description" content="Tezos upgrades itself through on-chain governance. Track live voting periods, baker vote status, quorum, proposal history, governance RSS, and protocol participation.">
+    <meta name="keywords" content="Tezos governance, on-chain governance, protocol upgrade, self-amending blockchain, Tezos voting, baker voting, protocol proposal, governance RSS, baker vote status">
     <link rel="canonical" href="https://tezos.systems/governance">
 
     <meta property="og:type" content="article">
@@ -22,21 +22,21 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/landing.css">
+    <link rel="stylesheet" href="/css/landing.css?v=20260622a">
 
     <script type="application/ld+json">
     {
         "@context": "https://schema.org",
         "@type": "Article",
         "headline": "How Tezos On-Chain Governance Works",
-        "description": "Tezos is the first blockchain to implement formal on-chain governance. Learn about the 5-period voting process, protocol upgrades, and why Tezos has never hard forked.",
+        "description": "Tezos is the first blockchain to implement formal on-chain governance. Learn about the 5-period voting process, protocol upgrades, baker vote checks, governance RSS, and why Tezos has never hard forked.",
         "url": "https://tezos.systems/governance",
         "publisher": {
             "@type": "Organization",
             "name": "Tez Capital",
             "url": "https://tez.capital"
         },
-        "dateModified": "2026-02-26"
+        "dateModified": "2026-06-22"
     }
     </script>
     <script type="application/ld+json">
@@ -74,6 +74,22 @@
                 "acceptedAnswer": {
                     "@type": "Answer",
                     "text": "Each voting period lasts 5 cycles (~5 days on the current Tallinn protocol). A full governance cycle through all 5 periods takes approximately 25 days."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "How can I see whether my Tezos baker has voted?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Use My Tezos on tezos.systems with your wallet, address, or .tez name. During Proposal, Exploration, and Promotion periods, Tezos Systems checks the saved baker's current vote or upvote status and links into the live Chamber for quorum and non-voter context."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is there a Tezos governance RSS feed?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. Tezos Systems publishes a generated governance RSS feed at https://tezos.systems/feed.xml for active proposals, voting periods, and recent governance outcomes."
                 }
             }
         ]
@@ -121,14 +137,39 @@
             <div class="landing-cards">
                 <div class="landing-card">
                     <h3>Voting Period</h3>
-                    <div class="value" data-live="voting-period">—</div>
+                    <div class="value" data-live="voting-period">Checking TzKT</div>
+                    <div class="value-detail" data-live="voting-period-detail">Live governance period source</div>
                 </div>
                 <div class="landing-card">
                     <h3>Time Remaining</h3>
-                    <div class="value" data-live="voting-time-left">—</div>
+                    <div class="value" data-live="voting-time-left">Syncing</div>
+                    <div class="value-detail" data-live="voting-time-detail">Current period clock</div>
                 </div>
             </div>
+            <p class="landing-source-note" data-live="governance-freshness">Source: TzKT + Octez RPC · checking live data now.</p>
             <p class="landing-cta"><a href="/#section=governance">View live governance dashboard →</a></p>
+        </section>
+
+        <section class="landing-section">
+            <h2>Check Your Baker During Live Votes</h2>
+            <p>When Tezos governance is active, the live Chamber tracks proposal state, quorum, supermajority, time left, and baker vote behavior. Save a wallet, address, or .tez name in My Tezos and the dashboard turns that into a personal vote check for your baker.</p>
+            <div class="landing-cards">
+                <div class="landing-card">
+                    <h3>Live Chamber</h3>
+                    <p>Follow the active proposal, top non-voters, vote order, and historical failed-vote context.</p>
+                    <p class="landing-cta"><a href="/chamber/">Open /chamber/ →</a></p>
+                </div>
+                <div class="landing-card">
+                    <h3>My Tezos Vote Check</h3>
+                    <p>Paste your address or .tez name once to see whether your saved baker has voted during live windows.</p>
+                    <p class="landing-cta"><a href="/#my-tezos">Open My Tezos →</a></p>
+                </div>
+                <div class="landing-card">
+                    <h3>Governance RSS</h3>
+                    <p>Subscribe or relay governance events without remembering to refresh the dashboard.</p>
+                    <p class="landing-cta"><a href="/feed.xml" type="application/rss+xml">Subscribe →</a></p>
+                </div>
+            </div>
         </section>
 
         <section class="landing-section">
@@ -222,7 +263,7 @@
     </footer>
 
     <script type="module">
-        import { loadGovernanceData, loadBakerData } from '/js/landing/live-data.js?v=20260612a';
+        import { loadGovernanceData, loadBakerData } from '/js/landing/live-data.js?v=20260622a';
         loadGovernanceData();
         loadBakerData();
     </script>

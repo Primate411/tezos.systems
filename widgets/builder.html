@@ -400,6 +400,8 @@ body{
   </div><!-- /preview-pane -->
 </div>
 
+<script src="//gc.zgo.at/count.js" async></script>
+<script src="../js/core/goatcounter-init.js"></script>
 <script type="module">
 import {
   COMBO_STAT_OPTIONS,
@@ -606,6 +608,10 @@ import {
   function copyText(text,btn){
     const write=navigator.clipboard?.writeText?.(text);
     if(!write)return;
+    window.trackTezosSystemsEvent?.('widget_builder_copy', {
+      type: state.type,
+      tab: state.activeTab
+    });
     write.then(()=>{
       btn.textContent='✓ Copied';
       btn.classList.add('copied');

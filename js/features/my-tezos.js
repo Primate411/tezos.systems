@@ -547,7 +547,7 @@ async function fetchCurrentVoter(bakerAddr) {
     }
 }
 
-async function fetchBakerVoteStatus(bakerAddr) {
+export async function fetchBakerVoteStatus(bakerAddr) {
     try {
         const period = await fetchVotingStatus();
         if (!period) return null;
@@ -907,7 +907,7 @@ function getGreeting() {
     return 'Good evening';
 }
 
-function formatGovTimeLeft(endTime) {
+export function formatGovTimeLeft(endTime) {
     const diff = new Date(endTime) - Date.now();
     if (diff <= 0) return 'ending now';
     const days = Math.floor(diff / 86400000);
@@ -1258,6 +1258,22 @@ function buildOvernightCard(data, snapshot) {
 
 function buildMorningBrief(data) {
     const cards = [];
+
+    if (data.bakerVote && !data.bakerVote.voted) {
+        const v = data.bakerVote;
+        const timeLeft = v.endTime ? formatGovTimeLeft(v.endTime) : '';
+        const proposal = v.proposal ? escapeHtml(v.proposal) : 'the current governance period';
+        const action = v.voteType === 'upvote' ? 'has not upvoted any proposal' : 'has not voted';
+        const quorum = v.quorumPct !== null && v.quorumPct !== undefined
+            ? `<br><span class="brief-sub">Participation: ${v.quorumPct.toFixed(1)}%${v.yayPct !== null && v.yayPct !== undefined ? ` · ${v.yayPct.toFixed(1)}% yay` : ''}</span>`
+            : '';
+        cards.push({
+            icon: '🏛️',
+            title: 'Vote Check',
+            body: `<strong>${escapeHtml(data.bakerName || 'Your baker')}</strong> ${action} on ${proposal}.${timeLeft ? ` <span class="brief-sub">${timeLeft} left.</span>` : ''}${quorum}<br><span class="brief-sub"><a href="#chamber">Open Chamber</a> · <a href="/feed.xml" type="application/rss+xml">RSS feed</a></span>`,
+            accent: 'governance',
+        });
+    }
 
     // Card 1: Earnings summary
     const usdNote = data.xtzPrice ? ` That's $${(data.rewardsLastCycle * data.xtzPrice).toFixed(2)}.` : '';

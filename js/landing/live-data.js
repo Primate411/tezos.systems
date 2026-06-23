@@ -81,6 +81,14 @@ function inject(key, value) {
     });
 }
 
+function checkedAtLabel() {
+    return new Date().toLocaleTimeString(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+    });
+}
+
 /**
  * Fetch and inject staking data
  */
@@ -148,6 +156,9 @@ export async function loadGovernanceData() {
             adoption: 'Adoption'
         };
         inject('voting-period', periodNames[voting.kind] || voting.kind);
+        inject('voting-period-detail', head.level
+            ? `Cycle ${head.cycle ?? '?'} · level ${head.level.toLocaleString()}`
+            : 'Live TzKT governance period');
 
         // Time remaining
         if (voting.endTime) {
@@ -156,8 +167,16 @@ export async function loadGovernanceData() {
                 const days = Math.floor(remaining / 86400000);
                 const hours = Math.floor((remaining % 86400000) / 3600000);
                 inject('voting-time-left', days > 0 ? `${days}d ${hours}h` : `${hours}h`);
+                inject('voting-time-detail', 'Until the current period closes');
+            } else {
+                inject('voting-time-left', 'Transitioning');
+                inject('voting-time-detail', 'TzKT is indexing the next governance period');
             }
+        } else {
+            inject('voting-time-left', 'See Chamber');
+            inject('voting-time-detail', 'Current period has no closing timestamp yet');
         }
+        inject('governance-freshness', `Source: TzKT + Octez RPC · checked ${checkedAtLabel()}`);
 
         // Protocol count
         const activeProtocols = protocols.filter(p => p.firstLevel > 0);
@@ -176,6 +195,11 @@ export async function loadGovernanceData() {
 
     } catch (e) {
         console.warn('Live governance data unavailable:', e);
+        inject('voting-period', 'Open Chamber');
+        inject('voting-period-detail', 'Live governance status is retrying');
+        inject('voting-time-left', 'RSS ready');
+        inject('voting-time-detail', 'Use /feed.xml or the Chamber while data retries');
+        inject('governance-freshness', 'Source: TzKT + Octez RPC · live data retrying in browser.');
     }
 }
 

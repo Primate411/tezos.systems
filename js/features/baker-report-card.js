@@ -255,8 +255,8 @@ function buildReportCardDOM(report) {
             </div>
 
             <!-- Footer -->
-            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
-                <span style="font-size:11px;color:rgba(255,255,255,0.25);">tezos.systems</span>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06);">
+                <span style="font-size:11px;color:rgba(255,255,255,0.28);">Share with delegators: tezos.systems</span>
                 <span style="font-size:11px;color:rgba(255,255,255,0.25);">${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}</span>
             </div>
         </div>
@@ -328,9 +328,9 @@ export async function showBakerReportCard(bakerAddress) {
         const name = report.baker.alias || report.baker.address.slice(0, 12) + '…';
         const grade = letterGrade(report.scores.overall).grade;
         const tweetOptions = [
-            { label: '📋 Report Card', text: `${name} scores ${grade} on their Baker Report Card — ${report.rank != null ? '#' + report.rank + ' of ' + report.totalBakers : 'N/A'} bakers on Tezos\n\nCheck any baker at tezos.systems` },
-            { label: '📊 Stats', text: `Baker Report Card: ${name}\nGrade: ${grade} | Rank: ${report.rank != null ? '#' + report.rank + '/' + report.totalBakers : 'N/A'}\nUptime: ${report.stats.uptimePct.toFixed(1)}% | Fee: ${report.stats.fee.toFixed(1)}%\n\ntezos.systems` },
-            { label: '🏆 Challenge', text: `How does your Tezos baker stack up? ${name} earned a ${grade}\n\ntezos.systems` },
+            { label: '📋 Report Card', text: `${name} scores ${grade} on their Baker Report Card — ${report.rank != null ? '#' + report.rank + ' of ' + report.totalBakers : 'N/A'} bakers on Tezos.\n\nDelegators can inspect any baker at tezos.systems` },
+            { label: '📊 Delegators', text: `Baker Report Card: ${name}\nGrade: ${grade} | Rank: ${report.rank != null ? '#' + report.rank + '/' + report.totalBakers : 'N/A'}\nUptime: ${report.stats.uptimePct.toFixed(1)}% | Fee: ${report.stats.fee.toFixed(1)}%\n\nShare this with your delegators:\ntezos.systems` },
+            { label: '🏆 Challenge', text: `How does your Tezos baker stack up? ${name} earned a ${grade}.\n\nBakers: post your report card for delegators.\ntezos.systems` },
         ];
 
         showShareModal(canvas, tweetOptions, `Baker Report Card: ${name}`);

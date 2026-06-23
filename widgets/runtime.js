@@ -6,6 +6,7 @@ import { DEFAULT_THEME, THEME_COLORS, THEMES } from '../js/ui/theme.js';
 const WIDGET_REFRESH_DEFAULT_SECONDS = 60;
 const WIDGET_REFRESH_MIN_SECONDS = 10;
 const WIDGET_REFRESH_MAX_SECONDS = 3600;
+const WIDGET_UTM_CAMPAIGN = 'tezos_systems_widgets';
 
 export const DEFAULT_WIDGET_THEME = DEFAULT_THEME;
 export const WIDGET_THEMES = {
@@ -143,6 +144,44 @@ export function getWidgetTypeFromPath(pathname = location.pathname) {
     return getWidgetByType(type).type;
 }
 
+function widgetSlug(value) {
+    return String(value || 'widget')
+        .toLowerCase()
+        .replace(/[^a-z0-9_]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 64) || 'widget';
+}
+
+export function trackedDashboardUrl({
+    origin = location.origin,
+    path = '/',
+    medium = 'widget',
+    campaign = WIDGET_UTM_CAMPAIGN,
+    content = getWidgetTypeFromPath()
+} = {}) {
+    const url = new URL(path, origin);
+    url.searchParams.set('utm_source', 'tezos_systems');
+    url.searchParams.set('utm_medium', widgetSlug(medium));
+    url.searchParams.set('utm_campaign', widgetSlug(campaign));
+    url.searchParams.set('utm_content', widgetSlug(content));
+    return url.toString();
+}
+
+function trackWidgetEvent(action, details = {}) {
+    window.trackTezosSystemsEvent?.(`widget_${action}`, {
+        type: getWidgetTypeFromPath(),
+        ...details
+    });
+}
+
+function isEmbeddedWidget() {
+    try {
+        return window.self !== window.top;
+    } catch (_) {
+        return true;
+    }
+}
+
 export function normalizeWidgetTheme(value) {
     const key = String(value || '').trim().toLowerCase();
     if (WIDGET_THEMES[key]) return key;
@@ -182,6 +221,22 @@ export function applyWidgetTheme(settings = getWidgetSettings()) {
     root.style.setProperty('--accent', settings.accent || theme.accent);
     root.style.setProperty('--text', theme.text);
     root.dataset.widgetTheme = settings.theme;
+    document.querySelectorAll('a.footer[href*="tezos.systems"]').forEach((link) => {
+        link.href = trackedDashboardUrl({
+            origin: 'https://tezos.systems',
+            medium: 'widget_attribution',
+            content: getWidgetTypeFromPath()
+        });
+        link.textContent = 'powered by tezos.systems ->';
+        link.dataset.trackedAttribution = 'true';
+    });
+    if (!window.__tezosSystemsWidgetTracked) {
+        window.__tezosSystemsWidgetTracked = true;
+        trackWidgetEvent('impression', {
+            theme: settings.theme,
+            embedded: isEmbeddedWidget() ? 'iframe' : 'direct'
+        });
+    }
     return settings;
 }
 
@@ -208,6 +263,10 @@ export function widgetUrl({
         const comboStats = normalizeComboStats(stats);
         if (comboStats.length) params.set('stats', comboStats.join(','));
     }
+    params.set('utm_source', 'tezos_systems');
+    params.set('utm_medium', 'widget');
+    params.set('utm_campaign', WIDGET_UTM_CAMPAIGN);
+    params.set('utm_content', widget.type);
     return `${origin}/widgets/${widget.path}?${params.toString()}`;
 }
 
@@ -216,7 +275,11 @@ export function iframeCode(url, width, height) {
 }
 
 export function markdownCode(url, type) {
-    return `[![Tezos ${type} widget](${url})](https://tezos.systems)`;
+    return `[![Tezos ${type} widget](${url})](${trackedDashboardUrl({
+        origin: 'https://tezos.systems',
+        medium: 'widget_markdown',
+        content: type
+    })})`;
 }
 
 export function normalizeComboStats(stats, fallback = ['bakers', 'price', 'blocks']) {

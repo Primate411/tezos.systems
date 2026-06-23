@@ -5411,7 +5411,7 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
-  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: baseUrl });
   await installFeatureMocks(context);
   await context.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
@@ -5531,6 +5531,11 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.locator('#history-modal[aria-hidden="false"]').waitFor({ state: 'attached', timeout: 10000 });
   await expectCount(page, '#history-modal .time-range-btn', 4, 'feature workflows history ranges');
   await page.waitForFunction(() => document.querySelectorAll('#history-digest .history-digest-card').length === 7, null, { timeout: 10000 });
+  await expectCount(page, '#history-copy-link[data-copy-hash="#history"]', 1, 'feature workflows history direct copy link');
+  await page.locator('#history-copy-link').click();
+  await page.waitForFunction(() => document.querySelector('#history-copy-link')?.textContent?.trim() === '✓', null, { timeout: 3000 });
+  const historyCopy = await page.evaluate(() => navigator.clipboard.readText?.());
+  assert(historyCopy.endsWith('/#history'), `feature workflows history copy link mismatch: ${historyCopy}`);
   const digestText = (await page.locator('#history-digest').innerText()).toLowerCase();
   for (const expected of ['Consensus', 'Economy', 'Liquidity Baking', 'Market', 'Network Health', 'Tezos X', 'Governance']) {
     assert(digestText.includes(expected.toLowerCase()), `feature workflows history digest missing ${expected}: ${digestText}`);
@@ -5670,8 +5675,18 @@ async function smokeShareActions(browser, baseUrl) {
   await page.waitForFunction(() => window.__shareActions.clipboardWrites.some((entry) => entry.types?.includes('image/png')), null, { timeout: 5000 });
   await page.locator('#share-modal #share-twitter').click();
   await page.waitForFunction(() => window.__shareActions.opens.some((entry) => entry.url.startsWith('https://twitter.com/intent/tweet?text=')), null, { timeout: 5000 });
+  const tweetText = await page.evaluate(() => {
+    const opened = window.__shareActions.opens.find((entry) => entry.url.startsWith('https://twitter.com/intent/tweet?text='));
+    return decodeURIComponent(new URL(opened.url).searchParams.get('text') || '');
+  });
+  assert(tweetText.includes('utm_campaign=growth_loops') && tweetText.includes('utm_content='), `share actions: X intent should include tracked Tezos Systems link: ${tweetText}`);
   await page.locator('#share-modal #share-native').click();
-  await page.waitForFunction(() => window.__shareActions.nativeShares.some((entry) => entry.fileCount === 1 && entry.fileTypes.includes('image/png') && entry.url === 'https://tezos.systems'), null, { timeout: 5000 });
+  await page.waitForFunction(() => window.__shareActions.nativeShares.some((entry) => (
+    entry.fileCount === 1
+    && entry.fileTypes.includes('image/png')
+    && entry.url.includes('utm_medium=native_share')
+    && entry.url.includes('utm_campaign=growth_loops')
+  )), null, { timeout: 5000 });
   await page.locator('#share-modal #share-download').click();
   await page.waitForFunction(() => window.__shareActions.downloads.some((entry) => /^tezos-systems-\d+\.png$/.test(entry.download) && entry.href.startsWith('data:image/png')), null, { timeout: 5000 });
 
@@ -5848,7 +5863,11 @@ async function smokeWidgetBuilder(browser, baseUrl) {
   }, null, { timeout: 5000 });
 
   await page.locator('.code-tab[data-tab="markdown"]').click();
-  assert((await page.locator('#code-text').innerText()).includes('![Tezos'), 'widget builder markdown code should render');
+  const markdownCode = await page.locator('#code-text').innerText();
+  assert(markdownCode.includes('![Tezos'), 'widget builder markdown code should render');
+  assert(markdownCode.includes('utm_medium=widget_markdown') && markdownCode.includes('utm_campaign=tezos_systems_widgets'), `widget builder markdown should carry attribution params: ${markdownCode}`);
+  const previewUrl = await page.locator('#preview-frame').getAttribute('src');
+  assert(previewUrl.includes('utm_medium=widget') && previewUrl.includes('utm_content=price'), `widget builder preview URL should carry widget attribution params: ${previewUrl}`);
 
   await page.locator('.widget-type-btn[data-type="combo"]').click();
   await expectClassContains(page.locator('.widget-type-btn[data-type="combo"]'), 'active', 'widget builder combo type');
