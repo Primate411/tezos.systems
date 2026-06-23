@@ -730,7 +730,7 @@ async function checkSelectorContracts() {
     ['top continuity rail is borderless tape', 'border: 0;', styles],
     ['top continuity uptime badge glint', '.top-continuity-history::before', styles],
     ['top continuity identity claim styles', '.top-continuity-claim', styles],
-    ['top continuity runtime fixed-width slot', 'flex: 0 0 16ch;', styles],
+    ['top continuity runtime tight fixed-width slot', 'flex: 0 0 12ch;', styles],
     ['top continuity title theme token', '--header-title-color', styles],
     ['top continuity uptime badge theme bg', 'background: var(--uptime-badge-bg);', styles],
     ['top continuity uptime badge theme border', 'border: 1px solid var(--uptime-badge-border);', styles],

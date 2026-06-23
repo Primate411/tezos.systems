@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-23',
         entries: [
+            { type: '🎨', text: 'The header uptime badge now uses a tighter fixed uptime slot so the visible separators read like two spaces' },
             { type: '🎨', text: 'The header uptime badge now anchors the since marker while keeping two-space visual separators' },
             { type: '🎨', text: 'The header uptime proof now uses Aurora teal-to-violet colors and theme-matched title, uptime, and stat pill palettes' },
             { type: '🔧', text: 'The command bar now labels wallet and .tez searches clearly and routes KT1 starter searches to contracts instead of bakers' },
