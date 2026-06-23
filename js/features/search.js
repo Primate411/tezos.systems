@@ -7,7 +7,7 @@ import { debounce, escapeHtml } from '../core/utils.js';
 import { getAvailableThemes, openThemePicker, setTheme } from '../ui/theme.js';
 
 const PROTOCOL_DATA_URL = '/data/protocol-data.json?v=2';
-const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=275';
+const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=276';
 const TZKT_URL = 'https://tzkt.io';
 
 const ADDRESS_RE = /^(tz[1-4]|KT1)[0-9A-Za-z]{33}$/;
