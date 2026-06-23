@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-23',
         entries: [
+            { type: '🎨', text: 'Mobile now keeps the gift tray in the top-left price row while centering the Tezos Systems title stack' },
             { type: '🔧', text: 'Price Intelligence deep links now open even when live cycle metadata is slow to answer' },
             { type: '🔧', text: 'The first-visit tour now follows all eight steps cleanly after the larger Chambers and Loop Console layouts on desktop and mobile' },
             { type: '🎨', text: 'The header uptime proof now reads as a tighter left-side instrument block while the stat pills stay right-aligned' },
