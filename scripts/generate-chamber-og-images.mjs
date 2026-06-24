@@ -1,59 +1,16 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs/promises';
-import fsSync from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import sharp from 'sharp';
 import { CHAMBER_ROUTES } from './lib/chamber-routes.mjs';
+import playwrightBrowser from './lib/playwright-browser.cjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_DIR = path.join(ROOT, 'og');
-
-const SYSTEM_BROWSER_CANDIDATES = [
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/Applications/Chromium.app/Contents/MacOS/Chromium',
-  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-  '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
-  '/usr/bin/google-chrome',
-  '/usr/bin/google-chrome-stable',
-  '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-  '/snap/bin/chromium'
-];
-
-function fileExists(file) {
-  try {
-    fsSync.accessSync(file);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function findSystemBrowser() {
-  const explicit = process.env.BROWSER_EXECUTABLE_PATH || '';
-  if (explicit) {
-    if (!fileExists(explicit)) throw new Error(`BROWSER_EXECUTABLE_PATH does not exist: ${explicit}`);
-    return explicit;
-  }
-  return SYSTEM_BROWSER_CANDIDATES.find(fileExists) || '';
-}
-
-async function launchChromium() {
-  try {
-    return await chromium.launch({ headless: true });
-  } catch (error) {
-    if (!/Executable doesn't exist|playwright install/i.test(error.message)) throw error;
-    const executablePath = findSystemBrowser();
-    if (!executablePath) {
-      throw new Error('Playwright browser binary is missing. Run npx playwright install chromium, or set BROWSER_EXECUTABLE_PATH.');
-    }
-    console.log(`Using system browser: ${executablePath}`);
-    return chromium.launch({ headless: true, executablePath });
-  }
-}
+const { launchChromium } = playwrightBrowser;
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -311,7 +268,7 @@ async function optimizePng(file) {
 async function main() {
   const report = await readGovernanceReport();
   await fs.mkdir(OUT_DIR, { recursive: true });
-  const browser = await launchChromium();
+  const browser = await launchChromium(chromium, { headless: true });
   try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
     for (const route of CHAMBER_ROUTES) {

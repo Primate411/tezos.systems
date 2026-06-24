@@ -8,7 +8,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
+const { pathToFileURL } = require('url');
+const { launchChromium } = require('./lib/playwright-browser.cjs');
 
 async function fetchStats() {
     const [statsResp, protocolResp] = await Promise.all([
@@ -198,79 +199,18 @@ async function main() {
     const outputPath = path.join(__dirname, '..', 'og-image.png');
 
     console.log('Capturing with Playwright...');
-    // Use Playwright's screenshot API via a small inline script.
-    const playwrightScript = `
-    const fs = require('fs');
     const { chromium } = require('playwright');
-
-    const browserExecutablePath = process.env.BROWSER_EXECUTABLE_PATH || '';
-    const systemBrowserCandidates = [
-      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      '/Applications/Chromium.app/Contents/MacOS/Chromium',
-      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-      '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
-      '/usr/bin/google-chrome',
-      '/usr/bin/google-chrome-stable',
-      '/usr/bin/chromium',
-      '/usr/bin/chromium-browser',
-      '/snap/bin/chromium'
-    ];
-
-    function fileExists(file) {
-      try {
-        fs.accessSync(file);
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    function findSystemBrowser() {
-      if (browserExecutablePath) {
-        if (!fileExists(browserExecutablePath)) {
-          throw new Error('BROWSER_EXECUTABLE_PATH does not exist: ' + browserExecutablePath);
-        }
-        return browserExecutablePath;
-      }
-
-      return systemBrowserCandidates.find(fileExists) || '';
-    }
-
-    async function launchChromium() {
-      try {
-        return await chromium.launch({ headless: true });
-      } catch (error) {
-        if (!/Executable doesn't exist|playwright install/i.test(error.message)) throw error;
-        const executablePath = findSystemBrowser();
-        if (!executablePath) {
-          throw new Error('Playwright browser binary is missing. Run npx playwright install chromium, or set BROWSER_EXECUTABLE_PATH to Chrome/Chromium.');
-        }
-        console.log('Using system browser: ' + executablePath);
-        return chromium.launch({ headless: true, executablePath });
-      }
-    }
-
-    (async () => {
-      const browser = await launchChromium();
-      const page = await browser.newPage();
-      await page.setViewportSize({ width: 1200, height: 630 });
-      await page.goto('file://${tmpHtml.replace(/'/g, "\\'")}', { waitUntil: 'networkidle', timeout: 15000 });
-      await page.waitForTimeout(2000); // fonts
-      await page.screenshot({ path: '${outputPath.replace(/'/g, "\\'")}', type: 'png' });
-      await browser.close();
-    })();
-    `;
-    const tmpScript = path.join(__dirname, '_pw-capture.js');
-    fs.writeFileSync(tmpScript, playwrightScript);
+    let browser;
 
     try {
-        execSync(`node "${tmpScript}"`, {
-            stdio: 'inherit',
-            timeout: 60000,
-        });
+        browser = await launchChromium(chromium, { headless: true });
+        const page = await browser.newPage({ viewport: { width: 1200, height: 630 } });
+        await page.goto(pathToFileURL(tmpHtml).href, { waitUntil: 'networkidle', timeout: 15000 });
+        await page.waitForTimeout(2000); // fonts
+        await page.screenshot({ path: outputPath, type: 'png' });
     } finally {
+        if (browser) await browser.close();
         try { fs.unlinkSync(tmpHtml); } catch(e) {}
-        try { fs.unlinkSync(tmpScript); } catch(e) {}
     }
 
     console.log(`✅ OG image saved to ${outputPath}`);

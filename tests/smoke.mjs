@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
+const { launchChromium: launchPlaywrightChromium } = require('../scripts/lib/playwright-browser.cjs');
 let cli;
 try {
   cli = parseArgs(process.argv.slice(2));
@@ -20,18 +21,6 @@ const HEADLESS = !(cli.headed || process.env.SMOKE_HEADED === '1');
 const STRICT_EXTERNAL = cli.strictExternal || process.env.STRICT_EXTERNAL === '1';
 const BROWSER_EXECUTABLE_PATH = cli.browserExecutablePath || process.env.BROWSER_EXECUTABLE_PATH || '';
 const ONLY_SUITES = cli.onlySuites;
-
-const systemBrowserCandidates = [
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-  '/Applications/Chromium.app/Contents/MacOS/Chromium',
-  '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-  '/Applications/Brave Browser.app/Contents/MacOS/Brave Browser',
-  '/usr/bin/google-chrome',
-  '/usr/bin/google-chrome-stable',
-  '/usr/bin/chromium',
-  '/usr/bin/chromium-browser',
-  '/snap/bin/chromium'
-];
 
 const allowedWarningPatterns = [
   /goatcounter/i,
@@ -2194,41 +2183,12 @@ async function installOctezConnectMock(context, address = SAMPLE_ADDRESS) {
   }, address);
 }
 
-async function findSystemBrowser() {
-  if (BROWSER_EXECUTABLE_PATH) {
-    const exists = await fileExists(BROWSER_EXECUTABLE_PATH);
-    if (!exists) throw new Error(`BROWSER_EXECUTABLE_PATH does not exist: ${BROWSER_EXECUTABLE_PATH}`);
-    return BROWSER_EXECUTABLE_PATH;
-  }
-
-  for (const candidate of systemBrowserCandidates) {
-    if (await fileExists(candidate)) return candidate;
-  }
-  return null;
-}
-
-async function fileExists(file) {
-  const fs = await import('node:fs/promises');
-  try {
-    await fs.access(file);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 async function launchChromium(chromium) {
-  try {
-    return await chromium.launch({ headless: HEADLESS });
-  } catch (error) {
-    if (!/Executable doesn't exist|playwright install/i.test(error.message)) throw error;
-    const executablePath = await findSystemBrowser();
-    if (!executablePath) {
-      throw new Error('Playwright browser binary is missing. Run npx playwright install chromium, or set BROWSER_EXECUTABLE_PATH to Chrome/Chromium.');
-    }
-    log(`Using system browser: ${executablePath}`);
-    return chromium.launch({ headless: HEADLESS, executablePath });
-  }
+  return launchPlaywrightChromium(chromium, {
+    executablePath: BROWSER_EXECUTABLE_PATH,
+    headless: HEADLESS,
+    logger: log
+  });
 }
 
 function attachIssueCollectors(page, label, issues) {

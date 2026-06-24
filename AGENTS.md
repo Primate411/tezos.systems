@@ -26,6 +26,10 @@ the highest-risk gotchas.
   - update any explicit asset query params if they exist
 - `index.html` currently serves `css/styles.min.css`, not `css/styles.css`.
   Edit `styles.css` first, then regenerate/minify `styles.min.css`.
+- Playwright callers should use `scripts/lib/playwright-browser.cjs`. It tries
+  bundled Chromium first, falls back to system Chrome/Chromium, and honors
+  `BROWSER_EXECUTABLE_PATH`; do not copy browser-candidate lists into new
+  scripts.
 - `README.md` contains some stale guidance. Verify against code before relying
   on README claims.
 
@@ -296,6 +300,8 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
 - `scripts/stamp-version.sh`: updates `version.json` and stages it.
 - `scripts/generate-og-image.js`: uses Playwright to generate OG imagery from
   live data.
+- `scripts/lib/playwright-browser.cjs`: shared Playwright Chromium launcher for
+  smoke and OG scripts, including system-browser fallback.
 
 ## Governance Stale-Data Control
 

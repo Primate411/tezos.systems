@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-23',
         entries: [
+            { type: '🔧', text: 'Playwright smoke and OG tooling now share one Chrome launcher with system-browser fallback so missing bundled Chromium no longer interrupts local QA' },
             { type: '🔧', text: 'Ledger Flow counterparty cards now fit their labels and use My Tezos account links with compact TzKT pills throughout the diagram and selected path' },
             { type: '🎨', text: 'Ledger Flow and Protocol Anthology Chamber cards now reserve real footer space so their rails, controls, and Open actions no longer collide' },
             { type: '🎨', text: 'Mobile now scales the Tezos Systems wordmark wider across the header so it lines up more closely with the panels below' },

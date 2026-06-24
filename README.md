@@ -403,9 +403,10 @@ npm run serve
 # Open http://localhost:9000
 ```
 
-The lockfile is tracked so fresh clones can use `npm ci`. If Playwright's
-bundled Chromium is missing, the smoke runner and OG image generator can fall
-back to a local Chrome/Chromium-family browser.
+The lockfile is tracked so fresh clones can use `npm ci`. Repo Playwright
+callers use `scripts/lib/playwright-browser.cjs`, which tries Playwright's
+bundled Chromium first and falls back to a local Chrome/Chromium-family browser.
+Set `BROWSER_EXECUTABLE_PATH` only when you need to force a specific executable.
 
 The README guard reads staged files. If package/tooling, hook, handoff docs,
 smoke-test, config, theme, app-shell, service-worker, SEO, widget, or

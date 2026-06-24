@@ -1452,6 +1452,33 @@ async function checkPortableTooling() {
     fail('.githooks/pre-commit must guard README sync and run focused README contract checks');
   }
 
+  if (!(await pathExists('scripts/lib/playwright-browser.cjs'))) {
+    fail('scripts/lib/playwright-browser.cjs must exist as the shared Playwright browser launcher');
+  } else {
+    const launcher = await readText('scripts/lib/playwright-browser.cjs');
+    if (!launcher.includes('SYSTEM_BROWSER_CANDIDATES') || !launcher.includes('BROWSER_EXECUTABLE_PATH')) {
+      fail('shared Playwright browser launcher must preserve system-browser fallback and explicit executable support');
+    }
+  }
+
+  const playwrightCallers = [
+    ['tests/smoke.mjs', '../scripts/lib/playwright-browser.cjs'],
+    ['scripts/generate-og-image.js', './lib/playwright-browser.cjs'],
+    ['scripts/generate-chamber-og-images.mjs', './lib/playwright-browser.cjs']
+  ];
+  for (const [file, importPath] of playwrightCallers) {
+    const source = await readText(file);
+    if (!source.includes(importPath)) {
+      fail(`${file} must use scripts/lib/playwright-browser.cjs for Chromium fallback`);
+    }
+    if (/chromium\.launch\s*\(/.test(source)) {
+      fail(`${file} must not launch Chromium directly; use the shared Playwright browser launcher`);
+    }
+    if (/systemBrowserCandidates|SYSTEM_BROWSER_CANDIDATES|function findSystemBrowser/.test(source)) {
+      fail(`${file} must not carry a copied system-browser candidate list`);
+    }
+  }
+
   pass('portable npm scripts, lockfile, and shared git hook checked');
 }
 
@@ -1635,6 +1662,8 @@ async function checkReadmeContracts() {
     'Memory cache TTL: 1 minute',
     'Storage cache TTL: 4 hours',
     'css/styles.min.css',
+    'scripts/lib/playwright-browser.cjs',
+    'BROWSER_EXECUTABLE_PATH',
     'CACHE_NAME',
     'version.json',
     'September 17, 2018'
