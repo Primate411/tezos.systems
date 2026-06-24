@@ -399,17 +399,33 @@
 
 .ledger-flow-node.is-first rect {
     stroke: rgba(245, 214, 91, 0.48);
-    fill: rgba(245, 214, 91, 0.07);
+    fill: color-mix(in srgb, var(--bg-primary, #0a0e1a) 86%, rgba(245, 214, 91, 0.22));
 }
 
 .ledger-flow-center-node rect {
     stroke: rgba(77, 212, 255, 0.42);
-    fill: rgba(77, 212, 255, 0.08);
+    fill: color-mix(in srgb, var(--bg-primary, #0a0e1a) 84%, rgba(77, 212, 255, 0.22));
 }
 
 .ledger-flow-node text,
 .ledger-flow-center-node text {
     pointer-events: none;
+}
+
+.ledger-flow-node-profile-link,
+.ledger-flow-node-tzkt-link {
+    cursor: pointer;
+}
+
+.ledger-flow-node-profile-link:hover rect,
+.ledger-flow-node-profile-link:focus-visible rect {
+    stroke: rgba(77, 212, 255, 0.44);
+    fill: color-mix(in srgb, var(--bg-primary, #0a0e1a) 72%, rgba(77, 212, 255, 0.18));
+}
+
+.ledger-flow-node-profile-link:hover .ledger-flow-node-title,
+.ledger-flow-node-profile-link:focus-visible .ledger-flow-node-title {
+    fill: var(--ledger-flow-received);
 }
 
 .ledger-flow-node-title,
@@ -440,6 +456,30 @@
     text-transform: none;
 }
 
+.ledger-flow-node-tzkt-bg {
+    fill: color-mix(in srgb, var(--bg-primary, #0a0e1a) 88%, rgba(255, 255, 255, 0.08));
+    stroke: rgba(255, 255, 255, 0.13);
+    stroke-width: 1;
+}
+
+.ledger-flow-node-tzkt-text {
+    fill: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    font-weight: 850;
+}
+
+.ledger-flow-node-tzkt-link:hover .ledger-flow-node-tzkt-bg,
+.ledger-flow-node-tzkt-link:focus-visible .ledger-flow-node-tzkt-bg {
+    fill: rgba(77, 212, 255, 0.11);
+    stroke: rgba(77, 212, 255, 0.38);
+}
+
+.ledger-flow-node-tzkt-link:hover .ledger-flow-node-tzkt-text,
+.ledger-flow-node-tzkt-link:focus-visible .ledger-flow-node-tzkt-text {
+    fill: var(--ledger-flow-received);
+}
+
 .ledger-flow-lower-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
@@ -458,6 +498,7 @@
     grid-template-columns: minmax(0, 1fr) minmax(64px, auto) minmax(58px, auto);
     gap: 0.55rem;
     align-items: center;
+    width: 100%;
     min-width: 0;
     min-height: 44px;
     padding: 0.52rem 0.62rem;
@@ -466,6 +507,7 @@
     background: rgba(255, 255, 255, 0.025);
     color: var(--text-primary);
     cursor: pointer;
+    font: inherit;
     text-align: left;
 }
 
@@ -481,8 +523,21 @@
     min-width: 0;
 }
 
-.ledger-flow-row-name strong,
-.ledger-flow-row-name small,
+.ledger-flow-account-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.34rem;
+    min-width: 0;
+}
+
+.ledger-flow-inline-account {
+    display: inline-flex;
+    vertical-align: middle;
+}
+
+.ledger-flow-account-link,
+.ledger-flow-address-link,
 .ledger-flow-row-amount,
 .ledger-flow-row-badge {
     overflow: hidden;
@@ -490,17 +545,39 @@
     white-space: nowrap;
 }
 
-.ledger-flow-row-name strong,
+.ledger-flow-account-link,
 .ledger-flow-row-amount {
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.72rem;
     font-weight: 850;
 }
 
-.ledger-flow-row-name small {
+.ledger-flow-account-link,
+.ledger-flow-address-link {
+    display: inline-block;
+    min-width: 0;
+    max-width: 100%;
+    color: var(--text-primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+}
+
+.ledger-flow-account-link:hover,
+.ledger-flow-account-link:focus-visible,
+.ledger-flow-address-link:hover,
+.ledger-flow-address-link:focus-visible {
+    color: var(--ledger-flow-received);
+    border-bottom-color: currentColor;
+}
+
+.ledger-flow-address-link {
     color: var(--text-tertiary);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.62rem;
+}
+
+.ledger-flow-tzkt-pill {
+    align-self: center;
 }
 
 .ledger-flow-row-amount {
@@ -547,6 +624,7 @@
 }
 
 .ledger-flow-detail-card strong,
+.ledger-flow-detail-name,
 .ledger-flow-detail-empty strong,
 .ledger-flow-empty-panel strong,
 .ledger-flow-empty-graph strong {
@@ -558,7 +636,12 @@
     white-space: nowrap;
 }
 
+.ledger-flow-detail-account {
+    gap: 0.42rem;
+}
+
 .ledger-flow-detail-card code,
+.ledger-flow-detail-card .ledger-flow-address-link,
 .ledger-flow-detail-empty span,
 .ledger-flow-empty-panel span,
 .ledger-flow-empty-graph span,
@@ -572,6 +655,13 @@
 
 .ledger-flow-detail-card code {
     font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+}
+
+.ledger-flow-detail-address {
+    display: inline-block;
+    justify-self: start;
+    max-width: 100%;
     white-space: nowrap;
 }
 

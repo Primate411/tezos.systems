@@ -4255,28 +4255,50 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
   await page.locator('#ledger-flow-modal.active .ledger-flow-content').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => document.querySelector('#ledger-flow-modal .ledger-flow-svg'), null, { timeout: 15000 });
 
-  const state = await page.evaluate(() => {
-    const modal = document.querySelector('#ledger-flow-modal');
-    const svg = modal?.querySelector('.ledger-flow-svg');
-    const edgeWidths = Array.from(modal?.querySelectorAll('.ledger-flow-edge') || [])
-      .map((edge) => Number(edge.getAttribute('stroke-width') || 0))
-      .filter((value) => Number.isFinite(value) && value > 0);
-    const rect = svg?.getBoundingClientRect();
-    return {
-      title: modal?.querySelector('.chamber-title')?.textContent?.trim() || '',
-      info: modal?.querySelector('.chamber-proposal-info')?.textContent?.trim() || '',
-      stats: modal?.querySelector('.ledger-flow-stats')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      detail: modal?.querySelector('#ledger-flow-detail-panel')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      counterparties: modal?.querySelector('.ledger-flow-counterparty-list')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      sentEdges: modal?.querySelectorAll('.ledger-flow-edge-sent').length || 0,
-      receivedEdges: modal?.querySelectorAll('.ledger-flow-edge-received').length || 0,
-      firstEdges: modal?.querySelectorAll('.ledger-flow-edge-first').length || 0,
-      edgeWidths,
-      minWidth: Math.min(...edgeWidths),
-      maxWidth: Math.max(...edgeWidths),
-      directHref: modal?.querySelector('a[href="/ledger-flow/"]')?.getAttribute('href') || '',
-      svgWidth: rect?.width || 0,
-      svgHeight: rect?.height || 0,
+    const state = await page.evaluate(() => {
+      const modal = document.querySelector('#ledger-flow-modal');
+      const svg = modal?.querySelector('.ledger-flow-svg');
+      const edgeWidths = Array.from(modal?.querySelectorAll('.ledger-flow-edge') || [])
+        .map((edge) => Number(edge.getAttribute('stroke-width') || 0))
+        .filter((value) => Number.isFinite(value) && value > 0);
+      const rect = svg?.getBoundingClientRect();
+      const detailText = modal?.querySelector('#ledger-flow-detail-panel')?.textContent?.replace(/\s+/g, ' ').trim() || '';
+      const nodeBoxFitFailures = Array.from(svg?.querySelectorAll('.ledger-flow-node') || []).flatMap((node) => {
+        const box = node.querySelector('.ledger-flow-node-profile-link rect');
+        const width = Number(box?.getAttribute('width') || 0);
+        return Array.from(node.querySelectorAll('.ledger-flow-node-title, .ledger-flow-node-sub'))
+          .filter((text) => {
+            try {
+              return width > 0 && text.getComputedTextLength() > width - 24;
+            } catch {
+              return false;
+            }
+          })
+          .map((text) => `${text.textContent}:${text.getComputedTextLength().toFixed(1)}/${width}`);
+      });
+      return {
+        title: modal?.querySelector('.chamber-title')?.textContent?.trim() || '',
+        info: modal?.querySelector('.chamber-proposal-info')?.textContent?.trim() || '',
+        stats: modal?.querySelector('.ledger-flow-stats')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        detail: detailText,
+        counterparties: modal?.querySelector('.ledger-flow-counterparty-list')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        sentEdges: modal?.querySelectorAll('.ledger-flow-edge-sent').length || 0,
+        receivedEdges: modal?.querySelectorAll('.ledger-flow-edge-received').length || 0,
+        firstEdges: modal?.querySelectorAll('.ledger-flow-edge-first').length || 0,
+        edgeWidths,
+        minWidth: Math.min(...edgeWidths),
+        maxWidth: Math.max(...edgeWidths),
+        nodeProfileLinks: modal?.querySelectorAll('.ledger-flow-node-profile-link[href^="#my-baker="]').length || 0,
+        nodeTzktLinks: modal?.querySelectorAll('.ledger-flow-node-tzkt-link[href^="https://tzkt.io/"]').length || 0,
+        rowMyTezosLinks: modal?.querySelectorAll('.ledger-flow-counterparty-list .ledger-flow-my-tezos-link[href^="#my-baker="]').length || 0,
+        rowTzktLinks: modal?.querySelectorAll('.ledger-flow-counterparty-list .ledger-flow-tzkt-pill[href^="https://tzkt.io/"]').length || 0,
+        detailMyTezosHref: modal?.querySelector('#ledger-flow-detail-panel .ledger-flow-my-tezos-link[href^="#my-baker="]')?.getAttribute('href') || '',
+        detailTzktHref: modal?.querySelector('#ledger-flow-detail-panel .ledger-flow-tzkt-pill[href^="https://tzkt.io/"]')?.getAttribute('href') || '',
+        legacyOpenOnTzkt: /Open on TzKT/i.test(detailText),
+        nodeBoxFitFailures,
+        directHref: modal?.querySelector('a[href="/ledger-flow/"]')?.getAttribute('href') || '',
+        svgWidth: rect?.width || 0,
+        svgHeight: rect?.height || 0,
       horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
     };
   });
@@ -4287,11 +4309,16 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
   assert(/Second Baker/.test(state.counterparties) && /Smoke Market/.test(state.counterparties) && /Dust Tester/.test(state.counterparties), `ledger flow chamber: counterparty list incomplete ${state.counterparties}`);
   assert(state.sentEdges >= 2, `ledger flow chamber: sent edges missing ${state.sentEdges}`);
   assert(state.receivedEdges >= 2, `ledger flow chamber: received edges missing ${state.receivedEdges}`);
-  assert(state.firstEdges === 1, `ledger flow chamber: first-funding edge mismatch ${state.firstEdges}`);
-  assert(state.maxWidth - state.minWidth >= 1.5, `ledger flow chamber: edge widths should reflect amount scale ${state.edgeWidths.join(', ')}`);
-  assert(state.directHref === '/ledger-flow/', `ledger flow chamber: direct route link missing ${state.directHref}`);
-  assert(state.svgWidth > 500 && state.svgHeight > 250, `ledger flow chamber: diagram dimensions too small ${state.svgWidth}x${state.svgHeight}`);
-  assert(state.horizontalOverflow <= 1, `ledger flow chamber: horizontal overflow ${state.horizontalOverflow}`);
+    assert(state.firstEdges === 1, `ledger flow chamber: first-funding edge mismatch ${state.firstEdges}`);
+    assert(state.maxWidth - state.minWidth >= 1.5, `ledger flow chamber: edge widths should reflect amount scale ${state.edgeWidths.join(', ')}`);
+    assert(state.nodeBoxFitFailures.length === 0, `ledger flow chamber: node text overflows boxes ${state.nodeBoxFitFailures.join(', ')}`);
+    assert(state.nodeProfileLinks >= 3 && state.nodeTzktLinks >= 3, `ledger flow chamber: diagram nodes missing My Tezos/TzKT links ${JSON.stringify(state)}`);
+    assert(state.rowMyTezosLinks >= 6 && state.rowTzktLinks >= 3, `ledger flow chamber: counterparty rows missing My Tezos/TzKT links ${JSON.stringify(state)}`);
+    assert(state.detailMyTezosHref.startsWith('#my-baker=') && state.detailTzktHref.includes('tzkt.io/'), `ledger flow chamber: selected path missing compact account links ${JSON.stringify(state)}`);
+    assert(!state.legacyOpenOnTzkt, `ledger flow chamber: legacy selected-path TzKT link still visible ${state.detail}`);
+    assert(state.directHref === '/ledger-flow/', `ledger flow chamber: direct route link missing ${state.directHref}`);
+    assert(state.svgWidth > 500 && state.svgHeight > 250, `ledger flow chamber: diagram dimensions too small ${state.svgWidth}x${state.svgHeight}`);
+    assert(state.horizontalOverflow <= 1, `ledger flow chamber: horizontal overflow ${state.horizontalOverflow}`);
 
   await page.locator('.ledger-flow-counterparty-row[data-ledger-edge$=":sent"]').first().click();
   const sentDetail = await page.locator('#ledger-flow-detail-panel').innerText();
@@ -4310,13 +4337,27 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
     counterparties: document.querySelector('.ledger-flow-counterparty-list')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     firstEdges: document.querySelectorAll('.ledger-flow-edge-first').length
   }));
-  assert(filteredState.threshold === '1K XTZ', `ledger flow chamber: threshold label mismatch ${filteredState.threshold}`);
-  assert(!/Dust Tester/.test(filteredState.counterparties), `ledger flow chamber: minimum amount did not hide small counterparty ${filteredState.counterparties}`);
-  assert(/Genesis Fund/.test(filteredState.counterparties) && filteredState.firstEdges === 1, `ledger flow chamber: first funding should remain visible under threshold ${JSON.stringify(filteredState)}`);
+    assert(filteredState.threshold === '1K XTZ', `ledger flow chamber: threshold label mismatch ${filteredState.threshold}`);
+    assert(!/Dust Tester/.test(filteredState.counterparties), `ledger flow chamber: minimum amount did not hide small counterparty ${filteredState.counterparties}`);
+    assert(/Genesis Fund/.test(filteredState.counterparties) && filteredState.firstEdges === 1, `ledger flow chamber: first funding should remain visible under threshold ${JSON.stringify(filteredState)}`);
 
-  await page.locator('#ledger-flow-modal.active .chamber-close').click();
-  await page.waitForFunction(() => !document.querySelector('#ledger-flow-modal')?.classList.contains('active'), null, { timeout: 5000 });
-  await page.locator('#hero-search-input').fill('ledger flow');
+    const secondBakerLedgerHref = `#my-baker=${encodeURIComponent(SAMPLE_ADDRESS_2)}`;
+    await page.locator(`.ledger-flow-node-profile-link[href="${secondBakerLedgerHref}"]`).first().click();
+    await page.waitForFunction(() => (
+      !document.querySelector('#ledger-flow-modal')?.classList.contains('active')
+        && document.querySelector('#my-tezos-drawer')?.classList.contains('open')
+    ), null, { timeout: 10000 });
+    const linkedDrawerState = await page.evaluate(() => ({
+      hash: window.location.hash,
+      stored: localStorage.getItem('tezos-systems-my-baker-address') || '',
+      input: document.querySelector('#my-baker-input')?.value || ''
+    }));
+    assert(linkedDrawerState.hash === secondBakerLedgerHref, `ledger flow chamber: diagram account link did not route to My Tezos ${JSON.stringify(linkedDrawerState)}`);
+    assert(linkedDrawerState.stored === SAMPLE_ADDRESS_2, `ledger flow chamber: diagram account link did not save My Tezos target ${JSON.stringify(linkedDrawerState)}`);
+    await page.locator('#drawer-close').click();
+    await page.waitForFunction(() => !document.querySelector('#my-tezos-drawer')?.classList.contains('open'), null, { timeout: 5000 });
+
+    await page.locator('#hero-search-input').fill('ledger flow');
   await page.waitForFunction(() => /Ledger Flow/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
 
   const routeResponse = await page.goto(`${baseUrl}/ledger-flow/`, { waitUntil: 'domcontentloaded' });

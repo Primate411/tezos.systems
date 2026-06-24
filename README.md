@@ -218,7 +218,8 @@ inline modal styles in `js/core/app.js`.
   plus address-scoped hashes such as `#ledger-flow=tz1...`. It resolves tz/KT
   accounts and `.tez` names, queries TzKT account transaction history, and
   renders an SVG transfer diagram with separate sent, received, and first-in
-  colors plus amount-weighted connection strength.
+  colors, amount-weighted connection strength, My Tezos account links, and
+  compact TzKT pills.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - First-screen command deck built for retrieval: the top of the page moves from
@@ -493,7 +494,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v291`.
+- Current aligned shell cache stamp: `v292`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

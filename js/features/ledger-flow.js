@@ -11,12 +11,16 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const LAST_TARGET_KEY = 'tezos-systems-ledger-flow-target';
 const WINDOW_KEY = 'tezos-systems-ledger-flow-window';
 const THRESHOLD_KEY = 'tezos-systems-ledger-flow-threshold-index';
-const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=291';
+const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=292';
 const DEFAULT_WINDOW = '30d';
 const TRANSFER_LIMIT = 60;
 const MAX_VISIBLE_COUNTERPARTIES = 12;
 const TEZOS_ACCOUNT_RE = /^(tz[1-4]|KT1)[0-9A-Za-z]{33}$/;
 const TEZ_DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i;
+const NODE_MIN_WIDTH = 188;
+const NODE_MAX_WIDTH = 252;
+const NODE_HEIGHT = 62;
+const NODE_TEXT_PAD = 30;
 
 const WINDOW_OPTIONS = [
     { key: '24h', label: '24H', ms: 24 * 60 * 60 * 1000 },
@@ -86,6 +90,14 @@ function shortAddress(address) {
     const value = String(address || '');
     if (value.length <= 14) return value || 'unknown';
     return `${value.slice(0, 7)}...${value.slice(-5)}`;
+}
+
+function accountHref(address) {
+    return `#my-baker=${encodeURIComponent(address)}`;
+}
+
+function tzktAccountHref(address) {
+    return `https://tzkt.io/${encodeURIComponent(address)}`;
 }
 
 function formatCompactXTZ(mutez, options = {}) {
@@ -421,10 +433,54 @@ function nodeLabel(item) {
     return item.alias || shortAddress(item.address);
 }
 
+function nodeSubLabel(item) {
+    return item.firstFunding ? 'first funding' : `${formatCompactXTZ(item.total)} total`;
+}
+
 function truncate(value, max = 22) {
     const text = String(value || '');
     if (text.length <= max) return text;
     return `${text.slice(0, Math.max(0, max - 1))}...`;
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function fittedText(value, width, charWidth) {
+    const maxChars = Math.max(4, Math.floor((width - NODE_TEXT_PAD) / charWidth));
+    return truncate(value, maxChars);
+}
+
+function nodeGeometry(item) {
+    const title = nodeLabel(item);
+    const sub = nodeSubLabel(item);
+    const desired = Math.max(title.length * 8.5, sub.length * 6.2) + 42;
+    return {
+        width: clamp(Math.ceil(desired), NODE_MIN_WIDTH, NODE_MAX_WIDTH),
+        height: NODE_HEIGHT
+    };
+}
+
+function accountLinksMarkup(account, options = {}) {
+    const address = account?.address || '';
+    if (!address) return '';
+    const label = options.label || nodeLabel(account);
+    const nameClass = options.nameClass ? ` ${options.nameClass}` : '';
+    const wrapClass = options.wrapClass ? ` ${options.wrapClass}` : '';
+    return `
+        <span class="ledger-flow-account-actions${wrapClass}" title="${escapeHtml(address)}">
+            <a class="ledger-flow-account-link ledger-flow-my-tezos-link${nameClass}" href="${accountHref(address)}" title="Open in My Tezos">${escapeHtml(label)}</a>
+            <a class="lb-baker-source-link ledger-flow-tzkt-pill" href="${tzktAccountHref(address)}" target="_blank" rel="noopener" title="View on TzKT">TzKT</a>
+        </span>
+    `;
+}
+
+function addressLinkMarkup(address, options = {}) {
+    if (!address) return '';
+    const text = options.text || shortAddress(address);
+    const className = options.className ? ` ${options.className}` : '';
+    return `<a class="ledger-flow-address-link ledger-flow-my-tezos-link${className}" href="${accountHref(address)}" title="Open ${escapeHtml(address)} in My Tezos">${escapeHtml(text)}</a>`;
 }
 
 function renderEdge(edge, positions, maxAmount, index) {
@@ -460,13 +516,23 @@ function renderNode(item, positions) {
     if (!pos) return '';
     const classes = ['ledger-flow-node'];
     if (item.firstFunding) classes.push('is-first');
-    const label = truncate(nodeLabel(item), 23);
-    const sub = item.firstFunding ? 'first funding' : `${formatCompactXTZ(item.total)} total`;
+    const geometry = nodeGeometry(item);
+    const x = pos.x - geometry.width / 2;
+    const y = pos.y - geometry.height / 2;
+    const label = fittedText(nodeLabel(item), geometry.width, 8.5);
+    const sub = fittedText(nodeSubLabel(item), geometry.width, 6.2);
+    const pillX = pos.x < 500 ? geometry.width + 6 : -42;
     return `
-        <g class="${classes.join(' ')}" transform="translate(${pos.x - 84} ${pos.y - 28})">
-            <rect width="168" height="56" rx="9"></rect>
-            <text class="ledger-flow-node-title" x="84" y="23" text-anchor="middle">${escapeHtml(label)}</text>
-            <text class="ledger-flow-node-sub" x="84" y="40" text-anchor="middle">${escapeHtml(sub)}</text>
+        <g class="${classes.join(' ')}" transform="translate(${x} ${y})">
+            <a class="ledger-flow-node-profile-link" href="${accountHref(item.address)}" aria-label="Open ${escapeHtml(nodeLabel(item))} in My Tezos">
+                <rect width="${geometry.width}" height="${geometry.height}" rx="9"></rect>
+                <text class="ledger-flow-node-title" x="${geometry.width / 2}" y="25" text-anchor="middle">${escapeHtml(label)}</text>
+                <text class="ledger-flow-node-sub" x="${geometry.width / 2}" y="43" text-anchor="middle">${escapeHtml(sub)}</text>
+            </a>
+            <a class="ledger-flow-node-tzkt-link" href="${tzktAccountHref(item.address)}" target="_blank" rel="noopener" aria-label="View ${escapeHtml(nodeLabel(item))} on TzKT">
+                <rect class="ledger-flow-node-tzkt-bg" x="${pillX}" y="7" width="36" height="16" rx="3"></rect>
+                <text class="ledger-flow-node-tzkt-text" x="${pillX + 18}" y="18" text-anchor="middle">TzKT</text>
+            </a>
         </g>
     `;
 }
@@ -518,28 +584,30 @@ function renderDiagram(model) {
 function edgeDetail(edge, model) {
     if (!edge) {
         const first = model.firstTx;
+        const selectedAccount = {
+            address: model.address,
+            alias: model.account?.alias || activeLabel || shortAddress(model.address)
+        };
         return `
             <div class="ledger-flow-detail-empty">
-                <strong>${escapeHtml(model.account?.alias || activeLabel || shortAddress(model.address))}</strong>
-                <span>${escapeHtml(shortAddress(model.address))}</span>
-                ${first ? `<p>First funded by ${escapeHtml(nodeLabel(first.counterparty))} on ${escapeHtml(formatDate(first.timestamp))} for ${escapeHtml(formatCompactXTZ(first.amount))}.</p>` : '<p>No first inbound transfer was found in the TzKT transaction history.</p>'}
+                ${accountLinksMarkup(selectedAccount, { nameClass: 'ledger-flow-detail-name', wrapClass: 'ledger-flow-detail-account' })}
+                ${addressLinkMarkup(model.address, { text: model.address, className: 'ledger-flow-detail-address' })}
+                ${first ? `<p>First funded by ${accountLinksMarkup(first.counterparty, { wrapClass: 'ledger-flow-inline-account' })} on ${escapeHtml(formatDate(first.timestamp))} for ${escapeHtml(formatCompactXTZ(first.amount))}.</p>` : '<p>No first inbound transfer was found in the TzKT transaction history.</p>'}
             </div>
         `;
     }
     const counterparty = edge.counterparty;
     const verb = edge.direction === 'sent' ? 'Sent to' : edge.direction === 'first' ? 'First funded by' : 'Received from';
-    const txLink = edge.tx?.hash ? `https://tzkt.io/${encodeURIComponent(edge.tx.hash)}` : `https://tzkt.io/${encodeURIComponent(counterparty.address)}`;
     return `
         <div class="ledger-flow-detail-card" data-direction="${escapeHtml(edge.direction)}">
             <span class="ledger-flow-detail-kicker">${escapeHtml(verb)}</span>
-            <strong>${escapeHtml(nodeLabel(counterparty))}</strong>
-            <code>${escapeHtml(counterparty.address)}</code>
+            ${accountLinksMarkup(counterparty, { nameClass: 'ledger-flow-detail-name', wrapClass: 'ledger-flow-detail-account' })}
+            ${addressLinkMarkup(counterparty.address, { text: counterparty.address, className: 'ledger-flow-detail-address' })}
             <div class="ledger-flow-detail-metrics">
                 <span><small>Amount</small><b>${escapeHtml(formatCompactXTZ(edge.amount))}</b></span>
                 <span><small>Rows</small><b>${escapeHtml(formatCount(edge.count))}</b></span>
                 <span><small>When</small><b>${escapeHtml(edge.tx ? formatDate(edge.tx.timestamp) : formatAge(counterparty.latest))}</b></span>
             </div>
-            <a class="panel-direct-link" href="${escapeHtml(txLink)}" target="_blank" rel="noopener">Open on TzKT</a>
         </div>
     `;
 }
@@ -550,14 +618,14 @@ function renderCounterpartyRows(model) {
         const edgeId = item.firstFunding ? `${item.address}:first` : `${item.address}:${primaryDirection}`;
         const badge = item.firstFunding ? 'first' : (item.sent && item.received ? 'both' : primaryDirection);
         return `
-            <button class="ledger-flow-counterparty-row" type="button" data-ledger-edge="${escapeHtml(edgeId)}">
+            <div class="ledger-flow-counterparty-row" role="button" tabindex="0" data-ledger-edge="${escapeHtml(edgeId)}">
                 <span class="ledger-flow-row-name">
-                    <strong>${escapeHtml(nodeLabel(item))}</strong>
-                    <small>${escapeHtml(shortAddress(item.address))}</small>
+                    ${accountLinksMarkup(item)}
+                    ${addressLinkMarkup(item.address)}
                 </span>
                 <span class="ledger-flow-row-amount">${escapeHtml(formatCompactXTZ(item.total, { withUnit: false }))}</span>
                 <span class="ledger-flow-row-badge" data-kind="${escapeHtml(badge)}">${escapeHtml(badge)}</span>
-            </button>
+            </div>
         `;
     }).join('');
     return rows || '<div class="ledger-flow-muted">No counterparties match the current filter.</div>';
@@ -740,6 +808,20 @@ function wireLedgerFlowControls(container) {
     if (!container.dataset.ledgerFlowEdgeWired) {
         container.dataset.ledgerFlowEdgeWired = '1';
         container.addEventListener('click', (event) => {
+            const accountLink = event.target.closest('.ledger-flow-my-tezos-link, .ledger-flow-node-profile-link');
+            if (accountLink) {
+                if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) closeLedgerFlowChamber();
+                return;
+            }
+            if (event.target.closest('a')) return;
+            const target = event.target.closest('[data-ledger-edge]');
+            if (!target) return;
+            event.preventDefault();
+            setDetailForEdge(target.dataset.ledgerEdge, container);
+        });
+        container.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            if (event.target.closest('a')) return;
             const target = event.target.closest('[data-ledger-edge]');
             if (!target) return;
             event.preventDefault();
