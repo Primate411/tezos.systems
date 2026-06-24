@@ -1917,6 +1917,36 @@ function initUptimeClock() {
         updateTopContinuityShuffleState();
     }
 
+    function renderTopContinuityRuntime(years, days, hours, mins) {
+        return [
+            [years, 'y', 2],
+            [days, 'd', 3],
+            [hours, 'h', 2],
+            [mins, 'm', 2]
+        ].map(([value, unit, digits]) => (
+            `<span class="top-continuity-time-segment"><span class="top-continuity-time-number top-continuity-digits-${digits}">${value}</span>${unit}</span>`
+        )).join(' ');
+    }
+
+    function setTopContinuityRuntime(years, days, hours, mins) {
+        const el = document.getElementById('hero-chain-uptime-counter');
+        if (!el) return;
+
+        const nextText = `${years}y ${days}d ${hours}h ${mins}m`;
+        if (el.dataset.finalText === nextText) return;
+
+        const existingFrame = topContinuityAnimations.get(el.id);
+        if (existingFrame) {
+            cancelAnimationFrame(existingFrame);
+            topContinuityAnimations.delete(el.id);
+        }
+
+        el.dataset.finalText = nextText;
+        el.innerHTML = renderTopContinuityRuntime(years, days, hours, mins);
+        el.classList.remove('is-shuffling');
+        updateTopContinuityShuffleState();
+    }
+
     function setChainText(id, text) {
         const el = document.getElementById(id);
         if (el && text) el.textContent = text;
@@ -1960,7 +1990,6 @@ function initUptimeClock() {
         const mins = Math.floor((remAfterYears % 3600000) / 60000);
         const secs = Math.floor((remAfterYears % 60000) / 1000);
         const str = `${years}y ${days}d ${String(hours).padStart(2,'0')}h ${String(mins).padStart(2,'0')}m ${String(secs).padStart(2,'0')}s`;
-        const topStr = `${years}y ${days}d ${hours}h ${mins}m`;
         // Wrap each character in a fixed-width span to prevent layout shift
         const html = str.split('').map(ch =>
             /\d/.test(ch) ? `<span class="uptime-digit">${ch}</span>` : `<span class="uptime-sep">${ch}</span>`
@@ -1968,7 +1997,7 @@ function initUptimeClock() {
         if (counterEl) counterEl.innerHTML = html;
         const chainCounterEl = document.getElementById('chain-uptime-counter');
         if (chainCounterEl) chainCounterEl.innerHTML = html;
-        setTopContinuityText('hero-chain-uptime-counter', topStr, { shuffle: false });
+        setTopContinuityRuntime(years, days, hours, mins);
         syncChainProofMetrics();
     }
 

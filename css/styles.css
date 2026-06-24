@@ -742,10 +742,8 @@ body::before {
 }
 
 .top-continuity-core {
-    display: inline-grid;
-    grid-template-columns: max-content max-content max-content;
+    display: inline-flex;
     align-items: center;
-    column-gap: 2ch;
     min-width: 0;
 }
 
@@ -808,17 +806,44 @@ body::before {
 }
 
 .top-continuity-runtime {
-    flex: 0 0 12ch;
-    inline-size: 12ch;
+    flex: 0 0 auto;
+    inline-size: auto;
+    margin-inline: 0.25ch 1ch;
     color: var(--uptime-badge-value);
     font-size: clamp(0.68rem, 0.86vw, 0.78rem);
     font-weight: 900;
     letter-spacing: 0;
     line-height: 1;
-    text-align: end;
+    text-align: start;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     text-shadow: var(--uptime-badge-value-shadow);
+}
+
+.top-continuity-time-number {
+    display: inline-block;
+    text-align: right;
+}
+
+.top-continuity-time-segment {
+    display: inline-block;
+}
+
+.top-continuity-digits-2 {
+    inline-size: 2ch;
+}
+
+.top-continuity-digits-3 {
+    inline-size: 3ch;
+}
+
+.top-continuity-time-segment:first-child {
+    inline-size: 3ch;
+}
+
+.top-continuity-time-segment:first-child .top-continuity-time-number {
+    inline-size: auto;
+    text-align: left;
 }
 
 .top-continuity-origin {
@@ -5327,13 +5352,11 @@ body::before {
     }
 
     .top-continuity-core {
-        grid-template-columns: max-content max-content max-content;
-        column-gap: 0.48rem;
+        display: inline-flex;
     }
 
     .top-continuity-runtime {
-        flex-basis: 12ch;
-        inline-size: 12ch;
+        margin-inline: 0.2ch 0.72ch;
         font-size: clamp(0.56rem, 2vw, 0.64rem);
     }
 
