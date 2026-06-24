@@ -122,6 +122,27 @@
     padding: 0.32rem 0.4rem;
 }
 
+.ledger-flow-entry-metrics .chamber-entry-metric[data-ledger-flow-metric] {
+    border-color: color-mix(in srgb, var(--ledger-flow-metric-color) 24%, transparent);
+    background: color-mix(in srgb, var(--ledger-flow-metric-color) 7%, transparent);
+}
+
+.ledger-flow-entry-card .ledger-flow-entry-metrics .chamber-entry-metric[data-ledger-flow-metric] strong {
+    color: var(--ledger-flow-metric-color);
+}
+
+.ledger-flow-entry-metrics [data-ledger-flow-metric="received"] {
+    --ledger-flow-metric-color: var(--ledger-flow-received);
+}
+
+.ledger-flow-entry-metrics [data-ledger-flow-metric="sent"] {
+    --ledger-flow-metric-color: var(--ledger-flow-sent);
+}
+
+.ledger-flow-entry-metrics [data-ledger-flow-metric="first"] {
+    --ledger-flow-metric-color: var(--ledger-flow-first);
+}
+
 @media (min-width: 760px) {
     #chambers-grid .ledger-flow-entry-card.chamber-entry-wide {
         height: 338px !important;

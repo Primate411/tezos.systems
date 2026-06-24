@@ -11,7 +11,7 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const LAST_TARGET_KEY = 'tezos-systems-ledger-flow-target';
 const WINDOW_KEY = 'tezos-systems-ledger-flow-window';
 const THRESHOLD_KEY = 'tezos-systems-ledger-flow-threshold-index';
-const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=292';
+const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=296';
 const DEFAULT_WINDOW = '30d';
 const TRANSFER_LIMIT = 60;
 const MAX_VISIBLE_COUNTERPARTIES = 12;
@@ -1014,9 +1014,9 @@ function ensureLedgerFlowEntryCard() {
                         </div>
                     </div>
                     <div class="chamber-entry-metrics ledger-flow-entry-metrics">
-                        <div class="chamber-entry-metric is-good"><span>Received</span><strong>blue</strong></div>
-                        <div class="chamber-entry-metric"><span>Sent</span><strong>pink</strong></div>
-                        <div class="chamber-entry-metric"><span>First in</span><strong>gold</strong></div>
+                        <div class="chamber-entry-metric" data-ledger-flow-metric="received"><span>Received</span><strong>blue</strong></div>
+                        <div class="chamber-entry-metric" data-ledger-flow-metric="sent"><span>Sent</span><strong>pink</strong></div>
+                        <div class="chamber-entry-metric" data-ledger-flow-metric="first"><span>First in</span><strong>gold</strong></div>
                         <div class="chamber-entry-metric"><span>Weight</span><strong>amount</strong></div>
                     </div>
                 </div>

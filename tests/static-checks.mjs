@@ -280,6 +280,7 @@ async function checkCacheBustAlignment() {
   const index = await readText('index.html');
   const sw = await readText('sw.js');
   const heroSearch = await readText('js/features/search.js');
+  const ledgerFlow = await readText('js/features/ledger-flow.js');
   const themePreload = await readText('js/core/theme-preload.js');
   const themeUi = await readText('js/ui/theme.js');
   const cssMatch = index.match(/css\/styles\.min\.css\?v=(\d+)/);
@@ -289,6 +290,7 @@ async function checkCacheBustAlignment() {
   const themePreloadScriptMatch = index.match(/js\/core\/theme-preload\.js\?v=(\d+)/);
   const cacheMatch = sw.match(/CACHE_NAME\s*=\s*['"]tezos-systems-v(\d+)['"]/);
   const heroSearchCssMatch = heroSearch.match(/HERO_SEARCH_CSS_URL\s*=\s*['"]\/css\/hero-search\.css\?v=(\d+)['"]/);
+  const ledgerFlowCssMatch = ledgerFlow.match(/LEDGER_FLOW_CSS_URL\s*=\s*['"]\/css\/ledger-flow\.css\?v=(\d+)['"]/);
   const themePreloadMatch = themePreload.match(/THEME_CSS_VERSION\s*=\s*['"](\d+)['"]/);
   const themeUiMatch = themeUi.match(/THEME_CSS_VERSION\s*=\s*['"](\d+)['"]/);
 
@@ -299,6 +301,7 @@ async function checkCacheBustAlignment() {
   if (!themePreloadScriptMatch) fail('index.html theme-preload.js script must carry a ?v= cache stamp');
   if (!cacheMatch) fail('sw.js CACHE_NAME must be tezos-systems-vNN');
   if (!heroSearchCssMatch) fail('search.js hero-search.css loader must carry a ?v= cache stamp');
+  if (!ledgerFlowCssMatch) fail('ledger-flow.js ledger-flow.css loader must carry a ?v= cache stamp');
   if (!themePreloadMatch) fail('theme-preload.js must expose THEME_CSS_VERSION');
   if (!themeUiMatch) fail('theme.js must expose THEME_CSS_VERSION');
 
@@ -309,11 +312,12 @@ async function checkCacheBustAlignment() {
     appScriptMatch?.[1],
     themePreloadScriptMatch?.[1],
     cacheMatch?.[1],
-    heroSearchCssMatch?.[1]
+    heroSearchCssMatch?.[1],
+    ledgerFlowCssMatch?.[1]
   ].filter(Boolean);
   if (new Set(versions).size > 1) {
     fail(`cache stamps are out of sync: ${versions.join(', ')}`);
-  } else if (versions.length === 7) {
+  } else if (versions.length === 8) {
     pass(`cache stamps aligned at v${versions[0]}`);
   }
 
@@ -650,6 +654,9 @@ async function checkSelectorContracts() {
     ['Ledger Flow sent color class', '.ledger-flow-edge-sent', ledgerFlowCss],
     ['Ledger Flow received color class', '.ledger-flow-edge-received', ledgerFlowCss],
     ['Ledger Flow first-funding color class', '.ledger-flow-edge-first', ledgerFlowCss],
+    ['Ledger Flow card sent metric color hook', 'data-ledger-flow-metric="sent"', ledgerFlow],
+    ['Ledger Flow card first metric color hook', 'data-ledger-flow-metric="first"', ledgerFlow],
+    ['Ledger Flow card metric color CSS', '.chamber-entry-metric[data-ledger-flow-metric] strong', ledgerFlowCss],
     ['Ledger Flow threshold slider', 'id="ledger-flow-threshold"', ledgerFlow],
     ['Ledger Flow amount-weighted edge width', 'function edgeWidth', ledgerFlow],
     ['Ledger Flow first inbound fetch', 'async function fetchFirstInbound', ledgerFlow],

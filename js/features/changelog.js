@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-23',
         entries: [
+            { type: '🎨', text: 'Ledger Flow card labels now color sent pink and first-in gold to match the diagram legend' },
             { type: '✨', text: 'TzSafe Recovery now lives in the corner gift tray and Explore menu as the legacy KT1 multisig migration path for the community fork' },
             { type: '🔧', text: 'Playwright smoke and OG tooling now share one Chrome launcher with system-browser fallback so missing bundled Chromium no longer interrupts local QA' },
             { type: '✨', text: 'Protocol Anthology now keeps Read full history controls clickable, adds full-story printing, and animates governance clash markers across the living archive' },
