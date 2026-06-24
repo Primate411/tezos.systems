@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-23',
         entries: [
+            { type: '🎨', text: 'Ledger Flow and Protocol Anthology Chamber cards now reserve real footer space so their rails, controls, and Open actions no longer collide' },
             { type: '🎨', text: 'Mobile now scales the Tezos Systems wordmark wider across the header so it lines up more closely with the panels below' },
             { type: '🎨', text: 'The desktop uptime badge now hugs the uptime label while keeping compact two-digit number slots stable' },
             { type: '✨', text: 'Ledger Flow is now a Chamber for mapping sent, received, and first-funding account transfer paths with amount-weighted lines, with My Tezos linking saved addresses straight into it' },

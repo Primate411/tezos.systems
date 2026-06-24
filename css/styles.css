@@ -17026,6 +17026,7 @@ body {
 .chamber-entry-card {
     --chamber-control-lane: 3.65rem;
     --chamber-card-inline-padding: 1.45rem;
+    --chamber-footer-clearance: 3rem;
     border: 1px solid color-mix(in srgb, var(--accent-cyan) 12%, transparent) !important;
     transition: all 0.3s ease !important;
     position: relative;
@@ -17034,7 +17035,7 @@ body {
 
 #chambers-grid .chamber-entry-card .card-front {
     padding-right: var(--chamber-control-lane);
-    padding-bottom: 2.35rem;
+    padding-bottom: var(--chamber-footer-clearance);
 }
 
 #chambers-grid .chamber-entry-card > .card-copy-link,
@@ -17339,7 +17340,7 @@ body {
         align-items: flex-start;
         gap: 0.55rem;
         padding-top: 1.25rem;
-        padding-bottom: 2.35rem;
+        padding-bottom: var(--chamber-footer-clearance);
         text-align: left;
     }
 
@@ -17349,6 +17350,10 @@ body {
 
     #chambers-grid > .chamber-card-pair:is([data-chamber-pair="tezlink-governance"], [data-chamber-pair="tz4-liquidity"]) > .chamber-entry-card {
         height: 228px;
+    }
+
+    #chambers-grid > .chamber-card-pair[data-chamber-pair="ledger-history"] > .chamber-entry-card {
+        height: 338px;
     }
 
     #chamber-entry-card.chamber-entry-wide .chamber-entry-front {
@@ -17459,6 +17464,7 @@ body {
     #chambers-grid .chamber-entry-card {
         --chamber-control-lane: 3.85rem;
         --chamber-card-inline-padding: 1.25rem;
+        --chamber-footer-clearance: 3.15rem;
     }
 
     #chambers-grid .chamber-entry-card > .card-copy-link,
@@ -17485,7 +17491,7 @@ body {
     #chambers-grid .chamber-entry-card .card-front {
         padding-top: 2rem;
         padding-right: var(--chamber-control-lane);
-        padding-bottom: 2.45rem;
+        padding-bottom: var(--chamber-footer-clearance);
     }
 
     #chambers-grid .chamber-entry-card.chamber-entry-wide {

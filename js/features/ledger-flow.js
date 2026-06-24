@@ -11,7 +11,7 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const LAST_TARGET_KEY = 'tezos-systems-ledger-flow-target';
 const WINDOW_KEY = 'tezos-systems-ledger-flow-window';
 const THRESHOLD_KEY = 'tezos-systems-ledger-flow-threshold-index';
-const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=286';
+const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=291';
 const DEFAULT_WINDOW = '30d';
 const TRANSFER_LIMIT = 60;
 const MAX_VISIBLE_COUNTERPARTIES = 12;
