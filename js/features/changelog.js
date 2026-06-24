@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-24',
+        entries: [
+            { type: '🔧', text: 'Ledger Flow and Protocol Anthology camera buttons now sanitize their share clones so screenshots open reliably' },
+        ]
+    },
+    {
         date: '2026-06-23',
         entries: [
             { type: '🎨', text: 'Ledger Flow card labels now color sent pink and first-in gold to match the diagram legend' },

@@ -366,9 +366,12 @@ function getChamberShareRoute(card) {
         '#tezosx': '/tezosx/',
         '#l2chamber': '/l2chamber/',
         '#tz4': '/tz4/',
-        '#lb': '/lb/'
+        '#lb': '/lb/',
+        '#ledger-flow': '/ledger-flow/'
     };
-    return routes[hash] ? `tezos.systems${routes[hash]}` : 'tezos.systems/#chambers';
+    if (routes[hash]) return `tezos.systems${routes[hash]}`;
+    if (hash === '#protocol-history') return 'tezos.systems/#protocol-history';
+    return 'tezos.systems/#chambers';
 }
 
 function getChamberShareSummary(card) {
@@ -392,7 +395,12 @@ function getChamberShareSummary(card) {
         '.tz4-entry-preview-row',
         '.health-live-tape-row',
         '.lb-entry-vote-row',
-        '.tezlink-tape-row'
+        '.tezlink-tape-row',
+        '.ledger-flow-entry-metrics .chamber-entry-metric',
+        '.protocol-history-entry-count',
+        '.protocol-history-entry-current',
+        '.protocol-history-entry-facets span',
+        '.protocol-history-entry-spine-item'
     ].join(',')).forEach((node) => {
         if (isVisibleForShare(node)) pushUniqueLine(highlightLines, compactShareText(node));
     });
@@ -435,6 +443,54 @@ function convertCloneCanvases(sourceCard, clone) {
         } catch {
             // Some canvases may be tainted or mid-render; keep the live clone intact.
         }
+    });
+}
+
+const HTML2CANVAS_UNSUPPORTED_COLOR_RE = /\b(?:color|color-mix|lab|lch|oklab|oklch)\(/i;
+
+function hasHtml2CanvasUnsupportedColor(value) {
+    return HTML2CANVAS_UNSUPPORTED_COLOR_RE.test(String(value || ''));
+}
+
+function sanitizeCaptureModernColorStyles(root, {
+    textColor = '#ffffff',
+    panelBg = 'rgba(255,255,255,0.055)',
+    panelBorder = 'rgba(255,255,255,0.14)'
+} = {}) {
+    if (!root) return;
+
+    const nodes = [root, ...root.querySelectorAll('*')];
+    const transparent = 'rgba(0,0,0,0)';
+    const borderProps = [
+        'borderTopColor',
+        'borderRightColor',
+        'borderBottomColor',
+        'borderLeftColor',
+        'outlineColor',
+        'columnRuleColor',
+        'textDecorationColor',
+        'caretColor'
+    ];
+
+    nodes.forEach((node) => {
+        const computed = getComputedStyle(node);
+
+        if (hasHtml2CanvasUnsupportedColor(computed.color)) node.style.color = textColor;
+        if (hasHtml2CanvasUnsupportedColor(computed.backgroundColor)) node.style.backgroundColor = transparent;
+        if (hasHtml2CanvasUnsupportedColor(computed.backgroundImage)) node.style.backgroundImage = 'none';
+        if (hasHtml2CanvasUnsupportedColor(computed.boxShadow)) node.style.boxShadow = 'none';
+        if (hasHtml2CanvasUnsupportedColor(computed.textShadow)) node.style.textShadow = 'none';
+        if (hasHtml2CanvasUnsupportedColor(computed.filter)) node.style.filter = 'none';
+
+        borderProps.forEach((prop) => {
+            if (hasHtml2CanvasUnsupportedColor(computed[prop])) node.style[prop] = panelBorder;
+        });
+
+        const fill = computed.getPropertyValue('fill');
+        if (fill !== 'none' && hasHtml2CanvasUnsupportedColor(fill)) node.style.fill = panelBg;
+
+        const stroke = computed.getPropertyValue('stroke');
+        if (stroke !== 'none' && hasHtml2CanvasUnsupportedColor(stroke)) node.style.stroke = panelBorder;
     });
 }
 
@@ -517,6 +573,8 @@ async function captureChamberCard(card) {
             .chamber-share-panel *::before,
             .chamber-share-panel *::after {
                 content: none !important;
+                background: none !important;
+                border-color: transparent !important;
             }
             .chamber-share-panel .stat-card {
                 width: 100% !important;
@@ -668,6 +726,7 @@ async function captureChamberCard(card) {
         content.appendChild(right);
         wrapper.appendChild(content);
         document.body.appendChild(wrapper);
+        sanitizeCaptureModernColorStyles(panelClone, { textColor, panelBg, panelBorder });
 
         restoreSpacing = await fixWordSpacing(wrapper);
         const canvas = await window.html2canvas(wrapper, {
