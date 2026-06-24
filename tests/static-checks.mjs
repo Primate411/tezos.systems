@@ -421,9 +421,11 @@ async function checkSelectorContracts() {
   const requiredIds = [
     'price-bar',
     'ctez-launcher',
+    'tzsafe-launcher',
     'features-gear',
     'features-dropdown',
     'ctez-feature-btn',
+    'tzsafe-feature-link',
     'chambers-toggle',
     'chambers-section',
     'chambers-grid',
@@ -517,6 +519,7 @@ async function checkSelectorContracts() {
   const app = await readText('js/core/app.js');
   const search = await readText('js/features/search.js');
   const heroSearchCss = await readText('css/hero-search.css');
+  const henModeCss = await readText('css/hen-mode.css');
   const chamber = await readText('js/features/chamber.js');
   const lb = await readText('js/features/liquidity-baking.js');
   const tezlink = await readText('js/features/tezlink.js');
@@ -559,11 +562,18 @@ async function checkSelectorContracts() {
     ['Protocol Anthology curator board', 'protocol-history-anthology-board', app],
     ['Protocol Anthology real-data renderer', 'function renderProtocolAnthologyBoard', app],
     ['Protocol Anthology protocol open chips', 'data-protocol-open', app],
+    ['Protocol Anthology living archive strip', 'protocol-anthology-live', app],
+    ['Protocol Anthology clash map renderer', 'protocol-anthology-clash-map', app],
     ['Protocol Anthology metrics styles', '.protocol-anthology-metrics', heroSearchCss],
     ['Protocol Anthology shelves styles', '.protocol-anthology-shelves', heroSearchCss],
+    ['Protocol Anthology clash styles', '.protocol-anthology-clash', heroSearchCss],
+    ['Protocol Anthology timeline crowd styles', '.contention-crowd', heroSearchCss],
     ['Protocol History Chamber modal', "overlay.id = 'protocol-history-chamber-modal'", app],
     ['Protocol History Chamber timeline launcher', 'data-protocol-history-jump="timeline"', app],
     ['Protocol History Chamber impact launcher', 'data-protocol-history-jump="impact"', app],
+    ['Protocol History stable read button', 'history-expand-btn', app],
+    ['Protocol History print button', 'history-modal-print', app],
+    ['Protocol History print helper', 'function printProtocolHistory', app],
     ['Protocol History Chamber reveal helper', 'function revealProtocolHistorySection', app],
     ['Protocol History Chamber timeline toggle target', 'protocol-timeline-toggle-btn', app],
     ['Protocol History Chamber action styles', '.protocol-history-chamber-action', heroSearchCss],
@@ -653,6 +663,15 @@ async function checkSelectorContracts() {
     ['ctez feature copy link', 'data-copy-hash="#ctez"', index],
     ['ctez top-left launcher', 'id="ctez-launcher"', index],
     ['ctez feature launcher', 'id="ctez-feature-btn"', index],
+    ['TzSafe top-left launcher', 'id="tzsafe-launcher"', index],
+    ['TzSafe feature launcher', 'id="tzsafe-feature-link"', index],
+    ['TzSafe canonical external link', 'href="https://tzsafe.tez.page/"', index],
+    ['TzSafe feature copy', 'TzSafe Recovery', index],
+    ['TzSafe cleanup hint', 'Legacy KT1 multisig cleanup path', index],
+    ['TzSafe external action button', 'feature-external-link" href="https://tzsafe.tez.page/"', index],
+    ['TzSafe feature row polish', '.tzsafe-feature-link', henModeCss],
+    ['TzSafe tray icon style', '.tzsafe-launcher', henModeCss],
+    ['TzSafe key mark style', '.tzsafe-logo-key', henModeCss],
     ['ctez end of life chamber copy', 'ctez End of Life', ctez],
     ['ctez chamber wiring', 'openCtezChamber', ctez],
     ['ctez launcher wiring', 'wireCtezLauncher', ctez],

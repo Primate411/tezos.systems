@@ -2855,6 +2855,10 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, '#features-dropdown .feature-copy-link[data-copy-hash="#chambers"]', 1, label);
   await expectCount(page, '#features-dropdown #ctez-feature-btn', 1, label);
   await expectCount(page, '#features-dropdown .feature-copy-link[data-copy-hash="#ctez"]', 1, label);
+  await expectCount(page, '#corner-gift-items #tzsafe-launcher[href="https://tzsafe.tez.page/"]', 1, label);
+  await expectCount(page, '#features-dropdown #tzsafe-feature-link[href="https://tzsafe.tez.page/"]', 1, label);
+  await expectCount(page, '#features-dropdown .feature-external-link[href="https://tzsafe.tez.page/"]', 1, label);
+  assert((await page.locator('#features-dropdown #tzsafe-feature-link').innerText()).includes('Legacy KT1 multisig cleanup path'), `${label}: TzSafe launcher copy missing`);
   await assertLocatorCount(page.locator('#features-dropdown #chamber-toggle, #features-dropdown #liquidity-baking-toggle, #features-dropdown #tz4-adoption-toggle'), 0, `${label} individual chamber launchers`);
   assert((await page.locator('#features-dropdown a[href="/widgets/builder.html"]').innerText()).includes('Embed Builder'), `${label}: launcher should point widgets to Embed Builder`);
   await page.locator('.feature-copy-link[data-copy-hash="#compare"]').click();
@@ -4463,7 +4467,10 @@ async function smokeCtezChamber(browser, baseUrl) {
       footer: modal?.querySelector('.chamber-footer')?.textContent || '',
       hasDefaultCard: Boolean(document.querySelector('#ctez-entry-card')),
       hasTopLeftLauncher: Boolean(document.querySelector('#ctez-launcher')),
+      hasTzSafeTopLeftLauncher: Boolean(document.querySelector('#tzsafe-launcher[href="https://tzsafe.tez.page/"]')),
       featureButtonText: document.querySelector('#ctez-feature-btn')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      tzsafeFeatureText: document.querySelector('#tzsafe-feature-link')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      tzsafeFeatureHref: document.querySelector('#tzsafe-feature-link')?.getAttribute('href') || '',
       featureCopyHash: document.querySelector('#features-dropdown .feature-copy-link[data-copy-hash="#ctez"]')?.dataset.copyHash || '',
       chambersHint: document.querySelector('#chambers-toggle .dropdown-hint')?.textContent?.trim() || ''
     };
@@ -4484,6 +4491,9 @@ async function smokeCtezChamber(browser, baseUrl) {
   assert(ctezState.directHref === '/ctez/', `ctez chamber: direct href mismatch: ${ctezState.directHref}`);
   assert(!ctezState.hasDefaultCard, `ctez chamber: should be off by default in Chambers: ${JSON.stringify(ctezState)}`);
   assert(ctezState.hasTopLeftLauncher, `ctez chamber: top-left launcher missing: ${JSON.stringify(ctezState)}`);
+  assert(ctezState.hasTzSafeTopLeftLauncher, `TzSafe external launcher missing from gift tray: ${JSON.stringify(ctezState)}`);
+  assert(ctezState.tzsafeFeatureHref === 'https://tzsafe.tez.page/', `TzSafe feature href mismatch: ${ctezState.tzsafeFeatureHref}`);
+  assert(/TzSafe Recovery/.test(ctezState.tzsafeFeatureText) && /Legacy KT1 multisig cleanup path/.test(ctezState.tzsafeFeatureText), `TzSafe feature copy mismatch: ${ctezState.tzsafeFeatureText}`);
   assert(ctezState.featureCopyHash === '#ctez', `ctez chamber: feature copy hash mismatch: ${ctezState.featureCopyHash}`);
   assert(/ctez End of Life/.test(ctezState.featureButtonText) && /Close old ovens/.test(ctezState.featureButtonText), `ctez chamber: feature launcher copy mismatch: ${ctezState.featureButtonText}`);
   assert(!/ctez/i.test(ctezState.chambersHint), `ctez chamber: Chambers hint should not advertise ctez as default: ${ctezState.chambersHint}`);
@@ -4654,6 +4664,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await expectCount(page, '#ctez-launcher', 1, 'governance testing period ctez top-left launcher');
   await expectCount(page, '#ctez-feature-btn', 1, 'governance testing period ctez feature launcher');
   await expectCount(page, '.feature-copy-link[data-copy-hash="#ctez"]', 1, 'governance testing period ctez feature link');
+  await expectCount(page, '#tzsafe-launcher[href="https://tzsafe.tez.page/"]', 1, 'governance testing period TzSafe top-left launcher');
+  await expectCount(page, '#tzsafe-feature-link[href="https://tzsafe.tez.page/"]', 1, 'governance testing period TzSafe feature link');
   await expectCount(page, '#chambers-section [data-stat="tz4-adoption"] .card-copy-link[data-copy-hash="#tz4"]', 1, 'governance testing period tz4 tile link');
   await expectCount(page, '#chambers-section [data-stat="network-health"] .card-copy-link[data-copy-hash="#health"]', 1, 'governance testing period health tile link');
   await expectCount(page, '#chambers-section #lb-entry-card', 1, 'governance testing period LB tile in Chambers');
@@ -5898,15 +5910,20 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.locator('#protocol-history-entry-card').scrollIntoViewIfNeeded();
   await page.locator('#protocol-history-entry-card').click();
   await page.locator('#protocol-history-chamber-modal.active #upgrade-timeline .timeline-item[data-protocol="Quebec"]').waitFor({ state: 'visible', timeout: 10000 });
-  await page.locator('.timeline-share-btn').waitFor({ state: 'attached', timeout: 10000 });
-  await page.locator('#protocol-history-chamber-modal .protocol-history-content').hover();
+  await page.locator('.timeline-share-btn').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('.timeline-share-btn').click();
   await expectShareModal(page, 'feature workflows protocol timeline share', issues);
   log('ok - feature workflow: protocol timeline share');
 
-  await page.locator('#protocol-history-chamber-modal #upgrade-timeline .timeline-item[data-protocol="Quebec"]').scrollIntoViewIfNeeded();
-  await page.locator('#protocol-history-chamber-modal #upgrade-timeline .timeline-item[data-protocol="Quebec"]').click();
+  const quebecProtocolLetter = page.locator('#protocol-history-chamber-modal #upgrade-timeline .timeline-item[data-protocol="Quebec"]');
+  await quebecProtocolLetter.scrollIntoViewIfNeeded();
+  await quebecProtocolLetter.hover();
+  const quebecReadButton = page.locator('#timeline-tooltip .history-expand-btn[data-protocol-tooltip-open="Quebec"]');
+  await quebecReadButton.waitFor({ state: 'visible', timeout: 5000 });
+  await quebecReadButton.hover();
+  await quebecReadButton.click();
   await page.locator('#protocol-history-modal').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#protocol-history-modal #history-modal-print').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#protocol-history-modal #history-modal-share').click();
   await expectShareModal(page, 'feature workflows protocol history share', issues);
   await page.locator('#protocol-history-modal #history-modal-close').click();

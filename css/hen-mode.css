@@ -155,6 +155,193 @@
     outline-offset: 3px;
 }
 
+.tzsafe-launcher {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(255, 91, 111, 0.38);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.18), transparent 30%),
+        linear-gradient(145deg, rgba(39, 38, 48, 0.9), rgba(13, 15, 24, 0.82));
+    color: #fff;
+    text-decoration: none;
+    cursor: pointer;
+    isolation: isolate;
+    box-shadow:
+        0 0 0 1px rgba(255, 91, 111, 0.08),
+        0 8px 24px rgba(0, 0, 0, 0.3),
+        0 0 22px rgba(255, 91, 111, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.tzsafe-launcher::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: inherit;
+    background: conic-gradient(from 210deg, transparent, rgba(255, 91, 111, 0.34), transparent 38%, rgba(144, 202, 255, 0.18), transparent 70%);
+    opacity: 0.5;
+    filter: blur(8px);
+    z-index: -1;
+    animation: tzsafe-launcher-aura 7s linear infinite;
+}
+
+.tzsafe-launcher-mark {
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 22px;
+}
+
+.tzsafe-logo-core {
+    position: absolute;
+    left: 6px;
+    top: 7px;
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(90, 11, 23, 0.74) 0 24%, transparent 25%),
+        repeating-conic-gradient(from 8deg, #ff5b6f 0deg 16deg, #a50e26 16deg 32deg);
+    box-shadow:
+        inset 0 0 5px rgba(255, 255, 255, 0.16),
+        0 2px 8px rgba(255, 91, 111, 0.36);
+}
+
+.tzsafe-logo-key {
+    position: absolute;
+    left: 3px;
+    top: 4px;
+    width: 19px;
+    height: 4px;
+    border-radius: 999px;
+    background: #f7f5f1;
+    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.42);
+    transform: rotate(-40deg);
+    transform-origin: 2px 50%;
+}
+
+.tzsafe-logo-key::before {
+    content: '';
+    position: absolute;
+    left: -5px;
+    top: -4px;
+    width: 8px;
+    height: 8px;
+    border: 2px solid #f7f5f1;
+    border-radius: 50%;
+    background: rgba(13, 15, 24, 0.62);
+}
+
+.tzsafe-logo-key::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    bottom: -4px;
+    width: 3px;
+    height: 7px;
+    border-radius: 1px;
+    background: #f7f5f1;
+    box-shadow: -5px 1px 0 #f7f5f1;
+}
+
+.tzsafe-launcher:hover,
+.tzsafe-launcher:focus-visible {
+    transform: translateY(-1px) rotate(-3deg) scale(1.06);
+    border-color: rgba(255, 91, 111, 0.68);
+    background:
+        radial-gradient(circle at 34% 24%, rgba(255, 255, 255, 0.24), transparent 32%),
+        linear-gradient(145deg, rgba(58, 42, 54, 0.94), rgba(18, 19, 30, 0.9));
+    box-shadow:
+        0 0 0 1px rgba(255, 91, 111, 0.18),
+        0 10px 28px rgba(0, 0, 0, 0.34),
+        0 0 30px rgba(255, 91, 111, 0.22);
+}
+
+.tzsafe-launcher:focus-visible {
+    outline: 2px solid rgba(255, 91, 111, 0.82);
+    outline-offset: 3px;
+}
+
+.tzsafe-feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border: 1px solid rgba(255, 91, 111, 0.34);
+    border-radius: 50%;
+    background: rgba(255, 91, 111, 0.12);
+    box-shadow: inset 0 0 14px rgba(255, 91, 111, 0.08);
+}
+
+.tzsafe-feature-icon .tzsafe-launcher-mark {
+    transform: scale(0.74);
+}
+
+#features-dropdown .tzsafe-feature-link,
+#features-dropdown .feature-external-link {
+    text-decoration: none;
+}
+
+#features-dropdown .tzsafe-feature-link:hover,
+#features-dropdown .tzsafe-feature-link:focus-visible,
+#features-dropdown .feature-external-link:hover,
+#features-dropdown .feature-external-link:focus-visible {
+    filter: none;
+    text-decoration: none;
+}
+
+#features-dropdown .tzsafe-feature-link {
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+#features-dropdown .tzsafe-feature-link .dropdown-label,
+#features-dropdown .tzsafe-feature-link .dropdown-hint {
+    text-decoration: none;
+}
+
+#features-dropdown .tzsafe-feature-link:hover,
+#features-dropdown .tzsafe-feature-link:focus-visible {
+    color: var(--text-primary);
+}
+
+#features-dropdown .feature-external-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    min-height: 48px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    background: var(--glass-bg);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1;
+    transition: var(--transition);
+}
+
+#features-dropdown .feature-external-link:hover,
+#features-dropdown .feature-external-link:focus-visible {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.12);
+}
+
+#features-dropdown .feature-external-link:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+}
+
 @keyframes hen-launcher-bob {
     0%, 100% { transform: translateY(0) rotate(-2deg); }
     50% { transform: translateY(-3px) rotate(2deg); }
@@ -163,6 +350,11 @@
 @keyframes hen-launcher-aura {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+@keyframes tzsafe-launcher-aura {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(-360deg); }
 }
 
 @media (max-width: 640px) {
@@ -181,7 +373,8 @@
         font-size: 0.94rem;
     }
 
-    .hen-launcher {
+    .hen-launcher,
+    .tzsafe-launcher {
         width: 32px;
         height: 32px;
     }
@@ -193,7 +386,9 @@
     .corner-gift-items,
     .hen-launcher,
     .hen-launcher::before,
-    .hen-launcher span {
+    .hen-launcher span,
+    .tzsafe-launcher,
+    .tzsafe-launcher::before {
         animation: none;
     }
 }

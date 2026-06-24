@@ -1350,8 +1350,21 @@ function buildAnthologyMetric(label, value, note) {
 function buildAnthologyChapterButton(protocol, label = null) {
     const historyCount = Array.isArray(protocol?.history?.sections) ? protocol.history.sections.length : 0;
     const detail = label || (historyCount ? `${historyCount} scene${historyCount === 1 ? '' : 's'}` : formatProtocolDate(protocol) || 'open');
+    const classes = ['protocol-anthology-chip'];
+    if (protocol?.history || protocol?.contention || protocol?.debate) classes.push('has-clash');
     return `
-        <button class="protocol-anthology-chip" type="button" data-protocol-open="${escapeHtml(protocol.name)}">
+        <button class="${classes.join(' ')}" type="button" data-protocol-open="${escapeHtml(protocol.name)}">
+            <strong>${escapeHtml(protocol.name)}</strong>
+            <small>${escapeHtml(detail)}</small>
+        </button>
+    `;
+}
+
+function buildAnthologyClashButton(protocol, label = null) {
+    const detail = label || protocol?.history?.title || protocol?.debate || protocol?.headline || 'Governance clash';
+    return `
+        <button class="protocol-anthology-clash" type="button" data-protocol-open="${escapeHtml(protocol.name)}">
+            <span class="protocol-anthology-crowds" aria-hidden="true"></span>
             <strong>${escapeHtml(protocol.name)}</strong>
             <small>${escapeHtml(detail)}</small>
         </button>
@@ -1380,6 +1393,10 @@ async function renderProtocolAnthologyBoard(protocols, currentProtocol = null) {
     const fastest = blockTimes.length ? Math.min(...blockTimes) : null;
     const latestLongRead = ordered.find((protocol) => protocol.history && protocol.name !== current?.name) || longReads[longReads.length - 1] || current;
     const features = chooseFeaturedAnthologyChapters(ordered, current);
+    const clashChapters = ordered
+        .filter((protocol) => protocol.history || protocol.contention || protocol.debate)
+        .slice(0, 5);
+    const nextArchiveBeat = ordered[0]?.name || current?.name || 'current protocol';
     const shelves = new Map();
 
     enriched.forEach((protocol) => {
@@ -1421,12 +1438,25 @@ async function renderProtocolAnthologyBoard(protocols, currentProtocol = null) {
             </div>
             <div class="protocol-anthology-featured" aria-label="Featured protocol chapters">
                 ${features.map(({ protocol, label }) => `
-                    <button class="protocol-anthology-feature" type="button" data-protocol-open="${escapeHtml(protocol.name)}">
+                    <button class="protocol-anthology-feature ${protocol.history || protocol.contention || protocol.debate ? 'has-clash' : ''}" type="button" data-protocol-open="${escapeHtml(protocol.name)}">
                         <span>${escapeHtml(label)}</span>
                         <strong>${escapeHtml(protocol.name)}</strong>
                         <small>${escapeHtml(protocol.history?.title || protocol.headline || 'Open protocol context')}</small>
                     </button>
                 `).join('')}
+            </div>
+            <div class="protocol-anthology-live" aria-label="Living protocol anthology status">
+                <div class="protocol-anthology-pulse" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="protocol-anthology-live-copy">
+                    <span class="feature-kicker">Living archive</span>
+                    <strong>${escapeHtml(nextArchiveBeat)} keeps the front shelf warm.</strong>
+                    <small>${escapeHtml(String(clashChapters.length))} clash markers are lit for readers who want the amendment fights, not just the activation receipts.</small>
+                </div>
+                <div class="protocol-anthology-clash-map" aria-label="Protocol clash markers">
+                    ${clashChapters.map((protocol) => buildAnthologyClashButton(protocol)).join('')}
+                </div>
             </div>
             <div class="protocol-anthology-shelves" aria-label="Protocol era shelves">
                 ${shelfHtml}
@@ -2296,11 +2326,14 @@ function renderProtocolTimeline(protocols) {
                 const year = p.date ? new Date(p.date).getFullYear() : null;
                 const showYear = year && !yearSeen.has(year);
                 if (year) yearSeen.add(year);
+                const ariaLabel = contentious
+                    ? `${p.name} protocol, contested. Open full history.`
+                    : `${p.name} protocol. Open protocol card.`;
                 return `
                 <div class="timeline-item ${p.isCurrent ? 'current' : ''} ${contentious ? 'contentious' : ''}" 
-                     data-protocol="${escapeHtml(p.name)}">
+                     data-protocol="${escapeHtml(p.name)}" role="button" tabindex="0" aria-label="${escapeHtml(ariaLabel)}">
                     ${escapeHtml(p.name[0])}
-                    ${contentious ? '<span class="contention-icon">⚔</span>' : ''}
+                    ${contentious ? '<span class="contention-crowd contention-crowd-left" aria-hidden="true"></span><span class="contention-crowd contention-crowd-right" aria-hidden="true"></span><span class="contention-icon" aria-hidden="true">⚔</span>' : ''}
                     ${showYear ? `<span class="timeline-year">${year}</span>` : ''}
                 </div>
             `}).join('')}
@@ -2377,15 +2410,18 @@ async function renderInfographic(protocols, timelineEl, options = {}) {
         const tag = getTag(p);
         const delay = i * 30;
         
+        const ariaLabel = contentious
+            ? `${p.name} protocol, contested. Open full history.`
+            : `${p.name} protocol. Open protocol card.`;
         rowsHTML += `
             <div class="infographic-row ${contentious ? 'contentious' : ''} ${isCurrent ? 'current' : ''}" 
-                 style="animation-delay: ${delay}ms" data-protocol="${escapeHtml(p.name)}">
+                 style="animation-delay: ${delay}ms" data-protocol="${escapeHtml(p.name)}" role="button" tabindex="0" aria-label="${escapeHtml(ariaLabel)}">
                 <div class="infographic-dot"></div>
                 <span class="infographic-letter">${escapeHtml(p.name[0])}</span>
                 <span class="infographic-name" title="${escapeHtml(p.name)}">${escapeHtml(p.name)}</span>
                 <span class="infographic-date">${escapeHtml(dateStr)}</span>
                 <span class="infographic-headline">${escapeHtml(headline)}</span>
-                ${contentious ? '<span class="infographic-contention">⚔</span>' : ''}
+                ${contentious ? '<span class="infographic-clash-crowd infographic-clash-left" aria-hidden="true"></span><span class="infographic-clash-crowd infographic-clash-right" aria-hidden="true"></span><span class="infographic-contention" aria-hidden="true">⚔</span>' : ''}
                 ${tag ? `<div class="infographic-tags"><span class="infographic-tag">${escapeHtml(tag)}</span></div>` : ''}
             </div>
         `;
@@ -2395,18 +2431,30 @@ async function renderInfographic(protocols, timelineEl, options = {}) {
     timelineEl.appendChild(infographic);
     
     // Click on infographic rows — same behavior as clicking timeline letters
-    infographic.addEventListener('click', function(e) {
-        var row = e.target.closest('.infographic-row');
+    const openInfographicRow = function(row) {
         if (!row) return;
-        var name = row.getAttribute('data-protocol');
+        const name = row.getAttribute('data-protocol');
         if (!name) return;
-        var richP = richMap[name];
+        const richP = richMap[name];
         if (richP && richP.history) {
             showProtocolHistoryModal(richP.history, name);
         } else if (typeof window.captureProtocol === 'function') {
-            var proto = richMap[name];
+            const proto = richMap[name];
             if (proto) window.captureProtocol(proto);
         }
+    };
+
+    infographic.addEventListener('click', function(e) {
+        var row = e.target.closest('.infographic-row');
+        openInfographicRow(row);
+    });
+
+    infographic.addEventListener('keydown', function(e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const row = e.target.closest('.infographic-row');
+        if (!row) return;
+        e.preventDefault();
+        openInfographicRow(row);
     });
     
     // Make rows look clickable
@@ -2485,6 +2533,163 @@ async function openProtocolHistoryByName(protocolName) {
 
 window.openProtocolHistoryByName = openProtocolHistoryByName;
 
+function renderProtocolHistoryPrintDocument(history, protocolName) {
+    const renderTextBlocks = (content = '') => String(content)
+        .split(/\n{2,}/)
+        .map((part) => part.trim())
+        .filter(Boolean)
+        .map((part) => {
+            if (part.startsWith('•') || part.startsWith('- ')) {
+                const items = part.split(/\n/).map((item) => item.replace(/^[•-]\s*/, '').trim()).filter(Boolean);
+                return `<ul>${items.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>`;
+            }
+            if (part.startsWith('"') || part.startsWith('\u201c')) {
+                return `<blockquote>${escapeHtml(part)}</blockquote>`;
+            }
+            return `<p>${escapeHtml(part)}</p>`;
+        })
+        .join('');
+
+    const sectionsHtml = (history?.sections || []).map((section) => {
+        if (section.type === 'timeline') {
+            const events = Array.isArray(section.events) ? section.events : [];
+            return `
+                <section>
+                    <h2>${escapeHtml(section.heading || 'Timeline')}</h2>
+                    <ol class="print-timeline">
+                        ${events.map((event) => `
+                            <li>
+                                <time>${escapeHtml(event.date || '')}</time>
+                                <p>${escapeHtml(event.text || '')}</p>
+                            </li>
+                        `).join('')}
+                    </ol>
+                </section>
+            `;
+        }
+        if (section.type === 'versus') {
+            const sides = [section.left, section.right].filter(Boolean);
+            return `
+                <section>
+                    <h2>${escapeHtml(section.heading || 'The Debate')}</h2>
+                    <div class="print-versus">
+                        ${sides.map((side) => `
+                            <article>
+                                <h3>${escapeHtml(side.name || '')}</h3>
+                                <small>${escapeHtml(side.team || '')}</small>
+                                <p>${escapeHtml(side.position || '')}</p>
+                                ${side.quote ? `<blockquote>${escapeHtml(side.quote)}</blockquote>` : ''}
+                            </article>
+                        `).join('')}
+                    </div>
+                </section>
+            `;
+        }
+        return `
+            <section>
+                <h2>${escapeHtml(section.heading || 'Protocol Context')}</h2>
+                ${renderTextBlocks(section.content)}
+            </section>
+        `;
+    }).join('');
+
+    return `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(protocolName || history?.title || 'Protocol History')}</title>
+<style>
+    * { box-sizing: border-box; }
+    body {
+        margin: 0;
+        padding: 42px;
+        color: #111827;
+        background: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        line-height: 1.55;
+    }
+    main { max-width: 780px; margin: 0 auto; }
+    header { border-bottom: 2px solid #111827; margin-bottom: 24px; padding-bottom: 18px; }
+    .kicker {
+        color: #2563eb;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+    }
+    h1 { margin: 8px 0 6px; font-size: 30px; line-height: 1.12; }
+    .subtitle { color: #4b5563; font-size: 13px; }
+    h2 { break-after: avoid; margin: 28px 0 10px; font-size: 17px; color: #0f172a; }
+    h3 { margin: 0 0 3px; font-size: 15px; }
+    p, li, blockquote { font-size: 13px; }
+    p { margin: 0 0 11px; }
+    ul { margin: 0 0 12px 18px; padding: 0; }
+    blockquote {
+        margin: 12px 0;
+        padding: 10px 14px;
+        border-left: 3px solid #2563eb;
+        background: #f8fafc;
+        color: #334155;
+    }
+    .print-timeline { margin: 0; padding-left: 22px; }
+    .print-timeline li { margin-bottom: 12px; }
+    time {
+        display: block;
+        color: #2563eb;
+        font-size: 11px;
+        font-weight: 800;
+        margin-bottom: 2px;
+    }
+    .print-versus { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .print-versus article {
+        border: 1px solid #dbe3ef;
+        border-radius: 8px;
+        padding: 14px;
+        break-inside: avoid;
+    }
+    .print-versus small { display: block; color: #64748b; margin-bottom: 8px; }
+    footer {
+        margin-top: 32px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e7eb;
+        color: #64748b;
+        font-size: 11px;
+    }
+    @media print {
+        body { padding: 0.55in; }
+        .print-versus { grid-template-columns: 1fr 1fr; }
+    }
+</style>
+</head>
+<body>
+<main>
+    <header>
+        <div class="kicker">Tezos Systems Protocol Anthology</div>
+        <h1>${escapeHtml(history?.title || `${protocolName} Protocol`)}</h1>
+        <div class="subtitle">${escapeHtml(history?.subtitle || '')}</div>
+    </header>
+    ${sectionsHtml}
+    <footer>Printed from tezos.systems Protocol Anthology.</footer>
+</main>
+</body>
+</html>`;
+}
+
+function printProtocolHistory(history, protocolName) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        window.print();
+        return;
+    }
+    printWindow.document.open();
+    printWindow.document.write(renderProtocolHistoryPrintDocument(history, protocolName));
+    printWindow.document.close();
+    window.setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+    }, 180);
+}
+
 async function initRichTooltips(protocols) {
     const data = await loadProtocolData();
     const richMap = {};
@@ -2498,7 +2703,7 @@ async function initRichTooltips(protocols) {
         tooltipEl = document.createElement('div');
         tooltipEl.id = 'timeline-tooltip';
         tooltipEl.style.cssText = `
-            position: fixed; z-index: 10000; pointer-events: none;
+            position: fixed; z-index: 10000; pointer-events: auto;
             opacity: 0; visibility: hidden;
             transition: opacity 0.2s ease, visibility 0.2s ease;
             border-radius: 10px; padding: 14px 16px;
@@ -2506,6 +2711,37 @@ async function initRichTooltips(protocols) {
             font-size: 0.72rem; line-height: 1.5;
         `;
         document.body.appendChild(tooltipEl);
+    }
+    tooltipEl.style.pointerEvents = 'auto';
+
+    const hideTooltip = () => {
+        tooltipEl.style.opacity = '0';
+        tooltipEl.style.visibility = 'hidden';
+        window.clearTimeout(tooltipEl._protocolHideTimer);
+        tooltipEl._protocolHideTimer = null;
+    };
+    const cancelTooltipHide = () => {
+        window.clearTimeout(tooltipEl._protocolHideTimer);
+        tooltipEl._protocolHideTimer = null;
+    };
+    const scheduleTooltipHide = () => {
+        window.clearTimeout(tooltipEl._protocolHideTimer);
+        tooltipEl._protocolHideTimer = window.setTimeout(hideTooltip, 260);
+    };
+
+    if (!tooltipEl.dataset.protocolTooltipWired) {
+        tooltipEl.addEventListener('mouseenter', cancelTooltipHide);
+        tooltipEl.addEventListener('mouseleave', scheduleTooltipHide);
+        tooltipEl.addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-protocol-tooltip-open]');
+            if (!trigger) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const name = trigger.getAttribute('data-protocol-tooltip-open');
+            hideTooltip();
+            openProtocolHistoryByName(name);
+        });
+        tooltipEl.dataset.protocolTooltipWired = '1';
     }
 
     /** Apply theme-aware styles to the tooltip (called on each show) */
@@ -2524,7 +2760,17 @@ async function initRichTooltips(protocols) {
         const govP = protocols.find(p => p.name === name);
         const richP = richMap[name];
 
+        const openProtocol = (event) => {
+            if (!richP?.history) return false;
+            event?.preventDefault?.();
+            event?.stopPropagation?.();
+            hideTooltip();
+            showProtocolHistoryModal(richP.history, name);
+            return true;
+        };
+
         item.addEventListener('mouseenter', (e) => {
+            cancelTooltipHide();
             applyTooltipTheme(tooltipEl);
             const _theme = document.body.getAttribute('data-theme');
             const accent = _theme === 'clean' ? '#2563EB' : _theme === 'dark' ? '#C8C8C8' : _theme === 'matrix' ? '#00ff00' : '#00d4ff';
@@ -2560,9 +2806,9 @@ async function initRichTooltips(protocols) {
             // "Read Full History" button for contentious protocols
             if (richP?.history) {
                 html += `<div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08);">
-                    <span class="history-expand-hint" style="color:${accent}; font-size:0.68rem; cursor:pointer; opacity:0.8;">
-                        ⚔ Click to read the full history →
-                    </span>
+                    <button class="history-expand-btn" type="button" data-protocol-tooltip-open="${escapeHtml(name)}" style="color:${accent};">
+                        Read full history
+                    </button>
                 </div>`;
             }
 
@@ -2574,18 +2820,15 @@ async function initRichTooltips(protocols) {
         
         item.addEventListener('mousemove', (e) => positionTooltip(e, tooltipEl));
         
-        item.addEventListener('mouseleave', () => {
-            tooltipEl.style.opacity = '0';
-            tooltipEl.style.visibility = 'hidden';
-        });
+        item.addEventListener('mouseleave', scheduleTooltipHide);
 
         // Click to open full history modal for contentious protocols
         if (richP?.history) {
             item.style.cursor = 'pointer';
-            item.addEventListener('click', () => {
-                tooltipEl.style.opacity = '0';
-                tooltipEl.style.visibility = 'hidden';
-                showProtocolHistoryModal(richP.history, name);
+            item.addEventListener('click', openProtocol);
+            item.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                openProtocol(event);
             });
         }
     });
@@ -2657,19 +2900,20 @@ function showProtocolHistoryModal(history, protocolName) {
 
     const modal = document.createElement('div');
     modal.id = 'protocol-history-modal';
+    modal.className = 'protocol-history-story-overlay';
     modal.style.cssText = `
         position:fixed; inset:0; z-index:10001; display:flex; align-items:center; justify-content:center;
         background:rgba(0,0,0,0.85); backdrop-filter:blur(8px);
         opacity:0; transition:opacity 0.3s ease;
     `;
     modal.innerHTML = `
-        <div class="modal-large" style="
+        <div class="modal-large protocol-history-story-modal" style="
             background:${bg}; border:1px solid ${borderColor};
             border-radius:16px; max-width:720px; width:92vw; max-height:85vh; overflow-y:auto;
             padding:32px; position:relative;
             box-shadow:0 0 60px rgba(${accentRgb},0.1), 0 20px 60px rgba(0,0,0,0.5);
         ">
-            <div style="position:absolute; top:16px; right:16px; display:flex; gap:8px; z-index:10;">
+            <div class="protocol-history-story-actions" style="position:absolute; top:16px; right:16px; display:flex; gap:8px; z-index:10;">
                 <button id="history-modal-share" title="Share this history" style="
                     background:rgba(255,255,255,0.08);
                     border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.7);
@@ -2677,6 +2921,13 @@ function showProtocolHistoryModal(history, protocolName) {
                     display:flex; align-items:center; justify-content:center;
                     transition:all 0.2s;
                 ">📸</button>
+                <button id="history-modal-print" title="Print the full history" aria-label="Print the full protocol history" style="
+                    background:rgba(255,255,255,0.08);
+                    border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.7);
+                    width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:18px;
+                    display:flex; align-items:center; justify-content:center;
+                    transition:all 0.2s;
+                ">⎙</button>
                 <button id="history-modal-close" style="
                     background:rgba(255,255,255,0.08);
                     border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.7);
@@ -2685,7 +2936,7 @@ function showProtocolHistoryModal(history, protocolName) {
                     transition:all 0.2s;
                 ">×</button>
             </div>
-            <div style="font-family:'Orbitron',sans-serif; color:${accent}; font-size:1.3rem; font-weight:700;
+            <div class="protocol-history-story-title" style="font-family:'Orbitron',sans-serif; color:${accent}; font-size:1.3rem; font-weight:700;
                 letter-spacing:2px; text-shadow:0 0 20px rgba(${accentRgb},0.4); margin-bottom:4px;">
                 ⚔ ${escapeHtml(history.title)}
             </div>
@@ -2698,6 +2949,10 @@ function showProtocolHistoryModal(history, protocolName) {
 
     const closeModal = () => { modal.style.opacity = '0'; setTimeout(() => modal.remove(), 300); };
     modal.querySelector('#history-modal-close').addEventListener('click', closeModal);
+    modal.querySelector('#history-modal-print').addEventListener('click', (e) => {
+        e.stopPropagation();
+        printProtocolHistory(history, protocolName);
+    });
     modal.querySelector('#history-modal-share').addEventListener('click', (e) => {
         e.stopPropagation();
         const btn = e.currentTarget;

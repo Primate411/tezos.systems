@@ -166,8 +166,9 @@ inline modal styles in `js/core/app.js`.
 
 - Chambers section is visible by default and orders the chamber rows as Network
   Health <> Tezos L1 Governance, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
-  Monitor, then Ledger Flow <> Protocol History. ctez End of Life stays off the
-  default Chambers grid and opens from Explore or the corner gift tray launcher.
+  Monitor, then Ledger Flow <> Protocol History. ctez End of Life and TzSafe
+  Recovery stay off the default Chambers grid and open from Explore or the
+  corner gift tray launcher.
   Each Chamber row is wrapped responsively so wide cards keep their companion
   card instead of creating desktop grid holes; cards also keep a canonical
   app-shell open affordance in the fixed footer rail, card-level direct-link
@@ -284,12 +285,16 @@ inline modal styles in `js/core/app.js`.
   burn outstanding ctez before withdrawing tez when both legs are needed,
   Purple Matter/community fallback links, and signing-safety reminders for users
   recovering tez from old ctez ovens.
+- TzSafe Recovery as an external stewardship entry in the corner gift tray and
+  Explore menu, linking to `https://tzsafe.tez.page/` for the community fork and
+  legacy KT1 multisig migration path while new multisig setups move toward
+  protocol-native accounts.
 - My Tezos drawer and My Baker lookup, including live drawer-open stats refresh,
   live baker signal refresh, baker Octez version status coloring, baker
   performance, latest LB vote state, Octez.Connect wallet sync, and recent baker
   delegator/staker activity.
 - Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping
-  giants, OBJKT/NFT profile lookup, HEN mode, changelog, share captures, and
+  giants, OBJKT/NFT profile lookup, HEN mode, TzSafe Recovery, changelog, share captures, and
   embeddable widgets.
 
 Useful deep links include:
@@ -495,7 +500,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v292`.
+- Current aligned shell cache stamp: `v295`.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

@@ -2258,7 +2258,7 @@ export async function initProtocolShare() {
                 display: flex; align-items: center; justify-content: center;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 flex-shrink: 0;
-                opacity: 0; pointer-events: none;
+                opacity: 1; pointer-events: auto;
             `;
             if (badgesContainer) badgesContainer.insertBefore(btn, badgesContainer.firstChild);
             else timelineButtonHost.appendChild(btn);
@@ -2283,14 +2283,8 @@ export async function initProtocolShare() {
             || document.querySelector('#protocol-history-feature')
             || document.querySelector('.upgrade-clock-content');
         if (timelineSection && !timelineSection.dataset.timelineShareHoverWired) {
-            timelineSection.addEventListener('mouseenter', () => {
-                btn.style.opacity = '1';
-                btn.style.pointerEvents = 'auto';
-            });
-            timelineSection.addEventListener('mouseleave', () => {
-                btn.style.opacity = '0';
-                btn.style.pointerEvents = 'none';
-            });
+            btn.style.opacity = '1';
+            btn.style.pointerEvents = 'auto';
             timelineSection.dataset.timelineShareHoverWired = '1';
         }
     }
