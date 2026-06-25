@@ -5,6 +5,13 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-25',
+        entries: [
+            { type: '🎨', text: 'Tezos X now spaces its TVL, metrics, and live transaction tape cleanly when Tezos X Governance is active beside it' },
+            { type: '🔧', text: 'Price Intelligence now stays hidden during automatic refreshes unless you selected it from Explore or opened #price directly' },
+        ]
+    },
+    {
         date: '2026-06-24',
         entries: [
             { type: '🔧', text: 'Ledger Flow and Protocol Anthology camera buttons now sanitize their share clones so screenshots open reliably' },

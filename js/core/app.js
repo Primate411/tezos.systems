@@ -89,6 +89,8 @@ import { initStateOfTezos } from '../features/state-of-tezos.js';
 import { initNetworkHealth, refreshNetworkHealth } from '../features/network-health.js';
 import { initHeroSearch } from '../features/search.js';
 
+const PI_VISIBLE_KEY = 'tezos-systems-pi-visible';
+
 function isContentiousProtocol(protocol, lore = null) {
     return Boolean(protocol?.contention || lore?.contention || lore?.history);
 }
@@ -493,9 +495,15 @@ async function refresh() {
         updateLastRefreshTime();
         await updateUpgradeClock(); // Update protocol + days live
 
-        // Price Intelligence
-        const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
-        safe('priceIntelligence', () => initPriceIntelligence(state.currentStats, piPrice));
+        if (isPriceIntelligenceSelected()) {
+            const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
+            try {
+                await initPriceIntelligence(state.currentStats, piPrice);
+            } catch (err) {
+                console.warn('[price-intel] failed to initialize:', err);
+            }
+            syncPriceIntelligenceVisibility();
+        }
         // resetCountdown();
         refreshMyBaker();
         refreshLeaderboard();
@@ -1791,7 +1799,19 @@ function initComparisonToggle() {
 // ==========================================
 // PRICE INTELLIGENCE TOGGLE
 // ==========================================
-const PI_VISIBLE_KEY = 'tezos-systems-pi-visible';
+
+function isPriceIntelligenceSelected() {
+    return localStorage.getItem(PI_VISIBLE_KEY) === 'true';
+}
+
+function syncPriceIntelligenceVisibility(isVisible = isPriceIntelligenceSelected()) {
+    const section = document.getElementById('price-intelligence');
+    const toggleBtn = document.getElementById('price-intel-toggle');
+    if (section) section.style.display = isVisible ? '' : 'none';
+    if (!toggleBtn) return;
+    toggleBtn.classList.toggle('active', isVisible);
+    toggleBtn.title = `Price Intel: ${isVisible ? 'ON' : 'OFF'}`;
+}
 
 function initPriceIntelToggle() {
     const toggleBtn = document.getElementById('price-intel-toggle');
@@ -1799,19 +1819,11 @@ function initPriceIntelToggle() {
 
     let piInitialized = false;
 
-    function updateVis(isVisible) {
-        const section = document.getElementById('price-intelligence');
-        if (section) section.style.display = isVisible ? '' : 'none';
-        toggleBtn.classList.toggle('active', isVisible);
-        toggleBtn.title = `Price Intel: ${isVisible ? 'ON' : 'OFF'}`;
-    }
-
     toggleBtn.addEventListener('click', async () => {
-        const stored = localStorage.getItem(PI_VISIBLE_KEY);
-        const isVisible = stored === 'true';
+        const isVisible = isPriceIntelligenceSelected();
         const newState = !isVisible;
         localStorage.setItem(PI_VISIBLE_KEY, String(newState));
-        updateVis(newState);
+        syncPriceIntelligenceVisibility(newState);
 
         if (newState && !piInitialized) {
             const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
@@ -1822,16 +1834,15 @@ function initPriceIntelToggle() {
                 console.warn('[price-intel] failed to initialize:', err);
             }
         }
-        updateVis(localStorage.getItem(PI_VISIBLE_KEY) === 'true');
+        syncPriceIntelligenceVisibility();
     });
 
     // Default OFF — always call updateVis to set initial opacity
-    const stored = localStorage.getItem(PI_VISIBLE_KEY);
-    const isVisible = stored === 'true';
-    updateVis(isVisible);
+    const isVisible = isPriceIntelligenceSelected();
+    syncPriceIntelligenceVisibility(isVisible);
     if (isVisible) {
         setTimeout(async () => {
-            if (localStorage.getItem(PI_VISIBLE_KEY) !== 'true') return;
+            if (!isPriceIntelligenceSelected()) return;
             const piPrice = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
             try {
                 await initPriceIntelligence(state.currentStats || {}, piPrice);
@@ -1839,7 +1850,7 @@ function initPriceIntelToggle() {
             } catch (err) {
                 console.warn('[price-intel] failed to initialize:', err);
             }
-            updateVis(localStorage.getItem(PI_VISIBLE_KEY) === 'true');
+            syncPriceIntelligenceVisibility();
         }, 3000);
     }
 }

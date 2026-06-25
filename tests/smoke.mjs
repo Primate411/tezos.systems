@@ -4791,6 +4791,38 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     etherlinkEntryWide: document.querySelector('#etherlink-governance-entry-card')?.classList.contains('chamber-entry-wide') || false,
     etherlinkEntrySize: document.querySelector('#etherlink-governance-entry-card')?.dataset.etherlinkGovernanceSize || '',
     etherlinkEntryMetrics: document.querySelector('#etherlink-governance-entry-metrics')?.textContent?.trim() || '',
+    tezlinkEntryGeometry: (() => {
+      const pair = document.querySelector('#chambers-grid > .chamber-card-pair[data-chamber-pair="tezlink-governance"]');
+      const card = document.querySelector('#tezlink-entry-card');
+      const governance = document.querySelector('#etherlink-governance-entry-card');
+      const main = card?.querySelector('.tezlink-entry-main');
+      const metrics = card?.querySelector('.tezlink-entry-metrics');
+      const tape = card?.querySelector('.tezlink-entry-tape');
+      const rect = (node) => {
+        if (!node) return null;
+        const box = node.getBoundingClientRect();
+        return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+      };
+      const mainRect = rect(main);
+      const metricsRect = rect(metrics);
+      const tapeRect = rect(tape);
+      const governanceRect = rect(governance);
+      const metricTruncations = Array.from(card?.querySelectorAll('.tezlink-entry-metric span, .tezlink-entry-metric strong') || [])
+        .filter((node) => node.scrollWidth > node.clientWidth + 1)
+        .map((node) => node.textContent?.trim() || '');
+      return {
+        pairWideCount: pair?.dataset.wideCount || '',
+        cardRect: rect(card),
+        governanceRect,
+        mainRect,
+        metricsRect,
+        tapeRect,
+        metricTruncations,
+        tapeBelowMetrics: Boolean(metricsRect && tapeRect && tapeRect.top >= metricsRect.bottom + 6),
+        metricsRightOfMain: Boolean(mainRect && metricsRect && metricsRect.left >= mainRect.right + 8),
+        pairedWithGovernance: Boolean(governanceRect && tapeRect && Math.abs((rect(card)?.top || 0) - governanceRect.top) <= 1 && Math.abs((rect(card)?.bottom || 0) - governanceRect.bottom) <= 1)
+      };
+    })(),
     chamberUpdatedLabels: Array.from(document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]')).map((card) => card.dataset.updatedLabel || ''),
     etherlinkEntryGeometry: (() => {
       const card = document.querySelector('#etherlink-governance-entry-card');
@@ -4863,6 +4895,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/L2 Governance .*FAST: Proposal quorum met/.test(dashboardState.etherlinkEntryMini), `governance testing period: Tezos X Governance status mismatch: ${dashboardState.etherlinkEntryMini}`);
   assert(/FAST14\.2%\/5%/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezos X Governance FAST metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
   assert(/SLOW(5hago|Noactiveproposal)/.test(dashboardState.etherlinkEntryMetrics.replace(/\s+/g, '')), `governance testing period: Tezos X Governance SLOW metric mismatch: ${dashboardState.etherlinkEntryMetrics}`);
+  assert(dashboardState.tezlinkEntryGeometry.pairWideCount === '2', `governance testing period: Tezos X and Tezos X Governance should share the active wide pair: ${JSON.stringify(dashboardState.tezlinkEntryGeometry)}`);
+  assert(dashboardState.tezlinkEntryGeometry.metricsRightOfMain && dashboardState.tezlinkEntryGeometry.tapeBelowMetrics, `governance testing period: Tezos X live tape should sit below the metric tiles in the active governance pair: ${JSON.stringify(dashboardState.tezlinkEntryGeometry)}`);
+  assert(dashboardState.tezlinkEntryGeometry.metricTruncations.length === 0, `governance testing period: Tezos X metric tiles should not ellipsize while governance is active: ${JSON.stringify(dashboardState.tezlinkEntryGeometry)}`);
+  assert(dashboardState.tezlinkEntryGeometry.pairedWithGovernance, `governance testing period: Tezos X and Governance cards should keep matched row height: ${JSON.stringify(dashboardState.tezlinkEntryGeometry)}`);
   const chamberFreshnessLabels = dashboardState.chamberUpdatedLabels.filter((label) => /^as of \d{2}:\d{2} UTC$/.test(label));
   assert(chamberFreshnessLabels.length >= 6, `governance testing period: chamber freshness stamps missing: ${dashboardState.chamberUpdatedLabels.join(', ')}`);
   assert(dashboardState.etherlinkEntryGeometry.overlap === 0, `governance testing period: Tezos X Governance open cue overlaps Sequencer chip: ${JSON.stringify(dashboardState.etherlinkEntryGeometry)}`);
@@ -5774,6 +5810,18 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   assert(priceLinks.coinGecko === 'https://www.coingecko.com/en/coins/tezos', `feature workflows price bar CoinGecko link mismatch: ${priceLinks.coinGecko}`);
   assert(priceLinks.stake === 'https://gov.tez.capital/', `feature workflows price bar stake link mismatch: ${priceLinks.stake}`);
   assert(priceLinks.bake === 'https://docs.tez.capital/', `feature workflows price bar bake link mismatch: ${priceLinks.bake}`);
+  await page.evaluate(async () => {
+    localStorage.setItem('tezos-systems-pi-visible', 'false');
+    document.querySelector('#price-intelligence')?.remove();
+    await window.TezosStats.refresh();
+  });
+  const priceIntelAfterRefresh = await page.evaluate(() => ({
+    exists: Boolean(document.querySelector('#price-intelligence')),
+    active: document.querySelector('#price-intel-toggle')?.classList.contains('active') || false,
+    stored: localStorage.getItem('tezos-systems-pi-visible')
+  }));
+  assert(!priceIntelAfterRefresh.exists, `feature workflows refresh should not open price intelligence when deselected: ${JSON.stringify(priceIntelAfterRefresh)}`);
+  assert(!priceIntelAfterRefresh.active && priceIntelAfterRefresh.stored === 'false', `feature workflows price intelligence toggle drifted while deselected: ${JSON.stringify(priceIntelAfterRefresh)}`);
   log('ok - feature workflow: price bar');
   await assertAllSparklineLatestValues(page, 'feature workflows');
   log('ok - all sparkline card latest values match live stats');

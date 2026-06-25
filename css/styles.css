@@ -17455,6 +17455,31 @@ body {
     }
 }
 
+@media (min-width: 1180px) {
+    .chamber-card-pair[data-chamber-pair="tezlink-governance"][data-wide-count="2"] > .tezlink-entry-card .tezlink-entry-front {
+        grid-template:
+            "main metrics" min-content
+            "main tape" minmax(0, 1fr) / minmax(13.5rem, 0.95fr) minmax(16rem, 1.05fr);
+        align-items: start;
+        gap: 0.65rem 0.95rem;
+    }
+
+    .chamber-card-pair[data-chamber-pair="tezlink-governance"][data-wide-count="2"] .tezlink-entry-main {
+        grid-area: main;
+    }
+
+    .chamber-card-pair[data-chamber-pair="tezlink-governance"][data-wide-count="2"] .tezlink-entry-metrics {
+        grid-area: metrics;
+    }
+
+    .chamber-card-pair[data-chamber-pair="tezlink-governance"][data-wide-count="2"] .tezlink-entry-tape {
+        grid-area: tape;
+        align-self: stretch;
+        align-content: center;
+        min-height: 0;
+    }
+}
+
 @media (max-width: 759px) {
     #chambers-grid.chambers-paired-grid,
     #chambers-grid.chambers-paired-grid > .chamber-card-pair {
