@@ -212,6 +212,7 @@ async function fetchPagedHolder(address, query) {
 function processProfile(holder) {
     const profile = {
         alias: holder.alias || holder.tzdomain || null,
+        tzdomain: holder.tzdomain || null,
         twitter: holder.twitter,
         description: holder.description,
         logo: holder.logo,

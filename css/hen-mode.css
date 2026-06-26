@@ -468,6 +468,38 @@
 .hen-logo span {
     color: #00d4ff;
 }
+.hen-source-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid #242424;
+    background: #0b0b0b;
+}
+.hen-source-tab {
+    min-width: 48px;
+    height: 26px;
+    padding: 0 10px;
+    border: 0;
+    background: transparent;
+    color: #555;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.hen-source-tab:hover,
+.hen-source-tab:focus-visible {
+    color: #00d4ff;
+}
+.hen-source-tab.active {
+    background: rgba(0,212,255,0.12);
+    color: #00d4ff;
+    box-shadow: inset 0 0 0 1px rgba(0,212,255,0.22);
+}
 .hen-mint-count {
     font-size: 0.72rem;
     color: #666;
@@ -490,12 +522,87 @@
     color: #e0e0e0;
     border-color: #555;
 }
+.hen-status-strip {
+    min-height: 26px;
+    flex-shrink: 0;
+    padding: 6px 20px;
+    border-bottom: 1px solid #1a1a1a;
+    background: #0d0d0d;
+    color: #555;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    overflow-x: hidden;
+    scrollbar-width: none;
+}
+.hen-status-strip::-webkit-scrollbar {
+    display: none;
+}
+.hen-status-strip.has-filters {
+    color: #00d4ff;
+}
+.hen-status-line {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hen-wallet-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+.hen-wallet-input {
+    width: 170px;
+    height: 24px;
+    border: 1px solid #242424;
+    background: #090909;
+    color: #d8d8d8;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    padding: 0 8px;
+    outline: none;
+}
+.hen-wallet-input:focus {
+    border-color: rgba(0,212,255,0.5);
+}
+.hen-wallet-button {
+    height: 24px;
+    border: 1px solid #242424;
+    background: #101010;
+    color: #666;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0 8px;
+    cursor: pointer;
+}
+.hen-wallet-button:hover,
+.hen-wallet-button:focus-visible {
+    color: #00d4ff;
+    border-color: rgba(0,212,255,0.42);
+}
+.hen-wallet-button:disabled {
+    opacity: 0.55;
+    cursor: wait;
+}
+.hen-wallet-clear {
+    width: 24px;
+    padding: 0;
+}
 
 /* ── New Mints Pill ── */
 .hen-new-pill {
     display: none;
     position: fixed;
-    top: 60px;
+    top: 86px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 10002;
@@ -531,6 +638,130 @@
     gap: 2px;
 }
 
+/* ── Collector Profile ── */
+.hen-profile-panel {
+    margin: 0 0 12px;
+    padding: 14px 16px;
+    border: 1px solid #202020;
+    background: #0e0e0e;
+    font-family: 'JetBrains Mono', monospace;
+}
+.hen-profile-panel[hidden] {
+    display: none;
+}
+.hen-profile-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 12px;
+}
+.hen-profile-head div:first-child {
+    min-width: 0;
+}
+.hen-profile-kicker,
+.hen-profile-list-title {
+    display: block;
+    color: #555;
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+}
+.hen-profile-head strong {
+    display: block;
+    color: #e0e0e0;
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hen-profile-head small {
+    display: block;
+    color: #444;
+    font-size: 0.6rem;
+    margin-top: 3px;
+}
+.hen-profile-actions {
+    display: inline-flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+.hen-profile-actions a,
+.hen-profile-actions button,
+.hen-profile-head > a {
+    border: 1px solid #242424;
+    background: #101010;
+    color: #00d4ff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 6px 9px;
+    text-decoration: none;
+    cursor: pointer;
+}
+.hen-profile-metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+}
+.hen-profile-metric {
+    border: 1px solid #1f1f1f;
+    background: #090909;
+    padding: 8px 9px;
+    min-width: 0;
+}
+.hen-profile-metric span {
+    display: block;
+    color: #555;
+    font-size: 0.56rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+}
+.hen-profile-metric strong {
+    display: block;
+    color: #00ff88;
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hen-profile-lists {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+    margin-top: 12px;
+}
+.hen-profile-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-top: 1px solid #1a1a1a;
+    font-size: 0.62rem;
+}
+.hen-profile-row span {
+    color: #cfcfcf;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.hen-profile-row em {
+    color: #555;
+    font-style: normal;
+    text-align: right;
+    flex-shrink: 0;
+}
+.hen-profile-empty {
+    color: #555;
+    font-size: 0.68rem;
+    letter-spacing: 0.03em;
+}
+
 /* ── Card ── */
 .hen-card {
     background: #1a1a1a;
@@ -558,6 +789,12 @@
     object-fit: cover;
     display: block;
     transition: transform 0.3s;
+}
+.hen-card-thumb img.hen-image-retrying,
+.hen-expanded-media.hen-image-retrying,
+.hen-artist-thumb img.hen-image-retrying {
+    opacity: 0.38;
+    filter: grayscale(0.35);
 }
 .hen-card:hover .hen-card-thumb img {
     transform: scale(1.04);
@@ -621,6 +858,42 @@
     letter-spacing: 0.04em;
     font-weight: 600;
 }
+.hen-card-source {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    z-index: 3;
+    background: rgba(0,0,0,0.72);
+    color: #00d4ff;
+    border: 1px solid rgba(0,212,255,0.28);
+    font-size: 0.52rem;
+    padding: 2px 5px;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+}
+.hen-card-source-objkt {
+    color: #00ff88;
+    border-color: rgba(0,255,136,0.28);
+}
+.hen-card-owned {
+    box-shadow: inset 0 0 0 1px rgba(0,255,136,0.26);
+}
+.hen-card-owned-badge {
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    z-index: 4;
+    max-width: calc(100% - 12px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: rgba(0,255,136,0.88);
+    color: #07140d;
+    font-size: 0.52rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    padding: 2px 5px;
+}
 
 /* ── Expanded View ── */
 .hen-expanded {
@@ -673,6 +946,9 @@
 .hen-expanded-details span {
     margin: 0 8px;
 }
+.hen-expanded-owned {
+    color: #00ff88;
+}
 .hen-expanded-collect {
     display: inline-block;
     background: none;
@@ -689,6 +965,23 @@
 .hen-expanded-collect:hover {
     background: #00d4ff;
     color: #111;
+}
+.hen-expanded-secondary {
+    display: inline-block;
+    background: none;
+    border: 1px solid #333;
+    color: #888;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    padding: 8px 20px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-decoration: none;
+    transition: color 0.15s, border-color 0.15s;
+}
+.hen-expanded-secondary:hover {
+    color: #00ff88;
+    border-color: rgba(0,255,136,0.45);
 }
 .hen-expanded-close {
     position: absolute;
@@ -765,12 +1058,27 @@
 /* ── Responsive ── */
 @media (max-width: 900px) {
     .hen-grid { grid-template-columns: repeat(3, 1fr); }
+    .hen-profile-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hen-profile-lists { grid-template-columns: 1fr; }
 }
 @media (max-width: 600px) {
     .hen-grid { grid-template-columns: repeat(2, 1fr); }
-    .hen-header { padding: 10px 14px; }
+    .hen-header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+    .hen-source-tabs { order: 3; width: 100%; justify-content: center; }
+    .hen-source-tab { min-width: 58px; }
+    .hen-status-strip { padding: 6px 14px; flex-wrap: wrap; }
+    .hen-status-line { width: 100%; }
+    .hen-wallet-controls { width: 100%; }
+    .hen-wallet-input { flex: 1; min-width: 0; width: auto; }
+    .hen-new-pill { top: 118px; }
+    .hen-card-listing { display: none; }
     .hen-feed { padding: 8px; }
     .hen-expanded { padding: 20px; }
+    .hen-profile-panel { padding: 12px; }
+    .hen-profile-head { flex-direction: column; }
+    .hen-profile-metrics { grid-template-columns: 1fr 1fr; }
+    .hen-profile-row { flex-direction: column; gap: 2px; }
+    .hen-profile-row em { text-align: left; }
 }
 
 /* ── Hide EVERYTHING else when HEN is active ── */
@@ -802,7 +1110,20 @@ body.hen-active {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 6px;
     margin-top: 3px;
+}
+.hen-card-listing {
+    flex: 1;
+    color: #333;
+    font-size: 0.56rem;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.hen-card-listed .hen-card-listing {
+    color: rgba(0,255,136,0.56);
 }
 .hen-card-objkt {
     font-size: 0.58rem;

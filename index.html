@@ -30,7 +30,7 @@
     <meta name="referrer" content="strict-origin-when-cross-origin">
     
     <!-- Content Security Policy -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' unpkg.com cdn.jsdelivr.net https://esm.sh gc.zgo.at; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co data.objkt.com *.goatcounter.com https://*.gke.papers.tech https://*.papers.tech wss://*.papers.tech api.github.com cdn.jsdelivr.net https://esm.sh i.github.com fonts.googleapis.com fonts.gstatic.com *.octez.io https://*.octez.io teztale-server-mainnet-ro-prd.octez.tech https://teztale-server-mainnet-ro-prd.octez.tech wss://*.octez.io wss://relay.walletconnect.com https://relay.walletconnect.com api.llama.fi explorer.etherlink.com node.mainnet.etherlink.com; img-src 'self' data: *.objkt.com assets.objkt.media ipfs.io; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' unpkg.com cdn.jsdelivr.net https://esm.sh gc.zgo.at; style-src 'self' 'unsafe-inline' fonts.googleapis.com; font-src 'self' fonts.gstatic.com; connect-src 'self' api.coingecko.com *.tzkt.io tzkt.io api.tezos.domains tezos.domains *.rpc.tez.capital *.supabase.co data.objkt.com *.goatcounter.com https://*.gke.papers.tech https://*.papers.tech wss://*.papers.tech api.github.com cdn.jsdelivr.net https://esm.sh i.github.com fonts.googleapis.com fonts.gstatic.com *.octez.io https://*.octez.io teztale-server-mainnet-ro-prd.octez.tech https://teztale-server-mainnet-ro-prd.octez.tech wss://*.octez.io wss://relay.walletconnect.com https://relay.walletconnect.com api.llama.fi explorer.etherlink.com node.mainnet.etherlink.com; img-src 'self' data: *.objkt.com assets.objkt.media ipfs.io cloudflare-ipfs.com gateway.pinata.cloud; object-src 'none'; base-uri 'self'; form-action 'self';">
     
     <!-- Google Fonts - Techy font for title -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,14 +50,14 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=299">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=299">
-    <link rel="stylesheet" href="css/hen-mode.css?v=82">
+    <link rel="stylesheet" href="css/styles.min.css?v=300">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=300">
+    <link rel="stylesheet" href="css/hen-mode.css?v=85">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=299">
+    <link rel="modulepreload" href="js/core/app.js?v=300">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -215,7 +215,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=299"></script>
+    <script src="js/core/theme-preload.js?v=300"></script>
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
         <button id="corner-gift-toggle" class="corner-gift-toggle" type="button" aria-label="Open corner tools: HEN, ctez, and TzSafe" aria-expanded="false" aria-controls="corner-gift-items" title="Corner tools">
             <span aria-hidden="true">🎁</span>
@@ -398,14 +398,6 @@
                                     <span class="feature-status">Feed</span>
                                 </button>
                                 <button class="feature-copy-link" type="button" data-copy-hash="#giants" aria-label="Copy Sleeping Giants link" title="Copy direct link">🔗</button>
-                            </div>
-                            <div class="feature-launcher-row">
-                                <button id="objkt-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide NFT Profile" title="NFT Profile: OFF">
-                                    <span class="objkt-toggle-icon">🖼️</span>
-                                    <span class="feature-launcher-text"><span class="dropdown-label">NFT Profile</span><span class="dropdown-hint">Creator and collector profile from Objkt</span></span>
-                                    <span class="feature-status">Tool</span>
-                                </button>
-                                <button class="feature-copy-link" type="button" data-copy-hash="#nfts" aria-label="Copy NFT Profile link" title="Copy direct link">🔗</button>
                             </div>
                         </div>
 
@@ -752,27 +744,6 @@
                     <div class="calc-compound-body" id="calc-compound-body"></div>
                 </div>
             </div>
-        </div>
-    </section>
-
-    <section class="my-baker-section" id="objkt-section">
-        <div class="section-header">
-            <h2 class="section-title">🖼️ NFT Profile</h2>
-            <button class="info-button" id="objkt-info-btn" aria-label="About NFT Profile" title="About NFT Profile">
-                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                </svg>
-            </button>
-        </div>
-        <div class="my-baker-section-inner">
-            <p class="my-baker-desc">Paste any Tezos address to see creator and collector stats from objkt.com.</p>
-            <div class="my-baker-controls">
-                <input type="text" id="objkt-input" class="my-baker-input" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
-                <button id="objkt-fetch" class="glass-button my-baker-btn" aria-label="Fetch NFT profile" title="Fetch NFT profile">Fetch</button>
-                <button id="objkt-clear" class="glass-button my-baker-btn" aria-label="Clear" title="Clear">Clear</button>
-            </div>
-            <div id="objkt-error-msg" class="my-baker-error"></div>
-            <div id="objkt-results" class="my-baker-results"></div>
         </div>
     </section>
 
@@ -2166,8 +2137,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
-    <script src="js/features/hen-mode.js?v=77"></script>
-    <script type="module" src="js/core/app.js?v=299"></script>
+    <script src="js/features/hen-mode.js?v=81"></script>
+    <script type="module" src="js/core/app.js?v=300"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
@@ -2186,7 +2157,7 @@
                     <li><strong>Estimated Rewards</strong>: Daily, monthly, and yearly projections</li>
                 </ul>
                 <p>
-                    For delegator addresses, shows which baker you're delegated to and your balance. The address syncs to the NFT Profile and Calculator panes automatically.
+                    For delegator addresses, shows which baker you're delegated to and your balance. The address syncs to HEN mode and the Calculator automatically.
                 </p>
                 <div class="modal-links">
                     <a href="https://docs.tez.capital/tezbake/" target="_blank" rel="noopener">TezBake Documentation</a>
@@ -2213,27 +2184,6 @@
                 <p>
                     APY is calculated from the current protocol issuance rate and network participation. Includes 1-5 year compound projections.
                 </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- NFT Profile Info Modal -->
-    <div class="modal-overlay" id="objkt-modal" aria-hidden="true">
-        <div class="modal-content">
-            <button class="modal-close" id="objkt-modal-close" aria-label="Close">&times;</button>
-            <h3 class="modal-title">NFT Profile</h3>
-            <div class="modal-body">
-                <p>
-                    Look up any Tezos address to see NFT activity from <strong>objkt.com</strong>, the leading Tezos NFT marketplace.
-                </p>
-                <ul>
-                    <li><strong>Creator stats</strong>: Collections created, items minted, sales volume</li>
-                    <li><strong>Collector stats</strong>: Items owned, collections, total spent</li>
-                </ul>
-                <p>Data pulled from the objkt.com GraphQL API. Address auto-syncs from My Baker.</p>
-                <div class="modal-links">
-                    <a href="https://objkt.com" target="_blank" rel="noopener">objkt.com</a>
-                </div>
             </div>
         </div>
     </div>
@@ -2338,11 +2288,26 @@
         <div id="hen-boot" class="hen-boot"></div>
         <div class="hen-header">
             <div class="hen-logo">hen</div>
+            <div class="hen-source-tabs" role="group" aria-label="NFT source filter">
+                <button type="button" class="hen-source-tab" data-hen-mode="all" aria-pressed="true">all</button>
+                <button type="button" class="hen-source-tab" data-hen-mode="teia" aria-pressed="false">teia</button>
+                <button type="button" class="hen-source-tab" data-hen-mode="objkt" aria-pressed="false">objkt</button>
+            </div>
             <div id="hen-mint-count" class="hen-mint-count"></div>
             <button class="hen-close" title="Exit HEN mode">×</button>
         </div>
+        <div id="hen-status-strip" class="hen-status-strip">
+            <span id="hen-status-line" class="hen-status-line"></span>
+            <div class="hen-wallet-controls" aria-label="HEN wallet setup">
+                <button type="button" id="hen-wallet-connect" class="hen-wallet-button">connect</button>
+                <input id="hen-wallet-input" class="hen-wallet-input" type="text" placeholder="tz1… or name.tez" spellcheck="false" autocomplete="off">
+                <button type="button" id="hen-wallet-save" class="hen-wallet-button">set</button>
+                <button type="button" id="hen-wallet-clear" class="hen-wallet-button hen-wallet-clear" title="Clear HEN wallet">×</button>
+            </div>
+        </div>
         <div id="hen-new-pill" class="hen-new-pill"></div>
         <div class="hen-feed">
+            <section id="hen-profile-panel" class="hen-profile-panel" hidden></section>
             <div id="hen-grid" class="hen-grid"></div>
             <div id="hen-loading" class="hen-loading">indexing...</div>
         </div>

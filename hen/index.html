@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hic et nunc — live Tezos art</title>
-    <meta name="description" content="Live feed of freshly minted art on Tezos. Discover, explore, collect.">
-    <meta property="og:title" content="hic et nunc — live Tezos art">
-    <meta property="og:description" content="Real-time feed of new art being minted on the Tezos blockchain.">
+    <title>hen — live Tezos NFTs</title>
+    <meta name="description" content="Live Teia and OBJKT feed of freshly minted NFTs on Tezos. Discover, explore, collect.">
+    <meta property="og:title" content="hen — live Tezos NFTs">
+    <meta property="og:description" content="Real-time Teia and OBJKT feed of new NFTs being minted on the Tezos blockchain.">
     <meta property="og:type" content="website">
     <link rel="icon" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -155,8 +155,8 @@
 
     <div class="container">
         <div class="hen-icon">◎</div>
-        <h1><span>hic</span> et nunc</h1>
-        <p class="tagline">live art on tezos</p>
+        <h1><span>hen</span> live</h1>
+        <p class="tagline">teia + objkt on tezos</p>
 
         <div class="stats">
             <div><span class="stat-val" id="s-mints">—</span>mints today</div>
@@ -171,7 +171,7 @@
         </div>
     </div>
 
-    <div class="boot-hint">tezos blockchain · objkt marketplace</div>
+    <div class="boot-hint">tezos blockchain · teia + objkt</div>
     <div id="bg-art" style="position:fixed;inset:0;z-index:-1;opacity:0;transition:opacity 3s;background-size:cover;background-position:center;filter:blur(20px) brightness(0.3);"></div>
 
     <script>
@@ -180,10 +180,11 @@
             localStorage.setItem('tezos-systems-theme', 'matrix');
         }
 
-        // Quick stats from Objkt
+        // Quick stats from Teia + OBJKT
         (function() {
             var since = new Date(Date.now() - 86400000).toISOString();
-            var q = '{ token(where: {timestamp: {_gte: "' + since + '"}, fa: {collection_type: {_eq: "artist"}}, display_uri: {_like: "ipfs://%"}}, limit: 200, order_by: {timestamp: desc}) { supply creators { creator_address } } }';
+            var source = '_or: [{fa_contract: {_eq: "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"}}, {fa_contract: {_neq: "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"}, fa: {collection_type: {_eq: "artist"}}}]';
+            var q = '{ token(where: {timestamp: {_gte: "' + since + '"}, ' + source + ', display_uri: {_like: "ipfs://%"}}, limit: 200, order_by: {timestamp: desc}) { supply creators { creator_address } } }';
             fetch('https://data.objkt.com/v3/graphql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -211,7 +212,7 @@
             fetch('https://data.objkt.com/v3/graphql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: '{ token(where: {display_uri: {_like: "ipfs://%"}, fa: {collection_type: {_eq: "artist"}}, mime: {_like: "image/%"}}, limit: 10, order_by: {timestamp: desc}) { thumbnail_uri } }' })
+                body: JSON.stringify({ query: '{ token(where: {display_uri: {_like: "ipfs://%"}, _or: [{fa_contract: {_eq: "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"}}, {fa_contract: {_neq: "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"}, fa: {collection_type: {_eq: "artist"}}}], mime: {_like: "image/%"}}, limit: 10, order_by: {timestamp: desc}) { thumbnail_uri } }' })
             }).then(function(r) { return r.json(); }).then(function(d) {
                 var tokens = (d && d.data && d.data.token) || [];
                 if (tokens.length === 0) return;

@@ -475,6 +475,73 @@ function smokeCreatedToken(index) {
   };
 }
 
+function smokeHenModeTokens(postData = '') {
+  const henContract = 'KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton';
+  let query = postData;
+  try {
+    query = JSON.parse(postData || '{}').query || postData;
+  } catch {}
+  const allSources = query.includes('_or:');
+  const teiaOnly = !allSources && query.includes(`fa_contract: {_eq: "${henContract}"}`);
+  const objktOnly = !allSources && query.includes(`fa_contract: {_neq: "${henContract}"}`);
+  const priceMaxMatch = query.match(/lowest_ask:\s*\{_gt:\s*"0",\s*_lte:\s*"(\d+)"/);
+  const supplyMaxMatch = query.match(/supply:\s*\{_lte:\s*"(\d+)"/);
+  const priceMax = priceMaxMatch ? Number(priceMaxMatch[1]) : null;
+  const supplyMax = supplyMaxMatch ? Number(supplyMaxMatch[1]) : null;
+  const pixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
+  const retryImage = 'ipfs://smoke-hen-image';
+  const rows = query.includes('timestamp: {_gt:')
+    ? [
+      {
+        token_id: '900001',
+        fa_contract: henContract,
+        name: 'Fresh Teia Smoke Mint',
+        timestamp: new Date(Date.now() + 1000).toISOString(),
+        mime: 'image/png',
+        supply: '5',
+        lowest_ask: 1500000,
+        display_uri: retryImage,
+        thumbnail_uri: retryImage,
+        creators: [{ creator_address: SAMPLE_ADDRESS }],
+        fa: { name: 'hic et nunc' }
+      }
+    ]
+    : [
+    {
+      token_id: '881518',
+      fa_contract: henContract,
+      name: 'Teia Smoke Mint',
+      timestamp: new Date(Date.now() - 60000).toISOString(),
+      mime: 'image/png',
+      supply: '12',
+      lowest_ask: 1200000,
+      display_uri: retryImage,
+      thumbnail_uri: retryImage,
+      creators: [{ creator_address: SAMPLE_ADDRESS }],
+      fa: { name: 'hic et nunc' }
+    },
+    {
+      token_id: '42',
+      fa_contract: 'KT1ObjktSmokeSmokeSmokeSmokeSmoke12345',
+      name: 'OBJKT Smoke Mint',
+      timestamp: new Date(Date.now() - 30000).toISOString(),
+      mime: 'image/png',
+      supply: '3',
+      lowest_ask: 3000000,
+      display_uri: pixel,
+      thumbnail_uri: pixel,
+      creators: [{ creator_address: SAMPLE_ADDRESS_2 }],
+      fa: { name: 'Smoke OBJKT Collection' }
+    }
+  ];
+  let scopedRows = rows;
+  if (teiaOnly) scopedRows = scopedRows.filter((token) => token.fa_contract === henContract);
+  if (objktOnly) scopedRows = scopedRows.filter((token) => token.fa_contract !== henContract);
+  if (priceMax) scopedRows = scopedRows.filter((token) => Number(token.lowest_ask) > 0 && Number(token.lowest_ask) <= priceMax);
+  if (supplyMax) scopedRows = scopedRows.filter((token) => Number(token.supply) <= supplyMax);
+  return scopedRows.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+}
+
 function isoFrom(baseMs, offsetMs) {
   return new Date(baseMs + offsetMs).toISOString();
 }
@@ -787,6 +854,21 @@ async function installFeatureMocks(context, options = {}) {
     }
 
     if (url.includes('data.objkt.com/v3/graphql')) {
+      if (postData.includes('HenViewerHoldings')) {
+        return fulfillJson(route, {
+          data: {
+            holder: [{
+              held_tokens: [{
+                quantity: '1',
+                token: {
+                  token_id: '881518',
+                  fa_contract: 'KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton'
+                }
+              }]
+            }]
+          }
+        });
+      }
       if (postData.includes('holder(')) {
         const body = JSON.parse(postData || '{}');
         const vars = body.variables || {};
@@ -813,7 +895,18 @@ async function installFeatureMocks(context, options = {}) {
           }
         });
       }
-      return fulfillJson(route, { data: { token: [] } });
+      return fulfillJson(route, { data: { token: smokeHenModeTokens(postData) } });
+    }
+
+    if (url.includes('/ipfs/smoke-hen-image')) {
+      if (url.includes('hen_retry=')) {
+        return route.fulfill({
+          status: 200,
+          contentType: 'image/gif',
+          body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64')
+        });
+      }
+      return route.fulfill({ status: 503, body: 'retry me' });
     }
 
     if (url.includes('api.coingecko.com/api/v3/simple/price')) {
@@ -2850,7 +2943,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await openDropdown(page, '#features-gear', '#features-dropdown');
   await expectCount(page, '#features-dropdown.feature-launcher', 1, label);
   await expectCount(page, '#features-dropdown .feature-launcher-group', 4, label);
-  await expectCount(page, '#features-dropdown .feature-copy-link', 11, label);
+  await expectCount(page, '#features-dropdown .feature-copy-link', 10, label);
   await expectCount(page, '#features-dropdown #chambers-toggle', 1, label);
   await expectCount(page, '#features-dropdown .feature-copy-link[data-copy-hash="#chambers"]', 1, label);
   await expectCount(page, '#features-dropdown #ctez-feature-btn', 1, label);
@@ -5779,8 +5872,9 @@ async function smokeUxChanges(browser, baseUrl) {
   assert(/255,\s*255,\s*255/.test(pickerColors.bg), `ux changes: clean share picker background not white (${pickerColors.bg})`);
   await page.locator('#section-picker-modal .share-modal-close').click();
 
-  await page.goto(`${baseUrl}/?theme=clean#nfts`, { waitUntil: 'domcontentloaded' });
-  await page.locator('#objkt-section.visible').waitFor({ state: 'visible', timeout: 10000 });
+  await installFeatureMocks(context);
+  await page.goto(`${baseUrl}/?hen=1&theme=clean`, { waitUntil: 'domcontentloaded' });
+  await page.locator('#hen-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
 
   await page.goto(`${baseUrl}/?theme=clean#price`, { waitUntil: 'domcontentloaded' });
   await page.locator('#price-intelligence').waitFor({ state: 'visible', timeout: 12000 });
@@ -5813,7 +5907,6 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
     localStorage.setItem('tezos-systems-leaderboard-visible', 'false');
     localStorage.setItem('tezos-systems-calc-visible', 'false');
-    localStorage.setItem('tezos-systems-objkt-visible', 'false');
     localStorage.setItem('tezos-systems-whale-enabled', 'false');
     localStorage.setItem('tezos-systems-giants-enabled', 'false');
     localStorage.setItem('tezos-systems-comparison-visible', 'false');
@@ -5916,20 +6009,6 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#giants-grid .giant-card').length > 0, null, { timeout: 10000 });
   await expectCount(page, '#giants-stats .giants-stat', 3, 'feature workflows giant stats');
   log('ok - feature workflow: sleeping giants');
-
-  await clickFeatureLauncher(page, '#objkt-toggle');
-  await page.locator('#objkt-section.visible').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('#objkt-input').fill(SAMPLE_ADDRESS);
-  await page.locator('#objkt-fetch').click();
-  await page.waitForFunction(() => document.querySelectorAll('#objkt-results .objkt-subsection').length > 0, null, { timeout: 10000 });
-  const objktText = await page.locator('#objkt-results').innerText();
-  assert(/creator/i.test(objktText) && /collector/i.test(objktText), `feature workflows NFT profile should render creator and collector sections, saw: ${objktText}`);
-  assert(/Assets Held\s+501/i.test(objktText), `feature workflows NFT profile should page held assets past 500, saw: ${objktText}`);
-  assert(/Top Collections Held[\s\S]*Smoke Collection[\s\S]*501 assets/i.test(objktText), `feature workflows NFT top collections should page distinct assets past 500, saw: ${objktText}`);
-  assert(!/13635916737 pieces/i.test(objktText), `feature workflows NFT top collections should not expose raw high-edition quantity as pieces, saw: ${objktText}`);
-  await page.locator('#objkt-clear').click();
-  assert((await page.locator('#objkt-results').innerText()).trim() === '', 'feature workflows NFT clear should empty results');
-  log('ok - feature workflow: NFT profile');
 
   await clickFeatureLauncher(page, '#history-btn');
   await page.locator('#history-modal[aria-hidden="false"]').waitFor({ state: 'attached', timeout: 10000 });
@@ -6157,7 +6236,6 @@ async function smokeInfoModals(browser, baseUrl) {
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
     localStorage.setItem('tezos-systems-leaderboard-visible', 'true');
     localStorage.setItem('tezos-systems-calc-visible', 'true');
-    localStorage.setItem('tezos-systems-objkt-visible', 'true');
     localStorage.setItem('tezos-systems-whale-enabled', 'true');
     localStorage.setItem('tezos-systems-giants-enabled', 'true');
     localStorage.setItem('tezos-systems-comparison-visible', 'true');
@@ -6178,7 +6256,6 @@ async function smokeInfoModals(browser, baseUrl) {
     ['#comparison-info-btn', '#comparison-modal', '#comparison-modal-close'],
     ['#leaderboard-info-btn', '#leaderboard-modal', '#leaderboard-modal-close'],
     ['#calc-info-btn', '#calc-modal', '#calc-modal-close'],
-    ['#objkt-info-btn', '#objkt-modal', '#objkt-modal-close'],
     ['#whale-info-btn', '#whale-modal', '#whale-modal-close'],
     ['#giants-info-btn', '#giants-modal', '#giants-modal-close']
   ];
@@ -6304,17 +6381,165 @@ async function smokeHenMode(browser, baseUrl) {
     serviceWorkers: 'block'
   });
   await installFeatureMocks(context);
+  await installOctezConnectMock(context);
+  await context.addInitScript((address) => {
+    window.__HEN_IMAGE_RETRY_DELAYS__ = [50, 100];
+    localStorage.setItem('tezos-systems-my-baker-address', address);
+    localStorage.setItem('tezos-systems-saved-addresses', JSON.stringify([{ address, label: null, addedAt: Date.now() }]));
+  }, SAMPLE_ADDRESS_2);
   const page = await context.newPage();
   attachIssueCollectors(page, 'HEN mode', issues);
 
   const response = await page.goto(`${baseUrl}/?hen=1`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `HEN mode: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('#hen-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction(() => {
+    const labels = Array.from(document.querySelectorAll('.hen-card-source')).map((el) => el.textContent?.trim());
+    return labels.includes('TEIA') && labels.includes('OBJKT');
+  }, null, { timeout: 10000 });
+  await expectClassContains(page.locator('.hen-source-tab[data-hen-mode="all"]'), 'active', 'HEN mode all source tab');
+  const initialStatus = await page.locator('#hen-status-strip').innerText();
+  assert(initialStatus.includes('Teia + OBJKT'), `HEN mode status did not start mixed: ${initialStatus}`);
+  try {
+    await page.waitForFunction((address) => {
+      const inputValue = document.querySelector('#hen-wallet-input')?.value || '';
+      const profileText = (document.querySelector('#hen-profile-panel')?.innerText || '').toLowerCase();
+      return (inputValue === address || /\.tez$/i.test(inputValue)) && profileText.includes('owned nfts') && profileText.includes('created nfts');
+    }, SAMPLE_ADDRESS_2, { timeout: 15000 });
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      inputValue: document.querySelector('#hen-wallet-input')?.value || '',
+      status: document.querySelector('#hen-status-strip')?.innerText || '',
+      profileText: document.querySelector('#hen-profile-panel')?.innerText || '',
+      profileHidden: document.querySelector('#hen-profile-panel')?.hidden ?? null,
+      storageProfile: localStorage.getItem('tezos-systems-my-baker-address') || '',
+      storageViewer: localStorage.getItem('tezos-systems-hen-viewer-address') || ''
+    }));
+    throw new Error(`HEN mode saved My Tezos profile did not render: ${JSON.stringify(state)}\n${error.message}`);
+  }
+  try {
+    await page.waitForFunction(() => {
+      const img = document.querySelector('.hen-card img[data-hen-raw-uri="ipfs://smoke-hen-image"]');
+      return Boolean(img && img.currentSrc.includes('hen_retry=') && img.naturalWidth > 0);
+    }, null, { timeout: 5000 });
+  } catch (error) {
+    const state = await page.evaluate(() => {
+      const imgs = Array.from(document.querySelectorAll('.hen-card img')).map((img) => ({
+        raw: img.dataset.henRawUri || '',
+        src: img.getAttribute('src') || '',
+        currentSrc: img.currentSrc || '',
+        naturalWidth: img.naturalWidth,
+        complete: img.complete,
+        retryAttempt: img.dataset.henRetryAttempt || '',
+        retryWaiting: img.dataset.henRetryWaiting || '',
+        className: img.className || ''
+      }));
+      return {
+        imgs,
+        cards: Array.from(document.querySelectorAll('.hen-card-title')).map((el) => el.textContent?.trim() || '')
+      };
+    });
+    throw new Error(`HEN mode image retry did not recover: ${JSON.stringify(state)}\n${error.message}`);
+  }
+
+  async function enterHenCommand(command) {
+    await page.locator('#hen-cli-input').fill(command);
+    await page.locator('#hen-cli-input').press('Enter');
+  }
+
+  async function waitForSources(expectedLabels) {
+    await page.waitForFunction((labels) => {
+      const actual = Array.from(document.querySelectorAll('.hen-card-source')).map((el) => el.textContent?.trim());
+      return actual.length > 0 && labels.every((label) => actual.includes(label)) && actual.every((label) => labels.includes(label));
+    }, expectedLabels, { timeout: 10000 });
+  }
+
+  await enterHenCommand(`wallet ${SAMPLE_ADDRESS}`);
+  await page.locator('.hen-card-owned-badge').first().waitFor({ state: 'visible', timeout: 10000 });
+  const walletStatus = await page.locator('#hen-status-strip').innerText();
+  assert(walletStatus.includes('wallet tz1aW...T1Z9') || /wallet [\w.-]+\.tez/i.test(walletStatus), `HEN mode wallet status missing saved wallet: ${walletStatus}`);
+  const myTezosSync = await page.evaluate((address) => ({
+    savedProfile: localStorage.getItem('tezos-systems-my-baker-address') || '',
+    savedHistory: JSON.parse(localStorage.getItem('tezos-systems-saved-addresses') || '[]').map((item) => item.address),
+    drawerInput: document.querySelector('#drawer-address-input')?.value || '',
+    mainInput: document.querySelector('#my-baker-input')?.value || ''
+  }), SAMPLE_ADDRESS);
+  assert(myTezosSync.savedProfile === SAMPLE_ADDRESS, `HEN mode wallet command did not sync My Tezos profile: ${JSON.stringify(myTezosSync)}`);
+  assert(myTezosSync.savedHistory[0] === SAMPLE_ADDRESS, `HEN mode wallet command did not save address history: ${JSON.stringify(myTezosSync)}`);
+  assert(myTezosSync.drawerInput === SAMPLE_ADDRESS && myTezosSync.mainInput === SAMPLE_ADDRESS, `HEN mode wallet command did not update My Tezos inputs: ${JSON.stringify(myTezosSync)}`);
+
+  await page.locator('#hen-wallet-connect').click();
+  await page.waitForFunction((address) => localStorage.getItem('tezos-systems-octez-wallet-address') === address, SAMPLE_ADDRESS, { timeout: 10000 });
+  const walletConnectSync = await page.evaluate(() => ({
+    savedWallet: localStorage.getItem('tezos-systems-octez-wallet-address') || '',
+    savedProfile: localStorage.getItem('tezos-systems-my-baker-address') || '',
+    profileText: document.querySelector('#hen-profile-panel')?.innerText || ''
+  }));
+  assert(walletConnectSync.savedWallet === SAMPLE_ADDRESS && walletConnectSync.savedProfile === SAMPLE_ADDRESS, `HEN mode wallet connect did not sync identity: ${JSON.stringify(walletConnectSync)}`);
+  assert(/Owned NFTs/i.test(walletConnectSync.profileText) && /Marketplace|Spent|Sales/i.test(walletConnectSync.profileText), `HEN mode collector stats missing useful profile data: ${walletConnectSync.profileText}`);
+
+  await enterHenCommand('price 2');
+  await waitForSources(['TEIA']);
+  const priceStatus = await page.locator('#hen-status-strip').innerText();
+  assert(priceStatus.includes('price <= 2.0 ꜩ'), `HEN mode price filter status missing: ${priceStatus}`);
+
+  await enterHenCommand('reset');
+  await page.waitForFunction(() => {
+    const labels = Array.from(document.querySelectorAll('.hen-card-source')).map((el) => el.textContent?.trim());
+    return labels.includes('TEIA') && labels.includes('OBJKT');
+  }, null, { timeout: 10000 });
+
+  await enterHenCommand('editions 4');
+  await waitForSources(['OBJKT']);
+  const editionStatus = await page.locator('#hen-status-strip').innerText();
+  assert(editionStatus.includes('editions <= 4'), `HEN mode edition filter status missing: ${editionStatus}`);
+
+  await enterHenCommand('reset');
+  await page.waitForFunction(() => {
+    const labels = Array.from(document.querySelectorAll('.hen-card-source')).map((el) => el.textContent?.trim());
+    return labels.includes('TEIA') && labels.includes('OBJKT');
+  }, null, { timeout: 10000 });
+
+  await enterHenCommand('teia');
+  await waitForSources(['TEIA']);
+  await expectClassContains(page.locator('.hen-source-tab[data-hen-mode="teia"]'), 'active', 'HEN mode Teia source tab');
+  const savedSource = await page.evaluate(() => localStorage.getItem('tezos-systems-hen-source'));
+  assert(savedSource === 'teia', `HEN mode did not persist CLI source selection: ${savedSource}`);
+
+  await page.goto(`${baseUrl}/?hen=1`, { waitUntil: 'domcontentloaded' });
+  await page.locator('#hen-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
+  await waitForSources(['TEIA']);
+  await expectClassContains(page.locator('.hen-source-tab[data-hen-mode="teia"]'), 'active', 'HEN mode saved Teia source tab');
+
+  await enterHenCommand('objkt');
+  await waitForSources(['OBJKT']);
+  await expectClassContains(page.locator('.hen-source-tab[data-hen-mode="objkt"]'), 'active', 'HEN mode OBJKT source tab');
+
+  await enterHenCommand('all');
+  await page.waitForFunction(() => {
+    const labels = Array.from(document.querySelectorAll('.hen-card-source')).map((el) => el.textContent?.trim());
+    return labels.includes('TEIA') && labels.includes('OBJKT');
+  }, null, { timeout: 10000 });
+  await page.locator('#hen-new-pill.visible').waitFor({ state: 'visible', timeout: 20000 });
+  const newPillText = await page.locator('#hen-new-pill').innerText();
+  assert(newPillText.includes('new mint'), `HEN mode new mint pill did not announce fresh work: ${newPillText}`);
+  await page.locator('#hen-new-pill').click();
+  await page.waitForFunction(() => !document.querySelector('#hen-new-pill')?.classList.contains('visible'), null, { timeout: 5000 });
   await page.locator('.hen-close').click();
-  await page.waitForFunction(() => !document.querySelector('#hen-overlay')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.waitForFunction(() => {
+    const overlayClosed = !document.querySelector('#hen-overlay')?.classList.contains('active');
+    const dashboardVisible = Boolean(document.querySelector('main')?.offsetParent);
+    return overlayClosed
+      && !document.body.classList.contains('hen-active')
+      && !document.getElementById('hen-initial-blackout')
+      && dashboardVisible
+      && window.location.pathname === '/'
+      && window.location.search === '';
+  }, null, { timeout: 5000 });
 
   await context.close();
-  assert(issues.length === 0, `HEN mode browser issues:\n${issues.join('\n')}`);
+  const unexpectedIssues = issues.filter((issue) => !/smoke-hen-image/i.test(issue));
+  assert(unexpectedIssues.length === 0, `HEN mode browser issues:\n${unexpectedIssues.join('\n')}`);
   log('ok - HEN mode smoke');
 }
 
@@ -6544,7 +6769,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'hash-modal-cleanup', description: 'Hash-routed modal navigation closes stale history and chamber overlays before opening the next room', run: () => smokeHashModalCleanup(browser, baseUrl) },
     { name: 'ux-regressions', description: 'Clean theme contrast, deep-linked utility sections, share picker contrast, widget utility', run: () => smokeUxChanges(browser, baseUrl) },
-    { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, NFT profile, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
+    { name: 'feature-workflows', description: 'Leaderboard, calculator modes, price intelligence, comparison, whales, giants, history, share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
     { name: 'share-actions', description: 'Share modal copy, post, download, native share, and mobile photo fallback buttons', run: () => smokeShareActions(browser, baseUrl) },
     { name: 'info-modals', description: 'All section info modals and About Tezos launch-date copy', run: () => smokeInfoModals(browser, baseUrl) },
     { name: 'themes', description: 'Theme picker availability and representative light/dark/colorful theme switching', run: () => smokeThemeSelection(browser, baseUrl) },

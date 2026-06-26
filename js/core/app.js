@@ -72,7 +72,6 @@ import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './c
 import { initComparison, updateComparison } from '../features/comparison.js';
 import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js';
 import { initCalculator } from '../features/calculator.js';
-import { initObjkt } from '../features/objkt-ui.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initVibes } from '../effects/vibes.js';
 import { initChangelog } from '../features/changelog.js';
@@ -181,7 +180,6 @@ async function init() {
 
     // Initialize Rewards Calculator
     safe('calculator', initCalculator);
-    safe('objkt', initObjkt);
     safe('leaderboard', initLeaderboard);
     safe('bakerReportCard', initBakerReportCard);
     safe('stateOfTezos', initStateOfTezos);
@@ -2215,7 +2213,6 @@ function setupEventListeners() {
     setupModal('comparison-info-btn', 'comparison-modal', 'comparison-modal-close');
     setupModal('my-baker-info-btn', 'my-baker-modal', 'my-baker-modal-close');
     setupModal('calc-info-btn', 'calc-modal', 'calc-modal-close');
-    setupModal('objkt-info-btn', 'objkt-modal', 'objkt-modal-close');
     setupModal('leaderboard-info-btn', 'leaderboard-modal', 'leaderboard-modal-close');
     setupModal('whale-info-btn', 'whale-modal', 'whale-modal-close');
     setupModal('giants-info-btn', 'giants-modal', 'giants-modal-close');
@@ -3186,7 +3183,7 @@ const TEZOS_LOOP_AURAS = {
     },
     collector: {
         title: 'NFT and profile lane',
-        line: 'Type /nfts or a Tezos identity when Objkt activity, creator history, and collector context are the useful path.',
+        line: 'Type /nfts or enter HEN when Objkt activity, creator history, and collector context are the useful path.',
         query: '/nfts',
         searchLabel: 'Open NFT lane',
         href: '/hen/',
@@ -3587,7 +3584,6 @@ function initDeepLinkAffordances() {
         { selector: '#whale-section .section-header', hash: '#whales', label: 'whale feed' },
         { selector: '#giants-section .section-header', hash: '#giants', label: 'sleeping giants' },
         { selector: '#calculator-section .section-header', hash: '#calculator', label: 'rewards calculator' },
-        { selector: '#objkt-section .section-header', hash: '#nfts', label: 'NFT profile' },
         { selector: '#price-intelligence .section-header', hash: '#price', label: 'price intelligence' },
         { selector: '#widgets-gallery .section-header', hash: '#widgets', label: 'embed builder' },
         { selector: '#chambers-section .section-header', hash: '#chambers', label: 'chambers' },
@@ -4161,7 +4157,8 @@ function applyDeepLink() {
 
     // #nfts
     if (params.has('nfts') || hash === 'nfts') {
-        showToggleSection('objkt-toggle', 'objkt-section');
+        window.history.replaceState(null, '', '/?hen=1');
+        if (window.HenMode?.activate) window.HenMode.activate();
     }
 
     // #widgets

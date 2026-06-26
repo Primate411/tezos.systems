@@ -10,6 +10,7 @@ export const OCTEZ_CONNECT_SRC = `https://esm.sh/@tezos-x/octez.connect-sdk@${OC
 
 export const MY_TEZOS_ADDRESS_KEY = 'tezos-systems-my-baker-address';
 export const WALLET_ADDRESS_KEY = 'tezos-systems-octez-wallet-address';
+export const SAVED_ADDRESSES_KEY = 'tezos-systems-saved-addresses';
 
 let _sdkPromise = null;
 let _clientPromise = null;
@@ -21,6 +22,10 @@ const WALLET_CLEAR_TIMEOUT_MS = 1000;
 
 export function isTezosAccountAddress(address) {
     return /^(tz[1-4])[a-zA-Z0-9]{33}$/.test(String(address || '').trim());
+}
+
+export function isTezosAddress(address) {
+    return /^(tz[1-4]|KT1)[a-zA-Z0-9]{33}$/.test(String(address || '').trim());
 }
 
 export function shortAddress(address) {
@@ -61,6 +66,48 @@ function rememberAccount(account, status = 'ready') {
     } catch {}
     emitWalletUpdate(_activeAccount, status);
     return _activeAccount;
+}
+
+function readSavedAddresses() {
+    try {
+        const parsed = JSON.parse(localStorage.getItem(SAVED_ADDRESSES_KEY) || '[]');
+        return Array.isArray(parsed) ? parsed.filter((item) => isTezosAddress(item?.address)) : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeSavedAddresses(saved) {
+    try {
+        localStorage.setItem(SAVED_ADDRESSES_KEY, JSON.stringify(saved.slice(0, 10)));
+    } catch {}
+}
+
+export function rememberMyTezosAddress(address, { label = null, source = 'wallet' } = {}) {
+    const value = String(address || '').trim();
+    if (!isTezosAddress(value)) {
+        throw new Error('My Tezos address must be a tz1/tz2/tz3/tz4 or KT1 address');
+    }
+    try {
+        localStorage.setItem(MY_TEZOS_ADDRESS_KEY, value);
+    } catch {}
+
+    const saved = readSavedAddresses().filter((item) => item.address !== value);
+    saved.unshift({ address: value, label, addedAt: Date.now() });
+    writeSavedAddresses(saved);
+
+    const drawerInput = document.getElementById('drawer-address-input');
+    const mainInput = document.getElementById('my-baker-input');
+    if (drawerInput) drawerInput.value = value;
+    if (mainInput) mainInput.value = value;
+
+    const emptyState = document.getElementById('drawer-empty-state');
+    const connectedState = document.getElementById('drawer-connected');
+    if (emptyState) emptyState.style.display = 'none';
+    if (connectedState) connectedState.style.display = '';
+
+    window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: value, source } }));
+    return value;
 }
 
 function withWalletTimeout(action, timeoutMs, label) {
@@ -192,13 +239,7 @@ export function syncWalletToMyTezos(address) {
     if (!isTezosAccountAddress(value)) {
         throw new Error('Connected wallet did not provide a tz1/tz2/tz3/tz4 account address');
     }
-    localStorage.setItem(MY_TEZOS_ADDRESS_KEY, value);
-    const drawerInput = document.getElementById('drawer-address-input');
-    const mainInput = document.getElementById('my-baker-input');
-    if (drawerInput) drawerInput.value = value;
-    if (mainInput) mainInput.value = value;
-    window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: value, source: 'octez-connect' } }));
-    return value;
+    return rememberMyTezosAddress(value, { source: 'octez-connect' });
 }
 
 export async function connectOctezWallet({ syncMyTezos = false } = {}) {

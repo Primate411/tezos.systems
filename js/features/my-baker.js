@@ -8,7 +8,6 @@ import { escapeHtml, formatNumber } from '../core/utils.js';
 import { fetchSharedStats, getTzktTotalDelegated, getTzktTotalStaked } from '../core/api.js';
 import { fetchBakerLiquidityBakingVote } from './liquidity-baking.js';
 import { classifyOctezVersion, fetchOctezVersions } from './network-health.js';
-// objkt.js moved to standalone section
 
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const SAVED_ADDRESSES_KEY = 'tezos-systems-saved-addresses';
@@ -582,10 +581,6 @@ async function renderBakerData(address, container) {
                 }
             })();
         }
-
-        // Sync address to Objkt section if it exists
-        const objktInput = document.getElementById('objkt-input');
-        if (objktInput && !objktInput.value) objktInput.value = address;
     } catch (err) {
         if (renderSeq !== _bakerRenderSeq) return;
         container.innerHTML = '';
@@ -595,8 +590,6 @@ async function renderBakerData(address, container) {
         container.appendChild(errorEl);
     }
 }
-
-/* Objkt rendering moved to objkt-ui.js */
 
 /**
  * Initialize the My Baker section
@@ -692,7 +685,7 @@ export function init() {
                 renderBakerData(addr, results);
                 updateLedgerFlowLink(addr);
                 showCopyMode(addr);
-                window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr } }));
+                window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr, source: 'my-baker' } }));
                 renderSavedAddresses();
             });
         });
@@ -756,6 +749,18 @@ export function init() {
     }
     renderSavedAddresses();
 
+    window.addEventListener('my-baker-updated', (e) => {
+        const source = e.detail?.source || '';
+        const addr = e.detail?.address || '';
+        if (!source || source === 'my-baker' || !isValidAddress(addr)) return;
+        input.value = addr;
+        renderBakerData(addr, results);
+        updateShareLink(addr);
+        updateLedgerFlowLink(addr);
+        showCopyMode(addr);
+        renderSavedAddresses();
+    });
+
     async function copyCurrentAddress(addr) {
         try {
             await navigator.clipboard.writeText(addr);
@@ -803,7 +808,7 @@ export function init() {
         showCopyMode(addr);
         addToSavedAddresses(addr);
         // Notify My Tezos strip to refresh with new address
-        window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr } }));
+        window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr, source: 'my-baker' } }));
     });
 
     // Allow Enter key
@@ -821,7 +826,7 @@ export function init() {
         updateLedgerFlowLink(null);
         restoreSaveMode();
         // Notify My Tezos strip
-        window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: null } }));
+        window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: null, source: 'my-baker' } }));
         // Switch drawer back to empty state
         const emptyState = document.getElementById('drawer-empty-state');
         const connectedState = document.getElementById('drawer-connected');

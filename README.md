@@ -155,7 +155,19 @@ wordmark stays as vivid as the wrapped mobile title.
 | `moss` | Green organic theme |
 | `warzone` | Amber command theme |
 
-HEN mode is a separate overlay entry point, not a persisted dashboard theme.
+HEN mode is a separate overlay entry point, not a persisted dashboard theme. It
+opens a live Tezos NFT feed that shows Teia/HEN contract mints and OBJKT artist
+collection mints together by default. Inside the HEN CLI, `all`, `teia`, and
+`objkt` switch the live source scope without leaving the overlay, and the
+selected source is remembered for the next HEN session. HEN starts from the
+current My Tezos address when one is saved, and its minimal wallet controls can
+pair through Octez.Connect, accept a raw address, or resolve a `.tez` name; any
+HEN address update writes back to My Tezos and saved address history. Collecting
+setup commands include `price <max>`, `editions <max>`,
+`wallet <tz1...|name.tez|me|clear>`, `filters`, and `new` for jumping back to
+live arrivals since the page opened. HEN card media retries failed IPFS loads
+across fallback gateways, and the overlay now owns the reusable OBJKT profile
+stats for owned NFTs, created NFTs, marketplace activity, and lifetime totals.
 
 Theme support is intentionally broad but scattered. When changing themes, check
 `js/ui/theme.js`, CSS variables and overrides, `js/ui/share.js`,
@@ -294,7 +306,7 @@ inline modal styles in `js/core/app.js`.
   performance, latest LB vote state, Octez.Connect wallet sync, and recent baker
   delegator/staker activity.
 - Baker leaderboard, staking calculator, chain comparison, whale feed, sleeping
-  giants, OBJKT/NFT profile lookup, HEN mode, TzSafe Recovery, changelog, share captures, and
+  giants, HEN NFT/profile mode, TzSafe Recovery, changelog, share captures, and
   embeddable widgets.
 
 Useful deep links include:
@@ -341,7 +353,7 @@ The governance SEO page also funnels high-intent searches into `/chamber/`,
 | Teztale `https://teztale-server-mainnet-ro-prd.octez.tech` | Consensus timing lens for Network Health, including quorum delay, validation/application delay, source count, and operations-report observations; Teztale is by Nomadic Labs |
 | CoinGecko | XTZ price, market cap, 24h change, volume |
 | Tezos Domains GraphQL | Domain and reverse-record lookups |
-| OBJKT GraphQL | NFT/profile surfaces |
+| OBJKT GraphQL | HEN mode's live Teia + OBJKT feed plus collector and creator profile stats |
 | Supabase REST | Historical Tezos snapshots via public anon client config |
 | DefiLlama `https://api.llama.fi` | Tezos X chain TVL and protocol TVL; DefiLlama currently indexes the chain as Etherlink |
 | Etherlink Blockscout `https://explorer.etherlink.com/api/v2` | Tezos X chamber transaction, address, gas, and block stats |
