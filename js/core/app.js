@@ -3186,7 +3186,7 @@ const TEZOS_LOOP_AURAS = {
         line: 'Type /nfts or enter HEN when Objkt activity, creator history, and collector context are the useful path.',
         query: '/nfts',
         searchLabel: 'Open NFT lane',
-        href: '/hen/',
+        href: '/?hen=1',
         label: 'Enter HEN'
     },
     governance: {

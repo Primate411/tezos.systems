@@ -62,7 +62,6 @@ const HenMode = (() => {
     let viewerHoldings = new Map();
     let profileGeneration = 0;
     let profileCache = new Map();
-    let newSinceOpen = [];
     let xtzUsd = null;
     let walletModulePromise = null;
     let objktProfileModulePromise = null;
@@ -606,30 +605,6 @@ const HenMode = (() => {
         }
     }
 
-    function showNewTray(freshTokens) {
-        if (!freshTokens || freshTokens.length === 0) return;
-        var pill = el('hen-new-pill');
-        if (!pill) return;
-        newSinceOpen = freshTokens.concat(newSinceOpen).slice(0, 99);
-        var count = newSinceOpen.length;
-        pill.textContent = count === 1 ? '1 new mint · show' : count + ' new mints · show';
-        pill.classList.add('visible');
-    }
-
-    function hideNewTray() {
-        newSinceOpen = [];
-        var pill = el('hen-new-pill');
-        if (!pill) return;
-        pill.textContent = '';
-        pill.classList.remove('visible');
-    }
-
-    function revealNewSinceOpen() {
-        var feed = document.querySelector('.hen-feed');
-        if (feed) feed.scrollTo({ top: 0, behavior: 'smooth' });
-        hideNewTray();
-    }
-
     function activeFilterLabel() {
         var parts = [];
         if (priceMaxMutez) parts.push('price <= ' + formatFilterPrice(priceMaxMutez) + ' ꜩ');
@@ -674,7 +649,6 @@ const HenMode = (() => {
         feedGeneration++;
         loading = false;
         viewerHoldings = new Map();
-        hideNewTray();
         if (grid()) grid().innerHTML = '';
         updateStatusStrip();
     }
@@ -952,21 +926,24 @@ const HenMode = (() => {
             var fresh = await fetchTokens(20, 0, newestTimestamp);
             if (fresh.length > 0) {
                 var g = grid();
+                if (!g) return;
                 // Reverse so newest ends up at top
                 var sorted = fresh.slice().reverse();
+                var feed = document.querySelector('.hen-feed');
+                var wasNearTop = feed ? feed.scrollTop < 64 : true;
                 sorted.forEach(function(t) {
                     tokens.unshift(t);
                     var card = createCard(t, 0, true);
                     card.classList.add('visible');
                     g.prepend(card);
                 });
+                if (feed && wasNearTop) feed.scrollTo({ top: 0, behavior: 'smooth' });
                 offset += fresh.length;
                 newestTimestamp = fresh[0].timestamp;
                 updateCount();
                 resolveNamesForCards();
                 await syncViewerHoldingsForTokens(fresh);
                 showMintPulse(fresh);
-                showNewTray(fresh);
             }
         } catch (e) {
             console.error('[HEN] poll error:', e);
@@ -1302,14 +1279,6 @@ const HenMode = (() => {
                     '  feed: ' + (activeFilterLabel() || 'none')
                 ]);
                 break;
-            case 'new':
-                if (newSinceOpen.length === 0) {
-                    showCliOutput(['> no new mints waiting']);
-                } else {
-                    revealNewSinceOpen();
-                    showCliOutput(['> jumped to newest mints']);
-                }
-                break;
             case 'random':
                 clearCliOutput();
                 searchMode = null;
@@ -1338,7 +1307,6 @@ const HenMode = (() => {
                     '  editions <max> \u2014 only editions up to max supply',
                     '  wallet <addr|name.tez|me|clear> \u2014 mark owned pieces',
                     '  filters     \u2014 show active setup',
-                    '  new         \u2014 jump to new mints since open',
                     '  random      \u2014 jump to random offset',
                     '  reset       \u2014 clear all filters',
                     '  help        \u2014 this message'
@@ -1455,7 +1423,6 @@ const HenMode = (() => {
         feedMode = DEFAULT_FEED_MODE;
         feedGeneration++;
         loading = false;
-        hideNewTray();
         if (grid()) grid().innerHTML = '';
         updateModeControls();
     }
@@ -1502,9 +1469,6 @@ const HenMode = (() => {
             });
         });
         updateModeControls();
-
-        var newPill = el('hen-new-pill');
-        if (newPill) newPill.addEventListener('click', revealNewSinceOpen);
 
         var walletConnect = el('hen-wallet-connect');
         if (walletConnect) walletConnect.addEventListener('click', function() {

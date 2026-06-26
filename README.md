@@ -164,10 +164,11 @@ current My Tezos address when one is saved, and its minimal wallet controls can
 pair through Octez.Connect, accept a raw address, or resolve a `.tez` name; any
 HEN address update writes back to My Tezos and saved address history. Collecting
 setup commands include `price <max>`, `editions <max>`,
-`wallet <tz1...|name.tez|me|clear>`, `filters`, and `new` for jumping back to
-live arrivals since the page opened. HEN card media retries failed IPFS loads
-across fallback gateways, and the overlay now owns the reusable OBJKT profile
-stats for owned NFTs, created NFTs, marketplace activity, and lifetime totals.
+`wallet <tz1...|name.tez|me|clear>`, and `filters`. New live arrivals prepend
+themselves into the top of the feed automatically. HEN card media retries failed
+IPFS loads across fallback gateways, and the overlay now owns the reusable OBJKT
+profile stats for owned NFTs, created NFTs, marketplace activity, and lifetime
+totals.
 
 Theme support is intentionally broad but scattered. When changing themes, check
 `js/ui/theme.js`, CSS variables and overrides, `js/ui/share.js`,

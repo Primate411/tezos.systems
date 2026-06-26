@@ -5,232 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>hen — live Tezos NFTs</title>
     <meta name="description" content="Live Teia and OBJKT feed of freshly minted NFTs on Tezos. Discover, explore, collect.">
+    <link rel="canonical" href="https://tezos.systems/?hen=1">
     <meta property="og:title" content="hen — live Tezos NFTs">
     <meta property="og:description" content="Real-time Teia and OBJKT feed of new NFTs being minted on the Tezos blockchain.">
     <meta property="og:type" content="website">
     <link rel="icon" href="/favicon.svg">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- The standalone splash has been retired: go straight into the live feed. -->
+    <meta http-equiv="refresh" content="0; url=/?hen=1">
+    <script>
+        // Preserve the matrix default so the dashboard doesn't bounce to the landing page,
+        // then forward immediately into the live HEN feed.
+        try {
+            if (!localStorage.getItem('tezos-systems-theme')) {
+                localStorage.setItem('tezos-systems-theme', 'matrix');
+            }
+        } catch (e) {}
+        window.location.replace('/?hen=1' + window.location.hash);
+    </script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            background: #0a0a0a;
-            color: #e0e0e0;
-            font-family: 'JetBrains Mono', monospace;
+        html, body { margin: 0; height: 100%; background: #0a0a0a; }
+        .fallback {
             min-height: 100vh;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            overflow: hidden;
-        }
-
-        .container {
-            text-align: center;
-            max-width: 480px;
-            padding: 0 24px;
-        }
-
-        /* Icon */
-        .hen-icon {
-            font-size: 2.5rem;
-            color: #00d4ff;
-            margin-bottom: 24px;
-            animation: pulse 2.5s ease-in-out infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 0.6; }
-            50% { opacity: 1; }
-        }
-
-        /* Title */
-        h1 {
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            margin-bottom: 8px;
-            color: #e0e0e0;
-        }
-        h1 span { color: #00d4ff; }
-
-        .tagline {
-            font-size: 0.78rem;
-            color: #555;
-            letter-spacing: 0.08em;
-            margin-bottom: 40px;
-        }
-
-        /* Stats row */
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 32px;
-            margin-bottom: 40px;
-            font-size: 0.7rem;
-            color: #444;
-            letter-spacing: 0.05em;
-        }
-        .stat-val {
-            color: #00d4ff;
-            font-weight: 700;
-            font-size: 0.85rem;
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        /* Enter button */
-        .enter {
-            display: inline-block;
-            padding: 14px 48px;
-            border: 1px solid #00d4ff;
-            background: transparent;
-            color: #00d4ff;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.88rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-decoration: none;
-            cursor: pointer;
-            transition: all 0.25s;
-        }
-        .enter:hover {
-            background: #00d4ff;
-            color: #0a0a0a;
-            box-shadow: 0 0 40px rgba(0,212,255,0.2);
-        }
-
-        /* Subtle link back */
-        .back {
-            margin-top: 32px;
-            font-size: 0.65rem;
-            color: #333;
+            color: #00d4ff;
+            font-size: 0.85rem;
             letter-spacing: 0.06em;
-        }
-        .back a {
-            color: #444;
             text-decoration: none;
-            transition: color 0.2s;
-        }
-        .back a:hover { color: #00d4ff; }
-
-        /* Floating dots background */
-        .bg-dot {
-            position: fixed;
-            width: 2px;
-            height: 2px;
-            background: #00d4ff;
-            border-radius: 50%;
-            opacity: 0;
-            animation: drift 8s linear infinite;
-        }
-        @keyframes drift {
-            0% { opacity: 0; transform: translateY(100vh); }
-            10% { opacity: 0.3; }
-            90% { opacity: 0.3; }
-            100% { opacity: 0; transform: translateY(-20px); }
-        }
-
-        /* Boot text */
-        .boot-hint {
-            position: fixed;
-            bottom: 24px;
-            font-size: 0.6rem;
-            color: #222;
-            letter-spacing: 0.1em;
         }
     </style>
 </head>
 <body>
-    <!-- Floating background dots -->
-    <script>
-        for (var i = 0; i < 20; i++) {
-            var dot = document.createElement('div');
-            dot.className = 'bg-dot';
-            dot.style.left = Math.random() * 100 + '%';
-            dot.style.animationDelay = Math.random() * 8 + 's';
-            dot.style.animationDuration = (6 + Math.random() * 6) + 's';
-            document.body.appendChild(dot);
-        }
-    </script>
-
-    <div class="container">
-        <div class="hen-icon">◎</div>
-        <h1><span>hen</span> live</h1>
-        <p class="tagline">teia + objkt on tezos</p>
-
-        <div class="stats">
-            <div><span class="stat-val" id="s-mints">—</span>mints today</div>
-            <div><span class="stat-val" id="s-artists">—</span>artists</div>
-            <div><span class="stat-val" id="s-editions">—</span>editions</div>
-        </div>
-
-        <a href="/?hen=1" class="enter" id="enter-hen">enter →</a>
-
-        <div class="back">
-            <a href="/">← tezos.systems dashboard</a>
-        </div>
-    </div>
-
-    <div class="boot-hint">tezos blockchain · teia + objkt</div>
-    <div id="bg-art" style="position:fixed;inset:0;z-index:-1;opacity:0;transition:opacity 3s;background-size:cover;background-position:center;filter:blur(20px) brightness(0.3);"></div>
-
-    <script>
-        // Save theme so main page doesn't redirect to landing
-        if (!localStorage.getItem('tezos-systems-theme')) {
-            localStorage.setItem('tezos-systems-theme', 'matrix');
-        }
-
-        // Quick stats from Teia + OBJKT
-        (function() {
-            var since = new Date(Date.now() - 86400000).toISOString();
-            var source = '_or: [{fa_contract: {_eq: "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"}}, {fa_contract: {_neq: "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"}, fa: {collection_type: {_eq: "artist"}}}]';
-            var q = '{ token(where: {timestamp: {_gte: "' + since + '"}, ' + source + ', display_uri: {_like: "ipfs://%"}}, limit: 200, order_by: {timestamp: desc}) { supply creators { creator_address } } }';
-            fetch('https://data.objkt.com/v3/graphql', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: q })
-            }).then(function(r) { return r.json(); }).then(function(d) {
-                var tokens = (d && d.data && d.data.token) || [];
-                if (tokens.length > 0) {
-                    document.getElementById('s-mints').textContent = tokens.length + (tokens.length >= 200 ? '+' : '');
-                    var artists = {};
-                    tokens.forEach(function(t) {
-                        var addr = t.creators && t.creators[0] && t.creators[0].creator_address;
-                        if (addr) artists[addr] = true;
-                    });
-                    document.getElementById('s-artists').textContent = Object.keys(artists).length;
-                    var editions = 0;
-                    tokens.forEach(function(t) { editions += parseInt(t.supply) || 0; });
-                    document.getElementById('s-editions').textContent = editions > 999 ? Math.round(editions/1000) + 'k' : editions;
-                }
-            }).catch(function(e) { console.warn('HEN stats:', e); });
-        })();
-
-        // Background art rotator
-        (function() {
-            var bgEl = document.getElementById('bg-art');
-            fetch('https://data.objkt.com/v3/graphql', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: '{ token(where: {display_uri: {_like: "ipfs://%"}, _or: [{fa_contract: {_eq: "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"}}, {fa_contract: {_neq: "KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton"}, fa: {collection_type: {_eq: "artist"}}}], mime: {_like: "image/%"}}, limit: 10, order_by: {timestamp: desc}) { thumbnail_uri } }' })
-            }).then(function(r) { return r.json(); }).then(function(d) {
-                var tokens = (d && d.data && d.data.token) || [];
-                if (tokens.length === 0) return;
-                var idx = 0;
-                function show() {
-                    var uri = tokens[idx].thumbnail_uri || '';
-                    if (uri.indexOf('ipfs://') === 0) uri = 'https://ipfs.io/ipfs/' + uri.slice(7);
-                    bgEl.style.opacity = '0';
-                    setTimeout(function() {
-                        bgEl.style.backgroundImage = 'url(' + uri + ')';
-                        bgEl.style.opacity = '0.06';
-                    }, 3000);
-                    idx = (idx + 1) % tokens.length;
-                }
-                show();
-                setInterval(show, 10000);
-            }).catch(function() {});
-        })();
-    </script>
+    <a class="fallback" href="/?hen=1">entering live Tezos NFT feed → tap to continue</a>
 </body>
 </html>

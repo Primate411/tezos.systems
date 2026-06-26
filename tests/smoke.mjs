@@ -6520,11 +6520,13 @@ async function smokeHenMode(browser, baseUrl) {
     const labels = Array.from(document.querySelectorAll('.hen-card-source')).map((el) => el.textContent?.trim());
     return labels.includes('TEIA') && labels.includes('OBJKT');
   }, null, { timeout: 10000 });
-  await page.locator('#hen-new-pill.visible').waitFor({ state: 'visible', timeout: 20000 });
-  const newPillText = await page.locator('#hen-new-pill').innerText();
-  assert(newPillText.includes('new mint'), `HEN mode new mint pill did not announce fresh work: ${newPillText}`);
-  await page.locator('#hen-new-pill').click();
-  await page.waitForFunction(() => !document.querySelector('#hen-new-pill')?.classList.contains('visible'), null, { timeout: 5000 });
+  await page.waitForFunction(() => {
+    const firstCard = document.querySelector('#hen-grid .hen-card');
+    return firstCard?.querySelector('.hen-card-title')?.textContent?.includes('Fresh Teia Smoke Mint')
+      && firstCard.classList.contains('hen-card-fresh')
+      && firstCard.querySelector('.hen-card-source')?.textContent?.trim() === 'TEIA'
+      && !document.querySelector('#hen-new-pill');
+  }, null, { timeout: 20000 });
   await page.locator('.hen-close').click();
   await page.waitForFunction(() => {
     const overlayClosed = !document.querySelector('#hen-overlay')?.classList.contains('active');

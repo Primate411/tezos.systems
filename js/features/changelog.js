@@ -8,7 +8,7 @@ const CHANGELOG = [
         date: '2026-06-26',
         entries: [
             { type: '✨', text: 'HEN mode now opens as a live Teia + OBJKT feed, with CLI and header filters for all, Teia-only, or OBJKT-only collecting' },
-            { type: '✨', text: 'HEN mode collecting setup now remembers source preference and adds CLI price, edition, wallet-owned, filter status, and new-mint jump controls' },
+            { type: '✨', text: 'HEN mode collecting setup now remembers source preference and adds CLI price, edition, wallet-owned, and filter status controls while new mints appear at the top automatically' },
             { type: '✨', text: 'HEN mode now starts from My Tezos, supports Octez.Connect or .tez address input, and keeps saved address history in sync' },
             { type: '✨', text: 'OBJKT collector and creator profile stats now live inside HEN mode, with owned, created, marketplace, and lifetime totals beside the live feed' },
             { type: '🔧', text: 'HEN NFT images now retry failed IPFS loads across fallback gateways on a periodic backoff instead of staying blank' },
