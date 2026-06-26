@@ -386,6 +386,17 @@ function updateBlockTicker(data, { error = false } = {}) {
     animateBlockTicker(strip, line, Boolean(previousSignature && previousSignature !== signature));
 }
 
+function wireCycleChipHealthLauncher() {
+    const chip = document.getElementById('cycle-chip');
+    if (!chip || chip.dataset.healthChamberWired) return;
+
+    chip.dataset.healthChamberWired = '1';
+    chip.addEventListener('click', (event) => {
+        event.preventDefault();
+        openNetworkHealthChamber();
+    });
+}
+
 function bakerLinks(address, name) {
     const label = name || shortAddress(address);
     if (!address) return `<span class="lb-baker-name">${escapeHtml(label)}</span>`;
@@ -2575,6 +2586,7 @@ export async function refreshNetworkHealth({ force = false } = {}) {
 export function initNetworkHealth() {
     if (!document.querySelector('[data-stat="network-health"]')) return;
 
+    wireCycleChipHealthLauncher();
     wireNetworkHealthCard();
     startHealthAgeTicker();
 

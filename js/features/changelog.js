@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-26',
         entries: [
+            { type: '🔧', text: 'The top cycle progress chip now opens Network Health so cycle timing leads straight to live block context' },
             { type: '🎨', text: 'Tezos X Governance now keeps active proposal chips clear of the title lane when paired beside Tezos X' },
         ]
     },

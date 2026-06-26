@@ -3821,6 +3821,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const ticker = document.querySelector('#block-ticker-strip');
     const tickerButton = document.querySelector('#block-ticker-button');
     const tickerLine = document.querySelector('#block-ticker-line');
+    const cycleChip = document.querySelector('#cycle-chip');
     const healthProof = modal?.querySelector('#health-chain-proof');
     const tickerKicker = ticker?.querySelector('.block-ticker-kicker');
     const tickerPulse = ticker?.querySelector('#uptime-pulse-dot.block-ticker-pulse');
@@ -3974,6 +3975,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       blockTickerPulseWidth: tickerPulseStyles ? parseFloat(tickerPulseStyles.width) : 0,
       blockTickerPulseBg: tickerPulseStyles?.backgroundColor || '',
       topPriceBarText: priceBar?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      topPriceBarCycleChipTag: cycleChip?.tagName || '',
+      topPriceBarCycleChipHref: cycleChip?.getAttribute('href') || '',
+      topPriceBarCycleChipWired: cycleChip?.dataset.healthChamberWired || '',
       topPriceBarHasBlockReadout: Boolean(priceBar?.querySelector('#cycle-chip-block')),
       topPriceBarHasBlockAge: Boolean(priceBar?.querySelector('#uptime-block-age')),
       topPriceBarHasPulseDot: Boolean(priceBar?.querySelector('#uptime-pulse-dot')),
@@ -4095,6 +4099,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.blockTickerOctezText === 'v25.0', `network health chamber: latest baker Octez version mismatch: ${healthState.blockTickerOctezText}`);
   assert(healthState.blockTickerOctezClass.includes('watch'), `network health chamber: lagging same-major Octez version should be yellow/watch: ${healthState.blockTickerOctezClass}`);
   assert(healthState.blockTickerWired === '1', `network health chamber: ticker click wiring missing: ${healthState.blockTickerWired}`);
+  assert(healthState.topPriceBarCycleChipTag === 'A' && healthState.topPriceBarCycleChipHref === '#health', `network health chamber: cycle chip should be a #health launcher, saw ${healthState.topPriceBarCycleChipTag}/${healthState.topPriceBarCycleChipHref}`);
+  assert(healthState.topPriceBarCycleChipWired === '1', `network health chamber: cycle chip click wiring missing: ${healthState.topPriceBarCycleChipWired}`);
   assert(/baked by/.test(healthState.blockTickerTitle), `network health chamber: ticker title missing block context: ${healthState.blockTickerTitle}`);
   assert(/Octez v25\.0/.test(healthState.blockTickerTitle), `network health chamber: ticker title missing Octez version context: ${healthState.blockTickerTitle}`);
   assert(healthState.blockTickerKickerText === '', `network health chamber: ticker kicker should be the pulse only, saw ${healthState.blockTickerKickerText}`);
@@ -4184,6 +4190,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await page.locator('#block-ticker-button').click();
+  await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#network-health-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.locator('#cycle-chip').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
