@@ -4826,6 +4826,9 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     chamberUpdatedLabels: Array.from(document.querySelectorAll('#chambers-section .chamber-entry-card[data-updated-label]')).map((card) => card.dataset.updatedLabel || ''),
     etherlinkEntryGeometry: (() => {
       const card = document.querySelector('#etherlink-governance-entry-card');
+      const main = card?.querySelector('.tezlink-entry-main');
+      const title = card?.querySelector('.stat-label');
+      const metrics = card?.querySelector('#etherlink-governance-entry-metrics');
       const cue = card?.querySelector('.chamber-expand-cue');
       const sequencer = [...(card?.querySelectorAll('.etherlink-gov-entry-metric') || [])]
         .find((node) => /SEQUENCER/.test(node.textContent || ''));
@@ -4834,13 +4837,32 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
         const box = node.getBoundingClientRect();
         return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
       };
+      const mainRect = rect(main);
+      const titleRect = rect(title);
+      const metricsRect = rect(metrics);
       const cueRect = rect(cue);
       const sequencerRect = rect(sequencer);
-      const overlap = cueRect && sequencerRect
-        ? Math.max(0, Math.min(cueRect.right, sequencerRect.right) - Math.max(cueRect.left, sequencerRect.left))
-          * Math.max(0, Math.min(cueRect.bottom, sequencerRect.bottom) - Math.max(cueRect.top, sequencerRect.top))
+      const overlapArea = (a, b) => a && b
+        ? Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+          * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
         : 0;
-      return { cueRect, sequencerRect, overlap };
+      const titleMetricsOverlap = titleRect && metricsRect
+        ? overlapArea(titleRect, metricsRect)
+        : 0;
+      const metricTruncations = Array.from(card?.querySelectorAll('.etherlink-gov-entry-metric span, .etherlink-gov-entry-metric strong') || [])
+        .filter((node) => node.scrollWidth > node.clientWidth + 1)
+        .map((node) => node.textContent?.trim() || '');
+      return {
+        mainRect,
+        titleRect,
+        metricsRect,
+        cueRect,
+        sequencerRect,
+        overlap: overlapArea(cueRect, sequencerRect),
+        titleMetricsOverlap,
+        metricsRightOfMain: Boolean(mainRect && metricsRect && metricsRect.left >= mainRect.right + 8),
+        metricTruncations
+      };
     })(),
     tz4TileValue: document.querySelector('#tz4-adoption-front')?.textContent?.trim() || '',
     tz4TileDescription: document.querySelector('#tz4-description')?.textContent?.trim() || '',
@@ -4901,6 +4923,9 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.tezlinkEntryGeometry.pairedWithGovernance, `governance testing period: Tezos X and Governance cards should keep matched row height: ${JSON.stringify(dashboardState.tezlinkEntryGeometry)}`);
   const chamberFreshnessLabels = dashboardState.chamberUpdatedLabels.filter((label) => /^as of \d{2}:\d{2} UTC$/.test(label));
   assert(chamberFreshnessLabels.length >= 6, `governance testing period: chamber freshness stamps missing: ${dashboardState.chamberUpdatedLabels.join(', ')}`);
+  assert(dashboardState.etherlinkEntryGeometry.titleMetricsOverlap === 0, `governance testing period: Tezos X Governance title should not overlap proposal chips: ${JSON.stringify(dashboardState.etherlinkEntryGeometry)}`);
+  assert(dashboardState.etherlinkEntryGeometry.metricsRightOfMain, `governance testing period: Tezos X Governance proposal chips should sit beside the title/value lane: ${JSON.stringify(dashboardState.etherlinkEntryGeometry)}`);
+  assert(dashboardState.etherlinkEntryGeometry.metricTruncations.length === 0, `governance testing period: Tezos X Governance proposal chips should not ellipsize: ${JSON.stringify(dashboardState.etherlinkEntryGeometry)}`);
   assert(dashboardState.etherlinkEntryGeometry.overlap === 0, `governance testing period: Tezos X Governance open cue overlaps Sequencer chip: ${JSON.stringify(dashboardState.etherlinkEntryGeometry)}`);
   assert(dashboardState.tz4TileValue === '33.3 / 50%', `governance testing period: tz4 tile value mismatch: ${dashboardState.tz4TileValue}`);
   assert(/1 \/ 3 bakers active/.test(dashboardState.tz4TileDescription), `governance testing period: tz4 tile description mismatch: ${dashboardState.tz4TileDescription}`);

@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-26',
+        entries: [
+            { type: '🎨', text: 'Tezos X Governance now keeps active proposal chips clear of the title lane when paired beside Tezos X' },
+        ]
+    },
+    {
         date: '2026-06-25',
         entries: [
             { type: '🎨', text: 'Tezos X now spaces its TVL, metrics, and live transaction tape cleanly when Tezos X Governance is active beside it' },
