@@ -2217,8 +2217,8 @@ async function loadPlaywright() {
   }
 }
 
-async function installOctezConnectMock(context, address = SAMPLE_ADDRESS) {
-  await context.addInitScript((mockAddress) => {
+async function installOctezConnectMock(context, address = SAMPLE_ADDRESS, options = {}) {
+  await context.addInitScript(({ mockAddress, hangPermissions }) => {
     const activeAccount = {
       address: mockAddress,
       network: { type: 'mainnet' },
@@ -2234,6 +2234,9 @@ async function installOctezConnectMock(context, address = SAMPLE_ADDRESS) {
     window.__octezConnectHangDisconnect = false;
     const client = {
       async requestPermissions() {
+        if (hangPermissions) {
+          return new Promise(() => {});
+        }
         currentAccount = activeAccount;
         window.__octezConnectDisconnected = false;
         (listeners.ACTIVE_ACCOUNT_SET || []).forEach((callback) => callback(currentAccount));
@@ -2273,7 +2276,7 @@ async function installOctezConnectMock(context, address = SAMPLE_ADDRESS) {
       BeaconEvent: { ACTIVE_ACCOUNT_SET: 'ACTIVE_ACCOUNT_SET', PAIR_ABORTED: 'PAIR_ABORTED' },
       Regions: { EUROPE_WEST: 'EUROPE_WEST', NORTH_AMERICA_EAST: 'NORTH_AMERICA_EAST' }
     };
-  }, address);
+  }, { mockAddress: address, hangPermissions: Boolean(options.hangPermissions) });
 }
 
 async function launchChromium(chromium) {
@@ -6542,6 +6545,29 @@ async function smokeHenMode(browser, baseUrl) {
   await context.close();
   const unexpectedIssues = issues.filter((issue) => !/smoke-hen-image/i.test(issue));
   assert(unexpectedIssues.length === 0, `HEN mode browser issues:\n${unexpectedIssues.join('\n')}`);
+
+  const timeoutContext = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(timeoutContext);
+  await installOctezConnectMock(timeoutContext, SAMPLE_ADDRESS, { hangPermissions: true });
+  await timeoutContext.addInitScript(() => {
+    window.__HEN_IMAGE_RETRY_DELAYS__ = [50, 100];
+    window.__TEZOS_WALLET_CONNECT_TIMEOUT_MS__ = 80;
+  });
+  const timeoutPage = await timeoutContext.newPage();
+  const timeoutResponse = await timeoutPage.goto(`${baseUrl}/?hen=1`, { waitUntil: 'domcontentloaded' });
+  assert(timeoutResponse?.ok(), `HEN mode timeout route failed with HTTP ${timeoutResponse?.status()}`);
+  await timeoutPage.locator('#hen-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
+  await timeoutPage.locator('#hen-wallet-connect').click();
+  await timeoutPage.waitForFunction(() => {
+    const button = document.querySelector('#hen-wallet-connect');
+    const cliText = document.querySelector('#hen-cli-output')?.innerText || '';
+    return button && !button.disabled && button.textContent.trim() === 'connect' && /timed out/i.test(cliText);
+  }, null, { timeout: 5000 });
+  await timeoutContext.close();
+
   log('ok - HEN mode smoke');
 }
 

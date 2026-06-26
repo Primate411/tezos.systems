@@ -162,7 +162,10 @@ collection mints together by default. Inside the HEN CLI, `all`, `teia`, and
 selected source is remembered for the next HEN session. HEN starts from the
 current My Tezos address when one is saved, and its minimal wallet controls can
 pair through Octez.Connect, accept a raw address, or resolve a `.tez` name; any
-HEN address update writes back to My Tezos and saved address history. Collecting
+HEN address update writes back to My Tezos and saved address history. HEN
+preloads Octez.Connect on entry, keeps wallet pairing overlays visible above the
+NFT overlay, and returns the connect control to a retryable state if a wallet
+prompt never answers. Collecting
 setup commands include `price <max>`, `editions <max>`,
 `wallet <tz1...|name.tez|me|clear>`, and `filters`. New live arrivals prepend
 themselves into the top of the feed automatically. HEN card media retries failed
@@ -514,7 +517,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v299`, including the Ledger Flow lazy CSS
+- Current aligned shell cache stamp: `v301`, including the Ledger Flow lazy CSS
   loader.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,

@@ -1055,9 +1055,16 @@
     .hen-profile-row em { text-align: left; }
 }
 
-/* ── Hide EVERYTHING else when HEN is active ── */
-body.hen-active > *:not(.hen-overlay) {
+/* ── Hide the dashboard while allowing wallet pairing overlays ── */
+body.hen-active > *:not(.hen-overlay):not([id*="beacon" i]):not([class*="beacon" i]):not([id*="walletconnect" i]):not([class*="walletconnect" i]):not([id*="wallet-connect" i]):not([class*="wallet-connect" i]):not(w3m-modal):not(wcm-modal) {
     display: none !important;
+}
+body.hen-active > :is([id*="beacon" i], [class*="beacon" i], [id*="walletconnect" i], [class*="walletconnect" i], [id*="wallet-connect" i], [class*="wallet-connect" i], w3m-modal, wcm-modal) {
+    display: block !important;
+    z-index: 10030 !important;
+}
+body.hen-active :is([id*="beacon" i], [class*="beacon" i], [id*="walletconnect" i], [class*="walletconnect" i], [id*="wallet-connect" i], [class*="wallet-connect" i], w3m-modal, wcm-modal) {
+    z-index: 10030 !important;
 }
 body.hen-active {
     background: #111 !important;

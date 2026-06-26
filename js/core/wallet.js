@@ -19,6 +19,9 @@ let _activeAccount = null;
 
 const WALLET_DISCONNECT_TIMEOUT_MS = 2500;
 const WALLET_CLEAR_TIMEOUT_MS = 1000;
+const WALLET_SDK_TIMEOUT_MS = 15000;
+const WALLET_CONNECT_TIMEOUT_MS = 45000;
+const WALLET_ACCOUNT_TIMEOUT_MS = 5000;
 
 export function isTezosAccountAddress(address) {
     return /^(tz[1-4])[a-zA-Z0-9]{33}$/.test(String(address || '').trim());
@@ -122,6 +125,11 @@ function withWalletTimeout(action, timeoutMs, label) {
     });
 }
 
+function walletTimeoutOverride(name, fallback) {
+    const value = Number(window[name]);
+    return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
 function isIgnorableDisconnectError(error) {
     return /No transport available|Not connected|Disconnect timed out/i.test(String(error?.message || error));
 }
@@ -207,10 +215,18 @@ async function bindWalletEvents(client, beacon) {
 
 export async function getDAppClient() {
     if (!_clientPromise) {
-        _clientPromise = loadOctezConnect().then(async (beacon) => {
-            const client = beacon.getDAppClientInstance(buildClientOptions(beacon));
-            await bindWalletEvents(client, beacon);
-            return client;
+        _clientPromise = withWalletTimeout(
+            () => loadOctezConnect().then(async (beacon) => {
+                const client = beacon.getDAppClientInstance(buildClientOptions(beacon));
+                await bindWalletEvents(client, beacon);
+                return client;
+            }),
+            walletTimeoutOverride('__TEZOS_WALLET_SDK_TIMEOUT_MS__', WALLET_SDK_TIMEOUT_MS),
+            'Octez.Connect SDK load'
+        ).catch((error) => {
+            _clientPromise = null;
+            if (/timed out/i.test(String(error?.message || error))) _sdkPromise = null;
+            throw error;
         });
     }
     return _clientPromise;
@@ -244,8 +260,21 @@ export function syncWalletToMyTezos(address) {
 
 export async function connectOctezWallet({ syncMyTezos = false } = {}) {
     const client = await getDAppClient();
-    const permissions = await client.requestPermissions();
-    const account = await client.getActiveAccount();
+    const permissions = await withWalletTimeout(
+        () => client.requestPermissions(),
+        walletTimeoutOverride('__TEZOS_WALLET_CONNECT_TIMEOUT_MS__', WALLET_CONNECT_TIMEOUT_MS),
+        'Wallet connection'
+    );
+    let account = null;
+    try {
+        account = await withWalletTimeout(
+            () => client.getActiveAccount(),
+            WALLET_ACCOUNT_TIMEOUT_MS,
+            'Wallet account lookup'
+        );
+    } catch (error) {
+        console.warn('[wallet] Octez.Connect account lookup failed:', error?.message || error);
+    }
     const active = rememberAccount(account || permissions, 'connected');
     if (syncMyTezos && active?.address) syncWalletToMyTezos(active.address);
     return active;

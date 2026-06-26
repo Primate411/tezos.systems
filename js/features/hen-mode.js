@@ -423,6 +423,16 @@ const HenMode = (() => {
         return walletModulePromise;
     }
 
+    function preloadWalletConnect() {
+        return walletModule().then(function(wallet) {
+            if (wallet && wallet.preloadOctezConnect) return wallet.preloadOctezConnect();
+            return null;
+        }).catch(function(err) {
+            console.warn('[HEN] wallet preload failed:', err);
+            return null;
+        });
+    }
+
     function objktProfileModule() {
         if (!objktProfileModulePromise) objktProfileModulePromise = import('/js/features/objkt.js');
         return objktProfileModulePromise;
@@ -1163,12 +1173,18 @@ const HenMode = (() => {
 
     async function connectWalletFromHen() {
         var connect = el('hen-wallet-connect');
+        var waitNotice = null;
         if (connect) {
             connect.disabled = true;
-            connect.textContent = '...';
+            connect.textContent = 'opening';
         }
+        showCliOutput(['> opening wallet connect']);
         try {
             var wallet = await walletModule();
+            waitNotice = setTimeout(function() {
+                if (connect) connect.textContent = 'waiting';
+                showCliOutput(['> wallet prompt waiting', '  check your wallet app, extension, or popup blocker']);
+            }, 3500);
             var account = await wallet.connectOctezWallet({ syncMyTezos: true });
             var address = account && account.address;
             if (!isValidAddress(address)) throw new Error('No account address returned');
@@ -1176,8 +1192,13 @@ const HenMode = (() => {
             showCliOutput(['> connected ' + shortAddr(address)]);
         } catch (err) {
             console.warn('[HEN] wallet connect failed:', err);
-            showCliOutput(['> wallet connect failed']);
+            var timedOut = /timed out/i.test(String(err && err.message ? err.message : err));
+            showCliOutput(timedOut
+                ? ['> wallet prompt timed out', '  check your wallet app, extension, or popup blocker, then try connect again']
+                : ['> wallet connect failed']
+            );
         } finally {
+            if (waitNotice) clearTimeout(waitNotice);
             if (connect) {
                 connect.disabled = false;
                 connect.textContent = 'connect';
@@ -1365,6 +1386,7 @@ const HenMode = (() => {
 
         applyModeFromUrl();
         loadSavedViewer();
+        preloadWalletConnect();
         fetchXtzPrice();
         startBlockPolling();
         // Only play boot once per session
@@ -1471,12 +1493,17 @@ const HenMode = (() => {
         updateModeControls();
 
         var walletConnect = el('hen-wallet-connect');
-        if (walletConnect) walletConnect.addEventListener('click', function() {
-            connectWalletFromHen().catch(function(err) {
-                console.error('[HEN] wallet connect command error:', err);
-                showCliOutput(['> wallet connect failed']);
+        if (walletConnect) {
+            ['pointerenter', 'focus'].forEach(function(eventName) {
+                walletConnect.addEventListener(eventName, preloadWalletConnect, { once: true });
             });
-        });
+            walletConnect.addEventListener('click', function() {
+                connectWalletFromHen().catch(function(err) {
+                    console.error('[HEN] wallet connect command error:', err);
+                    showCliOutput(['> wallet connect failed']);
+                });
+            });
+        }
 
         var walletSave = el('hen-wallet-save');
         if (walletSave) walletSave.addEventListener('click', function() {
