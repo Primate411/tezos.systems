@@ -36,14 +36,17 @@ export async function fetchObjktProfile(address) {
             twitter
             description
             logo
-            held_tokens(where: {quantity: {_gt: "0"}}, limit: $heldLimit, offset: $heldOffset) {
+            held_tokens(where: {quantity: {_gt: "0"}}, order_by: {last_incremented_at: desc}, limit: $heldLimit, offset: $heldOffset) {
+                last_incremented_at
                 quantity
                 token {
+                    token_id
+                    fa_contract
                     name
                     thumbnail_uri
                     pk
                     supply
-                    fa { name contract collection_id }
+                    fa { name contract collection_id logo }
                     lowest_ask
                 }
             }
@@ -303,6 +306,7 @@ function processProfile(holder) {
             if (!collectionMap.has(key)) {
                 collectionMap.set(key, {
                     name: fa?.name || 'Unknown',
+                    logo: fa?.logo || null,
                     assetCount: 0,
                     editionCount: 0,
                     assetKeys: new Set(),
@@ -358,6 +362,8 @@ function processProfile(holder) {
             recentAcquisitions: validHeld.slice(0, 5).map(h => ({
                 name: h.token.name,
                 thumbnail: h.token.thumbnail_uri,
+                tokenId: h.token.token_id,
+                contract: h.token.fa_contract,
                 collection: h.token.fa?.name,
                 quantity: h.quantity
             }))

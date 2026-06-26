@@ -157,21 +157,29 @@ wordmark stays as vivid as the wrapped mobile title.
 
 HEN mode is a separate overlay entry point, not a persisted dashboard theme. It
 opens a live Tezos NFT feed that shows Teia/HEN contract mints and OBJKT artist
-collection mints together by default. Inside the HEN CLI, `all`, `teia`, and
-`objkt` switch the live source scope without leaving the overlay, and the
-selected source is remembered for the next HEN session. HEN starts from the
-current My Tezos address when one is saved, and its minimal wallet controls can
-pair through Octez.Connect, accept a raw address, or resolve a `.tez` name; any
-HEN address update writes back to My Tezos and saved address history. HEN
-preloads Octez.Connect on entry, keeps wallet pairing overlays visible above the
-NFT overlay, and returns the connect control to a retryable state if a wallet
-prompt never answers. Collecting
-setup commands include `price <max>`, `editions <max>`,
-`wallet <tz1...|name.tez|me|clear>`, and `filters`. New live arrivals prepend
-themselves into the top of the feed automatically. HEN card media retries failed
-IPFS loads across fallback gateways, and the overlay now owns the reusable OBJKT
-profile stats for owned NFTs, created NFTs, marketplace activity, and lifetime
-totals.
+collection mints together by default. The visible HEN filter bar is the primary
+collecting surface: it exposes for-sale, price, search, edition, sort, saved,
+hide-owned, and shuffle controls without requiring the CLI, while mobile starts
+with the controls collapsed behind a `filters` toggle to keep art near the fold.
+First-time HEN visitors see a dismissible hint that points them to For Sale plus
+wallet-owned flags. Inside the HEN CLI,
+`all`, `teia`, and `objkt` switch source scope; `forsale on|off`,
+`price <max>`, `editions <max>`, `sort <newest|cheapest|scarce>`,
+`saved on|off`, `hideowned on|off`, `wallet <tz1...|name.tez|me|clear>`, and
+`filters` mirror the visible controls. The selected source and sort are
+remembered for the next HEN session. HEN starts from the current My Tezos
+address when one is saved, and its wallet controls explain that connecting flags
+owned pieces; they can pair through Octez.Connect, accept a raw address, or
+resolve a `.tez` name. Any HEN address update writes back to My Tezos and saved
+address history. HEN preloads Octez.Connect on entry, keeps wallet pairing
+overlays visible above the NFT overlay, and returns the connect control to a
+retryable state if a wallet prompt never answers. New live arrivals prepend
+themselves into the top of the feed automatically when the feed is sorted by
+newest. HEN card media retries failed IPFS loads across fallback gateways, and
+HEN grid/profile thumbnails load from OBJKT's media CDN first before falling
+back to live IPFS gateways. The overlay now owns the reusable OBJKT profile
+stats for owned NFTs, recent acquisitions, created NFTs, marketplace activity,
+and lifetime totals.
 
 Theme support is intentionally broad but scattered. When changing themes, check
 `js/ui/theme.js`, CSS variables and overrides, `js/ui/share.js`,

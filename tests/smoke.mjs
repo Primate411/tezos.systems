@@ -450,12 +450,15 @@ function pageRows(total, offset, limit, makeRow) {
 function smokeHeldToken(index) {
   const isHighSupply = index === 1;
   return {
+    last_incremented_at: new Date(Date.now() - index * 60000).toISOString(),
     quantity: isHighSupply ? '13635916737' : 1,
     token: {
+      token_id: String(7000 + index),
+      fa_contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345',
       name: isHighSupply ? 'Smoke High Supply' : `Smoke Piece ${index + 1}`,
       pk: index + 1,
       supply: isHighSupply ? '13635916737' : 10,
-      fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345' },
+      fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345', logo: 'ipfs://smoke-hen-image' },
       lowest_ask: index === 0 ? 1000000 : 0
     }
   };
@@ -468,7 +471,7 @@ function smokeCreatedToken(index) {
       name: `Smoke Piece ${index + 1}`,
       supply: 10,
       pk: index + 1,
-      fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345' },
+      fa: { name: 'Smoke Collection', contract: 'KT1SmokeSmokeSmokeSmokeSmokeSmoke12345', logo: 'ipfs://smoke-hen-image' },
       lowest_ask: index === 0 ? 1000000 : 0,
       listing_sales: index === 0 ? [{ price_xtz: 2500000, timestamp: new Date().toISOString() }] : []
     }
@@ -485,9 +488,12 @@ function smokeHenModeTokens(postData = '') {
   const teiaOnly = !allSources && query.includes(`fa_contract: {_eq: "${henContract}"}`);
   const objktOnly = !allSources && query.includes(`fa_contract: {_neq: "${henContract}"}`);
   const priceMaxMatch = query.match(/lowest_ask:\s*\{_gt:\s*"0",\s*_lte:\s*"(\d+)"/);
+  const listedOnly = /lowest_ask:\s*\{_gt:\s*"0"\s*\}/.test(query);
   const supplyMaxMatch = query.match(/supply:\s*\{_lte:\s*"(\d+)"/);
+  const searchMatch = query.match(/name:\s*\{_ilike:\s*"%([^"]+)%"/);
   const priceMax = priceMaxMatch ? Number(priceMaxMatch[1]) : null;
   const supplyMax = supplyMaxMatch ? Number(supplyMaxMatch[1]) : null;
+  const searchTerm = searchMatch ? searchMatch[1].toLowerCase() : '';
   const pixel = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==';
   const retryImage = 'ipfs://smoke-hen-image';
   const rows = query.includes('timestamp: {_gt:')
@@ -503,7 +509,10 @@ function smokeHenModeTokens(postData = '') {
         display_uri: retryImage,
         thumbnail_uri: retryImage,
         creators: [{ creator_address: SAMPLE_ADDRESS }],
-        fa: { name: 'hic et nunc' }
+        fa: { name: 'hic et nunc', logo: retryImage },
+        holders: [{ holder_address: SAMPLE_ADDRESS, quantity: '1' }, { holder_address: SAMPLE_ADDRESS_2, quantity: '1' }],
+        listings_active: [{ amount: '2', amount_left: '1', price_xtz: 1500000, timestamp: new Date().toISOString() }],
+        listing_sales: [{ price_xtz: 1000000, timestamp: new Date(Date.now() - 120000).toISOString() }]
       }
     ]
     : [
@@ -518,7 +527,10 @@ function smokeHenModeTokens(postData = '') {
       display_uri: retryImage,
       thumbnail_uri: retryImage,
       creators: [{ creator_address: SAMPLE_ADDRESS }],
-      fa: { name: 'hic et nunc' }
+      fa: { name: 'hic et nunc', logo: retryImage },
+      holders: [{ holder_address: SAMPLE_ADDRESS, quantity: '1' }, { holder_address: SAMPLE_ADDRESS_2, quantity: '1' }],
+      listings_active: [{ amount: '3', amount_left: '2', price_xtz: 1200000, timestamp: new Date().toISOString() }],
+      listing_sales: [{ price_xtz: 900000, timestamp: new Date(Date.now() - 120000).toISOString() }]
     },
     {
       token_id: '42',
@@ -531,14 +543,19 @@ function smokeHenModeTokens(postData = '') {
       display_uri: pixel,
       thumbnail_uri: pixel,
       creators: [{ creator_address: SAMPLE_ADDRESS_2 }],
-      fa: { name: 'Smoke OBJKT Collection' }
+      fa: { name: 'Smoke OBJKT Collection', logo: pixel },
+      holders: [{ holder_address: SAMPLE_ADDRESS_2, quantity: '1' }],
+      listings_active: [{ amount: '1', amount_left: '1', price_xtz: 3000000, timestamp: new Date().toISOString() }],
+      listing_sales: [{ price_xtz: 2500000, timestamp: new Date(Date.now() - 180000).toISOString() }]
     }
   ];
   let scopedRows = rows;
   if (teiaOnly) scopedRows = scopedRows.filter((token) => token.fa_contract === henContract);
   if (objktOnly) scopedRows = scopedRows.filter((token) => token.fa_contract !== henContract);
   if (priceMax) scopedRows = scopedRows.filter((token) => Number(token.lowest_ask) > 0 && Number(token.lowest_ask) <= priceMax);
+  else if (listedOnly) scopedRows = scopedRows.filter((token) => Number(token.lowest_ask) > 0);
   if (supplyMax) scopedRows = scopedRows.filter((token) => Number(token.supply) <= supplyMax);
+  if (searchTerm) scopedRows = scopedRows.filter((token) => token.name.toLowerCase().includes(searchTerm));
   return scopedRows.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
@@ -896,6 +913,14 @@ async function installFeatureMocks(context, options = {}) {
         });
       }
       return fulfillJson(route, { data: { token: smokeHenModeTokens(postData) } });
+    }
+
+    if (url.includes('assets.objkt.media/file/assets-003/')) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'image/gif',
+        body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64')
+      });
     }
 
     if (url.includes('/ipfs/smoke-hen-image')) {
@@ -6403,6 +6428,13 @@ async function smokeHenMode(browser, baseUrl) {
   await expectClassContains(page.locator('.hen-source-tab[data-hen-mode="all"]'), 'active', 'HEN mode all source tab');
   const initialStatus = await page.locator('#hen-status-strip').innerText();
   assert(initialStatus.includes('Teia + OBJKT'), `HEN mode status did not start mixed: ${initialStatus}`);
+  await page.locator('#hen-filterbar').waitFor({ state: 'visible', timeout: 5000 });
+  const initialUiState = await page.evaluate(() => ({
+    walletStatus: document.querySelector('#hen-wallet-status')?.textContent || '',
+    searchVisible: Boolean(document.querySelector('#hen-search-input')?.offsetParent),
+    listedButton: document.querySelector('#hen-filter-listed')?.getAttribute('aria-pressed') || ''
+  }));
+  assert((/connect to flag pieces you own/i.test(initialUiState.walletStatus) || /\.tez|tz1/i.test(initialUiState.walletStatus)) && initialUiState.searchVisible && initialUiState.listedButton === 'false', `HEN mode filter/wallet controls missing initial affordances: ${JSON.stringify(initialUiState)}`);
   try {
     await page.waitForFunction((address) => {
       const inputValue = document.querySelector('#hen-wallet-input')?.value || '';
@@ -6423,7 +6455,10 @@ async function smokeHenMode(browser, baseUrl) {
   try {
     await page.waitForFunction(() => {
       const img = document.querySelector('.hen-card img[data-hen-raw-uri="ipfs://smoke-hen-image"]');
-      return Boolean(img && img.currentSrc.includes('hen_retry=') && img.naturalWidth > 0);
+      return Boolean(img && img.naturalWidth > 0 && (
+        img.currentSrc.includes('assets.objkt.media/file/assets-003/')
+        || img.currentSrc.includes('hen_retry=')
+      ));
     }, null, { timeout: 5000 });
   } catch (error) {
     const state = await page.evaluate(() => {
@@ -6442,7 +6477,7 @@ async function smokeHenMode(browser, baseUrl) {
         cards: Array.from(document.querySelectorAll('.hen-card-title')).map((el) => el.textContent?.trim() || '')
       };
     });
-    throw new Error(`HEN mode image retry did not recover: ${JSON.stringify(state)}\n${error.message}`);
+    throw new Error(`HEN mode CDN-first image load or retry fallback did not recover: ${JSON.stringify(state)}\n${error.message}`);
   }
 
   async function enterHenCommand(command) {
@@ -6461,6 +6496,16 @@ async function smokeHenMode(browser, baseUrl) {
   await page.locator('.hen-card-owned-badge').first().waitFor({ state: 'visible', timeout: 10000 });
   const walletStatus = await page.locator('#hen-status-strip').innerText();
   assert(walletStatus.includes('wallet tz1aW...T1Z9') || /wallet [\w.-]+\.tez/i.test(walletStatus), `HEN mode wallet status missing saved wallet: ${walletStatus}`);
+  await page.locator('#hen-filter-hide-owned').click();
+  await page.waitForFunction(() => {
+    const titles = Array.from(document.querySelectorAll('.hen-card-title')).map((el) => el.textContent || '');
+    return titles.length > 0 && titles.every((title) => !/Teia Smoke Mint/.test(title));
+  }, null, { timeout: 10000 });
+  await page.locator('#hen-filter-hide-owned').click();
+  await page.waitForFunction(() => {
+    const titles = Array.from(document.querySelectorAll('.hen-card-title')).map((el) => el.textContent || '');
+    return titles.some((title) => /Teia Smoke Mint/.test(title));
+  }, null, { timeout: 10000 });
   const myTezosSync = await page.evaluate((address) => ({
     savedProfile: localStorage.getItem('tezos-systems-my-baker-address') || '',
     savedHistory: JSON.parse(localStorage.getItem('tezos-systems-saved-addresses') || '[]').map((item) => item.address),
@@ -6480,6 +6525,46 @@ async function smokeHenMode(browser, baseUrl) {
   }));
   assert(walletConnectSync.savedWallet === SAMPLE_ADDRESS && walletConnectSync.savedProfile === SAMPLE_ADDRESS, `HEN mode wallet connect did not sync identity: ${JSON.stringify(walletConnectSync)}`);
   assert(/Owned NFTs/i.test(walletConnectSync.profileText) && /Marketplace|Spent|Sales/i.test(walletConnectSync.profileText), `HEN mode collector stats missing useful profile data: ${walletConnectSync.profileText}`);
+
+  await page.locator('.hen-card-favorite').first().click();
+  await page.locator('#hen-filter-saved').click();
+  await page.waitForFunction(() => document.querySelectorAll('#hen-grid .hen-card').length === 1, null, { timeout: 10000 });
+  await expectClassContains(page.locator('#hen-filter-saved'), 'active', 'HEN mode saved filter button');
+  await page.locator('#hen-filter-saved').click();
+  await page.waitForFunction(() => document.querySelectorAll('#hen-grid .hen-card').length >= 2, null, { timeout: 10000 });
+
+  await page.locator('[data-hen-price="5000000"]').click();
+  await expectClassContains(page.locator('[data-hen-price="5000000"]'), 'active', 'HEN mode price chip');
+  const chipPriceStatus = await page.locator('#hen-status-strip').innerText();
+  assert(chipPriceStatus.includes('price <= 5.0 ꜩ'), `HEN mode price chip status missing: ${chipPriceStatus}`);
+  await page.locator('[data-hen-price="any"]').click();
+
+  await page.locator('[data-hen-sort="cheapest"]').click();
+  await expectClassContains(page.locator('[data-hen-sort="cheapest"]'), 'active', 'HEN mode cheapest sort chip');
+  const savedSort = await page.evaluate(() => localStorage.getItem('tezos-systems-hen-sort'));
+  assert(savedSort === 'cheapest', `HEN mode did not persist visible sort selection: ${savedSort}`);
+  await page.locator('[data-hen-sort="newest"]').click();
+
+  await page.locator('#hen-search-input').fill('OBJKT');
+  await page.waitForFunction(() => {
+    const titles = Array.from(document.querySelectorAll('.hen-card-title')).map((el) => el.textContent || '');
+    return titles.length > 0 && titles.every((title) => /OBJKT/.test(title));
+  }, null, { timeout: 10000 });
+  await page.locator('#hen-search-input').fill('');
+  await page.locator('#hen-search-input').press('Enter');
+  await page.waitForFunction(() => document.querySelectorAll('#hen-grid .hen-card').length >= 2, null, { timeout: 10000 });
+
+  await page.locator('#hen-grid .hen-card').first().click();
+  await page.locator('#hen-expanded.active .hen-expanded-collect').waitFor({ state: 'visible', timeout: 10000 });
+  const expandedState = await page.evaluate(() => ({
+    collect: document.querySelector('.hen-expanded-collect')?.textContent || '',
+    market: document.querySelector('.hen-expanded-market')?.innerText || '',
+    creator: document.querySelector('#hen-expanded-creator-mini')?.innerText || '',
+    role: document.querySelector('#hen-expanded')?.getAttribute('role') || '',
+    modal: document.querySelector('#hen-expanded')?.getAttribute('aria-modal') || ''
+  }));
+  assert(/collect on|view on/i.test(expandedState.collect) && /owners|available|editions/i.test(expandedState.market) && expandedState.role === 'dialog' && expandedState.modal === 'true', `HEN mode expanded decision screen incomplete: ${JSON.stringify(expandedState)}`);
+  await page.keyboard.press('Escape');
 
   await enterHenCommand('price 2');
   await waitForSources(['TEIA']);

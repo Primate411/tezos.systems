@@ -7,6 +7,16 @@ const CHANGELOG = [
     {
         date: '2026-06-26',
         entries: [
+            { type: '⚡', text: 'HEN grid and profile thumbnails now try OBJKT media CDN URLs before live IPFS gateways, with the retired Cloudflare gateway removed' },
+            { type: '⚡', text: 'HEN now eager-loads the first two desktop rows of artwork so the opening grid scans faster on CDN thumbnails' },
+            { type: '🎨', text: 'HEN mobile now starts with filters and wallet controls collapsed behind one Filters toggle so artwork lands closer to the fold' },
+            { type: '✨', text: 'HEN first-time visitors now get a dismissible hint that points them toward For Sale filtering and wallet-owned flags' },
+            { type: '🔧', text: 'HEN saved filters no longer silently cap favorites, and loading thumbnails hide alt-text bleed under source badges' },
+            { type: '✨', text: 'HEN mode now has a persistent collector filter bar for for-sale pieces, price, search, editions, sort, saved pieces, hide-owned, and shuffle' },
+            { type: '✨', text: 'HEN cards now show thumbnail price pills, saved hearts, clearer listed hierarchy, and stronger keyboard access' },
+            { type: '✨', text: 'HEN expanded NFT views now lead with a collect CTA, market stats, creator context, copy sharing, and X sharing' },
+            { type: '🎨', text: 'HEN wallet and OBJKT profile panels now surface avatars, descriptions, recent acquisition thumbnails, collection logos, and artist-mode headers' },
+            { type: '🔧', text: 'HEN mode now disables live prepend outside newest sort, stops thumbnail shimmer after load, trims long sessions, and respects reduced-motion for overlay effects' },
             { type: '✨', text: 'HEN mode now opens as a live Teia + OBJKT feed, with CLI and header filters for all, Teia-only, or OBJKT-only collecting' },
             { type: '✨', text: 'HEN mode collecting setup now remembers source preference and adds CLI price, edition, wallet-owned, and filter status controls while new mints appear at the top automatically' },
             { type: '✨', text: 'HEN mode now starts from My Tezos, supports Octez.Connect or .tez address input, and keeps saved address history in sync' },
