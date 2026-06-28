@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-28',
         entries: [
+            { type: '✨', text: 'Tezos Domains now has a full-width bottom Chamber strip with /domains/ access, fresh .tez activity, auctions, offers, and expiring-name pressure' },
             { type: '🔧', text: 'My Tezos now accepts Tezos Domains subdomains like skllz.hack.tez in the drawer and direct account links' },
         ]
     },

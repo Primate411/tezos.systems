@@ -1,0 +1,824 @@
+/**
+ * Tezos Domains Chamber
+ * Live identity, auction, market, and expiration pulse for .tez names.
+ */
+
+import { escapeHtml } from '../core/utils.js';
+
+const TEZOS_DOMAINS_ENDPOINT = 'https://api.tezos.domains/graphql';
+const TEZOS_DOMAINS_CSS_URL = '/css/tezos-domains.css?v=305';
+const CHAMBER_REFRESH_MS = 10 * 60 * 1000;
+const ENTRY_REFRESH_MS = 15 * 60 * 1000;
+const MIN_HIGH_VALUE_MUTEZ = '25000000';
+const STALE_MS = 45 * 60 * 1000;
+const BLOCKED_NAME_PARTS = Object.freeze([
+    'porn',
+    'xxx',
+    'nude',
+    'fuck',
+    'shit',
+    'cunt',
+    'nigg',
+    'rape',
+    'slut',
+    'whore',
+    'hitler',
+    'nazi',
+    'scam',
+    'phish',
+    'drain',
+    'rugpull'
+]);
+
+let entryTimer = null;
+let chamberTimer = null;
+let chamberRefreshInFlight = false;
+let entryRefreshInFlight = false;
+let lastData = null;
+let savedBodyOverflow = null;
+let savedHtmlOverflow = null;
+
+function ensureTezosDomainsStyles() {
+    if (document.getElementById('tezos-domains-css')) return;
+    const link = document.createElement('link');
+    link.id = 'tezos-domains-css';
+    link.rel = 'stylesheet';
+    link.href = TEZOS_DOMAINS_CSS_URL;
+    document.head.appendChild(link);
+}
+
+function isLikelySafeName(name) {
+    const normalized = String(name || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9]/g, '');
+    return Boolean(normalized) && !BLOCKED_NAME_PARTS.some((part) => normalized.includes(part));
+}
+
+function domainUrl(name) {
+    return `https://app.tezos.domains/domain/${encodeURIComponent(name)}`;
+}
+
+function tzktOperationUrl(hash) {
+    return `https://tzkt.io/${encodeURIComponent(hash)}`;
+}
+
+function shortHash(value) {
+    const text = String(value || '');
+    if (text.length <= 13) return text || 'operation';
+    return `${text.slice(0, 7)}...${text.slice(-5)}`;
+}
+
+function formatCount(value) {
+    return Number(value || 0).toLocaleString('en-US');
+}
+
+function formatTez(mutez, options = {}) {
+    const value = Number(mutez || 0) / 1e6;
+    if (!Number.isFinite(value)) return '0 XTZ';
+    const suffix = options.unit === false ? '' : ' XTZ';
+    if (Math.abs(value) >= 1000000) return `${(value / 1000000).toFixed(2)}M${suffix}`;
+    if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}K${suffix}`;
+    if (Math.abs(value) >= 100) return `${value.toFixed(0)}${suffix}`;
+    if (Math.abs(value) >= 10) return `${value.toFixed(1)}${suffix}`;
+    if (Math.abs(value) >= 1) return `${value.toFixed(2)}${suffix}`;
+    if (value > 0) return `<0.01${suffix}`;
+    return `0${suffix}`;
+}
+
+function formatAge(value) {
+    if (!value) return 'time unknown';
+    const diff = Date.now() - new Date(value).getTime();
+    if (!Number.isFinite(diff) || diff < 0) return 'just now';
+    const minutes = Math.floor(diff / 60000);
+    if (minutes < 1) return 'just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 365) return `${days}d ago`;
+    return `${Math.floor(days / 365)}y ago`;
+}
+
+function formatDate(value) {
+    if (!value) return 'open ended';
+    const date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return 'unknown';
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: date.getUTCFullYear() === new Date().getUTCFullYear() ? undefined : 'numeric',
+        timeZone: 'UTC'
+    });
+}
+
+function formatTimeDistance(value) {
+    if (!value) return 'unknown';
+    const diff = new Date(value).getTime() - Date.now();
+    if (!Number.isFinite(diff)) return 'unknown';
+    if (diff <= 0) return 'now';
+    const minutes = Math.ceil(diff / 60000);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.ceil(minutes / 60);
+    if (hours < 48) return `${hours}h`;
+    const days = Math.ceil(hours / 24);
+    return `${days}d`;
+}
+
+function reverseName(record) {
+    return record?.domain?.name || '';
+}
+
+function actorLabel(address, record) {
+    return reverseName(record) || shortHash(address);
+}
+
+function domainNameFromEvent(event) {
+    return event?.domainName || reverseName(event?.sourceAddressReverseRecord) || event?.domain?.name || '';
+}
+
+function eventTone(event) {
+    const type = event?.type || event?.__typename || '';
+    if (type.includes('OFFER') || type.includes('AUCTION')) return 'market';
+    if (type.includes('TRANSFER') || type.includes('REVERSE')) return 'identity';
+    if (type.includes('RENEW')) return 'renewal';
+    return 'register';
+}
+
+function eventLabel(event) {
+    switch (event?.type) {
+        case 'DOMAIN_BUY_EVENT':
+            return `registered ${formatTez(event.price)}`;
+        case 'AUCTION_SETTLE_EVENT':
+            return `auction settled ${formatTez(event.winningBid)}`;
+        case 'DOMAIN_RENEW_EVENT':
+            return `renewed ${event.durationInDays ? `${Math.round(event.durationInDays / 365)}y` : ''}`.trim();
+        case 'DOMAIN_TRANSFER_EVENT':
+            return `transferred to ${actorLabel(event.newOwner, event.newOwnerReverseRecord)}`;
+        case 'DOMAIN_SET_CHILD_RECORD_EVENT':
+            return event.isNewRecord ? 'new subdomain' : 'subdomain updated';
+        case 'OFFER_PLACED_EVENT':
+            return `listed ${formatTez(event.price)}`;
+        case 'OFFER_EXECUTED_EVENT':
+            return `sold ${formatTez(event.price)}`;
+        case 'BUY_OFFER_PLACED_EVENT':
+            return `bid wanted ${formatTez(event.price)}`;
+        case 'BUY_OFFER_EXECUTED_EVENT':
+            return `buy offer hit ${formatTez(event.price)}`;
+        case 'AUCTION_BID_EVENT':
+            return `auction bid ${formatTez(event.bidAmount)}`;
+        case 'REVERSE_RECORD_CLAIM_EVENT':
+            return 'claimed reverse record';
+        case 'REVERSE_RECORD_UPDATE_EVENT':
+            return 'updated reverse record';
+        default:
+            return String(event?.type || 'domain event').replaceAll('_', ' ').toLowerCase();
+    }
+}
+
+function eventValue(event) {
+    return event?.price || event?.winningBid || event?.bidAmount || event?.transactionAmount || '';
+}
+
+function eventValueNumber(event) {
+    const value = Number(eventValue(event));
+    return Number.isFinite(value) ? value : 0;
+}
+
+function gqlQuery(now = new Date()) {
+    const since24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    const since7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const since30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    const next30d = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    return {
+        variables: {
+            d24: since24h,
+            d7: since7d,
+            d30: since30d,
+            soon: next30d,
+            now: now.toISOString(),
+            minHighValue: MIN_HIGH_VALUE_MUTEZ
+        },
+        query: `query TezosDomainsChamber($d24: DateTime!, $d7: DateTime!, $d30: DateTime!, $now: DateTime!, $soon: DateTime!, $minHighValue: Mutez!) {
+            block { level timestamp }
+            registrations24h: events(first: 1, where: { block: { timestamp: { greaterThanOrEqualTo: $d24 } }, type: { in: [DOMAIN_BUY_EVENT, AUCTION_SETTLE_EVENT] } }) { totalCount }
+            renewals24h: events(first: 1, where: { block: { timestamp: { greaterThanOrEqualTo: $d24 } }, type: { in: [DOMAIN_RENEW_EVENT] } }) { totalCount }
+            transfers24h: events(first: 1, where: { block: { timestamp: { greaterThanOrEqualTo: $d24 } }, type: { in: [DOMAIN_TRANSFER_EVENT] } }) { totalCount }
+            subdomains24h: events(first: 1, where: { block: { timestamp: { greaterThanOrEqualTo: $d24 } }, type: { in: [DOMAIN_SET_CHILD_RECORD_EVENT] } }) { totalCount }
+            reverseRecords24h: events(first: 1, where: { block: { timestamp: { greaterThanOrEqualTo: $d24 } }, type: { in: [REVERSE_RECORD_CLAIM_EVENT, REVERSE_RECORD_UPDATE_EVENT] } }) { totalCount }
+            marketplace7d: events(first: 1, where: { block: { timestamp: { greaterThanOrEqualTo: $d7 } }, type: { in: [OFFER_PLACED_EVENT, OFFER_EXECUTED_EVENT, BUY_OFFER_PLACED_EVENT, BUY_OFFER_EXECUTED_EVENT, AUCTION_BID_EVENT, AUCTION_SETTLE_EVENT] } }) { totalCount }
+            registrations7d: events(first: 1, where: { block: { timestamp: { greaterThanOrEqualTo: $d7 } }, type: { in: [DOMAIN_BUY_EVENT, AUCTION_SETTLE_EVENT] } }) { totalCount }
+            highValueRecent: events(first: 14, order: { field: TIMESTAMP, direction: DESC }, where: { block: { timestamp: { greaterThanOrEqualTo: $d30 } }, price: { greaterThanOrEqualTo: $minHighValue }, type: { in: [DOMAIN_BUY_EVENT, DOMAIN_RENEW_EVENT, OFFER_PLACED_EVENT, OFFER_EXECUTED_EVENT, BUY_OFFER_PLACED_EVENT, BUY_OFFER_EXECUTED_EVENT] } }) {
+                totalCount
+                items {
+                    __typename
+                    id
+                    type
+                    sourceAddress
+                    sourceAddressReverseRecord { domain { name } }
+                    block { level timestamp }
+                    ... on DomainBuyEvent { domainName price durationInDays operationGroupHash }
+                    ... on DomainRenewEvent { domainName price durationInDays operationGroupHash }
+                    ... on OfferPlacedEvent { domainName price priceWithoutFee expiresAtUtc tokenId operationGroupHash }
+                    ... on OfferExecutedEvent { domainName price priceWithoutFee sellerAddress sellerAddressReverseRecord { domain { name } } tokenId operationGroupHash }
+                    ... on BuyOfferPlacedEvent { domainName price priceWithoutFee expiresAtUtc domainOwner tokenId operationGroupHash }
+                    ... on BuyOfferExecutedEvent { domainName price priceWithoutFee buyerAddress buyerAddressReverseRecord { domain { name } } tokenId operationGroupHash }
+                }
+            }
+            liveAuctions: auctions(first: 8, where: { state: { in: [IN_PROGRESS] } }, order: { field: HIGHEST_BID_AMOUNT, direction: DESC }) {
+                totalCount
+                items { domainName state bidCount countOfUniqueBidders bidAmountSum endsAtUtc highestBid { amount bidder bidderReverseRecord { domain { name } } timestamp } operationGroupHash }
+            }
+            settlementAuctions: auctions(first: 6, where: { state: { in: [CAN_BE_SETTLED] } }, order: { field: ENDS_AT, direction: DESC }) {
+                totalCount
+                items { domainName state bidCount countOfUniqueBidders bidAmountSum endsAtUtc highestBid { amount bidder bidderReverseRecord { domain { name } } timestamp } operationGroupHash }
+            }
+            sellOffers: offers(first: 8, where: { state: { in: [ACTIVE] } }, order: { field: PRICE, direction: DESC }) {
+                totalCount
+                items { domain { name owner } state price priceWithoutFee createdAtUtc expiresAtUtc sellerAddress sellerAddressReverseRecord { domain { name } } operationGroupHash }
+            }
+            buyOffers: buyOffers(first: 6, where: { state: { in: [ACTIVE] } }, order: { field: PRICE, direction: DESC }) {
+                totalCount
+                items { domain { name owner } state price priceWithoutFee createdAtUtc expiresAtUtc buyerAddress buyerAddressReverseRecord { domain { name } } operationGroupHash }
+            }
+            expiringSoon: domains(first: 10, where: { level: { equalTo: 2 }, validity: VALID, expiresAtUtc: { greaterThan: $now, lessThanOrEqualTo: $soon } }, order: { field: EXPIRES_AT, direction: ASC }) {
+                totalCount
+                items { name expiresAtUtc owner ownerReverseRecord { domain { name } } address tokenId }
+            }
+        }`
+    };
+}
+
+function gqlRecentEventsQuery() {
+    return {
+        query: `query TezosDomainsRecentEvents {
+            recentEvents: events(first: 22, order: { field: TIMESTAMP, direction: DESC }, where: { type: { notIn: [DOMAIN_COMMIT_EVENT] } }) {
+                totalCount
+                items {
+                    __typename
+                    id
+                    type
+                    sourceAddress
+                    sourceAddressReverseRecord { domain { name } }
+                    block { level timestamp }
+                    ... on DomainBuyEvent { domainName price durationInDays domainOwnerAddress operationGroupHash }
+                    ... on DomainRenewEvent { domainName price durationInDays operationGroupHash }
+                    ... on DomainSetChildRecordEvent { domainName isNewRecord domainOwnerAddress operationGroupHash }
+                    ... on DomainTransferEvent { domainName newOwner newOwnerReverseRecord { domain { name } } operationGroupHash }
+                    ... on OfferPlacedEvent { domainName price priceWithoutFee expiresAtUtc tokenId operationGroupHash }
+                    ... on OfferExecutedEvent { domainName price priceWithoutFee sellerAddress sellerAddressReverseRecord { domain { name } } tokenId operationGroupHash }
+                    ... on BuyOfferPlacedEvent { domainName price priceWithoutFee expiresAtUtc domainOwner tokenId operationGroupHash }
+                    ... on BuyOfferExecutedEvent { domainName price priceWithoutFee buyerAddress buyerAddressReverseRecord { domain { name } } tokenId operationGroupHash }
+                    ... on AuctionBidEvent { domainName bidAmount previousBidAmount previousBidderAddress transactionAmount operationGroupHash }
+                    ... on AuctionSettleEvent { domainName winningBid registrationDurationInDays operationGroupHash }
+                }
+            }
+        }`
+    };
+}
+
+async function fetchTezosDomainsGraphql(body) {
+    const response = await fetch(TEZOS_DOMAINS_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+    });
+    if (!response.ok) throw new Error(`Tezos Domains GraphQL ${response.status}`);
+    const payload = await response.json();
+    if (payload.errors?.length) throw new Error(payload.errors.map((error) => error.message).join('; '));
+    return payload.data || {};
+}
+
+async function fetchTezosDomainsData() {
+    const [data, recentData] = await Promise.all([
+        fetchTezosDomainsGraphql(gqlQuery()),
+        fetchTezosDomainsGraphql(gqlRecentEventsQuery()).catch(() => ({ recentEvents: null }))
+    ]);
+    return normalizeData({ ...data, recentEvents: recentData.recentEvents || data.recentEvents });
+}
+
+function safeItems(connection, limit = Infinity) {
+    return (connection?.items || [])
+        .filter((item) => isLikelySafeName(item.domainName || item.domain?.name || item.name || reverseName(item.sourceAddressReverseRecord)))
+        .slice(0, limit);
+}
+
+function normalizeData(data) {
+    const recentEvents = safeItems(data.recentEvents, 14);
+    const premiumCutoff = Number(MIN_HIGH_VALUE_MUTEZ);
+    const highValueRecent = safeItems(data.highValueRecent, 14)
+        .filter((event) => eventValueNumber(event) >= premiumCutoff)
+        .sort((a, b) => eventValueNumber(b) - eventValueNumber(a))
+        .slice(0, 10);
+    const liveAuctions = safeItems(data.liveAuctions, 6);
+    const settlementAuctions = safeItems(data.settlementAuctions, 4);
+    const sellOffers = safeItems(data.sellOffers, 6);
+    const buyOffers = safeItems(data.buyOffers, 5);
+    const expiringSoon = safeItems(data.expiringSoon, 8);
+    const latestEvent = recentEvents[0] || highValueRecent[0] || null;
+    const freshTimestamp = latestEvent?.block?.timestamp || data.block?.timestamp || new Date().toISOString();
+
+    return {
+        block: data.block || {},
+        counts: {
+            registrations24h: data.registrations24h?.totalCount || 0,
+            renewals24h: data.renewals24h?.totalCount || 0,
+            transfers24h: data.transfers24h?.totalCount || 0,
+            subdomains24h: data.subdomains24h?.totalCount || 0,
+            reverseRecords24h: data.reverseRecords24h?.totalCount || 0,
+            marketplace7d: data.marketplace7d?.totalCount || 0,
+            registrations7d: data.registrations7d?.totalCount || 0,
+            allEvents: data.recentEvents?.totalCount || 0,
+            activeAuctions: data.liveAuctions?.totalCount || 0,
+            settlementAuctions: data.settlementAuctions?.totalCount || 0,
+            sellOffers: data.sellOffers?.totalCount || 0,
+            buyOffers: data.buyOffers?.totalCount || 0,
+            expiringSoon: data.expiringSoon?.totalCount || 0,
+            highValue30d: data.highValueRecent?.totalCount || 0
+        },
+        recentEvents,
+        highValueRecent,
+        liveAuctions,
+        settlementAuctions,
+        sellOffers,
+        buyOffers,
+        expiringSoon,
+        fetchedAt: new Date().toISOString(),
+        freshTimestamp
+    };
+}
+
+function chamberStatus(data) {
+    const events24h = Number(data?.counts?.registrations24h || 0)
+        + Number(data?.counts?.renewals24h || 0)
+        + Number(data?.counts?.transfers24h || 0)
+        + Number(data?.counts?.subdomains24h || 0)
+        + Number(data?.counts?.reverseRecords24h || 0);
+    if (events24h >= 10 || Number(data?.counts?.marketplace7d || 0) >= 6) {
+        return { label: 'Name rush', className: 'hot', detail: `${events24h} identity moves in 24h` };
+    }
+    if (Number(data?.counts?.activeAuctions || 0) > 0 || Number(data?.counts?.buyOffers || 0) > 0) {
+        return { label: 'Market live', className: 'live', detail: 'auctions and offers are open' };
+    }
+    return { label: 'Identity pulse', className: 'steady', detail: 'fresh names and renewals are flowing' };
+}
+
+function featuredName(data) {
+    const high = data?.highValueRecent?.find((event) => eventValue(event));
+    const recentBuy = data?.recentEvents?.find((event) => event?.type === 'DOMAIN_BUY_EVENT' || event?.type === 'AUCTION_SETTLE_EVENT');
+    const liveAuction = data?.liveAuctions?.[0];
+    const offer = data?.buyOffers?.[0] || data?.sellOffers?.[0];
+    return high || recentBuy || liveAuction || offer || data?.expiringSoon?.[0] || null;
+}
+
+function featuredNameText(item) {
+    if (!item) return 'Names moving';
+    return item.domainName || item.domain?.name || item.name || reverseName(item.sourceAddressReverseRecord) || 'Names moving';
+}
+
+function buildPulseMetrics(data) {
+    const counts = data?.counts || {};
+    return [
+        ['24h names', String(Number(counts.registrations24h || 0) + Number(counts.renewals24h || 0)), 'registered + renewed'],
+        ['Reverse', formatCount(counts.reverseRecords24h), '24h identity claims'],
+        ['7d reg', formatCount(counts.registrations7d), 'new ownership'],
+        ['Market', formatCount(counts.marketplace7d), '7d bids/offers'],
+        ['Auctions', formatCount(counts.activeAuctions), 'live bidding'],
+        ['30d drops', formatCount(counts.expiringSoon), 'renewal cliffs']
+    ];
+}
+
+function buildChamberPulseMetrics(data) {
+    const counts = data?.counts || {};
+    return [
+        ['24h names', String(Number(counts.registrations24h || 0) + Number(counts.renewals24h || 0)), 'registered + renewed'],
+        ['24h reverse', formatCount(counts.reverseRecords24h), 'identity claims'],
+        ['24h transfers', formatCount(counts.transfers24h), 'ownership moves'],
+        ['7d registrations', formatCount(counts.registrations7d), 'fresh claims'],
+        ['7d market', formatCount(counts.marketplace7d), 'bids/offers/settles'],
+        ['Live auctions', formatCount(counts.activeAuctions), 'in progress'],
+        ['Active asks', formatCount(counts.sellOffers), 'sell offers'],
+        ['30d drops', formatCount(counts.expiringSoon), 'renewal cliffs']
+    ];
+}
+
+function renderEntryMetric([label, value, note], index) {
+    return `
+        <div class="td-entry-metric" data-td-entry-metric="${index}">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+            <em>${escapeHtml(note)}</em>
+        </div>
+    `;
+}
+
+function renderEntryTape(data) {
+    const items = (data?.recentEvents || []).slice(0, 4);
+    if (!items.length) {
+        return '<div class="td-entry-tape-empty">Waiting for the next Tezos Domains event.</div>';
+    }
+    return items.map((event) => {
+        const name = domainNameFromEvent(event);
+        return `
+            <div class="td-entry-tape-row" data-tone="${escapeHtml(eventTone(event))}">
+                <strong>${escapeHtml(name)}</strong>
+                <span>${escapeHtml(eventLabel(event))}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderEntryCard(data) {
+    const status = chamberStatus(data);
+    const feature = featuredName(data);
+    const featureName = featuredNameText(feature);
+    return `
+        <button class="card-copy-link" type="button" data-copy-hash="#domains" aria-label="Copy Tezos Domains Chamber direct link" title="Copy Tezos Domains link">🔗</button>
+        <div class="card-inner">
+            <div class="card-front tezos-domains-entry-front">
+                <div class="td-entry-main">
+                    <h2 class="stat-label">Tezos Domains</h2>
+                    <div class="td-entry-hero">
+                        <span class="td-entry-mark" aria-hidden="true">.tez</span>
+                        <strong id="tezos-domains-entry-feature">${escapeHtml(featureName)}</strong>
+                    </div>
+                    <p class="stat-description">Live .tez market pulse for registrations, reverse-record claims, auctions, offers, and 30-day renewal cliffs.</p>
+                    <div class="chamber-entry-status live" id="tezos-domains-entry-status"><span class="entry-live-dot"></span>${escapeHtml(status.label)} · ${escapeHtml(status.detail)}</div>
+                </div>
+                <div class="td-entry-metrics" aria-label="Tezos Domains chamber pulse">
+                    ${buildPulseMetrics(data).map(renderEntryMetric).join('')}
+                </div>
+                <div class="td-entry-tape" id="tezos-domains-entry-tape" aria-label="Recent Tezos Domains events">
+                    ${renderEntryTape(data)}
+                </div>
+            </div>
+            <div class="card-back" aria-hidden="true">
+                <h2 class="stat-label">Tezos Domains</h2>
+                <div class="stat-value">.tez</div>
+                <p class="stat-description">Open live name activity.</p>
+            </div>
+        </div>
+    `;
+}
+
+function updateEntryCard(data) {
+    const card = document.getElementById('tezos-domains-entry-card');
+    if (!card || !data) return;
+    const status = chamberStatus(data);
+    card.classList.toggle('chamber-entry-risk', status.className === 'hot');
+    card.classList.toggle('chamber-entry-live', status.className !== 'hot');
+    const feature = card.querySelector('#tezos-domains-entry-feature');
+    if (feature) feature.textContent = featuredNameText(featuredName(data));
+    const statusEl = card.querySelector('#tezos-domains-entry-status');
+    if (statusEl) statusEl.innerHTML = `<span class="entry-live-dot"></span>${escapeHtml(status.label)} · ${escapeHtml(status.detail)}`;
+    const metricEls = card.querySelectorAll('.td-entry-metric');
+    buildPulseMetrics(data).forEach((metric, index) => {
+        const el = metricEls[index];
+        if (!el) return;
+        const [label, value, note] = metric;
+        const labelEl = el.querySelector('span');
+        const valueEl = el.querySelector('strong');
+        const noteEl = el.querySelector('em');
+        if (labelEl) labelEl.textContent = label;
+        if (valueEl) valueEl.textContent = value;
+        if (noteEl) noteEl.textContent = note;
+    });
+    const tape = card.querySelector('#tezos-domains-entry-tape');
+    if (tape) tape.innerHTML = renderEntryTape(data);
+    card.dataset.updatedLabel = `Tezos Domains · ${formatAge(data.freshTimestamp)}`;
+    card.classList.toggle('chamber-data-stale', Date.now() - new Date(data.freshTimestamp).getTime() > STALE_MS);
+    window.syncChamberEntryFooters?.(card);
+}
+
+function renderMetric(label, value, note = '') {
+    return `
+        <div class="td-pulse-metric">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+            ${note ? `<em>${escapeHtml(note)}</em>` : ''}
+        </div>
+    `;
+}
+
+function renderEventRows(events, empty = 'No matching Tezos Domains events returned.') {
+    if (!events?.length) return `<div class="td-empty">${escapeHtml(empty)}</div>`;
+    return events.map((event) => {
+        const name = domainNameFromEvent(event);
+        const op = event.operationGroupHash;
+        return `
+            <article class="td-event-row" data-tone="${escapeHtml(eventTone(event))}">
+                <a class="td-name-link" href="${escapeHtml(domainUrl(name))}" target="_blank" rel="noopener">${escapeHtml(name)}</a>
+                <span>${escapeHtml(eventLabel(event))}</span>
+                <small>${escapeHtml(actorLabel(event.sourceAddress, event.sourceAddressReverseRecord))} · ${escapeHtml(formatAge(event.block?.timestamp))}</small>
+                ${op ? `<a class="td-op-link" href="${escapeHtml(tzktOperationUrl(op))}" target="_blank" rel="noopener">${escapeHtml(shortHash(op))}</a>` : ''}
+            </article>
+        `;
+    }).join('');
+}
+
+function renderAuctionRows(rows, empty = 'No live auctions are bidding right now.') {
+    if (!rows?.length) return `<div class="td-empty">${escapeHtml(empty)}</div>`;
+    return rows.map((auction) => `
+        <article class="td-market-row" data-kind="${escapeHtml(auction.state === 'IN_PROGRESS' ? 'auction' : 'settle')}">
+            <a class="td-name-link" href="${escapeHtml(domainUrl(auction.domainName))}" target="_blank" rel="noopener">${escapeHtml(auction.domainName)}</a>
+            <strong>${escapeHtml(formatTez(auction.highestBid?.amount || auction.bidAmountSum))}</strong>
+            <span>${escapeHtml(auction.state === 'IN_PROGRESS' ? `ends in ${formatTimeDistance(auction.endsAtUtc)}` : `settle window · ${formatDate(auction.endsAtUtc)}`)}</span>
+            <small>${escapeHtml(formatCount(auction.bidCount))} bid${Number(auction.bidCount) === 1 ? '' : 's'} · ${escapeHtml(actorLabel(auction.highestBid?.bidder, auction.highestBid?.bidderReverseRecord))}</small>
+        </article>
+    `).join('');
+}
+
+function renderOfferRows(rows, kind) {
+    if (!rows?.length) return `<div class="td-empty">No active ${escapeHtml(kind)} offers returned.</div>`;
+    return rows.map((offer) => {
+        const actor = kind === 'buy'
+            ? actorLabel(offer.buyerAddress, offer.buyerAddressReverseRecord)
+            : actorLabel(offer.sellerAddress, offer.sellerAddressReverseRecord);
+        return `
+            <article class="td-market-row" data-kind="${escapeHtml(kind)}">
+                <a class="td-name-link" href="${escapeHtml(domainUrl(offer.domain?.name))}" target="_blank" rel="noopener">${escapeHtml(offer.domain?.name || 'unknown.tez')}</a>
+                <strong>${escapeHtml(formatTez(offer.price))}</strong>
+                <span>${escapeHtml(offer.expiresAtUtc ? `expires ${formatDate(offer.expiresAtUtc)}` : 'no expiry')}</span>
+                <small>${escapeHtml(kind === 'buy' ? 'buyer' : 'seller')}: ${escapeHtml(actor)}</small>
+            </article>
+        `;
+    }).join('');
+}
+
+function renderExpiringRows(rows) {
+    if (!rows?.length) return '<div class="td-empty">No soon-expiring .tez names returned.</div>';
+    return rows.map((domain) => `
+        <article class="td-expiry-row">
+            <a class="td-name-link" href="${escapeHtml(domainUrl(domain.name))}" target="_blank" rel="noopener">${escapeHtml(domain.name)}</a>
+            <strong>${escapeHtml(formatTimeDistance(domain.expiresAtUtc))}</strong>
+            <span>${escapeHtml(formatDate(domain.expiresAtUtc))}</span>
+            <small>${escapeHtml(actorLabel(domain.owner, domain.ownerReverseRecord))}</small>
+        </article>
+    `).join('');
+}
+
+function renderChamber(data) {
+    const status = chamberStatus(data);
+    const feature = featuredNameText(featuredName(data));
+    return `
+        <div class="chamber-header lb-header tezos-domains-header chamber-anim-fade">
+            <div class="lb-system-strip tezos-domains-system-strip">
+                <span class="lb-system-brand">Tezos Domains</span>
+                <span>identity market</span>
+                <span>live .tez market</span>
+                <span>block ${escapeHtml(formatCount(data.block?.level || 0))}</span>
+            </div>
+            <div class="chamber-title-row">
+                    <h2 id="tezos-domains-title" class="chamber-title">Tezos Domains Chamber</h2>
+                <span class="chamber-badge tezos-domains-badge ${escapeHtml(status.className)}">${escapeHtml(status.label)}</span>
+            </div>
+            <div class="chamber-proposal-info">
+                <div class="proposal-name">${escapeHtml(feature)}</div>
+                <div class="proposal-hash">${escapeHtml(status.detail)} · latest ${escapeHtml(formatAge(data.freshTimestamp))}</div>
+            </div>
+        </div>
+
+        <section class="td-command-panel chamber-anim-fade" style="animation-delay:60ms">
+            <div class="td-command-copy">
+                <span class="td-kicker">Name rush scanner</span>
+                <h3>Find the names people are registering, defending, listing, bidding on, and letting slip back toward the market.</h3>
+            </div>
+            <div class="td-command-actions">
+                <a class="glass-button td-primary-link" href="https://app.tezos.domains/" target="_blank" rel="noopener">Open dApp</a>
+                <a class="glass-button" href="https://developers.tezos.domains/integrating-tezos-domains/graphql" target="_blank" rel="noopener">Docs</a>
+            </div>
+        </section>
+
+        <section class="td-pulse-grid chamber-anim-fade" style="animation-delay:90ms" aria-label="Tezos Domains pulse metrics">
+            ${buildChamberPulseMetrics(data).map(([label, value, note]) => renderMetric(label, value, note)).join('')}
+        </section>
+
+        <div class="td-main-grid">
+            <section class="td-panel td-panel-wide chamber-anim-fade" style="animation-delay:120ms">
+                <div class="td-panel-title">Fresh Name Tape <span>registrations, renewals, records, transfers</span></div>
+                <div class="td-event-list">${renderEventRows(data.recentEvents)}</div>
+            </section>
+
+            <section class="td-panel chamber-anim-fade" style="animation-delay:150ms">
+                <div class="td-panel-title">Premium Moves <span>30d moves at 25 XTZ+</span></div>
+                <div class="td-event-list td-compact-list">${renderEventRows(data.highValueRecent, 'No premium moves above 25 XTZ in the current sample.')}</div>
+            </section>
+
+            <section class="td-panel chamber-anim-fade" style="animation-delay:180ms">
+                <div class="td-panel-title">Auctions <span>live bids, then settlement backlog</span></div>
+                <div class="td-market-list">
+                    ${renderAuctionRows(data.liveAuctions)}
+                    ${renderAuctionRows(data.settlementAuctions, 'No settlement backlog returned.')}
+                </div>
+            </section>
+
+            <section class="td-panel chamber-anim-fade" style="animation-delay:210ms">
+                <div class="td-panel-title">Sell Wall <span>highest active asks</span></div>
+                <div class="td-market-list">${renderOfferRows(data.sellOffers, 'sell')}</div>
+            </section>
+
+            <section class="td-panel chamber-anim-fade" style="animation-delay:240ms">
+                <div class="td-panel-title">Want List <span>active buy offers</span></div>
+                <div class="td-market-list">${renderOfferRows(data.buyOffers, 'buy')}</div>
+            </section>
+
+            <section class="td-panel chamber-anim-fade" style="animation-delay:270ms">
+                <div class="td-panel-title">30d Drops <span>names nearing renewal pressure</span></div>
+                <div class="td-expiry-list">${renderExpiringRows(data.expiringSoon)}</div>
+            </section>
+        </div>
+
+        <div class="chamber-footer tezos-domains-footer chamber-anim-fade" style="animation-delay:320ms">
+            <span>Source: Tezos Domains GraphQL</span>
+            <span class="chamber-footer-sep">·</span>
+            <span>Latest indexer block ${escapeHtml(formatCount(data.block?.level || 0))}</span>
+            <span class="chamber-footer-sep">·</span>
+            <a class="panel-direct-link" href="/domains/" aria-label="Direct link to Tezos Domains Chamber">Direct: /domains/</a>
+        </div>
+    `;
+}
+
+function wireChamberControls(root) {
+    root.querySelectorAll('.td-name-link, .td-op-link, .td-command-actions a, .panel-direct-link').forEach((link) => {
+        if (link.dataset.tdLinkWired) return;
+        link.dataset.tdLinkWired = '1';
+        link.addEventListener('click', (event) => event.stopPropagation());
+    });
+}
+
+async function refreshEntryCard({ force = false } = {}) {
+    if (entryRefreshInFlight && !force) return;
+    entryRefreshInFlight = true;
+    try {
+        const data = force || !lastData ? await fetchTezosDomainsData() : lastData;
+        lastData = data;
+        updateEntryCard(data);
+    } catch (error) {
+        console.debug('Tezos Domains entry refresh failed', error);
+        const card = document.getElementById('tezos-domains-entry-card');
+        if (card) {
+            card.dataset.updatedLabel = 'Tezos Domains · refresh failed';
+            card.classList.add('chamber-data-stale');
+            window.syncChamberEntryFooters?.(card);
+        }
+    } finally {
+        entryRefreshInFlight = false;
+    }
+}
+
+async function refreshChamber({ initial = false, force = false } = {}) {
+    const overlay = document.getElementById('tezos-domains-modal');
+    const body = overlay?.querySelector('.tezos-domains-body');
+    if (!overlay?.classList.contains('active') || !body || (chamberRefreshInFlight && !force)) return;
+    chamberRefreshInFlight = true;
+    try {
+        const data = force || !lastData ? await fetchTezosDomainsData() : lastData;
+        lastData = data;
+        if (initial || !body.querySelector('.tezos-domains-header')) {
+            body.innerHTML = renderChamber(data);
+            wireChamberControls(body);
+        } else {
+            body.innerHTML = renderChamber(data);
+            wireChamberControls(body);
+        }
+        updateEntryCard(data);
+    } catch (error) {
+        console.warn('Tezos Domains chamber refresh failed', error);
+        body.innerHTML = `
+            <div class="chamber-error">
+                <div class="chamber-error-icon">.tez</div>
+                <h3>Tezos Domains data is unavailable</h3>
+                <p>${escapeHtml(error?.message || 'The GraphQL endpoint did not answer.')}</p>
+                <button class="chamber-retry-btn" id="tezos-domains-retry">Retry</button>
+            </div>
+        `;
+        body.querySelector('#tezos-domains-retry')?.addEventListener('click', () => refreshChamber({ initial: true, force: true }));
+    } finally {
+        chamberRefreshInFlight = false;
+    }
+}
+
+function startEntryRefresh() {
+    stopEntryRefresh();
+    entryTimer = window.setInterval(() => {
+        if (document.visibilityState === 'visible') refreshEntryCard({ force: true });
+    }, ENTRY_REFRESH_MS);
+}
+
+function stopEntryRefresh() {
+    if (entryTimer) {
+        window.clearInterval(entryTimer);
+        entryTimer = null;
+    }
+}
+
+function startChamberRefresh() {
+    stopChamberRefresh();
+    chamberTimer = window.setInterval(() => {
+        if (document.visibilityState === 'visible') refreshChamber({ force: true });
+    }, CHAMBER_REFRESH_MS);
+}
+
+function stopChamberRefresh() {
+    if (chamberTimer) {
+        window.clearInterval(chamberTimer);
+        chamberTimer = null;
+    }
+}
+
+function handleEscape(event) {
+    if (event.key === 'Escape') closeTezosDomainsChamber();
+}
+
+export async function openTezosDomainsChamber() {
+    ensureTezosDomainsStyles();
+    let overlay = document.getElementById('tezos-domains-modal');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'tezos-domains-modal';
+        overlay.className = 'modal-overlay chamber-overlay lb-overlay tezos-domains-overlay';
+        overlay.innerHTML = `
+            <div class="modal-content modal-large chamber-content lb-content tezos-domains-content" role="dialog" aria-modal="true" aria-labelledby="tezos-domains-title">
+                <button class="modal-close chamber-close" type="button" aria-label="Close Tezos Domains Chamber">&times;</button>
+                <div class="chamber-body lb-body tezos-domains-body">
+                    <div class="chamber-loading">
+                        <div class="chamber-loading-text">Opening Tezos Domains Chamber...</div>
+                        <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.querySelector('.chamber-close')?.addEventListener('click', closeTezosDomainsChamber);
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) closeTezosDomainsChamber();
+        });
+    }
+
+    overlay.classList.add('active');
+    overlay.setAttribute('aria-hidden', 'false');
+    savedBodyOverflow = document.body.style.overflow;
+    savedHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.addEventListener('keydown', handleEscape);
+
+    await refreshChamber({ initial: true, force: true });
+    startChamberRefresh();
+}
+
+export function closeTezosDomainsChamber() {
+    document.removeEventListener('keydown', handleEscape);
+    stopChamberRefresh();
+    const overlay = document.getElementById('tezos-domains-modal');
+    if (overlay) {
+        overlay.classList.remove('active');
+        overlay.setAttribute('aria-hidden', 'true');
+    }
+    document.body.style.overflow = savedBodyOverflow || '';
+    document.documentElement.style.overflow = savedHtmlOverflow || '';
+}
+
+function wireEntryCard(card) {
+    if (!card || card.dataset.tezosDomainsWired) return;
+    card.dataset.tezosDomainsWired = '1';
+    const open = (event) => {
+        if (event?.target?.closest?.('button, a, .card-tooltip')) return;
+        openTezosDomainsChamber();
+    };
+    card.addEventListener('click', open);
+    card.addEventListener('keydown', (event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        open(event);
+    });
+}
+
+export function initTezosDomainsChamber() {
+    ensureTezosDomainsStyles();
+    const grid = document.getElementById('chambers-grid');
+    if (!grid) return;
+    let card = document.getElementById('tezos-domains-entry-card');
+    if (!card) {
+        card = document.createElement('div');
+        card.id = 'tezos-domains-entry-card';
+        card.className = 'stat-card chamber-entry-card chamber-entry-wide tezos-domains-entry-card chamber-entry-live';
+        card.setAttribute('role', 'button');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('aria-label', 'Open Tezos Domains Chamber');
+        card.innerHTML = renderEntryCard({
+            counts: {},
+            recentEvents: [],
+            highValueRecent: [],
+            liveAuctions: [],
+            sellOffers: [],
+            buyOffers: [],
+            expiringSoon: [],
+            block: {},
+            freshTimestamp: new Date().toISOString()
+        });
+        grid.appendChild(card);
+    }
+    wireEntryCard(card);
+    window.openTezosDomainsChamber = openTezosDomainsChamber;
+    window.closeTezosDomainsChamber = closeTezosDomainsChamber;
+    refreshEntryCard({ force: true });
+    startEntryRefresh();
+}

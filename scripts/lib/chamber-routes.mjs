@@ -63,6 +63,15 @@ export const CHAMBER_ROUTES = [
     accent: '#4dd4ff'
   },
   {
+    slug: 'domains',
+    hash: '#domains',
+    title: 'Tezos Domains Chamber - Live .tez Name Market',
+    shortTitle: 'Tezos Domains',
+    description: 'Track fresh .tez registrations, renewals, expiring names, auctions, offers, and reverse-record identity moves.',
+    eyebrow: '.tez Identity',
+    accent: '#38e8d3'
+  },
+  {
     slug: 'ctez',
     hash: '#ctez',
     title: 'ctez Oven Guide - Withdraw Tez From ctez Ovens',

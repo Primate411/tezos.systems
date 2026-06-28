@@ -534,6 +534,7 @@ async function checkSelectorContracts() {
   const tz4 = await readText('js/features/tz4-adoption.js');
   const ctez = await readText('js/features/ctez.js');
   const ledgerFlow = await readText('js/features/ledger-flow.js');
+  const tezosDomains = await readText('js/features/tezos-domains.js');
   const wallet = await readText('js/core/wallet.js');
   const health = await readText('js/features/network-health.js');
   const share = await readText('js/ui/share.js');
@@ -546,6 +547,7 @@ async function checkSelectorContracts() {
   const themeUi = await readText('js/ui/theme.js');
   const styles = await readText('css/styles.css');
   const ledgerFlowCss = await readText('css/ledger-flow.css');
+  const tezosDomainsCss = await readText('css/tezos-domains.css');
   const deepLinkContracts = [
     ['Chamber hash route', "hash === 'chamber'", app],
     ['Chambers hash route', "hash === 'chambers'", app],
@@ -556,6 +558,9 @@ async function checkSelectorContracts() {
     ['Ledger Flow hash route', "hash === 'ledger-flow'", app],
     ['Ledger Flow scoped hash route', "params.has('ledger-flow')", app],
     ['Ledger Flow modal cleanup', 'closeLedgerFlowChamber', app],
+    ['Domains hash route', "hash === 'domains'", app],
+    ['Domains legacy hash route', "hash === 'tezos-domains'", app],
+    ['Domains modal cleanup', 'closeTezosDomainsChamber', app],
     ['Protocol history hash route', "params.has('protocol')", app],
     ['Protocol History Chamber hash route', "hash === 'protocol-history'", app],
     ['Protocol history global opener', 'window.openProtocolHistoryByName = openProtocolHistoryByName', app],
@@ -669,6 +674,26 @@ async function checkSelectorContracts() {
     ['Ledger Flow compact TzKT pills', 'ledger-flow-tzkt-pill', ledgerFlow],
     ['Ledger Flow SVG TzKT node pills', 'ledger-flow-node-tzkt-link', ledgerFlow],
     ['Ledger Flow label-aware node width', 'function nodeGeometry', ledgerFlow],
+    ['Tezos Domains feature import', 'initTezosDomainsChamber', app],
+    ['Tezos Domains card copy link', 'data-copy-hash="#domains"', tezosDomains],
+    ['Tezos Domains direct footer link', 'Direct: /domains/', tezosDomains],
+    ['Tezos Domains pretty route', "slug: 'domains'", chamberRoutes],
+    ['Tezos Domains lazy CSS loader', 'tezos-domains-css', tezosDomains],
+    ['Tezos Domains live GraphQL endpoint', 'https://api.tezos.domains/graphql', tezosDomains],
+    ['Tezos Domains premium threshold', "MIN_HIGH_VALUE_MUTEZ = '25000000'", tezosDomains],
+    ['Tezos Domains event query', 'recentEvents: events', tezosDomains],
+    ['Tezos Domains reverse-record metric', 'reverseRecords24h: events', tezosDomains],
+    ['Tezos Domains auction query', 'liveAuctions: auctions', tezosDomains],
+    ['Tezos Domains sell offer query', 'sellOffers: offers', tezosDomains],
+    ['Tezos Domains buy offer query', 'buyOffers: buyOffers', tezosDomains],
+    ['Tezos Domains expiring soon query', 'expiringSoon: domains', tezosDomains],
+    ['Tezos Domains 30-day expiration window', 'lessThanOrEqualTo: $soon', tezosDomains],
+    ['Tezos Domains chamber modal', 'tezos-domains-modal', tezosDomains],
+    ['Tezos Domains full-row pair', "key: 'tezos-domains'", app],
+    ['Tezos Domains final strip CSS', '[data-chamber-pair="tezos-domains"]', tezosDomainsCss],
+    ['Tezos Domains share route', "'#domains': '/domains/'", share],
+    ['Tezos Domains service worker JS', '/js/features/tezos-domains.js', await readText('sw.js')],
+    ['Tezos Domains service worker CSS', '/css/tezos-domains.css', await readText('sw.js')],
     ['ctez hash route', "hash === 'ctez'", app],
     ['ctez feature copy link', 'data-copy-hash="#ctez"', index],
     ['ctez top-left launcher', 'id="ctez-launcher"', index],

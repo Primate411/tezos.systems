@@ -61,6 +61,7 @@ const browserRoutes = [
   '/tz4/',
   '/lb/',
   '/ledger-flow/',
+  '/domains/',
   '/ctez/',
   '/bakers/',
   '/hen/',
@@ -121,7 +122,8 @@ const EXPECTED_CHAMBER_ORDER = [
   'tz4-adoption',
   'lb-entry-card',
   'ledger-flow-entry-card',
-  'protocol-history-entry-card'
+  'protocol-history-entry-card',
+  'tezos-domains-entry-card'
 ];
 
 function usage() {
@@ -655,6 +657,130 @@ function sampleTeztaleBlock(level) {
   };
 }
 
+function sampleTezosDomainsGraphql(forwardDomainAddress = SAMPLE_ADDRESS, forwardDomainOwner = SAMPLE_ADDRESS) {
+  const now = Date.now();
+  const blockTimestamp = new Date(now - 4 * 60 * 1000).toISOString();
+  const recent = (offset, item) => ({
+    sourceAddress: item.sourceAddress || SAMPLE_ADDRESS,
+    sourceAddressReverseRecord: { domain: { name: item.sourceName || 'qa-baker.tez' } },
+    block: { level: 13842150 - offset, timestamp: new Date(now - offset * 12 * 60 * 1000).toISOString() },
+    ...item
+  });
+  const auction = (domainName, amount, state = 'IN_PROGRESS') => ({
+    domainName,
+    state,
+    bidCount: 3,
+    countOfUniqueBidders: 2,
+    bidAmountSum: amount,
+    endsAtUtc: new Date(now + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    operationGroupHash: `oo${domainName.replace(/[^a-z0-9]/gi, '')}auction`,
+    highestBid: {
+      amount,
+      bidder: SAMPLE_ADDRESS_2,
+      bidderReverseRecord: { domain: { name: 'second-baker.tez' } },
+      timestamp: new Date(now - 45 * 60 * 1000).toISOString()
+    }
+  });
+  const offer = (domainName, price, actorKey = 'seller') => ({
+    domain: { name: domainName, owner: SAMPLE_ADDRESS },
+    state: 'ACTIVE',
+    price,
+    priceWithoutFee: String(Math.floor(Number(price) * 0.975)),
+    createdAtUtc: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    expiresAtUtc: new Date(now + 45 * 24 * 60 * 60 * 1000).toISOString(),
+    operationGroupHash: `oo${domainName.replace(/[^a-z0-9]/gi, '')}offer`,
+    [`${actorKey}Address`]: actorKey === 'buyer' ? SAMPLE_ADDRESS_2 : SAMPLE_ADDRESS,
+    [`${actorKey}AddressReverseRecord`]: { domain: { name: actorKey === 'buyer' ? 'second-baker.tez' : 'qa-baker.tez' } }
+  });
+  const recentEvents = [
+    recent(1, {
+      __typename: 'DomainBuyEvent',
+      id: 'DomainBuyEvent:smoke-1',
+      type: 'DOMAIN_BUY_EVENT',
+      domainName: 'viral.tez',
+      price: '6000000',
+      durationInDays: 730,
+      domainOwnerAddress: SAMPLE_ADDRESS,
+      operationGroupHash: 'ooDomainBuySmoke111'
+    }),
+    recent(2, {
+      __typename: 'DomainRenewEvent',
+      id: 'DomainRenewEvent:smoke-2',
+      type: 'DOMAIN_RENEW_EVENT',
+      domainName: 'builder.tez',
+      price: '15000000',
+      durationInDays: 1825,
+      operationGroupHash: 'ooDomainRenewSmoke222',
+      sourceName: 'builder.tez'
+    }),
+    recent(3, {
+      __typename: 'OfferPlacedEvent',
+      id: 'OfferPlacedEvent:smoke-3',
+      type: 'OFFER_PLACED_EVENT',
+      domainName: 'market.tez',
+      price: '25000000',
+      priceWithoutFee: '24375000',
+      expiresAtUtc: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString(),
+      tokenId: 12345,
+      operationGroupHash: 'ooOfferPlacedSmoke333'
+    }),
+    recent(4, {
+      __typename: 'DomainTransferEvent',
+      id: 'DomainTransferEvent:smoke-4',
+      type: 'DOMAIN_TRANSFER_EVENT',
+      domainName: 'identity.tez',
+      newOwner: SAMPLE_ADDRESS_2,
+      newOwnerReverseRecord: { domain: { name: 'second-baker.tez' } },
+      operationGroupHash: 'ooDomainTransferSmoke444'
+    }),
+    recent(5, {
+      __typename: 'AuctionBidEvent',
+      id: 'AuctionBidEvent:smoke-5',
+      type: 'AUCTION_BID_EVENT',
+      domainName: 'auction.tez',
+      bidAmount: '12000000',
+      previousBidAmount: '9000000',
+      previousBidderAddress: SAMPLE_ADDRESS,
+      transactionAmount: '3000000',
+      operationGroupHash: 'ooAuctionBidSmoke555'
+    }),
+    recent(6, {
+      __typename: 'ReverseRecordClaimEvent',
+      id: 'ReverseRecordClaimEvent:smoke-6',
+      type: 'REVERSE_RECORD_CLAIM_EVENT',
+      sourceName: 'alias.tez'
+    })
+  ];
+
+  return {
+    data: {
+      domain: { address: forwardDomainAddress, owner: forwardDomainOwner },
+      reverseRecord: { domain: { name: 'qa-baker.tez' } },
+      block: { level: 13842155, timestamp: blockTimestamp },
+      registrations24h: { totalCount: 7 },
+      renewals24h: { totalCount: 4 },
+      transfers24h: { totalCount: 2 },
+      subdomains24h: { totalCount: 1 },
+      reverseRecords24h: { totalCount: 6 },
+      marketplace7d: { totalCount: 9 },
+      registrations7d: { totalCount: 31 },
+      recentEvents: { totalCount: 710000, items: recentEvents },
+      highValueRecent: { totalCount: 42, items: recentEvents.slice(0, 3) },
+      liveAuctions: { totalCount: 4, items: [auction('auction.tez', '12000000'), auction('rare.tez', '8000000')] },
+      settlementAuctions: { totalCount: 2, items: [auction('settle.tez', '5000000', 'CAN_BE_SETTLED')] },
+      sellOffers: { totalCount: 711, items: [offer('market.tez', '25000000'), offer('signal.tez', '12000000')] },
+      buyOffers: { totalCount: 3, items: [offer('baking.tez', '3382500', 'buyer'), offer('pizza.tez', '1025000', 'buyer')] },
+      expiringSoon: {
+        totalCount: 18,
+        items: [
+          { name: 'noob.tez', expiresAtUtc: new Date(now + 2 * 60 * 60 * 1000).toISOString(), owner: SAMPLE_ADDRESS, ownerReverseRecord: { domain: { name: 'qa-baker.tez' } }, address: SAMPLE_ADDRESS, tokenId: 93338 },
+          { name: 'renewme.tez', expiresAtUtc: new Date(now + 8 * 60 * 60 * 1000).toISOString(), owner: SAMPLE_ADDRESS_2, ownerReverseRecord: { domain: { name: 'second-baker.tez' } }, address: SAMPLE_ADDRESS_2, tokenId: 93339 }
+        ]
+      }
+    }
+  };
+}
+
 function sampleTeztaleBatch(first, last) {
   return Array.from({ length: Math.max(0, last - first + 1) }, (_, index) => {
     const level = first + index;
@@ -865,12 +991,7 @@ async function installFeatureMocks(context, options = {}) {
     }
 
     if (url.includes('api.tezos.domains/graphql')) {
-      return fulfillJson(route, {
-        data: {
-          domain: { address: forwardDomainAddress, owner: forwardDomainOwner },
-          reverseRecord: { domain: { name: 'qa-baker.tez' } }
-        }
-      });
+      return fulfillJson(route, sampleTezosDomainsGraphql(forwardDomainAddress, forwardDomainOwner));
     }
 
     if (url.includes('data.objkt.com/v3/graphql')) {
@@ -1916,11 +2037,16 @@ async function assertChamberOrder(page, label) {
     ['network-health', 'chamber-entry-card'],
     ['tezlink-entry-card', 'etherlink-governance-entry-card'],
     ['tz4-adoption', 'lb-entry-card'],
-    ['ledger-flow-entry-card', 'protocol-history-entry-card']
+    ['ledger-flow-entry-card', 'protocol-history-entry-card'],
+    ['tezos-domains-entry-card']
   ];
   assert(
     expectedPairs.every((pair, index) => pair.every((key, innerIndex) => chamberState.pairs[index]?.[innerIndex] === key)),
     `${label}: Chambers pair layout mismatch, expected ${JSON.stringify(expectedPairs)} but saw ${JSON.stringify(chamberState.pairs)}`
+  );
+  assert(
+    chamberState.pairs.at(-1)?.length === 1 && chamberState.pairs.at(-1)?.[0] === 'tezos-domains-entry-card',
+    `${label}: Tezos Domains must stay as its own bottom strip, saw ${JSON.stringify(chamberState.pairs.at(-1))}`
   );
 }
 
@@ -1932,6 +2058,7 @@ async function assertChamberControlGeometry(page, label) {
       '#etherlink-governance-entry-card',
       '#lb-entry-card',
       '#ledger-flow-entry-card',
+      '#tezos-domains-entry-card',
       '#chambers-section [data-stat="tz4-adoption"]',
       '#chambers-section [data-stat="network-health"]'
     ];
@@ -4539,6 +4666,98 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
   log('ok - ledger flow chamber smoke');
 }
 
+async function smokeTezosDomainsChamber(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'tezos domains chamber', issues);
+
+  const response = await page.goto(`${baseUrl}/#domains`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `tezos domains chamber: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('#tezos-domains-entry-card').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#tezos-domains-modal.active .tezos-domains-content').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction(() => document.querySelectorAll('#tezos-domains-modal .td-event-row').length >= 4, null, { timeout: 10000 });
+
+  const state = await page.evaluate(() => {
+    const card = document.querySelector('#tezos-domains-entry-card');
+    const pair = document.querySelector('#chambers-grid > .chamber-card-pair[data-chamber-pair="tezos-domains"]');
+    const grid = document.querySelector('#chambers-grid');
+    const modal = document.querySelector('#tezos-domains-modal');
+    const rect = (node) => {
+      const box = node?.getBoundingClientRect();
+      return box ? { width: box.width, height: box.height, left: box.left, right: box.right } : null;
+    };
+    return {
+      hash: window.location.hash,
+      pathname: window.location.pathname,
+      cardCopyHash: card?.querySelector('.card-copy-link')?.dataset.copyHash || '',
+      cardText: card?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      cardUpdatedLabel: card?.dataset.updatedLabel || '',
+      pairChildren: pair?.querySelectorAll(':scope > .stat-card').length || 0,
+      pairIsLast: pair === grid?.querySelector(':scope > .chamber-card-pair:last-child'),
+      pairRect: rect(pair),
+      gridRect: rect(grid),
+      title: modal?.querySelector('.chamber-title')?.textContent || '',
+      badge: modal?.querySelector('.chamber-badge')?.textContent || '',
+      header: modal?.querySelector('.chamber-proposal-info')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      pulse: modal?.querySelector('.td-pulse-grid')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      panels: Array.from(modal?.querySelectorAll('.td-panel-title') || []).map((node) => node.textContent?.replace(/\s+/g, ' ').trim() || ''),
+      eventRows: modal?.querySelectorAll('.td-event-row').length || 0,
+      marketRows: modal?.querySelectorAll('.td-market-row').length || 0,
+      expiryRows: modal?.querySelectorAll('.td-expiry-row').length || 0,
+      text: modal?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      domainLinks: Array.from(modal?.querySelectorAll('a[href^="https://app.tezos.domains/domain/"]') || []).map((link) => link.href),
+      dappHref: modal?.querySelector('a[href="https://app.tezos.domains/"]')?.getAttribute('href') || '',
+      docsHref: modal?.querySelector('a[href*="developers.tezos.domains/integrating-tezos-domains/graphql"]')?.href || '',
+      tzktLinks: modal?.querySelectorAll('a[href^="https://tzkt.io/"]').length || 0,
+      directHref: modal?.querySelector('.panel-direct-link')?.getAttribute('href') || '',
+      footer: modal?.querySelector('.chamber-footer')?.textContent || '',
+      horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    };
+  });
+
+  assert(state.hash === '' && state.pathname === '/domains/', `tezos domains chamber: canonical path mismatch ${state.pathname}${state.hash}`);
+  assert(state.cardCopyHash === '#domains', `tezos domains chamber: card copy hash mismatch ${state.cardCopyHash}`);
+  assert(/Tezos Domains/.test(state.cardText) && /viral\.tez/.test(state.cardText) && /24h names/i.test(state.cardText), `tezos domains chamber: card content missing ${state.cardText}`);
+  assert(/Tezos Domains/.test(state.cardUpdatedLabel), `tezos domains chamber: card freshness missing ${state.cardUpdatedLabel}`);
+  assert(state.pairChildren === 1 && state.pairIsLast, `tezos domains chamber: card must be its own bottom strip ${JSON.stringify(state)}`);
+  assert(state.pairRect?.width >= state.gridRect?.width - 4, `tezos domains chamber: bottom strip should span grid width ${JSON.stringify({ pair: state.pairRect, grid: state.gridRect })}`);
+  assert(/Tezos Domains Chamber/.test(state.title), `tezos domains chamber: title mismatch ${state.title}`);
+  assert(/Name rush|Market live|Identity pulse/.test(state.badge), `tezos domains chamber: badge mismatch ${state.badge}`);
+  assert(/market\.tez/.test(state.header), `tezos domains chamber: featured premium name missing ${state.header}`);
+  assert(/24h names/.test(state.pulse) && /24h reverse/.test(state.pulse) && /Live auctions/.test(state.pulse) && /Active asks/.test(state.pulse) && /30d drops/.test(state.pulse), `tezos domains chamber: pulse metrics missing ${state.pulse}`);
+  assert(state.panels.some((text) => /Fresh Name Tape/.test(text)) && state.panels.some((text) => /Premium Moves/.test(text)) && state.panels.some((text) => /Auctions/.test(text)) && state.panels.some((text) => /Sell Wall/.test(text)) && state.panels.some((text) => /Want List/.test(text)) && state.panels.some((text) => /30d Drops/.test(text)), `tezos domains chamber: expected panels missing ${state.panels.join(' | ')}`);
+  assert(state.eventRows >= 4 && state.marketRows >= 5 && state.expiryRows >= 2, `tezos domains chamber: row counts too sparse ${JSON.stringify(state)}`);
+  assert(/registered 6\.00 XTZ/.test(state.text) && /auction\.tez/.test(state.text) && /market\.tez/.test(state.text) && /baking\.tez/.test(state.text) && /noob\.tez/.test(state.text), `tezos domains chamber: mocked names not surfaced ${state.text}`);
+  assert(state.domainLinks.length >= 8 && state.domainLinks.some((href) => href.includes('/domain/viral.tez')), `tezos domains chamber: Tezos Domains name links missing ${state.domainLinks.join(', ')}`);
+  assert(state.dappHref === 'https://app.tezos.domains/' && state.docsHref.includes('developers.tezos.domains'), `tezos domains chamber: dApp/docs links missing ${state.dappHref}/${state.docsHref}`);
+  assert(state.tzktLinks >= 3, `tezos domains chamber: operation links missing ${state.tzktLinks}`);
+  assert(state.directHref === '/domains/' && /Direct: \/domains\//.test(state.footer), `tezos domains chamber: /domains direct footer missing ${state.directHref}/${state.footer}`);
+  assert(state.horizontalOverflow <= 1, `tezos domains chamber: horizontal overflow ${state.horizontalOverflow}`);
+
+  await page.locator('#tezos-domains-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#tezos-domains-modal')?.classList.contains('active'), null, { timeout: 5000 });
+
+  const routeResponse = await page.goto(`${baseUrl}/domains/`, { waitUntil: 'domcontentloaded' });
+  assert(routeResponse?.ok(), `domains route: pretty route failed with HTTP ${routeResponse?.status()}`);
+  await page.waitForFunction(() => window.location.pathname === '/domains/' && window.location.hash === '', null, { timeout: 7000 });
+  await page.locator('#tezos-domains-modal.active .tezos-domains-content').waitFor({ state: 'visible', timeout: 10000 });
+
+  await context.close();
+  assert(issues.length === 0, `tezos domains chamber browser issues:\n${issues.join('\n')}`);
+  log('ok - tezos domains chamber smoke');
+}
+
 async function smokeTezlinkChamber(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -6953,6 +7172,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'network-health', description: 'Network Health card opens #health chamber with block cadence, missed rights, and saved My Tezos baker summary', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'ledger-flow', description: 'Ledger Flow opens #ledger-flow with sent, received, first-funding, and amount-weighted transfer paths', run: () => smokeLedgerFlowChamber(browser, baseUrl) },
+    { name: 'tezos-domains', description: 'Tezos Domains opens #domains with fresh .tez names, auctions, offers, and expiring-name pressure', run: () => smokeTezosDomainsChamber(browser, baseUrl) },
     { name: 'ctez', description: 'ctez End of Life opens #ctez with opt-in oven discovery and wallet-reviewed operations', run: () => smokeCtezChamber(browser, baseUrl) },
     { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
     { name: 'hash-modal-cleanup', description: 'Hash-routed modal navigation closes stale history and chamber overlays before opening the next room', run: () => smokeHashModalCleanup(browser, baseUrl) },

@@ -65,7 +65,7 @@ tezos.systems/
 ├── widgets/                           # Standalone embeddable widgets, shared runtime, and builder
 ├── staking/ governance/ bakers/ hen/ compare/
 │                                      # SEO and standalone pages
-├── chamber/ health/ tezosx/ l2chamber/ tz4/ lb/ ledger-flow/ ctez/
+├── chamber/ health/ tezosx/ l2chamber/ tz4/ lb/ ledger-flow/ domains/ ctez/
 │                                      # Pretty share/OG routes into live Chambers
 ├── og/                                # Generated per-chamber OG images
 ├── feed.xml                           # Generated Tezos governance RSS feed
@@ -190,9 +190,9 @@ inline modal styles in `js/core/app.js`.
 
 - Chambers section is visible by default and orders the chamber rows as Network
   Health <> Tezos L1 Governance, Tezos X <> Tezos X Governance, tz4 Adoption <> LB
-  Monitor, then Ledger Flow <> Protocol History. ctez End of Life and TzSafe
-  Recovery stay off the default Chambers grid and open from Explore or the
-  corner gift tray launcher.
+  Monitor, Ledger Flow <> Protocol History, then a full-width Tezos Domains
+  strip at the bottom. ctez End of Life and TzSafe Recovery stay off the default
+  Chambers grid and open from Explore or the corner gift tray launcher.
   Each Chamber row is wrapped responsively so wide cards keep their companion
   card instead of creating desktop grid holes; cards also keep a canonical
   app-shell open affordance in the fixed footer rail, card-level direct-link
@@ -246,6 +246,11 @@ inline modal styles in `js/core/app.js`.
   renders an SVG transfer diagram with separate sent, received, and first-in
   colors, amount-weighted connection strength, My Tezos account links, and
   compact TzKT pills.
+- Tezos Domains Chamber with direct `#domains` and `/domains/` access, backed by
+  the Tezos Domains GraphQL API. Its default Chambers card is a full-width
+  bottom strip, not paired with any other chamber, and it surfaces fresh `.tez`
+  registrations, renewals, reverse-record moves, transfers, live auctions, sell
+  offers, buy offers, and names nearing expiration.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - First-screen command deck built for retrieval: the top of the page moves from
@@ -347,10 +352,12 @@ Useful deep links include:
 - `#lb-tile`
 - `#tz4`
 - `#ledger-flow` or `#ledger-flow=tz1...`
+- `#domains`
 - `#ctez`
 
 Public share routes are also available at `/chamber/`, `/health/`,
-`/tezosx/`, `/l2chamber/`, `/tz4/`, `/lb/`, `/ledger-flow/`, and `/ctez/`.
+`/tezosx/`, `/l2chamber/`, `/tz4/`, `/lb/`, `/ledger-flow/`, `/domains/`, and
+`/ctez/`.
 These routes carry unique Open Graph metadata and redirect into the
 corresponding live dashboard room.
 `/feed.xml` exposes the generated governance RSS feed for relay bots.
@@ -365,7 +372,7 @@ The governance SEO page also funnels high-intent searches into `/chamber/`,
 | Octez RPC `https://eu.rpc.tez.capital` | Issuance, supply, constants, cycle/head metadata |
 | Teztale `https://teztale-server-mainnet-ro-prd.octez.tech` | Consensus timing lens for Network Health, including quorum delay, validation/application delay, source count, and operations-report observations; Teztale is by Nomadic Labs |
 | CoinGecko | XTZ price, market cap, 24h change, volume |
-| Tezos Domains GraphQL | Domain and reverse-record lookups |
+| Tezos Domains GraphQL | Domain/reverse-record lookups plus live events, auctions, offers, buy offers, and 30-day expiration pressure |
 | OBJKT GraphQL | HEN mode's live Teia + OBJKT feed plus collector and creator profile stats |
 | Supabase REST | Historical Tezos snapshots via public anon client config |
 | DefiLlama `https://api.llama.fi` | Tezos X chain TVL and protocol TVL; DefiLlama currently indexes the chain as Etherlink |

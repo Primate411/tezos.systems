@@ -97,6 +97,12 @@ function routeDetails(route, report) {
       chips: ['first funding', 'amount-weighted edges', 'counterparty map'],
       body: 'Map Tezos account transfers with separate sent and received colors, first-funding highlights, and bolder paths for larger movements.'
     },
+    domains: {
+      kicker: '.tez Identity',
+      value: 'Names moving now',
+      chips: ['registrations', 'expiring names', 'auctions + offers'],
+      body: 'Follow fresh Tezos Domains registrations, renewals, identity records, expiring names, auctions, and marketplace offers in one live chamber.'
+    },
     ctez: {
       kicker: 'ctez Oven Guide',
       value: 'Better Call Dev',

@@ -36,6 +36,7 @@ import { initTezlinkChamber } from '../features/tezlink.js';
 import { initEtherlinkGovernanceChamber } from '../features/etherlink-governance.js';
 import { initCtezChamber } from '../features/ctez.js';
 import { initLedgerFlowChamber } from '../features/ledger-flow.js';
+import { initTezosDomainsChamber } from '../features/tezos-domains.js';
 
 const SPARKLINE_LIVE_METRICS = [
     ['tz4_percentage', 'tz4Percentage'],
@@ -145,6 +146,7 @@ async function init() {
     safe('tz4AdoptionChamber', initTz4AdoptionChamber);
     safe('ctezChamber', initCtezChamber);
     safe('ledgerFlowChamber', initLedgerFlowChamber);
+    safe('tezosDomainsChamber', initTezosDomainsChamber);
     safe('governanceAlerts', initGovernanceAlerts);
     safe('protocolHistoryChamber', initProtocolHistoryChamber);
     safe('protocolHistoryHeaderLauncher', initProtocolHistoryHeaderLauncher);
@@ -1050,6 +1052,10 @@ const CHAMBER_CARD_PAIRS = [
     {
         key: 'ledger-history',
         selectors: ['#ledger-flow-entry-card', '#protocol-history-entry-card']
+    },
+    {
+        key: 'tezos-domains',
+        selectors: ['#tezos-domains-entry-card']
     }
 ];
 let _chamberPairObserver = null;
@@ -1103,6 +1109,12 @@ const CHAMBER_INFO_COPY = {
         body: 'A current-first archive of Tezos lore, amendment memory, protocol timeline, and impact views.',
         href: '#protocol-history',
         link: 'Open Anthology ->'
+    },
+    'tezos-domains-entry-card': {
+        title: 'Tezos Domains',
+        body: 'Live Tezos Domains room for fresh .tez registrations, renewals, expiring names, auctions, offers, and reverse-record identity moves.',
+        href: '/domains/',
+        link: 'Open Domains ->'
     }
 };
 
@@ -1206,6 +1218,7 @@ function syncChamberEntryFooter(card) {
 function syncChamberEntryFooters(root = document) {
     root.querySelectorAll?.('.chamber-entry-card').forEach(syncChamberEntryFooter);
 }
+window.syncChamberEntryFooters = syncChamberEntryFooters;
 
 function updateChamberPairState(pair) {
     if (!pair) return;
@@ -4005,16 +4018,20 @@ function applyDeepLink() {
             import('../features/liquidity-baking.js').then((module) => module.closeLiquidityBakingMonitor?.()),
             import('../features/tz4-adoption.js').then((module) => module.closeTz4AdoptionChamber?.()),
             import('../features/ctez.js').then((module) => module.closeCtezChamber?.()),
-            import('../features/ledger-flow.js').then((module) => module.closeLedgerFlowChamber?.())
+            import('../features/ledger-flow.js').then((module) => module.closeLedgerFlowChamber?.()),
+            import('../features/tezos-domains.js').then((module) => module.closeTezosDomainsChamber?.())
         ]);
 
         document.body.style.overflow = '';
         document.documentElement.style.overflow = '';
     };
 
-    const openHashModal = (open, label) => {
+    const openHashModal = (open, label, afterOpen) => {
         closeHashModalSurfaces()
             .then(open)
+            .then(() => {
+                if (typeof afterOpen === 'function') afterOpen();
+            })
             .catch((error) => console.warn(label, error));
     };
 
@@ -4108,6 +4125,19 @@ function applyDeepLink() {
         openHashModal(
             () => import('../features/ledger-flow.js').then(({ openLedgerFlowChamber }) => openLedgerFlowChamber(target)),
             'Failed to open Ledger Flow'
+        );
+    }
+
+    // #domains / legacy #tezos-domains
+    if (params.has('domains') || hash === 'domains' || params.has('tezos-domains') || hash === 'tezos-domains') {
+        openHashModal(
+            () => import('../features/tezos-domains.js').then(({ openTezosDomainsChamber }) => openTezosDomainsChamber()),
+            'Failed to open Tezos Domains Chamber',
+            () => {
+                if (window.location.pathname !== '/domains/' || window.location.hash) {
+                    window.history.replaceState(null, '', '/domains/');
+                }
+            }
         );
     }
 

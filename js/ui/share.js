@@ -367,7 +367,9 @@ function getChamberShareRoute(card) {
         '#l2chamber': '/l2chamber/',
         '#tz4': '/tz4/',
         '#lb': '/lb/',
-        '#ledger-flow': '/ledger-flow/'
+        '#ledger-flow': '/ledger-flow/',
+        '#domains': '/domains/',
+        '#tezos-domains': '/domains/'
     };
     if (routes[hash]) return `tezos.systems${routes[hash]}`;
     if (hash === '#protocol-history') return 'tezos.systems/#protocol-history';
