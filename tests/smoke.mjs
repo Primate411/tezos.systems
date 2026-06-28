@@ -753,7 +753,10 @@ async function installFeatureMocks(context, options = {}) {
   const governanceNoProposal = Boolean(options.governanceNoProposal);
   const governanceLiveVote = Boolean(options.governanceLiveVote);
   const governanceAdoptionPeriod = Boolean(options.governanceAdoptionPeriod);
-  const forwardDomainAddress = options.forwardDomainAddress || SAMPLE_ADDRESS;
+  const forwardDomainAddress = Object.prototype.hasOwnProperty.call(options, 'forwardDomainAddress')
+    ? options.forwardDomainAddress
+    : SAMPLE_ADDRESS;
+  const forwardDomainOwner = options.forwardDomainOwner || SAMPLE_ADDRESS;
   const operatorAttestationSequence = Array.isArray(options.operatorAttestationSequence)
     ? options.operatorAttestationSequence
     : null;
@@ -864,7 +867,7 @@ async function installFeatureMocks(context, options = {}) {
     if (url.includes('api.tezos.domains/graphql')) {
       return fulfillJson(route, {
         data: {
-          domain: { address: forwardDomainAddress },
+          domain: { address: forwardDomainAddress, owner: forwardDomainOwner },
           reverseRecord: { domain: { name: 'qa-baker.tez' } }
         }
       });
@@ -3669,6 +3672,60 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
   log('ok - my tezos address switch smoke');
 }
 
+async function smokeMyTezosSubdomainInput(browser, baseUrl) {
+  const issues = [];
+  const domain = 'skllz.hack.tez';
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
+  await installFeatureMocks(context, { forwardDomainAddress: null, forwardDomainOwner: SAMPLE_ADDRESS_2 });
+  await context.addInitScript((address) => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-my-baker-address', address);
+  }, SAMPLE_ADDRESS);
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'my tezos subdomain input', issues);
+
+  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `my tezos subdomain input: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+
+  await page.locator('#my-tezos-btn').click();
+  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos subdomain input drawer');
+  await page.locator('#my-baker-input').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#my-baker-input').fill(domain);
+  await page.waitForFunction(() => document.querySelector('#my-baker-save')?.textContent?.trim() === 'Save', null, { timeout: 3000 });
+  await page.locator('#my-baker-save').click();
+  await page.waitForFunction((address) => localStorage.getItem('tezos-systems-my-baker-address') === address, SAMPLE_ADDRESS_2, { timeout: 5000 });
+  await page.waitForFunction((address) => window._myTezosData?.fullAddress === address, SAMPLE_ADDRESS_2, { timeout: 15000 });
+
+  const state = await page.evaluate(() => ({
+    stored: localStorage.getItem('tezos-systems-my-baker-address'),
+    input: document.querySelector('#my-baker-input')?.value || '',
+    error: document.querySelector('#my-baker-error-msg')?.textContent?.trim() || '',
+    button: document.querySelector('#my-baker-save')?.textContent?.trim() || '',
+    ledgerFlowHref: document.querySelector('#my-tezos-ledger-flow-link')?.getAttribute('href') || '',
+    header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || ''
+  }));
+
+  assert(state.stored === SAMPLE_ADDRESS_2, `my tezos subdomain input: localStorage did not save resolved address ${JSON.stringify(state)}`);
+  assert(state.input === SAMPLE_ADDRESS_2, `my tezos subdomain input: drawer input did not switch to resolved address ${JSON.stringify(state)}`);
+  assert(!/invalid address|domain not found/i.test(state.error), `my tezos subdomain input: subdomain was rejected: ${state.error}`);
+  assert(state.button === '📋 Copy', `my tezos subdomain input: save button did not return to copy mode ${JSON.stringify(state)}`);
+  assert(state.ledgerFlowHref === `#ledger-flow=${encodeURIComponent(SAMPLE_ADDRESS_2)}`, `my tezos subdomain input: Ledger Flow link not scoped to resolved address ${JSON.stringify(state)}`);
+  assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `my tezos subdomain input: header still shows stale address: ${state.header}`);
+
+  await context.close();
+  assert(issues.length === 0, `my tezos subdomain input browser issues:\n${issues.join('\n')}`);
+  log('ok - my tezos subdomain input smoke');
+}
+
 async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -3804,7 +3861,8 @@ async function runMyTezosDeepLinkOverride(browser, baseUrl, scenario) {
     baseUrl,
     dashboardHtml,
     dashboardPathnames: scenario.dashboardPathnames || [],
-    forwardDomainAddress: scenario.forwardDomainAddress
+    forwardDomainAddress: scenario.forwardDomainAddress,
+    forwardDomainOwner: scenario.forwardDomainOwner
   });
   await context.addInitScript((staleAddress) => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
@@ -3850,6 +3908,7 @@ async function runMyTezosDeepLinkOverride(browser, baseUrl, scenario) {
 async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
   const directAddressPath = `/${SAMPLE_ADDRESS_2}`;
   const directDomainPath = '/qa-baker.tez';
+  const directSubdomainPath = '/skllz.hack.tez';
   const scenarios = [
     {
       label: 'my tezos hash address deep link override',
@@ -3863,6 +3922,13 @@ async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
       forwardDomainAddress: SAMPLE_ADDRESS_2
     },
     {
+      label: 'my tezos hash subdomain deep link override',
+      path: '/#my-baker=skllz.hack.tez',
+      expectedAddress: SAMPLE_ADDRESS_2,
+      forwardDomainAddress: null,
+      forwardDomainOwner: SAMPLE_ADDRESS_2
+    },
+    {
       label: 'my tezos direct address path override',
       path: directAddressPath,
       expectedAddress: SAMPLE_ADDRESS_2,
@@ -3874,6 +3940,14 @@ async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
       expectedAddress: SAMPLE_ADDRESS_2,
       dashboardPathnames: [directDomainPath],
       forwardDomainAddress: SAMPLE_ADDRESS_2
+    },
+    {
+      label: 'my tezos direct subdomain path override',
+      path: directSubdomainPath,
+      expectedAddress: SAMPLE_ADDRESS_2,
+      dashboardPathnames: [directSubdomainPath],
+      forwardDomainAddress: null,
+      forwardDomainOwner: SAMPLE_ADDRESS_2
     }
   ];
 
@@ -6873,6 +6947,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-staker-rewards', description: 'My Tezos connected drawer uses personal staker reward rows for regular and mostly-staked accounts', run: () => smokeMyTezosStakerRewards(browser, baseUrl) },
     { name: 'my-tezos-delegator-rewards', description: 'My Tezos connected drawer uses delegator estimate rows for zero-stake delegated accounts', run: () => smokeMyTezosDelegatorRewards(browser, baseUrl) },
     { name: 'my-tezos-address-switch', description: 'My Tezos connected drawer saves a newly typed address over a stale saved baker', run: () => smokeMyTezosAddressSwitch(browser, baseUrl) },
+    { name: 'my-tezos-subdomain-input', description: 'My Tezos connected drawer accepts Tezos Domains subdomains and saves their resolved address', run: () => smokeMyTezosSubdomainInput(browser, baseUrl) },
     { name: 'my-tezos-proposal-attribution', description: 'My Tezos Story distinguishes a delegator from their baker when accepted proposals are shown', run: () => smokeMyTezosProposalAttribution(browser, baseUrl) },
     { name: 'my-tezos-deep-link-override', description: 'My Tezos direct address links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) },
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },

@@ -12,6 +12,7 @@ import { classifyOctezVersion, fetchOctezVersions } from './network-health.js';
 const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const SAVED_ADDRESSES_KEY = 'tezos-systems-saved-addresses';
 const TZKT = API_URLS.tzkt;
+const TEZ_DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i;
 let _bakerRenderSeq = 0;
 
 /**
@@ -26,7 +27,8 @@ export function isValidAddress(addr) {
  * Check if input looks like a Tezos domain
  */
 function isTezDomain(input) {
-    return input && /^[^.]+\.tez$/.test(input);
+    const domain = String(input || '').trim();
+    return domain.length <= 253 && TEZ_DOMAIN_RE.test(domain);
 }
 
 /**
@@ -38,12 +40,13 @@ async function resolveForwardDomain(name) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: `query ResolveDomain($name: String!) { domain(name: $name) { address } }`,
+                query: `query ResolveDomain($name: String!) { domain(name: $name) { address owner } }`,
                 variables: { name }
             })
         });
         const data = await resp.json();
-        return data?.data?.domain?.address || null;
+        const domain = data?.data?.domain || {};
+        return [domain.address, domain.owner].find(isValidAddress) || null;
     } catch {
         return null;
     }

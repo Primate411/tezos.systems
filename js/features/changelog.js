@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-28',
+        entries: [
+            { type: '🔧', text: 'My Tezos now accepts Tezos Domains subdomains like skllz.hack.tez in the drawer and direct account links' },
+        ]
+    },
+    {
         date: '2026-06-26',
         entries: [
             { type: '⚡', text: 'HEN grid and profile thumbnails now try OBJKT media CDN URLs before live IPFS gateways, with the retired Cloudflare gateway removed' },

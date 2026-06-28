@@ -241,7 +241,8 @@ inline modal styles in `js/core/app.js`.
   Lens panels.
 - Ledger Flow Chamber with direct `#ledger-flow` and `/ledger-flow/` access,
   plus address-scoped hashes such as `#ledger-flow=tz1...`. It resolves tz/KT
-  accounts and `.tez` names, queries TzKT account transaction history, and
+  accounts and `.tez` names including subdomains, queries TzKT account
+  transaction history, and
   renders an SVG transfer diagram with separate sent, received, and first-in
   colors, amount-weighted connection strength, My Tezos account links, and
   compact TzKT pills.
@@ -324,7 +325,7 @@ inline modal styles in `js/core/app.js`.
 Useful deep links include:
 
 - `#my-baker=...`
-- `/tz1...` or `/name.tez` to resolve directly into My Tezos
+- `/tz1...`, `/name.tez`, or `/sub.name.tez` to resolve directly into My Tezos
 - `#baker=...`
 - `#calculator`
 - `#compare`
@@ -499,6 +500,7 @@ Current smoke suites:
 - `my-tezos-staker-rewards`
 - `my-tezos-delegator-rewards`
 - `my-tezos-address-switch`
+- `my-tezos-subdomain-input`
 - `my-tezos-proposal-attribution`
 - `my-tezos-deep-link-override`
 - `tezlink`
@@ -525,7 +527,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v301`, including the Ledger Flow lazy CSS
+- Current aligned shell cache stamp: `v304`, including the Ledger Flow lazy CSS
   loader.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,

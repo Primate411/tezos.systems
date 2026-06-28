@@ -11,7 +11,7 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const LAST_TARGET_KEY = 'tezos-systems-ledger-flow-target';
 const WINDOW_KEY = 'tezos-systems-ledger-flow-window';
 const THRESHOLD_KEY = 'tezos-systems-ledger-flow-threshold-index';
-const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=303';
+const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=304';
 const DEFAULT_WINDOW = '30d';
 const TRANSFER_LIMIT = 60;
 const MAX_VISIBLE_COUNTERPARTIES = 12;
@@ -164,14 +164,14 @@ async function resolveForwardDomain(name) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: 'query ResolveDomain($name: String!) { domain(name: $name) { address } }',
+                query: 'query ResolveDomain($name: String!) { domain(name: $name) { address owner } }',
                 variables: { name: normalized }
             })
         });
         if (!response.ok) return null;
         const data = await response.json();
-        const address = data?.data?.domain?.address || '';
-        return isTezosAccount(address) ? address : null;
+        const domain = data?.data?.domain || {};
+        return [domain.address, domain.owner].find(isTezosAccount) || null;
     } catch {
         return null;
     }

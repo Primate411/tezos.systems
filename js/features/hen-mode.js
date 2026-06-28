@@ -470,11 +470,13 @@ const HenMode = (() => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    query: '{ domain(name: "' + escapeGraphqlString(name.toLowerCase()) + '") { address } }'
+                    query: 'query ResolveDomain($name: String!) { domain(name: $name) { address owner } }',
+                    variables: { name: String(name || '').trim().toLowerCase() }
                 })
             });
             const json = await res.json();
-            return json && json.data && json.data.domain ? json.data.domain.address : null;
+            var domain = json && json.data ? json.data.domain : null;
+            return domain ? [domain.address, domain.owner].find(isValidAddress) || null : null;
         } catch (e) {
             return null;
         }

@@ -3803,14 +3803,14 @@ async function resolveForwardTezDomain(name) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: `query ResolveDomain($name: String!) { domain(name: $name) { address } }`,
+                query: `query ResolveDomain($name: String!) { domain(name: $name) { address owner } }`,
                 variables: { name }
             })
         });
         if (!resp.ok) return null;
         const data = await resp.json();
-        const address = data?.data?.domain?.address || '';
-        return isTezosAccountAddress(address) ? address : null;
+        const domain = data?.data?.domain || {};
+        return [domain.address, domain.owner].find(isTezosAccountAddress) || null;
     } catch {
         return null;
     }

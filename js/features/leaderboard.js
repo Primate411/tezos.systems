@@ -467,12 +467,13 @@ export async function openBakerProfile(address) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    query: `query ResolveDomain($name: String!) { domain(name: $name) { address } }`,
+                    query: `query ResolveDomain($name: String!) { domain(name: $name) { address owner } }`,
                     variables: { name: address }
                 }),
             });
             const domainData = await domainResp.json();
-            const resolved = domainData?.data?.domain?.address;
+            const domain = domainData?.data?.domain || {};
+            const resolved = [domain.address, domain.owner].find(isValidAddress);
             if (!resolved) throw new Error(`Domain "${address}" not found`);
             address = resolved;
         } catch (err) {

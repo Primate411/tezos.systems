@@ -23,11 +23,13 @@ async function resolveForwardDomain(name) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                query: `query { domain(name: "${name}") { address } }`
+                query: `query ResolveDomain($name: String!) { domain(name: $name) { address owner } }`,
+                variables: { name: String(name || '').trim().toLowerCase() }
             })
         });
         const data = await resp.json();
-        return data?.data?.domain?.address || null;
+        const domain = data?.data?.domain || {};
+        return [domain.address, domain.owner].find(isValidAddress) || null;
     } catch {
         return null;
     }
