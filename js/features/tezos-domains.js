@@ -6,7 +6,7 @@
 import { debounce, escapeHtml, formatLiveDuration, startLiveTimeTicker } from '../core/utils.js';
 
 const TEZOS_DOMAINS_ENDPOINT = 'https://api.tezos.domains/graphql';
-const TEZOS_DOMAINS_CSS_URL = '/css/tezos-domains.css?v=306';
+const TEZOS_DOMAINS_CSS_URL = '/css/tezos-domains.css?v=308';
 const CHAMBER_REFRESH_MS = 10 * 60 * 1000;
 const ENTRY_REFRESH_MS = 15 * 60 * 1000;
 const MIN_HIGH_VALUE_MUTEZ = '25000000';
