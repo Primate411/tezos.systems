@@ -3,14 +3,15 @@
  * Live identity, auction, market, and expiration pulse for .tez names.
  */
 
-import { escapeHtml } from '../core/utils.js';
+import { debounce, escapeHtml } from '../core/utils.js';
 
 const TEZOS_DOMAINS_ENDPOINT = 'https://api.tezos.domains/graphql';
-const TEZOS_DOMAINS_CSS_URL = '/css/tezos-domains.css?v=305';
+const TEZOS_DOMAINS_CSS_URL = '/css/tezos-domains.css?v=307';
 const CHAMBER_REFRESH_MS = 10 * 60 * 1000;
 const ENTRY_REFRESH_MS = 15 * 60 * 1000;
 const MIN_HIGH_VALUE_MUTEZ = '25000000';
 const STALE_MS = 45 * 60 * 1000;
+const TEZ_DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i;
 const BLOCKED_NAME_PARTS = Object.freeze([
     'porn',
     'xxx',
@@ -35,6 +36,8 @@ let chamberTimer = null;
 let chamberRefreshInFlight = false;
 let entryRefreshInFlight = false;
 let lastData = null;
+let lookupState = { status: 'idle', name: '' };
+let lookupToken = 0;
 let savedBodyOverflow = null;
 let savedHtmlOverflow = null;
 
@@ -54,6 +57,10 @@ function isLikelySafeName(name) {
 
 function domainUrl(name) {
     return `https://app.tezos.domains/domain/${encodeURIComponent(name)}`;
+}
+
+function ledgerFlowUrl(name) {
+    return `#ledger-flow=${encodeURIComponent(name)}`;
 }
 
 function tzktOperationUrl(hash) {
@@ -107,6 +114,20 @@ function formatDate(value) {
         year: date.getUTCFullYear() === new Date().getUTCFullYear() ? undefined : 'numeric',
         timeZone: 'UTC'
     });
+}
+
+function normalizeDomainInput(value) {
+    const raw = String(value || '').trim().toLowerCase();
+    if (!raw) return { name: '', error: '' };
+    const cleaned = raw.replace(/^@+/, '').replace(/\s+/g, '');
+    const name = cleaned.endsWith('.tez') ? cleaned : `${cleaned}.tez`;
+    if (name.length > 253 || !TEZ_DOMAIN_RE.test(name)) {
+        return { name, error: 'Use a valid .tez name, such as builder.tez.' };
+    }
+    if (!isLikelySafeName(name)) {
+        return { name, error: 'Try a different .tez name.' };
+    }
+    return { name, error: '' };
 }
 
 function formatTimeDistance(value) {
@@ -250,6 +271,80 @@ function gqlRecentEventsQuery() {
     return {
         query: `query TezosDomainsRecentEvents {
             recentEvents: events(first: 22, order: { field: TIMESTAMP, direction: DESC }, where: { type: { notIn: [DOMAIN_COMMIT_EVENT] } }) {
+                totalCount
+                items {
+                    __typename
+                    id
+                    type
+                    sourceAddress
+                    sourceAddressReverseRecord { domain { name } }
+                    block { level timestamp }
+                    ... on DomainBuyEvent { domainName price durationInDays domainOwnerAddress operationGroupHash }
+                    ... on DomainRenewEvent { domainName price durationInDays operationGroupHash }
+                    ... on DomainSetChildRecordEvent { domainName isNewRecord domainOwnerAddress operationGroupHash }
+                    ... on DomainTransferEvent { domainName newOwner newOwnerReverseRecord { domain { name } } operationGroupHash }
+                    ... on OfferPlacedEvent { domainName price priceWithoutFee expiresAtUtc tokenId operationGroupHash }
+                    ... on OfferExecutedEvent { domainName price priceWithoutFee sellerAddress sellerAddressReverseRecord { domain { name } } tokenId operationGroupHash }
+                    ... on BuyOfferPlacedEvent { domainName price priceWithoutFee expiresAtUtc domainOwner tokenId operationGroupHash }
+                    ... on BuyOfferExecutedEvent { domainName price priceWithoutFee buyerAddress buyerAddressReverseRecord { domain { name } } tokenId operationGroupHash }
+                    ... on AuctionBidEvent { domainName bidAmount previousBidAmount previousBidderAddress transactionAmount operationGroupHash }
+                    ... on AuctionSettleEvent { domainName winningBid registrationDurationInDays operationGroupHash }
+                }
+            }
+        }`
+    };
+}
+
+function gqlNameLookupQuery(name) {
+    return {
+        variables: { name },
+        query: `query TezosDomainsNameLookup($name: String!) {
+            block { level timestamp }
+            domain(name: $name) {
+                name
+                address
+                owner
+                expiresAtUtc
+                level
+                tokenId
+                ownerReverseRecord { domain { name } }
+                addressReverseRecord { domain { name } }
+            }
+            currentAuction(domainName: $name) {
+                domainName
+                state
+                bidCount
+                countOfUniqueBidders
+                bidAmountSum
+                endsAtUtc
+                highestBid { amount bidder bidderReverseRecord { domain { name } } timestamp }
+                operationGroupHash
+            }
+            currentOffer(domainName: $name) {
+                domain { name owner }
+                state
+                price
+                priceWithoutFee
+                createdAtUtc
+                expiresAtUtc
+                sellerAddress
+                sellerAddressReverseRecord { domain { name } }
+                operationGroupHash
+            }
+            buyOffers(first: 3, where: { domainName: { equalTo: $name }, state: { in: [ACTIVE] } }, order: { field: PRICE, direction: DESC }) {
+                totalCount
+                items {
+                    domain { name owner }
+                    state
+                    price
+                    priceWithoutFee
+                    expiresAtUtc
+                    buyerAddress
+                    buyerAddressReverseRecord { domain { name } }
+                    operationGroupHash
+                }
+            }
+            recentEvents: events(first: 4, order: { field: TIMESTAMP, direction: DESC }, where: { domainName: { equalTo: $name }, type: { notIn: [DOMAIN_COMMIT_EVENT] } }) {
                 totalCount
                 items {
                     __typename
@@ -497,6 +592,181 @@ function renderMetric(label, value, note = '') {
     `;
 }
 
+function lookupStatus(result) {
+    const registered = Boolean(result.domain?.owner || result.domain?.tokenId || result.domain?.expiresAtUtc);
+    if (result.currentAuction) {
+        return {
+            tone: 'market',
+            label: 'Auction live',
+            detail: `${formatCount(result.currentAuction.bidCount || 0)} bid${Number(result.currentAuction.bidCount) === 1 ? '' : 's'} · ends ${formatDate(result.currentAuction.endsAtUtc)}`
+        };
+    }
+    if (result.currentOffer) {
+        return {
+            tone: 'market',
+            label: 'Listed',
+            detail: `${formatTez(result.currentOffer.price)} ask · expires ${formatDate(result.currentOffer.expiresAtUtc)}`
+        };
+    }
+    if (registered) {
+        return {
+            tone: 'registered',
+            label: 'Registered',
+            detail: result.domain?.expiresAtUtc ? `expires ${formatDate(result.domain.expiresAtUtc)}` : 'owned name'
+        };
+    }
+    return {
+        tone: 'available',
+        label: 'Looks available',
+        detail: 'No active record, auction, or sell offer returned'
+    };
+}
+
+function renderLookupField(label, value, note = '') {
+    if (!value) return '';
+    return `
+        <div class="td-lookup-field">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+            ${note ? `<em>${escapeHtml(note)}</em>` : ''}
+        </div>
+    `;
+}
+
+function normalizeLookupData(name, data) {
+    return {
+        name,
+        block: data.block || {},
+        domain: data.domain || null,
+        currentAuction: data.currentAuction || null,
+        currentOffer: data.currentOffer || null,
+        buyOffers: {
+            totalCount: data.buyOffers?.totalCount || 0,
+            items: safeItems(data.buyOffers, 3)
+        },
+        recentEvents: {
+            totalCount: data.recentEvents?.totalCount || 0,
+            items: safeItems(data.recentEvents, 4)
+        }
+    };
+}
+
+function renderLookupResult(state = lookupState) {
+    const status = state.status || 'idle';
+    if (status === 'loading') {
+        return `
+            <div class="td-lookup-result loading" id="tezos-domains-lookup-result">
+                <span class="td-lookup-state">Checking ${escapeHtml(state.name)}...</span>
+            </div>
+        `;
+    }
+    if (status === 'error') {
+        return `
+            <div class="td-lookup-result error" id="tezos-domains-lookup-result">
+                <span class="td-lookup-state">Lookup paused</span>
+                <p>${escapeHtml(state.error || 'Tezos Domains did not return a usable answer.')}</p>
+            </div>
+        `;
+    }
+    if (status !== 'success' || !state.result) {
+        return `
+            <div class="td-lookup-result idle" id="tezos-domains-lookup-result">
+                <span class="td-lookup-state">Type a name to check availability, owner, offers, auctions, and recent moves.</span>
+            </div>
+        `;
+    }
+
+    const result = state.result;
+    const statusInfo = lookupStatus(result);
+    const owner = actorLabel(result.domain?.owner, result.domain?.ownerReverseRecord);
+    const resolved = result.domain?.address || reverseName(result.domain?.addressReverseRecord);
+    const topBuyOffer = result.buyOffers.items[0];
+    const auction = result.currentAuction;
+    const recent = result.recentEvents.items.slice(0, 2);
+    const actionLabel = statusInfo.tone === 'available' ? 'Register on Tezos Domains' : 'View on Tezos Domains';
+    const fields = [
+        renderLookupField('Status', statusInfo.label, statusInfo.detail),
+        renderLookupField('Owner', result.domain?.owner ? owner : '', result.domain?.owner || ''),
+        renderLookupField('Resolves to', resolved, result.domain?.address ? 'address record' : ''),
+        renderLookupField('Expires', result.domain?.expiresAtUtc ? formatTimeDistance(result.domain.expiresAtUtc) : '', formatDate(result.domain?.expiresAtUtc)),
+        renderLookupField('Live bid', auction ? formatTez(auction.highestBid?.amount || auction.bidAmountSum) : '', auction ? actorLabel(auction.highestBid?.bidder, auction.highestBid?.bidderReverseRecord) : ''),
+        renderLookupField('Top buy offer', topBuyOffer ? formatTez(topBuyOffer.price) : '', topBuyOffer ? actorLabel(topBuyOffer.buyerAddress, topBuyOffer.buyerAddressReverseRecord) : '')
+    ].filter(Boolean).join('');
+
+    return `
+        <div class="td-lookup-result success" id="tezos-domains-lookup-result" data-tone="${escapeHtml(statusInfo.tone)}">
+            <div class="td-lookup-head">
+                <div>
+                    <span class="td-lookup-state">${escapeHtml(statusInfo.label)}</span>
+                    <strong>${escapeHtml(result.name)}</strong>
+                    <p>${escapeHtml(statusInfo.detail)}. Open the dApp for current registration pricing and wallet actions.</p>
+                </div>
+                <div class="td-lookup-actions">
+                    <a class="glass-button td-primary-link" href="${escapeHtml(domainUrl(result.name))}" target="_blank" rel="noopener">${escapeHtml(actionLabel)}</a>
+                    <a class="glass-button" href="${escapeHtml(ledgerFlowUrl(result.name))}">Ledger Flow</a>
+                </div>
+            </div>
+            <div class="td-lookup-fields">${fields}</div>
+            ${recent.length ? `<div class="td-lookup-recent">${renderEventRows(recent, '')}</div>` : ''}
+        </div>
+    `;
+}
+
+function renderLookupPanel() {
+    const value = lookupState.name || '';
+    return `
+        <section class="td-command-panel td-lookup-panel chamber-anim-fade" style="animation-delay:60ms">
+            <div class="td-command-copy">
+                <span class="td-kicker">Name rush scanner</span>
+                <h3>Check a .tez name, then jump straight to registration, owner, auction, offer, and recent activity context.</h3>
+            </div>
+            <form class="td-lookup-form" id="tezos-domains-lookup-form" autocomplete="off">
+                <input id="tezos-domains-lookup-input" class="td-lookup-input" name="tezos-domain" type="search" inputmode="url" placeholder="builder or builder.tez" value="${escapeHtml(value)}" aria-label="Check a Tezos Domains name">
+                <button class="glass-button td-primary-link" type="submit">Check</button>
+            </form>
+            ${renderLookupResult(lookupState)}
+            <div class="td-command-actions">
+                <a class="glass-button" href="https://app.tezos.domains/" target="_blank" rel="noopener">Open dApp</a>
+                <a class="glass-button" href="https://developers.tezos.domains/integrating-tezos-domains/graphql" target="_blank" rel="noopener">Docs</a>
+            </div>
+        </section>
+    `;
+}
+
+function updateLookupResult(root = document) {
+    const result = root.querySelector?.('#tezos-domains-lookup-result');
+    if (result) result.outerHTML = renderLookupResult(lookupState);
+}
+
+async function runDomainLookup(value, { silentEmpty = false } = {}) {
+    const { name, error } = normalizeDomainInput(value);
+    if (!name) {
+        lookupState = { status: 'idle', name: '' };
+        updateLookupResult(document);
+        return;
+    }
+    if (error) {
+        if (silentEmpty && String(value || '').trim().length < 3) return;
+        lookupState = { status: 'error', name, error };
+        updateLookupResult(document);
+        return;
+    }
+
+    const token = ++lookupToken;
+    lookupState = { status: 'loading', name };
+    updateLookupResult(document);
+    try {
+        const data = await fetchTezosDomainsGraphql(gqlNameLookupQuery(name));
+        if (token !== lookupToken) return;
+        lookupState = { status: 'success', name, result: normalizeLookupData(name, data) };
+        updateLookupResult(document);
+    } catch (error) {
+        if (token !== lookupToken) return;
+        lookupState = { status: 'error', name, error: error?.message || 'Lookup failed.' };
+        updateLookupResult(document);
+    }
+}
+
 function renderEventRows(events, empty = 'No matching Tezos Domains events returned.') {
     if (!events?.length) return `<div class="td-empty">${escapeHtml(empty)}</div>`;
     return events.map((event) => {
@@ -575,16 +845,7 @@ function renderChamber(data) {
             </div>
         </div>
 
-        <section class="td-command-panel chamber-anim-fade" style="animation-delay:60ms">
-            <div class="td-command-copy">
-                <span class="td-kicker">Name rush scanner</span>
-                <h3>Find the names people are registering, defending, listing, bidding on, and letting slip back toward the market.</h3>
-            </div>
-            <div class="td-command-actions">
-                <a class="glass-button td-primary-link" href="https://app.tezos.domains/" target="_blank" rel="noopener">Open dApp</a>
-                <a class="glass-button" href="https://developers.tezos.domains/integrating-tezos-domains/graphql" target="_blank" rel="noopener">Docs</a>
-            </div>
-        </section>
+        ${renderLookupPanel()}
 
         <section class="td-pulse-grid chamber-anim-fade" style="animation-delay:90ms" aria-label="Tezos Domains pulse metrics">
             ${buildChamberPulseMetrics(data).map(([label, value, note]) => renderMetric(label, value, note)).join('')}
@@ -641,6 +902,17 @@ function wireChamberControls(root) {
         link.dataset.tdLinkWired = '1';
         link.addEventListener('click', (event) => event.stopPropagation());
     });
+    const form = root.querySelector('#tezos-domains-lookup-form');
+    const input = root.querySelector('#tezos-domains-lookup-input');
+    if (form && input && !form.dataset.tdLookupWired) {
+        form.dataset.tdLookupWired = '1';
+        const debouncedLookup = debounce(() => runDomainLookup(input.value, { silentEmpty: true }), 420);
+        input.addEventListener('input', debouncedLookup);
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            runDomainLookup(input.value);
+        });
+    }
 }
 
 async function refreshEntryCard({ force = false } = {}) {
@@ -727,8 +999,14 @@ function handleEscape(event) {
     if (event.key === 'Escape') closeTezosDomainsChamber();
 }
 
-export async function openTezosDomainsChamber() {
+export async function openTezosDomainsChamber(initialName = '') {
     ensureTezosDomainsStyles();
+    const normalizedInitial = normalizeDomainInput(initialName);
+    if (normalizedInitial.name && !normalizedInitial.error) {
+        lookupState = { status: 'loading', name: normalizedInitial.name };
+    } else if (!initialName) {
+        lookupState = { status: 'idle', name: '' };
+    }
     let overlay = document.getElementById('tezos-domains-modal');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -761,6 +1039,12 @@ export async function openTezosDomainsChamber() {
     document.addEventListener('keydown', handleEscape);
 
     await refreshChamber({ initial: true, force: true });
+    if (normalizedInitial.name && !normalizedInitial.error) {
+        runDomainLookup(normalizedInitial.name);
+    } else if (normalizedInitial.error) {
+        lookupState = { status: 'error', name: normalizedInitial.name, error: normalizedInitial.error };
+        updateLookupResult(document);
+    }
     startChamberRefresh();
 }
 

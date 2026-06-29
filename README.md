@@ -248,9 +248,11 @@ inline modal styles in `js/core/app.js`.
   compact TzKT pills.
 - Tezos Domains Chamber with direct `#domains` and `/domains/` access, backed by
   the Tezos Domains GraphQL API. Its default Chambers card is a full-width
-  bottom strip, not paired with any other chamber, and it surfaces fresh `.tez`
-  registrations, renewals, reverse-record moves, transfers, live auctions, sell
-  offers, buy offers, and names nearing expiration.
+  bottom strip, not paired with any other chamber, and its chamber lookup checks
+  individual `.tez` names for availability, owner, expiry, offers, auctions,
+  and recent activity while still surfacing fresh registrations, renewals,
+  reverse-record moves, transfers, live auctions, sell offers, buy offers, and
+  names nearing expiration.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
 - First-screen command deck built for retrieval: the top of the page moves from
@@ -352,7 +354,7 @@ Useful deep links include:
 - `#lb-tile`
 - `#tz4`
 - `#ledger-flow` or `#ledger-flow=tz1...`
-- `#domains`
+- `#domains` or `#domains=name.tez`
 - `#ctez`
 
 Public share routes are also available at `/chamber/`, `/health/`,

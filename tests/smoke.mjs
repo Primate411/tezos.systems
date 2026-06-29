@@ -781,6 +781,82 @@ function sampleTezosDomainsGraphql(forwardDomainAddress = SAMPLE_ADDRESS, forwar
   };
 }
 
+function sampleTezosDomainsNameLookup(name = 'viral.tez', forwardDomainAddress = SAMPLE_ADDRESS, forwardDomainOwner = SAMPLE_ADDRESS) {
+  const now = Date.now();
+  const blockTimestamp = new Date(now - 4 * 60 * 1000).toISOString();
+  const available = /^freshfind\.tez$/i.test(name);
+  const recent = (offset, item) => ({
+    sourceAddress: item.sourceAddress || SAMPLE_ADDRESS,
+    sourceAddressReverseRecord: { domain: { name: item.sourceName || 'qa-baker.tez' } },
+    block: { level: 13842150 - offset, timestamp: new Date(now - offset * 12 * 60 * 1000).toISOString() },
+    ...item
+  });
+  return {
+    data: {
+      block: { level: 13842155, timestamp: blockTimestamp },
+      domain: available ? null : {
+        name,
+        address: forwardDomainAddress,
+        owner: forwardDomainOwner,
+        expiresAtUtc: new Date(now + 280 * 24 * 60 * 60 * 1000).toISOString(),
+        level: 2,
+        tokenId: 411,
+        ownerReverseRecord: { domain: { name: 'qa-baker.tez' } },
+        addressReverseRecord: { domain: { name } }
+      },
+      currentAuction: null,
+      currentOffer: /^market\.tez$/i.test(name) ? {
+        domain: { name, owner: forwardDomainOwner },
+        state: 'ACTIVE',
+        price: '25000000',
+        priceWithoutFee: '24375000',
+        createdAtUtc: new Date(now - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        expiresAtUtc: new Date(now + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        sellerAddress: forwardDomainOwner,
+        sellerAddressReverseRecord: { domain: { name: 'qa-baker.tez' } },
+        operationGroupHash: 'ooLookupOfferSmoke999'
+      } : null,
+      buyOffers: {
+        totalCount: available ? 0 : 1,
+        items: available ? [] : [{
+          domain: { name, owner: forwardDomainOwner },
+          state: 'ACTIVE',
+          price: '3382500',
+          priceWithoutFee: '3300000',
+          expiresAtUtc: new Date(now + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          buyerAddress: SAMPLE_ADDRESS_2,
+          buyerAddressReverseRecord: { domain: { name: 'second-baker.tez' } },
+          operationGroupHash: 'ooLookupBuyOfferSmoke888'
+        }]
+      },
+      recentEvents: {
+        totalCount: available ? 0 : 2,
+        items: available ? [] : [
+          recent(1, {
+            __typename: 'DomainBuyEvent',
+            id: 'DomainBuyEvent:lookup-1',
+            type: 'DOMAIN_BUY_EVENT',
+            domainName: name,
+            price: '6000000',
+            durationInDays: 730,
+            domainOwnerAddress: forwardDomainOwner,
+            operationGroupHash: 'ooLookupDomainBuySmoke777'
+          }),
+          recent(2, {
+            __typename: 'DomainRenewEvent',
+            id: 'DomainRenewEvent:lookup-2',
+            type: 'DOMAIN_RENEW_EVENT',
+            domainName: name,
+            price: '15000000',
+            durationInDays: 1825,
+            operationGroupHash: 'ooLookupDomainRenewSmoke666'
+          })
+        ]
+      }
+    }
+  };
+}
+
 function sampleTeztaleBatch(first, last) {
   return Array.from({ length: Math.max(0, last - first + 1) }, (_, index) => {
     const level = first + index;
@@ -991,6 +1067,10 @@ async function installFeatureMocks(context, options = {}) {
     }
 
     if (url.includes('api.tezos.domains/graphql')) {
+      if (postData.includes('TezosDomainsNameLookup')) {
+        const body = JSON.parse(postData || '{}');
+        return fulfillJson(route, sampleTezosDomainsNameLookup(body.variables?.name || 'viral.tez', forwardDomainAddress, forwardDomainOwner));
+      }
       return fulfillJson(route, sampleTezosDomainsGraphql(forwardDomainAddress, forwardDomainOwner));
     }
 
@@ -2876,7 +2956,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(/Search accepts/i.test(emptyStateText) && /wallet addresses/i.test(emptyStateText) && /slash commands/i.test(emptyStateText), `hero command bar: search guide missing accepted-input copy: ${emptyStateText}`);
   assert(!/protocol history/i.test(emptyStateText), `hero command bar: empty state should not push protocol history first: ${emptyStateText}`);
   const chipLabels = await page.locator('#hero-search-chips .hero-search-chip').allTextContents();
-  assert(chipLabels.includes('Wallet or .tez') && !chipLabels.some((label) => /Wallet\/\.tez/i.test(label)), `hero command bar: wallet/.tez chip copy should read clearly: ${chipLabels.join(', ')}`);
+  assert(chipLabels.includes('Wallet or .tez') && chipLabels.includes('/domains') && !chipLabels.some((label) => /Wallet\/\.tez/i.test(label)), `hero command bar: wallet/.tez chip copy should read clearly: ${chipLabels.join(', ')}`);
   await page.locator('#hero-search-input').fill('KT1');
   await page.waitForFunction(() => /KT1 Contracts/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
   const kt1StarterText = await page.locator('#hero-search-panel').innerText();
@@ -2885,6 +2965,14 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   await page.waitForFunction(() => /Blocks & Operations/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
   const operationStarterText = await page.locator('#hero-search-panel').innerText();
   assert(/Blocks & Operations/i.test(operationStarterText) && !/Search bakers/i.test(operationStarterText), `hero command bar: operation starter should route to operations help, not baker fallback: ${operationStarterText}`);
+  await page.locator('#hero-search-input').fill('/domains');
+  await page.waitForFunction(() => /Tezos Domains/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+  const domainsCommandText = await page.locator('#hero-search-panel').innerText();
+  assert(/Tezos Domains/i.test(domainsCommandText) && /\.tez name lookup/i.test(domainsCommandText), `hero command bar: /domains should discover Tezos Domains Chamber: ${domainsCommandText}`);
+  await page.locator('#hero-search-input').fill('viral.tez');
+  await page.waitForFunction(() => /Check viral\.tez in Tezos Domains/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+  const domainEntityText = await page.locator('#hero-search-panel').innerText();
+  assert(/Check viral\.tez in Tezos Domains/.test(domainEntityText) && /Lookup availability/i.test(domainEntityText), `hero command bar: .tez entity should offer Domains lookup: ${domainEntityText}`);
   await page.mouse.click(10, 10);
   await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.getElementById('hero-search-panel')?.hidden, null, { timeout: 5000 });
 
@@ -4716,6 +4804,8 @@ async function smokeTezosDomainsChamber(browser, baseUrl) {
       marketRows: modal?.querySelectorAll('.td-market-row').length || 0,
       expiryRows: modal?.querySelectorAll('.td-expiry-row').length || 0,
       text: modal?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      lookupText: modal?.querySelector('#tezos-domains-lookup-result')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      lookupInput: modal?.querySelector('#tezos-domains-lookup-input')?.getAttribute('placeholder') || '',
       domainLinks: Array.from(modal?.querySelectorAll('a[href^="https://app.tezos.domains/domain/"]') || []).map((link) => link.href),
       dappHref: modal?.querySelector('a[href="https://app.tezos.domains/"]')?.getAttribute('href') || '',
       docsHref: modal?.querySelector('a[href*="developers.tezos.domains/integrating-tezos-domains/graphql"]')?.href || '',
@@ -4739,11 +4829,24 @@ async function smokeTezosDomainsChamber(browser, baseUrl) {
   assert(state.panels.some((text) => /Fresh Name Tape/.test(text)) && state.panels.some((text) => /Premium Moves/.test(text)) && state.panels.some((text) => /Auctions/.test(text)) && state.panels.some((text) => /Sell Wall/.test(text)) && state.panels.some((text) => /Want List/.test(text)) && state.panels.some((text) => /30d Drops/.test(text)), `tezos domains chamber: expected panels missing ${state.panels.join(' | ')}`);
   assert(state.eventRows >= 4 && state.marketRows >= 5 && state.expiryRows >= 2, `tezos domains chamber: row counts too sparse ${JSON.stringify(state)}`);
   assert(/registered 6\.00 XTZ/.test(state.text) && /auction\.tez/.test(state.text) && /market\.tez/.test(state.text) && /baking\.tez/.test(state.text) && /noob\.tez/.test(state.text), `tezos domains chamber: mocked names not surfaced ${state.text}`);
+  assert(/Type a name to check availability/i.test(state.lookupText) && /builder or builder\.tez/i.test(state.lookupInput), `tezos domains chamber: lookup affordance missing ${state.lookupText}/${state.lookupInput}`);
   assert(state.domainLinks.length >= 8 && state.domainLinks.some((href) => href.includes('/domain/viral.tez')), `tezos domains chamber: Tezos Domains name links missing ${state.domainLinks.join(', ')}`);
   assert(state.dappHref === 'https://app.tezos.domains/' && state.docsHref.includes('developers.tezos.domains'), `tezos domains chamber: dApp/docs links missing ${state.dappHref}/${state.docsHref}`);
   assert(state.tzktLinks >= 3, `tezos domains chamber: operation links missing ${state.tzktLinks}`);
   assert(state.directHref === '/domains/' && /Direct: \/domains\//.test(state.footer), `tezos domains chamber: /domains direct footer missing ${state.directHref}/${state.footer}`);
   assert(state.horizontalOverflow <= 1, `tezos domains chamber: horizontal overflow ${state.horizontalOverflow}`);
+
+  await page.locator('#tezos-domains-lookup-input').fill('freshfind');
+  await page.locator('#tezos-domains-lookup-form').evaluate((form) => form.requestSubmit());
+  await page.waitForFunction(() => /Looks available/.test(document.querySelector('#tezos-domains-lookup-result')?.textContent || ''), null, { timeout: 5000 });
+  const availableLookupText = await page.locator('#tezos-domains-lookup-result').innerText();
+  assert(/freshfind\.tez/.test(availableLookupText) && /Register on Tezos Domains/.test(availableLookupText), `tezos domains chamber: available lookup missing action ${availableLookupText}`);
+
+  await page.locator('#tezos-domains-lookup-input').fill('viral.tez');
+  await page.locator('#tezos-domains-lookup-form').evaluate((form) => form.requestSubmit());
+  await page.waitForFunction(() => /Registered/.test(document.querySelector('#tezos-domains-lookup-result')?.textContent || ''), null, { timeout: 5000 });
+  const registeredLookupText = await page.locator('#tezos-domains-lookup-result').innerText();
+  assert(/viral\.tez/.test(registeredLookupText) && /owner/i.test(registeredLookupText) && /View on Tezos Domains/.test(registeredLookupText), `tezos domains chamber: registered lookup missing owner/action ${registeredLookupText}`);
 
   await page.locator('#tezos-domains-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#tezos-domains-modal')?.classList.contains('active'), null, { timeout: 5000 });

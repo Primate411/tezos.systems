@@ -4128,13 +4128,14 @@ function applyDeepLink() {
         );
     }
 
-    // #domains / legacy #tezos-domains
+    // #domains / #domains=name.tez / legacy #tezos-domains
     if (params.has('domains') || hash === 'domains' || params.has('tezos-domains') || hash === 'tezos-domains') {
+        const target = params.get('domains') || params.get('tezos-domains') || '';
         openHashModal(
-            () => import('../features/tezos-domains.js').then(({ openTezosDomainsChamber }) => openTezosDomainsChamber()),
+            () => import('../features/tezos-domains.js').then(({ openTezosDomainsChamber }) => openTezosDomainsChamber(target)),
             'Failed to open Tezos Domains Chamber',
             () => {
-                if (window.location.pathname !== '/domains/' || window.location.hash) {
+                if (!target && (window.location.pathname !== '/domains/' || window.location.hash)) {
                     window.history.replaceState(null, '', '/domains/');
                 }
             }

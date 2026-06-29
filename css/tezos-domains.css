@@ -267,6 +267,7 @@
 }
 
 .td-command-panel,
+.td-lookup-panel,
 .td-panel,
 .td-pulse-metric {
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -318,6 +319,211 @@
     border-radius: 7px;
     padding-inline: 0.72rem;
     white-space: nowrap;
+}
+
+.td-lookup-panel {
+    grid-template-columns: minmax(0, 0.9fr) minmax(18rem, 1fr);
+    align-items: start;
+}
+
+.td-lookup-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.td-lookup-input {
+    min-width: 0;
+    min-height: 40px;
+    border: 1px solid color-mix(in srgb, var(--td-cyan) 34%, transparent);
+    border-radius: 7px;
+    padding: 0.62rem 0.75rem;
+    background: rgba(0, 0, 0, 0.22);
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    outline: none;
+}
+
+.td-lookup-input::placeholder {
+    color: color-mix(in srgb, var(--text-tertiary) 74%, transparent);
+}
+
+.td-lookup-input:focus {
+    border-color: var(--td-cyan);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--td-cyan) 16%, transparent);
+}
+
+.td-lookup-result {
+    grid-column: 1 / -1;
+    min-width: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 3px solid var(--td-cyan);
+    border-radius: 7px;
+    padding: 0.75rem;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.td-lookup-result.loading,
+.td-lookup-result.idle,
+.td-lookup-result.error {
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+    font-weight: 760;
+}
+
+.td-lookup-result.error {
+    border-left-color: var(--td-pink);
+}
+
+.td-lookup-result[data-tone="market"] {
+    border-left-color: var(--td-pink);
+}
+
+.td-lookup-result[data-tone="registered"] {
+    border-left-color: var(--td-gold);
+}
+
+.td-lookup-result[data-tone="available"] {
+    border-left-color: var(--td-cyan);
+}
+
+.td-lookup-state {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    color: var(--td-cyan);
+    font-size: 0.58rem;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.td-lookup-result.error .td-lookup-state,
+.td-lookup-result[data-tone="market"] .td-lookup-state {
+    color: var(--td-pink);
+}
+
+.td-lookup-result[data-tone="registered"] .td-lookup-state {
+    color: var(--td-gold);
+}
+
+.td-lookup-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+    align-items: start;
+}
+
+.td-lookup-head strong {
+    display: block;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+    font-family: 'Orbitron', 'JetBrains Mono', monospace;
+    font-size: clamp(1.1rem, 2vw, 1.55rem);
+    font-weight: 950;
+    letter-spacing: 0;
+    line-height: 1.05;
+}
+
+.td-lookup-head p,
+.td-lookup-result.error p {
+    margin: 0.25rem 0 0;
+    color: color-mix(in srgb, var(--text-secondary) 86%, transparent);
+    font-size: 0.68rem;
+    font-weight: 720;
+    line-height: 1.35;
+}
+
+.td-lookup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+}
+
+.td-lookup-actions .glass-button,
+.td-lookup-form .glass-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    min-height: 44px;
+    border-radius: 7px;
+    padding: 0.58rem 0.85rem;
+    line-height: 1.15;
+    text-align: center;
+    text-decoration: none;
+}
+
+.td-lookup-actions .glass-button {
+    flex: 0 1 auto;
+    min-width: 11.75rem;
+    white-space: normal;
+}
+
+.td-lookup-form .glass-button {
+    min-width: 112px;
+    white-space: nowrap;
+}
+
+.td-lookup-fields {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+}
+
+.td-lookup-field {
+    min-width: 0;
+    padding: 0.55rem 0.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.td-lookup-field span,
+.td-lookup-field strong,
+.td-lookup-field em {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.td-lookup-field span {
+    color: var(--text-tertiary);
+    font-size: 0.5rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.td-lookup-field strong {
+    margin-top: 0.18rem;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-weight: 950;
+}
+
+.td-lookup-field em {
+    margin-top: 0.12rem;
+    color: var(--text-tertiary);
+    font-size: 0.54rem;
+    font-style: normal;
+    font-weight: 720;
+}
+
+.td-lookup-recent {
+    display: grid;
+    gap: 0.4rem;
+    margin-top: 0.7rem;
 }
 
 .td-primary-link {
@@ -587,6 +793,10 @@
         grid-template-columns: 1fr;
     }
 
+    .td-lookup-fields {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .td-command-actions {
         justify-content: flex-start;
     }
@@ -594,6 +804,18 @@
     .td-command-actions .glass-button {
         min-width: 112px;
         justify-content: center;
+    }
+}
+
+@media (max-width: 700px) {
+    .td-lookup-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+    }
+
+    .td-lookup-actions .glass-button {
+        min-width: 0;
+        width: 100%;
     }
 }
 
@@ -624,6 +846,10 @@
         width: 100%;
     }
 
+    .td-lookup-form {
+        grid-template-columns: 1fr;
+    }
+
     .td-command-actions .glass-button {
         min-width: 0;
         width: 100%;
@@ -642,6 +868,7 @@
     }
 
     .td-entry-metrics,
+    .td-lookup-fields,
     .td-pulse-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }

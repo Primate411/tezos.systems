@@ -18,6 +18,7 @@ const BLOCK_LEVEL_RE = /^\d{4,}$/;
 
 const QUICK_CHIPS = [
     { label: 'Wallet or .tez', value: 'my tezos' },
+    { label: '/domains', value: '/domains' },
     { label: '/health', value: '/health' },
     { label: '/chamber', value: '/chamber' },
     { label: '/flow', value: '/ledger-flow' },
@@ -48,6 +49,7 @@ const CHAMBERS = [
     { id: 'tz4', title: 'tz4 Adoption', detail: 'BLS adoption, pending switches, holdouts, milestones', hash: '#tz4', aliases: ['/tz4', 'bls'] },
     { id: 'lb', title: 'Liquidity Baking', detail: 'LB votes, EMA threshold, and live liquidity signals', hash: '#lb', aliases: ['/lb', 'liquidity baking'] },
     { id: 'ledger-flow', title: 'Ledger Flow', detail: 'Account transfer diagram for sent, received, and first-funding paths', hash: '#ledger-flow', aliases: ['/ledger-flow', '/flow', 'flow', 'ledger', 'transfer graph', 'account flow'] },
+    { id: 'domains', title: 'Tezos Domains', detail: '.tez name lookup, live registrations, auctions, offers, and expiry pressure', hash: '#domains', aliases: ['/domains', '.tez', 'names', 'identity', 'tezos domains', 'domains'] },
     { id: 'protocol-history', title: 'Protocol Anthology', detail: 'Self-amendment lore, impact views, and amendment memory', hash: '#protocol-history', aliases: ['/protocol-history', 'protocol history', 'protocol archive', 'upgrades', 'impact', 'lore', 'anthology'] },
     { id: 'ctez', title: 'ctez End of Life', detail: 'Oven discovery and wallet-reviewed close flow', hash: '#ctez', aliases: ['/ctez', 'oven'] }
 ];
@@ -284,6 +286,15 @@ function entityResults(query) {
     if (TEZ_DOMAIN_RE.test(q)) {
         const domain = q.toLowerCase();
         return [
+            {
+                kind: 'chamber',
+                group: 'Domains & Identity',
+                title: `Check ${domain} in Tezos Domains`,
+                detail: 'Lookup availability, owner, offers, auctions, and recent name activity',
+                badge: '.tez',
+                action: 'hash',
+                value: `#domains=${encodeURIComponent(domain)}`
+            },
             {
                 kind: 'account',
                 group: 'Bakers & Accounts',
