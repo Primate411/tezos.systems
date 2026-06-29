@@ -2902,7 +2902,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(response?.ok(), `hero command bar: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('#hero-search-input').waitFor({ state: 'visible', timeout: 10000 });
   const frontDoorOrder = await page.evaluate(() => {
-    const ids = ['block-ticker-strip', 'upgrade-clock', 'recruit-section', 'chambers-section'];
+    const ids = ['block-ticker-strip', 'upgrade-clock', 'hot-today-island', 'chambers-section'];
     return ids.map((id) => {
       const el = document.getElementById(id);
       return { id, position: el ? Array.prototype.indexOf.call(document.body.querySelectorAll('*'), el) : -1 };
@@ -2913,6 +2913,56 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   }
   const orderPositions = frontDoorOrder.map((item) => item.position);
   assert(orderPositions.every((position, index) => index === 0 || position > orderPositions[index - 1]), `hero command bar: first-screen order mismatch: ${JSON.stringify(frontDoorOrder)}`);
+  await page.waitForFunction(() => {
+    const island = document.getElementById('hot-today-island');
+    return island && Number.parseFloat(getComputedStyle(island).marginTop) >= 28;
+  }, null, { timeout: 5000 });
+  const hotTodayTopMargin = await page.evaluate(() => {
+    const island = document.getElementById('hot-today-island');
+    return island ? Number.parseFloat(getComputedStyle(island).marginTop) : Number.NaN;
+  });
+  assert(Number.isFinite(hotTodayTopMargin) && hotTodayTopMargin >= 28, `hero command bar: live pulse should breathe below command deck, saw margin ${hotTodayTopMargin}`);
+  await page.waitForFunction(() => {
+    const island = document.getElementById('hot-today-island');
+    return island
+      && island.querySelector('.hot-today-strip')
+      && island.querySelectorAll('[data-hot-signal-index]').length >= 3;
+  }, null, { timeout: 10000 });
+  const livePulseState = await page.evaluate(() => ({
+    stripScrollWidth: document.querySelector('#hot-today-island .hot-today-strip')?.scrollWidth || 0,
+    stripClientWidth: document.querySelector('#hot-today-island .hot-today-strip')?.clientWidth || 0,
+    hasOldLead: Boolean(document.querySelector('#hot-today-island .hot-today-lead')),
+    metricCount: document.querySelectorAll('#hot-today-island .hot-today-metric').length,
+    cardCount: document.querySelectorAll('#hot-today-island [data-hot-signal-index]').length,
+    activeCount: document.querySelectorAll('#hot-today-island .hot-today-card.is-hot-active').length,
+    clock: document.querySelector('#hot-today-island [data-hot-live="clock"]')?.textContent?.trim() || ''
+  }));
+  assert(!livePulseState.hasOldLead && livePulseState.metricCount === 0, `hero command bar: live pulse should be one scrolling strip, saw ${JSON.stringify(livePulseState)}`);
+  assert(livePulseState.cardCount >= 3, `hero command bar: live pulse should keep multiple signals in the strip, saw ${JSON.stringify(livePulseState)}`);
+  assert(livePulseState.stripScrollWidth > livePulseState.stripClientWidth, `hero command bar: live pulse strip should scroll horizontally, saw ${JSON.stringify(livePulseState)}`);
+  assert(livePulseState.activeCount === 1, `hero command bar: live pulse should keep one ranked signal active, saw ${JSON.stringify(livePulseState)}`);
+  await page.waitForFunction((previousClock) => {
+    const nextClock = document.querySelector('#hot-today-island [data-hot-live="clock"]')?.textContent?.trim() || '';
+    return nextClock && nextClock !== previousClock;
+  }, livePulseState.clock, { timeout: 3000 });
+  const bottomMapOrder = await page.evaluate(() => {
+    const ids = ['comparison-section', 'recruit-section'];
+    return ids.map((id) => {
+      const el = document.getElementById(id);
+      return { id, position: el ? Array.prototype.indexOf.call(document.body.querySelectorAll('*'), el) : -1 };
+    });
+  });
+  assert(bottomMapOrder.every((item) => item.position >= 0), `hero command bar: missing lower map section: ${JSON.stringify(bottomMapOrder)}`);
+  assert(bottomMapOrder[1].position > bottomMapOrder[0].position, `hero command bar: search map should sit after dashboard tools: ${JSON.stringify(bottomMapOrder)}`);
+  await page.waitForFunction(() => {
+    const section = document.getElementById('recruit-section');
+    return section && Number.parseFloat(getComputedStyle(section).marginTop) >= 88;
+  }, null, { timeout: 5000 });
+  const searchMapTopMargin = await page.evaluate(() => {
+    const section = document.getElementById('recruit-section');
+    return section ? Number.parseFloat(getComputedStyle(section).marginTop) : Number.NaN;
+  });
+  assert(Number.isFinite(searchMapTopMargin) && searchMapTopMargin >= 88, `hero command bar: search map should land with lower-page breathing room, saw margin ${searchMapTopMargin}`);
   const deckChromeState = await page.evaluate(() => ({
     commandDeckHeadCount: document.querySelectorAll('.command-deck-head').length,
     upgradeShareCount: document.querySelectorAll('#upgrade-share-btn').length

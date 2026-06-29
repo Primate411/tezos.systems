@@ -50,14 +50,14 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=307">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=307">
+    <link rel="stylesheet" href="css/styles.min.css?v=309">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=309">
     <link rel="stylesheet" href="css/hen-mode.css?v=88">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=307">
+    <link rel="modulepreload" href="js/core/app.js?v=309">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -215,7 +215,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=307"></script>
+    <script src="js/core/theme-preload.js?v=309"></script>
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
         <button id="corner-gift-toggle" class="corner-gift-toggle" type="button" aria-label="Open corner tools: HEN, ctez, and TzSafe" aria-expanded="false" aria-controls="corner-gift-items" title="Corner tools">
             <span aria-hidden="true">🎁</span>
@@ -530,76 +530,7 @@
 
         <section class="stats-section governance-alert-section" id="governance-alert-strip" aria-live="polite" hidden></section>
 
-        <section class="stats-section recruit-section" id="recruit-section" aria-labelledby="tezos-loop-title">
-            <div class="tezos-loop-console" id="tezos-loop-console" data-aura="holder">
-                <div class="tezos-loop-badge" aria-hidden="true">
-                    <span class="tezos-loop-sigil">⌕</span>
-                    <span class="tezos-loop-spark tezos-loop-spark-a"></span>
-                    <span class="tezos-loop-spark tezos-loop-spark-b"></span>
-                    <span class="tezos-loop-spark tezos-loop-spark-c"></span>
-                </div>
-                <div class="tezos-loop-copy">
-                    <p class="tezos-loop-kicker">New to Tezos? Start here</p>
-                    <h2 class="tezos-loop-title" id="tezos-loop-title">Search is the map.</h2>
-                    <p class="tezos-loop-line" id="tezos-loop-line">Start from any Tezos receipt. Paste a wallet address or .tez name, baker, KT1 contract, operation hash, block, protocol, or slash command. Already know the route? Press / and jump.</p>
-                    <div class="tezos-loop-hints" id="tezos-loop-hints" aria-label="Search bar accepts">
-                        <span><strong>Paste</strong> tz / .tez / KT1 / op / block</span>
-                        <span><strong>Type</strong> baker / protocol / chamber</span>
-                        <span><strong>Run</strong> /price /history /theme /compare</span>
-                    </div>
-                    <div class="tezos-loop-actions">
-                        <button class="tezos-loop-link tezos-loop-link-primary" id="tezos-loop-search" type="button" data-hero-query="my tezos">Try My Tezos</button>
-                        <a class="tezos-loop-link" id="tezos-loop-link" href="#my-tezos">Open My Tezos</a>
-                    </div>
-                </div>
-                <div class="tezos-loop-chips" id="tezos-loop-chips" role="group" aria-label="Choose a search recipe">
-                    <button class="tezos-loop-chip active" type="button" data-loop-aura="holder" aria-pressed="true">Wallet</button>
-                    <button class="tezos-loop-chip" type="button" data-loop-aura="baker" aria-pressed="false">Baker</button>
-                    <button class="tezos-loop-chip" type="button" data-loop-aura="builder" aria-pressed="false">Contracts</button>
-                    <button class="tezos-loop-chip" type="button" data-loop-aura="collector" aria-pressed="false">NFTs</button>
-                    <button class="tezos-loop-chip" type="button" data-loop-aura="governance" aria-pressed="false">Governance</button>
-                    <button class="tezos-loop-chip" type="button" data-loop-aura="price" aria-pressed="false">Market</button>
-                </div>
-                <div class="recruit-grid">
-                    <button class="recruit-card is-active" type="button" data-loop-aura="holder" data-hero-query="my tezos">
-                        <span class="recruit-card-kicker">Wallet / .tez</span>
-                        <strong>Make the dashboard personal</strong>
-                        <span>Paste a tz address or .tez name to connect wallet, baker, NFTs, governance, and daily context.</span>
-                        <span class="recruit-card-action">Try my tezos</span>
-                    </button>
-                    <button class="recruit-card" type="button" data-loop-aura="baker" data-hero-query="baker">
-                        <span class="recruit-card-kicker">Baker lookup</span>
-                        <strong>Find operators fast</strong>
-                        <span>Type a baker name or address to reach capacity, health, Octez versions, rights, and rewards.</span>
-                        <span class="recruit-card-action">Search bakers</span>
-                    </button>
-                    <button class="recruit-card" type="button" data-loop-aura="builder" data-hero-query="KT1">
-                        <span class="recruit-card-kicker">KT1 / ops / blocks</span>
-                        <strong>Paste chain objects</strong>
-                        <span>Contracts, operation hashes, block hashes, and levels resolve into native Tezos.Systems receipts.</span>
-                        <span class="recruit-card-action">Try KT1 / ops</span>
-                    </button>
-                    <button class="recruit-card" type="button" data-loop-aura="collector" data-hero-query="/nfts">
-                        <span class="recruit-card-kicker">NFT profile</span>
-                        <strong>Open culture context</strong>
-                        <span>Use /nfts or a Tezos identity when Objkt activity and creator/collector signals matter.</span>
-                        <span class="recruit-card-action">Open NFT lane</span>
-                    </button>
-                    <button class="recruit-card" type="button" data-loop-aura="governance" data-hero-query="/chamber">
-                        <span class="recruit-card-kicker">Chambers / protocols</span>
-                        <strong>Jump into the rooms</strong>
-                        <span>Try /chamber, /health, Tallinn, or Liquidity Baking for live governance and protocol memory.</span>
-                        <span class="recruit-card-action">Search governance</span>
-                    </button>
-                    <button class="recruit-card" type="button" data-loop-aura="price" data-hero-query="price">
-                        <span class="recruit-card-kicker">Market / history</span>
-                        <strong>Read the pulse</strong>
-                        <span>Search price, /compare, /history, or cycle terms for markets, captured stats, and context.</span>
-                        <span class="recruit-card-action">Open price intel</span>
-                    </button>
-                </div>
-            </div>
-        </section>
+        <section class="stats-section hot-today-section" id="hot-today-island" aria-live="polite"></section>
 
         <!-- Chambers Section -->
         <section class="stats-section chamber-suite-section" id="chambers-section">
@@ -609,8 +540,6 @@
 
             <div class="stats-grid" id="chambers-grid"></div>
         </section>
-
-        <section class="stats-section hot-today-section" id="hot-today-island" aria-live="polite"></section>
 
         <!-- Baker Leaderboard -->
     <section class="my-baker-section" id="leaderboard-section">
@@ -1635,6 +1564,77 @@
                 <span class="comparison-last-updated" id="comparison-last-updated"></span>
             </div>
         </section>
+
+        <section class="stats-section recruit-section" id="recruit-section" aria-labelledby="tezos-loop-title">
+            <div class="tezos-loop-console" id="tezos-loop-console" data-aura="holder">
+                <div class="tezos-loop-badge" aria-hidden="true">
+                    <span class="tezos-loop-sigil">⌕</span>
+                    <span class="tezos-loop-spark tezos-loop-spark-a"></span>
+                    <span class="tezos-loop-spark tezos-loop-spark-b"></span>
+                    <span class="tezos-loop-spark tezos-loop-spark-c"></span>
+                </div>
+                <div class="tezos-loop-copy">
+                    <p class="tezos-loop-kicker">New to Tezos? Start here</p>
+                    <h2 class="tezos-loop-title" id="tezos-loop-title">Search is the map.</h2>
+                    <p class="tezos-loop-line" id="tezos-loop-line">Start from any Tezos receipt. Paste a wallet address or .tez name, baker, KT1 contract, operation hash, block, protocol, or slash command. Already know the route? Press / and jump.</p>
+                    <div class="tezos-loop-hints" id="tezos-loop-hints" aria-label="Search bar accepts">
+                        <span><strong>Paste</strong> tz / .tez / KT1 / op / block</span>
+                        <span><strong>Type</strong> baker / protocol / chamber</span>
+                        <span><strong>Run</strong> /price /history /theme /compare</span>
+                    </div>
+                    <div class="tezos-loop-actions">
+                        <button class="tezos-loop-link tezos-loop-link-primary" id="tezos-loop-search" type="button" data-hero-query="my tezos">Try My Tezos</button>
+                        <a class="tezos-loop-link" id="tezos-loop-link" href="#my-tezos">Open My Tezos</a>
+                    </div>
+                </div>
+                <div class="tezos-loop-chips" id="tezos-loop-chips" role="group" aria-label="Choose a search recipe">
+                    <button class="tezos-loop-chip active" type="button" data-loop-aura="holder" aria-pressed="true">Wallet</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="baker" aria-pressed="false">Baker</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="builder" aria-pressed="false">Contracts</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="collector" aria-pressed="false">NFTs</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="governance" aria-pressed="false">Governance</button>
+                    <button class="tezos-loop-chip" type="button" data-loop-aura="price" aria-pressed="false">Market</button>
+                </div>
+                <div class="recruit-grid">
+                    <button class="recruit-card is-active" type="button" data-loop-aura="holder" data-hero-query="my tezos">
+                        <span class="recruit-card-kicker">Wallet / .tez</span>
+                        <strong>Make the dashboard personal</strong>
+                        <span>Paste a tz address or .tez name to connect wallet, baker, NFTs, governance, and daily context.</span>
+                        <span class="recruit-card-action">Try my tezos</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="baker" data-hero-query="baker">
+                        <span class="recruit-card-kicker">Baker lookup</span>
+                        <strong>Find operators fast</strong>
+                        <span>Type a baker name or address to reach capacity, health, Octez versions, rights, and rewards.</span>
+                        <span class="recruit-card-action">Search bakers</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="builder" data-hero-query="KT1">
+                        <span class="recruit-card-kicker">KT1 / ops / blocks</span>
+                        <strong>Paste chain objects</strong>
+                        <span>Contracts, operation hashes, block hashes, and levels resolve into native Tezos.Systems receipts.</span>
+                        <span class="recruit-card-action">Try KT1 / ops</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="collector" data-hero-query="/nfts">
+                        <span class="recruit-card-kicker">NFT profile</span>
+                        <strong>Open culture context</strong>
+                        <span>Use /nfts or a Tezos identity when Objkt activity and creator/collector signals matter.</span>
+                        <span class="recruit-card-action">Open NFT lane</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="governance" data-hero-query="/chamber">
+                        <span class="recruit-card-kicker">Chambers / protocols</span>
+                        <strong>Jump into the rooms</strong>
+                        <span>Try /chamber, /health, Tallinn, or Liquidity Baking for live governance and protocol memory.</span>
+                        <span class="recruit-card-action">Search governance</span>
+                    </button>
+                    <button class="recruit-card" type="button" data-loop-aura="price" data-hero-query="price">
+                        <span class="recruit-card-kicker">Market / history</span>
+                        <strong>Read the pulse</strong>
+                        <span>Search price, /compare, /history, or cycle terms for markets, captured stats, and context.</span>
+                        <span class="recruit-card-action">Open price intel</span>
+                    </button>
+                </div>
+            </div>
+        </section>
             </main>
 
     <!-- Comparison Info Modal -->
@@ -2152,7 +2152,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=85"></script>
-    <script type="module" src="js/core/app.js?v=307"></script>
+    <script type="module" src="js/core/app.js?v=309"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

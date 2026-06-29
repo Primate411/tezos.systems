@@ -11,6 +11,8 @@ const LS_BASELINE  = 'tezos-systems-briefing-baseline';
 const LS_BRIEFING  = 'tezos-systems-briefing-cache';
 const LS_LAST_SEEN = 'tezos-systems-briefing-last-seen';
 const PRICE_FETCH_TIMEOUT_MS = 2500;
+const HOT_TODAY_LIVE_TICK_MS = 1000;
+const HOT_TODAY_ROTATE_MS = 8000;
 
 const CATEGORY_META = {
   baker: { label: 'Baker', icon: '🍞', tone: 'operator', detail: 'Personal operator signal' },
@@ -21,6 +23,8 @@ const CATEGORY_META = {
   whales: { label: 'Whales', icon: '🐋', tone: 'capital', detail: 'Large value movement' },
   governance: { label: 'Governance', icon: '🏛️', tone: 'governance', detail: 'Protocol decision lane' },
   ecosystem: { label: 'Growth', icon: '🌱', tone: 'growth', detail: 'New account flow' },
+  cycle: { label: 'Cycle', icon: '⏱️', tone: 'cycle', detail: 'Cycle runway' },
+  security: { label: 'Security', icon: '🛡️', tone: 'security', detail: 'Bakers, stake, and finality' },
   network: { label: 'Network', icon: '🌐', tone: 'network', detail: 'Daily Tezos pulse' }
 };
 
@@ -36,6 +40,8 @@ const NETWORK_FEATURE_ROUTES = {
   volume: '#section=network',
   contracts: '#section=ecosystem',
   ecosystem: '#section=ecosystem',
+  cycle: '#health',
+  security: '#health',
   network: '#health'
 };
 
@@ -51,6 +57,8 @@ const NETWORK_FEATURE_LABELS = {
   volume: 'Open network activity stats',
   contracts: 'Open ecosystem stats',
   ecosystem: 'Open ecosystem stats',
+  cycle: 'Open live cycle health',
+  security: 'Open Network Health',
   network: 'Open Network Health'
 };
 
@@ -58,6 +66,12 @@ let lastStats = null;
 let lastXtzPrice = null;
 let personalizationWired = false;
 let hotTodayWired = false;
+let hotTodayRealtimeWired = false;
+let hotTodayLiveTimer = null;
+let hotTodayRotateTimer = null;
+let hotTodayPulseTimer = null;
+let hotTodaySignals = [];
+let hotTodayActiveIndex = 0;
 
 // ─── Template Library ────────────────────────────────────────────────────────
 
@@ -188,13 +202,15 @@ function scoreBoostFor(category, profile) {
 function makeSignal(category, score, text, options = {}) {
   const meta = categoryMeta(category);
   return {
+    id: safeCssToken(options.id || category),
     category,
     score,
     text,
     title: options.title || meta.label,
     icon: options.icon || meta.icon,
     detail: options.detail || meta.detail,
-    tone: options.tone || meta.tone
+    tone: options.tone || meta.tone,
+    live: options.live === true
   };
 }
 
@@ -457,14 +473,125 @@ function normalizeSignal(signal, index = 0) {
   const category = safeCssToken(signal?.category || 'network');
   const meta = categoryMeta(category);
   return {
+    id: safeCssToken(signal?.id || category),
     category,
     score: finiteNumber(signal?.score) ?? (20 - index),
     text: String(signal?.text || ''),
     title: String(signal?.title || meta.label),
     icon: String(signal?.icon || meta.icon),
     detail: String(signal?.detail || meta.detail),
-    tone: safeCssToken(signal?.tone || meta.tone)
+    tone: safeCssToken(signal?.tone || meta.tone),
+    live: signal?.live === true
   };
+}
+
+function currentUtcTick() {
+  return new Date().toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+    timeZone: 'UTC'
+  });
+}
+
+function buildLiveHotSignals(stats = lastStats || {}) {
+  const priceChange = finiteNumber(stats?.priceChange24h);
+  const newAccounts = finiteNumber(stats?.newAccounts);
+  const fundedAccounts = finiteNumber(stats?.fundedAccounts);
+  const signals = [];
+
+  if (stats?.proposal) {
+    signals.push(makeSignal('governance', 118, `"${stats.proposal}" is in ${stats.votingPeriod || 'the active'} period.`, {
+      id: 'live-governance',
+      title: 'Governance',
+      detail: stats.participation != null ? `${Number(stats.participation).toFixed(1)}% participation` : 'Protocol decision lane',
+      tone: 'governance-hot',
+      live: true
+    }));
+  }
+
+  if (stats?.contractCalls24h != null) {
+    signals.push(makeSignal('contracts', 106, `${Number(stats.contractCalls24h).toLocaleString('en-US')} contract calls in the last 24h.`, {
+      id: 'live-contracts',
+      title: 'Contract calls',
+      detail: 'App and DeFi pulse',
+      tone: 'activity',
+      live: true
+    }));
+  }
+
+  if (stats?.transactionVolume24h != null) {
+    signals.push(makeSignal('volume', 102, `${Number(stats.transactionVolume24h).toLocaleString('en-US')} transactions moved through Tezos in the last 24h.`, {
+      id: 'live-volume',
+      title: 'Chain activity',
+      detail: 'Transaction flow',
+      tone: 'activity',
+      live: true
+    }));
+  }
+
+  if (newAccounts != null && newAccounts > 0) {
+    signals.push(makeSignal('ecosystem', 98, `${Math.round(newAccounts).toLocaleString('en-US')} new funded accounts appeared in the current read.`, {
+      id: 'live-accounts',
+      title: 'Fresh accounts',
+      detail: 'Onboarding signal',
+      tone: newAccounts > 200 ? 'growth' : 'quiet',
+      live: true
+    }));
+  } else if (fundedAccounts != null && fundedAccounts > 0) {
+    signals.push(makeSignal('ecosystem', 92, `${Math.round(fundedAccounts).toLocaleString('en-US')} funded accounts are visible on-chain.`, {
+      id: 'live-accounts',
+      title: 'Funded accounts',
+      detail: 'Network reach',
+      tone: 'growth',
+      live: true
+    }));
+  }
+
+  if (lastXtzPrice && lastXtzPrice > 0 && priceChange != null && Math.abs(priceChange) >= 1) {
+    signals.push(makeSignal('price', 94, `XTZ moved ${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}% over 24h.`, {
+      id: 'live-market',
+      detail: `Trading around $${fmtPrice(lastXtzPrice)}`,
+      tone: priceChange >= 0 ? 'market-up' : 'market-down',
+      live: true
+    }));
+  }
+  return signals.filter(signal => signal.text);
+}
+
+function mergeHotSignals(liveSignals, briefingSignals) {
+  const merged = [];
+  const seen = new Set();
+  for (const signal of [...liveSignals, ...briefingSignals]) {
+    const key = signal.category || signal.id || signal.title;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(signal);
+  }
+  return merged;
+}
+
+function isHeaderDuplicateSignal(signal) {
+  if (!signal) return true;
+  if (signal.category === 'cycle' || signal.category === 'security' || signal.category === 'network') return true;
+  if (signal.category === 'staking') return true;
+  if (signal.category === 'ecosystem' && /\bactive bakers?\b/i.test(signal.text)) return true;
+  return false;
+}
+
+function setHotTodayLiveText(key, value) {
+  if (typeof document === 'undefined') return;
+  document.querySelectorAll(`[data-hot-live="${key}"]`).forEach((element) => {
+    const text = String(value || '--');
+    if (element.textContent !== text) element.textContent = text;
+  });
+}
+
+function refreshHotTodayLiveMetrics() {
+  const island = document.getElementById('hot-today-island');
+  if (!island || island.hidden) return;
+  setHotTodayLiveText('clock', `${currentUtcTick()} UTC`);
 }
 
 function getBriefingLead(profile, signals) {
@@ -513,11 +640,13 @@ function renderSignalCard(signal, index) {
 function renderHotSignal(signal, index) {
   const route = networkFeatureRoute(signal.category);
   const routeLabel = networkFeatureLabel(signal.category);
+  const activeIndex = hotTodaySignals.length ? hotTodayActiveIndex % hotTodaySignals.length : 0;
+  const activeClass = index === activeIndex ? ' is-hot-active' : '';
   return `
-    <a class="hot-today-card hot-today-card-${signal.tone}" href="${escapeHtml(route)}" data-network-route="${escapeHtml(route)}" aria-label="${escapeHtml(`${routeLabel}: ${signal.detail}`)}">
-      <span class="hot-today-rank">${index + 1}</span>
+    <a class="hot-today-card hot-today-card-${signal.tone}${activeClass}" href="${escapeHtml(route)}" data-hot-signal-index="${index}" data-network-route="${escapeHtml(route)}" aria-label="${escapeHtml(`${routeLabel}: ${signal.detail}`)}">
+      <span class="hot-today-rank">${escapeHtml(signal.icon)}</span>
       <span class="hot-today-copy">
-        <strong>${escapeHtml(signal.icon)} ${escapeHtml(signal.title)}</strong>
+        <strong>${escapeHtml(signal.title)}</strong>
         <span>${escapeHtml(signal.text)}</span>
       </span>
       <em>${escapeHtml(signal.detail)}</em>
@@ -525,20 +654,79 @@ function renderHotSignal(signal, index) {
   `;
 }
 
-function renderToHotIsland(cycle, sentences) {
+function applyHotTodayActive(index = hotTodayActiveIndex, { scroll = true } = {}) {
+  if (!hotTodaySignals.length) return;
+  const nextIndex = ((index % hotTodaySignals.length) + hotTodaySignals.length) % hotTodaySignals.length;
+  hotTodayActiveIndex = nextIndex;
+  let activeCard = null;
+  document.querySelectorAll('#hot-today-island [data-hot-signal-index]').forEach((card) => {
+    const isActive = Number(card.dataset.hotSignalIndex) === nextIndex;
+    card.classList.toggle('is-hot-active', isActive);
+    if (isActive) activeCard = card;
+  });
+  if (scroll && activeCard) {
+    activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  }
+  refreshHotTodayLiveMetrics();
+}
+
+function advanceHotTodayLead() {
+  if (!hotTodaySignals.length) return;
+  applyHotTodayActive(hotTodayActiveIndex + 1);
+}
+
+function pulseHotTodayIsland() {
   const island = document.getElementById('hot-today-island');
   if (!island) return;
-  const signals = (Array.isArray(sentences) ? sentences : [])
+  island.classList.remove('is-live-pulsing');
+  void island.offsetWidth;
+  island.classList.add('is-live-pulsing');
+  if (hotTodayPulseTimer) window.clearTimeout(hotTodayPulseTimer);
+  hotTodayPulseTimer = window.setTimeout(() => {
+    island.classList.remove('is-live-pulsing');
+    hotTodayPulseTimer = null;
+  }, 680);
+}
+
+function wireHotTodayRealtime() {
+  if (typeof window === 'undefined') return;
+  if (!hotTodayRealtimeWired) {
+    hotTodayRealtimeWired = true;
+    window.addEventListener('block-pulse', () => {
+      refreshHotTodayLiveMetrics();
+      pulseHotTodayIsland();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') refreshHotTodayLiveMetrics();
+    });
+  }
+  if (!hotTodayLiveTimer) {
+    hotTodayLiveTimer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      refreshHotTodayLiveMetrics();
+    }, HOT_TODAY_LIVE_TICK_MS);
+  }
+  if (!hotTodayRotateTimer) {
+    hotTodayRotateTimer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      advanceHotTodayLead();
+    }, HOT_TODAY_ROTATE_MS);
+  }
+}
+
+function renderToHotIsland(cycle, sentences, stats = lastStats || {}) {
+  const island = document.getElementById('hot-today-island');
+  if (!island) return;
+  const briefingSignals = (Array.isArray(sentences) ? sentences : [])
     .map(normalizeSignal)
-    .filter(signal => signal.text)
-    .slice(0, 4);
+    .filter(signal => signal.text);
+  const nonRedundantBriefing = briefingSignals.filter(signal => !isHeaderDuplicateSignal(signal));
+  const fallbackBriefing = briefingSignals.filter(signal => !['cycle', 'security', 'network', 'staking'].includes(signal.category));
+  const signals = mergeHotSignals(buildLiveHotSignals(stats), [...nonRedundantBriefing, ...fallbackBriefing])
+    .slice(0, 8);
   if (!signals.length) return;
-  const generated = new Date().toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'UTC'
-  });
+  hotTodaySignals = signals;
+  hotTodayActiveIndex %= hotTodaySignals.length;
   island.hidden = false;
   island.innerHTML = `
     <div class="hot-today-head">
@@ -546,13 +734,16 @@ function renderToHotIsland(cycle, sentences) {
         <span class="feature-kicker">Live pulse</span>
         <h2>What's hot today</h2>
       </div>
-      <a href="#health" data-network-route="#health">Cycle ${escapeHtml(String(cycle || '--'))} · ${escapeHtml(generated)} UTC</a>
+      <a class="hot-today-clock" href="#health" data-network-route="#health"><span class="hot-today-clock-dot" aria-hidden="true"></span><span data-hot-live="clock">${escapeHtml(currentUtcTick())} UTC</span></a>
     </div>
-    <div class="hot-today-grid">
+    <div class="hot-today-strip" aria-label="Scrollable live pulse">
       ${signals.map(renderHotSignal).join('')}
     </div>
   `;
   wireNetworkContextNavigation(island);
+  wireHotTodayRealtime();
+  refreshHotTodayLiveMetrics();
+  applyHotTodayActive(hotTodayActiveIndex, { scroll: false });
 }
 
 function rerenderCachedBriefing() {
@@ -661,6 +852,8 @@ export async function updateDailyBriefing(stats, xtzPrice) {
 export async function initHotTodayIsland(stats, xtzPrice) {
   if (hotTodayWired) return;
   hotTodayWired = true;
+  lastStats = stats || lastStats;
+  lastXtzPrice = xtzPrice ?? lastXtzPrice;
   const island = document.getElementById('hot-today-island');
   if (!island) return;
   island.innerHTML = `
@@ -676,11 +869,14 @@ export async function initHotTodayIsland(stats, xtzPrice) {
     </div>
   `;
   wireNetworkContextNavigation(island);
+  wireHotTodayRealtime();
   if (stats?.cycle) await updateHotTodayIsland(stats, xtzPrice);
 }
 
 export async function updateHotTodayIsland(stats, xtzPrice) {
   if (!stats?.cycle) return;
+  lastStats = stats;
+  lastXtzPrice = xtzPrice;
   const briefing = await generate(stats, xtzPrice);
-  renderToHotIsland(briefing.cycle, briefing.sentences);
+  renderToHotIsland(briefing.cycle, briefing.sentences, stats);
 }

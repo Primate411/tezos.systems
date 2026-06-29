@@ -262,7 +262,10 @@ inline modal styles in `js/core/app.js`.
   Tezos addresses, `.tez` names, protocol names, block levels, block hashes,
   operation hashes, KT1 contracts, and slash commands. While active, the command
   bar switches the page into a focused search mode that pushes Chambers into a
-  barely-visible background layer. Phase-one internal routes open My Tezos,
+  barely-visible background layer. The compact `What's hot today` live pulse
+  sits above Chambers as a horizontally scrolling strip for non-obvious daily
+  signals instead of repeating the header's cycle, baker, staking, or security
+  facts. Phase-one internal routes open My Tezos,
   baker profiles, protocol lore/history, Chambers, themes, calculator,
   comparisons, leaderboard, whale/giant feeds, NFT lookup, History, and native
   account/contract/operation/block receipt views. Baker-name searches hydrate
@@ -277,8 +280,8 @@ inline modal styles in `js/core/app.js`.
   Chambers entry presents this as a Protocol Anthology: a current chapter,
   lore/impact/memory facets, and recent protocol spines that open into a
   current-first fold-out archive.
-- Tezos Loop Console below Chambers replaces the duplicate recruit/footer aura
-  prompts with one search recipe surface. Wallet, Baker, Contracts, NFTs,
+- Tezos Loop Console near the bottom of the dashboard replaces the duplicate
+  recruit/footer aura prompts with one search recipe surface. Wallet, Baker, Contracts, NFTs,
   Governance, and Market lanes explain accepted search inputs, seed the command
   bar, and expose direct next-step links such as My Tezos, widgets, HEN, The
   Chamber, and price intelligence.
@@ -537,7 +540,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v307`, including hero search, theme
+- Current aligned shell cache stamp: `v309`, including hero search, theme
   bundles, and the Ledger Flow lazy CSS loader.
 - Current Tezos Domains lazy CSS stamp: `v308`.
 - `version.json` is stamped by `.githooks/pre-commit`.

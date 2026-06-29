@@ -91,7 +91,7 @@ import { initNetworkHealth, refreshNetworkHealth } from '../features/network-hea
 import { initHeroSearch } from '../features/search.js';
 import { initNativeExplorer } from '../features/native-explorer.js';
 
-const SHELL_EXTRAS_CSS_URL = '/css/shell-extras.css?v=307';
+const SHELL_EXTRAS_CSS_URL = '/css/shell-extras.css?v=309';
 const PI_VISIBLE_KEY = 'tezos-systems-pi-visible';
 
 function isContentiousProtocol(protocol, lore = null) {
@@ -3295,12 +3295,6 @@ const TEZOS_LOOP_AURAS = {
 };
 
 function initTezosLoopConsole() {
-    const section = document.getElementById('recruit-section');
-    const chambers = document.getElementById('chambers-section');
-    if (section && chambers?.parentElement && section.nextElementSibling !== chambers) {
-        chambers.parentElement.insertBefore(section, chambers);
-    }
-
     const consoleEl = document.getElementById('tezos-loop-console');
     const title = document.getElementById('tezos-loop-title');
     const line = document.getElementById('tezos-loop-line');

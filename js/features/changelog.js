@@ -9,8 +9,8 @@ const CHANGELOG = [
         entries: [
             { type: '🔧', text: 'L1 Governance chamber-card countdowns now tick live on the dashboard instead of waiting for the next card refresh' },
             { type: '✨', text: 'Command search now resolves baker names from active leaderboard data and opens native account, contract, operation, and block views for pasted chain objects' },
-            { type: '✨', text: 'The first screen now promotes Tezos continuity proof, adds tap-to-explain hero metric pills, and surfaces a live What is hot today island below Chambers' },
-            { type: '🎨', text: 'The New to Tezos start console now appears above Chambers and points newcomers toward native search receipts' },
+            { type: '✨', text: 'The first screen now promotes Tezos continuity proof, adds tap-to-explain hero metric pills, and turns the What is hot today island into a compact scrolling live strip for non-obvious daily signals' },
+            { type: '🎨', text: 'The New to Tezos start console now lives near the bottom of the dashboard with more breathing room from the sections above it' },
         ]
     },
     {
