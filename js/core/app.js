@@ -15,7 +15,8 @@ import {
     formatTimestamp,
     formatSupply,
     escapeHtml,
-    debugLog
+    debugLog,
+    startLiveTimeTicker
 } from './utils.js';
 import {
     connectOctezWallet,
@@ -84,11 +85,13 @@ import { initUpgradeEffect } from '../features/upgrade-effect.js';
 import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js';
 import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js';
 import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js';
-import { initDailyBriefing, updateDailyBriefing } from '../features/daily-briefing.js';
+import { initDailyBriefing, initHotTodayIsland, updateDailyBriefing, updateHotTodayIsland } from '../features/daily-briefing.js';
 import { initStateOfTezos } from '../features/state-of-tezos.js';
 import { initNetworkHealth, refreshNetworkHealth } from '../features/network-health.js';
 import { initHeroSearch } from '../features/search.js';
+import { initNativeExplorer } from '../features/native-explorer.js';
 
+const SHELL_EXTRAS_CSS_URL = '/css/shell-extras.css?v=307';
 const PI_VISIBLE_KEY = 'tezos-systems-pi-visible';
 
 function isContentiousProtocol(protocol, lore = null) {
@@ -119,6 +122,15 @@ function safe(name, fn) {
     try { fn(); } catch (e) { console.warn(`[feature] ${name} failed:`, e); }
 }
 
+function ensureShellExtrasCss() {
+    if (document.getElementById('shell-extras-css')) return;
+    const link = document.createElement('link');
+    link.id = 'shell-extras-css';
+    link.rel = 'stylesheet';
+    link.href = SHELL_EXTRAS_CSS_URL;
+    document.head.appendChild(link);
+}
+
 /**
  * Initialize the dashboard
  */
@@ -127,6 +139,7 @@ async function init() {
 
     // Initialize theme
     safe('theme', initTheme);
+    safe('shellExtrasCss', ensureShellExtrasCss);
 
     // Initialize arcade effects
     safe('arcadeEffects', initArcadeEffects);
@@ -134,6 +147,7 @@ async function init() {
     // Initialize share functionality
     safe('share', initShare);
     safe('protocolShare', initProtocolShare);
+    safe('liveTimeTicker', () => startLiveTimeTicker(document));
 
     // Lift chamber entry cards out of the hidden network-stat sections.
     safe('chambersSurface', initChambersSurface);
@@ -191,6 +205,7 @@ async function init() {
     safe('comparison', () => initComparison({}));
     safe('cyclePulse', () => initCyclePulse({}));
     safe('dailyBriefing', () => initDailyBriefing({}, 0));
+    safe('hotTodayIsland', () => initHotTodayIsland({}, 0));
     safe('rewardsTracker', () => {
         if (localStorage.getItem('tezos-systems-my-baker-address')) {
             const p = parseFloat(document.querySelector('.price-value')?.textContent?.replace(/[^0-9.]/g, '')) || 0;
@@ -199,6 +214,7 @@ async function init() {
     });
     safe('navButtons', initNavButtons);
     safe('heroSearch', initHeroSearch);
+    safe('nativeExplorer', initNativeExplorer);
     safe('uptimeClock', initUptimeClock);
     safe('chambersToggle', initChambersToggle);
     safe('tezosStatsToggle', initTezosStatsToggle);
@@ -446,6 +462,7 @@ async function refreshInBackground() {
         updateCyclePulse(comparisonStats);
         const bgXtzPrice = parseFloat(document.querySelector(".price-value")?.textContent?.replace(/[^0-9.]/g, "")) || 0;
         updateDailyBriefing(comparisonStats, bgXtzPrice);
+        updateHotTodayIsland(comparisonStats, bgXtzPrice);
         updateRewardsTracker(comparisonStats, bgXtzPrice);
         updatePriceIntelligence(comparisonStats, bgXtzPrice);
 
@@ -728,6 +745,7 @@ async function updateStats(newStats) {
     updateCyclePulse(state.currentStats);
     const xtzPrice = parseFloat(document.querySelector(".price-value")?.textContent?.replace(/[^0-9.]/g, "")) || 0;
     updateDailyBriefing(state.currentStats, xtzPrice);
+    updateHotTodayIsland(state.currentStats, xtzPrice);
     updateRewardsTracker(state.currentStats, xtzPrice);
 
     // Update page title with live stats
@@ -1869,6 +1887,29 @@ function initPriceIntelToggle() {
 // ==========================================
 // LIVING UPTIME CLOCK
 // ==========================================
+const TOP_CONTINUITY_EXPLANATIONS = {
+    'total-bakers': {
+        kicker: 'Baker set',
+        title: 'Permissionless operators are the continuity layer.',
+        body: 'The baker count is the live validator surface behind every block, vote, attestation, and protocol upgrade.'
+    },
+    finality: {
+        kicker: 'Finality',
+        title: 'Fast finality keeps the chain readable in real time.',
+        body: 'The finality pill tracks recent block cadence so the top bar reflects how quickly new Tezos state settles.'
+    },
+    'staking-ratio': {
+        kicker: 'Staked supply',
+        title: 'Staked XTZ is economic weight securing blocks.',
+        body: 'The staking ratio combines own and external staked XTZ from TzKT so security participation is visible at a glance.'
+    },
+    'issuance-rate': {
+        kicker: 'Issuance',
+        title: 'Adaptive issuance is part of the current economic contract.',
+        body: 'This pill follows the live protocol issuance rate, including how the chain pays for staking and validation.'
+    }
+};
+
 function initUptimeClock() {
     const counterEl = document.getElementById('uptime-counter');
     const blockNumEl = document.getElementById('uptime-block-number');
@@ -2007,6 +2048,39 @@ function initUptimeClock() {
         });
     }
 
+    function ensureTopContinuityExplainPanel() {
+        if (!topContinuityPanel) return null;
+        let explain = document.getElementById('top-continuity-explain');
+        if (explain) return explain;
+        explain = document.createElement('div');
+        explain.id = 'top-continuity-explain';
+        explain.className = 'top-continuity-explain';
+        explain.setAttribute('role', 'status');
+        explain.setAttribute('aria-live', 'polite');
+        topContinuityPanel.insertAdjacentElement('afterend', explain);
+        return explain;
+    }
+
+    function showTopContinuityExplanation(pill) {
+        const key = pill?.dataset?.cardHistory;
+        const copy = TOP_CONTINUITY_EXPLANATIONS[key];
+        const explain = copy ? ensureTopContinuityExplainPanel() : null;
+        if (!copy || !explain) return;
+        const value = pill.querySelector('strong')?.textContent?.trim() || '';
+        explain.innerHTML = `
+            <div>
+                <span class="feature-kicker">${escapeHtml(copy.kicker)}</span>
+                <strong>${escapeHtml(value ? `${value}: ${copy.title}` : copy.title)}</strong>
+                <p>${escapeHtml(copy.body)}</p>
+            </div>
+            <button type="button" data-open-card-history="${escapeHtml(key)}">Open all-time chart</button>
+        `;
+        explain.querySelector('[data-open-card-history]')?.addEventListener('click', () => {
+            openCardHistoryModal(pill.dataset.cardHistory, 'all');
+        }, { once: true });
+        explain.classList.add('is-visible');
+    }
+
     if (topContinuityPanel && topContinuityHistory && topContinuityPanel.dataset.historyWired !== '1') {
         topContinuityPanel.dataset.historyWired = '1';
         topContinuityHistory.addEventListener('click', () => {
@@ -2019,7 +2093,7 @@ function initUptimeClock() {
             if (pill.dataset.topContinuityHistoryPillWired === '1') return;
             pill.dataset.topContinuityHistoryPillWired = '1';
             pill.addEventListener('click', () => {
-                openCardHistoryModal(pill.dataset.cardHistory, 'all');
+                showTopContinuityExplanation(pill);
             });
         });
     }
@@ -3170,8 +3244,8 @@ function positionTooltip(e, tooltipEl) {
 const TEZOS_LOOP_STORAGE_KEY = 'tezos-systems-loop-aura';
 const TEZOS_LOOP_AURAS = {
     holder: {
-        title: 'Wallets and .tez names',
-        line: 'Search accepts a raw wallet address or a .tez name. Use My Tezos when you want the dashboard to remember the account and explain its daily state.',
+        title: 'Search is the map.',
+        line: 'Start from any Tezos receipt: wallet address, .tez name, baker, contract, operation, or block. My Tezos remembers the account and turns raw chain data into a daily state view.',
         query: 'my tezos',
         searchLabel: 'Try My Tezos',
         href: '#my-tezos',
@@ -3188,7 +3262,7 @@ const TEZOS_LOOP_AURAS = {
     },
     builder: {
         title: 'Contracts, operations, and blocks',
-        line: 'Paste a KT1 contract, operation hash, block hash, or level. Search opens native routes where they exist and TzKT where they do not.',
+        line: 'Paste a KT1 contract, operation hash, block hash, or level. Search now opens native Tezos.Systems receipts first, with TzKT kept as an audit trail.',
         query: 'KT1',
         searchLabel: 'Try KT1 / ops',
         href: '/widgets/builder.html',
@@ -3221,6 +3295,12 @@ const TEZOS_LOOP_AURAS = {
 };
 
 function initTezosLoopConsole() {
+    const section = document.getElementById('recruit-section');
+    const chambers = document.getElementById('chambers-section');
+    if (section && chambers?.parentElement && section.nextElementSibling !== chambers) {
+        chambers.parentElement.insertBefore(section, chambers);
+    }
+
     const consoleEl = document.getElementById('tezos-loop-console');
     const title = document.getElementById('tezos-loop-title');
     const line = document.getElementById('tezos-loop-line');
@@ -4019,7 +4099,8 @@ function applyDeepLink() {
             import('../features/tz4-adoption.js').then((module) => module.closeTz4AdoptionChamber?.()),
             import('../features/ctez.js').then((module) => module.closeCtezChamber?.()),
             import('../features/ledger-flow.js').then((module) => module.closeLedgerFlowChamber?.()),
-            import('../features/tezos-domains.js').then((module) => module.closeTezosDomainsChamber?.())
+            import('../features/tezos-domains.js').then((module) => module.closeTezosDomainsChamber?.()),
+            import('../features/native-explorer.js').then((module) => module.closeNativeExplorer?.())
         ]);
 
         document.body.style.overflow = '';
@@ -4039,6 +4120,21 @@ function applyDeepLink() {
     if (params.has('my-baker')) {
         const addr = params.get('my-baker');
         openMyTezosTarget(addr);
+    }
+
+    // #account=tz1... / #contract=KT1... / #operation=o... / #op=o... / #block=level|hash
+    const nativeEntity = [
+        ['account', params.get('account')],
+        ['contract', params.get('contract')],
+        ['operation', params.get('operation') || params.get('op')],
+        ['block', params.get('block')]
+    ].find(([, value]) => value);
+    if (nativeEntity) {
+        const [kind, value] = nativeEntity;
+        openHashModal(
+            () => import('../features/native-explorer.js').then(({ openNativeExplorer }) => openNativeExplorer(kind, value)),
+            `Failed to open native ${kind} view`
+        );
     }
 
     // #price

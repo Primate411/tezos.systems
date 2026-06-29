@@ -2902,7 +2902,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(response?.ok(), `hero command bar: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('#hero-search-input').waitFor({ state: 'visible', timeout: 10000 });
   const frontDoorOrder = await page.evaluate(() => {
-    const ids = ['block-ticker-strip', 'upgrade-clock', 'chambers-section', 'recruit-section'];
+    const ids = ['block-ticker-strip', 'upgrade-clock', 'recruit-section', 'chambers-section'];
     return ids.map((id) => {
       const el = document.getElementById(id);
       return { id, position: el ? Array.prototype.indexOf.call(document.body.querySelectorAll('*'), el) : -1 };
@@ -2960,7 +2960,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   await page.locator('#hero-search-input').fill('KT1');
   await page.waitForFunction(() => /KT1 Contracts/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
   const kt1StarterText = await page.locator('#hero-search-panel').innerText();
-  assert(/KT1 Contracts/i.test(kt1StarterText) && /TzKT contracts index/i.test(kt1StarterText) && !/Search bakers for "KT1"/i.test(kt1StarterText), `hero command bar: KT1 starter should route to contract help, not baker fallback: ${kt1StarterText}`);
+  assert(/KT1 Contracts/i.test(kt1StarterText) && /native contract lens/i.test(kt1StarterText) && !/Search bakers for "KT1"/i.test(kt1StarterText), `hero command bar: KT1 starter should route to native contract help, not baker fallback: ${kt1StarterText}`);
   await page.locator('#hero-search-input').fill('operation hash');
   await page.waitForFunction(() => /Blocks & Operations/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
   const operationStarterText = await page.locator('#hero-search-panel').innerText();
@@ -3035,7 +3035,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     activeCards: document.querySelectorAll('.recruit-card.is-active').length,
     activeChips: document.querySelectorAll('.tezos-loop-chip.active').length
   }));
-  assert(loopState.aura === 'holder' && /Wallets and \.tez/i.test(loopState.title), `hero command bar: Tezos loop holder state mismatch ${JSON.stringify(loopState)}`);
+  assert(loopState.aura === 'holder' && /Search is the map/i.test(loopState.title), `hero command bar: Tezos loop holder state mismatch ${JSON.stringify(loopState)}`);
   assert(loopState.activeCards === 1 && loopState.activeChips === 1, `hero command bar: Tezos loop active state mismatch ${JSON.stringify(loopState)}`);
 
   await context.close();

@@ -2170,7 +2170,11 @@ function setEntryMetrics(metricsEl, metrics) {
     metricsEl.innerHTML = metrics.map((metric) => `
         <div class="chamber-entry-metric ${metric.className || ''}">
             <span>${escapeHtml(metric.label)}</span>
-            <strong>${escapeHtml(metric.value)}</strong>
+            <strong${liveCountdownAttrs(metric.countdownEndTime, {
+                suffix: metric.countdownSuffix,
+                ended: metric.countdownEnded,
+                empty: metric.countdownEmpty
+            })}>${escapeHtml(metric.value)}</strong>
         </div>
     `).join('');
 }
@@ -2272,7 +2276,11 @@ async function loadEntryCardStatus({ force = false } = {}) {
             if (card) card.dataset.chamberEntrySize = 'wide';
             card?.classList.toggle('chamber-entry-risk', !quorumMet || !yayMet);
             setEntryMetrics(metricsEl, [
-                { label: 'Time left', value: entryCountdown(currentPeriod.endTime) },
+                {
+                    label: 'Time left',
+                    value: entryCountdown(currentPeriod.endTime),
+                    countdownEndTime: currentPeriod.endTime
+                },
                 {
                     label: quorumMet ? 'Quorum met' : 'Quorum gap',
                     value: quorumMet
@@ -2304,7 +2312,9 @@ async function loadEntryCardStatus({ force = false } = {}) {
                 setEntryMetrics(metricsEl, [
                     {
                         label: 'Time left',
-                        value: entryCountdown(currentPeriod.endTime)
+                        value: entryCountdown(currentPeriod.endTime),
+                        countdownEndTime: currentPeriod.endTime,
+                        countdownEnded: 'Activation pending'
                     },
                     {
                         label: 'Activation',

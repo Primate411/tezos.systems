@@ -264,11 +264,12 @@ inline modal styles in `js/core/app.js`.
   bar switches the page into a focused search mode that pushes Chambers into a
   barely-visible background layer. Phase-one internal routes open My Tezos,
   baker profiles, protocol lore/history, Chambers, themes, calculator,
-  comparisons, leaderboard, whale/giant feeds, NFT lookup, and History; KT1,
-  operation, and block results are marked as TzKT explorer boundaries until
-  native rooms exist. The empty search panel and Tezos Loop Console both double
-  as low-pressure search guides so first-time entrants can see what the bar
-  accepts without blocking experienced visitors.
+  comparisons, leaderboard, whale/giant feeds, NFT lookup, History, and native
+  account/contract/operation/block receipt views. Baker-name searches hydrate
+  from the active leaderboard data, while TzKT remains available from native
+  receipts as an audit trail. The empty search panel and Tezos Loop Console both
+  double as low-pressure search guides so first-time entrants can see what the
+  bar accepts without blocking experienced visitors.
 - Protocol History Chamber with direct `#protocol-history` access, backed by
   `data/protocol-data.json` and `data/protocol-debates.json`. It preserves the
   protocol timeline, individual protocol lore modals, share capture, and impact
@@ -536,7 +537,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v306`, including hero search, theme
+- Current aligned shell cache stamp: `v307`, including hero search, theme
   bundles, and the Ledger Flow lazy CSS loader.
 - Current Tezos Domains lazy CSS stamp: `v308`.
 - `version.json` is stamped by `.githooks/pre-commit`.

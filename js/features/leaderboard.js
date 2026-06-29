@@ -92,6 +92,40 @@ function enrichBaker(b) {
     };
 }
 
+function searchableBakerText(baker) {
+    return [
+        baker.name,
+        baker.alias,
+        baker.address,
+        baker.consensusAddress
+    ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function compactSearchText(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function scoreBakerMatch(baker, query) {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return 0;
+    const compactQuery = compactSearchText(q);
+    const name = String(baker.name || baker.alias || '').toLowerCase();
+    const text = searchableBakerText(baker);
+    const compactName = compactSearchText(name);
+    let score = 0;
+
+    if (name === q) score = 120;
+    else if (name.startsWith(q)) score = 95;
+    else if (name.split(/\s+/).some((part) => part.startsWith(q))) score = 78;
+    else if (text.includes(q)) score = 58;
+    else if (compactQuery && compactName.includes(compactQuery)) score = 48;
+    else if (String(baker.address || '').toLowerCase().includes(q)) score = 36;
+
+    if (!score) return 0;
+    const stakeBoost = Math.log10(Math.max(1, Number(baker.stake || 0))) * 2;
+    return score + stakeBoost;
+}
+
 /**
  * Sort bakers by column
  */
@@ -110,6 +144,25 @@ function sortBakers(bakers, col, dir) {
         }
         return mult * (va - vb);
     });
+}
+
+export async function findBakersByName(query, { limit = 5 } = {}) {
+    const q = String(query || '').trim();
+    if (q.length < 2) return [];
+    if (!bakersData.length) {
+        const raw = await fetchBakers();
+        bakersData = raw.map(b => enrichBaker(b));
+    }
+
+    return bakersData
+        .map((baker) => ({ baker, score: scoreBakerMatch(baker, q) }))
+        .filter((item) => item.score > 0)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, limit)
+        .map(({ baker }, index) => ({
+            ...baker,
+            searchRank: index + 1
+        }));
 }
 
 /**

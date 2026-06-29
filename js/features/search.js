@@ -5,10 +5,10 @@
 
 import { debounce, escapeHtml } from '../core/utils.js';
 import { getAvailableThemes, openThemePicker, setTheme } from '../ui/theme.js';
+import { findBakersByName } from './leaderboard.js';
 
 const PROTOCOL_DATA_URL = '/data/protocol-data.json?v=2';
-const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=306';
-const TZKT_URL = 'https://tzkt.io';
+const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=307';
 
 const ADDRESS_RE = /^(tz[1-4]|KT1)[0-9A-Za-z]{33}$/;
 const TEZ_DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i;
@@ -95,24 +95,26 @@ const EMPTY_STATE_ROWS = [
         kind: 'contract',
         group: 'Contracts & Operations',
         title: 'KT1 Contracts',
-        detail: 'Paste a full KT1 address, or open the TzKT contracts index for now',
+        detail: 'Paste a full KT1 address for a native contract lens',
         badge: 'contract',
-        action: 'external',
-        value: `${TZKT_URL}/contracts`
+        action: 'hash',
+        value: '#section=ecosystem'
     },
     {
         kind: 'block',
         group: 'Contracts & Operations',
         title: 'Blocks & Operations',
-        detail: 'Paste a level, block hash, or operation hash',
+        detail: 'Paste a level, block hash, or operation hash for a native receipt',
         badge: 'block',
-        action: 'external',
-        value: `${TZKT_URL}/blocks`
+        action: 'hash',
+        value: '#health'
     }
 ];
 
 let protocols = [];
 let protocolsPromise = null;
+const bakerSearchCache = new Map();
+const bakerSearchInFlight = new Map();
 
 const STARTER_QUERY_RESULTS = new Map([
     ['kt1', 'KT1 Contracts'],
@@ -158,6 +160,17 @@ function matchesQuery(result, query) {
     if (!q) return true;
     const bare = q.replace(/^\//, '');
     return searchText(result).includes(q) || searchText(result).includes(bare);
+}
+
+function bakerSearchKey(query) {
+    return normalizeQuery(query).toLowerCase().replace(/\s+/g, ' ');
+}
+
+function shouldSearchBakers(query) {
+    const q = normalizeQuery(query);
+    if (q.length < 2 || q.startsWith('/')) return false;
+    if (ADDRESS_RE.test(q) || TEZ_DOMAIN_RE.test(q) || OPERATION_RE.test(q) || BLOCK_HASH_RE.test(q) || BLOCK_LEVEL_RE.test(q)) return false;
+    return true;
 }
 
 function monthYear(date) {
@@ -236,23 +249,86 @@ function chamberResult(chamber) {
     };
 }
 
+function bakerResult(baker) {
+    const stake = Number(baker.stake || 0);
+    const stakeText = Number.isFinite(stake) && stake > 0
+        ? `${stake.toLocaleString('en-US', { maximumFractionDigits: stake >= 1000 ? 0 : 1 })} XTZ staking power`
+        : 'Active baker';
+    const delegators = Number(baker.delegators || 0);
+    const detail = [
+        baker.address,
+        stakeText,
+        delegators ? `${delegators.toLocaleString('en-US')} delegators` : ''
+    ].filter(Boolean).join(' · ');
+    return {
+        kind: 'baker',
+        group: 'Bakers & Accounts',
+        title: baker.name || baker.alias || baker.address,
+        detail,
+        badge: 'baker',
+        action: 'hash',
+        value: `#baker=${encodeURIComponent(baker.address)}`,
+        aliases: [baker.alias, baker.address, baker.consensusAddress].filter(Boolean)
+    };
+}
+
+function cachedBakerResults(query) {
+    const key = bakerSearchKey(query);
+    const matches = bakerSearchCache.get(key);
+    if (!Array.isArray(matches) || !matches.length) return [];
+    return matches.map(bakerResult);
+}
+
+function bakerLoadingResult(query) {
+    return {
+        kind: 'baker',
+        group: 'Bakers & Accounts',
+        title: `Searching bakers for "${query}"`,
+        detail: 'Checking the active leaderboard by baker alias and address',
+        badge: 'baker',
+        action: 'hash',
+        value: '#leaderboard',
+        aliases: ['baker search', 'leaderboard', query]
+    };
+}
+
 function entityResults(query) {
     const q = normalizeQuery(query);
     if (!q) return [];
 
     if (ADDRESS_RE.test(q)) {
         if (q.startsWith('KT1')) {
-            return [{
-                kind: 'contract',
-                group: 'Contracts',
-                title: q,
-                detail: 'Open this contract on TzKT for now',
-                badge: 'contract',
-                action: 'external',
-                value: `${TZKT_URL}/${encodeURIComponent(q)}`
-            }];
+            return [
+                {
+                    kind: 'contract',
+                    group: 'Contracts',
+                    title: 'Inspect KT1 contract',
+                    detail: `${q} · native balance, activity, and account-flow view`,
+                    badge: 'contract',
+                    action: 'hash',
+                    value: `#contract=${encodeURIComponent(q)}`
+                },
+                {
+                    kind: 'chamber',
+                    group: 'Governance & Chambers',
+                    title: 'Open in Ledger Flow',
+                    detail: 'Map sent, received, and first-funding transfer paths',
+                    badge: 'flow',
+                    action: 'hash',
+                    value: `#ledger-flow=${encodeURIComponent(q)}`
+                }
+            ];
         }
         return [
+            {
+                kind: 'account',
+                group: 'Bakers & Accounts',
+                title: 'Inspect account',
+                detail: `${q} · native balance, identity, and recent flow`,
+                badge: 'account',
+                action: 'hash',
+                value: `#account=${encodeURIComponent(q)}`
+            },
             {
                 kind: 'account',
                 group: 'Bakers & Accounts',
@@ -330,10 +406,10 @@ function entityResults(query) {
             kind: 'operation',
             group: 'Operations & Blocks',
             title: q,
-            detail: 'Open this operation on TzKT for now',
+            detail: 'Open native operation contents and status',
             badge: 'operation',
-            action: 'external',
-            value: `${TZKT_URL}/${encodeURIComponent(q)}`
+            action: 'hash',
+            value: `#operation=${encodeURIComponent(q)}`
         }];
     }
 
@@ -342,10 +418,10 @@ function entityResults(query) {
             kind: 'block',
             group: 'Operations & Blocks',
             title: q,
-            detail: 'Open this block on TzKT for now',
+            detail: 'Open native block receipt and producer view',
             badge: 'block',
-            action: 'external',
-            value: `${TZKT_URL}/${encodeURIComponent(q)}`
+            action: 'hash',
+            value: `#block=${encodeURIComponent(q)}`
         }];
     }
 
@@ -354,10 +430,10 @@ function entityResults(query) {
             kind: 'block',
             group: 'Operations & Blocks',
             title: `Block #${Number(q).toLocaleString('en-US')}`,
-            detail: 'Open this block on TzKT for now',
+            detail: 'Open native block receipt and producer view',
             badge: 'block',
-            action: 'external',
-            value: `${TZKT_URL}/${encodeURIComponent(q)}`
+            action: 'hash',
+            value: `#block=${encodeURIComponent(q)}`
         }];
     }
 
@@ -429,6 +505,10 @@ function dedupeResults(results) {
 
 function buildResults(query) {
     const q = normalizeQuery(query);
+    const bakerMatches = cachedBakerResults(q);
+    const bakerLoading = shouldSearchBakers(q) && !bakerSearchCache.has(bakerSearchKey(q)) && bakerSearchInFlight.has(bakerSearchKey(q))
+        ? [bakerLoadingResult(q)]
+        : [];
     const protocolMatches = protocols
         .slice()
         .reverse()
@@ -453,7 +533,9 @@ function buildResults(query) {
         ...starterMatches,
         ...protocolMatches.slice(0, 5),
         ...chamberMatches.slice(0, 4),
-        ...commandMatches.slice(0, 4)
+        ...commandMatches.slice(0, 4),
+        ...bakerMatches,
+        ...bakerLoading
     ];
 
     return dedupeResults([
@@ -594,7 +676,27 @@ export function initHeroSearch() {
         }
     };
 
+    const queueBakerLookup = (value) => {
+        const q = normalizeQuery(value);
+        if (!shouldSearchBakers(q)) return;
+        const key = bakerSearchKey(q);
+        if (bakerSearchCache.has(key) || bakerSearchInFlight.has(key)) return;
+        const promise = findBakersByName(q, { limit: 5 })
+            .then((matches) => {
+                bakerSearchCache.set(key, Array.isArray(matches) ? matches : []);
+            })
+            .catch(() => {
+                bakerSearchCache.set(key, []);
+            })
+            .finally(() => {
+                bakerSearchInFlight.delete(key);
+                if (isOpen && bakerSearchKey(input.value) === key) render();
+            });
+        bakerSearchInFlight.set(key, promise);
+    };
+
     const render = () => {
+        queueBakerLookup(input.value);
         results = buildResults(input.value);
         if (selectedIndex >= results.length) selectedIndex = results.length ? 0 : -1;
         if (selectedIndex < 0 && normalizeQuery(input.value) && results.length) selectedIndex = 0;

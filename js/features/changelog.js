@@ -5,6 +5,15 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-29',
+        entries: [
+            { type: '🔧', text: 'L1 Governance chamber-card countdowns now tick live on the dashboard instead of waiting for the next card refresh' },
+            { type: '✨', text: 'Command search now resolves baker names from active leaderboard data and opens native account, contract, operation, and block views for pasted chain objects' },
+            { type: '✨', text: 'The first screen now promotes Tezos continuity proof, adds tap-to-explain hero metric pills, and surfaces a live What is hot today island below Chambers' },
+            { type: '🎨', text: 'The New to Tezos start console now appears above Chambers and points newcomers toward native search receipts' },
+        ]
+    },
+    {
         date: '2026-06-28',
         entries: [
             { type: '✨', text: 'Chamber time labels now tick live, including L1 Governance activation and proposal countdowns plus Tezos Domains age, auction, offer, and drop timers' },

@@ -53,6 +53,69 @@
     width: 100%;
 }
 
+.continuity-proof-story {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.85rem;
+    align-items: center;
+    min-width: 0;
+    padding: 0.78rem 0.86rem;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 16%, var(--glass-border));
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 8%, transparent), color-mix(in srgb, #f5b84b 5%, transparent)),
+        rgba(255, 255, 255, 0.018);
+}
+
+.continuity-proof-copy {
+    display: grid;
+    gap: 0.16rem;
+    min-width: 0;
+}
+
+.continuity-proof-copy strong {
+    color: var(--text-primary);
+    font-size: clamp(0.98rem, 1.6vw, 1.22rem);
+    line-height: 1.22;
+}
+
+.continuity-proof-copy > span:last-child {
+    color: var(--text-secondary);
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.42;
+}
+
+.continuity-proof-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.45rem;
+}
+
+.continuity-proof-actions a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 32px;
+    padding: 0.34rem 0.68rem;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 28%, var(--glass-border));
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--accent-cyan) 8%, transparent);
+    color: var(--text-secondary);
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    font-weight: 850;
+    text-decoration: none;
+}
+
+.continuity-proof-actions a:hover,
+.continuity-proof-actions a:focus-visible {
+    border-color: var(--accent-cyan);
+    color: var(--accent-cyan);
+    outline: none;
+}
+
 .runtime-only {
     display: none !important;
 }
@@ -1680,6 +1743,14 @@ body.hero-search-mode .main-content {
 }
 
 @media (max-width: 900px) {
+    .continuity-proof-story {
+        grid-template-columns: 1fr;
+    }
+
+    .continuity-proof-actions {
+        justify-content: flex-start;
+    }
+
     .tezos-loop-console {
         grid-template-columns: auto minmax(0, 1fr);
     }

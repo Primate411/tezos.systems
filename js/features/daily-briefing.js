@@ -57,6 +57,7 @@ const NETWORK_FEATURE_LABELS = {
 let lastStats = null;
 let lastXtzPrice = null;
 let personalizationWired = false;
+let hotTodayWired = false;
 
 // ─── Template Library ────────────────────────────────────────────────────────
 
@@ -509,6 +510,51 @@ function renderSignalCard(signal, index) {
   `;
 }
 
+function renderHotSignal(signal, index) {
+  const route = networkFeatureRoute(signal.category);
+  const routeLabel = networkFeatureLabel(signal.category);
+  return `
+    <a class="hot-today-card hot-today-card-${signal.tone}" href="${escapeHtml(route)}" data-network-route="${escapeHtml(route)}" aria-label="${escapeHtml(`${routeLabel}: ${signal.detail}`)}">
+      <span class="hot-today-rank">${index + 1}</span>
+      <span class="hot-today-copy">
+        <strong>${escapeHtml(signal.icon)} ${escapeHtml(signal.title)}</strong>
+        <span>${escapeHtml(signal.text)}</span>
+      </span>
+      <em>${escapeHtml(signal.detail)}</em>
+    </a>
+  `;
+}
+
+function renderToHotIsland(cycle, sentences) {
+  const island = document.getElementById('hot-today-island');
+  if (!island) return;
+  const signals = (Array.isArray(sentences) ? sentences : [])
+    .map(normalizeSignal)
+    .filter(signal => signal.text)
+    .slice(0, 4);
+  if (!signals.length) return;
+  const generated = new Date().toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    timeZone: 'UTC'
+  });
+  island.hidden = false;
+  island.innerHTML = `
+    <div class="hot-today-head">
+      <div>
+        <span class="feature-kicker">Live pulse</span>
+        <h2>What's hot today</h2>
+      </div>
+      <a href="#health" data-network-route="#health">Cycle ${escapeHtml(String(cycle || '--'))} · ${escapeHtml(generated)} UTC</a>
+    </div>
+    <div class="hot-today-grid">
+      ${signals.map(renderHotSignal).join('')}
+    </div>
+  `;
+  wireNetworkContextNavigation(island);
+}
+
 function rerenderCachedBriefing() {
   try {
     const cached = JSON.parse(localStorage.getItem(LS_BRIEFING) || 'null');
@@ -610,4 +656,31 @@ export async function updateDailyBriefing(stats, xtzPrice) {
   const briefing = await generate(stats, xtzPrice);
   renderToDrawer(briefing.cycle, briefing.sentences);
   try { localStorage.setItem(LS_LAST_SEEN, String(briefing.cycle)); } catch {}
+}
+
+export async function initHotTodayIsland(stats, xtzPrice) {
+  if (hotTodayWired) return;
+  hotTodayWired = true;
+  const island = document.getElementById('hot-today-island');
+  if (!island) return;
+  island.innerHTML = `
+    <div class="hot-today-head">
+      <div>
+        <span class="feature-kicker">Live pulse</span>
+        <h2>What's hot today</h2>
+      </div>
+      <span>Syncing</span>
+    </div>
+    <div class="hot-today-grid hot-today-grid-loading">
+      <span></span><span></span><span></span><span></span>
+    </div>
+  `;
+  wireNetworkContextNavigation(island);
+  if (stats?.cycle) await updateHotTodayIsland(stats, xtzPrice);
+}
+
+export async function updateHotTodayIsland(stats, xtzPrice) {
+  if (!stats?.cycle) return;
+  const briefing = await generate(stats, xtzPrice);
+  renderToHotIsland(briefing.cycle, briefing.sentences);
 }
