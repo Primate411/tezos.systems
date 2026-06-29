@@ -11,7 +11,7 @@
  * Falls back to last complete epoch when no active proposal exists.
  */
 
-import { escapeHtml, setDataFreshnessState } from '../core/utils.js';
+import { escapeHtml, formatLiveCountdown, setDataFreshnessState, startLiveTimeTicker } from '../core/utils.js';
 import { API_URLS } from '../core/config.js';
 import { fetchCurrentVotingPeriod } from '../core/api.js';
 
@@ -294,14 +294,18 @@ function formatCount(value) {
 }
 
 function fmtCountdown(endTime) {
-    const diff = new Date(endTime) - new Date();
-    if (diff <= 0) return 'Ended';
-    const d = Math.floor(diff / 86400000);
-    const h = Math.floor((diff % 86400000) / 3600000);
-    const m = Math.floor((diff % 3600000) / 60000);
-    if (d > 0) return `${d}d ${h}h ${m}m`;
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m}m`;
+    return formatLiveCountdown(endTime);
+}
+
+function liveCountdownAttrs(endTime, options = {}) {
+    if (!endTime) return '';
+    const attrs = [
+        `data-live-countdown="${escapeHtml(endTime)}"`,
+        options.suffix ? `data-live-suffix="${escapeHtml(options.suffix)}"` : '',
+        options.ended ? `data-live-ended="${escapeHtml(options.ended)}"` : '',
+        options.empty ? `data-live-empty="${escapeHtml(options.empty)}"` : ''
+    ].filter(Boolean).join(' ');
+    return ` ${attrs}`;
 }
 
 function validDate(value) {
@@ -1249,7 +1253,10 @@ function nextGovernanceMilestone(data) {
         return {
             label: 'Next milestone',
             value: countdown && countdown !== 'Ended' ? `${countdown} to activation` : 'Activation pending',
-            detail: endText ? `${endText} UTC` : 'Activation date unavailable'
+            detail: endText ? `${endText} UTC` : 'Activation date unavailable',
+            countdownEndTime: active?.endTime,
+            countdownSuffix: ' to activation',
+            countdownEnded: 'Activation pending'
         };
     }
 
@@ -1267,7 +1274,9 @@ function nextGovernanceMilestone(data) {
         return {
             label: 'Window closes',
             value: countdown && countdown !== 'Ended' ? countdown : (endText ? `${endText} UTC` : 'Timing pending'),
-            detail: 'Leading hash advances if the proposal period selects one'
+            detail: 'Leading hash advances if the proposal period selects one',
+            countdownEndTime: active?.endTime,
+            countdownEnded: endText ? `${endText} UTC` : 'Timing pending'
         };
     }
 
@@ -1384,7 +1393,7 @@ function renderGovernanceNow(data) {
                 </div>
                 <div class="chamber-now-card">
                     <span>${escapeHtml(milestone.label)}</span>
-                    <strong>${escapeHtml(milestone.value)}</strong>
+                    <strong${liveCountdownAttrs(milestone.countdownEndTime, { suffix: milestone.countdownSuffix, ended: milestone.countdownEnded })}>${escapeHtml(milestone.value)}</strong>
                     <small>${escapeHtml(milestone.detail)}</small>
                 </div>
                 <div class="chamber-now-card">
@@ -1866,6 +1875,7 @@ function renderChamber(data, container) {
     hydrateHistoricalComparison(data);
     hydrateChronologicalVoteLog(data);
     initChamberShare(data);
+    startLiveTimeTicker(container);
     requestAnimationFrame(() => requestAnimationFrame(triggerAnimations));
 }
 

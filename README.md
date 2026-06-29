@@ -536,8 +536,8 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v304`, including the Ledger Flow lazy CSS
-  loader.
+- Current aligned shell cache stamp: `v306`, including hero search, theme
+  bundles, Ledger Flow, and Tezos Domains lazy CSS loaders.
 - `version.json` is stamped by `.githooks/pre-commit`.
 - The pre-commit hook runs the README guard, refreshes governance artifacts,
   runs focused README contract checks, then stamps version metadata.

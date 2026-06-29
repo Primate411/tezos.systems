@@ -3,13 +3,14 @@
  * Live identity, auction, market, and expiration pulse for .tez names.
  */
 
-import { debounce, escapeHtml } from '../core/utils.js';
+import { debounce, escapeHtml, formatLiveDuration, startLiveTimeTicker } from '../core/utils.js';
 
 const TEZOS_DOMAINS_ENDPOINT = 'https://api.tezos.domains/graphql';
-const TEZOS_DOMAINS_CSS_URL = '/css/tezos-domains.css?v=307';
+const TEZOS_DOMAINS_CSS_URL = '/css/tezos-domains.css?v=306';
 const CHAMBER_REFRESH_MS = 10 * 60 * 1000;
 const ENTRY_REFRESH_MS = 15 * 60 * 1000;
 const MIN_HIGH_VALUE_MUTEZ = '25000000';
+const ASPIRATIONAL_ASK_MUTEZ = 100000 * 1e6;
 const STALE_MS = 45 * 60 * 1000;
 const TEZ_DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i;
 const BLOCKED_NAME_PARTS = Object.freeze([
@@ -81,6 +82,7 @@ function formatTez(mutez, options = {}) {
     const value = Number(mutez || 0) / 1e6;
     if (!Number.isFinite(value)) return '0 XTZ';
     const suffix = options.unit === false ? '' : ' XTZ';
+    if (Math.abs(value) >= 1000000000) return `${(value / 1000000000).toFixed(2)}B${suffix}`;
     if (Math.abs(value) >= 1000000) return `${(value / 1000000).toFixed(2)}M${suffix}`;
     if (Math.abs(value) >= 1000) return `${(value / 1000).toFixed(1)}K${suffix}`;
     if (Math.abs(value) >= 100) return `${value.toFixed(0)}${suffix}`;
@@ -143,6 +145,45 @@ function formatTimeDistance(value) {
     return `${days}d`;
 }
 
+function formatElapsedDuration(value) {
+    const time = new Date(value).getTime();
+    if (!Number.isFinite(time)) return 'unknown';
+    return formatLiveDuration(Date.now() - time, { includeSeconds: false });
+}
+
+function liveAgeAttr(value, options = {}) {
+    if (!value) return '';
+    const attrs = [
+        `data-live-age="${escapeHtml(value)}"`,
+        options.prefix ? `data-live-prefix="${escapeHtml(options.prefix)}"` : '',
+        options.suffix ? `data-live-suffix="${escapeHtml(options.suffix)}"` : ''
+    ].filter(Boolean).join(' ');
+    return ` ${attrs}`;
+}
+
+function liveCountdownAttr(value, options = {}) {
+    if (!value) return '';
+    const attrs = [
+        `data-live-countdown="${escapeHtml(value)}"`,
+        options.prefix ? `data-live-prefix="${escapeHtml(options.prefix)}"` : '',
+        options.suffix ? `data-live-suffix="${escapeHtml(options.suffix)}"` : '',
+        options.ended ? `data-live-ended="${escapeHtml(options.ended)}"` : '',
+        options.seconds === false ? 'data-live-seconds="false"' : ''
+    ].filter(Boolean).join(' ');
+    return ` ${attrs}`;
+}
+
+function liveDurationSinceAttr(value, options = {}) {
+    if (!value) return '';
+    const attrs = [
+        `data-live-duration-since="${escapeHtml(value)}"`,
+        options.prefix ? `data-live-prefix="${escapeHtml(options.prefix)}"` : '',
+        options.suffix ? `data-live-suffix="${escapeHtml(options.suffix)}"` : '',
+        options.seconds === false ? 'data-live-seconds="false"' : ''
+    ].filter(Boolean).join(' ');
+    return ` ${attrs}`;
+}
+
 function reverseName(record) {
     return record?.domain?.name || '';
 }
@@ -194,6 +235,33 @@ function eventLabel(event) {
     }
 }
 
+function eventTypeChip(event) {
+    switch (event?.type) {
+        case 'DOMAIN_BUY_EVENT':
+            return 'register';
+        case 'AUCTION_SETTLE_EVENT':
+        case 'AUCTION_BID_EVENT':
+            return 'auction';
+        case 'DOMAIN_RENEW_EVENT':
+            return 'renew';
+        case 'DOMAIN_TRANSFER_EVENT':
+            return 'transfer';
+        case 'DOMAIN_SET_CHILD_RECORD_EVENT':
+            return 'subdomain';
+        case 'OFFER_PLACED_EVENT':
+        case 'OFFER_EXECUTED_EVENT':
+            return 'ask';
+        case 'BUY_OFFER_PLACED_EVENT':
+        case 'BUY_OFFER_EXECUTED_EVENT':
+            return 'bid';
+        case 'REVERSE_RECORD_CLAIM_EVENT':
+        case 'REVERSE_RECORD_UPDATE_EVENT':
+            return 'reverse';
+        default:
+            return 'event';
+    }
+}
+
 function eventValue(event) {
     return event?.price || event?.winningBid || event?.bidAmount || event?.transactionAmount || '';
 }
@@ -201,6 +269,15 @@ function eventValue(event) {
 function eventValueNumber(event) {
     const value = Number(eventValue(event));
     return Number.isFinite(value) ? value : 0;
+}
+
+function eventKey(event) {
+    return String(event?.id || event?.operationGroupHash || [
+        event?.type || event?.__typename || 'event',
+        domainNameFromEvent(event),
+        event?.block?.timestamp || '',
+        eventValue(event) || ''
+    ].join(':'));
 }
 
 function gqlQuery(now = new Date()) {
@@ -468,6 +545,25 @@ function featuredNameText(item) {
     return item.domainName || item.domain?.name || item.name || reverseName(item.sourceAddressReverseRecord) || 'Names moving';
 }
 
+function featuredReason(item) {
+    if (!item) return 'fresh identity activity';
+    if (item.type) {
+        const value = eventValue(item);
+        const priced = value ? ` · ${formatTez(value)}` : '';
+        return `${eventTypeChip(item)} move${priced}`;
+    }
+    if (item.state === 'IN_PROGRESS') {
+        return `top live auction · ${formatTez(item.highestBid?.amount || item.bidAmountSum)}`;
+    }
+    if (item.price) {
+        return `${item.buyerAddress ? 'top buy offer' : 'top ask'} · ${formatTez(item.price)}`;
+    }
+    if (item.expiresAtUtc) {
+        return `renewal cliff · drops in ${formatTimeDistance(item.expiresAtUtc)}`;
+    }
+    return 'fresh identity activity';
+}
+
 function buildPulseMetrics(data) {
     const counts = data?.counts || {};
     return [
@@ -524,6 +620,7 @@ function renderEntryCard(data) {
     const status = chamberStatus(data);
     const feature = featuredName(data);
     const featureName = featuredNameText(feature);
+    const featureReason = featuredReason(feature);
     return `
         <button class="card-copy-link" type="button" data-copy-hash="#domains" aria-label="Copy Tezos Domains Chamber direct link" title="Copy Tezos Domains link">🔗</button>
         <div class="card-inner">
@@ -534,6 +631,7 @@ function renderEntryCard(data) {
                         <span class="td-entry-mark" aria-hidden="true">.tez</span>
                         <strong id="tezos-domains-entry-feature">${escapeHtml(featureName)}</strong>
                     </div>
+                    <div class="td-entry-feature-reason" id="tezos-domains-entry-feature-reason">${escapeHtml(featureReason)}</div>
                     <p class="stat-description">Live .tez market pulse for registrations, reverse-record claims, auctions, offers, and 30-day renewal cliffs.</p>
                     <div class="chamber-entry-status live" id="tezos-domains-entry-status"><span class="entry-live-dot"></span>${escapeHtml(status.label)} · ${escapeHtml(status.detail)}</div>
                 </div>
@@ -560,7 +658,10 @@ function updateEntryCard(data) {
     card.classList.toggle('chamber-entry-risk', status.className === 'hot');
     card.classList.toggle('chamber-entry-live', status.className !== 'hot');
     const feature = card.querySelector('#tezos-domains-entry-feature');
-    if (feature) feature.textContent = featuredNameText(featuredName(data));
+    const featured = featuredName(data);
+    if (feature) feature.textContent = featuredNameText(featured);
+    const featureReasonEl = card.querySelector('#tezos-domains-entry-feature-reason');
+    if (featureReasonEl) featureReasonEl.textContent = featuredReason(featured);
     const statusEl = card.querySelector('#tezos-domains-entry-status');
     if (statusEl) statusEl.innerHTML = `<span class="entry-live-dot"></span>${escapeHtml(status.label)} · ${escapeHtml(status.detail)}`;
     const metricEls = card.querySelectorAll('.td-entry-metric');
@@ -767,16 +868,22 @@ async function runDomainLookup(value, { silentEmpty = false } = {}) {
     }
 }
 
-function renderEventRows(events, empty = 'No matching Tezos Domains events returned.') {
+function renderEventRows(events, empty = 'No matching Tezos Domains events returned.', options = {}) {
     if (!events?.length) return `<div class="td-empty">${escapeHtml(empty)}</div>`;
     return events.map((event) => {
         const name = domainNameFromEvent(event);
         const op = event.operationGroupHash;
+        const key = eventKey(event);
+        const isNew = options.newEventKeys?.has(key);
+        const tone = eventTone(event);
         return `
-            <article class="td-event-row" data-tone="${escapeHtml(eventTone(event))}">
-                <a class="td-name-link" href="${escapeHtml(domainUrl(name))}" target="_blank" rel="noopener">${escapeHtml(name)}</a>
-                <span>${escapeHtml(eventLabel(event))}</span>
-                <small>${escapeHtml(actorLabel(event.sourceAddress, event.sourceAddressReverseRecord))} · ${escapeHtml(formatAge(event.block?.timestamp))}</small>
+            <article class="td-event-row${isNew ? ' is-new' : ''}" data-tone="${escapeHtml(tone)}" data-event-key="${escapeHtml(key)}">
+                <div class="td-event-main">
+                    <a class="td-name-link" href="${escapeHtml(domainUrl(name))}" target="_blank" rel="noopener">${escapeHtml(name)}</a>
+                    <span class="td-type-chip" data-tone="${escapeHtml(tone)}">${escapeHtml(eventTypeChip(event))}</span>
+                </div>
+                <span class="td-event-action">${escapeHtml(eventLabel(event))}</span>
+                <small>${escapeHtml(actorLabel(event.sourceAddress, event.sourceAddressReverseRecord))} · <span${liveAgeAttr(event.block?.timestamp)}>${escapeHtml(formatAge(event.block?.timestamp))}</span></small>
                 ${op ? `<a class="td-op-link" href="${escapeHtml(tzktOperationUrl(op))}" target="_blank" rel="noopener">${escapeHtml(shortHash(op))}</a>` : ''}
             </article>
         `;
@@ -785,31 +892,72 @@ function renderEventRows(events, empty = 'No matching Tezos Domains events retur
 
 function renderAuctionRows(rows, empty = 'No live auctions are bidding right now.') {
     if (!rows?.length) return `<div class="td-empty">${escapeHtml(empty)}</div>`;
-    return rows.map((auction) => `
-        <article class="td-market-row" data-kind="${escapeHtml(auction.state === 'IN_PROGRESS' ? 'auction' : 'settle')}">
+    return rows.map((auction) => {
+        const live = auction.state === 'IN_PROGRESS';
+        const overdue = !live && new Date(auction.endsAtUtc).getTime() < Date.now();
+        const kind = live ? 'auction' : overdue ? 'settle-overdue' : 'settle';
+        const timing = live
+            ? `<span${liveCountdownAttr(auction.endsAtUtc, { prefix: 'ends in ', ended: 'ended' })}>${escapeHtml(`ends in ${formatTimeDistance(auction.endsAtUtc)}`)}</span>`
+            : overdue
+                ? `<span>settle window passed ${escapeHtml(formatDate(auction.endsAtUtc))} · <b${liveDurationSinceAttr(auction.endsAtUtc, { suffix: ' overdue', seconds: false })}>${escapeHtml(`${formatElapsedDuration(auction.endsAtUtc)} overdue`)}</b></span>`
+                : `<span>settle window · ${escapeHtml(formatDate(auction.endsAtUtc))}</span>`;
+        return `
+        <article class="td-market-row" data-kind="${escapeHtml(kind)}">
             <a class="td-name-link" href="${escapeHtml(domainUrl(auction.domainName))}" target="_blank" rel="noopener">${escapeHtml(auction.domainName)}</a>
             <strong>${escapeHtml(formatTez(auction.highestBid?.amount || auction.bidAmountSum))}</strong>
-            <span>${escapeHtml(auction.state === 'IN_PROGRESS' ? `ends in ${formatTimeDistance(auction.endsAtUtc)}` : `settle window · ${formatDate(auction.endsAtUtc)}`)}</span>
+            ${timing}
             <small>${escapeHtml(formatCount(auction.bidCount))} bid${Number(auction.bidCount) === 1 ? '' : 's'} · ${escapeHtml(actorLabel(auction.highestBid?.bidder, auction.highestBid?.bidderReverseRecord))}</small>
         </article>
-    `).join('');
+    `;
+    }).join('');
+}
+
+function isAspirationalAsk(offer) {
+    return Number(offer?.price || 0) >= ASPIRATIONAL_ASK_MUTEZ;
+}
+
+function renderOfferRow(offer, kind, options = {}) {
+    const actor = kind === 'buy'
+        ? actorLabel(offer.buyerAddress, offer.buyerAddressReverseRecord)
+        : actorLabel(offer.sellerAddress, offer.sellerAddressReverseRecord);
+    const kindLabel = options.kindLabel || kind;
+    const expires = offer.expiresAtUtc
+        ? `<span${liveCountdownAttr(offer.expiresAtUtc, { prefix: 'expires in ', ended: 'expired', seconds: false })}>${escapeHtml(`expires in ${formatTimeDistance(offer.expiresAtUtc)}`)}</span>`
+        : '<span>no expiry</span>';
+    return `
+        <article class="td-market-row" data-kind="${escapeHtml(kindLabel)}">
+            <a class="td-name-link" href="${escapeHtml(domainUrl(offer.domain?.name))}" target="_blank" rel="noopener">${escapeHtml(offer.domain?.name || 'unknown.tez')}</a>
+            <strong>${escapeHtml(formatTez(offer.price))}</strong>
+            ${expires}
+            <small>${escapeHtml(kind === 'buy' ? 'buyer' : 'seller')}: ${escapeHtml(actor)}</small>
+        </article>
+    `;
+}
+
+function renderSellOfferRows(rows) {
+    if (!rows?.length) return '<div class="td-empty">No active sell offers returned.</div>';
+    const realistic = rows.filter((offer) => !isAspirationalAsk(offer));
+    const aspirational = rows.filter(isAspirationalAsk);
+    const leadAsk = rows[0];
+    const verdict = aspirational.length
+        ? `${formatCount(aspirational.length)} aspirational ask${aspirational.length === 1 ? '' : 's'} above 100K XTZ are separated from the market signal.`
+        : `Highest visible ask is ${formatTez(leadAsk?.price)}.`;
+    return `
+        <div class="td-market-verdict">${escapeHtml(verdict)}</div>
+        ${(realistic.length ? realistic : []).map((offer) => renderOfferRow(offer, 'sell')).join('')}
+        ${aspirational.length ? `
+            <div class="td-aspirational-group">
+                <span>Aspirational asks</span>
+                ${aspirational.map((offer) => renderOfferRow(offer, 'sell', { kindLabel: 'aspirational' })).join('')}
+            </div>
+        ` : ''}
+    `;
 }
 
 function renderOfferRows(rows, kind) {
+    if (kind === 'sell') return renderSellOfferRows(rows);
     if (!rows?.length) return `<div class="td-empty">No active ${escapeHtml(kind)} offers returned.</div>`;
-    return rows.map((offer) => {
-        const actor = kind === 'buy'
-            ? actorLabel(offer.buyerAddress, offer.buyerAddressReverseRecord)
-            : actorLabel(offer.sellerAddress, offer.sellerAddressReverseRecord);
-        return `
-            <article class="td-market-row" data-kind="${escapeHtml(kind)}">
-                <a class="td-name-link" href="${escapeHtml(domainUrl(offer.domain?.name))}" target="_blank" rel="noopener">${escapeHtml(offer.domain?.name || 'unknown.tez')}</a>
-                <strong>${escapeHtml(formatTez(offer.price))}</strong>
-                <span>${escapeHtml(offer.expiresAtUtc ? `expires ${formatDate(offer.expiresAtUtc)}` : 'no expiry')}</span>
-                <small>${escapeHtml(kind === 'buy' ? 'buyer' : 'seller')}: ${escapeHtml(actor)}</small>
-            </article>
-        `;
-    }).join('');
+    return rows.map((offer) => renderOfferRow(offer, kind)).join('');
 }
 
 function renderExpiringRows(rows) {
@@ -817,23 +965,52 @@ function renderExpiringRows(rows) {
     return rows.map((domain) => `
         <article class="td-expiry-row">
             <a class="td-name-link" href="${escapeHtml(domainUrl(domain.name))}" target="_blank" rel="noopener">${escapeHtml(domain.name)}</a>
-            <strong>${escapeHtml(formatTimeDistance(domain.expiresAtUtc))}</strong>
+            <strong${liveCountdownAttr(domain.expiresAtUtc, { prefix: 'drops in ', ended: 'renewal window passed' })}>${escapeHtml(`drops in ${formatTimeDistance(domain.expiresAtUtc)}`)}</strong>
             <span>${escapeHtml(formatDate(domain.expiresAtUtc))}</span>
             <small>${escapeHtml(actorLabel(domain.owner, domain.ownerReverseRecord))}</small>
         </article>
     `).join('');
 }
 
-function renderChamber(data) {
+function renderLegend() {
+    const items = [
+        ['register', 'register'],
+        ['renewal', 'renew'],
+        ['identity', 'reverse / transfer'],
+        ['market', 'ask / bid / auction']
+    ];
+    return `
+        <div class="td-event-legend chamber-anim-fade" style="animation-delay:105ms" aria-label="Tezos Domains event legend">
+            ${items.map(([tone, label]) => `<span><i data-tone="${escapeHtml(tone)}"></i>${escapeHtml(label)}</span>`).join('')}
+        </div>
+    `;
+}
+
+function renderPanelVerdict(text) {
+    return `<div class="td-panel-verdict">${escapeHtml(text)}</div>`;
+}
+
+function collectEventKeys(root) {
+    return new Set([...root.querySelectorAll?.('.td-event-row[data-event-key]') || []].map((row) => row.dataset.eventKey).filter(Boolean));
+}
+
+function renderChamber(data, options = {}) {
     const status = chamberStatus(data);
-    const feature = featuredNameText(featuredName(data));
+    const featured = featuredName(data);
+    const feature = featuredNameText(featured);
+    const newEventKeys = options.newEventKeys || new Set();
+    const recentCount = data.recentEvents?.length || 0;
+    const premiumCount = data.highValueRecent?.length || 0;
+    const liveAuctionCount = data.liveAuctions?.length || 0;
+    const settlementCount = data.settlementAuctions?.length || 0;
+    const dropCount = data.expiringSoon?.length || 0;
     return `
         <div class="chamber-header lb-header tezos-domains-header chamber-anim-fade">
             <div class="lb-system-strip tezos-domains-system-strip">
                 <span class="lb-system-brand">Tezos Domains</span>
                 <span>identity market</span>
                 <span>live .tez market</span>
-                <span>block ${escapeHtml(formatCount(data.block?.level || 0))}</span>
+                <span class="td-block-chip">block ${escapeHtml(formatCount(data.block?.level || 0))}</span>
             </div>
             <div class="chamber-title-row">
                     <h2 id="tezos-domains-title" class="chamber-title">Tezos Domains Chamber</h2>
@@ -841,7 +1018,7 @@ function renderChamber(data) {
             </div>
             <div class="chamber-proposal-info">
                 <div class="proposal-name">${escapeHtml(feature)}</div>
-                <div class="proposal-hash">${escapeHtml(status.detail)} · latest ${escapeHtml(formatAge(data.freshTimestamp))}</div>
+                <div class="proposal-hash">${escapeHtml(featuredReason(featured))} · ${escapeHtml(status.detail)} · latest <span${liveAgeAttr(data.freshTimestamp)}>${escapeHtml(formatAge(data.freshTimestamp))}</span></div>
             </div>
         </div>
 
@@ -850,20 +1027,24 @@ function renderChamber(data) {
         <section class="td-pulse-grid chamber-anim-fade" style="animation-delay:90ms" aria-label="Tezos Domains pulse metrics">
             ${buildChamberPulseMetrics(data).map(([label, value, note]) => renderMetric(label, value, note)).join('')}
         </section>
+        ${renderLegend()}
 
         <div class="td-main-grid">
             <section class="td-panel td-panel-wide chamber-anim-fade" style="animation-delay:120ms">
                 <div class="td-panel-title">Fresh Name Tape <span>registrations, renewals, records, transfers</span></div>
-                <div class="td-event-list">${renderEventRows(data.recentEvents)}</div>
+                ${renderPanelVerdict(`${recentCount} newest identity events; the newest label keeps ticking between indexer refreshes.`)}
+                <div class="td-event-list">${renderEventRows(data.recentEvents, 'No matching Tezos Domains events returned.', { newEventKeys })}</div>
             </section>
 
             <section class="td-panel chamber-anim-fade" style="animation-delay:150ms">
                 <div class="td-panel-title">Premium Moves <span>30d moves at 25 XTZ+</span></div>
+                ${renderPanelVerdict(`${premiumCount} premium moves in the current sample; each row now names the event type.`)}
                 <div class="td-event-list td-compact-list">${renderEventRows(data.highValueRecent, 'No premium moves above 25 XTZ in the current sample.')}</div>
             </section>
 
             <section class="td-panel chamber-anim-fade" style="animation-delay:180ms">
                 <div class="td-panel-title">Auctions <span>live bids, then settlement backlog</span></div>
+                ${renderPanelVerdict(`${liveAuctionCount} live auction${liveAuctionCount === 1 ? '' : 's'}; ${settlementCount} settlement window${settlementCount === 1 ? '' : 's'} ready or overdue.`)}
                 <div class="td-market-list">
                     ${renderAuctionRows(data.liveAuctions)}
                     ${renderAuctionRows(data.settlementAuctions, 'No settlement backlog returned.')}
@@ -882,6 +1063,7 @@ function renderChamber(data) {
 
             <section class="td-panel chamber-anim-fade" style="animation-delay:270ms">
                 <div class="td-panel-title">30d Drops <span>names nearing renewal pressure</span></div>
+                ${renderPanelVerdict(`${dropCount} name${dropCount === 1 ? '' : 's'} in the 30-day renewal cliff; countdowns name the action.`)}
                 <div class="td-expiry-list">${renderExpiringRows(data.expiringSoon)}</div>
             </section>
         </div>
@@ -941,14 +1123,28 @@ async function refreshChamber({ initial = false, force = false } = {}) {
     if (!overlay?.classList.contains('active') || !body || (chamberRefreshInFlight && !force)) return;
     chamberRefreshInFlight = true;
     try {
+        const content = overlay.querySelector('.tezos-domains-content');
+        const scrollTop = content?.scrollTop || 0;
+        const lookupWasFocused = document.activeElement?.id === 'tezos-domains-lookup-input';
+        const previousEventKeys = initial ? new Set() : collectEventKeys(body);
         const data = force || !lastData ? await fetchTezosDomainsData() : lastData;
         lastData = data;
+        const newEventKeys = initial
+            ? new Set()
+            : new Set((data.recentEvents || []).map(eventKey).filter((key) => key && !previousEventKeys.has(key)));
         if (initial || !body.querySelector('.tezos-domains-header')) {
-            body.innerHTML = renderChamber(data);
+            body.innerHTML = renderChamber(data, { newEventKeys });
             wireChamberControls(body);
         } else {
-            body.innerHTML = renderChamber(data);
+            body.innerHTML = renderChamber(data, { newEventKeys });
             wireChamberControls(body);
+        }
+        startLiveTimeTicker(body);
+        if (!initial && content) {
+            requestAnimationFrame(() => {
+                content.scrollTop = scrollTop;
+                if (lookupWasFocused) body.querySelector('#tezos-domains-lookup-input')?.focus({ preventScroll: true });
+            });
         }
         updateEntryCard(data);
     } catch (error) {

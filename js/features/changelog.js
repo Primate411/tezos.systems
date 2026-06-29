@@ -7,6 +7,10 @@ const CHANGELOG = [
     {
         date: '2026-06-28',
         entries: [
+            { type: '✨', text: 'Chamber time labels now tick live, including L1 Governance activation and proposal countdowns plus Tezos Domains age, auction, offer, and drop timers' },
+            { type: '🎨', text: 'Tezos Domains now explains why the featured name is featured, labels event types, flags overdue settlements, and separates aspirational sell-wall asks' },
+            { type: '✨', text: 'Ledger Flow now opens with one-tap live examples so the account map has an immediate starting point even before a wallet is pasted' },
+            { type: '🎨', text: 'The Network Health entry-card live tape now keeps transfer method, amount, and age columns readable on desktop and mobile' },
             { type: '✨', text: 'Tezos Domains search now checks individual .tez names for availability, ownership, offers, auctions, and recent activity before sending users to the dApp' },
             { type: '🔧', text: 'The command bar now discovers Tezos Domains through /domains, names, identity, and direct .tez searches' },
             { type: '✨', text: 'Tezos Domains now has a full-width bottom Chamber strip with /domains/ access, fresh .tez activity, auctions, offers, and expiring-name pressure' },

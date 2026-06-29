@@ -3383,9 +3383,9 @@ body::before {
 
 .health-live-row {
     display: grid;
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) auto;
+    grid-template-columns: 5rem 1fr 4rem;
     align-items: center;
-    gap: 0.38rem;
+    gap: 0.35rem;
     min-width: 0;
     color: var(--text-secondary);
     font-family: 'JetBrains Mono', monospace;
@@ -3409,11 +3409,13 @@ body::before {
 
 .health-live-amount {
     color: var(--text-primary);
+    text-align: right;
 }
 
 .health-live-age,
 .health-live-empty {
     color: var(--text-tertiary);
+    text-align: right;
 }
 
 .health-activity-row {
@@ -17541,7 +17543,7 @@ body {
     }
 
     #chambers-grid .health-entry-card.chamber-entry-wide {
-        min-height: 258px;
+        min-height: 318px;
     }
 
     .health-entry-card.chamber-entry-wide .card-front,
@@ -17550,7 +17552,11 @@ body {
         justify-content: flex-start;
     }
 
-    .health-live-tape,
+    .health-live-tape {
+        height: 5.45rem;
+        overflow: hidden;
+    }
+
     .tezlink-entry-tape {
         max-height: 3.8rem;
         overflow: hidden;

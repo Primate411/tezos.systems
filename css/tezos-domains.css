@@ -90,6 +90,19 @@
     white-space: nowrap;
 }
 
+.td-entry-feature-reason {
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--td-cyan);
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 1.1;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
 .td-entry-metrics {
     grid-area: metrics;
     display: grid;
@@ -537,6 +550,41 @@
     gap: 0.7rem;
 }
 
+.td-event-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    min-width: 0;
+}
+
+.td-event-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.34rem;
+    min-height: 28px;
+    padding: 0.24rem 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.035);
+    color: var(--text-tertiary);
+    font-size: 0.58rem;
+    font-weight: 850;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.td-event-legend i {
+    width: 0.64rem;
+    height: 0.64rem;
+    border-radius: 999px;
+    background: var(--td-cyan);
+}
+
+.td-event-legend i[data-tone="market"] { background: var(--td-pink); }
+.td-event-legend i[data-tone="renewal"] { background: var(--td-gold); }
+.td-event-legend i[data-tone="identity"] { background: #84cc16; }
+
 .td-pulse-metric {
     min-width: 0;
     padding: 0.78rem 0.85rem;
@@ -614,6 +662,23 @@
     text-align: right;
 }
 
+.td-panel-verdict,
+.td-market-verdict {
+    margin: -0.24rem 0 0.58rem;
+    color: color-mix(in srgb, var(--text-secondary) 86%, transparent);
+    font-size: 0.64rem;
+    font-weight: 720;
+    line-height: 1.35;
+}
+
+.td-market-verdict {
+    margin: 0 0 0.45rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid color-mix(in srgb, var(--td-gold) 18%, transparent);
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--td-gold) 7%, transparent);
+}
+
 .td-event-list,
 .td-market-list,
 .td-expiry-list {
@@ -647,18 +712,27 @@
 .td-event-row[data-tone="market"],
 .td-market-row[data-kind="sell"],
 .td-market-row[data-kind="buy"],
-.td-market-row[data-kind="auction"] {
+.td-market-row[data-kind="auction"],
+.td-market-row[data-kind="aspirational"] {
     border-left-color: var(--td-pink);
 }
 
 .td-event-row[data-tone="renewal"],
 .td-market-row[data-kind="settle"],
+.td-market-row[data-kind="settle-overdue"],
 .td-expiry-row {
     border-left-color: var(--td-gold);
 }
 
 .td-event-row[data-tone="identity"] {
     border-left-color: #84cc16;
+}
+
+.td-event-main {
+    display: flex;
+    align-items: center;
+    gap: 0.42rem;
+    min-width: 0;
 }
 
 .td-name-link {
@@ -673,12 +747,44 @@
     white-space: nowrap;
 }
 
+.td-type-chip {
+    flex: 0 0 auto;
+    max-width: 7.2rem;
+    overflow: hidden;
+    padding: 0.1rem 0.34rem;
+    border: 1px solid color-mix(in srgb, var(--td-cyan) 30%, transparent);
+    border-radius: 999px;
+    color: var(--td-cyan);
+    font-size: 0.48rem !important;
+    font-weight: 950 !important;
+    letter-spacing: 0.08em;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.td-type-chip[data-tone="market"] {
+    border-color: color-mix(in srgb, var(--td-pink) 34%, transparent);
+    color: var(--td-pink);
+}
+
+.td-type-chip[data-tone="renewal"] {
+    border-color: color-mix(in srgb, var(--td-gold) 34%, transparent);
+    color: var(--td-gold);
+}
+
+.td-type-chip[data-tone="identity"] {
+    border-color: color-mix(in srgb, #84cc16 34%, transparent);
+    color: #84cc16;
+}
+
 .td-name-link:hover,
 .td-op-link:hover {
     color: var(--td-cyan);
 }
 
-.td-event-row span,
+.td-event-row .td-event-action,
 .td-market-row span,
 .td-expiry-row span {
     color: color-mix(in srgb, var(--text-secondary) 86%, transparent);
@@ -709,7 +815,8 @@
 }
 
 .td-market-row strong,
-.td-expiry-row strong {
+.td-expiry-row strong,
+.td-market-row b {
     align-self: start;
     color: var(--td-pink);
     font-family: 'JetBrains Mono', monospace;
@@ -719,8 +826,40 @@
     line-height: 1.1;
 }
 
-.td-expiry-row strong {
+.td-expiry-row strong,
+.td-market-row[data-kind="settle-overdue"] b {
     color: var(--td-gold);
+}
+
+.td-aspirational-group {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 0;
+    padding-top: 0.52rem;
+    border-top: 1px dashed color-mix(in srgb, var(--td-pink) 30%, transparent);
+}
+
+.td-aspirational-group > span {
+    color: var(--td-pink);
+    font-size: 0.54rem;
+    font-weight: 950;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.td-event-row.is-new {
+    animation: td-new-row-flash 1.6s ease both;
+}
+
+@keyframes td-new-row-flash {
+    0% {
+        border-color: color-mix(in srgb, var(--td-cyan) 52%, transparent);
+        background: color-mix(in srgb, var(--td-cyan) 18%, rgba(0, 0, 0, 0.16));
+        box-shadow: 0 0 0 1px color-mix(in srgb, var(--td-cyan) 32%, transparent);
+    }
+    100% {
+        box-shadow: none;
+    }
 }
 
 .td-empty {
@@ -778,6 +917,10 @@
     }
 
     .td-entry-hero strong {
+        white-space: normal;
+    }
+
+    .td-entry-feature-reason {
         white-space: normal;
     }
 
@@ -891,6 +1034,12 @@
     .td-market-row,
     .td-expiry-row {
         grid-template-columns: minmax(0, 1fr);
+    }
+
+    .td-event-main {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.24rem;
     }
 
     .td-event-row .td-op-link,

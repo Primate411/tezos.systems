@@ -1669,7 +1669,7 @@ function renderHealthEntryTape(rows) {
         <div class="health-live-row">
             <span class="health-live-method">${escapeHtml(activityMethodLabel(row))}</span>
             <span class="health-live-amount">${row.amount === null ? '--' : `${formatCompactPower(row.amount)} XTZ`}</span>
-            <span class="health-live-age">${escapeHtml(formatAge(row.timestamp))}</span>
+            <span class="health-live-age"${healthAgeAttr(row.timestamp)}>${escapeHtml(formatAge(row.timestamp))}</span>
         </div>
     `).join('');
 }

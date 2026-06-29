@@ -11,7 +11,7 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const LAST_TARGET_KEY = 'tezos-systems-ledger-flow-target';
 const WINDOW_KEY = 'tezos-systems-ledger-flow-window';
 const THRESHOLD_KEY = 'tezos-systems-ledger-flow-threshold-index';
-const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=305';
+const LEDGER_FLOW_CSS_URL = '/css/ledger-flow.css?v=306';
 const DEFAULT_WINDOW = '30d';
 const TRANSFER_LIMIT = 60;
 const MAX_VISIBLE_COUNTERPARTIES = 12;
@@ -38,6 +38,12 @@ const THRESHOLDS = [
     { label: '1K XTZ', mutez: 1000e6 },
     { label: '10K XTZ', mutez: 10000e6 },
     { label: '100K XTZ', mutez: 100000e6 }
+];
+
+const LEDGER_FLOW_EXAMPLES = [
+    { label: 'Tezos Foundation', target: 'tezos.tez' },
+    { label: 'OBJKT', target: 'objkt.tez' },
+    { label: 'DNS contract', target: 'dns.tez' }
 ];
 
 let savedBodyOverflow = null;
@@ -678,6 +684,19 @@ function renderLegend() {
     `;
 }
 
+function renderExampleChips() {
+    return `
+        <div class="ledger-flow-examples" aria-label="Example Ledger Flow accounts">
+            ${LEDGER_FLOW_EXAMPLES.map((item) => `
+                <button type="button" data-ledger-example="${escapeHtml(item.target)}">
+                    <span>${escapeHtml(item.label)}</span>
+                    <strong>${escapeHtml(item.target)}</strong>
+                </button>
+            `).join('')}
+        </div>
+    `;
+}
+
 function renderEmptyState(container) {
     container.innerHTML = `
         <div class="chamber-header lb-header ledger-flow-header chamber-anim-fade">
@@ -689,9 +708,10 @@ function renderEmptyState(container) {
         </div>
         <section class="lb-explainer ledger-flow-explainer chamber-anim-fade">
             ${renderControls()}
+            ${renderExampleChips()}
             <div class="ledger-flow-empty-panel">
                 <strong>Choose an account</strong>
-                <span>Paste a wallet, contract, or .tez name to build the transfer diagram.</span>
+                <span>Paste a wallet, contract, or .tez name, or start with a live example.</span>
             </div>
         </section>
         <div class="chamber-footer chamber-anim-fade">
@@ -808,6 +828,12 @@ function wireLedgerFlowControls(container) {
     if (!container.dataset.ledgerFlowEdgeWired) {
         container.dataset.ledgerFlowEdgeWired = '1';
         container.addEventListener('click', (event) => {
+            const example = event.target.closest('[data-ledger-example]');
+            if (example) {
+                event.preventDefault();
+                loadLedgerFlow(example.dataset.ledgerExample);
+                return;
+            }
             const accountLink = event.target.closest('.ledger-flow-my-tezos-link, .ledger-flow-node-profile-link');
             if (accountLink) {
                 if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) closeLedgerFlowChamber();
