@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-30',
         entries: [
+            { type: '🎨', text: 'My Tezos now explains Ledger Flow with a compact transfer-map card before opening the account flow chamber' },
             { type: '🎨', text: 'Tezos L1 Governance footer links now wrap cleanly at the bottom of the Chamber panel on mobile' },
             { type: '🎨', text: 'My Tezos first-screen address field now collapses into a saved-address summary after an address is tracked' },
             { type: '🔧', text: 'Governance alerts now stay hidden during empty Proposal periods with no submitted proposal' },

@@ -759,13 +759,17 @@ export function init() {
         if (!ledgerFlowLink) return;
         if (!addr) {
             ledgerFlowLink.hidden = true;
+            ledgerFlowLink.style.display = 'none';
             ledgerFlowLink.href = '#ledger-flow';
             ledgerFlowLink.removeAttribute('title');
+            ledgerFlowLink.removeAttribute('aria-label');
             return;
         }
         ledgerFlowLink.hidden = false;
+        ledgerFlowLink.style.display = 'grid';
         ledgerFlowLink.href = `#ledger-flow=${encodeURIComponent(addr)}`;
-        ledgerFlowLink.title = `Open Ledger Flow for ${addr}`;
+        ledgerFlowLink.title = `Open Ledger Flow transfer map for ${addr}`;
+        ledgerFlowLink.setAttribute('aria-label', `Open Ledger Flow transfer map for ${addr}`);
     }
 
     function setDrawerConnectionState(hasAddress) {

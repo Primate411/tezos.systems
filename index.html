@@ -50,15 +50,15 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=316">
-    <link rel="stylesheet" href="css/loading.css?v=316">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=316">
+    <link rel="stylesheet" href="css/styles.min.css?v=317">
+    <link rel="stylesheet" href="css/loading.css?v=317">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=317">
     <link rel="stylesheet" href="css/hen-mode.css?v=88">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=316">
+    <link rel="modulepreload" href="js/core/app.js?v=317">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -216,7 +216,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=316"></script>
+    <script src="js/core/theme-preload.js?v=317"></script>
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
         <button id="corner-gift-toggle" class="corner-gift-toggle" type="button" aria-label="Open corner tools: HEN, ctez, and TzSafe" aria-expanded="false" aria-controls="corner-gift-items" title="Corner tools">
             <span aria-hidden="true">🎁</span>
@@ -2138,8 +2138,30 @@
               <button id="my-baker-save" class="glass-button my-baker-btn">Save</button>
               <button id="my-baker-clear" class="glass-button my-baker-btn">Clear</button>
               <button id="my-baker-share-link" class="glass-button my-baker-btn" style="display:none;">🔗</button>
-              <a id="my-tezos-ledger-flow-link" class="glass-button my-baker-btn drawer-ledger-flow-link" href="#ledger-flow" hidden>Ledger Flow</a>
             </div>
+            <a id="my-tezos-ledger-flow-link" class="drawer-ledger-flow-card" href="#ledger-flow" hidden style="grid-template-columns:minmax(92px,0.34fr) minmax(0,1fr);grid-template-areas:'visual copy' 'legend legend';gap:0.6rem 0.75rem;align-items:center;width:100%;min-height:126px;margin-top:0.8rem;padding:0.78rem;color:var(--text-primary);text-decoration:none;border:1px solid rgba(77,212,255,0.18);border-radius:8px;background:linear-gradient(135deg,rgba(77,212,255,0.085),rgba(255,94,156,0.045)),rgba(255,255,255,0.025);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);">
+              <span class="drawer-ledger-flow-visual" aria-hidden="true" style="grid-area:visual;min-width:0;">
+                <svg viewBox="0 0 360 118" focusable="false" style="display:block;width:100%;min-height:74px;overflow:visible;">
+                  <path d="M26 30 C105 14, 116 55, 178 56" fill="none" stroke="#4dd4ff" stroke-width="5" stroke-linecap="round" opacity="0.68"></path>
+                  <path d="M180 62 C238 54, 260 92, 332 82" fill="none" stroke="#ff5e9c" stroke-width="8" stroke-linecap="round" opacity="0.74"></path>
+                  <path d="M52 92 C112 82, 128 66, 178 64" fill="none" stroke="#f5d65b" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 8" opacity="0.88"></path>
+                  <circle cx="180" cy="60" r="18" fill="rgba(10, 14, 26, 0.72)" stroke="rgba(255, 255, 255, 0.28)" stroke-width="2"></circle>
+                  <circle cx="26" cy="30" r="7" fill="#4dd4ff" stroke="rgba(10, 14, 26, 0.78)" stroke-width="2"></circle>
+                  <circle cx="332" cy="82" r="7" fill="#ff5e9c" stroke="rgba(10, 14, 26, 0.78)" stroke-width="2"></circle>
+                  <circle cx="52" cy="92" r="7" fill="#f5d65b" stroke="rgba(10, 14, 26, 0.78)" stroke-width="2"></circle>
+                </svg>
+              </span>
+              <span class="drawer-ledger-flow-copy" style="grid-area:copy;min-width:0;display:grid;gap:0.26rem;">
+                <span class="drawer-ledger-flow-kicker" style="color:var(--accent-cyan,#45e0c8);font-size:0.68rem;font-weight:800;letter-spacing:0.08em;line-height:1.1;text-transform:uppercase;">Ledger Flow</span>
+                <strong style="color:var(--text-primary);font-size:1rem;line-height:1.2;overflow-wrap:anywhere;">Map this account's transfer paths</strong>
+                <span style="color:var(--text-secondary);font-size:0.78rem;line-height:1.38;">Sent, received, and first-funding trails, with heavier lines for larger XTZ flows.</span>
+              </span>
+              <span class="drawer-ledger-flow-legend" aria-hidden="true" style="grid-area:legend;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.38rem;">
+                <span style="min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:0.34rem;min-height:30px;padding:0.28rem 0.4rem;color:var(--text-secondary);font-size:0.68rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,0.075);border-radius:7px;background:rgba(0,0,0,0.13);"><i style="width:0.52rem;height:0.52rem;flex:0 0 auto;border-radius:50%;background:#4dd4ff;"></i>In</span>
+                <span style="min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:0.34rem;min-height:30px;padding:0.28rem 0.4rem;color:var(--text-secondary);font-size:0.68rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,0.075);border-radius:7px;background:rgba(0,0,0,0.13);"><i style="width:0.52rem;height:0.52rem;flex:0 0 auto;border-radius:50%;background:#ff5e9c;"></i>Out</span>
+                <span style="min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:0.34rem;min-height:30px;padding:0.28rem 0.4rem;color:var(--text-secondary);font-size:0.68rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,0.075);border-radius:7px;background:rgba(0,0,0,0.13);"><i style="width:0.52rem;height:0.52rem;flex:0 0 auto;border-radius:50%;background:#f5d65b;"></i>First</span>
+              </span>
+            </a>
             <div class="wallet-connect-row wallet-connect-row-compact">
               <button id="my-tezos-wallet-connect" class="glass-button wallet-connect-btn" type="button">Use wallet</button>
               <button id="my-tezos-wallet-disconnect" class="glass-button wallet-connect-btn wallet-disconnect-btn" type="button">Disconnect wallet</button>
@@ -2188,7 +2210,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=85"></script>
-    <script type="module" src="js/core/app.js?v=316"></script>
+    <script type="module" src="js/core/app.js?v=317"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
