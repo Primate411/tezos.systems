@@ -249,7 +249,7 @@ fall back for themes such as `nerv`, `abyss`, `moss`, and `warzone`.
 
 ## Data Files
 
-- `data/protocol-data.json`: protocol timeline from Athens through Tallinn.
+- `data/protocol-data.json`: protocol timeline from Athens through Ushuaia.
 - `data/protocol-debates.json`: debate and rejection narratives.
 - `data/governance-votes.json`: generated TzKT voting epochs plus
   Exploration/Promotion vote rows, including failed windows.

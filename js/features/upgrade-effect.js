@@ -32,6 +32,7 @@ const PROTOCOLS = [
     { name: 'Rio',       letter: 'R', date: '2025-05', blockTime: 8,  minStake: 6000,  bakers: 292, supply: 1061902537, consensus: 'Tenderbake' },
     { name: 'Seoul',     letter: 'S', date: '2025-09', blockTime: 8,  minStake: 6000,  bakers: 267, supply: 1079110335, consensus: 'Tenderbake' },
     { name: 'Tallinn',   letter: 'T', date: '2026-01', blockTime: 6,  minStake: 6000,  bakers: 262, supply: 1093238688, consensus: 'Tenderbake' },
+    { name: 'Ushuaia',   letter: 'U', date: '2026-06', blockTime: 6,  minStake: 6000,  bakers: 210, supply: 1109274252, consensus: 'Tenderbake' },
 ];
 
 const METRICS = [

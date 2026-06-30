@@ -11,10 +11,11 @@ import { getTzktTotalStaked } from '../core/api.js';
 
 const TZKT = API_URLS.tzkt;
 const MAINNET_LAUNCH = new Date('2018-09-17T00:00:00Z');
-const SELF_AMENDMENTS = 21;
+const SELF_AMENDMENTS = 22;
 
 // Protocol hash prefix → human name (first 8 chars of hash → name)
 const PROTO_NAMES = {
+    PsUshuai: 'Ushuaia',
     PtTALLiN: 'Tallinn',
     PsSEouLn: 'Seoul',
     PtRioGEA: 'Rio',

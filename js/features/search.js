@@ -8,7 +8,7 @@ import { getAvailableThemes, openThemePicker, setTheme } from '../ui/theme.js';
 import { findBakersByName } from './leaderboard.js';
 
 const PROTOCOL_DATA_URL = '/data/protocol-data.json?v=2';
-const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=309';
+const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=310';
 
 const ADDRESS_RE = /^(tz[1-4]|KT1)[0-9A-Za-z]{33}$/;
 const TEZ_DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i;
@@ -22,7 +22,7 @@ const QUICK_CHIPS = [
     { label: '/health', value: '/health' },
     { label: '/chamber', value: '/chamber' },
     { label: '/flow', value: '/ledger-flow' },
-    { label: 'Protocol', value: 'Tallinn' },
+    { label: 'Protocol', value: 'Ushuaia' },
     { label: 'KT1', value: 'KT1' },
     { label: '/theme', value: '/theme' }
 ];

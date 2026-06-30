@@ -1349,7 +1349,7 @@ async function installFeatureMocks(context, options = {}) {
         });
       }
       if (url.includes('/head')) {
-        return fulfillJson(route, { level: 12345678, cycle: 1143, protocol: 'PtTALLiNQATEST' });
+        return fulfillJson(route, { level: 12345678, cycle: 1278, protocol: 'PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY' });
       }
       if (/\/blocks\/[^/]+\/level/.test(url)) {
         return fulfillJson(route, 12344000);
@@ -1386,7 +1386,7 @@ async function installFeatureMocks(context, options = {}) {
         }));
       }
       if (url.includes('/protocols/current')) {
-        return fulfillJson(route, { code: 21, alias: 'Tallinn', metadata: { alias: 'Tallinn' } });
+        return fulfillJson(route, { code: 25, hash: 'PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY', version: 25, firstLevel: 13857889 });
       }
       if (url.endsWith('/protocols') || url.includes('/protocols?')) {
         return fulfillJson(route, [
@@ -1406,8 +1406,12 @@ async function installFeatureMocks(context, options = {}) {
           { code: 17, extras: { alias: 'Nairobi' } },
           { code: 18, extras: { alias: 'Oxford' } },
           { code: 19, extras: { alias: 'Paris' } },
-          { code: 20, extras: { alias: 'Quebec' } },
-          { code: 21, extras: { alias: 'Tallinn' } }
+          { code: 20, extras: { alias: 'Paris C' } },
+          { code: 21, extras: { alias: 'Quebec' } },
+          { code: 22, extras: { alias: 'Rio' } },
+          { code: 23, extras: { alias: 'Seoul' } },
+          { code: 24, extras: { alias: 'Tallinn' } },
+          { code: 25, hash: 'PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY', firstLevel: 13857889 }
         ]);
       }
       if (url.includes('/delegates/count?active=true')) return fulfillJson(route, sampleBakers.length);
@@ -1480,7 +1484,7 @@ async function installFeatureMocks(context, options = {}) {
             sender: { address: SAMPLE_ADDRESS_3, alias: 'Pending Baker' },
             publicKey: 'BLpkSmokePendingConsensusKey1111111111111111111111111111111111111111111111',
             publicKeyHash: 'tz4PendingPendingPendingPendingPendingPend',
-            activationCycle: 1148,
+            activationCycle: 1284,
             status: 'applied'
           }
         ]);
@@ -2994,7 +2998,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   await page.waitForFunction(() => window.location.hash === '#protocol-history', null, { timeout: 5000 });
   await page.locator('#protocol-history-chamber-modal.active #upgrade-timeline .timeline-item').first().waitFor({ state: 'visible', timeout: 10000 });
   const firstProtocolInHistory = await page.locator('#protocol-history-chamber-modal #upgrade-timeline .timeline-item').first().getAttribute('data-protocol');
-  assert(firstProtocolInHistory === 'Tallinn', `hero command bar: Protocol History Chamber should start at current protocol, saw ${firstProtocolInHistory}`);
+  assert(firstProtocolInHistory === 'Ushuaia', `hero command bar: Protocol History Chamber should start at current protocol, saw ${firstProtocolInHistory}`);
   await page.locator('#protocol-history-chamber-modal .chamber-close').click();
   await page.locator('#protocol-history-chamber-modal').waitFor({ state: 'detached', timeout: 5000 });
 
@@ -5974,7 +5978,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(tz4State.latestSwitchRows === 1, `governance testing period: tz4 latest switch row count mismatch: ${tz4State.latestSwitchRows}`);
   assert(/Latest Switches/.test(tz4State.latestSwitches) && /QA Baker/.test(tz4State.latestSwitches) && /cycle 1,136/.test(tz4State.latestSwitches), `governance testing period: tz4 latest switch panel mismatch: ${tz4State.latestSwitches}`);
   assert(tz4State.pendingQueueRows === 1, `governance testing period: tz4 pending queue row count mismatch: ${tz4State.pendingQueueRows}`);
-  assert(/Pending Queue/.test(tz4State.pendingQueue) && /Pending Baker/.test(tz4State.pendingQueue) && /Activates cycle 1,148/.test(tz4State.pendingQueue), `governance testing period: tz4 pending queue panel mismatch: ${tz4State.pendingQueue}`);
+  assert(/Pending Queue/.test(tz4State.pendingQueue) && /Pending Baker/.test(tz4State.pendingQueue) && /Activates cycle 1,284/.test(tz4State.pendingQueue), `governance testing period: tz4 pending queue panel mismatch: ${tz4State.pendingQueue}`);
   assert(/QA Baker/.test(tz4State.firstMovers) && /cycle 1,136/.test(tz4State.firstMovers), `governance testing period: tz4 first mover list mismatch: ${tz4State.firstMovers}`);
   assert(/Projection to 50%/.test(tz4State.projection) && /Bakers/.test(tz4State.projection), `governance testing period: tz4 projection panel missing: ${tz4State.projection}`);
   assert(/Largest Holdouts/.test(tz4State.holdouts) && /Second Baker/.test(tz4State.holdouts), `governance testing period: tz4 holdouts panel missing: ${tz4State.holdouts}`);
@@ -6000,7 +6004,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     text: document.querySelector('#tz4-baker-status-list')?.textContent || ''
   }));
   assert(tz4PendingFilter.rows === 1, `governance testing period: tz4 pending filter should show one row, saw ${tz4PendingFilter.rows}`);
-  assert(/Pending Baker/.test(tz4PendingFilter.text) && /Activates cycle 1,148/.test(tz4PendingFilter.text), `governance testing period: tz4 pending filter mismatch: ${tz4PendingFilter.text}`);
+  assert(/Pending Baker/.test(tz4PendingFilter.text) && /Activates cycle 1,284/.test(tz4PendingFilter.text), `governance testing period: tz4 pending filter mismatch: ${tz4PendingFilter.text}`);
 
   await page.locator('#tz4-adoption-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#tz4-adoption-modal')?.classList.contains('active'), null, { timeout: 5000 });

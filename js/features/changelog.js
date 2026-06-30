@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-06-30',
         entries: [
+            { type: '🔧', text: 'Ushuaia Protocol Anthology now separates the quiet DAL/PVM consensus from the real TezosAgora debates over sTEZ, signer readiness, and ecosystem process' },
+            { type: '🔧', text: 'Protocol Anthology, governance data, widgets, share copy, and current-protocol fallbacks now reflect Ushuaia activating as Protocol 25' },
             { type: '🔧', text: 'The What is hot today strip now rotates quietly without pulling readers back up the page while they are browsing lower sections' },
         ]
     },

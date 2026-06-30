@@ -1260,11 +1260,11 @@ function buildProtocolEntryRail(protocols) {
     const hasProtocols = Array.isArray(protocols) && protocols.length;
     const list = hasProtocols
         ? protocols
-        : ['Paris', 'Paris C', 'Quebec', 'Rio', 'Seoul', 'Tallinn'].map((name, index, names) => ({
+        : ['Paris C', 'Quebec', 'Rio', 'Seoul', 'Tallinn', 'Ushuaia'].map((name, index, names) => ({
             name,
             isCurrent: index === names.length - 1
         }));
-    const chapterBase = hasProtocols ? list.length : 21;
+    const chapterBase = hasProtocols ? list.length : 22;
     const currentFirst = [...list].reverse().slice(0, 6);
     return currentFirst.map((protocol, index) => {
         const name = protocol?.name || `Chapter ${currentFirst.length - index}`;
@@ -1518,8 +1518,8 @@ function updateProtocolHistoryEntryCard(protocols = getKnownProtocols()) {
 
     const list = Array.isArray(protocols) ? protocols : [];
     const currentProtocol = list.find((protocol) => protocol.isCurrent) || list[list.length - 1] || null;
-    const count = list.length || 21;
-    const currentName = currentProtocol?.name || document.getElementById('header-current-protocol')?.textContent?.trim() || 'Tallinn';
+    const count = list.length || 22;
+    const currentName = currentProtocol?.name || document.getElementById('header-current-protocol')?.textContent?.trim() || 'Ushuaia';
 
     const countEl = card.querySelector('#protocol-history-entry-count');
     if (countEl) countEl.textContent = String(count);
@@ -1557,16 +1557,16 @@ function ensureProtocolHistoryEntryCard() {
                     <div class="protocol-history-entry-anthology">
                         <div class="protocol-history-entry-count">
                             <span>Volume</span>
-                            <strong id="protocol-history-entry-count">21</strong>
+                            <strong id="protocol-history-entry-count">22</strong>
                             <em>chapters</em>
                         </div>
                         <div class="protocol-history-entry-core">
                             <div class="protocol-history-entry-current">
                                 <span>Current chapter</span>
-                                <strong id="protocol-history-entry-current">Tallinn</strong>
+                                <strong id="protocol-history-entry-current">Ushuaia</strong>
                                 <small>Running now on Tezos</small>
                             </div>
-                            <p class="stat-description" id="protocol-history-entry-description">Start at Tallinn, then unfold the amendment anthology backward through lore, impact views, disputes, and receipts.</p>
+                            <p class="stat-description" id="protocol-history-entry-description">Start at Ushuaia, then unfold the amendment anthology backward through lore, impact views, disputes, and receipts.</p>
                             <div class="protocol-history-entry-facets" aria-label="Protocol anthology sections">
                                 <span><strong>Lore</strong><small>why it mattered</small></span>
                                 <span><strong>Impact</strong><small>what changed</small></span>
@@ -2465,7 +2465,7 @@ async function renderInfographic(protocols, timelineEl, options = {}) {
     const toggleDiv = document.createElement('div');
     toggleDiv.className = 'infographic-toggle';
     toggleDiv.innerHTML = `<button class="infographic-toggle-btn protocol-timeline-toggle-btn" type="button" aria-expanded="false">View Timeline ▾</button>`;
-    // Place below the upgrade count (21 UPGRADES)
+    // Place below the upgrade count.
     const upgradeCount = document.querySelector('.upgrade-count');
     if (upgradeCount) {
         upgradeCount.appendChild(toggleDiv);
@@ -3109,7 +3109,7 @@ function renderProtocolHistoryChamberShell(overlay) {
                 <h2 class="chamber-title" id="protocol-history-chamber-title">Protocol History Chamber</h2>
             </div>
             <p class="protocol-history-chamber-lede">
-                The Tezos self-amendment archive: protocol lore, proposal context, impact views, and the path from Tallinn back through every prior era.
+                The Tezos self-amendment archive: protocol lore, proposal context, impact views, and the path from Ushuaia back through every prior era.
             </p>
             <div class="protocol-history-chamber-actions">
                 <button class="protocol-history-chamber-link protocol-history-chamber-action" type="button" data-protocol-history-jump="timeline">View Timeline</button>
@@ -3278,7 +3278,7 @@ const TEZOS_LOOP_AURAS = {
     },
     governance: {
         title: 'Governance and protocol lore',
-        line: 'Try /chamber, /health, Tallinn, or Liquidity Baking to jump into live rooms, current vote state, and protocol memory.',
+        line: 'Try /chamber, /health, Ushuaia, or Liquidity Baking to jump into live rooms, current vote state, and protocol memory.',
         query: '/chamber',
         searchLabel: 'Search governance',
         href: '/chamber/',
@@ -3853,7 +3853,7 @@ function initOfflineIndicator() {
 //   #tz4               → open tz4 Adoption Chamber
 //   #ctez              → open ctez Oven Guide
 //   #protocol-history  → open Protocol History Chamber
-//   #protocol=Tallinn  → open protocol lore/history
+//   #protocol=Ushuaia  → open protocol lore/history
 //   #theme=dark        → switch to theme
 //   #section=consensus → scroll to section
 // Account path shortcuts:
@@ -4295,7 +4295,7 @@ function applyDeepLink() {
         }, 'Failed to open history modal');
     }
 
-    // #protocol=Tallinn
+    // #protocol=Ushuaia
     if (params.has('protocol')) {
         const protocolName = params.get('protocol');
         openHashModal(

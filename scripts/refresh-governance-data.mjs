@@ -187,20 +187,31 @@ function sortedProtocolData(protocolData) {
     return Array.isArray(protocolData?.protocols) ? protocolData.protocols : [];
 }
 
-function namedTzktProtocols(tzktProtocols) {
+function namedTzktProtocols(tzktProtocols, protocolData = null) {
     return tzktProtocols
-        .filter((protocol) => protocol.code >= 4 && protocol.extras?.alias)
-        .map((protocol) => ({
-            code: protocol.code,
-            name: protocol.extras.alias,
-            hash: protocol.hash,
-            firstLevel: protocol.firstLevel ?? null,
-            lastLevel: protocol.lastLevel ?? null,
-            startTime: protocol.startTime ?? null,
-            blockTime: protocol.constants?.timeBetweenBlocks ?? null,
-            docs: protocol.extras?.docs ?? null,
-            isCurrent: !protocol.lastLevel
-        }));
+        .filter((protocol) => protocol.code >= 4)
+        .map((protocol) => {
+            const lore = findLoreForProtocol(protocol, protocolData);
+            const name = protocol.extras?.alias
+                || protocol.metadata?.alias
+                || protocol.alias
+                || lore?.name
+                || `Protocol ${protocol.code}`;
+
+            return {
+                code: protocol.code,
+                name,
+                hash: protocol.hash,
+                firstLevel: protocol.firstLevel ?? null,
+                firstCycle: protocol.firstCycle ?? null,
+                firstCycleLevel: protocol.firstCycleLevel ?? null,
+                lastLevel: protocol.lastLevel ?? null,
+                startTime: protocol.startTime ?? null,
+                blockTime: protocol.constants?.timeBetweenBlocks ?? null,
+                docs: protocol.extras?.docs ?? protocol.metadata?.docs ?? null,
+                isCurrent: !protocol.lastLevel
+            };
+        });
 }
 
 function findLoreForProtocol(protocol, protocolData) {
@@ -333,7 +344,7 @@ function summarizeCurrentGovernance(currentPeriod, epochs, protocolData, activeP
 }
 
 function buildReport({ generatedAt, protocolData, tzktProtocols, epochs, currentPeriod, periodVotes, activeProposalAgoraTopic }) {
-    const namedProtocols = namedTzktProtocols(tzktProtocols);
+    const namedProtocols = namedTzktProtocols(tzktProtocols, protocolData);
     const currentProtocol = namedProtocols.find((protocol) => protocol.isCurrent) || namedProtocols[namedProtocols.length - 1] || null;
     const currentGovernance = summarizeCurrentGovernance(currentPeriod, epochs, protocolData, activeProposalAgoraTopic);
     const missingAcceptedProtocolLore = namedProtocols.filter((protocol) => !findLoreForProtocol(protocol, protocolData));

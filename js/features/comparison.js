@@ -17,14 +17,14 @@ async function getUpgradeCount() {
         if (chips.length > 0) { _upgradeCount = chips.length; return _upgradeCount; }
         const resp = await fetch(API_URLS.tzkt + '/protocols');
         const p = await resp.json();
-        _upgradeCount = p.filter(x => x.code >= 4 && x.extras?.alias).length;
+        _upgradeCount = p.filter(x => x.code >= 4 && x.firstLevel > 0).length;
         return _upgradeCount;
-    } catch { return 21; }
+    } catch { return 22; }
 }
 
 // --- Full comparison tweet options ---
 function getComparisonTweets() {
-  const upgradeCount = document.querySelectorAll('.upgrade-chip').length || 21;
+  const upgradeCount = document.querySelectorAll('.upgrade-chip').length || 22;
   return [
   { label: "Data Drop", text: `The blockchain trilemma, quantified:
 
@@ -184,7 +184,7 @@ tezos.systems` }
 
 // --- Per-metric tweet options ---
 function getPerMetricTweets() {
-  const upgradeCount = document.querySelectorAll('.upgrade-chip').length || 21;
+  const upgradeCount = document.querySelectorAll('.upgrade-chip').length || 22;
   return {
   blockTime: [
     { label: "Honest", text: `Block time:
@@ -456,7 +456,7 @@ const METRICS = [
         key: 'selfAmendments',
         label: 'Self-Amendments',
         icon: '🔄',
-        tezosLive: (stats) => stats.protocolCount ? String(stats.protocolCount) : '21',
+        tezosLive: (stats) => stats.protocolCount ? String(stats.protocolCount) : '22',
         winner: 'tezos',
         winNote: 'Only self-amending chain',
     },
@@ -496,7 +496,7 @@ const CHAIN_STANDINGS = {
         name: 'Tezos',
         role: 'Self-upgrading baseline',
         body: (stats) => {
-            const upgradeCount = stats?.protocolCount || document.querySelectorAll('.upgrade-chip').length || 21;
+            const upgradeCount = stats?.protocolCount || document.querySelectorAll('.upgrade-chip').length || 22;
             return `${upgradeCount} on-chain upgrades, 0 hard forks, ${CHAIN_COMPARISON.tezosStatic.finality} deterministic finality.`;
         },
         watch: 'Not the fastest block time or absolute lowest fee.',

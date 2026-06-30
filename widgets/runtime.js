@@ -106,6 +106,15 @@ export const COMBO_STAT_OPTIONS = [
 ];
 
 const COMBO_STAT_KEYS = new Set(COMBO_STAT_OPTIONS.map((stat) => stat.key));
+const PROTOCOL_HASH_NAMES = {
+    PsUshuai: 'Ushuaia',
+    PtTALLiN: 'Tallinn',
+    PtSeouLo: 'Seoul',
+    PsRiotum: 'Rio',
+    PsQuebec: 'Quebec',
+    PsParisC: 'Paris C',
+    PtParisB: 'Paris'
+};
 
 export const WIDGET_ENDPOINTS = {
     activeBakers() {
@@ -352,10 +361,12 @@ export function targetLabel() {
 }
 
 export function protocolAlias(protocol) {
+    const hashPrefix = protocol?.hash ? String(protocol.hash).slice(0, 8) : '';
     return protocol?.extras?.alias
         || protocol?.metadata?.alias
         || protocol?.alias
-        || protocol?.hash?.slice(0, 8)
+        || PROTOCOL_HASH_NAMES[hashPrefix]
+        || hashPrefix
         || '—';
 }
 

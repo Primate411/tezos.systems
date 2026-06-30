@@ -345,7 +345,7 @@ Useful deep links include:
 - `#giants`
 - `#history`
 - `#protocol-history`
-- `#protocol=Tallinn`
+- `#protocol=Ushuaia`
 - `#theme=...`
 - `#section=...`
 - `#price`

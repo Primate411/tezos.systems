@@ -10,6 +10,15 @@ const TZKT = 'https://api.tzkt.io/v1';
 const OCTEZ = 'https://eu.rpc.tez.capital';
 const LB_EMA_DISABLE_THRESHOLD = 1_000_000_000;
 const LB_MINUTES_PER_YEAR = 365.25 * 24 * 60;
+const PROTOCOL_HASH_NAMES = {
+    PsUshuai: 'Ushuaia',
+    PtTALLiN: 'Tallinn',
+    PtSeouLo: 'Seoul',
+    PsRiotum: 'Rio',
+    PsQuebec: 'Quebec',
+    PsParisC: 'Paris C',
+    PtParisB: 'Paris'
+};
 
 async function fetchJson(url) {
     return fetchWithRetry(url, { cache: 'no-store', memoryCache: false }, 2);
@@ -87,6 +96,15 @@ function checkedAtLabel() {
         minute: '2-digit',
         timeZoneName: 'short'
     });
+}
+
+function protocolAlias(protocol) {
+    const hashPrefix = protocol?.hash ? String(protocol.hash).slice(0, 8) : '';
+    return protocol?.extras?.alias
+        || protocol?.metadata?.alias
+        || protocol?.alias
+        || PROTOCOL_HASH_NAMES[hashPrefix]
+        || 'Unknown';
 }
 
 /**
@@ -185,7 +203,7 @@ export async function loadGovernanceData() {
         // Current protocol
         const current = activeProtocols[0];
         if (current) {
-            inject('current-protocol', current.extras?.alias || current.metadata?.alias || 'Unknown');
+            inject('current-protocol', protocolAlias(current));
         }
 
         // Days live

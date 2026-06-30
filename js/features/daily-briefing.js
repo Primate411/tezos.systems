@@ -349,7 +349,7 @@ function buildSentences(stats, xtzPrice, baseline, whales, bakerStats, profile =
       tone: 'governance-hot'
     });
   } else {
-    addSignal('governance', 30, TEMPLATES.governance[2]({ name: stats.lastUpgradeName || 'Tallinn' }), {
+    addSignal('governance', 30, TEMPLATES.governance[2]({ name: stats.lastUpgradeName || 'Ushuaia' }), {
       detail: 'No active protocol vote',
       tone: 'quiet'
     });

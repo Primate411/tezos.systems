@@ -541,56 +541,69 @@
       "number": 25,
       "name": "Ushuaia",
       "hash": "PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY",
-      "date": "2026-06-29",
-      "block": null,
-      "headline": "10 MB/s DAL, dynamic lag, rollup-aligned PVMs",
+      "date": "2026-06-30",
+      "block": 13857889,
+      "headline": "10 MB/s DAL, dynamic lag, rollup-governed PVMs",
       "changes": [
-        "DAL bandwidth to 10 MB/s",
+        "DAL bandwidth 0.66→10 MB/s",
         "Dynamic DAL attestation lag",
         "Rollup-aligned PVM activation",
-        "sTEZ and tz5 testnet flags"
+        "sTEZ, tz5, and SWRR gated on mainnet"
       ],
       "blockTime": 6,
-      "debate": "Ushuaia is framed as a Tezos X scaling upgrade: mainnet gets higher DAL throughput, dynamic DAL lag, and rollup PVM plumbing, while liquid staking and post-quantum tz5 accounts stay feature-flagged for testnet review. The live debate is less a rejection fight than an operator-readiness and maturity check: large bakers need to review DAL hardware, and experimental sTEZ/tz5 pieces need ecosystem testing before any mainnet activation.",
+      "debate": "Ushuaia activated as Protocol 25 at level 13,857,889 on 2026-06-30 UTC. The active mainnet payload, 10 MB/s DAL capacity, dynamic DAL attestation lag, and rollup-aligned PVM feature activation, drew little direct TezosAgora opposition. The real debate concentrated on bundled testnet or readiness issues: whether protocol-native sTEZ would distort staking incentives or undercut existing liquid-staking projects, whether baker fee and capacity settings should be competitive or fixed by protocol constants, how slashing and allocation caps should work, and whether core teams were informing the community too late in the design process. Near activation, operators also pressed for clarity on DAL penalty semantics and remote-signer support. The feature-flag approach made Ushuaia acceptable as a mainnet scaling upgrade, but it did not settle the protocol-economics and public-goods questions queued for Protocol V.",
       "contention": true,
       "history": {
-        "title": "Ushuaia: Scaling Now, Experiments Behind Flags",
-        "subtitle": "Tezos X infrastructure reaches Adoption while sTEZ and tz5 stay in the test lab",
+        "title": "Ushuaia Goes Live: Scaling Now, Experiments Behind Flags",
+        "subtitle": "Protocol 25 activates Tezos X infrastructure while sTEZ, tz5, and SWRR stay staged",
         "sections": [
           {
+            "heading": "The Activation Receipt",
+            "content": "Ushuaia activated on Tezos mainnet at level 13,857,889 in cycle 1278, with the first Protocol 25 block baked on 2026-06-30 at 00:31:52 UTC. The governance machine immediately rolled into a fresh Proposal period, so Ushuaia starts as the current operating chapter rather than a still-pending activation runway."
+          },
+          {
             "heading": "The Mainnet Payload",
-            "content": "Ushuaia's mainnet-facing center of gravity is the Data Availability Layer. The proposal raises DAL bandwidth to 10 MB/s, turns on dynamic DAL attestation lag, and lets rollup-specific PVM features line up with rollup governance instead of waiting on a full Layer 1 amendment every time."
+            "content": "Ushuaia's mainnet-facing center of gravity is the Data Availability Layer and rollup infrastructure. The protocol raises DAL bandwidth from roughly 0.66 MB/s to 10 MB/s, turns on dynamic DAL attestation lag, and lets rollup-specific PVM features line up with rollup governance instead of waiting on a full Layer 1 amendment every time."
           },
           {
             "heading": "Why Supporters Want It",
-            "content": "The scaling argument is straightforward: more DAL bandwidth gives Etherlink and future Tezos X applications room to publish high-volume data without making L1 availability the bottleneck. Dynamic lag is meant to cut the normal DAL confirmation wait from a conservative fixed delay to a network-responsive one, which matters for experiences like faster L2 withdrawals."
+            "content": "The scaling argument is straightforward: more DAL bandwidth gives Etherlink, Tezlink, and future Tezos X applications room to publish high-volume data without making L1 availability the bottleneck. Dynamic lag can shorten the normal DAL confirmation wait from an 11-block fixed delay to an expected 2-3 blocks when the network observes data quickly, which matters for experiences like faster L2 withdrawals."
+          },
+          {
+            "heading": "What People Actually Debated",
+            "content": "The Ushuaia proposal thread itself did not turn into a broad rejection fight, and the DAL bandwidth and dynamic-lag posts were mostly explanatory. TezosAgora's most substantive discussion centered on enshrined liquid staking. Supporters framed sTEZ as a protocol-native alternative to centralized liquid staking, with no governance voting power and testnet-only activation. Critics questioned whether liquid staking weakened the purpose of native staking, whether a protocol primitive would cannibalize teams such as Stacy or Youves, and why a large economic design seemed to arrive as a heads-up after implementation work was already visible."
+          },
+          {
+            "heading": "The Open Design Questions",
+            "content": "The sTEZ thread pressed on concrete mechanics: whether liquid stakers would share slashing risk, whether a global fee should exist, whether caps would make late adopters resentful, whether bakers would simply set maximum fees, and whether fee and capacity parameters should be fixed by protocol constants instead of declared by each baker. Core-dev replies emphasized that Ushuaia only shipped primitives and a naive testnet version; the parameter space, allocation behavior, UX, and whitepaper were to be refined before any later mainnet activation. That answer made the feature flag the central governance compromise, not a detail."
           },
           {
             "heading": "The Guardrails",
-            "content": "Ushuaia also carries two headline experiments that are deliberately kept out of mainnet activation: enshrined liquid staking through sTEZ, and ML-DSA-44 post-quantum tz5 accounts. The protocol includes the machinery so wallets, custodians, bakers, and tooling teams can test the shape early without turning unfinished mechanisms into live economic policy."
+            "content": "Ushuaia also carries visible experiments that are deliberately kept out of automatic mainnet activation. Enshrined liquid staking through sTEZ stays behind the native-contracts flag, ML-DSA-44 post-quantum tz5 accounts stay behind their own flag, and smooth weighted round-robin baker selection is disabled on mainnet. WASM PVM V6 is included for durable-storage migration work, but activation is expected to follow rollup governance instead of being forced by the L1 switch itself."
           },
           {
             "heading": "Operator Questions",
-            "content": "The practical questions are about readiness, not ideology. Most bakers are expected to stay within existing hardware needs, but larger bakers should review DAL recommendations before activation. sTEZ is also explicitly an initial testnet version, with stake allocation, slashing coverage, fee policy, and UX details still marked for refinement."
+            "content": "The operator side of the discussion was narrower but important. Larger bakers were told to review updated DAL hardware recommendations for sustained 10 MB/s usage. When asked whether DAL security guarantees included slashing, the answer clarified that DAL misbehavior penalties are DAL attestation reward loss rather than a new stake-slashing condition. The late activation thread also exposed remote-signer uncertainty: Signatory users asked whether the signer would work with Ushuaia, while ECAD said it had not tested or validated support after maintenance funding ended. Taquito support landed before activation, but the signer discussion turned Ushuaia into another example of the ecosystem's critical-infrastructure funding problem."
           },
           {
             "heading": "Why It Matters",
-            "content": "Ushuaia separates two kinds of progress. The chain can ship concrete Tezos X infrastructure now, while using feature flags to keep bigger staking and cryptography experiments visible, testable, and outside mainnet blast radius until the ecosystem has worked through the details."
+            "content": "Ushuaia separates two kinds of progress. The chain now runs concrete Tezos X infrastructure on mainnet, while using feature flags and rollup-level activation paths to keep bigger staking, cryptography, and selection-algorithm experiments visible, testable, and outside the mainnet blast radius. The TezosAgora debate shows why that separation matters: shipping scalable infrastructure was comparatively easy to align around; changing Tezos economics, governance voice, and the public-goods stack still requires earlier communication, better modeling, and clearer ownership before the next mainnet step."
           }
         ]
       }
     }
   ],
   "meta": {
-    "generated": "2026-06-15",
+    "generated": "2026-06-30",
     "sources": [
       "TzKT API",
-      "docs.tezos.com",
+      "Octez protocol documentation",
       "Tezos Agora",
-      "Nomadic Labs research"
+      "Nomadic Labs research",
+      "Tezos Spotlight"
     ],
     "totalUpgrades": 22,
-    "currentProtocol": "Tallinn",
+    "currentProtocol": "Ushuaia",
     "currentBlockTime": 6
   }
 }

@@ -47,12 +47,14 @@ const PROTOCOL_ERAS = [
     { name: 'Lima', level: 2981889, date: '2022-12-17' },
     { name: 'Mumbai', level: 3268609, date: '2023-03-29' },
     { name: 'Nairobi', level: 3760129, date: '2023-06-24' },
-    { name: 'Oxford', level: 4456449, date: '2023-12-05' },
+    { name: 'Oxford', level: 5070849, date: '2024-02-09' },
     { name: 'Paris', level: 5726209, date: '2024-06-04' },
-    { name: 'Quebec', level: 6422529, date: '2024-11-19' },
-    { name: 'Rio', level: 7118849, date: '2025-05-06' },
-    { name: 'Sao Paolo', level: 7815169, date: '2025-07-22' },
-    { name: 'Tallinn', level: 11468801, date: '2026-01-21' },
+    { name: 'Paris C', level: 5898242, date: '2024-06-25' },
+    { name: 'Quebec', level: 7692289, date: '2025-01-20' },
+    { name: 'Rio', level: 8767489, date: '2025-05-01' },
+    { name: 'Seoul', level: 10279489, date: '2025-09-19' },
+    { name: 'Tallinn', level: 11640289, date: '2026-01-24' },
+    { name: 'Ushuaia', level: 13857889, date: '2026-06-30' },
 ];
 
 // Dynamically extend PROTOCOL_ERAS from TzKT on first load

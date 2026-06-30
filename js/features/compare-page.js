@@ -18,8 +18,8 @@ async function fetchUpgradeCount() {
     try {
         const resp = await fetch(API_URLS.tzkt + '/protocols');
         const protocols = await resp.json();
-        return protocols.filter(p => p.code >= 4 && p.extras?.alias).length;
-    } catch { return 21; }
+        return protocols.filter(p => p.code >= 4 && p.firstLevel > 0).length;
+    } catch { return 22; }
 }
 
 function parseMutez(value) {

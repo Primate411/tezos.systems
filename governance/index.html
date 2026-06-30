@@ -73,7 +73,7 @@
                 "name": "How long does a Tezos governance cycle take?",
                 "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "Each voting period lasts 5 cycles (~5 days on the current Tallinn protocol). A full governance cycle through all 5 periods takes approximately 25 days."
+                    "text": "Each voting period lasts 14 cycles, about two weeks at the current 6-second block time. A full governance cycle through all 5 periods takes about 10 weeks."
                 }
             },
             {
@@ -113,7 +113,7 @@
 
         <div class="live-stats-row">
             <div class="live-stat">
-                <span class="live-stat-value" data-live="protocol-count">21</span>
+                <span class="live-stat-value" data-live="protocol-count">22</span>
                 <span class="live-stat-label">Protocol Upgrades</span>
             </div>
             <div class="live-stat">
@@ -125,7 +125,7 @@
                 <span class="live-stat-label">Days Live</span>
             </div>
             <div class="live-stat">
-                <span class="live-stat-value" data-live="current-protocol">Tallinn</span>
+                <span class="live-stat-value" data-live="current-protocol">Ushuaia</span>
                 <span class="live-stat-label">Current Protocol</span>
             </div>
         </div>
@@ -199,7 +199,7 @@
                 </div>
             </div>
 
-            <p>Supermajority threshold: <strong>80%</strong>. Each period lasts ~5 days (5 cycles). A full governance cycle takes approximately 25 days.</p>
+            <p>Supermajority threshold: <strong>80%</strong>. Each period lasts 14 cycles, about two weeks at the current 6-second block time. A full governance cycle takes about 10 weeks.</p>
         </section>
 
         <section class="landing-section">
@@ -230,7 +230,8 @@
                     <tr><td>Quebec</td><td>2025</td><td>8-second blocks, Adaptive Maximum ⚔</td></tr>
                     <tr><td>Rio</td><td>2025</td><td>Daily cycles, DAL rewards</td></tr>
                     <tr><td>Seoul</td><td>2025</td><td>Attestation aggregation, BLS Proof of Possession</td></tr>
-                    <tr><td>Tallinn</td><td>2026</td><td>Current protocol — 6-second blocks, All Bakers Attest prep</td></tr>
+                    <tr><td>Tallinn</td><td>2026</td><td>6-second blocks, All Bakers Attest prep</td></tr>
+                    <tr><td>Ushuaia</td><td>2026</td><td>Current protocol — 10 MB/s DAL, dynamic DAL lag, rollup-governed PVMs</td></tr>
                 </tbody>
             </table>
             <p style="font-size:0.8rem; color:var(--text-dim);">⚔ marks protocols with significant governance contention.</p>
@@ -263,7 +264,7 @@
     </footer>
 
     <script type="module">
-        import { loadGovernanceData, loadBakerData } from '/js/landing/live-data.js?v=20260622a';
+        import { loadGovernanceData, loadBakerData } from '/js/landing/live-data.js?v=20260630a';
         loadGovernanceData();
         loadBakerData();
     </script>

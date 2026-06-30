@@ -104,7 +104,12 @@ function isReportCurrentProtocol(protocol, currentProtocol) {
 
 function normalizeProtocol(protocol, loreEntry, currentProtocol = null) {
     const code = protocol.code ?? protocol.number;
-    const name = protocol.name || protocol.extras?.alias || `Protocol ${code}`;
+    const name = protocol.extras?.alias
+        || protocol.metadata?.alias
+        || protocol.alias
+        || loreEntry?.name
+        || protocol.name
+        || `Protocol ${code}`;
     return {
         code,
         name,
@@ -209,13 +214,11 @@ export async function fetchProtocols() {
         const protocols = await response.json();
         if (!Array.isArray(protocols)) throw new Error('Unexpected protocols response');
         
-        const namedProtocols = protocols.filter(p => 
-            p.code >= 4 && p.extras?.alias
-        );
-        if (!namedProtocols.length) throw new Error('No named protocols in response');
+        const namedProtocols = protocols.filter(p => p.code >= 4);
+        if (!namedProtocols.length) throw new Error('No protocols in response');
         
         const result = namedProtocols.map(p => {
-            const name = p.extras?.alias || `Protocol ${p.code}`;
+            const name = p.extras?.alias || p.metadata?.alias || p.alias || `Protocol ${p.code}`;
             const loreEntry = findProtocolLore({ name, hash: p.hash }, lore);
             return normalizeProtocol({ ...p, name }, loreEntry, report?.currentProtocol || null);
         });
