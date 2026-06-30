@@ -839,3 +839,53 @@
     color: #f5b84b;
     text-transform: uppercase;
 }
+
+.chamber-footer {
+    gap: 0.45rem 0.7rem;
+}
+
+.chamber-footer > * {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    white-space: nowrap;
+}
+
+.chamber-footer > * + *::before {
+    content: '·';
+    margin-right: 0.7rem;
+    color: var(--text-tertiary, #555);
+    font-style: normal;
+    opacity: 0.58;
+}
+
+.chamber-footer-sep {
+    display: none;
+}
+
+.chamber-historical-note {
+    white-space: normal;
+}
+
+@media (max-width: 768px) {
+    .chamber-footer {
+        column-gap: 0.65rem;
+        row-gap: 0.45rem;
+        padding-inline: 0.25rem;
+    }
+
+    .chamber-footer > * + *::before {
+        margin-right: 0.65rem;
+    }
+
+    .chamber-footer .chamber-historical-note {
+        flex-basis: 100%;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .chamber-footer .chamber-historical-note::before {
+        content: none;
+        margin-right: 0;
+    }
+}
