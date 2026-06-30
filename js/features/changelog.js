@@ -7,11 +7,10 @@ const CHANGELOG = [
     {
         date: '2026-06-30',
         entries: [
+            { type: '🔧', text: 'My Tezos now stays in the drawer instead of reserving homepage space with a persistent address tracker' },
             { type: '🎨', text: 'My Tezos now explains Ledger Flow with a compact transfer-map card before opening the account flow chamber' },
             { type: '🎨', text: 'Tezos L1 Governance footer links now wrap cleanly at the bottom of the Chamber panel on mobile' },
-            { type: '🎨', text: 'My Tezos first-screen address field now collapses into a saved-address summary after an address is tracked' },
             { type: '🔧', text: 'Governance alerts now stay hidden during empty Proposal periods with no submitted proposal' },
-            { type: '✨', text: 'My Tezos now has a first-screen address field so a wallet or .tez name can become the home dashboard without opening the drawer first' },
             { type: '✨', text: 'Governance, Network Health, and Tezos Domains chambers now lead with phase, verdict, and urgency surfaces before the deeper metric tables' },
             { type: '🔧', text: 'Baker capacity math and help copy now use the current protocol delegation limit from Octez RPC with a visible fallback path' },
             { type: '✨', text: 'Clean Chamber URLs now hydrate the live room directly instead of bouncing through hash routes' },

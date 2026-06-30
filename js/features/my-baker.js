@@ -631,14 +631,6 @@ export function init() {
     const ledgerFlowLink = document.getElementById('my-tezos-ledger-flow-link');
     const results = document.getElementById('my-baker-results');
     const errorMsg = document.getElementById('my-baker-error-msg');
-    const heroForm = document.getElementById('my-tezos-hero-form');
-    const heroInput = document.getElementById('my-tezos-hero-input');
-    const heroStatus = document.getElementById('my-tezos-hero-status');
-    const heroOpen = document.getElementById('my-tezos-hero-open');
-    const heroConnected = document.getElementById('my-tezos-hero-connected');
-    const heroAddress = document.getElementById('my-tezos-hero-address');
-    const heroConnectedOpen = document.getElementById('my-tezos-hero-connected-open');
-    const heroSwitch = document.getElementById('my-tezos-hero-switch');
 
     if (!input || !saveBtn || !clearBtn || !results) return;
 
@@ -715,7 +707,6 @@ export function init() {
                 renderBakerData(addr, results);
                 updateLedgerFlowLink(addr);
                 showCopyMode(addr);
-                syncHeroState(addr);
                 setDrawerConnectionState(true);
                 window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr, source: 'my-baker' } }));
                 renderSavedAddresses();
@@ -797,46 +788,6 @@ export function init() {
         else delete target.dataset.tone;
     }
 
-    function shortAddress(addr) {
-        const value = String(addr || '');
-        if (value.length <= 18) return value;
-        return `${value.slice(0, 10)}…${value.slice(-6)}`;
-    }
-
-    function isHeroEditing() {
-        return document.getElementById('my-tezos-hero')?.classList.contains('editing') === true;
-    }
-
-    function setHeroEditing(editing) {
-        const hero = document.getElementById('my-tezos-hero');
-        if (!hero) return;
-        hero.classList.toggle('editing', editing);
-        if (editing) {
-            if (heroForm) heroForm.hidden = false;
-            if (heroConnected) heroConnected.hidden = true;
-        }
-    }
-
-    function syncHeroState(addr, message = '') {
-        if (!heroInput || !heroStatus) return;
-        const valid = isValidAddress(addr);
-        if (valid && document.activeElement !== heroInput) heroInput.value = addr;
-        if (!valid && document.activeElement !== heroInput) heroInput.value = '';
-        const hero = document.getElementById('my-tezos-hero');
-        if (hero) hero.classList.toggle('connected', valid);
-        if (heroAddress && valid) {
-            heroAddress.textContent = shortAddress(addr);
-            heroAddress.title = addr;
-        }
-        if (heroForm) heroForm.hidden = valid && !isHeroEditing();
-        if (heroConnected) heroConnected.hidden = !valid || isHeroEditing();
-        setStatus(
-            heroStatus,
-            message || (valid ? 'Address saved. Open My Tezos when you need the details.' : 'Paste a wallet or .tez name.'),
-            valid ? 'ready' : ''
-        );
-    }
-
     async function normalizeAddressInput(raw, statusEl) {
         const label = String(raw || '').trim();
         if (!label) {
@@ -870,14 +821,11 @@ export function init() {
 
         localStorage.setItem(STORAGE_KEY, addr);
         input.value = addr;
-        if (heroInput) heroInput.value = addr;
         renderBakerData(addr, results);
         updateShareLink(addr);
         updateLedgerFlowLink(addr);
         showCopyMode(addr);
         addToSavedAddresses(addr);
-        setHeroEditing(false);
-        syncHeroState(addr);
         setDrawerConnectionState(true);
         if (openAfterSave) openDrawer(true);
         window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr, source: 'my-baker' } }));
@@ -892,10 +840,8 @@ export function init() {
         updateShareLink(saved);
         updateLedgerFlowLink(saved);
         showCopyMode(saved);
-        syncHeroState(saved);
     } else {
         updateLedgerFlowLink(null);
-        syncHeroState(null);
     }
     renderSavedAddresses();
 
@@ -908,7 +854,6 @@ export function init() {
         updateShareLink(addr);
         updateLedgerFlowLink(addr);
         showCopyMode(addr);
-        syncHeroState(addr);
         setDrawerConnectionState(true);
         renderSavedAddresses();
     });
@@ -951,8 +896,6 @@ export function init() {
         updateShareLink(null);
         updateLedgerFlowLink(null);
         restoreSaveMode();
-        setHeroEditing(false);
-        syncHeroState(null);
         // Notify My Tezos strip
         window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: null, source: 'my-baker' } }));
         setDrawerConnectionState(false);
@@ -971,47 +914,6 @@ export function init() {
             if (e.key === 'Enter') drawerConnectBtn.click();
         });
     }
-
-    if (heroForm && heroInput) {
-        heroForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const raw = heroInput.value.trim();
-            if (!raw) {
-                setStatus(heroStatus, 'Paste a wallet or .tez name first.', 'error');
-                heroInput.focus();
-                return;
-            }
-            await saveAddress(raw, { statusEl: heroStatus, openDrawer: true });
-        });
-        heroInput.addEventListener('input', () => {
-            const active = localStorage.getItem(STORAGE_KEY);
-            const value = heroInput.value.trim();
-            if (active && value === active && !isHeroEditing()) {
-                syncHeroState(active);
-            } else if (value) {
-                setStatus(heroStatus, 'Ready when you are.', '');
-            } else {
-                setStatus(heroStatus, active ? 'Enter a new wallet or .tez name, or open the saved address.' : 'Paste a wallet or .tez name.', '');
-            }
-        });
-    }
-
-    heroOpen?.addEventListener('click', () => {
-        openDrawer(Boolean(localStorage.getItem(STORAGE_KEY)));
-    });
-    heroConnectedOpen?.addEventListener('click', () => {
-        openDrawer(Boolean(localStorage.getItem(STORAGE_KEY)));
-    });
-    heroSwitch?.addEventListener('click', () => {
-        const active = localStorage.getItem(STORAGE_KEY) || '';
-        setHeroEditing(true);
-        if (heroInput) {
-            heroInput.value = active;
-            heroInput.focus();
-            heroInput.select?.();
-        }
-        setStatus(heroStatus, 'Enter a new wallet or .tez name.', '');
-    });
 }
 
 /**

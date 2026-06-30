@@ -3943,22 +3943,20 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
     button: document.querySelector('#my-baker-save')?.textContent?.trim() || '',
     ledgerFlowHref: document.querySelector('#my-tezos-ledger-flow-link')?.getAttribute('href') || '',
     ledgerFlowHidden: document.querySelector('#my-tezos-ledger-flow-link')?.hidden === true,
-	    extDelegated: Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).find((stat) => (
-	      stat.textContent.includes('Ext. Delegated')
-	    ))?.textContent?.replace(/\s+/g, ' ').trim() || '',
-	    header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || '',
-	    heroFormHidden: document.querySelector('#my-tezos-hero-form')?.hidden === true,
-	    heroConnectedVisible: document.querySelector('#my-tezos-hero-connected')?.hidden === false,
-	    heroConnectedText: document.querySelector('#my-tezos-hero-connected')?.textContent?.replace(/\s+/g, ' ').trim() || ''
-	  }));
+    extDelegated: Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).find((stat) => (
+      stat.textContent.includes('Ext. Delegated')
+    ))?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || '',
+    heroCount: document.querySelectorAll('#my-tezos-hero').length
+  }));
 
   assert(state.stored === SAMPLE_ADDRESS_2, `my tezos address switch: localStorage kept stale address ${state.stored}`);
   assert(state.input === SAMPLE_ADDRESS_2, `my tezos address switch: connected input mismatch ${state.input}`);
   assert(state.button === '📋 Copy', `my tezos address switch: save button did not return to copy mode, saw ${state.button}`);
   assert(!state.ledgerFlowHidden && state.ledgerFlowHref === `#ledger-flow=${encodeURIComponent(SAMPLE_ADDRESS_2)}`, `my tezos address switch: Ledger Flow link not scoped to active address ${JSON.stringify(state)}`);
-	  assert(state.extDelegated.includes('220,000.00'), `my tezos address switch: drawer still shows stale baker metrics: ${state.extDelegated}`);
-	  assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `my tezos address switch: header still points at old baker: ${state.header}`);
-	  assert(state.heroFormHidden && state.heroConnectedVisible && /Tracking/.test(state.heroConnectedText), `my tezos address switch: hero input should collapse after save ${JSON.stringify(state)}`);
+  assert(state.extDelegated.includes('220,000.00'), `my tezos address switch: drawer still shows stale baker metrics: ${state.extDelegated}`);
+  assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `my tezos address switch: header still points at old baker: ${state.header}`);
+  assert(state.heroCount === 0, `my tezos address switch: homepage address tracker should not render ${JSON.stringify(state)}`);
 
   await context.close();
   assert(issues.length === 0, `my tezos address switch browser issues:\n${issues.join('\n')}`);
