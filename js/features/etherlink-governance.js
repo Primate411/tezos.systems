@@ -1180,9 +1180,9 @@ export function initEtherlinkGovernanceChamber() {
             <div class="card-front chamber-entry-front etherlink-governance-entry-front">
                 <div class="tezlink-entry-main">
                     <h2 class="stat-label">Tezos X Governance</h2>
-                    <div class="stat-value etherlink-gov-entry-value" id="etherlink-governance-entry-value"><span class="loading">...</span></div>
+                    <div class="stat-value etherlink-gov-entry-value" id="etherlink-governance-entry-value"><span class="loading loading-skeleton">Preheating L2 governance</span></div>
                     <p class="stat-description" id="etherlink-governance-entry-description">L2 Governance · FAST, SLOW, and Sequencer votes</p>
-                    <div class="chamber-entry-status live" id="etherlink-governance-entry-mini">L2 Governance · loading governance</div>
+                    <div class="chamber-entry-status live" id="etherlink-governance-entry-mini">L2 Governance · warming proposal tracks</div>
                 </div>
                 <div class="tezlink-entry-metrics etherlink-gov-entry-metrics" id="etherlink-governance-entry-metrics" aria-label="Tezos X governance proposal status" hidden></div>
             </div>

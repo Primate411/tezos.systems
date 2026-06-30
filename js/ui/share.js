@@ -6,7 +6,7 @@ let html2canvasLoaded = false;
 let _html2canvasPromise = null;
 
 const CARD_SHARE_ICON_SVG = '<svg class="card-share-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4h-5L7.8 6H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.8L14.5 4Z"/><circle cx="12" cy="13" r="3.2"/></svg>';
-const CARD_SHARE_LOADING_ICON = '<span class="card-share-loading" aria-hidden="true">...</span>';
+const CARD_SHARE_LOADING_ICON = '<span class="card-share-loading" aria-hidden="true"></span>';
 
 // Mobile devices have strict canvas size limits (iOS Safari ~16MP)
 // Use scale 1 on mobile to avoid OOM failures

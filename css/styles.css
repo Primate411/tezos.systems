@@ -7005,6 +7005,14 @@ body.high-combo .stat-card {
 }
 .stat-card:hover .card-share-btn { opacity: 0.75; }
 .card-share-btn:hover { opacity: 1 !important; background: rgba(0, 212, 255, 0.15); border-color: var(--accent-cyan); color: var(--accent-cyan); transform: scale(1.15); box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+.card-share-loading {
+    width: 13px;
+    height: 13px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
+}
 
 .lb-entry-card .card-share-btn,
 .tz4-entry-card .card-share-btn,
@@ -12778,11 +12786,24 @@ body {
 }
 
 .moments-empty {
+    display: grid;
+    gap: 6px;
     text-align: center;
     padding: 24px 16px;
-    color: rgba(255, 255, 255, 0.35);
+    color: rgba(255, 255, 255, 0.55);
     font-size: 0.85rem;
-    font-style: italic;
+    line-height: 1.4;
+}
+
+.moments-empty strong {
+    color: var(--text-primary);
+    font-size: 0.92rem;
+}
+
+.moments-empty span {
+    max-width: 32rem;
+    margin: 0 auto;
+    color: var(--text-secondary);
 }
 
 .moment-item {
@@ -13386,40 +13407,6 @@ body {
 
 .export-hint {
     margin-top: 14px;
-}
-
-/* ==========================================
-   LOADING SHIMMER / SKELETON
-   ========================================== */
-
-@keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
-}
-
-.stat-value.loading {
-    color: transparent !important;
-    background: linear-gradient(
-        90deg,
-        var(--glass-bg) 25%,
-        rgba(255, 255, 255, 0.06) 50%,
-        var(--glass-bg) 75%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 1.8s ease-in-out infinite;
-    border-radius: 6px;
-    min-width: 80px;
-    min-height: 1.4em;
-}
-
-[data-theme="clean"] .stat-value.loading {
-    background: linear-gradient(
-        90deg,
-        #f0f1f3 25%,
-        #e0e2e6 50%,
-        #f0f1f3 75%
-    );
-    background-size: 200% 100%;
 }
 
 /* ==========================================
@@ -15939,8 +15926,8 @@ body {
 .chamber-entry-front {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: flex-start;
+    justify-content: flex-start;
     gap: 4px;
 }
 

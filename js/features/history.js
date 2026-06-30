@@ -1482,7 +1482,7 @@ async function renderCardHistoryChart(modal, config, range) {
     modal.dataset.cardHistoryRange = range;
     setCardHistoryRangeState(modal, range);
     destroyChartInstance(canvasId);
-    chartContainer.innerHTML = '<div class="card-history-state">Loading...</div>';
+    chartContainer.innerHTML = '<div class="card-history-state">Reading the history ledger</div>';
 
     // Load data and render chart
     try {

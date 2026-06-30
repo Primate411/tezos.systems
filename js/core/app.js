@@ -91,7 +91,7 @@ import { initNetworkHealth, refreshNetworkHealth } from '../features/network-hea
 import { initHeroSearch } from '../features/search.js';
 import { initNativeExplorer } from '../features/native-explorer.js';
 
-const SHELL_EXTRAS_CSS_URL = '/css/shell-extras.css?v=309';
+const SHELL_EXTRAS_CSS_URL = '/css/shell-extras.css?v=315';
 const PI_VISIBLE_KEY = 'tezos-systems-pi-visible';
 
 function isContentiousProtocol(protocol, lore = null) {
@@ -3084,7 +3084,7 @@ function ensureProtocolHistoryChamberModal() {
             <button class="modal-close chamber-close" aria-label="Close Protocol History Chamber" style="z-index:3">&times;</button>
             <div class="chamber-body protocol-history-body">
                 <div class="chamber-loading">
-                    <div class="chamber-loading-text">Opening Protocol History Chamber...</div>
+                    <div class="chamber-loading-text">Preheating Protocol History</div>
                     <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
                 </div>
             </div>
@@ -3135,7 +3135,7 @@ function renderProtocolHistoryChamberShell(overlay) {
             </div>
             <div class="upgrade-timeline" id="upgrade-timeline">
                 <div class="chamber-loading">
-                    <div class="chamber-loading-text">Loading protocol timeline...</div>
+                    <div class="chamber-loading-text">Reading the protocol timeline</div>
                     <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
                 </div>
             </div>
@@ -3408,7 +3408,7 @@ const GITHUB_MAIN_COMMIT_URL = 'https://api.github.com/repos/Primate411/tezos.sy
 
 async function fetchBuildMetadata() {
     try {
-        const response = await fetch('version.json', { cache: 'no-store' });
+        const response = await fetch('/version.json', { cache: 'no-store' });
         return response.ok ? response.json() : null;
     } catch (_) {
         return null;
@@ -3856,9 +3856,33 @@ function initOfflineIndicator() {
 //   #protocol=Ushuaia  → open protocol lore/history
 //   #theme=dark        → switch to theme
 //   #section=consensus → scroll to section
+// Pretty chamber routes:
+//   /chamber/          → open Tezos L1 Governance modal without hash redirect
+//   /health/           → open Network Health Chamber
+//   /tezosx/           → open Tezos X Chamber
+//   /l2chamber/        → open Tezos X Governance Chamber
+//   /tz4/ /lb/ /domains/ /ledger-flow/ /ctez/ → open their chamber rooms
 // Account path shortcuts:
 //   /tz1...            → open My Tezos with address
 //   /name.tez          → resolve Tezos Domain and open My Tezos
+function getPrettyChamberPathRoute() {
+    const slug = window.location.pathname.replace(/^\/+|\/+$/g, '');
+    if (!slug || slug.includes('/')) return null;
+    const routes = {
+        chamber: 'chamber',
+        health: 'health',
+        tezosx: 'tezosx',
+        tezlink: 'tezosx',
+        l2chamber: 'l2chamber',
+        tz4: 'tz4',
+        lb: 'lb',
+        domains: 'domains',
+        'ledger-flow': 'ledger-flow',
+        ctez: 'ctez'
+    };
+    return routes[slug] || null;
+}
+
 function isTezosAccountAddress(value) {
     return /^(tz[1-4]|KT1)[a-zA-Z0-9]{33}$/.test(String(value || '').trim());
 }
@@ -3977,12 +4001,6 @@ async function openMyTezosTarget(rawTarget) {
 
 function applyDeepLink() {
     const hash = window.location.hash.slice(1);
-    if (!hash) {
-        const pathTarget = getMyTezosPathTarget();
-        if (pathTarget) openMyTezosTarget(pathTarget);
-        return;
-    }
-
     const params = new URLSearchParams(hash);
 
     const showToggleSection = (toggleId, sectionId, options = {}) => {
@@ -4109,6 +4127,77 @@ function applyDeepLink() {
             })
             .catch((error) => console.warn(label, error));
     };
+
+    const openPrettyChamberRoute = (route) => {
+        switch (route) {
+            case 'chamber':
+                openHashModal(
+                    () => import('../features/chamber.js').then(({ openChamber }) => openChamber()),
+                    'Failed to open Tezos L1 Governance'
+                );
+                break;
+            case 'health':
+                openHashModal(
+                    () => import('../features/network-health.js').then(({ openNetworkHealthChamber }) => openNetworkHealthChamber()),
+                    'Failed to open Network Health Chamber'
+                );
+                break;
+            case 'tezosx':
+                openHashModal(
+                    () => import('../features/tezlink.js').then(({ openTezlinkChamber }) => openTezlinkChamber()),
+                    'Failed to open Tezos X Chamber'
+                );
+                break;
+            case 'l2chamber':
+                openHashModal(
+                    () => import('../features/etherlink-governance.js').then(({ openEtherlinkGovernanceChamber }) => openEtherlinkGovernanceChamber()),
+                    'Failed to open Tezos X Governance Chamber'
+                );
+                break;
+            case 'lb':
+                openHashModal(
+                    () => import('../features/liquidity-baking.js').then(({ openLiquidityBakingMonitor }) => openLiquidityBakingMonitor()),
+                    'Failed to open Liquidity Baking monitor'
+                );
+                break;
+            case 'tz4':
+                openHashModal(
+                    () => import('../features/tz4-adoption.js').then(({ openTz4AdoptionChamber }) => openTz4AdoptionChamber()),
+                    'Failed to open tz4 Adoption Chamber'
+                );
+                break;
+            case 'ctez':
+                openHashModal(
+                    () => import('../features/ctez.js').then(({ openCtezChamber }) => openCtezChamber()),
+                    'Failed to open ctez End of Life'
+                );
+                break;
+            case 'ledger-flow':
+                openHashModal(
+                    () => import('../features/ledger-flow.js').then(({ openLedgerFlowChamber }) => openLedgerFlowChamber('')),
+                    'Failed to open Ledger Flow'
+                );
+                break;
+            case 'domains':
+                openHashModal(
+                    () => import('../features/tezos-domains.js').then(({ openTezosDomainsChamber }) => openTezosDomainsChamber('')),
+                    'Failed to open Tezos Domains Chamber'
+                );
+                break;
+        }
+    };
+
+    if (!hash) {
+        const prettyRoute = getPrettyChamberPathRoute();
+        if (prettyRoute) {
+            openPrettyChamberRoute(prettyRoute);
+            return;
+        }
+
+        const pathTarget = getMyTezosPathTarget();
+        if (pathTarget) openMyTezosTarget(pathTarget);
+        return;
+    }
 
     // #my-baker=tz1..., #my-baker=name.tez, or #my-baker (just open it)
     if (params.has('my-baker')) {

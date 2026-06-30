@@ -3943,18 +3943,22 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
     button: document.querySelector('#my-baker-save')?.textContent?.trim() || '',
     ledgerFlowHref: document.querySelector('#my-tezos-ledger-flow-link')?.getAttribute('href') || '',
     ledgerFlowHidden: document.querySelector('#my-tezos-ledger-flow-link')?.hidden === true,
-    extDelegated: Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).find((stat) => (
-      stat.textContent.includes('Ext. Delegated')
-    ))?.textContent?.replace(/\s+/g, ' ').trim() || '',
-    header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || ''
-  }));
+	    extDelegated: Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat')).find((stat) => (
+	      stat.textContent.includes('Ext. Delegated')
+	    ))?.textContent?.replace(/\s+/g, ' ').trim() || '',
+	    header: document.querySelector('#my-tezos-btn .nav-label')?.textContent || '',
+	    heroFormHidden: document.querySelector('#my-tezos-hero-form')?.hidden === true,
+	    heroConnectedVisible: document.querySelector('#my-tezos-hero-connected')?.hidden === false,
+	    heroConnectedText: document.querySelector('#my-tezos-hero-connected')?.textContent?.replace(/\s+/g, ' ').trim() || ''
+	  }));
 
   assert(state.stored === SAMPLE_ADDRESS_2, `my tezos address switch: localStorage kept stale address ${state.stored}`);
   assert(state.input === SAMPLE_ADDRESS_2, `my tezos address switch: connected input mismatch ${state.input}`);
   assert(state.button === '📋 Copy', `my tezos address switch: save button did not return to copy mode, saw ${state.button}`);
   assert(!state.ledgerFlowHidden && state.ledgerFlowHref === `#ledger-flow=${encodeURIComponent(SAMPLE_ADDRESS_2)}`, `my tezos address switch: Ledger Flow link not scoped to active address ${JSON.stringify(state)}`);
-  assert(state.extDelegated.includes('220,000.00'), `my tezos address switch: drawer still shows stale baker metrics: ${state.extDelegated}`);
-  assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `my tezos address switch: header still points at old baker: ${state.header}`);
+	  assert(state.extDelegated.includes('220,000.00'), `my tezos address switch: drawer still shows stale baker metrics: ${state.extDelegated}`);
+	  assert(!state.header.includes(SAMPLE_ADDRESS.slice(0, 6)), `my tezos address switch: header still points at old baker: ${state.header}`);
+	  assert(state.heroFormHidden && state.heroConnectedVisible && /Tracking/.test(state.heroConnectedText), `my tezos address switch: hero input should collapse after save ${JSON.stringify(state)}`);
 
   await context.close();
   assert(issues.length === 0, `my tezos address switch browser issues:\n${issues.join('\n')}`);
@@ -4820,7 +4824,7 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
 
   const routeResponse = await page.goto(`${baseUrl}/ledger-flow/`, { waitUntil: 'domcontentloaded' });
   assert(routeResponse?.ok(), `ledger flow route: pretty route failed with HTTP ${routeResponse?.status()}`);
-  await page.waitForFunction(() => window.location.hash === '#ledger-flow', null, { timeout: 5000 });
+  await page.waitForFunction(() => window.location.pathname === '/ledger-flow/' && window.location.hash === '', null, { timeout: 7000 });
   await page.locator('#ledger-flow-modal.active .ledger-flow-content').waitFor({ state: 'visible', timeout: 10000 });
 
   await context.close();
@@ -4872,6 +4876,7 @@ async function smokeTezosDomainsChamber(browser, baseUrl) {
       title: modal?.querySelector('.chamber-title')?.textContent || '',
       badge: modal?.querySelector('.chamber-badge')?.textContent || '',
       header: modal?.querySelector('.chamber-proposal-info')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      urgentText: modal?.querySelector('.td-urgent-surface')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       pulse: modal?.querySelector('.td-pulse-grid')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       panels: Array.from(modal?.querySelectorAll('.td-panel-title') || []).map((node) => node.textContent?.replace(/\s+/g, ' ').trim() || ''),
       eventRows: modal?.querySelectorAll('.td-event-row').length || 0,
@@ -4892,15 +4897,16 @@ async function smokeTezosDomainsChamber(browser, baseUrl) {
 
   assert(state.hash === '' && state.pathname === '/domains/', `tezos domains chamber: canonical path mismatch ${state.pathname}${state.hash}`);
   assert(state.cardCopyHash === '#domains', `tezos domains chamber: card copy hash mismatch ${state.cardCopyHash}`);
-  assert(/Tezos Domains/.test(state.cardText) && /viral\.tez/.test(state.cardText) && /24h names/i.test(state.cardText), `tezos domains chamber: card content missing ${state.cardText}`);
+  assert(/Tezos Domains/.test(state.cardText) && /noob\.tez/.test(state.cardText) && /24h names/i.test(state.cardText), `tezos domains chamber: card content missing ${state.cardText}`);
   assert(/Tezos Domains/.test(state.cardUpdatedLabel), `tezos domains chamber: card freshness missing ${state.cardUpdatedLabel}`);
   assert(state.pairChildren === 1 && state.pairIsLast, `tezos domains chamber: card must be its own bottom strip ${JSON.stringify(state)}`);
   assert(state.pairRect?.width >= state.gridRect?.width - 4, `tezos domains chamber: bottom strip should span grid width ${JSON.stringify({ pair: state.pairRect, grid: state.gridRect })}`);
   assert(/Tezos Domains Chamber/.test(state.title), `tezos domains chamber: title mismatch ${state.title}`);
   assert(/Name rush|Market live|Identity pulse/.test(state.badge), `tezos domains chamber: badge mismatch ${state.badge}`);
-  assert(/market\.tez/.test(state.header), `tezos domains chamber: featured premium name missing ${state.header}`);
+  assert(/noob\.tez/.test(state.header) && /renewal cliff|drops in/i.test(state.header), `tezos domains chamber: featured expiring name missing ${state.header}`);
+  assert(/Urgency tape/.test(state.urgentText) && /Expiring Soon/.test(state.urgentText) && /Auction Heat/.test(state.urgentText) && /noob\.tez/.test(state.urgentText) && /auction\.tez/.test(state.urgentText), `tezos domains chamber: urgency surface missing ${state.urgentText}`);
   assert(/24h names/.test(state.pulse) && /24h reverse/.test(state.pulse) && /Live auctions/.test(state.pulse) && /Active asks/.test(state.pulse) && /30d drops/.test(state.pulse), `tezos domains chamber: pulse metrics missing ${state.pulse}`);
-  assert(state.panels.some((text) => /Fresh Name Tape/.test(text)) && state.panels.some((text) => /Premium Moves/.test(text)) && state.panels.some((text) => /Auctions/.test(text)) && state.panels.some((text) => /Sell Wall/.test(text)) && state.panels.some((text) => /Want List/.test(text)) && state.panels.some((text) => /30d Drops/.test(text)), `tezos domains chamber: expected panels missing ${state.panels.join(' | ')}`);
+  assert(state.panels.some((text) => /Live Registration Feed/.test(text)) && state.panels.some((text) => /Identity Tape/.test(text)) && state.panels.some((text) => /Premium Moves/.test(text)) && state.panels.some((text) => /Auctions/.test(text)) && state.panels.some((text) => /Sell Wall/.test(text)) && state.panels.some((text) => /Want List/.test(text)) && state.panels.some((text) => /30d Drops/.test(text)), `tezos domains chamber: expected panels missing ${state.panels.join(' | ')}`);
   assert(state.eventRows >= 4 && state.marketRows >= 5 && state.expiryRows >= 2, `tezos domains chamber: row counts too sparse ${JSON.stringify(state)}`);
   assert(/registered 6\.00 XTZ/.test(state.text) && /auction\.tez/.test(state.text) && /market\.tez/.test(state.text) && /baking\.tez/.test(state.text) && /noob\.tez/.test(state.text), `tezos domains chamber: mocked names not surfaced ${state.text}`);
   assert(/Type a name to check availability/i.test(state.lookupText) && /builder or builder\.tez/i.test(state.lookupInput), `tezos domains chamber: lookup affordance missing ${state.lookupText}/${state.lookupInput}`);
@@ -6038,6 +6044,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       chamberWide: chamber?.classList.contains('chamber-entry-wide') || false,
       chamberSize: chamber?.dataset.chamberEntrySize || '',
       chamberText: chamber?.textContent || '',
+      governanceAlertHidden: document.querySelector('#governance-alert-strip')?.hidden ?? false,
+      governanceAlertText: document.querySelector('#governance-alert-strip')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       etherlinkWide: etherlink?.classList.contains('chamber-entry-wide') || false,
       etherlinkSize: etherlink?.dataset.etherlinkGovernanceSize || '',
       etherlinkText: etherlink?.textContent || '',
@@ -6065,6 +6073,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   });
   assert(!quietSizing.chamberWide && quietSizing.chamberSize === 'compact', `quiet governance sizing: Tezos L1 Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
   assert(/Proposal period/.test(quietSizing.chamberText) && /no ballots open/i.test(quietSizing.chamberText), `quiet governance sizing: Tezos L1 Governance quiet text mismatch: ${quietSizing.chamberText}`);
+  assert(quietSizing.governanceAlertHidden && !/needs attention|current proposal/i.test(quietSizing.governanceAlertText), `quiet governance sizing: empty Proposal period should not render governance alert, saw ${quietSizing.governanceAlertText}`);
   assert(!quietSizing.etherlinkWide && quietSizing.etherlinkSize === 'compact', `quiet governance sizing: Tezos X Governance should be 1x1, saw ${JSON.stringify(quietSizing)}`);
   assert(/No Proposal/.test(quietSizing.etherlinkText) && /No active L2 governance proposal/.test(quietSizing.etherlinkText) && /FAST/.test(quietSizing.etherlinkText), `quiet governance sizing: Etherlink idle text mismatch: ${quietSizing.etherlinkText}`);
   assert(!quietSizing.etherlinkMetricsHidden, 'quiet governance sizing: Etherlink metrics should show compact status chips when all tracks are quiet');

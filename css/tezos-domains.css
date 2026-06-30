@@ -851,6 +851,68 @@
     animation: td-new-row-flash 1.6s ease both;
 }
 
+.td-urgent-surface {
+    display: grid;
+    gap: 0.85rem;
+    margin: 0.9rem 0;
+    padding: 0.95rem;
+    border: 1px solid color-mix(in srgb, var(--td-gold) 34%, rgba(255, 255, 255, 0.08));
+    border-radius: 8px;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--td-gold) 12%, transparent), transparent 42%, color-mix(in srgb, var(--td-pink) 7%, transparent)),
+        rgba(0, 0, 0, 0.18);
+    box-shadow: 0 0 24px color-mix(in srgb, var(--td-gold) 8%, transparent);
+}
+
+.td-urgent-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+}
+
+.td-urgent-head h3 {
+    margin: 0.14rem 0 0;
+    color: var(--text-primary);
+    font-size: clamp(1rem, 1.8vw, 1.3rem);
+    line-height: 1.2;
+}
+
+.td-urgent-head strong {
+    max-width: 24rem;
+    color: color-mix(in srgb, var(--td-gold) 86%, var(--text-primary));
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    line-height: 1.35;
+    text-align: right;
+}
+
+.td-urgent-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.td-urgent-column {
+    min-width: 0;
+    padding: 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 7px;
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.td-urgent-list {
+    max-height: 18rem;
+    overflow: auto;
+    padding-right: 0.16rem;
+}
+
+.td-registration-feed .td-event-row[data-tone="market"] {
+    border-left-color: var(--td-cyan);
+}
+
 @keyframes td-new-row-flash {
     0% {
         border-color: color-mix(in srgb, var(--td-cyan) 52%, transparent);
@@ -1046,5 +1108,18 @@
     .td-market-row strong,
     .td-expiry-row strong {
         justify-self: start;
+    }
+
+    .td-urgent-head {
+        flex-direction: column;
+    }
+
+    .td-urgent-head strong {
+        max-width: none;
+        text-align: left;
+    }
+
+    .td-urgent-grid {
+        grid-template-columns: 1fr;
     }
 }

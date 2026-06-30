@@ -762,14 +762,14 @@ export function initTezlinkChamber() {
             <div class="card-front chamber-entry-front tezlink-entry-front">
                 <div class="tezlink-entry-main">
                     <h2 class="stat-label">Tezos X</h2>
-                    <div class="stat-value tezlink-entry-value" id="tezlink-entry-tvl"><span class="loading">...</span></div>
+                    <div class="stat-value tezlink-entry-value" id="tezlink-entry-tvl"><span class="loading loading-skeleton">Preheating Tezos X</span></div>
                     <span class="tezlink-entry-value-label">TVL</span>
                     <p class="stat-description" id="tezlink-entry-description">Atomic L2 rollup</p>
-                    <div class="chamber-entry-status live" id="tezlink-entry-mini">Loading L2 feed</div>
+                    <div class="chamber-entry-status live" id="tezlink-entry-mini">Warming the L2 feed</div>
                 </div>
                 <div class="tezlink-entry-metrics" id="tezlink-entry-metrics" aria-label="Tezos X live metrics"></div>
                 <div class="tezlink-entry-tape" id="tezlink-entry-tape" aria-label="Tezos X live transaction tape">
-                    <div class="tezlink-tape-empty">Loading transactions</div>
+                    <div class="tezlink-tape-empty">Reading fresh transactions</div>
                 </div>
             </div>
         </div>

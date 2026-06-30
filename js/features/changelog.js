@@ -7,9 +7,17 @@ const CHANGELOG = [
     {
         date: '2026-06-30',
         entries: [
+            { type: '🎨', text: 'My Tezos first-screen address field now collapses into a saved-address summary after an address is tracked' },
+            { type: '🔧', text: 'Governance alerts now stay hidden during empty Proposal periods with no submitted proposal' },
+            { type: '✨', text: 'My Tezos now has a first-screen address field so a wallet or .tez name can become the home dashboard without opening the drawer first' },
+            { type: '✨', text: 'Governance, Network Health, and Tezos Domains chambers now lead with phase, verdict, and urgency surfaces before the deeper metric tables' },
+            { type: '🔧', text: 'Baker capacity math and help copy now use the current protocol delegation limit from Octez RPC with a visible fallback path' },
+            { type: '✨', text: 'Clean Chamber URLs now hydrate the live room directly instead of bouncing through hash routes' },
+            { type: '🎨', text: 'First-paint stat cards and leaderboard loads now use warm skeleton states instead of raw ellipses' },
             { type: '🔧', text: 'Ushuaia Protocol Anthology now separates the quiet DAL/PVM consensus from the real TezosAgora debates over sTEZ, signer readiness, and ecosystem process' },
             { type: '🔧', text: 'Protocol Anthology, governance data, widgets, share copy, and current-protocol fallbacks now reflect Ushuaia activating as Protocol 25' },
             { type: '🔧', text: 'The What is hot today strip now rotates quietly without pulling readers back up the page while they are browsing lower sections' },
+            { type: '🎨', text: 'Mobile chamber cards now keep Tezos X and Tezos L1 Governance content left-aligned with the rest of the Chamber stack' },
         ]
     },
     {

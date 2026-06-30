@@ -13,7 +13,10 @@ const STORAGE_KEY = 'tezos-systems-my-baker-address';
 const SAVED_ADDRESSES_KEY = 'tezos-systems-saved-addresses';
 const TZKT = API_URLS.tzkt;
 const TEZ_DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i;
+const DEFAULT_DELEGATION_LIMIT = 9;
 let _bakerRenderSeq = 0;
+let _delegationLimit = DEFAULT_DELEGATION_LIMIT;
+let _delegationLimitPromise = null;
 
 /**
  * Validate a Tezos address
@@ -151,6 +154,19 @@ async function getStakingAPY() {
     } catch {
         return { delegateAPY: 3.1, stakeAPY: 9.2 };
     }
+}
+
+async function getDelegationLimit() {
+    if (_delegationLimitPromise) return _delegationLimitPromise;
+    _delegationLimitPromise = fetch(`${API_URLS.octez}/chains/main/blocks/head/context/constants`, { cache: 'no-store' })
+        .then((resp) => resp.ok ? resp.json() : Promise.reject(new Error('Protocol constants unavailable')))
+        .then((constants) => {
+            const limit = Number(constants?.limit_of_delegation_over_baking);
+            if (Number.isFinite(limit) && limit > 0) _delegationLimit = limit;
+            return _delegationLimit;
+        })
+        .catch(() => _delegationLimit);
+    return _delegationLimitPromise;
 }
 
 /**
@@ -387,13 +403,14 @@ async function renderBakerData(address, container) {
         } catch { /* ignore */ }
 
         // Fetch APY, domain, and participation data in parallel (missed rights deferred to avoid 429s)
-        const [apy, delegateDomain, participation, dalParticipation, lbVote, octezVersions] = await Promise.all([
+        const [apy, delegateDomain, participation, dalParticipation, lbVote, octezVersions, delegationLimit] = await Promise.all([
             getStakingAPY(),
             account.delegate?.address ? resolveDomain(account.delegate.address) : Promise.resolve(null),
             participationAddr ? fetchParticipation(participationAddr) : Promise.resolve(null),
             participationAddr ? fetchDALParticipation(participationAddr) : Promise.resolve(null),
             participationAddr ? fetchBakerLiquidityBakingVote(participationAddr) : Promise.resolve(null),
             activeBaker ? fetchOctezVersions().catch(() => null) : Promise.resolve(null),
+            getDelegationLimit(),
         ]);
 
         if (renderSeq !== _bakerRenderSeq) return;
@@ -467,8 +484,8 @@ async function renderBakerData(address, container) {
         let missedCycleEl = null;
         let missedLifetimeEl = null;
         if (participationAddr && currentCycle) {
-            missedCycleEl = createStatItem('Bkr Missed (Cycle)', 'Loading...', 'Baker missed blocks / missed attestation rights this cycle');
-            missedLifetimeEl = createStatItem('Bkr Missed (10d)', 'Loading...', 'Baker missed blocks / missed attestation rights over the last ~10 cycles');
+            missedCycleEl = createStatItem('Bkr Missed (Cycle)', 'Checking rights', 'Baker missed blocks / missed attestation rights this cycle');
+            missedLifetimeEl = createStatItem('Bkr Missed (10d)', 'Checking rights', 'Baker missed blocks / missed attestation rights over the last ~10 cycles');
             grid.appendChild(missedCycleEl);
             grid.appendChild(missedLifetimeEl);
         }
@@ -526,8 +543,10 @@ async function renderBakerData(address, container) {
             const stakingMultiplier = (bakerData.limitOfStakingOverBaking || 0) / 1e6;
             const maxStaking = ownStake * stakingMultiplier;
 
-            // Delegation capacity: always 9x own stake
-            const maxDelegation = ownStake * 9;
+            const activeDelegationLimit = Number.isFinite(Number(delegationLimit)) && Number(delegationLimit) > 0
+                ? Number(delegationLimit)
+                : DEFAULT_DELEGATION_LIMIT;
+            const maxDelegation = ownStake * activeDelegationLimit;
 
             const barsContainer = document.createElement('div');
             barsContainer.className = 'capacity-bars';
@@ -545,7 +564,7 @@ async function renderBakerData(address, container) {
                 'Delegation Capacity',
                 extDelegated,
                 maxDelegation,
-                '9x multiplier'
+                `${activeDelegationLimit}x current protocol limit`
             ));
 
             container.appendChild(barsContainer);
@@ -559,8 +578,8 @@ async function renderBakerData(address, container) {
             const fallbackTimer = setTimeout(() => {
                 const cVal = missedCycleEl.querySelector('.my-baker-stat-value');
                 const lVal = missedLifetimeEl.querySelector('.my-baker-stat-value');
-                if (cVal && cVal.textContent === 'Loading...') cVal.textContent = 'N/A';
-                if (lVal && lVal.textContent === 'Loading...') lVal.textContent = 'N/A';
+                if (cVal && cVal.textContent === 'Checking rights') cVal.textContent = 'N/A';
+                if (lVal && lVal.textContent === 'Checking rights') lVal.textContent = 'N/A';
             }, 20000);
 
             // Run async without blocking the rest of the render
@@ -612,6 +631,14 @@ export function init() {
     const ledgerFlowLink = document.getElementById('my-tezos-ledger-flow-link');
     const results = document.getElementById('my-baker-results');
     const errorMsg = document.getElementById('my-baker-error-msg');
+    const heroForm = document.getElementById('my-tezos-hero-form');
+    const heroInput = document.getElementById('my-tezos-hero-input');
+    const heroStatus = document.getElementById('my-tezos-hero-status');
+    const heroOpen = document.getElementById('my-tezos-hero-open');
+    const heroConnected = document.getElementById('my-tezos-hero-connected');
+    const heroAddress = document.getElementById('my-tezos-hero-address');
+    const heroConnectedOpen = document.getElementById('my-tezos-hero-connected-open');
+    const heroSwitch = document.getElementById('my-tezos-hero-switch');
 
     if (!input || !saveBtn || !clearBtn || !results) return;
 
@@ -688,6 +715,8 @@ export function init() {
                 renderBakerData(addr, results);
                 updateLedgerFlowLink(addr);
                 showCopyMode(addr);
+                syncHeroState(addr);
+                setDrawerConnectionState(true);
                 window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr, source: 'my-baker' } }));
                 renderSavedAddresses();
             });
@@ -739,6 +768,118 @@ export function init() {
         ledgerFlowLink.title = `Open Ledger Flow for ${addr}`;
     }
 
+    function setDrawerConnectionState(hasAddress) {
+        const emptyState = document.getElementById('drawer-empty-state');
+        const connectedState = document.getElementById('drawer-connected');
+        if (emptyState) emptyState.style.display = hasAddress ? 'none' : '';
+        if (connectedState) connectedState.style.display = hasAddress ? '' : 'none';
+    }
+
+    function openDrawer(hasAddress) {
+        const drawer = document.getElementById('my-tezos-drawer');
+        const scrim = document.getElementById('my-tezos-drawer-scrim');
+        if (drawer && scrim) {
+            drawer.classList.add('open');
+            scrim.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        }
+        setDrawerConnectionState(hasAddress);
+    }
+
+    function setStatus(target, message, tone = '') {
+        if (!target) return;
+        target.textContent = message || '';
+        if (tone) target.dataset.tone = tone;
+        else delete target.dataset.tone;
+    }
+
+    function shortAddress(addr) {
+        const value = String(addr || '');
+        if (value.length <= 18) return value;
+        return `${value.slice(0, 10)}…${value.slice(-6)}`;
+    }
+
+    function isHeroEditing() {
+        return document.getElementById('my-tezos-hero')?.classList.contains('editing') === true;
+    }
+
+    function setHeroEditing(editing) {
+        const hero = document.getElementById('my-tezos-hero');
+        if (!hero) return;
+        hero.classList.toggle('editing', editing);
+        if (editing) {
+            if (heroForm) heroForm.hidden = false;
+            if (heroConnected) heroConnected.hidden = true;
+        }
+    }
+
+    function syncHeroState(addr, message = '') {
+        if (!heroInput || !heroStatus) return;
+        const valid = isValidAddress(addr);
+        if (valid && document.activeElement !== heroInput) heroInput.value = addr;
+        if (!valid && document.activeElement !== heroInput) heroInput.value = '';
+        const hero = document.getElementById('my-tezos-hero');
+        if (hero) hero.classList.toggle('connected', valid);
+        if (heroAddress && valid) {
+            heroAddress.textContent = shortAddress(addr);
+            heroAddress.title = addr;
+        }
+        if (heroForm) heroForm.hidden = valid && !isHeroEditing();
+        if (heroConnected) heroConnected.hidden = !valid || isHeroEditing();
+        setStatus(
+            heroStatus,
+            message || (valid ? 'Address saved. Open My Tezos when you need the details.' : 'Paste a wallet or .tez name.'),
+            valid ? 'ready' : ''
+        );
+    }
+
+    async function normalizeAddressInput(raw, statusEl) {
+        const label = String(raw || '').trim();
+        if (!label) {
+            setStatus(statusEl, 'Paste a wallet or .tez name first.', 'error');
+            return '';
+        }
+        if (isTezDomain(label)) {
+            setStatus(statusEl, 'Resolving domain...', 'loading');
+            const resolved = await resolveForwardDomain(label.toLowerCase());
+            if (!resolved) {
+                setStatus(statusEl, `Could not resolve "${label}". Domain not found.`, 'error');
+                return '';
+            }
+            return resolved;
+        }
+        return label;
+    }
+
+    async function saveAddress(raw, options = {}) {
+        const statusEl = options.statusEl || errorMsg;
+        const openAfterSave = options.openDrawer !== false;
+        setStatus(statusEl, '');
+
+        const addr = await normalizeAddressInput(raw, statusEl);
+        if (!addr) return '';
+
+        if (!isValidAddress(addr)) {
+            setStatus(statusEl, 'Invalid address. Enter a tz1.../KT1... address or a .tez domain.', 'error');
+            return '';
+        }
+
+        localStorage.setItem(STORAGE_KEY, addr);
+        input.value = addr;
+        if (heroInput) heroInput.value = addr;
+        renderBakerData(addr, results);
+        updateShareLink(addr);
+        updateLedgerFlowLink(addr);
+        showCopyMode(addr);
+        addToSavedAddresses(addr);
+        setHeroEditing(false);
+        syncHeroState(addr);
+        setDrawerConnectionState(true);
+        if (openAfterSave) openDrawer(true);
+        window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr, source: 'my-baker' } }));
+        return addr;
+    }
+
     // Load saved address
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved && isValidAddress(saved)) {
@@ -747,8 +888,10 @@ export function init() {
         updateShareLink(saved);
         updateLedgerFlowLink(saved);
         showCopyMode(saved);
+        syncHeroState(saved);
     } else {
         updateLedgerFlowLink(null);
+        syncHeroState(null);
     }
     renderSavedAddresses();
 
@@ -761,6 +904,8 @@ export function init() {
         updateShareLink(addr);
         updateLedgerFlowLink(addr);
         showCopyMode(addr);
+        syncHeroState(addr);
+        setDrawerConnectionState(true);
         renderSavedAddresses();
     });
 
@@ -785,33 +930,7 @@ export function init() {
             await copyCurrentAddress(raw);
             return;
         }
-        errorMsg.textContent = '';
-
-        let addr = raw;
-        if (isTezDomain(raw)) {
-            errorMsg.textContent = 'Resolving domain...';
-            const resolved = await resolveForwardDomain(raw.toLowerCase());
-            if (!resolved) {
-                errorMsg.textContent = `Could not resolve "${raw}". Domain not found.`;
-                return;
-            }
-            addr = resolved;
-            input.value = addr;
-            errorMsg.textContent = '';
-        }
-
-        if (!isValidAddress(addr)) {
-            errorMsg.textContent = 'Invalid address. Enter a tz1…/KT1… address or a .tez domain.';
-            return;
-        }
-        localStorage.setItem(STORAGE_KEY, addr);
-        renderBakerData(addr, results);
-        updateShareLink(addr);
-        updateLedgerFlowLink(addr);
-        showCopyMode(addr);
-        addToSavedAddresses(addr);
-        // Notify My Tezos strip to refresh with new address
-        window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: addr, source: 'my-baker' } }));
+        await saveAddress(raw, { statusEl: errorMsg, openDrawer: false });
     });
 
     // Allow Enter key
@@ -824,17 +943,15 @@ export function init() {
         localStorage.removeItem(STORAGE_KEY);
         input.value = '';
         results.innerHTML = '';
-        errorMsg.textContent = '';
+        setStatus(errorMsg, '');
         updateShareLink(null);
         updateLedgerFlowLink(null);
         restoreSaveMode();
+        setHeroEditing(false);
+        syncHeroState(null);
         // Notify My Tezos strip
         window.dispatchEvent(new CustomEvent('my-baker-updated', { detail: { address: null, source: 'my-baker' } }));
-        // Switch drawer back to empty state
-        const emptyState = document.getElementById('drawer-empty-state');
-        const connectedState = document.getElementById('drawer-connected');
-        if (emptyState) emptyState.style.display = '';
-        if (connectedState) connectedState.style.display = 'none';
+        setDrawerConnectionState(false);
     });
 
     // Drawer empty-state connect button
@@ -844,19 +961,53 @@ export function init() {
         drawerConnectBtn.addEventListener('click', async () => {
             const raw = drawerAddressInput.value.trim();
             if (!raw) return;
-            // Copy to main input and trigger save
-            input.value = raw;
-            saveBtn.click();
-            // Switch to connected state
-            const emptyState = document.getElementById('drawer-empty-state');
-            const connectedState = document.getElementById('drawer-connected');
-            if (emptyState) emptyState.style.display = 'none';
-            if (connectedState) connectedState.style.display = '';
+            await saveAddress(raw, { statusEl: errorMsg, openDrawer: false });
         });
         drawerAddressInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') drawerConnectBtn.click();
         });
     }
+
+    if (heroForm && heroInput) {
+        heroForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const raw = heroInput.value.trim();
+            if (!raw) {
+                setStatus(heroStatus, 'Paste a wallet or .tez name first.', 'error');
+                heroInput.focus();
+                return;
+            }
+            await saveAddress(raw, { statusEl: heroStatus, openDrawer: true });
+        });
+        heroInput.addEventListener('input', () => {
+            const active = localStorage.getItem(STORAGE_KEY);
+            const value = heroInput.value.trim();
+            if (active && value === active && !isHeroEditing()) {
+                syncHeroState(active);
+            } else if (value) {
+                setStatus(heroStatus, 'Ready when you are.', '');
+            } else {
+                setStatus(heroStatus, active ? 'Enter a new wallet or .tez name, or open the saved address.' : 'Paste a wallet or .tez name.', '');
+            }
+        });
+    }
+
+    heroOpen?.addEventListener('click', () => {
+        openDrawer(Boolean(localStorage.getItem(STORAGE_KEY)));
+    });
+    heroConnectedOpen?.addEventListener('click', () => {
+        openDrawer(Boolean(localStorage.getItem(STORAGE_KEY)));
+    });
+    heroSwitch?.addEventListener('click', () => {
+        const active = localStorage.getItem(STORAGE_KEY) || '';
+        setHeroEditing(true);
+        if (heroInput) {
+            heroInput.value = active;
+            heroInput.focus();
+            heroInput.select?.();
+        }
+        setStatus(heroStatus, 'Enter a new wallet or .tez name.', '');
+    });
 }
 
 /**

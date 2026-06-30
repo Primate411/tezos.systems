@@ -35,6 +35,8 @@ export function letterGrade(score) {
  * @param {object|null} participation - latest participation cycle data (or null)
  * @returns {{ overall, uptime, fee, growth, capacity, tz4 }} scores (0-100 integers)
  */
+const DEFAULT_DELEGATION_LIMIT = 9;
+
 export function computeBakerScores(baker, participation) {
     // 1. Uptime score (attestation rate) — 35% weight
     let uptimeScore = 95; // default if no data
@@ -69,22 +71,20 @@ export function computeBakerScores(baker, participation) {
     else growthScore = 50 + totalDelegators * 6;
 
     // 4. Capacity remaining — 20% weight (bakers near capacity are less attractive)
-    // Tallinn: max external staked = baker's own staked × limitOfStakingOverBaking (in millionths)
     const ownStaked = baker.stakedBalance || baker.balance || 0;
     const externalDelegated = baker.externalDelegatedBalance || 0;
-    const limitMultiplier = baker.limitOfStakingOverBaking != null
-        ? baker.limitOfStakingOverBaking / 1_000_000  // millionths → multiplier (e.g. 9000000 = 9x)
-        : 0; // null = not accepting external stakers
-    let maxExternalStaked, usedPct;
-    if (baker.limitOfStakingOverBaking == null && externalDelegated > 0) {
-        // Legacy 9x delegation model
-        maxExternalStaked = ownStaked * 9;
-        usedPct = maxExternalStaked > 0 ? (externalDelegated / maxExternalStaked) * 100 : 100;
-    } else {
-        maxExternalStaked = ownStaked * limitMultiplier;
-        const externalStaked = baker.externalStakedBalance || 0;
-        usedPct = maxExternalStaked > 0 ? (externalStaked / maxExternalStaked) * 100 : (limitMultiplier === 0 ? 100 : 0);
-    }
+    const externalStaked = baker.externalStakedBalance || 0;
+    const delegationLimit = Number.isFinite(Number(baker.delegationLimit)) && Number(baker.delegationLimit) > 0
+        ? Number(baker.delegationLimit)
+        : DEFAULT_DELEGATION_LIMIT;
+    const stakingLimit = baker.limitOfStakingOverBaking != null
+        ? baker.limitOfStakingOverBaking / 1_000_000
+        : 0;
+    const maxDelegated = ownStaked * delegationLimit;
+    const delegationPct = maxDelegated > 0 ? (externalDelegated / maxDelegated) * 100 : (externalDelegated > 0 ? 100 : 0);
+    const maxExternalStaked = ownStaked * stakingLimit;
+    const stakingPct = maxExternalStaked > 0 ? (externalStaked / maxExternalStaked) * 100 : (externalStaked > 0 ? 100 : 0);
+    const usedPct = Math.max(delegationPct, stakingPct);
     let capacityScore;
     if (usedPct <= 50) capacityScore = 100;
     else if (usedPct <= 80) capacityScore = 100 - (usedPct - 50) * 0.5;

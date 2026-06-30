@@ -113,6 +113,22 @@ function formatXTZ(mutez) {
     return xtz.toLocaleString();
 }
 
+function shortAddress(address, head = 10, tail = 4) {
+    const value = String(address || '');
+    if (value.length <= head + tail + 3) return value;
+    return `${value.slice(0, head)}...${value.slice(-tail)}`;
+}
+
+function operationLabel(operation) {
+    const type = String(operation?.type || operation?.kind || 'operation').replaceAll('_', ' ').toLowerCase();
+    return type ? type.replace(/^\w/, (char) => char.toUpperCase()) : 'Operation';
+}
+
+function operationHref(awakening) {
+    const hash = awakening?.operation?.hash || awakening?.operation?.operationGroupHash;
+    return hash ? `https://tzkt.io/${encodeURIComponent(hash)}` : `https://tzkt.io/${encodeURIComponent(awakening.address)}`;
+}
+
 // Tezos mainnet launch date
 const MAINNET_LAUNCH = new Date('2018-09-17T00:00:00Z').getTime();
 
@@ -293,24 +309,35 @@ function createAwakeningAlert(awakening) {
     const tier = getDormancyTier(awakening.dormantDays);
     const balance = formatXTZ(awakening.balance);
     const dormancy = formatDormancy(awakening.dormantDays);
+    const opLabel = operationLabel(awakening.operation);
+    const href = operationHref(awakening);
     
     const alert = document.createElement('div');
     alert.className = 'awakening-alert';
     
     alert.innerHTML = `
-        <div class="awakening-header">
-            <span class="awakening-icon">🚨</span>
-            <span class="awakening-title">GIANT AWAKENED</span>
+        <div class="awakening-header awakening-event-header">
+            <span class="awakening-icon">${tier.emoji}</span>
+            <span class="awakening-title">Awakening Event</span>
+            <span class="awakening-op-type">${escapeHtml(opLabel)}</span>
         </div>
-        <div class="awakening-details">
+        <div class="awakening-event-headline">
+            <strong>${balance} ꜩ moved</strong>
+            <span>after ${escapeHtml(dormancy)} quiet</span>
+        </div>
+        <div class="awakening-details awakening-event-details">
             <span class="awakening-balance">${balance} ꜩ</span>
-            <span class="awakening-dormancy">after ${dormancy} of sleep</span>
+            <span class="awakening-dormancy">${escapeHtml(tier.label)} wallet woke up</span>
         </div>
-        <div class="awakening-address">${escapeHtml(awakening.address.slice(0, 12))}...</div>
+        <div class="awakening-address">${escapeHtml(shortAddress(awakening.address, 12, 5))}</div>
+        <a class="awakening-action" href="${escapeHtml(href)}" target="_blank" rel="noopener">View receipt</a>
     `;
     
     alert.addEventListener('click', () => {
-        window.open(`https://tzkt.io/${awakening.address}`, '_blank');
+        window.open(href, '_blank');
+    });
+    alert.querySelector('.awakening-action')?.addEventListener('click', (event) => {
+        event.stopPropagation();
     });
     
     // Auto-remove after 30 seconds
@@ -429,15 +456,18 @@ function updateAwakeningsLog() {
         const balance = formatXTZ(a.balance);
         const dormancy = formatDormancy(a.dormantDays);
         const timeAgo = formatTimeAgo(a.timestamp || a.awakenedAt);
+        const opLabel = operationLabel(a.operation);
         
         return `
             <div class="awakening-log-item" data-address="${escapeHtml(a.address)}" role="button" tabindex="0">
                 <div class="log-item-main">
+                    <span class="log-event-kicker">Event</span>
                     <span class="log-balance">${balance} ꜩ</span>
                     <span class="log-dormancy">slept ${dormancy}</span>
                 </div>
                 <div class="log-item-meta">
-                    <span class="log-address">${a.address.slice(0, 10)}...</span>
+                    <span class="log-address">${escapeHtml(shortAddress(a.address, 10, 4))}</span>
+                    <span class="log-op-type">${escapeHtml(opLabel)}</span>
                     <span class="log-time">${timeAgo}</span>
                 </div>
             </div>

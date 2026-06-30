@@ -1261,7 +1261,7 @@ export function initLiquidityBaking() {
         <div class="card-inner">
             <div class="card-front chamber-entry-front lb-entry-open-target" role="button" tabindex="0" aria-label="Open Liquidity Baking Monitor">
                 <h2 class="stat-label">LB Monitor</h2>
-                <div class="stat-value lb-entry-ema" id="lb-entry-ema"><span class="loading">...</span></div>
+                <div class="stat-value lb-entry-ema" id="lb-entry-ema"><span class="loading loading-skeleton">Preheating LB votes</span></div>
                 <p class="stat-description" id="lb-entry-description">EMA + baker toggle votes</p>
                 <div class="lb-entry-meter" aria-label="OFF-vote EMA threshold">
                     <span class="lb-entry-meter-threshold" style="left:50%"></span>
@@ -1270,7 +1270,7 @@ export function initLiquidityBaking() {
                 <div class="health-live-tape lb-entry-vote-tape" id="lb-entry-vote-tape" aria-label="Latest Liquidity Baking baker votes">
                     <div class="health-live-tape-title chamber-entry-status" id="lb-entry-mini">Latest votes</div>
                     <div class="health-live-tape-rows lb-entry-vote-rows" id="lb-entry-vote-rows">
-                        <div class="health-live-empty lb-entry-vote-empty">Loading votes</div>
+                        <div class="health-live-empty lb-entry-vote-empty">Counting baker votes</div>
                     </div>
                 </div>
             </div>

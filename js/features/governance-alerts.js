@@ -26,6 +26,25 @@ function activeKind(kind) {
     return ['proposal', 'exploration', 'promotion'].includes(kind);
 }
 
+function proposalCount(period) {
+    if (period?.proposalsCount === undefined || period?.proposalsCount === null) return null;
+    const count = Number(period.proposalsCount);
+    return Number.isFinite(count) ? count : null;
+}
+
+function hasSubmittedProposal(period) {
+    if (!period || period.kind !== 'proposal') return true;
+    const count = proposalCount(period);
+    if (count !== null) return count > 0;
+    return Boolean(period.proposalHash || period.proposalName || period.proposal?.hash || period.proposal?.alias);
+}
+
+function alertablePeriod(period) {
+    if (!period || !activeKind(period.kind)) return false;
+    if (period.kind === 'proposal') return hasSubmittedProposal(period);
+    return true;
+}
+
 function hide(root) {
     root.hidden = true;
     root.innerHTML = '';
@@ -54,7 +73,7 @@ function alertKey(period, vote) {
 }
 
 function sendNotification(period, vote, savedBaker) {
-    if (!alertsEnabled() || !activeKind(period?.kind)) return;
+    if (!alertsEnabled() || !alertablePeriod(period)) return;
     const key = alertKey(period, vote);
     if (localStorage.getItem(ALERT_NOTIFIED_KEY) === key) return;
 
@@ -83,11 +102,16 @@ function sendNotification(period, vote, savedBaker) {
 
 function voteStatusCopy(period, vote, savedBaker) {
     if (!savedBaker) {
+        const proposalWindow = period.kind === 'proposal';
         return {
             tone: 'active',
             kicker: `${phaseName(period.kind)} live`,
-            title: `${proposalLabel(period, vote)} needs attention.`,
-            body: 'Save My Tezos once and this strip becomes a personal baker vote check during every governance window.',
+            title: proposalWindow
+                ? `${proposalLabel(period, vote)} is gathering Proposal upvotes.`
+                : `${proposalLabel(period, vote)} vote is live.`,
+            body: proposalWindow
+                ? 'Save My Tezos once and this strip becomes a personal baker upvote check when proposals are submitted.'
+                : 'Save My Tezos once and this strip becomes a personal baker vote check during every governance window.',
             meta: period.endTime ? `${formatTimeRemaining(period.endTime)} until the period closes` : 'Live governance period'
         };
     }
@@ -177,7 +201,7 @@ async function refreshGovernanceAlert() {
 
     try {
         const period = await fetchVotingStatus();
-        if (!activeKind(period?.kind)) {
+        if (!alertablePeriod(period)) {
             hide(root);
             return;
         }

@@ -16,6 +16,42 @@ try {
 }
 
 const FLIP_DURATION = 600; // milliseconds - matches CSS transition
+const LOADING_COPY = {
+    'total-bakers': 'Preheating the baker board',
+    'tz4-adoption': 'Counting fresh keys',
+    'cycle-progress': "Dough's rising",
+    'network-health': 'Checking the bake',
+    'issuance-rate': 'Proofing the numbers',
+    'staking-apy': 'Warming the yield',
+    'staking-ratio': 'Measuring the rise',
+    delegated: 'Counting delegated dough',
+    'total-supply': 'Sifting supply',
+    'total-burned': 'Tending the oven',
+    'baking-power': 'Weighing baking power',
+    'reward-accounts': 'Counting reward trays',
+    proposal: 'Opening the governance oven',
+    'voting-period': 'Checking the voting clock',
+    participation: 'Counting baker ballots',
+    'tx-volume': 'Reading the mempool',
+    'contract-calls': 'Counting contract calls',
+    'funded-accounts': 'Finding funded wallets',
+    'new-accounts': 'Spotting fresh wallets',
+    'smart-contracts': 'Counting contracts',
+    tokens: 'Sorting token shelves',
+    rollups: 'Checking rollups',
+    'active-contracts': 'Finding active contracts'
+};
+
+function loadingCopyFor(cardId) {
+    return LOADING_COPY[cardId] || "Dough's rising";
+}
+
+function clearLoadingState(element) {
+    if (!element) return;
+    element.classList.remove('loading');
+    delete element.dataset.loadingCopy;
+    element.removeAttribute('aria-label');
+}
 /**
  * Flip a stat card with new value
  * @param {HTMLElement} cardElement - The stat card element
@@ -56,8 +92,7 @@ export async function flipCard(cardElement, newValue, formatter) {
         requestAnimationFrame(() => {
             backValue.textContent = formattedValue;
 
-            // Remove loading class if present
-            backValue.classList.remove('loading');
+            clearLoadingState(backValue);
 
             // Add flipping class to start animation
             cardElement.classList.add('flipping');
@@ -78,7 +113,7 @@ export async function flipCard(cardElement, newValue, formatter) {
                 const frontValue = cardElement.querySelector(`#${statType}-front`);
                 if (frontValue) {
                     frontValue.textContent = formattedValue;
-                    frontValue.classList.remove('loading');
+                    clearLoadingState(frontValue);
                 }
 
                 // Remove flipping class
@@ -109,11 +144,11 @@ export function updateStatInstant(cardId, value, formatter) {
 
     if (frontValue) {
         frontValue.textContent = formattedValue;
-        frontValue.classList.remove('loading');
+        clearLoadingState(frontValue);
     }
     if (backValue) {
         backValue.textContent = formattedValue;
-        backValue.classList.remove('loading');
+        clearLoadingState(backValue);
     }
 }
 
@@ -122,15 +157,19 @@ export function updateStatInstant(cardId, value, formatter) {
  * @param {string} cardId - ID of the stat card
  */
 export function showLoading(cardId) {
-    updateStatInstant(cardId, '...', null);
-
     const card = document.querySelector(`[data-stat="${cardId}"]`);
     if (card) {
         const frontValue = card.querySelector(`#${cardId}-front`);
         const backValue = card.querySelector(`#${cardId}-back`);
+        const copy = loadingCopyFor(cardId);
 
-        if (frontValue) frontValue.classList.add('loading');
-        if (backValue) backValue.classList.add('loading');
+        [frontValue, backValue].forEach((valueEl) => {
+            if (!valueEl) return;
+            valueEl.textContent = copy;
+            valueEl.dataset.loadingCopy = copy;
+            valueEl.setAttribute('aria-label', copy);
+            valueEl.classList.add('loading');
+        });
     }
 }
 
@@ -149,11 +188,11 @@ export function showError(cardId, message = 'Error') {
 
         if (frontValue) {
             frontValue.classList.add('error-state');
-            frontValue.classList.remove('loading');
+            clearLoadingState(frontValue);
         }
         if (backValue) {
             backValue.classList.add('error-state');
-            backValue.classList.remove('loading');
+            clearLoadingState(backValue);
         }
     }
 }

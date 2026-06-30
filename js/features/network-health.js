@@ -1426,6 +1426,69 @@ function chamberStatus(data) {
     return { label: 'Healthy', className: 'live' };
 }
 
+function healthVerdict(data) {
+    const status = chamberStatus(data);
+    const score = Number(data.summary?.score || 0);
+    const avgSeconds = Number(data.timing?.avgSeconds || 0);
+    const maxRound = Number(data.timing?.maxRound || 0);
+    const missedBlocks = data.missedBlocks?.length || 0;
+    const head = data.blocks?.[0]?.level ? `head ${formatCount(data.blocks[0].level)}` : 'live head pending';
+    const powerText = score ? `${score.toFixed(score >= 99.5 ? 2 : 1)}% attestation power` : 'attestation power warming up';
+
+    if (status.label === 'Healthy') {
+        return {
+            ...status,
+            tone: 'green',
+            sentence: `Everything looks OK: recent blocks are landing near target with ${powerText}.`,
+            meta: `${head} · avg ${formatSeconds(avgSeconds)} · round ${maxRound}`
+        };
+    }
+    if (status.label === 'Watch') {
+        const reason = missedBlocks
+            ? `${missedBlocks} missed block signal${missedBlocks === 1 ? '' : 's'} in the sample`
+            : maxRound > 0
+                ? `a recent non-zero round reached R${maxRound}`
+                : `average cadence is ${formatSeconds(avgSeconds)}`;
+        return {
+            ...status,
+            tone: 'amber',
+            sentence: `The chain is moving, but worth watching: ${reason}.`,
+            meta: `${head} · ${powerText}`
+        };
+    }
+    return {
+        ...status,
+        tone: 'red',
+        sentence: `Network health needs attention: cadence, rounds, or attestation power are outside the comfort zone.`,
+        meta: `${head} · avg ${formatSeconds(avgSeconds)} · ${powerText}`
+    };
+}
+
+function renderHealthVerdictPanel(data) {
+    const verdict = healthVerdict(data);
+    return `
+        <section class="health-verdict-panel ${escapeHtml(verdict.tone)} chamber-anim-fade" id="health-verdict-panel" aria-label="Network health verdict" style="animation-delay:90ms">
+            <div class="health-verdict-status">
+                <span class="health-verdict-dot" aria-hidden="true"></span>
+                <span>${escapeHtml(verdict.label)}</span>
+            </div>
+            <div class="health-verdict-copy">
+                <strong>${escapeHtml(verdict.sentence)}</strong>
+                <span>${escapeHtml(verdict.meta)}</span>
+            </div>
+        </section>
+    `;
+}
+
+function updateHealthVerdictPanel(data) {
+    const panel = document.getElementById('health-verdict-panel');
+    if (!panel) return;
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = renderHealthVerdictPanel(data).trim();
+    const next = wrapper.firstElementChild;
+    if (next) panel.replaceWith(next);
+}
+
 async function fetchNetworkHealthChamberData() {
     const [blocks, cycleTiming] = await Promise.all([
         fetchRecentBlocks(CHAMBER_BLOCK_LIMIT),
@@ -2170,6 +2233,7 @@ function renderNetworkHealthChamber(data, container) {
                 <div class="proposal-hash" id="health-head-meta">${latest ? `Head block ${formatCount(latest.level)} · ${headAge} · avg ${formatSeconds(data.timing.avgSeconds)}` : 'Live TzKT block feed'}</div>
             </div>
         </div>
+        ${renderHealthVerdictPanel(data)}
         <section class="lb-explainer health-explainer chamber-anim-fade">
             <div class="lb-explainer-main">
                 <div class="lb-explainer-kicker">Right now</div>
@@ -2365,6 +2429,7 @@ function updateNetworkHealthInPlace(data, container) {
     }
     container.dataset.healthRefreshMode = 'in-place';
     updateHealthHeader(data);
+    updateHealthVerdictPanel(data);
     updateHealthScorePanel(data);
     updateHealthTimingPanel(data);
     updateHealthStoryPanels(data);

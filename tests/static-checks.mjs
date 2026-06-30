@@ -279,6 +279,7 @@ async function checkLocalReferences() {
 async function checkCacheBustAlignment() {
   const index = await readText('index.html');
   const sw = await readText('sw.js');
+  const app = await readText('js/core/app.js');
   const heroSearch = await readText('js/features/search.js');
   const ledgerFlow = await readText('js/features/ledger-flow.js');
   const themePreload = await readText('js/core/theme-preload.js');
@@ -332,6 +333,12 @@ async function checkCacheBustAlignment() {
     fail('sw.js must handle version.json freshness');
   } else {
     pass('service worker handles version.json freshness');
+  }
+
+  if (!app.includes("fetch('/version.json'")) {
+    fail('app.js must fetch /version.json from the site root so clean route pages do not request nested version metadata');
+  } else {
+    pass('app.js fetches version metadata from the site root');
   }
 }
 
@@ -544,6 +551,7 @@ async function checkSelectorContracts() {
   const comparison = await readText('js/features/comparison.js');
   const compareIndex = await readText('compare/index.html');
   const chamberRoutes = await readText('scripts/lib/chamber-routes.mjs');
+  const chamberRouteGenerator = await readText('scripts/generate-chamber-routes.mjs');
   const themeUi = await readText('js/ui/theme.js');
   const styles = await readText('css/styles.css');
   const ledgerFlowCss = await readText('css/ledger-flow.css');
@@ -616,6 +624,9 @@ async function checkSelectorContracts() {
     ['Chambers launcher button', 'id="chambers-toggle"', index],
     ['Chambers launcher copy link', 'data-copy-hash="#chambers"', index],
     ['Chambers visibility storage', 'tezos-systems-chambers-visible', app],
+    ['Pretty chamber path route map', 'function getPrettyChamberPathRoute()', app],
+    ['Pretty chamber route opens without hash redirect', "chamber: 'chamber'", app],
+    ['Pretty chamber route generator hydrates dashboard shell', "dashboardShell = await fs.readFile", chamberRouteGenerator],
     ['Chamber card copy link', 'data-copy-hash="#chamber"', chamber],
     ['Tezos L1 Governance card label', 'Tezos L1 Governance', chamber],
     ['Chamber current state panel', 'id="chamber-now-panel"', chamber],
@@ -944,6 +955,9 @@ async function checkSelectorContracts() {
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
+  }
+  if (chamberRouteGenerator.includes('location.replace') || chamberRouteGenerator.includes('http-equiv="refresh"')) {
+    fail('pretty chamber routes must hydrate the dashboard shell instead of redirecting to hash routes');
   }
   if (henMode.includes('cloudflare-ipfs.com')) {
     fail('HEN mode must not retry through the retired Cloudflare public IPFS gateway');

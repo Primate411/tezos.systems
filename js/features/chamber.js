@@ -301,6 +301,7 @@ function liveCountdownAttrs(endTime, options = {}) {
     if (!endTime) return '';
     const attrs = [
         `data-live-countdown="${escapeHtml(endTime)}"`,
+        options.prefix ? `data-live-prefix="${escapeHtml(options.prefix)}"` : '',
         options.suffix ? `data-live-suffix="${escapeHtml(options.suffix)}"` : '',
         options.ended ? `data-live-ended="${escapeHtml(options.ended)}"` : '',
         options.empty ? `data-live-empty="${escapeHtml(options.empty)}"` : ''
@@ -1215,6 +1216,78 @@ function activeGovernancePeriod(data) {
     return (data.epoch?.periods || []).find((period) => period.status === 'active') || null;
 }
 
+function normalizedGovernanceStage(kind) {
+    return kind === 'cooldown' ? 'testing' : kind;
+}
+
+function governanceStageIndex(data) {
+    const active = activeGovernancePeriod(data);
+    const stage = normalizedGovernanceStage(active?.kind || data.currentPeriod?.kind || data.votePeriod?.kind || '');
+    const index = STAGES.findIndex((item) => item.key === stage);
+    if (index >= 0) return index;
+    const lastResolved = [...(data.epoch?.periods || [])]
+        .filter((period) => ['success', 'no_proposals', 'no_quorum', 'no_supermajority', 'failed'].includes(period.status))
+        .sort((a, b) => (b.index || 0) - (a.index || 0))[0];
+    const fallback = STAGES.findIndex((item) => item.key === normalizedGovernanceStage(lastResolved?.kind));
+    return fallback >= 0 ? fallback : 0;
+}
+
+function governanceNextLine(data) {
+    const active = activeGovernancePeriod(data);
+    const stage = normalizedGovernanceStage(active?.kind || data.currentPeriod?.kind || '');
+    if (!data.isLive && !active) return 'This epoch is complete; the receipts below show how it resolved.';
+    if (stage === 'proposal') return 'Bakers are choosing the leading hash. If one leads when the window closes, Exploration opens next.';
+    if (stage === 'exploration') return 'If quorum and 80% Yay clear, the proposal enters Cooldown; otherwise it fails here.';
+    if (stage === 'testing') return 'No ballots now. Promotion is the final baker vote.';
+    if (stage === 'promotion') return 'If quorum and 80% Yay clear again, Adoption schedules activation.';
+    if (stage === 'adoption') return 'Ballots are closed. Activation is the next chain event.';
+    return 'Governance is between vote moments; read the latest receipt first, then the numbers below.';
+}
+
+function phaseCountdown(data) {
+    const active = activeGovernancePeriod(data);
+    const label = active ? periodTitle(active.kind) : (data.isLive ? periodTitle(data.currentPeriod?.kind) : 'Historical');
+    if (!active?.endTime) {
+        return {
+            label,
+            value: data.isLive ? `${label} · timing unavailable` : 'Historical · closed',
+            attrs: ''
+        };
+    }
+    return {
+        label,
+        value: `${label} · ${fmtCountdown(active.endTime)} left`,
+        attrs: liveCountdownAttrs(active.endTime, { prefix: `${label} · `, suffix: ' left', ended: `${label} closing now` })
+    };
+}
+
+function renderGovernancePhaseHero(data) {
+    const activeIndex = governanceStageIndex(data);
+    const countdown = phaseCountdown(data);
+    const stages = STAGES.map((stage, index) => {
+        const state = index < activeIndex ? 'complete' : index === activeIndex ? 'active' : 'future';
+        return `
+            <div class="governance-phase-step ${state}" data-stage="${escapeHtml(stage.key)}">
+                <span class="governance-phase-dot" aria-hidden="true"></span>
+                <span>${escapeHtml(stage.label)}</span>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <section class="governance-phase-hero chamber-anim-fade" id="governance-phase-hero" aria-label="Governance phase and countdown" style="animation-delay:90ms">
+            <div class="governance-phase-main">
+                <span class="feature-kicker">Governance clock</span>
+                <strong${countdown.attrs}>${escapeHtml(countdown.value)}</strong>
+                <p>${escapeHtml(governanceNextLine(data))}</p>
+            </div>
+            <div class="governance-phase-stepper" role="list" aria-label="Governance phases">
+                ${stages}
+            </div>
+        </section>
+    `;
+}
+
 function proposalActionLabel(data) {
     const stage = activeGovernancePeriod(data)?.kind || data.currentPeriod?.kind || '';
     const proposalName = proposalDisplayName(data);
@@ -1856,6 +1929,7 @@ function renderChamber(data, container) {
 
     container.innerHTML = `
         ${renderProposalHeader(data)}
+        ${renderGovernancePhaseHero(data)}
         ${renderGovernanceNow(data)}
         ${renderProposalIntel(data)}
         ${liveGridHtml + pipelineHtml + processHtml}
@@ -1967,7 +2041,7 @@ async function navigateEpoch(direction) {
     const body = document.querySelector('.chamber-body');
     if (!body) return;
     
-    body.innerHTML = `<div class="chamber-loading"><div class="chamber-loading-text">Loading Epoch ${escapeHtml(String(newIndex))}…</div><div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div></div>`;
+    body.innerHTML = `<div class="chamber-loading"><div class="chamber-loading-text">Preheating Epoch ${escapeHtml(String(newIndex))}</div><div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div></div>`;
     
     const data = await fetchChamberData(newIndex);
     if (!data) {
@@ -2010,7 +2084,7 @@ export async function openChamber() {
                 <button class="modal-close chamber-close" aria-label="Close" style="z-index:3">&times;</button>
                 <div class="chamber-body">
                     <div class="chamber-loading">
-                        <div class="chamber-loading-text">Opening Tezos L1 Governance...</div>
+                        <div class="chamber-loading-text">Preheating Tezos L1 Governance</div>
                         <div class="chamber-loading-subtext">Fetching current period, epoch votes, and protocol context</div>
                         <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
                     </div>

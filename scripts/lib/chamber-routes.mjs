@@ -27,6 +27,18 @@ export const CHAMBER_ROUTES = [
     accent: '#a855f7'
   },
   {
+    slug: 'tezlink',
+    canonicalSlug: 'tezosx',
+    imageSlug: 'tezosx',
+    hash: '#tezosx',
+    title: 'Tezos X Chamber - Etherlink Activity Monitor',
+    shortTitle: 'Tezos X',
+    description: 'Follow Etherlink activity, L1 anchors, gas signals, TVL direction, and L2 token concentration.',
+    eyebrow: 'Etherlink L2',
+    accent: '#a855f7',
+    robots: 'noindex, follow'
+  },
+  {
     slug: 'l2chamber',
     hash: '#l2chamber',
     title: 'Tezos X Governance - Etherlink L2 Governance Monitor',
@@ -83,9 +95,9 @@ export const CHAMBER_ROUTES = [
 ];
 
 export function routeUrl(route) {
-  return `https://tezos.systems/${route.slug}/`;
+  return `https://tezos.systems/${route.canonicalSlug || route.slug}/`;
 }
 
 export function routeImage(route) {
-  return `https://tezos.systems/og/${route.slug}.png`;
+  return `https://tezos.systems/og/${route.imageSlug || route.canonicalSlug || route.slug}.png`;
 }

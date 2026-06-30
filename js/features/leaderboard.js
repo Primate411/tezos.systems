@@ -14,9 +14,29 @@ const TOGGLE_KEY = 'tezos-systems-leaderboard-visible';
 const SORT_KEY = 'tezos-systems-leaderboard-sort';
 const CACHE_KEY = 'tezos-systems-leaderboard-cache-v2';
 const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+const DEFAULT_DELEGATION_LIMIT = 9;
 
 let bakersData = [];
 let currentSort = { col: 'stake', dir: 'desc' };
+let delegationLimit = DEFAULT_DELEGATION_LIMIT;
+let delegationLimitSource = 'fallback';
+let delegationLimitPromise = null;
+
+async function fetchDelegationLimit() {
+    if (delegationLimitPromise) return delegationLimitPromise;
+    delegationLimitPromise = fetch(`${API_URLS.octez}/chains/main/blocks/head/context/constants`, { cache: 'no-store' })
+        .then((resp) => resp.ok ? resp.json() : Promise.reject(new Error('Protocol constants unavailable')))
+        .then((constants) => {
+            const limit = Number(constants?.limit_of_delegation_over_baking);
+            if (Number.isFinite(limit) && limit > 0) {
+                delegationLimit = limit;
+                delegationLimitSource = 'live';
+            }
+            return delegationLimit;
+        })
+        .catch(() => delegationLimit);
+    return delegationLimitPromise;
+}
 
 /**
  * Fetch all active bakers from TzKT
@@ -65,17 +85,19 @@ function isTz4(addr, consensusAddress) {
 }
 
 /**
-/**
  * Compute derived fields for sorting
  */
-function enrichBaker(b) {
+function enrichBaker(b, activeDelegationLimit = delegationLimit) {
     const stake = (b.stakingBalance || 0) / 1e6;
     const ownStake = (b.stakedBalance || 0) / 1e6;
     const extStaked = (b.externalStakedBalance || 0) / 1e6;
     const extDelegated = (b.externalDelegatedBalance || 0) / 1e6;
     const delegators = b.numDelegators || 0;
     const stakers = b.stakersCount || 0;
-    const maxDelegation = ownStake * 9;
+    const limit = Number.isFinite(Number(activeDelegationLimit)) && Number(activeDelegationLimit) > 0
+        ? Number(activeDelegationLimit)
+        : DEFAULT_DELEGATION_LIMIT;
+    const maxDelegation = ownStake * limit;
     const delegationUsage = maxDelegation > 0 ? (extDelegated / maxDelegation) * 100 : 0;
 
     return {
@@ -87,6 +109,7 @@ function enrichBaker(b) {
         delegators,
         stakers,
         tz4: isTz4(b.address, b.consensusAddress),
+        delegationLimit: limit,
         delegationUsage: Math.min(delegationUsage, 100),
         name: b.alias || (b.address.slice(0, 8) + '…'),
     };
@@ -333,7 +356,7 @@ function render(container) {
     });
 
     html += `</tbody></table></div>`;
-    html += `<div class="leaderboard-footer">${sorted.length} active bakers</div>`;
+    html += `<div class="leaderboard-footer">${sorted.length} active bakers · capacity uses ${delegationLimitSource === 'live' ? 'live' : 'fallback'} protocol limit (${delegationLimit}x)</div>`;
 
     container.innerHTML = html;
 
@@ -397,15 +420,59 @@ function render(container) {
     });
 }
 
+function renderLeaderboardSkeleton() {
+    const rows = Array.from({ length: 8 }, (_, index) => `
+        <tr class="lb-row lb-row-loading">
+            <td class="lb-rank"><span class="leaderboard-row-shimmer rank"></span></td>
+            <td><span class="leaderboard-row-shimmer name"></span></td>
+            <td><span class="leaderboard-row-shimmer num"></span></td>
+            <td><span class="leaderboard-row-shimmer num"></span></td>
+            <td><span class="leaderboard-row-shimmer num"></span></td>
+            <td><span class="leaderboard-row-shimmer num"></span></td>
+            <td><span class="leaderboard-row-shimmer short"></span></td>
+            <td><span class="leaderboard-row-shimmer short"></span></td>
+        </tr>
+    `).join('');
+
+    return `
+        <div class="leaderboard-loading-state" role="status" aria-live="polite">
+            <div class="leaderboard-loading-copy">
+                <strong>Preheating the baker board</strong>
+                <span>Ranking active bakers by live staking power.</span>
+            </div>
+            <div class="leaderboard-table-wrap" aria-hidden="true">
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th class="lb-th lb-rank">#</th>
+                            <th class="lb-th">Baker</th>
+                            <th class="lb-th">Staking Power</th>
+                            <th class="lb-th">Delegators</th>
+                            <th class="lb-th">Stakers</th>
+                            <th class="lb-th">Capacity</th>
+                            <th class="lb-th">tz4</th>
+                            <th class="lb-th"></th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
 /**
  * Load and render the leaderboard
  */
 async function loadLeaderboard(container) {
-    container.innerHTML = '<div class="leaderboard-loading">Loading bakers…</div>';
+    container.innerHTML = renderLeaderboardSkeleton();
     
     try {
-        const raw = await fetchBakers();
-        bakersData = raw.map(b => enrichBaker(b));
+        const [raw, limit] = await Promise.all([
+            fetchBakers(),
+            fetchDelegationLimit()
+        ]);
+        bakersData = raw.map(b => enrichBaker(b, limit));
         render(container);
     } catch (err) {
         container.innerHTML = '<div class="leaderboard-error">Failed to load baker data. Try again later.</div>';

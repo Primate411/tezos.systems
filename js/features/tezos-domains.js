@@ -6,7 +6,7 @@
 import { debounce, escapeHtml, formatLiveDuration, startLiveTimeTicker } from '../core/utils.js';
 
 const TEZOS_DOMAINS_ENDPOINT = 'https://api.tezos.domains/graphql';
-const TEZOS_DOMAINS_CSS_URL = '/css/tezos-domains.css?v=308';
+const TEZOS_DOMAINS_CSS_URL = '/css/tezos-domains.css?v=315';
 const CHAMBER_REFRESH_MS = 10 * 60 * 1000;
 const ENTRY_REFRESH_MS = 15 * 60 * 1000;
 const MIN_HIGH_VALUE_MUTEZ = '25000000';
@@ -536,8 +536,9 @@ function featuredName(data) {
     const high = data?.highValueRecent?.find((event) => eventValue(event));
     const recentBuy = data?.recentEvents?.find((event) => event?.type === 'DOMAIN_BUY_EVENT' || event?.type === 'AUCTION_SETTLE_EVENT');
     const liveAuction = data?.liveAuctions?.[0];
+    const settlementAuction = data?.settlementAuctions?.[0];
     const offer = data?.buyOffers?.[0] || data?.sellOffers?.[0];
-    return high || recentBuy || liveAuction || offer || data?.expiringSoon?.[0] || null;
+    return data?.expiringSoon?.[0] || liveAuction || settlementAuction || high || recentBuy || offer || null;
 }
 
 function featuredNameText(item) {
@@ -562,6 +563,14 @@ function featuredReason(item) {
         return `renewal cliff · drops in ${formatTimeDistance(item.expiresAtUtc)}`;
     }
     return 'fresh identity activity';
+}
+
+function isRegistrationEvent(event) {
+    return event?.type === 'DOMAIN_BUY_EVENT' || event?.type === 'AUCTION_SETTLE_EVENT';
+}
+
+function recentRegistrations(data) {
+    return (data?.recentEvents || []).filter(isRegistrationEvent);
 }
 
 function buildPulseMetrics(data) {
@@ -601,11 +610,13 @@ function renderEntryMetric([label, value, note], index) {
 }
 
 function renderEntryTape(data) {
-    const items = (data?.recentEvents || []).slice(0, 4);
+    const items = recentRegistrations(data).slice(0, 4);
+    const fallback = (data?.recentEvents || []).slice(0, 4);
+    const rows = items.length ? items : fallback;
     if (!items.length) {
-        return '<div class="td-entry-tape-empty">Waiting for the next Tezos Domains event.</div>';
+        if (!fallback.length) return '<div class="td-entry-tape-empty">Waiting for the next Tezos Domains event.</div>';
     }
-    return items.map((event) => {
+    return rows.map((event) => {
         const name = domainNameFromEvent(event);
         return `
             <div class="td-entry-tape-row" data-tone="${escapeHtml(eventTone(event))}">
@@ -972,6 +983,47 @@ function renderExpiringRows(rows) {
     `).join('');
 }
 
+function renderRegistrationRows(events, newEventKeys = new Set()) {
+    if (!events?.length) return '<div class="td-empty">No fresh registrations in the latest event page; broader identity tape below.</div>';
+    return renderEventRows(events, 'No fresh registrations in the latest event page.', { newEventKeys });
+}
+
+function renderUrgentSurface(data) {
+    const expiring = (data.expiringSoon || []).slice(0, 5);
+    const liveAuctions = (data.liveAuctions || []).slice(0, 4);
+    const settlement = (data.settlementAuctions || []).slice(0, 3);
+    const auctionRows = [...liveAuctions, ...settlement];
+    const urgentCount = expiring.length + auctionRows.length;
+    const verdict = urgentCount
+        ? `${urgentCount} urgent surface${urgentCount === 1 ? '' : 's'}: renewal cliffs first, live bidding second.`
+        : 'No expiring or auction names returned in the current chamber sample.';
+    return `
+        <section class="td-urgent-surface chamber-anim-fade" style="animation-delay:118ms" aria-label="Urgent Tezos Domains market surface">
+            <div class="td-urgent-head">
+                <div>
+                    <span class="td-kicker">Urgency tape</span>
+                    <h3>Expiring soon, auctions live, settlement windows open.</h3>
+                </div>
+                <strong>${escapeHtml(verdict)}</strong>
+            </div>
+            <div class="td-urgent-grid">
+                <div class="td-urgent-column">
+                    <div class="td-panel-title">Expiring Soon <span>names another owner may chase</span></div>
+                    <div class="td-expiry-list td-urgent-list">${renderExpiringRows(expiring)}</div>
+                </div>
+                <div class="td-urgent-column">
+                    <div class="td-panel-title">Auction Heat <span>live bids, then settlement backlog</span></div>
+                    <div class="td-market-list td-urgent-list">
+                        ${liveAuctions.length ? renderAuctionRows(liveAuctions) : ''}
+                        ${settlement.length ? renderAuctionRows(settlement) : ''}
+                        ${!auctionRows.length ? '<div class="td-empty">No live or settle-ready auctions returned.</div>' : ''}
+                    </div>
+                </div>
+            </div>
+        </section>
+    `;
+}
+
 function renderLegend() {
     const items = [
         ['register', 'register'],
@@ -999,7 +1051,8 @@ function renderChamber(data, options = {}) {
     const featured = featuredName(data);
     const feature = featuredNameText(featured);
     const newEventKeys = options.newEventKeys || new Set();
-    const recentCount = data.recentEvents?.length || 0;
+    const registrationEvents = recentRegistrations(data);
+    const registrationCount = registrationEvents.length;
     const premiumCount = data.highValueRecent?.length || 0;
     const liveAuctionCount = data.liveAuctions?.length || 0;
     const settlementCount = data.settlementAuctions?.length || 0;
@@ -1028,12 +1081,18 @@ function renderChamber(data, options = {}) {
             ${buildChamberPulseMetrics(data).map(([label, value, note]) => renderMetric(label, value, note)).join('')}
         </section>
         ${renderLegend()}
+        ${renderUrgentSurface(data)}
 
         <div class="td-main-grid">
             <section class="td-panel td-panel-wide chamber-anim-fade" style="animation-delay:120ms">
-                <div class="td-panel-title">Fresh Name Tape <span>registrations, renewals, records, transfers</span></div>
-                ${renderPanelVerdict(`${recentCount} newest identity events; the newest label keeps ticking between indexer refreshes.`)}
-                <div class="td-event-list">${renderEventRows(data.recentEvents, 'No matching Tezos Domains events returned.', { newEventKeys })}</div>
+                <div class="td-panel-title">Live Registration Feed <span>new claims and settled auctions</span></div>
+                ${renderPanelVerdict(registrationCount ? `${registrationCount} fresh registration${registrationCount === 1 ? '' : 's'} in the latest event page.` : 'No new registrations in the latest event page; broader identity moves are below.')}
+                <div class="td-event-list td-registration-feed">${renderRegistrationRows(registrationEvents, newEventKeys)}</div>
+            </section>
+
+            <section class="td-panel chamber-anim-fade" style="animation-delay:135ms">
+                <div class="td-panel-title">Identity Tape <span>records, renewals, offers, transfers</span></div>
+                <div class="td-event-list td-compact-list">${renderEventRows(data.recentEvents, 'No matching Tezos Domains events returned.', { newEventKeys })}</div>
             </section>
 
             <section class="td-panel chamber-anim-fade" style="animation-delay:150ms">

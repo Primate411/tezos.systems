@@ -23,6 +23,7 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
 - Local server: `npm run serve`, which runs `python3 -m http.server 9000`.
 - Served stylesheet: `css/styles.min.css`; edit `css/styles.css` first, then
   run `npm run build:css`.
+- Critical first-paint skeletons live in `css/loading.css`.
 - Shared hook wrapper: `.githooks/pre-commit`; enable it once per clone with
   `npm run install-hooks`.
 - README sync guard: pre-commit blocks when staged changes touch
@@ -41,6 +42,7 @@ tezos.systems/
 ├── css/
 │   ├── styles.css                     # Source dashboard styles and themes
 │   ├── styles.min.css                 # Served base dashboard stylesheet
+│   ├── loading.css                    # Critical first-paint skeleton states
 │   ├── themes/                        # Generated lazy-loaded theme bundles
 │   ├── hen-mode.css                   # HEN overlay styles
 │   └── landing.css                    # Landing and SEO page styles
@@ -364,8 +366,8 @@ Useful deep links include:
 Public share routes are also available at `/chamber/`, `/health/`,
 `/tezosx/`, `/l2chamber/`, `/tz4/`, `/lb/`, `/ledger-flow/`, `/domains/`, and
 `/ctez/`.
-These routes carry unique Open Graph metadata and redirect into the
-corresponding live dashboard room.
+These routes carry unique Open Graph metadata and hydrate the corresponding
+live dashboard room at the clean URL.
 `/feed.xml` exposes the generated governance RSS feed for relay bots.
 The governance SEO page also funnels high-intent searches into `/chamber/`,
 `/#my-tezos`, and `/feed.xml` for live vote checks and syndication.
@@ -540,7 +542,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v309`, including hero search, theme
+- Current aligned shell cache stamp: `v312`, including hero search, theme
   bundles, and the Ledger Flow lazy CSS loader.
 - Current Tezos Domains lazy CSS stamp: `v308`.
 - `version.json` is stamped by `.githooks/pre-commit`.
