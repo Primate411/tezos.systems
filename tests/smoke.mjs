@@ -1016,11 +1016,14 @@ async function installFeatureMocks(context, options = {}) {
 
     if (url.includes('html2canvas@1.4.1')) {
       return fulfillText(route, `
-        window.html2canvas = async function(element) {
+        window.html2canvas = async function(element, options = {}) {
           window.__lastHtml2CanvasText = String(element?.innerText || element?.textContent || '');
+          const width = Number(options.width) || 600;
+          const height = Number(options.height) || 630;
+          window.__lastHtml2CanvasSize = { width, height };
           const canvas = document.createElement('canvas');
-          canvas.width = 600;
-          canvas.height = 630;
+          canvas.width = width;
+          canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.fillStyle = '#0a0e1a';
           ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -2607,6 +2610,8 @@ async function expectShareModal(page, label, issues = []) {
     throw new Error(`${label}: share modal did not open (${error.message}); debug=${JSON.stringify(debug)}; issues=${issues.join(' | ')}`);
   }
   await expectCount(page, '#share-modal .share-modal-preview img[src^="data:image/png"]', 1, label);
+  await expectCount(page, '#share-modal #tweet-compose-text', 1, label);
+  await expectCount(page, '#share-modal #share-handle-input', 1, label);
   await expectCount(page, '#share-modal #share-download', 1, label);
   await expectCount(page, '#share-modal #share-copy', 1, label);
   await expectCount(page, '#share-modal #share-twitter', 1, label);
@@ -2626,6 +2631,8 @@ async function waitForShareModal(page, label, issues = []) {
     throw new Error(`${label}: share modal did not open (${error.message}); debug=${JSON.stringify(debug)}; issues=${issues.join(' | ')}`);
   }
   await expectCount(page, '#share-modal .share-modal-preview img[src^="data:image/png"]', 1, label);
+  await expectCount(page, '#share-modal #tweet-compose-text', 1, label);
+  await expectCount(page, '#share-modal #share-handle-input', 1, label);
   await expectCount(page, '#share-modal #share-download', 1, label);
   await expectCount(page, '#share-modal #share-copy', 1, label);
   await expectCount(page, '#share-modal #share-twitter', 1, label);
@@ -6652,6 +6659,8 @@ async function smokeShareActions(browser, baseUrl) {
   await page.locator('[data-stat="total-bakers"]').scrollIntoViewIfNeeded();
   await page.evaluate(() => document.querySelector('[data-stat="total-bakers"] .card-share-btn')?.click());
   await waitForShareModal(page, 'share actions card share', issues);
+  const capturedSize = await page.evaluate(() => window.__lastHtml2CanvasSize || {});
+  assert(capturedSize.width === 1200 && capturedSize.height === 630, `share actions: stat card should capture as 1200x630, saw ${JSON.stringify(capturedSize)}`);
 
   const refreshButton = page.locator('#share-modal #tweet-refresh-btn');
   if (await refreshButton.count()) {
@@ -6664,6 +6673,12 @@ async function smokeShareActions(browser, baseUrl) {
     await expectCount(page, '#share-modal .tweet-option', 2, 'share actions refreshed tweet options');
   }
 
+  await page.locator('#share-modal #tweet-compose-text').fill('Testing an editable Tezos Systems share.\n\ntezos.systems');
+  await page.locator('#share-modal #share-handle-input').fill('@TezosTester');
+  await page.locator('#share-modal #share-handle-input').blur();
+  const savedHandle = await page.evaluate(() => localStorage.getItem('tezos-systems-share-handle'));
+  assert(savedHandle === 'TezosTester', `share actions: handle should normalize and persist, saw ${savedHandle}`);
+
   await page.locator('#share-modal #share-copy').click();
   await page.waitForFunction(() => window.__shareActions.clipboardWrites.some((entry) => entry.types?.includes('image/png')), null, { timeout: 5000 });
   await page.locator('#share-modal #share-twitter').click();
@@ -6672,6 +6687,7 @@ async function smokeShareActions(browser, baseUrl) {
     const opened = window.__shareActions.opens.find((entry) => entry.url.startsWith('https://twitter.com/intent/tweet?text='));
     return decodeURIComponent(new URL(opened.url).searchParams.get('text') || '');
   });
+  assert(tweetText.includes('Testing an editable Tezos Systems share.'), `share actions: X intent should use editable tweet text: ${tweetText}`);
   assert(tweetText.includes('utm_campaign=growth_loops') && tweetText.includes('utm_content='), `share actions: X intent should include tracked Tezos Systems link: ${tweetText}`);
   await page.locator('#share-modal #share-native').click();
   await page.waitForFunction(() => window.__shareActions.nativeShares.some((entry) => (
@@ -6684,10 +6700,26 @@ async function smokeShareActions(browser, baseUrl) {
   await page.waitForFunction(() => window.__shareActions.downloads.some((entry) => /^tezos-systems-\d+\.png$/.test(entry.download) && entry.href.startsWith('data:image/png')), null, { timeout: 5000 });
 
   const desktopActions = await page.evaluate(() => window.__shareActions);
-  assert(desktopActions.clipboardWrites.filter((entry) => entry.types?.includes('image/png')).length >= 2, `share actions: expected copy/twitter image clipboard writes: ${JSON.stringify(desktopActions)}`);
+  assert(desktopActions.clipboardWrites.filter((entry) => entry.types?.includes('image/png')).length === 1, `share actions: expected only explicit copy image clipboard write: ${JSON.stringify(desktopActions)}`);
   assert(desktopActions.opens.length === 1, `share actions: expected one X intent open: ${JSON.stringify(desktopActions.opens)}`);
   assert(desktopActions.nativeShares.length === 1, `share actions: expected one native share: ${JSON.stringify(desktopActions.nativeShares)}`);
   assert(desktopActions.downloads.length === 1, `share actions: expected one desktop download: ${JSON.stringify(desktopActions.downloads)}`);
+  await page.locator('#share-modal .share-modal-close').click();
+  await page.locator('#share-modal').waitFor({ state: 'detached', timeout: 5000 });
+
+  await page.evaluate(async () => {
+    const { captureNetworkMomentShare } = await import('/js/ui/share.js');
+    await captureNetworkMomentShare({
+      id: 'smoke-staking-50',
+      emoji: '🎯',
+      title: 'Staking hits 50%!',
+      tweet: 'Tezos staking just crossed 50%! The network keeps getting stronger.\n\nReal-time stats →',
+      timestamp: Date.now()
+    });
+  });
+  await waitForShareModal(page, 'share actions Network Moment share', issues);
+  const momentCaptureText = await page.evaluate(() => window.__lastHtml2CanvasText?.replace(/\s+/g, ' ').trim() || '');
+  assert(/Network Moment/i.test(momentCaptureText) && /Staking hits 50%/i.test(momentCaptureText), `share actions: Network Moment capture should use branded card text: ${momentCaptureText}`);
   await page.locator('#share-modal .share-modal-close').click();
   await page.locator('#share-modal').waitFor({ state: 'detached', timeout: 5000 });
   await context.close();

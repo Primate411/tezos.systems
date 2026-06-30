@@ -8,6 +8,7 @@ const CHANGELOG = [
         date: '2026-06-30',
         entries: [
             { type: '🔧', text: 'My Tezos now stays in the drawer instead of reserving homepage space with a persistent address tracker' },
+            { type: '✨', text: 'Share cards now use wider social-preview stat images, editable tweet text, optional @handle credit, and image-backed Network Moment sharing' },
             { type: '🎨', text: 'My Tezos now explains Ledger Flow with a compact transfer-map card before opening the account flow chamber' },
             { type: '🎨', text: 'Tezos L1 Governance footer links now wrap cleanly at the bottom of the Chamber panel on mobile' },
             { type: '🔧', text: 'Governance alerts now stay hidden during empty Proposal periods with no submitted proposal' },

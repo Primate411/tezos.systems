@@ -12,6 +12,9 @@ const CARD_SHARE_LOADING_ICON = '<span class="card-share-loading" aria-hidden="t
 // Use scale 1 on mobile to avoid OOM failures
 const IS_MOBILE_UA = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 const CAPTURE_SCALE = IS_MOBILE_UA ? 1 : 2;
+const STAT_SHARE_WIDTH = 1200;
+const STAT_SHARE_HEIGHT = 630;
+const SHARE_HANDLE_STORAGE_KEY = 'tezos-systems-share-handle';
 
 /**
  * Escape HTML special characters for safe injection into innerHTML
@@ -24,6 +27,52 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function normalizeShareHandle(value) {
+    return String(value || '')
+        .trim()
+        .replace(/^@+/, '')
+        .replace(/[^A-Za-z0-9_]/g, '')
+        .slice(0, 15);
+}
+
+function getSavedShareHandle() {
+    try {
+        return normalizeShareHandle(localStorage.getItem(SHARE_HANDLE_STORAGE_KEY));
+    } catch (_) {
+        return '';
+    }
+}
+
+function setSavedShareHandle(value) {
+    const handle = normalizeShareHandle(value);
+    try {
+        if (handle) {
+            localStorage.setItem(SHARE_HANDLE_STORAGE_KEY, handle);
+        } else {
+            localStorage.removeItem(SHARE_HANDLE_STORAGE_KEY);
+        }
+    } catch (_) {
+        // Sharing still works if storage is unavailable.
+    }
+    return handle;
+}
+
+function getShareCreditHtml(brandColor) {
+    const handle = getSavedShareHandle();
+    if (handle) {
+        return `Shared by <span style="color:${brandColor};font-weight:700;">@${escapeHtml(handle)}</span>`;
+    }
+    return `Powered by <span style="color:${brandColor};font-weight:600;">Tez Capital</span>`;
+}
+
+function getTweetCategory(option) {
+    if (option?.category) return String(option.category);
+    const label = String(option?.label || '').trim();
+    const parts = label.split(/\s+/).filter(Boolean);
+    if (parts.length > 1) return parts.slice(1).join(' ');
+    return label.replace(/[^A-Za-z0-9_-]/g, '') || label || 'General';
 }
 
 /**
@@ -106,6 +155,7 @@ async function getProtocolTweetOptions(protocol, num, total) {
     const options = specific || data.PROTOCOL_TWEET_OPTIONS_GENERIC;
     return options.map(o => ({
         label: o.label,
+        category: getTweetCategory(o),
         text: substituteTweet(o.text, replacements)
     }));
 }
@@ -193,7 +243,7 @@ function pickRandomOptions(allOptions, count = 4) {
     // Try to get diverse categories
     const byCategory = {};
     allOptions.forEach(o => {
-        const cat = o.label.split(' ')[1] || o.label;
+        const cat = getTweetCategory(o);
         if (!byCategory[cat]) byCategory[cat] = [];
         byCategory[cat].push(o);
     });
@@ -219,7 +269,7 @@ function pickRandomOptions(allOptions, count = 4) {
  * Get all tweet options for a card
  */
 async function getTweetOptions(card) {
-    if (!card) return [{ label: '📊 Standard', text: DASHBOARD_TWEET }];
+    if (!card) return [{ label: '📊 Standard', category: 'Standard', text: DASHBOARD_TWEET }];
     const stat = card.getAttribute('data-stat');
     const valueFront = card.querySelector('.stat-value');
     const value = valueFront ? valueFront.textContent.trim() : '';
@@ -235,12 +285,12 @@ async function getTweetOptions(card) {
             } else {
                 template = o.text;
             }
-            return { label: o.label, text: substituteTweet(template, { value, change }) + TWEET_SUFFIX };
+            return { label: o.label, category: getTweetCategory(o), text: substituteTweet(template, { value, change }) + TWEET_SUFFIX };
         });
     }
     const label = card.querySelector('.stat-label');
     const labelText = label ? label.textContent.trim() : 'Tezos stats';
-    return [{ label: '📊 Standard', text: `${labelText}: ${value}\n\ntezos.systems` }];
+    return [{ label: '📊 Standard', category: 'Standard', text: `${labelText}: ${value}\n\ntezos.systems` }];
 }
 
 /**
@@ -818,35 +868,33 @@ async function captureCard(card) {
         wrapper = document.createElement('div');
         wrapper.style.cssText = `
             position: fixed; top: -9999px; left: -9999px;
-            width: 600px; height: 630px;
+            width: ${STAT_SHARE_WIDTH}px; height: ${STAT_SHARE_HEIGHT}px;
             background: ${bgColor};
             font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
-            color: white;
+            color: ${isClean ? '#101827' : '#ffffff'};
             overflow: hidden;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 0;
+            box-sizing: border-box;
         `;
         
         // Background gradients for depth
         const gradient = document.createElement('div');
         gradient.style.cssText = `
             position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none;
-            background: ${isClean || isDark ? 'none' : `
-                radial-gradient(ellipse at 30% 20%, ${isMatrix ? 'rgba(0,255,0,0.08)' : isBubblegum ? 'rgba(255,105,180,0.08)' : 'rgba(0,212,255,0.08)'} 0%, transparent 50%),
-                radial-gradient(ellipse at 70% 80%, ${isMatrix ? 'rgba(0,200,0,0.05)' : isBubblegum ? 'rgba(196,122,255,0.05)' : 'rgba(183,148,246,0.05)'} 0%, transparent 50%),
-                radial-gradient(circle at 50% 50%, ${isMatrix ? 'rgba(0,255,0,0.03)' : isBubblegum ? 'rgba(255,105,180,0.03)' : 'rgba(0,212,255,0.03)'} 0%, transparent 70%)`};
+            background: transparent;
         `;
         wrapper.appendChild(gradient);
         
         // Inner border glow
         const borderGlow = document.createElement('div');
         borderGlow.style.cssText = `
-            position: absolute; top: 12px; left: 12px; right: 12px; bottom: 12px;
+            position: absolute; top: 18px; left: 18px; right: 18px; bottom: 18px;
             border: 1px solid ${isClean ? 'rgba(0,0,0,0.08)' : isDark ? 'rgba(51,51,51,0.5)' : isMatrix ? 'rgba(0,255,0,0.15)' : 'rgba(0,212,255,0.15)'};
-            border-radius: 12px;
+            border-radius: 16px;
             box-shadow: ${isClean || isDark ? '0 1px 3px rgba(0,0,0,0.06)' : `inset 0 0 30px ${isMatrix ? 'rgba(0,255,0,0.03)' : 'rgba(0,212,255,0.03)'},
                         0 0 15px ${isMatrix ? 'rgba(0,255,0,0.05)' : 'rgba(0,212,255,0.05)'}`};
             pointer-events: none;
@@ -860,22 +908,23 @@ async function captureCard(card) {
             width: 100%; height: 100%;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
-            padding: 40px 60px;
+            padding: 52px 130px 84px;
             box-sizing: border-box;
+            text-align: center;
         `;
         
         // Title: TEZOS SYSTEMS
         const title = document.createElement('div');
         title.style.cssText = `
             font-family: 'Orbitron', sans-serif;
-            font-size: 28px; font-weight: 900;
+            font-size: 34px; font-weight: 900;
             color: ${brandColor};
-            letter-spacing: 4px;
+            letter-spacing: 0;
             text-transform: uppercase;
             text-shadow: ${isClean || isDark ? 'none' : `0 0 30px ${isMatrix ? 'rgba(0,255,0,0.5)' : 'rgba(0,212,255,0.5)'},
                          0 0 60px ${isMatrix ? 'rgba(0,255,0,0.3)' : 'rgba(0,212,255,0.3)'},
                          0 0 90px ${isMatrix ? 'rgba(0,255,0,0.1)' : 'rgba(0,212,255,0.1)'}`};
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         `;
         title.textContent = 'TEZOS SYSTEMS';
         content.appendChild(title);
@@ -883,9 +932,9 @@ async function captureCard(card) {
         // Divider line
         const divider = document.createElement('div');
         divider.style.cssText = `
-            width: 200px; height: 1px;
-            background: linear-gradient(90deg, transparent, ${isClean ? 'rgba(37,99,235,0.3)' : isDark ? 'rgba(200,200,200,0.3)' : isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'}, transparent);
-            margin: 10px 0 16px 0;
+            width: 320px; height: 1px;
+            background: ${isClean ? 'rgba(37,99,235,0.3)' : isDark ? 'rgba(200,200,200,0.3)' : isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'};
+            margin: 12px 0 20px 0;
         `;
         content.appendChild(divider);
         
@@ -893,11 +942,11 @@ async function captureCard(card) {
         if (sectionName) {
             const sectionEl = document.createElement('div');
             sectionEl.style.cssText = `
-                font-size: 14px; font-weight: 600;
+                font-size: 16px; font-weight: 700;
                 color: ${isClean ? 'rgba(37,99,235,0.5)' : isDark ? 'rgba(200,200,200,0.4)' : isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'};
                 text-transform: uppercase;
-                letter-spacing: 3px;
-                margin-bottom: 20px;
+                letter-spacing: 0;
+                margin-bottom: 22px;
             `;
             sectionEl.textContent = sectionName;
             content.appendChild(sectionEl);
@@ -906,11 +955,11 @@ async function captureCard(card) {
         // Stat label
         const labelEl = document.createElement('div');
         labelEl.style.cssText = `
-            font-size: 18px; font-weight: 600;
+            font-size: 22px; font-weight: 700;
             color: ${isClean ? 'rgba(0,0,0,0.5)' : isDark ? 'rgba(232,232,232,0.5)' : 'rgba(255,255,255,0.5)'};
             text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 12px;
+            letter-spacing: 0;
+            margin-bottom: 14px;
         `;
         labelEl.textContent = statLabel;
         content.appendChild(labelEl);
@@ -918,25 +967,28 @@ async function captureCard(card) {
         // HERO stat value
         const valueEl = document.createElement('div');
         valueEl.style.cssText = `
-            font-size: 72px; font-weight: 800;
+            font-size: 112px; font-weight: 850;
             color: ${brandColor};
             line-height: 1;
-            letter-spacing: -2px;
+            letter-spacing: 0;
             text-shadow: ${isClean || isDark ? 'none' : `0 0 40px ${isMatrix ? 'rgba(0,255,0,0.4)' : 'rgba(0,212,255,0.4)'},
                          0 0 80px ${isMatrix ? 'rgba(0,255,0,0.2)' : 'rgba(0,212,255,0.2)'}`};
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             text-align: center;
-            max-width: 520px;
+            max-width: 960px;
             overflow: hidden;
+            overflow-wrap: anywhere;
         `;
         // Scale down font for long values
         const valLen = statValue.length;
-        if (valLen > 12) {
-            valueEl.style.fontSize = '40px';
+        if (valLen > 18) {
+            valueEl.style.fontSize = '52px';
+        } else if (valLen > 12) {
+            valueEl.style.fontSize = '68px';
         } else if (valLen > 8) {
-            valueEl.style.fontSize = '48px';
+            valueEl.style.fontSize = '82px';
         } else if (valLen > 5) {
-            valueEl.style.fontSize = '60px';
+            valueEl.style.fontSize = '96px';
         }
         valueEl.textContent = statValue;
         content.appendChild(valueEl);
@@ -945,10 +997,10 @@ async function captureCard(card) {
         if (breakdownText) {
             const breakdownDiv = document.createElement('div');
             breakdownDiv.style.cssText = `
-                font-size: 18px; font-weight: 500;
+                font-size: 22px; font-weight: 600;
                 color: ${isClean ? 'rgba(0,0,0,0.45)' : isDark ? 'rgba(232,232,232,0.45)' : 'rgba(255,255,255,0.45)'};
-                margin-bottom: 12px;
-                letter-spacing: 0.5px;
+                margin-bottom: 14px;
+                letter-spacing: 0;
             `;
             breakdownDiv.textContent = breakdownText;
             content.appendChild(breakdownDiv);
@@ -962,14 +1014,14 @@ async function captureCard(card) {
             const trendBg = trendBgColors[trendClass] || 'rgba(255,255,255,0.05)';
             const trendElNew = document.createElement('div');
             trendElNew.style.cssText = `
-                font-size: 24px; font-weight: 700;
+                font-size: 28px; font-weight: 800;
                 color: ${trendColor};
-                padding: 6px 18px;
+                padding: 7px 22px;
                 background: ${trendBg};
                 border: 1px solid ${trendColor}33;
                 border-radius: 8px;
-                margin-bottom: 16px;
-                letter-spacing: 0.5px;
+                margin-bottom: 18px;
+                letter-spacing: 0;
             `;
             trendElNew.textContent = trendText;
             content.appendChild(trendElNew);
@@ -977,37 +1029,25 @@ async function captureCard(card) {
         
         // Sparkline as SVG (or decorative bars)
         const sparkContainer = document.createElement('div');
-        sparkContainer.style.cssText = 'width: 300px; height: 50px; margin-bottom: 8px;';
+        sparkContainer.style.cssText = 'width: 560px; height: 72px; margin-bottom: 8px; max-width: 80%;';
         
         if (sparklineData && sparklineData.length > 1) {
-            // Render as inline SVG polyline
-            const w = 300, h = 50;
             const nums = sparklineData.map(Number).filter(n => !isNaN(n));
             const min = Math.min(...nums);
             const max = Math.max(...nums);
             const range = max - min || 1;
-            const points = nums.map((v, i) => {
-                const x = (i / (nums.length - 1)) * w;
-                const y = h - ((v - min) / range) * (h - 4) - 2;
-                return `${x.toFixed(1)},${y.toFixed(1)}`;
-            }).join(' ');
-            
             const sparkColor = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : '#00d4ff';
+            const sampleSize = 28;
+            const stride = Math.max(1, Math.ceil(nums.length / sampleSize));
+            const sampled = nums.filter((_, index) => index % stride === 0).slice(-sampleSize);
+            const bars = sampled.map((value) => {
+                const pct = 18 + ((value - min) / range) * 82;
+                return `<span style="display:block;flex:1 1 0;min-width:8px;height:${pct.toFixed(2)}%;border-radius:999px;background:${sparkColor};opacity:0.72;box-shadow:${isClean || isDark ? 'none' : `0 0 14px ${sparkColor}44`};"></span>`;
+            }).join('');
             sparkContainer.innerHTML = `
-                <svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
-                    <defs>
-                        <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stop-color="${sparkColor}" stop-opacity="0.2"/>
-                            <stop offset="100%" stop-color="${sparkColor}" stop-opacity="0"/>
-                        </linearGradient>
-                    </defs>
-                    <polygon points="${(nums.map((v, i) => {
-                        const x = (i / (nums.length - 1)) * w;
-                        const y = h - ((v - min) / range) * (h - 4) - 2;
-                        return `${x.toFixed(1)},${y.toFixed(1)}`;
-                    }).join(' '))} ${w},${h} 0,${h}" fill="url(#sparkFill)"/>
-                    <polyline points="${points}" fill="none" stroke="${sparkColor}" stroke-width="2" stroke-opacity="0.7" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
+                <div style="height:100%;display:flex;align-items:flex-end;justify-content:center;gap:7px;padding:8px 0;box-sizing:border-box;">
+                    ${bars}
+                </div>
             `;
         } else {
             // Fallback when no sparkline data available
@@ -1020,14 +1060,14 @@ async function captureCard(card) {
         // Footer (absolute positioned at bottom)
         const footer = document.createElement('div');
         footer.style.cssText = `
-            position: absolute; bottom: 24px; left: 40px; right: 40px;
+            position: absolute; bottom: 28px; left: 58px; right: 58px;
             display: flex; justify-content: space-between; align-items: center;
             z-index: 1;
         `;
         footer.innerHTML = `
             <span style="font-size: 13px; color: ${isClean ? 'rgba(0,0,0,0.35)' : isDark ? 'rgba(200,200,200,0.4)' : 'rgba(255,255,255,0.3)'};">${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-            <span style="font-size: 13px; color: ${brandColor}; font-weight: 600; letter-spacing: 1px;">tezos.systems</span>
-            <span style="font-size: 13px; color: ${isClean ? 'rgba(0,0,0,0.35)' : isDark ? 'rgba(200,200,200,0.4)' : 'rgba(255,255,255,0.35)'}; letter-spacing: 0.5px;">Powered by <span style="color: ${brandColor}; font-weight: 600;">Tez Capital</span></span>
+            <span style="font-size: 13px; color: ${brandColor}; font-weight: 600; letter-spacing: 0;">tezos.systems</span>
+            <span style="font-size: 13px; color: ${isClean ? 'rgba(0,0,0,0.35)' : isDark ? 'rgba(200,200,200,0.4)' : 'rgba(255,255,255,0.35)'}; letter-spacing: 0;">${getShareCreditHtml(brandColor)}</span>
         `;
         wrapper.appendChild(footer);
         
@@ -1039,9 +1079,9 @@ async function captureCard(card) {
             scale: CAPTURE_SCALE,
             useCORS: true,
             logging: false,
-            width: 600,
-            height: 630,
-            windowWidth: 600
+            width: STAT_SHARE_WIDTH,
+            height: STAT_SHARE_HEIGHT,
+            windowWidth: STAT_SHARE_WIDTH
         });
         
         restoreSpacing();
@@ -1318,8 +1358,8 @@ async function doCaptureAndShare(selectedSections) {
                         minute: '2-digit'
                     })}
                 </div>
-                <span style="font-size: 13px; color: ${brandColor}; font-weight: 600; letter-spacing: 1px;">tezos.systems</span>
-                <span style="font-size: 13px; color: ${isClean ? 'rgba(0,0,0,0.4)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'}; letter-spacing: 0.5px;">Powered by <span style="color: ${brandColor}; font-weight: 600;">Tez Capital</span></span>
+                <span style="font-size: 13px; color: ${brandColor}; font-weight: 600; letter-spacing: 0;">tezos.systems</span>
+                <span style="font-size: 13px; color: ${isClean ? 'rgba(0,0,0,0.4)' : isDark ? 'rgba(232,232,232,0.4)' : 'rgba(255,255,255,0.4)'}; letter-spacing: 0;">${getShareCreditHtml(brandColor)}</span>
             </div>
         `;
         
@@ -1623,6 +1663,140 @@ async function nativeShare(canvas, text, context) {
     }
 }
 
+function getMomentTweet(moment) {
+    const text = String(moment?.tweet || moment?.title || 'Tezos network moment').trim();
+    return /\btezos\.systems\b/i.test(text) ? text : `${text}\n\ntezos.systems`;
+}
+
+/**
+ * Capture a Network Moment as a branded 1200x630 milestone card and open the share modal.
+ */
+export async function captureNetworkMomentShare(moment = {}) {
+    let wrapper = null;
+    let restoreSpacing = null;
+
+    try {
+        await loadHtml2Canvas();
+
+        const {
+            brand: brandColor,
+            bg: bgColor,
+            brandRgb,
+            isClean,
+            isDark
+        } = getThemeColors();
+        const title = String(moment.title || 'Network Moment').trim();
+        const emoji = String(moment.emoji || '🎯').trim();
+        const tweetText = getMomentTweet(moment);
+        const textColor = isClean ? '#101827' : '#ffffff';
+        const softText = isClean ? 'rgba(0,0,0,0.58)' : isDark ? 'rgba(232,232,232,0.62)' : 'rgba(255,255,255,0.64)';
+        const mutedText = isClean ? 'rgba(0,0,0,0.40)' : isDark ? 'rgba(232,232,232,0.44)' : 'rgba(255,255,255,0.42)';
+        const panelBg = isClean ? 'rgba(255,255,255,0.78)' : isDark ? 'rgba(255,255,255,0.055)' : `rgba(${brandRgb},0.055)`;
+        const panelBorder = isClean ? 'rgba(37,99,235,0.16)' : isDark ? 'rgba(255,255,255,0.12)' : `rgba(${brandRgb},0.22)`;
+        const captureDate = new Date(moment.timestamp || Date.now()).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        wrapper = document.createElement('div');
+        wrapper.style.cssText = `
+            position: fixed; top: -9999px; left: -9999px;
+            width: 1200px; height: 630px;
+            background: ${bgColor};
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'SF Pro Display', sans-serif;
+            color: ${textColor};
+            overflow: hidden;
+            box-sizing: border-box;
+        `;
+
+        const glow = document.createElement('div');
+        glow.style.cssText = `
+            position:absolute;inset:0;pointer-events:none;
+            background:
+                radial-gradient(ellipse at 19% 20%, rgba(${brandRgb},0.16), transparent 42%),
+                radial-gradient(ellipse at 80% 24%, rgba(255,184,77,0.14), transparent 38%),
+                radial-gradient(ellipse at 62% 88%, rgba(${brandRgb},0.08), transparent 44%);
+        `;
+        wrapper.appendChild(glow);
+
+        const border = document.createElement('div');
+        border.style.cssText = `
+            position:absolute;inset:18px;border:1px solid ${panelBorder};border-radius:18px;
+            box-shadow:${isClean || isDark ? '0 18px 52px rgba(0,0,0,0.12)' : `inset 0 0 48px rgba(${brandRgb},0.045), 0 0 30px rgba(${brandRgb},0.08)`};
+            pointer-events:none;
+        `;
+        wrapper.appendChild(border);
+
+        const content = document.createElement('div');
+        content.style.cssText = `
+            position:relative;z-index:1;width:100%;height:100%;box-sizing:border-box;
+            display:grid;grid-template-columns:430px minmax(0,1fr);gap:42px;
+            padding:48px 58px 46px;
+        `;
+
+        const left = document.createElement('section');
+        left.style.cssText = 'display:flex;flex-direction:column;min-width:0;';
+        left.innerHTML = `
+            <div style="font-family:'Orbitron',sans-serif;font-size:30px;font-weight:900;letter-spacing:0;text-transform:uppercase;color:${brandColor};text-shadow:${isClean || isDark ? 'none' : `0 0 28px rgba(${brandRgb},0.45)`};">TEZOS SYSTEMS</div>
+            <div style="width:230px;height:1px;background:${brandColor};opacity:0.72;margin:14px 0 30px;"></div>
+            <div style="font-size:14px;font-weight:850;letter-spacing:0;text-transform:uppercase;color:${mutedText};">Network Moment</div>
+            <h1 style="margin:14px 0 18px;font-size:${title.length > 26 ? '46px' : '58px'};line-height:1.02;font-weight:850;letter-spacing:0;color:${brandColor};overflow-wrap:anywhere;">${escapeHtml(title)}</h1>
+            <p style="margin:0;font-size:21px;line-height:1.38;color:${softText};">A live Tezos milestone worth sharing while the signal is fresh.</p>
+            <div style="margin-top:auto;padding-top:24px;display:flex;flex-direction:column;gap:8px;font-size:15px;color:${mutedText};">
+                <span>${escapeHtml(captureDate)}</span>
+                <span style="color:${brandColor};font-weight:850;letter-spacing:0;">tezos.systems</span>
+                <span>${getShareCreditHtml(brandColor)}</span>
+            </div>
+        `;
+
+        const right = document.createElement('section');
+        right.style.cssText = `
+            min-width:0;display:flex;align-items:center;justify-content:center;
+            border:1px solid ${panelBorder};border-radius:22px;background:${panelBg};
+            box-shadow:${isClean ? '0 24px 60px rgba(17,24,39,0.10)' : '0 28px 70px rgba(0,0,0,0.28)'};
+            padding:44px;box-sizing:border-box;text-align:center;
+        `;
+        right.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;gap:22px;max-width:560px;">
+                <div style="font-size:132px;line-height:1;filter:${isClean || isDark ? 'none' : `drop-shadow(0 0 26px rgba(${brandRgb},0.28))`};">${escapeHtml(emoji)}</div>
+                <div style="font-size:18px;font-weight:850;letter-spacing:0;text-transform:uppercase;color:${mutedText};">Milestone Card</div>
+                <div style="font-size:${title.length > 30 ? '34px' : '42px'};line-height:1.08;font-weight:900;color:${textColor};overflow-wrap:anywhere;">${escapeHtml(title)}</div>
+                <div style="font-size:20px;line-height:1.36;color:${softText};max-width:520px;">${escapeHtml(tweetText.split('\n')[0])}</div>
+            </div>
+        `;
+
+        content.appendChild(left);
+        content.appendChild(right);
+        wrapper.appendChild(content);
+        document.body.appendChild(wrapper);
+
+        restoreSpacing = await fixWordSpacing(wrapper);
+        const canvas = await window.html2canvas(wrapper, {
+            backgroundColor: bgColor,
+            scale: 1,
+            useCORS: true,
+            logging: false,
+            width: 1200,
+            height: 630,
+            windowWidth: 1200
+        });
+
+        restoreSpacing();
+        restoreSpacing = null;
+        wrapper.remove();
+        wrapper = null;
+
+        showShareModal(canvas, [{ label: '🎯 Moment', category: 'Moment', text: tweetText }], `Network Moment: ${title}`);
+    } catch (error) {
+        console.error('Network Moment share failed:', error);
+        showNotification('Screenshot failed. Try again.', 'error');
+    } finally {
+        if (restoreSpacing) restoreSpacing();
+        if (wrapper?.isConnected) wrapper.remove();
+    }
+}
+
 /**
  * Show modal with share options
  * tweetTextOrOptions: string (legacy) or array of {label, text}
@@ -1642,13 +1816,15 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
         : [{ label: '📊 Standard', text: tweetTextOrOptions }];
     tweetOptions = tweetOptions.map((option, index) => ({
         label: String(option?.label || `Option ${index + 1}`),
-        text: addShareTrackingToText(option?.text ?? '', shareContext)
+        category: getTweetCategory(option),
+        text: String(option?.text ?? '')
     }));
     
     // Keep all options for refresh functionality
     const allTweetOptions = (allOptionsForRefresh || tweetOptions).map((option, index) => ({
         label: String(option?.label || `Option ${index + 1}`),
-        text: addShareTrackingToText(option?.text ?? '', shareContext)
+        category: getTweetCategory(option),
+        text: String(option?.text ?? '')
     }));
     trackShareEvent('modal_opened', shareContext, { title });
     
@@ -1659,47 +1835,29 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     const nativeShareBtn = canNativeShare 
         ? `<button class="share-action-btn" id="share-native"><span>📱</span> Share</button>` 
         : '';
+    const savedHandle = getSavedShareHandle();
     
     // Build tweet picker HTML helper
     function buildPickerHtml(options) {
         if (options.length <= 1) return '';
         const canRefresh = allTweetOptions.length > options.length;
         return `
-        <div class="tweet-picker" style="
-            padding: 12px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-            max-height: 200px;
-            overflow-y: auto;
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <div style="font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px;
-                    color: rgba(${accentRgb},0.6); font-weight: 600;">
+        <div class="tweet-picker" style="padding:12px 16px;border-bottom:1px solid var(--glass-border);max-height:210px;overflow-y:auto;">
+            <div class="tweet-picker-header" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;font-size:0.7rem;text-transform:uppercase;letter-spacing:0;font-weight:700;">
+                <div style="color: rgba(${accentRgb},0.72);">
                     Choose tweet style
                 </div>
-                ${canRefresh ? `<button id="tweet-refresh-btn" title="Shuffle options" aria-label="Shuffle tweet options" style="
-                    background: none; border: 1px solid rgba(${accentRgb},0.2); color: rgba(${accentRgb},0.6);
-                    width: 28px; height: 28px; border-radius: 6px; cursor: pointer; font-size: 14px;
-                    display: flex; align-items: center; justify-content: center;
-                    transition: all 0.2s;
-                ">🔄</button>` : ''}
+                ${canRefresh ? `<button id="tweet-refresh-btn" class="tweet-refresh-btn" title="Shuffle options" aria-label="Shuffle tweet options" style="background:rgba(255,255,255,0.03);border:1px solid rgba(${accentRgb},0.2);color:rgba(${accentRgb},0.72);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">🔄</button>` : ''}
             </div>
             ${options.map((opt, i) => `
-                <label class="tweet-option" style="
-                    display: flex; align-items: flex-start; gap: 10px;
-                    padding: 8px 10px; margin-bottom: 4px;
-                    background: ${i === 0 ? `rgba(${accentRgb},0.08)` : 'rgba(255,255,255,0.02)'};
-                    border: 1px solid ${i === 0 ? `rgba(${accentRgb},0.25)` : 'rgba(255,255,255,0.06)'};
-                    border-radius: 8px; cursor: pointer;
-                    transition: all 0.2s ease;
-                ">
+                <label class="tweet-option" style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;margin-bottom:4px;border:1px solid ${i === 0 ? `rgba(${accentRgb},0.25)` : 'rgba(255,255,255,0.06)'};border-radius:8px;cursor:pointer;transition:all 0.2s ease;background:${i === 0 ? `rgba(${accentRgb},0.08)` : 'rgba(255,255,255,0.02)'};">
                     <input type="radio" name="tweet-choice" value="${i}" ${i === 0 ? 'checked' : ''}
                         style="accent-color: ${accent}; margin-top: 2px; flex-shrink: 0;">
                     <div style="flex: 1; min-width: 0;">
-                        <div style="font-size: 0.75rem; font-weight: 600; color: rgba(255,255,255,0.7); margin-bottom: 2px;">
+                        <div class="tweet-option-label" style="font-size:0.75rem;font-weight:700;color:var(--text-primary);margin-bottom:2px;">
                             ${escapeHtml(opt.label)}
                         </div>
-                        <div style="font-size: 0.68rem; color: rgba(255,255,255,0.4); line-height: 1.4;
-                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <div class="tweet-option-preview" style="font-size:0.68rem;color:var(--text-secondary);line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">
                             ${escapeHtml(opt.text.split('\n')[0])}
                         </div>
                     </div>
@@ -1726,12 +1884,20 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
                 <img src="${canvas.toDataURL('image/png')}" alt="Snapshot" />
             </div>
             ${pickerHtml}
+            <div class="tweet-compose" style="padding:14px 20px 16px;display:grid;gap:10px;border-bottom:1px solid var(--glass-border);">
+                <label class="tweet-compose-label" for="tweet-compose-text" style="font-size:0.72rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0;">Tweet text</label>
+                <textarea id="tweet-compose-text" class="tweet-compose-text" rows="6" style="width:100%;min-height:118px;resize:vertical;box-sizing:border-box;border:1px solid var(--glass-border);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);padding:10px 12px;font:inherit;font-size:0.82rem;line-height:1.45;">${escapeHtml(tweetOptions[0]?.text || '')}</textarea>
+                <label class="share-handle-label" for="share-handle-input" style="display:flex;align-items:center;justify-content:space-between;gap:12px;color:var(--text-secondary);font-size:0.76rem;font-weight:700;text-transform:uppercase;letter-spacing:0;">
+                    <span>Shared by</span>
+                    <input id="share-handle-input" class="share-handle-input" type="text" value="${savedHandle ? '@' + escapeHtml(savedHandle) : ''}" placeholder="@handle" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" style="width:150px;min-width:0;box-sizing:border-box;border:1px solid var(--glass-border);border-radius:8px;background:var(--bg-secondary);color:var(--text-primary);padding:8px 10px;font:inherit;font-size:0.82rem;text-transform:none;">
+                </label>
+            </div>
             <div class="share-modal-actions">
                 <button class="share-action-btn" id="share-download">
                     <span>💾</span> ${/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'Save' : 'Download'}
                 </button>
                 <button class="share-action-btn" id="share-copy">
-                    <span>📋</span> Copy
+                    <span>📋</span> Copy image
                 </button>
                 <button class="share-action-btn" id="share-twitter">
                     <span>𝕏</span> Post
@@ -1746,6 +1912,31 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     requestAnimationFrame(() => {
         modal.classList.add('visible');
     });
+
+    const tweetTextarea = modal.querySelector('#tweet-compose-text');
+    const handleInput = modal.querySelector('#share-handle-input');
+
+    const getSelectedOptionText = () => {
+        const checked = modal.querySelector('input[name="tweet-choice"]:checked');
+        const idx = checked ? parseInt(checked.value, 10) : 0;
+        return tweetOptions[idx]?.text || tweetOptions[0]?.text || '';
+    };
+
+    const syncTweetTextareaFromSelection = () => {
+        if (tweetTextarea) tweetTextarea.value = getSelectedOptionText();
+    };
+
+    const getEditableTweet = () => (tweetTextarea?.value || getSelectedOptionText() || '').trim();
+    const getTrackedTweet = (medium = 'social') => addShareTrackingToText(getEditableTweet(), shareContext, medium);
+
+    if (handleInput) {
+        const normalizeHandleInput = () => {
+            const handle = setSavedShareHandle(handleInput.value);
+            handleInput.value = handle ? `@${handle}` : '';
+        };
+        handleInput.addEventListener('change', normalizeHandleInput);
+        handleInput.addEventListener('blur', normalizeHandleInput);
+    }
     
     // Style tweet option hover/selection
     const styleOptions = () => {
@@ -1763,7 +1954,10 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     
     const wirePickerEvents = () => {
         modal.querySelectorAll('.tweet-option').forEach(label => {
-            label.addEventListener('change', styleOptions);
+            label.addEventListener('change', () => {
+                styleOptions();
+                syncTweetTextareaFromSelection();
+            });
             label.addEventListener('mouseenter', () => {
                 const radio = label.querySelector('input[type="radio"]');
                 if (!radio.checked) label.style.background = `rgba(${accentRgb},0.04)`;
@@ -1784,17 +1978,11 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
                 picker.outerHTML = buildPickerHtml(tweetOptions);
                 wirePickerEvents();
                 wireRefresh();
+                syncTweetTextareaFromSelection();
             }
         });
     };
     wireRefresh();
-    
-    // Helper to get selected tweet text
-    const getSelectedTweet = () => {
-        const checked = modal.querySelector('input[name="tweet-choice"]:checked');
-        const idx = checked ? parseInt(checked.value) : 0;
-        return tweetOptions[idx]?.text || tweetOptions[0]?.text || '';
-    };
     
     const closeModal = () => closeShareModal(modal);
     const onKeyDown = (e) => {
@@ -1883,25 +2071,12 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
     });
     
     // Share on X/Twitter — open X first (must be synchronous for mobile popup blocker),
-    // then try to copy image to clipboard in background
+    // using the editable tweet text from the composer.
     modal.querySelector('#share-twitter').addEventListener('click', async () => {
-        const selectedTweet = getSelectedTweet();
+        const selectedTweet = getTrackedTweet('x');
         const text = encodeURIComponent(selectedTweet);
         trackShareEvent('post_x', shareContext);
-        // Open X immediately to preserve user gesture (mobile Safari blocks async window.open)
         window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
-        // Then try clipboard copy in background (use Promise-based ClipboardItem)
-        try {
-            const item = new ClipboardItem({
-                'image/png': new Promise((resolve) => {
-                    canvas.toBlob((blob) => resolve(blob), 'image/png');
-                })
-            });
-            await navigator.clipboard.write([item]);
-            showNotification('Image copied! Paste it into your tweet (Ctrl+V / ⌘V)', 'success');
-        } catch (err) {
-            // Clipboard not available — that's fine, X is already open
-        }
     });
     
     // Native share
@@ -1910,7 +2085,7 @@ export function showShareModal(canvas, tweetTextOrOptions, title, allOptionsForR
         nativeBtn.addEventListener('click', async () => {
             try {
                 trackShareEvent('native', shareContext);
-                await nativeShare(canvas, getSelectedTweet(), shareContext);
+                await nativeShare(canvas, getEditableTweet(), shareContext);
             } catch (err) {
                 if (err.name !== 'AbortError') {
                     showNotification('Share failed.', 'error');
@@ -2064,8 +2239,8 @@ function addFooter(wrapper, brand, leftText, { isClean = false, isDark = false }
     const textColor = isClean ? 'rgba(0,0,0,0.35)' : isDark ? 'rgba(200,200,200,0.4)' : 'rgba(255,255,255,0.35)';
     footer.innerHTML = `
         <span style="font-size: 13px; color: ${textColor};">${leftText}</span>
-        <span style="font-size: 13px; color: ${brand}; font-weight: 600; letter-spacing: 1px;">tezos.systems</span>
-        <span style="font-size: 13px; color: ${textColor}; letter-spacing: 0.5px;">Powered by <span style="color: ${brand}; font-weight: 600;">Tez Capital</span></span>
+        <span style="font-size: 13px; color: ${brand}; font-weight: 600; letter-spacing: 0;">tezos.systems</span>
+        <span style="font-size: 13px; color: ${textColor}; letter-spacing: 0;">${getShareCreditHtml(brand)}</span>
     `;
     wrapper.appendChild(footer);
 }

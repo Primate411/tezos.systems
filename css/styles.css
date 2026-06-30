@@ -6955,6 +6955,7 @@ body.high-combo .stat-card {
     align-items: center;
     justify-content: center;
     gap: 8px;
+    min-width: 0;
     padding: 12px 16px;
     background: rgba(255, 255, 255, 0.05);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -6962,6 +6963,7 @@ body.high-combo .stat-card {
     color: var(--text-primary);
     font-size: 0.85rem;
     font-weight: 500;
+    line-height: 1.2;
     cursor: pointer;
     transition: all 0.2s;
 }
@@ -6995,7 +6997,7 @@ body.high-combo .stat-card {
     cursor: pointer;
     /* Subtly visible at rest so it's discoverable which cards have these tools;
        brightens on card hover, full on button hover. */
-    opacity: 0.3;
+    opacity: 0.46;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index: 10;
     display: flex;
@@ -8873,25 +8875,6 @@ body.high-combo .stat-card {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-}
-
-.drawer-ledger-flow-link {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 40px;
-    color: var(--text-primary);
-    text-decoration: none;
-}
-
-.drawer-ledger-flow-link[hidden] {
-    display: none !important;
-}
-
-.drawer-ledger-flow-link:hover,
-.drawer-ledger-flow-link:focus-visible {
-    border-color: rgba(77, 212, 255, 0.42);
-    color: var(--accent-cyan, #45e0c8);
 }
 
 .wallet-connect-row {
@@ -11147,24 +11130,43 @@ body.high-combo .stat-card {
 }
 [data-theme="clean"] .share-modal-header,
 [data-theme="clean"] .share-modal-actions,
-[data-theme="clean"] .section-picker-actions {
+[data-theme="clean"] .section-picker-actions,
+[data-theme="clean"] .tweet-picker,
+[data-theme="clean"] .tweet-compose {
     border-color: #E2E8F0;
 }
 [data-theme="clean"] .share-modal-header h3,
-[data-theme="clean"] .section-picker-label {
+[data-theme="clean"] .section-picker-label,
+[data-theme="clean"] .tweet-option-label {
     color: #1A1D26;
 }
 [data-theme="clean"] .share-modal-close,
-[data-theme="clean"] .section-picker-note {
+[data-theme="clean"] .section-picker-note,
+[data-theme="clean"] .tweet-compose-label,
+[data-theme="clean"] .share-handle-label,
+[data-theme="clean"] .tweet-option-preview {
     color: #64748B;
 }
+[data-theme="clean"] .tweet-option,
 [data-theme="clean"] .section-picker-option {
     background: #F8FAFC;
     border-color: #DDE6F3;
 }
+[data-theme="clean"] .tweet-option:hover,
 [data-theme="clean"] .section-picker-option:hover {
     border-color: #2563EB;
     background: #F3F7FF;
+}
+[data-theme="clean"] .tweet-compose-text,
+[data-theme="clean"] .share-handle-input {
+    background: #F8FAFC;
+    border-color: #DDE6F3;
+    color: #1A1D26;
+}
+[data-theme="clean"] .tweet-refresh-btn {
+    background: #F8FAFC;
+    border-color: #DDE6F3;
+    color: #2563EB;
 }
 [data-theme="clean"] .section-picker-toggle {
     border-color: #CBD5E1;

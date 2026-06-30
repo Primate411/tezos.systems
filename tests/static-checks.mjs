@@ -545,6 +545,7 @@ async function checkSelectorContracts() {
   const wallet = await readText('js/core/wallet.js');
   const health = await readText('js/features/network-health.js');
   const share = await readText('js/ui/share.js');
+  const moments = await readText('js/features/moments.js');
   const governanceAlerts = await readText('js/features/governance-alerts.js');
   const myTezos = await readText('js/features/my-tezos.js');
   const myBaker = await readText('js/features/my-baker.js');
@@ -1142,6 +1143,10 @@ async function checkSelectorContracts() {
     ['share modal event tracking', "trackShareEvent('modal_opened'", share],
     ['native share tracked URL', "'native_share'", share],
     ['X post event tracking', "trackShareEvent('post_x'", share],
+    ['editable share tweet composer', 'tweet-compose-text', share],
+    ['share handle storage', 'tezos-systems-share-handle', share],
+    ['Network Moments share capture helper', 'captureNetworkMomentShare', share],
+    ['Network Moments use share modal pipeline', 'captureNetworkMomentShare(moment)', moments],
     ['history share deep link', 'tezos.systems/#history', share],
     ['history copy hidden during capture', 'copyBtn.style.display', share],
     ['GoatCounter event helper', 'trackTezosSystemsEvent', goatcounterInit]

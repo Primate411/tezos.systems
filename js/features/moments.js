@@ -231,6 +231,26 @@ Explore →`;
 let toastQueue = [];
 let toastActive = false;
 
+async function shareMoment(moment, button) {
+    if (!moment?.tweet) return;
+    const originalText = button?.textContent || '';
+    try {
+        if (button) {
+            button.disabled = true;
+            button.textContent = '...';
+        }
+        const { captureNetworkMomentShare } = await import('../ui/share.js');
+        await captureNetworkMomentShare(moment);
+    } catch (error) {
+        console.error('Failed to share Network Moment', error);
+    } finally {
+        if (button) {
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }
+}
+
 function queueToasts(moments) {
     toastQueue.push(...moments);
     if (!toastActive) showNextToast();
@@ -285,9 +305,8 @@ function showNextToast() {
     const autoTimer = setTimeout(() => closeToast(toast, moment.id), 15000);
 
     // Share button
-    toast.querySelector('.moment-toast-share').addEventListener('click', () => {
-        const text = encodeURIComponent(moment.tweet + '\n\nhttps://tezos.systems');
-        window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener');
+    toast.querySelector('.moment-toast-share').addEventListener('click', (event) => {
+        shareMoment(moment, event.currentTarget);
     });
 
     // Dismiss button
@@ -359,14 +378,15 @@ function renderMomentsTimeline() {
                 <span class="moment-item-title">${escapeHtml(m.title)}</span>
                 <span class="moment-item-time">${formatRelativeTime(m.timestamp)}</span>
             </div>
-            ${m.tweet ? `<button class="moment-item-share" data-tweet="${encodeURIComponent(m.tweet + '\n\nhttps://tezos.systems')}" title="Share on X">𝕏</button>` : ''}
+            ${m.tweet ? `<button class="moment-item-share" data-moment-id="${escapeHtml(m.id)}" title="Share moment">𝕏</button>` : ''}
         </div>
     `).join('');
 
     // Attach share handlers
     container.querySelectorAll('.moment-item-share').forEach(btn => {
-        btn.addEventListener('click', () => {
-            window.open(`https://twitter.com/intent/tweet?text=${btn.dataset.tweet}`, '_blank', 'noopener');
+        btn.addEventListener('click', (event) => {
+            const moment = recent.find(m => m.id === btn.dataset.momentId);
+            shareMoment(moment, event.currentTarget);
         });
     });
 }

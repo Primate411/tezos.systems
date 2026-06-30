@@ -491,8 +491,9 @@ node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
 
 - `npm run test:static`: JSON validity, generated governance freshness, local
   asset references, cache-stamp alignment, CSP domains, selector contracts,
-  chamber card control spacing, chamber share-capture contracts, launch-date
-  wording, module import sanity, historical chart pagination and
+  chamber card control spacing, chamber share-capture contracts, share composer
+  and Network Moment capture contracts, launch-date wording, module import
+  sanity, historical chart pagination and
   render-performance settings, LB-aware issuance contracts, CSS freshness,
   lockfile/tooling, and shared hook checks.
 - `npm run test:smoke`: a Playwright browser run against a throwaway local
@@ -524,6 +525,7 @@ Current smoke suites:
 - `governance-lb` (covers Chamber current-stage/historical vote ordering, paired Chambers card layout, fixed Chamber footer geometry, Tezos X Governance card geometry and rollover timing, Tezos X direction fallbacks, LB tile latest-vote tape, LB auto-scaled EMA trend, tz4 card preview/month bars/holdout wrapping, and mobile vote-row geometry)
 - `ux-regressions`
 - `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
+- `share-actions` (covers share modal copy, editable X post text, optional handle persistence, download, native share, Network Moment image cards, and mobile photo fallback buttons)
 - `info-modals`
 - `themes`
 - `widget-builder`
@@ -542,7 +544,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v317`, including hero search, theme
+- Current aligned shell cache stamp: `v318`, including hero search, theme
   bundles, and the Ledger Flow lazy CSS loader.
 - Current Tezos Domains lazy CSS stamp: `v316`.
 - `version.json` is stamped by `.githooks/pre-commit`.
@@ -628,8 +630,9 @@ impressions and copy events can be measured.
   The shared initializer also exposes loop events for share actions,
   governance-alert actions, and widget-builder copy events.
 - Shared PNG/tweet/native share flows rewrite Tezos Systems links with campaign
-  params; the History modal has a direct `#history` copy control plus tracked
-  share copy.
+  params, keep X copy editable in the modal, and can persist an optional handle
+  for card credit; the History modal has a direct `#history` copy control plus
+  tracked share copy.
 
 ## Gotchas
 
