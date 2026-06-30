@@ -665,7 +665,13 @@ function applyHotTodayActive(index = hotTodayActiveIndex, { scroll = true } = {}
     if (isActive) activeCard = card;
   });
   if (scroll && activeCard) {
-    activeCard.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    const strip = activeCard.closest('.hot-today-strip');
+    const rect = strip?.getBoundingClientRect();
+    const stripIsVisible = rect && rect.bottom > 0 && rect.top < window.innerHeight;
+    if (strip && stripIsVisible) {
+      const targetLeft = activeCard.offsetLeft - ((strip.clientWidth - activeCard.clientWidth) / 2);
+      strip.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+    }
   }
   refreshHotTodayLiveMetrics();
 }

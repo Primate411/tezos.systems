@@ -2945,6 +2945,26 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     const nextClock = document.querySelector('#hot-today-island [data-hot-live="clock"]')?.textContent?.trim() || '';
     return nextClock && nextClock !== previousClock;
   }, livePulseState.clock, { timeout: 3000 });
+  await page.waitForFunction(() => {
+    const target = document.getElementById('recruit-section') || document.getElementById('comparison-section');
+    if (!target) return false;
+    const targetTop = target.getBoundingClientRect().top + window.scrollY;
+    return targetTop > window.innerHeight;
+  }, null, { timeout: 5000 });
+  const bottomScrollTarget = await page.evaluate(() => {
+    const target = document.getElementById('recruit-section') || document.getElementById('comparison-section');
+    const targetTop = Math.round(target.getBoundingClientRect().top + window.scrollY);
+    window.scrollTo(0, targetTop);
+    return { targetTop, targetId: target.id };
+  });
+  await page.waitForFunction((targetTop) => Math.abs(window.scrollY - targetTop) <= 12, bottomScrollTarget.targetTop, { timeout: 3000 });
+  const bottomScrollState = {
+    before: await page.evaluate(() => Math.round(window.scrollY)),
+    targetId: bottomScrollTarget.targetId
+  };
+  await page.waitForTimeout(8500);
+  const bottomScrollAfter = await page.evaluate(() => Math.round(window.scrollY));
+  assert(Math.abs(bottomScrollAfter - bottomScrollState.before) <= 12, `hero command bar: live pulse rotation should not pull the page from ${bottomScrollState.targetId}, scroll ${bottomScrollState.before} -> ${bottomScrollAfter}`);
   const bottomMapOrder = await page.evaluate(() => {
     const ids = ['comparison-section', 'recruit-section'];
     return ids.map((id) => {

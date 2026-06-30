@@ -5,6 +5,12 @@
 
 const CHANGELOG = [
     {
+        date: '2026-06-30',
+        entries: [
+            { type: '🔧', text: 'The What is hot today strip now rotates quietly without pulling readers back up the page while they are browsing lower sections' },
+        ]
+    },
+    {
         date: '2026-06-29',
         entries: [
             { type: '🔧', text: 'L1 Governance chamber-card countdowns now tick live on the dashboard instead of waiting for the next card refresh' },
