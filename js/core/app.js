@@ -2399,6 +2399,8 @@ function renderProtocolTimeline(protocols) {
     if (countEl) countEl.textContent = protocols.length;
     const aboutUpgrades = document.getElementById('about-upgrades');
     if (aboutUpgrades) aboutUpgrades.textContent = protocols.length;
+    const continuitySelfAmendments = document.getElementById('continuity-self-amendments');
+    if (continuitySelfAmendments) continuitySelfAmendments.textContent = protocols.length;
 
     const currentProtocol = protocols.find(p => p.isCurrent) || protocols[protocols.length - 1];
     if (currentProtocol) {
@@ -3383,6 +3385,8 @@ async function updateUpgradeClock() {
             // Update "fork-free days" badge
             const forkFreeDays = document.getElementById('fork-free-days');
             if (forkFreeDays) forkFreeDays.textContent = `${daysLive.toLocaleString()} days fork-free`;
+            const continuityForkFree = document.getElementById('continuity-fork-free-days');
+            if (continuityForkFree) continuityForkFree.textContent = daysLive.toLocaleString();
         }
         
         const statusEl = document.getElementById('upgrade-status');
