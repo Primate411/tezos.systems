@@ -2491,6 +2491,19 @@ function handleChamberEscape(event) {
     if (event.key === 'Escape') closeNetworkHealthChamber();
 }
 
+function renderNetworkHealthLoading(body) {
+    if (!body) return;
+    delete body.dataset.healthRendered;
+    delete body.dataset.healthRefreshMode;
+    body.innerHTML = `
+        <div class="chamber-loading" role="status" aria-live="polite">
+            <div class="chamber-loading-text">Opening Network Health Chamber...</div>
+            <div class="chamber-loading-subtext">Fetching head block, attestation power, and baker telemetry</div>
+            <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
+        </div>
+    `;
+}
+
 async function refreshNetworkHealthChamber({ initial = false } = {}) {
     const overlay = document.getElementById('network-health-modal');
     const body = overlay?.querySelector('.health-body');
@@ -2546,10 +2559,6 @@ export async function openNetworkHealthChamber() {
             <div class="modal-content modal-large chamber-content lb-content health-content">
                 <button class="modal-close chamber-close" aria-label="Close" style="z-index:3">&times;</button>
                 <div class="chamber-body lb-body health-body">
-                    <div class="chamber-loading">
-                        <div class="chamber-loading-text">Opening Network Health Chamber...</div>
-                        <div class="chamber-loading-bar"><div class="chamber-loading-fill"></div></div>
-                    </div>
                 </div>
             </div>
         `;
@@ -2560,6 +2569,7 @@ export async function openNetworkHealthChamber() {
         });
     }
 
+    renderNetworkHealthLoading(overlay.querySelector('.health-body'));
     document.addEventListener('keydown', handleChamberEscape);
     overlay.classList.add('active');
     lockPageScroll();

@@ -441,6 +441,10 @@ function fulfillText(route, body, contentType = 'text/plain') {
   return route.fulfill({ status: 200, contentType, body });
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function pageRows(total, offset, limit, makeRow) {
   const start = Math.max(0, Number(offset) || 0);
   const count = Math.max(0, Number(limit) || 0);
@@ -950,6 +954,7 @@ function sampleLedgerFlowFirstRow() {
 async function installFeatureMocks(context, options = {}) {
   let lbBlocksHead = 12345678;
   const blockHeadLagMs = Number(options.blockHeadLagMs) || 0;
+  const networkHealthBlocksDelayMs = Number(options.networkHealthBlocksDelayMs) || 0;
   const etherlinkQuiet = Boolean(options.etherlinkQuiet);
   const etherlinkNullProposal = Boolean(options.etherlinkNullProposal);
   const governanceNoProposal = Boolean(options.governanceNoProposal);
@@ -1358,6 +1363,7 @@ async function installFeatureMocks(context, options = {}) {
         return fulfillJson(route, 12344000);
       }
       if (url.includes('/blocks?')) {
+        if (networkHealthBlocksDelayMs > 0) await sleep(networkHealthBlocksDelayMs);
         const params = new URL(url).searchParams;
         const requestedLimit = Number(params.get('limit')) || 4;
         const count = Math.max(1, Math.min(requestedLimit, 20));
@@ -4262,7 +4268,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(context, { blockHeadLagMs: 90000 });
+  await installFeatureMocks(context, { blockHeadLagMs: 90000, networkHealthBlocksDelayMs: 500 });
   await context.addInitScript((myBakerAddress) => {
     window.__tezosSystemsIntervals = [];
     const originalSetInterval = window.setInterval.bind(window);
@@ -4295,6 +4301,36 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/#health`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `network health chamber: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#network-health-modal.active .chamber-loading-fill').waitFor({ state: 'visible', timeout: 5000 });
+  const loaderState = await page.evaluate(async () => {
+    const modal = document.querySelector('#network-health-modal');
+    const fill = modal?.querySelector('.chamber-loading-fill');
+    const bar = modal?.querySelector('.chamber-loading-bar');
+    const text = modal?.querySelector('.chamber-loading-text');
+    if (!fill || !bar) return { present: false };
+    const firstStyle = getComputedStyle(fill);
+    const firstTransform = firstStyle.transform;
+    await new Promise((resolve) => setTimeout(resolve, 180));
+    const secondStyle = getComputedStyle(fill);
+    return {
+      present: true,
+      text: text?.textContent || '',
+      animationName: firstStyle.animationName,
+      animationDuration: firstStyle.animationDuration,
+      firstTransform,
+      secondTransform: secondStyle.transform,
+      fillWidth: fill.getBoundingClientRect().width,
+      barWidth: bar.getBoundingClientRect().width,
+      contentRendered: Boolean(modal?.querySelector('.health-header'))
+    };
+  });
+  assert(loaderState.present, 'network health chamber: loading animation missing before initial fetch resolves');
+  assert(/Opening Network Health Chamber/.test(loaderState.text), `network health chamber: loading copy mismatch: ${loaderState.text}`);
+  assert(loaderState.animationName === 'chamberLoadSlide', `network health chamber: loader animation missing: ${loaderState.animationName}`);
+  assert(loaderState.animationDuration !== '0s', `network health chamber: loader animation duration missing: ${loaderState.animationDuration}`);
+  assert(loaderState.firstTransform !== loaderState.secondTransform, `network health chamber: loader transform did not animate: ${loaderState.firstTransform}`);
+  assert(loaderState.fillWidth > 0 && loaderState.fillWidth < loaderState.barWidth, `network health chamber: loader beam should be visible but smaller than the rail: ${loaderState.fillWidth}/${loaderState.barWidth}`);
+  assert(!loaderState.contentRendered, 'network health chamber: chamber content rendered before loader assertion');
   await page.waitForFunction(() => document.querySelectorAll('#health-recent-block-list .health-block-row').length >= 4, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#health-missed-attester-list .health-attester-row').length >= 2, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#health-activity-list .health-activity-row').length >= 1, null, { timeout: 10000 });

@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-30',
         entries: [
+            { type: '🔧', text: 'Network Health now shows a moving Chamber loader every time the room opens while live health data syncs' },
             { type: '🎨', text: 'The first-screen Continuity proof now leads with live fork-free days, self-amendment count, and zero hard forks' },
             { type: '🔧', text: 'My Tezos now stays in the drawer instead of reserving homepage space with a persistent address tracker' },
             { type: '✨', text: 'Share cards now use wider social-preview stat images, editable tweet text, optional @handle credit, and image-backed Network Moment sharing' },

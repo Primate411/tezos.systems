@@ -15021,25 +15021,30 @@ body {
 }
 
 .chamber-loading-bar {
-    width: 200px;
-    height: 3px;
-    background: rgba(255,255,255,0.06);
-    border-radius: 3px;
+    position: relative;
+    width: min(220px, 62vw);
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 999px;
     overflow: hidden;
 }
 
 .chamber-loading-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
     height: 100%;
-    width: 100%;
+    width: 48%;
     background: var(--accent-cyan);
-    border-radius: 3px;
-    transform-origin: left center;
-    animation: chamberLoadSlide 2.6s ease-in-out infinite;
+    border-radius: inherit;
+    box-shadow: 0 0 16px var(--accent-cyan);
+    transform: translateX(-135%);
+    animation: chamberLoadSlide 1.15s ease-in-out infinite;
 }
 
 @keyframes chamberLoadSlide {
-    0%, 100% { transform: scaleX(0.08); }
-    50% { transform: scaleX(1); }
+    from { transform: translateX(-135%); opacity: 0.38; }
+    45% { opacity: 1; }
+    to { transform: translateX(285%); opacity: 0.34; }
 }
 
 @keyframes chamberPulse {
@@ -15050,6 +15055,19 @@ body {
 @keyframes chamberBreathe {
     0%, 100% { opacity: 0.78; }
     50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chamber-loading-text,
+    .chamber-loading-fill {
+        animation: none;
+    }
+
+    .chamber-loading-fill {
+        width: 100%;
+        opacity: 0.72;
+        transform: none;
+    }
 }
 
 /* Header */
