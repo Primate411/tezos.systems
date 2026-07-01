@@ -729,7 +729,7 @@ async function checkSelectorContracts() {
     ['HEN source all tab', 'data-hen-mode="all"', index],
     ['HEN source Teia tab', 'data-hen-mode="teia"', index],
     ['HEN source OBJKT tab', 'data-hen-mode="objkt"', index],
-    ['HEN CSS cache stamp', 'css/hen-mode.css?v=90', index],
+    ['HEN CSS cache stamp', 'css/hen-mode.css?v=91', index],
     ['HEN JS cache stamp', 'js/features/hen-mode.js?v=87', index],
     ['HEN setup status strip', 'id="hen-status-strip"', index],
     ['HEN permanent now line', 'id="hen-now-line"', index],

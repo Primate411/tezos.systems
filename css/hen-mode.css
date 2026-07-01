@@ -1792,37 +1792,51 @@
     .hen-status-strip { height: 42px; min-height: 42px; max-height: 42px; padding: 6px 14px; flex-wrap: nowrap; }
     .hen-status-line { flex: 1 1 auto; min-width: 0; }
     .hen-mobile-filter-toggle { display: inline-flex; align-items: center; justify-content: center; width: auto; flex: 0 0 96px; }
+    .hen-status-strip.mobile-filters-open {
+        height: auto;
+        max-height: none;
+        align-items: stretch;
+        flex-wrap: wrap;
+        row-gap: 8px;
+    }
     .hen-status-strip:not(.mobile-filters-open) .hen-filterbar,
     .hen-status-strip:not(.mobile-filters-open) .hen-wallet-controls {
         display: none;
     }
     .hen-status-strip.mobile-filters-open .hen-filterbar {
-        position: absolute;
-        left: 14px;
-        right: 14px;
-        top: calc(100% + 6px);
-        z-index: 14;
+        position: static;
         display: flex;
-        max-height: 92px;
+        flex: 1 0 100%;
+        width: 100%;
+        max-height: none;
+        align-items: center;
+        flex-wrap: wrap;
         padding: 8px;
         border: 1px solid rgba(0,212,255,0.22);
         background: rgba(8, 10, 10, 0.97);
-        overflow: auto;
+        overflow: visible;
+        box-sizing: border-box;
     }
     .hen-status-strip.mobile-filters-open .hen-wallet-controls {
-        position: absolute;
-        left: 14px;
-        right: 14px;
-        top: calc(100% + 112px);
-        z-index: 14;
+        position: static;
+        flex: 1 0 100%;
+        width: 100%;
         padding: 8px;
         border: 1px solid rgba(0,212,255,0.18);
         background: rgba(8, 10, 10, 0.97);
+        box-sizing: border-box;
     }
     .hen-filterbar { gap: 5px; }
-    .hen-filter-group { max-width: 100%; overflow-x: auto; }
+    .hen-filterbar > *,
+    .hen-filter-chip,
+    .hen-filter-toggle,
+    .hen-filter-icon {
+        flex-shrink: 0;
+    }
+    .hen-filter-group { max-width: 100%; overflow-x: visible; }
+    .hen-filter-icon { min-width: 28px; }
     .hen-search-label { display: none; }
-    .hen-search-input { flex: 1 1 140px; width: auto; }
+    .hen-search-input { flex: 1 1 140px; min-width: 140px; width: auto; }
     .hen-wallet-controls { width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 5px; }
     .hen-wallet-status { grid-column: 1 / -1; max-width: none; }
     .hen-wallet-paste-label { display: none; }

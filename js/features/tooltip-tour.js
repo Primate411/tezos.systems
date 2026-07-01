@@ -49,7 +49,7 @@
         {
             target: '#settings-gear',
             title: 'Tune and export',
-            text: 'Settings keeps 13 themes, Ultra, share captures, data export, About, shortcuts, and changelog nearby. HEN mode stays available from the corner launcher.',
+            text: 'Settings keeps 14 themes, Ultra, share captures, data export, About, shortcuts, and changelog nearby. HEN mode stays available from the corner launcher.',
         },
     ];
 

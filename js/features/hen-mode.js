@@ -2510,11 +2510,15 @@ const HenMode = (() => {
     }
 
     function init() {
-        var launcher = document.getElementById('hen-launcher');
-        if (launcher) launcher.addEventListener('click', function(e) {
-            e.preventDefault();
-            history.replaceState(null, '', '/?hen=1');
-            activate();
+        document.querySelectorAll('#hen-launcher, [data-hen-launch]').forEach(function(launcher) {
+            if (launcher.dataset.henLaunchWired === '1') return;
+            launcher.dataset.henLaunchWired = '1';
+            launcher.addEventListener('click', function(e) {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button === 1) return;
+                e.preventDefault();
+                history.replaceState(null, '', '/?hen=1');
+                activate();
+            });
         });
 
         var closeBtn = document.querySelector('.hen-close');

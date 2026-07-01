@@ -4,6 +4,13 @@
  */
 
 const CHANGELOG = [
+    {
+        date: '2026-07-01',
+        entries: [
+            { type: '🎨', text: 'HEN is now a selectable site-wide theme with square CRT dashboard chrome, mono typography, cyan and green data accents, scanlines, and reduced-motion safeguards' },
+            { type: '✨', text: 'HEN live feed entry points now appear from the HEN-themed header, Explore, and the NFT lane while opening the existing Teia-first overlay in place' },
+        ]
+    },
 	{
 		date: '2026-06-30',
 		entries: [

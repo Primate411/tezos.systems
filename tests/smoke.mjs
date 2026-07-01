@@ -6257,7 +6257,7 @@ async function smokeFirstVisitTour(browser, baseUrl) {
     { selector: '#my-tezos-btn', label: 'my tezos step', snippets: ['Make it yours', 'Network Context'] },
     { selector: '#tezos-loop-chips', label: 'loop console step', snippets: ['Use the recipe console', 'Market lanes'] },
     { selector: '#features-gear', label: 'explore step', snippets: ['Explore without clutter', 'State of Tezos'] },
-    { selector: '#settings-gear', label: 'settings step', snippets: ['Tune and export', '13 themes'] }
+    { selector: '#settings-gear', label: 'settings step', snippets: ['Tune and export', '14 themes'] }
   ];
 
   async function readTourGeometry(currentPage, selector) {

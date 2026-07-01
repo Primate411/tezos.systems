@@ -3271,10 +3271,10 @@ const TEZOS_LOOP_AURAS = {
         label: 'Grab a live widget'
     },
     collector: {
-        title: 'NFT and profile lane',
-        line: 'Type /nfts or enter HEN when Objkt activity, creator history, and collector context are the useful path.',
+        title: 'HEN live art feed',
+        line: 'Type /nfts or enter HEN for the Teia-first live feed, OBJKT listings, creator history, and collector context.',
         query: '/nfts',
-        searchLabel: 'Open NFT lane',
+        searchLabel: 'Open HEN lane',
         href: '/?hen=1',
         label: 'Enter HEN'
     },

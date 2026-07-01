@@ -4,15 +4,16 @@
  */
 
 const THEME_KEY = 'tezos-systems-theme';
-export const THEMES = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
+export const THEMES = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
 // Aurora — bespoke animated default; striking but legible.
 export const DEFAULT_THEME = 'aurora';
-const THEME_CSS_VERSION = '322';
+const THEME_CSS_VERSION = '324';
 
 // Theme color definitions for the picker dots
 export const THEME_COLORS = {
     'aurora': { bg: '#070B1A', accent: '#45E0C8', text: '#EAF0FF' },
     'matrix': { bg: '#0a0f0a', accent: '#00ff00', text: '#00ff41' },
+    'hen': { bg: '#111111', accent: '#00d4ff', text: '#00ff88' },
     'void': { bg: '#06060C', accent: '#8B5CF6', text: '#D8D0FF' },
     'ember': { bg: '#0D0806', accent: '#FF9F43', text: '#FFE8D6' },
     'signal': { bg: '#060A08', accent: '#00E4A0', text: '#C8F0E0' },
@@ -101,6 +102,7 @@ export function initTheme() {
 const THEME_VIBES = {
     'aurora': { tagline: 'Liquid Aurora', icon: '🌌' },
     'matrix': { tagline: 'Code the Future', icon: '🟢' },
+    'hen': { tagline: 'Here & Now', icon: '▓' },
     'default': { tagline: 'Midnight Premium', icon: '💎' },
     'void': { tagline: 'Deep Space', icon: '🔮' },
     'ember': { tagline: 'Phoenix Rising', icon: '🔥' },
@@ -135,13 +137,13 @@ export function openThemePicker() {
     originalTheme = currentTheme;
 
     // Theme categories for organized picker
-    const ANIMATED_THEMES = ['aurora', 'matrix', 'void', 'ember', 'signal', 'abyss', 'moss', 'warzone', 'nerv', 'bubblegum'];
+    const ANIMATED_THEMES = ['aurora', 'matrix', 'hen', 'void', 'ember', 'signal', 'abyss', 'moss', 'warzone', 'nerv', 'bubblegum'];
     const CLASSIC_THEMES = ['default', 'dark', 'clean'];
 
     function renderThemeRow(theme) {
         const vibe = THEME_VIBES[theme] || {};
         return `
-            <div class="theme-row" data-theme="${theme}">
+            <div class="theme-row${theme === 'hen' ? ' theme-row-hen' : ''}" data-theme="${theme}">
                 <div class="theme-dots">
                     <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].bg};"></span>
                     <span class="theme-dot" style="background-color: ${THEME_COLORS[theme].accent};"></span>
@@ -160,16 +162,6 @@ export function openThemePicker() {
             ${ANIMATED_THEMES.map(renderThemeRow).join('')}
             <div class="theme-group-label">◆ Classic</div>
             ${CLASSIC_THEMES.map(renderThemeRow).join('')}
-            <div style="border-top: 1px solid var(--glass-border); margin: 4px 0;"></div>
-            <div class="theme-row hen-mode-row" data-theme="hen">
-                <div class="theme-dots">
-                    <span class="theme-dot" style="background-color: #111;"></span>
-                    <span class="theme-dot" style="background-color: #00d4ff;"></span>
-                    <span class="theme-dot" style="background-color: #00ff88;"></span>
-                </div>
-                <span class="theme-label" style="font-style: italic; opacity: 0.85;">hic et nunc</span>
-                <span class="theme-checkmark" style="display: none;">✓</span>
-            </div>
         </div>
     `;
 
@@ -197,7 +189,7 @@ export function openThemePicker() {
     const picker = document.getElementById('theme-picker-dropdown');
 
     // Add event listeners
-    const themeRows = picker.querySelectorAll('.theme-row:not(.hen-mode-row)');
+    const themeRows = picker.querySelectorAll('.theme-row');
 
     themeRows.forEach(row => {
         const theme = row.dataset.theme;
@@ -219,16 +211,6 @@ export function openThemePicker() {
             closeThemePicker();
         });
     });
-
-    // HEN mode entry
-    const henRow = picker.querySelector('.hen-mode-row');
-    if (henRow) {
-        henRow.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeThemePicker();
-            if (typeof HenMode !== 'undefined') HenMode.activate();
-        });
-    }
 
     // Hover out of picker - revert to original
     if (window.innerWidth >= 768) {
@@ -327,6 +309,7 @@ function updateThemeIcon(theme) {
         const icons = {
             'default': '🎨',
             'matrix': '💚',
+            'hen': '▓',
             'void': '🕳️',
             'ember': '🌋',
             'signal': '📡',

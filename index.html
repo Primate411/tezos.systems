@@ -50,15 +50,15 @@
     <link rel="mask-icon" href="safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=322">
-    <link rel="stylesheet" href="css/loading.css?v=322">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=322">
-    <link rel="stylesheet" href="css/hen-mode.css?v=90">
+    <link rel="stylesheet" href="css/styles.min.css?v=324">
+    <link rel="stylesheet" href="css/loading.css?v=324">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=324">
+    <link rel="stylesheet" href="css/hen-mode.css?v=91">
     <script src="js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=322">
+    <link rel="modulepreload" href="js/core/app.js?v=324">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/utils.js">
@@ -87,7 +87,7 @@
       "operatingSystem": "Web",
       "browserRequirements": "Requires JavaScript",
       "screenshot": "https://tezos.systems/og-image.png",
-      "featureList": "Live network statistics, Baker performance tracking, Staking gauge, Protocol upgrade timeline, Governance monitoring, 13 visual themes, Personalized My Tezos mode, Shareable stat cards, Embeddable widgets",
+      "featureList": "Live network statistics, Baker performance tracking, Staking gauge, Protocol upgrade timeline, Governance monitoring, 14 visual themes, Personalized My Tezos mode, Shareable stat cards, Embeddable widgets",
       "creator": {
         "@type": "Organization",
         "name": "Tez Capital",
@@ -216,7 +216,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=322"></script>
+    <script src="js/core/theme-preload.js?v=324"></script>
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
         <button id="corner-gift-toggle" class="corner-gift-toggle" type="button" aria-label="Open corner tools: HEN, ctez, and TzSafe" aria-expanded="false" aria-controls="corner-gift-items" title="Corner tools">
             <span aria-hidden="true">🎁</span>
@@ -274,6 +274,7 @@
                 <div class="header-brand-stack">
                     <h1 class="title">Tezos Systems</h1>
                     <button class="top-continuity-history" id="top-continuity-history" type="button" aria-label="Uptime since 2018. Open Protocol Anthology Chamber" aria-haspopup="dialog" aria-controls="protocol-history-chamber-modal" title="Open Protocol Anthology"><span class="top-continuity-core"><span class="top-continuity-claim">uptime:</span><strong class="top-continuity-runtime" id="hero-chain-uptime-counter">—</strong><span class="top-continuity-origin">&middot; since 2018</span></span></button>
+                    <a class="hen-theme-feed-link" href="/?hen=1" data-hen-launch aria-label="Enter HEN live Teia and OBJKT feed" style="display:none">> enter live feed</a>
                 </div>
                 <a class="header-protocol-chip" id="header-protocol-chip" href="#protocol-history" aria-label="Open Protocol History Chamber">
                     <span>Running on</span>
@@ -384,6 +385,13 @@
 
                         <div class="feature-launcher-group">
                             <div class="dropdown-section-label">Activity & Culture</div>
+                            <div class="feature-launcher-row">
+                                <a id="hen-feature-link" class="glass-button feature-launcher-item feature-launcher-link" href="/?hen=1" data-hen-launch aria-label="Enter HEN live Teia and OBJKT feed" title="Enter HEN live feed">
+                                    <span class="ctez-feature-icon hen-feature-icon">hen</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">HEN Live Feed</span><span class="dropdown-hint">Teia-first live NFT collecting surface</span></span>
+                                    <span class="feature-status">Live</span>
+                                </a>
+                            </div>
                             <div class="feature-launcher-row">
                                 <button id="whale-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Mini Whale feed" title="Mini Whale: OFF">
                                     <span class="whale-toggle-icon">🐬</span>
@@ -1635,10 +1643,10 @@
                         <span class="recruit-card-action">Try KT1 / ops</span>
                     </button>
                     <button class="recruit-card" type="button" data-loop-aura="collector" data-hero-query="/nfts">
-                        <span class="recruit-card-kicker">NFT profile</span>
-                        <strong>Open culture context</strong>
-                        <span>Use /nfts or a Tezos identity when Objkt activity and creator/collector signals matter.</span>
-                        <span class="recruit-card-action">Open NFT lane</span>
+                        <span class="recruit-card-kicker">HEN / Teia</span>
+                        <strong>Enter the live art feed</strong>
+                        <span>Use /nfts for HEN mode when Teia mints, OBJKT listings, creator history, and collector context matter.</span>
+                        <span class="recruit-card-action">Open HEN lane</span>
                     </button>
                     <button class="recruit-card" type="button" data-loop-aura="governance" data-hero-query="/chamber">
                         <span class="recruit-card-kicker">Chambers / protocols</span>
@@ -2194,7 +2202,7 @@
 
     <!-- Load app as module -->
     <script src="js/features/hen-mode.js?v=87"></script>
-    <script type="module" src="js/core/app.js?v=322"></script>
+    <script type="module" src="js/core/app.js?v=324"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">

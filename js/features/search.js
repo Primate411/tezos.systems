@@ -8,7 +8,7 @@ import { getAvailableThemes, openThemePicker, setTheme } from '../ui/theme.js';
 import { findBakersByName } from './leaderboard.js';
 
 const PROTOCOL_DATA_URL = '/data/protocol-data.json?v=2';
-const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=322';
+const HERO_SEARCH_CSS_URL = '/css/hero-search.css?v=324';
 
 const ADDRESS_RE = /^(tz[1-4]|KT1)[0-9A-Za-z]{33}$/;
 const TEZ_DOMAIN_RE = /^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+tez$/i;
@@ -38,7 +38,7 @@ const COMMANDS = [
     { id: 'leaderboard', title: '/leaderboard', detail: 'Open baker leaderboard', hash: '#leaderboard', aliases: ['bakers', 'baker ranking'] },
     { id: 'whales', title: '/whales', detail: 'Open live large-transfer feed', hash: '#whales', aliases: ['mini whale', 'transfers'] },
     { id: 'giants', title: '/giants', detail: 'Open dormant-wallet awakenings', hash: '#giants', aliases: ['sleeping giants'] },
-    { id: 'nfts', title: '/nfts', detail: 'Open HEN mode with live NFTs and collector profile stats', hash: null, action: 'hen', aliases: ['objkt', 'nft'] }
+    { id: 'nfts', title: '/nfts', detail: 'Open HEN mode with Teia-first live NFTs, listings, and collector profile stats', hash: null, action: 'hen', aliases: ['objkt', 'teia', 'nft', 'hen'] }
 ];
 
 const CHAMBERS = [

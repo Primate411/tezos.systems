@@ -134,7 +134,7 @@ Current refresh and cache intervals from `js/core/config.js`:
 
 ## Themes
 
-There are 13 visual themes in `js/ui/theme.js`. `aurora` is the default theme.
+There are 14 visual themes in `js/ui/theme.js`. `aurora` is the default theme.
 The theme picker groups animated themes separately from classic data-focused
 themes, and stores the selection in `localStorage` under
 `tezos-systems-theme`.
@@ -145,6 +145,7 @@ wordmark stays as vivid as the wrapped mobile title.
 |-------|------|
 | `aurora` | Default animated aurora theme |
 | `matrix` | Terminal/data-rain theme |
+| `hen` | hic et nunc terminal/CRT theme |
 | `default` | Midnight classic |
 | `void` | Deep-space particle theme |
 | `ember` | Warm particle theme |
@@ -157,8 +158,9 @@ wordmark stays as vivid as the wrapped mobile title.
 | `moss` | Green organic theme |
 | `warzone` | Amber command theme |
 
-HEN mode is a separate overlay entry point, not a persisted dashboard theme. It
-opens a live Tezos NFT feed that shows Teia/HEN contract mints and OBJKT artist
+HEN is both a selectable persisted dashboard theme and a separate live-feed
+overlay entry point. The overlay opens a live Tezos NFT feed that shows Teia/HEN
+contract mints and OBJKT artist
 collection mints together by default. The HEN overlay uses a fixed grid shell:
 header, status, feed, and CLI rows stay stable while terminal scrollback, new
 mint pulses, the collecting hint, idle/listening state, and the now-playing
@@ -553,7 +555,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v321`, including hero search, theme
+- Current aligned shell cache stamp: `v324`, including hero search, theme
   bundles, and the Ledger Flow lazy CSS loader.
 - Current Tezos Domains lazy CSS stamp: `v316`.
 - `version.json` is stamped by `.githooks/pre-commit`.

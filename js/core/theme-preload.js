@@ -8,8 +8,8 @@
  */
 (function () {
     var DEFAULT = 'aurora';
-    var THEME_CSS_VERSION = '322';
-    var VALID = ['aurora', 'matrix', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
+    var THEME_CSS_VERSION = '324';
+    var VALID = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'warzone'];
     var t = null;
     try {
         var p = new URLSearchParams(window.location.search).get('theme');
