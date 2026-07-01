@@ -7082,6 +7082,72 @@ async function smokeHenMode(browser, baseUrl) {
     }, expectedLabels, { timeout: 10000 });
   }
 
+  const stableShell = await page.evaluate(() => {
+    const overlay = document.querySelector('#hen-overlay');
+    const strip = document.querySelector('#hen-status-strip');
+    const filterbar = document.querySelector('#hen-filterbar');
+    const nowLine = document.querySelector('#hen-now-line');
+    const header = document.querySelector('.hen-header');
+    const feed = document.querySelector('.hen-feed');
+    const grid = document.querySelector('#hen-grid');
+    const firstSource = document.querySelector('#hen-grid .hen-card-source');
+    const firstInfo = document.querySelector('#hen-grid .hen-card-info');
+    const cards = Array.from(document.querySelectorAll('#hen-grid .hen-card'));
+    const viewport = window.innerWidth;
+    const bounds = (node) => {
+      if (!node) return null;
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, width: rect.width };
+    };
+    return {
+      overlayDisplay: getComputedStyle(overlay).display,
+      overlayRows: getComputedStyle(overlay).gridTemplateRows,
+      statusHeight: Math.round(strip.getBoundingClientRect().height),
+      filterWrap: getComputedStyle(filterbar).flexWrap,
+      nowLineVisible: Boolean(nowLine && nowLine.getBoundingClientRect().height > 0),
+      header: bounds(header),
+      strip: bounds(strip),
+      feed: bounds(feed),
+      grid: bounds(grid),
+      firstSource: bounds(firstSource),
+      firstInfo: bounds(firstInfo),
+      viewport,
+      teiaClass: cards.some((card) => card.classList.contains('hen-card-platform-teia')),
+      objktClass: cards.some((card) => card.classList.contains('hen-card-platform-objkt'))
+    };
+  });
+  assert(stableShell.overlayDisplay === 'grid' && stableShell.overlayRows.split(' ').length >= 4, `HEN mode shell should use stable grid rows: ${JSON.stringify(stableShell)}`);
+  assert(stableShell.statusHeight <= 46 && stableShell.filterWrap === 'nowrap' && stableShell.nowLineVisible, `HEN mode fixed status/now-line contract failed: ${JSON.stringify(stableShell)}`);
+  for (const [name, box] of Object.entries({ header: stableShell.header, strip: stableShell.strip, feed: stableShell.feed, grid: stableShell.grid, firstSource: stableShell.firstSource, firstInfo: stableShell.firstInfo })) {
+    assert(box && box.left >= -0.5 && box.right <= stableShell.viewport + 0.5, `HEN mode ${name} should stay inside viewport edges: ${JSON.stringify(stableShell)}`);
+  }
+  assert(stableShell.teiaClass && stableShell.objktClass, `HEN mode platform identity classes missing: ${JSON.stringify(stableShell)}`);
+
+  await page.waitForTimeout(350);
+  const cardTopBeforeHint = await page.locator('#hen-grid .hen-card').first().evaluate((node) => node.getBoundingClientRect().top);
+  await page.locator('#hen-loop-hint-dismiss').click();
+  await page.waitForTimeout(80);
+  const cardTopAfterHint = await page.locator('#hen-grid .hen-card').first().evaluate((node) => node.getBoundingClientRect().top);
+  assert(Math.abs(cardTopAfterHint - cardTopBeforeHint) <= 1, `HEN mode loop hint dismissal shifted grid from ${cardTopBeforeHint} to ${cardTopAfterHint}`);
+
+  const cardTopBeforeCli = await page.locator('#hen-grid .hen-card').first().evaluate((node) => node.getBoundingClientRect().top);
+  await enterHenCommand('filters');
+  await page.locator('#hen-cli-output.visible').waitFor({ state: 'visible', timeout: 5000 });
+  const cliChrome = await page.evaluate(() => {
+    const output = document.querySelector('#hen-cli-output');
+    return {
+      parent: output?.parentElement?.id || '',
+      position: output ? getComputedStyle(output).position : '',
+      feedContainsOutput: Boolean(document.querySelector('.hen-feed #hen-cli-output')),
+      text: output?.innerText || ''
+    };
+  });
+  const cardTopAfterCli = await page.locator('#hen-grid .hen-card').first().evaluate((node) => node.getBoundingClientRect().top);
+  assert(Math.abs(cardTopAfterCli - cardTopBeforeCli) <= 1, `HEN mode CLI output shifted grid from ${cardTopBeforeCli} to ${cardTopAfterCli}`);
+  assert(cliChrome.parent === 'hen-overlay' && cliChrome.position === 'absolute' && !cliChrome.feedContainsOutput && /filters/i.test(cliChrome.text), `HEN mode CLI output must be off-flow scrollback: ${JSON.stringify(cliChrome)}`);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.querySelector('#hen-cli-output')?.classList.contains('visible'), null, { timeout: 5000 });
+
   await enterHenCommand(`wallet ${SAMPLE_ADDRESS}`);
   await page.locator('.hen-card-owned-badge').first().waitFor({ state: 'visible', timeout: 10000 });
   const walletStatus = await page.locator('#hen-status-strip').innerText();
@@ -7198,13 +7264,14 @@ async function smokeHenMode(browser, baseUrl) {
     const labels = Array.from(document.querySelectorAll('.hen-card-source')).map((el) => el.textContent?.trim());
     return labels.includes('TEIA') && labels.includes('OBJKT');
   }, null, { timeout: 10000 });
-  await page.waitForFunction(() => {
-    const firstCard = document.querySelector('#hen-grid .hen-card');
-    return firstCard?.querySelector('.hen-card-title')?.textContent?.includes('Fresh Teia Smoke Mint')
-      && firstCard.classList.contains('hen-card-fresh')
-      && firstCard.querySelector('.hen-card-source')?.textContent?.trim() === 'TEIA'
-      && !document.querySelector('#hen-new-pill');
-  }, null, { timeout: 20000 });
+      await page.waitForFunction(() => {
+        const firstCard = document.querySelector('#hen-grid .hen-card');
+        const pulse = document.querySelector('#hen-mint-pulse');
+        return firstCard?.querySelector('.hen-card-title')?.textContent?.includes('Fresh Teia Smoke Mint')
+          && firstCard.classList.contains('hen-card-fresh')
+          && firstCard.querySelector('.hen-card-source')?.textContent?.trim() === 'TEIA'
+          && (!pulse || (pulse.parentElement?.id === 'hen-overlay' && getComputedStyle(pulse).position === 'absolute'));
+      }, null, { timeout: 20000 });
   await page.locator('.hen-close').click();
   await page.waitForFunction(() => {
     const overlayClosed = !document.querySelector('#hen-overlay')?.classList.contains('active');

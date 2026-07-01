@@ -397,11 +397,21 @@
     .hen-profile-skeleton,
     .hen-profile-metric.is-skeleton,
     .hen-mint-pulse,
+    .hen-now-line span,
+    .hen-now-playing,
+    .hen-now-playing-media,
+    .hen-cli-output,
     .hen-cli-prompt,
     .hen-boot-line.show,
     .hen-expanded-inner,
+    .hen-expanded-media,
+    .hen-expanded-collect.is-listed::after,
     .hen-card-fresh,
+    .hen-card-fresh.visible,
     .hen-card-warm,
+    .hen-card-warm .hen-card-thumb::after,
+    .hen-source-tab.source-live-pulse::after,
+    .hen-logo::after,
     .hen-glitching {
         animation: none !important;
         transition-duration: 0.01ms !important;
@@ -420,10 +430,19 @@
     color: #e0e0e0;
     font-family: 'JetBrains Mono', monospace;
     overflow: hidden;
-    flex-direction: column;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
 }
 .hen-overlay.active {
-    display: flex;
+    display: grid;
+}
+.hen-overlay > .hen-header,
+.hen-overlay > .hen-status-strip,
+.hen-overlay > .hen-feed,
+.hen-overlay > .hen-cli {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100vw;
+    min-width: 0;
 }
 
 /* ── Boot Sequence ── */
@@ -478,10 +497,29 @@
     background: #111;
 }
 .hen-logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     font-size: 1rem;
     font-weight: 700;
     color: #e0e0e0;
     letter-spacing: 0.08em;
+}
+.hen-logo::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: #ffb432;
+    border-radius: 50%;
+    opacity: 0.42;
+    box-shadow: 0 0 10px rgba(255,180,50,0.44);
+}
+.hen-overlay.hen-idle .hen-logo::after {
+    animation: hen-idle-dot 1.8s ease-in-out infinite;
+}
+@keyframes hen-idle-dot {
+    0%, 100% { opacity: 0.32; transform: scale(0.82); }
+    50% { opacity: 1; transform: scale(1.18); }
 }
 .hen-logo span {
     color: #00d4ff;
@@ -495,6 +533,7 @@
     background: #0b0b0b;
 }
 .hen-source-tab {
+    position: relative;
     min-width: 48px;
     height: 26px;
     padding: 0 10px;
@@ -508,6 +547,26 @@
     text-transform: uppercase;
     cursor: pointer;
     transition: color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+.hen-source-tab::after {
+    content: '';
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #ffb432;
+    opacity: 0;
+    transform: scale(0.6);
+}
+.hen-source-tab.source-live-pulse::after {
+    animation: hen-source-pulse 1.35s ease-out;
+}
+@keyframes hen-source-pulse {
+    0% { opacity: 0; transform: scale(0.6); }
+    25% { opacity: 1; transform: scale(1.25); }
+    100% { opacity: 0; transform: scale(0.6); }
 }
 .hen-source-tab:hover,
 .hen-source-tab:focus-visible {
@@ -541,7 +600,10 @@
     border-color: #555;
 }
 .hen-status-strip {
-    min-height: 36px;
+    position: relative;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
     flex-shrink: 0;
     padding: 8px 20px;
     border-bottom: 1px solid #1a1a1a;
@@ -554,7 +616,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    overflow-x: hidden;
+    overflow: visible;
     scrollbar-width: none;
 }
 .hen-status-strip::-webkit-scrollbar {
@@ -563,16 +625,23 @@
 .hen-status-strip.has-filters {
     color: #00d4ff;
 }
+.hen-status-strip.is-live-paused {
+    color: #ffb432;
+}
 .hen-status-line {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
+    position: static;
+    flex: 0 1 clamp(180px, 18vw, 320px);
+    min-width: 140px;
+    width: auto;
+    height: auto;
+    margin: 0;
     padding: 0;
     overflow: hidden;
-    clip: rect(0 0 0 0);
+    clip: auto;
     white-space: nowrap;
     border: 0;
+    text-overflow: ellipsis;
+    color: inherit;
 }
 .hen-mobile-filter-toggle {
     display: none;
@@ -597,14 +666,22 @@
 .hen-filterbar {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
     min-width: 0;
     flex: 1 1 auto;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.hen-filterbar::-webkit-scrollbar {
+    display: none;
 }
 .hen-filter-group {
     display: inline-flex;
     align-items: center;
+    flex: 0 0 auto;
     gap: 2px;
     padding: 2px;
     border: 1px solid #242424;
@@ -743,17 +820,23 @@
     padding: 0;
 }
 .hen-loop-hint {
+    position: absolute;
+    left: 20px;
+    top: calc(100% + 8px);
+    z-index: 12;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 8px 20px;
-    border-bottom: 1px solid rgba(0,212,255,0.18);
-    background: rgba(0,212,255,0.055);
+    width: min(620px, calc(100vw - 40px));
+    padding: 8px 12px;
+    border: 1px solid rgba(0,212,255,0.22);
+    background: rgba(7, 14, 16, 0.96);
     color: #c8f7ff;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.68rem;
     letter-spacing: 0.02em;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.28);
 }
 .hen-loop-hint strong {
     color: #00ff88;
@@ -778,17 +861,51 @@
 
 /* ── Feed Grid ── */
 .hen-feed {
-    flex: 1;
+    min-height: 0;
+    position: relative;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 12px;
     scrollbar-width: thin;
     scrollbar-color: #333 #111;
 }
+.hen-now-line {
+    position: sticky;
+    top: 0;
+    z-index: 7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    margin: -2px 0 8px;
+    pointer-events: none;
+    color: #ffb432;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.hen-now-line::before,
+.hen-now-line::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(0,212,255,0.32);
+}
+.hen-now-line span {
+    flex: 0 0 auto;
+    min-width: 124px;
+    padding: 0 10px;
+    text-align: center;
+    background: rgba(17, 17, 17, 0.92);
+    box-shadow: 0 0 18px rgba(255,180,50,0.08);
+}
 .hen-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 2px;
+    gap: 1px;
+    background: #1a1a1a;
 }
 
 /* ── Collector Profile ── */
@@ -1027,8 +1144,18 @@
 .hen-card-shell {
     position: relative;
     min-width: 0;
+    transition: transform 0.16s ease, opacity 0.16s ease;
+}
+.hen-grid:hover .hen-card-shell:not(:hover) {
+    opacity: 0.72;
+}
+.hen-card-shell:hover,
+.hen-card-shell:focus-within {
+    z-index: 6;
+    transform: translateY(-2px);
 }
 .hen-card {
+    --hen-platform-shadow: none;
     width: 100%;
     height: 100%;
     border: 0;
@@ -1042,7 +1169,14 @@
     overflow: hidden;
     opacity: 0;
     transform: translateY(8px);
+    box-shadow: var(--hen-platform-shadow);
     transition: opacity 0.25s, transform 0.25s;
+}
+.hen-card-platform-teia {
+    --hen-platform-shadow: inset 2px 0 0 rgba(0,212,255,0.72);
+}
+.hen-card-platform-objkt {
+    --hen-platform-shadow: inset 0 2px 0 rgba(0,255,136,0.68);
 }
 .hen-card:focus-visible {
     outline: 2px solid rgba(0,212,255,0.78);
@@ -1097,6 +1231,14 @@
     object-fit: cover;
     display: block;
 }
+.hen-card-thumb .hen-card-video-hover {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+}
+.hen-card-thumb video[hidden] {
+    display: none;
+}
 .hen-card-info {
     padding: 8px 10px 10px;
 }
@@ -1110,9 +1252,10 @@
     text-overflow: ellipsis;
 }
 .hen-card-title {
-    font-size: 0.75rem;
+    font-size: 0.82rem;
     color: #e0e0e0;
     font-weight: 600;
+    letter-spacing: 0;
     margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
@@ -1243,7 +1386,7 @@
     border-color: rgba(0,255,136,0.28);
 }
 .hen-card-owned {
-    box-shadow: inset 0 0 0 1px rgba(0,255,136,0.26);
+    box-shadow: var(--hen-platform-shadow), inset 0 0 0 1px rgba(0,255,136,0.30);
 }
 .hen-card-owned-badge {
     position: absolute;
@@ -1269,6 +1412,8 @@
     inset: 0;
     z-index: 10003;
     background: rgba(0,0,0,0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     align-items: center;
     justify-content: center;
     padding: 40px;
@@ -1288,6 +1433,12 @@
     max-width: 100%;
     max-height: 56vh;
     object-fit: contain;
+    transform: scale(0.97);
+    opacity: 0;
+    animation: hen-expanded-media-in 0.28s ease-out 0.04s forwards;
+}
+@keyframes hen-expanded-media-in {
+    100% { opacity: 1; transform: scale(1); }
 }
 .hen-expanded-info {
     text-align: center;
@@ -1317,6 +1468,8 @@
     color: #00ff88;
 }
 .hen-expanded-collect {
+    position: relative;
+    z-index: 0;
     display: inline-block;
     background: #00d4ff;
     border: 1px solid #00d4ff;
@@ -1336,6 +1489,19 @@
     border-color: #00ff88;
     color: #07140d;
     box-shadow: 0 0 22px rgba(0,255,136,0.22);
+}
+.hen-expanded-collect.is-listed::after {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    z-index: -1;
+    border: 1px solid rgba(0,255,136,0.42);
+    opacity: 0.32;
+    animation: hen-collect-aura 2.6s ease-in-out infinite;
+}
+@keyframes hen-collect-aura {
+    0%, 100% { opacity: 0.18; transform: scale(0.98); }
+    50% { opacity: 0.58; transform: scale(1.04); }
 }
 .hen-expanded-collect:hover {
     transform: translateY(-1px);
@@ -1454,6 +1620,103 @@
 .hen-cli-input::placeholder {
     color: #737373;
 }
+.hen-cli-output {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: var(--hen-cli-bottom, 44px);
+    z-index: 10006;
+    max-height: min(30vh, 280px);
+    overflow-y: auto;
+    padding: 14px 18px;
+    border: 1px solid rgba(0,212,255,0.22);
+    background: rgba(3, 7, 8, 0.94);
+    color: #777;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    line-height: 1.65;
+    letter-spacing: 0.03em;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(10px);
+    transition: opacity 0.18s, transform 0.18s;
+    box-shadow: 0 -14px 34px rgba(0,0,0,0.32);
+    scrollbar-width: thin;
+    scrollbar-color: #244 #050505;
+}
+.hen-cli-output.visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+.hen-cli-line.is-command {
+    color: #00d4ff;
+}
+.hen-cli-line.is-detail {
+    color: #777;
+    padding-left: 12px;
+}
+
+.hen-now-playing {
+    position: absolute;
+    left: 50%;
+    z-index: 10005;
+    width: min(680px, calc(100vw - 34px));
+    min-height: 132px;
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    align-items: center;
+    gap: 14px;
+    padding: 10px 14px 10px 10px;
+    border: 1px solid rgba(255,180,50,0.34);
+    background: rgba(8, 8, 6, 0.94);
+    color: #eee;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -10px) scale(0.98);
+    transition: opacity 0.24s, transform 0.24s;
+    box-shadow: 0 20px 48px rgba(0,0,0,0.36);
+}
+.hen-now-playing.visible {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+}
+.hen-now-playing-media {
+    width: 112px;
+    height: 112px;
+    object-fit: cover;
+    background: #151515;
+}
+.hen-now-playing-copy {
+    min-width: 0;
+    font-family: 'JetBrains Mono', monospace;
+}
+.hen-now-playing-copy span {
+    display: block;
+    color: #ffb432;
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 7px;
+}
+.hen-now-playing-copy strong {
+    display: block;
+    color: #fff;
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 6px;
+}
+.hen-now-playing-copy small {
+    display: block;
+    color: #b8b8b8;
+    font-size: 0.66rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 
 /* ── Loading ── */
 .hen-loading {
@@ -1465,7 +1728,37 @@
     letter-spacing: 0.04em;
 }
 .hen-loading.active {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 220px;
+}
+.hen-empty-card {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    max-width: min(520px, 100%);
+    padding: 16px 18px;
+    border: 1px solid rgba(0,212,255,0.20);
+    background: #0d0d0d;
+    color: #aebfc3;
+}
+.hen-empty-card span {
+    flex: 1 1 100%;
+}
+.hen-empty-card button {
+    border: 1px solid rgba(0,255,136,0.44);
+    background: #101010;
+    color: #00ff88;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 7px 10px;
+    cursor: pointer;
 }
 
 /* ── Glitch transition ── */
@@ -1486,9 +1779,9 @@
     .hen-grid { grid-template-columns: repeat(3, 1fr); }
     .hen-profile-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .hen-profile-lists { grid-template-columns: 1fr; }
-    .hen-status-strip { align-items: stretch; flex-direction: column; }
+    .hen-status-line { flex-basis: clamp(140px, 24vw, 220px); }
     .hen-filterbar { width: 100%; }
-    .hen-wallet-controls { width: 100%; flex-wrap: wrap; }
+    .hen-wallet-controls { flex-wrap: nowrap; }
     .hen-wallet-status { max-width: none; flex: 1 1 160px; }
 }
 @media (max-width: 600px) {
@@ -1496,14 +1789,35 @@
     .hen-header { padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
     .hen-source-tabs { order: 3; width: 100%; justify-content: center; }
     .hen-source-tab { min-width: 58px; }
-    .hen-status-strip { padding: 6px 14px; flex-wrap: wrap; }
-    .hen-mobile-filter-toggle { display: inline-flex; align-items: center; justify-content: center; width: 100%; }
-    .hen-status-strip:not(.mobile-filters-open) {
-        min-height: 42px;
-    }
+    .hen-status-strip { height: 42px; min-height: 42px; max-height: 42px; padding: 6px 14px; flex-wrap: nowrap; }
+    .hen-status-line { flex: 1 1 auto; min-width: 0; }
+    .hen-mobile-filter-toggle { display: inline-flex; align-items: center; justify-content: center; width: auto; flex: 0 0 96px; }
     .hen-status-strip:not(.mobile-filters-open) .hen-filterbar,
     .hen-status-strip:not(.mobile-filters-open) .hen-wallet-controls {
         display: none;
+    }
+    .hen-status-strip.mobile-filters-open .hen-filterbar {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        top: calc(100% + 6px);
+        z-index: 14;
+        display: flex;
+        max-height: 92px;
+        padding: 8px;
+        border: 1px solid rgba(0,212,255,0.22);
+        background: rgba(8, 10, 10, 0.97);
+        overflow: auto;
+    }
+    .hen-status-strip.mobile-filters-open .hen-wallet-controls {
+        position: absolute;
+        left: 14px;
+        right: 14px;
+        top: calc(100% + 112px);
+        z-index: 14;
+        padding: 8px;
+        border: 1px solid rgba(0,212,255,0.18);
+        background: rgba(8, 10, 10, 0.97);
     }
     .hen-filterbar { gap: 5px; }
     .hen-filter-group { max-width: 100%; overflow-x: auto; }
@@ -1514,10 +1828,22 @@
     .hen-wallet-paste-label { display: none; }
     .hen-wallet-input { min-width: 0; width: auto; }
     .hen-wallet-clear { width: 24px; }
-    .hen-loop-hint { padding: 7px 14px; font-size: 0.62rem; }
+    .hen-loop-hint { left: 10px; width: calc(100vw - 20px); padding: 7px 10px; font-size: 0.62rem; }
     .hen-loop-hint span { min-width: 0; }
     .hen-card-listing { display: none; }
     .hen-feed { padding: 8px; }
+    .hen-now-playing {
+        grid-template-columns: 72px minmax(0, 1fr);
+        min-height: 92px;
+        padding: 8px;
+    }
+    .hen-now-playing-media {
+        width: 72px;
+        height: 72px;
+    }
+    .hen-now-playing-copy strong {
+        font-size: 0.78rem;
+    }
     .hen-expanded { padding: 20px; }
     .hen-expanded-media { max-height: 44vh; }
     .hen-expanded-actions { flex-wrap: wrap; gap: 8px; }
@@ -1575,6 +1901,7 @@ body.hen-active {
     margin-top: 3px;
 }
 .hen-card-listing {
+    display: none;
     flex: 1;
     color: #858585;
     font-size: 0.56rem;
@@ -1590,31 +1917,45 @@ body.hen-active {
     font-size: 0.58rem;
     color: #818181;
     letter-spacing: 0.02em;
+    opacity: 0;
+    transition: opacity 0.15s;
 }
-
-/* ── v2: New mint flash ── */
-.hen-card-new {
-    animation: hen-new-flash 1.5s ease-out;
-}
-@keyframes hen-new-flash {
-    0% { box-shadow: 0 0 20px rgba(0,212,255,0.4); }
-    100% { box-shadow: none; }
+.hen-card-shell:hover .hen-card-objkt,
+.hen-card-shell:focus-within .hen-card-objkt {
+    opacity: 1;
 }
 
 /* ── v2: Mint activity pulse ── */
 .hen-mint-pulse {
+    position: absolute;
+    top: 104px;
+    left: 50%;
+    z-index: 10006;
+    transform: translate(-50%, -8px);
+    border: 1px solid rgba(255,180,50,0.38);
     text-align: center;
     font-size: 0.68rem;
-    color: #00d4ff;
-    padding: 6px 16px;
+    color: #ffcf72;
+    padding: 7px 14px;
     letter-spacing: 0.04em;
     opacity: 0;
-    transition: opacity 0.5s;
-    background: rgba(0,212,255,0.03);
-    border-bottom: 1px solid #1a1a1a;
+    pointer-events: none;
+    transition: opacity 0.22s, transform 0.22s;
+    background: rgba(20, 14, 4, 0.92);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 14px 34px rgba(0,0,0,0.30);
 }
 .hen-mint-pulse.visible {
     opacity: 1;
+    transform: translate(-50%, 0);
+    pointer-events: auto;
+}
+.hen-mint-pulse.is-sticky {
+    color: #07140d;
+    background: #ffb432;
+    border-color: #ffb432;
 }
 
 /* ── v2: Expanded view additions ── */
@@ -1704,11 +2045,10 @@ body.hen-active {
 }
 .hen-card:hover::after {
     border-color: rgba(0,212,255,0.25);
-    animation: hen-border-breathe 2s ease-in-out infinite;
 }
-@keyframes hen-border-breathe {
-    0%, 100% { border-color: rgba(0,212,255,0.15); }
-    50% { border-color: rgba(0,212,255,0.35); }
+.hen-card-shell:hover .hen-card,
+.hen-card-shell:focus-within .hen-card {
+    box-shadow: var(--hen-platform-shadow), 0 0 0 1px rgba(0,212,255,0.38), 0 8px 22px rgba(0,212,255,0.10);
 }
 
 /* 4. Scanline overlay */
@@ -1725,6 +2065,16 @@ body.hen-active {
         rgba(0,0,0,0.03) 2px,
         rgba(0,0,0,0.03) 4px
     );
+}
+.hen-overlay.hen-crt-heavy::after {
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0,0,0,0.02),
+        rgba(0,0,0,0.02) 1px,
+        rgba(0,212,255,0.055) 2px,
+        transparent 4px
+    );
+    opacity: 0.72;
 }
 
 /* 5. Image loading shimmer */
@@ -1802,20 +2152,6 @@ body.hen-active {
     transform: translateY(0);
 }
 
-/* 9. Listening idle state */
-.hen-listening {
-    text-align: center;
-    font-size: 0.62rem;
-    color: #777;
-    padding: 4px 16px;
-    letter-spacing: 0.08em;
-    opacity: 0;
-    transition: opacity 1s;
-}
-.hen-listening.visible {
-    opacity: 1;
-}
-
 /* 10. Copy toast */
 .hen-copy-toast {
     position: fixed;
@@ -1847,17 +2183,50 @@ body.hen-active {
 
 /* ═══ v4: Rafael's Soul ═══ */
 
-/* 1. Fresh mint warm glow — persistent, cools over 5min */
-.hen-card-fresh {
-    animation: hen-fresh-arrive 0.6s ease-out;
+/* 1. Fresh mint warm glow — persistent, cools over 4min */
+@property --warm-opacity {
+    syntax: '<number>';
+    inherits: false;
+    initial-value: 0;
+}
+.hen-card-fresh.visible {
+    animation: hen-fresh-arrive 0.44s ease-out both;
 }
 @keyframes hen-fresh-arrive {
-    0% { box-shadow: 0 0 24px rgba(255,180,50,0.5); }
-    100% { box-shadow: 0 0 12px rgba(255,180,50,var(--warm-opacity, 0.3)); }
+    0% {
+        opacity: 0;
+        transform: scale(0.94);
+        clip-path: circle(8% at 50% 50%);
+    }
+    70% {
+        opacity: 1;
+        transform: scale(1.012);
+        clip-path: circle(74% at 50% 50%);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        clip-path: circle(100% at 50% 50%);
+    }
 }
 .hen-card-warm {
-    box-shadow: 0 0 12px rgba(255,180,50, var(--warm-opacity, 0.15));
-    transition: box-shadow 60s linear;
+    --warm-opacity: var(--warm-start-opacity, 0.24);
+    animation: hen-warm-cool 240s cubic-bezier(0.2, 0, 0.08, 1) forwards;
+}
+.hen-card-warm .hen-card-thumb::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 50%, rgba(255,180,50,0.40), rgba(255,180,50,0.12) 38%, transparent 72%);
+    opacity: var(--warm-opacity);
+}
+@keyframes hen-warm-cool {
+    0% { --warm-opacity: var(--warm-start-opacity, 0.24); }
+    18% { --warm-opacity: 0.18; }
+    46% { --warm-opacity: 0.08; }
+    100% { --warm-opacity: 0; }
 }
 
 /* 4. Keep the escape hatch visible */

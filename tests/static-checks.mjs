@@ -729,7 +729,10 @@ async function checkSelectorContracts() {
     ['HEN source all tab', 'data-hen-mode="all"', index],
     ['HEN source Teia tab', 'data-hen-mode="teia"', index],
     ['HEN source OBJKT tab', 'data-hen-mode="objkt"', index],
+    ['HEN CSS cache stamp', 'css/hen-mode.css?v=90', index],
+    ['HEN JS cache stamp', 'js/features/hen-mode.js?v=87', index],
     ['HEN setup status strip', 'id="hen-status-strip"', index],
+    ['HEN permanent now line', 'id="hen-now-line"', index],
     ['HEN mobile filter toggle', 'id="hen-mobile-filter-toggle"', index],
     ['HEN persistent filter bar', 'id="hen-filterbar"', index],
     ['HEN for-sale filter control', 'id="hen-filter-listed"', index],
@@ -745,6 +748,24 @@ async function checkSelectorContracts() {
     ['HEN favorites key', "const HEN_FAVORITES_KEY = 'tezos-systems-hen-favorites'", henMode],
     ['HEN eager-loads first two desktop rows', 'const HEN_EAGER_CARD_LIMIT = 8', henMode],
     ['HEN eager card limit controls lazy loading', 'staggerIdx < HEN_EAGER_CARD_LIMIT && offset === 0', henMode],
+    ['HEN stable grid shell', '.hen-overlay.active {\n    display: grid;', henModeCss],
+    ['HEN viewport row edge guard', '.hen-overlay > .hen-header,\n.hen-overlay > .hen-status-strip,\n.hen-overlay > .hen-feed,\n.hen-overlay > .hen-cli', henModeCss],
+    ['HEN rows clamp to viewport width', 'max-width: 100vw;', henModeCss],
+    ['HEN fixed status strip height', 'height: 44px;', henModeCss],
+    ['HEN visible status line', 'position: static;\n    flex: 0 1 clamp', henModeCss],
+    ['HEN filter bar does not wrap vertically', 'flex-wrap: nowrap;', henModeCss],
+    ['HEN CLI scrollback anchors to overlay', "output.className = 'hen-cli-output'", henMode],
+    ['HEN CLI scrollback is appended off-flow', 'ov.appendChild(output)', henMode],
+    ['HEN mint pulse is a floating button', "pulseEl.className = 'hen-mint-pulse'", henMode],
+    ['HEN scroll compensation for off-top live prepends', 'previousScrollHeight', henMode],
+    ['HEN live paused sort status', 'live paused (sorted by ', henMode],
+    ['HEN source tab live pulse', 'source-live-pulse', henMode],
+    ['HEN platform edge rule classes', "card.className = 'hen-card hen-card-platform-' + platformKey(token)", henMode],
+    ['HEN hover video playback path', 'function activateCardVideo', henMode],
+    ['HEN random keyboard ritual', "case 'random': case 'r':", henMode],
+    ['HEN CRT vibe command', "case 'crt': case 'vibe':", henMode],
+    ['HEN now-playing overlay', 'function showNowPlaying', henMode],
+    ['HEN warm glow opacity variable', '--warm-start-opacity', henMode],
     ['HEN saved filter uses every favorite key', 'var keys = Array.from(favoriteKeys);', henMode],
     ['HEN first-run hint key', "const HEN_HINT_DISMISSED_KEY = 'tezos-systems-hen-loop-hint-dismissed'", henMode],
     ['HEN viewer wallet key', "const HEN_VIEWER_KEY = 'tezos-systems-hen-viewer-address'", henMode],
@@ -958,6 +979,12 @@ async function checkSelectorContracts() {
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
+  }
+  if (henMode.includes('feed.insertBefore(output, grid())')) {
+    fail('HEN CLI output must stay off-flow instead of inserting before the grid');
+  }
+  if (henMode.includes('hen-listening') || henMode.includes('origPoll')) {
+    fail('HEN idle state must use the header/status dot path, not the old injected listening row or dead poll stub');
   }
   if (chamberRouteGenerator.includes('location.replace') || chamberRouteGenerator.includes('http-equiv="refresh"')) {
     fail('pretty chamber routes must hydrate the dashboard shell instead of redirecting to hash routes');

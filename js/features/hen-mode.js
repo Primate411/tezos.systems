@@ -97,6 +97,14 @@ const HenMode = (() => {
     let searchDebounceTimer = null;
     let expandedReturnFocus = null;
     let baseMetaSnapshot = null;
+    let latestBlockLevel = null;
+    let idleTimer = null;
+    let idleListening = false;
+    let nowTimer = null;
+    let cliScrollback = [];
+    let sourcePulseTimers = {};
+    let mintPulseTimer = null;
+    let nowPlayingTimer = null;
     const tezNameCache = {};
 
     const el = (id) => document.getElementById(id);
@@ -105,6 +113,7 @@ const HenMode = (() => {
     const boot = () => el('hen-boot');
     const expanded = () => el('hen-expanded');
     const cliInput = () => el('hen-cli-input');
+    const cliBar = () => document.querySelector('.hen-cli');
     const mintCount = () => el('hen-mint-count');
     const loadingEl = () => el('hen-loading');
     const profilePanel = () => el('hen-profile-panel');
@@ -204,6 +213,57 @@ const HenMode = (() => {
 
     function safeRemoveStorage(key) {
         try { localStorage.removeItem(key); } catch (_) {}
+    }
+
+    function blockLabel() {
+        return latestBlockLevel ? 'block ' + latestBlockLevel.toLocaleString() : '';
+    }
+
+    function liveStateLabel() {
+        if (sortMode !== DEFAULT_SORT_MODE) {
+            return 'live paused (sorted by ' + SORT_MODES[sortMode].label + ')';
+        }
+        return idleListening ? 'listening' : 'live';
+    }
+
+    function updateNowLine() {
+        var line = document.getElementById('hen-now-line');
+        if (!line) return;
+        var stamp = new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        line.innerHTML = '<span>now · ' + escapeHtml(stamp) + '</span>';
+    }
+
+    function startNowLine() {
+        updateNowLine();
+        if (nowTimer) clearInterval(nowTimer);
+        nowTimer = setInterval(updateNowLine, 1000);
+    }
+
+    function stopNowLine() {
+        if (nowTimer) {
+            clearInterval(nowTimer);
+            nowTimer = null;
+        }
+    }
+
+    function setIdleListening(active) {
+        idleListening = Boolean(active);
+        var ov = overlay();
+        if (ov) ov.classList.toggle('hen-idle', idleListening);
+        updateStatusStrip();
+    }
+
+    function resetIdleIndicator() {
+        setIdleListening(false);
+        if (idleTimer) clearTimeout(idleTimer);
+        idleTimer = setTimeout(function() {
+            if (isActive) setIdleListening(true);
+        }, 30000);
     }
 
     function loadFavoriteKeys() {
@@ -938,7 +998,7 @@ const HenMode = (() => {
 
     function activeFilterLabel() {
         var parts = [];
-        if (effectiveListedOnly()) parts.push(priceMaxMutez ? 'for sale' : 'for sale');
+        if (effectiveListedOnly()) parts.push('for sale');
         if (priceMaxMutez) parts.push('price <= ' + formatFilterPrice(priceMaxMutez) + ' ꜩ');
         if (editionMax) parts.push('editions <= ' + editionMax);
         if (hideOwned) parts.push('hide owned');
@@ -957,6 +1017,17 @@ const HenMode = (() => {
         if (searchMode) return 'no pieces matching "' + searchMode + '" — try a shorter search.';
         if (editionMax) return 'no editions under ' + editionMax + ' here — widen the edition filter.';
         return (FEED_MODES[feedMode] || FEED_MODES.all).empty;
+    }
+
+    function renderEmptyState(message) {
+        var loader = loadingEl();
+        if (!loader) return;
+        var actions = [];
+        if (priceMaxMutez) actions.push('<button type="button" data-hen-empty-action="clear-price">widen price filter</button>');
+        if (editionMax) actions.push('<button type="button" data-hen-empty-action="clear-editions">widen edition filter</button>');
+        if (savedOnly) actions.push('<button type="button" data-hen-empty-action="clear-saved">show live feed</button>');
+        if (hideOwned) actions.push('<button type="button" data-hen-empty-action="clear-owned">show owned pieces</button>');
+        loader.innerHTML = '<div class="hen-empty-card"><span>' + escapeHtml(message) + '</span>' + actions.join('') + '</div>';
     }
 
     function setPressed(btn, active) {
@@ -1008,8 +1079,16 @@ const HenMode = (() => {
         var source = (FEED_MODES[feedMode] || FEED_MODES.all).label;
         var viewer = viewerAddress ? 'wallet ' + (viewerLabel || shortAddr(viewerAddress)) : 'connect to flag pieces you own';
         var filters = activeFilterLabel();
-        if (status) status.textContent = source + ' · ' + viewer + (filters ? ' · ' + filters : '');
-        if (strip) strip.classList.toggle('has-filters', Boolean(filters || viewerAddress || feedMode !== DEFAULT_FEED_MODE));
+        var statusParts = [source, liveStateLabel()];
+        var block = blockLabel();
+        if (block) statusParts.push(block);
+        statusParts.push(viewer);
+        if (filters) statusParts.push(filters);
+        if (status) status.textContent = statusParts.join(' · ');
+        if (strip) {
+            strip.classList.toggle('has-filters', Boolean(filters || viewerAddress || feedMode !== DEFAULT_FEED_MODE));
+            strip.classList.toggle('is-live-paused', sortMode !== DEFAULT_SORT_MODE);
+        }
         var walletStatus = el('hen-wallet-status');
         if (walletStatus) walletStatus.textContent = viewerAddress ? (viewerLabel || shortAddr(viewerAddress)) : 'connect to flag pieces you own';
         var connect = el('hen-wallet-connect');
@@ -1021,14 +1100,15 @@ const HenMode = (() => {
     function renderLoopHint() {
         if (safeGetStorage(HEN_HINT_DISMISSED_KEY) === '1') return;
         if (document.getElementById('hen-loop-hint')) return;
+        var strip = document.getElementById('hen-status-strip');
+        if (!strip) return;
         var hint = document.createElement('div');
         hint.id = 'hen-loop-hint';
         hint.className = 'hen-loop-hint';
         hint.innerHTML =
             '<span><strong>start collecting faster</strong> filter to For Sale, then connect to flag pieces you own.</span>' +
             '<button type="button" id="hen-loop-hint-dismiss" aria-label="Dismiss HEN collecting hint">×</button>';
-        var strip = document.getElementById('hen-status-strip');
-        if (strip && strip.parentNode) strip.parentNode.insertBefore(hint, strip.nextSibling);
+        strip.appendChild(hint);
         var dismiss = document.getElementById('hen-loop-hint-dismiss');
         if (dismiss) dismiss.addEventListener('click', function() {
             safeSetStorage(HEN_HINT_DISMISSED_KEY, '1');
@@ -1125,6 +1205,25 @@ const HenMode = (() => {
         }
     }
 
+    function activateCardVideo(card) {
+        if (!card) return;
+        var video = card.querySelector('video[data-src]');
+        if (!video) return;
+        if (!video.getAttribute('src')) video.setAttribute('src', video.dataset.src);
+        video.hidden = false;
+        video.play().catch(function() {});
+        var thumb = video.closest('.hen-card-thumb');
+        if (thumb) thumb.classList.add('hen-thumb-loaded');
+    }
+
+    function pauseCardVideo(card) {
+        if (!card) return;
+        var video = card.querySelector('video[data-src]');
+        if (!video) return;
+        video.pause();
+        video.hidden = true;
+    }
+
     function visibleTokensFromFetched(tokenList) {
         return tokenList.filter(function(token) {
             if (savedOnly && !isFavoriteToken(token)) return false;
@@ -1193,9 +1292,10 @@ const HenMode = (() => {
         var shell = document.createElement('div');
         shell.className = 'hen-card-shell';
         shell.dataset.key = tokenKey(token);
+        shell.dataset.platform = platformKey(token);
         var card = document.createElement('button');
         card.type = 'button';
-        card.className = 'hen-card';
+        card.className = 'hen-card hen-card-platform-' + platformKey(token);
         card.classList.toggle('hen-card-listed', hasListing(token));
         card.dataset.contract = token.fa_contract;
         card.dataset.tokenId = token.token_id;
@@ -1206,8 +1306,15 @@ const HenMode = (() => {
 
         var isVideo = token.mime && token.mime.startsWith('video/');
         var rawThumbUri = token.thumbnail_uri || token.display_uri || '';
+        var rawDisplayUri = token.display_uri || token.thumbnail_uri || '';
         var cdnThumbUrl = mediaCdnUrl(token, 'thumb400');
         var thumbUrl = escapeHtml(resolveMediaUri(rawThumbUri, 0, { cdnUrl: cdnThumbUrl }));
+        var videoUrl = escapeHtml(resolveUri(rawDisplayUri));
+        var eagerCard = staggerIdx < HEN_EAGER_CARD_LIMIT && offset === 0;
+        var mediaHtml = isVideo && eagerCard
+            ? '<video src="' + videoUrl + '" autoplay loop muted playsinline></video>'
+            : '<img src="' + thumbUrl + '" alt="' + escapeHtml(token.name || '') + '" ' + (eagerCard ? '' : 'loading="lazy" ') + '>' +
+                (isVideo ? '<video class="hen-card-video-hover" data-src="' + videoUrl + '" muted loop playsinline preload="none" hidden></video>' : '');
         var price = formatPrice(token.lowest_ask);
         var usd = formatUsd(token.lowest_ask);
         var collName = (token.fa && token.fa.name) ? token.fa.name : '';
@@ -1225,7 +1332,7 @@ const HenMode = (() => {
 
         card.innerHTML =
             '<div class="hen-card-thumb">' +
-                '<img src="' + thumbUrl + '" alt="' + escapeHtml(token.name || '') + '" ' + (staggerIdx < HEN_EAGER_CARD_LIMIT && offset === 0 ? '' : 'loading="lazy" ') + '>' +
+                mediaHtml +
                 '<div class="hen-card-source hen-card-source-' + platformKey(token) + '">' + sourceLabel + '</div>' +
                 (isVideo ? '<div class="hen-card-badge">▶ VIDEO</div>' : '') +
                 overlayPrice +
@@ -1240,6 +1347,13 @@ const HenMode = (() => {
 
         var img = card.querySelector('img');
         if (img) setupImageRetry(img, rawThumbUri, { cdnUrl: cdnThumbUrl });
+        var video = card.querySelector('video');
+        if (video) {
+            video.addEventListener('loadeddata', function() {
+                var thumb = video.closest('.hen-card-thumb');
+                if (thumb) thumb.classList.add('hen-thumb-loaded');
+            });
+        }
 
         if (isNew) {
             card.classList.add('hen-card-fresh');
@@ -1248,10 +1362,16 @@ const HenMode = (() => {
         var ageMs = Date.now() - new Date(token.timestamp).getTime();
         if (ageMs < 300000) { // < 5 min
             card.classList.add('hen-card-warm');
-            card.style.setProperty('--warm-opacity', Math.max(0.05, 1 - (ageMs / 300000)).toFixed(2));
+            card.style.setProperty('--warm-start-opacity', Math.max(0.05, 1 - (ageMs / 300000)).toFixed(2));
         }
 
         setTimeout(function() { card.classList.add('visible'); }, staggerIdx * 50);
+        if (isVideo && !eagerCard) {
+            card.addEventListener('pointerenter', function() { activateCardVideo(card); });
+            card.addEventListener('focus', function() { activateCardVideo(card); });
+            card.addEventListener('pointerleave', function() { pauseCardVideo(card); });
+            card.addEventListener('blur', function() { pauseCardVideo(card); });
+        }
         card.addEventListener('click', function() { expandToken(token); });
         card.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -1428,7 +1548,7 @@ const HenMode = (() => {
             loading = false;
             grid().innerHTML = '';
             clearCliOutput();
-            showCliOutput(['> showing work by ' + escapeHtml(displayName)]);
+            showCliOutput(['> showing work by ' + displayName]);
             loadPage();
         });
 
@@ -1488,7 +1608,7 @@ const HenMode = (() => {
             var displayTokens = visibleTokensFromFetched(newTokens);
             if (newTokens.length === 0 || displayTokens.length === 0) {
                 offset += newTokens.length;
-                if (loader) loader.textContent = emptyStateMessage();
+                renderEmptyState(emptyStateMessage());
                 keepLoaderVisible = true;
                 return;
             }
@@ -1501,7 +1621,6 @@ const HenMode = (() => {
             if (!newestTimestamp && tokens.length > 0) {
                 newestTimestamp = tokens[0].timestamp;
             }
-            updateCount();
             resolveNamesForCards();
             applyViewerBadges();
             applyFavoriteBadges();
@@ -1517,9 +1636,14 @@ const HenMode = (() => {
     }
 
     async function pollNew() {
-        if (!newestTimestamp || !isActive || sortMode !== DEFAULT_SORT_MODE) return;
+        if (!newestTimestamp || !isActive) return;
+        if (sortMode !== DEFAULT_SORT_MODE) {
+            updateStatusStrip();
+            return;
+        }
         try {
             var fresh = await fetchTokens(20, 0, newestTimestamp);
+            resetIdleIndicator();
             if (fresh.length > 0) {
                 rememberTokens(fresh);
                 if (viewerAddress) {
@@ -1541,47 +1665,141 @@ const HenMode = (() => {
                 var sorted = visibleFresh.slice().reverse();
                 var feed = document.querySelector('.hen-feed');
                 var wasNearTop = feed ? feed.scrollTop < 64 : true;
+                var previousScrollHeight = feed ? feed.scrollHeight : 0;
+                var previousScrollTop = feed ? feed.scrollTop : 0;
                 sorted.forEach(function(t) {
                     tokens.unshift(t);
                     var shell = createCard(t, 0, true);
-                    var card = shell.querySelector('.hen-card');
-                    if (card) card.classList.add('visible');
                     g.prepend(shell);
                 });
-                if (feed && wasNearTop) feed.scrollTo({ top: 0, behavior: 'smooth' });
+                if (feed && wasNearTop) {
+                    feed.scrollTo({ top: 0, behavior: 'smooth' });
+                } else if (feed) {
+                    feed.scrollTop = previousScrollTop + (feed.scrollHeight - previousScrollHeight);
+                }
                 offset += fresh.length;
                 newestTimestamp = fresh[0].timestamp;
-                updateCount();
                 resolveNamesForCards();
                 applyViewerBadges();
                 applyFavoriteBadges();
                 trimGridCards('end');
-                showMintPulse(visibleFresh);
+                showMintPulse(visibleFresh, { sticky: !wasNearTop });
+                showNowPlaying(visibleFresh[0]);
             }
         } catch (e) {
             console.error('[HEN] poll error:', e);
         }
     }
 
-    function showMintPulse(freshTokens) {
+    function pulseSourceTabs(freshTokens) {
+        var modes = new Set(['all']);
+        (freshTokens || []).forEach(function(token) {
+            modes.add(platformKey(token));
+        });
+        modes.forEach(function(mode) {
+            var tab = document.querySelector('.hen-source-tab[data-hen-mode="' + mode + '"]');
+            if (!tab) return;
+            tab.classList.remove('source-live-pulse');
+            void tab.offsetWidth;
+            tab.classList.add('source-live-pulse');
+            clearTimeout(sourcePulseTimers[mode]);
+            sourcePulseTimers[mode] = setTimeout(function() {
+                tab.classList.remove('source-live-pulse');
+            }, 1600);
+        });
+    }
+
+    function hideMintPulse() {
+        var pulseEl = document.getElementById('hen-mint-pulse');
+        if (pulseEl) pulseEl.classList.remove('visible', 'is-sticky');
+        if (mintPulseTimer) {
+            clearTimeout(mintPulseTimer);
+            mintPulseTimer = null;
+        }
+    }
+
+    function showMintPulse(freshTokens, options) {
+        options = options || {};
+        if (!freshTokens || freshTokens.length === 0) return;
+        pulseSourceTabs(freshTokens);
         var pulseEl = document.getElementById('hen-mint-pulse');
         if (!pulseEl) {
-            pulseEl = document.createElement('div');
+            pulseEl = document.createElement('button');
+            pulseEl.type = 'button';
             pulseEl.id = 'hen-mint-pulse';
             pulseEl.className = 'hen-mint-pulse';
-            var header = document.querySelector('.hen-header');
-            if (header) header.parentNode.insertBefore(pulseEl, header.nextSibling);
+            pulseEl.addEventListener('click', function() {
+                var feed = document.querySelector('.hen-feed');
+                if (feed) feed.scrollTo({ top: 0, behavior: 'smooth' });
+                hideMintPulse();
+            });
+            var ov = overlay();
+            if (ov) ov.appendChild(pulseEl);
+        }
+        var feed = document.querySelector('.hen-feed');
+        var ovBounds = overlay() ? overlay().getBoundingClientRect() : null;
+        if (feed && ovBounds) {
+            pulseEl.style.top = Math.round(feed.getBoundingClientRect().top - ovBounds.top + 14) + 'px';
         }
         var t = freshTokens[0];
         var creator = (t && t.creators && t.creators[0]) ? t.creators[0].creator_address : '???';
         var name = tezNameCache[creator] || shortAddr(creator);
         var source = platformLabel(t);
-        var text = freshTokens.length === 1
+        var text = options.sticky
+            ? '▲ ' + freshTokens.length + ' new mint' + (freshTokens.length === 1 ? '' : 's')
+            : freshTokens.length === 1
             ? source + ': ' + name + ' just minted "' + (t.name || 'untitled') + '"'
             : freshTokens.length + ' new Tezos NFT mints — ' + source + ' led by ' + name;
         pulseEl.textContent = text;
+        pulseEl.classList.toggle('is-sticky', Boolean(options.sticky));
         pulseEl.classList.add('visible');
-        setTimeout(function() { pulseEl.classList.remove('visible'); }, 4000);
+        if (mintPulseTimer) clearTimeout(mintPulseTimer);
+        if (!options.sticky) {
+            mintPulseTimer = setTimeout(hideMintPulse, 4000);
+        }
+    }
+
+    function showNowPlaying(token) {
+        if (!token) return;
+        var ov = overlay();
+        if (!ov) return;
+        var panel = document.getElementById('hen-now-playing');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'hen-now-playing';
+            panel.className = 'hen-now-playing';
+            ov.appendChild(panel);
+        }
+        var feed = document.querySelector('.hen-feed');
+        var ovBounds = ov.getBoundingClientRect();
+        if (feed) {
+            panel.style.top = Math.round(feed.getBoundingClientRect().top - ovBounds.top + 42) + 'px';
+        }
+        var creator = (token.creators && token.creators[0]) ? token.creators[0].creator_address : '';
+        var displayName = tezNameCache[creator] || shortAddr(creator);
+        var price = formatPrice(token.lowest_ask);
+        var isVideo = token.mime && token.mime.startsWith('video/');
+        var raw = token.display_uri || token.thumbnail_uri || '';
+        var mediaUrl = escapeHtml(resolveMediaUri(raw, 0, { cdnUrl: mediaCdnUrl(token, 'thumb400') }));
+        var mediaHtml = isVideo
+            ? '<video class="hen-now-playing-media" src="' + mediaUrl + '" autoplay loop muted playsinline></video>'
+            : '<img class="hen-now-playing-media" src="' + mediaUrl + '" alt="' + escapeHtml(token.name || '') + '">';
+        panel.innerHTML =
+            mediaHtml +
+            '<div class="hen-now-playing-copy">' +
+                '<span>now playing</span>' +
+                '<strong>' + escapeHtml(token.name || 'untitled') + '</strong>' +
+                '<small>just now · ' + escapeHtml(displayName) + ' · ' + platformLabel(token) + (price ? ' · ' + price + ' ꜩ' : '') + ' · ×' + escapeHtml(token.supply) + '</small>' +
+            '</div>';
+        var img = panel.querySelector('img.hen-now-playing-media');
+        if (img) setupImageRetry(img, raw, { cdnUrl: mediaCdnUrl(token, 'thumb400') });
+        panel.classList.remove('visible');
+        void panel.offsetWidth;
+        panel.classList.add('visible');
+        if (nowPlayingTimer) clearTimeout(nowPlayingTimer);
+        nowPlayingTimer = setTimeout(function() {
+            panel.classList.remove('visible');
+        }, 4200);
     }
 
     async function playBoot() {
@@ -1591,9 +1809,16 @@ const HenMode = (() => {
         b.style.display = 'flex';
         b.classList.add('visible');
 
+        var blockPromise = fetchBlockLevel();
+        var countPromise = fetchTokens(PAGE_SIZE, 0).then(function(rows) { return rows.length; }).catch(function() { return null; });
+        var block = await withTimeout(blockPromise.catch(function() { return null; }), null, 650);
+        var count = await withTimeout(countPromise, null, 650);
         var lines = [
-            '> connecting to teia + objkt...',
-            '> streaming Tezos NFT mints...',
+            '> teia ' + HEN_CONTRACT.slice(0, 6) + '...' + HEN_CONTRACT.slice(-4) + ' [ok]',
+            '> objkt indexer [ok]',
+            block ? '> block ' + block.toLocaleString() : '> block stream [warming]',
+            Number.isFinite(count) ? '> ' + count + ' objkts minted recently' : '> live mint count [warming]',
+            '> here + now.',
             ''
         ];
 
@@ -1630,6 +1855,13 @@ const HenMode = (() => {
     }
 
     function sleep(ms) { return new Promise(function(r) { setTimeout(r, ms); }); }
+
+    function withTimeout(promise, fallback, ms) {
+        return Promise.race([
+            promise,
+            sleep(ms).then(function() { return fallback; })
+        ]);
+    }
 
     function setupScroll() {
         var feed = document.querySelector('.hen-feed');
@@ -1717,27 +1949,54 @@ const HenMode = (() => {
         }
     }
 
-    function showCliOutput(lines) {
+    function syncCliOutputPosition(output) {
+        var target = output || document.getElementById('hen-cli-output');
+        if (!target) return;
+        var bar = cliBar();
+        var height = bar ? Math.ceil(bar.getBoundingClientRect().height) : 44;
+        target.style.setProperty('--hen-cli-bottom', height + 'px');
+    }
+
+    function ensureCliOutput() {
         var output = document.getElementById('hen-cli-output');
         if (!output) {
             output = document.createElement('div');
             output.id = 'hen-cli-output';
-            output.style.cssText = 'padding:20px 24px;font-size:0.75rem;color:#666;line-height:1.8;letter-spacing:0.03em;';
-            var feed = document.querySelector('.hen-feed');
-            feed.insertBefore(output, grid());
+            output.className = 'hen-cli-output';
+            output.setAttribute('role', 'status');
+            output.setAttribute('aria-live', 'polite');
+            var ov = overlay();
+            if (ov) ov.appendChild(output);
         }
-        output.innerHTML = lines.map(function(l) {
-            var safeLine = escapeHtml(l);
-            if (l.indexOf('>') === 0) return '<div style="color:#00d4ff">' + safeLine + '</div>';
-            if (l.indexOf('  ') === 0) return '<div style="color:#555;padding-left:12px">' + safeLine + '</div>';
-            return '<div>' + safeLine + '</div>';
-        }).join('');
-        setTimeout(function() { if (output) output.innerHTML = ''; }, 8000);
+        syncCliOutputPosition(output);
+        return output;
     }
 
-    function clearCliOutput() {
+    function renderCliScrollback() {
+        var output = ensureCliOutput();
+        if (!output) return;
+        output.innerHTML = cliScrollback.map(function(l) {
+            var safeLine = escapeHtml(l);
+            if (l.indexOf('>') === 0) return '<div class="hen-cli-line is-command">' + safeLine + '</div>';
+            if (l.indexOf('  ') === 0) return '<div class="hen-cli-line is-detail">' + safeLine + '</div>';
+            return '<div class="hen-cli-line">' + safeLine + '</div>';
+        }).join('');
+        output.scrollTop = output.scrollHeight;
+        output.classList.add('visible');
+    }
+
+    function showCliOutput(lines) {
+        lines = Array.isArray(lines) ? lines : [String(lines || '')];
+        if (cliScrollback.length && cliScrollback[cliScrollback.length - 1] !== '') cliScrollback.push('');
+        lines.forEach(function(line) { cliScrollback.push(String(line || '')); });
+        if (cliScrollback.length > 80) cliScrollback = cliScrollback.slice(-80);
+        renderCliScrollback();
+    }
+
+    function clearCliOutput(reset) {
         var output = document.getElementById('hen-cli-output');
-        if (output) output.innerHTML = '';
+        if (output) output.classList.remove('visible');
+        if (reset === true) cliScrollback = [];
     }
 
     function fadeGrid(callback) {
@@ -1848,8 +2107,18 @@ const HenMode = (() => {
         var randOffset = Math.floor(Math.random() * 2000);
         resetPageState();
         offset = randOffset;
-        showCliOutput(['> random jump to offset ' + randOffset]);
+        document.body.classList.add('hen-glitching');
+        setTimeout(function() { document.body.classList.remove('hen-glitching'); }, 320);
+        showCliOutput(['> dug up offset ' + randOffset + ' - here + now']);
         loadPage();
+    }
+
+    function setCrtVibe(arg) {
+        var ov = overlay();
+        if (!ov) return;
+        var enabled = !/^(off|none|0|false)$/i.test(String(arg || 'on'));
+        ov.classList.toggle('hen-crt-heavy', enabled);
+        showCliOutput([enabled ? '> crt scanlines turned up' : '> crt scanlines reset']);
     }
 
     async function applyWalletCommand(parts) {
@@ -1954,6 +2223,7 @@ const HenMode = (() => {
                 deactivate();
                 break;
             case 'clear':
+                clearCliOutput(true);
                 fadeGrid(function() {
                     clearFeedFilters();
                     reloadFeed('feed reloaded');
@@ -2056,8 +2326,11 @@ const HenMode = (() => {
                     '  feed: ' + (activeFilterLabel() || 'none')
                 ]);
                 break;
-            case 'random':
+            case 'random': case 'r':
                 randomJump();
+                break;
+            case 'crt': case 'vibe':
+                setCrtVibe(parts[1]);
                 break;
             case 'reset':
                 clearFeedFilters();
@@ -2081,7 +2354,8 @@ const HenMode = (() => {
                     '  hideowned on|off \u2014 hide pieces your wallet owns',
                     '  wallet <addr|name.tez|me|clear> \u2014 mark owned pieces',
                     '  filters     \u2014 show active setup',
-                    '  random      \u2014 jump to random offset',
+                    '  random / r  \u2014 jump to random offset',
+                    '  crt on|off  \u2014 tune scanline intensity',
                     '  reset       \u2014 clear all filters',
                     '  help        \u2014 this message'
                 ]);
@@ -2147,6 +2421,8 @@ const HenMode = (() => {
         preloadWalletConnect();
         fetchXtzPrice();
         startBlockPolling();
+        startNowLine();
+        resetIdleIndicator();
         // Only play boot once per session
         if (!HenMode._booted) {
             HenMode._booted = true;
@@ -2156,25 +2432,6 @@ const HenMode = (() => {
         await openDeepLink();
 
         pollTimer = setInterval(pollNew, POLL_INTERVAL);
-
-        // 9. Listening idle state
-        var idleTimer = null;
-        var listenEl = document.createElement('div');
-        listenEl.className = 'hen-listening';
-        listenEl.textContent = 'listening...';
-        var header = document.querySelector('.hen-header');
-        if (header) header.parentNode.insertBefore(listenEl, header.nextSibling);
-
-        function resetIdle() {
-            listenEl.classList.remove('visible');
-            clearTimeout(idleTimer);
-            idleTimer = setTimeout(function() {
-                if (isActive) listenEl.classList.add('visible');
-            }, 30000);
-        }
-        resetIdle();
-        // Reset idle on new mints (patch pollNew indirectly)
-        var origPoll = pollNew;
         if (cliInput()) cliInput().focus();
     }
 
@@ -2182,7 +2439,14 @@ const HenMode = (() => {
         if (!isActive) return;
         isActive = false;
         if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+        if (idleTimer) { clearTimeout(idleTimer); idleTimer = null; }
+        setIdleListening(false);
+        stopNowLine();
         stopBlockPolling();
+        hideMintPulse();
+        if (nowPlayingTimer) { clearTimeout(nowPlayingTimer); nowPlayingTimer = null; }
+        var nowPlaying = document.getElementById('hen-now-playing');
+        if (nowPlaying) nowPlaying.classList.remove('visible');
         var exp = expanded();
         if (exp) exp.classList.remove('active');
         restoreShareMeta();
@@ -2213,17 +2477,25 @@ const HenMode = (() => {
         if (grid()) grid().innerHTML = '';
         var hint = document.getElementById('hen-loop-hint');
         if (hint) hint.remove();
+        clearCliOutput(true);
         updateModeControls();
     }
 
     var blockTimer = null;
 
+    async function fetchBlockLevel() {
+        var res = await fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/header');
+        var d = await res.json();
+        return d && d.level ? Number(d.level) : null;
+    }
+
     function fetchBlock() {
         var mc = mintCount();
-        if (!mc) return;
-        fetch('https://eu.rpc.tez.capital/chains/main/blocks/head/header').then(function(r) { return r.json(); }).then(function(d) {
-            if (d && d.level && mc) {
-                mc.textContent = 'block ' + d.level.toLocaleString();
+        fetchBlockLevel().then(function(level) {
+            if (level) {
+                latestBlockLevel = level;
+                if (mc) mc.textContent = 'block ' + level.toLocaleString();
+                updateStatusStrip();
             }
         }).catch(function() {});
     }
@@ -2235,10 +2507,6 @@ const HenMode = (() => {
 
     function stopBlockPolling() {
         if (blockTimer) { clearInterval(blockTimer); blockTimer = null; }
-    }
-
-    function updateCount() {
-        // Block polling handles the header now
     }
 
     function init() {
@@ -2298,6 +2566,28 @@ const HenMode = (() => {
                     showCliOutput(['> wallet setup failed']);
                 });
             }
+        });
+
+        var loader = loadingEl();
+        if (loader) loader.addEventListener('click', function(e) {
+            var action = e.target && e.target.getAttribute ? e.target.getAttribute('data-hen-empty-action') : '';
+            if (!action) return;
+            if (action === 'clear-price') priceMaxMutez = null;
+            if (action === 'clear-editions') editionMax = null;
+            if (action === 'clear-saved') savedOnly = false;
+            if (action === 'clear-owned') hideOwned = false;
+            reloadFeed('filters widened');
+        });
+
+        document.addEventListener('click', function(e) {
+            if (!isActive) return;
+            var output = document.getElementById('hen-cli-output');
+            if (!output || !output.classList.contains('visible')) return;
+            if (output.contains(e.target) || e.target.closest('.hen-cli')) return;
+            clearCliOutput();
+        });
+        window.addEventListener('resize', function() {
+            if (isActive) syncCliOutputPosition();
         });
 
         window.addEventListener('my-baker-updated', function(e) {
@@ -2374,11 +2664,13 @@ const HenMode = (() => {
         setupFilterBar();
 
         var focusIdx = -1;
+        var focusedCardKey = null;
         function updateFocus(idx) {
             var cards = document.querySelectorAll('.hen-card');
             cards.forEach(function(c) { c.classList.remove('hen-focused'); });
             if (idx >= 0 && idx < cards.length) {
                 focusIdx = idx;
+                focusedCardKey = cards[idx].dataset.key || null;
                 cards[idx].classList.add('hen-focused');
                 cards[idx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             }
@@ -2386,18 +2678,40 @@ const HenMode = (() => {
 
         document.addEventListener('keydown', function(e) {
             if (!isActive) return;
-            if (e.target === cliInput() || e.target === el('hen-wallet-input')) return; // don't nav while typing
+            var exp = expanded();
+            var expandedActive = Boolean(exp && exp.classList.contains('active'));
+            if (e.key === 'Escape' && expandedActive) {
+                closeExpanded();
+                return;
+            }
+            if (e.key === 'Escape') {
+                var output = document.getElementById('hen-cli-output');
+                if (output && output.classList.contains('visible')) {
+                    e.preventDefault();
+                    clearCliOutput();
+                    return;
+                }
+            }
+            if (e.target === cliInput() || e.target === el('hen-wallet-input') || e.target === el('hen-search-input')) return; // don't nav while typing
 
             var cards = document.querySelectorAll('.hen-card');
+            if (focusedCardKey) {
+                var resolvedIdx = Array.from(cards).findIndex(function(card) { return card.dataset.key === focusedCardKey; });
+                if (resolvedIdx >= 0) focusIdx = resolvedIdx;
+            }
             var cols = window.innerWidth > 900 ? 4 : (window.innerWidth > 600 ? 3 : 2);
 
+            if (e.key && e.key.toLowerCase() === 'r' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                e.preventDefault();
+                randomJump();
+                return;
+            }
             if (e.key === 'ArrowRight') { e.preventDefault(); updateFocus(Math.min(focusIdx + 1, cards.length - 1)); return; }
             if (e.key === 'ArrowLeft') { e.preventDefault(); updateFocus(Math.max(focusIdx - 1, 0)); return; }
             if (e.key === 'ArrowDown') { e.preventDefault(); updateFocus(Math.min(focusIdx + cols, cards.length - 1)); return; }
             if (e.key === 'ArrowUp') { e.preventDefault(); updateFocus(Math.max(focusIdx - cols, 0)); return; }
             if (e.key === 'Enter' && focusIdx >= 0 && focusIdx < tokens.length) {
-                var exp = expanded();
-                if (!exp || !exp.classList.contains('active')) {
+                if (!expandedActive) {
                     var key = cards[focusIdx] ? cards[focusIdx].dataset.key : '';
                     expandToken(tokenCache.get(key) || tokens[focusIdx]);
                     return;
@@ -2405,12 +2719,7 @@ const HenMode = (() => {
             }
 
             if (e.key === 'Escape') {
-                var exp = expanded();
-                if (exp && exp.classList.contains('active')) {
-                    closeExpanded();
-                } else {
-                    deactivate();
-                }
+                deactivate();
             }
         });
 

@@ -4,10 +4,14 @@
  */
 
 const CHANGELOG = [
-    {
-        date: '2026-06-30',
-        entries: [
-            { type: '🔧', text: 'Mobile command search now keeps a 16px focused input so iOS browsers do not zoom the page after tapping the search bar' },
+	{
+		date: '2026-06-30',
+		entries: [
+			{ type: '🔧', text: 'HEN mode now keeps live terminal output, new-mint notices, collecting hints, and idle state off the grid flow so visible art no longer jumps when the system speaks' },
+			{ type: '✨', text: 'HEN live arrivals now show a floating new-mints pill, source-tab pulses, a now line, and a now-playing arrival panel while preserving scroll position away from the top' },
+			{ type: '🎨', text: 'HEN cards now distinguish Teia and OBJKT with source edge rules, tighter contact-sheet spacing, calmer hover choreography, video hover playback, and a cooling amber fresh-mint glow' },
+			{ type: '🔧', text: 'HEN CLI now keeps session scrollback, adds random/r and crt/vibe commands, surfaces live-paused sort state, and gives empty filters direct recovery chips' },
+			{ type: '🔧', text: 'Mobile command search now keeps a 16px focused input so iOS browsers do not zoom the page after tapping the search bar' },
             { type: '🔧', text: 'Network Health now shows a moving Chamber loader every time the room opens while live health data syncs' },
             { type: '🎨', text: 'The first-screen Continuity proof now leads with live fork-free days, self-amendment count, and zero hard forks' },
             { type: '🔧', text: 'My Tezos now stays in the drawer instead of reserving homepage space with a persistent address tracker' },

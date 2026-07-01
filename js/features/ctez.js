@@ -67,6 +67,10 @@ function formatGroupedNumber(value) {
     return raw.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
+function breakableAddress(value) {
+    return escapeHtml(value).replace(/(.{8})(?=.)/g, '$1<wbr>');
+}
+
 function formatMicroAmount(value, symbol) {
     const raw = normalizeMicroInput(value);
     if (!/^\d+$/.test(raw)) return `0 ${symbol}`;
@@ -365,7 +369,7 @@ function renderCtezChamber() {
         </section>
 
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:220ms">
-            <span>ctez contract ${escapeHtml(CTEZ_CONTRACT)}</span>
+            <span>ctez contract ${breakableAddress(CTEZ_CONTRACT)}</span>
             <span class="chamber-footer-sep">·</span>
             <a class="panel-direct-link" href="${CTEZ_COMMUNITY_TOOL_URL}" target="_blank" rel="noopener">Purple Matter tool</a>
             <span class="chamber-footer-sep">by</span>
