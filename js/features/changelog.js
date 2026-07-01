@@ -7,6 +7,9 @@ const CHANGELOG = [
     {
         date: '2026-07-01',
         entries: [
+            { type: '🔧', text: 'HEN live mode now lets quiet newest polls become a real listening state, keeps arrival chrome out of the expanded viewer, and stops arrow/random shortcuts from firing behind open artwork' },
+            { type: '⚡', text: 'HEN now reuses boot data for first render, pages through busier mint windows, caps long-session caches, and only updates card timestamps while the overlay is active' },
+            { type: '🔧', text: 'HEN CLI dismissals now clear old scrollback, artist commands validate Tezos addresses, desktop filters show an overflow fade, and the /hen/ route now renders as a crawlable entry page' },
             { type: '🎨', text: 'HEN is now a selectable site-wide theme with square CRT dashboard chrome, mono typography, cyan and green data accents, scanlines, and reduced-motion safeguards' },
             { type: '✨', text: 'HEN live feed entry points now appear from the HEN-themed header, Explore, and the NFT lane while opening the existing Teia-first overlay in place' },
         ]

@@ -533,6 +533,7 @@ async function checkSelectorContracts() {
   const heroSearchCss = await readText('css/hero-search.css');
   const henModeCss = await readText('css/hen-mode.css');
   const henMode = await readText('js/features/hen-mode.js');
+  const henPage = await readText('hen/index.html');
   const objkt = await readText('js/features/objkt.js');
   const chamber = await readText('js/features/chamber.js');
   const lb = await readText('js/features/liquidity-baking.js');
@@ -729,8 +730,10 @@ async function checkSelectorContracts() {
     ['HEN source all tab', 'data-hen-mode="all"', index],
     ['HEN source Teia tab', 'data-hen-mode="teia"', index],
     ['HEN source OBJKT tab', 'data-hen-mode="objkt"', index],
-    ['HEN CSS cache stamp', 'css/hen-mode.css?v=91', index],
-    ['HEN JS cache stamp', 'js/features/hen-mode.js?v=87', index],
+    ['HEN standalone route entry link', 'href="/?hen=1"', henPage],
+    ['HEN standalone route copy', 'Live Teia and OBJKT mints on Tezos', henPage],
+    ['HEN CSS cache stamp', 'css/hen-mode.css?v=93', index],
+    ['HEN JS cache stamp', 'js/features/hen-mode.js?v=89', index],
     ['HEN setup status strip', 'id="hen-status-strip"', index],
     ['HEN permanent now line', 'id="hen-now-line"', index],
     ['HEN mobile filter toggle', 'id="hen-mobile-filter-toggle"', index],
@@ -758,6 +761,17 @@ async function checkSelectorContracts() {
     ['HEN CLI scrollback is appended off-flow', 'ov.appendChild(output)', henMode],
     ['HEN mint pulse is a floating button', "pulseEl.className = 'hen-mint-pulse'", henMode],
     ['HEN scroll compensation for off-top live prepends', 'previousScrollHeight', henMode],
+    ['HEN idle resets only on actual fresh mints', 'if (fresh.length > 0) {\n                resetIdleIndicator();', henMode],
+    ['HEN paged live poll avoids skipping busy windows', 'async function fetchFreshTokens', henMode],
+    ['HEN modal suppresses live chrome', 'if (!expandedActive) {\n                    showMintPulse', henMode],
+    ['HEN global keys stop behind expander', 'if (expandedActive) return;', henMode],
+    ['HEN now-playing throttle', 'NOW_PLAYING_MIN_INTERVAL', henMode],
+    ['HEN sticky mint count is cumulative', 'pendingMintCount += freshTokens.length;', henMode],
+    ['HEN token cache is capped', 'trimMapCache(tokenCache, TOKEN_CACHE_LIMIT)', henMode],
+    ['HEN timestamp timer starts only while active', 'function startCardTimeUpdates', henMode],
+    ['HEN CLI dismissal clears retained scrollback', 'if (reset !== false) cliScrollback = [];', henMode],
+    ['HEN artist command validates addresses', '> invalid artist address', henMode],
+    ['HEN GraphQL escape strips control chars', "replace(/[\\u0000-\\u001F\\u007F]/g, ' ')", henMode],
     ['HEN live paused sort status', 'live paused (sorted by ', henMode],
     ['HEN source tab live pulse', 'source-live-pulse', henMode],
     ['HEN platform edge rule classes', "card.className = 'hen-card hen-card-platform-' + platformKey(token)", henMode],
@@ -822,6 +836,8 @@ async function checkSelectorContracts() {
     ['HEN source tabs style', '.hen-source-tabs', henModeCss],
     ['HEN status strip style', '.hen-status-strip', henModeCss],
     ['HEN filter bar style', '.hen-filterbar', henModeCss],
+    ['HEN desktop filter overflow fade', 'mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);', henModeCss],
+    ['HEN expanded modal stays above live chrome', 'z-index: 10010;', henModeCss],
     ['HEN mobile filter collapsed style', '.mobile-filters-open', henModeCss],
     ['HEN first-run loop hint style', '.hen-loop-hint', henModeCss],
     ['HEN wallet controls style', '.hen-wallet-controls', henModeCss],
@@ -985,6 +1001,12 @@ async function checkSelectorContracts() {
   }
   if (henMode.includes('hen-listening') || henMode.includes('origPoll')) {
     fail('HEN idle state must use the header/status dot path, not the old injected listening row or dead poll stub');
+  }
+  if (index.includes('</html>\n>')) {
+    fail('index.html must not leave stray text after the closing html tag');
+  }
+  if (henPage.includes('http-equiv="refresh"') || henPage.includes('location.replace')) {
+    fail('/hen/ must render a crawlable entry page instead of an empty redirect stub');
   }
   if (chamberRouteGenerator.includes('location.replace') || chamberRouteGenerator.includes('http-equiv="refresh"')) {
     fail('pretty chamber routes must hydrate the dashboard shell instead of redirecting to hash routes');

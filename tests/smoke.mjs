@@ -7092,6 +7092,7 @@ async function smokeHenMode(browser, baseUrl) {
     const grid = document.querySelector('#hen-grid');
     const firstSource = document.querySelector('#hen-grid .hen-card-source');
     const firstInfo = document.querySelector('#hen-grid .hen-card-info');
+    const expanded = document.querySelector('#hen-expanded');
     const cards = Array.from(document.querySelectorAll('#hen-grid .hen-card'));
     const viewport = window.innerWidth;
     const bounds = (node) => {
@@ -7104,6 +7105,8 @@ async function smokeHenMode(browser, baseUrl) {
       overlayRows: getComputedStyle(overlay).gridTemplateRows,
       statusHeight: Math.round(strip.getBoundingClientRect().height),
       filterWrap: getComputedStyle(filterbar).flexWrap,
+      filterMask: getComputedStyle(filterbar).webkitMaskImage || getComputedStyle(filterbar).maskImage || '',
+      expandedZ: Number(getComputedStyle(expanded).zIndex || 0),
       nowLineVisible: Boolean(nowLine && nowLine.getBoundingClientRect().height > 0),
       header: bounds(header),
       strip: bounds(strip),
@@ -7117,7 +7120,8 @@ async function smokeHenMode(browser, baseUrl) {
     };
   });
   assert(stableShell.overlayDisplay === 'grid' && stableShell.overlayRows.split(' ').length >= 4, `HEN mode shell should use stable grid rows: ${JSON.stringify(stableShell)}`);
-  assert(stableShell.statusHeight <= 46 && stableShell.filterWrap === 'nowrap' && stableShell.nowLineVisible, `HEN mode fixed status/now-line contract failed: ${JSON.stringify(stableShell)}`);
+  assert(stableShell.statusHeight <= 46 && stableShell.filterWrap === 'nowrap' && stableShell.filterMask !== 'none' && stableShell.nowLineVisible, `HEN mode fixed status/now-line/filter-fade contract failed: ${JSON.stringify(stableShell)}`);
+  assert(stableShell.expandedZ > 10006, `HEN mode expanded view should sit above live chrome: ${JSON.stringify(stableShell)}`);
   for (const [name, box] of Object.entries({ header: stableShell.header, strip: stableShell.strip, feed: stableShell.feed, grid: stableShell.grid, firstSource: stableShell.firstSource, firstInfo: stableShell.firstInfo })) {
     assert(box && box.left >= -0.5 && box.right <= stableShell.viewport + 0.5, `HEN mode ${name} should stay inside viewport edges: ${JSON.stringify(stableShell)}`);
   }
@@ -7147,6 +7151,16 @@ async function smokeHenMode(browser, baseUrl) {
   assert(cliChrome.parent === 'hen-overlay' && cliChrome.position === 'absolute' && !cliChrome.feedContainsOutput && /filters/i.test(cliChrome.text), `HEN mode CLI output must be off-flow scrollback: ${JSON.stringify(cliChrome)}`);
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('#hen-cli-output')?.classList.contains('visible'), null, { timeout: 5000 });
+  await enterHenCommand('help');
+  await page.locator('#hen-cli-output.visible').waitFor({ state: 'visible', timeout: 5000 });
+  const cliAfterDismiss = await page.locator('#hen-cli-output').innerText();
+  assert(/commands/.test(cliAfterDismiss) && !/source:/.test(cliAfterDismiss), `HEN mode dismissed CLI output replayed old scrollback: ${cliAfterDismiss}`);
+  await page.keyboard.press('Escape');
+  await enterHenCommand('artist not-a-wallet');
+  await page.locator('#hen-cli-output.visible').waitFor({ state: 'visible', timeout: 5000 });
+  const invalidArtistOutput = await page.locator('#hen-cli-output').innerText();
+  assert(/invalid artist address/.test(invalidArtistOutput), `HEN mode artist command should reject invalid addresses: ${invalidArtistOutput}`);
+  await page.keyboard.press('Escape');
 
   await enterHenCommand(`wallet ${SAMPLE_ADDRESS}`);
   await page.locator('.hen-card-owned-badge').first().waitFor({ state: 'visible', timeout: 10000 });
@@ -7212,6 +7226,7 @@ async function smokeHenMode(browser, baseUrl) {
 
   await page.locator('#hen-grid .hen-card').first().click();
   await page.locator('#hen-expanded.active .hen-expanded-collect').waitFor({ state: 'visible', timeout: 10000 });
+  const firstTitleBeforeModalKeys = await page.locator('#hen-grid .hen-card-title').first().innerText();
   const expandedState = await page.evaluate(() => ({
     collect: document.querySelector('.hen-expanded-collect')?.textContent || '',
     market: document.querySelector('.hen-expanded-market')?.innerText || '',
@@ -7220,6 +7235,15 @@ async function smokeHenMode(browser, baseUrl) {
     modal: document.querySelector('#hen-expanded')?.getAttribute('aria-modal') || ''
   }));
   assert(/collect on|view on/i.test(expandedState.collect) && /owners|available|editions/i.test(expandedState.market) && expandedState.role === 'dialog' && expandedState.modal === 'true', `HEN mode expanded decision screen incomplete: ${JSON.stringify(expandedState)}`);
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('r');
+  await page.waitForTimeout(350);
+  const expandedKeyGuard = await page.evaluate(() => ({
+    active: document.querySelector('#hen-expanded')?.classList.contains('active') || false,
+    firstTitle: document.querySelector('#hen-grid .hen-card-title')?.textContent || '',
+    cliText: document.querySelector('#hen-cli-output')?.innerText || ''
+  }));
+  assert(expandedKeyGuard.active && expandedKeyGuard.firstTitle === firstTitleBeforeModalKeys && !/dug up offset/.test(expandedKeyGuard.cliText), `HEN mode background keys fired behind expanded view: ${JSON.stringify(expandedKeyGuard)}`);
   await page.keyboard.press('Escape');
 
   await enterHenCommand('price 2');

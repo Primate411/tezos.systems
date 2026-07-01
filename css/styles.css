@@ -22466,47 +22466,49 @@ body[data-theme="nerv"]::after {
    ========================================== */
 
 [data-theme="hen"] {
-    --bg-primary: #0a0a0a;
-    --bg-secondary: #111111;
+    /* Palette derived from the shared --hen-* tokens (defined in css/hen-mode.css :root)
+       so HEN mode (overlay) and HEN theme (dashboard) can never drift apart. */
+    --bg-primary: var(--hen-bg-deep);
+    --bg-secondary: var(--hen-bg);
     --bg-tertiary: #161616;
     --glass-bg: rgba(17, 17, 17, 0.94);
-    --glass-border: #222222;
-    --text-primary: #e0e0e0;
+    --glass-border: var(--hen-line);
+    --text-primary: var(--hen-ink);
     --text-secondary: #9a9a9a;
     --text-tertiary: #707070;
     --text-muted: #565656;
-    --accent-cyan: #00d4ff;
-    --accent-purple: #00d4ff;
-    --accent-pink: #00ff88;
-    --accent-blue: #00d4ff;
-    --accent: #00d4ff;
-    --accent-color: #00d4ff;
-    --border: #222222;
-    --border-color: #222222;
+    --accent-cyan: var(--hen-cyan);
+    --accent-purple: var(--hen-cyan);
+    --accent-pink: var(--hen-green);
+    --accent-blue: var(--hen-cyan);
+    --accent: var(--hen-cyan);
+    --accent-color: var(--hen-cyan);
+    --border: var(--hen-line);
+    --border-color: var(--hen-line);
     --text-dim: #707070;
-    --chamber-live-color: #00ff88;
-    --chamber-good-color: #00ff88;
-    --chamber-watch-color: #ffb432;
-    --chamber-risk-color: #ff5470;
-    --chamber-disabled-color: #ffb432;
+    --chamber-live-color: var(--hen-green);
+    --chamber-good-color: var(--hen-green);
+    --chamber-watch-color: var(--hen-amber);
+    --chamber-risk-color: var(--hen-red);
+    --chamber-disabled-color: var(--hen-amber);
     --blur-amount: 0px;
     --transition: all 0.12s ease;
-    --header-title-color: #00ff88;
+    --header-title-color: var(--hen-green);
     --header-title-glow: rgba(0, 255, 136, 0.28);
-    --uptime-badge-bg: #0f0f0f;
+    --uptime-badge-bg: var(--hen-panel);
     --uptime-badge-border: rgba(0, 212, 255, 0.55);
     --uptime-badge-color: #d8fff0;
-    --uptime-badge-label: #00d4ff;
-    --uptime-badge-value: #00ff88;
+    --uptime-badge-label: var(--hen-cyan);
+    --uptime-badge-value: var(--hen-green);
     --uptime-badge-note: rgba(255, 180, 50, 0.82);
     --uptime-badge-shadow: inset 2px 0 0 rgba(0, 212, 255, 0.9);
     --uptime-badge-value-shadow: 0 0 10px rgba(0, 255, 136, 0.34);
     --top-pill-bg: #101010;
     --top-pill-text: rgba(224, 224, 224, 0.88);
-    --top-pill-bakers: #00d4ff;
-    --top-pill-finality: #00ff88;
-    --top-pill-staked: #ffb432;
-    --top-pill-issuance: #ff5470;
+    --top-pill-bakers: var(--hen-cyan);
+    --top-pill-finality: var(--hen-green);
+    --top-pill-staked: var(--hen-amber);
+    --top-pill-issuance: var(--hen-red);
     --top-pill-shadow: none;
 }
 
@@ -22526,17 +22528,9 @@ body[data-theme="hen"]::after {
     inset: 0;
     pointer-events: none;
     z-index: 9997;
-    background:
-        repeating-linear-gradient(
-            0deg,
-            rgba(255, 255, 255, 0.035) 0,
-            rgba(255, 255, 255, 0.035) 1px,
-            transparent 1px,
-            transparent 4px
-        ),
-        linear-gradient(180deg, rgba(0, 212, 255, 0.02), rgba(0, 255, 136, 0.012));
-    opacity: 0.66;
-    mix-blend-mode: screen;
+    /* Same scanline token the overlay uses — one source of truth. */
+    background: var(--hen-scanline);
+    opacity: 1;
 }
 
 [data-theme="hen"] ::selection {
@@ -22636,6 +22630,7 @@ body[data-theme="hen"]::after {
     display: inline-block;
     margin-left: 0.15ch;
     color: #ffb432;
+    animation: hen-blink 1.1s step-end infinite;
 }
 
 [data-theme="hen"] .hen-theme-feed-link {
@@ -22754,6 +22749,7 @@ body[data-theme="hen"]::after {
     color: #ffb432;
     background: #ffb432;
     box-shadow: 0 0 8px rgba(255, 180, 50, 0.58);
+    animation: hen-idle-dot 1.8s ease-in-out infinite;
 }
 
 [data-theme="hen"] :is(.upgrade-clock, .command-deck, .continuity-proof-story, .hero-slot, .tezos-loop-console, .morning-brief, .daily-briefing, .briefing-card) {
@@ -22875,9 +22871,9 @@ body[data-theme="hen"]::after {
 [data-theme="hen"] .whale-card,
 [data-theme="hen"] .moment-item {
     border: 1px solid #222222 !important;
-    border-top-color: rgba(0, 212, 255, 0.45) !important;
     background: #111111 !important;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025) !important;
+    /* Left-edge accent to echo the overlay's coded card idiom. */
+    box-shadow: inset 2px 0 0 rgba(0, 212, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.025) !important;
 }
 
 [data-theme="hen"] :is(.stat-card, .chamber-entry-card, .lb-entry-card, .tz4-entry-card, .health-entry-card, .comparison-card, .my-baker-card, .whale-card, .moment-item):hover {
@@ -22904,7 +22900,7 @@ body[data-theme="hen"]::after {
 [data-theme="hen"] .chain-value,
 [data-theme="hen"] .drawer-operator-value {
     color: #00d4ff !important;
-    text-shadow: 0 0 10px rgba(0, 212, 255, 0.18);
+    text-shadow: 0 0 12px rgba(0, 212, 255, 0.34);
 }
 
 [data-theme="hen"] .stat-card[data-stat="network-health"] .stat-value,
@@ -23034,6 +23030,49 @@ body[data-theme="hen"]::after {
 
 [data-theme="hen"] .stat-card.pulse-active {
     animation: none;
+}
+
+/* Mono is ~1.5x wider than the base font — let chamber hero values wrap
+   instead of clipping to an ellipsis ("Propos… period"). */
+[data-theme="hen"] [id$="-front"] {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.08;
+}
+
+/* ── HEN theme — mobile (mono needs its own overrides) ── */
+@media (max-width: 600px) {
+    /* C4: rein in oversized mono display type on narrow screens */
+    [data-theme="hen"] .title {
+        font-size: clamp(1.5rem, 8.5vw, 2.15rem) !important;
+    }
+    [data-theme="hen"] [id$="-front"] {
+        font-size: clamp(1.35rem, 7vw, 2rem) !important;
+    }
+
+    /* C1: the chamber footer is absolute at the card bottom; when the mono
+       metrics grow it collides with the "as of …" line. Flow it below content. */
+    [data-theme="hen"] .chamber-entry-footer {
+        position: static;
+        inset: auto;
+        margin-top: 0.55rem;
+        padding-inline: 0;
+    }
+    [data-theme="hen"] .chamber-entry-metric {
+        font-size: 0.62rem;
+    }
+    [data-theme="hen"] .chamber-entry-freshness {
+        font-size: 0.54rem;
+    }
+
+    /* C5: tighten density so the terminal reads packed, not airy */
+    [data-theme="hen"] :is(.chamber-entry-card, .health-entry-card, .tz4-entry-card, .lb-entry-card, .stat-card) .card-front {
+        padding: 0.7rem 0.75rem;
+    }
+    [data-theme="hen"] .continuity-proof-story {
+        padding: 0.85rem !important;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {

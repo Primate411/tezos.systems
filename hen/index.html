@@ -10,34 +10,65 @@
     <meta property="og:description" content="Real-time Teia and OBJKT feed of new NFTs being minted on the Tezos blockchain.">
     <meta property="og:type" content="website">
     <link rel="icon" href="/favicon.svg">
-    <!-- The standalone splash has been retired: go straight into the live feed. -->
-    <meta http-equiv="refresh" content="0; url=/?hen=1">
-    <script>
-        // Preserve the matrix default so the dashboard doesn't bounce to the landing page,
-        // then forward immediately into the live HEN feed.
-        try {
-            if (!localStorage.getItem('tezos-systems-theme')) {
-                localStorage.setItem('tezos-systems-theme', 'matrix');
-            }
-        } catch (e) {}
-        window.location.replace('/?hen=1' + window.location.hash);
-    </script>
     <style>
-        html, body { margin: 0; height: 100%; background: #0a0a0a; }
-        .fallback {
+        html, body {
+            margin: 0;
+            min-height: 100%;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+        }
+        body {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'JetBrains Mono', monospace;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        main {
+            display: grid;
+            gap: 18px;
+            max-width: 620px;
+            text-align: center;
+        }
+        h1 {
+            margin: 0;
             color: #00d4ff;
-            font-size: 0.85rem;
-            letter-spacing: 0.06em;
+            font-size: clamp(2rem, 8vw, 4.5rem);
+            letter-spacing: 0.08em;
+            text-transform: lowercase;
+        }
+        p {
+            margin: 0;
+            color: #9a9a9a;
+            font-size: 0.92rem;
+            line-height: 1.7;
+        }
+        a {
+            justify-self: center;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 0 18px;
+            border: 1px solid rgba(0,255,136,0.52);
+            background: #00ff88;
+            color: #07140d;
+            font-size: 0.76rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
             text-decoration: none;
+            text-transform: uppercase;
+            box-shadow: 0 0 24px rgba(0,255,136,0.16);
         }
     </style>
 </head>
 <body>
-    <a class="fallback" href="/?hen=1">entering live Tezos NFT feed → tap to continue</a>
+    <main>
+        <h1>hen</h1>
+        <p>Live Teia and OBJKT mints on Tezos, with collecting filters, wallet-owned flags, and direct collect links.</p>
+        <a href="/?hen=1">Enter Live Feed</a>
+    </main>
 </body>
 </html>

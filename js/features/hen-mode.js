@@ -18,6 +18,12 @@ const HenMode = (() => {
     const MAX_GRID_CARDS = 220;
     const HEN_EAGER_CARD_LIMIT = 8;
     const POLL_INTERVAL = 15000;
+    const POLL_PAGE_LIMIT = PAGE_SIZE;
+    const POLL_MAX_PAGES = 3;
+    const NOW_PLAYING_MIN_INTERVAL = 45000;
+    const TOKEN_CACHE_LIMIT = 520;
+    const PROFILE_CACHE_LIMIT = 80;
+    const TEZ_NAME_CACHE_LIMIT = 180;
     const DEFAULT_IMAGE_RETRY_DELAYS = [3000, 10000, 30000, 120000, 300000];
     const TEZ_DOMAINS_API = 'https://api.tezos.domains/graphql';
     const HEN_SOURCE_KEY = 'tezos-systems-hen-source';
@@ -105,7 +111,11 @@ const HenMode = (() => {
     let sourcePulseTimers = {};
     let mintPulseTimer = null;
     let nowPlayingTimer = null;
+    let lastNowPlayingAt = 0;
+    let pendingMintCount = 0;
+    let cardTimeTimer = null;
     const tezNameCache = {};
+    let tezNameCacheKeys = [];
 
     const el = (id) => document.getElementById(id);
     const overlay = () => el('hen-overlay');
@@ -200,7 +210,10 @@ const HenMode = (() => {
     }
 
     function escapeGraphqlString(str) {
-        return String(str || '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        return String(str || '')
+            .replace(/[\u0000-\u001F\u007F]/g, ' ')
+            .replace(/\\/g, '\\\\')
+            .replace(/"/g, '\\"');
     }
 
     function safeGetStorage(key) {
@@ -264,6 +277,36 @@ const HenMode = (() => {
         idleTimer = setTimeout(function() {
             if (isActive) setIdleListening(true);
         }, 30000);
+    }
+
+    function stopIdleIndicator() {
+        if (idleTimer) {
+            clearTimeout(idleTimer);
+            idleTimer = null;
+        }
+        setIdleListening(false);
+    }
+
+    function isExpandedActive() {
+        var exp = expanded();
+        return Boolean(exp && exp.classList.contains('active'));
+    }
+
+    function trimMapCache(map, limit) {
+        if (!map || !Number.isFinite(limit)) return;
+        while (map.size > limit) {
+            var first = map.keys().next().value;
+            map.delete(first);
+        }
+    }
+
+    function rememberTezName(addr, name) {
+        if (tezNameCache[addr] === undefined) tezNameCacheKeys.push(addr);
+        tezNameCache[addr] = name;
+        while (tezNameCacheKeys.length > TEZ_NAME_CACHE_LIMIT) {
+            var key = tezNameCacheKeys.shift();
+            delete tezNameCache[key];
+        }
     }
 
     function loadFavoriteKeys() {
@@ -511,15 +554,15 @@ const HenMode = (() => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    query: '{ reverseRecord(address: "' + addr + '") { domain { name } } }'
+                    query: '{ reverseRecord(address: "' + escapeGraphqlString(addr) + '") { domain { name } } }'
                 })
             });
             const json = await res.json();
             var name = (json.data && json.data.reverseRecord && json.data.reverseRecord.domain) ? json.data.reverseRecord.domain.name : null;
-            tezNameCache[addr] = name;
+            rememberTezName(addr, name);
             return name;
         } catch (e) {
-            tezNameCache[addr] = null;
+            rememberTezName(addr, null);
             return null;
         }
     }
@@ -639,6 +682,16 @@ const HenMode = (() => {
         if (!res.ok) throw new Error('Objkt API ' + res.status);
         const json = await res.json();
         return (json.data && json.data.token) ? json.data.token : [];
+    }
+
+    async function fetchFreshTokens(after) {
+        var all = [];
+        for (var page = 0; page < POLL_MAX_PAGES; page++) {
+            var batch = await fetchTokens(POLL_PAGE_LIMIT, page * POLL_PAGE_LIMIT, after);
+            all = all.concat(batch);
+            if (batch.length < POLL_PAGE_LIMIT) break;
+        }
+        return all;
     }
 
     async function fetchTokenDetails(token) {
@@ -870,6 +923,7 @@ const HenMode = (() => {
             var profile = await mod.fetchObjktProfile(address);
             if (generation !== profileGeneration) return;
             profileCache.set(address, profile);
+            trimMapCache(profileCache, PROFILE_CACHE_LIMIT);
             if (profile?.tzdomain || profile?.alias) {
                 viewerLabel = profile.tzdomain || profile.alias;
                 updateStatusStrip();
@@ -1236,6 +1290,7 @@ const HenMode = (() => {
         tokenList.forEach(function(token) {
             tokenCache.set(tokenKey(token), token);
         });
+        trimMapCache(tokenCache, TOKEN_CACHE_LIMIT);
     }
 
     function trimGridCards(edge) {
@@ -1252,6 +1307,8 @@ const HenMode = (() => {
             shell.remove();
         });
         tokens = tokens.filter(function(token) { return !removed.has(tokenKey(token)); });
+        removed.forEach(function(key) { tokenCache.delete(key); });
+        trimMapCache(tokenCache, TOKEN_CACHE_LIMIT);
     }
 
     async function setViewerAddress(addr, label, options) {
@@ -1466,6 +1523,8 @@ const HenMode = (() => {
     async function expandToken(token) {
         var exp = expanded();
         if (!exp || !token) return;
+        hideMintPulse();
+        hideNowPlaying();
         expandedReturnFocus = document.activeElement;
         var detailToken = token;
         try {
@@ -1473,6 +1532,7 @@ const HenMode = (() => {
             if (details) {
                 detailToken = Object.assign({}, token, details);
                 tokenCache.set(tokenKey(detailToken), detailToken);
+                trimMapCache(tokenCache, TOKEN_CACHE_LIMIT);
             }
         } catch (err) {
             console.warn('[HEN] token detail error:', err);
@@ -1586,7 +1646,7 @@ const HenMode = (() => {
         }
     }
 
-    async function loadPage() {
+    async function loadPage(prefetchedTokens) {
         if (loading) return;
         loading = true;
         var generation = feedGeneration;
@@ -1595,7 +1655,8 @@ const HenMode = (() => {
         if (loader) { loader.textContent = (FEED_MODES[feedMode] || FEED_MODES.all).loading; loader.classList.add('active'); }
 
         try {
-            var newTokens = await fetchTokens(PAGE_SIZE, offset);
+            var canUsePrefetch = Array.isArray(prefetchedTokens) && offset === 0;
+            var newTokens = canUsePrefetch ? prefetchedTokens : await fetchTokens(PAGE_SIZE, offset);
             if (generation !== feedGeneration) return;
             rememberTokens(newTokens);
             if (viewerAddress) {
@@ -1638,13 +1699,14 @@ const HenMode = (() => {
     async function pollNew() {
         if (!newestTimestamp || !isActive) return;
         if (sortMode !== DEFAULT_SORT_MODE) {
+            stopIdleIndicator();
             updateStatusStrip();
             return;
         }
         try {
-            var fresh = await fetchTokens(20, 0, newestTimestamp);
-            resetIdleIndicator();
+            var fresh = await fetchFreshTokens(newestTimestamp);
             if (fresh.length > 0) {
+                resetIdleIndicator();
                 rememberTokens(fresh);
                 if (viewerAddress) {
                     try {
@@ -1665,6 +1727,7 @@ const HenMode = (() => {
                 var sorted = visibleFresh.slice().reverse();
                 var feed = document.querySelector('.hen-feed');
                 var wasNearTop = feed ? feed.scrollTop < 64 : true;
+                var expandedActive = isExpandedActive();
                 var previousScrollHeight = feed ? feed.scrollHeight : 0;
                 var previousScrollTop = feed ? feed.scrollTop : 0;
                 sorted.forEach(function(t) {
@@ -1683,8 +1746,10 @@ const HenMode = (() => {
                 applyViewerBadges();
                 applyFavoriteBadges();
                 trimGridCards('end');
-                showMintPulse(visibleFresh, { sticky: !wasNearTop });
-                showNowPlaying(visibleFresh[0]);
+                if (!expandedActive) {
+                    showMintPulse(visibleFresh, { sticky: !wasNearTop });
+                    if (wasNearTop) showNowPlaying(visibleFresh[0]);
+                }
             }
         } catch (e) {
             console.error('[HEN] poll error:', e);
@@ -1712,6 +1777,7 @@ const HenMode = (() => {
     function hideMintPulse() {
         var pulseEl = document.getElementById('hen-mint-pulse');
         if (pulseEl) pulseEl.classList.remove('visible', 'is-sticky');
+        pendingMintCount = 0;
         if (mintPulseTimer) {
             clearTimeout(mintPulseTimer);
             mintPulseTimer = null;
@@ -1745,8 +1811,14 @@ const HenMode = (() => {
         var creator = (t && t.creators && t.creators[0]) ? t.creators[0].creator_address : '???';
         var name = tezNameCache[creator] || shortAddr(creator);
         var source = platformLabel(t);
+        if (options.sticky) {
+            pendingMintCount += freshTokens.length;
+        } else {
+            pendingMintCount = 0;
+        }
+        var stickyCount = pendingMintCount || freshTokens.length;
         var text = options.sticky
-            ? '▲ ' + freshTokens.length + ' new mint' + (freshTokens.length === 1 ? '' : 's')
+            ? '▲ ' + stickyCount + ' new mint' + (stickyCount === 1 ? '' : 's')
             : freshTokens.length === 1
             ? source + ': ' + name + ' just minted "' + (t.name || 'untitled') + '"'
             : freshTokens.length + ' new Tezos NFT mints — ' + source + ' led by ' + name;
@@ -1761,6 +1833,10 @@ const HenMode = (() => {
 
     function showNowPlaying(token) {
         if (!token) return;
+        if (isExpandedActive()) return;
+        var now = Date.now();
+        if (now - lastNowPlayingAt < NOW_PLAYING_MIN_INTERVAL) return;
+        lastNowPlayingAt = now;
         var ov = overlay();
         if (!ov) return;
         var panel = document.getElementById('hen-now-playing');
@@ -1802,6 +1878,15 @@ const HenMode = (() => {
         }, 4200);
     }
 
+    function hideNowPlaying() {
+        if (nowPlayingTimer) {
+            clearTimeout(nowPlayingTimer);
+            nowPlayingTimer = null;
+        }
+        var panel = document.getElementById('hen-now-playing');
+        if (panel) panel.classList.remove('visible');
+    }
+
     async function playBoot() {
         var b = boot();
         if (!b) return;
@@ -1810,9 +1895,11 @@ const HenMode = (() => {
         b.classList.add('visible');
 
         var blockPromise = fetchBlockLevel();
-        var countPromise = fetchTokens(PAGE_SIZE, 0).then(function(rows) { return rows.length; }).catch(function() { return null; });
+        var firstPagePromise = fetchTokens(PAGE_SIZE, 0).catch(function() { return null; });
         var block = await withTimeout(blockPromise.catch(function() { return null; }), null, 650);
-        var count = await withTimeout(countPromise, null, 650);
+        var firstPage = await withTimeout(firstPagePromise, null, 650);
+        if (block) applyBlockLevel(block);
+        var count = Array.isArray(firstPage) ? firstPage.length : null;
         var lines = [
             '> teia ' + HEN_CONTRACT.slice(0, 6) + '...' + HEN_CONTRACT.slice(-4) + ' [ok]',
             '> objkt indexer [ok]',
@@ -1839,6 +1926,10 @@ const HenMode = (() => {
         b.classList.remove('visible');
         await sleep(300);
         b.style.display = 'none';
+        return {
+            block: block || null,
+            tokens: Array.isArray(firstPage) ? firstPage : null
+        };
     }
 
     function showCopyToast() {
@@ -1996,7 +2087,7 @@ const HenMode = (() => {
     function clearCliOutput(reset) {
         var output = document.getElementById('hen-cli-output');
         if (output) output.classList.remove('visible');
-        if (reset === true) cliScrollback = [];
+        if (reset !== false) cliScrollback = [];
     }
 
     function fadeGrid(callback) {
@@ -2085,6 +2176,8 @@ const HenMode = (() => {
         if (!SORT_MODES[mode]) return;
         sortMode = mode;
         persistSortMode(mode);
+        if (sortMode === DEFAULT_SORT_MODE) resetIdleIndicator();
+        else stopIdleIndicator();
         reloadFeed(message || 'sort: ' + SORT_MODES[mode].label);
     }
 
@@ -2250,6 +2343,8 @@ const HenMode = (() => {
                 var addr = parts[1];
                 if (!addr) {
                     showCliOutput(['> usage: artist <tz1...>', '  shows all work by an artist']);
+                } else if (!isValidAddress(addr)) {
+                    showCliOutput(['> invalid artist address', '  use artist <tz1...|tz2...|tz3...|tz4...>']);
                 } else {
                     searchMode = null;
                     artistMode = addr;
@@ -2420,15 +2515,18 @@ const HenMode = (() => {
         loadSavedViewer();
         preloadWalletConnect();
         fetchXtzPrice();
-        startBlockPolling();
         startNowLine();
-        resetIdleIndicator();
+        startCardTimeUpdates();
+        if (sortMode === DEFAULT_SORT_MODE) resetIdleIndicator();
+        else stopIdleIndicator();
         // Only play boot once per session
+        var bootResult = null;
         if (!HenMode._booted) {
             HenMode._booted = true;
-            await playBoot();
+            bootResult = await playBoot();
         }
-        await loadPage();
+        startBlockPolling(bootResult && bootResult.block);
+        await loadPage(bootResult && bootResult.tokens);
         await openDeepLink();
 
         pollTimer = setInterval(pollNew, POLL_INTERVAL);
@@ -2443,10 +2541,9 @@ const HenMode = (() => {
         setIdleListening(false);
         stopNowLine();
         stopBlockPolling();
+        stopCardTimeUpdates();
         hideMintPulse();
-        if (nowPlayingTimer) { clearTimeout(nowPlayingTimer); nowPlayingTimer = null; }
-        var nowPlaying = document.getElementById('hen-now-playing');
-        if (nowPlaying) nowPlaying.classList.remove('visible');
+        hideNowPlaying();
         var exp = expanded();
         if (exp) exp.classList.remove('active');
         restoreShareMeta();
@@ -2489,24 +2586,49 @@ const HenMode = (() => {
         return d && d.level ? Number(d.level) : null;
     }
 
-    function fetchBlock() {
+    function applyBlockLevel(level) {
         var mc = mintCount();
+        latestBlockLevel = level;
+        if (mc) mc.textContent = 'block ' + level.toLocaleString();
+        updateStatusStrip();
+    }
+
+    function fetchBlock() {
         fetchBlockLevel().then(function(level) {
-            if (level) {
-                latestBlockLevel = level;
-                if (mc) mc.textContent = 'block ' + level.toLocaleString();
-                updateStatusStrip();
-            }
+            if (level) applyBlockLevel(level);
         }).catch(function() {});
     }
 
-    function startBlockPolling() {
-        fetchBlock();
+    function startBlockPolling(initialLevel) {
+        if (initialLevel) applyBlockLevel(initialLevel);
+        else fetchBlock();
         blockTimer = setInterval(fetchBlock, 10000);
     }
 
     function stopBlockPolling() {
         if (blockTimer) { clearInterval(blockTimer); blockTimer = null; }
+    }
+
+    function updateCardTimes() {
+        if (!isActive) return;
+        document.querySelectorAll('.hen-card-time').forEach(function(el) {
+            var card = el.closest('.hen-card');
+            if (!card) return;
+            if (card.dataset.timestamp) el.textContent = timeAgo(card.dataset.timestamp);
+        });
+    }
+
+    function startCardTimeUpdates() {
+        updateCardTimes();
+        if (cardTimeTimer) clearInterval(cardTimeTimer);
+        cardTimeTimer = setInterval(updateCardTimes, 30000);
+    }
+
+    function stopCardTimeUpdates() {
+        if (cardTimeTimer) {
+            clearInterval(cardTimeTimer);
+            cardTimeTimer = null;
+        }
     }
 
     function init() {
@@ -2607,6 +2729,30 @@ const HenMode = (() => {
             setViewerAddress(e.newValue, 'my tezos ' + shortAddr(e.newValue));
         });
 
+        // Entering the [data-theme="hen"] dashboard echoes the overlay's boot with a quick scanline flash.
+        var lastKnownTheme = document.body.getAttribute('data-theme');
+        function playThemeFlash() {
+            try {
+                if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+            } catch (_) {}
+            var existing = document.getElementById('hen-theme-flash');
+            if (existing) existing.remove();
+            var flash = document.createElement('div');
+            flash.id = 'hen-theme-flash';
+            flash.className = 'hen-theme-flash';
+            document.body.appendChild(flash);
+            setTimeout(function() { if (flash && flash.parentNode) flash.remove(); }, 700);
+        }
+        window.addEventListener('themechange', function(e) {
+            var detail = e.detail || {};
+            if (detail.isPreview) return;
+            var next = detail.theme || document.body.getAttribute('data-theme');
+            if (next === 'hen' && lastKnownTheme && lastKnownTheme !== 'hen' && !isActive) {
+                playThemeFlash();
+            }
+            lastKnownTheme = next;
+        });
+
         var expClose = document.querySelector('.hen-expanded-close');
         if (expClose) expClose.addEventListener('click', function() {
             closeExpanded();
@@ -2688,6 +2834,7 @@ const HenMode = (() => {
                 closeExpanded();
                 return;
             }
+            if (expandedActive) return;
             if (e.key === 'Escape') {
                 var output = document.getElementById('hen-cli-output');
                 if (output && output.classList.contains('visible')) {
@@ -2727,14 +2874,6 @@ const HenMode = (() => {
             }
         });
 
-        // Live-updating timestamps every 30s
-        setInterval(function() {
-            document.querySelectorAll('.hen-card-time').forEach(function(el) {
-                var card = el.closest('.hen-card');
-                if (!card) return;
-                if (card.dataset.timestamp) el.textContent = timeAgo(card.dataset.timestamp);
-            });
-        }, 30000);
     }
 
     return { init: init, activate: activate, deactivate: deactivate, isActive: function() { return isActive; } };

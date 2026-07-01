@@ -2,6 +2,21 @@
    HEN MODE — hic et nunc art discovery view
    ═══════════════════════════════════════════════════ */
 
+/* ── Shared HEN tokens: single source of truth for HEN mode + [data-theme="hen"] ── */
+:root {
+    --hen-bg: #111;
+    --hen-bg-deep: #0a0a0a;
+    --hen-panel: #0f0f0f;
+    --hen-ink: #e0e0e0;
+    --hen-cyan: #00d4ff;
+    --hen-green: #00ff88;
+    --hen-amber: #ffb432;
+    --hen-red: #ff5470;
+    --hen-line: #222;
+    --hen-mono: 'JetBrains Mono', monospace;
+    --hen-scanline: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 0, 0, 0.08) 2px, rgba(0, 0, 0, 0.08) 4px);
+}
+
 /* ── Base Layer ── */
 .corner-gift-tray {
     position: fixed;
@@ -90,7 +105,7 @@
     background:
         radial-gradient(circle at 32% 24%, rgba(255, 255, 255, 0.14), transparent 28%),
         rgba(17, 17, 17, 0.62);
-    color: #e0e0e0;
+    color: var(--hen-ink);
     text-decoration: none;
     cursor: pointer;
     isolation: isolate;
@@ -123,7 +138,7 @@
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: #00ff88;
+    background: var(--hen-green);
     box-shadow: 0 0 10px rgba(0, 255, 136, 0.8);
     opacity: 0.72;
 }
@@ -427,7 +442,7 @@
     inset: 0;
     z-index: 10000;
     background: #111;
-    color: #e0e0e0;
+    color: var(--hen-ink);
     font-family: 'JetBrains Mono', monospace;
     overflow: hidden;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
@@ -456,7 +471,7 @@
     justify-content: center;
     flex-direction: column;
     font-family: 'JetBrains Mono', monospace;
-    color: #00d4ff;
+    color: var(--hen-cyan);
     font-size: 0.85rem;
     letter-spacing: 0.05em;
     opacity: 0;
@@ -477,7 +492,7 @@
     display: inline-block;
     width: 8px;
     height: 14px;
-    background: #00d4ff;
+    background: var(--hen-cyan);
     animation: hen-blink 0.6s step-end infinite;
     margin-left: 4px;
     vertical-align: middle;
@@ -502,14 +517,14 @@
     gap: 8px;
     font-size: 1rem;
     font-weight: 700;
-    color: #e0e0e0;
+    color: var(--hen-ink);
     letter-spacing: 0.08em;
 }
 .hen-logo::after {
     content: '';
     width: 6px;
     height: 6px;
-    background: #ffb432;
+    background: var(--hen-amber);
     border-radius: 50%;
     opacity: 0.42;
     box-shadow: 0 0 10px rgba(255,180,50,0.44);
@@ -522,7 +537,7 @@
     50% { opacity: 1; transform: scale(1.18); }
 }
 .hen-logo span {
-    color: #00d4ff;
+    color: var(--hen-cyan);
 }
 .hen-source-tabs {
     display: inline-flex;
@@ -556,7 +571,7 @@
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background: #ffb432;
+    background: var(--hen-amber);
     opacity: 0;
     transform: scale(0.6);
 }
@@ -570,11 +585,11 @@
 }
 .hen-source-tab:hover,
 .hen-source-tab:focus-visible {
-    color: #00d4ff;
+    color: var(--hen-cyan);
 }
 .hen-source-tab.active {
     background: rgba(0,212,255,0.12);
-    color: #00d4ff;
+    color: var(--hen-cyan);
     box-shadow: inset 0 0 0 1px rgba(0,212,255,0.22);
 }
 .hen-mint-count {
@@ -596,7 +611,7 @@
     transition: color 0.15s, border-color 0.15s;
 }
 .hen-close:hover {
-    color: #e0e0e0;
+    color: var(--hen-ink);
     border-color: #555;
 }
 .hen-status-strip {
@@ -623,10 +638,10 @@
     display: none;
 }
 .hen-status-strip.has-filters {
-    color: #00d4ff;
+    color: var(--hen-cyan);
 }
 .hen-status-strip.is-live-paused {
-    color: #ffb432;
+    color: var(--hen-amber);
 }
 .hen-status-line {
     position: static;
@@ -648,7 +663,7 @@
     min-height: 28px;
     border: 1px solid rgba(0,212,255,0.34);
     background: #101010;
-    color: #00d4ff;
+    color: var(--hen-cyan);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.62rem;
     font-weight: 800;
@@ -661,7 +676,7 @@
 .hen-mobile-filter-toggle:hover {
     outline: none;
     border-color: rgba(0,255,136,0.58);
-    color: #00ff88;
+    color: var(--hen-green);
 }
 .hen-filterbar {
     display: flex;
@@ -674,6 +689,10 @@
     overflow-y: hidden;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+}
+.hen-filterbar {
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
 }
 .hen-filterbar::-webkit-scrollbar {
     display: none;
@@ -717,7 +736,7 @@
 .hen-filter-chip:focus-visible,
 .hen-filter-toggle:focus-visible,
 .hen-filter-icon:focus-visible {
-    color: #00d4ff;
+    color: var(--hen-cyan);
     border-color: rgba(0,212,255,0.45);
     outline: none;
 }
@@ -726,7 +745,7 @@
 .hen-filter-icon.active {
     color: #07140d;
     border-color: rgba(0,255,136,0.65);
-    background: #00ff88;
+    background: var(--hen-green);
     box-shadow: 0 0 14px rgba(0,255,136,0.18);
 }
 .hen-filter-chip:disabled {
@@ -746,7 +765,7 @@
     height: 26px;
     border: 1px solid #242424;
     background: #090909;
-    color: #e0e0e0;
+    color: var(--hen-ink);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.62rem;
     padding: 0 8px;
@@ -798,17 +817,17 @@
 }
 .hen-wallet-primary {
     border-color: rgba(0,255,136,0.45);
-    background: #00ff88;
+    background: var(--hen-green);
     color: #07140d;
     box-shadow: 0 0 14px rgba(0,255,136,0.16);
 }
 .hen-wallet-primary.is-connected {
     background: #101010;
-    color: #00ff88;
+    color: var(--hen-green);
 }
 .hen-wallet-button:hover,
 .hen-wallet-button:focus-visible {
-    color: #00d4ff;
+    color: var(--hen-cyan);
     border-color: rgba(0,212,255,0.42);
 }
 .hen-wallet-button:disabled {
@@ -839,7 +858,7 @@
     box-shadow: 0 14px 34px rgba(0,0,0,0.28);
 }
 .hen-loop-hint strong {
-    color: #00ff88;
+    color: var(--hen-green);
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
@@ -855,7 +874,7 @@
 .hen-loop-hint button:hover,
 .hen-loop-hint button:focus-visible {
     border-color: rgba(0,255,136,0.56);
-    color: #00ff88;
+    color: var(--hen-green);
     outline: none;
 }
 
@@ -879,7 +898,7 @@
     height: 22px;
     margin: -2px 0 8px;
     pointer-events: none;
-    color: #ffb432;
+    color: var(--hen-amber);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.58rem;
     font-weight: 800;
@@ -935,7 +954,7 @@
     flex: 0 0 44px;
     border: 1px solid #252525;
     background: #090909;
-    color: #00d4ff;
+    color: var(--hen-cyan);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -989,7 +1008,7 @@
 }
 .hen-profile-head strong {
     display: block;
-    color: #e0e0e0;
+    color: var(--hen-ink);
     font-size: 0.82rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1011,7 +1030,7 @@
 .hen-profile-head > a {
     border: 1px solid #242424;
     background: #101010;
-    color: #00d4ff;
+    color: var(--hen-cyan);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.58rem;
     font-weight: 700;
@@ -1042,7 +1061,7 @@
 }
 .hen-profile-metric strong {
     display: block;
-    color: #00ff88;
+    color: var(--hen-green);
     font-size: 0.82rem;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1244,7 +1263,7 @@
 }
 .hen-card-creator {
     font-size: 0.65rem;
-    color: #00d4ff;
+    color: var(--hen-cyan);
     letter-spacing: 0.02em;
     margin-bottom: 3px;
     white-space: nowrap;
@@ -1253,7 +1272,7 @@
 }
 .hen-card-title {
     font-size: 0.82rem;
-    color: #e0e0e0;
+    color: var(--hen-ink);
     font-weight: 600;
     letter-spacing: 0;
     margin-bottom: 4px;
@@ -1269,7 +1288,7 @@
     color: #8a8a8a;
 }
 .hen-card-price {
-    color: #00ff88;
+    color: var(--hen-green);
     font-weight: 600;
 }
 .hen-card-editions {
@@ -1292,7 +1311,7 @@
     padding: 3px 7px;
     border: 1px solid rgba(0,255,136,0.42);
     background: rgba(5, 18, 11, 0.86);
-    color: #00ff88;
+    color: var(--hen-green);
     font-size: 0.66rem;
     font-weight: 800;
     box-shadow: 0 0 18px rgba(0,255,136,0.18);
@@ -1311,7 +1330,7 @@
     top: 38px;
     z-index: 4;
     color: #07140d;
-    background: #00ff88;
+    background: var(--hen-green);
     font-size: 0.5rem;
     font-weight: 900;
     letter-spacing: 0.08em;
@@ -1362,7 +1381,7 @@
     top: 6px;
     right: 42px;
     background: rgba(0,0,0,0.7);
-    color: #00d4ff;
+    color: var(--hen-cyan);
     font-size: 0.55rem;
     padding: 2px 5px;
     letter-spacing: 0.04em;
@@ -1374,7 +1393,7 @@
     left: 6px;
     z-index: 3;
     background: rgba(0,0,0,0.72);
-    color: #00d4ff;
+    color: var(--hen-cyan);
     border: 1px solid rgba(0,212,255,0.28);
     font-size: 0.52rem;
     padding: 2px 5px;
@@ -1382,7 +1401,7 @@
     font-weight: 700;
 }
 .hen-card-source-objkt {
-    color: #00ff88;
+    color: var(--hen-green);
     border-color: rgba(0,255,136,0.28);
 }
 .hen-card-owned {
@@ -1410,7 +1429,7 @@
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 10003;
+    z-index: 10010;
     background: rgba(0,0,0,0.92);
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
@@ -1447,13 +1466,13 @@
 .hen-expanded-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #e0e0e0;
+    color: var(--hen-ink);
     margin-bottom: 6px;
     margin-top: 8px;
 }
 .hen-expanded-creator {
     font-size: 0.78rem;
-    color: #00d4ff;
+    color: var(--hen-cyan);
     margin-bottom: 8px;
 }
 .hen-expanded-details {
@@ -1465,14 +1484,14 @@
     margin: 0 8px;
 }
 .hen-expanded-owned {
-    color: #00ff88;
+    color: var(--hen-green);
 }
 .hen-expanded-collect {
     position: relative;
     z-index: 0;
     display: inline-block;
-    background: #00d4ff;
-    border: 1px solid #00d4ff;
+    background: var(--hen-cyan);
+    border: 1px solid var(--hen-cyan);
     color: #061115;
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.75rem;
@@ -1485,8 +1504,8 @@
     transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
 }
 .hen-expanded-collect.is-listed {
-    background: #00ff88;
-    border-color: #00ff88;
+    background: var(--hen-green);
+    border-color: var(--hen-green);
     color: #07140d;
     box-shadow: 0 0 22px rgba(0,255,136,0.22);
 }
@@ -1522,7 +1541,7 @@
     transition: color 0.15s, border-color 0.15s;
 }
 .hen-expanded-secondary:hover {
-    color: #00ff88;
+    color: var(--hen-green);
     border-color: rgba(0,255,136,0.45);
 }
 .hen-expanded-primary-actions {
@@ -1566,7 +1585,7 @@
 }
 .hen-expanded-creator-mini strong {
     display: block;
-    color: #e0e0e0;
+    color: var(--hen-ink);
     font-size: 0.72rem;
 }
 .hen-expanded-creator-mini small {
@@ -1587,7 +1606,7 @@
     font-family: 'JetBrains Mono', monospace;
 }
 .hen-expanded-close:hover {
-    color: #e0e0e0;
+    color: var(--hen-ink);
 }
 
 /* ── Command Bar ── */
@@ -1601,7 +1620,7 @@
     font-family: 'JetBrains Mono', monospace;
 }
 .hen-cli-prompt {
-    color: #00d4ff;
+    color: var(--hen-cyan);
     font-size: 0.78rem;
     margin-right: 8px;
     user-select: none;
@@ -1611,11 +1630,11 @@
     background: none;
     border: none;
     outline: none;
-    color: #e0e0e0;
+    color: var(--hen-ink);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.78rem;
     letter-spacing: 0.03em;
-    caret-color: #00d4ff;
+    caret-color: var(--hen-cyan);
 }
 .hen-cli-input::placeholder {
     color: #737373;
@@ -1650,7 +1669,7 @@
     transform: translateY(0);
 }
 .hen-cli-line.is-command {
-    color: #00d4ff;
+    color: var(--hen-cyan);
 }
 .hen-cli-line.is-detail {
     color: #777;
@@ -1693,7 +1712,7 @@
 }
 .hen-now-playing-copy span {
     display: block;
-    color: #ffb432;
+    color: var(--hen-amber);
     font-size: 0.58rem;
     font-weight: 900;
     letter-spacing: 0.12em;
@@ -1751,7 +1770,7 @@
 .hen-empty-card button {
     border: 1px solid rgba(0,255,136,0.44);
     background: #101010;
-    color: #00ff88;
+    color: var(--hen-green);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.62rem;
     font-weight: 800;
@@ -1816,6 +1835,8 @@
         background: rgba(8, 10, 10, 0.97);
         overflow: visible;
         box-sizing: border-box;
+        mask-image: none;
+        -webkit-mask-image: none;
     }
     .hen-status-strip.mobile-filters-open .hen-wallet-controls {
         position: static;
@@ -1968,8 +1989,8 @@ body.hen-active {
 }
 .hen-mint-pulse.is-sticky {
     color: #07140d;
-    background: #ffb432;
-    border-color: #ffb432;
+    background: var(--hen-amber);
+    border-color: var(--hen-amber);
 }
 
 /* ── v2: Expanded view additions ── */
@@ -1992,7 +2013,7 @@ body.hen-active {
     transition: color 0.15s, border-color 0.15s;
 }
 .hen-expanded-share:hover {
-    color: #e0e0e0;
+    color: var(--hen-ink);
     border-color: #555;
 }
 .hen-clickable-artist {
@@ -2000,7 +2021,7 @@ body.hen-active {
     transition: color 0.15s;
 }
 .hen-clickable-artist:hover {
-    color: #00ff88;
+    color: var(--hen-green);
     text-decoration: underline;
 }
 
@@ -2072,13 +2093,7 @@ body.hen-active {
     inset: 0;
     pointer-events: none;
     z-index: 10004;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0,0,0,0.03) 2px,
-        rgba(0,0,0,0.03) 4px
-    );
+    background: var(--hen-scanline);
 }
 .hen-overlay.hen-crt-heavy::after {
     background: repeating-linear-gradient(
@@ -2190,7 +2205,7 @@ body.hen-active {
 
 /* 11. Keyboard nav highlight */
 .hen-card.hen-focused::after {
-    border-color: #00d4ff !important;
+    border-color: var(--hen-cyan) !important;
     animation: none !important;
 }
 
@@ -2246,4 +2261,24 @@ body.hen-active {
 /* 4. Keep the escape hatch visible */
 .hen-close {
     display: flex;
+}
+
+/* ── Theme activation flash: entering [data-theme="hen"] echoes the overlay boot ── */
+.hen-theme-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 99998;
+    pointer-events: none;
+    background:
+        var(--hen-scanline),
+        linear-gradient(180deg, rgba(0, 212, 255, 0.14), transparent 55%);
+    animation: hen-theme-flash-anim 0.62s ease-out forwards;
+}
+@keyframes hen-theme-flash-anim {
+    0% { opacity: 0; }
+    22% { opacity: 1; }
+    100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .hen-theme-flash { display: none; }
 }
