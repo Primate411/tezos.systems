@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-06-30',
         entries: [
+            { type: '🔧', text: 'Mobile command search now keeps a 16px focused input so iOS browsers do not zoom the page after tapping the search bar' },
             { type: '🔧', text: 'Network Health now shows a moving Chamber loader every time the room opens while live health data syncs' },
             { type: '🎨', text: 'The first-screen Continuity proof now leads with live fork-free days, self-amendment count, and zero hard forks' },
             { type: '🔧', text: 'My Tezos now stays in the drawer instead of reserving homepage space with a persistent address tracker' },

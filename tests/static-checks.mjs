@@ -971,6 +971,9 @@ async function checkSelectorContracts() {
   for (const retiredSearchCopy of ['Wallet/.tez', 'wallet/domain retrieval surface', 'TzKT boundary', 'No Tezos.Systems room']) {
     if (search.includes(retiredSearchCopy)) fail(`hero search should not retain confusing copy: ${retiredSearchCopy}`);
   }
+  if (!/@media \(max-width: 768px\)[\s\S]*?\.hero-search-input\s*\{[\s\S]*?font-size:\s*16px;/.test(heroSearchCss)) {
+    fail('mobile hero search input must keep 16px text to avoid iOS focus zoom');
+  }
   if (index.includes('top-continuity-proof-item') || styles.includes('.top-continuity-proof-item')) {
     fail('top header uptime badge should not retain the old Zero Forks / Zero Outages proof stamps');
   }

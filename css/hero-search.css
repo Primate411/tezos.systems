@@ -2036,8 +2036,11 @@ body.hero-search-mode .main-content {
     }
 
     .hero-search-input {
-        height: 35px;
-        font-size: 0.78rem;
+        height: 40px;
+        padding-inline: 0.56rem;
+        /* iOS zooms focused form controls whose computed text is under 16px. */
+        font-size: 16px;
+        line-height: 1.2;
     }
 
     .hero-search-chip {
@@ -2165,7 +2168,7 @@ body.hero-search-mode .main-content {
 
 @media (max-width: 480px) {
     .hero-search-input {
-        font-size: 0.74rem;
+        font-size: 16px;
     }
 
     .hero-result-copy span {

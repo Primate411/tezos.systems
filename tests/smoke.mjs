@@ -3126,6 +3126,51 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(loopState.activeCards === 1 && loopState.activeChips === 1, `hero command bar: Tezos loop active state mismatch ${JSON.stringify(loopState)}`);
 
   await context.close();
+
+  const mobileContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 3,
+    hasTouch: true,
+    isMobile: true,
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(mobileContext);
+  await mobileContext.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const mobilePage = await mobileContext.newPage();
+  attachIssueCollectors(mobilePage, 'hero command bar mobile focus', issues);
+  const mobileResponse = await mobilePage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  assert(mobileResponse?.ok(), `hero command bar mobile focus: dashboard failed with HTTP ${mobileResponse?.status()}`);
+  await mobilePage.locator('#hero-search-input').waitFor({ state: 'visible', timeout: 10000 });
+  const mobileBeforeFocus = await mobilePage.evaluate(() => ({
+    scale: window.visualViewport?.scale || 1,
+    scrollWidth: document.documentElement.scrollWidth
+  }));
+  await mobilePage.locator('#hero-search-input').focus();
+  await mobilePage.waitForFunction(() => document.activeElement?.id === 'hero-search-input', null, { timeout: 5000 });
+  const mobileFocusState = await mobilePage.evaluate((before) => {
+    const input = document.getElementById('hero-search-input');
+    const inputRect = input?.getBoundingClientRect();
+    return {
+      beforeScale: before.scale,
+      beforeScrollWidth: before.scrollWidth,
+      fontSize: input ? Number.parseFloat(getComputedStyle(input).fontSize) : 0,
+      inputRight: inputRect ? Math.round(inputRect.right) : 0,
+      scale: window.visualViewport?.scale || 1,
+      scrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth
+    };
+  }, mobileBeforeFocus);
+  assert(mobileFocusState.fontSize >= 16, `hero command bar mobile focus: input font must stay at least 16px, saw ${JSON.stringify(mobileFocusState)}`);
+  assert(Math.abs(mobileFocusState.scale - mobileFocusState.beforeScale) < 0.01, `hero command bar mobile focus: focus changed viewport scale ${JSON.stringify(mobileFocusState)}`);
+  assert(mobileFocusState.scrollWidth <= mobileFocusState.beforeScrollWidth + 1, `hero command bar mobile focus: focus widened the page ${JSON.stringify(mobileFocusState)}`);
+  assert(mobileFocusState.inputRight <= mobileFocusState.viewportWidth + 1, `hero command bar mobile focus: input overflows viewport ${JSON.stringify(mobileFocusState)}`);
+  await mobileContext.close();
+
   assert(issues.length === 0, `hero command bar browser issues:\n${issues.join('\n')}`);
   log('ok - hero command bar smoke');
 }
