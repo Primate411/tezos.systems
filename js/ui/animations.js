@@ -4,7 +4,7 @@
  */
 
 import { debugLog } from '../core/utils.js';
-import { tweenNumber, revealValue, pulseFresh } from '../effects/data-magic.js';
+import { tweenNumber, revealValue, setMagicNumber, pulseFresh } from '../effects/data-magic.js';
 
 // Import arcade effects (dynamic to avoid circular dependency)
 let arcadeEffects = null;
@@ -113,7 +113,10 @@ export async function flipCard(cardElement, newValue, formatter) {
                 // Update front face
                 const frontValue = cardElement.querySelector(`#${statType}-front`);
                 if (frontValue) {
-                    frontValue.textContent = formattedValue;
+                    setMagicNumber(frontValue, formattedValue, {
+                        force: true,
+                        animateInitial: true
+                    });
                     clearLoadingState(frontValue);
                 }
 

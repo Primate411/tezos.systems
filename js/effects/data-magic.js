@@ -23,6 +23,23 @@ const TWEEN_DEFAULT_MS = 900;
 const SCRAMBLE_DEFAULT_MS = 700;
 const FOCUS_DEFAULT_MS = 500;
 const DEFAULT_GLYPHS = '0123456789ABCDEFXTZ$#%◆◇▲▼⬡ꜩ';
+const MAGIC_NUMBER_MIN_FONT_PX = 16;
+const MAGIC_NUMBER_UNITS = [
+    'k', 'm', 'b', 't', 'ms', 's', 'sec', 'secs', 'second', 'seconds',
+    'min', 'mins', 'minute', 'minutes', 'h', 'hr', 'hrs', 'hour', 'hours',
+    'd', 'day', 'days', 'y', 'yr', 'yrs', 'year', 'years',
+    'xtz', 'tez', 'ꜩ', 'ctez', 'tzbtc', 'xtz/min',
+    'block', 'blocks', 'baker', 'bakers', 'vote', 'votes', 'ballot', 'ballots',
+    'row', 'rows', 'op', 'ops', 'tx', 'txs', 'source', 'sources',
+    'account', 'accounts', 'contract', 'contracts', 'domain', 'domains',
+    'name', 'names', 'event', 'events', 'oven', 'ovens', 'cycle', 'cycles',
+    'epoch', 'epochs'
+].join('|');
+const MAGIC_NUMBER_RE = new RegExp(
+    '^[\\s~≈<>+\\-−–—$€£¥ꜩ#%.,:/()]*\\d[\\d\\s~≈<>+\\-−–—$€£¥ꜩ#%.,:/()]*' +
+    `(?:\\s*(?:${MAGIC_NUMBER_UNITS}))?$`,
+    'i'
+);
 
 /**
  * Effect personality per theme.
@@ -81,6 +98,16 @@ function easeOutExpo(t) {
 function dmWrite(el, str) {
     el.__dmLastWrite = str;
     el.textContent = str;
+}
+
+function cancelMagic(el) {
+    if (!el) return;
+    if (el.__dmMagicCancel) {
+        el.__dmMagicCancel();
+        el.__dmMagicCancel = null;
+    }
+    if (el.__dmTweenCancel) el.__dmTweenCancel();
+    if (el.__dmScrambleCancel) el.__dmScrambleCancel();
 }
 
 function applyFlair(el, personality) {
@@ -266,6 +293,88 @@ export function revealValue(el, finalText, opts = {}) {
         : scrambleText(el, finalText, opts);
 }
 
+function hasNumericText(text) {
+    return /-?\d/.test(String(text || ''));
+}
+
+function isMagicNumberText(text) {
+    const value = String(text || '').trim();
+    if (!hasNumericText(value) || value.length > 32) return false;
+    return MAGIC_NUMBER_RE.test(value);
+}
+
+function isMagicDisabled(el) {
+    return Boolean(el?.closest?.([
+        '[data-magic="off"]',
+        '[data-magic-number="minor"]',
+        '[data-live-countdown]',
+        '[data-hot-live="clock"]',
+        '[data-health-age]',
+        '#hero-chain-uptime-counter',
+        '#chain-uptime-counter',
+        '.uptime-counter',
+        '.loading',
+        '.error-state'
+    ].join(', ')));
+}
+
+function isMajorMagicTarget(el, opts = {}) {
+    if (!el || isMagicDisabled(el) || el.matches?.(MAGIC_EXCLUDE)) return false;
+    if (opts.force || opts.major || el.dataset.magicNumber === 'major') return true;
+    const minFontPx = opts.minFontPx ?? MAGIC_NUMBER_MIN_FONT_PX;
+    const fontSize = parseFloat(window.getComputedStyle?.(el)?.fontSize || '0');
+    return Number.isFinite(fontSize) && fontSize >= minFontPx;
+}
+
+/**
+ * Theme-aware setter for prominent live numeric text. This is the preferred
+ * write path for realtime values big enough to make motion useful.
+ */
+export function setMagicNumber(el, finalText, opts = {}) {
+    if (!el) return false;
+    const text = finalText == null ? '' : String(finalText);
+    const previousText = el.__dmMagicFinalText ?? el.textContent.trim();
+    const unchanged = !opts.changed && previousText === text;
+    el.__dmMagicFinalText = text;
+
+    if (unchanged) {
+        opts.onDone?.();
+        return false;
+    }
+
+    if (!isMagicNumberText(text) || opts.animate === false || isHidden() || !isMajorMagicTarget(el, opts)) {
+        cancelMagic(el);
+        dmWrite(el, text);
+        opts.onDone?.();
+        return false;
+    }
+
+    if (opts.animateInitial === false && isPlaceholderText(previousText)) {
+        cancelMagic(el);
+        dmWrite(el, text);
+        opts.onDone?.();
+        return false;
+    }
+
+    cancelMagic(el);
+    injectStyles();
+    if (!inViewport(el)) {
+        dmWrite(el, text);
+        queueVisibleMagic(el, text, opts);
+        opts.onDone?.();
+        return false;
+    }
+    const cancel = revealValue(el, text, {
+        duration: opts.duration,
+        onDone: () => {
+            el.__dmMagicCancel = null;
+            opts.onDone?.();
+        }
+    });
+    el.__dmMagicCancel = cancel;
+    return true;
+}
+
 /**
  * One-shot accent shimmer sweep across an element — "this value is fresh."
  * No-op under reduced motion.
@@ -299,18 +408,67 @@ export function blockTick(el) {
 // no wiring required.
 
 // Per-second tickers must never animate: a reveal would settle on stale text.
-const MAGIC_EXCLUDE = '[data-live-countdown], [data-hot-live="clock"], .loading, .error-state';
+const MAGIC_EXCLUDE = [
+    '[data-live-countdown]',
+    '[data-hot-live="clock"]',
+    '[data-health-age]',
+    '#hero-chain-uptime-counter',
+    '#chain-uptime-counter',
+    '.uptime-counter',
+    '.loading',
+    '.error-state'
+].join(', ');
 const MAGIC_TEXT_SELECTORS = [
     '#proposal-description', '#voting-description', '#participation-description',
     '#cycle-description', '#tz4-description',
     '[data-hot-live]',
     '#chamber-entry-mini', '.chamber-entry-metric strong', '#chamber-entry-hero span',
     '.chamber-now-card strong', '.lb-metric-grid strong', '.tezlink-entry-metric strong',
+    '.td-entry-metric strong', '.td-pulse-metric strong',
+    '.ctez-console-metric strong', '.ctez-summary-strip strong', '.ctez-selected-summary strong',
+    '.ledger-flow-detail-metrics strong',
+    '.top-continuity-stat strong', '.stat-value', '.network-health-score',
+    '.drawer-operator-value', '.my-baker-stat-value', '.rt-accent',
     '[data-magic-text]'
+].join(', ');
+const MAGIC_NUMBER_CANDIDATE_SELECTORS = [
+    'span', 'strong', 'b', 'em', 'output', 'code', 'td', 'th',
+    '[class*="value"]', '[class*="number"]', '[class*="count"]', '[class*="metric"]',
+    '[class*="score"]', '[class*="amount"]', '[class*="power"]', '[class*="percent"]',
+    '[class*="pct"]', '[class*="rate"]', '[class*="tvl"]', '[class*="ema"]',
+    '[class*="balance"]', '[class*="debt"]', '[class*="total"]', '[class*="share"]',
+    '[id*="value"]', '[id*="number"]', '[id*="count"]', '[id*="metric"]',
+    '[id*="score"]', '[id*="amount"]', '[id*="power"]', '[id*="percent"]',
+    '[id*="pct"]', '[id*="rate"]', '[id*="tvl"]', '[id*="ema"]',
+    '[id*="balance"]', '[id*="debt"]', '[id*="total"]', '[id*="share"]'
+].join(', ');
+const MAGIC_NUMBER_SCOPE_SELECTORS = [
+    '#chambers-section',
+    '#chambers-grid',
+    '.chamber-entry-card',
+    '.chamber-card-pair',
+    '.chamber-content',
+    '.chamber-body',
+    '.chamber-now-card',
+    '.lb-panel',
+    '.health-panel',
+    '.tezlink-panel',
+    '.etherlink-gov-panel',
+    '.tz4-panel',
+    '.ctez-console-shell',
+    '.ctez-summary-strip',
+    '.ctez-selected-summary',
+    '.ledger-flow-panel',
+    '.tezos-domains-body',
+    '.td-panel',
+    '.td-pulse-grid',
+    '#protocol-history-chamber-modal'
 ].join(', ');
 
 let magicObserver = null;
+let magicVisibilityObserver = null;
 const lastSeenText = new WeakMap();
+const pendingVisibleText = new WeakMap();
 
 function isPlaceholderText(text) {
     return !text || text === '---' || text === '--' || text === '—';
@@ -321,22 +479,95 @@ function inViewport(el) {
     return rect.width > 0 && rect.bottom > 0 && rect.top < window.innerHeight;
 }
 
+function ensureMagicVisibilityObserver() {
+    if (magicVisibilityObserver || typeof IntersectionObserver === 'undefined') return magicVisibilityObserver;
+    magicVisibilityObserver = new IntersectionObserver((entries) => {
+        for (const entry of entries) {
+            if (!entry.isIntersecting) continue;
+            const el = entry.target;
+            const pending = pendingVisibleText.get(el);
+            if (!pending) {
+                magicVisibilityObserver.unobserve(el);
+                continue;
+            }
+            const text = el.textContent.trim();
+            pendingVisibleText.delete(el);
+            magicVisibilityObserver.unobserve(el);
+            if (text !== pending.text || isHidden() || prefersReducedMotion() || !isMajorMagicTarget(el, pending.opts)) continue;
+            cancelMagic(el);
+            const cancel = revealValue(el, text, {
+                duration: pending.opts?.duration,
+                onDone: () => {
+                    el.__dmMagicCancel = null;
+                }
+            });
+            el.__dmMagicCancel = cancel;
+        }
+    }, { root: null, threshold: 0.2 });
+    return magicVisibilityObserver;
+}
+
+function queueVisibleMagic(el, text, opts = {}) {
+    if (!el || opts.queue === false || isHidden() || prefersReducedMotion()) return false;
+    const observer = ensureMagicVisibilityObserver();
+    if (!observer) return false;
+    pendingVisibleText.set(el, { text, opts });
+    observer.observe(el);
+    return true;
+}
+
+function isLeafMagicNumberCandidate(el) {
+    if (!el || el.nodeType !== 1 || el.children.length > 0 || el.matches(MAGIC_EXCLUDE)) return false;
+    const text = el.textContent.trim();
+    return !isPlaceholderText(text) && isMagicNumberText(text) && isMajorMagicTarget(el);
+}
+
+function isMagicNumberScope(el) {
+    return Boolean(el?.matches?.(MAGIC_NUMBER_SCOPE_SELECTORS) || el?.closest?.(MAGIC_NUMBER_SCOPE_SELECTORS));
+}
+
+function collectScopedMagicNumbers(touched, root) {
+    if (!root?.querySelectorAll || !isMagicNumberScope(root)) return;
+    for (const el of root.querySelectorAll('*')) {
+        if (isLeafMagicNumberCandidate(el)) touched.add(el);
+    }
+}
+
+function addMagicTouch(touched, el) {
+    if (!el || el.nodeType !== 1 || !el.closest) return;
+    const explicitTarget = el.closest(MAGIC_TEXT_SELECTORS);
+    if (explicitTarget) {
+        touched.add(explicitTarget);
+        return;
+    }
+    if (isLeafMagicNumberCandidate(el)) touched.add(el);
+}
+
+function collectAddedMagicTargets(touched, added) {
+    if (added.nodeType === 3) {
+        addMagicTouch(touched, added.parentElement);
+        return;
+    }
+    if (added.nodeType !== 1) return;
+    if (added.matches?.(MAGIC_TEXT_SELECTORS) || isLeafMagicNumberCandidate(added)) touched.add(added);
+    if (added.querySelectorAll) {
+        for (const el of added.querySelectorAll(MAGIC_TEXT_SELECTORS)) touched.add(el);
+        for (const el of added.querySelectorAll(MAGIC_NUMBER_CANDIDATE_SELECTORS)) {
+            if (isLeafMagicNumberCandidate(el)) touched.add(el);
+        }
+        collectScopedMagicNumbers(touched, added);
+    }
+}
+
 function onMagicMutations(mutations) {
     const touched = new Set();
     for (const m of mutations) {
         const node = m.target.nodeType === 3 ? m.target.parentElement : m.target;
-        if (node && node.nodeType === 1 && node.closest) {
-            const el = node.closest(MAGIC_TEXT_SELECTORS);
-            if (el) touched.add(el);
-        }
+        addMagicTouch(touched, node);
         // innerHTML renders (the chamber pattern) insert whole subtrees: the
         // matching elements arrive inside addedNodes, never as the target.
         for (const added of m.addedNodes) {
-            if (added.nodeType !== 1) continue;
-            if (added.matches?.(MAGIC_TEXT_SELECTORS)) touched.add(added);
-            if (added.querySelectorAll) {
-                for (const el of added.querySelectorAll(MAGIC_TEXT_SELECTORS)) touched.add(el);
-            }
+            collectAddedMagicTargets(touched, added);
         }
     }
     let staggerIndex = 0;
@@ -352,10 +583,23 @@ function onMagicMutations(mutations) {
         // Unchanged rewrites (features often re-set identical text every refresh).
         if (lastSeenText.get(el) === text) continue;
         lastSeenText.set(el, text);
-        if (!inViewport(el)) continue; // off-screen: adopt silently
         const delay = Math.min(staggerIndex++, 8) * 60;
-        if (delay > 0) setTimeout(() => revealValue(el, text), delay);
-        else revealValue(el, text);
+        const reveal = () => {
+            if (isMagicNumberText(text)) {
+                setMagicNumber(el, text, { animateInitial: true, changed: true });
+            } else {
+                revealValue(el, text);
+            }
+        };
+        if (!inViewport(el)) {
+            if (isMagicNumberText(text)) {
+                queueVisibleMagic(el, text, { animateInitial: true, changed: true });
+            }
+        } else if (delay > 0) {
+            setTimeout(reveal, delay);
+        } else {
+            reveal();
+        }
     }
 }
 
@@ -456,7 +700,11 @@ export function injectStyles() {
             '55%{transform:translateY(-0.06em)}100%{transform:translateY(0);opacity:1;filter:brightness(1)}}',
         // Understated blur-to-sharp reveal (classic themes + aurora/void)
         '.dm-focus-in{animation:dmFocusIn var(--dm-focus-ms,500ms) cubic-bezier(0.22,1,0.36,1)}',
-        '@keyframes dmFocusIn{0%{filter:blur(7px);opacity:0.25}100%{filter:blur(0);opacity:1}}',
+        '@keyframes dmFocusIn{0%{filter:blur(10px) brightness(1.45);opacity:0.08;' +
+            'text-shadow:0 0 20px rgba(var(--accent-rgb,0,212,255),0.55)}' +
+            '42%{filter:blur(2px) brightness(1.18);opacity:1;' +
+            'text-shadow:0 0 14px rgba(var(--accent-rgb,0,212,255),0.38)}' +
+            '100%{filter:blur(0) brightness(1);opacity:1;text-shadow:0 0 0 rgba(var(--accent-rgb,0,212,255),0)}}',
         // Flair: CRT glow flicker (matrix)
         '.dm-crt{animation:dmCrt 0.12s steps(2) infinite;text-shadow:0 0 6px rgba(var(--accent-rgb,0,255,65),0.55)}',
         '@keyframes dmCrt{0%{opacity:1}100%{opacity:0.88}}',

@@ -5,6 +5,14 @@
 
 const CHANGELOG = [
     {
+        date: '2026-07-02',
+        entries: [
+            { type: '🔧', text: 'Large live numbers now use the theme-aware data-magic reveal when they change, including the hero finality, baker, staking, and issuance pills' },
+            { type: '🔧', text: 'Big chamber numbers now opt into the same per-theme reveal layer across chamber cards and opened chamber rooms when live values change' },
+            { type: '🎨', text: 'Aurora-style number reveals now use a clearer focus-and-glow pass so the per-theme effect is visible without becoming noisy' },
+        ]
+    },
+    {
         date: '2026-07-01',
         entries: [
             { type: '🎨', text: 'The homepage continuity panel is now a compact protocol ribbon that links each upgrade into the Protocol Anthology and keeps governance status one tap away' },

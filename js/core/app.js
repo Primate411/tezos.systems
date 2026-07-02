@@ -7,7 +7,7 @@ import './tzkt-throttle.js';
 import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js';
 import { initTheme, openThemePicker, setTheme, getAvailableThemes } from '../ui/theme.js';
 import { flipCard, updateStatInstant, revealStat, showLoading, showError } from '../ui/animations.js';
-import { blockTick, initDataMagic } from '../effects/data-magic.js';
+import { blockTick, initDataMagic, setMagicNumber } from '../effects/data-magic.js';
 import {
     formatCount,
     formatPercentage,
@@ -2092,7 +2092,6 @@ function initUptimeClock() {
 
     const LAUNCH = new Date(MAINNET_LAUNCH).getTime();
     const TOP_CONTINUITY_SHUFFLE_MS = 1500;
-    const TOP_CONTINUITY_SHUFFLE_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%/+-:·|';
     let lastBlockLevel = 0;
     let lastBlockTime = null;
     let recentBlockTimes = []; // last N block timestamps for finality avg
@@ -2117,64 +2116,37 @@ function initUptimeClock() {
         topContinuityPanel.classList.toggle('is-shuffling', topContinuityAnimations.size > 0);
     }
 
-    function randomShuffleChar() {
-        return TOP_CONTINUITY_SHUFFLE_CHARS[Math.floor(Math.random() * TOP_CONTINUITY_SHUFFLE_CHARS.length)] || '0';
-    }
-
-    function shuffleTowardText(text, progress) {
-        const reveal = Math.floor(text.length * progress);
-        return text.split('').map((ch, index) => {
-            if (index < reveal) return ch;
-            if (/\s/.test(ch)) return ' ';
-            if (/[,%.]/.test(ch)) return ch;
-            return randomShuffleChar();
-        }).join('');
-    }
-
     function setTopContinuityText(id, text, options = {}) {
         const el = document.getElementById(id);
         if (!el || text === undefined || text === null || text === '') return;
 
         const nextText = String(text);
-        if (el.dataset.finalText === nextText) return;
+        if (el.dataset.finalText === nextText && !options.changed) return;
 
         const hadFinalText = Boolean(el.dataset.finalText);
         const currentText = el.dataset.finalText || el.textContent.trim();
-        const allowShuffle = options.shuffle !== false;
-        const shouldShuffle = allowShuffle && hadFinalText && currentText && currentText !== '—' && currentText !== nextText && !prefersReducedMotion();
-        const existingFrame = topContinuityAnimations.get(id);
-        if (existingFrame) {
-            cancelAnimationFrame(existingFrame);
-            topContinuityAnimations.delete(id);
-        }
+        const allowMotion = options.motion !== false && options.shuffle !== false;
+        const isLiveChange = options.changed || currentText !== nextText;
+        const isReadyForMotion = (hadFinalText && currentText && currentText !== '—') || options.animateInitial !== false;
+        const shouldAnimate = allowMotion && isReadyForMotion && isLiveChange && !prefersReducedMotion();
+        topContinuityAnimations.delete(id);
 
         el.dataset.finalText = nextText;
-
-        if (!shouldShuffle) {
-            el.textContent = nextText;
-            el.classList.remove('is-shuffling');
-            updateTopContinuityShuffleState();
-            return;
-        }
-
-        const startedAt = performance.now();
-        const tick = (now) => {
-            const progress = Math.min(1, (now - startedAt) / TOP_CONTINUITY_SHUFFLE_MS);
-            el.textContent = progress >= 1 ? nextText : shuffleTowardText(nextText, progress);
-
-            if (progress < 1) {
-                topContinuityAnimations.set(id, requestAnimationFrame(tick));
-                return;
-            }
-
-            topContinuityAnimations.delete(id);
-            el.classList.remove('is-shuffling');
-            updateTopContinuityShuffleState();
-        };
-
-        el.classList.add('is-shuffling');
-        topContinuityAnimations.set(id, requestAnimationFrame(tick));
+        el.classList.toggle('is-shuffling', shouldAnimate);
+        if (shouldAnimate) topContinuityAnimations.set(id, true);
         updateTopContinuityShuffleState();
+        setMagicNumber(el, nextText, {
+            force: true,
+            changed: options.changed,
+            animateInitial: options.animateInitial,
+            animate: shouldAnimate,
+            duration: TOP_CONTINUITY_SHUFFLE_MS,
+            onDone: () => {
+                topContinuityAnimations.delete(id);
+                el.classList.remove('is-shuffling');
+                updateTopContinuityShuffleState();
+            }
+        });
     }
 
     function renderTopContinuityRuntime(years, days, hours, mins) {
@@ -2197,7 +2169,6 @@ function initUptimeClock() {
 
         const existingFrame = topContinuityAnimations.get(el.id);
         if (existingFrame) {
-            cancelAnimationFrame(existingFrame);
             topContinuityAnimations.delete(el.id);
         }
 
@@ -2207,11 +2178,11 @@ function initUptimeClock() {
         updateTopContinuityShuffleState();
     }
 
-    function setChainText(id, text) {
+    function setChainText(id, text, options = {}) {
         const el = document.getElementById(id);
-        if (el && text) el.textContent = text;
+        if (el && text) setMagicNumber(el, text, options);
         (chainMetricAliases[id] || []).forEach((targetId) => {
-            setTopContinuityText(targetId, text);
+            setTopContinuityText(targetId, text, options);
         });
     }
 
@@ -2360,8 +2331,9 @@ function initUptimeClock() {
                     const finality = Math.round((avgBlockTime * 2) / 1000);
                     const finalityText = `${finality}s`;
                     chainFinalityText = finalityText;
-                    if (finalityEl) finalityEl.textContent = finalityText;
-                    if (chainFinalityEl) chainFinalityEl.textContent = finalityText;
+                    const liveFinalityOptions = { changed: true, animateInitial: true };
+                    if (finalityEl) setMagicNumber(finalityEl, finalityText, liveFinalityOptions);
+                    setChainText('chain-uptime-finality', finalityText, liveFinalityOptions);
                 }
 
                 // Flash the pulse dot
@@ -2402,7 +2374,7 @@ function initUptimeClock() {
         if (data.activeBakers && bakersEl) {
             const bakersText = data.activeBakers.toLocaleString();
             chainBakersText = bakersText;
-            bakersEl.textContent = bakersText;
+            setMagicNumber(bakersEl, bakersText);
             setChainText('chain-uptime-bakers', bakersText);
         } else if (data.activeBakers) {
             chainBakersText = data.activeBakers.toLocaleString();
@@ -2411,13 +2383,13 @@ function initUptimeClock() {
         if (data.stakedRatio) {
             const stakedText = data.stakedRatio.toFixed(1) + '%';
             chainStakedText = stakedText;
-            if (stakedEl) stakedEl.textContent = stakedText;
+            if (stakedEl) setMagicNumber(stakedEl, stakedText);
             setChainText('chain-uptime-staked', stakedText);
         }
         if (data.currentIssuanceRate !== undefined) {
             const issuanceText = formatPercentage(Number(data.currentIssuanceRate), 2);
             chainIssuanceText = issuanceText;
-            if (issuanceEl) issuanceEl.textContent = issuanceText;
+            if (issuanceEl) setMagicNumber(issuanceEl, issuanceText);
             setChainText('chain-uptime-issuance', issuanceText);
         }
     };
