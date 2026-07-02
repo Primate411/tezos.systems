@@ -4,6 +4,7 @@
  */
 
 import { debugLog } from '../core/utils.js';
+import { tweenNumber, scrambleText, pulseFresh } from '../effects/data-magic.js';
 
 // Import arcade effects (dynamic to avoid circular dependency)
 let arcadeEffects = null;
@@ -119,6 +120,9 @@ export async function flipCard(cardElement, newValue, formatter) {
                 // Remove flipping class
                 cardElement.classList.remove('flipping');
 
+                // Fresh-data shimmer — signal this value just refreshed
+                pulseFresh(cardElement.querySelector('.card-inner') || cardElement);
+
                 resolve();
             }, FLIP_DURATION);
         });
@@ -150,6 +154,62 @@ export function updateStatInstant(cardId, value, formatter) {
         backValue.textContent = formattedValue;
         clearLoadingState(backValue);
     }
+}
+
+// Cascading stagger so first-load reveals ripple instead of firing in lockstep.
+let revealSeq = 0;
+let revealResetTimer = null;
+const REVEAL_STAGGER_MS = 45;
+const REVEAL_STAGGER_MAX = 12; // cap the cascade length
+
+function nextRevealDelay() {
+    const delay = Math.min(revealSeq, REVEAL_STAGGER_MAX) * REVEAL_STAGGER_MS;
+    revealSeq++;
+    if (revealResetTimer) clearTimeout(revealResetTimer);
+    revealResetTimer = setTimeout(() => { revealSeq = 0; }, 400);
+    return delay;
+}
+
+/**
+ * Reveal a stat value on first load with magic: numbers count up (odometer),
+ * strings decode in (scramble). Falls back to an instant set under reduced motion.
+ * Drop-in replacement for updateStatInstant on the first-load path.
+ *
+ * @param {string} cardId
+ * @param {string|number} value  raw value (number → count-up, string → scramble)
+ * @param {Function} formatter   value → display string
+ */
+export function revealStat(cardId, value, formatter) {
+    const card = document.querySelector(`[data-stat="${cardId}"]`);
+    if (!card) return;
+
+    const frontValue = card.querySelector(`#${cardId}-front`);
+    const backValue = card.querySelector(`#${cardId}-back`);
+    const apply = (el, str) => {
+        if (!el) return;
+        el.textContent = str;
+        clearLoadingState(el);
+    };
+
+    const isNumeric = typeof value === 'number' && Number.isFinite(value);
+    const finalStr = formatter ? formatter(value) : String(value);
+
+    // Back face holds the settled value immediately (it's hidden on first load).
+    apply(backValue, finalStr);
+
+    if (!frontValue) return;
+    clearLoadingState(frontValue);
+
+    const delay = nextRevealDelay();
+    const run = () => {
+        if (isNumeric) {
+            tweenNumber(frontValue, 0, value, { formatter });
+        } else {
+            scrambleText(frontValue, finalStr);
+        }
+    };
+    if (delay > 0) setTimeout(run, delay);
+    else run();
 }
 
 /**

@@ -6,7 +6,8 @@
 import './tzkt-throttle.js';
 import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js';
 import { initTheme, openThemePicker, setTheme, getAvailableThemes } from '../ui/theme.js';
-import { flipCard, updateStatInstant, showLoading, showError } from '../ui/animations.js';
+import { flipCard, updateStatInstant, revealStat, showLoading, showError } from '../ui/animations.js';
+import { blockTick } from '../effects/data-magic.js';
 import {
     formatCount,
     formatPercentage,
@@ -91,7 +92,7 @@ import { initNetworkHealth, refreshNetworkHealth } from '../features/network-hea
 import { initHeroSearch } from '../features/search.js';
 import { initNativeExplorer } from '../features/native-explorer.js';
 
-const SHELL_EXTRAS_CSS_URL = '/css/shell-extras.css?v=316';
+const SHELL_EXTRAS_CSS_URL = '/css/shell-extras.css?v=325';
 const PI_VISIBLE_KEY = 'tezos-systems-pi-visible';
 
 function isContentiousProtocol(protocol, lore = null) {
@@ -571,51 +572,51 @@ async function updateStats(newStats) {
         debugLog('First load - updating instantly');
         
         // Consensus
-        updateStatInstant('total-bakers', newStats.totalBakers, formatCount);
-        updateStatInstant('tz4-adoption', newStats.tz4Percentage,
+        revealStat('total-bakers', newStats.totalBakers, formatCount);
+        revealStat('tz4-adoption', newStats.tz4Percentage,
             (val) => `${val.toFixed(1)} / ${STAKING_TARGET}%`);
         const tz4Desc = document.getElementById('tz4-description');
         if (tz4Desc) tz4Desc.textContent = `${newStats.tz4Bakers} / ${newStats.totalBakers} bakers active`;
-        updateStatInstant('cycle-progress', newStats.cycle, formatCount);
+        revealStat('cycle-progress', newStats.cycle, formatCount);
         document.getElementById('cycle-description').textContent = 
             `${newStats.cycleProgress.toFixed(1)}% • ${newStats.cycleTimeRemaining}`;
         
         // Governance
-        updateStatInstant('proposal', newStats.proposal, (v) => v);
+        revealStat('proposal', newStats.proposal, (v) => v);
         document.getElementById('proposal-description').textContent = newStats.proposalDescription;
-        updateStatInstant('voting-period', newStats.votingPeriod, (v) => v);
+        revealStat('voting-period', newStats.votingPeriod, (v) => v);
         document.getElementById('voting-description').textContent = newStats.votingDescription;
-        updateStatInstant('participation', newStats.participation, formatPercentage);
+        revealStat('participation', newStats.participation, formatPercentage);
         document.getElementById('participation-description').textContent = newStats.participationDescription;
         
         // Economy
-        updateStatInstant('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
+        revealStat('issuance-rate', newStats.currentIssuanceRate, formatPercentage);
         updateIssuanceBreakdown(newStats.protocolIssuanceRate, newStats.lbIssuanceRate, newStats.lbSubsidyDisabled);
-        updateStatInstant('staking-apy', newStats.delegateAPY, 
+        revealStat('staking-apy', newStats.delegateAPY,
             (val) => `${(val || 0).toFixed(1)}% / ${(newStats.stakeAPY || 0).toFixed(1)}%`);
         // Update live APY values for tweet template substitution
         if (newStats.delegateAPY && newStats.stakeAPY) {
             setLiveAPY(newStats.delegateAPY, newStats.stakeAPY);
         }
-        updateStatInstant('staking-ratio', newStats.stakingRatio, formatPercentage);
-        updateStatInstant('delegated', newStats.delegatedRatio, formatPercentage);
-        updateStatInstant('total-supply', newStats.totalSupply, formatSupply);
-        updateStatInstant('total-burned', newStats.totalBurned, formatSupply);
-        updateStatInstant('baking-power', newStats.bakingPower, formatSupply);
-        updateStatInstant('reward-accounts', newStats.rewardAccounts, formatLarge);
+        revealStat('staking-ratio', newStats.stakingRatio, formatPercentage);
+        revealStat('delegated', newStats.delegatedRatio, formatPercentage);
+        revealStat('total-supply', newStats.totalSupply, formatSupply);
+        revealStat('total-burned', newStats.totalBurned, formatSupply);
+        revealStat('baking-power', newStats.bakingPower, formatSupply);
+        revealStat('reward-accounts', newStats.rewardAccounts, formatLarge);
         updateRewardAccountsBreakdown(newStats.totalDelegators, newStats.totalStakers);
         
         // Network Activity
-        updateStatInstant('tx-volume', newStats.transactionVolume24h, formatLarge);
-        updateStatInstant('contract-calls', newStats.contractCalls24h, formatLarge);
-        updateStatInstant('funded-accounts', newStats.fundedAccounts, formatLarge);
-        updateStatInstant('new-accounts', newStats.newAccounts24h, formatLarge);
+        revealStat('tx-volume', newStats.transactionVolume24h, formatLarge);
+        revealStat('contract-calls', newStats.contractCalls24h, formatLarge);
+        revealStat('funded-accounts', newStats.fundedAccounts, formatLarge);
+        revealStat('new-accounts', newStats.newAccounts24h, formatLarge);
         
         // Ecosystem
-        updateStatInstant('smart-contracts', newStats.smartContracts, formatLarge);
-        updateStatInstant('tokens', newStats.tokens, formatLarge);
-        updateStatInstant('rollups', newStats.rollups, formatCount);
-        updateStatInstant('active-contracts', newStats.activeContracts24h, formatLarge);
+        revealStat('smart-contracts', newStats.smartContracts, formatLarge);
+        revealStat('tokens', newStats.tokens, formatLarge);
+        revealStat('rollups', newStats.rollups, formatCount);
+        revealStat('active-contracts', newStats.activeContracts24h, formatLarge);
 
         // Feed uptime clock with baker/staking data
         if (window._updateUptimeClock) {
@@ -2175,7 +2176,10 @@ function initUptimeClock() {
                 lastBlockTime = new Date(timestamp).getTime();
                 recentBlockTimes.push(lastBlockTime);
                 if (recentBlockTimes.length > 5) recentBlockTimes.shift(); // keep last 5
-                if (blockNumEl) blockNumEl.textContent = level.toLocaleString();
+                if (blockNumEl) {
+                    blockNumEl.textContent = level.toLocaleString();
+                    blockTick(blockNumEl); // heartbeat: mechanical up-tick each new block
+                }
                 const cb = document.getElementById('cycle-chip-block');
                 if (cb) cb.textContent = level.toLocaleString();
 

@@ -295,7 +295,7 @@ function renderTrendMetric(label, delta, fallback) {
 async function fetchTezlinkData({ force = false } = {}) {
     if (!force && cachedData && Date.now() - cachedAt < CACHE_TTL) return cachedData;
 
-    const [chainsResult, protocolsResult, statsResult, txsResult, headResult, gasResult, tvlHistoryResult, txChartResult, activeAccountsResult, tokensResult, anchorResult] = await Promise.allSettled([
+    const [chainsResult, protocolsResult, statsResult, txsResult, headResult, gasResult, tvlHistoryResult, txChartResult, tokensResult, anchorResult] = await Promise.allSettled([
         fetchJson(`${DEFILLAMA}/v2/chains`),
         fetchJson(`${DEFILLAMA}/protocols`),
         fetchJson(`${EXPLORER}/stats`),
@@ -304,7 +304,6 @@ async function fetchTezlinkData({ force = false } = {}) {
         rpcCall('eth_gasPrice'),
         fetchJson(`${DEFILLAMA}/v2/historicalChainTvl/${CHAIN_NAME}`),
         fetchJson(`${EXPLORER}/stats/charts/transactions`),
-        fetchJson(`${EXPLORER}/stats/charts/active-accounts`),
         fetchJson(`${EXPLORER}/tokens?type=ERC-20&sort=holders_count&order=desc`),
         fetchJson(`${TZKT}/smart_rollups?limit=5&sort.desc=lastActivity`)
     ]);
@@ -322,7 +321,7 @@ async function fetchTezlinkData({ force = false } = {}) {
     }, chainTvls, protocols);
     data.tvlHistory = tvlHistoryResult.status === 'fulfilled' ? normalizeTvlHistory(tvlHistoryResult.value) : [];
     data.txHistory = txChartResult.status === 'fulfilled' ? normalizeChartRows(txChartResult.value, ['transactions', 'value', 'count']) : [];
-    data.activeAccountsHistory = activeAccountsResult.status === 'fulfilled' ? normalizeChartRows(activeAccountsResult.value, ['active_accounts', 'accounts', 'value']) : [];
+    data.activeAccountsHistory = [];
     data.tokens = tokensResult.status === 'fulfilled' ? normalizeTokens(tokensResult.value) : [];
     data.anchor = anchorResult.status === 'fulfilled' ? normalizeAnchor(anchorResult.value) : null;
     data.gasPrices = stats?.gas_prices || {};
@@ -505,16 +504,17 @@ function renderTrendPanel(data) {
     const tvlDelta = trendDelta(data.tvlHistory, 'tvl');
     const txDelta = trendDelta(data.txHistory, 'value');
     const activeDelta = trendDelta(data.activeAccountsHistory, 'value');
+    const addressFallback = data.totalAddresses ? compactNumber(data.totalAddresses) : 'warming';
     return `
         <section class="lb-panel tezlink-panel tezlink-trend-panel chamber-anim-fade" id="tezlink-trend-panel" style="animation-delay:90ms">
             <div class="lb-panel-title">30d Direction</div>
             <div class="lb-metric-grid health-metric-grid">
                 ${renderTrendMetric('TVL', tvlDelta, 'tracking')}
                 ${renderTrendMetric('Daily tx', txDelta, 'warming')}
-                ${renderTrendMetric('Active addresses', activeDelta, 'warming')}
+                ${renderTrendMetric('Addresses', activeDelta, addressFallback)}
             </div>
             ${renderMiniSparkline(data.tvlHistory, 'tvl')}
-            <div class="health-timing-note">Cumulative addresses always rise; active-address history is the honest activity check.</div>
+            <div class="health-timing-note">Blockscout currently exposes transaction history and total addresses; active-address history stays quiet when that chart is unavailable.</div>
         </section>
     `;
 }

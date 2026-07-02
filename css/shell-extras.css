@@ -127,6 +127,8 @@
 .hot-today-section {
     margin-top: 2rem;
     margin-bottom: 3.5rem;
+    max-width: 100%;
+    overflow-x: clip;
 }
 
 .hot-today-section:empty {
@@ -202,6 +204,9 @@
 .hot-today-strip {
     display: flex;
     gap: 0.68rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     overflow-x: auto;
     overscroll-behavior-x: contain;
     scroll-padding: 0.25rem;
@@ -556,7 +561,8 @@
     }
 
     .hot-today-card {
-        flex-basis: min(84vw, 310px);
+        flex-basis: min(82vw, 300px);
+        max-width: calc(100vw - 2rem);
     }
 
     .hot-today-grid {

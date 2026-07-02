@@ -7,6 +7,8 @@ const CHANGELOG = [
     {
         date: '2026-07-01',
         entries: [
+            { type: '🔧', text: 'Tezos X no longer asks Blockscout for an unsupported active-address chart and falls back to the supported address count instead' },
+            { type: '🎨', text: 'Mobile theme wordmarks now fit narrow screens across the retro themes, and the What is hot today strip stays contained while it scrolls' },
             { type: '🔧', text: 'HEN live mode now lets quiet newest polls become a real listening state, keeps arrival chrome out of the expanded viewer, and stops arrow/random shortcuts from firing behind open artwork' },
             { type: '⚡', text: 'HEN now reuses boot data for first render, pages through busier mint windows, caps long-session caches, and only updates card timestamps while the overlay is active' },
             { type: '🔧', text: 'HEN CLI dismissals now clear old scrollback, artist commands validate Tezos addresses, desktop filters show an overflow fade, and the /hen/ route now renders as a crawlable entry page' },
