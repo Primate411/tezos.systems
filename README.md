@@ -57,7 +57,7 @@ tezos.systems/
 │   │   └── utils.js                   # Formatting, sanitization, utility helpers
 │   ├── features/                      # Governance, LB, bakers, market, feeds, widgets
 │   ├── ui/                            # Theme, share, gauge, title, animations
-│   └── effects/                       # Matrix, themed backgrounds, audio/vibes
+│   └── effects/                       # Matrix, themed backgrounds, audio/vibes, data-magic text reveals
 ├── data/
 │   ├── protocol-data.json             # Activated protocol timeline and lore
 │   ├── protocol-debates.json          # Debate/rejection narratives
@@ -566,7 +566,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v325`, including hero search, theme
+- Current aligned shell cache stamp: `v326`, including hero search, theme
   bundles, and the Ledger Flow lazy CSS loader.
 - Current Tezos Domains lazy CSS stamp: `v316`.
 - `version.json` is stamped by `.githooks/pre-commit`.

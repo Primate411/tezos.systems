@@ -823,7 +823,7 @@ function renderToDrawer(cycle, sentences) {
         <a class="network-context-title" href="#health" data-network-route="#health" aria-label="Open Network Health" style="color:inherit;">🌐 Network Context</a>
         <a class="network-context-cycle" href="#history" data-network-route="#history" aria-label="${escapeHtml(`Open protocol history for cycle ${cycle}`)}">Cycle ${escapeHtml(String(cycle))}</a>
       </div>
-      <p class="network-context-lede">${escapeHtml(lead)}</p>
+      <p class="network-context-lede" data-magic-text>${escapeHtml(lead)}</p>
       <div class="network-context-focus" aria-label="Context focus">
         ${renderFocusChips(profile)}
       </div>

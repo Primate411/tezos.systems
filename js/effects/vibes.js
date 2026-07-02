@@ -94,7 +94,8 @@ function initThemeTransitions() {
         });
     });
 
-    observer.observe(document.documentElement, {
+    // Theme attribute lives on <body> (set by setTheme/theme-preload), not <html>.
+    observer.observe(document.body, {
         attributes: true,
         attributeOldValue: true,
         attributeFilter: ['data-theme']

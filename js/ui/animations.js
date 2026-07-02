@@ -4,7 +4,7 @@
  */
 
 import { debugLog } from '../core/utils.js';
-import { tweenNumber, scrambleText, pulseFresh } from '../effects/data-magic.js';
+import { tweenNumber, revealValue, pulseFresh } from '../effects/data-magic.js';
 
 // Import arcade effects (dynamic to avoid circular dependency)
 let arcadeEffects = null;
@@ -205,7 +205,7 @@ export function revealStat(cardId, value, formatter) {
         if (isNumeric) {
             tweenNumber(frontValue, 0, value, { formatter });
         } else {
-            scrambleText(frontValue, finalStr);
+            revealValue(frontValue, finalStr);
         }
     };
     if (delay > 0) setTimeout(run, delay);

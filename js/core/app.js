@@ -7,7 +7,7 @@ import './tzkt-throttle.js';
 import { fetchAllStats, fetchHeroStats, checkApiHealth } from './api.js';
 import { initTheme, openThemePicker, setTheme, getAvailableThemes } from '../ui/theme.js';
 import { flipCard, updateStatInstant, revealStat, showLoading, showError } from '../ui/animations.js';
-import { blockTick } from '../effects/data-magic.js';
+import { blockTick, initDataMagic } from '../effects/data-magic.js';
 import {
     formatCount,
     formatPercentage,
@@ -181,6 +181,7 @@ async function init() {
     // Initialize price bar
     safe('priceBar', initPriceBar);
     safe('vibes', initVibes);
+    safe('dataMagic', initDataMagic);
     // briefingToggle removed — briefing now in drawer
     safe('priceIntelToggle', initPriceIntelToggle);
 
