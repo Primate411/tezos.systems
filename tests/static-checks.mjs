@@ -445,6 +445,9 @@ async function checkSelectorContracts() {
     'header-protocol-chip',
     'header-current-protocol',
     'upgrade-clock',
+    'protocol-ribbon',
+    'protocol-ribbon-track',
+    'protocol-ribbon-next',
     'hero-slot',
     'hero-search-form',
     'hero-search-input',
@@ -497,6 +500,9 @@ async function checkSelectorContracts() {
     ['timeline share protocol history chamber fallback', 'document.querySelector(\'#protocol-history-chamber-modal .protocol-history-chamber-header\')'],
     ['header protocol chip', 'id="header-protocol-chip" href="#protocol-history"'],
     ['command deck shell', 'class="upgrade-clock command-deck"'],
+    ['protocol ribbon shell', 'class="protocol-ribbon" id="protocol-ribbon"'],
+    ['protocol ribbon track', 'class="protocol-ribbon-track" id="protocol-ribbon-track" role="list"'],
+    ['protocol ribbon governance cell', 'class="protocol-ribbon-next" id="protocol-ribbon-next"'],
     ['hero command bar slot', 'class="hero-slot" id="hero-slot"'],
     ['hero command bar combobox', 'aria-controls="hero-search-panel"'],
     ['My Tezos recruit prompt', 'data-hero-query="my tezos"'],
@@ -1025,6 +1031,12 @@ async function checkSelectorContracts() {
   }
   if (index.includes('top-continuity-proof-item') || styles.includes('.top-continuity-proof-item')) {
     fail('top header uptime badge should not retain the old Zero Forks / Zero Outages proof stamps');
+  }
+  if (index.includes('continuity-proof') || styles.includes('continuity-proof') || heroSearchCss.includes('continuity-proof') || app.includes('continuity-proof')) {
+    fail('homepage should use the protocol ribbon instead of the retired continuity-proof panel');
+  }
+  for (const snippet of ['protocol-ribbon-tick', 'openProtocolHistoryByName(name)', 'updateProtocolRibbonNextCell']) {
+    if (!app.includes(snippet)) fail(`protocol ribbon app wiring missing: ${snippet}`);
   }
   if (/style=["'][^"']*--pill-color/.test(index)) {
     fail('top header stat pills should use theme palette tokens, not inline --pill-color styles');

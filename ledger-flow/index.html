@@ -50,15 +50,15 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#00d4ff">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="/css/styles.min.css?v=315">
-    <link rel="stylesheet" href="/css/loading.css?v=315">
-    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=315">
-    <link rel="stylesheet" href="/css/hen-mode.css?v=88">
+    <link rel="stylesheet" href="/css/styles.min.css?v=327">
+    <link rel="stylesheet" href="/css/loading.css?v=327">
+    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=327">
+    <link rel="stylesheet" href="/css/hen-mode.css?v=93">
     <script src="/js/core/hen-init.js?v=78" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="/js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="/js/core/app.js?v=315">
+    <link rel="modulepreload" href="/js/core/app.js?v=327">
     <link rel="modulepreload" href="/js/core/api.js">
     <link rel="modulepreload" href="/js/core/config.js">
     <link rel="modulepreload" href="/js/core/utils.js">
@@ -87,7 +87,7 @@
       "operatingSystem": "Web",
       "browserRequirements": "Requires JavaScript",
       "screenshot": "https://tezos.systems/og-image.png",
-      "featureList": "Live network statistics, Baker performance tracking, Staking gauge, Protocol upgrade timeline, Governance monitoring, 13 visual themes, Personalized My Tezos mode, Shareable stat cards, Embeddable widgets",
+      "featureList": "Live network statistics, Baker performance tracking, Staking gauge, Protocol upgrade timeline, Governance monitoring, 14 visual themes, Personalized My Tezos mode, Shareable stat cards, Embeddable widgets",
       "creator": {
         "@type": "Organization",
         "name": "Tez Capital",
@@ -216,7 +216,7 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="/js/core/theme-preload.js?v=315"></script>
+    <script src="/js/core/theme-preload.js?v=327"></script>
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
         <button id="corner-gift-toggle" class="corner-gift-toggle" type="button" aria-label="Open corner tools: HEN, ctez, and TzSafe" aria-expanded="false" aria-controls="corner-gift-items" title="Corner tools">
             <span aria-hidden="true">🎁</span>
@@ -274,6 +274,7 @@
                 <div class="header-brand-stack">
                     <h1 class="title">Tezos Systems</h1>
                     <button class="top-continuity-history" id="top-continuity-history" type="button" aria-label="Uptime since 2018. Open Protocol Anthology Chamber" aria-haspopup="dialog" aria-controls="protocol-history-chamber-modal" title="Open Protocol Anthology"><span class="top-continuity-core"><span class="top-continuity-claim">uptime:</span><strong class="top-continuity-runtime" id="hero-chain-uptime-counter">—</strong><span class="top-continuity-origin">&middot; since 2018</span></span></button>
+                    <a class="hen-theme-feed-link" href="/?hen=1" data-hen-launch aria-label="Enter HEN live Teia and OBJKT feed" style="display:none">> enter live feed</a>
                 </div>
                 <a class="header-protocol-chip" id="header-protocol-chip" href="#protocol-history" aria-label="Open Protocol History Chamber">
                     <span>Running on</span>
@@ -385,6 +386,13 @@
                         <div class="feature-launcher-group">
                             <div class="dropdown-section-label">Activity & Culture</div>
                             <div class="feature-launcher-row">
+                                <a id="hen-feature-link" class="glass-button feature-launcher-item feature-launcher-link" href="/?hen=1" data-hen-launch aria-label="Enter HEN live Teia and OBJKT feed" title="Enter HEN live feed">
+                                    <span class="ctez-feature-icon hen-feature-icon">hen</span>
+                                    <span class="feature-launcher-text"><span class="dropdown-label">HEN Live Feed</span><span class="dropdown-hint">Teia-first live NFT collecting surface</span></span>
+                                    <span class="feature-status">Live</span>
+                                </a>
+                            </div>
+                            <div class="feature-launcher-row">
                                 <button id="whale-toggle" class="glass-button feature-launcher-item" aria-label="Open or hide Mini Whale feed" title="Mini Whale: OFF">
                                     <span class="whale-toggle-icon">🐬</span>
                                     <span class="feature-launcher-text"><span class="dropdown-label">Whales</span><span class="dropdown-hint">Live feed of large XTZ transfers over 1K</span></span>
@@ -482,49 +490,6 @@
     <!-- Command Deck -->
     <section class="upgrade-clock command-deck" id="upgrade-clock" aria-label="Tezos Systems command surface">
         <div class="upgrade-clock-content command-deck-content">
-            <div class="continuity-proof-story" id="continuity-proof-story">
-                <div class="continuity-proof-copy">
-                    <span class="feature-kicker">Continuity proof</span>
-                    <strong>One live Tezos chain, upgrading in place since 2018.</strong>
-                    <span>Search the receipts: protocol history, current health, baker state, accounts, operations, and blocks.</span>
-                </div>
-                <div class="continuity-proof-actions">
-                    <a href="#protocol-history">Protocol anthology</a>
-                    <a href="#health">Network health</a>
-                </div>
-            </div>
-            <section class="my-tezos-hero" id="my-tezos-hero" aria-label="My Tezos address tracker">
-                <div class="my-tezos-hero-copy">
-                    <span class="feature-kicker">My Tezos</span>
-                    <strong>Add an address once.</strong>
-                    <span>Your home for baker health, rewards, NFTs, governance votes, and shareable receipts.</span>
-                </div>
-                <form class="my-tezos-hero-form" id="my-tezos-hero-form" autocomplete="off">
-                    <input
-                        id="my-tezos-hero-input"
-                        class="my-tezos-hero-input"
-                        type="text"
-                        inputmode="text"
-                        spellcheck="false"
-                        autocomplete="off"
-                        aria-describedby="my-tezos-hero-status"
-                        placeholder="tz1... or name.tez"
-                    >
-                    <button id="my-tezos-hero-track" class="my-tezos-hero-track" type="submit">Track</button>
-                    <button id="my-tezos-hero-open" class="my-tezos-hero-open" type="button">Open</button>
-                </form>
-                <div class="my-tezos-hero-connected" id="my-tezos-hero-connected" hidden>
-                    <div class="my-tezos-hero-connected-copy">
-                        <span>Tracking</span>
-                        <strong id="my-tezos-hero-address">Saved address</strong>
-                    </div>
-                    <div class="my-tezos-hero-connected-actions">
-                        <button id="my-tezos-hero-connected-open" class="my-tezos-hero-track" type="button">Open My Tezos</button>
-                        <button id="my-tezos-hero-switch" class="my-tezos-hero-open" type="button">Change</button>
-                    </div>
-                </div>
-                <div class="my-tezos-hero-status" id="my-tezos-hero-status" aria-live="polite">Paste a wallet or .tez name.</div>
-            </section>
             <div class="hero-slot" id="hero-slot">
                 <form class="hero-search-form" id="hero-search-form" role="search" autocomplete="off">
                     <span class="hero-search-mark" aria-hidden="true">⌕</span>
@@ -546,6 +511,11 @@
                 </form>
                 <div class="hero-search-chips" id="hero-search-chips" aria-label="Suggested searches"></div>
                 <div class="hero-search-panel" id="hero-search-panel" role="listbox" aria-label="Tezos Systems search results" hidden></div>
+            </div>
+            <div class="protocol-ribbon" id="protocol-ribbon" aria-label="Tezos protocol upgrade history and next upgrade status">
+                <span class="protocol-ribbon-kicker" id="protocol-ribbon-kicker">— upgrades · 0 forks</span>
+                <div class="protocol-ribbon-track" id="protocol-ribbon-track" role="list" aria-label="Tezos protocol upgrades"></div>
+                <button class="protocol-ribbon-next" id="protocol-ribbon-next" type="button" hidden></button>
             </div>
         </div>
     </section>
@@ -1651,10 +1621,10 @@
                         <span class="recruit-card-action">Try KT1 / ops</span>
                     </button>
                     <button class="recruit-card" type="button" data-loop-aura="collector" data-hero-query="/nfts">
-                        <span class="recruit-card-kicker">NFT profile</span>
-                        <strong>Open culture context</strong>
-                        <span>Use /nfts or a Tezos identity when Objkt activity and creator/collector signals matter.</span>
-                        <span class="recruit-card-action">Open NFT lane</span>
+                        <span class="recruit-card-kicker">HEN / Teia</span>
+                        <strong>Enter the live art feed</strong>
+                        <span>Use /nfts for HEN mode when Teia mints, OBJKT listings, creator history, and collector context matter.</span>
+                        <span class="recruit-card-action">Open HEN lane</span>
                     </button>
                     <button class="recruit-card" type="button" data-loop-aura="governance" data-hero-query="/chamber">
                         <span class="recruit-card-kicker">Chambers / protocols</span>
@@ -2138,8 +2108,30 @@
               <button id="my-baker-save" class="glass-button my-baker-btn">Save</button>
               <button id="my-baker-clear" class="glass-button my-baker-btn">Clear</button>
               <button id="my-baker-share-link" class="glass-button my-baker-btn" style="display:none;">🔗</button>
-              <a id="my-tezos-ledger-flow-link" class="glass-button my-baker-btn drawer-ledger-flow-link" href="#ledger-flow" hidden>Ledger Flow</a>
             </div>
+            <a id="my-tezos-ledger-flow-link" class="drawer-ledger-flow-card" href="#ledger-flow" hidden style="grid-template-columns:minmax(92px,0.34fr) minmax(0,1fr);grid-template-areas:'visual copy' 'legend legend';gap:0.6rem 0.75rem;align-items:center;width:100%;min-height:126px;margin-top:0.8rem;padding:0.78rem;color:var(--text-primary);text-decoration:none;border:1px solid rgba(77,212,255,0.18);border-radius:8px;background:linear-gradient(135deg,rgba(77,212,255,0.085),rgba(255,94,156,0.045)),rgba(255,255,255,0.025);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04);">
+              <span class="drawer-ledger-flow-visual" aria-hidden="true" style="grid-area:visual;min-width:0;">
+                <svg viewBox="0 0 360 118" focusable="false" style="display:block;width:100%;min-height:74px;overflow:visible;">
+                  <path d="M26 30 C105 14, 116 55, 178 56" fill="none" stroke="#4dd4ff" stroke-width="5" stroke-linecap="round" opacity="0.68"></path>
+                  <path d="M180 62 C238 54, 260 92, 332 82" fill="none" stroke="#ff5e9c" stroke-width="8" stroke-linecap="round" opacity="0.74"></path>
+                  <path d="M52 92 C112 82, 128 66, 178 64" fill="none" stroke="#f5d65b" stroke-width="3" stroke-linecap="round" stroke-dasharray="7 8" opacity="0.88"></path>
+                  <circle cx="180" cy="60" r="18" fill="rgba(10, 14, 26, 0.72)" stroke="rgba(255, 255, 255, 0.28)" stroke-width="2"></circle>
+                  <circle cx="26" cy="30" r="7" fill="#4dd4ff" stroke="rgba(10, 14, 26, 0.78)" stroke-width="2"></circle>
+                  <circle cx="332" cy="82" r="7" fill="#ff5e9c" stroke="rgba(10, 14, 26, 0.78)" stroke-width="2"></circle>
+                  <circle cx="52" cy="92" r="7" fill="#f5d65b" stroke="rgba(10, 14, 26, 0.78)" stroke-width="2"></circle>
+                </svg>
+              </span>
+              <span class="drawer-ledger-flow-copy" style="grid-area:copy;min-width:0;display:grid;gap:0.26rem;">
+                <span class="drawer-ledger-flow-kicker" style="color:var(--accent-cyan,#45e0c8);font-size:0.68rem;font-weight:800;letter-spacing:0.08em;line-height:1.1;text-transform:uppercase;">Ledger Flow</span>
+                <strong style="color:var(--text-primary);font-size:1rem;line-height:1.2;overflow-wrap:anywhere;">Map this account's transfer paths</strong>
+                <span style="color:var(--text-secondary);font-size:0.78rem;line-height:1.38;">Sent, received, and first-funding trails, with heavier lines for larger XTZ flows.</span>
+              </span>
+              <span class="drawer-ledger-flow-legend" aria-hidden="true" style="grid-area:legend;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0.38rem;">
+                <span style="min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:0.34rem;min-height:30px;padding:0.28rem 0.4rem;color:var(--text-secondary);font-size:0.68rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,0.075);border-radius:7px;background:rgba(0,0,0,0.13);"><i style="width:0.52rem;height:0.52rem;flex:0 0 auto;border-radius:50%;background:#4dd4ff;"></i>In</span>
+                <span style="min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:0.34rem;min-height:30px;padding:0.28rem 0.4rem;color:var(--text-secondary);font-size:0.68rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,0.075);border-radius:7px;background:rgba(0,0,0,0.13);"><i style="width:0.52rem;height:0.52rem;flex:0 0 auto;border-radius:50%;background:#ff5e9c;"></i>Out</span>
+                <span style="min-width:0;display:inline-flex;align-items:center;justify-content:center;gap:0.34rem;min-height:30px;padding:0.28rem 0.4rem;color:var(--text-secondary);font-size:0.68rem;font-weight:800;letter-spacing:0.04em;text-transform:uppercase;border:1px solid rgba(255,255,255,0.075);border-radius:7px;background:rgba(0,0,0,0.13);"><i style="width:0.52rem;height:0.52rem;flex:0 0 auto;border-radius:50%;background:#f5d65b;"></i>First</span>
+              </span>
+            </a>
             <div class="wallet-connect-row wallet-connect-row-compact">
               <button id="my-tezos-wallet-connect" class="glass-button wallet-connect-btn" type="button">Use wallet</button>
               <button id="my-tezos-wallet-disconnect" class="glass-button wallet-connect-btn wallet-disconnect-btn" type="button">Disconnect wallet</button>
@@ -2187,8 +2179,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
-    <script src="/js/features/hen-mode.js?v=85"></script>
-    <script type="module" src="/js/core/app.js?v=315"></script>
+    <script src="/js/features/hen-mode.js?v=89"></script>
+    <script type="module" src="/js/core/app.js?v=327"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content">
@@ -2384,6 +2376,7 @@
         </div>
         <div class="hen-feed">
             <section id="hen-profile-panel" class="hen-profile-panel" hidden></section>
+            <div id="hen-now-line" class="hen-now-line" aria-hidden="true"><span>now · --:--:--</span></div>
             <div id="hen-grid" class="hen-grid"></div>
             <div id="hen-loading" class="hen-loading">indexing...</div>
         </div>
@@ -2399,4 +2392,3 @@
     <script src="/js/features/tooltip-tour.js?v=292" defer></script>
 </body>
 </html>
->

@@ -29,8 +29,8 @@ import {
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
 import { initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric, openCardHistoryModal } from '../features/history.js';
 import { ensureCardShareButton, initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
-import { fetchProtocols } from '../features/governance.js';
-import { initGovernanceAlerts } from '../features/governance-alerts.js';
+import { fetchProtocols, fetchVotingStatus, getVotingPeriodName } from '../features/governance.js';
+import { alertablePeriod, initGovernanceAlerts } from '../features/governance-alerts.js';
 import { initChamber } from '../features/chamber.js';
 import { initLiquidityBaking } from '../features/liquidity-baking.js';
 import { initTz4AdoptionChamber } from '../features/tz4-adoption.js';
@@ -118,6 +118,9 @@ const state = {
     refreshTimer: null,
 };
 
+const PROTOCOL_RIBBON_MOBILE_QUERY = '(max-width: 640px)';
+let protocolRibbonModeMql = null;
+
 // Safe feature wrapper — one failing feature can't kill init or refresh
 function safe(name, fn) {
     try { fn(); } catch (e) { console.warn(`[feature] ${name} failed:`, e); }
@@ -165,6 +168,7 @@ async function init() {
     safe('governanceAlerts', initGovernanceAlerts);
     safe('protocolHistoryChamber', initProtocolHistoryChamber);
     safe('protocolHistoryHeaderLauncher', initProtocolHistoryHeaderLauncher);
+    safe('protocolRibbon', initProtocolRibbon);
     
     // Initialize changelog modal
     safe('changelog', initChangelog);
@@ -1299,6 +1303,167 @@ function formatProtocolDate(protocol) {
     return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
+function protocolRibbonElements() {
+    const root = document.getElementById('protocol-ribbon');
+    const track = document.getElementById('protocol-ribbon-track');
+    const kicker = document.getElementById('protocol-ribbon-kicker');
+    const next = document.getElementById('protocol-ribbon-next');
+    return { root, track, kicker, next };
+}
+
+function protocolRibbonMobile() {
+    if (!protocolRibbonModeMql && typeof window !== 'undefined' && window.matchMedia) {
+        protocolRibbonModeMql = window.matchMedia(PROTOCOL_RIBBON_MOBILE_QUERY);
+    }
+    return protocolRibbonModeMql?.matches === true;
+}
+
+function openGovernanceChamberFromRibbon() {
+    window.trackTezosSystemsEvent?.('protocol_ribbon_governance_open');
+    if (window.location.hash !== '#chamber') {
+        window.location.hash = 'chamber';
+        return;
+    }
+    import('../features/chamber.js')
+        .then(({ openChamber }) => openChamber())
+        .catch((error) => console.warn('Failed to open Tezos L1 Governance from protocol ribbon', error));
+}
+
+function openProtocolRibbonOverview() {
+    window.trackTezosSystemsEvent?.('protocol_ribbon_overview_open');
+    openProtocolHistoryChamber();
+}
+
+function updateProtocolRibbonMode() {
+    const { track } = protocolRibbonElements();
+    if (!track) return;
+
+    const mobile = protocolRibbonMobile();
+    track.classList.toggle('is-mobile-action', mobile);
+    track.setAttribute('role', mobile ? 'button' : 'list');
+    track.setAttribute('aria-label', mobile ? 'Open Protocol Anthology overview' : 'Tezos protocol upgrades');
+    if (mobile) {
+        track.tabIndex = 0;
+    } else {
+        track.removeAttribute('tabindex');
+    }
+
+    track.querySelectorAll('.protocol-ribbon-tick').forEach((tick) => {
+        if (mobile) {
+            tick.tabIndex = -1;
+            tick.setAttribute('aria-hidden', 'true');
+        } else {
+            tick.tabIndex = 0;
+            tick.removeAttribute('aria-hidden');
+        }
+    });
+}
+
+function wireProtocolRibbon() {
+    const { root, track, next } = protocolRibbonElements();
+    if (!root || !track || root.dataset.wired === '1') return;
+    root.dataset.wired = '1';
+
+    track.addEventListener('click', (event) => {
+        const tick = event.target?.closest?.('.protocol-ribbon-tick');
+        if (tick && !protocolRibbonMobile()) {
+            const name = tick.dataset.protocolRibbonName;
+            if (name) {
+                window.trackTezosSystemsEvent?.('protocol_ribbon_protocol_open', { protocol: name });
+                openProtocolHistoryByName(name);
+            }
+            return;
+        }
+        if (protocolRibbonMobile()) openProtocolRibbonOverview();
+    });
+
+    track.addEventListener('keydown', (event) => {
+        if (!protocolRibbonMobile()) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        openProtocolRibbonOverview();
+    });
+
+    next?.addEventListener('click', openGovernanceChamberFromRibbon);
+
+    if (!protocolRibbonModeMql && window.matchMedia) {
+        protocolRibbonModeMql = window.matchMedia(PROTOCOL_RIBBON_MOBILE_QUERY);
+    }
+    protocolRibbonModeMql?.addEventListener?.('change', updateProtocolRibbonMode);
+}
+
+function renderProtocolRibbon(protocols) {
+    const { root, track, kicker } = protocolRibbonElements();
+    if (!root || !track || !Array.isArray(protocols) || !protocols.length) return;
+
+    wireProtocolRibbon();
+    root.hidden = false;
+    kicker.textContent = `${protocols.length} upgrades · 0 forks`;
+    track.dataset.protocolCount = String(protocols.length);
+    track.innerHTML = protocols.map((protocol, index) => {
+        const name = protocol?.name || `Protocol ${index + 1}`;
+        const date = formatProtocolDate(protocol);
+        const label = `${name}${date ? ` — activated ${date}` : ''}. Open Protocol Anthology`;
+        const classes = ['protocol-ribbon-tick'];
+        if (protocol?.isCurrent || index === protocols.length - 1) classes.push('is-current');
+        return `
+            <button class="${classes.join(' ')}" type="button" role="listitem" data-protocol-ribbon-name="${escapeHtml(name)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">
+                <span class="protocol-ribbon-segment" aria-hidden="true"></span>
+                <span class="protocol-ribbon-dot" aria-hidden="true"></span>
+                <span class="protocol-ribbon-name" aria-hidden="true">${escapeHtml(name)}</span>
+            </button>
+        `;
+    }).join('');
+    updateProtocolRibbonMode();
+}
+
+function protocolRibbonProposalLabel(period) {
+    return period?.proposalName
+        || period?.proposal?.alias
+        || period?.proposal?.hash?.slice(0, 8)
+        || null;
+}
+
+function compactRibbonText(value, max = 22) {
+    const text = String(value || '').trim();
+    if (text.length <= max) return text;
+    return `${text.slice(0, Math.max(0, max - 1)).trimEnd()}…`;
+}
+
+async function updateProtocolRibbonNextCell() {
+    const { next } = protocolRibbonElements();
+    if (!next) return;
+
+    next.hidden = true;
+    next.textContent = '';
+    try {
+        const period = await fetchVotingStatus();
+        if (!period?.kind) return;
+
+        const phase = getVotingPeriodName(period.kind).replace(/\s+(Period|Vote)$/i, '');
+        const active = alertablePeriod(period);
+        const proposal = protocolRibbonProposalLabel(period);
+        const text = active && proposal
+            ? `Next: ${compactRibbonText(proposal)} · ${phase}`
+            : period.kind === 'proposal'
+                ? 'Governance: open'
+                : `Governance: ${phase}`;
+        next.textContent = text;
+        next.setAttribute('aria-label', `${text}. Open Tezos L1 Governance Chamber`);
+        next.title = 'Open Tezos L1 Governance Chamber';
+        next.hidden = false;
+    } catch (error) {
+        next.hidden = true;
+        console.warn('Protocol ribbon governance state failed', error);
+    }
+}
+
+function initProtocolRibbon() {
+    wireProtocolRibbon();
+    updateProtocolRibbonMode();
+    updateProtocolRibbonNextCell();
+}
+
 function buildProtocolLoreMap(data) {
     const map = new Map();
     if (!Array.isArray(data?.protocols)) return map;
@@ -2404,8 +2569,7 @@ function renderProtocolTimeline(protocols) {
     if (countEl) countEl.textContent = protocols.length;
     const aboutUpgrades = document.getElementById('about-upgrades');
     if (aboutUpgrades) aboutUpgrades.textContent = protocols.length;
-    const continuitySelfAmendments = document.getElementById('continuity-self-amendments');
-    if (continuitySelfAmendments) continuitySelfAmendments.textContent = protocols.length;
+    renderProtocolRibbon(protocols);
 
     const currentProtocol = protocols.find(p => p.isCurrent) || protocols[protocols.length - 1];
     if (currentProtocol) {
@@ -3390,8 +3554,6 @@ async function updateUpgradeClock() {
             // Update "fork-free days" badge
             const forkFreeDays = document.getElementById('fork-free-days');
             if (forkFreeDays) forkFreeDays.textContent = `${daysLive.toLocaleString()} days fork-free`;
-            const continuityForkFree = document.getElementById('continuity-fork-free-days');
-            if (continuityForkFree) continuityForkFree.textContent = daysLive.toLocaleString();
         }
         
         const statusEl = document.getElementById('upgrade-status');

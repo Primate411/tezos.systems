@@ -22772,25 +22772,23 @@ body[data-theme="hen"]::after {
 }
 
 [data-theme="hen"] .uptime-pulse-dot,
-[data-theme="hen"] .block-ticker-pulse,
-[data-theme="hen"] .continuity-proof-pulse {
+[data-theme="hen"] .block-ticker-pulse {
     color: #ffb432;
     background: #ffb432;
     box-shadow: 0 0 8px rgba(255, 180, 50, 0.58);
     animation: hen-idle-dot 1.8s ease-in-out infinite;
 }
 
-[data-theme="hen"] :is(.upgrade-clock, .command-deck, .continuity-proof-story, .hero-slot, .tezos-loop-console, .morning-brief, .daily-briefing, .briefing-card) {
+[data-theme="hen"] :is(.upgrade-clock, .command-deck, .protocol-ribbon, .hero-slot, .tezos-loop-console, .morning-brief, .daily-briefing, .briefing-card) {
     background: #0f0f0f !important;
     border: 1px solid #222222 !important;
     box-shadow: none !important;
 }
 
-[data-theme="hen"] .continuity-proof-story {
+[data-theme="hen"] .protocol-ribbon {
     box-shadow: inset 2px 0 0 #00ff88 !important;
 }
 
-[data-theme="hen"] .continuity-proof-headline,
 [data-theme="hen"] .tezos-loop-title,
 [data-theme="hen"] .section-title {
     color: #e0e0e0;
@@ -22798,7 +22796,6 @@ body[data-theme="hen"]::after {
 }
 
 [data-theme="hen"] .feature-kicker,
-[data-theme="hen"] .continuity-proof-kicker,
 [data-theme="hen"] .tezos-loop-kicker,
 [data-theme="hen"] .recruit-card-kicker,
 [data-theme="hen"] .dropdown-section-label {
@@ -22806,7 +22803,6 @@ body[data-theme="hen"]::after {
     letter-spacing: 0 !important;
 }
 
-[data-theme="hen"] .continuity-proof-stat,
 [data-theme="hen"] .tezos-loop-hints span,
 [data-theme="hen"] .network-focus-chip,
 [data-theme="hen"] .feature-status {
@@ -22815,10 +22811,47 @@ body[data-theme="hen"]::after {
     color: var(--text-secondary);
 }
 
-[data-theme="hen"] .continuity-proof-stat strong,
 [data-theme="hen"] .recruit-card strong,
 [data-theme="hen"] .tezos-loop-hints strong {
     color: #00ff88;
+}
+
+[data-theme="hen"] .protocol-ribbon-kicker,
+[data-theme="hen"] .protocol-ribbon-next {
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0 !important;
+}
+
+[data-theme="hen"] .protocol-ribbon-segment {
+    background: #222222;
+}
+
+[data-theme="hen"] .protocol-ribbon-dot {
+    border-color: #00d4ff;
+    background: #0a0a0a;
+    box-shadow: none;
+}
+
+[data-theme="hen"] .protocol-ribbon-tick:hover .protocol-ribbon-dot,
+[data-theme="hen"] .protocol-ribbon-tick:focus-visible .protocol-ribbon-dot,
+[data-theme="hen"] .protocol-ribbon-tick.is-current .protocol-ribbon-dot {
+    background: #00ff88;
+    border-color: #00ff88;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.28);
+}
+
+[data-theme="hen"] .protocol-ribbon-name,
+[data-theme="hen"] .protocol-ribbon-next {
+    background: #101010;
+    border: 1px solid #222222;
+    box-shadow: none;
+}
+
+[data-theme="hen"] .protocol-ribbon-next:hover,
+[data-theme="hen"] .protocol-ribbon-next:focus-visible {
+    border-color: #00d4ff;
+    color: #00d4ff;
 }
 
 [data-theme="hen"] .hero-search-form {
@@ -23098,7 +23131,7 @@ body[data-theme="hen"]::after {
     [data-theme="hen"] :is(.chamber-entry-card, .health-entry-card, .tz4-entry-card, .lb-entry-card, .stat-card) .card-front {
         padding: 0.7rem 0.75rem;
     }
-    [data-theme="hen"] .continuity-proof-story {
+    [data-theme="hen"] .protocol-ribbon {
         padding: 0.85rem !important;
     }
 }

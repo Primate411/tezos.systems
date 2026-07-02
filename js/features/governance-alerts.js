@@ -39,7 +39,7 @@ function hasSubmittedProposal(period) {
     return Boolean(period.proposalHash || period.proposalName || period.proposal?.hash || period.proposal?.alias);
 }
 
-function alertablePeriod(period) {
+export function alertablePeriod(period) {
     if (!period || !activeKind(period.kind)) return false;
     if (period.kind === 'proposal') return hasSubmittedProposal(period);
     return true;

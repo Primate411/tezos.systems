@@ -7,6 +7,7 @@ const CHANGELOG = [
     {
         date: '2026-07-01',
         entries: [
+            { type: '🎨', text: 'The homepage continuity panel is now a compact protocol ribbon that links each upgrade into the Protocol Anthology and keeps governance status one tap away' },
             { type: '🔧', text: 'Tezos X no longer asks Blockscout for an unsupported active-address chart and falls back to the supported address count instead' },
             { type: '🎨', text: 'Mobile theme wordmarks now fit narrow screens across the retro themes, and the What is hot today strip stays contained while it scrolls' },
             { type: '🔧', text: 'HEN live mode now lets quiet newest polls become a real listening state, keeps arrival chrome out of the expanded viewer, and stops arrow/random shortcuts from firing behind open artwork' },
