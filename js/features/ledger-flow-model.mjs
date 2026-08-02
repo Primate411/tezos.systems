@@ -16,7 +16,26 @@ function transactionKey(tx) {
         || `${tx?.level || ''}:${tx?.sender?.address || ''}:${tx?.target?.address || ''}:${tx?.amount || 0}`;
 }
 
-export function normalizeLedgerTransaction(tx, address) {
+function normalizedDelegateContext(value) {
+    const complete = value?.complete === true;
+    const sourceAddresses = value?.addresses;
+    const sourceAliases = value?.aliases;
+    const addresses = sourceAddresses instanceof Set
+        ? sourceAddresses
+        : new Set(Array.isArray(sourceAddresses) ? sourceAddresses : []);
+    const aliases = sourceAliases instanceof Map
+        ? sourceAliases
+        : new Map(Object.entries(sourceAliases && typeof sourceAliases === 'object' ? sourceAliases : {}));
+    return {
+        complete,
+        addresses: complete ? addresses : new Set(),
+        aliases: complete ? aliases : new Map(),
+        reason: String(value?.reason || ''),
+        catalogSize: complete ? addresses.size : 0
+    };
+}
+
+export function normalizeLedgerTransaction(tx, address, delegateContext = null) {
     const sender = tx?.sender || {};
     const target = tx?.target || {};
     const senderAddress = sender.address || '';
@@ -31,6 +50,11 @@ export function normalizeLedgerTransaction(tx, address) {
     if (!direction) return null;
 
     const counterparty = direction === 'sent' ? target : sender;
+    const counterpartyAddress = counterparty.address || '';
+    const delegates = normalizedDelegateContext(delegateContext);
+    const catalogAlias = delegates.complete
+        ? String(delegates.aliases.get(counterpartyAddress) || '')
+        : '';
     return {
         id: transactionKey(tx),
         transactionId: tx?.id || null,
@@ -42,8 +66,9 @@ export function normalizeLedgerTransaction(tx, address) {
         sender,
         target,
         counterparty: {
-            address: counterparty.address || '',
-            alias: counterparty.alias || ''
+            address: counterpartyAddress,
+            alias: counterparty.alias || catalogAlias,
+            isBaker: delegates.complete ? delegates.addresses.has(counterpartyAddress) : null
         }
     };
 }
@@ -67,6 +92,7 @@ function addCounterparty(map, tx) {
             key: address,
             address,
             alias: tx.counterparty.alias || '',
+            isBaker: tx.counterparty.isBaker,
             sent: 0,
             received: 0,
             sentCount: 0,
@@ -84,6 +110,7 @@ function addCounterparty(map, tx) {
 
     const item = map.get(address);
     if (tx.counterparty.alias && !item.alias) item.alias = tx.counterparty.alias;
+    if (tx.counterparty.isBaker === true) item.isBaker = true;
     item[tx.direction] += tx.amount;
     item[`${tx.direction}Count`] += 1;
     item[`${tx.direction}Latest`] = latestTimestamp(item[`${tx.direction}Latest`], tx.timestamp);
@@ -225,17 +252,25 @@ function selectedForDirection(ranked, direction, budget, pinnedAddress = '') {
 
 export function ledgerCounterpartyKind(item) {
     const address = String(item?.address || '');
+    if (item?.isBaker === true) return 'baker';
     if (address.startsWith('KT1')) return 'contract';
     if (String(item?.alias || '').trim()) return 'aliased';
     return 'unaliased';
 }
 
-function buildCounterpartyComposition(counterparties) {
-    const definitions = [
-        ['contract', 'Contracts'],
-        ['aliased', 'TzKT-aliased addresses'],
-        ['unaliased', 'Unaliased addresses']
-    ];
+function buildCounterpartyComposition(counterparties, bakerClassificationComplete) {
+    const definitions = bakerClassificationComplete
+        ? [
+            ['baker', 'Bakers'],
+            ['contract', 'Contracts'],
+            ['aliased', 'TzKT-named addresses'],
+            ['unaliased', 'Unnamed addresses']
+        ]
+        : [
+            ['contract', 'Contracts'],
+            ['aliased', 'TzKT-aliased addresses'],
+            ['unaliased', 'Unaliased addresses']
+        ];
     const buckets = new Map(definitions.map(([key, label]) => [key, {
         key,
         label,
@@ -244,6 +279,8 @@ function buildCounterpartyComposition(counterparties) {
         received: 0,
         sentCount: 0,
         receivedCount: 0,
+        sentMemberCount: 0,
+        receivedMemberCount: 0,
         total: 0,
         count: 0
     }]));
@@ -254,21 +291,28 @@ function buildCounterpartyComposition(counterparties) {
         bucket.received += Number(item.received || 0);
         bucket.sentCount += Number(item.sentCount || 0);
         bucket.receivedCount += Number(item.receivedCount || 0);
+        if (Number(item.sent || 0) > 0) bucket.sentMemberCount += 1;
+        if (Number(item.received || 0) > 0) bucket.receivedMemberCount += 1;
         bucket.total = bucket.sent + bucket.received;
         bucket.count = bucket.sentCount + bucket.receivedCount;
     }
-    return definitions
-        .map(([key]) => buckets.get(key))
-        .filter((bucket) => bucket.memberCount > 0);
+    const result = definitions.map(([key]) => buckets.get(key));
+    return bakerClassificationComplete
+        ? result
+        : result.filter((bucket) => bucket.memberCount > 0);
 }
 
 export function filterLedgerCounterparties(counterparties, options = {}) {
     const query = String(options.query || '').trim().toLowerCase();
+    const kind = ['all', 'baker', 'contract', 'aliased', 'unaliased'].includes(options.kind)
+        ? options.kind
+        : 'all';
     const sort = ['total', 'received', 'sent', 'count', 'latest'].includes(options.sort)
         ? options.sort
         : 'total';
     const rows = [...(Array.isArray(counterparties) ? counterparties : [])]
         .filter((item) => {
+            if (kind !== 'all' && ledgerCounterpartyKind(item) !== kind) return false;
             if (!query) return true;
             const address = String(item?.address || '').toLowerCase();
             const alias = String(item?.alias || '').toLowerCase();
@@ -308,6 +352,7 @@ export function buildLedgerFlowModel(data, options = {}) {
             : DEFAULT_DIRECTION_NODE_BUDGET
     };
     const address = data?.address || '';
+    const delegateContext = normalizedDelegateContext(data?.delegateCatalog);
     const seenRows = new Set();
     const allTransfers = [];
     let selfTransferRows = 0;
@@ -323,7 +368,7 @@ export function buildLedgerFlowModel(data, options = {}) {
             && Number(raw?.amount || 0) > 0) {
             selfTransferRows += 1;
         }
-        const tx = normalizeLedgerTransaction(raw, address);
+        const tx = normalizeLedgerTransaction(raw, address, delegateContext);
         if (!tx) continue;
         allTransfers.push(tx);
     }
@@ -452,7 +497,12 @@ export function buildLedgerFlowModel(data, options = {}) {
         fullLoadedTotals: totalsFor(allTransfers),
         counterparties: ranked,
         counterpartyEdges,
-        composition: buildCounterpartyComposition(ranked),
+        composition: buildCounterpartyComposition(ranked, delegateContext.complete),
+        bakerContext: {
+            complete: delegateContext.complete,
+            reason: delegateContext.reason,
+            catalogSize: delegateContext.catalogSize
+        },
         listCounterparties,
         listEdges,
         visibleCounterparties: diagramNodes,
@@ -498,6 +548,37 @@ function validWhaleOperation(operation, transferWindow, isValidAddress) {
         && timestamp <= until;
 }
 
+function sourceAlias(value) {
+    return String(value || '').trim();
+}
+
+function whaleHero(operation, selectionKind) {
+    const senderAlias = sourceAlias(operation?.senderAlias);
+    const targetAlias = sourceAlias(operation?.targetAlias);
+    const focusAddress = senderAlias
+        ? String(operation.sender)
+        : targetAlias
+            ? String(operation.target)
+            : String(operation.sender);
+    const focusAlias = senderAlias || targetAlias;
+    return {
+        selectionKind,
+        focusAddress,
+        focusAlias,
+        sender: {
+            address: String(operation.sender),
+            alias: senderAlias
+        },
+        target: {
+            address: String(operation.target),
+            alias: targetAlias
+        },
+        amountMutez: Number(operation.amountMutez),
+        timestamp: operation.timestamp,
+        hash: operation.hash
+    };
+}
+
 export function buildLedgerFlowEntryProjection(artifact, options = {}) {
     const isValidAddress = typeof options.isValidAddress === 'function'
         ? options.isValidAddress
@@ -540,30 +621,21 @@ export function buildLedgerFlowEntryProjection(artifact, options = {}) {
         }
     };
     rememberAliases(transfers?.largestOperation);
+    rememberAliases(transfers?.largestNamedOperation);
     flowStories.forEach((story) => (
         (Array.isArray(story?.operations) ? story.operations : []).forEach(rememberAliases)
     ));
 
     let hero = null;
-    if (metricsValid && validWhaleOperation(
-        transfers?.largestOperation,
-        transfers.window,
-        isValidAddress
-    )) {
-        const operation = transfers.largestOperation;
-        hero = {
-            sender: {
-                address: String(operation.sender),
-                alias: String(operation.senderAlias || '')
-            },
-            target: {
-                address: String(operation.target),
-                alias: String(operation.targetAlias || '')
-            },
-            amountMutez: Number(operation.amountMutez),
-            timestamp: operation.timestamp,
-            hash: operation.hash
-        };
+    if (metricsValid) {
+        const largest = transfers?.largestOperation;
+        const largestValid = validWhaleOperation(largest, transfers.window, isValidAddress);
+        const largestNamed = transfers?.largestNamedOperation;
+        const namedValid = validWhaleOperation(largestNamed, transfers.window, isValidAddress)
+            && Boolean(sourceAlias(largestNamed?.senderAlias) || sourceAlias(largestNamed?.targetAlias))
+            && (!largestValid || Number(largestNamed.amountMutez) <= Number(largest.amountMutez));
+        if (namedValid) hero = whaleHero(largestNamed, 'largest-named-endpoint');
+        else if (largestValid) hero = whaleHero(largest, 'largest-overall');
     }
 
     const stories = [];

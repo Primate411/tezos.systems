@@ -13,7 +13,7 @@ import {
     normalizeTezDomainName,
     resolveTezDomainRecord
 } from '../core/tezos-domains.js';
-import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
+import { escapeHtml, formatFreshnessStamp, formatUtcDateTime } from '../core/utils.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import {
@@ -47,8 +47,11 @@ const NODE_HEIGHT = 62;
 const NODE_TEXT_PAD = 30;
 const NODE_MIN_GAP = 18;
 const DESKTOP_DIRECTION_PREVIEW = 4;
-const COUNTERPARTY_PAGE_SIZE = 25;
-const MOBILE_DIRECTION_PREVIEW = 5;
+const COUNTERPARTY_INITIAL_DESKTOP = 12;
+const COUNTERPARTY_INITIAL_MOBILE = 8;
+const COUNTERPARTY_REVEAL_SIZE = 25;
+const MOBILE_DIRECTION_PREVIEW = 3;
+const DELEGATE_CATALOG_LIMIT = 10000;
 
 const WINDOW_OPTIONS = [
     { key: '24h', label: '24H', ms: 24 * 60 * 60 * 1000 },
@@ -87,7 +90,9 @@ let ledgerEntryProjection = null;
 let entryResumeListenersReady = false;
 let counterpartyQuery = '';
 let counterpartySort = 'total';
-let counterpartyVisibleCount = COUNTERPARTY_PAGE_SIZE;
+let counterpartyKind = 'all';
+let delegateCatalogPromise = null;
+let counterpartyVisibleCount = initialCounterpartyVisibleCount();
 const mobileExpandedDirections = {
     received: false,
     sent: false
@@ -126,6 +131,14 @@ function loadStoredThresholdIndex() {
 
 function isTezosAccount(value) {
     return isTezosAddress(String(value || '').trim());
+}
+
+function initialCounterpartyVisibleCount() {
+    return typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia('(max-width: 759px)').matches
+        ? COUNTERPARTY_INITIAL_MOBILE
+        : COUNTERPARTY_INITIAL_DESKTOP;
 }
 
 function shortAddress(address) {
@@ -209,6 +222,13 @@ function originationUrl(params) {
     return url.toString();
 }
 
+function delegateCatalogUrl() {
+    const url = new URL(`${TZKT}/delegates`);
+    url.searchParams.set('select', 'address,alias');
+    url.searchParams.set('limit', String(DELEGATE_CATALOG_LIMIT));
+    return url.toString();
+}
+
 async function fetchJson(url, signal) {
     return fetchWithRetry(url, {
         signal,
@@ -216,6 +236,51 @@ async function fetchJson(url, signal) {
         cache: 'no-store',
         timeoutMs: 12000
     }, 2);
+}
+
+function unavailableDelegateCatalog(reason) {
+    return {
+        complete: false,
+        addresses: new Set(),
+        aliases: new Map(),
+        reason,
+        catalogSize: 0
+    };
+}
+
+function loadDelegateCatalog() {
+    if (delegateCatalogPromise) return delegateCatalogPromise;
+    delegateCatalogPromise = (async () => {
+        try {
+            const rows = await fetchJson(delegateCatalogUrl());
+            if (!Array.isArray(rows)) return unavailableDelegateCatalog('invalid-response');
+            if (rows.length === 0) return unavailableDelegateCatalog('empty-catalog');
+            if (rows.length >= DELEGATE_CATALOG_LIMIT) return unavailableDelegateCatalog('row-cap-reached');
+
+            const addresses = new Set();
+            const aliases = new Map();
+            for (const row of rows) {
+                const address = String(row?.address || '').trim();
+                if (!isTezosAccount(address) || addresses.has(address)) {
+                    return unavailableDelegateCatalog('invalid-catalog');
+                }
+                addresses.add(address);
+                const alias = String(row?.alias || '').trim();
+                if (alias) aliases.set(address, alias);
+            }
+            return {
+                complete: true,
+                addresses,
+                aliases,
+                reason: '',
+                catalogSize: addresses.size
+            };
+        } catch (error) {
+            console.warn('Ledger Flow delegate catalog unavailable', error);
+            return unavailableDelegateCatalog('request-failed');
+        }
+    })();
+    return delegateCatalogPromise;
 }
 
 async function resolveLedgerTarget(rawTarget, signal) {
@@ -599,7 +664,6 @@ function renderDiagram(model) {
         ? Math.min(940, layout.columns.right + 120)
         : layout.center.x + 130;
     return `
-        ${renderMobileDiagram(model)}
         <svg class="ledger-flow-svg" viewBox="0 0 1000 ${layout.viewHeight}" aria-hidden="true" focusable="false">
             <defs>
                 <marker id="ledger-arrow-sent" viewBox="0 0 10 10" refX="8.2" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -741,7 +805,8 @@ function renderCounterpartyRow(item, model) {
 function counterpartyResults(model) {
     return filterLedgerCounterparties(model.counterparties, {
         query: counterpartyQuery,
-        sort: counterpartySort
+        sort: counterpartySort,
+        kind: counterpartyKind
     });
 }
 
@@ -752,16 +817,23 @@ function renderCounterpartyResults(model) {
     const queryCopy = counterpartyQuery
         ? ` matching “${counterpartyQuery}”`
         : '';
+    const kindLabels = {
+        baker: ' bakers',
+        contract: ' contracts',
+        aliased: ' named addresses',
+        unaliased: ' unnamed addresses'
+    };
+    const kindCopy = counterpartyKind === 'all' ? '' : kindLabels[counterpartyKind] || '';
     return `
         <div class="ledger-flow-counterparty-status" role="status">
-            Showing ${escapeHtml(formatCount(visible.length))} of ${escapeHtml(formatCount(rows.length))}${escapeHtml(queryCopy)} · ${escapeHtml(formatCount(model.counterparties.length))} loaded total. The map above keeps the ${escapeHtml(formatCount(DESKTOP_DIRECTION_PREVIEW))} largest paths per direction and reconciles the rest into “Other”.
+            Showing ${escapeHtml(formatCount(visible.length))} of ${escapeHtml(formatCount(rows.length))}${escapeHtml(kindCopy)}${escapeHtml(queryCopy)} · ${escapeHtml(formatCount(model.counterparties.length))} loaded total. The map above keeps the ${escapeHtml(formatCount(DESKTOP_DIRECTION_PREVIEW))} largest paths per direction and reconciles the rest into “Other”.
         </div>
         <div class="ledger-flow-counterparty-list">
             ${visible.length
                 ? visible.map((item) => renderCounterpartyRow(item, model)).join('')
                 : '<div class="ledger-flow-muted">No loaded counterparty matches that alias or address prefix.</div>'}
         </div>
-        ${remaining ? `<button type="button" class="ledger-flow-show-more" data-ledger-counterparty-more>Show ${escapeHtml(formatCount(Math.min(COUNTERPARTY_PAGE_SIZE, remaining)))} more</button>` : ''}
+        ${remaining ? `<button type="button" class="ledger-flow-show-more" data-ledger-counterparty-more>Show ${escapeHtml(formatCount(Math.min(COUNTERPARTY_REVEAL_SIZE, remaining)))} more</button>` : ''}
     `;
 }
 
@@ -773,6 +845,13 @@ function renderCounterpartyExplorer(model) {
         ['count', 'Row count'],
         ['latest', 'Most recent']
     ];
+    const kindOptions = [
+        ['all', 'All kinds'],
+        ...(model.bakerContext?.complete ? [['baker', 'Bakers']] : []),
+        ['contract', 'Contracts'],
+        ['aliased', 'Named addresses'],
+        ['unaliased', 'Unnamed addresses']
+    ];
     return `
         <div class="ledger-flow-counterparty-controls">
             <label for="ledger-flow-counterparty-query">
@@ -783,6 +862,12 @@ function renderCounterpartyExplorer(model) {
                 <span>Sort</span>
                 <select id="ledger-flow-counterparty-sort">
                     ${sortOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${counterpartySort === value ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('')}
+                </select>
+            </label>
+            <label for="ledger-flow-counterparty-kind">
+                <span>Kind</span>
+                <select id="ledger-flow-counterparty-kind">
+                    ${kindOptions.map(([value, label]) => `<option value="${escapeHtml(value)}"${counterpartyKind === value ? ' selected' : ''}>${escapeHtml(label)}</option>`).join('')}
                 </select>
             </label>
         </div>
@@ -807,23 +892,48 @@ function renderStats(model) {
     `;
 }
 
-function directionShape(model, direction) {
-    const total = Number(model.totals?.[direction] || 0);
-    if (!(total > 0)) return null;
-    const category = [...model.composition]
-        .sort((left, right) => Number(right?.[direction] || 0) - Number(left?.[direction] || 0))[0];
-    const topCounterparty = [...model.counterparties]
-        .filter((item) => Number(item?.[direction] || 0) > 0)
-        .sort((left, right) => (
-            Number(right?.[direction] || 0) - Number(left?.[direction] || 0)
-            || left.address.localeCompare(right.address)
-        ))[0];
-    return {
-        category,
-        categoryPercent: category ? (Number(category[direction] || 0) / total) * 100 : 0,
-        topCounterparty,
-        topPercent: topCounterparty ? (Number(topCounterparty[direction] || 0) / total) * 100 : 0
-    };
+function directionPercent(amount, total) {
+    return total > 0 ? (Number(amount || 0) / total) * 100 : 0;
+}
+
+function renderBakerSummary(model) {
+    if (!model.bakerContext?.complete) {
+        return `
+            <section class="ledger-flow-baker-summary is-unavailable" aria-label="Baker paths unavailable" role="note">
+                <div>
+                    <span>Baker paths</span>
+                    <strong>Withheld</strong>
+                </div>
+                <p>Complete delegate catalog unavailable; no partial Baker percentage is shown.</p>
+            </section>
+        `;
+    }
+    const bucket = model.composition.find((item) => item.key === 'baker') || {};
+    const sample = model.coverage?.mode === 'sample';
+    const metrics = [
+        ['received', 'From bakers'],
+        ['sent', 'To bakers']
+    ].map(([direction, label]) => {
+        const amount = Number(bucket[direction] || 0);
+        const total = Number(model.totals?.[direction] || 0);
+        const members = Number(bucket[`${direction}MemberCount`] || 0);
+        return `
+            <div data-direction="${escapeHtml(direction)}">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(formatCompactXTZ(amount))}</strong>
+                <small>${escapeHtml(directionPercent(amount, total).toFixed(1))}% · ${escapeHtml(formatCount(members))} ${members === 1 ? 'baker path' : 'baker paths'}</small>
+            </div>
+        `;
+    }).join('');
+    return `
+        <section class="ledger-flow-baker-summary" aria-label="Baker paths">
+            <header>
+                <span>Baker paths${sample ? ' in sample' : ''}</span>
+                <small>${escapeHtml(formatCount(model.bakerContext.catalogSize))} TzKT delegate accounts loaded</small>
+            </header>
+            ${metrics}
+        </section>
+    `;
 }
 
 function renderShapeSummary(model) {
@@ -833,23 +943,37 @@ function renderShapeSummary(model) {
         ['sent', 'Outbound']
     ];
     const items = directions.map(([direction, label]) => {
-        const shape = directionShape(model, direction);
-        if (!shape) {
-            return `<div><span>${escapeHtml(label)}</span><strong>No matching tez</strong></div>`;
-        }
-        const topLabel = nodeLabel(shape.topCounterparty);
+        const total = Number(model.totals?.[direction] || 0);
+        const rows = model.composition.map((bucket) => {
+            const amount = Number(bucket[direction] || 0);
+            const members = Number(bucket[`${direction}MemberCount`] || 0);
+            return `
+                <li data-kind="${escapeHtml(bucket.key)}">
+                    <span>${escapeHtml(bucket.label)}</span>
+                    <strong>${escapeHtml(directionPercent(amount, total).toFixed(1))}%</strong>
+                    <small>${escapeHtml(formatCompactXTZ(amount))} · ${escapeHtml(formatCount(members))} ${members === 1 ? 'path' : 'paths'}</small>
+                </li>
+            `;
+        }).join('');
         return `
-            <div>
-                <span>${escapeHtml(label)}${sample ? ' sample' : ''}</span>
-                <strong>${escapeHtml(shape.categoryPercent.toFixed(1))}% of ${escapeHtml(label.toLowerCase())} tez ${direction === 'received' ? 'from' : 'to'} ${escapeHtml(shape.category.label.toLowerCase())}</strong>
-                <small>Largest counterparty: ${escapeHtml(topLabel)} · ${escapeHtml(shape.topPercent.toFixed(1))}% of ${escapeHtml(label.toLowerCase())} tez</small>
+            <div data-direction="${escapeHtml(direction)}">
+                <header>
+                    <span>${escapeHtml(label)}${sample ? ' sample' : ''}</span>
+                    <strong>${escapeHtml(formatCompactXTZ(total))}</strong>
+                </header>
+                ${rows
+                    ? `<ul class="ledger-flow-shape-list">${rows}</ul>`
+                    : '<p class="ledger-flow-muted">No matching categories.</p>'}
             </div>
         `;
     }).join('');
+    const proofCopy = model.bakerContext?.complete
+        ? 'Baker membership uses one complete TzKT delegate catalog, including active and inactive registrations. Other categories use only contract address form and TzKT-provided aliases; no ownership or business type is inferred.'
+        : 'Baker breakdown is withheld because the complete TzKT delegate catalog was unavailable. Remaining categories use only contract address form and aliases returned with TzKT transfer rows; no ownership or business type is inferred.';
     return `
         <div class="ledger-flow-shape" aria-label="Receipt-proven account shape">
             ${items}
-            <p>${sample ? 'Within the largest-row sample. ' : ''}Categories use only contract address form and aliases returned with TzKT transfer rows; they do not infer ownership or business type.</p>
+            <p>${sample ? 'Within the largest-row sample. ' : ''}${escapeHtml(proofCopy)}</p>
         </div>
     `;
 }
@@ -967,11 +1091,16 @@ function renderLegend() {
 function renderExampleChips() {
     if (!whaleSeed?.target) return '';
     const label = whaleSeed.alias || shortAddress(whaleSeed.target);
-    const observed = whaleSeed.timestamp ? formatAge(whaleSeed.timestamp) : 'time unknown';
+    const receiptLabel = whaleSeed.selectionKind === 'largest-named-endpoint'
+        ? 'TzKT-named endpoint from the largest nameable move'
+        : 'Endpoint from the largest observed move';
+    const windowLabel = whaleSeed.windowUntil
+        ? `window ending ${formatUtcDateTime(whaleSeed.windowUntil)} UTC`
+        : 'archive window';
     return `
         <div class="ledger-flow-examples" aria-label="Live Ledger Flow starting point">
-            <button type="button" data-ledger-example="${escapeHtml(whaleSeed.target)}" aria-label="Map ${escapeHtml(label)}, sender of Whale Watch's largest archived 24-hour move">
-                <span>Largest archived 24h sender · ${escapeHtml(observed)}</span>
+            <button type="button" data-ledger-example="${escapeHtml(whaleSeed.target)}" aria-label="Map ${escapeHtml(label)}, ${escapeHtml(receiptLabel.toLowerCase())} in Whale Watch's complete 24-hour archive">
+                <span>${escapeHtml(receiptLabel)} · ${escapeHtml(windowLabel)}</span>
                 <strong>${escapeHtml(label)}</strong>
                 <small>${escapeHtml(shortAddress(whaleSeed.target))} · TzKT alias if named</small>
             </button>
@@ -1071,6 +1200,10 @@ function renderLedgerFlow(data, options = {}) {
             item.sample = true;
         });
     }
+    if (counterpartyKind === 'baker' && !model.bakerContext?.complete) {
+        counterpartyKind = 'all';
+        counterpartyVisibleCount = initialCounterpartyVisibleCount();
+    }
     const selectableEdges = [...model.edges, ...model.counterpartyEdges];
     if (!selectableEdges.some((edge) => edge.id === selectedEdgeId)) {
         selectedEdgeId = selectableEdges.find((edge) => edge.isFirstValue)?.id
@@ -1094,10 +1227,14 @@ function renderLedgerFlow(data, options = {}) {
                 ${escapeHtml(identity)} · ${escapeHtml(windowLabel)}
             </div>
         </div>
+        ${renderMobileDiagram(model)}
         <section class="lb-explainer ledger-flow-explainer chamber-anim-fade">
             ${renderControls(model)}
             ${renderCoverage(model)}
-            ${renderStats(model)}
+            <div class="ledger-flow-summary-column">
+                ${renderStats(model)}
+                ${renderBakerSummary(model)}
+            </div>
             ${renderShapeSummary(model)}
             ${renderWindowContext(model)}
             ${renderLegend()}
@@ -1241,7 +1378,7 @@ function wireLedgerFlowControls(container) {
         counterpartyInput.dataset.ledgerFlowWired = '1';
         counterpartyInput.addEventListener('input', () => {
             counterpartyQuery = counterpartyInput.value.slice(0, 96);
-            counterpartyVisibleCount = COUNTERPARTY_PAGE_SIZE;
+            counterpartyVisibleCount = initialCounterpartyVisibleCount();
             updateCounterpartyResults(container);
         });
     }
@@ -1252,7 +1389,20 @@ function wireLedgerFlowControls(container) {
         counterpartySelect.addEventListener('change', () => {
             if (!['total', 'received', 'sent', 'count', 'latest'].includes(counterpartySelect.value)) return;
             counterpartySort = counterpartySelect.value;
-            counterpartyVisibleCount = COUNTERPARTY_PAGE_SIZE;
+            counterpartyVisibleCount = initialCounterpartyVisibleCount();
+            updateCounterpartyResults(container);
+        });
+    }
+
+    const counterpartyKindSelect = container.querySelector('#ledger-flow-counterparty-kind');
+    if (counterpartyKindSelect && !counterpartyKindSelect.dataset.ledgerFlowWired) {
+        counterpartyKindSelect.dataset.ledgerFlowWired = '1';
+        counterpartyKindSelect.addEventListener('change', () => {
+            const allowed = ['all', 'contract', 'aliased', 'unaliased'];
+            if (container._ledgerFlowModel?.bakerContext?.complete) allowed.push('baker');
+            if (!allowed.includes(counterpartyKindSelect.value)) return;
+            counterpartyKind = counterpartyKindSelect.value;
+            counterpartyVisibleCount = initialCounterpartyVisibleCount();
             updateCounterpartyResults(container);
         });
     }
@@ -1280,7 +1430,7 @@ function wireLedgerFlowControls(container) {
             const showMore = event.target.closest('[data-ledger-counterparty-more]');
             if (showMore) {
                 event.preventDefault();
-                counterpartyVisibleCount += COUNTERPARTY_PAGE_SIZE;
+                counterpartyVisibleCount += COUNTERPARTY_REVEAL_SIZE;
                 updateCounterpartyResults(container);
                 return;
             }
@@ -1433,13 +1583,14 @@ async function loadLedgerFlow(rawTarget) {
             since: windowTimestamp(requestedWindow, until),
             until
         };
-        const [account, totalRows, firstInboundRaw, originationRaw] = await Promise.all([
+        const [account, totalRows, firstInboundRaw, originationRaw, delegateCatalog] = await Promise.all([
             fetchAccount(resolved.address, controller.signal),
             fetchTransferCount(resolved.address, boundary, thresholdMutez, controller.signal),
             fetchFirstInbound(resolved.address, controller.signal),
             resolved.address.startsWith('KT1')
                 ? fetchOrigination(resolved.address, controller.signal)
-                : Promise.resolve(null)
+                : Promise.resolve(null),
+            loadDelegateCatalog()
         ]);
         const coverage = {
             mode: totalRows > EXACT_ROW_LIMIT ? 'sample' : 'exact',
@@ -1465,7 +1616,8 @@ async function loadLedgerFlow(rawTarget) {
         if (resolved.address !== previous.target) {
             counterpartyQuery = '';
             counterpartySort = 'total';
-            counterpartyVisibleCount = COUNTERPARTY_PAGE_SIZE;
+            counterpartyKind = 'all';
+            counterpartyVisibleCount = initialCounterpartyVisibleCount();
             mobileExpandedDirections.received = false;
             mobileExpandedDirections.sent = false;
             selectedEdgeId = '';
@@ -1481,6 +1633,7 @@ async function loadLedgerFlow(rawTarget) {
             accountOrigin,
             firstInboundEvent,
             firstValueEvent,
+            delegateCatalog,
             coverage,
             updatedAt: new Date().toISOString()
         };
@@ -1541,21 +1694,16 @@ async function loadWhaleSeed() {
     if (whaleSeed?.target) return whaleSeed;
     try {
         const artifact = await getWhaleWatchArtifact();
-        const operation = artifact?.transfers24h?.largestOperation;
-        const sender = String(operation?.sender || '');
-        const target = String(operation?.target || '');
-        if (String(operation?.status || '').toLowerCase() !== 'applied'
-            || !isTezosAccount(sender)
-            || !isTezosAccount(target)
-            || sender === target
-            || !(Number(operation?.amountMutez || 0) > 0)) {
-            return null;
-        }
+        const projection = buildLedgerFlowEntryProjection(artifact, { isValidAddress: isTezosAccount });
+        const hero = projection.hero;
+        if (!hero) return null;
         whaleSeed = {
-            target: sender,
-            alias: String(operation?.senderAlias || ''),
-            timestamp: operation?.timestamp || artifact?.generatedAt || '',
-            amountMutez: Number(operation.amountMutez)
+            target: hero.focusAddress,
+            alias: hero.focusAlias,
+            timestamp: hero.timestamp || artifact?.generatedAt || '',
+            amountMutez: hero.amountMutez,
+            selectionKind: hero.selectionKind,
+            windowUntil: projection.source?.windowUntil || artifact?.generatedAt || ''
         };
         return whaleSeed;
     } catch {
@@ -1653,6 +1801,9 @@ function storedEntryResume() {
 function entryFreshnessLabel(state, projection) {
     const schedule = state?.scheduleLabel || '6h schedule';
     if (projection?.source?.generatedAt) {
+        if (state?.stale || state?.phase === 'stale') {
+            return `Stale archive · ${state?.ageLabel || formatAge(projection.source.generatedAt).replace(' ago', ' old')} · window ended ${formatUtcDateTime(projection.source.windowUntil)} UTC · ${schedule}`;
+        }
         const source = state?.phase === 'last-good' || state?.refreshFailed
             ? 'Last good'
             : 'Archive generated';
@@ -1688,19 +1839,24 @@ function entryHeroMarkup(projection) {
     }
     const senderLabel = hero.sender.alias || shortAddress(hero.sender.address);
     const targetLabel = hero.target.alias || shortAddress(hero.target.address);
+    const focusLabel = hero.focusAlias || shortAddress(hero.focusAddress);
+    const selectionLabel = hero.selectionKind === 'largest-named-endpoint'
+        ? 'Largest move touching a TzKT label'
+        : 'Largest observed move';
+    const windowEnding = formatUtcDateTime(projection.source?.windowUntil);
     return `
-        <a class="ledger-flow-entry-hero" href="#ledger-flow=${encodeURIComponent(hero.sender.address)}" aria-label="Map ${escapeHtml(senderLabel)}, sender of the largest move in the latest loaded 24-hour Whale Watch archive">
-            <span class="ledger-flow-entry-kicker">Largest loaded 24h move</span>
+        <a class="ledger-flow-entry-hero" href="#ledger-flow=${encodeURIComponent(hero.focusAddress)}" aria-label="Map ${escapeHtml(focusLabel)}, a source-named endpoint in the latest complete Whale Watch window">
+            <span class="ledger-flow-entry-kicker">${escapeHtml(selectionLabel)} · 24h window ending ${escapeHtml(windowEnding)} UTC</span>
             <span class="ledger-flow-entry-path">
                 ${entryEntityMarkup(hero.sender)}
                 <span class="ledger-flow-entry-path-edge">
                     <i aria-hidden="true"></i>
                     <strong>${escapeHtml(formatCompactXTZ(hero.amountMutez))}</strong>
-                    <small>${escapeHtml(formatAge(hero.timestamp))}</small>
+                    <small>${escapeHtml(formatUtcDateTime(hero.timestamp))} UTC</small>
                 </span>
                 ${entryEntityMarkup(hero.target)}
             </span>
-            <small class="ledger-flow-entry-path-caption">${escapeHtml(senderLabel)} → ${escapeHtml(targetLabel)} · open the sender map</small>
+            <small class="ledger-flow-entry-path-caption">${escapeHtml(senderLabel)} → ${escapeHtml(targetLabel)} · open ${escapeHtml(focusLabel)} in Ledger Flow</small>
         </a>
     `;
 }
@@ -1766,7 +1922,11 @@ function entryMetricsMarkup(projection) {
 
 function ledgerFlowEntryLiveMarkup(projection, state) {
     const archiveState = projection?.metrics
-        ? state?.refreshFailed ? 'Last-good archive retained' : 'Complete generated archive'
+        ? state?.refreshFailed
+            ? 'Last-good archive retained'
+            : state?.stale || state?.phase === 'stale'
+                ? `Archive is ${state?.ageLabel || 'past its freshness limit'}`
+                : 'Complete generated archive'
         : state?.phase === 'unavailable' ? 'Shared archive unavailable' : 'Awaiting shared archive';
     return `
         <div class="ledger-flow-entry-deck">
@@ -1786,7 +1946,7 @@ function ledgerFlowEntryLiveMarkup(projection, state) {
 }
 
 function openLedgerFlowEntryHero() {
-    return openLedgerFlowChamber(ledgerEntryProjection?.hero?.sender?.address || '');
+    return openLedgerFlowChamber(ledgerEntryProjection?.hero?.focusAddress || '');
 }
 
 function updateLedgerFlowEntry(state = peekWhaleWatchArtifactState()) {
@@ -1800,10 +1960,12 @@ function updateLedgerFlowEntry(state = peekWhaleWatchArtifactState()) {
     ledgerEntryProjection = projection;
     whaleSeed = projection.hero
         ? {
-            target: projection.hero.sender.address,
-            alias: projection.hero.sender.alias,
+            target: projection.hero.focusAddress,
+            alias: projection.hero.focusAlias,
             timestamp: projection.hero.timestamp,
-            amountMutez: projection.hero.amountMutez
+            amountMutez: projection.hero.amountMutez,
+            selectionKind: projection.hero.selectionKind,
+            windowUntil: projection.source?.windowUntil || ''
         }
         : null;
     const card = document.getElementById('ledger-flow-entry-card');
@@ -1814,9 +1976,9 @@ function updateLedgerFlowEntry(state = peekWhaleWatchArtifactState()) {
     });
     card.dataset.updatedLabel = entryFreshnessLabel(state, projection);
     card.dataset.shareValue = projection.metrics
-        ? `${formatCount(projection.metrics.operationCount)} moves ≥${formatCount(projection.metrics.minimumXtz)} XTZ · loaded 24h`
+        ? `${formatCount(projection.metrics.operationCount)} moves ≥${formatCount(projection.metrics.minimumXtz)} XTZ · 24h window ending ${formatUtcDateTime(projection.source.windowUntil)} UTC`
         : 'Account transfer map';
-    card.classList.toggle('chamber-data-stale', Boolean(state?.refreshFailed) || !projection.metrics);
+    card.classList.toggle('chamber-data-stale', Boolean(state?.refreshFailed) || Boolean(state?.stale) || !projection.metrics);
     window.syncChamberEntryFooters?.(card);
 }
 

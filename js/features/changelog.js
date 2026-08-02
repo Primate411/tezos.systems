@@ -7,6 +7,9 @@ export const CHANGELOG = [
     {
         date: '2026-08-02',
         entries: [
+            { type: '✨', text: 'Whale Watch Balance Exits now shows exact archive-proven empty and near-empty balances after large outbound blocks, with destination receipts and no inferred sale or ownership claim' },
+            { type: '✨', text: 'Ledger Flow now distinguishes baker paths from other accounts, leads with a source-named 24-hour receipt when one exists, and makes long-tail discovery more compact on desktop and mobile' },
+            { type: '🔧', text: 'Generated-data schedules now retry transient Maxis failures once, continue independent generators, keep validation as the publish gate, and alert after three consecutive failed runs' },
             { type: '🎨', text: 'Release Radar now centers its wrapped Review due receipt on narrow cards' },
             { type: '🔧', text: 'The mobile live-block ticker now keeps the complete head level visible and lets the baker name yield space first instead of ellipsizing the block number' },
             { type: '🎨', text: 'Release Radar now marks an overdue forecast review with a quiet Review due receipt instead of an alarm-style stale banner, while retaining the review age and full timing caveat' },

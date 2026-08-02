@@ -7,7 +7,10 @@
  * labelled independently and never combined into an "economic volume" claim.
  */
 
-import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
+import {
+    GENERATED_PROOFBOOK_SCHEDULE_LABEL,
+    generatedProofbookFreshness
+} from '../core/freshness-contracts.mjs';
 import { versionedAsset } from '../core/asset-version.js';
 import { escapeHtml, formatUtcDateTime } from '../core/utils.js';
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
@@ -48,6 +51,7 @@ const ARTIFACT_REFRESH_MS = 5 * 60_000;
 const GIANT_MONITOR_MS = 5 * 60_000;
 const VIEWS = Object.freeze([
     { id: 'overview', label: 'Overview', detail: 'Complete shared 24-hour receipts and coverage.' },
+    { id: 'exits', label: 'Balance Exits', detail: 'Archive-backed balances after large outbound blocks.' },
     { id: 'live', label: 'Live Tape', detail: 'A bounded current sample of large applied operations.' },
     { id: 'flows', label: 'Flow Stories', detail: 'Related operation legs joined by operation-group hash.' },
     { id: 'dormant', label: 'Deep Sleep', detail: 'Large accounts quiet for at least one year.' },
@@ -76,12 +80,16 @@ let whaleWatchFocusedBeforeOpen = null;
 const artifactSubscribers = new Set();
 
 function whaleWatchArtifactPhase() {
-    if (lastArtifact) return artifactError ? 'last-good' : 'ready';
+    if (lastArtifact) {
+        if (artifactError) return 'last-good';
+        return generatedProofbookFreshness(lastArtifact.generatedAt).stale ? 'stale' : 'ready';
+    }
     if (artifactFetch) return 'loading';
     return artifactError ? 'unavailable' : 'idle';
 }
 
 export function peekWhaleWatchArtifactState() {
+    const freshness = generatedProofbookFreshness(lastArtifact?.generatedAt);
     return Object.freeze({
         phase: whaleWatchArtifactPhase(),
         artifact: lastArtifact,
@@ -89,7 +97,11 @@ export function peekWhaleWatchArtifactState() {
         refreshFailed: Boolean(artifactError),
         error: artifactError || '',
         fetchedAt: lastArtifactRead || null,
-        scheduleLabel: GENERATED_PROOFBOOK_SCHEDULE_LABEL
+        scheduleLabel: GENERATED_PROOFBOOK_SCHEDULE_LABEL,
+        stale: freshness.stale,
+        ageMs: freshness.ageMs,
+        ageLabel: freshness.ageLabel,
+        staleAt: freshness.staleAt
     });
 }
 
@@ -228,6 +240,24 @@ function validateArtifact(value) {
                 || !['transaction', 'stake', 'unstake'].includes(semanticType)));
     })) {
         throw new Error('Whale Watch awakenings require an applied receipt with a type-safe moved amount.');
+    }
+    const exits = value.balanceExits;
+    if (exits !== undefined) {
+        const candidateCount = Number(exits?.candidateSenderCount);
+        const checkedCount = Number(exits?.checkedSenderCount);
+        const failureCount = Number(exits?.receiptFailureCount);
+        const records = exits?.records;
+        const exitsSince = Date.parse(exits?.window?.since || '');
+        const exitsUntil = Date.parse(exits?.window?.until || '');
+        if (!Array.isArray(records)
+            || ![candidateCount, checkedCount, failureCount].every(Number.isSafeInteger)
+            || [candidateCount, checkedCount, failureCount].some((count) => count < 0)
+            || exitsSince !== windowSince
+            || exitsUntil !== windowUntil
+            || (exits.complete === true && (checkedCount !== candidateCount || failureCount !== 0))
+            || (exits.complete !== true && records.length > 0)) {
+            throw new Error('Whale Watch balance exits require complete archive receipts or an empty fail-closed result.');
+        }
     }
     return value;
 }
@@ -389,12 +419,18 @@ function filtersMarkup({ showType = true } = {}) {
 
 function sourceStripMarkup() {
     const generatedAt = lastArtifact?.generatedAt;
-    const stale = artifactError ? ' is-stale' : '';
+    const freshness = generatedProofbookFreshness(generatedAt);
+    const stale = artifactError || freshness.stale ? ' is-stale' : '';
+    const archiveAge = freshness.stale
+        ? `archive is ${freshness.ageLabel}`
+        : generatedAt
+            ? `generated ${freshness.ageLabel}`
+            : 'not yet available';
     return `
         <div class="whale-watch-source-strip${stale}" id="whale-watch-freshness" role="status" aria-live="polite">
             <span class="whale-watch-live-dot" aria-hidden="true"></span>
             <strong>Shared archive</strong>
-            <span>${generatedAt ? `generated ${escapeHtml(ageLabel(generatedAt))} · ${escapeHtml(GENERATED_PROOFBOOK_SCHEDULE_LABEL)}` : 'not yet available'}</span>
+            <span>${escapeHtml(archiveAge)} · ${escapeHtml(GENERATED_PROOFBOOK_SCHEDULE_LABEL)}</span>
             ${lastArtifact?.transfers24h ? `<span>window ${escapeHtml(archiveWindowLabel())}</span>` : ''}
             ${artifactError ? `<span>last-good retained · refresh failed</span>` : ''}
             <a href="${ARTIFACT_URL}" target="_blank" rel="noopener">JSON receipt</a>
@@ -439,6 +475,7 @@ function overviewMarkup() {
     if (!lastArtifact) return unavailableMarkup('Shared 24-hour archive is unavailable.', artifactError);
     const transfer = lastArtifact.transfers24h;
     const dormant = lastArtifact.dormant;
+    const exits = lastArtifact.balanceExits;
     const named = namedEndpointSample(liveOperations());
     return `
         <section class="whale-watch-view" id="whale-watch-panel-overview" role="tabpanel" aria-labelledby="whale-watch-tab-overview">
@@ -448,7 +485,16 @@ function overviewMarkup() {
                 <article><span>Distinct endpoints</span><strong>${exact(transfer.uniqueSenders)} / ${exact(transfer.uniqueTargets)}</strong><small>senders / targets; sets may overlap</small></article>
                 <article><span>Gross observed legs</span><strong>${xtz(transfer.grossObservedMutez, 2)}</strong><small>not economic volume</small></article>
                 <article><span>Dormant cohort</span><strong>${exact(dormant.eligibleCount)}</strong><small>${xtz(dormant.eligibleBalanceMutez, 2)} observed holdings</small></article>
+                <article><span>Balance exits</span><strong>${exits?.complete ? exact(exits.records.length) : 'Unavailable'}</strong><small>${exits?.complete ? `${exact(exits.candidateSenderCount)} senders checked` : 'complete archive pairs required'}</small></article>
             </div>
+            <button class="whale-watch-exit-callout" type="button" data-whale-view="exits">
+                <span><small>New archive lens</small><strong>Whose last qualifying outbound block ended empty or near-empty?</strong><em>${exits?.complete
+                    ? `${exact(exits.records.length)} exact matches from ${exact(exits.candidateSenderCount)} checked senders`
+                    : exits
+                        ? 'Required balance receipts are incomplete, so no partial list is shown.'
+                        : 'The next generated archive will add exact before-and-after balance receipts.'}</em></span>
+                <b>Open Balance Exits →</b>
+            </button>
             <div class="whale-watch-grid whale-watch-grid-overview">
                 <article class="whale-watch-panel"><div class="whale-watch-panel-title"><div><span>Receipt of scale</span><h4>Largest observed operation</h4></div><span class="whale-watch-chip">Archived window</span></div>${largestOperationMarkup(transfer.largestOperation)}</article>
                 <article class="whale-watch-panel"><div class="whale-watch-panel-title"><div><span>Source-native names</span><h4>TzKT-labeled endpoints</h4></div><span class="whale-watch-chip">Live tape</span></div>
@@ -459,6 +505,97 @@ function overviewMarkup() {
             </div>
             <article class="whale-watch-panel whale-watch-thresholds"><div class="whale-watch-panel-title"><div><span>Complete threshold ladder</span><h4>How the window changes with size</h4></div><span class="whale-watch-chip">TzKT</span></div>${thresholdTableMarkup(transfer.thresholds)}</article>
             <aside class="whale-watch-method"><strong>How to read this</strong><p>One operation id is one tape row. One operation-group hash can connect several related hops. Adding those hops describes observed transfer legs; it does not prove unique capital, beneficial ownership, or economic volume.</p></aside>
+        </section>`;
+}
+
+function balanceExitSearchText(record) {
+    return [
+        record?.senderAddress,
+        record?.senderAlias,
+        record?.classification,
+        record?.level,
+        ...(record?.hashes || []),
+        ...(record?.destinations || []).flatMap((destination) => [destination.address, destination.alias])
+    ].filter(Boolean).join(' ').toLowerCase();
+}
+
+function remainingPercentLabel(value) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return 'Unavailable';
+    if (parsed === 0) return '0%';
+    if (parsed < 0.01) return '<0.01%';
+    return `${parsed.toLocaleString('en-US', { maximumFractionDigits: 2 })}%`;
+}
+
+function balanceExitDestinationsMarkup(record) {
+    const destinations = Array.isArray(record?.destinations) ? record.destinations : [];
+    return destinations.slice(0, 3).map((destination) => `
+        <li>
+            <span title="${escapeHtml(destination.address)}">${escapeHtml(destination.alias || short(destination.address, 12, 6))}</span>
+            <strong>${xtz(destination.qualifyingOutflowMutez, 2)}</strong>
+        </li>`).join('');
+}
+
+function balanceExitMarkup(record, rank) {
+    const label = record.senderAlias || short(record.senderAddress, 14, 7);
+    const destinations = Array.isArray(record.destinations) ? record.destinations : [];
+    const beforeReceipt = record.balanceReceipts?.before;
+    const afterReceipt = record.balanceReceipts?.after;
+    const classification = record.classification === 'emptied' ? 'Emptied' : 'Near-empty';
+    const operationReceipt = record.hashes?.[0] ? receiptHref(record.hashes[0]) : receiptHref('', record.senderAddress);
+    return `
+        <article class="whale-watch-exit" data-quiet-key="balance-exit-${escapeHtml(record.id)}">
+            <header>
+                <span class="whale-watch-exit-rank">${String(rank).padStart(2, '0')}</span>
+                <div><small>${escapeHtml(classification)} after last qualifying block ${exact(record.level)}</small><h4 title="${escapeHtml(record.senderAddress)}">${escapeHtml(label)}</h4></div>
+                <strong>${xtz(record.balanceAfterMutez, 6)}<small>after block</small></strong>
+            </header>
+            <div class="whale-watch-exit-balance">
+                <div><span>Before block</span><strong>${xtz(record.balanceBeforeMutez, 2)}</strong></div>
+                <b aria-hidden="true">→</b>
+                <div><span>Remaining</span><strong>${remainingPercentLabel(record.remainingPercent)}</strong></div>
+                <div><span>Qualifying transfers in block</span><strong>${xtz(record.qualifyingOutflowMutez, 2)}</strong></div>
+            </div>
+            <div class="whale-watch-exit-destinations"><span>Observed destinations${destinations.length > 3 ? ` · first 3 of ${exact(destinations.length)}` : ''}</span><ul>${balanceExitDestinationsMarkup(record)}</ul></div>
+            <footer>
+                <a href="/#ledger-flow=${encodeURIComponent(record.senderAddress)}">Map account</a>
+                <a href="${escapeHtml(operationReceipt)}" target="_blank" rel="noopener">Transfer receipt ↗</a>
+                <a href="${escapeHtml(beforeReceipt?.url || receiptHref('', record.senderAddress))}" target="_blank" rel="noopener">Before balance ↗</a>
+                <a href="${escapeHtml(afterReceipt?.url || receiptHref('', record.senderAddress))}" target="_blank" rel="noopener">After balance ↗</a>
+            </footer>
+        </article>`;
+}
+
+function balanceExitsMarkup() {
+    if (!lastArtifact) return unavailableMarkup('Shared balance-exit archive is unavailable.', artifactError);
+    const exits = lastArtifact.balanceExits;
+    if (!exits) {
+        return `
+            <section class="whale-watch-view" id="whale-watch-panel-exits" role="tabpanel" aria-labelledby="whale-watch-tab-exits">
+                <div class="whale-watch-view-heading"><div><p class="whale-watch-eyebrow">Archive balance receipts</p><h3>Balance Exits</h3></div><p>This loaded artifact predates the balance-receipt ledger. No result is inferred from transfers alone; the next successful generated archive can populate this view.</p></div>
+                <div class="whale-watch-empty">Waiting for a complete generated archive with before-and-after full-balance receipts.</div>
+            </section>`;
+    }
+    const query = searchQuery.trim().toLowerCase();
+    const records = exits.complete
+        ? exits.records.filter((record) => !query || balanceExitSearchText(record).includes(query))
+        : [];
+    const emptyCount = exits.complete ? exits.records.filter((record) => record.classification === 'emptied').length : 0;
+    const nearEmptyCount = exits.complete ? exits.records.filter((record) => record.classification === 'near-empty').length : 0;
+    return `
+        <section class="whale-watch-view" id="whale-watch-panel-exits" role="tabpanel" aria-labelledby="whale-watch-tab-exits">
+            <div class="whale-watch-view-heading"><div><p class="whale-watch-eyebrow">Exact archive before-and-after receipts</p><h3>Balance Exits</h3></div><p>Each implicit sender is checked at its last block in this complete 24-hour window containing an applied top-level transfer of at least ${compact(exits.minimumQualifyingOutflowXtz)} ꜩ. “Emptied” leaves at most ${exact(exits.thresholds.emptiedMaximumXtz)} ꜩ; “near-empty” leaves at most ${exact(exits.thresholds.nearEmptyMaximumXtz)} ꜩ and ${exact(exits.thresholds.nearEmptyMaximumPercent)}%.</p></div>
+            <aside class="whale-watch-exit-disclosure"><strong>What this proves</strong><p>The archive receipts prove the account's full balance before and after that block. The block may also contain fees, inbound transfers, or other operations. This does not establish a sale, an owner's identity, or why the balance changed.</p></aside>
+            <div class="whale-watch-dormant-summary whale-watch-exit-summary">
+                <div><span>Candidate senders</span><strong>${exact(exits.candidateSenderCount)}</strong></div>
+                <div><span>Archive pairs checked</span><strong>${exact(exits.checkedSenderCount)}</strong></div>
+                <div><span>Emptied / near-empty</span><strong>${exits.complete ? `${exact(emptyCount)} / ${exact(nearEmptyCount)}` : 'Withheld'}</strong></div>
+            </div>
+            <div class="whale-watch-filters whale-watch-exit-filter"><label class="whale-watch-search"><span>Find account, destination, or receipt</span><input id="whale-watch-search" data-whale-filter="search" type="search" value="${escapeHtml(searchQuery)}" maxlength="80" autocomplete="off" placeholder="Address, TzKT alias, hash…"></label></div>
+            <div class="whale-watch-result-line"><span>${exits.complete ? `${exact(records.length)} matching balance exits` : 'No partial ranking published'}</span><span>Window ending ${escapeHtml(formatUtcDateTime(exits.window.until))} UTC</span></div>
+            ${exits.complete
+                ? `<div class="whale-watch-exits">${records.length ? records.map(balanceExitMarkup).join('') : '<div class="whale-watch-empty">No balance exit matches this search in the complete archive.</div>'}</div>`
+                : `<div class="whale-watch-empty">${escapeHtml(exits.error || `${exact(exits.receiptFailureCount)} required archive balance pairs were unavailable.`)} The list is withheld rather than ranked from partial coverage.</div>`}
         </section>`;
 }
 
@@ -630,6 +767,7 @@ function unavailableMarkup(title, error = '') {
 }
 
 function activeViewMarkup() {
+    if (currentView === 'exits') return balanceExitsMarkup();
     if (currentView === 'live') return liveMarkup();
     if (currentView === 'flows') return flowsMarkup();
     if (currentView === 'dormant') return dormantMarkup();
@@ -638,7 +776,7 @@ function activeViewMarkup() {
 }
 
 function chamberMarkup() {
-    return `${headerMarkup()}<main class="whale-watch-main">${activeViewMarkup()}</main><footer class="whale-watch-footer"><span>Source: complete generated TzKT archive + bounded live TzKT tape</span><span>Labels are source context, not beneficial-ownership claims.</span></footer>`;
+    return `${headerMarkup()}<main class="whale-watch-main">${activeViewMarkup()}</main><footer class="whale-watch-footer"><span>Source: complete generated TzKT archive + archive-node balance receipts + bounded live TzKT tape</span><span>Labels are source context, not beneficial-ownership claims.</span></footer>`;
 }
 
 function captureLiveTapeAnchor(body) {
@@ -696,19 +834,21 @@ function entryFooterMarkup() {
 function entryMarkup() {
     const transfer = lastArtifact?.transfers24h;
     const dormant = lastArtifact?.dormant;
+    const exits = lastArtifact?.balanceExits;
     return `
         <div class="whale-watch-entry-copy">
             <div class="whale-watch-entry-title-line"><h2 class="stat-label" id="whale-watch-entry-title">Whale Watch</h2><span class="whale-watch-entry-chip">TzKT receipts</span></div>
             <div class="stat-value whale-watch-entry-value">${transfer ? `${exact(transfer.operationCount)} large transfers` : 'Reading the deep'}</div>
-            <div class="stat-description">Live tape, related flows, deep sleep, and awakenings</div>
+            <div class="stat-description">Balance exits, live tape, related flows, deep sleep, and awakenings</div>
         </div>
         <div class="whale-watch-entry-sonar" aria-hidden="true"><i></i><i></i><i></i><b>🐋</b></div>
         <div class="whale-watch-entry-metrics">
             <div><span>Largest · archive</span><strong>${transfer?.largestOperation ? xtz(transfer.largestOperation.amountMutez, 2) : 'Loading'}</strong></div>
             <div><span>Operation groups</span><strong>${transfer ? exact(transfer.operationGroupCount) : '—'}</strong></div>
             <div><span>Dormant accounts</span><strong>${dormant ? exact(dormant.eligibleCount) : '—'}</strong></div>
+            <div><span>Balance exits</span><strong>${exits?.complete ? exact(exits.records.length) : '—'}</strong></div>
         </div>
-        <div class="whale-watch-entry-rails"><span>Overview</span><span>Live Tape</span><span>Flow Stories</span><span>Deep Sleep</span><span>Awakenings</span></div>
+        <div class="whale-watch-entry-rails"><span>Overview</span><span>Balance Exits</span><span>Live Tape</span><span>Flow Stories</span><span>Deep Sleep</span><span>Awakenings</span></div>
         ${entryFooterMarkup()}`;
 }
 
@@ -734,12 +874,15 @@ export function updateWhaleWatchEntry({ quiet = false } = {}) {
     front.dataset.whaleWatchRendered = '1';
     const card = document.getElementById('whale-watch-entry-card');
     if (card) {
+        const freshness = generatedProofbookFreshness(lastArtifact?.generatedAt);
         card.dataset.updatedLabel = lastArtifact
             ? artifactError
-                ? `Last-good archive · ${ageLabel(lastArtifact.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`
-                : `Archive generated ${ageLabel(lastArtifact.generatedAt)} · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`
+                ? `Last-good archive · ${freshness.ageLabel} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`
+                : freshness.stale
+                    ? `Stale archive · ${freshness.ageLabel} · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`
+                    : `Archive generated ${freshness.ageLabel} · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`
             : 'Archive freshness unavailable';
-        card.classList.toggle('chamber-data-stale', Boolean(artifactError) || !lastArtifact);
+        card.classList.toggle('chamber-data-stale', Boolean(artifactError) || freshness.stale || !lastArtifact);
     }
     window.syncChamberEntryFooters?.(card);
     wireEntry(card);

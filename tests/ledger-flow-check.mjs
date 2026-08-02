@@ -8,6 +8,15 @@ import {
   filterLedgerCounterparties,
   layoutLedgerFlowNodes
 } from '../js/features/ledger-flow-model.mjs';
+import {
+  GENERATED_PROOFBOOK_SCHEDULE_MS,
+  GENERATED_PROOFBOOK_STALE_AFTER_MS,
+  generatedProofbookFreshness
+} from '../js/core/freshness-contracts.mjs';
+import {
+  buildWhaleTransferSummary,
+  selectLargestNamedOperation
+} from '../scripts/refresh-whale-watch-data.mjs';
 
 const ACCOUNT = 'tz1LedgerFlowModelUnderTest';
 const MUTEZ = 1_000_000;
@@ -31,10 +40,12 @@ function transfer({
 }
 
 function model(transactions, options = {}) {
+  const { delegateCatalog, ...modelOptions } = options;
   return buildLedgerFlowModel({
     address: ACCOUNT,
-    transactions
-  }, options);
+    transactions,
+    delegateCatalog
+  }, modelOptions);
 }
 
 function whaleArtifact() {
@@ -159,6 +170,9 @@ function testWhaleEntryProjection() {
     semantics: 'Gross observed tez, not economic volume.'
   });
   assert.deepEqual(result.hero, {
+    selectionKind: 'largest-overall',
+    focusAddress: 'tz1HeroSender',
+    focusAlias: 'Hero Sender',
     sender: {
       address: 'tz1HeroSender',
       alias: 'Hero Sender'
@@ -192,6 +206,139 @@ function testWhaleEntryProjection() {
     alias: 'Story Target One',
     source: 'ledger-flow-last-target'
   });
+}
+
+function testWhaleEntryPrefersGeneratedNamedHero() {
+  const artifact = whaleArtifact();
+  artifact.transfers24h.largestOperation.senderAlias = null;
+  artifact.transfers24h.largestOperation.targetAlias = null;
+  artifact.transfers24h.largestNamedOperation = {
+    id: 902,
+    hash: 'opWhaleStoryOne',
+    type: 'transaction',
+    status: 'applied',
+    timestamp: '2026-07-30T11:00:00.000Z',
+    amountMutez: 250_000_000_000,
+    sender: 'tz1StorySenderOne',
+    senderAlias: null,
+    target: 'tz1StoryTargetOne',
+    targetAlias: 'Story Target One'
+  };
+  const result = buildLedgerFlowEntryProjection(artifact, {
+    isValidAddress: validFixtureAddress
+  });
+
+  assert.equal(result.hero.selectionKind, 'largest-named-endpoint');
+  assert.equal(result.hero.focusAddress, 'tz1StoryTargetOne');
+  assert.equal(result.hero.focusAlias, 'Story Target One');
+  assert.equal(result.hero.amountMutez, 250_000_000_000);
+  assert.equal(result.hero.sender.alias, '');
+  assert.equal(result.hero.target.alias, 'Story Target One');
+}
+
+function testInvalidGeneratedNamedHeroFallsBack() {
+  const artifact = whaleArtifact();
+  artifact.transfers24h.largestNamedOperation = {
+    ...artifact.transfers24h.largestOperation,
+    amountMutez: artifact.transfers24h.largestOperation.amountMutez + 1,
+    senderAlias: 'Impossible larger named receipt'
+  };
+  let result = buildLedgerFlowEntryProjection(artifact, {
+    isValidAddress: validFixtureAddress
+  });
+  assert.equal(result.hero.selectionKind, 'largest-overall');
+  assert.equal(result.hero.hash, artifact.transfers24h.largestOperation.hash);
+
+  artifact.transfers24h.largestNamedOperation = {
+    ...artifact.transfers24h.largestOperation,
+    senderAlias: '   ',
+    targetAlias: null
+  };
+  result = buildLedgerFlowEntryProjection(artifact, {
+    isValidAddress: validFixtureAddress
+  });
+  assert.equal(result.hero.selectionKind, 'largest-overall');
+  assert.equal(result.hero.focusAddress, 'tz1HeroSender');
+}
+
+function rawWhaleTransfer({
+  id,
+  amount,
+  timestamp = '2026-07-30T12:00:00.000Z',
+  senderAlias = null,
+  targetAlias = null,
+  sender = `tz1RawSender${id}`,
+  target = `tz1RawTarget${id}`
+}) {
+  return {
+    id,
+    hash: `opRawWhale${id}`,
+    type: 'transaction',
+    status: 'applied',
+    timestamp,
+    amount,
+    sender: { address: sender, alias: senderAlias },
+    target: { address: target, alias: targetAlias }
+  };
+}
+
+function testGeneratorSelectsCompleteSetNamedHeroDeterministically() {
+  const since = '2026-07-30T00:00:00.000Z';
+  const until = '2026-07-31T00:00:00.000Z';
+  const rows = [
+    rawWhaleTransfer({ id: 1, amount: 900_000_000_000 }),
+    rawWhaleTransfer({ id: 2, amount: 400_000_000_000, senderAlias: 'Older named' }),
+    rawWhaleTransfer({ id: 3, amount: 400_000_000_000, timestamp: '2026-07-30T13:00:00.000Z', targetAlias: 'Newer named' }),
+    rawWhaleTransfer({ id: 4, amount: 400_000_000_000, timestamp: '2026-07-30T13:00:00.000Z', senderAlias: 'Highest id named' }),
+    rawWhaleTransfer({ id: 5, amount: 800_000_000_000, timestamp: '2026-08-01T00:00:00.000Z', senderAlias: 'Outside window' }),
+    rawWhaleTransfer({ id: 6, amount: 700_000_000_000, senderAlias: '   ' })
+  ];
+
+  const selected = selectLargestNamedOperation(rows, since, until);
+  assert.equal(selected.id, 4);
+  assert.equal(selected.senderAlias, 'Highest id named');
+  assert.equal(selected.targetAlias, null);
+
+  const summary = buildWhaleTransferSummary(rows.slice(0, 4), since, until);
+  assert.equal(summary.largestOperation.id, 1);
+  assert.equal(summary.namedEndpointOperationCount, 3);
+  assert.equal(summary.largestNamedOperation.id, 4);
+  assert.equal(summary.largestNamedOperation.amountMutez, 400_000_000_000);
+
+  const unaliased = buildWhaleTransferSummary([rows[0], rows[5]], since, until);
+  assert.equal(unaliased.namedEndpointOperationCount, 0);
+  assert.equal(unaliased.largestNamedOperation, null);
+}
+
+function testGeneratedProofbookFreshnessBoundary() {
+  const generatedAt = '2026-07-30T00:00:00.000Z';
+  const generatedMs = Date.parse(generatedAt);
+  assert.equal(GENERATED_PROOFBOOK_SCHEDULE_MS, 6 * 60 * 60 * 1000);
+  assert.equal(GENERATED_PROOFBOOK_STALE_AFTER_MS, 12 * 60 * 60 * 1000);
+
+  const before = generatedProofbookFreshness(generatedAt, {
+    now: generatedMs + GENERATED_PROOFBOOK_STALE_AFTER_MS - 1
+  });
+  assert.equal(before.stale, false);
+  assert.equal(before.ageLabel, '11h old');
+
+  const boundary = generatedProofbookFreshness(generatedAt, {
+    now: generatedMs + GENERATED_PROOFBOOK_STALE_AFTER_MS
+  });
+  assert.equal(boundary.stale, true);
+  assert.equal(boundary.ageLabel, '12h old');
+  assert.equal(boundary.staleAt, generatedMs + GENERATED_PROOFBOOK_STALE_AFTER_MS);
+
+  const delayed = generatedProofbookFreshness(generatedAt, {
+    now: generatedMs + 41.1 * 60 * 60 * 1000
+  });
+  assert.equal(delayed.ageLabel, '41h old');
+  assert.equal(delayed.stale, true);
+
+  const invalid = generatedProofbookFreshness('not-a-date', { now: generatedMs });
+  assert.equal(invalid.valid, false);
+  assert.equal(invalid.stale, true);
+  assert.equal(invalid.ageLabel, 'age unavailable');
 }
 
 function testInvalidWhaleHeroDoesNotDiscardMetrics() {
@@ -404,6 +551,104 @@ function testFullCounterpartyDiscoveryAndStableSorts() {
 
   assert.deepEqual(counterparties, snapshot, 'full-cardinality discovery mutated its source rows');
   assert.deepEqual(sortable, sortableSnapshot, 'sorting mutated its source rows');
+}
+
+function testCompleteDelegateCatalogClassifiesAndFiltersBakers() {
+  const baker = 'tz1DelegateCatalogBaker';
+  const contract = 'KT1DelegateCatalogContract';
+  const named = { address: 'tz1DelegateCatalogNamed', alias: 'Named account' };
+  const unnamed = 'tz1DelegateCatalogUnnamed';
+  const result = model([
+    transfer({ id: 2_501, amount: 10 * MUTEZ, sender: baker, target: ACCOUNT }),
+    transfer({ id: 2_502, amount: 5 * MUTEZ, target: baker }),
+    transfer({ id: 2_503, amount: 8 * MUTEZ, target: contract }),
+    transfer({ id: 2_504, amount: 7 * MUTEZ, sender: named, target: ACCOUNT }),
+    transfer({ id: 2_505, amount: 4 * MUTEZ, sender: unnamed, target: ACCOUNT })
+  ], {
+    delegateCatalog: {
+      complete: true,
+      addresses: new Set([baker]),
+      aliases: new Map([[baker, 'Historic Baker']])
+    }
+  });
+
+  assert.deepEqual(result.bakerContext, {
+    complete: true,
+    reason: '',
+    catalogSize: 1
+  });
+  assert.deepEqual(
+    result.composition.map((bucket) => bucket.key),
+    ['baker', 'contract', 'aliased', 'unaliased']
+  );
+  const bakerRow = result.counterparties.find((item) => item.address === baker);
+  assert.equal(bakerRow.alias, 'Historic Baker');
+  assert.equal(bakerRow.isBaker, true);
+  const bakerBucket = result.composition.find((bucket) => bucket.key === 'baker');
+  assert.deepEqual(bakerBucket, {
+    key: 'baker',
+    label: 'Bakers',
+    memberCount: 1,
+    sent: 5 * MUTEZ,
+    received: 10 * MUTEZ,
+    sentCount: 1,
+    receivedCount: 1,
+    sentMemberCount: 1,
+    receivedMemberCount: 1,
+    total: 15 * MUTEZ,
+    count: 2
+  });
+  assert.equal(
+    result.composition.reduce((sum, bucket) => sum + bucket.sent, 0),
+    result.totals.sent
+  );
+  assert.equal(
+    result.composition.reduce((sum, bucket) => sum + bucket.received, 0),
+    result.totals.received
+  );
+  assert.deepEqual(
+    filterLedgerCounterparties(result.counterparties, { kind: 'baker' })
+      .map((item) => item.address),
+    [baker]
+  );
+  assert.deepEqual(
+    filterLedgerCounterparties(result.counterparties, { kind: 'contract' })
+      .map((item) => item.address),
+    [contract]
+  );
+  assert.deepEqual(
+    filterLedgerCounterparties(result.counterparties, { kind: 'aliased' })
+      .map((item) => item.address),
+    [named.address]
+  );
+  assert.deepEqual(
+    filterLedgerCounterparties(result.counterparties, { kind: 'unaliased' })
+      .map((item) => item.address),
+    [unnamed]
+  );
+
+  const incomplete = model([
+    transfer({ id: 2_506, amount: 3 * MUTEZ, sender: baker, target: ACCOUNT })
+  ], {
+    delegateCatalog: {
+      complete: false,
+      addresses: new Set([baker]),
+      aliases: new Map([[baker, 'Partial Baker']]),
+      reason: 'row-cap-reached'
+    }
+  });
+  assert.deepEqual(incomplete.bakerContext, {
+    complete: false,
+    reason: 'row-cap-reached',
+    catalogSize: 0
+  });
+  assert.equal(incomplete.counterparties[0].isBaker, null);
+  assert.equal(incomplete.counterparties[0].alias, '');
+  assert.equal(incomplete.composition.some((bucket) => bucket.key === 'baker'), false);
+  assert.deepEqual(
+    filterLedgerCounterparties(incomplete.counterparties, { kind: 'baker' }),
+    []
+  );
 }
 
 function testDirectionalRollupsReconcileExactly() {
@@ -774,12 +1019,17 @@ function testDynamicLayoutsDoNotOverlap() {
 }
 
 testWhaleEntryProjection();
+testWhaleEntryPrefersGeneratedNamedHero();
+testInvalidGeneratedNamedHeroFallsBack();
+testGeneratorSelectsCompleteSetNamedHeroDeterministically();
+testGeneratedProofbookFreshnessBoundary();
 testInvalidWhaleHeroDoesNotDiscardMetrics();
 testCorruptWhaleProjectionFailsClosed();
 testInvalidModelOptionsFallBack();
 testPerTransferThresholdHasNoOrphans();
 testDirectionalCountsAndLatestTimestamps();
 testFullCounterpartyDiscoveryAndStableSorts();
+testCompleteDelegateCatalogClassifiesAndFiltersBakers();
 testDirectionalRollupsReconcileExactly();
 testZeroTotalRowsAreExcluded();
 testExactUtcTimelinesReconcileShownTransfers();
@@ -788,4 +1038,4 @@ testTimelineRejectsInvalidReceipts();
 testSampleAndAllTimelinesAreUnavailable();
 testDynamicLayoutsDoNotOverlap();
 
-console.log('ok - Ledger Flow entry, discovery, accounting, timelines, rollups, and layout checked');
+console.log('ok - Ledger Flow entry, baker context, discovery, accounting, timelines, rollups, and layout checked');

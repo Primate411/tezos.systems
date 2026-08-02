@@ -118,7 +118,7 @@
 
 .whale-watch-entry-metrics {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 7px;
 }
 
@@ -382,7 +382,7 @@
 
 .whale-watch-metrics {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 9px;
     margin-bottom: 12px;
 }
@@ -422,6 +422,37 @@
 }
 
 .whale-watch-metrics small { color: #708b9c; font-size: 10px; }
+
+.whale-watch-exit-callout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 22px;
+    align-items: center;
+    width: 100%;
+    margin: 0 0 12px;
+    padding: 15px 17px;
+    border: 1px solid rgba(104, 224, 188, .25);
+    border-radius: 13px;
+    color: inherit;
+    background: linear-gradient(100deg, rgba(104, 224, 188, .1), rgba(93, 140, 255, .055));
+    text-align: left;
+    cursor: pointer;
+}
+
+.whale-watch-exit-callout:hover,
+.whale-watch-exit-callout:focus-visible {
+    border-color: rgba(104, 224, 188, .55);
+    outline: 2px solid rgba(104, 224, 188, .12);
+}
+
+.whale-watch-exit-callout span,
+.whale-watch-exit-callout small,
+.whale-watch-exit-callout strong,
+.whale-watch-exit-callout em { display: block; }
+.whale-watch-exit-callout small { color: var(--whale-mint); font: 700 8px/1.2 "JetBrains Mono", monospace; letter-spacing: .08em; text-transform: uppercase; }
+.whale-watch-exit-callout strong { margin-top: 4px; color: #eafff8; font-size: 14px; }
+.whale-watch-exit-callout em { margin-top: 4px; color: #829fa7; font: normal 10px/1.4 "JetBrains Mono", monospace; }
+.whale-watch-exit-callout > b { color: var(--whale-mint); font: 700 10px/1.2 "JetBrains Mono", monospace; white-space: nowrap; }
 
 .whale-watch-grid {
     display: grid;
@@ -659,6 +690,69 @@
     margin-bottom: 10px;
 }
 .whale-watch-dormant-filter { grid-template-columns: 1fr; }
+.whale-watch-exit-filter { grid-template-columns: 1fr; }
+
+.whale-watch-exit-disclosure {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+    margin-bottom: 11px;
+    padding: 12px 14px;
+    border-left: 3px solid var(--whale-mint);
+    border-radius: 0 10px 10px 0;
+    color: #8eabb3;
+    background: rgba(104, 224, 188, .055);
+    font-size: 10px;
+    line-height: 1.5;
+}
+.whale-watch-exit-disclosure strong { color: var(--whale-mint); white-space: nowrap; }
+.whale-watch-exit-disclosure p { margin: 0; }
+
+.whale-watch-exits {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 9px;
+}
+
+.whale-watch-exit {
+    min-width: 0;
+    padding: 14px;
+    border: 1px solid rgba(104, 224, 188, .16);
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(104, 224, 188, .055), rgba(5, 20, 31, .76) 42%);
+}
+.whale-watch-exit header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; }
+.whale-watch-exit-rank { color: rgba(104, 224, 188, .46); font: 750 18px/1 "JetBrains Mono", monospace; }
+.whale-watch-exit header div { min-width: 0; }
+.whale-watch-exit header small { display: block; overflow: hidden; color: #6f958e; font: 600 8px/1.25 "JetBrains Mono", monospace; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.whale-watch-exit h4 { overflow: hidden; margin: 4px 0 0; color: #e6fff8; font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.whale-watch-exit header > strong { color: var(--whale-mint); font: 750 13px/1.2 "JetBrains Mono", monospace; text-align: right; white-space: nowrap; }
+.whale-watch-exit header > strong small { margin-top: 3px; color: #66877f; font-size: 7px; }
+
+.whale-watch-exit-balance {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, .7fr) minmax(0, 1.35fr);
+    gap: 7px;
+    align-items: center;
+    margin-top: 12px;
+}
+.whale-watch-exit-balance > div { min-width: 0; padding: 8px; border-radius: 7px; background: rgba(255, 255, 255, .025); }
+.whale-watch-exit-balance span,
+.whale-watch-exit-balance strong { display: block; }
+.whale-watch-exit-balance span { color: #66867f; font: 600 7px/1.25 "JetBrains Mono", monospace; text-transform: uppercase; }
+.whale-watch-exit-balance strong { overflow: hidden; margin-top: 4px; color: #cfe9e2; font: 700 10px/1.25 "JetBrains Mono", monospace; text-overflow: ellipsis; white-space: nowrap; }
+.whale-watch-exit-balance > b { color: var(--whale-mint); }
+
+.whale-watch-exit-destinations { margin-top: 10px; }
+.whale-watch-exit-destinations > span { color: #66867f; font: 600 8px/1.25 "JetBrains Mono", monospace; text-transform: uppercase; }
+.whale-watch-exit-destinations ul { display: grid; gap: 3px; margin: 6px 0 0; padding: 0; list-style: none; }
+.whale-watch-exit-destinations li { display: flex; justify-content: space-between; gap: 10px; min-width: 0; padding: 5px 7px; border-radius: 6px; color: #9bb8b0; background: rgba(104, 224, 188, .035); font: 600 9px/1.2 "JetBrains Mono", monospace; }
+.whale-watch-exit-destinations li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.whale-watch-exit-destinations li strong { color: #cce8e0; white-space: nowrap; }
+
+.whale-watch-exit footer { display: flex; flex-wrap: wrap; gap: 7px 13px; margin-top: 11px; padding-top: 9px; border-top: 1px solid rgba(104, 224, 188, .1); }
+.whale-watch-exit footer a { color: var(--whale-mint); font: 700 8px/1.2 "JetBrains Mono", monospace; text-decoration: none; }
+.whale-watch-exit footer a:hover { text-decoration: underline; }
 .whale-watch-dormant-row {
     display: grid;
     grid-template-columns: auto minmax(180px, 1.3fr) minmax(130px, .75fr) minmax(95px, .55fr) minmax(145px, .8fr) auto;
@@ -781,6 +875,7 @@
 [data-theme="clean"] #whale-watch-modal .whale-watch-dormant-summary strong,
 [data-theme="clean"] #whale-watch-modal .whale-watch-tape-amount strong,
 [data-theme="clean"] #whale-watch-modal .whale-watch-story-head h4,
+[data-theme="clean"] #whale-watch-modal .whale-watch-exit h4,
 [data-theme="clean"] #whale-watch-modal .whale-watch-dormant-row strong {
     color: #effcff;
     -webkit-text-fill-color: currentColor;
@@ -790,6 +885,7 @@
 [data-theme="clean"] #whale-watch-modal .whale-watch-metrics article,
 [data-theme="clean"] #whale-watch-modal .whale-watch-tape-row,
 [data-theme="clean"] #whale-watch-modal .whale-watch-story,
+[data-theme="clean"] #whale-watch-modal .whale-watch-exit,
 [data-theme="clean"] #whale-watch-modal .whale-watch-dormant-row,
 [data-theme="clean"] #whale-watch-modal .whale-watch-filters {
     background: rgba(5, 20, 31, .76);
@@ -813,7 +909,7 @@
     .whale-watch-entry-sonar { position: absolute; top: 22px; right: 16px; width: 80px; height: 80px; opacity: .75; }
     .whale-watch-entry-copy { padding-right: 66px; }
     .whale-watch-entry-value { font-size: 1.7rem; }
-    .whale-watch-entry-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .whale-watch-entry-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .whale-watch-entry-metrics > div { padding: 8px; }
 }
 
@@ -837,6 +933,12 @@
     .whale-watch-view-heading > p { font-size: 11px; line-height: 1.5; }
     .whale-watch-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
     .whale-watch-metrics article { padding: 11px; }
+    .whale-watch-exit-callout { grid-template-columns: 1fr; gap: 10px; }
+    .whale-watch-exit-callout > b { justify-self: start; }
+    .whale-watch-exit-disclosure { grid-template-columns: 1fr; gap: 5px; }
+    .whale-watch-exits { grid-template-columns: 1fr; }
+    .whale-watch-exit-balance { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); }
+    .whale-watch-exit-balance > div:last-child { grid-column: 1 / -1; }
     .whale-watch-largest { grid-template-columns: 1fr; gap: 9px; }
     .whale-watch-endpoint-sample,
     .whale-watch-label-receipts > div { grid-template-columns: 1fr; }
@@ -874,7 +976,8 @@
     .whale-watch-filters { grid-template-columns: 1fr; }
     .whale-watch-search { grid-column: auto; }
     .whale-watch-entry-metrics { grid-template-columns: 1fr 1fr; }
-    .whale-watch-entry-metrics > div:first-child { grid-column: 1 / -1; }
+    .whale-watch-exit header { grid-template-columns: auto minmax(0, 1fr); }
+    .whale-watch-exit header > strong { grid-column: 2; text-align: left; }
 }
 
 @media (prefers-reduced-motion: reduce) {

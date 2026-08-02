@@ -2497,8 +2497,11 @@ async function checkSelectorContracts() {
     ['Ledger Flow subject-first mobile ratio', 'ledger-flow-direction-ratio', ledgerFlow],
     ['Ledger Flow complete counterparty query', 'id="ledger-flow-counterparty-query"', ledgerFlow],
     ['Ledger Flow complete counterparty sort', 'id="ledger-flow-counterparty-sort"', ledgerFlow],
+    ['Ledger Flow counterparty kind filter', 'id="ledger-flow-counterparty-kind"', ledgerFlow],
+    ['Ledger Flow complete delegate catalog bound', 'const DELEGATE_CATALOG_LIMIT = 10000', ledgerFlow],
+    ['Ledger Flow withholds partial Baker percentages', 'Complete delegate catalog unavailable; no partial Baker percentage is shown.', ledgerFlow],
     ['Ledger Flow passive exact time profile', 'function renderTimeline(model)', ledgerFlow],
-    ['Ledger Flow receipt-proven composition', 'Categories use only contract address form and aliases returned with TzKT transfer rows', ledgerFlow],
+    ['Ledger Flow receipt-proven composition', 'Baker membership uses one complete TzKT delegate catalog', ledgerFlow],
     ['Ledger Flow projected transfer fields', 'select: TRANSFER_FIELDS', ledgerFlow],
     ['Ledger Flow My Tezos counterparty links', '#my-baker=${encodeURIComponent(address)}', ledgerFlow],
     ['Ledger Flow compact TzKT pills', 'ledger-flow-tzkt-pill', ledgerFlow],
@@ -5462,13 +5465,15 @@ async function checkPortableTooling() {
     'refresh:milestones': 'node scripts/generate-milestone-catalog.mjs --force',
     'refresh:nakamoto': 'node scripts/refresh-nakamoto-sources.mjs',
     test: 'npm run test:static && npm run test:smoke',
-    'test:static': 'node tests/static-checks.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers',
+    'test:static': 'node tests/static-checks.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/whale-balance-exits-check.mjs && node tests/generated-task-runner-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers',
     'test:smoke': 'node tests/smoke.mjs',
     'test:smoke:list': 'node tests/smoke.mjs --list',
     'test:smoke:headed': 'node tests/smoke.mjs --headed',
     'test:smoke:strict': 'node tests/smoke.mjs --strict-external',
     'test:smoke:live': 'node tests/smoke.mjs --base-url https://tezos.systems',
     'test:ledger-flow': 'node tests/ledger-flow-check.mjs',
+    'test:whale-balance-exits': 'node tests/whale-balance-exits-check.mjs',
+    'test:generated-runner': 'node tests/generated-task-runner-check.mjs',
     'test:baker-governance-signals': 'node tests/baker-governance-signals-check.mjs',
     'test:chamber-polling': 'node tests/chamber-polling-check.mjs',
     'test:service-worker-cache': 'node tests/service-worker-cache-check.mjs'
@@ -9046,9 +9051,14 @@ async function checkPromotedChamberContracts() {
       fail(`Whale Watch awakening must use matching prior/current receipt timestamps, derived dormancy, and moved amount: ${event.id || 'unknown'}`);
     }
   }
-  if (!Array.isArray(artifact.sources) || artifact.sources.length < 2
-    || artifact.sources.some((source) => !/^https:\/\/api\.tzkt\.io\/v1\//.test(source.url || ''))) {
+  const whaleTzktSources = (artifact.sources || []).filter((source) => /^https:\/\/api\.tzkt\.io\/v1\//.test(source.url || ''));
+  if (!Array.isArray(artifact.sources) || whaleTzktSources.length !== 2) {
     fail('Whale Watch artifact must retain explicit TzKT source receipts for both complete ledgers');
+  }
+  for (const providerId of artifact.balanceExits?.providers || []) {
+    const receiptSource = artifact.sources.find((source) => source.observedAt === artifact.balanceExits.observedAt
+      && /^https:\/\/(?:octez-mainnet-archive\.octez\.io|rpc\.tzkt\.io\/mainnet)$/.test(source.url || ''));
+    if (!receiptSource) fail(`Whale Watch balance-exit provider lacks a matching observed source: ${providerId}`);
   }
 
   const whaleGeneratorContracts = [
@@ -9102,7 +9112,7 @@ async function checkPromotedChamberContracts() {
     if (!source.includes(snippet)) fail(`${label} contract is missing`);
   }
 
-  for (const view of ['overview', 'live', 'flows', 'dormant', 'awakenings']) {
+  for (const view of ['overview', 'exits', 'live', 'flows', 'dormant', 'awakenings']) {
     if (!whale.includes(`{ id: '${view}'`)) fail(`Whale Watch must expose the ${view} view`);
   }
   for (const snippet of [
@@ -9122,7 +9132,11 @@ async function checkPromotedChamberContracts() {
     'does not infer exchange ownership or beneficial control',
     'Observed holdings',
     'Holding before',
-    'Archive generated ${ageLabel(lastArtifact.generatedAt)}',
+    'Archive generated ${freshness.ageLabel}',
+    'Stale archive · ${freshness.ageLabel}',
+    'last qualifying outbound block',
+    'This does not establish a sale',
+    'No partial ranking published',
     'Archive freshness unavailable'
   ]) {
     if (!whale.includes(snippet)) fail(`Whale Watch quiet/truth contract missing: ${snippet}`);

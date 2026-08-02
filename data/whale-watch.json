@@ -1,7 +1,7 @@
 {
   "kind": "tezos-whale-watch",
   "version": 1,
-  "generatedAt": "2026-08-01T03:55:57.248Z",
+  "generatedAt": "2026-08-02T21:35:19.014Z",
   "methodology": {
     "minimumTransferXtz": 1000,
     "minimumDormantBalanceXtz": 1000000,
@@ -9,18 +9,20 @@
     "identity": "TzKT operation id identifies one operation; operation-group hash groups related hops into a flow story.",
     "dormancy": "Dormancy uses TzKT lastActivityTime. lastActivity is retained only as a block-level receipt.",
     "awakening": "An awakening is the earliest applied TzKT account operation after the prior dormant activity. Moved amount is populated only for applied transactions and actual processed stake or unstake amounts.",
+    "featuredFlow": "The named flow receipt is the largest applied transfer in the complete 24-hour ledger with a non-empty endpoint alias returned by TzKT.",
+    "balanceExits": "Balance exits check the final qualifying outbound block per implicit sender with archive full_balance at the predecessor and block end. Emptied means at most 1 XTZ remains; near-empty means at most 100 XTZ and at most 1 percent remains.",
     "accountLanguage": "Rows are large accounts, not presumed individual wallets. TzKT account type and alias are presented as source context."
   },
   "coverage": {
     "largeAccounts": {
       "complete": true,
       "pages": 1,
-      "eligibleCount": 155
+      "eligibleCount": 156
     },
     "transfers24h": {
       "complete": true,
       "pages": 1,
-      "eligibleCount": 894
+      "eligibleCount": 236
     }
   },
   "dormant": {
@@ -36,43 +38,1835 @@
         "balanceMutez": 2540965852841,
         "lastActivityLevel": 5283840,
         "lastActivityTime": "2024-03-19T09:47:19.000Z",
-        "dormantDays": 864
+        "dormantDays": 866
       }
     ]
   },
   "awakenings": [],
+  "balanceExits": {
+    "window": {
+      "since": "2026-08-01T21:35:19.014Z",
+      "until": "2026-08-02T21:35:19.014Z",
+      "hours": 24
+    },
+    "semantics": "Applied top-level implicit-account transfers of at least 1,000 XTZ, checked only at each sender's last qualifying outbound block. Classification uses archive full_balance before and after that block; the transfer sum is not asserted to equal the balance change.",
+    "minimumQualifyingOutflowXtz": 1000,
+    "thresholds": {
+      "emptiedMaximumXtz": 1,
+      "nearEmptyMaximumXtz": 100,
+      "nearEmptyMaximumPercent": 1
+    },
+    "candidateSenderCount": 75,
+    "checkedSenderCount": 75,
+    "receiptFailureCount": 0,
+    "complete": true,
+    "providers": [
+      "octez-mainnet-archive"
+    ],
+    "observedAt": "2026-08-02T21:35:26.718Z",
+    "records": [
+      {
+        "id": "tz2JDZaUA1hRmUhwwTZQjaHPS5FpopaqUnem:14323642",
+        "senderAddress": "tz2JDZaUA1hRmUhwwTZQjaHPS5FpopaqUnem",
+        "senderAlias": null,
+        "level": 14323642,
+        "timestamp": "2026-08-02T05:00:07.000Z",
+        "qualifyingOutflowMutez": 207082999485,
+        "operationIds": [
+          2807537232510976
+        ],
+        "hashes": [
+          "ooWQuSKEtX62Vkjw5gurf1CseDpVe7CZGC9qyoTGSgSr4c7gqdK"
+        ],
+        "destinations": [
+          {
+            "address": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "alias": "Binance",
+            "qualifyingOutflowMutez": 207082999485,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 207083002485,
+        "balanceAfterMutez": 2485,
+        "remainingPercent": 0.0000012000019171926003,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14323641,
+            "block": 14323641,
+            "blockHash": "BM4mf1tbm9zabv41N4TxvxEYtY74E2Tmt3QZajfZzfE7eWN6A2E",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BM4mf1tbm9zabv41N4TxvxEYtY74E2Tmt3QZajfZzfE7eWN6A2E/context/contracts/tz2JDZaUA1hRmUhwwTZQjaHPS5FpopaqUnem/full_balance",
+            "balanceMutez": 207083002485,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14323642,
+            "block": 14323642,
+            "blockHash": "BKkZtWvFD45djCfyEQiBPhvY2mR7Lv86MkedD73JmMpQA4fW2PP",
+            "predecessorHash": "BM4mf1tbm9zabv41N4TxvxEYtY74E2Tmt3QZajfZzfE7eWN6A2E",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BKkZtWvFD45djCfyEQiBPhvY2mR7Lv86MkedD73JmMpQA4fW2PP/context/contracts/tz2JDZaUA1hRmUhwwTZQjaHPS5FpopaqUnem/full_balance",
+            "balanceMutez": 2485,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1QFSZoMc64325iw8y7qmdhB8j4JMcK3qVJ:14330337",
+        "senderAddress": "tz1QFSZoMc64325iw8y7qmdhB8j4JMcK3qVJ",
+        "senderAlias": null,
+        "level": 14330337,
+        "timestamp": "2026-08-02T16:11:52.000Z",
+        "qualifyingOutflowMutez": 135375500001,
+        "operationIds": [
+          2808549340086272
+        ],
+        "hashes": [
+          "opHoJwZHSn3m98NK1V5hkX2MTosfYjPjabYPmbR9W53GUJ2dphY"
+        ],
+        "destinations": [
+          {
+            "address": "tz1bDhCGNZLQw1QXgf6MCzo6EtAVSGkqEB11",
+            "alias": "Coinbase 3",
+            "qualifyingOutflowMutez": 135375500001,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 135376000001,
+        "balanceAfterMutez": 497280,
+        "remainingPercent": 0.0003673324666087982,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14330336,
+            "block": 14330336,
+            "blockHash": "BL8DBdGoqnH6xiveKC1xBFSzHg8LkiFNZ1HPhnyUyRvTuut2uDY",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BL8DBdGoqnH6xiveKC1xBFSzHg8LkiFNZ1HPhnyUyRvTuut2uDY/context/contracts/tz1QFSZoMc64325iw8y7qmdhB8j4JMcK3qVJ/full_balance",
+            "balanceMutez": 135376000001,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14330337,
+            "block": 14330337,
+            "blockHash": "BLHsGFPGpHHMyhTZz8sA6xo54u4vAt11Gnp6GLaoHnTprmK3yDn",
+            "predecessorHash": "BL8DBdGoqnH6xiveKC1xBFSzHg8LkiFNZ1HPhnyUyRvTuut2uDY",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLHsGFPGpHHMyhTZz8sA6xo54u4vAt11Gnp6GLaoHnTprmK3yDn/context/contracts/tz1QFSZoMc64325iw8y7qmdhB8j4JMcK3qVJ/full_balance",
+            "balanceMutez": 497280,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1MjpRkCW2azGtHdvWChUyUSxZUtkz3RV3U:14329216",
+        "senderAddress": "tz1MjpRkCW2azGtHdvWChUyUSxZUtkz3RV3U",
+        "senderAlias": null,
+        "level": 14329216,
+        "timestamp": "2026-08-02T14:19:10.000Z",
+        "qualifyingOutflowMutez": 35633782899,
+        "operationIds": [
+          2808379398422528
+        ],
+        "hashes": [
+          "oovPpQcjHDgRJHWWNg1LRaZVAcQVSipFayKfVnE45W7g95hM4o6"
+        ],
+        "destinations": [
+          {
+            "address": "tz1Z7eWGw18LqUgRqmDqNZFQx7f8GEHXRfT8",
+            "alias": "Coinbase 2",
+            "qualifyingOutflowMutez": 35633782899,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 35634282899,
+        "balanceAfterMutez": 498580,
+        "remainingPercent": 0.001399158224716209,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329215,
+            "block": 14329215,
+            "blockHash": "BMSwu5A9JEJcFZG4nX1RvALq4jPFzCFxsodEHPTkEou4P9MMGft",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMSwu5A9JEJcFZG4nX1RvALq4jPFzCFxsodEHPTkEou4P9MMGft/context/contracts/tz1MjpRkCW2azGtHdvWChUyUSxZUtkz3RV3U/full_balance",
+            "balanceMutez": 35634282899,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329216,
+            "block": 14329216,
+            "blockHash": "BMQhP4t48oc6NBKr2WMctmkxLVaMmv3GLGPSLGE9KzNxhzhLGUm",
+            "predecessorHash": "BMSwu5A9JEJcFZG4nX1RvALq4jPFzCFxsodEHPTkEou4P9MMGft",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMQhP4t48oc6NBKr2WMctmkxLVaMmv3GLGPSLGE9KzNxhzhLGUm/context/contracts/tz1MjpRkCW2azGtHdvWChUyUSxZUtkz3RV3U/full_balance",
+            "balanceMutez": 498580,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1ScGV98AtmbSCxswQBvzQPehe8cSM6uGLV:14326179",
+        "senderAddress": "tz1ScGV98AtmbSCxswQBvzQPehe8cSM6uGLV",
+        "senderAlias": null,
+        "level": 14326179,
+        "timestamp": "2026-08-02T09:15:10.000Z",
+        "qualifyingOutflowMutez": 23438114298,
+        "operationIds": [
+          2807920797417472
+        ],
+        "hashes": [
+          "ooCLAx448i4grzPfM7TZMCsshABqcf8D5ikLU1fWYr9AeunKbme"
+        ],
+        "destinations": [
+          {
+            "address": "tz1QnM9XHpsRuWwSn1vXpLevuvPrJ2tMi8Eg",
+            "alias": null,
+            "qualifyingOutflowMutez": 23438114298,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 23438115719,
+        "balanceAfterMutez": 1,
+        "remainingPercent": 4.266554581387934e-9,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326178,
+            "block": 14326178,
+            "blockHash": "BMGqRLiqeB89wwcBPQ7HTqps2QxKB3Puu2DMsMvYau6jfqTsucf",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMGqRLiqeB89wwcBPQ7HTqps2QxKB3Puu2DMsMvYau6jfqTsucf/context/contracts/tz1ScGV98AtmbSCxswQBvzQPehe8cSM6uGLV/full_balance",
+            "balanceMutez": 23438115719,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326179,
+            "block": 14326179,
+            "blockHash": "BKq4pLnAqDwm7NRkPNhp5LKvqP24Ucujo33X4KvFxsX9CFsBv7Q",
+            "predecessorHash": "BMGqRLiqeB89wwcBPQ7HTqps2QxKB3Puu2DMsMvYau6jfqTsucf",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BKq4pLnAqDwm7NRkPNhp5LKvqP24Ucujo33X4KvFxsX9CFsBv7Q/context/contracts/tz1ScGV98AtmbSCxswQBvzQPehe8cSM6uGLV/full_balance",
+            "balanceMutez": 1,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1ReNz4aYmSrwAemTcD2k3TPnD7wweE8Kia:14331674",
+        "senderAddress": "tz1ReNz4aYmSrwAemTcD2k3TPnD7wweE8Kia",
+        "senderAlias": null,
+        "level": 14331674,
+        "timestamp": "2026-08-02T18:28:25.000Z",
+        "qualifyingOutflowMutez": 22103697300,
+        "operationIds": [
+          2808751559016448
+        ],
+        "hashes": [
+          "onxf2dnGbdM7nW6A7dsekz2icZinXbHBTEBtAZmtAEwsjpuRt2x"
+        ],
+        "destinations": [
+          {
+            "address": "tz1LGs8Mip54S3DYDghuxJvxTTDcvDYJVRyC",
+            "alias": null,
+            "qualifyingOutflowMutez": 22103697300,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 22103701650,
+        "balanceAfterMutez": 3000,
+        "remainingPercent": 0.000013572387320021577,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331673,
+            "block": 14331673,
+            "blockHash": "BLt2vuCuuz9duL1jmkKTZcZu6YgqJDWMbCPcgSE2PYRtnbMQDTd",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLt2vuCuuz9duL1jmkKTZcZu6YgqJDWMbCPcgSE2PYRtnbMQDTd/context/contracts/tz1ReNz4aYmSrwAemTcD2k3TPnD7wweE8Kia/full_balance",
+            "balanceMutez": 22103701650,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331674,
+            "block": 14331674,
+            "blockHash": "BLazS8R4QyjbBspTm2AqDJtfCqFX5PbQrXMRxQ5SozxkNHdWKDr",
+            "predecessorHash": "BLt2vuCuuz9duL1jmkKTZcZu6YgqJDWMbCPcgSE2PYRtnbMQDTd",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLazS8R4QyjbBspTm2AqDJtfCqFX5PbQrXMRxQ5SozxkNHdWKDr/context/contracts/tz1ReNz4aYmSrwAemTcD2k3TPnD7wweE8Kia/full_balance",
+            "balanceMutez": 3000,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz2EAtrKqyVSzUujWVz486BD4j5use1keC82:14331652",
+        "senderAddress": "tz2EAtrKqyVSzUujWVz486BD4j5use1keC82",
+        "senderAlias": null,
+        "level": 14331652,
+        "timestamp": "2026-08-02T18:26:04.000Z",
+        "qualifyingOutflowMutez": 21203099485,
+        "operationIds": [
+          2808748161630208
+        ],
+        "hashes": [
+          "onmPVEDyAdf6coufbaZBbjNRMC8GBMKY37D6y5tRyiEZqAG8hxs"
+        ],
+        "destinations": [
+          {
+            "address": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "alias": "Binance",
+            "qualifyingOutflowMutez": 21203099485,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 21203102485,
+        "balanceAfterMutez": 2485,
+        "remainingPercent": 0.0000117199829683321,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331651,
+            "block": 14331651,
+            "blockHash": "BMKMUtLtULFNSAkB39jPYV3CRMbgg7aq6shNbkcz3dv95ywiE86",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMKMUtLtULFNSAkB39jPYV3CRMbgg7aq6shNbkcz3dv95ywiE86/context/contracts/tz2EAtrKqyVSzUujWVz486BD4j5use1keC82/full_balance",
+            "balanceMutez": 21203102485,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331652,
+            "block": 14331652,
+            "blockHash": "BMegQ2i1fn7sqL7VYeCBy3mWWw5db7woF7CLEfGeWhehAMWS93N",
+            "predecessorHash": "BMKMUtLtULFNSAkB39jPYV3CRMbgg7aq6shNbkcz3dv95ywiE86",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMegQ2i1fn7sqL7VYeCBy3mWWw5db7woF7CLEfGeWhehAMWS93N/context/contracts/tz2EAtrKqyVSzUujWVz486BD4j5use1keC82/full_balance",
+            "balanceMutez": 2485,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1PC9vygr8hHhdUVh5hfZoXZHJiTCaFXS5B:14323109",
+        "senderAddress": "tz1PC9vygr8hHhdUVh5hfZoXZHJiTCaFXS5B",
+        "senderAlias": null,
+        "level": 14323109,
+        "timestamp": "2026-08-02T04:06:31.000Z",
+        "qualifyingOutflowMutez": 20848998580,
+        "operationIds": [
+          2807457204142080
+        ],
+        "hashes": [
+          "ooJBAFiMcUbpXHcMC5hU9eHk6sJoRNiYiHB4Q9PLocyFC5anY1N"
+        ],
+        "destinations": [
+          {
+            "address": "tz1VaCSQJFnMVg3mKfkkCgUU4Rm7kxWB5Gdf",
+            "alias": null,
+            "qualifyingOutflowMutez": 20848998580,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 20849000001,
+        "balanceAfterMutez": 1,
+        "remainingPercent": 4.796393112149437e-9,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14323108,
+            "block": 14323108,
+            "blockHash": "BKvViNc4eGk2xfgWiTLXnBXaQFGUaNcfDLqQv3xBY7FTAC1buHC",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BKvViNc4eGk2xfgWiTLXnBXaQFGUaNcfDLqQv3xBY7FTAC1buHC/context/contracts/tz1PC9vygr8hHhdUVh5hfZoXZHJiTCaFXS5B/full_balance",
+            "balanceMutez": 20849000001,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14323109,
+            "block": 14323109,
+            "blockHash": "BKoh2qAD98vi9qnB92VUXnhfdEukJxXCTSMW8eUq46f6EQrFsXW",
+            "predecessorHash": "BKvViNc4eGk2xfgWiTLXnBXaQFGUaNcfDLqQv3xBY7FTAC1buHC",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BKoh2qAD98vi9qnB92VUXnhfdEukJxXCTSMW8eUq46f6EQrFsXW/context/contracts/tz1PC9vygr8hHhdUVh5hfZoXZHJiTCaFXS5B/full_balance",
+            "balanceMutez": 1,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz2EFWsfK5vPNpitP8ytdUDYCwui4DdL4fQ2:14323432",
+        "senderAddress": "tz2EFWsfK5vPNpitP8ytdUDYCwui4DdL4fQ2",
+        "senderAlias": null,
+        "level": 14323432,
+        "timestamp": "2026-08-02T04:39:07.000Z",
+        "qualifyingOutflowMutez": 11186599485,
+        "operationIds": [
+          2807505689247744
+        ],
+        "hashes": [
+          "opHCSZy8cLrAEPySzDJkwe2wF8aw5DuA8SBpLJFU4gvn4aApVMv"
+        ],
+        "destinations": [
+          {
+            "address": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "alias": "Binance",
+            "qualifyingOutflowMutez": 11186599485,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 11186602485,
+        "balanceAfterMutez": 2485,
+        "remainingPercent": 0.000022214072622425896,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14323431,
+            "block": 14323431,
+            "blockHash": "BMcj953QEDVncHnzNUb2cUkcnFrj4rP7PuuNDEdJTpNo1mnketH",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMcj953QEDVncHnzNUb2cUkcnFrj4rP7PuuNDEdJTpNo1mnketH/context/contracts/tz2EFWsfK5vPNpitP8ytdUDYCwui4DdL4fQ2/full_balance",
+            "balanceMutez": 11186602485,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14323432,
+            "block": 14323432,
+            "blockHash": "BMbxitWTgugAXWxeoodYMbs28Dzyt7FFHKqFP3mSzJcPHs8kRmU",
+            "predecessorHash": "BMcj953QEDVncHnzNUb2cUkcnFrj4rP7PuuNDEdJTpNo1mnketH",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMbxitWTgugAXWxeoodYMbs28Dzyt7FFHKqFP3mSzJcPHs8kRmU/context/contracts/tz2EFWsfK5vPNpitP8ytdUDYCwui4DdL4fQ2/full_balance",
+            "balanceMutez": 2485,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1YDdfFJ1vjQz73e1eXfthzMChGSMTef3pF:14326279",
+        "senderAddress": "tz1YDdfFJ1vjQz73e1eXfthzMChGSMTef3pF",
+        "senderAlias": null,
+        "level": 14326279,
+        "timestamp": "2026-08-02T09:25:19.000Z",
+        "qualifyingOutflowMutez": 8609092361,
+        "operationIds": [
+          2807935758499840
+        ],
+        "hashes": [
+          "ooRrceBtq19J9rft3TeYEQKPcJPbP6diQMBdRyJ13N5TgxQpEGW"
+        ],
+        "destinations": [
+          {
+            "address": "tz1NcoDFXMAfB26mpBhVrdSHmppyTeccT6Fi",
+            "alias": "Coinbase 1",
+            "qualifyingOutflowMutez": 8609092361,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 8609592361,
+        "balanceAfterMutez": 498580,
+        "remainingPercent": 0.005790982651611745,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326278,
+            "block": 14326278,
+            "blockHash": "BLXJ7TLbPvrcnoNwpNov9Bd1beQpW93XejAraM3YcFy9hfBNAEQ",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLXJ7TLbPvrcnoNwpNov9Bd1beQpW93XejAraM3YcFy9hfBNAEQ/context/contracts/tz1YDdfFJ1vjQz73e1eXfthzMChGSMTef3pF/full_balance",
+            "balanceMutez": 8609592361,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326279,
+            "block": 14326279,
+            "blockHash": "BKvWub2Wt5xXsqwg3hcDuwEKZ7E6VYSzHYwJRPV3d4i3s5SW2Do",
+            "predecessorHash": "BLXJ7TLbPvrcnoNwpNov9Bd1beQpW93XejAraM3YcFy9hfBNAEQ",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BKvWub2Wt5xXsqwg3hcDuwEKZ7E6VYSzHYwJRPV3d4i3s5SW2Do/context/contracts/tz1YDdfFJ1vjQz73e1eXfthzMChGSMTef3pF/full_balance",
+            "balanceMutez": 498580,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1WWbfLQzXNP8C19uepvThqMzrkeGWrctAQ:14322316",
+        "senderAddress": "tz1WWbfLQzXNP8C19uepvThqMzrkeGWrctAQ",
+        "senderAlias": null,
+        "level": 14322316,
+        "timestamp": "2026-08-02T02:46:37.000Z",
+        "qualifyingOutflowMutez": 6629545500,
+        "operationIds": [
+          2807335601831936
+        ],
+        "hashes": [
+          "oogNfxcPLtcYPhaFYS5sGqhGc1j4y1CAoSoCfAn2dmiC7XB3nZW"
+        ],
+        "destinations": [
+          {
+            "address": "tz1TUAvnK83ebk6ER6X8hoRcC6WM97UT9AvC",
+            "alias": null,
+            "qualifyingOutflowMutez": 6629545500,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 6629552322,
+        "balanceAfterMutez": 2122,
+        "remainingPercent": 0.00003200819447428143,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14322315,
+            "block": 14322315,
+            "blockHash": "BMBFnxGmfDZtrV3qPBsHdoTYQ8otbHnLC6nWRp8GDfbZFXfggGr",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMBFnxGmfDZtrV3qPBsHdoTYQ8otbHnLC6nWRp8GDfbZFXfggGr/context/contracts/tz1WWbfLQzXNP8C19uepvThqMzrkeGWrctAQ/full_balance",
+            "balanceMutez": 6629552322,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14322316,
+            "block": 14322316,
+            "blockHash": "BL9y48J9ZaoCHfe9L7k13ndThu7JQZwDCwxafawuGxmgqxJmdcf",
+            "predecessorHash": "BMBFnxGmfDZtrV3qPBsHdoTYQ8otbHnLC6nWRp8GDfbZFXfggGr",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BL9y48J9ZaoCHfe9L7k13ndThu7JQZwDCwxafawuGxmgqxJmdcf/context/contracts/tz1WWbfLQzXNP8C19uepvThqMzrkeGWrctAQ/full_balance",
+            "balanceMutez": 2122,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1P719ymGCtNwavZKh2LmhMs53dGsEMzjnm:14327874",
+        "senderAddress": "tz1P719ymGCtNwavZKh2LmhMs53dGsEMzjnm",
+        "senderAlias": "Howdy Doo NFT",
+        "level": 14327874,
+        "timestamp": "2026-08-02T12:04:58.000Z",
+        "qualifyingOutflowMutez": 4826797936,
+        "operationIds": [
+          2808176781033472
+        ],
+        "hashes": [
+          "ooyFrBQH8Mw8dyrvK9URgMuszQTG4e8sTgLGCvGcv5KYHzADsjS"
+        ],
+        "destinations": [
+          {
+            "address": "tz1f9sp173NReUcsCmpSnKYgDQ9hFrSh6Ggn",
+            "alias": "Ol' Granny Doo 👵",
+            "qualifyingOutflowMutez": 4826797936,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 4826798581,
+        "balanceAfterMutez": 1,
+        "remainingPercent": 2.071766582381035e-8,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14327873,
+            "block": 14327873,
+            "blockHash": "BMPpjYiQuXSS1sYacYRBEhFm17oEa5FYJkBTqGohDygx7y8xcTY",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMPpjYiQuXSS1sYacYRBEhFm17oEa5FYJkBTqGohDygx7y8xcTY/context/contracts/tz1P719ymGCtNwavZKh2LmhMs53dGsEMzjnm/full_balance",
+            "balanceMutez": 4826798581,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14327874,
+            "block": 14327874,
+            "blockHash": "BMSvnudv1tRw8HAju2tncvchq9TuSiCpRWaLjAiBSiff6KjcvUg",
+            "predecessorHash": "BMPpjYiQuXSS1sYacYRBEhFm17oEa5FYJkBTqGohDygx7y8xcTY",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMSvnudv1tRw8HAju2tncvchq9TuSiCpRWaLjAiBSiff6KjcvUg/context/contracts/tz1P719ymGCtNwavZKh2LmhMs53dGsEMzjnm/full_balance",
+            "balanceMutez": 1,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1PMwyD1Af4gkzrJsYLhXKhXJufJmo871a3:14332694",
+        "senderAddress": "tz1PMwyD1Af4gkzrJsYLhXKhXJufJmo871a3",
+        "senderAlias": null,
+        "level": 14332694,
+        "timestamp": "2026-08-02T20:14:49.000Z",
+        "qualifyingOutflowMutez": 3999998050,
+        "operationIds": [
+          2808905544499200
+        ],
+        "hashes": [
+          "oomarDJjXCTPTdvXRQ2MuXM2LUrB7RoZArqPkerssFMUfkgGg26"
+        ],
+        "destinations": [
+          {
+            "address": "tz1SRkDRrpzGYwiYNdRMaxBhPrZoQdioPmXw",
+            "alias": null,
+            "qualifyingOutflowMutez": 3999998050,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 4000000000,
+        "balanceAfterMutez": 0,
+        "remainingPercent": 0,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14332693,
+            "block": 14332693,
+            "blockHash": "BLe6kXhPoK6N6DkzLAjjTe88TicK59pnnihdADz5mRegsDMdLoo",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLe6kXhPoK6N6DkzLAjjTe88TicK59pnnihdADz5mRegsDMdLoo/context/contracts/tz1PMwyD1Af4gkzrJsYLhXKhXJufJmo871a3/full_balance",
+            "balanceMutez": 4000000000,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14332694,
+            "block": 14332694,
+            "blockHash": "BKyj7d4YzKT4PDeW5DPzCJDSR1NWRfWMPFPeavqbZdr77j8ZvdT",
+            "predecessorHash": "BLe6kXhPoK6N6DkzLAjjTe88TicK59pnnihdADz5mRegsDMdLoo",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BKyj7d4YzKT4PDeW5DPzCJDSR1NWRfWMPFPeavqbZdr77j8ZvdT/context/contracts/tz1PMwyD1Af4gkzrJsYLhXKhXJufJmo871a3/full_balance",
+            "balanceMutez": 0,
+            "deallocated": true
+          }
+        }
+      },
+      {
+        "id": "tz2GrQJPi1kDrLKWEMfXT9c8Doy4Srzk8qQw:14329881",
+        "senderAddress": "tz2GrQJPi1kDrLKWEMfXT9c8Doy4Srzk8qQw",
+        "senderAlias": null,
+        "level": 14329881,
+        "timestamp": "2026-08-02T15:26:07.000Z",
+        "qualifyingOutflowMutez": 3548399485,
+        "operationIds": [
+          2808480539869184
+        ],
+        "hashes": [
+          "oooHoMkj99FEMnM8TKKTBHhGmn6DZe5YK7yt5qrLrVZ3ufkACGZ"
+        ],
+        "destinations": [
+          {
+            "address": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "alias": "Binance",
+            "qualifyingOutflowMutez": 3548399485,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 3548402485,
+        "balanceAfterMutez": 2485,
+        "remainingPercent": 0.00007003151447742265,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329880,
+            "block": 14329880,
+            "blockHash": "BLYdhdMYVxczCQUd6Q1fkfvRHZ4SHmoUTK7VH4ikMyaxB8XaJCH",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLYdhdMYVxczCQUd6Q1fkfvRHZ4SHmoUTK7VH4ikMyaxB8XaJCH/context/contracts/tz2GrQJPi1kDrLKWEMfXT9c8Doy4Srzk8qQw/full_balance",
+            "balanceMutez": 3548402485,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329881,
+            "block": 14329881,
+            "blockHash": "BLww5JiNBDpsHZWyWREzzPoNV7eR9pkHkn1j8MF5kNuLYBHCmhk",
+            "predecessorHash": "BLYdhdMYVxczCQUd6Q1fkfvRHZ4SHmoUTK7VH4ikMyaxB8XaJCH",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLww5JiNBDpsHZWyWREzzPoNV7eR9pkHkn1j8MF5kNuLYBHCmhk/context/contracts/tz2GrQJPi1kDrLKWEMfXT9c8Doy4Srzk8qQw/full_balance",
+            "balanceMutez": 2485,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1ZE53LbLLi8koQBxFN4XPBu3EJeCotTfiK:14324778",
+        "senderAddress": "tz1ZE53LbLLi8koQBxFN4XPBu3EJeCotTfiK",
+        "senderAlias": null,
+        "level": 14324778,
+        "timestamp": "2026-08-02T06:54:01.000Z",
+        "qualifyingOutflowMutez": 3398690506,
+        "operationIds": [
+          2807709443293184
+        ],
+        "hashes": [
+          "onofMr99Qr2avYdPUdmXfecraT3JTkNxbT5NuJsuJJwYLZwnQYT"
+        ],
+        "destinations": [
+          {
+            "address": "tz1TPAStcaFVhXKL6Kf6vuNnhrUa9e77jEcF",
+            "alias": null,
+            "qualifyingOutflowMutez": 3398690506,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 3398691927,
+        "balanceAfterMutez": 1,
+        "remainingPercent": 2.9423084571324843e-8,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14324777,
+            "block": 14324777,
+            "blockHash": "BL43At8V1ij3wQLQ8jFTn7FiA5nURVaTiAV6FTxmCVGKq43gMsn",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BL43At8V1ij3wQLQ8jFTn7FiA5nURVaTiAV6FTxmCVGKq43gMsn/context/contracts/tz1ZE53LbLLi8koQBxFN4XPBu3EJeCotTfiK/full_balance",
+            "balanceMutez": 3398691927,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14324778,
+            "block": 14324778,
+            "blockHash": "BM5SG4eYzNtecb8dv8E7XCRbuMM5na7CC2cvVtA2qB9enYcAjv4",
+            "predecessorHash": "BL43At8V1ij3wQLQ8jFTn7FiA5nURVaTiAV6FTxmCVGKq43gMsn",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BM5SG4eYzNtecb8dv8E7XCRbuMM5na7CC2cvVtA2qB9enYcAjv4/context/contracts/tz1ZE53LbLLi8koQBxFN4XPBu3EJeCotTfiK/full_balance",
+            "balanceMutez": 1,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1UJ48FXZb1tXNwah6E4tzufSrVGybqkXSC:14324583",
+        "senderAddress": "tz1UJ48FXZb1tXNwah6E4tzufSrVGybqkXSC",
+        "senderAlias": null,
+        "level": 14324583,
+        "timestamp": "2026-08-02T06:34:31.000Z",
+        "qualifyingOutflowMutez": 3000000000,
+        "operationIds": [
+          2807679094358016
+        ],
+        "hashes": [
+          "opVWRZHgnpuA1D8SCu79Z6egvgGZxs9t6FoBH8sPrsY4drJUE6G"
+        ],
+        "destinations": [
+          {
+            "address": "tz1MZgePrxuW6D7sMrVfsFaF385FNsTGwhQU",
+            "alias": null,
+            "qualifyingOutflowMutez": 3000000000,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 3000090166,
+        "balanceAfterMutez": 89672,
+        "remainingPercent": 0.0029889768319716565,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14324582,
+            "block": 14324582,
+            "blockHash": "BLxSSq5NdEB2vEbJLUcHXVLFg6wM1FGri1uUViTeJgZS2jZpP5C",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLxSSq5NdEB2vEbJLUcHXVLFg6wM1FGri1uUViTeJgZS2jZpP5C/context/contracts/tz1UJ48FXZb1tXNwah6E4tzufSrVGybqkXSC/full_balance",
+            "balanceMutez": 3000090166,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14324583,
+            "block": 14324583,
+            "blockHash": "BLuWdJqGv2rre15LnmkTokBr2P7UJAvzFqDqEB2FLfw7HcGxp1J",
+            "predecessorHash": "BLxSSq5NdEB2vEbJLUcHXVLFg6wM1FGri1uUViTeJgZS2jZpP5C",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLuWdJqGv2rre15LnmkTokBr2P7UJAvzFqDqEB2FLfw7HcGxp1J/context/contracts/tz1UJ48FXZb1tXNwah6E4tzufSrVGybqkXSC/full_balance",
+            "balanceMutez": 89672,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz2ELwvdTYpW8EN6URbAbQ8UQXjH6HDnjP6R:14324507",
+        "senderAddress": "tz2ELwvdTYpW8EN6URbAbQ8UQXjH6HDnjP6R",
+        "senderAlias": null,
+        "level": 14324507,
+        "timestamp": "2026-08-02T06:26:46.000Z",
+        "qualifyingOutflowMutez": 2779252360,
+        "operationIds": [
+          2807667445727232
+        ],
+        "hashes": [
+          "op91YEvLETSYZobXjHPp1wwSXmwvLqPyAuxxC4AmSsWLmN2rE2Q"
+        ],
+        "destinations": [
+          {
+            "address": "KT1A7mVmLLZBjuNSUhNM4oNbRN6TK6JM8cba",
+            "alias": null,
+            "qualifyingOutflowMutez": 2779252360,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 2779301000,
+        "balanceAfterMutez": 1000,
+        "remainingPercent": 0.000035980269859219997,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14324506,
+            "block": 14324506,
+            "blockHash": "BMGZUpUJmqZvUz5xC8VAJruehVYqUohNE6STH8DkrhjZJ1zjT4h",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMGZUpUJmqZvUz5xC8VAJruehVYqUohNE6STH8DkrhjZJ1zjT4h/context/contracts/tz2ELwvdTYpW8EN6URbAbQ8UQXjH6HDnjP6R/full_balance",
+            "balanceMutez": 2779301000,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14324507,
+            "block": 14324507,
+            "blockHash": "BMdbu7VUbnYwHLjuXZM8D8RntksqDkokcQ1TFLkfK8HAWBPXiUX",
+            "predecessorHash": "BMGZUpUJmqZvUz5xC8VAJruehVYqUohNE6STH8DkrhjZJ1zjT4h",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMdbu7VUbnYwHLjuXZM8D8RntksqDkokcQ1TFLkfK8HAWBPXiUX/context/contracts/tz2ELwvdTYpW8EN6URbAbQ8UQXjH6HDnjP6R/full_balance",
+            "balanceMutez": 1000,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1ezTQW1mvBYm9Z3uvRSjGysF14qJqJW1uE:14331861",
+        "senderAddress": "tz1ezTQW1mvBYm9Z3uvRSjGysF14qJqJW1uE",
+        "senderAlias": null,
+        "level": 14331861,
+        "timestamp": "2026-08-02T18:47:52.000Z",
+        "qualifyingOutflowMutez": 2544288803,
+        "operationIds": [
+          2808780065603584
+        ],
+        "hashes": [
+          "ontjhd1f5NraVB7dFF5ASHZGnFbhpEqwEmtfpMDFt2uSLcyWR9K"
+        ],
+        "destinations": [
+          {
+            "address": "tz1eRvpN4zVQXew34bns3bT5AwPVsJPEouUS",
+            "alias": null,
+            "qualifyingOutflowMutez": 2544288803,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 2544408803,
+        "balanceAfterMutez": 119350,
+        "remainingPercent": 0.00469067705862673,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331860,
+            "block": 14331860,
+            "blockHash": "BLMXR3Ndegw54ha2FSTQKAWY2daoaJJ9kyVtfsY1T2TUBCNYjju",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLMXR3Ndegw54ha2FSTQKAWY2daoaJJ9kyVtfsY1T2TUBCNYjju/context/contracts/tz1ezTQW1mvBYm9Z3uvRSjGysF14qJqJW1uE/full_balance",
+            "balanceMutez": 2544408803,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331861,
+            "block": 14331861,
+            "blockHash": "BLH2BHQWauH7DryigRzyE1ToctQi5Mpi67r5nLyeNXpeo33pvYW",
+            "predecessorHash": "BLMXR3Ndegw54ha2FSTQKAWY2daoaJJ9kyVtfsY1T2TUBCNYjju",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLH2BHQWauH7DryigRzyE1ToctQi5Mpi67r5nLyeNXpeo33pvYW/context/contracts/tz1ezTQW1mvBYm9Z3uvRSjGysF14qJqJW1uE/full_balance",
+            "balanceMutez": 119350,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz2Twaoe1bWPCwZHV4nhKS7t6FmvoZkAea7D:14329386",
+        "senderAddress": "tz2Twaoe1bWPCwZHV4nhKS7t6FmvoZkAea7D",
+        "senderAlias": null,
+        "level": 14329386,
+        "timestamp": "2026-08-02T14:36:10.000Z",
+        "qualifyingOutflowMutez": 2049392950,
+        "operationIds": [
+          2808405338095616
+        ],
+        "hashes": [
+          "opBNNdSrx6EPNMiZs2b3mtRq3vvFM7VVKuCq2K5NBgfmVncYB9v"
+        ],
+        "destinations": [
+          {
+            "address": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "alias": "Binance",
+            "qualifyingOutflowMutez": 2049392950,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 2049395950,
+        "balanceAfterMutez": 700,
+        "remainingPercent": 0.00003415640594000393,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329385,
+            "block": 14329385,
+            "blockHash": "BLW97BobLQgHWGX1eGwWoqqLpdyDN6DdyAsvHFz4gourC41ovop",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLW97BobLQgHWGX1eGwWoqqLpdyDN6DdyAsvHFz4gourC41ovop/context/contracts/tz2Twaoe1bWPCwZHV4nhKS7t6FmvoZkAea7D/full_balance",
+            "balanceMutez": 2049395950,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329386,
+            "block": 14329386,
+            "blockHash": "BLumkwFPLuK1JQdac1sxaoYoP1iBdnwpUdaUwkHUSM8Aez4qDnC",
+            "predecessorHash": "BLW97BobLQgHWGX1eGwWoqqLpdyDN6DdyAsvHFz4gourC41ovop",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLumkwFPLuK1JQdac1sxaoYoP1iBdnwpUdaUwkHUSM8Aez4qDnC/context/contracts/tz2Twaoe1bWPCwZHV4nhKS7t6FmvoZkAea7D/full_balance",
+            "balanceMutez": 700,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1SGFgtoW5LqSFd4cwUEdNVnJCfMnt7nxUG:14325633",
+        "senderAddress": "tz1SGFgtoW5LqSFd4cwUEdNVnJCfMnt7nxUG",
+        "senderAlias": null,
+        "level": 14325633,
+        "timestamp": "2026-08-02T08:20:25.000Z",
+        "qualifyingOutflowMutez": 2045803969,
+        "operationIds": [
+          2807838153900032
+        ],
+        "hashes": [
+          "opXEJaM9iwYczsNVbSLfdmtWZLe8eBxWZeM93UeFQjwLfvccSbc"
+        ],
+        "destinations": [
+          {
+            "address": "tz2PPfBPha2o2XZPM1qbUscvkVVfnYb95LJP",
+            "alias": null,
+            "qualifyingOutflowMutez": 2045803969,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 2045868739,
+        "balanceAfterMutez": 0,
+        "remainingPercent": 0,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14325632,
+            "block": 14325632,
+            "blockHash": "BMcQaH8Dv5MKfVBNGm77FqWen1khQE6QrJ1NvtvKkpQ9Kf68i9J",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMcQaH8Dv5MKfVBNGm77FqWen1khQE6QrJ1NvtvKkpQ9Kf68i9J/context/contracts/tz1SGFgtoW5LqSFd4cwUEdNVnJCfMnt7nxUG/full_balance",
+            "balanceMutez": 2045868739,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14325633,
+            "block": 14325633,
+            "blockHash": "BMJGwYdtjeP3i8HVNFpWHQsJPKwcXHo76BMCQccv3t5dfvu2wnQ",
+            "predecessorHash": "BMcQaH8Dv5MKfVBNGm77FqWen1khQE6QrJ1NvtvKkpQ9Kf68i9J",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMJGwYdtjeP3i8HVNFpWHQsJPKwcXHo76BMCQccv3t5dfvu2wnQ/context/contracts/tz1SGFgtoW5LqSFd4cwUEdNVnJCfMnt7nxUG/full_balance",
+            "balanceMutez": 0,
+            "deallocated": true
+          }
+        }
+      },
+      {
+        "id": "tz2PPfBPha2o2XZPM1qbUscvkVVfnYb95LJP:14326036",
+        "senderAddress": "tz2PPfBPha2o2XZPM1qbUscvkVVfnYb95LJP",
+        "senderAlias": null,
+        "level": 14326036,
+        "timestamp": "2026-08-02T09:00:52.000Z",
+        "qualifyingOutflowMutez": 2045798289,
+        "operationIds": [
+          2807899232403456
+        ],
+        "hashes": [
+          "oogoZE7tafZNiDns6bMArMfX4ijxcDc86W3HN5X6S2c7WppeAAw"
+        ],
+        "destinations": [
+          {
+            "address": "tz2QXjgdXoFKxefhjQdnqnV2BQXnJYkyodDF",
+            "alias": "Exchange 8 odDF",
+            "qualifyingOutflowMutez": 2045798289,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 2045803969,
+        "balanceAfterMutez": 0,
+        "remainingPercent": 0,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326035,
+            "block": 14326035,
+            "blockHash": "BLMj7SsMhiD62hUtDUMCCRXe2iaaitWXkVwVLGwGXZCYSctVCsq",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLMj7SsMhiD62hUtDUMCCRXe2iaaitWXkVwVLGwGXZCYSctVCsq/context/contracts/tz2PPfBPha2o2XZPM1qbUscvkVVfnYb95LJP/full_balance",
+            "balanceMutez": 2045803969,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326036,
+            "block": 14326036,
+            "blockHash": "BLhdyhctGMNf6mSgx8p3UEw24f8v3azbrAjbEs7e65PcU5vKEdJ",
+            "predecessorHash": "BLMj7SsMhiD62hUtDUMCCRXe2iaaitWXkVwVLGwGXZCYSctVCsq",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLhdyhctGMNf6mSgx8p3UEw24f8v3azbrAjbEs7e65PcU5vKEdJ/context/contracts/tz2PPfBPha2o2XZPM1qbUscvkVVfnYb95LJP/full_balance",
+            "balanceMutez": 0,
+            "deallocated": true
+          }
+        }
+      },
+      {
+        "id": "tz2Qc5YjJ8nxPkwT3HsWJbzQy17MiUrVh1YF:14320365",
+        "senderAddress": "tz2Qc5YjJ8nxPkwT3HsWJbzQy17MiUrVh1YF",
+        "senderAlias": null,
+        "level": 14320365,
+        "timestamp": "2026-08-01T23:30:55.000Z",
+        "qualifyingOutflowMutez": 1948147936,
+        "operationIds": [
+          2807041733165056
+        ],
+        "hashes": [
+          "op147JqCFbk4ZEizta4GGw5fXEDRJxpExgawnfvSq6d2BEMwh7z"
+        ],
+        "destinations": [
+          {
+            "address": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "alias": "Binance",
+            "qualifyingOutflowMutez": 1948147936,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 1948150936,
+        "balanceAfterMutez": 2485,
+        "remainingPercent": 0.00012755685168328252,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14320364,
+            "block": 14320364,
+            "blockHash": "BMA8ihC6cKwHzm4QgWvnuB7oQpYtbwzU4Ued3ZV5mkaDdV6oFBu",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMA8ihC6cKwHzm4QgWvnuB7oQpYtbwzU4Ued3ZV5mkaDdV6oFBu/context/contracts/tz2Qc5YjJ8nxPkwT3HsWJbzQy17MiUrVh1YF/full_balance",
+            "balanceMutez": 1948150936,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14320365,
+            "block": 14320365,
+            "blockHash": "BLxyS12TV2m5PwvFsZ46cj5u5HDwGj8qCTDXUxsjbSwjcP5SUrC",
+            "predecessorHash": "BMA8ihC6cKwHzm4QgWvnuB7oQpYtbwzU4Ued3ZV5mkaDdV6oFBu",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLxyS12TV2m5PwvFsZ46cj5u5HDwGj8qCTDXUxsjbSwjcP5SUrC/context/contracts/tz2Qc5YjJ8nxPkwT3HsWJbzQy17MiUrVh1YF/full_balance",
+            "balanceMutez": 2485,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz2ELbKodRfJsz1nUiMaSXyX1z6N9ELdrkTw:14329016",
+        "senderAddress": "tz2ELbKodRfJsz1nUiMaSXyX1z6N9ELdrkTw",
+        "senderAlias": null,
+        "level": 14329016,
+        "timestamp": "2026-08-02T13:59:10.000Z",
+        "qualifyingOutflowMutez": 1810727685,
+        "operationIds": [
+          2808349045293056
+        ],
+        "hashes": [
+          "oo3FAYT6JoNSNAJctBBqqrKjBebevo6kFU33zCdG149rTAM9suV"
+        ],
+        "destinations": [
+          {
+            "address": "tz1cCex7HKscWaeiKgzn7Qhcmq4fGxmK32xt",
+            "alias": null,
+            "qualifyingOutflowMutez": 1810727685,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 1810794656,
+        "balanceAfterMutez": 1,
+        "remainingPercent": 5.5224373270958007e-8,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329015,
+            "block": 14329015,
+            "blockHash": "BMEMwRNYgX94rHL1fkafoYRpgfU2fyM2XST4LiaXBX8GrXzdeLd",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMEMwRNYgX94rHL1fkafoYRpgfU2fyM2XST4LiaXBX8GrXzdeLd/context/contracts/tz2ELbKodRfJsz1nUiMaSXyX1z6N9ELdrkTw/full_balance",
+            "balanceMutez": 1810794656,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329016,
+            "block": 14329016,
+            "blockHash": "BMJoGiGhEXnYT2o8snDwwfDoF88eenxdvLdRgrFrngBU9w3RDQU",
+            "predecessorHash": "BMEMwRNYgX94rHL1fkafoYRpgfU2fyM2XST4LiaXBX8GrXzdeLd",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMJoGiGhEXnYT2o8snDwwfDoF88eenxdvLdRgrFrngBU9w3RDQU/context/contracts/tz2ELbKodRfJsz1nUiMaSXyX1z6N9ELdrkTw/full_balance",
+            "balanceMutez": 1,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz2PKZg8DMFi8X28a33wbGPM1R9TKzwc5ckL:14329621",
+        "senderAddress": "tz2PKZg8DMFi8X28a33wbGPM1R9TKzwc5ckL",
+        "senderAlias": null,
+        "level": 14329621,
+        "timestamp": "2026-08-02T15:00:07.000Z",
+        "qualifyingOutflowMutez": 1200000451,
+        "operationIds": [
+          2808441054691328
+        ],
+        "hashes": [
+          "op3PS6GAioSyWpcuoG6jfxrX9twAboaQLW7MDPsPDcm7fQD4WQd"
+        ],
+        "destinations": [
+          {
+            "address": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "alias": "Binance",
+            "qualifyingOutflowMutez": 1200000451,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 1200003451,
+        "balanceAfterMutez": 2485,
+        "remainingPercent": 0.00020708273779789324,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329620,
+            "block": 14329620,
+            "blockHash": "BMC1JAsGFYL4WWjYuSAtSogKd9iZnmsbrsmahKeV8oWuzaxUsKG",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMC1JAsGFYL4WWjYuSAtSogKd9iZnmsbrsmahKeV8oWuzaxUsKG/context/contracts/tz2PKZg8DMFi8X28a33wbGPM1R9TKzwc5ckL/full_balance",
+            "balanceMutez": 1200003451,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329621,
+            "block": 14329621,
+            "blockHash": "BKiRw85pEyqY81ngWVXBnQX94G1uXh8Bhm8C866PPWSBZ325eb8",
+            "predecessorHash": "BMC1JAsGFYL4WWjYuSAtSogKd9iZnmsbrsmahKeV8oWuzaxUsKG",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BKiRw85pEyqY81ngWVXBnQX94G1uXh8Bhm8C866PPWSBZ325eb8/context/contracts/tz2PKZg8DMFi8X28a33wbGPM1R9TKzwc5ckL/full_balance",
+            "balanceMutez": 2485,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz2NJcWD7BAwh6RE7CvpFy8EoKtjh35J8ph9:14331525",
+        "senderAddress": "tz2NJcWD7BAwh6RE7CvpFy8EoKtjh35J8ph9",
+        "senderAlias": null,
+        "level": 14331525,
+        "timestamp": "2026-08-02T18:13:04.000Z",
+        "qualifyingOutflowMutez": 1035399485,
+        "operationIds": [
+          2808728777654272
+        ],
+        "hashes": [
+          "opZ5Xju9D3aEv2DgbWjDsnaBjMpL8Q6TQEBdDeK33CwMjvoDDkT"
+        ],
+        "destinations": [
+          {
+            "address": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "alias": "Binance",
+            "qualifyingOutflowMutez": 1035399485,
+            "operationCount": 1
+          }
+        ],
+        "classification": "emptied",
+        "balanceBeforeMutez": 1035402485,
+        "balanceAfterMutez": 2485,
+        "remainingPercent": 0.00024000328722409818,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331524,
+            "block": 14331524,
+            "blockHash": "BM6rjzGSTysyCLwLa1L6nmv6eejSHYcTzLqFMLG5BKx4AYxR3Qs",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BM6rjzGSTysyCLwLa1L6nmv6eejSHYcTzLqFMLG5BKx4AYxR3Qs/context/contracts/tz2NJcWD7BAwh6RE7CvpFy8EoKtjh35J8ph9/full_balance",
+            "balanceMutez": 1035402485,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331525,
+            "block": 14331525,
+            "blockHash": "BLShVZc3PokfPspbyc1VRZAFwgV5heeN68GfcHhPnv8tFnrF5nc",
+            "predecessorHash": "BM6rjzGSTysyCLwLa1L6nmv6eejSHYcTzLqFMLG5BKx4AYxR3Qs",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLShVZc3PokfPspbyc1VRZAFwgV5heeN68GfcHhPnv8tFnrF5nc/context/contracts/tz2NJcWD7BAwh6RE7CvpFy8EoKtjh35J8ph9/full_balance",
+            "balanceMutez": 2485,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1gy5CM4XuFvmdmfk4ZZUFkaPZYHsJK4CSg:14331665",
+        "senderAddress": "tz1gy5CM4XuFvmdmfk4ZZUFkaPZYHsJK4CSg",
+        "senderAlias": null,
+        "level": 14331665,
+        "timestamp": "2026-08-02T18:27:31.000Z",
+        "qualifyingOutflowMutez": 22103497146,
+        "operationIds": [
+          2808750166507520
+        ],
+        "hashes": [
+          "opTxpmY7LMFvGYTzpaEWmBskA2WDJzWqvhgUcon7V1WSHtstvYv"
+        ],
+        "destinations": [
+          {
+            "address": "tz1PpZctTPYj3GjY1B9wtWJh4hgd3XMo1t3R",
+            "alias": "Bybit Hot Wallet",
+            "qualifyingOutflowMutez": 22103497146,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 22104564250,
+        "balanceAfterMutez": 1064250,
+        "remainingPercent": 0.004814616510705475,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331664,
+            "block": 14331664,
+            "blockHash": "BLD5f9hcjNuVMwiMUD64VT24ptixp28e18j7KVJxUS62Sx4hw26",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLD5f9hcjNuVMwiMUD64VT24ptixp28e18j7KVJxUS62Sx4hw26/context/contracts/tz1gy5CM4XuFvmdmfk4ZZUFkaPZYHsJK4CSg/full_balance",
+            "balanceMutez": 22104564250,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14331665,
+            "block": 14331665,
+            "blockHash": "BMAcVHW14rdNEpdMFrY6cTLE9HLoACDVmk1c9Sj6uCua4RPJzNa",
+            "predecessorHash": "BLD5f9hcjNuVMwiMUD64VT24ptixp28e18j7KVJxUS62Sx4hw26",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMAcVHW14rdNEpdMFrY6cTLE9HLoACDVmk1c9Sj6uCua4RPJzNa/context/contracts/tz1gy5CM4XuFvmdmfk4ZZUFkaPZYHsJK4CSg/full_balance",
+            "balanceMutez": 1064250,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1M9peS31Ms2LKvQD168zsDY9JXqhAzh6nq:14326855",
+        "senderAddress": "tz1M9peS31Ms2LKvQD168zsDY9JXqhAzh6nq",
+        "senderAlias": null,
+        "level": 14326855,
+        "timestamp": "2026-08-02T10:23:04.000Z",
+        "qualifyingOutflowMutez": 7215000000,
+        "operationIds": [
+          2808022883631104
+        ],
+        "hashes": [
+          "ooJ3hQR1YGTPQs8oTQHy3HGaC7zLqCbP2fircSB9V99M9V3P7Ys"
+        ],
+        "destinations": [
+          {
+            "address": "tz1YRG68NdqtAcsFEwTUw6FsSsiBb5kagEDo",
+            "alias": "djb",
+            "qualifyingOutflowMutez": 7215000000,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 7221307725,
+        "balanceAfterMutez": 6292725,
+        "remainingPercent": 0.08714107249874883,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326854,
+            "block": 14326854,
+            "blockHash": "BM4tDsvSzCP7cqM28UsmtP35mg731h9eZbzqRXcD5k2chAGxJFW",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BM4tDsvSzCP7cqM28UsmtP35mg731h9eZbzqRXcD5k2chAGxJFW/context/contracts/tz1M9peS31Ms2LKvQD168zsDY9JXqhAzh6nq/full_balance",
+            "balanceMutez": 7221307725,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326855,
+            "block": 14326855,
+            "blockHash": "BMW5vgAaUt9aLZGxZFkhxfFSwiGQr2UC9ioVSScLhzBCxv1oq2u",
+            "predecessorHash": "BM4tDsvSzCP7cqM28UsmtP35mg731h9eZbzqRXcD5k2chAGxJFW",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMW5vgAaUt9aLZGxZFkhxfFSwiGQr2UC9ioVSScLhzBCxv1oq2u/context/contracts/tz1M9peS31Ms2LKvQD168zsDY9JXqhAzh6nq/full_balance",
+            "balanceMutez": 6292725,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1i3gRtvDvi4k17TUDvesYKbKV1JLAb5zsv:14329815",
+        "senderAddress": "tz1i3gRtvDvi4k17TUDvesYKbKV1JLAb5zsv",
+        "senderAlias": null,
+        "level": 14329815,
+        "timestamp": "2026-08-02T15:19:31.000Z",
+        "qualifyingOutflowMutez": 2196944726,
+        "operationIds": [
+          2808470544842752
+        ],
+        "hashes": [
+          "ooWg5Eis6nq5D12qrj5EGVy42LK4PueHKqKraynvFk5HXG7gpBe"
+        ],
+        "destinations": [
+          {
+            "address": "tz1PpZctTPYj3GjY1B9wtWJh4hgd3XMo1t3R",
+            "alias": "Bybit Hot Wallet",
+            "qualifyingOutflowMutez": 2196944726,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 2198011830,
+        "balanceAfterMutez": 1064250,
+        "remainingPercent": 0.04841875669067714,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329814,
+            "block": 14329814,
+            "blockHash": "BLuxAGCJfuHbjQxDNYjNtPCFay8E2DriVEptqKWo72kZvWzreNh",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLuxAGCJfuHbjQxDNYjNtPCFay8E2DriVEptqKWo72kZvWzreNh/context/contracts/tz1i3gRtvDvi4k17TUDvesYKbKV1JLAb5zsv/full_balance",
+            "balanceMutez": 2198011830,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329815,
+            "block": 14329815,
+            "blockHash": "BLkGxVsGR2ofATfBUy8tP8P7vNwRMsgyUXC85aSXo6RrQ1zGxjG",
+            "predecessorHash": "BLuxAGCJfuHbjQxDNYjNtPCFay8E2DriVEptqKWo72kZvWzreNh",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLkGxVsGR2ofATfBUy8tP8P7vNwRMsgyUXC85aSXo6RrQ1zGxjG/context/contracts/tz1i3gRtvDvi4k17TUDvesYKbKV1JLAb5zsv/full_balance",
+            "balanceMutez": 1064250,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1QYy8RfyKBCMjHmRkXatpGxHHhfy1moscM:14329317",
+        "senderAddress": "tz1QYy8RfyKBCMjHmRkXatpGxHHhfy1moscM",
+        "senderAlias": null,
+        "level": 14329317,
+        "timestamp": "2026-08-02T14:29:16.000Z",
+        "qualifyingOutflowMutez": 2044408543,
+        "operationIds": [
+          2808394828218368
+        ],
+        "hashes": [
+          "opL7VDNxjP4vKpZa6DqG4y1Stno29Y7dXUdiLcic35rCBAoNJok"
+        ],
+        "destinations": [
+          {
+            "address": "tz2Twaoe1bWPCwZHV4nhKS7t6FmvoZkAea7D",
+            "alias": null,
+            "qualifyingOutflowMutez": 2044408543,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 2046989643,
+        "balanceAfterMutez": 2579100,
+        "remainingPercent": 0.12599477524567035,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329316,
+            "block": 14329316,
+            "blockHash": "BMTimPgiPWjdnJEzogZTWxrTMTnrpkZGfAYUekJjjTQzLpMgZzT",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMTimPgiPWjdnJEzogZTWxrTMTnrpkZGfAYUekJjjTQzLpMgZzT/context/contracts/tz1QYy8RfyKBCMjHmRkXatpGxHHhfy1moscM/full_balance",
+            "balanceMutez": 2046989643,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329317,
+            "block": 14329317,
+            "blockHash": "BMBjBEVwMXPdwZLZdLwN7j2ebbT8gpuLuAJaCoAxyFqjRpR19vC",
+            "predecessorHash": "BMTimPgiPWjdnJEzogZTWxrTMTnrpkZGfAYUekJjjTQzLpMgZzT",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMBjBEVwMXPdwZLZdLwN7j2ebbT8gpuLuAJaCoAxyFqjRpR19vC/context/contracts/tz1QYy8RfyKBCMjHmRkXatpGxHHhfy1moscM/full_balance",
+            "balanceMutez": 2579100,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1d4yk2FdzWrLEtHGmy4QxbbhfbhgnsTkaE:14333300",
+        "senderAddress": "tz1d4yk2FdzWrLEtHGmy4QxbbhfbhgnsTkaE",
+        "senderAlias": null,
+        "level": 14333300,
+        "timestamp": "2026-08-02T21:18:28.000Z",
+        "qualifyingOutflowMutez": 1920163330,
+        "operationIds": [
+          2808999001980928
+        ],
+        "hashes": [
+          "op71Cq8D6DnxG1WMa21HaDrkFHFycnDPAHbXZjqMHu7BBqxNAMK"
+        ],
+        "destinations": [
+          {
+            "address": "tz1Q7RpsRvbozbY5zuhv5AaXuoqeXrcFAtgF",
+            "alias": "Kucoin",
+            "qualifyingOutflowMutez": 1920163330,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 1923579980,
+        "balanceAfterMutez": 3415850,
+        "remainingPercent": 0.17757774750806046,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14333299,
+            "block": 14333299,
+            "blockHash": "BLRsuwQuh13XrxAvPWfprTqXWkiYzp4uKL2idnSyDyCQ7v35N1k",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLRsuwQuh13XrxAvPWfprTqXWkiYzp4uKL2idnSyDyCQ7v35N1k/context/contracts/tz1d4yk2FdzWrLEtHGmy4QxbbhfbhgnsTkaE/full_balance",
+            "balanceMutez": 1923579980,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14333300,
+            "block": 14333300,
+            "blockHash": "BLG93sFhF1Bj2qsrzpx5wiPv9Wb7av7n9ZEcAvFdSXgY5jEntCo",
+            "predecessorHash": "BLRsuwQuh13XrxAvPWfprTqXWkiYzp4uKL2idnSyDyCQ7v35N1k",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLG93sFhF1Bj2qsrzpx5wiPv9Wb7av7n9ZEcAvFdSXgY5jEntCo/context/contracts/tz1d4yk2FdzWrLEtHGmy4QxbbhfbhgnsTkaE/full_balance",
+            "balanceMutez": 3415850,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1cCex7HKscWaeiKgzn7Qhcmq4fGxmK32xt:14329079",
+        "senderAddress": "tz1cCex7HKscWaeiKgzn7Qhcmq4fGxmK32xt",
+        "senderAlias": null,
+        "level": 14329079,
+        "timestamp": "2026-08-02T14:05:28.000Z",
+        "qualifyingOutflowMutez": 1809660581,
+        "operationIds": [
+          2808358592577536
+        ],
+        "hashes": [
+          "opAhQTRxWvRY7GbYUTwCrwYqiftrM2eDQqAub6tvER87dxexvdz"
+        ],
+        "destinations": [
+          {
+            "address": "tz1PpZctTPYj3GjY1B9wtWJh4hgd3XMo1t3R",
+            "alias": "Bybit Hot Wallet",
+            "qualifyingOutflowMutez": 1809660581,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 1810727685,
+        "balanceAfterMutez": 1064250,
+        "remainingPercent": 0.05877471299611791,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329078,
+            "block": 14329078,
+            "blockHash": "BKxhEJsvv4CgehZzWzEEdLZ1HqK3kFydWdbCsJGrYx7PdJ4MTGQ",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BKxhEJsvv4CgehZzWzEEdLZ1HqK3kFydWdbCsJGrYx7PdJ4MTGQ/context/contracts/tz1cCex7HKscWaeiKgzn7Qhcmq4fGxmK32xt/full_balance",
+            "balanceMutez": 1810727685,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14329079,
+            "block": 14329079,
+            "blockHash": "BLqaTsECxm18RGQPHCxX566BGWjJFbr14tcTwxKMBhMGafGwGFM",
+            "predecessorHash": "BKxhEJsvv4CgehZzWzEEdLZ1HqK3kFydWdbCsJGrYx7PdJ4MTGQ",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLqaTsECxm18RGQPHCxX566BGWjJFbr14tcTwxKMBhMGafGwGFM/context/contracts/tz1cCex7HKscWaeiKgzn7Qhcmq4fGxmK32xt/full_balance",
+            "balanceMutez": 1064250,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1gCxxTUS5PEZKRR8D65bk1XG7GKRnHKQox:14326774",
+        "senderAddress": "tz1gCxxTUS5PEZKRR8D65bk1XG7GKRnHKQox",
+        "senderAlias": null,
+        "level": 14326774,
+        "timestamp": "2026-08-02T10:14:58.000Z",
+        "qualifyingOutflowMutez": 1720000000,
+        "operationIds": [
+          2808010529308672
+        ],
+        "hashes": [
+          "opVH9VLokEz5b1WuUTwaGYT6yuJTchEfqFCeh8HsjL2hdJ7VhnD"
+        ],
+        "destinations": [
+          {
+            "address": "tz1YRG68NdqtAcsFEwTUw6FsSsiBb5kagEDo",
+            "alias": "djb",
+            "qualifyingOutflowMutez": 1720000000,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 1723780066,
+        "balanceAfterMutez": 3779422,
+        "remainingPercent": 0.21925198431897866,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326773,
+            "block": 14326773,
+            "blockHash": "BLb7bjBteUV4YmNnauBbeyNY9Z42o87enrEhPAqQKF3TrsbA7az",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLb7bjBteUV4YmNnauBbeyNY9Z42o87enrEhPAqQKF3TrsbA7az/context/contracts/tz1gCxxTUS5PEZKRR8D65bk1XG7GKRnHKQox/full_balance",
+            "balanceMutez": 1723780066,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14326774,
+            "block": 14326774,
+            "blockHash": "BLDHy4QYj3WHwiaBMeMNKUcs9tXytSdBgdZPk5tnHSJVP8eR6Fy",
+            "predecessorHash": "BLb7bjBteUV4YmNnauBbeyNY9Z42o87enrEhPAqQKF3TrsbA7az",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLDHy4QYj3WHwiaBMeMNKUcs9tXytSdBgdZPk5tnHSJVP8eR6Fy/context/contracts/tz1gCxxTUS5PEZKRR8D65bk1XG7GKRnHKQox/full_balance",
+            "balanceMutez": 3779422,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1fU4AXFbvww2px1CTByJLxF87jqexoNHJF:14322621",
+        "senderAddress": "tz1fU4AXFbvww2px1CTByJLxF87jqexoNHJF",
+        "senderAlias": null,
+        "level": 14322621,
+        "timestamp": "2026-08-02T03:17:16.000Z",
+        "qualifyingOutflowMutez": 1519901363,
+        "operationIds": [
+          2807383745101824
+        ],
+        "hashes": [
+          "onjQtR7nBRUPpbemvHika8SCiKwUnEaTjyWpcN3mh8YfhnKUhKv"
+        ],
+        "destinations": [
+          {
+            "address": "tz1PpZctTPYj3GjY1B9wtWJh4hgd3XMo1t3R",
+            "alias": "Bybit Hot Wallet",
+            "qualifyingOutflowMutez": 1519901363,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 1520968467,
+        "balanceAfterMutez": 1064250,
+        "remainingPercent": 0.06997186484077188,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14322620,
+            "block": 14322620,
+            "blockHash": "BL3XaDBbFdaR7NSX2PTYguDnt2MV1yYc4FG4iuq6HJ561JhVdL5",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BL3XaDBbFdaR7NSX2PTYguDnt2MV1yYc4FG4iuq6HJ561JhVdL5/context/contracts/tz1fU4AXFbvww2px1CTByJLxF87jqexoNHJF/full_balance",
+            "balanceMutez": 1520968467,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14322621,
+            "block": 14322621,
+            "blockHash": "BM9DpfdabzKBqetyLDf9KaEQAG27ctakmpHPLQSK5akg5WAcy45",
+            "predecessorHash": "BL3XaDBbFdaR7NSX2PTYguDnt2MV1yYc4FG4iuq6HJ561JhVdL5",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BM9DpfdabzKBqetyLDf9KaEQAG27ctakmpHPLQSK5akg5WAcy45/context/contracts/tz1fU4AXFbvww2px1CTByJLxF87jqexoNHJF/full_balance",
+            "balanceMutez": 1064250,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1NZG4W7ERY7FMxZzam2CAmhrkqn6H8yYng:14332126",
+        "senderAddress": "tz1NZG4W7ERY7FMxZzam2CAmhrkqn6H8yYng",
+        "senderAlias": null,
+        "level": 14332126,
+        "timestamp": "2026-08-02T19:15:55.000Z",
+        "qualifyingOutflowMutez": 1115135726,
+        "operationIds": [
+          2808819884228608
+        ],
+        "hashes": [
+          "oouHeHA8qEcxcAdLMB8ZvyrKqqbKBwHxrVxket4Us98L8XqDMKv"
+        ],
+        "destinations": [
+          {
+            "address": "tz1PpZctTPYj3GjY1B9wtWJh4hgd3XMo1t3R",
+            "alias": "Bybit Hot Wallet",
+            "qualifyingOutflowMutez": 1115135726,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 1116202830,
+        "balanceAfterMutez": 1064250,
+        "remainingPercent": 0.0953455744239602,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14332125,
+            "block": 14332125,
+            "blockHash": "BLfCNJLME9oQM7y1AUg6wFBjE7wgRAQaso6Bkvtbtsci83YHdLa",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLfCNJLME9oQM7y1AUg6wFBjE7wgRAQaso6Bkvtbtsci83YHdLa/context/contracts/tz1NZG4W7ERY7FMxZzam2CAmhrkqn6H8yYng/full_balance",
+            "balanceMutez": 1116202830,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14332126,
+            "block": 14332126,
+            "blockHash": "BLz9hmmfAyUSpMJsRjVGWhjW3TyhsdHaqxMRK6xrjrXEwfbYXyN",
+            "predecessorHash": "BLfCNJLME9oQM7y1AUg6wFBjE7wgRAQaso6Bkvtbtsci83YHdLa",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLz9hmmfAyUSpMJsRjVGWhjW3TyhsdHaqxMRK6xrjrXEwfbYXyN/context/contracts/tz1NZG4W7ERY7FMxZzam2CAmhrkqn6H8yYng/full_balance",
+            "balanceMutez": 1064250,
+            "deallocated": false
+          }
+        }
+      },
+      {
+        "id": "tz1ZBpQtFWmSMLm2pbjEiYXnAjCEBdpVpcEu:14330665",
+        "senderAddress": "tz1ZBpQtFWmSMLm2pbjEiYXnAjCEBdpVpcEu",
+        "senderAlias": "licas33gb",
+        "level": 14330665,
+        "timestamp": "2026-08-02T16:44:40.000Z",
+        "qualifyingOutflowMutez": 1021000000,
+        "operationIds": [
+          2808598840213504
+        ],
+        "hashes": [
+          "onwxgpRoUU2avMXPvo9CfHudd4FKwXxZqheMsJoBLZzHQiDv7xR"
+        ],
+        "destinations": [
+          {
+            "address": "tz1MrnRkLhi3xKQTcoDQRd6zpimWcqrKHU81",
+            "alias": null,
+            "qualifyingOutflowMutez": 1021000000,
+            "operationCount": 1
+          }
+        ],
+        "classification": "near-empty",
+        "balanceBeforeMutez": 1022710623,
+        "balanceAfterMutez": 1709979,
+        "remainingPercent": 0.16720066864896543,
+        "balanceReceipts": {
+          "before": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14330664,
+            "block": 14330664,
+            "blockHash": "BMSiwVdSUvU2teQPPLxKnMyrrtPux4DxS3T6P5mwH4faoSBVuZR",
+            "predecessorHash": null,
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BMSiwVdSUvU2teQPPLxKnMyrrtPux4DxS3T6P5mwH4faoSBVuZR/context/contracts/tz1ZBpQtFWmSMLm2pbjEiYXnAjCEBdpVpcEu/full_balance",
+            "balanceMutez": 1022710623,
+            "deallocated": false
+          },
+          "after": {
+            "provider": "octez-mainnet-archive",
+            "chainId": "NetXdQprcVkpaWU",
+            "level": 14330665,
+            "block": 14330665,
+            "blockHash": "BLuZy78dQJ4ggNVKnfHH5NJ6UMszVfQFoiLW3TcJau4Fvj55SbJ",
+            "predecessorHash": "BMSiwVdSUvU2teQPPLxKnMyrrtPux4DxS3T6P5mwH4faoSBVuZR",
+            "endpoint": "full_balance",
+            "url": "https://octez-mainnet-archive.octez.io/chains/main/blocks/BLuZy78dQJ4ggNVKnfHH5NJ6UMszVfQFoiLW3TcJau4Fvj55SbJ/context/contracts/tz1ZBpQtFWmSMLm2pbjEiYXnAjCEBdpVpcEu/full_balance",
+            "balanceMutez": 1709979,
+            "deallocated": false
+          }
+        }
+      }
+    ]
+  },
   "transfers24h": {
     "window": {
-      "since": "2026-07-31T03:55:57.248Z",
-      "until": "2026-08-01T03:55:57.248Z",
+      "since": "2026-08-01T21:35:19.014Z",
+      "until": "2026-08-02T21:35:19.014Z",
       "hours": 24
     },
     "semantics": "Gross observed tez transferred by applied transaction operations. This is not economic volume and can include related internal hops.",
     "minimumXtz": 1000,
     "complete": true,
-    "operationCount": 894,
-    "operationGroupCount": 867,
-    "uniqueSenders": 154,
-    "uniqueTargets": 174,
-    "grossObservedMutez": 12345802674297,
+    "operationCount": 236,
+    "operationGroupCount": 229,
+    "uniqueSenders": 82,
+    "uniqueTargets": 97,
+    "grossObservedMutez": 2830126114201,
     "thresholds": [
       {
         "thresholdXtz": 1000,
-        "operationCount": 894,
-        "operationGroupCount": 867,
-        "grossObservedMutez": 12345802674297
+        "operationCount": 236,
+        "operationGroupCount": 229,
+        "grossObservedMutez": 2830126114201
       },
       {
         "thresholdXtz": 10000,
-        "operationCount": 643,
-        "operationGroupCount": 643,
-        "grossObservedMutez": 11574795394157
+        "operationCount": 118,
+        "operationGroupCount": 118,
+        "grossObservedMutez": 2459901082105
       },
       {
         "thresholdXtz": 100000,
-        "operationCount": 18,
-        "operationGroupCount": 18,
-        "grossObservedMutez": 3749136508697
+        "operationCount": 6,
+        "operationGroupCount": 6,
+        "grossObservedMutez": 955294499486
       },
       {
         "thresholdXtz": 1000000,
@@ -82,307 +1876,95 @@
       }
     ],
     "largestOperation": {
-      "id": 2805141780561920,
-      "hash": "oo4zbMKn6B713MgeUhtu292iGEYQLbmniq4VZCwVGwpKi9XcrCC",
+      "id": 2807536470196224,
+      "hash": "ongACCxF5x1XzJrZzATLZX8Xg9bjJ5ofnXXhLTee3659bDZjtyQ",
+      "level": 14323637,
       "type": "transaction",
       "action": null,
       "status": "applied",
-      "timestamp": "2026-08-01T03:20:16.000Z",
-      "amountMutez": 596789650000,
-      "sender": "tz1T3KYkqhxVMJtkxGFty3rAcrH12Fv1ANYy",
+      "timestamp": "2026-08-02T04:59:37.000Z",
+      "amountMutez": 207083000000,
+      "sender": "tz1SpwzPSvqE84XeXy6ve9XQ6anD9wCcy953",
       "senderAlias": null,
-      "target": "tz1SpwzPSvqE84XeXy6ve9XQ6anD9wCcy953",
+      "target": "tz2JDZaUA1hRmUhwwTZQjaHPS5FpopaqUnem",
       "targetAlias": null
+    },
+    "namedEndpointOperationCount": 94,
+    "largestNamedOperation": {
+      "id": 2807537232510976,
+      "hash": "ooWQuSKEtX62Vkjw5gurf1CseDpVe7CZGC9qyoTGSgSr4c7gqdK",
+      "level": 14323642,
+      "type": "transaction",
+      "action": null,
+      "status": "applied",
+      "timestamp": "2026-08-02T05:00:07.000Z",
+      "amountMutez": 207082999485,
+      "sender": "tz2JDZaUA1hRmUhwwTZQjaHPS5FpopaqUnem",
+      "senderAlias": null,
+      "target": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+      "targetAlias": "Binance"
     },
     "topFlowStories": [
       {
-        "hash": "oo4zbMKn6B713MgeUhtu292iGEYQLbmniq4VZCwVGwpKi9XcrCC",
-        "timestamp": "2026-08-01T03:20:16.000Z",
-        "grossObservedMutez": 596789650000,
+        "hash": "ongACCxF5x1XzJrZzATLZX8Xg9bjJ5ofnXXhLTee3659bDZjtyQ",
+        "timestamp": "2026-08-02T04:59:37.000Z",
+        "grossObservedMutez": 207083000000,
         "operations": [
           {
-            "id": 2805141780561920,
-            "hash": "oo4zbMKn6B713MgeUhtu292iGEYQLbmniq4VZCwVGwpKi9XcrCC",
+            "id": 2807536470196224,
+            "hash": "ongACCxF5x1XzJrZzATLZX8Xg9bjJ5ofnXXhLTee3659bDZjtyQ",
+            "level": 14323637,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-08-01T03:20:16.000Z",
-            "amountMutez": 596789650000,
-            "sender": "tz1T3KYkqhxVMJtkxGFty3rAcrH12Fv1ANYy",
+            "timestamp": "2026-08-02T04:59:37.000Z",
+            "amountMutez": 207083000000,
+            "sender": "tz1SpwzPSvqE84XeXy6ve9XQ6anD9wCcy953",
             "senderAlias": null,
-            "target": "tz1SpwzPSvqE84XeXy6ve9XQ6anD9wCcy953",
+            "target": "tz2JDZaUA1hRmUhwwTZQjaHPS5FpopaqUnem",
             "targetAlias": null
           }
         ],
         "operationCount": 1
       },
       {
-        "hash": "onpXnbQJBS7YDtR95T8mHs8YEVPdJ48Xsz1Vvz18sbcM5UviFpj",
-        "timestamp": "2026-07-31T13:50:34.000Z",
-        "grossObservedMutez": 447265659000,
+        "hash": "ooWQuSKEtX62Vkjw5gurf1CseDpVe7CZGC9qyoTGSgSr4c7gqdK",
+        "timestamp": "2026-08-02T05:00:07.000Z",
+        "grossObservedMutez": 207082999485,
         "operations": [
           {
-            "id": 2803830060220416,
-            "hash": "onpXnbQJBS7YDtR95T8mHs8YEVPdJ48Xsz1Vvz18sbcM5UviFpj",
+            "id": 2807537232510976,
+            "hash": "ooWQuSKEtX62Vkjw5gurf1CseDpVe7CZGC9qyoTGSgSr4c7gqdK",
+            "level": 14323642,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-07-31T13:50:34.000Z",
-            "amountMutez": 447265659000,
-            "sender": "tz1duUb1ssgjvmn5yLnGMwDdFiPUyrswWsTY",
+            "timestamp": "2026-08-02T05:00:07.000Z",
+            "amountMutez": 207082999485,
+            "sender": "tz2JDZaUA1hRmUhwwTZQjaHPS5FpopaqUnem",
             "senderAlias": null,
-            "target": "tz1LDtArSiN9Z4Ge68knFYdmWHpRBMCAnJY8",
-            "targetAlias": null
+            "target": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "targetAlias": "Binance"
           }
         ],
         "operationCount": 1
       },
       {
-        "hash": "ooNaG8rPfHuaMKgBvd529kMhKoSsGdD5yVn34XeUdBwYXCcZKsM",
-        "timestamp": "2026-07-31T13:57:22.000Z",
-        "grossObservedMutez": 338374829350,
+        "hash": "oov8cXgn1jQeB2SVJ9DZDQPmpwfdnQYSsQg7tp7WLCLG5fCyASz",
+        "timestamp": "2026-08-02T16:17:10.000Z",
+        "grossObservedMutez": 135512000000,
         "operations": [
           {
-            "id": 2803840456851456,
-            "hash": "ooNaG8rPfHuaMKgBvd529kMhKoSsGdD5yVn34XeUdBwYXCcZKsM",
+            "id": 2808557351206912,
+            "hash": "oov8cXgn1jQeB2SVJ9DZDQPmpwfdnQYSsQg7tp7WLCLG5fCyASz",
+            "level": 14330390,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-07-31T13:57:22.000Z",
-            "amountMutez": 338374829350,
-            "sender": "tz1LDtArSiN9Z4Ge68knFYdmWHpRBMCAnJY8",
+            "timestamp": "2026-08-02T16:17:10.000Z",
+            "amountMutez": 135512000000,
+            "sender": "tz1gTbdvHMy8whq8dygV8TgaBdMGgNPrErsG",
             "senderAlias": null,
-            "target": "tz1YVaEabzyRhuBBQkPZWGB98ZWf5fDCitne",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "ooLYqSUaC9HNiqHREffAgH16RMfRkuNCXDo28sjd9BiCqvJ2H6s",
-        "timestamp": "2026-07-31T16:02:46.000Z",
-        "grossObservedMutez": 280000000000,
-        "operations": [
-          {
-            "id": 2804032937656320,
-            "hash": "ooLYqSUaC9HNiqHREffAgH16RMfRkuNCXDo28sjd9BiCqvJ2H6s",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T16:02:46.000Z",
-            "amountMutez": 280000000000,
-            "sender": "tz1LGs8Mip54S3DYDghuxJvxTTDcvDYJVRyC",
-            "senderAlias": null,
-            "target": "tz1PmPThcxFUEBh1tJrkZKwkaGrE5VjPs4CA",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "oo4AbD6NsfKLuhXghfFzb9GxS5YquWKiXFwa6yGjfEZfvAtjJcN",
-        "timestamp": "2026-07-31T13:41:34.000Z",
-        "grossObservedMutez": 212999600000,
-        "operations": [
-          {
-            "id": 2803816427683840,
-            "hash": "oo4AbD6NsfKLuhXghfFzb9GxS5YquWKiXFwa6yGjfEZfvAtjJcN",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T13:41:34.000Z",
-            "amountMutez": 212999600000,
-            "sender": "tz1TUAvnK83ebk6ER6X8hoRcC6WM97UT9AvC",
-            "senderAlias": null,
-            "target": "tz1duUb1ssgjvmn5yLnGMwDdFiPUyrswWsTY",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "ooq5gBZufMWpoC1AEbayqCdm49b2oEfqQbqzRgHJ1SpFf8gbA9S",
-        "timestamp": "2026-07-31T14:01:16.000Z",
-        "grossObservedMutez": 202598789350,
-        "operations": [
-          {
-            "id": 2803846446317568,
-            "hash": "ooq5gBZufMWpoC1AEbayqCdm49b2oEfqQbqzRgHJ1SpFf8gbA9S",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T14:01:16.000Z",
-            "amountMutez": 202598789350,
-            "sender": "tz1YVaEabzyRhuBBQkPZWGB98ZWf5fDCitne",
-            "senderAlias": null,
-            "target": "tz1PEQrLDbRMbWGoDraMVEB4QCeGmzqqDmok",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "opKyz1j69AmbPoCPUFCniudRgQa4p3qhmf3PJz4vk6FHUebzcWb",
-        "timestamp": "2026-07-31T08:28:55.000Z",
-        "grossObservedMutez": 200000000000,
-        "operations": [
-          {
-            "id": 2803325341794304,
-            "hash": "opKyz1j69AmbPoCPUFCniudRgQa4p3qhmf3PJz4vk6FHUebzcWb",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T08:28:55.000Z",
-            "amountMutez": 200000000000,
-            "sender": "tz1PmPThcxFUEBh1tJrkZKwkaGrE5VjPs4CA",
-            "senderAlias": null,
-            "target": "tz1LGs8Mip54S3DYDghuxJvxTTDcvDYJVRyC",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "onqneWWxCrB1k8sqCrzct3CWvRa9MkDZDJ9abqWt5RhSt9mm62q",
-        "timestamp": "2026-07-31T13:41:10.000Z",
-        "grossObservedMutez": 199999998580,
-        "operations": [
-          {
-            "id": 2803815820558336,
-            "hash": "onqneWWxCrB1k8sqCrzct3CWvRa9MkDZDJ9abqWt5RhSt9mm62q",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T13:41:10.000Z",
-            "amountMutez": 199999998580,
-            "sender": "tz1bDhCGNZLQw1QXgf6MCzo6EtAVSGkqEB11",
-            "senderAlias": "Coinbase 3",
-            "target": "tz1duUb1ssgjvmn5yLnGMwDdFiPUyrswWsTY",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "op27vLJkNYChCD6x9UQzDmrxrvoPmkYUqn5vmR25BcCYYxojw3W",
-        "timestamp": "2026-07-31T14:05:10.000Z",
-        "grossObservedMutez": 179991842415,
-        "operations": [
-          {
-            "id": 2803852496601088,
-            "hash": "op27vLJkNYChCD6x9UQzDmrxrvoPmkYUqn5vmR25BcCYYxojw3W",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T14:05:10.000Z",
-            "amountMutez": 179991842415,
-            "sender": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
-            "senderAlias": "Binance",
-            "target": "tz1duUb1ssgjvmn5yLnGMwDdFiPUyrswWsTY",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "op6uQWabsuRqyobAF8j5tjbEvrASKneoHySLV22bYxk3esdQ3gi",
-        "timestamp": "2026-08-01T03:15:13.000Z",
-        "grossObservedMutez": 152964210000,
-        "operations": [
-          {
-            "id": 2805134369226752,
-            "hash": "op6uQWabsuRqyobAF8j5tjbEvrASKneoHySLV22bYxk3esdQ3gi",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-08-01T03:15:13.000Z",
-            "amountMutez": 152964210000,
-            "sender": "tz1SbuebTVyTeWu4VgeviqJGjEkeS9mnBKxv",
-            "senderAlias": null,
-            "target": "tz1T3KYkqhxVMJtkxGFty3rAcrH12Fv1ANYy",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "ooL65ELvr94Qo9hyLSu3StG5WVcVKSwFfn2DzES1yHaGkAxpidD",
-        "timestamp": "2026-07-31T11:48:49.000Z",
-        "grossObservedMutez": 151618930000,
-        "operations": [
-          {
-            "id": 2803644665692160,
-            "hash": "ooL65ELvr94Qo9hyLSu3StG5WVcVKSwFfn2DzES1yHaGkAxpidD",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T11:48:49.000Z",
-            "amountMutez": 151618930000,
-            "sender": "tz2KSSNrFtFT8gyw7rpeTtUja2mvjgCchyJs",
-            "senderAlias": null,
-            "target": "tz2FeBUrfA7Lb4QnCr8SWx5aCg6JDx9H8xoL",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "opVE6gBp5GatkBafSoGH62SvQKfQTKmjQrSW6uCafXWwYTFTV6x",
-        "timestamp": "2026-07-31T17:04:40.000Z",
-        "grossObservedMutez": 125476000000,
-        "operations": [
-          {
-            "id": 2804127737315328,
-            "hash": "opVE6gBp5GatkBafSoGH62SvQKfQTKmjQrSW6uCafXWwYTFTV6x",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T17:04:40.000Z",
-            "amountMutez": 125476000000,
-            "sender": "tz1NY36nXni534M13reSRD6ZpLKfq4CULP6d",
-            "senderAlias": null,
-            "target": "tz1RCBJCpKVKJTJEcMLC3PoetUXkBj4MUWhp",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "opXsibWM7V2iiWKyyxjvYwY9FmQiF1BfhmgLcEgMWZB5LXcM6Gm",
-        "timestamp": "2026-07-31T17:07:46.000Z",
-        "grossObservedMutez": 125475500001,
-        "operations": [
-          {
-            "id": 2804132441227264,
-            "hash": "opXsibWM7V2iiWKyyxjvYwY9FmQiF1BfhmgLcEgMWZB5LXcM6Gm",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T17:07:46.000Z",
-            "amountMutez": 125475500001,
-            "sender": "tz1RCBJCpKVKJTJEcMLC3PoetUXkBj4MUWhp",
-            "senderAlias": null,
-            "target": "tz1NcoDFXMAfB26mpBhVrdSHmppyTeccT6Fi",
-            "targetAlias": "Coinbase 1"
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "onpiiVvMG2tYSmy7xxbbhbBrge8tQLYbyi2cJ5kcaShMhLzpWvU",
-        "timestamp": "2026-07-31T14:55:40.000Z",
-        "grossObservedMutez": 124018000000,
-        "operations": [
-          {
-            "id": 2803930497024000,
-            "hash": "onpiiVvMG2tYSmy7xxbbhbBrge8tQLYbyi2cJ5kcaShMhLzpWvU",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T14:55:40.000Z",
-            "amountMutez": 124018000000,
-            "sender": "tz1Z7eWGw18LqUgRqmDqNZFQx7f8GEHXRfT8",
-            "senderAlias": "Coinbase 2",
             "target": "tz1NY36nXni534M13reSRD6ZpLKfq4CULP6d",
             "targetAlias": null
           }
@@ -390,40 +1972,42 @@
         "operationCount": 1
       },
       {
-        "hash": "onvhK6rdz3R88qctvxLTi9Xn3vVWunLk9av5kbvR7MMDvuXExoN",
-        "timestamp": "2026-07-31T14:04:46.000Z",
-        "grossObservedMutez": 103643000000,
+        "hash": "op7d2Ye8WkGrJLzCfuQZ221dm5wjn9osZNyunKgtB54ArX9tehz",
+        "timestamp": "2026-08-02T16:08:52.000Z",
+        "grossObservedMutez": 135376000000,
         "operations": [
           {
-            "id": 2803851847532544,
-            "hash": "onvhK6rdz3R88qctvxLTi9Xn3vVWunLk9av5kbvR7MMDvuXExoN",
+            "id": 2808544854278144,
+            "hash": "op7d2Ye8WkGrJLzCfuQZ221dm5wjn9osZNyunKgtB54ArX9tehz",
+            "level": 14330307,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-07-31T14:04:46.000Z",
-            "amountMutez": 103643000000,
+            "timestamp": "2026-08-02T16:08:52.000Z",
+            "amountMutez": 135376000000,
             "sender": "tz1NY36nXni534M13reSRD6ZpLKfq4CULP6d",
             "senderAlias": null,
-            "target": "tz1NrKiRPsb3CdjtoFhzYcz76KbJzkfxTFS7",
+            "target": "tz1QFSZoMc64325iw8y7qmdhB8j4JMcK3qVJ",
             "targetAlias": null
           }
         ],
         "operationCount": 1
       },
       {
-        "hash": "opSQtxH5Sz9EPMpUHdJuaqTGHU9yHpd2YSCEyZfBovNYX2PmnEp",
-        "timestamp": "2026-07-31T14:07:34.000Z",
-        "grossObservedMutez": 103642500001,
+        "hash": "opHoJwZHSn3m98NK1V5hkX2MTosfYjPjabYPmbR9W53GUJ2dphY",
+        "timestamp": "2026-08-02T16:11:52.000Z",
+        "grossObservedMutez": 135375500001,
         "operations": [
           {
-            "id": 2803856247357440,
-            "hash": "opSQtxH5Sz9EPMpUHdJuaqTGHU9yHpd2YSCEyZfBovNYX2PmnEp",
+            "id": 2808549340086272,
+            "hash": "opHoJwZHSn3m98NK1V5hkX2MTosfYjPjabYPmbR9W53GUJ2dphY",
+            "level": 14330337,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-07-31T14:07:34.000Z",
-            "amountMutez": 103642500001,
-            "sender": "tz1NrKiRPsb3CdjtoFhzYcz76KbJzkfxTFS7",
+            "timestamp": "2026-08-02T16:11:52.000Z",
+            "amountMutez": 135375500001,
+            "sender": "tz1QFSZoMc64325iw8y7qmdhB8j4JMcK3qVJ",
             "senderAlias": null,
             "target": "tz1bDhCGNZLQw1QXgf6MCzo6EtAVSGkqEB11",
             "targetAlias": "Coinbase 3"
@@ -432,39 +2016,19 @@
         "operationCount": 1
       },
       {
-        "hash": "oo2pecaEXa172qKYA9PxtRwaKsCdfPRjC5xTxvUXtRvuNJXPL6P",
-        "timestamp": "2026-07-31T12:37:43.000Z",
-        "grossObservedMutez": 103619000000,
+        "hash": "ooeveBMKKZtdwfuSzhU9momnjq8gLQ6KtR52jWtp49LbvVPuqQh",
+        "timestamp": "2026-08-02T15:56:19.000Z",
+        "grossObservedMutez": 134865000000,
         "operations": [
           {
-            "id": 2803719083130880,
-            "hash": "oo2pecaEXa172qKYA9PxtRwaKsCdfPRjC5xTxvUXtRvuNJXPL6P",
+            "id": 2808526163410944,
+            "hash": "ooeveBMKKZtdwfuSzhU9momnjq8gLQ6KtR52jWtp49LbvVPuqQh",
+            "level": 14330183,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-07-31T12:37:43.000Z",
-            "amountMutez": 103619000000,
-            "sender": "tz1NcoDFXMAfB26mpBhVrdSHmppyTeccT6Fi",
-            "senderAlias": "Coinbase 1",
-            "target": "tz1NY36nXni534M13reSRD6ZpLKfq4CULP6d",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "ooSFPzL3HSMAorPDshBLuDbQjbEsAYgSipg57xRV8J2QPnaFgiD",
-        "timestamp": "2026-07-31T07:06:25.000Z",
-        "grossObservedMutez": 100659000000,
-        "operations": [
-          {
-            "id": 2803170827829248,
-            "hash": "ooSFPzL3HSMAorPDshBLuDbQjbEsAYgSipg57xRV8J2QPnaFgiD",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T07:06:25.000Z",
-            "amountMutez": 100659000000,
+            "timestamp": "2026-08-02T15:56:19.000Z",
+            "amountMutez": 134865000000,
             "sender": "tz1MXjdb684ByEP5qUn5J7EMub7Sr8eBziDe",
             "senderAlias": "Coinbase 4",
             "target": "tz1NY36nXni534M13reSRD6ZpLKfq4CULP6d",
@@ -474,40 +2038,64 @@
         "operationCount": 1
       },
       {
-        "hash": "onxxvfTHY4XC2pUxVSKAP1SSyb378NZQunBsPaELZfC3uU3W1R3",
-        "timestamp": "2026-07-31T08:58:25.000Z",
-        "grossObservedMutez": 98546000000,
+        "hash": "ooHp1U3CCbWywqwx5YEuVfiJ11Z2SyNsiqLbKFZ76GRv9bL4uCY",
+        "timestamp": "2026-08-02T06:56:46.000Z",
+        "grossObservedMutez": 48206669550,
         "operations": [
           {
-            "id": 2803370024763392,
-            "hash": "onxxvfTHY4XC2pUxVSKAP1SSyb378NZQunBsPaELZfC3uU3W1R3",
+            "id": 2807713487650816,
+            "hash": "ooHp1U3CCbWywqwx5YEuVfiJ11Z2SyNsiqLbKFZ76GRv9bL4uCY",
+            "level": 14324804,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-07-31T08:58:25.000Z",
-            "amountMutez": 98546000000,
-            "sender": "tz1NY36nXni534M13reSRD6ZpLKfq4CULP6d",
-            "senderAlias": null,
-            "target": "tz1YVzkeGzP4qw6WvaeByuaYJk7DnXNo5mbn",
+            "timestamp": "2026-08-02T06:56:46.000Z",
+            "amountMutez": 48206669550,
+            "sender": "tz2FqBRA1yPQLo4JXfMCT1dFWbFpFE4Tq3bm",
+            "senderAlias": "Gemini hot",
+            "target": "tz1aiLr55BZLEawY5fKEs12T4YXVuWxufXKu",
             "targetAlias": null
           }
         ],
         "operationCount": 1
       },
       {
-        "hash": "opBwjkpBSihREHoyASPchxGGfPHS6r2D5zSSXbrfiydsXSS3CTX",
-        "timestamp": "2026-07-31T09:01:43.000Z",
-        "grossObservedMutez": 98545500001,
+        "hash": "ooMyQNrCCYFvoK37ggQH2SFvAVzvbAzaLh5ctY9ueZQbkPEevcP",
+        "timestamp": "2026-08-02T04:25:46.000Z",
+        "grossObservedMutez": 37582625287,
         "operations": [
           {
-            "id": 2803375069462528,
-            "hash": "opBwjkpBSihREHoyASPchxGGfPHS6r2D5zSSXbrfiydsXSS3CTX",
+            "id": 2807485876404224,
+            "hash": "ooMyQNrCCYFvoK37ggQH2SFvAVzvbAzaLh5ctY9ueZQbkPEevcP",
+            "level": 14323300,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-07-31T09:01:43.000Z",
-            "amountMutez": 98545500001,
-            "sender": "tz1YVzkeGzP4qw6WvaeByuaYJk7DnXNo5mbn",
+            "timestamp": "2026-08-02T04:25:46.000Z",
+            "amountMutez": 37582625287,
+            "sender": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "senderAlias": "Binance",
+            "target": "tz1MjpRkCW2azGtHdvWChUyUSxZUtkz3RV3U",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "oovF5cU1PfLtrAwYaUZmiTTSdg8R1D9Lv3EzQrsMobFWUZyPV2S",
+        "timestamp": "2026-08-02T04:28:34.000Z",
+        "grossObservedMutez": 37582623867,
+        "operations": [
+          {
+            "id": 2807490076999680,
+            "hash": "oovF5cU1PfLtrAwYaUZmiTTSdg8R1D9Lv3EzQrsMobFWUZyPV2S",
+            "level": 14323328,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T04:28:34.000Z",
+            "amountMutez": 37582623867,
+            "sender": "tz1MjpRkCW2azGtHdvWChUyUSxZUtkz3RV3U",
             "senderAlias": null,
             "target": "tz1bDhCGNZLQw1QXgf6MCzo6EtAVSGkqEB11",
             "targetAlias": "Coinbase 3"
@@ -516,85 +2104,373 @@
         "operationCount": 1
       },
       {
-        "hash": "onvDpFvUFrex3N9ku5F9WB36mo88yZHE94PtUNA7e5SYhG3hbga",
-        "timestamp": "2026-07-31T09:23:40.000Z",
-        "grossObservedMutez": 98124483580,
+        "hash": "ong3ECdxyFi6Wb2tcDTBkj4GEkU817oEjpjUPdh1BLb66XiWzbq",
+        "timestamp": "2026-08-02T14:16:46.000Z",
+        "grossObservedMutez": 35633784319,
         "operations": [
           {
-            "id": 2803415179591680,
-            "hash": "onvDpFvUFrex3N9ku5F9WB36mo88yZHE94PtUNA7e5SYhG3hbga",
+            "id": 2808375771398144,
+            "hash": "ong3ECdxyFi6Wb2tcDTBkj4GEkU817oEjpjUPdh1BLb66XiWzbq",
+            "level": 14329192,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-07-31T09:23:40.000Z",
-            "amountMutez": 98124483580,
-            "sender": "tz1csU93GSdbtD6zUHDPrzQ4NtPn2bwCkAMw",
-            "senderAlias": null,
-            "target": "tz1itPTPife6fnTTNJ5o9gmfT1nZXS1Et1kM",
+            "timestamp": "2026-08-02T14:16:46.000Z",
+            "amountMutez": 35633784319,
+            "sender": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "senderAlias": "Binance",
+            "target": "tz1MjpRkCW2azGtHdvWChUyUSxZUtkz3RV3U",
             "targetAlias": null
           }
         ],
         "operationCount": 1
       },
       {
-        "hash": "opS2mrSbu1FP2aQaaucUHjcmiQCGDVj49jCdnZGUti8N8RYovcF",
-        "timestamp": "2026-07-31T10:15:13.000Z",
-        "grossObservedMutez": 98124417380,
+        "hash": "oovPpQcjHDgRJHWWNg1LRaZVAcQVSipFayKfVnE45W7g95hM4o6",
+        "timestamp": "2026-08-02T14:19:10.000Z",
+        "grossObservedMutez": 35633782899,
         "operations": [
           {
-            "id": 2803502815379456,
-            "hash": "opS2mrSbu1FP2aQaaucUHjcmiQCGDVj49jCdnZGUti8N8RYovcF",
+            "id": 2808379398422528,
+            "hash": "oovPpQcjHDgRJHWWNg1LRaZVAcQVSipFayKfVnE45W7g95hM4o6",
+            "level": 14329216,
             "type": "transaction",
             "action": null,
             "status": "applied",
-            "timestamp": "2026-07-31T10:15:13.000Z",
-            "amountMutez": 98124417380,
-            "sender": "tz1itPTPife6fnTTNJ5o9gmfT1nZXS1Et1kM",
-            "senderAlias": null,
-            "target": "tz1Pd2WuP4exjMoejjnDU1RsJ7zjMZ5Wf5B1",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "opCScjQ5Tv6pN8i2zxjEpE5piie4tLnDotqARNMESaaBwDAoR4q",
-        "timestamp": "2026-07-31T06:55:01.000Z",
-        "grossObservedMutez": 97810000000,
-        "operations": [
-          {
-            "id": 2803153572462592,
-            "hash": "opCScjQ5Tv6pN8i2zxjEpE5piie4tLnDotqARNMESaaBwDAoR4q",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T06:55:01.000Z",
-            "amountMutez": 97810000000,
-            "sender": "tz1NY36nXni534M13reSRD6ZpLKfq4CULP6d",
-            "senderAlias": null,
-            "target": "tz1ZAbTqw2WjQuRVUZQWAfjgeA2yxoJ7rZFD",
-            "targetAlias": null
-          }
-        ],
-        "operationCount": 1
-      },
-      {
-        "hash": "ooqNXPoTbzWvJpa6dNPAvyRVPqbFZ1Ufk7Fyn4f3CS9bAiSegpw",
-        "timestamp": "2026-07-31T06:56:55.000Z",
-        "grossObservedMutez": 97809500001,
-        "operations": [
-          {
-            "id": 2803156448706560,
-            "hash": "ooqNXPoTbzWvJpa6dNPAvyRVPqbFZ1Ufk7Fyn4f3CS9bAiSegpw",
-            "type": "transaction",
-            "action": null,
-            "status": "applied",
-            "timestamp": "2026-07-31T06:56:55.000Z",
-            "amountMutez": 97809500001,
-            "sender": "tz1ZAbTqw2WjQuRVUZQWAfjgeA2yxoJ7rZFD",
+            "timestamp": "2026-08-02T14:19:10.000Z",
+            "amountMutez": 35633782899,
+            "sender": "tz1MjpRkCW2azGtHdvWChUyUSxZUtkz3RV3U",
             "senderAlias": null,
             "target": "tz1Z7eWGw18LqUgRqmDqNZFQx7f8GEHXRfT8",
             "targetAlias": "Coinbase 2"
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "opYafnvEM3Zh8LDa7cad8H3qWqR2xdw2jpqqphgKdfwzfycnFbz",
+        "timestamp": "2026-08-02T01:00:31.000Z",
+        "grossObservedMutez": 31648955067,
+        "operations": [
+          {
+            "id": 2807176304263168,
+            "hash": "opYafnvEM3Zh8LDa7cad8H3qWqR2xdw2jpqqphgKdfwzfycnFbz",
+            "level": 14321258,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T01:00:31.000Z",
+            "amountMutez": 31648955067,
+            "sender": "tz1fTTZFvCSkiT6sDAZneZmDjCrz4azCyHaH",
+            "senderAlias": null,
+            "target": "tz1RNHyFDZ6yQXQJY3PQG4YeQCscUF1aeKnd",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "oo9RgoVx3dJfzApsmXT9gTv4FfiEm7PmjY8u14LpCBzdqvYQkzh",
+        "timestamp": "2026-08-02T16:16:10.000Z",
+        "grossObservedMutez": 27436702376,
+        "operations": [
+          {
+            "id": 2808555854888960,
+            "hash": "oo9RgoVx3dJfzApsmXT9gTv4FfiEm7PmjY8u14LpCBzdqvYQkzh",
+            "level": 14330380,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T16:16:10.000Z",
+            "amountMutez": 27436702376,
+            "sender": "tz1Z7eWGw18LqUgRqmDqNZFQx7f8GEHXRfT8",
+            "senderAlias": "Coinbase 2",
+            "target": "tz1e4N6UZzrjoxKbsJoLnxuBy6DfZu4voiTV",
+            "targetAlias": "Coinbase Delegator oiTV"
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "ooNmYDRnRgm1KWovBy7QtVpLLTugRZkXdB52ZZ5QM5PwR2kLqqj",
+        "timestamp": "2026-08-02T21:11:55.000Z",
+        "grossObservedMutez": 25132863132,
+        "operations": [
+          {
+            "id": 2808987785363456,
+            "hash": "ooNmYDRnRgm1KWovBy7QtVpLLTugRZkXdB52ZZ5QM5PwR2kLqqj",
+            "level": 14333239,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T21:11:55.000Z",
+            "amountMutez": 6283215783,
+            "sender": "KT1TaeCWK99uqfTjyfaj8QTgJ1XooWiNFRQB",
+            "senderAlias": null,
+            "target": "KT1JdufSdfg3WyxWJcCRNsBFV9V3x9TQBkJ2",
+            "targetAlias": "Kolibri Oven Proxy"
+          },
+          {
+            "id": 2808987787460608,
+            "hash": "ooNmYDRnRgm1KWovBy7QtVpLLTugRZkXdB52ZZ5QM5PwR2kLqqj",
+            "level": 14333239,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T21:11:55.000Z",
+            "amountMutez": 6283215783,
+            "sender": "KT1JdufSdfg3WyxWJcCRNsBFV9V3x9TQBkJ2",
+            "senderAlias": "Kolibri Oven Proxy",
+            "target": "KT1UcPwP7Usus8pFFXVQPcW5VZpkhf3LZZ1X",
+            "targetAlias": "Kolibri Minter"
+          },
+          {
+            "id": 2808987788509184,
+            "hash": "ooNmYDRnRgm1KWovBy7QtVpLLTugRZkXdB52ZZ5QM5PwR2kLqqj",
+            "level": 14333239,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T21:11:55.000Z",
+            "amountMutez": 6283215783,
+            "sender": "KT1UcPwP7Usus8pFFXVQPcW5VZpkhf3LZZ1X",
+            "senderAlias": "Kolibri Minter",
+            "target": "KT1JdufSdfg3WyxWJcCRNsBFV9V3x9TQBkJ2",
+            "targetAlias": "Kolibri Oven Proxy"
+          },
+          {
+            "id": 2808987789557760,
+            "hash": "ooNmYDRnRgm1KWovBy7QtVpLLTugRZkXdB52ZZ5QM5PwR2kLqqj",
+            "level": 14333239,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T21:11:55.000Z",
+            "amountMutez": 6283215783,
+            "sender": "KT1JdufSdfg3WyxWJcCRNsBFV9V3x9TQBkJ2",
+            "senderAlias": "Kolibri Oven Proxy",
+            "target": "KT1TaeCWK99uqfTjyfaj8QTgJ1XooWiNFRQB",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 4
+      },
+      {
+        "hash": "ooCLAx448i4grzPfM7TZMCsshABqcf8D5ikLU1fWYr9AeunKbme",
+        "timestamp": "2026-08-02T09:15:10.000Z",
+        "grossObservedMutez": 23438114298,
+        "operations": [
+          {
+            "id": 2807920797417472,
+            "hash": "ooCLAx448i4grzPfM7TZMCsshABqcf8D5ikLU1fWYr9AeunKbme",
+            "level": 14326179,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T09:15:10.000Z",
+            "amountMutez": 23438114298,
+            "sender": "tz1ScGV98AtmbSCxswQBvzQPehe8cSM6uGLV",
+            "senderAlias": null,
+            "target": "tz1QnM9XHpsRuWwSn1vXpLevuvPrJ2tMi8Eg",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "ooRxNTtCz7sDjoAMywmwscY6rLij9q2xBW3H62rgvMq1gpwF1Kf",
+        "timestamp": "2026-08-02T18:24:52.000Z",
+        "grossObservedMutez": 22103700000,
+        "operations": [
+          {
+            "id": 2808746290970624,
+            "hash": "ooRxNTtCz7sDjoAMywmwscY6rLij9q2xBW3H62rgvMq1gpwF1Kf",
+            "level": 14331640,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T18:24:52.000Z",
+            "amountMutez": 22103700000,
+            "sender": "tz1PpZctTPYj3GjY1B9wtWJh4hgd3XMo1t3R",
+            "senderAlias": "Bybit Hot Wallet",
+            "target": "tz1ReNz4aYmSrwAemTcD2k3TPnD7wweE8Kia",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "onxf2dnGbdM7nW6A7dsekz2icZinXbHBTEBtAZmtAEwsjpuRt2x",
+        "timestamp": "2026-08-02T18:28:25.000Z",
+        "grossObservedMutez": 22103697300,
+        "operations": [
+          {
+            "id": 2808751559016448,
+            "hash": "onxf2dnGbdM7nW6A7dsekz2icZinXbHBTEBtAZmtAEwsjpuRt2x",
+            "level": 14331674,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T18:28:25.000Z",
+            "amountMutez": 22103697300,
+            "sender": "tz1ReNz4aYmSrwAemTcD2k3TPnD7wweE8Kia",
+            "senderAlias": null,
+            "target": "tz1LGs8Mip54S3DYDghuxJvxTTDcvDYJVRyC",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "opH9foo36iB4dzM4XhhciX7nP17VMRjFTysXc74JYmNbm32eFG4",
+        "timestamp": "2026-08-02T18:20:49.000Z",
+        "grossObservedMutez": 22103500000,
+        "operations": [
+          {
+            "id": 2808740169383936,
+            "hash": "opH9foo36iB4dzM4XhhciX7nP17VMRjFTysXc74JYmNbm32eFG4",
+            "level": 14331601,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T18:20:49.000Z",
+            "amountMutez": 22103500000,
+            "sender": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "senderAlias": "Binance",
+            "target": "tz1gy5CM4XuFvmdmfk4ZZUFkaPZYHsJK4CSg",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "opTxpmY7LMFvGYTzpaEWmBskA2WDJzWqvhgUcon7V1WSHtstvYv",
+        "timestamp": "2026-08-02T18:27:31.000Z",
+        "grossObservedMutez": 22103497146,
+        "operations": [
+          {
+            "id": 2808750166507520,
+            "hash": "opTxpmY7LMFvGYTzpaEWmBskA2WDJzWqvhgUcon7V1WSHtstvYv",
+            "level": 14331665,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T18:27:31.000Z",
+            "amountMutez": 22103497146,
+            "sender": "tz1gy5CM4XuFvmdmfk4ZZUFkaPZYHsJK4CSg",
+            "senderAlias": null,
+            "target": "tz1PpZctTPYj3GjY1B9wtWJh4hgd3XMo1t3R",
+            "targetAlias": "Bybit Hot Wallet"
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "ooLfGv3fn3agbh49BzNVrTcCAnPS4KztX5FqKjXQMEguiZa9vxJ",
+        "timestamp": "2026-08-02T18:16:22.000Z",
+        "grossObservedMutez": 21203100000,
+        "operations": [
+          {
+            "id": 2808733705961472,
+            "hash": "ooLfGv3fn3agbh49BzNVrTcCAnPS4KztX5FqKjXQMEguiZa9vxJ",
+            "level": 14331558,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T18:16:22.000Z",
+            "amountMutez": 21203100000,
+            "sender": "tz1PpZctTPYj3GjY1B9wtWJh4hgd3XMo1t3R",
+            "senderAlias": "Bybit Hot Wallet",
+            "target": "tz2EAtrKqyVSzUujWVz486BD4j5use1keC82",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "onmPVEDyAdf6coufbaZBbjNRMC8GBMKY37D6y5tRyiEZqAG8hxs",
+        "timestamp": "2026-08-02T18:26:04.000Z",
+        "grossObservedMutez": 21203099485,
+        "operations": [
+          {
+            "id": 2808748161630208,
+            "hash": "onmPVEDyAdf6coufbaZBbjNRMC8GBMKY37D6y5tRyiEZqAG8hxs",
+            "level": 14331652,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T18:26:04.000Z",
+            "amountMutez": 21203099485,
+            "sender": "tz2EAtrKqyVSzUujWVz486BD4j5use1keC82",
+            "senderAlias": null,
+            "target": "tz2WDATNYnp7FdsmuZDYSidioZqeoLNZqXvE",
+            "targetAlias": "Binance"
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "oopphgj4U5GKb4kAaV8KjQbY61kzp4J2hdUKdCVDXVKXnEzxNS5",
+        "timestamp": "2026-08-02T03:53:37.000Z",
+        "grossObservedMutez": 20849000000,
+        "operations": [
+          {
+            "id": 2807437748862976,
+            "hash": "oopphgj4U5GKb4kAaV8KjQbY61kzp4J2hdUKdCVDXVKXnEzxNS5",
+            "level": 14322980,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T03:53:37.000Z",
+            "amountMutez": 20849000000,
+            "sender": "tz1T3KYkqhxVMJtkxGFty3rAcrH12Fv1ANYy",
+            "senderAlias": null,
+            "target": "tz1PC9vygr8hHhdUVh5hfZoXZHJiTCaFXS5B",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "ooJBAFiMcUbpXHcMC5hU9eHk6sJoRNiYiHB4Q9PLocyFC5anY1N",
+        "timestamp": "2026-08-02T04:06:31.000Z",
+        "grossObservedMutez": 20848998580,
+        "operations": [
+          {
+            "id": 2807457204142080,
+            "hash": "ooJBAFiMcUbpXHcMC5hU9eHk6sJoRNiYiHB4Q9PLocyFC5anY1N",
+            "level": 14323109,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T04:06:31.000Z",
+            "amountMutez": 20848998580,
+            "sender": "tz1PC9vygr8hHhdUVh5hfZoXZHJiTCaFXS5B",
+            "senderAlias": null,
+            "target": "tz1VaCSQJFnMVg3mKfkkCgUU4Rm7kxWB5Gdf",
+            "targetAlias": null
+          }
+        ],
+        "operationCount": 1
+      },
+      {
+        "hash": "ooma6RF4bhEjy3n8VpeBM5dvkTfrSom1j6AyTvC92DQK4BSJj44",
+        "timestamp": "2026-08-02T09:09:52.000Z",
+        "grossObservedMutez": 18359744000,
+        "operations": [
+          {
+            "id": 2807912787345408,
+            "hash": "ooma6RF4bhEjy3n8VpeBM5dvkTfrSom1j6AyTvC92DQK4BSJj44",
+            "level": 14326126,
+            "type": "transaction",
+            "action": null,
+            "status": "applied",
+            "timestamp": "2026-08-02T09:09:52.000Z",
+            "amountMutez": 18359744000,
+            "sender": "tz1T3KYkqhxVMJtkxGFty3rAcrH12Fv1ANYy",
+            "senderAlias": null,
+            "target": "tz1ScGV98AtmbSCxswQBvzQPehe8cSM6uGLV",
+            "targetAlias": null
           }
         ],
         "operationCount": 1
@@ -605,12 +2481,17 @@
     {
       "label": "TzKT large-account ledger",
       "url": "https://api.tzkt.io/v1/accounts",
-      "observedAt": "2026-08-01T03:55:57.248Z"
+      "observedAt": "2026-08-02T21:35:19.014Z"
     },
     {
       "label": "TzKT applied transaction ledger",
       "url": "https://api.tzkt.io/v1/operations/transactions",
-      "observedAt": "2026-08-01T03:55:57.248Z"
+      "observedAt": "2026-08-02T21:35:19.014Z"
+    },
+    {
+      "label": "Octez mainnet archive full-balance receipts",
+      "url": "https://octez-mainnet-archive.octez.io",
+      "observedAt": "2026-08-02T21:35:26.718Z"
     }
   ]
 }

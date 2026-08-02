@@ -512,6 +512,56 @@ function sampleWhaleWatchArtifact({ dormantDaysOffset = 0 } = {}) {
         targetAlias: 'QA Baker'
       }
     }],
+    balanceExits: {
+      window: { since, until: generatedAt, hours: 24 },
+      semantics: 'Applied top-level implicit-account transfers of at least 1,000 XTZ, checked only at each sender\'s last qualifying outbound block.',
+      minimumQualifyingOutflowXtz: 1000,
+      thresholds: {
+        emptiedMaximumXtz: 1,
+        nearEmptyMaximumXtz: 100,
+        nearEmptyMaximumPercent: 1
+      },
+      candidateSenderCount: 1,
+      checkedSenderCount: 1,
+      receiptFailureCount: 0,
+      complete: true,
+      providers: ['octez-mainnet-archive'],
+      observedAt: generatedAt,
+      records: [{
+        id: `${SAMPLE_ADDRESS}:14323642`,
+        senderAddress: SAMPLE_ADDRESS,
+        senderAlias: 'QA Baker',
+        level: 14323642,
+        timestamp: groupedOperations[0].timestamp,
+        qualifyingOutflowMutez: 4_999_999_000_000,
+        operationIds: [7001],
+        hashes: [sharedHash],
+        destinations: [{
+          address: SAMPLE_ADDRESS_2,
+          alias: 'Second Baker',
+          qualifyingOutflowMutez: 4_999_999_000_000,
+          operationCount: 1
+        }],
+        classification: 'emptied',
+        balanceBeforeMutez: 5_000_000_000_000,
+        balanceAfterMutez: 500_000,
+        remainingPercent: 0.00001,
+        balanceReceipts: {
+          before: {
+            provider: 'octez-mainnet-archive',
+            block: 14323641,
+            balanceMutez: 5_000_000_000_000,
+            url: `https://octez-mainnet-archive.octez.io/chains/main/blocks/BM4mf1tbm9zabv41N4TxvxEYtY74E2Tmt3QZajfZzfE7eWN6A2E/context/contracts/${SAMPLE_ADDRESS}/full_balance`
+          },
+          after: {
+            provider: 'octez-mainnet-archive',
+            block: 14323642,
+            balanceMutez: 500_000,
+            url: `https://octez-mainnet-archive.octez.io/chains/main/blocks/BKkZtWvFD45djCfyEQiBPhvY2mR7Lv86MkedD73JmMpQA4fW2PP/context/contracts/${SAMPLE_ADDRESS}/full_balance`
+          }
+        }
+      }]
+    },
     transfers24h: {
       window: { since, until: generatedAt, hours: 24 },
       semantics: 'Gross observed tez transferred by applied transaction operations. This is not economic volume and can include related internal hops.',
@@ -529,6 +579,8 @@ function sampleWhaleWatchArtifact({ dormantDaysOffset = 0 } = {}) {
         { thresholdXtz: 1000000, operationCount: 0, operationGroupCount: 0, grossObservedMutez: 0 }
       ],
       largestOperation: groupedOperations[0],
+      namedEndpointOperationCount: 3,
+      largestNamedOperation: groupedOperations[0],
       topFlowStories: [
         {
           hash: sharedHash,
@@ -548,7 +600,8 @@ function sampleWhaleWatchArtifact({ dormantDaysOffset = 0 } = {}) {
     },
     sources: [
       { label: 'TzKT large-account ledger', url: 'https://api.tzkt.io/v1/accounts', observedAt: generatedAt },
-      { label: 'TzKT applied transaction ledger', url: 'https://api.tzkt.io/v1/operations/transactions', observedAt: generatedAt }
+      { label: 'TzKT applied transaction ledger', url: 'https://api.tzkt.io/v1/operations/transactions', observedAt: generatedAt },
+      { label: 'Octez mainnet archive full-balance receipts', url: 'https://octez-mainnet-archive.octez.io', observedAt: generatedAt }
     ]
   };
 }
@@ -1508,6 +1561,7 @@ async function installFeatureMocks(context, options = {}) {
   const whaleCursorRequests = [];
   const ledgerFlowRequests = [];
   const ledgerFlowTzktRequests = [];
+  let ledgerFlowDelegateCatalogRequests = 0;
   let ledgerFlowFailureTarget = '';
   let ledgerFlowDelayTarget = '';
   const signalBakers = leaderboardSignals
@@ -2338,6 +2392,15 @@ async function installFeatureMocks(context, options = {}) {
             '/v1/operations/originations'
           ].includes(parsedUrl.pathname);
         if (ledgerAccountPath || ledgerOperationPath) ledgerFlowTzktRequests.push(url);
+        if (parsedUrl.pathname === '/v1/delegates'
+          && parsedUrl.searchParams.get('select') === 'address,alias'
+          && parsedUrl.searchParams.get('limit') === '10000') {
+          ledgerFlowDelegateCatalogRequests += 1;
+          return fulfillJson(route, [
+            { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+            { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }
+          ]);
+        }
       }
       if (url.includes('/accounts/activity?')) {
         const lastId = Number(parsedUrl.searchParams.get('lastId')) || null;
@@ -3529,6 +3592,7 @@ async function installFeatureMocks(context, options = {}) {
     mismatchWhaleDormancy(on = true) { whaleDormancyMismatch = Boolean(on); },
     get ledgerFlowRequests() { return ledgerFlowRequests.map((entry) => ({ ...entry })); },
     get ledgerFlowTzktRequests() { return [...ledgerFlowTzktRequests]; },
+    get ledgerFlowDelegateCatalogRequests() { return ledgerFlowDelegateCatalogRequests; },
     get whaleArtifactRequests() { return whaleArtifactRequests; },
     get whaleCursorRequests() { return whaleCursorRequests.map((entry) => ({ ...entry })); },
     get whaleLiveRequests() { return whaleLiveRequests; }
@@ -13226,7 +13290,15 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
     archiveState: card.querySelector('.ledger-flow-entry-state')?.textContent?.trim() || ''
   }));
   assert(!entryState.fallback, `ledger flow dashboard card: real Whale hero did not replace fallback ${JSON.stringify(entryState)}`);
-  assert(/QA Baker/.test(entryState.hero) && /Second Baker/.test(entryState.hero) && /125\.0K XTZ/.test(entryState.hero), `ledger flow dashboard card: Whale hero is incomplete ${JSON.stringify(entryState)}`);
+  assert(
+    /Largest move touching a TzKT label/.test(entryState.hero)
+      && /24h window ending .* UTC/.test(entryState.hero)
+      && /QA Baker/.test(entryState.hero)
+      && /Second Baker/.test(entryState.hero)
+      && /125\.0K XTZ/.test(entryState.hero)
+      && !/\d+[mhd] ago/.test(entryState.hero),
+    `ledger flow dashboard card: named receipt hero or exact archive window is incomplete ${JSON.stringify(entryState)}`
+  );
   assert(entryState.heroHref === `#ledger-flow=${encodeURIComponent(SAMPLE_ADDRESS)}`, `ledger flow dashboard card: hero route mismatch ${entryState.heroHref}`);
   assert(
     entryState.metrics.length === 4
@@ -13237,7 +13309,7 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
     `ledger flow dashboard card: Whale metrics do not reconcile ${JSON.stringify(entryState.metrics)}`
   );
   assert(/Archive generated/.test(entryState.freshness) && /6h schedule/.test(entryState.freshness), `ledger flow dashboard card: freshness is not source-aware ${entryState.freshness}`);
-  assert(entryState.shareValue === '3 moves ≥1,000 XTZ · loaded 24h', `ledger flow dashboard card: share headline is not measured ${entryState.shareValue}`);
+  assert(/^3 moves ≥1,000 XTZ · 24h window ending .+ UTC$/.test(entryState.shareValue), `ledger flow dashboard card: share headline is not measured ${entryState.shareValue}`);
   assert(entryState.archiveState === 'Complete generated archive', `ledger flow dashboard card: archive state mismatch ${entryState.archiveState}`);
   assert(mockState.whaleArtifactRequests === 1, `ledger flow dashboard card: expected one shared Whale artifact request, got ${mockState.whaleArtifactRequests}`);
   assert(mockState.whaleLiveRequests === 0, `ledger flow dashboard card: card started Whale TzKT polling (${mockState.whaleLiveRequests})`);
@@ -13284,6 +13356,10 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
       title: modal?.querySelector('.chamber-title')?.textContent?.trim() || '',
       info: modal?.querySelector('.chamber-proposal-info')?.textContent?.trim() || '',
       stats: modal?.querySelector('.ledger-flow-stats')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      bakerSummary: modal?.querySelector('.ledger-flow-baker-summary')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      shape: modal?.querySelector('.ledger-flow-shape')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      kindOptions: Array.from(modal?.querySelectorAll('#ledger-flow-counterparty-kind option') || [])
+        .map((option) => option.textContent?.trim() || ''),
       coverage: modal?.querySelector('.ledger-flow-coverage')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       scope: modal?.querySelector('.ledger-flow-scope')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       detail: detailText,
@@ -13318,6 +13394,9 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
   assert(state.title === 'Ledger Flow', `ledger flow chamber: title mismatch ${state.title}`);
   assert(/QA Baker/.test(state.info) && /30D/.test(state.info), `ledger flow chamber: account context missing ${state.info}`);
   assert(/Received/.test(state.stats) && /Sent/.test(state.stats) && /First value/.test(state.stats), `ledger flow chamber: summary stats missing ${state.stats}`);
+  assert(/Baker paths/.test(state.bakerSummary) && /From bakers 1\.8K XTZ/.test(state.bakerSummary) && /To bakers 4\.2K XTZ/.test(state.bakerSummary), `ledger flow chamber: Baker paths do not reconcile ${state.bakerSummary}`);
+  assert(/Bakers/.test(state.shape) && /Contracts/.test(state.shape) && /TzKT-named addresses/.test(state.shape) && /Unnamed addresses/.test(state.shape), `ledger flow chamber: complete category stack missing ${state.shape}`);
+  assert(state.kindOptions.includes('Bakers') && state.kindOptions.includes('Contracts') && state.kindOptions.includes('Named addresses') && state.kindOptions.includes('Unnamed addresses'), `ledger flow chamber: kind filter options missing ${JSON.stringify(state.kindOptions)}`);
   assert(/Exact observed window/.test(state.coverage) && /All 6 matching/.test(state.coverage), `ledger flow chamber: exact coverage missing ${state.coverage}`);
   assert(/applied tez transaction rows only/i.test(state.scope) && /Token transfers/.test(state.scope), `ledger flow chamber: scope disclosure missing ${state.scope}`);
   assert(/First inbound from/.test(state.detail) && /Genesis Fund/.test(state.detail), `ledger flow chamber: first-inbound detail missing ${state.detail}`);
@@ -13353,10 +13432,12 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
   assert(exactTransferUrl.searchParams.get('anyof.sender.target') === SAMPLE_ADDRESS, `ledger flow chamber: unified direction filter missing ${exactTransferRequests[0].url}`);
   assert(!exactTransferUrl.searchParams.has('sender') && !exactTransferUrl.searchParams.has('target'), `ledger flow chamber: exact request split direction filters ${exactTransferRequests[0].url}`);
   assert(exactTransferRequests[0].limit === 6 && exactTransferRequests[0].sort === 'id', `ledger flow chamber: exact request was not count-bounded ${JSON.stringify(exactTransferRequests)}`);
+  assert(mockState.ledgerFlowDelegateCatalogRequests === 1, `ledger flow chamber: expected one complete delegate catalog request, got ${mockState.ledgerFlowDelegateCatalogRequests}`);
 
   const explorerRequestCounts = {
     ledger: mockState.ledgerFlowRequests.length,
     tzkt: mockState.ledgerFlowTzktRequests.length,
+    delegates: mockState.ledgerFlowDelegateCatalogRequests,
     artifact: mockState.whaleArtifactRequests
   };
   const defaultFirstCounterparty = await page.locator('#ledger-flow-counterparty-results .ledger-flow-counterparty-row').first().innerText();
@@ -13377,14 +13458,24 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
   }, null, { timeout: 5000 });
   const receivedFirstCounterparty = await page.locator('#ledger-flow-counterparty-results .ledger-flow-counterparty-row').first().innerText();
   assert(/Smoke Market/.test(receivedFirstCounterparty), `ledger flow chamber: received sort did not reorder the loaded set ${receivedFirstCounterparty}`);
+  await page.locator('#ledger-flow-counterparty-kind').selectOption('baker');
+  await page.waitForFunction(() => {
+    const rows = document.querySelectorAll('#ledger-flow-counterparty-results .ledger-flow-counterparty-row');
+    return document.querySelector('#ledger-flow-counterparty-kind')?.value === 'baker'
+      && rows.length === 1
+      && /Second Baker/.test(rows[0]?.textContent || '');
+  }, null, { timeout: 5000 });
+  await page.locator('#ledger-flow-counterparty-kind').selectOption('all');
   assert(
     mockState.ledgerFlowRequests.length === explorerRequestCounts.ledger
       && mockState.ledgerFlowTzktRequests.length === explorerRequestCounts.tzkt
+      && mockState.ledgerFlowDelegateCatalogRequests === explorerRequestCounts.delegates
       && mockState.whaleArtifactRequests === explorerRequestCounts.artifact,
     `ledger flow chamber: counterparty search/sort caused a request ${JSON.stringify({
       before: explorerRequestCounts,
       ledger: mockState.ledgerFlowRequests,
       tzkt: mockState.ledgerFlowTzktRequests,
+      delegates: mockState.ledgerFlowDelegateCatalogRequests,
       artifact: mockState.whaleArtifactRequests
     })}`
   );
@@ -13584,6 +13675,7 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
     const visiblePaths = (section) => Array.from(section?.querySelectorAll('.ledger-flow-path-button') || [])
       .filter((button) => button.getClientRects().length > 0).length;
     const mapRect = mobileMap?.getBoundingClientRect();
+    const headerRect = modal?.querySelector('.ledger-flow-header')?.getBoundingClientRect();
     const accountRect = account?.getBoundingClientRect();
     const ratioRect = ratio?.getBoundingClientRect();
     return {
@@ -13597,6 +13689,7 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
       accountText: account?.textContent?.replace(/\s+/g, ' ').trim() || '',
       ratioLabel: ratio?.getAttribute('aria-label') || '',
       accountOffset: accountRect && mapRect ? accountRect.top - mapRect.top : Infinity,
+      mapOffsetFromHeader: headerRect && mapRect ? mapRect.top - headerRect.bottom : Infinity,
       ratioAfterAccount: Boolean(accountRect && ratioRect && ratioRect.top >= accountRect.bottom),
       receivedVisiblePaths: visiblePaths(receivedSection),
       sentVisiblePaths: visiblePaths(sentSection),
@@ -13615,14 +13708,17 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
       && /Received .* percent and sent .* percent/.test(mobileState.ratioLabel)
       && mobileState.accountOffset >= -1
       && mobileState.accountOffset <= 30
+      && mobileState.mapOffsetFromHeader >= -1
+      && mobileState.mapOffsetFromHeader <= 24
       && mobileState.ratioAfterAccount,
     `ledger flow chamber: mobile account and direction ratio are not subject-first ${JSON.stringify(mobileState)}`
   );
-  assert(mobileState.receivedVisiblePaths <= 5 && mobileState.sentVisiblePaths <= 5, `ledger flow chamber: mobile renders too many paths before disclosure ${JSON.stringify(mobileState)}`);
+  assert(mobileState.receivedVisiblePaths <= 3 && mobileState.sentVisiblePaths <= 3, `ledger flow chamber: mobile renders too many paths before disclosure ${JSON.stringify(mobileState)}`);
   assert(mobileState.mobileHeight > 0 && mobileState.mobileHeight <= 1200, `ledger flow chamber: mobile map height is not bounded ${JSON.stringify(mobileState)}`);
   assert(mobileState.minimumControlHeight >= 43.5, `ledger flow chamber: mobile controls are below 44px ${JSON.stringify(mobileState)}`);
   assert(mobileState.minimumPathTextSize >= 12, `ledger flow chamber: mobile path text is too small ${JSON.stringify(mobileState)}`);
   assert(mobileState.documentOverflow <= 1 && mobileState.contentOverflow <= 1, `ledger flow chamber: mobile horizontal overflow ${JSON.stringify(mobileState)}`);
+  assert(mockState.ledgerFlowDelegateCatalogRequests === 1, `ledger flow chamber: account/window changes refetched the module-cached delegate catalog (${mockState.ledgerFlowDelegateCatalogRequests})`);
 
   await context.close();
   assert(issues.length === 0, `ledger flow chamber browser issues:\n${issues.join('\n')}`);
@@ -21370,7 +21466,7 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
     window.__whaleChamberModuleUrl = loadedModuleUrl;
   });
   await assertPromotedLauncherGeometry(page, 'Whale Watch desktop launcher pair', { desktop: true });
-  await expectCount(page, '#whale-watch-modal [role="tab"][data-whale-view]', 5, 'Whale Watch views');
+  await expectCount(page, '#whale-watch-modal [role="tab"][data-whale-view]', 6, 'Whale Watch views');
   const sourceStripText = await page.locator('#whale-watch-freshness').innerText();
   assert(/6h schedule/.test(sourceStripText) && /window .* → .* UTC/.test(sourceStripText), `Whale Watch: exact archived window and generator cadence missing: ${sourceStripText}`);
   const launcherText = await page.locator('#whale-watch-entry-card').innerText();
@@ -21405,6 +21501,26 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
       && /TzKT aliases are presented as source context only/.test(aliasReceiptState.copy)
       && /does not infer exchange ownership or beneficial control/.test(aliasReceiptState.copy),
     `Whale Watch: entity context must come from current TzKT alias receipts without inferred ownership ${JSON.stringify(aliasReceiptState)}`
+  );
+
+  await page.locator('#whale-watch-tab-exits').click();
+  await page.locator('#whale-watch-panel-exits').waitFor({ state: 'visible', timeout: 5000 });
+  await expectCount(page, '#whale-watch-panel-exits .whale-watch-exit', 1, 'Whale Watch archive-backed balance exits');
+  const balanceExitState = await page.locator('#whale-watch-panel-exits').evaluate((panel) => ({
+    text: panel.textContent?.replace(/\s+/g, ' ').trim() || '',
+    ledgerHref: panel.querySelector('.whale-watch-exit footer a')?.getAttribute('href') || '',
+    receiptLinks: Array.from(panel.querySelectorAll('.whale-watch-exit footer a[target="_blank"]')).map((link) => link.getAttribute('href') || '')
+  }));
+  assert(
+    /last block in this complete 24-hour window/.test(balanceExitState.text)
+      && /Emptied after last qualifying block/.test(balanceExitState.text)
+      && /Before block\s*5\.00M ꜩ/.test(balanceExitState.text)
+      && /0\.5 ꜩ\s*after block/.test(balanceExitState.text)
+      && /does not establish a sale, an owner's identity, or why the balance changed/.test(balanceExitState.text)
+      && balanceExitState.ledgerHref === `/#ledger-flow=${encodeURIComponent(SAMPLE_ADDRESS)}`
+      && balanceExitState.receiptLinks.length === 3
+      && balanceExitState.receiptLinks.slice(1).every((href) => /octez-mainnet-archive\.octez\.io/.test(href)),
+    `Whale Watch: Balance Exits lost exact receipt or non-inference semantics ${JSON.stringify(balanceExitState)}`
   );
 
   await page.locator('#whale-watch-tab-flows').click();

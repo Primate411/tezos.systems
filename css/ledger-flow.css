@@ -469,6 +469,10 @@
         rgba(255, 255, 255, 0.025);
 }
 
+.ledger-flow-explainer {
+    align-items: start;
+}
+
 .ledger-flow-explainer::before,
 .ledger-flow-panel::before {
     background: linear-gradient(90deg, rgba(77, 212, 255, 0.48), rgba(255, 94, 156, 0.34), rgba(245, 214, 91, 0.22), transparent);
@@ -754,8 +758,9 @@
 
 .ledger-flow-stats {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0.55rem;
+    align-self: start;
     margin-top: 0;
 }
 
@@ -864,16 +869,104 @@
     background: var(--ledger-flow-sent);
 }
 
-.ledger-flow-shape {
+.ledger-flow-summary-column {
+    display: grid;
+    gap: 0.55rem;
+    align-self: start;
+    min-width: 0;
+}
+
+.ledger-flow-baker-summary {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    min-width: 0;
+    padding: 0.58rem 0.64rem;
+    border: 1px solid rgba(245, 214, 91, 0.18);
+    border-radius: 7px;
+    background: rgba(245, 214, 91, 0.035);
+}
+
+.ledger-flow-baker-summary header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.ledger-flow-baker-summary header span,
+.ledger-flow-baker-summary > div span {
+    color: var(--text-tertiary);
+    font-size: 0.54rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.ledger-flow-baker-summary header small,
+.ledger-flow-baker-summary > div small,
+.ledger-flow-baker-summary > p {
+    color: var(--text-secondary);
+    font-size: 0.62rem;
+    line-height: 1.34;
+}
+
+.ledger-flow-baker-summary header small {
+    min-width: 0;
+    overflow: hidden;
+    text-align: right;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ledger-flow-baker-summary > div {
+    display: grid;
+    gap: 0.14rem;
+    min-width: 0;
+    padding: 0.42rem 0.48rem;
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.022);
+}
+
+.ledger-flow-baker-summary > div strong {
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ledger-flow-baker-summary > div[data-direction="received"] strong {
+    color: var(--ledger-flow-received);
+}
+
+.ledger-flow-baker-summary > div[data-direction="sent"] strong {
+    color: var(--ledger-flow-sent);
+}
+
+.ledger-flow-baker-summary.is-unavailable {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    border-style: dashed;
+}
+
+.ledger-flow-baker-summary.is-unavailable > p {
+    margin: 0;
+}
+
+.ledger-flow-shape {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.5rem;
+    align-self: start;
     min-width: 0;
 }
 
 .ledger-flow-shape > div {
     display: grid;
-    gap: 0.18rem;
+    gap: 0.42rem;
     min-width: 0;
     padding: 0.58rem 0.64rem;
     border: 1px solid rgba(255, 255, 255, 0.07);
@@ -881,16 +974,27 @@
     background: rgba(255, 255, 255, 0.026);
 }
 
-.ledger-flow-shape > div span,
-.ledger-flow-shape > div strong,
-.ledger-flow-shape > div small {
+.ledger-flow-shape > div header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.65rem;
+    min-width: 0;
+}
+
+.ledger-flow-shape > div header span,
+.ledger-flow-shape > div header strong,
+.ledger-flow-shape-list span,
+.ledger-flow-shape-list strong,
+.ledger-flow-shape-list small {
     display: block;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-.ledger-flow-shape > div span {
+.ledger-flow-shape > div header span,
+.ledger-flow-shape-list span {
     color: var(--text-tertiary);
     font-size: 0.54rem;
     font-weight: 850;
@@ -899,27 +1003,55 @@
     white-space: nowrap;
 }
 
-.ledger-flow-shape > div strong {
+.ledger-flow-shape > div header strong,
+.ledger-flow-shape-list strong {
     color: var(--text-primary);
     font-family: 'JetBrains Mono', monospace;
     font-size: 0.76rem;
     line-height: 1.24;
-    white-space: normal;
+    white-space: nowrap;
 }
 
-.ledger-flow-shape > div:first-child strong {
+.ledger-flow-shape > div[data-direction="received"] > header strong {
     color: var(--ledger-flow-received);
 }
 
-.ledger-flow-shape > div:nth-child(2) strong {
+.ledger-flow-shape > div[data-direction="sent"] > header strong {
     color: var(--ledger-flow-sent);
 }
 
-.ledger-flow-shape > div small {
+.ledger-flow-shape-list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ledger-flow-shape-list li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 3.1rem minmax(7.8rem, auto);
+    gap: 0.48rem;
+    align-items: baseline;
+    min-width: 0;
+    padding: 0.3rem 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.ledger-flow-shape-list li:first-child {
+    border-top: 0;
+}
+
+.ledger-flow-shape-list li[data-kind="baker"] strong {
+    color: var(--ledger-flow-first);
+}
+
+.ledger-flow-shape-list small {
     color: var(--text-secondary);
     font-size: 0.64rem;
     line-height: 1.34;
-    white-space: normal;
+    text-align: right;
+    white-space: nowrap;
 }
 
 .ledger-flow-shape > p {
@@ -1203,12 +1335,13 @@
     display: grid;
     grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
     gap: 0.85rem;
+    align-items: start;
     margin-top: 0.85rem;
 }
 
 .ledger-flow-counterparty-controls {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(160px, 0.34fr);
+    grid-template-columns: minmax(0, 1fr) minmax(145px, 0.3fr) minmax(145px, 0.3fr);
     gap: 0.58rem;
     min-width: 0;
     margin-top: 0.65rem;
@@ -1810,6 +1943,8 @@
 [data-theme="clean"] .ledger-flow-scope,
 [data-theme="clean"] .ledger-flow-load-status:not(:empty),
 [data-theme="clean"] .ledger-flow-stats div,
+[data-theme="clean"] .ledger-flow-baker-summary,
+[data-theme="clean"] .ledger-flow-baker-summary > div,
 [data-theme="clean"] .ledger-flow-shape > div,
 [data-theme="clean"] .ledger-flow-direction-ratio,
 [data-theme="clean"] .ledger-flow-timeline,
@@ -2076,6 +2211,7 @@
     .ledger-flow-flow-row,
     .ledger-flow-mobile-inline-detail,
     .ledger-flow-direction-ratio,
+    .ledger-flow-baker-summary,
     .ledger-flow-shape,
     .ledger-flow-timeline,
     .ledger-flow-timeline-bars,
@@ -2203,6 +2339,11 @@
 
     .ledger-flow-shape > div span,
     .ledger-flow-shape > div small,
+    .ledger-flow-baker-summary header span,
+    .ledger-flow-baker-summary header small,
+    .ledger-flow-baker-summary > div span,
+    .ledger-flow-baker-summary > div small,
+    .ledger-flow-baker-summary > p,
     .ledger-flow-direction-ratio-labels,
     .ledger-flow-counterparty-status {
         font-size: 0.76rem;
@@ -2213,10 +2354,13 @@
         overflow: visible;
     }
 
-    .ledger-flow-map-panel .lb-panel-title,
     .ledger-flow-mobile-direction h3,
     .ledger-flow-origin-heading {
         font-size: 0.875rem;
+    }
+
+    .ledger-flow-map-panel > .lb-panel-title {
+        display: none;
     }
 
     .ledger-flow-svg {
@@ -2230,7 +2374,14 @@
     .ledger-flow-mobile-map {
         display: grid;
         gap: 0.75rem;
-        margin-top: 0.68rem;
+        box-sizing: border-box;
+        margin-top: 0.55rem;
+        padding: 0.72rem;
+        border: 1px solid rgba(77, 212, 255, 0.14);
+        border-radius: 8px;
+        background:
+            linear-gradient(135deg, rgba(77, 212, 255, 0.055), rgba(255, 94, 156, 0.028)),
+            rgba(255, 255, 255, 0.02);
     }
 
     .ledger-flow-direction-ratio {
@@ -2468,5 +2619,27 @@
 
     .ledger-flow-detail {
         display: none;
+    }
+}
+
+@media (max-width: 420px) {
+    .ledger-flow-shape-list li {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .ledger-flow-shape-list small {
+        grid-column: 1 / -1;
+        text-align: left;
+    }
+
+    .ledger-flow-baker-summary header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
+
+    .ledger-flow-baker-summary header small {
+        text-align: left;
+        white-space: normal;
     }
 }

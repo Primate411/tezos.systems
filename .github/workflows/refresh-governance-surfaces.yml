@@ -32,14 +32,25 @@ jobs:
         run: npm ci
 
       - name: Refresh generated data and distribution surfaces
-        run: npm run refresh:generated:scheduled
+        id: refresh_generated
+        continue-on-error: true
+        run: npm run refresh:generated:scheduled -- --stage
+
+      - name: Discard failed-task output before validation
+        run: |
+          targets=$(node scripts/refresh-generated-surfaces.mjs --print-targets)
+          git restore --worktree -- $targets
+          git clean -fd -- $targets
 
       - name: Validate generated surfaces
+        id: validate_generated
+        continue-on-error: true
         run: npm run test:static
 
       - name: Commit changes when generated surfaces changed
+        if: steps.validate_generated.outcome == 'success'
         run: |
-          if git diff --quiet; then
+          if git diff --cached --quiet; then
             echo "No generated surface changes"
             exit 0
           fi
@@ -47,6 +58,109 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           ./scripts/stamp-version.sh
-          git add -- $(node scripts/refresh-generated-surfaces.mjs --print-targets) version.json
           git commit -m "Refresh generated distribution surfaces"
           git push
+
+      - name: Preserve refresh failure signal
+        if: steps.refresh_generated.outcome != 'success' || steps.validate_generated.outcome != 'success'
+        run: |
+          echo "Generated refresh outcome: ${{ steps.refresh_generated.outcome }}"
+          echo "Generated validation outcome: ${{ steps.validate_generated.outcome }}"
+          exit 1
+
+  monitor:
+    name: Monitor scheduled refresh failures
+    needs: refresh
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      actions: read
+      contents: read
+      issues: write
+    steps:
+      - name: Alert after three consecutive failures
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const FAILURE_THRESHOLD = 3;
+            const ALERT_TITLE = 'Generated surfaces scheduled refresh is failing';
+            const currentConclusion = '${{ needs.refresh.result }}';
+            const currentRun = {
+              conclusion: currentConclusion,
+              created_at: new Date().toISOString(),
+              html_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            };
+
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+              per_page: 100
+            });
+            const alertIssue = issues.find((issue) => !issue.pull_request && issue.title === ALERT_TITLE);
+
+            if (currentConclusion === 'success') {
+              if (alertIssue?.state === 'open') {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: alertIssue.number,
+                  body: `Recovered in ${currentRun.html_url}. Closing the consecutive-failure alert.`
+                });
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: alertIssue.number,
+                  state: 'closed'
+                });
+              }
+              return;
+            }
+
+            if (currentConclusion !== 'failure') return;
+            const { data } = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'refresh-governance-surfaces.yml',
+              branch: 'main',
+              event: 'schedule',
+              status: 'completed',
+              per_page: FAILURE_THRESHOLD
+            });
+            const priorRuns = data.workflow_runs
+              .filter((run) => run.id !== context.runId)
+              .slice(0, FAILURE_THRESHOLD - 1);
+            const consecutiveRuns = [currentRun, ...priorRuns];
+            if (consecutiveRuns.length < FAILURE_THRESHOLD
+              || consecutiveRuns.some((run) => run.conclusion !== 'failure')) return;
+
+            const runList = consecutiveRuns
+              .map((run) => `- [${run.created_at}](${run.html_url})`)
+              .join('\n');
+            const body = `The generated-surfaces schedule has failed ${FAILURE_THRESHOLD} consecutive times.\n\n${runList}\n\nSuccessful independent generators may still have been committed when the full validation gate passed. Inspect the named task failures in each run log.`;
+
+            if (!alertIssue) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: ALERT_TITLE,
+                body
+              });
+              return;
+            }
+
+            if (alertIssue.state === 'closed') {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: alertIssue.number,
+                state: 'open'
+              });
+            }
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: alertIssue.number,
+              body
+            });

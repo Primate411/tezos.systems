@@ -37,6 +37,7 @@ import {
   prettyJsonBytes
 } from './lib/maxis-artifact-budget.mjs';
 import { fetchKeysetPages, fetchOffsetPages } from './lib/maxis-pagination.mjs';
+import { RETRYABLE_TEMP_FAILURE_EXIT_CODE } from './lib/generated-task-runner.mjs';
 import {
   TRANSACTION_REPLAY_LEVELS,
   TRANSACTION_STATE_SCHEMA,
@@ -2260,6 +2261,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.ar
       process.exit(0);
     }
     console.error(error);
-    process.exit(1);
+    process.exit(error?.retryable === true ? RETRYABLE_TEMP_FAILURE_EXIT_CODE : 1);
   });
 }

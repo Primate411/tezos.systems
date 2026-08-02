@@ -5,6 +5,11 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { CHAMBER_ROUTES } from './lib/chamber-routes.mjs';
+import {
+  RETRYABLE_TEMP_FAILURE_EXIT_CODE,
+  runGeneratedTask,
+  throwIfGeneratedTaskFailures
+} from './lib/generated-task-runner.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const THEME_NAMES = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
@@ -137,7 +142,10 @@ function run(command, args, options = {}) {
   });
   if (result.status !== 0) {
     if (options.capture && result.stderr) process.stderr.write(result.stderr);
-    throw new Error(`${command} ${args.join(' ')} failed with exit ${result.status}`);
+    const error = new Error(`${command} ${args.join(' ')} failed with exit ${result.status}`);
+    error.exitCode = Number.isInteger(result.status) ? result.status : 1;
+    error.command = [command, ...args];
+    throw error;
   }
   return options.capture ? result.stdout.trim() : '';
 }
@@ -239,102 +247,112 @@ async function main() {
   const modeName = mode();
   const shouldStage = hasFlag('--stage');
   const initialStaged = modeName === 'precommit' ? stagedFiles() : [];
+  const scheduledFailures = modeName === 'scheduled' ? [] : null;
   const ran = [];
+  const runTask = async (name, execute, options = {}) => {
+    const result = await runGeneratedTask({
+      ...options,
+      name,
+      execute,
+      failures: scheduledFailures
+    });
+    if (result.ok) ran.push(name);
+    return result.ok;
+  };
 
   if (modeName === 'all') {
-    nodeScript('scripts/refresh-chain-comparison.mjs');
-    ran.push('comparison');
-    if (shouldStage) stageTargets(CHAIN_COMPARISON_TARGETS);
+    const comparisonOk = await runTask('comparison', () => nodeScript('scripts/refresh-chain-comparison.mjs'));
+    if (comparisonOk && shouldStage) stageTargets(CHAIN_COMPARISON_TARGETS);
   } else {
-    nodeScript('scripts/refresh-chain-comparison.mjs', ['--check']);
-    ran.push('comparison-check');
+    await runTask('comparison-check', () => nodeScript('scripts/refresh-chain-comparison.mjs', ['--check']));
   }
 
   if (modeName !== 'all') {
-    nodeScript('scripts/refresh-tezoscrp-awards.mjs', ['--check']);
-    ran.push('tezoscrp-check');
+    await runTask('tezoscrp-check', () => nodeScript('scripts/refresh-tezoscrp-awards.mjs', ['--check']));
   } else {
-    nodeScript('scripts/refresh-tezoscrp-awards.mjs');
-    ran.push('tezoscrp');
-    if (shouldStage) stageTargets(TEZOSCRP_TARGETS);
+    const tezoscrpOk = await runTask('tezoscrp', () => nodeScript('scripts/refresh-tezoscrp-awards.mjs'));
+    if (tezoscrpOk && shouldStage) stageTargets(TEZOSCRP_TARGETS);
   }
 
   // Protocol identity is an input to Maxis seasons. Refresh it first so a
   // protocol activation cannot leave Maxis one scheduled run behind.
-  nodeScript('scripts/refresh-governance-data.mjs', shouldStage ? ['--stage'] : []);
-  ran.push('governance');
+  const governanceOk = await runTask('governance', () => nodeScript('scripts/refresh-governance-data.mjs'));
+  if (governanceOk && shouldStage) stageTargets(GOVERNANCE_TARGETS);
 
   if (modeName === 'precommit') {
-    nodeScript('scripts/refresh-maxis-l2-governance.mjs', ['--check']);
-    ran.push('maxis-l2-governance-check');
-    nodeScript('scripts/refresh-maxis-data.mjs', ['--check']);
-    ran.push('maxis-check');
-    nodeScript('scripts/refresh-maxis-careers.mjs', ['--check']);
-    ran.push('maxis-careers-check');
+    await runTask('maxis-l2-governance-check', () => nodeScript('scripts/refresh-maxis-l2-governance.mjs', ['--check']));
+    await runTask('maxis-check', () => nodeScript('scripts/refresh-maxis-data.mjs', ['--check']));
+    await runTask('maxis-careers-check', () => nodeScript('scripts/refresh-maxis-careers.mjs', ['--check']));
     // Governance votes are refreshed above even in pre-commit mode, so this
     // compact projection must be rebuilt before the aggregate projection check.
-    nodeScript('scripts/generate-baker-governance-signals.mjs');
-    ran.push('baker-governance-signals');
-    if (shouldStage) stageTargets(['data/baker-governance-signals.json']);
-    nodeScript('scripts/refresh-nakamoto-sources.mjs', ['--check']);
-    ran.push('nakamoto-check');
-    nodeScript('scripts/refresh-capital-data.mjs', ['--check']);
-    ran.push('capital-check');
-    nodeScript('scripts/refresh-minerals-data.mjs', ['--check']);
-    ran.push('minerals-check');
-    nodeScript('scripts/refresh-uranium-data.mjs', ['--check']);
-    ran.push('uranium-check');
-    nodeScript('scripts/refresh-metals-data.mjs', ['--check']);
-    ran.push('metals-check');
-    nodeScript('scripts/refresh-ecosystem-stats.mjs', ['--check']);
-    ran.push('ecosystem-check');
-    nodeScript('scripts/generate-launcher-projections.mjs', ['--check']);
-    ran.push('launcher-projections-check');
-    if (shouldStage) stageTargets(LAUNCHER_PROJECTION_TARGETS);
-    nodeScript('scripts/refresh-whale-watch-data.mjs', ['--check']);
-    ran.push('whale-watch-check');
+    const bakerSignalsOk = await runTask('baker-governance-signals', () => nodeScript('scripts/generate-baker-governance-signals.mjs'));
+    if (bakerSignalsOk && shouldStage) stageTargets(['data/baker-governance-signals.json']);
+    await runTask('nakamoto-check', () => nodeScript('scripts/refresh-nakamoto-sources.mjs', ['--check']));
+    await runTask('capital-check', () => nodeScript('scripts/refresh-capital-data.mjs', ['--check']));
+    await runTask('minerals-check', () => nodeScript('scripts/refresh-minerals-data.mjs', ['--check']));
+    await runTask('uranium-check', () => nodeScript('scripts/refresh-uranium-data.mjs', ['--check']));
+    await runTask('metals-check', () => nodeScript('scripts/refresh-metals-data.mjs', ['--check']));
+    await runTask('ecosystem-check', () => nodeScript('scripts/refresh-ecosystem-stats.mjs', ['--check']));
+    const launcherCheckOk = await runTask('launcher-projections-check', () => nodeScript('scripts/generate-launcher-projections.mjs', ['--check']));
+    if (launcherCheckOk) {
+      if (shouldStage) stageTargets(LAUNCHER_PROJECTION_TARGETS);
+    }
+    await runTask('whale-watch-check', () => nodeScript('scripts/refresh-whale-watch-data.mjs', ['--check']));
   } else if (modeName === 'all' || modeName === 'scheduled') {
-    nodeScript('scripts/refresh-maxis-l2-governance.mjs');
-    ran.push('maxis-l2-governance');
-    if (shouldStage) stageTargets(MAXIS_L2_GOVERNANCE_TARGETS);
-    nodeScript('scripts/refresh-maxis-data.mjs');
-    ran.push('maxis');
-    if (shouldStage) stageTargets(MAXIS_TARGETS);
-    nodeScript('scripts/refresh-maxis-careers.mjs');
-    ran.push('maxis-careers');
-    if (shouldStage) stageTargets(MAXIS_CAREER_TARGETS);
-    nodeScript('scripts/refresh-nakamoto-sources.mjs');
-    ran.push('nakamoto');
-    if (shouldStage) stageTargets(NAKAMOTO_TARGETS);
-    nodeScript('scripts/refresh-capital-data.mjs');
-    ran.push('capital');
-    if (shouldStage) stageTargets(CAPITAL_TARGETS);
-    nodeScript('scripts/refresh-minerals-data.mjs');
-    ran.push('minerals');
-    if (shouldStage) stageTargets(MINERALS_TARGETS);
-    nodeScript('scripts/refresh-uranium-data.mjs');
-    ran.push('uranium');
-    if (shouldStage) stageTargets(URANIUM_TARGETS);
-    nodeScript('scripts/refresh-metals-data.mjs');
-    ran.push('metals');
-    if (shouldStage) stageTargets(METALS_TARGETS);
-    nodeScript('scripts/refresh-ecosystem-stats.mjs');
-    ran.push('ecosystem');
-    if (shouldStage) stageTargets(ECOSYSTEM_TARGETS);
-    nodeScript('scripts/generate-launcher-projections.mjs');
-    ran.push('launcher-projections');
-    if (shouldStage) stageTargets(LAUNCHER_PROJECTION_TARGETS);
-    nodeScript('scripts/refresh-whale-watch-data.mjs');
-    ran.push('whale-watch');
-    if (shouldStage) stageTargets(WHALE_WATCH_TARGETS);
+    const maxisL2Ok = await runTask('maxis-l2-governance', () => nodeScript('scripts/refresh-maxis-l2-governance.mjs'));
+    if (maxisL2Ok && shouldStage) stageTargets(MAXIS_L2_GOVERNANCE_TARGETS);
+    const maxisOk = await runTask('maxis', () => nodeScript('scripts/refresh-maxis-data.mjs'), modeName === 'scheduled'
+      ? {
+          maxAttempts: 2,
+          retryExitCodes: [RETRYABLE_TEMP_FAILURE_EXIT_CODE],
+          retryDelayMs: 30_000
+        }
+      : {});
+    if (maxisOk && shouldStage) stageTargets(MAXIS_TARGETS);
+    const maxisCareersOk = await runTask('maxis-careers', () => nodeScript('scripts/refresh-maxis-careers.mjs'));
+    if (maxisCareersOk && shouldStage) stageTargets(MAXIS_CAREER_TARGETS);
+    const nakamotoOk = await runTask('nakamoto', () => nodeScript('scripts/refresh-nakamoto-sources.mjs'));
+    if (nakamotoOk && shouldStage) stageTargets(NAKAMOTO_TARGETS);
+    const capitalOk = await runTask('capital', () => nodeScript('scripts/refresh-capital-data.mjs'));
+    if (capitalOk && shouldStage) stageTargets(CAPITAL_TARGETS);
+    const mineralsOk = await runTask('minerals', () => nodeScript('scripts/refresh-minerals-data.mjs'));
+    if (mineralsOk && shouldStage) stageTargets(MINERALS_TARGETS);
+    const uraniumOk = await runTask('uranium', () => nodeScript('scripts/refresh-uranium-data.mjs'));
+    if (uraniumOk && shouldStage) stageTargets(URANIUM_TARGETS);
+    const metalsOk = await runTask('metals', () => nodeScript('scripts/refresh-metals-data.mjs'));
+    if (metalsOk && shouldStage) stageTargets(METALS_TARGETS);
+    const ecosystemOk = await runTask('ecosystem', () => nodeScript('scripts/refresh-ecosystem-stats.mjs'));
+    if (ecosystemOk && shouldStage) stageTargets(ECOSYSTEM_TARGETS);
+    const launcherOk = await runTask('launcher-projections', () => nodeScript('scripts/generate-launcher-projections.mjs'));
+    if (launcherOk && shouldStage) stageTargets(LAUNCHER_PROJECTION_TARGETS);
+    const whaleWatchOk = await runTask('whale-watch', () => nodeScript('scripts/refresh-whale-watch-data.mjs'));
+    if (whaleWatchOk && shouldStage) stageTargets(WHALE_WATCH_TARGETS);
+    if (modeName === 'scheduled' && whaleWatchOk) {
+      try {
+        const whaleArtifact = JSON.parse(await fs.readFile(path.join(ROOT, WHALE_WATCH_TARGETS[0]), 'utf8'));
+        if (whaleArtifact?.balanceExits?.complete !== true) {
+          scheduledFailures.push({
+            name: 'whale-watch-balance-exits',
+            exitCode: null,
+            message: whaleArtifact?.balanceExits?.error || 'required archive balance receipts are incomplete'
+          });
+          console.error('Generated task whale-watch-balance-exits is degraded; continuing scheduled refresh');
+        }
+      } catch (error) {
+        scheduledFailures.push({
+          name: 'whale-watch-balance-exits',
+          exitCode: null,
+          message: error?.message || 'balance-exit receipt status is unreadable'
+        });
+      }
+    }
   }
 
   const milestoneArgs = [];
   if (modeName === 'all' || hasFlag('--force-milestones')) milestoneArgs.push('--force');
   if (modeName === 'precommit') milestoneArgs.push('--project-next-commit');
-  nodeScript('scripts/generate-milestone-catalog.mjs', milestoneArgs);
-  ran.push('milestones');
-  if (shouldStage) stageTargets(MILESTONE_TARGETS);
+  const milestonesOk = await runTask('milestones', () => nodeScript('scripts/generate-milestone-catalog.mjs', milestoneArgs));
+  if (milestonesOk && shouldStage) stageTargets(MILESTONE_TARGETS);
 
   const touched = unique([...initialStaged, ...(modeName === 'precommit' ? stagedFiles() : [])]);
 
@@ -348,18 +366,15 @@ async function main() {
     /^data\/milestone-catalog\.json$/,
     /^data\/search-catalog\.json$/
   ])) {
-    ran.push('search-catalog');
-    nodeScript('scripts/generate-search-catalog.mjs');
-    if (shouldStage) stageTargets(SEARCH_CATALOG_TARGETS);
+    const searchCatalogOk = await runTask('search-catalog', () => nodeScript('scripts/generate-search-catalog.mjs'));
+    if (searchCatalogOk && shouldStage) stageTargets(SEARCH_CATALOG_TARGETS);
   } else if (modeName === 'precommit') {
-    nodeScript('scripts/generate-search-catalog.mjs', ['--check']);
-    ran.push('search-catalog-check');
+    await runTask('search-catalog-check', () => nodeScript('scripts/generate-search-catalog.mjs', ['--check']));
   }
 
   if (shouldRun(modeName, touched, CSS_SOURCE_PATTERNS)) {
-    ran.push('css');
-    nodeScript('scripts/build-css.mjs');
-    if (shouldStage) stageTargets(CSS_TARGETS);
+    const cssOk = await runTask('css', () => nodeScript('scripts/build-css.mjs'));
+    if (cssOk && shouldStage) stageTargets(CSS_TARGETS);
   }
 
   const routeTouched = shouldRun(modeName, touched, [
@@ -369,9 +384,8 @@ async function main() {
     ...ROUTE_TARGETS
   ]);
   if (routeTouched) {
-    ran.push('routes');
-    nodeScript('scripts/generate-chamber-routes.mjs');
-    if (shouldStage) stageTargets(ROUTE_TARGETS);
+    const routesOk = await runTask('routes', () => nodeScript('scripts/generate-chamber-routes.mjs'));
+    if (routesOk && shouldStage) stageTargets(ROUTE_TARGETS);
   }
 
   if (routeTouched || shouldRun(modeName, touched, [
@@ -383,9 +397,8 @@ async function main() {
     /^widgets\/.*\.html$/,
     /^widgets\/runtime\.js$/
   ])) {
-    ran.push('sitemap');
-    await writeSitemap();
-    if (shouldStage) stageTargets(SITEMAP_TARGETS);
+    const sitemapOk = await runTask('sitemap', () => writeSitemap());
+    if (sitemapOk && shouldStage) stageTargets(SITEMAP_TARGETS);
   }
 
   if (shouldRun(modeName, touched, [
@@ -395,9 +408,8 @@ async function main() {
     /^\.well-known\/openapi\.json$/,
     /^llms\.txt$/
   ])) {
-    ran.push('llms');
-    nodeScript('scripts/generate-llms-txt.mjs');
-    if (shouldStage) stageTargets(LLMS_TARGETS);
+    const llmsOk = await runTask('llms', () => nodeScript('scripts/generate-llms-txt.mjs'));
+    if (llmsOk && shouldStage) stageTargets(LLMS_TARGETS);
   }
 
   if (shouldRun(modeName, touched, [
@@ -408,9 +420,8 @@ async function main() {
     /^data\/protocol-data\.json$/,
     /^compare\/.*\.html$/
   ])) {
-    ran.push('compare');
-    nodeScript('scripts/bake-compare-pages.mjs');
-    if (shouldStage) stageTargets(COMPARE_PAGES);
+    const compareOk = await runTask('compare', () => nodeScript('scripts/bake-compare-pages.mjs'));
+    if (compareOk && shouldStage) stageTargets(COMPARE_PAGES);
   }
 
   if (shouldRun(modeName, touched, [
@@ -420,16 +431,15 @@ async function main() {
     /^data\/protocol-data\.json$/,
     /^og\/.*\.png$/
   ])) {
-    ran.push('chamber-og');
-    nodeScript('scripts/generate-chamber-og-images.mjs');
-    if (shouldStage) stageTargets(CHAMBER_OG_TARGETS);
+    const chamberOgOk = await runTask('chamber-og', () => nodeScript('scripts/generate-chamber-og-images.mjs'));
+    if (chamberOgOk && shouldStage) stageTargets(CHAMBER_OG_TARGETS);
   }
 
-  ran.push('root-og');
-  nodeScript('scripts/generate-og-image.js');
-  if (shouldStage) stageTargets(ROOT_OG_TARGETS);
+  const rootOgOk = await runTask('root-og', () => nodeScript('scripts/generate-og-image.js'));
+  if (rootOgOk && shouldStage) stageTargets(ROOT_OG_TARGETS);
 
   console.log(`Generated-surface refresh complete (${modeName}): ${ran.join(', ')}`);
+  throwIfGeneratedTaskFailures(scheduledFailures);
 }
 
 main().catch((error) => {

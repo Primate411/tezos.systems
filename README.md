@@ -666,7 +666,7 @@ inline modal styles in `js/core/app.js`.
   amount and risk acknowledgement, and at least 1 XTZ left liquid for fees.
 - Whale Watch Chamber with direct `#whales` and `/whales/` access unifies the
   large-operation Live Tape, complete applied-transfer Overview for the latest
-  24 hours, related operation-group Flow Stories, large accounts inactive for
+  24 hours, exact Balance Exits, related operation-group Flow Stories, large accounts inactive for
   at least one year in Deep Sleep, and verified post-dormancy Awakenings. TzKT
   operation IDs identify individual receipts; hashes group related hops without
   deduplicating them. Totals are labeled gross observed tez transferred rather
@@ -678,7 +678,11 @@ inline modal styles in `js/core/app.js`.
   stake, and unstake lanes all succeed, and TzKT aliases are source context—not
   inferred exchange ownership or beneficial control. Its shared-archive strip
   names the exact UTC bounds represented by “24 hours” and discloses the
-  generator's six-hour schedule. Legacy `#giants` opens Deep Sleep inside this
+  generator's six-hour schedule. Balance Exits checks each qualifying sender at
+  its final qualifying block with same-provider, hash-pinned archive-node
+  before-and-after full-balance receipts. It reports emptied or near-empty
+  accounts, never sales, ownership, intent, or the account's later balance.
+  Legacy `#giants` opens Deep Sleep inside this
   room.
 - Network Health Chamber with direct `#health` access, recent block cadence,
   consensus round, missed attestation, missed baking-right detail, TzKT cyclic
@@ -711,12 +715,14 @@ inline modal styles in `js/core/app.js`.
   Desktop caps each direction at four named paths plus a receipt-safe “Other”
   roll-up, then exposes every loaded counterparty through local alias/address
   search, factual sorting, and progressive rows. Exact bounded windows add a
-  passive UTC time profile and receipt-proven contract, aliased-address, and
-  unaliased-address composition without inferring ownership or business type.
+  passive UTC time profile and receipt-proven baker, contract, aliased-address,
+  and unaliased-address composition without inferring ownership or business type.
   Phones lead with the selected account, direction ratio, and selected path,
   then reveal at most five paths per direction before an explicit disclosure.
   The dashboard card passively reuses the validated Whale Watch artifact for
-  its complete 24-hour metrics and largest observed move, with no added request;
+  its complete 24-hour metrics and largest move with a nameable endpoint, with
+  no added request. It names the exact window end and treats artifacts older
+  than twice their declared schedule as stale;
   any browser-local last account is a private resume action excluded from
   sharing.
   Address-scoped My Tezos links close the profile drawer before handing focus
@@ -1230,7 +1236,8 @@ rescanning chain history.
 `npm run refresh:whales` rebuilds the Whale Watch snapshot from complete,
 paginated TzKT large-account and applied-transfer ledgers. The artifact retains
 last-activity time and level separately, operation IDs separately from group
-hashes, source/coverage receipts, and previously verified awakenings.
+hashes, source/coverage receipts, archive-pinned Balance Exit receipt pairs,
+and previously verified awakenings.
 `npm run check:whales` validates the committed snapshot without network access;
 pre-commit uses that check while scheduled/full generated runs refresh and can
 stage the artifact.
@@ -1249,7 +1256,11 @@ The pre-commit hook runs
 the same orchestrator in
 commit mode so fast-moving generated outputs update with each normal commit.
 `.github/workflows/refresh-governance-surfaces.yml` runs the full scheduled mode
-every six hours and commits only when generated outputs change. Capital,
+every six hours and commits only when generated outputs change. Retryable Maxis
+failures receive one bounded retry; terminal generator failures are isolated so
+unrelated generators still run, failed-task writes are excluded from the staged
+candidate, and three consecutive failed workflow runs open or update an alert
+issue. Capital,
 Uranium, Ecosystem Activity, Maxis, and Whale Watch surface that configured schedule
 beside the artifact's actual generation or source-observation age; Capital also
 preserves the CoinGecko quote time and last-good status in its compact launcher.
@@ -1504,7 +1515,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v554`, including hero search, theme
+- Current aligned shell cache stamp: `v555`, including hero search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, Uranium, Precious Metals, and Critical Minerals lazy CSS
   loaders.
