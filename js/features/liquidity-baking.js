@@ -16,8 +16,8 @@ const LB_EMA_DENOMINATOR = 2000000000;
 const LB_MODAL_BLOCK_LIMIT = 2500;
 const LB_INCREMENTAL_BLOCK_LIMIT = 32;
 const LB_INCREMENTAL_OVERLAP_LEVELS = 4;
-const LB_ENTRY_BLOCK_LIMIT = 5;
 const LB_ENTRY_VOTE_LIMIT = 5;
+const LB_ENTRY_SWITCHER_LIMIT = 3;
 const LB_LIVE_REFRESH_MS = 6000;
 const LB_ENTRY_REFRESH_MS = 60000;
 const CACHE_TTL = 60000;
@@ -30,6 +30,7 @@ const LB_LORE_PROTOCOLS = ['Granada', 'Ithaca', 'Jakarta'];
 
 let _lbCache = null;
 let _lbCacheTime = 0;
+let _lbWindowFetchPromise = null;
 let _savedBodyOverflow = null;
 let _savedHtmlOverflow = null;
 let _lbLiveTimer = null;
@@ -399,6 +400,55 @@ function findVoteChanges(blocks) {
     return changes.sort((a, b) => Number(b.level || 0) - Number(a.level || 0));
 }
 
+function recentUniqueVoteChanges(blocks) {
+    const seen = new Set();
+    const switchers = [];
+    for (const change of findVoteChanges(blocks)) {
+        if (!change.address || seen.has(change.address)) continue;
+        seen.add(change.address);
+        switchers.push(change);
+    }
+    return switchers;
+}
+
+function renderEntrySwitcher(change) {
+    const title = `${change.name} switched ${change.from.label} to ${change.to.label} at block ${formatLevel(change.level)} · ${formatAge(change.timestamp)}`;
+    return `
+        <div class="lb-entry-switcher-item" data-quiet-key="lb-entry-switch:${escapeHtml(change.address)}" data-lb-entry-switch="${escapeHtml(change.address)}" data-lb-level="${Number(change.level) || 0}" title="${escapeHtml(title)}">
+            <span class="lb-entry-switcher-name">${escapeHtml(change.name)}</span>
+            <span class="lb-entry-switcher-transition" aria-label="${escapeHtml(`${change.from.label} to ${change.to.label}`)}">
+                <span class="lb-vote-badge ${change.from.className}">${change.from.label}</span>
+                <span class="lb-entry-switcher-arrow" aria-hidden="true">→</span>
+                <span class="lb-vote-badge ${change.to.className}">${change.to.label}</span>
+            </span>
+            <span class="lb-entry-switcher-age">${escapeHtml(formatAge(change.timestamp))}</span>
+        </div>
+    `;
+}
+
+function renderEntrySwitcherStrip(data) {
+    const switchers = recentUniqueVoteChanges(data.blocks);
+    const visible = switchers.slice(0, LB_ENTRY_SWITCHER_LIMIT);
+    const coverage = `${formatCount(data.blocks.length)} blocks · ${data.timeSpan}`;
+    const body = visible.length
+        ? `
+            <div class="lb-entry-switcher-rows">
+                ${visible.map(renderEntrySwitcher).join('')}
+                ${switchers.length > 1 ? `<span class="lb-entry-switcher-more" aria-label="${formatCount(switchers.length - 1)} more recent switchers">+${formatCount(switchers.length - 1)} more</span>` : ''}
+            </div>
+        `
+        : `<div class="lb-entry-switcher-empty" data-quiet-key="lb-entry-switch-empty">No vote changes in this ${formatCount(data.blocks.length)}-block · ${escapeHtml(data.timeSpan)} sample</div>`;
+    return `
+        <div class="lb-entry-switcher-strip" id="lb-entry-switcher-strip" data-lb-sample-blocks="${data.blocks.length}" data-lb-switcher-count="${switchers.length}" aria-label="Recent Liquidity Baking vote switchers">
+            <div class="lb-entry-switcher-head">
+                <span>Recent switchers${switchers.length ? ` <strong>${formatCount(switchers.length)}</strong>` : ''}</span>
+                <small>${escapeHtml(coverage)}</small>
+            </div>
+            ${body}
+        </div>
+    `;
+}
+
 function renderVoteChangeFeed(data) {
     const changes = findVoteChanges(data.blocks).slice(0, 6);
     const body = changes.length ? changes.map((change) => `
@@ -439,7 +489,7 @@ function renderEntryVoteRow(block) {
     const name = bakerName(block.producer);
     const title = `${name} ${vote.label} at block ${formatLevel(block.level)} · ${formatAge(block.timestamp)}`;
     return `
-        <div class="health-live-row lb-entry-vote-row lb-vote-${vote.className}" data-lb-entry-vote="${vote.key}" data-lb-level="${Number(block.level) || 0}" title="${escapeHtml(title)}">
+        <div class="health-live-row lb-entry-vote-row lb-vote-${vote.className}" data-quiet-key="lb-entry-vote:${Number(block.level) || 0}" data-lb-entry-vote="${vote.key}" data-lb-level="${Number(block.level) || 0}" title="${escapeHtml(title)}">
             <span class="health-live-method lb-entry-vote-baker">${escapeHtml(name)}</span>
             <span class="lb-vote-badge lb-entry-vote-badge ${vote.className}">${vote.label}</span>
         </div>
@@ -562,15 +612,26 @@ async function fetchLiquidityBakingData(limit = LB_MODAL_BLOCK_LIMIT, { force = 
         return _lbCache;
     }
 
-    const blocks = limit === LB_MODAL_BLOCK_LIMIT
-        ? (force ? await refreshLiquidityBakingBlockWindow() : await fetchCanonicalBlockWindow())
-        : await fetchBlocks(limit);
-    const summary = summarizeBlocks(blocks);
-    if (limit === LB_MODAL_BLOCK_LIMIT) {
+    if (limit !== LB_MODAL_BLOCK_LIMIT) {
+        return summarizeBlocks(await fetchBlocks(limit));
+    }
+
+    if (_lbWindowFetchPromise) return _lbWindowFetchPromise;
+    const request = (async () => {
+        const blocks = force
+            ? await refreshLiquidityBakingBlockWindow()
+            : await fetchCanonicalBlockWindow();
+        const summary = summarizeBlocks(blocks);
         _lbCache = summary;
         _lbCacheTime = Date.now();
+        return summary;
+    })();
+    _lbWindowFetchPromise = request;
+    try {
+        return await request;
+    } finally {
+        if (_lbWindowFetchPromise === request) _lbWindowFetchPromise = null;
     }
-    return summary;
 }
 
 function extractLiquidityBakingLore(protocol) {
@@ -1258,7 +1319,7 @@ async function refreshLiquidityBakingMonitor({ resetScroll = false, initial = fa
     overlay.classList.add('lb-refreshing');
 
     try {
-        const data = await fetchLiquidityBakingData(LB_MODAL_BLOCK_LIMIT, { force: true });
+        const data = await fetchLiquidityBakingData(LB_MODAL_BLOCK_LIMIT, { force: !initial });
         if (!overlay.classList.contains('active')) return;
         if (initial || resetScroll) {
             renderLiquidityBaking(data, body, activeFilter);
@@ -1416,6 +1477,10 @@ export function initLiquidityBaking() {
                         <div class="health-live-empty lb-entry-vote-empty">Counting baker votes</div>
                     </div>
                 </div>
+                <div class="lb-entry-switcher-strip" id="lb-entry-switcher-strip" data-lb-sample-blocks="0" data-lb-switcher-count="0" aria-label="Recent Liquidity Baking vote switchers">
+                    <div class="lb-entry-switcher-head"><span>Recent switchers</span><small>Loading sample</small></div>
+                    <div class="lb-entry-switcher-empty" data-quiet-key="lb-entry-switch-loading">Checking vote changes</div>
+                </div>
             </div>
         </div>
     `;
@@ -1440,7 +1505,7 @@ function startEntryCardRefresh() {
 
     card.dataset.lbLive = 'true';
     card.dataset.lbRefreshInterval = String(LB_ENTRY_REFRESH_MS);
-    _lbEntryTimer = window.setInterval(() => {
+    _lbEntryTimer = window.setInterval(function refreshLiquidityBakingEntryCard() {
         if (document.hidden) return;
         loadEntryCardStatus({ force: true });
     }, LB_ENTRY_REFRESH_MS);
@@ -1459,16 +1524,21 @@ async function loadEntryCardStatus({ force = false } = {}) {
     const description = document.getElementById('lb-entry-description');
     const meterFill = document.getElementById('lb-entry-meter-fill');
     const voteRows = document.getElementById('lb-entry-vote-rows');
+    const switcherStrip = document.getElementById('lb-entry-switcher-strip');
+    const card = mini?.closest('.lb-entry-card');
     if (!mini || _lbEntryRefreshInFlight) return;
 
     _lbEntryRefreshInFlight = true;
+    const isBackgroundRefresh = card?.dataset.lbHasData === 'true';
+    if (isBackgroundRefresh) card.classList.add('lb-entry-refreshing');
     try {
-        const data = await fetchLiquidityBakingData(LB_ENTRY_BLOCK_LIMIT, { force });
+        const data = await fetchLiquidityBakingData(LB_MODAL_BLOCK_LIMIT, { force });
         dispatchLiquidityBakingHotSignal(data);
         const status = data.disabled ? 'disabled' : 'active';
         if (ema) ema.textContent = `${data.emaPct.toFixed(1)}%`;
         if (description) description.textContent = `Subsidy ${status}`;
-        if (voteRows) voteRows.innerHTML = renderEntryVoteTape(data.blocks);
+        if (voteRows) quietlySyncHtml(voteRows, renderEntryVoteTape(data.blocks));
+        if (switcherStrip) quietlySyncElement(switcherStrip, renderEntrySwitcherStrip(data));
         if (meterFill) {
             meterFill.style.width = `${Math.min(100, Math.max(0, data.emaPct)).toFixed(2)}%`;
             meterFill.classList.toggle('disabled', data.disabled);
@@ -1476,23 +1546,49 @@ async function loadEntryCardStatus({ force = false } = {}) {
         }
         mini.textContent = 'Latest votes';
         mini.classList.toggle('live', !data.disabled);
-        const card = mini.closest('.lb-entry-card');
         card?.classList.toggle('lb-subsidy-disabled', data.disabled);
         card?.classList.toggle('lb-subsidy-active', !data.disabled);
         if (card) {
+            const updatedAt = data.latest?.timestamp || Date.now();
             card.dataset.lbRefreshedAt = String(Date.now());
+            card.dataset.lbLastGoodAt = String(new Date(updatedAt).getTime());
+            card.dataset.lbHasData = 'true';
             card.dataset.lbLive = 'true';
             card.dataset.lbRefreshInterval = String(LB_ENTRY_REFRESH_MS);
-            const updatedAt = data.latest?.timestamp || Date.now();
+            card.dataset.lbRefreshState = 'current';
             card.dataset.updatedLabel = formatFreshnessStamp(updatedAt, { source: 'TzKT blocks' });
+            card.classList.remove('lb-entry-refresh-delayed');
             setDataFreshnessState(card, updatedAt, LB_ENTRY_REFRESH_MS * 2);
         }
     } catch {
-        if (ema) ema.textContent = '--';
-        if (description) description.textContent = 'EMA unavailable';
-        if (voteRows) voteRows.innerHTML = '<div class="health-live-empty lb-entry-vote-empty">Latest votes unavailable</div>';
-        mini.textContent = 'LB status unavailable';
+        const lastGoodAt = Number(card?.dataset.lbLastGoodAt);
+        if (card?.dataset.lbHasData === 'true' && Number.isFinite(lastGoodAt)) {
+            card.dataset.lbRefreshState = 'delayed';
+            card.dataset.updatedLabel = `${formatFreshnessStamp(lastGoodAt, { source: 'TzKT blocks' })} · refresh delayed`;
+            card.classList.add('lb-entry-refresh-delayed');
+            setDataFreshnessState(card, lastGoodAt, LB_ENTRY_REFRESH_MS * 2);
+        } else {
+            if (ema) ema.textContent = '--';
+            if (description) description.textContent = 'EMA unavailable';
+            if (voteRows) quietlySyncHtml(voteRows, '<div class="health-live-empty lb-entry-vote-empty">Latest votes unavailable</div>');
+            if (switcherStrip) {
+                quietlySyncElement(switcherStrip, `
+                    <div class="lb-entry-switcher-strip" id="lb-entry-switcher-strip" data-lb-sample-blocks="0" data-lb-switcher-count="0" aria-label="Recent Liquidity Baking vote switchers">
+                        <div class="lb-entry-switcher-head"><span>Recent switchers</span><small>Sample unavailable</small></div>
+                        <div class="lb-entry-switcher-empty" data-quiet-key="lb-entry-switch-unavailable">Vote changes unavailable</div>
+                    </div>
+                `);
+            }
+            mini.textContent = 'LB status unavailable';
+            if (card) {
+                card.dataset.lbRefreshState = 'unavailable';
+                card.dataset.updatedLabel = 'TzKT blocks · unavailable';
+            }
+        }
     } finally {
         _lbEntryRefreshInFlight = false;
+        if (isBackgroundRefresh && card) {
+            requestAnimationFrame(() => card.classList.remove('lb-entry-refreshing'));
+        }
     }
 }

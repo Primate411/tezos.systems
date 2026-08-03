@@ -5764,3 +5764,199 @@
         display: none;
     }
 }
+
+/* Compact Liquidity Baking switcher receipt */
+.lb-entry-switcher-strip {
+    grid-column: 1 / -1;
+    grid-row: 5;
+    display: grid;
+    grid-template-columns: minmax(112px, 0.28fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    min-height: 38px;
+    overflow: hidden;
+    padding: 0.32rem 0.5rem;
+    border: 1px solid rgba(80, 232, 136, 0.11);
+    border-radius: 7px;
+    background: rgba(4, 13, 22, 0.34);
+}
+
+.lb-entry-switcher-head {
+    min-width: 0;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.1;
+}
+
+.lb-entry-switcher-head > span,
+.lb-entry-switcher-head > small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lb-entry-switcher-head > span {
+    color: #50e888;
+    font-size: 0.51rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lb-entry-switcher-head strong {
+    margin-left: 0.2rem;
+    color: var(--text-primary);
+    font-size: inherit;
+}
+
+.lb-entry-switcher-head > small {
+    margin-top: 0.18rem;
+    color: var(--text-tertiary);
+    font-size: 0.47rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-entry-switcher-rows {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+    min-width: 0;
+}
+
+.lb-entry-switcher-item {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.3rem;
+    min-width: 0;
+    min-height: 24px;
+    padding: 0.2rem 0.35rem;
+    border: 1px solid rgba(255, 255, 255, 0.055);
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.018);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.lb-entry-switcher-name,
+.lb-entry-switcher-age {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lb-entry-switcher-name {
+    color: var(--text-primary);
+    font-size: 0.54rem;
+    font-weight: 800;
+}
+
+.lb-entry-switcher-transition {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.16rem;
+}
+
+.lb-entry-switcher-transition .lb-vote-badge {
+    min-width: 29px;
+    height: 13px;
+    padding: 0 3px;
+    font-size: 0.43rem;
+}
+
+.lb-entry-switcher-arrow {
+    color: var(--text-tertiary);
+    font-size: 0.55rem;
+}
+
+.lb-entry-switcher-age {
+    color: var(--text-tertiary);
+    font-size: 0.46rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-entry-switcher-more {
+    display: none;
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.49rem;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+.lb-entry-switcher-empty {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--text-tertiary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.53rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lb-entry-card.lb-entry-refresh-delayed .lb-entry-switcher-head > small {
+    color: var(--chamber-watch-color);
+}
+
+.lb-entry-card.lb-entry-refreshing .lb-entry-meter-fill,
+.lb-entry-card.lb-entry-refreshing .lb-entry-switcher-strip * {
+    animation: none !important;
+    transition: none !important;
+}
+
+.lb-entry-card.lb-entry-refreshing .lb-entry-switcher-item {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+@media (max-width: 1179px) {
+    .lb-entry-switcher-rows {
+        grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .lb-entry-switcher-item:nth-of-type(n + 2) {
+        display: none;
+    }
+
+    .lb-entry-switcher-more {
+        display: block;
+    }
+}
+
+@media (max-width: 759px) {
+    .lb-entry-switcher-strip {
+        grid-template-columns: minmax(82px, 0.42fr) minmax(0, 1fr);
+        gap: 0.35rem;
+        padding-inline: 0.4rem;
+    }
+
+    .lb-entry-switcher-head > span {
+        font-size: 0.47rem;
+        letter-spacing: 0.06em;
+    }
+
+    .lb-entry-switcher-head > small,
+    .lb-entry-switcher-more {
+        font-size: 0.43rem;
+    }
+
+    .lb-entry-switcher-item {
+        gap: 0.22rem;
+        padding-inline: 0.28rem;
+    }
+}
+
+@media (max-width: 420px) {
+    .lb-entry-switcher-age {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .lb-entry-meter-fill,
+    .lb-entry-switcher-strip * {
+        animation: none !important;
+        transition: none !important;
+    }
+}

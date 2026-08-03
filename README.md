@@ -851,10 +851,12 @@ inline modal styles in `js/core/app.js`.
   check with Chamber, RSS, My Tezos, and optional browser-reminder actions; it
   stays hidden outside active voting windows.
 - Liquidity Baking dashboard tile and monitor with EMA state, a compact latest
-  baker vote tape on the tile, recent block votes, latest baker votes,
-  contextual help, protocol-history lore, EMA threshold meter and auto-scaled
-  trend sparkline, 6-second open-monitor refreshes, and 60-second
-  dashboard-tile refreshes. The open monitor also
+  baker vote tape and recent unique vote-switcher strip on the tile, recent
+  block votes, latest baker votes, contextual help, protocol-history lore, EMA
+  threshold meter and auto-scaled trend sparkline, 6-second open-monitor
+  refreshes, and 60-second dashboard-tile refreshes. The tile and open monitor
+  share one contiguous 2,500-block window with bounded 32-block overlap
+  refreshes. The open monitor also
   shows sampled EMA drift/forecasting, a history strip, vote-change feed, and
   top baker signals when no baker is saved.
 - tz4 Adoption Chamber with a wide Chambers tile for latest completed switches
@@ -1515,7 +1517,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v555`, including hero search, theme
+- Current aligned shell cache stamp: `v556`, including hero search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, Uranium, Precious Metals, and Critical Minerals lazy CSS
   loaders.

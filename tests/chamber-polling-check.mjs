@@ -261,6 +261,79 @@ async function checkLiquidityBakingRetainsLastGoodAfterRetryExhaustion() {
   assert.deepEqual(retryDelays, [900, 1800], 'retryable failures should stop after two bounded backoff delays');
 }
 
+async function checkLiquidityBakingCoalescesWindowRequests() {
+  let calls = 0;
+  let release;
+  const gate = new Promise((resolve) => { release = resolve; });
+  const fetch = async () => {
+    calls += 1;
+    await gate;
+    return {
+      ok: true,
+      status: 200,
+      json: async () => Array.from({ length: 2500 }, (_, index) => block(60_000 - index))
+    };
+  };
+
+  const { api } = await loadBrowserModule(
+    'js/features/liquidity-baking.js',
+    'fetchLiquidityBakingData',
+    { fetch }
+  );
+  const first = api.fetchLiquidityBakingData(2500, { force: true });
+  const second = api.fetchLiquidityBakingData(2500, { force: true });
+  await Promise.resolve();
+  assert.equal(calls, 1, 'concurrent launcher/modal reads should share one canonical LB window request');
+  release();
+  const [firstResult, secondResult] = await Promise.all([first, second]);
+  assert.equal(firstResult, secondResult, 'coalesced LB window readers should receive the same summary object');
+  assert.equal(firstResult.blocks.length, 2500);
+}
+
+async function checkLiquidityBakingRecentSwitcherSummary() {
+  const producer = (address, alias) => ({ address, alias });
+  const sampleBlock = (level, address, alias, lbToggle) => ({
+    level,
+    hash: `B${level}`,
+    timestamp: new Date(Date.now() - (100 - level) * 6000).toISOString(),
+    producer: producer(address, alias),
+    lbToggle,
+    lbToggleEma: 1_030_000_000 - (100 - level) * 50_000
+  });
+  const changing = [
+    sampleBlock(100, 'tz1SwitcherA', 'Switcher A', false),
+    sampleBlock(99, 'tz1SwitcherB', 'Switcher B', true),
+    sampleBlock(98, 'tz1SwitcherC', 'Switcher C', null),
+    sampleBlock(97, 'tz1SwitcherA', 'Switcher A', true),
+    sampleBlock(96, 'tz1SwitcherB', 'Switcher B', false),
+    sampleBlock(95, 'tz1SwitcherC', 'Switcher C', true),
+    sampleBlock(94, 'tz1SwitcherA', 'Switcher A', null),
+    sampleBlock(93, 'tz1SwitcherC', 'Switcher C', false)
+  ];
+  const stable = [
+    sampleBlock(100, 'tz1StableA', 'Stable A', false),
+    sampleBlock(99, 'tz1StableB', 'Stable B', true),
+    sampleBlock(98, 'tz1StableA', 'Stable A', false),
+    sampleBlock(97, 'tz1StableB', 'Stable B', true)
+  ];
+  const { api } = await loadBrowserModule(
+    'js/features/liquidity-baking.js',
+    'recentUniqueVoteChanges, renderEntrySwitcherStrip, summarizeBlocks'
+  );
+  const switchers = api.recentUniqueVoteChanges(changing);
+  assert.deepEqual(Array.from(switchers, (change) => change.address), ['tz1SwitcherA', 'tz1SwitcherB', 'tz1SwitcherC']);
+  assert.equal(switchers[0].level, 100, 'a repeatedly switching baker should keep only its newest switch event');
+  assert.equal(switchers[0].from.key, 'on');
+  assert.equal(switchers[0].to.key, 'off');
+  const changingMarkup = api.renderEntrySwitcherStrip(api.summarizeBlocks(changing));
+  assert.match(changingMarkup, /data-lb-switcher-count="3"/);
+  assert.match(changingMarkup, /data-quiet-key="lb-entry-switch:tz1SwitcherA"/);
+  assert.match(changingMarkup, /Switcher A[\s\S]*ON[\s\S]*OFF/);
+  const stableMarkup = api.renderEntrySwitcherStrip(api.summarizeBlocks(stable));
+  assert.match(stableMarkup, /data-lb-switcher-count="0"/);
+  assert.match(stableMarkup, /No vote changes in this 4-block/);
+}
+
 function consensusOperation(id, level, { bls = true } = {}) {
   return {
     id,
@@ -449,6 +522,8 @@ await checkLiquidityBakingRejectsPartialCanonicalWindow();
 await checkLiquidityBakingRetriesExactCanonicalWindow();
 await checkLiquidityBakingRetriesExactIncrementalWindow();
 await checkLiquidityBakingRetainsLastGoodAfterRetryExhaustion();
+await checkLiquidityBakingCoalescesWindowRequests();
+await checkLiquidityBakingRecentSwitcherSummary();
 await checkTz4PagedAndIncrementalHistory();
 await checkSnapshotProjectionReceiptBinding();
 console.log('chamber polling checks passed');

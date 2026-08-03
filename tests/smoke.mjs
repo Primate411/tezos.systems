@@ -1537,6 +1537,7 @@ async function installFeatureMocks(context, options = {}) {
   let rpcHeaderTimestamp = Number(cycleMilestone?.headTimestamp) || Date.now();
   let rpcMetadataLevel = rpcHeaderLevel;
   const blockHeadLagMs = Number(options.blockHeadLagMs) || 0;
+  const lbNoVoteChanges = Boolean(options.lbNoVoteChanges);
   const networkHealthBlocksDelayMs = Number(options.networkHealthBlocksDelayMs) || 0;
   const etherlinkQuiet = Boolean(options.etherlinkQuiet);
   const etherlinkNullProposal = Boolean(options.etherlinkNullProposal);
@@ -2598,11 +2599,19 @@ async function installFeatureMocks(context, options = {}) {
           { address: 'tz1PassPassPassPassPassPassPassPassP', alias: 'Pass Baker' },
           { address: 'tz1OffOffOffOffOffOffOffOffOffOf', alias: 'Off Baker' }
         ];
-        const toggles = [false, true, null, false];
         return fulfillJson(route, Array.from({ length: count }, (_, index) => {
-          const producer = producers[index % producers.length];
+          const producerIndex = index % producers.length;
+          const occurrence = Math.floor(index / producers.length);
+          const producer = producers[producerIndex];
           const lag = index * 6000 + (index >= 3 ? 2000 : 0);
           const power = index === 2 ? 6920 : (index === 0 ? 6988 : 7000);
+          const stableToggles = [false, true, null, false];
+          const changingToggles = [
+            occurrence === 0 ? false : true,
+            occurrence === 0 ? true : false,
+            occurrence === 0 ? null : occurrence === 1 ? true : false,
+            false
+          ];
           return {
             level: head - index,
             timestamp: new Date(now - lag).toISOString(),
@@ -2612,7 +2621,7 @@ async function installFeatureMocks(context, options = {}) {
             attestationCommittee: 7000,
             payloadRound: index === 2 ? 1 : 0,
             blockRound: index === 2 ? 1 : 0,
-            lbToggle: toggles[index % toggles.length],
+            lbToggle: lbNoVoteChanges ? stableToggles[producerIndex] : changingToggles[producerIndex],
             lbToggleEma: 1030000000 - index * 500000
           };
         }));
@@ -4236,6 +4245,7 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
   if (mockOptions.governanceLiveVote) {
     await page.locator('#chamber-entry-card.chamber-entry-wide[data-chamber-entry-size="wide"] .chamber-entry-metric strong').first().waitFor({ state: 'visible', timeout: 10000 });
   }
+  await page.locator('#lb-entry-switcher-strip[data-lb-sample-blocks="2500"][data-lb-switcher-count="3"]').waitFor({ state: 'attached', timeout: 10000 });
   await assertChamberControlGeometry(page, label);
   await assertChamberInfoTooltipsContained(page, label);
   await page.waitForFunction(() => [
@@ -4251,7 +4261,7 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
     const rect = (node) => {
       if (!node) return null;
       const box = node.getBoundingClientRect();
-      return { top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+      return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
     };
     const metricGrid = document.querySelector('#chamber-entry-card.chamber-entry-wide .chamber-entry-metrics');
     const metricStyle = metricGrid ? window.getComputedStyle(metricGrid) : null;
@@ -4263,6 +4273,11 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
     const tezlinkLabel = tezlinkCard?.querySelector('.stat-label');
     const tezlinkCardBox = rect(tezlinkCard);
     const tezlinkLabelBox = rect(tezlinkLabel);
+    const lbCard = document.querySelector('#lb-entry-card');
+    const lbStrip = lbCard?.querySelector('#lb-entry-switcher-strip');
+    const lbFooter = lbCard?.querySelector('.chamber-entry-footer');
+    const lbItems = Array.from(lbStrip?.querySelectorAll('.lb-entry-switcher-item') || []);
+    const lbMore = lbStrip?.querySelector('.lb-entry-switcher-more');
     const footers = Array.from(document.querySelectorAll('#chambers-section .chamber-entry-card')).map((card) => ({
       id: card.id || card.dataset.stat || '',
       updatedLabel: card.dataset.updatedLabel || '',
@@ -4299,7 +4314,16 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
       titles,
       tezlinkTitleClip: Boolean(tezlinkCardBox && tezlinkLabelBox && tezlinkLabelBox.top < tezlinkCardBox.top - 1),
       tezlinkCardBox,
-      tezlinkLabelBox
+      tezlinkLabelBox,
+      lbGeometry: {
+        card: rect(lbCard),
+        strip: rect(lbStrip),
+        footer: rect(lbFooter),
+        totalItems: lbItems.length,
+        visibleItems: lbItems.filter((item) => getComputedStyle(item).display !== 'none').length,
+        moreVisible: Boolean(lbMore && getComputedStyle(lbMore).display !== 'none'),
+        pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+      }
     };
   });
 
@@ -4308,6 +4332,24 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
   assert(state.metricTruncations.length === 0, `${label}: live vote metrics should not ellipsize: ${JSON.stringify(state.metricTruncations)}`);
   assert(viewport.width >= 760 ? state.metricColumns === 2 : state.metricColumns >= 1, `${label}: unexpected live vote metric columns: ${state.metricColumns}`);
   assert(!state.tezlinkTitleClip, `${label}: Tezos X title should remain inside the card: ${JSON.stringify({ card: state.tezlinkCardBox, label: state.tezlinkLabelBox })}`);
+  assert(
+    state.lbGeometry.card
+      && state.lbGeometry.strip
+      && state.lbGeometry.footer
+      && state.lbGeometry.strip.left >= state.lbGeometry.card.left - 1
+      && state.lbGeometry.strip.right <= state.lbGeometry.card.right + 1
+      && state.lbGeometry.strip.bottom <= state.lbGeometry.footer.top + 1
+      && state.lbGeometry.pageOverflow <= 2,
+    `${label}: LB switcher strip must remain inside the card above its footer without page overflow: ${JSON.stringify(state.lbGeometry)}`
+  );
+  if (viewport.width < 1180) {
+    assert(
+      state.lbGeometry.totalItems === 3
+        && state.lbGeometry.visibleItems === 1
+        && state.lbGeometry.moreVisible,
+      `${label}: narrow LB switcher strip should show the latest baker plus a remaining-count indicator: ${JSON.stringify(state.lbGeometry)}`
+    );
+  }
   assert(state.footers.length >= 6 && state.footers.every((footer) => footer.updatedLabel === footer.footerText && footer.hasOpenCue), `${label}: chamber footer rail should own freshness and open cue on every card: ${JSON.stringify(state.footers)}`);
   const requiredFreshness = state.footers.filter(({ id }) => [
     'whale-watch-entry-card',
@@ -19416,7 +19458,7 @@ async function smokeCtezChamber(browser, baseUrl) {
 async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 1000 },
+    viewport: { width: 1512, height: 982 },
     serviceWorkers: 'block'
   });
   await context.grantPermissions(['clipboard-write'], { origin: baseUrl });
@@ -19470,6 +19512,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.locator('#lb-entry-card').scrollIntoViewIfNeeded();
   await page.locator('#lb-entry-card').hover();
   await page.locator('#lb-entry-card[data-lb-live="true"][data-lb-refresh-interval="60000"]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.evaluate(() => {
+    window.__lbEntryTimer = (window.__tezosSystemsIntervals || []).find((item) => (
+      item.timeout === 60000 && String(item.handler).includes('refreshLiquidityBakingEntryCard')
+    )) || null;
+  });
   await page.locator('.stat-card[data-stat="tz4-adoption"]').scrollIntoViewIfNeeded();
   await page.locator('.stat-card[data-stat="tz4-adoption"]').hover();
   await page.locator('.stat-card[data-stat="tz4-adoption"].chamber-entry-card .chamber-expand-cue').waitFor({ state: 'visible', timeout: 10000 });
@@ -19527,7 +19574,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(/tz4 Adoption/.test(chamberShareCapture) && /Latest switches/i.test(chamberShareCapture) && /Pending/i.test(chamberShareCapture), `governance testing period: chamber share should include visible tz4 panel content: ${chamberShareCapture}`);
   await expectShareModal(page, 'governance testing period chamber card share', issues);
   await assertResponsiveChamberCards(browser, baseUrl, { width: 900, height: 1000 }, 'governance live chamber tablet', { governanceLiveVote: true });
-  await assertResponsiveChamberCards(browser, baseUrl, { width: 375, height: 900 }, 'governance live chamber mobile', { governanceLiveVote: true });
+  await assertResponsiveChamberCards(browser, baseUrl, { width: 390, height: 844 }, 'governance live chamber mobile', { governanceLiveVote: true });
 
   const adoptionContext = await browser.newContext({
     viewport: { width: 960, height: 720 },
@@ -19599,6 +19646,15 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       vote: row.dataset.lbEntryVote || '',
       badgeClass: row.querySelector('.lb-entry-vote-badge')?.className || ''
     })),
+    lbEntrySwitcherText: document.querySelector('#lb-entry-switcher-strip')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    lbEntrySwitcherCount: document.querySelector('#lb-entry-switcher-strip')?.dataset.lbSwitcherCount || '',
+    lbEntrySampleBlocks: document.querySelector('#lb-entry-switcher-strip')?.dataset.lbSampleBlocks || '',
+    lbEntrySwitchers: Array.from(document.querySelectorAll('#lb-entry-switcher-strip .lb-entry-switcher-item')).map((row) => ({
+      address: row.dataset.lbEntrySwitch || '',
+      level: Number(row.dataset.lbLevel || 0),
+      text: row.textContent?.replace(/\s+/g, ' ').trim() || '',
+      quietKey: row.dataset.quietKey || ''
+    })),
     lbEntryLive: document.querySelector('#lb-entry-card')?.dataset.lbLive || '',
     lbEntryRefreshInterval: document.querySelector('#lb-entry-card')?.dataset.lbRefreshInterval || '',
     lbEntryRefreshedAt: document.querySelector('#lb-entry-card')?.dataset.lbRefreshedAt || '',
@@ -19606,6 +19662,9 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       const card = document.querySelector('#lb-entry-card');
       const ema = document.querySelector('#lb-entry-ema');
       const tape = document.querySelector('#lb-entry-vote-tape');
+      const switchers = document.querySelector('#lb-entry-switcher-strip');
+      const footer = card?.querySelector('.chamber-entry-footer');
+      const controls = Array.from(card?.querySelectorAll(':scope > .card-copy-link, :scope > .card-share-btn, :scope > .card-info-btn, :scope > .card-history-btn') || []);
       const category = card?.closest('.chamber-category');
       const rect = (node) => {
         if (!node) return null;
@@ -19615,6 +19674,12 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       const cardRect = rect(card);
       const emaRect = rect(ema);
       const tapeRect = rect(tape);
+      const switcherRect = rect(switchers);
+      const footerRect = rect(footer);
+      const overlapArea = (a, b) => a && b
+        ? Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left))
+          * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top))
+        : 0;
       const categoryRect = rect(category?.querySelector(':scope > .chamber-category-cards'));
       return {
         cardHeight: cardRect ? Number(cardRect.height.toFixed(2)) : 0,
@@ -19622,10 +19687,17 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
         categoryWidth: categoryRect ? Number(categoryRect.width.toFixed(2)) : 0,
         tapeRightOfEma: Boolean(emaRect && tapeRect && tapeRect.left >= emaRect.right + 8),
         tapeEmaBandOverlap: Boolean(emaRect && tapeRect && tapeRect.top < emaRect.bottom && tapeRect.bottom > emaRect.top),
+        switchersBelowTape: Boolean(tapeRect && switcherRect && switcherRect.top >= tapeRect.bottom + 3),
+        switchersAboveFooter: Boolean(switcherRect && footerRect && switcherRect.bottom <= footerRect.top - 3),
+        switchersInsideCard: Boolean(cardRect && switcherRect && switcherRect.left >= cardRect.left && switcherRect.right <= cardRect.right),
+        controlOverlap: controls.reduce((total, control) => total + overlapArea(rect(control), switcherRect), 0),
+        pageOverflow: document.documentElement.scrollWidth - window.innerWidth,
         category: category?.dataset.chamberCategory || '',
         categoryOrder: Array.from(category?.querySelectorAll(':scope > .chamber-category-cards > .stat-card') || []).map((entry) => entry.id || entry.dataset.stat || ''),
         emaRect,
-        tapeRect
+        tapeRect,
+        switcherRect,
+        footerRect
       };
     })(),
     etherlinkEntryValue: document.querySelector('#etherlink-governance-entry-value')?.textContent?.trim() || '',
@@ -19749,10 +19821,16 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(dashboardState.lbEntryVotes.some((row) => /QA Baker/.test(row.text) && row.vote === 'off' && /\boff\b/.test(row.badgeClass)), `governance testing period: LB entry OFF vote row missing: ${JSON.stringify(dashboardState.lbEntryVotes)}`);
   assert(dashboardState.lbEntryVotes.some((row) => /Second Baker/.test(row.text) && row.vote === 'on' && /\bon\b/.test(row.badgeClass)), `governance testing period: LB entry ON vote row missing: ${JSON.stringify(dashboardState.lbEntryVotes)}`);
   assert(dashboardState.lbEntryVotes.some((row) => /Pass Baker/.test(row.text) && row.vote === 'pass' && /\bpass\b/.test(row.badgeClass)), `governance testing period: LB entry PASS vote row missing: ${JSON.stringify(dashboardState.lbEntryVotes)}`);
+  assert(dashboardState.lbEntrySampleBlocks === '2500', `governance testing period: LB switcher coverage must use the canonical window, saw ${dashboardState.lbEntrySampleBlocks}`);
+  assert(dashboardState.lbEntrySwitcherCount === '3' && dashboardState.lbEntrySwitchers.length === 3, `governance testing period: LB recent unique switchers mismatch: ${JSON.stringify(dashboardState.lbEntrySwitchers)}`);
+  assert(/Recent switchers 3/.test(dashboardState.lbEntrySwitcherText) && /2,500 blocks/.test(dashboardState.lbEntrySwitcherText), `governance testing period: LB switcher coverage copy mismatch: ${dashboardState.lbEntrySwitcherText}`);
+  assert(/QA Baker ON → OFF/.test(dashboardState.lbEntrySwitchers[0]?.text || '') && /Second Baker OFF → ON/.test(dashboardState.lbEntrySwitchers[1]?.text || '') && /Pass Baker ON → PASS/.test(dashboardState.lbEntrySwitchers[2]?.text || ''), `governance testing period: LB switcher transitions mismatch: ${JSON.stringify(dashboardState.lbEntrySwitchers)}`);
+  assert(dashboardState.lbEntrySwitchers.every((row, index, rows) => row.quietKey.startsWith('lb-entry-switch:') && (index === 0 || rows[index - 1].level > row.level)), `governance testing period: LB switchers must be keyed and newest-first: ${JSON.stringify(dashboardState.lbEntrySwitchers)}`);
   assert(dashboardState.lbEntryLive === 'true', `governance testing period: LB entry should have live refresh enabled, saw ${dashboardState.lbEntryLive}`);
   assert(dashboardState.lbEntryRefreshInterval === '60000', `governance testing period: LB entry refresh interval mismatch: ${dashboardState.lbEntryRefreshInterval}`);
   assert(Number(dashboardState.lbEntryRefreshedAt) > 0, `governance testing period: LB entry refreshed timestamp missing: ${dashboardState.lbEntryRefreshedAt}`);
   assert(dashboardState.lbEntryGeometry.tapeRightOfEma && dashboardState.lbEntryGeometry.tapeEmaBandOverlap, `governance testing period: LB vote tape should sit beside the EMA summary, not stack below it: ${JSON.stringify(dashboardState.lbEntryGeometry)}`);
+  assert(dashboardState.lbEntryGeometry.switchersBelowTape && dashboardState.lbEntryGeometry.switchersAboveFooter && dashboardState.lbEntryGeometry.switchersInsideCard && dashboardState.lbEntryGeometry.controlOverlap === 0 && dashboardState.lbEntryGeometry.pageOverflow <= 2, `governance testing period: LB switcher strip must occupy the free lower band without overlap or overflow: ${JSON.stringify(dashboardState.lbEntryGeometry)}`);
   assert(
     dashboardState.lbEntryGeometry.cardHeight <= 250
       && Math.abs(dashboardState.lbEntryGeometry.cardWidth - dashboardState.lbEntryGeometry.categoryWidth) <= 2,
@@ -19795,6 +19873,137 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(Math.abs(dashboardState.tz4SparklineLast - (100 / 3)) < 0.01, `governance testing period: tz4 sparkline latest value must match live tile, saw ${dashboardState.tz4SparklineLast}`);
   assert(!dashboardState.extraTz4EntryCard, 'governance testing period: tz4 should use the existing Adoption tile, not a separate entry card');
   assert(dashboardState.intervalDelays.includes(60000), `governance testing period: LB entry 60s refresh timer was not registered: ${dashboardState.intervalDelays.join(', ')}`);
+
+  const lbEntryQuietBefore = await page.evaluate(() => {
+    const card = document.querySelector('#lb-entry-card');
+    const strip = document.querySelector('#lb-entry-switcher-strip');
+    const row = strip?.querySelector('.lb-entry-switcher-item');
+    const name = row?.querySelector('.lb-entry-switcher-name');
+    const open = card?.querySelector('.chamber-expand-cue');
+    card?.scrollIntoView({ block: 'center', behavior: 'auto' });
+    open?.focus({ preventScroll: true });
+    const selection = document.getSelection();
+    selection?.removeAllRanges();
+    if (name?.firstChild) {
+      const range = document.createRange();
+      range.selectNodeContents(name);
+      selection?.addRange(range);
+    }
+    window.__lbEntryCardNode = card;
+    window.__lbEntrySwitcherStripNode = strip;
+    window.__lbEntrySwitcherRowNode = row;
+    return {
+      hasTimer: Boolean(window.__lbEntryTimer),
+      refreshedAt: card?.dataset.lbRefreshedAt || '',
+      pageY: window.scrollY,
+      focused: document.activeElement === open,
+      selection: selection?.toString() || ''
+    };
+  });
+  assert(lbEntryQuietBefore.hasTimer && lbEntryQuietBefore.focused && lbEntryQuietBefore.selection === 'QA Baker', `governance testing period: LB quiet-refresh reading fixture did not settle ${JSON.stringify(lbEntryQuietBefore)}`);
+  const lbEntryIncrementalRequestPromise = page.waitForRequest((request) => {
+    try {
+      const url = new URL(request.url());
+      return url.pathname.endsWith('/blocks') && url.searchParams.get('limit') === '32' && (url.searchParams.get('select') || '').includes('lbToggleEma');
+    } catch {
+      return false;
+    }
+  }, { timeout: 10000 });
+  await page.evaluate(() => window.__lbEntryTimer?.handler());
+  await lbEntryIncrementalRequestPromise;
+  await page.waitForFunction((before) => {
+    const card = document.querySelector('#lb-entry-card');
+    return card?.dataset.lbRefreshedAt && card.dataset.lbRefreshedAt !== before && !card.classList.contains('lb-entry-refreshing');
+  }, lbEntryQuietBefore.refreshedAt, { timeout: 10000 });
+  const lbEntryQuietAfter = await page.evaluate(() => {
+    const strip = document.querySelector('#lb-entry-switcher-strip');
+    const row = strip?.querySelector('.lb-entry-switcher-item');
+    const style = row ? getComputedStyle(row) : null;
+    return {
+      sameCard: window.__lbEntryCardNode === document.querySelector('#lb-entry-card'),
+      sameStrip: window.__lbEntrySwitcherStripNode === strip,
+      sameRow: window.__lbEntrySwitcherRowNode === row,
+      pageY: window.scrollY,
+      focused: document.activeElement === document.querySelector('#lb-entry-card .chamber-expand-cue'),
+      selection: document.getSelection()?.toString() || '',
+      settled: strip?.dataset.quietRefreshSettled || '',
+      animation: style?.animationName || '',
+      opacity: style?.opacity || '',
+      transform: style?.transform || ''
+    };
+  });
+  assert(lbEntryQuietAfter.sameCard && lbEntryQuietAfter.sameStrip && lbEntryQuietAfter.sameRow && lbEntryQuietAfter.focused && lbEntryQuietAfter.selection === lbEntryQuietBefore.selection && Math.abs(lbEntryQuietAfter.pageY - lbEntryQuietBefore.pageY) <= 1, `governance testing period: LB entry quiet refresh moved or replaced the reader state ${JSON.stringify({ lbEntryQuietBefore, lbEntryQuietAfter })}`);
+  assert(lbEntryQuietAfter.settled === 'true' && lbEntryQuietAfter.animation === 'none' && lbEntryQuietAfter.opacity === '1' && lbEntryQuietAfter.transform === 'none', `governance testing period: LB entry refresh replayed or stranded motion ${JSON.stringify(lbEntryQuietAfter)}`);
+  const lbReaderScroll = await page.evaluate(() => {
+    const target = Math.max(0, window.scrollY - 42);
+    window.dispatchEvent(new WheelEvent('wheel', { deltaY: -42 }));
+    const html = document.documentElement;
+    const previousBehavior = html.style.scrollBehavior;
+    html.style.scrollBehavior = 'auto';
+    window.scrollTo(window.scrollX, target);
+    html.style.scrollBehavior = previousBehavior;
+    return { target, applied: window.scrollY };
+  });
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+  const lbReaderScrollAfter = await page.evaluate(() => window.scrollY);
+  assert(Math.abs(lbReaderScroll.applied - lbReaderScroll.target) <= 1 && Math.abs(lbReaderScrollAfter - lbReaderScroll.target) <= 1, `governance testing period: delayed LB quiet restore overwrote immediate reader scroll ${JSON.stringify({ lbReaderScroll, lbReaderScrollAfter })}`);
+
+  const requestsBeforeHiddenLbTick = lbBlockRequests.length;
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    window.__lbEntryTimer?.handler();
+  });
+  await page.waitForTimeout(100);
+  assert(lbBlockRequests.length === requestsBeforeHiddenLbTick, `governance testing period: hidden LB launcher tick should not poll ${lbBlockRequests.map(String).join(', ')}`);
+  const lbVisibleCatchupPromise = page.waitForRequest((request) => {
+    try {
+      const url = new URL(request.url());
+      return url.pathname.endsWith('/blocks') && url.searchParams.get('limit') === '32' && (url.searchParams.get('select') || '').includes('lbToggleEma');
+    } catch {
+      return false;
+    }
+  }, { timeout: 10000 });
+  const lbBeforeVisibleRefreshedAt = await page.evaluate(() => document.querySelector('#lb-entry-card')?.dataset.lbRefreshedAt || '');
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  await lbVisibleCatchupPromise;
+  await page.waitForFunction((before) => {
+    const card = document.querySelector('#lb-entry-card');
+    return card?.dataset.lbRefreshState === 'current'
+      && card.dataset.lbRefreshedAt
+      && card.dataset.lbRefreshedAt !== before
+      && !card.classList.contains('lb-entry-refreshing');
+  }, lbBeforeVisibleRefreshedAt, { timeout: 10000 });
+  assert(lbBlockRequests.length === requestsBeforeHiddenLbTick + 1, `governance testing period: LB visibility return should perform exactly one catch-up ${lbBlockRequests.map(String).join(', ')}`);
+
+  const lbFailurePattern = '**/v1/blocks?**';
+  await page.route(lbFailurePattern, async (route) => {
+    const url = new URL(route.request().url());
+    if ((url.searchParams.get('select') || '').includes('lbToggleEma')) {
+      return route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"LB smoke refresh unavailable"}' });
+    }
+    return route.fallback();
+  });
+  const lbLastGoodBeforeFailure = await page.evaluate(() => ({
+    ema: document.querySelector('#lb-entry-ema')?.textContent?.trim() || '',
+    votes: document.querySelector('#lb-entry-vote-rows')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    switchers: document.querySelector('#lb-entry-switcher-strip')?.textContent?.replace(/\s+/g, ' ').trim() || ''
+  }));
+  await page.evaluate(() => window.__lbEntryTimer?.handler());
+  await page.waitForFunction(() => document.querySelector('#lb-entry-card')?.dataset.lbRefreshState === 'delayed', null, { timeout: 10000 });
+  const lbLastGoodAfterFailure = await page.evaluate(() => ({
+    ema: document.querySelector('#lb-entry-ema')?.textContent?.trim() || '',
+    votes: document.querySelector('#lb-entry-vote-rows')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    switchers: document.querySelector('#lb-entry-switcher-strip')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    sameStrip: window.__lbEntrySwitcherStripNode === document.querySelector('#lb-entry-switcher-strip'),
+    sameRow: window.__lbEntrySwitcherRowNode === document.querySelector('#lb-entry-switcher-strip .lb-entry-switcher-item'),
+    refreshState: document.querySelector('#lb-entry-card')?.dataset.lbRefreshState || '',
+    updatedLabel: document.querySelector('#lb-entry-card')?.dataset.updatedLabel || ''
+  }));
+  assert(lbLastGoodAfterFailure.ema === lbLastGoodBeforeFailure.ema && lbLastGoodAfterFailure.votes === lbLastGoodBeforeFailure.votes && lbLastGoodAfterFailure.switchers === lbLastGoodBeforeFailure.switchers && lbLastGoodAfterFailure.sameStrip && lbLastGoodAfterFailure.sameRow && lbLastGoodAfterFailure.refreshState === 'delayed' && /refresh delayed/.test(lbLastGoodAfterFailure.updatedLabel), `governance testing period: failed LB entry refresh did not retain last-good content ${JSON.stringify({ lbLastGoodBeforeFailure, lbLastGoodAfterFailure })}`);
+  await page.unroute(lbFailurePattern);
 
   await page.locator('#etherlink-governance-entry-card .chamber-expand-cue').click();
   await page.locator('#etherlink-governance-modal.active .etherlink-gov-content').waitFor({ state: 'visible', timeout: 10000 });
@@ -20178,9 +20387,11 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   assert(lbTileDeepLink.hash === '#lb-tile', `governance testing period: LB tile hash mismatch: ${lbTileDeepLink.hash}`);
   assert(lbTileDeepLink.inViewport, 'governance testing period: LB tile direct link did not scroll the tile into view');
   assert(!lbTileDeepLink.modalActive, 'governance testing period: LB tile direct link should not open the monitor modal');
+  const lbRequestsBeforeOpen = lbBlockRequests.length;
   await page.evaluate(() => { window.location.hash = 'lb'; });
   await page.locator('#liquidity-baking-modal.active .lb-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#lb-baker-vote-list .lb-table-row').length >= 4, null, { timeout: 10000 });
+  assert(lbBlockRequests.length === lbRequestsBeforeOpen, `governance testing period: opening LB should reuse the shared card cache before the six-second cadence, saw ${lbBlockRequests.slice(lbRequestsBeforeOpen).map(String).join(', ')}`);
   await page.waitForFunction(() => document.querySelectorAll('#lb-lore-body .lb-lore-item').length >= 3, null, { timeout: 10000 });
   const lbState = await page.evaluate(() => {
     const modal = document.querySelector('#liquidity-baking-modal');
@@ -20441,7 +20652,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(quietContext, { etherlinkNullProposal: true, governanceNoProposal: true });
+  await installFeatureMocks(quietContext, { etherlinkNullProposal: true, governanceNoProposal: true, lbNoVoteChanges: true });
   await quietContext.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
     localStorage.setItem('tezos-systems-stats-visible', 'true');
@@ -20453,12 +20664,13 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   attachIssueCollectors(quietPage, 'quiet governance sizing', issues);
   const quietResponse = await quietPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(quietResponse?.ok(), `quiet governance sizing: dashboard failed with HTTP ${quietResponse?.status()}`);
-  for (const selector of ['#chamber-entry-card', '#etherlink-governance-entry-card']) {
+  for (const selector of ['#chamber-entry-card', '#etherlink-governance-entry-card', '#lb-entry-card']) {
     await quietPage.locator(selector).scrollIntoViewIfNeeded();
     await quietPage.locator(selector).hover();
   }
   await quietPage.locator('#chamber-entry-card[data-chamber-entry-size="wide"]').waitFor({ state: 'visible', timeout: 10000 });
   await quietPage.locator('#etherlink-governance-entry-card[data-etherlink-governance-size="compact"]').waitFor({ state: 'visible', timeout: 10000 });
+  await quietPage.locator('#lb-entry-switcher-strip[data-lb-sample-blocks="2500"][data-lb-switcher-count="0"]').waitFor({ state: 'visible', timeout: 10000 });
   const quietSizing = await quietPage.evaluate(() => {
     const chamber = document.querySelector('#chamber-entry-card');
     const etherlink = document.querySelector('#etherlink-governance-entry-card');
@@ -20482,6 +20694,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       chamberWidth: chamberRect?.width || 0,
       etherlinkWidth: etherlinkRect?.width || 0,
       lbWidth: document.querySelector('#lb-entry-card')?.getBoundingClientRect().width || 0,
+      lbSwitcherText: document.querySelector('#lb-entry-switcher-strip')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       categoryOrder: Array.from(
         chamber?.closest('.chamber-category')?.querySelectorAll(':scope > .chamber-category-cards > .stat-card') || []
       ).map((card) => card.id || card.dataset.stat || ''),
@@ -20528,6 +20741,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     `quiet governance sizing: L1 and L2 should share a row while the data-rich LB monitor owns the next row, saw ${JSON.stringify(quietSizing)}`
   );
   assert(quietSizing.etherlinkGeometry.overlap === 0, `quiet governance sizing: Tezos X Governance open cue overlaps Sequencer chip: ${JSON.stringify(quietSizing.etherlinkGeometry)}`);
+  assert(/No vote changes in this 2,500-block · .* sample/.test(quietSizing.lbSwitcherText), `quiet governance sizing: zero-switch LB sample must remain bounded and explicit, saw ${quietSizing.lbSwitcherText}`);
   await quietPage.locator('#chamber-entry-card .chamber-expand-cue').click();
   await quietPage.locator('#chamber-modal.active').waitFor({ state: 'visible', timeout: 10000 });
   await quietPage.waitForFunction(() => /No proposals submitted yet/.test(document.querySelector('#chamber-modal .chamber-body')?.textContent || ''), null, { timeout: 15000 });
