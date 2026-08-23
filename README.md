@@ -1324,7 +1324,7 @@ unchanged incident does not generate a new failed-workflow email every six hours
 month, refreshes and validates the comparison receipt, rebakes the standalone
 pages, and commits only a fully verified snapshot.
 `.github/workflows/refresh-tezoscrp.yml` checks the official Tezos Commons
-Medium feed on the 10th and 25th of each month. It adds only a newly published
+Medium feed every day. It adds only a newly published
 winner period, rebuilds the full and compact artifacts, validates identity and
 category coverage, and commits only when the official archive changes. The
 read-only freshness audit watches this dataset's 45-day delivery envelope; the

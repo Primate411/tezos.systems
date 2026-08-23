@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-08-23',
+        entries: [
+            { type: '🔧', text: 'TezosCRP now checks the official winner feed daily so newly announced recognition rounds reach the archive within roughly 24 hours' }
+        ]
+    },
+    {
         date: '2026-08-22',
         entries: [
             { type: '🎨', text: 'The Handoff now gathers its seven questions into a coordinated constellation: the current context becomes the center of gravity, related paths breathe closer, and compact themes keep calm readable typography' },

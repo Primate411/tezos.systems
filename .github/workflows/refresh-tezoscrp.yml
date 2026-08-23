@@ -2,9 +2,8 @@ name: Refresh TezosCRP Awards
 
 on:
   schedule:
-    # Tezos Commons usually announces the prior month around the 19th–21st.
-    # The 10th catches delayed posts; the 25th catches the normal publication window.
-    - cron: '23 13 10,25 * *'
+    # Poll daily so a new official winner announcement lands within roughly 24 hours.
+    - cron: '23 13 * * *'
   workflow_dispatch:
 
 permissions:

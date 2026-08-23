@@ -8297,7 +8297,7 @@ async function checkTezosCrpContracts() {
     ['generated data target', "'data/tezoscrp-summary.json'", generatedSurfaces],
     ['central summary version stamp', "versionedAsset('/data/tezoscrp-summary.json')", feature],
     ['central archive version stamp', "versionedAsset('/data/tezoscrp-awards.json')", feature],
-    ['twice-monthly schedule', '10,25 * *', workflow],
+    ['daily schedule', "23 13 * * *", workflow],
     ['refresh command', 'refresh:tezoscrp', JSON.stringify(packageJson.scripts)],
     ['check command', 'check:tezoscrp', JSON.stringify(packageJson.scripts)]
   ]) {
