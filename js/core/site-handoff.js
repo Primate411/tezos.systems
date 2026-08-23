@@ -52,7 +52,7 @@ const QUESTION_POSITIONS = Object.freeze({
     capital: Object.freeze({ x: 0.96, y: 0.29 }),
     etherlink: Object.freeze({ x: 0.62, y: 0.65 }),
     bakers: Object.freeze({ x: 0.04, y: 0.77 }),
-    maxis: Object.freeze({ x: 0.28, y: 0.34 }),
+    maxis: Object.freeze({ x: 0.22, y: 0.34 }),
     recognition: Object.freeze({ x: 0.4, y: 0.72 })
 });
 
