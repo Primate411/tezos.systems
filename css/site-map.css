@@ -212,14 +212,14 @@
     overflow: hidden;
     border-radius: 16px;
     background:
-        radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--site-map-accent) 11%, transparent), transparent 38%),
-        linear-gradient(135deg, color-mix(in srgb, var(--site-map-panel) 94%, transparent), color-mix(in srgb, var(--site-map-panel) 78%, transparent));
+        linear-gradient(135deg, color-mix(in srgb, var(--site-map-panel) 96%, transparent), color-mix(in srgb, var(--site-map-panel) 82%, transparent));
     color: var(--site-map-text);
     text-align: left;
 }
 
 .site-handoff-main {
-    padding: clamp(22px, 3.5vw, 40px);
+    position: relative;
+    padding: clamp(24px, 3.5vw, 42px);
 }
 
 .site-handoff-head {
@@ -230,9 +230,9 @@
     margin: 5px 0 0;
     color: var(--site-map-text);
     font-family: var(--font-display, Orbitron, system-ui, sans-serif);
-    font-size: clamp(1.2rem, 2.5vw, 1.75rem);
+    font-size: clamp(1.3rem, 2.8vw, 2rem);
     line-height: 1.2;
-    letter-spacing: 0.01em;
+    letter-spacing: -0.015em;
 }
 
 .site-handoff-head p {
@@ -240,6 +240,262 @@
     color: var(--site-map-dim);
     font-size: 0.82rem;
     line-height: 1.55;
+}
+
+.site-handoff-question-field {
+    --handoff-gravity-x: 42%;
+    --handoff-gravity-y: 38%;
+    position: relative;
+    min-height: clamp(270px, 29vw, 330px);
+    margin-top: clamp(24px, 3.2vw, 34px);
+    isolation: isolate;
+}
+
+.site-handoff-question-field::before {
+    content: "";
+    position: absolute;
+    z-index: 0;
+    width: clamp(120px, 18vw, 190px);
+    aspect-ratio: 1;
+    left: var(--handoff-gravity-x);
+    top: var(--handoff-gravity-y);
+    border-radius: 50%;
+    background: radial-gradient(circle, color-mix(in srgb, var(--site-map-accent) 12%, transparent), transparent 68%);
+    opacity: 0.72;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+    transition: left 1100ms cubic-bezier(0.22, 0.72, 0.24, 1), top 1100ms cubic-bezier(0.22, 0.72, 0.24, 1), opacity 500ms ease;
+}
+
+[data-site-handoff-constellation="build"] .site-handoff-question-field { --handoff-gravity-x: 8%; --handoff-gravity-y: 12%; }
+[data-site-handoff-constellation="move"] .site-handoff-question-field { --handoff-gravity-x: 86%; --handoff-gravity-y: 12%; }
+[data-site-handoff-constellation="now"] .site-handoff-question-field { --handoff-gravity-x: 42%; --handoff-gravity-y: 38%; }
+[data-site-handoff-constellation="mine"] .site-handoff-question-field { --handoff-gravity-x: 8%; --handoff-gravity-y: 55%; }
+[data-site-handoff-constellation="decide"] .site-handoff-question-field { --handoff-gravity-x: 86%; --handoff-gravity-y: 50%; }
+[data-site-handoff-constellation="before"] .site-handoff-question-field { --handoff-gravity-x: 33%; --handoff-gravity-y: 86%; }
+[data-site-handoff-constellation="power"] .site-handoff-question-field { --handoff-gravity-x: 86%; --handoff-gravity-y: 84%; }
+[data-site-handoff-constellation="health"] .site-handoff-question-field { --handoff-gravity-x: 6%; --handoff-gravity-y: 28%; }
+[data-site-handoff-constellation="capital"] .site-handoff-question-field { --handoff-gravity-x: 96%; --handoff-gravity-y: 29%; }
+[data-site-handoff-constellation="etherlink"] .site-handoff-question-field { --handoff-gravity-x: 62%; --handoff-gravity-y: 65%; }
+[data-site-handoff-constellation="bakers"] .site-handoff-question-field { --handoff-gravity-x: 4%; --handoff-gravity-y: 77%; }
+[data-site-handoff-constellation="maxis"] .site-handoff-question-field { --handoff-gravity-x: 22%; --handoff-gravity-y: 34%; }
+[data-site-handoff-constellation="recognition"] .site-handoff-question-field { --handoff-gravity-x: 40%; --handoff-gravity-y: 72%; }
+
+.site-handoff-question {
+    --handoff-question-opacity: 0.8;
+    --handoff-question-scale: 1;
+    --handoff-question-shift: 0px;
+    --handoff-question-x: 0px;
+    --handoff-signal-x: 0px;
+    --handoff-signal-y: 0px;
+    --handoff-signal-scale: 1;
+    position: absolute;
+    z-index: 1;
+    min-height: 44px;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4px;
+    border-radius: 4px;
+    color: var(--site-map-text);
+    font-family: var(--font-display, Orbitron, system-ui, sans-serif);
+    font-weight: 500;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+    opacity: var(--handoff-question-opacity);
+    text-decoration: none;
+    transform: translate(var(--handoff-question-x), var(--handoff-question-shift)) scale(var(--handoff-question-scale));
+    transform-origin: left center;
+    transition: color 220ms ease, opacity 500ms ease, text-shadow 500ms ease, transform 220ms ease;
+}
+
+@keyframes site-handoff-signal-settle {
+    from {
+        translate: var(--handoff-signal-x) var(--handoff-signal-y);
+        scale: var(--handoff-signal-scale);
+    }
+    to {
+        translate: 0 0;
+        scale: 1;
+    }
+}
+
+.site-handoff-question > span {
+    display: block;
+}
+
+.site-handoff-question.is-signal-arriving > span,
+.site-handoff-question.is-signal-arriving > small,
+.site-handoff-question.is-signal-arriving.is-current-page::after {
+    animation: site-handoff-signal-settle 680ms cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: translate, scale;
+}
+
+.site-handoff-question small {
+    display: block;
+    margin-top: 7px;
+    color: var(--site-map-dim);
+    font-family: var(--font-data, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+.site-handoff-question small::after {
+    content: " ↗";
+    color: var(--site-map-accent);
+    opacity: 0.72;
+}
+
+.site-handoff-question:is(:hover, :focus-visible) {
+    z-index: 3;
+    --handoff-question-opacity: 1;
+    --handoff-question-shift: -2px;
+    --handoff-question-scale: 1.04;
+    color: var(--site-map-accent);
+}
+
+.site-handoff-question.is-emphasized {
+    z-index: 2;
+    --handoff-question-opacity: 1;
+    color: var(--site-map-accent);
+    text-shadow: 0 0 18px color-mix(in srgb, var(--site-map-accent) 22%, transparent);
+}
+
+.site-handoff-question.is-current-page::after {
+    content: "";
+    width: 28px;
+    height: 1px;
+    margin-top: 7px;
+    background: currentColor;
+    opacity: 0.62;
+}
+
+.site-handoff-question-build {
+    --handoff-question-opacity: 0.84;
+    top: 4%;
+    left: 1%;
+    font-size: clamp(1.18rem, 3vw, 2.2rem);
+}
+
+.site-handoff-question-move {
+    --handoff-question-opacity: 0.86;
+    top: 2%;
+    right: 1%;
+    font-size: clamp(1.08rem, 2.8vw, 2.05rem);
+    text-align: right;
+    transform-origin: right center;
+}
+
+.site-handoff-question-now {
+    --handoff-question-opacity: 0.94;
+    top: 28%;
+    left: 34%;
+    font-size: clamp(1.45rem, 4vw, 3rem);
+}
+
+.site-handoff-question-mine {
+    --handoff-question-opacity: 0.84;
+    top: 44%;
+    left: 1%;
+    font-size: clamp(1.18rem, 2.8vw, 1.95rem);
+}
+
+.site-handoff-question-decide {
+    --handoff-question-opacity: 0.78;
+    top: 39%;
+    right: 1%;
+    font-size: clamp(1rem, 2.1vw, 1.48rem);
+    text-align: right;
+    transform-origin: right center;
+}
+
+.site-handoff-question-before {
+    --handoff-question-opacity: 0.78;
+    bottom: 2%;
+    left: 25%;
+    font-size: clamp(0.94rem, 1.8vw, 1.3rem);
+}
+
+.site-handoff-question-power {
+    --handoff-question-opacity: 0.8;
+    right: 1%;
+    bottom: 4%;
+    font-size: clamp(1rem, 2.4vw, 1.75rem);
+    text-align: right;
+    transform-origin: right center;
+}
+
+.site-handoff-question.is-satellite {
+    --handoff-question-opacity: 0.58;
+    font-family: var(--font-ui, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+    font-size: clamp(0.72rem, 0.92vw, 0.86rem);
+    font-weight: 620;
+    letter-spacing: -0.012em;
+    line-height: 1.05;
+}
+
+.site-handoff-question.is-satellite small {
+    margin-top: 4px;
+    font-size: 0.48rem;
+    letter-spacing: 0.08em;
+}
+
+.site-handoff-question-health {
+    top: 22%;
+    left: 0;
+}
+
+.site-handoff-question-capital {
+    top: 19%;
+    right: 0;
+    text-align: right;
+    transform-origin: right center;
+}
+
+.site-handoff-question-etherlink {
+    top: 58%;
+    left: 54%;
+}
+
+.site-handoff-question-bakers {
+    top: 68%;
+    left: 0;
+}
+
+.site-handoff-question-maxis {
+    top: 28%;
+    left: 16%;
+}
+
+.site-handoff-question-recognition {
+    left: 32%;
+    bottom: 18%;
+}
+
+.site-handoff-question.is-related {
+    --handoff-question-opacity: 0.92;
+}
+
+.site-handoff-question.is-distant {
+    --handoff-question-opacity: 0.68;
+}
+
+.site-handoff-question.is-emphasized,
+.site-handoff-question:is(:hover, :focus-visible) {
+    --handoff-question-opacity: 1;
+}
+
+.site-handoff-question-note {
+    margin: 0;
+    padding-top: 13px;
+    border-top: 1px solid color-mix(in srgb, var(--site-map-accent) 18%, transparent);
+    color: var(--site-map-dim);
+    font-family: var(--font-data, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+    font-size: 0.64rem;
+    line-height: 1.45;
 }
 
 .site-handoff-lifeline {
@@ -906,6 +1162,86 @@
     outline: none;
 }
 
+@media (min-width: 661px) and (max-width: 900px) {
+    .site-handoff-question-field {
+        min-height: 260px;
+    }
+
+    .site-handoff-question {
+        font-family: var(--font-ui, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+        letter-spacing: -0.02em;
+        transform: translate(var(--handoff-question-x), var(--handoff-question-shift)) scale(var(--handoff-question-scale));
+    }
+
+    .site-handoff-question:is(:hover, :focus-visible) { --handoff-question-scale: 1.025; }
+}
+
+@media (max-width: 900px) {
+    .site-handoff-question-field {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-auto-rows: minmax(52px, auto);
+        align-content: center;
+        gap: 0 12px;
+    }
+
+    .site-handoff-question {
+        position: relative;
+        inset: auto;
+        width: 100%;
+        max-width: 100%;
+        min-height: 52px;
+        padding: 3px 2px;
+        font-family: var(--font-ui, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
+        font-size: clamp(0.88rem, 3.6vw, 1.12rem);
+        letter-spacing: -0.02em;
+        transform: none;
+    }
+
+    .site-handoff-question.is-emphasized,
+    .site-handoff-question.is-related {
+        --handoff-question-scale: 1;
+    }
+
+    .site-handoff-question-move,
+    .site-handoff-question-decide,
+    .site-handoff-question-power {
+        align-items: flex-end;
+        text-align: right;
+    }
+
+    .site-handoff-question-now {
+        grid-column: 1 / -1;
+        align-items: center;
+        min-height: 56px;
+        margin-block: -2px;
+        font-size: clamp(1.45rem, 6.4vw, 1.9rem);
+        text-align: center;
+    }
+
+    .site-handoff-question.is-satellite {
+        min-height: 48px;
+        font-size: clamp(0.76rem, 3.2vw, 0.94rem);
+    }
+
+    .site-handoff-question-capital,
+    .site-handoff-question-bakers,
+    .site-handoff-question-recognition {
+        align-items: flex-end;
+        text-align: right;
+    }
+
+    .site-handoff-question small {
+        margin-top: 4px;
+        font-size: 0.53rem;
+    }
+
+    .site-handoff-question.is-current-page::after {
+        margin-top: 5px;
+    }
+}
+
 @media (max-width: 640px) {
     .site-map-shell,
     .site-map-related {
@@ -949,6 +1285,14 @@
 
     .site-handoff-head h2 {
         font-size: 1.15rem;
+    }
+
+    .site-handoff-question-field {
+        margin-top: 20px;
+    }
+
+    .site-handoff-question-note {
+        margin-top: 10px;
     }
 
     .site-handoff-lifeline {
@@ -1079,7 +1423,20 @@
     }
 
     .site-handoff-node,
-    .site-handoff-primary {
+    .site-handoff-primary,
+    .site-handoff-question {
+        transition: none;
+    }
+
+    .site-handoff-question > span,
+    .site-handoff-question > small,
+    .site-handoff-question.is-current-page::after {
+        animation: none;
+        translate: none;
+        scale: none;
+    }
+
+    .site-handoff-question-field::before {
         transition: none;
     }
 

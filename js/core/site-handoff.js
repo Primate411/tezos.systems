@@ -1,31 +1,62 @@
 import {
     SITE_MAP,
     SITE_MAP_NAV_GROUPS,
+    SITE_MAP_RELATIONS,
     findSiteMapEntry,
     siteMapDirectoryChildren,
     siteMapGroup,
     siteMapRoute
 } from './site-map.js';
-import { siteMapJourneyLinks } from './site-journey.js';
 
-export const SITE_HANDOFF_STEPS = Object.freeze([
-    { id: 'now', label: 'Now', entryId: 'pulse' },
-    { id: 'you', label: 'You', entryId: 'my-tezos' },
-    { id: 'flow', label: 'Flow', entryId: 'ledger-flow' },
-    { id: 'power', label: 'Power', entryId: 'staking-chamber' },
-    { id: 'memory', label: 'Memory', entryId: 'anthology' },
-    { id: 'people', label: 'People', entryId: 'maxis' }
+export const SITE_HANDOFF_QUESTIONS = Object.freeze([
+    Object.freeze({ id: 'build', prompt: 'What’s being built?', label: 'Ecosystem', entryId: 'ecosystem' }),
+    Object.freeze({ id: 'move', prompt: 'Where is value moving?', label: 'Flow', entryId: 'ledger-flow' }),
+    Object.freeze({ id: 'now', prompt: 'What now?', label: 'Network Pulse', entryId: 'pulse' }),
+    Object.freeze({ id: 'mine', prompt: 'What’s mine?', label: 'My Tezos', entryId: 'my-tezos' }),
+    Object.freeze({ id: 'decide', prompt: 'What are we deciding?', label: 'Governance', entryId: 'chamber' }),
+    Object.freeze({ id: 'before', prompt: 'What came before?', label: 'History', entryId: 'anthology' }),
+    Object.freeze({ id: 'power', prompt: 'Where does power gather?', label: 'Staking', entryId: 'staking-chamber' }),
+    Object.freeze({ id: 'health', prompt: 'Is the chain healthy?', label: 'Network Health', entryId: 'health', tier: 'satellite' }),
+    Object.freeze({ id: 'capital', prompt: 'What gives Tezos value?', label: 'Capital', entryId: 'capital', tier: 'satellite' }),
+    Object.freeze({ id: 'etherlink', prompt: 'What’s happening on Etherlink?', label: 'Tezos X', entryId: 'tezosx', tier: 'satellite' }),
+    Object.freeze({ id: 'bakers', prompt: 'Who keeps it running?', label: 'Baker Directory', entryId: 'leaderboard', tier: 'satellite' }),
+    Object.freeze({ id: 'maxis', prompt: 'Who leads each lane?', label: 'Maxis', entryId: 'maxis', tier: 'satellite' }),
+    Object.freeze({ id: 'recognition', prompt: 'Who gets recognized?', label: 'TezosCRP', entryId: 'tezoscrp', tier: 'satellite' })
 ]);
 
-const HANDOFF_PHASES = Object.freeze({
-    now: ['home', 'chambers', 'pulse', 'health', 'liquidity-baking', 'tezosx', 'tz4', 'price', 'whales', 'hot-today', 'snapshot', 'live-compare'],
-    you: ['my-tezos', 'domains', 'ctez'],
-    flow: ['ledger-flow'],
-    power: ['staking-chamber', 'chamber', 'l2-governance', 'staking', 'governance-guide', 'bakers-guide', 'calculator', 'leaderboard'],
-    memory: ['anthology', 'history', 'compare'],
-    people: ['maxis', 'hen', 'feed', 'widgets']
+const QUESTION_CONTEXTS = Object.freeze({
+    build: Object.freeze(['ecosystem', 'chambers', 'hen', 'widgets']),
+    move: Object.freeze(['ledger-flow', 'whales', 'minerals', 'metals', 'uranium', 'ctez', 'liquidity-baking']),
+    now: Object.freeze(['home', 'pulse', 'price', 'snapshot', 'live-compare']),
+    mine: Object.freeze(['my-tezos', 'domains']),
+    decide: Object.freeze(['chamber', 'l2-governance', 'governance-guide']),
+    before: Object.freeze(['anthology', 'history', 'compare']),
+    power: Object.freeze(['staking-chamber', 'staking', 'calculator']),
+    health: Object.freeze(['health', 'tz4']),
+    capital: Object.freeze(['capital']),
+    etherlink: Object.freeze(['tezosx']),
+    bakers: Object.freeze(['leaderboard', 'bakers-guide']),
+    maxis: Object.freeze(['maxis']),
+    recognition: Object.freeze(['tezoscrp'])
 });
 
+const QUESTION_POSITIONS = Object.freeze({
+    build: Object.freeze({ x: 0.08, y: 0.12 }),
+    move: Object.freeze({ x: 0.86, y: 0.12 }),
+    now: Object.freeze({ x: 0.42, y: 0.38 }),
+    mine: Object.freeze({ x: 0.08, y: 0.55 }),
+    decide: Object.freeze({ x: 0.86, y: 0.5 }),
+    before: Object.freeze({ x: 0.33, y: 0.86 }),
+    power: Object.freeze({ x: 0.86, y: 0.84 }),
+    health: Object.freeze({ x: 0.06, y: 0.28 }),
+    capital: Object.freeze({ x: 0.96, y: 0.29 }),
+    etherlink: Object.freeze({ x: 0.62, y: 0.65 }),
+    bakers: Object.freeze({ x: 0.04, y: 0.77 }),
+    maxis: Object.freeze({ x: 0.22, y: 0.34 }),
+    recognition: Object.freeze({ x: 0.4, y: 0.72 })
+});
+
+const handoffCleanup = new WeakMap();
 let handoffSequence = 0;
 
 function escapeHtml(value) {
@@ -41,56 +72,155 @@ function entryRoute(entry) {
     return siteMapRoute(entry) || entry?.href || entry?.hash || '/';
 }
 
-function handoffEntries() {
-    return SITE_HANDOFF_STEPS
-        .map((step) => ({ ...step, entry: findSiteMapEntry(step.entryId) }))
-        .filter((step) => step.entry);
+function questionEntries() {
+    return SITE_HANDOFF_QUESTIONS
+        .map((question) => ({ ...question, entry: findSiteMapEntry(question.entryId) }))
+        .filter((question) => question.entry);
 }
 
-function phaseIndexForEntry(entry) {
-    if (!entry) return 0;
-    const phaseId = Object.entries(HANDOFF_PHASES)
-        .find(([, entryIds]) => entryIds.includes(entry.id))?.[0];
-    const index = SITE_HANDOFF_STEPS.findIndex((step) => step.id === phaseId);
-    return index >= 0 ? index : 0;
+function questionIdForEntryId(entryId, fallback = 'now') {
+    const exact = SITE_HANDOFF_QUESTIONS.find((question) => question.entryId === entryId);
+    if (exact) return exact.id;
+    return Object.entries(QUESTION_CONTEXTS)
+        .find(([, entryIds]) => entryIds.includes(entryId))?.[0] || fallback;
 }
 
-function relatedEntries(context, limit = 6) {
-    return (context ? siteMapJourneyLinks(context, { limit }) : [])
-        .map((entry) => typeof entry === 'string' ? findSiteMapEntry(entry) : entry)
-        .filter(Boolean);
+function contextualQuestionId(current, context) {
+    return questionIdForEntryId(context?.entryId || current?.id || 'home');
 }
 
-function recommendedEntry(current, context, steps) {
-    if (!current || current.id === 'home') return findSiteMapEntry('pulse') || steps[0]?.entry || null;
-    const exactIndex = steps.findIndex((step) => step.entry.id === current.id);
-    if (exactIndex >= 0) return steps[(exactIndex + 1) % steps.length]?.entry || null;
-    return relatedEntries(context, 6)[0]
-        || steps[(phaseIndexForEntry(current) + 1) % steps.length]?.entry
-        || steps[0]?.entry
-        || null;
+function relatedQuestionIds(questionId) {
+    const activeQuestion = SITE_HANDOFF_QUESTIONS.find((question) => question.id === questionId);
+    if (!activeQuestion) return new Set();
+    const related = new Set(
+        (SITE_MAP_RELATIONS[activeQuestion.entryId] || [])
+            .map((entryId) => questionIdForEntryId(entryId, null))
+            .filter((id) => id && id !== questionId)
+    );
+    SITE_HANDOFF_QUESTIONS.forEach((question) => {
+        if (question.id === questionId) return;
+        const reachesActive = (SITE_MAP_RELATIONS[question.entryId] || [])
+            .map((entryId) => questionIdForEntryId(entryId, null))
+            .includes(questionId);
+        if (reachesActive) related.add(question.id);
+    });
+    return related;
 }
 
-function supportingEntries(current, context, primary) {
-    const contextualRelated = relatedEntries(context, 8);
-    const personal = primary?.id === 'my-tezos' || current?.id === 'my-tezos'
-        ? findSiteMapEntry('pulse')
-        : contextualRelated.find((entry) => entry.id === 'my-tezos')
-            || findSiteMapEntry('my-tezos');
-    const candidates = [
-        ...contextualRelated,
-        ...handoffEntries().map((step) => step.entry)
-    ].filter((entry, index, entries) => (
-        entry
-        && entry.id !== current?.id
-        && entry.id !== primary?.id
-        && entry.id !== personal?.id
-        && entries.findIndex((candidate) => candidate?.id === entry.id) === index
-    ));
+function constellationVariables(activeId, questionId, relation) {
+    const active = QUESTION_POSITIONS[activeId] || QUESTION_POSITIONS.now;
+    const question = QUESTION_POSITIONS[questionId] || QUESTION_POSITIONS.now;
+    const dx = active.x - question.x;
+    const dy = active.y - question.y;
+    const span = Math.max(Math.abs(dx), Math.abs(dy), 0.001);
+    const unitX = dx / span;
+    const unitY = dy / span;
+    const settle = relation === 'near' ? 5 : relation === 'far' ? 1.25 : 2.4;
+    const settleY = relation === 'near' ? 4 : relation === 'far' ? 1 : 2;
+    const activeTowardCenterX = relation === 'center' ? Math.sign(0.5 - active.x) : unitX;
+    const activeTowardCenterY = relation === 'center' ? Math.sign(0.5 - active.y) : unitY;
     return {
-        personal,
-        distress: candidates[0] || findSiteMapEntry('maxis') || findSiteMapEntry('health')
+        settleX: `${(activeTowardCenterX * settle).toFixed(2)}px`,
+        settleY: `${(activeTowardCenterY * settleY).toFixed(2)}px`,
+        settleScale: relation === 'center' ? '1.016' : relation === 'near' ? '1.006' : '1'
     };
+}
+
+function signalQuestionId(signal) {
+    if (!signal || typeof signal !== 'object') return null;
+    const words = [signal.category, signal.visual, signal.kind, signal.id, signal.title]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+    if (!words) return null;
+    if (/govern|proposal|ballot|vote/.test(words)) return 'decide';
+    if (/wallet|account|domain|personal|identity/.test(words)) return 'mine';
+    if (/history|protocol|anniversary|archive|memory/.test(words)) return 'before';
+    if (/award|recognition|community reward|tezoscrp/.test(words)) return 'recognition';
+    if (/maxi|champion|passport|crown/.test(words)) return 'maxis';
+    if (/etherlink|tezos x|rollup|layer 2|\bl2\b/.test(words)) return 'etherlink';
+    if (/baker|validator|baker directory/.test(words)) return 'bakers';
+    if (/health|finality|attest|block|consensus|quorum|octez|\btz4\b/.test(words)) return 'health';
+    if (/stake|staking|delegat|power|cycle/.test(words)) return 'power';
+    if (/contract|ecosystem|dapp|app|nft|collect/.test(words)) return 'build';
+    if (/capital|economy|tvl|stablecoin|real.world.asset|\brwa\b/.test(words)) return 'capital';
+    if (/market|price|whale|capital|flow|token|liquidity|volume/.test(words)) return 'move';
+    return 'now';
+}
+
+function handoffIsVisible(container) {
+    if (document.visibilityState !== 'visible') return false;
+    const rect = container.getBoundingClientRect();
+    return rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth;
+}
+
+function handoffReaderIsHolding(container) {
+    const selection = window.getSelection?.();
+    const selectionHeld = Boolean(
+        selection
+        && !selection.isCollapsed
+        && selection.anchorNode
+        && container.contains(selection.anchorNode)
+    );
+    return container.matches(':hover') || container.contains(document.activeElement) || selectionHeld;
+}
+
+function settleQuestionMotion(container) {
+    container.querySelectorAll('.site-handoff-question.is-signal-arriving')
+        .forEach((link) => link.classList.remove('is-signal-arriving'));
+}
+
+function applyQuestionEmphasis(container, questionId, source = 'context') {
+    const available = new Set(SITE_HANDOFF_QUESTIONS.map((question) => question.id));
+    const nextId = available.has(questionId) ? questionId : 'now';
+    const related = relatedQuestionIds(nextId);
+    const previousId = container.dataset.siteHandoffEmphasis || '';
+    const shouldSettle = source === 'signal'
+        && previousId !== nextId
+        && handoffIsVisible(container)
+        && !handoffReaderIsHolding(container);
+    container.dataset.siteHandoffEmphasis = nextId;
+    container.dataset.siteHandoffEmphasisSource = source;
+    container.dataset.siteHandoffConstellation = nextId;
+    container.querySelectorAll('[data-handoff-question]').forEach((link) => {
+        const linkId = link.dataset.handoffQuestion;
+        const relation = linkId === nextId ? 'center' : related.has(linkId) ? 'near' : 'far';
+        const variables = constellationVariables(nextId, linkId, relation);
+        link.classList.toggle('is-emphasized', relation === 'center');
+        link.classList.toggle('is-related', relation === 'near');
+        link.classList.toggle('is-distant', relation === 'far');
+        link.dataset.handoffRelation = relation;
+        link.style.setProperty('--handoff-signal-x', variables.settleX);
+        link.style.setProperty('--handoff-signal-y', variables.settleY);
+        link.style.setProperty('--handoff-signal-scale', variables.settleScale);
+        link.classList.remove('is-signal-arriving');
+        if (shouldSettle) {
+            void link.offsetWidth;
+            link.classList.add('is-signal-arriving');
+        }
+    });
+}
+
+function wireQuestionEmphasis(container, contextQuestion) {
+    handoffCleanup.get(container)?.();
+    if (typeof window === 'undefined') return;
+
+    const applySignal = (event) => {
+        const signal = event?.detail?.signal || event?.detail?.top || event?.detail || null;
+        const questionId = signalQuestionId(signal);
+        applyQuestionEmphasis(container, questionId || contextQuestion, questionId ? 'signal' : 'context');
+    };
+    const settleHeldMotion = () => settleQuestionMotion(container);
+    window.addEventListener('hot-signal-rendered', applySignal);
+    window.addEventListener('site-handoff-signal', applySignal);
+    container.addEventListener('pointerenter', settleHeldMotion);
+    container.addEventListener('focusin', settleHeldMotion);
+    handoffCleanup.set(container, () => {
+        window.removeEventListener('hot-signal-rendered', applySignal);
+        window.removeEventListener('site-handoff-signal', applySignal);
+        container.removeEventListener('pointerenter', settleHeldMotion);
+        container.removeEventListener('focusin', settleHeldMotion);
+    });
 }
 
 function journeyAttributes(context, destination, surface, reason) {
@@ -106,23 +236,21 @@ function journeyAttributes(context, destination, surface, reason) {
     ].filter(Boolean).join(' ');
 }
 
-function lifelineHtml(current, context, primary, steps) {
-    const currentPhaseIndex = phaseIndexForEntry(current);
-    return steps.map((step, index) => {
-        const classes = [
-            'site-handoff-step',
-            index === currentPhaseIndex ? 'is-current-phase' : '',
-            step.entry.id === primary?.id ? 'is-next' : ''
-        ].filter(Boolean).join(' ');
-        const currentPage = step.entry.id === current?.id;
-        return `
-            <a class="${classes}" href="${escapeHtml(entryRoute(step.entry))}" data-site-map-entry="${escapeHtml(step.entry.id)}" ${journeyAttributes(context, step.entry, 'site-handoff', 'phase-continuation')}${currentPage ? ' aria-current="page"' : ''}>
-                <span class="site-handoff-node" aria-hidden="true"></span>
-                <strong>${escapeHtml(step.label)}</strong>
-                <small>${escapeHtml(step.entry.title)}</small>
-            </a>
-        `;
-    }).join('');
+function questionLinkHtml(question, current, context, emphasisQuestion) {
+    const currentPage = question.entry.id === current?.id;
+    const classes = [
+        'site-handoff-question',
+        `site-handoff-question-${question.id}`,
+        question.tier === 'satellite' ? 'is-satellite' : 'is-anchor',
+        question.id === emphasisQuestion ? 'is-emphasized' : '',
+        currentPage ? 'is-current-page' : ''
+    ].filter(Boolean).join(' ');
+    return `
+        <a class="${classes}" href="${escapeHtml(entryRoute(question.entry))}" data-handoff-question="${escapeHtml(question.id)}" data-handoff-tier="${escapeHtml(question.tier || 'anchor')}" data-site-map-entry="${escapeHtml(question.entry.id)}" ${journeyAttributes(context, question.entry, 'site-handoff', `question-${question.id}`)}${currentPage ? ' aria-current="page"' : ''}>
+            <span>${escapeHtml(question.prompt)}</span>
+            <small>${escapeHtml(question.label)}</small>
+        </a>
+    `;
 }
 
 function directoryLinkHtml(entry, current, className = 'site-map-link') {
@@ -180,13 +308,12 @@ export function renderSiteHandoff(container, {
         intentId: null,
         route: current.href
     };
-    const steps = handoffEntries();
-    const primary = recommendedEntry(current, context, steps);
-    const supporting = supportingEntries(current, context, primary);
+    const questions = questionEntries();
+    const emphasisQuestion = contextualQuestionId(current, context);
     const totalDestinations = destinationCount();
     const titleId = sequence === 1 ? 'site-handoff-title' : `site-handoff-title-${sequence}`;
+    const copyId = `${titleId}-copy`;
     const mapId = sequence === 1 ? 'site-map' : `site-map-${sequence}`;
-    const currentTitle = context.intent?.title || current?.title || 'this page';
 
     container.classList.add('site-map-shell', 'site-map-footer', 'site-handoff-shell');
     container.setAttribute('data-site-handoff', 'true');
@@ -196,8 +323,8 @@ export function renderSiteHandoff(container, {
             <header class="site-handoff-head">
                 <div class="site-handoff-head-copy">
                     <span class="site-map-kicker">The Handoff</span>
-                    <h2 id="${titleId}">The system continues from here.</h2>
-                    <p>You reached the end of ${escapeHtml(currentTitle)}. Follow one line deeper, or open the complete system map.</p>
+                    <h2 id="${titleId}">Follow a question, not a menu.</h2>
+                    <p id="${copyId}">Stay awhile. When one of these feels like yours, follow it.</p>
                 </div>
                 ${container.id === 'recruit-section' ? `
                     <button class="home-block-hide site-handoff-hide" type="button" data-home-hide="handoff" aria-label="Hide Keep Exploring" title="Hide Keep Exploring">
@@ -206,35 +333,10 @@ export function renderSiteHandoff(container, {
                     </button>
                 ` : ''}
             </header>
-            <nav class="site-handoff-lifeline" aria-label="Tezos Systems lifeline">
-                ${lifelineHtml(current, context, primary, steps)}
+            <nav class="site-handoff-question-field" aria-label="Questions that open Tezos Systems destinations" aria-describedby="${copyId}">
+                ${questions.map((question) => questionLinkHtml(question, current, context, emphasisQuestion)).join('')}
             </nav>
-            ${primary ? `
-                <section class="site-handoff-recommendation" aria-labelledby="site-handoff-next-${sequence}">
-                    <div class="site-handoff-recommendation-copy">
-                        <span>Next signal</span>
-                        <h3 id="site-handoff-next-${sequence}">${escapeHtml(primary.title)}</h3>
-                        <p>${escapeHtml(primary.detail || `Continue from ${currentTitle} into the next Tezos Systems destination.`)}</p>
-                    </div>
-                    <a class="site-handoff-primary" href="${escapeHtml(entryRoute(primary))}" data-site-map-entry="${escapeHtml(primary.id)}" ${journeyAttributes(context, primary, 'site-handoff', primary.journeyReason || 'phase-continuation')}>
-                        Continue <span aria-hidden="true">→</span>
-                    </a>
-                    <nav class="site-handoff-side-actions" aria-label="Other ways forward">
-                        ${supporting.personal ? `
-                            <a href="${escapeHtml(entryRoute(supporting.personal))}" data-site-map-entry="${escapeHtml(supporting.personal.id)}" ${journeyAttributes(context, supporting.personal, 'site-handoff', supporting.personal.journeyReason || 'supporting-destination')}>
-                                <span>${supporting.personal.id === 'my-tezos' ? 'Follow my wallet' : 'See the network now'}</span>
-                                <small>${escapeHtml(supporting.personal.title)}</small>
-                            </a>
-                        ` : ''}
-                        ${supporting.distress ? `
-                            <a href="${escapeHtml(entryRoute(supporting.distress))}" data-site-map-entry="${escapeHtml(supporting.distress.id)}" ${journeyAttributes(context, supporting.distress, 'site-handoff', supporting.distress.journeyReason || 'supporting-destination')} aria-label="Choose for me: ${escapeHtml(supporting.distress.title)}">
-                                <span>Choose for me</span>
-                                <small>${escapeHtml(supporting.distress.title)}</small>
-                            </a>
-                        ` : ''}
-                    </nav>
-                </section>
-            ` : ''}
+            <p class="site-handoff-question-note">The field gathers around what feels most alive · exact facts stay in the ticker and rooms.</p>
         </div>
         <details class="site-map-disclosure" id="${mapId}">
             <summary>
@@ -246,4 +348,6 @@ export function renderSiteHandoff(container, {
             </nav>
         </details>
     `;
+    applyQuestionEmphasis(container, emphasisQuestion, 'context');
+    wireQuestionEmphasis(container, emphasisQuestion);
 }
