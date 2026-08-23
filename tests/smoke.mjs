@@ -7079,6 +7079,11 @@ async function smokeHandoffQuestionField(browser, baseUrl) {
     };
   }));
   await page.waitForTimeout(760);
+  await page.waitForFunction(() => [...document.querySelectorAll('#recruit-section [data-handoff-question] > span')].every((word) => {
+    const translate = getComputedStyle(word).translate;
+    return translate === 'none'
+      || translate.split(/\s+/).every((token) => Math.abs(Number.parseFloat(token)) <= 0.001);
+  }), null, { timeout: 2000 });
   const settledMotion = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => getComputedStyle(word).translate));
   await page.waitForTimeout(900);
   const heldSettledMotion = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => getComputedStyle(word).translate));
