@@ -27971,6 +27971,11 @@ async function smokeRouteFormatting(browser, baseUrl) {
       viewport,
       serviceWorkers: 'block'
     });
+    await context.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => fulfillJson(route, {
+      sha: 'cafebabecafebabecafebabecafebabecafebabe',
+      html_url: 'https://github.com/Primate411/tezos.systems/commit/cafebabe',
+      commit: { committer: { date: '2026-06-07T00:00:00Z' } }
+    }));
     await context.addInitScript(() => {
       localStorage.setItem('tezos-systems-theme', 'matrix');
       localStorage.setItem('tezos-toured', '1');
