@@ -6461,7 +6461,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
       footerHasAttribution: Boolean(footer?.querySelector('[data-site-footer-attribution]'))
     };
   });
-  for (const label of ['the handoff', 'what’s being built?', 'where is value moving?', 'what now?', 'what’s mine?', 'what are we deciding?', 'what came before?', 'where does power gather?', 'open the complete map']) {
+  for (const label of ['the handoff', 'what’s being built?', 'where is value moving?', 'what now?', 'what’s mine?', 'what are we deciding?', 'what came before?', 'where does power gather?', 'is the chain healthy?', 'what gives tezos value?', 'what’s happening on etherlink?', 'who keeps it running?', 'who leads each lane?', 'who gets recognized?', 'open the complete map']) {
     assert(handoffState.text.toLowerCase().includes(label), `hero command bar: Handoff missing ${label}: ${JSON.stringify(handoffState)}`);
   }
   const expectedHandoffRoutes = new Map([
@@ -6471,9 +6471,15 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     ['mine', '/my/'],
     ['decide', '/chamber/'],
     ['before', '/anthology/'],
-    ['power', '/stake/']
+    ['power', '/stake/'],
+    ['health', '/health/'],
+    ['capital', '/capital/'],
+    ['etherlink', '/tezosx/'],
+    ['bakers', '/leaderboard/'],
+    ['maxis', '/maxis/'],
+    ['recognition', '/tezoscrp/']
   ]);
-  assert(handoffState.questions.length === expectedHandoffRoutes.size, `hero command bar: Handoff should expose seven human questions ${JSON.stringify(handoffState)}`);
+  assert(handoffState.questions.length === expectedHandoffRoutes.size, `hero command bar: Handoff should expose seven anchor and six satellite questions ${JSON.stringify(handoffState)}`);
   for (const question of handoffState.questions) {
     assert(expectedHandoffRoutes.get(question.id) === question.href, `hero command bar: Handoff question route drifted ${JSON.stringify(question)}`);
   }
