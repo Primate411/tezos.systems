@@ -7082,6 +7082,8 @@ async function smokeHandoffQuestionField(browser, baseUrl) {
   const settledMotion = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => getComputedStyle(word).translate));
   await page.waitForTimeout(900);
   const heldSettledMotion = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => getComputedStyle(word).translate));
+  const translateIsSettled = (translate) => translate === 'none'
+    || translate.split(/\s+/).every((token) => Math.abs(Number.parseFloat(token)) <= 0.001);
   assert(
     motionBefore.every((before, index) => (
       before.id === motionDuring[index]?.id
@@ -7091,7 +7093,8 @@ async function smokeHandoffQuestionField(browser, baseUrl) {
         && Math.abs(before.height - motionDuring[index].height) <= 0.25
     ))
       && motionDuring.some((state) => state.wordAnimation === 'site-handoff-signal-settle' && state.wordTranslate !== 'none')
-      && settledMotion.every((translate, index) => translate === heldSettledMotion[index]),
+      && settledMotion.every(translateIsSettled)
+      && heldSettledMotion.every(translateIsSettled),
     `Handoff Question Field: one fresh signal must move only inner content and then settle ${JSON.stringify({ motionBefore, motionDuring, settledMotion, heldSettledMotion })}`
   );
 
