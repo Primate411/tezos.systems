@@ -15621,6 +15621,23 @@ async function smokeMaxisDomainPassport(browser, baseUrl) {
 }
 
 async function smokeTezosCrpChamber(browser, baseUrl) {
+  const [datasetResponse, summaryResponse] = await Promise.all([
+    fetch(`${baseUrl}/data/tezoscrp-awards.json`),
+    fetch(`${baseUrl}/data/tezoscrp-summary.json`)
+  ]);
+  assert(datasetResponse.ok && summaryResponse.ok, 'TezosCRP smoke could not load its canonical artifacts');
+  const [tezosCrpDataset, tezosCrpSummary] = await Promise.all([datasetResponse.json(), summaryResponse.json()]);
+  const expectedPeople = new Map(tezosCrpDataset.people_summary.map((person) => [person.person_id, person]));
+  const latestPeriod = tezosCrpSummary.latest.period;
+  const latestYear = Number(latestPeriod.slice(0, 4));
+  const currentYearRecord = tezosCrpSummary.records.years.find(({ year }) => year === latestYear);
+  const latestLabel = new Date(`${latestPeriod}-01T00:00:00Z`).toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  const formattedTotals = [
+    tezosCrpSummary.totals.awards,
+    tezosCrpSummary.totals.people,
+    tezosCrpSummary.totals.periods
+  ].map((value) => value.toLocaleString('en-US'));
+
   for (const { label, viewport } of [
     { label: 'desktop', viewport: { width: 1440, height: 1000 } },
     { label: 'mobile', viewport: { width: 390, height: 844 } }
@@ -15683,7 +15700,7 @@ async function smokeTezosCrpChamber(browser, baseUrl) {
       };
     });
     assert(initial.path === '/tezoscrp/' && initial.canonical === 'https://tezos.systems/tezoscrp/', `TezosCRP ${label}: canonical route mismatch ${JSON.stringify(initial)}`);
-    assert(initial.metrics.join('|').includes('2,218') && initial.metrics.join('|').includes('827') && initial.metrics.join('|').includes('69'), `TezosCRP ${label}: baseline totals missing ${JSON.stringify(initial.metrics)}`);
+    assert(formattedTotals.every((value) => initial.metrics.includes(value)), `TezosCRP ${label}: artifact totals missing ${JSON.stringify({ expected: formattedTotals, actual: initial.metrics })}`);
     assert(initial.tabs === 5, `TezosCRP ${label}: expected five archive and records views`);
     assert(
       initial.tabsA11y.every((tab) => tab.id === `tezoscrp-tab-${tab.view}` && tab.controls === 'tezoscrp-view')
@@ -15724,27 +15741,28 @@ async function smokeTezosCrpChamber(browser, baseUrl) {
     await page.locator('#tezoscrp-hall-search').fill('Baking Benjamins');
     await page.waitForFunction(() => document.querySelectorAll('#tezoscrp-hall-results [data-tezoscrp-person]').length === 1);
     const leaderText = (await page.locator('#tezoscrp-hall-results [data-tezoscrp-person]').innerText()).replace(/\s+/g, ' ');
-    assert(/Baking Benjamins/i.test(leaderText) && /63/.test(leaderText) && /50/.test(leaderText), `TezosCRP ${label}: identity search did not preserve awards/months ${leaderText}`);
+    const baker = expectedPeople.get('x:bakingbenjamins');
+    assert(/Baking Benjamins/i.test(leaderText) && leaderText.includes(String(baker.total_awards)) && leaderText.includes(String(baker.distinct_periods)), `TezosCRP ${label}: identity search did not preserve awards/months ${leaderText}`);
     await page.locator('#tezoscrp-hall-results [data-tezoscrp-person]').click();
     await page.locator('#tezoscrp-person-detail:not([hidden]) .tezoscrp-receipts article').first().waitFor({ state: 'visible' });
-    assert(await page.locator('#tezoscrp-person-detail .tezoscrp-receipts article').count() === 63, `TezosCRP ${label}: person receipt trail is incomplete`);
-    assert(await page.locator('#tezoscrp-person-detail .tezoscrp-receipts a').count() >= 63, `TezosCRP ${label}: official source receipts are missing`);
+    assert(await page.locator('#tezoscrp-person-detail .tezoscrp-receipts article').count() === baker.total_awards, `TezosCRP ${label}: person receipt trail is incomplete`);
+    assert(await page.locator('#tezoscrp-person-detail .tezoscrp-receipts a').count() >= baker.total_awards, `TezosCRP ${label}: official source receipts are missing`);
 
     await page.locator('#tezoscrp-person-close').click();
     await page.locator('#tezoscrp-hall-search').fill('cleof');
     await page.waitForFunction(() => document.querySelectorAll('#tezoscrp-hall-results [data-tezoscrp-person]').length === 1);
     const cleofText = (await page.locator('#tezoscrp-hall-results [data-tezoscrp-person]').innerText()).replace(/\s+/g, ' ');
-    assert(/cle0fis/i.test(cleofText) && /\b2\b/.test(cleofText), `TezosCRP ${label}: cleof aliases were not consolidated ${cleofText}`);
+    assert(/cle0fis/i.test(cleofText) && cleofText.includes(String(expectedPeople.get('x:cleofis').total_awards)), `TezosCRP ${label}: cleof aliases were not consolidated ${cleofText}`);
 
     await page.locator('#tezoscrp-hall-search').fill('PixelSushiRobot');
     await page.waitForFunction(() => document.querySelectorAll('#tezoscrp-hall-results [data-tezoscrp-person]').length === 1);
     const pixelText = (await page.locator('#tezoscrp-hall-results [data-tezoscrp-person]').innerText()).replace(/\s+/g, ' ');
-    assert(/NiceFishTaco/i.test(pixelText) && /\b3\b/.test(pixelText), `TezosCRP ${label}: PixelSushiRobot continuity was not consolidated ${pixelText}`);
+    assert(/NiceFishTaco/i.test(pixelText) && pixelText.includes(String(expectedPeople.get('x:nicefishtaco').total_awards)), `TezosCRP ${label}: PixelSushiRobot continuity was not consolidated ${pixelText}`);
 
     await page.locator('#tezoscrp-hall-search').fill('onebalddude');
     await page.waitForFunction(() => document.querySelectorAll('#tezoscrp-hall-results [data-tezoscrp-person]').length === 1);
     const crossPlatformText = (await page.locator('#tezoscrp-hall-results [data-tezoscrp-person]').innerText()).replace(/\s+/g, ' ');
-    assert(/one_bald_dude/i.test(crossPlatformText) && /\b7\b/.test(crossPlatformText), `TezosCRP ${label}: cross-platform alias was not consolidated ${crossPlatformText}`);
+    assert(/one_bald_dude/i.test(crossPlatformText) && crossPlatformText.includes(String(expectedPeople.get('x:one_bald_dude').total_awards)), `TezosCRP ${label}: cross-platform alias was not consolidated ${crossPlatformText}`);
 
     await page.locator('[data-tezoscrp-view="records"]').click();
     await page.locator('.tezoscrp-record-holder-card').first().waitFor({ state: 'visible' });
@@ -15758,8 +15776,8 @@ async function smokeTezosCrpChamber(browser, baseUrl) {
       summary: document.querySelector('.tezoscrp-record-year-lead')?.textContent.replace(/\s+/g, ' ').trim() || '',
       overflow: document.querySelector('#tezoscrp-modal .tezoscrp-body').scrollWidth > document.querySelector('#tezoscrp-modal .tezoscrp-body').clientWidth + 1
     }));
-    assert(recordState.yearOptions === 7 && recordState.annualCards === 7 && recordState.selectedYear === '2026', `TezosCRP ${label}: annual record selector is incomplete ${JSON.stringify(recordState)}`);
-    assert(recordState.leaderRows === 12 && /12 identities share the 2026 record/i.test(recordState.summary), `TezosCRP ${label}: tied 2026 annual record is not explicit ${JSON.stringify(recordState)}`);
+    assert(recordState.yearOptions === tezosCrpSummary.records.years.length && recordState.annualCards === tezosCrpSummary.records.years.length && recordState.selectedYear === String(latestYear), `TezosCRP ${label}: annual record selector is incomplete ${JSON.stringify(recordState)}`);
+    assert(recordState.leaderRows === currentYearRecord.leaders.length && recordState.summary.includes(String(currentYearRecord.record)), `TezosCRP ${label}: current annual record is not explicit ${JSON.stringify(recordState)}`);
     assert(recordState.currentCategoryRecords === 9 && recordState.historicalCategoryRecords >= 24, `TezosCRP ${label}: category record holders are incomplete ${JSON.stringify(recordState)}`);
     assert(!recordState.overflow, `TezosCRP ${label}: records view overflows`);
     await page.locator('#tezoscrp-record-year').selectOption('2022');
@@ -15770,7 +15788,7 @@ async function smokeTezosCrpChamber(browser, baseUrl) {
     await page.locator('[data-tezoscrp-view="latest"]').click();
     await page.locator('.tezoscrp-latest-hero h2').waitFor({ state: 'visible' });
     const latestText = (await page.locator('.tezoscrp-latest-hero').innerText()).replace(/\s+/g, ' ');
-    assert(/June 2026/.test(latestText) && /40 category recognitions/.test(latestText), `TezosCRP ${label}: latest official round mismatch ${latestText}`);
+    assert(latestText.includes(latestLabel) && latestText.includes(`${tezosCrpSummary.latest.awards.length} category recognitions`), `TezosCRP ${label}: latest official round mismatch ${latestText}`);
 
     await page.locator('[data-tezoscrp-view="categories"]').click();
     await page.locator('.tezoscrp-category-grid .tezoscrp-category-card').first().waitFor({ state: 'visible' });

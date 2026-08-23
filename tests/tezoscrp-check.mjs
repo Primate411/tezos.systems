@@ -27,26 +27,30 @@ assert.deepEqual(validateTezosCrpIdentityAliases(identityAliases, dataset), []);
 assert.deepEqual(validateTezosCrpDataset(dataset, identityAliases), []);
 assert.deepEqual(applyIdentityAliases(dataset, identityAliases, dataset.generated_at), dataset);
 assert.deepEqual(summary, buildTezosCrpSummary(dataset));
-assert.equal(dataset.awards.length, 2_218);
-assert.equal(dataset.people_summary.length, 827);
+assert.ok(dataset.awards.length >= 2_218);
+assert.ok(dataset.people_summary.length >= 827);
 assert.equal(dataset.identity_resolution.applied_alias_ids, 43);
 assert.equal(dataset.identity_resolution.pending_review_records, 2);
 assert.equal(CURRENT_CATEGORY_DEFINITIONS.length, 9);
 assert.equal(new Set(CURRENT_CATEGORY_DEFINITIONS.map(({ icon }) => icon)).size, 9);
 const records = buildTezosCrpRecords(dataset);
-assert.equal(records.years.length, 7);
+assert.ok(records.years.length >= 7);
 assert.equal(records.categories.length, dataset.category_summary.length);
 assert.deepEqual(records.years.find(({ year }) => year === 2022)?.leaders.map(({ display_name, awards }) => [display_name, awards]), [['Baking Benjamins', 17]]);
 assert.equal(records.years.find(({ year }) => year === 2025)?.leaders.length, 3);
-assert.deepEqual(records.categories.find(({ category }) => category === 'Assimilation Award')?.leaders.map(({ display_name, awards }) => [display_name, awards]), [['spike_0124', 25]]);
+assert.ok(records.categories.find(({ category }) => category === 'Assimilation Award')?.record >= 25);
 for (const definition of CURRENT_CATEGORY_DEFINITIONS) {
   await fs.access(path.join(ROOT, definition.icon.replace(/^\//, '')));
 }
 
+const [latestYear, latestMonth] = dataset.coverage.periods.at(-1).period.split('-').map(Number);
+const fixtureDate = new Date(Date.UTC(latestYear, latestMonth, 1));
+const fixturePeriod = `${fixtureDate.getUTCFullYear()}-${String(fixtureDate.getUTCMonth() + 1).padStart(2, '0')}`;
+const fixtureMonthName = fixtureDate.toLocaleString('en-US', { month: 'long', timeZone: 'UTC' });
 const fixtureArticle = {
-  title: 'Tezos Community Rewards — July 2026',
-  url: 'https://news.tezoscommons.org/tezos-community-rewards-july-2026-fixture',
-  published_at: '2026-08-20T18:00:00.000Z',
+  title: `Tezos Community Rewards — ${fixtureMonthName} ${fixtureDate.getUTCFullYear()}`,
+  url: `https://news.tezoscommons.org/tezos-community-rewards-${fixturePeriod}-fixture`,
+  published_at: new Date(Date.UTC(fixtureDate.getUTCFullYear(), fixtureDate.getUTCMonth() + 1, 20, 18)).toISOString(),
   html: `
     <p>For this round, a total of 10,000 tez has been awarded.</p>
     <h3>Helping Hand Award</h3>
@@ -59,7 +63,7 @@ const fixtureArticle = {
 };
 
 const fixture = awardsFromArticle(fixtureArticle, dataset, identityAliases);
-assert.equal(fixture.period, '2026-07');
+assert.equal(fixture.period, fixturePeriod);
 assert.equal(fixture.awards.length, 4);
 assert.equal(fixture.announced_total_tez, 10_000);
 assert.equal(fixture.awards.find(({ handle }) => handle === 'TozartWeb3')?.person_id, 'x:tozartweb3');
@@ -71,14 +75,14 @@ const rss = `<?xml version="1.0"?><rss><channel><item>
   <title><![CDATA[${fixtureArticle.title}]]></title>
   <link>${fixtureArticle.url}?source=rss</link>
   <guid>https://medium.com/p/fixture</guid>
-  <pubDate>Thu, 20 Aug 2026 18:00:00 GMT</pubDate>
+  <pubDate>${new Date(fixtureArticle.published_at).toUTCString()}</pubDate>
   <content:encoded><![CDATA[${fixtureArticle.html}]]></content:encoded>
 </item></channel></rss>`;
 const items = parseMediumRss(rss);
 assert.equal(items.length, 1);
 assert.equal(items[0].url, fixtureArticle.url);
 const merged = mergeNewArticles(dataset, items, '2026-08-20T18:01:00.000Z', identityAliases);
-assert.deepEqual(merged.addedPeriods, ['2026-07']);
+assert.deepEqual(merged.addedPeriods, [fixturePeriod]);
 assert.equal(merged.dataset.awards.length, dataset.awards.length + 4);
 assert.equal(merged.dataset.coverage.missing_periods.length, 0);
 assert.deepEqual(validateTezosCrpDataset(merged.dataset, identityAliases), []);
@@ -90,8 +94,8 @@ for (const [personId, awards, periods] of [
   ['x:one_bald_dude', 7, 7]
 ]) {
   const person = dataset.people_summary.find((row) => row.person_id === personId);
-  assert.equal(person?.total_awards, awards, `${personId} award total`);
-  assert.equal(person?.distinct_periods, periods, `${personId} month total`);
+  assert.ok(person?.total_awards >= awards, `${personId} award total`);
+  assert.ok(person?.distinct_periods >= periods, `${personId} month total`);
 }
 for (const personId of ['x:pixelsushirobot', 'x:cle0fis', 'x:rexflexasaurus', 'reddit:onebalddude']) {
   assert.equal(dataset.people_summary.some((person) => person.person_id === personId), false, `${personId} should resolve to its canonical record`);

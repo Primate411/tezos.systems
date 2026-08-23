@@ -7,7 +7,8 @@ export const CHANGELOG = [
     {
         date: '2026-08-23',
         entries: [
-            { type: '🔧', text: 'TezosCRP now checks the official winner feed daily so newly announced recognition rounds reach the archive within roughly 24 hours' }
+            { type: '🔧', text: 'TezosCRP now checks the official winner feed daily so newly announced recognition rounds reach the archive within roughly 24 hours' },
+            { type: '🔧', text: 'TezosCRP refresh validation now follows each newly published award period instead of freezing the archive to June 2026 totals' }
         ]
     },
     {
