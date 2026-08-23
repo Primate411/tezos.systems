@@ -5,6 +5,20 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-08-22',
+        entries: [
+            { type: '🎨', text: 'The Handoff now gathers its seven questions into a coordinated constellation: the current context becomes the center of gravity, related paths breathe closer, and compact themes keep calm readable typography' },
+            { type: '🔧', text: 'Live Handoff emphasis now keeps every question target fixed, moves only a brief signal layer when fresh context arrives, settles completely, and leaves mobile footer controls clear of update notices' },
+            { type: '✨', text: 'The Handoff now keeps seven large human questions at its center while six quieter satellites open Network Health, Capital, Tezos X, the Baker Directory, Maxis, and TezosCRP directly' }
+        ]
+    },
+    {
+        date: '2026-08-21',
+        entries: [
+            { type: '🎨', text: 'The Handoff is now a theme-native field of seven gently drifting human questions, clustered around What now? and quietly reweighted by the current page and strongest live signal while exact facts stay in the ticker and rooms' }
+        ]
+    },
+    {
         date: '2026-08-18',
         entries: [
             { type: '🎨', text: 'Explore Tezos now leads with Ecosystem Activity open on phones and desktops, keeps every other topic neatly folded, and softly lights room counts as an invitation to explore' }

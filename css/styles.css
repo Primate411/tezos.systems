@@ -747,6 +747,7 @@ body[data-theme="aurora"]::after {
 html {
     font-size: 16px;
     scroll-behavior: smooth;
+    scroll-padding-bottom: var(--release-update-safe-bottom, 0px);
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
 }
@@ -8506,6 +8507,14 @@ body.high-combo .stat-card {
 }
 
 /* ===== Release Update Dock ===== */
+body.release-update-safe-area-raised {
+    padding-bottom: var(--release-update-safe-bottom, 0px);
+}
+
+body.release-update-safe-area-raised :is(a[href], button, input, select, textarea, summary, [tabindex]) {
+    scroll-margin-bottom: var(--release-update-safe-bottom, 0px);
+}
+
 .release-update-dock {
     --release-accent: #45E0C8;
     --release-strong: #5B8DEF;
@@ -8746,8 +8755,7 @@ body.high-combo .stat-card {
 }
 
 @media (max-width: 600px) {
-    .release-update-dock,
-    .release-update-dock.is-collapsed {
+    .release-update-dock {
         right: 12px;
         bottom: calc(12px + env(safe-area-inset-bottom, 0px));
         left: 12px;
@@ -8755,6 +8763,13 @@ body.high-combo .stat-card {
         max-width: none;
         transform: translate3d(0, 18px, 0) scale(0.97);
         transform-origin: center bottom;
+    }
+
+    .release-update-dock.is-collapsed {
+        left: auto;
+        width: max-content;
+        max-width: calc(100vw - 24px);
+        transform-origin: right bottom;
     }
 
     .release-update-dock.is-visible {
@@ -8811,8 +8826,9 @@ body.high-combo .stat-card {
         min-height: 44px;
     }
 
-    .release-update-pill {
-        width: 100%;
+    .release-update-dock.is-collapsed .release-update-pill {
+        width: auto;
+        max-width: 100%;
     }
 }
 

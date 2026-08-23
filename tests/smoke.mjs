@@ -5267,14 +5267,17 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
         collapsed: dock?.classList.contains('is-collapsed') || false,
         height: rect?.height || 0,
         pillHeight: pill?.getBoundingClientRect().height || 0,
-        pillHidden: pill?.hidden ?? true
+        pillHidden: pill?.hidden ?? true,
+        width: rect?.width || 0,
+        viewportWidth: innerWidth
       };
     });
     assert(compactArrival.collapsed
       && compactArrival.cardHidden
       && !compactArrival.pillHidden
       && compactArrival.pillHeight >= 44
-      && compactArrival.height <= 48,
+      && compactArrival.height <= 48
+      && (compactArrival.viewportWidth > 600 || compactArrival.width < compactArrival.viewportWidth - 80),
     `release update dock ${testCase.label}: a routine update must arrive as the compact transmission pill ${JSON.stringify(compactArrival)}`);
     await page.evaluate(() => window.__releaseUpdateUi.expandReleaseUpdateDock());
     await page.waitForFunction(() => !document.querySelector('[data-release-update-dock]')?.classList.contains('is-collapsed'));
@@ -6441,28 +6444,75 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     const handoff = document.getElementById('recruit-section');
     const footer = document.querySelector('[data-site-footer]');
     const disclosure = handoff?.querySelector('.site-map-disclosure');
+    const questions = [...(handoff?.querySelectorAll('[data-handoff-question]') || [])];
     return {
       text: handoff?.innerText || '',
-      steps: handoff?.querySelectorAll('.site-handoff-step').length || 0,
-      currentPhases: handoff?.querySelectorAll('.site-handoff-step.is-current-phase').length || 0,
-      nextSteps: handoff?.querySelectorAll('.site-handoff-step.is-next').length || 0,
-      primaryHref: handoff?.querySelector('.site-handoff-primary')?.getAttribute('href') || '',
-      sideActions: handoff?.querySelectorAll('.site-handoff-side-actions a').length || 0,
+      questions: questions.map((question) => ({
+        id: question.dataset.handoffQuestion,
+        href: question.getAttribute('href'),
+        emphasized: question.classList.contains('is-emphasized')
+      })),
+      emphasisSource: handoff?.dataset.siteHandoffEmphasisSource || '',
       disclosureOpen: disclosure?.hasAttribute('open') || false,
-      legacyRecipes: handoff?.querySelectorAll('[data-loop-aura], .tezos-loop-chip').length || 0,
+      legacyNavigation: handoff?.querySelectorAll('[data-loop-aura], .tezos-loop-chip, .site-handoff-lifeline, .site-handoff-recommendation').length || 0,
       handoffContainsFooter: Boolean(handoff?.querySelector('[data-site-footer]')),
       footerContainsHandoff: Boolean(footer?.querySelector('[data-site-handoff]')),
       separateSiblings: handoff?.nextElementSibling === footer,
       footerHasAttribution: Boolean(footer?.querySelector('[data-site-footer-attribution]'))
     };
   });
-  for (const label of ['the handoff', 'now', 'you', 'flow', 'power', 'memory', 'people', 'open the complete map']) {
+  for (const label of ['the handoff', 'what’s being built?', 'where is value moving?', 'what now?', 'what’s mine?', 'what are we deciding?', 'what came before?', 'where does power gather?', 'open the complete map']) {
     assert(handoffState.text.toLowerCase().includes(label), `hero command bar: Handoff missing ${label}: ${JSON.stringify(handoffState)}`);
   }
-  assert(handoffState.steps === 6 && handoffState.currentPhases === 1 && handoffState.nextSteps === 1, `hero command bar: Handoff lifeline state mismatch ${JSON.stringify(handoffState)}`);
-  assert(handoffState.primaryHref === '/pulse/' && handoffState.sideActions === 2, `hero command bar: dashboard Handoff should recommend Network Pulse with two quiet exits: ${JSON.stringify(handoffState)}`);
-  assert(!handoffState.disclosureOpen && handoffState.legacyRecipes === 0, `hero command bar: complete map should start folded with no retired recipe controls: ${JSON.stringify(handoffState)}`);
+  const expectedHandoffRoutes = new Map([
+    ['build', '/ecosystem/'],
+    ['move', '/ledger-flow/'],
+    ['now', '/pulse/'],
+    ['mine', '/my/'],
+    ['decide', '/chamber/'],
+    ['before', '/anthology/'],
+    ['power', '/stake/']
+  ]);
+  assert(handoffState.questions.length === expectedHandoffRoutes.size, `hero command bar: Handoff should expose seven human questions ${JSON.stringify(handoffState)}`);
+  for (const question of handoffState.questions) {
+    assert(expectedHandoffRoutes.get(question.id) === question.href, `hero command bar: Handoff question route drifted ${JSON.stringify(question)}`);
+  }
+  assert(handoffState.questions.filter((question) => question.emphasized).length === 1, `hero command bar: Handoff should emphasize exactly one current question ${JSON.stringify(handoffState)}`);
+  assert(!handoffState.disclosureOpen && handoffState.legacyNavigation === 0, `hero command bar: complete map should start folded with no retired navigation console: ${JSON.stringify(handoffState)}`);
   assert(handoffState.separateSiblings && handoffState.footerHasAttribution && !handoffState.handoffContainsFooter && !handoffState.footerContainsHandoff, `hero command bar: Handoff and footer must remain separate sibling surfaces: ${JSON.stringify(handoffState)}`);
+  const handoffSignalState = await page.evaluate(() => {
+    const handoff = document.getElementById('recruit-section');
+    const before = [...handoff.querySelectorAll('[data-handoff-question]')];
+    const focused = handoff.querySelector('[data-handoff-question="build"]');
+    focused.focus();
+    const scrollBefore = window.scrollY;
+    window.dispatchEvent(new CustomEvent('site-handoff-signal', {
+      detail: { signal: { category: 'governance', title: 'Smoke governance signal' } }
+    }));
+    const after = [...handoff.querySelectorAll('[data-handoff-question]')];
+    return {
+      sameNodes: before.length === after.length && before.every((node, index) => node === after[index]),
+      focusPreserved: document.activeElement === focused,
+      scrollBefore,
+      scrollAfter: window.scrollY,
+      emphasized: handoff.querySelector('.site-handoff-question.is-emphasized')?.dataset.handoffQuestion || '',
+      source: handoff.dataset.siteHandoffEmphasisSource || '',
+      constellation: handoff.dataset.siteHandoffConstellation || '',
+      centerRelation: handoff.querySelector('[data-handoff-question="decide"]')?.dataset.handoffRelation || '',
+      relatedCount: handoff.querySelectorAll('[data-handoff-relation="near"]').length,
+      distantCount: handoff.querySelectorAll('[data-handoff-relation="far"]').length,
+      relatedPulls: [...handoff.querySelectorAll('[data-handoff-relation="near"]')]
+        .map((link) => link.style.getPropertyValue('--handoff-constellation-x'))
+    };
+  });
+  assert(
+    handoffSignalState.sameNodes
+      && handoffSignalState.focusPreserved
+      && Math.abs(handoffSignalState.scrollAfter - handoffSignalState.scrollBefore) <= 1
+      && handoffSignalState.emphasized === 'decide'
+      && handoffSignalState.source === 'signal',
+    `hero command bar: Handoff signal emphasis replaced nodes or moved the reader ${JSON.stringify(handoffSignalState)}`
+  );
   const handoffDisclosure = page.locator('#recruit-section .site-map-disclosure');
   const handoffDisclosureText = await handoffDisclosure.locator('summary').innerText();
   const handoffDestinationCount = Number.parseInt(handoffDisclosureText.match(/(\d+) destinations/)?.[1] || '', 10);
@@ -6720,6 +6770,382 @@ async function smokeHeroCommandBar(browser, baseUrl) {
 
   assert(issues.length === 0, `hero command bar browser issues:\n${issues.join('\n')}`);
   log('ok - hero command bar smoke');
+}
+
+async function smokeHandoffQuestionField(browser, baseUrl) {
+  const issues = [];
+  const themes = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
+  const viewports = [
+    { label: 'desktop', width: 1280, height: 900 },
+    { label: 'compact-desktop', width: 748, height: 844 },
+    { label: 'mobile', width: 390, height: 844 }
+  ];
+  const context = await browser.newContext({
+    viewport: { width: viewports[0].width, height: viewports[0].height },
+    serviceWorkers: 'block'
+  });
+  await context.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'application/javascript',
+    body: `window.Chart = window.Chart || class SmokeChart {
+      constructor(target, config = {}) { this.canvas = target?.canvas || target; this.data = config.data || {}; this.options = config.options || {}; }
+      update() {}
+      destroy() {}
+      resize() {}
+      static getChart() { return null; }
+    };`
+  }));
+  await context.route('https://fonts.googleapis.com/**', (route) => route.fulfill({
+    status: 200,
+    contentType: 'text/css',
+    body: ''
+  }));
+  await context.route('https://fonts.gstatic.com/**', (route) => route.fulfill({
+    status: 204,
+    contentType: 'font/woff2',
+    body: ''
+  }));
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-home-layout-v1', JSON.stringify({ version: 1, hidden: [] }));
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'Handoff Question Field', issues);
+
+  const renderFocusedHandoff = async () => {
+    await page.waitForLoadState('domcontentloaded');
+    await page.locator('#recruit-section[data-site-handoff]').waitFor({ state: 'attached', timeout: 15000 });
+    await page.evaluate(async () => {
+      const [{ renderSiteHandoff }, { findCurrentSiteMapContext, findCurrentSiteMapEntry, findSiteMapEntry }] = await Promise.all([
+        import('/js/core/site-handoff.js'),
+        import('/js/core/site-map.js')
+      ]);
+      const handoff = document.getElementById('recruit-section');
+      const currentContext = findCurrentSiteMapContext();
+      renderSiteHandoff(handoff, {
+        currentEntry: currentContext.entry || findCurrentSiteMapEntry() || findSiteMapEntry('home'),
+        currentContext
+      });
+    });
+    await page.locator('#recruit-section .site-handoff-question-field').waitFor({ state: 'visible', timeout: 15000 });
+  };
+
+  const interactionResponse = await page.goto(`${baseUrl}/?theme=aurora`, { waitUntil: 'commit' });
+  assert(interactionResponse?.ok(), `Handoff Question Field interaction proof failed with HTTP ${interactionResponse?.status()}`);
+  await renderFocusedHandoff();
+  const signalState = await page.evaluate(() => {
+    const handoff = document.getElementById('recruit-section');
+    const before = [...handoff.querySelectorAll('[data-handoff-question]')];
+    const beforeGeometry = before.map((link) => {
+      const rect = link.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+    });
+    const focused = handoff.querySelector('[data-handoff-question="build"]');
+    focused.focus();
+    const scrollBefore = window.scrollY;
+    window.dispatchEvent(new CustomEvent('site-handoff-signal', {
+      detail: { signal: { category: 'governance', title: 'Focused Handoff smoke' } }
+    }));
+    const after = [...handoff.querySelectorAll('[data-handoff-question]')];
+    const geometryStable = after.every((link, index) => {
+      const rect = link.getBoundingClientRect();
+      const beforeRect = beforeGeometry[index];
+      return Math.abs(rect.left - beforeRect.left) <= 0.25
+        && Math.abs(rect.top - beforeRect.top) <= 0.25
+        && Math.abs(rect.width - beforeRect.width) <= 0.25
+        && Math.abs(rect.height - beforeRect.height) <= 0.25;
+    });
+    return {
+      sameNodes: before.length === after.length && before.every((node, index) => node === after[index]),
+      geometryStable,
+      focusPreserved: document.activeElement === focused,
+      scrollBefore,
+      scrollAfter: window.scrollY,
+      emphasized: handoff.querySelector('.site-handoff-question.is-emphasized')?.dataset.handoffQuestion || '',
+      source: handoff.dataset.siteHandoffEmphasisSource || '',
+      constellation: handoff.dataset.siteHandoffConstellation || '',
+      centerRelation: handoff.querySelector('[data-handoff-question="decide"]')?.dataset.handoffRelation || '',
+      relatedCount: handoff.querySelectorAll('[data-handoff-relation="near"]').length,
+      distantCount: handoff.querySelectorAll('[data-handoff-relation="far"]').length,
+      signalOffsets: [...handoff.querySelectorAll('[data-handoff-relation="near"]')]
+        .map((link) => link.style.getPropertyValue('--handoff-signal-x')),
+      heldMotionSuppressed: handoff.querySelectorAll('.site-handoff-question.is-signal-arriving').length === 0
+    };
+  });
+  assert(
+    signalState.sameNodes
+      && signalState.geometryStable
+      && signalState.focusPreserved
+      && Math.abs(signalState.scrollAfter - signalState.scrollBefore) <= 1
+      && signalState.emphasized === 'decide'
+      && signalState.source === 'signal'
+      && signalState.constellation === 'decide'
+      && signalState.centerRelation === 'center'
+      && signalState.relatedCount >= 1
+      && signalState.distantCount >= 1
+      && signalState.signalOffsets.some((offset) => offset && offset !== '0.00px')
+      && signalState.heldMotionSuppressed,
+    `Handoff Question Field: topical emphasis replaced nodes or moved the reader ${JSON.stringify(signalState)}`
+  );
+
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/health/', { waitUntil: 'commit', timeout: 10000 }),
+    page.locator('#recruit-section [data-handoff-question="health"]').click()
+  ]);
+  await renderFocusedHandoff();
+  const satelliteRouteState = await page.evaluate(async () => {
+    const { findCurrentSiteMapContext } = await import('/js/core/site-map.js');
+    return {
+      path: location.pathname,
+      contextEntry: findCurrentSiteMapContext().entryId,
+      currentQuestion: document.querySelector('#recruit-section [data-handoff-question][aria-current="page"]')?.dataset.handoffQuestion || '',
+      tier: document.querySelector('#recruit-section [data-handoff-question="health"]')?.dataset.handoffTier || ''
+    };
+  });
+  assert(
+    satelliteRouteState.path === '/health/'
+      && satelliteRouteState.contextEntry === 'health'
+      && satelliteRouteState.currentQuestion === 'health'
+      && satelliteRouteState.tier === 'satellite',
+    `Handoff Question Field: satellite navigation lost its direct Chamber context ${JSON.stringify(satelliteRouteState)}`
+  );
+
+  await page.goto(`${baseUrl}/?theme=aurora`, { waitUntil: 'commit' });
+  await renderFocusedHandoff();
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/chamber/', { waitUntil: 'commit', timeout: 10000 }),
+    page.locator('#recruit-section [data-handoff-question="decide"]').click()
+  ]);
+  await renderFocusedHandoff();
+  const chamberState = await page.evaluate(async () => {
+    const { findCurrentSiteMapContext } = await import('/js/core/site-map.js');
+    return {
+      path: location.pathname,
+      contextEntry: findCurrentSiteMapContext().entryId,
+      currentQuestion: document.querySelector('#recruit-section [data-handoff-question][aria-current="page"]')?.dataset.handoffQuestion || ''
+    };
+  });
+  assert(
+    chamberState.path === '/chamber/'
+      && chamberState.contextEntry === 'chamber'
+      && chamberState.currentQuestion === 'decide',
+    `Handoff Question Field: canonical governance navigation lost its current-question context ${JSON.stringify(chamberState)}`
+  );
+
+  const constellationCases = [
+    { expected: 'build', signal: { category: 'ecosystem', title: 'Apps are being built' } },
+    { expected: 'move', signal: { category: 'market', title: 'Value is moving' } },
+    { expected: 'now', signal: { category: 'network', title: 'What now' } },
+    { expected: 'mine', signal: { category: 'wallet', title: 'My account' } },
+    { expected: 'decide', signal: { category: 'governance', title: 'A proposal is live' } },
+    { expected: 'before', signal: { category: 'history', title: 'Protocol memory' } },
+    { expected: 'power', signal: { category: 'staking', title: 'Staking power' } },
+    { expected: 'health', signal: { category: 'network health', title: 'Finality is healthy' } },
+    { expected: 'capital', signal: { category: 'capital', title: 'Stablecoin activity' } },
+    { expected: 'etherlink', signal: { category: 'etherlink', title: 'Layer 2 activity' } },
+    { expected: 'bakers', signal: { category: 'baker directory', title: 'Active validators' } },
+    { expected: 'maxis', signal: { category: 'maxis', title: 'A new crown leader' } },
+    { expected: 'recognition', signal: { category: 'tezoscrp', title: 'Community recognition' } }
+  ];
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const viewport of viewports) {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    const response = await page.goto(`${baseUrl}/?theme=aurora`, { waitUntil: 'commit' });
+    assert(response?.ok(), `Handoff Question Field: ${viewport.label} shell failed with HTTP ${response?.status()}`);
+    await renderFocusedHandoff();
+    for (const theme of themes) {
+      await page.evaluate(async (nextTheme) => {
+        const { setTheme } = await import('/js/ui/theme.js');
+        setTheme(nextTheme);
+        const stylesheet = document.getElementById(`theme-css-${nextTheme}`);
+        if (stylesheet && !stylesheet.sheet) {
+          await new Promise((resolve) => {
+            const done = () => resolve();
+            stylesheet.addEventListener('load', done, { once: true });
+            stylesheet.addEventListener('error', done, { once: true });
+            setTimeout(done, 3000);
+          });
+        }
+        await document.fonts?.ready;
+      }, theme);
+      await page.waitForTimeout(100);
+      const states = await page.evaluate((cases) => cases.map(({ expected, signal }) => {
+        const shell = document.getElementById('recruit-section');
+        window.dispatchEvent(new CustomEvent('site-handoff-signal', { detail: { signal } }));
+        const field = shell?.querySelector('.site-handoff-question-field');
+        const fieldRect = field?.getBoundingClientRect();
+        const questions = [...(field?.querySelectorAll('[data-handoff-question]') || [])]
+          .filter((question) => {
+            const style = getComputedStyle(question);
+            const rect = question.getBoundingClientRect();
+            return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+          })
+          .map((question) => {
+            const rect = question.getBoundingClientRect();
+            return {
+              id: question.dataset.handoffQuestion,
+              left: rect.left,
+              right: rect.right,
+              top: rect.top,
+              bottom: rect.bottom,
+              width: rect.width,
+              height: rect.height,
+              emphasized: question.classList.contains('is-emphasized'),
+              relation: question.dataset.handoffRelation || ''
+            };
+          });
+        const overlaps = [];
+        for (let leftIndex = 0; leftIndex < questions.length; leftIndex += 1) {
+          for (let rightIndex = leftIndex + 1; rightIndex < questions.length; rightIndex += 1) {
+            const left = questions[leftIndex];
+            const right = questions[rightIndex];
+            const overlapWidth = Math.min(left.right, right.right) - Math.max(left.left, right.left);
+            const overlapHeight = Math.min(left.bottom, right.bottom) - Math.max(left.top, right.top);
+            if (overlapWidth > 2 && overlapHeight > 2) overlaps.push([left.id, right.id]);
+          }
+        }
+        return {
+          expected,
+          constellation: shell?.dataset.siteHandoffConstellation || '',
+          count: questions.length,
+          emphasized: questions.filter((question) => question.emphasized).length,
+          emphasizedId: questions.find((question) => question.emphasized)?.id || '',
+          centerCount: questions.filter((question) => question.relation === 'center').length,
+          relatedCount: questions.filter((question) => question.relation === 'near').length,
+          distantCount: questions.filter((question) => question.relation === 'far').length,
+          shortTargets: questions.filter((question) => question.width < 43 || question.height < 43).map((question) => question.id),
+          outsideField: questions.filter((question) => (
+            question.left < fieldRect.left - 2
+            || question.right > fieldRect.right + 2
+            || question.top < fieldRect.top - 2
+            || question.bottom > fieldRect.bottom + 2
+          )).map((question) => question.id),
+          overlaps,
+          documentOverflow: document.documentElement.scrollWidth - innerWidth
+        };
+      }), constellationCases);
+      for (const state of states) {
+        assert(
+          state.count === 13
+            && state.constellation === state.expected
+            && state.emphasized === 1
+            && state.emphasizedId === state.expected
+            && state.centerCount === 1
+            && state.relatedCount >= 1
+            && state.distantCount >= 1
+            && state.shortTargets.length === 0
+            && state.outsideField.length === 0
+            && state.overlaps.length === 0
+            && state.documentOverflow <= 1,
+          `Handoff Question Field: ${theme} ${viewport.label} ${state.expected} constellation failed ${JSON.stringify(state)}`
+        );
+      }
+    }
+  }
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto(`${baseUrl}/?theme=aurora`, { waitUntil: 'commit' });
+  await renderFocusedHandoff();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.locator('#recruit-section .site-handoff-question-field').scrollIntoViewIfNeeded();
+  await page.mouse.move(0, 0);
+  const motionBefore = await page.locator('#recruit-section [data-handoff-question]').evaluateAll((questions) => questions.map((question) => {
+    const rect = question.getBoundingClientRect();
+    return { id: question.dataset.handoffQuestion, left: rect.left, top: rect.top, width: rect.width, height: rect.height };
+  }));
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('site-handoff-signal', {
+      detail: { signal: { category: 'market', title: 'Value is moving' } }
+    }));
+  });
+  await page.waitForTimeout(120);
+  const motionDuring = await page.locator('#recruit-section [data-handoff-question]').evaluateAll((questions) => questions.map((question) => {
+    const rect = question.getBoundingClientRect();
+    return {
+      id: question.dataset.handoffQuestion,
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      wordAnimation: getComputedStyle(question.querySelector(':scope > span')).animationName,
+      wordTranslate: getComputedStyle(question.querySelector(':scope > span')).translate
+    };
+  }));
+  await page.waitForTimeout(760);
+  const settledMotion = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => getComputedStyle(word).translate));
+  await page.waitForTimeout(900);
+  const heldSettledMotion = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => getComputedStyle(word).translate));
+  assert(
+    motionBefore.every((before, index) => (
+      before.id === motionDuring[index]?.id
+        && Math.abs(before.left - motionDuring[index].left) <= 0.25
+        && Math.abs(before.top - motionDuring[index].top) <= 0.25
+        && Math.abs(before.width - motionDuring[index].width) <= 0.25
+        && Math.abs(before.height - motionDuring[index].height) <= 0.25
+    ))
+      && motionDuring.some((state) => state.wordAnimation === 'site-handoff-signal-settle' && state.wordTranslate !== 'none')
+      && settledMotion.every((translate, index) => translate === heldSettledMotion[index]),
+    `Handoff Question Field: one fresh signal must move only inner content and then settle ${JSON.stringify({ motionBefore, motionDuring, settledMotion, heldSettledMotion })}`
+  );
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reducedMotionState = await page.locator('#recruit-section [data-handoff-question] > span').evaluateAll((words) => words.map((word) => ({
+    animation: getComputedStyle(word).animationName,
+    translate: getComputedStyle(word).translate,
+    scale: getComputedStyle(word).scale
+  })));
+  assert(
+    reducedMotionState.every((word) => word.animation === 'none' && word.translate === 'none' && word.scale === 'none'),
+    `Handoff Question Field: reduced motion must fully settle every signal word ${JSON.stringify(reducedMotionState)}`
+  );
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'commit' });
+  await renderFocusedHandoff();
+  await page.evaluate(async () => {
+    const ui = await import('/js/ui/release-update.js');
+    window.__handoffReleaseUpdateUi = ui;
+    ui.showReleaseUpdateDock({
+      detail: 'A compact update remains available while you choose what comes next.',
+      canDefer: true
+    });
+  });
+  await page.waitForFunction(() => {
+    const dock = document.querySelector('[data-release-update-dock]');
+    return dock?.classList.contains('is-visible')
+      && dock.classList.contains('is-collapsed')
+      && Boolean(getComputedStyle(document.documentElement).getPropertyValue('--release-update-safe-bottom').trim());
+  });
+  await page.locator('#recruit-section .site-map-disclosure > summary').evaluate((summary) => summary.scrollIntoView({ block: 'end', behavior: 'instant' }));
+  await page.waitForTimeout(120);
+  const mobileDockClearance = await page.evaluate(() => {
+    const dockRect = document.querySelector('[data-release-update-dock]')?.getBoundingClientRect();
+    const summaryRect = document.querySelector('#recruit-section .site-map-disclosure > summary')?.getBoundingClientRect();
+    return {
+      dockWidth: dockRect?.width || 0,
+      overlapHeight: dockRect && summaryRect ? Math.min(dockRect.bottom, summaryRect.bottom) - Math.max(dockRect.top, summaryRect.top) : Number.NaN,
+      summaryBottom: summaryRect?.bottom || 0,
+      dockTop: dockRect?.top || 0,
+      viewportWidth: innerWidth,
+      safeBottom: getComputedStyle(document.documentElement).getPropertyValue('--release-update-safe-bottom').trim(),
+      htmlScrollPadding: getComputedStyle(document.documentElement).scrollPaddingBottom,
+      bodyPadding: getComputedStyle(document.body).paddingBottom,
+      scrollY: window.scrollY,
+      maxScrollY: document.documentElement.scrollHeight - innerHeight
+    };
+  });
+  assert(
+    mobileDockClearance.dockWidth < mobileDockClearance.viewportWidth - 80
+      && mobileDockClearance.overlapHeight <= 0
+      && mobileDockClearance.summaryBottom <= mobileDockClearance.dockTop,
+    `Handoff Question Field: compact update notice obscured the mobile complete-map control ${JSON.stringify(mobileDockClearance)}`
+  );
+  await page.evaluate(() => window.__handoffReleaseUpdateUi.hideReleaseUpdateDock());
+
+  await context.close();
+  assert(issues.length === 0, `Handoff Question Field browser issues:\n${issues.join('\n')}`);
+  log('ok - Handoff Question Field across 13 constellation states, 15 themes, and desktop/compact/mobile widths');
 }
 
 async function smokeRouteSearchState(browser, baseUrl) {
@@ -31427,6 +31853,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'release-update', description: 'Persistent desktop/mobile release dock, Later pill, activation fallback, and cross-tab service-worker lifecycle', run: () => smokeReleaseUpdateDock(browser, baseUrl) },
     { name: 'hero-landscape', description: 'Hero continuity signals form one uptime/activity row above one uninterrupted four-pill row at intermediate widths', run: () => smokeHeroIntermediate(browser, baseUrl) },
     { name: 'hero-command-bar', description: 'Hero command bar owns the first-screen retrieval path, protocol deep dives, and command routing', run: () => smokeHeroCommandBar(browser, baseUrl) },
+    { name: 'handoff-question-field', description: 'The Handoff keeps seven anchor and six satellite questions readable and non-overlapping across every theme and phone/compact/desktop geometry', run: () => smokeHandoffQuestionField(browser, baseUrl) },
     { name: 'route-search-state', description: 'Alias transitions, bare routes, search relevance, Escape focus, query preservation, and Back/Forward state stay coherent', run: () => smokeRouteSearchState(browser, baseUrl) },
     { name: 'breakpoint-accessibility', description: 'Exact paired breakpoints, 200% reflow, forced colors, and reduced motion preserve shell/search/Chamber focus, containment, and horizontal fit', run: () => smokeBreakpointAccessibility(browser, baseUrl) },
     { name: 'cycle-milestone', description: 'Exact cycle milestones survive stale catalogs and quiet reconciliation while dead history breadcrumbs stay removed', run: () => smokeCycleMilestone(browser, baseUrl) },

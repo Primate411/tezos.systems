@@ -1677,6 +1677,26 @@ async function checkSiteMapGraphContracts() {
     || !siteHandoff.includes('SITE_MAP_NAV_GROUPS.map')) {
     fail('dashboard must expose separate manifest-backed Handoff and footer surfaces');
   }
+  for (const [questionId, entryId] of [
+    ['build', 'ecosystem'],
+    ['move', 'ledger-flow'],
+    ['now', 'pulse'],
+    ['mine', 'my-tezos'],
+    ['decide', 'chamber'],
+    ['before', 'anthology'],
+    ['power', 'staking-chamber']
+  ]) {
+    if (!siteHandoff.includes(`id: '${questionId}'`) || !siteHandoff.includes(`entryId: '${entryId}'`)) {
+      fail(`Handoff question ${questionId} must resolve through the canonical ${entryId} entry`);
+    }
+  }
+  if (!siteHandoff.includes("window.addEventListener('site-handoff-signal', applySignal)")
+    || !siteHandoff.includes("link.classList.toggle('is-emphasized'")
+    || !siteHandoff.includes("container.dataset.siteHandoffEmphasisSource = source")
+    || !siteHandoff.includes("document.visibilityState !== 'visible'")
+    || !siteHandoff.includes("!handoffReaderIsHolding(container)")) {
+    fail('Handoff signal emphasis must reconcile in place without rebuilding the navigation field');
+  }
   if (!app.includes('initSiteWayfinder') || !wayfinder.includes('siteMapJourneyLinks')) fail('dashboard Chambers must initialize the shared semantic wayfinder');
   if (!index.includes('data-site-map-complete') || !index.includes('class="feature-launcher-directory-link"') || !index.includes('href="/#site-map"')) {
     fail('Explore must expose one quiet complete-directory utility');
@@ -1693,6 +1713,10 @@ async function checkSiteMapGraphContracts() {
     }
   }
   const siteMapCss = await readText('css/site-map.css');
+  if (siteMapCss.includes('var(--handoff-constellation-x)')
+      || siteMapCss.includes('var(--handoff-constellation-compact-x)')) {
+    fail('Handoff signal emphasis must not translate its interactive link targets');
+  }
   if (!siteMapCss.includes('.chamber-overlay [data-site-wayfinder-native]')) {
     fail('native Chamber wayfinders must inherit the shared wayfinder color and border variables');
   }
@@ -2121,10 +2145,12 @@ async function checkSelectorContracts() {
     ['Separate Tezos footer hook', 'data-site-footer data-site-context="home"'],
     ['Separate Tezos footer styling hook', 'class="footer site-footer-separate"'],
     ['Tezos Handoff attribution hook', 'data-site-footer-attribution'],
-    ['Tezos Handoff title', 'The system continues from here.', siteHandoffSource],
-    ['Tezos Handoff lifeline', 'class="site-handoff-lifeline"', siteHandoffSource],
+    ['Tezos Handoff title', 'Follow a question, not a menu.', siteHandoffSource],
+    ['Tezos Handoff question field', 'class="site-handoff-question-field"', siteHandoffSource],
     ['Tezos Handoff complete map disclosure', 'Open the complete map · ${totalDestinations} destinations', siteHandoffSource],
-    ['Tezos Handoff choose-for-me route', 'Choose for me', siteHandoffSource],
+    ['Tezos Handoff human question route', 'What’s being built?', siteHandoffSource],
+    ['Tezos Handoff hospitable invitation', 'Stay awhile. When one of these feels like yours, follow it.', siteHandoffSource],
+    ['Tezos Handoff topical signal hook', "window.addEventListener('hot-signal-rendered', applySignal)", siteHandoffSource],
     ['hero command bar slash-tip placeholder', 'Press / to search every feature or paste any Tezos ID…'],
     ['timeline share fallback host', 'document.querySelector(\'.upgrade-badges\')'],
     ['timeline share protocol history chamber fallback', 'document.querySelector(\'#protocol-history-chamber-modal .protocol-history-feature-panel\')'],
@@ -2413,11 +2439,22 @@ async function checkSelectorContracts() {
     ['Site map manifest includes Network Pulse route', "href: '/pulse/'", siteMap],
     ['Landing pages share site nav renderer', 'function renderFooter()', siteNav],
     ['Shared Handoff renderer', 'function renderSiteHandoff', siteHandoff],
-    ['Shared Handoff stable lifeline', "{ id: 'now', label: 'Now', entryId: 'pulse' }", siteHandoff],
-    ['Shared Handoff contextual recommendation', 'function recommendedEntry', siteHandoff],
+    ['Shared Handoff stable question catalog', "{ id: 'now', prompt: 'What now?', label: 'Network Pulse', entryId: 'pulse' }", siteHandoff],
+    ['Shared Handoff quiet satellite catalog', "{ id: 'health', prompt: 'Is the chain healthy?', label: 'Network Health', entryId: 'health', tier: 'satellite' }", siteHandoff],
+    ['Shared Handoff satellite hierarchy hook', "question.tier === 'satellite' ? 'is-satellite' : 'is-anchor'", siteHandoff],
+    ['Shared Handoff contextual question emphasis', 'function contextualQuestionId', siteHandoff],
+    ['Shared Handoff canonical semantic relations', 'SITE_MAP_RELATIONS', siteHandoff],
+    ['Shared Handoff coordinated constellation state', 'container.dataset.siteHandoffConstellation = nextId', siteHandoff],
+    ['Shared Handoff near and far relationship state', 'link.dataset.handoffRelation = relation', siteHandoff],
     ['Shared Handoff directory uses canonical groups', 'SITE_MAP_NAV_GROUPS.map', siteHandoff],
-    ['Shared Handoff desktop lifeline styles', '.site-handoff-lifeline', siteMapCss],
-    ['Shared Handoff mobile vertical lifeline styles', 'flex-direction: column;', siteMapCss],
+    ['Shared Handoff desktop question field styles', '.site-handoff-question-field', siteMapCss],
+    ['Shared Handoff event-bound signal settle', '@keyframes site-handoff-signal-settle', siteMapCss],
+    ['Shared Handoff signal settle applies only to arriving inner content', '.site-handoff-question.is-signal-arriving > span', siteMapCss],
+    ['Shared Handoff visible destination cue', 'content: " ↗";', siteMapCss],
+    ['Shared Handoff quiet satellite typography', '.site-handoff-question.is-satellite', siteMapCss],
+    ['Shared Handoff reduced-motion breath removal', 'scale: none;', siteMapCss],
+    ['Shared Handoff mobile question composition', 'grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);', siteMapCss],
+    ['Shared Handoff mobile readable UI typography', 'font-family: var(--font-ui, system-ui', siteMapCss],
     ['Hero search runtime-only quick chips', 'RUNTIME_QUICK_CHIPS', search],
     ['Hero search runtime-only commands', 'RUNTIME_COMMANDS', search],
     ['Hero search complete browse index', 'siteMapBrowseEntries', search],
