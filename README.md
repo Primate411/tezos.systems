@@ -313,8 +313,8 @@ inline modal styles in `js/core/app.js`.
 ## Main Surfaces
 
 - Setup starts with **Customize home**, a device-local seven-switch layout for
-  the Chain Heartbeat ticker, search/command deck, Live Pulse (including its
-  governance strip), Explore Tezos, Network Moments, and the Keep Exploring
+  the Chain Heartbeat ticker, search/command deck, the continuously drifting
+  Live Pulse ticker (including its governance strip), Explore Tezos, Network Moments, and the Keep Exploring
   handoff, plus the Credits and sources footer. Every block is shown by default
   and also has an inline eye-off action with Undo. The header, Setup, and My
   Tezos are permanent recovery surfaces; blocks are not reordered. Preferences use
@@ -324,6 +324,11 @@ inline modal styles in `js/core/app.js`.
   Explicit Home deep links and the `/` search shortcut reveal and save their
   target, while the guided tour temporarily reveals all seven without changing
   the saved layout.
+- Live Pulse sits directly above Chain Heartbeat as a right-to-left signal
+  ticker. Hover, tap, or keyboard focus pauses a signal and opens its detail
+  shelf; activating the held signal opens its source Chamber. Motion pauses
+  off-screen and in hidden tabs, becomes a manual horizontal scroller under
+  reduced motion, and retains its exact phase across quiet background refreshes.
 - Explore's seven topics and all 21 individual Chamber launchers are independently
   hideable. Topic headers and Chamber cards provide quick eye-off actions with
   Undo, while **Choose Explore Chambers** in Customize home keeps a compact

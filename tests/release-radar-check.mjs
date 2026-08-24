@@ -102,8 +102,9 @@ const noSignal = buildReleaseRadarSignal(
 );
 assert.equal(noSignal.releaseRadar.noCredibleSignal, true, 'an all-none receipt renders the explicit no-credible-signal state');
 
-const [briefing, css, dataAssets] = await Promise.all([
+const [briefing, pulseTicker, css, dataAssets] = await Promise.all([
   readText('js/features/daily-briefing.js'),
+  readText('js/ui/pulse-ticker.js'),
   readText('css/shell-extras.css'),
   readText('js/core/data-assets.js')
 ]);
@@ -117,34 +118,43 @@ for (const snippet of [
   'data-release-radar-open',
   'Dependency boundaries',
   'Every receipt used in the current review',
-  'quietlySyncHtml(content, islandHtml)',
   'REVIEW DUE',
-  'Forecast review due. Last reviewed',
+  'Review due — recheck timing',
   'release-radar-overlay-review-note',
-  'No credible near-term release signal detected',
+  'No credible near-term release signal is visible in the reviewed evidence',
   'no completion percentage implied'
 ]) {
   assert(briefing.includes(snippet), `Release Radar Live Pulse contract is missing ${snippet}`);
+}
+for (const snippet of [
+  'quietlySyncHtml(viewport, tickerHtml)',
+  'class="pulse-ticker-item',
+  'data-hot-visual=',
+  'data-release-radar-open'
+]) {
+  assert(pulseTicker.includes(snippet), `Release Radar ticker presentation is missing ${snippet}`);
 }
 assert(!briefing.includes('release-radar-stale-note'), 'the compact Release Radar must not restore an alarm-style stale banner');
 assert(!briefing.includes('Treat horizons as stale until the next tracker receipt'), 'the compact Release Radar must keep overdue review copy out of the reading flow');
 assert(dataAssets.includes("releaseRadar: '/data/release-radar.json'"), 'Release Radar must load as a same-origin generated data asset');
 assert(dataAssets.includes("releaseRadar: 'no-cache'"), 'Release Radar must revalidate through normal HTTP validators');
 for (const snippet of [
-  '.hot-today-card.hot-today-card-release',
-  '.release-radar-pulse-row',
-  '.release-radar-pulse-signals',
-  '.release-radar-priority.is-review-due',
-  '.release-radar-open',
+  '.pulse-ticker-shelf-actions :is(a, button)',
   '.release-radar-overlay-content',
   '.release-radar-overlay-review-note',
   '.release-radar-lane.is-exciting',
   '.release-radar-overlay-gates',
   '.release-radar-overlay-evidence',
-  '[data-quiet-refresh-settled="true"] .hot-today-card',
   '@media (max-width: 720px)'
 ]) {
   assert(css.includes(snippet), `Release Radar responsive presentation is missing ${snippet}`);
+}
+for (const snippet of [
+  '.pulse-ticker-item[data-pulse-weight="priority"]',
+  '.pulse-ticker-shelf',
+  '.pulse-ticker-item.is-arriving'
+]) {
+  assert(css.includes(snippet), `Release Radar ticker styling is missing ${snippet}`);
 }
 
 console.log('ok - Release Radar data, dependency, freshness, priority, and rendering contracts');

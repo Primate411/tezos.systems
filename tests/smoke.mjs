@@ -5876,7 +5876,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(response?.ok(), `hero command bar: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('#hero-search-input').waitFor({ state: 'visible', timeout: 10000 });
   const frontDoorOrder = await page.evaluate(() => {
-    const ids = ['block-ticker-strip', 'upgrade-clock', 'hot-today-island', 'chambers-section'];
+    const ids = ['pulse-ticker-strip', 'block-ticker-strip', 'upgrade-clock', 'chambers-section'];
     return ids.map((id) => {
       const el = document.getElementById(id);
       return { id, position: el ? Array.prototype.indexOf.call(document.body.querySelectorAll('*'), el) : -1 };
@@ -5888,64 +5888,45 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   const orderPositions = frontDoorOrder.map((item) => item.position);
   assert(orderPositions.every((position, index) => index === 0 || position > orderPositions[index - 1]), `hero command bar: first-screen order mismatch: ${JSON.stringify(frontDoorOrder)}`);
   await page.waitForFunction(() => {
-    const island = document.getElementById('hot-today-island');
-    return island && Number.parseFloat(getComputedStyle(island).marginTop) >= 28;
-  }, null, { timeout: 5000 });
-  const hotTodayTopMargin = await page.evaluate(() => {
-    const island = document.getElementById('hot-today-island');
-    return island ? Number.parseFloat(getComputedStyle(island).marginTop) : Number.NaN;
-  });
-  assert(Number.isFinite(hotTodayTopMargin) && hotTodayTopMargin >= 28, `hero command bar: live pulse should breathe below command deck, saw margin ${hotTodayTopMargin}`);
-  await page.waitForFunction(() => {
-    const island = document.getElementById('hot-today-island');
+    const island = document.getElementById('pulse-ticker-strip');
     return island
-      && island.querySelector('.hot-today-strip')
+      && island.querySelector('[data-pulse-run="live"]')
       && island.querySelectorAll('[data-hot-signal-index]').length >= 4;
   }, null, { timeout: 10000 });
-  await page.waitForFunction(() => (
-    document.querySelectorAll('#hot-today-island .hot-today-context').length >= 1
-  ), null, { timeout: 10000 });
   const livePulseState = await page.evaluate(() => ({
-    stripScrollWidth: document.querySelector('#hot-today-island .hot-today-strip')?.scrollWidth || 0,
-    stripClientWidth: document.querySelector('#hot-today-island .hot-today-strip')?.clientWidth || 0,
-    hasOldLead: Boolean(document.querySelector('#hot-today-island .hot-today-lead')),
-    metricCount: document.querySelectorAll('#hot-today-island .hot-today-metric').length,
-    cardCount: document.querySelectorAll('#hot-today-island [data-hot-signal-index]').length,
-    activeCount: document.querySelectorAll('#hot-today-island .hot-today-card.is-hot-active').length,
-    railCount: document.querySelectorAll('#hot-today-island .hot-today-rail-chip').length,
-    railLabelCount: document.querySelectorAll('#hot-today-island .hot-today-rail-chip .hot-today-rail-label:not(:empty)').length,
-    activeRailCount: document.querySelectorAll('#hot-today-island .hot-today-rail-chip.is-active[aria-current="true"]').length,
-    ageCount: document.querySelectorAll('#hot-today-island [data-hot-age]').length,
-    emptyAgeCount: Array.from(document.querySelectorAll('#hot-today-island [data-hot-age]')).filter((node) => !node.textContent.trim()).length,
-    contextCount: document.querySelectorAll('#hot-today-island .hot-today-context').length,
-    pulseState: document.getElementById('hot-today-island')?.dataset.pulseState || '',
-    ariaBusy: document.getElementById('hot-today-island')?.getAttribute('aria-busy') || '',
-    firstCardActive: document.querySelector('#hot-today-island [data-hot-signal-index="0"]')?.classList.contains('is-hot-active') || false,
-    activeMilestone: Boolean(document.querySelector('#hot-today-island .hot-today-card.is-hot-active[data-milestone-status]')),
-    visuals: [...new Set(Array.from(document.querySelectorAll('#hot-today-island [data-hot-visual]'), (card) => card.dataset.hotVisual))],
-    spectacles: [...new Set(Array.from(document.querySelectorAll('#hot-today-island [data-hot-spectacle]'), (card) => card.dataset.hotSpectacle))],
-    missingSignalIdentity: document.querySelectorAll('#hot-today-island [data-hot-signal-index]:not([data-hot-visual]), #hot-today-island [data-hot-signal-index]:not([data-hot-spectacle])').length,
-    clock: document.querySelector('#hot-today-island [data-hot-live="clock"]')?.textContent?.trim() || '',
-    governanceText: document.querySelector('#hot-today-island [data-hot-signal-id^="live-governance-"]')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-    marketDetail: document.querySelector('#hot-today-island [data-hot-signal-id="live-market"] em')?.textContent?.replace(/\s+/g, ' ').trim() || ''
+    runWidth: document.querySelector('#pulse-ticker-strip [data-pulse-run="live"]')?.getBoundingClientRect().width || 0,
+    viewportWidth: document.querySelector('#pulse-ticker-viewport')?.clientWidth || 0,
+    barHeight: document.querySelector('#pulse-ticker-bar')?.getBoundingClientRect().height || 0,
+    gap: (() => {
+      const pulse = document.getElementById('pulse-ticker-strip')?.getBoundingClientRect();
+      const block = document.getElementById('block-ticker-strip')?.getBoundingClientRect();
+      return pulse && block ? block.top - pulse.bottom : -1;
+    })(),
+    hasOldLead: Boolean(document.querySelector('#pulse-ticker-strip .hot-today-lead')),
+    metricCount: document.querySelectorAll('#pulse-ticker-strip .hot-today-metric').length,
+    cardCount: document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-index]').length,
+    ageCount: document.querySelectorAll('#pulse-ticker-strip [data-hot-age]').length,
+    emptyAgeCount: Array.from(document.querySelectorAll('#pulse-ticker-strip [data-hot-age]')).filter((node) => !node.textContent.trim()).length,
+    pulseState: document.getElementById('pulse-ticker-strip')?.dataset.pulseState || '',
+    pulseMotion: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || '',
+    ariaBusy: document.getElementById('pulse-ticker-strip')?.getAttribute('aria-busy') || '',
+    visuals: [...new Set(Array.from(document.querySelectorAll('#pulse-ticker-strip [data-hot-visual]'), (card) => card.dataset.hotVisual))],
+    spectacles: [...new Set(Array.from(document.querySelectorAll('#pulse-ticker-strip [data-hot-spectacle]'), (card) => card.dataset.hotSpectacle))],
+    missingSignalIdentity: document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-index]:not([data-hot-visual]), #pulse-ticker-strip [data-hot-signal-index]:not([data-hot-spectacle])').length,
+    clock: document.querySelector('#pulse-ticker-strip [data-hot-live="clock"]')?.textContent?.trim() || '',
+    governanceText: document.querySelector('#pulse-ticker-strip [data-hot-signal-id^="live-governance-"]')?.textContent?.replace(/\s+/g, ' ').trim() || ''
   }));
   assert(!livePulseState.hasOldLead && livePulseState.metricCount === 0, `hero command bar: live pulse should be one scrolling strip, saw ${JSON.stringify(livePulseState)}`);
   assert(livePulseState.cardCount >= 4, `hero command bar: live pulse should keep at least four ranked signals in the strip, saw ${JSON.stringify(livePulseState)}`);
-  assert(livePulseState.stripScrollWidth > livePulseState.stripClientWidth, `hero command bar: live pulse strip should scroll horizontally, saw ${JSON.stringify(livePulseState)}`);
-  assert(livePulseState.activeCount === 1, `hero command bar: live pulse should keep one ranked signal active, saw ${JSON.stringify(livePulseState)}`);
+  assert(livePulseState.runWidth > livePulseState.viewportWidth, `hero command bar: live pulse run should drift through a clipped viewport, saw ${JSON.stringify(livePulseState)}`);
+  assert(livePulseState.barHeight <= 68 && livePulseState.gap >= 4 && livePulseState.gap <= 20, `hero command bar: stacked ticker geometry drifted ${JSON.stringify(livePulseState)}`);
   assert(
-    livePulseState.railCount === livePulseState.cardCount
-      && livePulseState.railLabelCount === livePulseState.cardCount
-      && livePulseState.activeRailCount === 1,
-    `hero command bar: labeled signal rail drifted from its cards ${JSON.stringify(livePulseState)}`
-  );
-  assert(
-    livePulseState.ageCount === livePulseState.cardCount
+    livePulseState.ageCount === livePulseState.cardCount * 2
       && livePulseState.emptyAgeCount === 0
-      && livePulseState.contextCount >= 1
       && livePulseState.pulseState === 'ready'
+      && ['running', 'paused'].includes(livePulseState.pulseMotion)
       && livePulseState.ariaBusy === 'false'
-      && /^Latest signal\b/.test(livePulseState.clock),
+      && /^(?:Just now|\d+[smhd] ago)$/i.test(livePulseState.clock),
     `hero command bar: timing, history context, or trust state is incomplete ${JSON.stringify(livePulseState)}`
   );
   if (livePulseState.governanceText) {
@@ -5955,19 +5936,10 @@ async function smokeHeroCommandBar(browser, baseUrl) {
       `hero command bar: cooldown governance card implies a ballot ${JSON.stringify(livePulseState)}`
     );
   }
-  assert(
-    !livePulseState.marketDetail || (/24h volume/i.test(livePulseState.marketDetail) && /market cap/i.test(livePulseState.marketDetail)),
-    `hero command bar: market signal omitted volume or market cap context ${JSON.stringify(livePulseState)}`
-  );
-  assert(livePulseState.firstCardActive || livePulseState.activeMilestone, `hero command bar: strongest signal or a newly arriving milestone should lead the initial strip, saw ${JSON.stringify(livePulseState)}`);
   assert(livePulseState.visuals.length >= 3 && livePulseState.missingSignalIdentity === 0, `hero command bar: live pulse cards should expose varied visual species, saw ${JSON.stringify(livePulseState)}`);
   assert(livePulseState.spectacles.some((level) => level !== 'quiet'), `hero command bar: live pulse should contain at least one notable spectacle tier, saw ${JSON.stringify(livePulseState)}`);
-  await page.waitForFunction((previousClock) => {
-    const nextClock = document.querySelector('#hot-today-island [data-hot-live="clock"]')?.textContent?.trim() || '';
-    return nextClock && nextClock !== previousClock;
-  }, livePulseState.clock, { timeout: 3000 });
   const retainedContractBefore = await page.evaluate(() => {
-    const card = document.querySelector('#hot-today-island [data-hot-signal-id="live-contracts"]');
+    const card = document.querySelector('#pulse-ticker-strip [data-hot-signal-id="live-contracts"]');
     window.__livePulseRetainedContract = card;
     return card?.textContent?.replace(/\s+/g, ' ').trim() || '';
   });
@@ -5987,11 +5959,11 @@ async function smokeHeroCommandBar(browser, baseUrl) {
       }, 0.23);
     });
     const retainedContractAfter = await page.evaluate(() => {
-      const card = document.querySelector('#hot-today-island [data-hot-signal-id="live-contracts"]');
+      const card = document.querySelector('#pulse-ticker-strip [data-hot-signal-id="live-contracts"]');
       return {
         sameNode: card === window.__livePulseRetainedContract,
         text: card?.textContent?.replace(/\s+/g, ' ').trim() || '',
-        pulseState: document.getElementById('hot-today-island')?.dataset.pulseState || ''
+        pulseState: document.getElementById('pulse-ticker-strip')?.dataset.pulseState || ''
       };
     });
     assert(
@@ -6017,7 +5989,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
       }, 0.23);
     });
     await page.waitForFunction(() => (
-      !document.querySelector('#hot-today-island [data-hot-signal-id="live-contracts"]')
+      !document.querySelector('#pulse-ticker-strip [data-hot-signal-id="live-contracts"]')
     ), null, { timeout: 5000 });
   }
   await page.waitForFunction(() => {
@@ -7863,8 +7835,8 @@ async function smokeCycleMilestone(browser, baseUrl) {
 
   const before = await page.evaluate(() => {
     const card = document.querySelector('[data-hot-signal-id="milestone-cycle-1300"]');
-    const strip = card?.closest('.hot-today-strip');
-    const text = card?.querySelector('.hot-today-copy strong');
+    const strip = card?.closest('[data-pulse-run="live"]');
+    const text = card?.querySelector('.pulse-ticker-title');
     const clock = document.querySelector('#top-continuity-history');
     const runtime = clock?.querySelector('.top-continuity-runtime');
     const outline = clock?.querySelector('.top-continuity-milestone-outline');
@@ -7900,7 +7872,6 @@ async function smokeCycleMilestone(browser, baseUrl) {
       title: text?.textContent?.trim() || '',
       text: card?.textContent?.replace(/\s+/g, ' ').trim() || '',
       href: card?.getAttribute('href') || '',
-      active: card?.classList.contains('is-hot-active') || false,
       status: card?.dataset.milestoneStatus || '',
       earlier: document.querySelector('.hot-today-earlier')?.textContent?.trim() || '',
       clockAria: document.querySelector('#top-continuity-history')?.getAttribute('aria-label') || '',
@@ -8002,7 +7973,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
   await page.waitForTimeout(1400);
   const after = await page.evaluate(() => {
     const card = document.querySelector('[data-hot-signal-id="milestone-cycle-1300"]');
-    const strip = card?.closest('.hot-today-strip');
+    const strip = card?.closest('[data-pulse-run="live"]');
     const selection = window.getSelection();
     return {
       sameCard: card === window.__cycleMilestoneCard,
@@ -8016,7 +7987,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
   });
 
   assert(before.title === '1,300 cycles', `cycle milestone: expected full cycle title, saw ${JSON.stringify(before)}`);
-  assert(/1,300 cycles crossed/.test(before.text) && /3d left/.test(before.text), `cycle milestone: exact crossed copy or expiry missing ${JSON.stringify(before)}`);
+  assert(/1,300 cycles crossed/.test(before.text), `cycle milestone: exact crossed copy missing ${JSON.stringify(before)}`);
   assert(/1,300 cycles/.test(before.clockAria)
     && before.clockRoute === '#health'
     && /mainnet age.*since 2018/i.test(before.clockSubline)
@@ -8059,7 +8030,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
     && clockHover.expanded === 'true'
     && /Confirmed on-chain 1,300 cycles.*Open Network Health/.test(clockHover.text),
   `cycle milestone: hovering the uptime clock did not reveal the anchored event card ${JSON.stringify(clockHover)}`);
-  assert(before.href === '#health' && before.active && before.status === 'crossed', `cycle milestone: route, arrival lead, or status mismatch ${JSON.stringify(before)}`);
+  assert(before.href === '#health' && before.status === 'crossed', `cycle milestone: route or status mismatch ${JSON.stringify(before)}`);
   assert(!before.earlier && !after.earlier, `cycle milestone: dead Earlier today breadcrumb survived ${JSON.stringify({ before, after })}`);
   assert(after.sameCard && after.sameOutline && after.focused && after.selected === '1,300 cycles', `cycle milestone: quiet reconciliation or the live clock rebuild replaced or disturbed stable milestone state ${JSON.stringify(after)}`);
   assert(Math.abs(after.scrollLeft - after.expectedScrollLeft) <= 1, `cycle milestone: quiet reconciliation reset strip scroll ${JSON.stringify(after)}`);
@@ -8526,7 +8497,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
   attachIssueCollectors(expiredPage, 'expired cycle milestone', issues);
   const expiredResponse = await expiredPage.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'domcontentloaded' });
   assert(expiredResponse?.ok(), `expired cycle milestone: dashboard failed with HTTP ${expiredResponse?.status()}`);
-  await expiredPage.waitForFunction(() => document.querySelectorAll('#hot-today-island [data-hot-signal-index]').length >= 4, null, { timeout: 10000 });
+  await expiredPage.waitForFunction(() => document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-index]').length >= 4, null, { timeout: 10000 });
   const expiredState = await expiredPage.evaluate(() => {
     const card = document.querySelector('[data-hot-signal-id="milestone-cycle-1300"]');
     return {
@@ -8857,9 +8828,21 @@ async function smokeNetworkPulseLauncher(browser, baseUrl) {
     contractCalls24h: '9.08K',
     newAccounts24h: '808'
   };
-  await page.waitForFunction((keys) => keys.every((key) => (
-    document.querySelector(`[data-pulse-entry-key="${key}"] .network-pulse-entry-sparkline-svg`)
-  )), Object.keys(expected), { timeout: 15000 });
+  try {
+    await page.waitForFunction((keys) => keys.every((key) => (
+      document.querySelector(`[data-pulse-entry-key="${key}"] .network-pulse-entry-sparkline-svg`)
+    )), Object.keys(expected), { timeout: 15000 });
+  } catch (error) {
+    const diagnostic = await page.evaluate((keys) => Object.fromEntries(keys.map((key) => {
+      const cell = document.querySelector(`[data-pulse-entry-key="${key}"]`);
+      return [key, {
+        present: Boolean(cell),
+        value: cell?.querySelector('.network-pulse-entry-cell-value')?.textContent?.trim() || '',
+        sparkline: Boolean(cell?.querySelector('.network-pulse-entry-sparkline-svg'))
+      }];
+    })), Object.keys(expected));
+    throw new Error(`${error.message}; state=${JSON.stringify(diagnostic)}; issues=${JSON.stringify(issues)}`);
+  }
 
   const state = await page.evaluate((keys) => ({
     statsVisible: localStorage.getItem('tezos-systems-stats-visible'),
@@ -9391,7 +9374,7 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `my tezos baker activity: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForFunction(() => document.getElementById('hot-today-island')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
+  await page.waitForFunction(() => document.getElementById('pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
 
   await page.locator('#my-tezos-btn').click();
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos baker activity drawer');
@@ -9546,6 +9529,178 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   log('ok - my tezos baker activity smoke');
 }
 
+async function smokeLivePulseTicker(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'aurora');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'live pulse ticker', issues);
+  const response = await page.goto(`${baseUrl}/?theme=aurora`, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `live pulse ticker: dashboard failed with HTTP ${response?.status()}`);
+  await page.waitForFunction(() => (
+    document.getElementById('pulse-ticker-strip')?.dataset.pulseState === 'ready'
+      && document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-signal-id]').length >= 4
+  ), null, { timeout: 15000 });
+
+  const before = await page.evaluate(() => {
+    const section = document.getElementById('pulse-ticker-strip');
+    const track = section?.querySelector('[data-pulse-track]');
+    window.__pulseTickerTrack = track;
+    return {
+      motion: section?.dataset.pulseMotion || '',
+      time: Number(track?.getAnimations?.()[0]?.currentTime) || 0,
+      clock: section?.querySelector('[data-hot-live="clock"]')?.textContent?.trim() || '',
+      echoesInert: Boolean(section?.querySelector('[data-pulse-run="echo"][inert][aria-hidden="true"]'))
+    };
+  });
+  await page.waitForTimeout(320);
+  const drift = await page.evaluate(() => {
+    const section = document.getElementById('pulse-ticker-strip');
+    const track = section?.querySelector('[data-pulse-track]');
+    return {
+      sameTrack: track === window.__pulseTickerTrack,
+      time: Number(track?.getAnimations?.()[0]?.currentTime) || 0
+    };
+  });
+  assert(
+    before.motion === 'running'
+      && drift.sameTrack
+      && drift.time > before.time + 100
+      && /^(?:Just now|\d+[smhd] ago)$/i.test(before.clock)
+      && before.echoesInert,
+    `live pulse ticker: continuous motion or concise age contract failed ${JSON.stringify({ before, drift })}`
+  );
+
+  const firstItem = page.locator('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-signal-id]').first();
+  await firstItem.dispatchEvent('pointerover', { pointerType: 'mouse' });
+  await page.waitForFunction(() => (
+    document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion === 'paused'
+      && !document.getElementById('pulse-ticker-shelf')?.hidden
+  ));
+  const held = await page.evaluate(() => {
+    const section = document.getElementById('pulse-ticker-strip');
+    const shelf = document.getElementById('pulse-ticker-shelf');
+    const track = section?.querySelector('[data-pulse-track]');
+    return {
+      described: section?.querySelector('[data-pulse-run="live"] [aria-describedby="pulse-ticker-shelf"]')?.dataset.hotSignalId || '',
+      shelfText: shelf?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      time: Number(track?.getAnimations?.()[0]?.currentTime) || 0
+    };
+  });
+  await page.waitForTimeout(220);
+  const heldTime = await page.evaluate(() => Number(document.querySelector('#pulse-ticker-strip [data-pulse-track]')?.getAnimations?.()[0]?.currentTime) || 0);
+  assert(held.described && held.shelfText && Math.abs(heldTime - held.time) < 35, `live pulse ticker: hover did not hold the reading shelf ${JSON.stringify({ held, heldTime })}`);
+
+  await firstItem.dispatchEvent('pointerout', { pointerType: 'mouse' });
+  await page.waitForFunction(() => document.getElementById('pulse-ticker-shelf')?.hidden === true, null, { timeout: 3000 });
+  await page.evaluate(() => {
+    window.dispatchEvent(new CustomEvent('hot-signal', {
+      detail: {
+        id: 'pulse-ticker-refresh-proof',
+        category: 'network',
+        title: 'Ticker refresh proof',
+        text: 'A new signal joined without resetting the pulse.',
+        route: '#health',
+        score: 500,
+        createdAt: Date.now(),
+        ttlMs: 60000,
+        breaking: true,
+        live: true
+      }
+    }));
+  });
+  await page.locator('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-signal-id="pulse-ticker-refresh-proof"]').waitFor({ state: 'attached', timeout: 10000 });
+  const refreshed = await page.evaluate(() => ({
+    sameTrack: document.querySelector('#pulse-ticker-strip [data-pulse-track]') === window.__pulseTickerTrack,
+    motion: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || '',
+    echoes: document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="echo"] [data-pulse-echo-of="pulse-ticker-refresh-proof"]').length
+  }));
+  assert(refreshed.sameTrack && refreshed.motion === 'running' && refreshed.echoes === 1, `live pulse ticker: quiet refresh reset the motion surface ${JSON.stringify(refreshed)}`);
+
+  await page.locator('#hot-today-info-btn').click();
+  await page.locator('#hot-today-info-btn-panel.is-visible').waitFor({ state: 'visible', timeout: 3000 });
+  assert(await page.locator('#hot-today-info-btn').getAttribute('aria-expanded') === 'true', 'live pulse ticker: info control did not open its explanation');
+  await page.keyboard.press('Escape');
+
+  await page.evaluate(() => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
+  });
+  await page.waitForFunction(() => window.scrollY > 1000, null, { timeout: 3000 });
+  await page.waitForFunction(() => document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion === 'paused', null, { timeout: 3000 });
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await page.waitForFunction(() => document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion === 'running', null, { timeout: 3000 });
+  await context.close();
+
+  const mobileContext = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    userAgent: 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 Chrome/125 Mobile Safari/537.36',
+    hasTouch: true,
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(mobileContext);
+  await mobileContext.addInitScript(() => {
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const mobilePage = await mobileContext.newPage();
+  attachIssueCollectors(mobilePage, 'live pulse ticker mobile', issues);
+  await mobilePage.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
+  await mobilePage.waitForFunction(() => document.getElementById('pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
+  const mobileItem = mobilePage.locator('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-signal-id]').first();
+  await mobileItem.dispatchEvent('click', { detail: 1 });
+  await mobilePage.waitForFunction(() => !document.getElementById('pulse-ticker-shelf')?.hidden);
+  const firstTap = await mobilePage.evaluate(() => ({
+    hash: location.hash,
+    held: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || '',
+    shelfVisible: !document.getElementById('pulse-ticker-shelf')?.hidden
+  }));
+  assert(firstTap.held === 'paused' && firstTap.shelfVisible, `live pulse ticker mobile: first tap did not disclose without navigation ${JSON.stringify(firstTap)}`);
+  await mobilePage.evaluate(() => {
+    document.documentElement.style.scrollBehavior = 'auto';
+    window.scrollTo({ top: window.scrollY + 64, behavior: 'instant' });
+  });
+  await mobilePage.waitForFunction(() => document.getElementById('pulse-ticker-shelf')?.hidden === true, null, { timeout: 3000 });
+  await mobileContext.close();
+
+  const reducedContext = await browser.newContext({
+    viewport: { width: 1280, height: 900 },
+    reducedMotion: 'reduce',
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(reducedContext);
+  await reducedContext.addInitScript(() => {
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+  const reducedPage = await reducedContext.newPage();
+  attachIssueCollectors(reducedPage, 'live pulse ticker reduced motion', issues);
+  await reducedPage.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
+  await reducedPage.waitForFunction(() => document.getElementById('pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
+  const reduced = await reducedPage.evaluate(() => ({
+    motion: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || '',
+    animations: document.querySelector('#pulse-ticker-strip [data-pulse-track]')?.getAnimations?.().length || 0,
+    scrollWidth: document.getElementById('pulse-ticker-viewport')?.scrollWidth || 0,
+    clientWidth: document.getElementById('pulse-ticker-viewport')?.clientWidth || 0
+  }));
+  assert(reduced.motion === 'static' && reduced.animations === 0 && reduced.scrollWidth >= reduced.clientWidth, `live pulse ticker reduced motion: static reading lane failed ${JSON.stringify(reduced)}`);
+  await reducedContext.close();
+
+  assert(issues.length === 0, `live pulse ticker browser issues:\n${issues.join('\n')}`);
+  log('ok - Live Pulse continuous ticker, disclosure, concise clock, quiet refresh, mobile hold, and reduced-motion smoke');
+}
+
 async function smokeReleaseRadarPulse(browser, baseUrl) {
   for (const { label, viewport, theme } of [
     { label: 'desktop', viewport: { width: 1440, height: 1000 }, theme: 'clean' },
@@ -9568,70 +9723,52 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
     attachIssueCollectors(page, `release radar pulse ${label}`, issues);
     const response = await page.goto(`${baseUrl}/?theme=${theme}`, { waitUntil: 'domcontentloaded' });
     assert(response?.ok(), `release radar pulse ${label}: dashboard failed with HTTP ${response?.status()}`);
-    const cardLocator = page.locator('#hot-today-island [data-hot-signal-id="release-radar"]');
+    const cardLocator = page.locator('#pulse-ticker-strip [data-hot-signal-id="release-radar"]');
     await cardLocator.waitFor({ state: 'visible', timeout: 15000 });
-    await cardLocator.scrollIntoViewIfNeeded();
+    await page.locator('#pulse-ticker-strip').scrollIntoViewIfNeeded();
+    await page.evaluate(async () => {
+      const ticker = await import('/js/ui/pulse-ticker.js');
+      ticker.holdPulseTickerSignal('release-radar');
+    });
+    await page.locator('#pulse-ticker-shelf:not([hidden])').waitFor({ state: 'visible' });
 
     const presentation = await page.evaluate(() => {
-      const island = document.getElementById('hot-today-island');
-      const strip = island?.querySelector('.hot-today-strip');
+      const island = document.getElementById('pulse-ticker-strip');
+      const viewport = document.getElementById('pulse-ticker-viewport');
       const card = island?.querySelector('[data-hot-signal-id="release-radar"]');
+      const shelf = document.getElementById('pulse-ticker-shelf');
       const first = island?.querySelector('[data-hot-signal-index="0"]');
       const cards = Array.from(island?.querySelectorAll('[data-hot-signal-index]') || []);
       const releaseIndex = cards.findIndex((node) => node.dataset.hotSignalId === 'release-radar');
       const predecessors = releaseIndex > 0 ? cards.slice(0, releaseIndex) : [];
       const cardRect = card?.getBoundingClientRect();
-      const stripRect = strip?.getBoundingClientRect();
-      const priority = card?.querySelector('.release-radar-priority');
-      const priorityRect = priority?.getBoundingClientRect();
-      const priorityRange = priority ? document.createRange() : null;
-      priorityRange?.selectNodeContents(priority);
-      const priorityLineCenters = priorityRange
-        ? Array.from(priorityRange.getClientRects())
-          .filter((rect) => rect.width > 0)
-          .map((rect) => (rect.left + rect.right) / 2)
-        : [];
-      const priorityCenter = priorityRect ? (priorityRect.left + priorityRect.right) / 2 : 0;
+      const viewportRect = viewport?.getBoundingClientRect();
       return {
         firstId: first?.dataset.hotSignalId || '',
         releaseIndex,
         predecessorIds: predecessors.map((node) => node.dataset.hotSignalId || ''),
-        score: Number(card?.dataset.hotScore || 0),
         text: card?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        shelfText: shelf?.textContent?.replace(/\s+/g, ' ').trim() || '',
         embeddedGateCount: card?.querySelectorAll('.release-radar-overlay-gate, .release-radar-gate').length || 0,
         embeddedLaneCount: card?.querySelectorAll('.release-radar-lane').length || 0,
         embeddedEvidenceCount: card?.querySelectorAll('.release-radar-overlay-evidence a').length || 0,
-        openButtonCount: card?.querySelectorAll('[data-release-radar-open]').length || 0,
+        openButtonCount: shelf?.querySelectorAll('[data-release-radar-open]').length || 0,
         cardWidth: cardRect?.width || 0,
         cardHeight: cardRect?.height || 0,
-        stripWidth: stripRect?.width || 0,
-        cardInsideStrip: Boolean(cardRect && stripRect && cardRect.left >= stripRect.left - 1 && cardRect.right <= stripRect.right + 1),
+        viewportWidth: viewportRect?.width || 0,
         cardOverflow: card ? card.scrollWidth - card.clientWidth : 999,
         pageOverflow: document.documentElement.scrollWidth - window.innerWidth,
-        priority: card?.querySelector('.release-radar-priority')?.textContent?.trim() || '',
-        priorityTitle: card?.querySelector('.release-radar-priority')?.getAttribute('title') || '',
-        priorityTextAlign: priority ? getComputedStyle(priority).textAlign : '',
-        priorityLineCount: priorityLineCenters.length,
-        priorityMaxCenterDrift: priorityLineCenters.length
-          ? Math.max(...priorityLineCenters.map((center) => Math.abs(center - priorityCenter)))
-          : 999,
-        compactWarningCount: card?.querySelectorAll('.release-radar-stale-note, [role="status"]').length || 0,
-        adjacentLabel: card?.querySelector('.release-radar-pulse-release small')?.textContent?.trim() || '',
-        activeCount: island?.querySelectorAll('.hot-today-card.is-hot-active').length || 0,
-        railCount: island?.querySelectorAll('[data-hot-progress-index]').length || 0,
+        held: island?.dataset.pulseMotion || '',
+        described: card?.getAttribute('aria-describedby') || '',
         cardCount: island?.querySelectorAll('[data-hot-signal-index]').length || 0
       };
     });
     assert(
       presentation.releaseIndex >= 0
         && presentation.releaseIndex <= 1
-        && ((presentation.adjacentLabel === 'Shipped · exciting' && presentation.score === 176)
-          || (presentation.adjacentLabel === 'Adjacent lane' && presentation.score === 166))
-        && (presentation.priority === 'EVERYONE WATCH'
-          || (presentation.priority === 'REVIEW DUE'
-            && /Forecast review due\. Last reviewed/i.test(presentation.priorityTitle)
-            && presentation.compactWarningCount === 0
-            && !/Treat horizons as stale/i.test(presentation.text))),
+        && /Release Radar/i.test(presentation.text)
+        && /Tezos X Mainnet/i.test(presentation.text)
+        && /Q3 2026 forecast/i.test(presentation.text),
       `release radar pulse ${label}: the priority forecast or its 14-day release transition drifted ${JSON.stringify(presentation)}`
     );
     assert(
@@ -9639,42 +9776,35 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
         && presentation.embeddedLaneCount === 0
         && presentation.embeddedEvidenceCount === 0
         && presentation.openButtonCount === 1
-        && /Tezos X Mainnet/.test(presentation.text)
-        && /Q3 2026 forecast/.test(presentation.text)
-        && /EVM Node 0\.64 · Jul 30/i.test(presentation.text)
-        && !/gates materially advanced/i.test(presentation.text)
-        && /Full radar/i.test(presentation.text)
-        && /Public Tezos X Etherlink kernel proposal or final-kernel declaration/.test(presentation.text),
+        && /Full radar/i.test(presentation.shelfText)
+        && /Public Tezos X Etherlink kernel proposal or final-kernel declaration/.test(presentation.shelfText)
+        && presentation.held === 'paused'
+        && presentation.described === 'pulse-ticker-shelf',
       `release radar pulse ${label}: compact forecast summary or overlay action drifted ${JSON.stringify(presentation)}`
     );
     assert(
-      presentation.cardWidth <= presentation.stripWidth + 1
+      presentation.cardWidth <= Math.max(440, presentation.viewportWidth + 1)
         && presentation.cardOverflow <= 1
         && presentation.pageOverflow <= 1
-        && presentation.priorityTextAlign === 'center'
-        && presentation.priorityLineCount >= 1
-        && presentation.priorityMaxCenterDrift <= 1
-        && presentation.activeCount === 1
-        && presentation.railCount === presentation.cardCount,
+        && presentation.cardCount >= 4,
       `release radar pulse ${label}: card or labeled rail escaped its viewport ${JSON.stringify(presentation)}`
     );
     if (label === 'desktop') {
       assert(
-        presentation.cardWidth >= 420
-          && presentation.cardWidth <= 600
-          && presentation.cardWidth <= presentation.stripWidth + 1
-          && presentation.cardHeight <= 190,
+        presentation.cardWidth >= 255
+          && presentation.cardWidth <= 440
+          && presentation.cardHeight <= 64,
         `release radar pulse desktop: compact priority geometry regressed ${JSON.stringify(presentation)}`
       );
     } else {
       assert(
-          presentation.cardWidth <= presentation.stripWidth + 1
-          && presentation.cardHeight <= Math.min(280, viewport.height * 0.4),
+          presentation.cardWidth <= 330
+          && presentation.cardHeight <= 64,
         `release radar pulse mobile: compact single-column geometry regressed ${JSON.stringify(presentation)}`
       );
     }
 
-    const openButton = cardLocator.locator('[data-release-radar-open]');
+    const openButton = page.locator('#pulse-ticker-shelf [data-release-radar-open]');
     await openButton.click();
     const overlayLocator = page.locator('#release-radar-overlay.active');
     await overlayLocator.waitFor({ state: 'visible' });
@@ -9785,8 +9915,8 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
     }));
 
     const quietBefore = await page.evaluate(() => {
-      const strip = document.querySelector('#hot-today-island .hot-today-strip');
-      const card = document.querySelector('#hot-today-island [data-hot-signal-id="release-radar"]');
+      const strip = document.querySelector('#pulse-ticker-strip [data-pulse-run="live"]');
+      const card = document.querySelector('#pulse-ticker-strip [data-hot-signal-id="release-radar"]');
       const overlay = document.getElementById('release-radar-overlay');
       const dialog = overlay?.querySelector('.release-radar-overlay-content');
       const overlayBody = overlay?.querySelector('[data-release-radar-overlay-body]');
@@ -9809,6 +9939,7 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
       window.__releaseRadarDialog = dialog;
       window.__releaseRadarOverlayBody = overlayBody;
       window.__releaseRadarFocusedLink = focusedLink;
+      window.__releaseRadarOpener = document.querySelector('#pulse-ticker-shelf [data-release-radar-open]');
       return {
         left: strip.scrollLeft,
         y: window.scrollY,
@@ -9839,9 +9970,9 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     });
     const quietAfter = await page.evaluate(() => {
-      const content = document.getElementById('hot-today-content');
-      const card = document.querySelector('#hot-today-island [data-hot-signal-id="release-radar"]');
-      const strip = document.querySelector('#hot-today-island .hot-today-strip');
+      const content = document.getElementById('pulse-ticker-viewport');
+      const card = document.querySelector('#pulse-ticker-strip [data-hot-signal-id="release-radar"]');
+      const strip = document.querySelector('#pulse-ticker-strip [data-pulse-run="live"]');
       const overlay = document.getElementById('release-radar-overlay');
       const dialog = overlay?.querySelector('.release-radar-overlay-content');
       const overlayBody = overlay?.querySelector('[data-release-radar-overlay-body]');
@@ -9853,6 +9984,7 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
         sameDialog: dialog === window.__releaseRadarDialog,
         sameOverlayBody: overlayBody === window.__releaseRadarOverlayBody,
         sameFocusedLink: overlay?.querySelector('.release-radar-overlay-evidence > a') === window.__releaseRadarFocusedLink,
+        sameOpener: document.querySelector('#pulse-ticker-shelf [data-release-radar-open]') === window.__releaseRadarOpener,
         focused: document.activeElement === window.__releaseRadarFocusedLink,
         active: Boolean(overlay?.classList.contains('active')),
         hidden: overlay?.getAttribute('aria-hidden'),
@@ -9873,6 +10005,7 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
         && quietAfter.sameDialog
         && quietAfter.sameOverlayBody
         && quietAfter.sameFocusedLink
+        && quietAfter.sameOpener
         && quietAfter.focused
         && quietAfter.active
         && quietAfter.hidden === 'false'
@@ -9891,14 +10024,20 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
     );
 
     await page.locator('[data-release-radar-close]').click();
-    await page.waitForFunction(() => document.activeElement === document.querySelector('[data-hot-signal-id="release-radar"] [data-release-radar-open]'));
+    await page.waitForFunction(() => !document.getElementById('release-radar-overlay')?.classList.contains('active'));
+    await page.waitForTimeout(120);
     const closed = await page.evaluate(() => {
       const overlay = document.getElementById('release-radar-overlay');
-      const opener = document.querySelector('[data-hot-signal-id="release-radar"] [data-release-radar-open]');
+      const opener = document.querySelector('#pulse-ticker-shelf [data-release-radar-open]');
       return {
         active: Boolean(overlay?.classList.contains('active')),
         hidden: overlay?.getAttribute('aria-hidden'),
         focusReturned: document.activeElement === opener,
+        activeElement: document.activeElement?.outerHTML?.slice(0, 180) || '',
+        openerConnected: opener?.isConnected || false,
+        openerRects: opener?.getClientRects().length || 0,
+        openerHidden: opener?.closest('[hidden]')?.id || '',
+        openerInert: opener?.closest('[inert]')?.id || opener?.closest('[inert]')?.tagName || '',
         bodyOverflow: document.body.style.overflow,
         htmlOverflow: document.documentElement.style.overflow
       };
@@ -9941,10 +10080,10 @@ async function smokeLivePulsePersonalRibbons(browser, baseUrl) {
     attachIssueCollectors(page, `live pulse personal ribbons ${label}`, issues);
     const response = await page.goto(`${baseUrl}/?theme=${theme}`, { waitUntil: 'domcontentloaded' });
     assert(response?.ok(), `live pulse personal ribbons ${label}: dashboard failed with HTTP ${response?.status()}`);
-    await page.locator('#hot-today-island .hot-today-strip').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('#pulse-ticker-strip [data-pulse-run="live"]').waitFor({ state: 'visible', timeout: 15000 });
     const anonymousState = await page.evaluate(() => ({
-      ribbons: document.querySelectorAll('#hot-today-island .hot-today-you').length,
-      attributes: document.querySelectorAll('#hot-today-island [data-hot-personal="1"]').length
+      ribbons: document.querySelectorAll('#pulse-ticker-strip .hot-today-you').length,
+      attributes: document.querySelectorAll('#pulse-ticker-strip [data-hot-personal="1"]').length
     }));
     assert(
       anonymousState.ribbons === 0 && anonymousState.attributes === 0,
@@ -9985,19 +10124,19 @@ async function smokeLivePulsePersonalRibbons(browser, baseUrl) {
       });
     }, SAMPLE_ADDRESS);
     await page.waitForFunction(() => (
-      document.querySelector('#hot-today-island [data-hot-signal-id="personal-stake-proof"] .hot-today-you')?.textContent === 'Your stake'
-        && document.querySelector('#hot-today-island [data-hot-signal-id="personal-cycle-proof"] .hot-today-you')?.textContent === 'Your stake'
+      document.querySelector('#pulse-ticker-strip [data-hot-signal-id="personal-stake-proof"]')?.dataset.hotPersonal === '1'
+        && document.querySelector('#pulse-ticker-strip [data-hot-signal-id="personal-cycle-proof"]')?.dataset.hotPersonal === '1'
     ), null, { timeout: 15000 });
 
     const personalState = await page.evaluate(() => {
-      const cards = Array.from(document.querySelectorAll('#hot-today-island [data-hot-signal-id]'));
+      const cards = Array.from(document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-id]'));
       const indexOf = (id) => cards.findIndex((card) => card.dataset.hotSignalId === id);
       const ribbonCards = cards.filter((card) => card.dataset.hotPersonal === '1');
       const speciesGeometry = cards
-        .filter((card) => card.querySelector('.hot-today-species-mark'))
+        .filter((card) => card.querySelector('.pulse-ticker-mark'))
         .map((card) => {
-          const markRect = card.querySelector('.hot-today-species-mark').getBoundingClientRect();
-          const copyRect = card.querySelector('.hot-today-copy').getBoundingClientRect();
+          const markRect = card.querySelector('.pulse-ticker-mark').getBoundingClientRect();
+          const copyRect = card.querySelector('.pulse-ticker-copy').getBoundingClientRect();
           const ageRect = card.querySelector('.hot-today-age')?.getBoundingClientRect();
           const overlapWidth = ageRect
             ? Math.max(0, Math.min(markRect.right, ageRect.right) - Math.max(markRect.left, ageRect.left))
@@ -10011,41 +10150,23 @@ async function smokeLivePulsePersonalRibbons(browser, baseUrl) {
             ageOverlapArea: overlapWidth * overlapHeight
           };
         });
-      const geometry = ribbonCards.map((card) => {
-        const kicker = card.querySelector('.hot-today-kicker');
-        const category = kicker?.firstElementChild;
-        const ribbon = kicker?.querySelector('.hot-today-you');
-        const age = kicker?.querySelector('.hot-today-age');
-        const categoryRect = category?.getBoundingClientRect();
-        const ribbonRect = ribbon?.getBoundingClientRect();
-        const ageRect = age?.getBoundingClientRect();
-        return {
-          id: card.dataset.hotSignalId,
-          kickerOverflow: (kicker?.scrollWidth || 0) - (kicker?.clientWidth || 0),
-          categoryGap: ribbonRect && categoryRect ? ribbonRect.left - categoryRect.right : -1,
-          ageGap: ageRect && ribbonRect ? ageRect.left - ribbonRect.right : -1
-        };
-      });
       return {
-        ribbonCount: document.querySelectorAll('#hot-today-island .hot-today-you').length,
+        ribbonCount: document.querySelectorAll('#pulse-ticker-strip .hot-today-you').length,
         attributeCount: ribbonCards.length,
         ribbonIds: ribbonCards.map((card) => card.dataset.hotSignalId).sort(),
-        ribbonCopy: ribbonCards.map((card) => card.querySelector('.hot-today-you')?.textContent || ''),
         ariaLabels: ribbonCards.map((card) => card.getAttribute('aria-label') || ''),
         eventIndex: indexOf('personal-event-proof'),
         stakingIndex: indexOf('personal-stake-proof'),
         cycleIndex: indexOf('personal-cycle-proof'),
         priceIndex: indexOf('personal-price-control'),
         pageOverflow: document.documentElement.scrollWidth - window.innerWidth,
-        speciesGeometry,
-        geometry
+        speciesGeometry
       };
     });
     assert(
-      personalState.ribbonCount === 2
+      personalState.ribbonCount === 0
         && personalState.attributeCount === 2
-        && JSON.stringify(personalState.ribbonIds) === JSON.stringify(['personal-cycle-proof', 'personal-stake-proof'])
-        && personalState.ribbonCopy.every((copy) => copy === 'Your stake'),
+        && JSON.stringify(personalState.ribbonIds) === JSON.stringify(['personal-cycle-proof', 'personal-stake-proof']),
       `live pulse personal ribbons ${label}: evidence-only ribbon set drifted ${JSON.stringify(personalState)}`
     );
     assert(
@@ -10061,8 +10182,7 @@ async function smokeLivePulsePersonalRibbons(browser, baseUrl) {
     );
     assert(
       personalState.ariaLabels.every((labelText) => labelText.startsWith('Your stake. '))
-        && personalState.pageOverflow <= 1
-        && personalState.geometry.every((item) => item.kickerOverflow <= 1 && item.categoryGap >= 0 && item.ageGap >= 0),
+        && personalState.pageOverflow <= 1,
       `live pulse personal ribbons ${label}: ribbon accessibility or geometry regressed ${JSON.stringify(personalState)}`
     );
     assert(
@@ -10071,9 +10191,15 @@ async function smokeLivePulsePersonalRibbons(browser, baseUrl) {
       `live pulse personal ribbons ${label}: decorative species marks re-entered the mobile reading lane ${JSON.stringify(personalState.speciesGeometry)}`
     );
 
+    await page.evaluate(async () => {
+      const ticker = await import('/js/ui/pulse-ticker.js');
+      ticker.holdPulseTickerSignal('personal-stake-proof');
+    });
+    await page.waitForFunction(() => document.querySelector('#pulse-ticker-shelf .hot-today-you')?.textContent === 'Your stake');
+
     const quietBefore = await page.evaluate(() => {
-      const strip = document.querySelector('#hot-today-island .hot-today-strip');
-      const card = document.querySelector('#hot-today-island [data-hot-signal-id="personal-stake-proof"]');
+      const strip = document.querySelector('#pulse-ticker-strip [data-pulse-run="live"]');
+      const card = document.querySelector('#pulse-ticker-strip [data-hot-signal-id="personal-stake-proof"]');
       strip.scrollLeft = Math.min(160, Math.max(0, strip.scrollWidth - strip.clientWidth));
       card.focus({ preventScroll: true });
       window.__personalRibbonStrip = strip;
@@ -10097,15 +10223,15 @@ async function smokeLivePulsePersonalRibbons(browser, baseUrl) {
         }
       }));
     });
-    await page.waitForFunction(() => document.querySelectorAll('#hot-today-island [data-hot-personal="1"]').length === 0, null, { timeout: 15000 });
+    await page.waitForFunction(() => document.querySelectorAll('#pulse-ticker-strip [data-hot-personal="1"]').length === 0, null, { timeout: 15000 });
     const quietAfter = await page.evaluate(() => {
-      const strip = document.querySelector('#hot-today-island .hot-today-strip');
+      const strip = document.querySelector('#pulse-ticker-strip [data-pulse-run="live"]');
       return {
         sameStrip: strip === window.__personalRibbonStrip,
-        sameCard: document.querySelector('#hot-today-island [data-hot-signal-id="personal-stake-proof"]') === window.__personalRibbonCard,
+        sameCard: document.querySelector('#pulse-ticker-strip [data-hot-signal-id="personal-stake-proof"]') === window.__personalRibbonCard,
         focused: document.activeElement === window.__personalRibbonCard,
         left: strip.scrollLeft,
-        ribbons: document.querySelectorAll('#hot-today-island .hot-today-you').length
+        ribbons: document.querySelectorAll('#pulse-ticker-strip .hot-today-you').length
       };
     });
     assert(
@@ -10145,10 +10271,10 @@ async function smokeLivePulseDailyCurio(browser, baseUrl) {
     attachIssueCollectors(page, `live pulse daily curio ${label}`, issues);
     const response = await page.goto(`${baseUrl}/?theme=${theme}`, { waitUntil: 'domcontentloaded' });
     assert(response?.ok(), `live pulse daily curio ${label}: dashboard failed with HTTP ${response?.status()}`);
-    await page.locator('#hot-today-island [data-hot-curio="1"]').waitFor({ state: 'attached', timeout: 15000 });
+    await page.locator('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-curio="1"]').waitFor({ state: 'attached', timeout: 15000 });
 
     const initial = await page.evaluate(() => {
-      const cards = Array.from(document.querySelectorAll('#hot-today-island [data-hot-signal-id]'));
+      const cards = Array.from(document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-id]'));
       const curios = cards.filter(card => card.dataset.hotCurio === '1');
       const curio = curios[0];
       const score = Number(curio?.dataset.hotScore);
@@ -10181,8 +10307,8 @@ async function smokeLivePulseDailyCurio(browser, baseUrl) {
     );
 
     await page.evaluate(() => {
-      const strip = document.querySelector('#hot-today-island .hot-today-strip');
-      const card = document.querySelector('#hot-today-island [data-hot-curio="1"]');
+      const strip = document.querySelector('#pulse-ticker-strip [data-pulse-run="live"]');
+      const card = document.querySelector('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-curio="1"]');
       const text = card?.querySelector('strong')?.firstChild;
       strip.scrollLeft = Math.max(0, strip.scrollWidth - strip.clientWidth);
       card.focus({ preventScroll: true });
@@ -10198,7 +10324,7 @@ async function smokeLivePulseDailyCurio(browser, baseUrl) {
     });
     await page.waitForTimeout(500);
     const before = await page.evaluate(() => {
-      const strip = document.querySelector('#hot-today-island .hot-today-strip');
+      const strip = document.querySelector('#pulse-ticker-strip [data-pulse-run="live"]');
       window.__dailyCurioRenderCount = 0;
       window.addEventListener('hot-signal-rendered', () => {
         window.__dailyCurioRenderCount += 1;
@@ -10213,10 +10339,10 @@ async function smokeLivePulseDailyCurio(browser, baseUrl) {
     });
     await page.waitForFunction(() => window.__dailyCurioRenderCount > 0, null, { timeout: 15000 });
     const after = await page.evaluate(() => {
-      const strip = document.querySelector('#hot-today-island .hot-today-strip');
-      const card = document.querySelector('#hot-today-island [data-hot-curio="1"]');
+      const strip = document.querySelector('#pulse-ticker-strip [data-pulse-run="live"]');
+      const card = document.querySelector('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-curio="1"]');
       return {
-        count: document.querySelectorAll('#hot-today-island [data-hot-curio="1"]').length,
+        count: document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-curio="1"]').length,
         sameStrip: strip === window.__dailyCurioStrip,
         sameCard: card === window.__dailyCurioCard,
         focused: document.activeElement === window.__dailyCurioCard,
@@ -10236,10 +10362,10 @@ async function smokeLivePulseDailyCurio(browser, baseUrl) {
     );
 
     await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.locator('#hot-today-island .hot-today-strip').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('#pulse-ticker-strip [data-pulse-run="live"]').waitFor({ state: 'visible', timeout: 15000 });
     await page.waitForTimeout(2500);
     const reloadState = await page.evaluate(() => ({
-      count: document.querySelectorAll('#hot-today-island [data-hot-curio="1"]').length,
+      count: document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-curio="1"]').length,
       stamp: localStorage.getItem('tezos-systems-live-pulse-curio-day-v1') || '',
       today: new Date().toISOString().slice(0, 10)
     }));
@@ -10289,12 +10415,12 @@ async function smokeLivePulseDailyCurio(browser, baseUrl) {
   const scarcityResponse = await scarcityPage.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'domcontentloaded' });
   assert(scarcityResponse?.ok(), `live pulse daily curio scarcity: dashboard failed with HTTP ${scarcityResponse?.status()}`);
   await scarcityPage.waitForFunction(() => (
-    document.querySelectorAll('#hot-today-island [data-hot-signal-id^="curio-scarcity-proof-"]').length >= 8
+    document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-id^="curio-scarcity-proof-"]').length >= 8
   ), null, { timeout: 15000 });
   await scarcityPage.waitForTimeout(2500);
   const scarcityState = await scarcityPage.evaluate(() => ({
-    stronger: document.querySelectorAll('#hot-today-island [data-hot-signal-id^="curio-scarcity-proof-"]').length,
-    curio: document.querySelectorAll('#hot-today-island [data-hot-curio="1"]').length,
+    stronger: document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-id^="curio-scarcity-proof-"]').length,
+    curio: document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-curio="1"]').length,
     stamp: localStorage.getItem('tezos-systems-live-pulse-curio-day-v1')
   }));
   assert(
@@ -14205,8 +14331,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const headerActivityCluster = headerActivityLine?.querySelector('.header-activity-cluster');
     const headerActivityRect = headerActivityButton?.getBoundingClientRect();
     const headerActivityClusterRect = headerActivityCluster?.getBoundingClientRect();
-    const card = document.querySelector('[data-stat="network-health"]');
-    const ticker = document.querySelector('#block-ticker-strip');
+	    const card = document.querySelector('[data-stat="network-health"]');
+	    const pulseTicker = document.querySelector('#pulse-ticker-strip');
+	    const ticker = document.querySelector('#block-ticker-strip');
     const tickerButton = document.querySelector('#block-ticker-button');
     const tickerLine = document.querySelector('#block-ticker-line');
     const cycleChip = document.querySelector('#cycle-chip');
@@ -14426,10 +14553,12 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
         : 0,
       cardStale: card?.classList.contains('chamber-data-stale') || false,
       cardTape: card?.querySelector('#network-health-live-tape')?.textContent || '',
-      cardHasProofStrip: Boolean(card?.querySelector('#network-health-proof, #chain-uptime-counter')),
-      blockTickerOwnIsland: ticker?.tagName === 'SECTION' && ticker?.parentElement === document.body,
-      blockTickerAfterHeader: ticker?.previousElementSibling?.classList.contains('header') || false,
-      blockTickerBeforeCommandDeck: ticker?.nextElementSibling?.id === 'upgrade-clock',
+	      cardHasProofStrip: Boolean(card?.querySelector('#network-health-proof, #chain-uptime-counter')),
+	      pulseTickerOwnIsland: pulseTicker?.tagName === 'SECTION' && pulseTicker?.parentElement === document.body,
+	      pulseTickerAfterHeader: Boolean(header && pulseTicker && (header.compareDocumentPosition(pulseTicker) & Node.DOCUMENT_POSITION_FOLLOWING)),
+	      pulseTickerBeforeBlock: pulseTicker?.nextElementSibling === ticker,
+	      blockTickerOwnIsland: ticker?.tagName === 'SECTION' && ticker?.parentElement === document.body,
+	      blockTickerBeforeCommandDeck: ticker?.nextElementSibling?.id === 'upgrade-clock',
       blockTickerBeforeMainContent: Boolean(ticker && main && (ticker.compareDocumentPosition(main) & Node.DOCUMENT_POSITION_FOLLOWING)),
       blockTickerAboveCommandDeck: Boolean(tickerRect && upgradeClockRect && tickerRect.bottom < upgradeClockRect.top),
       blockTickerAboveChambers: Boolean(tickerRect && chambersRect && tickerRect.bottom < chambersRect.top),
@@ -14685,8 +14814,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.cardFreshnessState === 'stale' && healthState.cardStale, `network health chamber: stale head time should drive the card watch state: ${healthState.cardFreshnessState}/${healthState.cardStale}`);
   assert(healthState.cardFreshnessStaleAfter === '12000', `network health chamber: freshness threshold should track 2x live refresh interval, saw ${healthState.cardFreshnessStaleAfter}`);
   assert(healthState.cardFreshnessAgeMs >= 85000, `network health chamber: freshness timestamp should come from the observed head, saw ${healthState.cardFreshnessAgeMs}ms`);
-  assert(healthState.blockTickerOwnIsland, 'network health chamber: live block ticker should be its own top-level island');
-  assert(healthState.blockTickerAfterHeader, 'network health chamber: live block ticker should sit directly below the header');
+	  assert(healthState.blockTickerOwnIsland, 'network health chamber: live block ticker should be its own top-level island');
+	  assert(healthState.pulseTickerOwnIsland && healthState.pulseTickerAfterHeader && healthState.pulseTickerBeforeBlock, 'network health chamber: Live Pulse should sit between the header area and Chain Heartbeat');
   assert(healthState.blockTickerBeforeCommandDeck, 'network health chamber: live block ticker should sit directly above the command deck');
   assert(healthState.blockTickerBeforeMainContent, 'network health chamber: live block ticker should stay above the Chambers/main area');
   assert(healthState.blockTickerAboveCommandDeck, 'network health chamber: live block ticker should render above the command deck');
@@ -21708,22 +21837,28 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     await page.locator(selector).hover();
   }
   await page.locator('#etherlink-governance-entry-card[data-etherlink-governance-live="true"]').waitFor({ state: 'visible', timeout: 10000 });
-  await page.locator('#hot-today-island [data-hot-signal-id="etherlink-governance-fast"]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#pulse-ticker-strip [data-hot-signal-id="etherlink-governance-fast"]').waitFor({ state: 'visible', timeout: 10000 });
+  await page.evaluate(async () => {
+    const ticker = await import('/js/ui/pulse-ticker.js');
+    ticker.holdPulseTickerSignal('etherlink-governance-fast');
+  });
   const etherlinkHotState = await page.evaluate(() => {
-    const card = document.querySelector('#hot-today-island [data-hot-signal-id="etherlink-governance-fast"]');
-    const first = document.querySelector('#hot-today-island [data-hot-signal-index="0"]');
+    const card = document.querySelector('#pulse-ticker-strip [data-hot-signal-id="etherlink-governance-fast"]');
+    const first = document.querySelector('#pulse-ticker-strip [data-hot-signal-index="0"]');
     return {
       firstId: first?.dataset.hotSignalId || '',
       href: card?.getAttribute('href') || '',
       text: card?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      shelfText: document.getElementById('pulse-ticker-shelf')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       classes: card?.className || '',
+      weight: card?.dataset.pulseWeight || '',
       spectacle: card?.dataset.hotSpectacle || ''
     };
   });
   assert(etherlinkHotState.firstId === 'etherlink-governance-fast', `governance testing period: active L2 vote must lead What's Hot, saw ${JSON.stringify(etherlinkHotState)}`);
   assert(etherlinkHotState.href === '/l2chamber/', `governance testing period: L2 hot route mismatch: ${etherlinkHotState.href}`);
-  assert(/L2 VOTE OPEN NOW/.test(etherlinkHotState.text) && /00625d22ab/.test(etherlinkHotState.text) && /Promotion is next/.test(etherlinkHotState.text), `governance testing period: L2 hot copy missing live vote guidance: ${etherlinkHotState.text}`);
-  assert(/\bis-spectacle-historic\b/.test(etherlinkHotState.classes) && /\bis-hot-breaking\b/.test(etherlinkHotState.classes) && etherlinkHotState.spectacle === 'historic', `governance testing period: L2 hot alert should use the boldest treatment: ${JSON.stringify(etherlinkHotState)}`);
+  assert(/L2 VOTE OPEN NOW/.test(etherlinkHotState.shelfText) && /00625d22ab/.test(etherlinkHotState.shelfText) && /Promotion is next/.test(etherlinkHotState.shelfText), `governance testing period: L2 ticker shelf missing live vote guidance: ${etherlinkHotState.shelfText}`);
+  assert(etherlinkHotState.weight === 'event' && /\bis-weight-event\b/.test(etherlinkHotState.classes) && etherlinkHotState.spectacle === 'historic', `governance testing period: L2 hot alert should use the boldest ticker treatment: ${JSON.stringify(etherlinkHotState)}`);
   await expectCount(page, '#chamber-entry-card .card-copy-link[data-copy-hash="#chamber"]', 1, 'governance testing period chamber card link');
   await expectCount(page, '#tezlink-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#tezosx"]', 1, 'governance testing period Tezos X card link');
   await expectCount(page, '#etherlink-governance-entry-card.chamber-entry-wide .card-copy-link[data-copy-hash="#l2chamber"]', 1, 'governance testing period Tezos X Governance card link');
@@ -23138,16 +23273,17 @@ async function smokeHashModalCleanup(browser, baseUrl) {
     return active.length === 0 && document.body.style.overflow !== 'hidden' && document.documentElement.style.overflow !== 'hidden';
   }, null, { timeout: 5000 });
 
-  const allowedTransitions = new Set([
-    '/js/features/chamber.js',
-    '/js/features/etherlink-governance.js'
-  ]);
+	  const allowedTransitions = new Set([
+	    '/js/features/ecosystem-chamber.js',
+	    '/js/features/chamber.js',
+	    '/js/features/etherlink-governance.js'
+	  ]);
   const unexpectedModules = [...new Set(lazyModuleRequests)].filter((pathname) => !allowedTransitions.has(pathname));
   assert(
     unexpectedModules.length === 0
       && lazyModuleRequests.includes('/js/features/chamber.js')
       && lazyModuleRequests.includes('/js/features/etherlink-governance.js'),
-    `hash modal cleanup loaded Chambers that were never opened: ${JSON.stringify(lazyModuleRequests)}`
+	    `hash modal cleanup loaded unexpected deferred Chambers: ${JSON.stringify(lazyModuleRequests)}`
   );
 
   await context.close();
@@ -23162,7 +23298,7 @@ async function smokeHomeLayout(browser, baseUrl) {
   const selectors = {
     ticker: '#block-ticker-strip',
     search: '#upgrade-clock',
-    'live-pulse': '#hot-today-island',
+    'live-pulse': '#pulse-ticker-strip',
     explore: '#chambers-section',
     moments: '#moments-section',
     handoff: '#recruit-section',
@@ -23343,7 +23479,7 @@ async function smokeHomeLayout(browser, baseUrl) {
   await page.waitForFunction(() => Boolean(window.tezosSystemsHomeLayout));
   const persisted = await page.evaluate(() => ({
     hidden: document.documentElement.getAttribute('data-home-hidden'),
-    display: getComputedStyle(document.getElementById('hot-today-island')).display,
+    display: getComputedStyle(document.getElementById('pulse-ticker-strip')).display,
     preference: JSON.parse(localStorage.getItem('tezos-systems-home-layout-v1'))
   }));
   assert(persisted.hidden.includes('live-pulse')
@@ -23394,7 +23530,7 @@ async function smokeHomeLayout(browser, baseUrl) {
 
   await page.evaluate(() => {
     document.getElementById('hero-search-input')?.blur();
-    window.__homeLayoutPulseContent = document.getElementById('hot-today-content');
+    window.__homeLayoutPulseContent = document.getElementById('pulse-ticker-viewport');
     window.tezosSystemsHomeLayout.setHomeBlockVisible('live-pulse', false, 'pulse-hidden-smoke');
     window.dispatchEvent(new CustomEvent('hot-signal', {
       detail: {
@@ -23411,15 +23547,15 @@ async function smokeHomeLayout(browser, baseUrl) {
   });
   await page.waitForTimeout(450);
   const hiddenPulse = await page.evaluate(() => ({
-    display: getComputedStyle(document.getElementById('hot-today-island')).display,
-    sameContent: window.__homeLayoutPulseContent === document.getElementById('hot-today-content')
+    display: getComputedStyle(document.getElementById('pulse-ticker-strip')).display,
+    sameContent: window.__homeLayoutPulseContent === document.getElementById('pulse-ticker-viewport')
   }));
   assert(hiddenPulse.display === 'none' && hiddenPulse.sameContent, `home layout: hidden Live Pulse was revealed or replaced ${JSON.stringify(hiddenPulse)}`);
   await page.evaluate(() => window.tezosSystemsHomeLayout.setHomeBlockVisible('live-pulse', true, 'pulse-restore-smoke'));
-  await page.waitForFunction(() => getComputedStyle(document.getElementById('hot-today-island')).display !== 'none');
+  await page.waitForFunction(() => getComputedStyle(document.getElementById('pulse-ticker-strip')).display !== 'none');
   const restoredPulse = await page.evaluate(() => ({
-    arriving: document.querySelectorAll('#hot-today-island .is-milestone-arriving').length,
-    sameContent: window.__homeLayoutPulseContent === document.getElementById('hot-today-content')
+    arriving: document.querySelectorAll('#pulse-ticker-strip .is-arriving').length,
+    sameContent: window.__homeLayoutPulseContent === document.getElementById('pulse-ticker-viewport')
   }));
   assert(restoredPulse.sameContent && restoredPulse.arriving === 0, `home layout: Live Pulse restoration replayed or replaced reading state ${JSON.stringify(restoredPulse)}`);
 
@@ -23462,10 +23598,10 @@ async function smokeHomeLayout(browser, baseUrl) {
   const firstPaintPage = await firstPaintContext.newPage();
   attachIssueCollectors(firstPaintPage, 'home layout first paint', issues);
   const navigation = firstPaintPage.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
-  await firstPaintPage.locator('#hot-today-island').waitFor({ state: 'attached', timeout: 10000 });
+  await firstPaintPage.locator('#pulse-ticker-strip').waitFor({ state: 'attached', timeout: 10000 });
   const beforeApp = await firstPaintPage.evaluate(() => ({
     appReady: Boolean(window.tezosSystemsHomeLayout),
-    display: getComputedStyle(document.getElementById('hot-today-island')).display,
+    display: getComputedStyle(document.getElementById('pulse-ticker-strip')).display,
     root: document.documentElement.getAttribute('data-home-hidden')
   }));
   assert(!beforeApp.appReady && beforeApp.display === 'none' && beforeApp.root === 'live-pulse',
@@ -26034,10 +26170,10 @@ async function smokeInfoModals(browser, baseUrl) {
   assert(response?.ok(), `info modals: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => (
-    document.getElementById('hot-today-island')?.dataset.pulseState === 'ready'
+    document.getElementById('pulse-ticker-strip')?.dataset.pulseState === 'ready'
   ), null, { timeout: 15000 });
-  await page.locator('#hot-today-island .hot-today-strip').waitFor({ state: 'visible', timeout: 15000 });
-  const liveClockPresentation = await page.locator('#hot-today-island .hot-today-clock').evaluate((node) => {
+  await page.locator('#pulse-ticker-strip [data-pulse-run="live"]').waitFor({ state: 'visible', timeout: 15000 });
+  const liveClockPresentation = await page.locator('#pulse-ticker-strip .hot-today-clock').evaluate((node) => {
     const style = getComputedStyle(node);
     return {
       fontSize: Number.parseFloat(style.fontSize),
@@ -26050,7 +26186,7 @@ async function smokeInfoModals(browser, baseUrl) {
     liveClockPresentation.display === 'flex'
       && liveClockPresentation.decoration === 'none'
       && liveClockPresentation.fontSize <= 12
-      && /^Latest signal .+ · \d{2}:\d{2}:\d{2} UTC$/.test(liveClockPresentation.clock),
+      && /^(?:Just now|\d+[smhd] ago)$/i.test(liveClockPresentation.clock),
     `Live Pulse clock presentation drifted ${JSON.stringify(liveClockPresentation)}`
   );
 
@@ -26058,7 +26194,7 @@ async function smokeInfoModals(browser, baseUrl) {
     {
       button: '#hot-today-info-btn',
       panel: '#hot-today-info-btn-panel',
-      section: '#hot-today-island',
+      section: '#pulse-ticker-strip',
       title: 'The signals most worth noticing now',
       href: '/pulse/'
     },
@@ -26108,7 +26244,7 @@ async function smokeInfoModals(browser, baseUrl) {
         ariaHidden: popover?.getAttribute('aria-hidden') || '',
         titlePresent: (popover?.textContent || '').includes(title),
         href: link ? new URL(link.href).pathname : '',
-        parentHeader: popover?.parentElement?.classList.contains('section-header') || false,
+        parentHost: popover?.parentElement?.matches('.section-header, .pulse-ticker-strip') || false,
         compact: Boolean(rect && rect.width <= 390),
         viewportContained: Boolean(rect && rect.left >= -1 && rect.right <= innerWidth + 1),
         position: popover ? getComputedStyle(popover).position : '',
@@ -26130,7 +26266,7 @@ async function smokeInfoModals(browser, baseUrl) {
     assert(
       helpState.titlePresent
         && helpState.href === contract.href
-        && helpState.parentHeader
+        && helpState.parentHost
         && helpState.compact
         && helpState.viewportContained
         && helpState.position === 'absolute'
@@ -26148,7 +26284,7 @@ async function smokeInfoModals(browser, baseUrl) {
   }
 
   const managedHomeSections = [
-    { section: '#hot-today-island', content: '#hot-today-content', label: 'Live Pulse' },
+    { section: '#pulse-ticker-strip', content: '#pulse-ticker-viewport', label: 'Live Pulse' },
     { section: '#chambers-section', content: '#chambers-grid', label: 'Explore Tezos' }
   ];
   for (const contract of managedHomeSections) {
@@ -26172,7 +26308,7 @@ async function smokeInfoModals(browser, baseUrl) {
         && !managedState.collapsed,
       `${contract.label} managed shown/hidden contract failed ${JSON.stringify(managedState)}`
     );
-    const stateKey = contract.section === '#hot-today-island' ? 'live-pulse' : 'explore';
+    const stateKey = contract.section === '#pulse-ticker-strip' ? 'live-pulse' : 'explore';
     await page.evaluate((id) => window.tezosSystemsHomeLayout.setHomeBlockVisible(id, false, 'feature-workflow-smoke'), stateKey);
     await page.waitForFunction((selector) => getComputedStyle(document.querySelector(selector)).display === 'none', contract.section);
     await page.evaluate((id) => window.tezosSystemsHomeLayout.setHomeBlockVisible(id, true, 'feature-workflow-smoke'), stateKey);
@@ -26191,20 +26327,20 @@ async function smokeInfoModals(browser, baseUrl) {
   }
 
   const sectionHeaderState = await page.evaluate(() => ({
-    liveTitle: document.querySelector('#hot-today-island .section-title')?.textContent?.trim() || '',
+    pulseLeadRail: Boolean(document.querySelector('#pulse-ticker-strip .pulse-ticker-rail, #pulse-ticker-strip .pulse-ticker-kicker, #pulse-ticker-dot, #pulse-ticker-strip .hot-today-clock-dot')),
     exploreKicker: document.querySelector('#chambers-section .feature-kicker')?.textContent?.trim() || '',
     exploreTitle: document.querySelector('#chambers-section .section-title')?.textContent?.trim() || '',
     buildingEmoji: /🏛️/.test(document.querySelector('#chambers-section .section-header')?.textContent || ''),
-    liveCopy: document.querySelector('#hot-today-island .section-copy-link')?.dataset.copyHash || '',
+    pulseInfo: document.querySelector('#pulse-ticker-strip #hot-today-info-btn')?.getAttribute('aria-controls') || '',
     exploreCopy: document.querySelector('#chambers-section .section-copy-link')?.dataset.copyHash || '',
     staleModal: Boolean(document.getElementById('chambers-modal'))
   }));
   assert(
-    sectionHeaderState.liveTitle === "What's hot today"
+    !sectionHeaderState.pulseLeadRail
       && sectionHeaderState.exploreKicker === 'Explore Tezos'
       && sectionHeaderState.exploreTitle === 'Choose a topic'
       && !sectionHeaderState.buildingEmoji
-      && sectionHeaderState.liveCopy === '#pulse'
+      && sectionHeaderState.pulseInfo === 'hot-today-info-btn-panel'
       && sectionHeaderState.exploreCopy === '#chambers'
       && !sectionHeaderState.staleModal,
     `descriptive section header contract failed ${JSON.stringify(sectionHeaderState)}`
@@ -27099,7 +27235,7 @@ async function smokeThemeSelection(browser, baseUrl) {
       const title = document.querySelector('.title');
       const runtime = document.querySelector('.top-continuity-runtime');
       const dataRail = document.querySelector('.top-continuity-panel');
-      const specialtyDisplay = ['.hot-today-head h2', '.site-handoff-head h2']
+      const specialtyDisplay = ['#chambers-section .section-header h2', '.site-handoff-head h2']
         .map((selector) => document.querySelector(selector))
         .filter(Boolean);
       const typographyFixture = document.createElement('div');
@@ -28106,13 +28242,13 @@ async function smokeRouteFormatting(browser, baseUrl) {
           const box = node.getBoundingClientRect();
           return box.width > 1 && box.height > 1;
         };
-        const clippedByHorizontalScroller = (node, box) => {
+        const clippedByHorizontalContainer = (node, box) => {
           let ancestor = node.parentElement;
           while (ancestor && ancestor !== document.body) {
             const ancestorStyle = window.getComputedStyle(ancestor);
-            const scrollsHorizontally = ['auto', 'scroll'].includes(ancestorStyle.overflowX)
+            const boundsHorizontalOverflow = ['auto', 'scroll', 'hidden', 'clip'].includes(ancestorStyle.overflowX)
               && ancestor.scrollWidth > ancestor.clientWidth + 1;
-            if (scrollsHorizontally) {
+            if (boundsHorizontalOverflow) {
               const ancestorBox = ancestor.getBoundingClientRect();
               if (ancestorBox.left >= -4 && ancestorBox.right <= viewportWidth + 4 && (box.left < ancestorBox.left - 1 || box.right > ancestorBox.right + 1)) {
                 return true;
@@ -28129,7 +28265,7 @@ async function smokeRouteFormatting(browser, baseUrl) {
           const box = node.getBoundingClientRect();
           const style = window.getComputedStyle(node);
           if (style.position === 'fixed' && box.width >= viewportWidth - 2) continue;
-          if ((box.left < -4 || box.right > viewportWidth + 4) && !clippedByHorizontalScroller(node, box)) {
+          if ((box.left < -4 || box.right > viewportWidth + 4) && !clippedByHorizontalContainer(node, box)) {
             escaped.push(`${elementName(node)} at ${box.left.toFixed(1)}..${box.right.toFixed(1)} "${textSample(node)}"`);
           }
         }
@@ -28205,7 +28341,7 @@ async function smokeQuietRefresh(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `quiet refresh: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-  await page.locator('#hot-today-island .hot-today-strip').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#pulse-ticker-strip [data-pulse-run="live"]').waitFor({ state: 'visible', timeout: 15000 });
 
   const helperState = await page.evaluate(async () => {
     const { quietlyMutate, quietlySyncHtml } = await import('/js/core/quiet-refresh.js');
@@ -28305,27 +28441,24 @@ async function smokeQuietRefresh(browser, baseUrl) {
   assert(Math.abs(helperState.compensatedWindowY - helperState.shiftWindowYBefore - 96) < 1, `quiet refresh: spanning-root prepend did not compensate by its inserted height ${JSON.stringify(helperState)}`);
   assert(Math.abs(helperState.shiftWindowYAfter - helperState.readerWindowY) < 1, `quiet refresh: delayed spanning-root restore overwrote an immediate reader scroll ${JSON.stringify(helperState)}`);
 
-  await page.locator('#hot-today-island').scrollIntoViewIfNeeded();
+  await page.locator('#pulse-ticker-strip').scrollIntoViewIfNeeded();
   await page.waitForFunction(() => (
-    document.getElementById('hot-today-island')?.dataset.pulseState === 'ready'
-      && document.querySelectorAll('#hot-today-island [data-hot-signal-index]').length >= 4
-      && document.querySelectorAll('#hot-today-island [data-hot-progress-index]').length >= 4
+    document.getElementById('pulse-ticker-strip')?.dataset.pulseState === 'ready'
+      && document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-index]').length >= 4
   ), null, { timeout: 15000 });
   await page.waitForTimeout(350);
   const hotBefore = await page.evaluate(() => {
-    const strip = document.querySelector('#hot-today-island .hot-today-strip');
-    const progress = document.querySelector('#hot-today-island [data-hot-progress-index="1"]')
-      || document.querySelector('#hot-today-island [data-hot-progress-index="0"]');
-    strip.scrollLeft = Math.min(240, Math.max(0, strip.scrollWidth - strip.clientWidth));
-    progress?.focus({ preventScroll: true });
-    window.__quietHotStrip = strip;
-    window.__quietHotProgress = progress;
-    window.__quietHotCard = strip.querySelector('[data-hot-signal-id]');
+    const track = document.querySelector('#pulse-ticker-strip [data-pulse-track]');
+    const run = track?.querySelector('[data-pulse-run="live"]');
+    const card = run?.querySelector('[data-hot-signal-id]');
+    card?.focus({ preventScroll: true });
+    window.__quietHotTrack = track;
+    window.__quietHotCard = card;
     return {
-      left: strip.scrollLeft,
+      phase: Number(track?.getAnimations?.()[0]?.currentTime) || 0,
       y: window.scrollY,
-      cardCount: strip.querySelectorAll('[data-hot-signal-index]').length,
-      railCount: document.querySelectorAll('#hot-today-island [data-hot-progress-index]').length
+      cardCount: run?.querySelectorAll('[data-hot-signal-index]').length || 0,
+      motion: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || ''
     };
   });
   await page.evaluate(() => {
@@ -28345,42 +28478,42 @@ async function smokeQuietRefresh(browser, baseUrl) {
     }));
   });
   try {
-    await page.locator('#hot-today-island [data-hot-signal-id="quiet-refresh-smoke"]').waitFor({ state: 'attached', timeout: 10000 });
+    await page.locator('#pulse-ticker-strip [data-hot-signal-id="quiet-refresh-smoke"]').waitFor({ state: 'attached', timeout: 10000 });
+    await page.waitForTimeout(80);
   } catch (error) {
     const diagnostic = await page.evaluate(() => ({
-      pulseState: document.getElementById('hot-today-island')?.dataset.pulseState || '',
-      ids: Array.from(document.querySelectorAll('#hot-today-island [data-hot-signal-id]'), (node) => node.dataset.hotSignalId),
-      cardCount: document.querySelectorAll('#hot-today-island [data-hot-signal-index]').length,
-      railCount: document.querySelectorAll('#hot-today-island [data-hot-progress-index]').length,
-      clock: document.querySelector('#hot-today-island [data-hot-live="clock"]')?.textContent || ''
+      pulseState: document.getElementById('pulse-ticker-strip')?.dataset.pulseState || '',
+      ids: Array.from(document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-id]'), (node) => node.dataset.hotSignalId),
+      cardCount: document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-index]').length,
+      clock: document.querySelector('#pulse-ticker-strip [data-hot-live="clock"]')?.textContent || ''
     }));
     throw new Error(`quiet refresh: injected Live Pulse signal did not render ${JSON.stringify(diagnostic)}\n${error.message}`);
   }
   const hotAfter = await page.evaluate(() => {
-    const strip = document.querySelector('#hot-today-island .hot-today-strip');
+    const track = document.querySelector('#pulse-ticker-strip [data-pulse-track]');
+    const run = track?.querySelector('[data-pulse-run="live"]');
     return {
-      sameStrip: strip === window.__quietHotStrip,
+      sameTrack: track === window.__quietHotTrack,
       sameCard: Boolean(window.__quietHotCard?.isConnected),
-      sameProgress: document.activeElement === window.__quietHotProgress && window.__quietHotProgress?.isConnected,
-      focused: document.activeElement === window.__quietHotProgress,
-      left: strip.scrollLeft,
+      focused: document.activeElement === window.__quietHotCard,
+      phase: Number(track?.getAnimations?.()[0]?.currentTime) || 0,
       y: window.scrollY,
-      pulsing: document.querySelector('#hot-today-island')?.classList.contains('is-live-pulsing') || false,
-      cardCount: strip.querySelectorAll('[data-hot-signal-index]').length,
-      railCount: document.querySelectorAll('#hot-today-island [data-hot-progress-index]').length,
-      ageCount: document.querySelectorAll('#hot-today-island [data-hot-age]').length,
-      activeRailCount: document.querySelectorAll('#hot-today-island [data-hot-progress-index].is-active[aria-current="true"]').length
+      motion: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || '',
+      shelfVisible: !document.getElementById('pulse-ticker-shelf')?.hidden,
+      cardCount: run?.querySelectorAll('[data-hot-signal-index]').length || 0,
+      ageCount: document.querySelectorAll('#pulse-ticker-viewport [data-hot-age]').length,
+      injected: Boolean(run?.querySelector('[data-hot-signal-id="quiet-refresh-smoke"]'))
     };
   });
-  assert(hotAfter.sameStrip && hotAfter.sameCard && hotAfter.sameProgress, `quiet refresh: Hot Today replaced its browsing nodes ${JSON.stringify({ hotBefore, hotAfter })}`);
-  assert(hotAfter.focused, `quiet refresh: Hot Today dropped keyboard focus ${JSON.stringify({ hotBefore, hotAfter })}`);
-  assert(Math.abs(hotAfter.left - hotBefore.left) < 1 && hotAfter.y === hotBefore.y, `quiet refresh: Hot Today moved a viewport ${JSON.stringify({ hotBefore, hotAfter })}`);
-  assert(!hotAfter.pulsing, `quiet refresh: block pulse replayed a distracting animation ${JSON.stringify(hotAfter)}`);
+  assert(hotAfter.sameTrack && hotAfter.sameCard, `quiet refresh: Live Pulse replaced its browsing nodes ${JSON.stringify({ hotBefore, hotAfter })}`);
+  assert(hotAfter.focused && hotAfter.shelfVisible, `quiet refresh: Live Pulse dropped keyboard focus or its reading shelf ${JSON.stringify({ hotBefore, hotAfter })}`);
+  assert(hotAfter.phase > 0 && Math.abs(hotAfter.phase - hotBefore.phase) < 150 && hotAfter.y === hotBefore.y, `quiet refresh: Live Pulse reset phase or moved the page ${JSON.stringify({ hotBefore, hotAfter })}`);
   assert(
-    hotAfter.cardCount === hotAfter.railCount
-      && hotAfter.cardCount === hotAfter.ageCount
-      && hotAfter.activeRailCount === 1,
-    `quiet refresh: labeled rail or timing identity drifted during reconciliation ${JSON.stringify({ hotBefore, hotAfter })}`
+    hotBefore.motion === 'paused'
+      && hotAfter.motion === 'paused'
+      && hotAfter.ageCount === hotAfter.cardCount * 2
+      && hotAfter.injected,
+    `quiet refresh: ticker timing or held identity drifted during reconciliation ${JSON.stringify({ hotBefore, hotAfter })}`
   );
 
   await page.locator('#chambers-grid > .chamber-category[data-chamber-category="network"] .chamber-category-toggle').click();
@@ -31909,6 +32042,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'staking-chamber', description: 'Narrow >10K stake/unstake tape, canonical ratio, complete cursor archive, mover trail, pretty route, and mobile geometry', run: () => smokeStakingChamber(browser, baseUrl) },
     { name: 'my-tezos-cold-start', description: 'My Tezos remains off-screen while its lazy styles are delayed, then preserves normal desktop and mobile open/close behavior', run: () => smokeMyTezosColdStart(browser, baseUrl) },
     { name: 'my-tezos-empty-state', description: 'My Tezos clearly separates Octez.Connect wallet pairing from watch-only tracking and explains all six responsive views', run: () => smokeMyTezosEmptyState(browser, baseUrl) },
+    { name: 'live-pulse-ticker', description: 'Live Pulse drifts continuously above Chain Heartbeat, opens its explainer, preserves phase, and uses accessible hold/static behavior', run: () => smokeLivePulseTicker(browser, baseUrl) },
     { name: 'release-radar-pulse', description: 'Compact Tezos X and Octez release forecast leads Live Pulse and opens every gate, release lane, dependency boundary, receipt, and history row without disturbing the reader', run: () => smokeReleaseRadarPulse(browser, baseUrl) },
     { name: 'live-pulse-personal-ribbons', description: 'Evidence-only Live Pulse account ribbons preserve stronger events and quiet reading state on desktop and mobile', run: () => smokeLivePulsePersonalRibbons(browser, baseUrl) },
     { name: 'live-pulse-daily-curio', description: 'One deterministic UTC-day Curio stays low-rank, scarce, truthful, and reading-state safe on desktop and mobile', run: () => smokeLivePulseDailyCurio(browser, baseUrl) },

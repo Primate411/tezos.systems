@@ -14,6 +14,14 @@ import { countExplicitLinkedEtherlinkAccounts } from '../core/site-journey.js';
 import { activateChamberDialog, deactivateChamberDialog } from '../ui/chamber-accessibility.js';
 import { isHomeBlockVisible } from '../ui/home-layout.js';
 import {
+  holdPulseTickerSignal,
+  mountPulseTicker,
+  pulseTickerElement,
+  releasePulseTicker,
+  renderPulseTicker,
+  renderPulseTickerState
+} from '../ui/pulse-ticker.js';
+import {
   describePersonalSignalRelevance,
   rankSignalsByPersonalRelevance
 } from '../core/personal-signal-relevance.mjs';
@@ -196,14 +204,10 @@ let hotTodayExpiryTimer = null;
 let hotTodayInitialTimer = null;
 let hotTodaySignals = [];
 let hotTodayBriefingSentences = [];
-let hotTodayActiveIndex = 0;
 let hotTodayHasRendered = false;
-let lastHotTodayLeadId = '';
 let hotSignalRenderTimer = null;
 let lastHotSignalRenderAt = 0;
 let hotSignalListenerWired = false;
-let hotTodayStripNavigationFrame = 0;
-let hotTodayStripUserIntentUntil = 0;
 let pulseHistoryLoadScheduled = false;
 let pulseHistoryLoadInFlight = null;
 let pulseHistoryRevision = 0;
@@ -2055,16 +2059,6 @@ function normalizeSignal(signal, index = 0) {
   };
 }
 
-function currentUtcTick() {
-  return new Date().toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZone: 'UTC'
-  });
-}
-
 function compactMoney(value) {
   const number = finiteNumber(value);
   if (number == null) return '';
@@ -2765,7 +2759,7 @@ function refreshHotTodayLiveMetrics() {
     void prepareDailyCurio();
   }
   if (!hotTodaySurfaceVisible()) return;
-  const island = document.getElementById('hot-today-island');
+  const island = pulseTickerElement();
   if (!island || island.hidden) return;
   setHotTodayLiveText('clock', hotTodayClockLabel(now));
   island.querySelectorAll('[data-hot-age]').forEach((element) => {
@@ -3251,15 +3245,15 @@ function signalAgeLabel(signal, now = Date.now()) {
 
 function hotTodayClockLabel(now = Date.now()) {
   if (lastHotTodayDataState === 'stale' && lastHotTodayGoodAt) {
-    return `Last good ${relativeSignalAge(lastHotTodayGoodAt, now)} · ${currentUtcTick()} UTC`;
+    return relativeSignalAge(lastHotTodayGoodAt, now);
   }
   const observed = hotTodaySignals
     .map(signal => finiteNumber(signal.observedAt) || finiteNumber(signal.createdAt))
     .filter(Boolean);
   const latest = observed.length ? Math.max(...observed) : null;
   return latest
-    ? `Latest signal ${relativeSignalAge(latest, now)} · ${currentUtcTick()} UTC`
-    : `Live · ${currentUtcTick()} UTC`;
+    ? relativeSignalAge(latest, now)
+    : 'Syncing';
 }
 
 function releaseRadarDateLabel(timestamp, { includeTime = false } = {}) {
@@ -3580,12 +3574,19 @@ function renderReleaseRadarOverlay(signal, { quiet = false } = {}) {
 function closeReleaseRadarOverlay() {
   const overlay = document.getElementById('release-radar-overlay');
   if (!overlay?.classList.contains('active')) return;
+  const trigger = document.querySelector('#pulse-ticker-shelf [data-release-radar-open]');
   overlay.classList.remove('active');
   deactivateChamberDialog(overlay);
   document.body.style.overflow = releaseRadarSavedBodyOverflow || '';
   document.documentElement.style.overflow = releaseRadarSavedHtmlOverflow || '';
   releaseRadarSavedBodyOverflow = null;
   releaseRadarSavedHtmlOverflow = null;
+  holdPulseTickerSignal('release-radar');
+  window.requestAnimationFrame(() => window.requestAnimationFrame(() => {
+    if ((document.activeElement === document.body || overlay.contains(document.activeElement)) && trigger?.isConnected) {
+      trigger.focus({ preventScroll: true });
+    }
+  }));
 }
 
 function openReleaseRadarOverlay(signal = lastReleaseRadarSignal) {
@@ -3603,7 +3604,8 @@ function openReleaseRadarOverlay(signal = lastReleaseRadarSignal) {
     dialogSelector: '.release-radar-overlay-content',
     titleId: 'release-radar-overlay-title',
     label: 'Full Release Radar',
-    initialFocusSelector: '.release-radar-overlay-close'
+    initialFocusSelector: '.release-radar-overlay-close',
+    restoreFocusSelector: '#pulse-ticker-shelf [data-release-radar-open]'
   });
 }
 
@@ -3615,173 +3617,21 @@ function syncOpenReleaseRadarOverlay() {
   renderReleaseRadarOverlay(lastReleaseRadarSignal, { quiet: true });
 }
 
-function renderReleaseRadarCard(signal, index) {
-  const radar = signal.releaseRadar;
-  const main = radar?.candidates?.find((candidate) => candidate.id === radar.mainCandidateId)
-    || radar?.candidates?.[0];
-  if (!radar || !main) return '';
-  const activeIndex = hotTodaySignals.length ? hotTodayActiveIndex % hotTodaySignals.length : 0;
-  const activeClass = index === activeIndex ? ' is-hot-active' : '';
-  const spectacleClass = ` is-spectacle-${safeCssToken(signal.spectacle)}`;
-  const staleClass = radar.stale ? ' is-release-radar-stale' : '';
-  const ageLabel = signalAgeLabel(signal);
-  const reviewLabel = radar.stale
-    ? ` Forecast review due; last reviewed ${releaseRadarDateLabel(radar.updatedAt, { includeTime: true })}.`
-    : '';
-  const exciting = radar.candidates.find((candidate) => candidate.id === radar.excitingCandidateId)
-    || radar.candidates.find((candidate) => candidate.lifecycle === 'released')
-    || radar.candidates.find((candidate) => candidate.id !== main.id);
-
-  return `
-    <article class="hot-today-card hot-today-card-release${spectacleClass}${activeClass}${staleClass}" data-hot-signal-id="${escapeHtml(signal.id)}" data-hot-signal-index="${index}" data-hot-score="${escapeHtml(String(signal.score))}" data-hot-visual="release" data-hot-spectacle="${escapeHtml(signal.spectacle)}" aria-label="${escapeHtml(`Priority Release Radar.${reviewLabel} ${main.label}: ${main.summary}`)}">
-      <div class="release-radar-topline">
-        <div class="release-radar-brand">
-          <span class="release-radar-mark" aria-hidden="true">◉</span>
-          <span><small>Priority signal</small><strong>Release Radar</strong></span>
-        </div>
-        <div class="release-radar-freshness">
-          <span class="release-radar-priority${radar.stale ? ' is-review-due' : ''}"${radar.stale ? ` title="${escapeHtml(`Forecast review due. Last reviewed ${releaseRadarDateLabel(radar.updatedAt, { includeTime: true })}.`)}"` : ''}>${radar.stale ? 'REVIEW DUE' : radar.noCredibleSignal ? 'NO NEAR-TERM SIGNAL' : 'EVERYONE WATCH'}</span>
-          <span class="hot-today-age" data-hot-age data-hot-created-at="${escapeHtml(String(signal.createdAt || ''))}" data-hot-observed-at="${escapeHtml(String(signal.observedAt || ''))}" data-hot-started-at="" data-hot-kind="state">${escapeHtml(ageLabel)}</span>
-        </div>
-      </div>
-
-      <div class="release-radar-pulse-row">
-        <div class="release-radar-pulse-copy">
-          <span>${radar.noCredibleSignal ? 'No credible near-term release signal detected' : 'Likely next major ship'}</span>
-          <strong>${escapeHtml(main.label)}</strong>
-        </div>
-        <div class="release-radar-pulse-forecast">
-          <strong>${main.horizon ? escapeHtml(main.horizon) : 'Horizon pending'}</strong>
-          <span class="release-radar-confidence-${escapeHtml(main.confidence)}">${escapeHtml(main.confidence.toUpperCase())} confidence</span>
-        </div>
-        <button class="release-radar-open" type="button" data-release-radar-open="${escapeHtml(signal.id)}" aria-haspopup="dialog" aria-controls="release-radar-overlay" aria-label="Open full Release Radar">
-          Full radar <span aria-hidden="true">↗</span>
-        </button>
-      </div>
-
-      <div class="release-radar-pulse-signals">
-        <span class="release-radar-pulse-blocker"><small>Waiting on</small><strong title="${escapeHtml(main.nextSignal)}">${escapeHtml(main.nextSignal)}</strong></span>
-        ${exciting ? `<span class="release-radar-pulse-release"><small>${exciting.id === radar.excitingCandidateId ? 'Shipped · exciting' : 'Adjacent lane'}</small><strong>${escapeHtml(exciting.label)}${exciting.releasedAt ? ` · ${escapeHtml(releaseRadarDateLabel(exciting.releasedAt))}` : exciting.horizon ? ` · ${escapeHtml(exciting.horizon)}` : ''}</strong></span>` : ''}
-      </div>
-    </article>
-  `;
-}
-
-function renderHotSignal(signal, index) {
-  if (signal.releaseRadar) return renderReleaseRadarCard(signal, index);
-  const route = routeForSignal(signal);
-  const routeLabel = labelForSignal(signal);
-  const activeIndex = hotTodaySignals.length ? hotTodayActiveIndex % hotTodaySignals.length : 0;
-  const activeClass = index === activeIndex ? ' is-hot-active' : '';
-  const milestoneStatus = signal.tone === 'milestone' && ['near', 'crossed'].includes(signal.milestoneStatus)
-    ? signal.milestoneStatus
-    : '';
-  const milestoneStatusText = milestoneStatus === 'crossed' ? 'Confirmed on-chain' : milestoneStatus === 'near' ? 'Approaching on-chain' : '';
-  const milestoneArrivalClaimed = milestoneStatus === 'crossed'
-    && claimMilestoneArrival(seenMilestoneArrivals, milestoneArrivalIdentity(signal));
-  const milestoneArriving = milestoneArrivalClaimed && !hotTodayQuietRestore;
-  const breakingClass = signal.breaking && !milestoneStatus ? ' is-hot-breaking' : '';
-  const milestoneClass = milestoneStatus ? ` is-milestone-${milestoneStatus}` : '';
-  const milestoneArrivalClass = milestoneArriving ? ' is-milestone-arriving' : '';
-  const spectacleClass = ` is-spectacle-${safeCssToken(signal.spectacle)}`;
-  const visual = normalizeVisual(signal.visual, signal.category);
-  const milestoneAttributes = milestoneStatus
-    ? ` data-milestone-status="${milestoneStatus}" data-milestone-label="${milestoneStatusText}"`
-    : '';
-  const milestoneStatusMarkup = milestoneStatus
-    ? `<span class="hot-today-milestone-status">${escapeHtml(milestoneStatusText)}</span>`
-    : '';
-  const milestoneTraceMarkup = milestoneStatus
-    ? '<span class="hot-today-milestone-trace" aria-hidden="true"><span></span><span></span><span></span></span>'
-    : '';
-  const ariaLabel = milestoneStatus
-    ? `${milestoneStatusText}. ${routeLabel}: ${signal.detail}`
-    : `${routeLabel}: ${signal.detail}`;
-  const speciesMark = milestoneStatus ? '' : `
-      <span class="hot-today-species-mark" aria-hidden="true"><span></span><span></span><span></span></span>
-  `;
-  const ageLabel = signalAgeLabel(signal);
-  const contextMarkup = signal.context
-    ? `<small class="hot-today-context">${escapeHtml(signal.context)}</small>`
-    : '';
+function preparePulseTickerSignal(signal, index) {
+  const milestoneArriving = signal.milestoneStatus === 'crossed'
+    && claimMilestoneArrival(seenMilestoneArrivals, milestoneArrivalIdentity(signal))
+    && !hotTodayQuietRestore;
   const data = typeof window !== 'undefined' ? window._myTezosData || {} : {};
-  const personalRibbon = hotSignalPersonalRibbon(signal, data, personalPortfolioSnapshot(data));
-  const personalAttribute = personalRibbon ? ' data-hot-personal="1"' : '';
-  const curioAttribute = signal.curio ? ' data-hot-curio="1"' : '';
-  const personalRibbonMarkup = personalRibbon
-    ? `<span class="hot-today-you">${escapeHtml(personalRibbon)}</span>`
-    : '';
-  const personalAriaPrefix = personalRibbon ? `${personalRibbon}. ` : '';
-  const personalAriaLabel = `${personalAriaPrefix}${ariaLabel}`;
-  const cardMarkup = `
-    <a class="hot-today-card hot-today-card-${signal.tone}${spectacleClass}${milestoneClass}${milestoneArrivalClass}${activeClass}${breakingClass}" href="${escapeHtml(route)}" data-hot-signal-id="${escapeHtml(signal.id)}" data-hot-signal-index="${index}" data-hot-score="${escapeHtml(String(signal.score))}" data-hot-visual="${escapeHtml(visual)}" data-hot-spectacle="${escapeHtml(signal.spectacle)}" data-network-route="${escapeHtml(route)}"${personalAttribute}${curioAttribute}${milestoneAttributes} aria-label="${escapeHtml(personalAriaLabel)}">
-      ${speciesMark}
-      <span class="hot-today-rank">${escapeHtml(signal.icon)}</span>
-      <span class="hot-today-copy">
-        <small class="hot-today-kicker"><span>${escapeHtml(categoryMeta(signal.category).label)}</span>${personalRibbonMarkup}<span class="hot-today-age" data-hot-age data-hot-created-at="${escapeHtml(String(signal.createdAt || ''))}" data-hot-observed-at="${escapeHtml(String(signal.observedAt || ''))}" data-hot-started-at="${escapeHtml(String(signal.startedAt || ''))}" data-hot-kind="${escapeHtml(signal.kind)}">${escapeHtml(ageLabel)}</span></small>
-        ${milestoneStatusMarkup}
-        <strong>${escapeHtml(signal.title)}</strong>
-        <span>${escapeHtml(signal.text)}</span>
-        ${contextMarkup}
-      </span>
-      <em><span>${escapeHtml(signal.detail)}</span>${renderDeltaChip(signal.delta, 'hot-today-delta')}</em>
-      ${milestoneTraceMarkup}
-    </a>
-  `;
-  if (!milestoneStatus) return cardMarkup;
-  return `
-    <div class="hot-today-milestone-shell is-milestone-${milestoneStatus}">
-      ${cardMarkup}
-      <button class="hot-today-milestone-share" type="button" data-hot-milestone-share="${index}" aria-label="${escapeHtml(`Share ${signal.title} milestone`)}" title="Share milestone">
-        <span aria-hidden="true">↗</span><span>Share</span>
-      </button>
-    </div>
-  `;
-}
-
-function applyHotTodayActive(index = hotTodayActiveIndex, { scroll = false } = {}) {
-  if (!hotTodaySignals.length) return;
-  const nextIndex = ((index % hotTodaySignals.length) + hotTodaySignals.length) % hotTodaySignals.length;
-  hotTodayActiveIndex = nextIndex;
-  let activeCard = null;
-  document.querySelectorAll('#hot-today-island [data-hot-signal-index]').forEach((card) => {
-    const isActive = Number(card.dataset.hotSignalIndex) === nextIndex;
-    card.classList.toggle('is-hot-active', isActive);
-    if (isActive) activeCard = card;
-  });
-  document.querySelectorAll('#hot-today-island [data-hot-progress-index]').forEach((segment) => {
-    const isActive = Number(segment.dataset.hotProgressIndex) === nextIndex;
-    segment.classList.toggle('is-active', isActive);
-    segment.setAttribute('aria-current', isActive ? 'true' : 'false');
-  });
-  if (scroll && activeCard) {
-    const scrollItem = activeCard.closest('.hot-today-milestone-shell') || activeCard;
-    const strip = scrollItem.closest('.hot-today-strip');
-    const rect = strip?.getBoundingClientRect();
-    const visibleHeight = rect ? Math.max(0, Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0)) : 0;
-    const stripIsVisible = rect && visibleHeight >= Math.min(rect.height || 0, 80) * 0.75;
-    if (strip && stripIsVisible) {
-      const itemRect = scrollItem.getBoundingClientRect();
-      const itemLeft = strip.scrollLeft + itemRect.left - rect.left;
-      const targetLeft = itemLeft - ((strip.clientWidth - itemRect.width) / 2);
-      strip.scrollTo({ left: Math.max(0, targetLeft), behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
-    }
-  }
-  refreshHotTodayLiveMetrics();
-}
-
-function renderHotTodayProgress(signals = hotTodaySignals) {
-  if (!Array.isArray(signals) || !signals.length) return '';
-  return `
-    <div class="hot-today-progress" aria-label="Live Pulse signals">
-      ${signals.map((signal, index) => `
-        <button class="hot-today-progress-segment hot-today-rail-chip" type="button" data-quiet-key="hot-rail-${escapeHtml(signal.id)}" data-hot-progress-index="${index}" data-hot-kind="${escapeHtml(signal.kind)}" aria-label="${escapeHtml(`Show ${signal.title || `signal ${index + 1}`}`)}">
-          <span class="hot-today-rail-icon" aria-hidden="true">${escapeHtml(signal.category === 'milestone' ? '◎' : signal.icon)}</span>
-          <span class="hot-today-rail-label">${escapeHtml(signal.shortLabel || signal.title || `Signal ${index + 1}`)}</span>
-        </button>
-      `).join('')}
-    </div>
-  `;
+  return {
+    ...signal,
+    tickerIndex: index,
+    tickerRoute: routeForSignal(signal),
+    actionLabel: labelForSignal(signal),
+    categoryLabel: categoryMeta(signal.category).label,
+    personalRibbon: hotSignalPersonalRibbon(signal, data, personalPortfolioSnapshot(data)),
+    ageLabel: signalAgeLabel(signal),
+    isArriving: milestoneArriving
+  };
 }
 
 function wireHotTodayMilestoneSharing(island) {
@@ -3838,8 +3688,8 @@ function wireHotTodayRealtime() {
 }
 
 function hotTodaySurfaceVisible() {
-  return isHomeBlockVisible('live-pulse')
-    || document.documentElement.getAttribute('data-home-layout-preview') === 'all';
+  return Boolean(pulseTickerElement()) && (isHomeBlockVisible('live-pulse')
+    || document.documentElement.getAttribute('data-home-layout-preview') === 'all');
 }
 
 function stopHotTodaySurfaceTimers() {
@@ -3859,6 +3709,7 @@ function stopHotTodaySurfaceTimers() {
 function syncHotTodaySurfaceVisibility() {
   if (!hotTodaySurfaceVisible()) {
     stopHotTodaySurfaceTimers();
+    releasePulseTicker();
     return;
   }
   wireHotTodayRealtime();
@@ -3880,52 +3731,10 @@ function wireHotTodayVisibility() {
   window.addEventListener('tezos:home-layout-preview', syncHotTodaySurfaceVisibility);
 }
 
-function wireHotTodayProgressNavigation(island) {
-  if (!island || island.dataset.hotProgressWired === 'true') return;
-  island.dataset.hotProgressWired = 'true';
-  island.addEventListener('click', (event) => {
-    const button = event.target.closest('[data-hot-progress-index]');
-    if (!button || !island.contains(button)) return;
-    event.preventDefault();
-    applyHotTodayActive(Number(button.dataset.hotProgressIndex), { scroll: true });
-  });
-  const markStripIntent = (event) => {
-    const target = event.target;
-    if (target?.closest?.('.hot-today-strip, .hot-today-progress')) {
-      hotTodayStripUserIntentUntil = Date.now() + 1200;
-    }
-  };
-  island.addEventListener('wheel', markStripIntent, { capture: true, passive: true });
-  island.addEventListener('touchstart', markStripIntent, { capture: true, passive: true });
-  island.addEventListener('pointerdown', markStripIntent, true);
-  island.addEventListener('keydown', markStripIntent, true);
-  island.addEventListener('scroll', (event) => {
-    const strip = event.target.closest?.('.hot-today-strip');
-    if (!strip || !island.contains(strip)) return;
-    if (Date.now() > hotTodayStripUserIntentUntil) return;
-    if (hotTodayStripNavigationFrame) cancelAnimationFrame(hotTodayStripNavigationFrame);
-    hotTodayStripNavigationFrame = requestAnimationFrame(() => {
-      hotTodayStripNavigationFrame = 0;
-      const cards = Array.from(strip.querySelectorAll('[data-hot-signal-index]'));
-      if (!cards.length) return;
-      const center = strip.scrollLeft + (strip.clientWidth / 2);
-      const nearest = cards.reduce((best, card) => {
-        const item = card.closest('.hot-today-milestone-shell') || card;
-        const itemCenter = item.offsetLeft + (item.offsetWidth / 2);
-        const distance = Math.abs(itemCenter - center);
-        return distance < best.distance
-          ? { distance, index: Number(card.dataset.hotSignalIndex) }
-          : best;
-      }, { distance: Infinity, index: hotTodayActiveIndex });
-      if (nearest.index !== hotTodayActiveIndex) applyHotTodayActive(nearest.index, { scroll: false });
-    });
-  }, true);
-}
-
 function settleMilestoneCardArrivals(island) {
-  island?.querySelectorAll('.hot-today-card-milestone.is-milestone-arriving').forEach((card) => {
+  island?.querySelectorAll('.pulse-ticker-item[data-pulse-weight="milestone"].is-arriving').forEach((card) => {
     window.setTimeout(() => {
-      if (card.isConnected) card.classList.remove('is-milestone-arriving');
+      if (card.isConnected) card.classList.remove('is-arriving');
     }, MILESTONE_CARD_ARRIVAL_MS);
   });
 }
@@ -3937,9 +3746,8 @@ function pulseHasConfirmedStats(stats = {}) {
 }
 
 function renderHotTodayState(state, stats = lastStats || {}) {
-  const island = document.getElementById('hot-today-island');
-  const content = document.getElementById('hot-today-content');
-  if (!island || !content) return;
+  const island = pulseTickerElement();
+  if (!island) return;
   const loading = state === 'loading';
   const quiet = state === 'quiet';
   lastHotTodayDataState = state;
@@ -3949,42 +3757,13 @@ function renderHotTodayState(state, stats = lastStats || {}) {
   const text = quiet
     ? 'No signal clears the headline threshold in the latest available read.'
     : 'The live read did not arrive. Last-good history and source status remain available in Network Pulse.';
-  const stateMarkup = loading
-    ? `
-      <div class="hot-today-head-meta">
-        <span class="hot-today-clock"><span class="hot-today-clock-dot" aria-hidden="true"></span><span data-hot-live="clock">Live · ${escapeHtml(currentUtcTick())} UTC</span></span>
-      </div>
-      <div class="hot-today-strip hot-today-strip-loading" aria-label="Live Pulse loading">
-        ${Array.from({ length: 3 }, (_, index) => `
-          <span class="hot-today-card hot-today-card-placeholder" data-quiet-key="hot-placeholder-${index}" aria-hidden="true">
-            <i></i><b></b><span></span><em></em>
-          </span>
-        `).join('')}
-      </div>
-      <div class="hot-today-progress hot-today-progress-loading" aria-hidden="true">
-        <span></span><span></span><span></span>
-      </div>
-    `
-    : `
-      <div class="hot-today-head-meta">
-        <a class="hot-today-clock" href="#health" data-network-route="#health"><span class="hot-today-clock-dot" aria-hidden="true"></span><span data-hot-live="clock">${escapeHtml(hotTodayClockLabel())}</span></a>
-      </div>
-      <div class="hot-today-terminal hot-today-terminal-${escapeHtml(state)}" role="status">
-        <span class="hot-today-terminal-icon" aria-hidden="true">${quiet ? '○' : '◇'}</span>
-        <span><strong>${escapeHtml(title)}</strong><small>${escapeHtml(text)}</small></span>
-        <a href="${escapeHtml(networkFeatureRoute('network'))}" data-network-route="${escapeHtml(networkFeatureRoute('network'))}">Open Network Pulse <span aria-hidden="true">↗</span></a>
-      </div>
-    `;
-
   island.hidden = false;
-  island.dataset.pulseState = state;
-  island.setAttribute('aria-busy', loading ? 'true' : 'false');
-  island.setAttribute('aria-live', loading ? 'off' : 'polite');
-  if (loading && content.hasAttribute('data-static-loading')) {
-    content.removeAttribute('data-static-loading');
-    setHotTodayLiveText('clock', `Live · ${currentUtcTick()} UTC`);
-  } else if (hotTodayHasRendered) quietlySyncHtml(content, stateMarkup);
-  else content.innerHTML = stateMarkup;
+  renderPulseTickerState(state, {
+    title,
+    text,
+    route: networkFeatureRoute('network')
+  });
+  setHotTodayLiveText('clock', loading ? 'Syncing' : hotTodayClockLabel());
   hotTodayHasRendered = !loading;
   wireNetworkContextNavigation(island);
   wireHotTodayRealtime();
@@ -4021,9 +3800,8 @@ function schedulePulseHistoryLoad() {
 }
 
 function renderToHotIsland(cycle, sentences, stats = lastStats || {}) {
-  const island = document.getElementById('hot-today-island');
-  const content = document.getElementById('hot-today-content');
-  if (!island || !content) return;
+  const island = pulseTickerElement();
+  if (!island) return;
   hotTodayBriefingSentences = Array.isArray(sentences) ? sentences : [];
   if (!hotTodaySurfaceVisible()) return;
   const briefingSignals = (Array.isArray(sentences) ? sentences : [])
@@ -4049,43 +3827,11 @@ function renderToHotIsland(cycle, sentences, stats = lastStats || {}) {
     }));
     return;
   }
-  const previousActiveId = hotTodaySignals[hotTodayActiveIndex]?.id || '';
   hotTodaySignals = signals;
   scheduleHotSignalExpiryRefresh(hotTodaySignals);
-  const arrivingMilestoneIndex = signals.findIndex(milestoneArrivalIsUnseen);
-  const preservedActiveIndex = previousActiveId
-    ? signals.findIndex(signal => signal.id === previousActiveId)
-    : -1;
-  const nextLeadId = signals[0]?.id || '';
-  const leadChanged = nextLeadId !== lastHotTodayLeadId;
-  hotTodayActiveIndex = arrivingMilestoneIndex >= 0
-    ? arrivingMilestoneIndex
-    : hotTodayHasRendered && preservedActiveIndex >= 0
-      ? preservedActiveIndex
-      : (!hotTodayHasRendered || leadChanged || signals[0]?.category === 'anniversary')
-      ? 0
-      : hotTodayActiveIndex % hotTodaySignals.length;
-  lastHotTodayLeadId = nextLeadId;
-  const history = hotHistorySummary(signals[0]);
-  const memoryChip = history?.chip
-    ? `<span class="hot-today-memory-chip">${escapeHtml(history.chip)}</span>`
-    : '';
   island.hidden = false;
-  island.dataset.pulseState = 'ready';
-  island.setAttribute('aria-busy', 'false');
-  island.setAttribute('aria-live', hotTodayHasRendered ? 'off' : 'polite');
-  const islandHtml = `
-    <div class="hot-today-head-meta">
-      ${memoryChip}
-      <a class="hot-today-clock" href="#health" data-network-route="#health"><span class="hot-today-clock-dot" aria-hidden="true"></span><span data-hot-live="clock">${escapeHtml(hotTodayClockLabel())}</span></a>
-    </div>
-    <div class="hot-today-strip" aria-label="Scrollable live pulse">
-      ${signals.map(renderHotSignal).join('')}
-    </div>
-    ${renderHotTodayProgress(signals)}
-  `;
-  if (hotTodayHasRendered) quietlySyncHtml(content, islandHtml);
-  else content.innerHTML = islandHtml;
+  const tickerSignals = signals.map(preparePulseTickerSignal);
+  renderPulseTicker(tickerSignals, { hasRendered: hotTodayHasRendered });
   hotTodayHasRendered = true;
   lastHotTodayDataState = 'ready';
   lastHotTodayGoodAt = Math.max(
@@ -4097,14 +3843,12 @@ function renderToHotIsland(cycle, sentences, stats = lastStats || {}) {
     hotTodayInitialTimer = null;
   }
   settleMilestoneCardArrivals(island);
-  wireHotTodayProgressNavigation(island);
   wireHotTodayMilestoneSharing(island);
   wireReleaseRadarActions(island);
   wireNetworkContextNavigation(island);
   wireHotTodayRealtime();
   syncOpenReleaseRadarOverlay();
   refreshHotTodayLiveMetrics();
-  applyHotTodayActive(hotTodayActiveIndex, { scroll: false });
   const milestoneSignal = getMilestoneHotSignal(hotTodaySignals);
   window.dispatchEvent(new CustomEvent('hot-signal-rendered', {
     detail: {
@@ -4356,8 +4100,9 @@ export async function initHotTodayIsland(stats, xtzPrice) {
   hotTodayWired = true;
   const mergedStats = mergePulseStats(stats);
   lastXtzPrice = xtzPrice ?? lastXtzPrice;
-  const island = document.getElementById('hot-today-island');
-  if (!island || !document.getElementById('hot-today-content')) return;
+  const island = pulseTickerElement();
+  if (!island) return;
+  mountPulseTicker();
   wireHotTodayVisibility();
   if (hotTodaySurfaceVisible()) {
     renderHotTodayState('loading', mergedStats);
@@ -4387,7 +4132,7 @@ export async function updateHotTodayIsland(stats, xtzPrice) {
     if (!hotTodaySurfaceVisible()) return;
     if (hotTodaySignals.length && hotTodayHasRendered) {
       lastHotTodayDataState = 'stale';
-      document.getElementById('hot-today-island')?.setAttribute('data-pulse-state', 'stale');
+      pulseTickerElement()?.setAttribute('data-pulse-state', 'stale');
       refreshHotTodayLiveMetrics();
     } else {
       renderHotTodayState('unavailable', mergedStats);
@@ -4431,6 +4176,5 @@ export function activateHotTodaySignal(categoryOrIndex) {
     ? Number(raw)
     : hotTodaySignals.findIndex(signal => signal.category === safeCssToken(raw) || signal.id === safeCssToken(raw));
   if (index < 0) return false;
-  applyHotTodayActive(index, { scroll: true });
-  return true;
+  return holdPulseTickerSignal(hotTodaySignals[index].id);
 }

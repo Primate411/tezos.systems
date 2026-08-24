@@ -2846,6 +2846,15 @@ function isChamberCategoryExpanded(category) {
     return category?.dataset.chamberExpanded === 'true';
 }
 
+function hydrateExpandedChamberCategory(category) {
+    category?.querySelectorAll?.('[data-chamber-entry-id]').forEach((card) => {
+        const entryId = card.dataset.chamberEntryId;
+        if (!entryId || !CHAMBER_FEATURES[entryId]) return;
+        _lazyChamberObserver?.unobserve(card);
+        loadChamberFeature(entryId).catch((error) => console.warn(`Failed to hydrate ${entryId} Chamber launcher`, error));
+    });
+}
+
 function wireChamberCategory(category) {
     const toggle = category?.querySelector(':scope > .chamber-category-head > .chamber-category-toggle');
     if (!toggle || toggle.dataset.chamberCategoryWired === '1') return;
@@ -2892,7 +2901,9 @@ function wireChamberCategory(category) {
             if (restoreFrame < maxRestoreFrames) requestAnimationFrame(restoreBrowserShift);
             else clearScrollIntentListeners();
         };
-        setChamberCategoryExpanded(category, !isChamberCategoryExpanded(category));
+        const nextExpanded = !isChamberCategoryExpanded(category);
+        setChamberCategoryExpanded(category, nextExpanded);
+        if (nextExpanded) hydrateExpandedChamberCategory(category);
         category.getBoundingClientRect();
         if (window.scrollX !== scrollX || window.scrollY !== scrollY) restoreScroll();
         requestAnimationFrame(restoreBrowserShift);
@@ -4668,7 +4679,7 @@ const SECTION_EXPLAINERS = Object.freeze({
     'hot-today-info-btn': {
         kicker: 'About Live Pulse',
         title: 'The signals most worth noticing now',
-        body: 'Live Pulse ranks current network, market, governance, staking, and milestone signals without moving the strip while you read.',
+        body: 'Live Pulse carries the most important network, market, governance, staking, and milestone signals across a quiet ticker. Hover, tap, or focus a signal to pause and read its full context.',
         href: '/pulse/',
         link: 'More information'
     },
@@ -4710,8 +4721,8 @@ function initSectionExplainers() {
 
     for (const [buttonId, copy] of Object.entries(SECTION_EXPLAINERS)) {
         const button = document.getElementById(buttonId);
-        const header = button?.closest('.section-header');
-        if (!button || !header || button.dataset.sectionExplainerWired === 'true') continue;
+        const host = button?.closest('.section-header, .pulse-ticker-strip');
+        if (!button || !host || button.dataset.sectionExplainerWired === 'true') continue;
 
         button.dataset.sectionExplainerWired = 'true';
         button.setAttribute('aria-expanded', 'false');
@@ -4734,7 +4745,7 @@ function initSectionExplainers() {
             </div>
         `;
         setInteractive(panel, false);
-        header.appendChild(panel);
+        host.appendChild(panel);
         button.setAttribute('aria-controls', panel.id);
 
         const disclosure = { button, panel };
@@ -6561,7 +6572,6 @@ function initDeepLinkAffordances() {
         { selector: '#calculator-section .section-header', hash: '#calculator', label: 'rewards calculator' },
         { selector: '#price-intelligence .section-header', hash: '#price', label: 'price intelligence' },
         { selector: '#widgets-gallery .section-header', hash: '#widgets', label: 'embed builder' },
-        { selector: '#hot-today-island .section-header', hash: '#pulse', label: 'Live Pulse' },
         { selector: '#chambers-section .section-header', hash: '#chambers', label: 'Explore Tezos' },
         { selector: '#consensus-section .section-header', hash: '#section=consensus', label: 'consensus stats' },
         { selector: '#economy-section .section-header', hash: '#section=economy', label: 'economy stats' },
@@ -7575,7 +7585,7 @@ function applyDeepLink() {
     if (params.has('hot-today') || hash === 'hot-today') {
         const category = params.get('hot-today');
         setHomeBlockVisible('live-pulse', true, 'deep-link');
-        scrollToElementAfterLayout(() => document.getElementById('hot-today-island'), { block: 'center' });
+        scrollToElementAfterLayout(() => document.getElementById('pulse-ticker-strip'), { block: 'center' });
         if (category) {
             setTimeout(() => activateHotTodaySignal(category), 900);
             setTimeout(() => activateHotTodaySignal(category), 1800);

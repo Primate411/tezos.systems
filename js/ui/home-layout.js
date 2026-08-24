@@ -6,7 +6,7 @@ export const HOME_LAYOUT_STORAGE_KEY = 'tezos-systems-home-layout-v1';
 export const HOME_BLOCKS = Object.freeze([
     Object.freeze({ id: 'ticker', label: 'Latest block ticker', selectors: ['#block-ticker-strip'] }),
     Object.freeze({ id: 'search', label: 'Search and command deck', selectors: ['#upgrade-clock'] }),
-    Object.freeze({ id: 'live-pulse', label: 'Live Pulse', selectors: ['#governance-alert-strip', '#hot-today-island'] }),
+    Object.freeze({ id: 'live-pulse', label: 'Live Pulse', selectors: ['#governance-alert-strip', '#pulse-ticker-strip'] }),
     Object.freeze({ id: 'explore', label: 'Explore Tezos', selectors: ['#chambers-section'] }),
     Object.freeze({ id: 'moments', label: 'Network Moments', selectors: ['#moments-section'] }),
     Object.freeze({ id: 'handoff', label: 'Keep Exploring', selectors: ['#recruit-section'] }),
@@ -16,7 +16,7 @@ export const HOME_BLOCKS = Object.freeze([
 const VALID_IDS = new Set(HOME_BLOCKS.map((block) => block.id));
 const LEGACY_KEYS = Object.freeze([
     'tezos-systems-chambers-visible',
-    'tezos-systems-collapsed-hot-today-island',
+    'tezos-systems-collapsed-pulse-ticker',
     'tezos-systems-collapsed-chambers-section',
     'tezos-systems-collapsed-moments-section'
 ]);

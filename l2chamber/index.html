@@ -51,18 +51,18 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="/css/styles.min.css?v=579">
-    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=579">
-    <link rel="stylesheet" href="/css/loading.css?v=579">
-    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=579">
-    <link rel="stylesheet" href="/css/protocol-anthology.css?v=579">
-    <link rel="stylesheet" href="/css/site-map.css?v=579">
+    <link rel="stylesheet" href="/css/styles.min.css?v=580">
+    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=580">
+    <link rel="stylesheet" href="/css/loading.css?v=580">
+    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=580">
+    <link rel="stylesheet" href="/css/protocol-anthology.css?v=580">
+    <link rel="stylesheet" href="/css/site-map.css?v=580">
     <link rel="stylesheet" href="/css/hen-mode.css?v=98">
     <script src="/js/core/hen-init.js?v=79" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="/js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="/js/core/app.js?v=579">
+    <link rel="modulepreload" href="/js/core/app.js?v=580">
     <link rel="modulepreload" href="/js/core/api.js">
     <link rel="modulepreload" href="/js/core/config.js">
     <link rel="modulepreload" href="/js/core/data-assets.js">
@@ -149,8 +149,8 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="/js/core/theme-preload.js?v=579"></script>
-    <script src="/js/core/home-layout-preload.js?v=579"></script>
+    <script src="/js/core/theme-preload.js?v=580"></script>
+    <script src="/js/core/home-layout-preload.js?v=580"></script>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="top-utility-row">
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
@@ -560,6 +560,36 @@
         </div>
     </header>
 
+    <section class="stats-section governance-alert-section" id="governance-alert-strip" aria-live="polite" data-home-block="live-pulse" hidden></section>
+
+    <!-- Live Pulse ticker -->
+    <section class="pulse-ticker-strip" id="pulse-ticker-strip" aria-label="Live Tezos Pulse"
+             data-magic="off" data-home-block="live-pulse" data-pulse-state="loading"
+             data-pulse-motion="static" aria-busy="true" aria-live="off">
+        <div class="pulse-ticker-bar" id="pulse-ticker-bar">
+            <div class="pulse-ticker-viewport" id="pulse-ticker-viewport">
+                <div class="pulse-ticker-track" data-pulse-track>
+                    <div class="pulse-ticker-run" data-pulse-run="live">
+                        <span class="pulse-ticker-item pulse-ticker-item-placeholder" data-quiet-key="pulse-placeholder-0" aria-hidden="true"><i></i><b></b><span></span></span>
+                        <span class="pulse-ticker-item pulse-ticker-item-placeholder" data-quiet-key="pulse-placeholder-1" aria-hidden="true"><i></i><b></b><span></span></span>
+                        <span class="pulse-ticker-item pulse-ticker-item-placeholder" data-quiet-key="pulse-placeholder-2" aria-hidden="true"><i></i><b></b><span></span></span>
+                    </div>
+                </div>
+            </div>
+            <a class="hot-today-clock pulse-ticker-clock" href="#health" data-network-route="#health"><span data-hot-live="clock">Syncing</span></a>
+            <button class="info-button pulse-ticker-info" id="hot-today-info-btn" type="button" aria-label="About Live Pulse" title="About Live Pulse">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+            <button class="home-block-hide home-block-hide-compact pulse-ticker-hide" type="button" data-home-hide="live-pulse" aria-label="Hide Live Pulse" title="Hide Live Pulse">
+                <svg class="home-block-hide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.8 10.8 0 0112 4c5.2 0 8.8 5.3 8.8 5.3a13 13 0 01-2.3 2.7M6.2 6.2A15.7 15.7 0 003.2 9.3S6.8 14.7 12 14.7c1 0 1.9-.2 2.7-.5"/></svg>
+                <span class="home-block-hide-label">Hide</span>
+            </button>
+        </div>
+        <div class="pulse-ticker-shelf" id="pulse-ticker-shelf" role="group" aria-label="Live Pulse signal detail" hidden></div>
+    </section>
+
     <!-- Live block ticker -->
     <section class="block-ticker-strip" id="block-ticker-strip" aria-label="Live Tezos Chain Heartbeat" data-magic="off" data-home-block="ticker" data-feed-state="loading">
         <button class="block-ticker-button" id="block-ticker-button" type="button" aria-label="Open Network Health Chamber">
@@ -590,7 +620,7 @@
             </span>
         </button>
         <span class="sr-only" id="chain-heartbeat-announcer" aria-live="polite" aria-atomic="true"></span>
-        <button class="home-block-hide home-block-hide-compact" type="button" data-home-hide="ticker" aria-label="Hide Latest block ticker" title="Hide Latest block ticker">
+        <button class="home-block-hide home-block-hide-compact block-ticker-hide" type="button" data-home-hide="ticker" aria-label="Hide Chain Heartbeat" title="Hide Chain Heartbeat">
             <svg class="home-block-hide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.8 10.8 0 0112 4c5.2 0 8.8 5.3 8.8 5.3a13 13 0 01-2.3 2.7M6.2 6.2A15.7 15.7 0 003.2 9.3S6.8 14.7 12 14.7c1 0 1.9-.2 2.7-.5"/></svg>
             <span class="home-block-hide-label">Hide</span>
         </button>
@@ -639,41 +669,6 @@
 
     <!-- Main content -->
     <main class="main-content" id="main-content" role="main">
-
-        <section class="stats-section governance-alert-section" id="governance-alert-strip" aria-live="polite" data-home-block="live-pulse" hidden></section>
-
-        <section class="stats-section hot-today-section" id="hot-today-island" data-pulse-state="loading" aria-busy="true" aria-live="off" data-home-block="live-pulse">
-            <div class="section-header feature-section-header hot-today-head">
-                <div class="feature-section-heading">
-                    <span class="feature-kicker">Live pulse</span>
-                    <div class="feature-section-title-row">
-                        <h2 class="section-title">What's hot today</h2>
-                    </div>
-                </div>
-                <div class="feature-section-actions" data-section-actions>
-                    <button class="info-button" id="hot-today-info-btn" type="button" aria-label="About Live Pulse" title="About Live Pulse">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                        </svg>
-                    </button>
-                    <button class="home-block-hide" type="button" data-home-hide="live-pulse" aria-label="Hide Live Pulse" title="Hide Live Pulse">
-                        <svg class="home-block-hide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.8 10.8 0 0112 4c5.2 0 8.8 5.3 8.8 5.3a13 13 0 01-2.3 2.7M6.2 6.2A15.7 15.7 0 003.2 9.3S6.8 14.7 12 14.7c1 0 1.9-.2 2.7-.5"/></svg>
-                        <span class="home-block-hide-label">Hide</span>
-                    </button>
-                </div>
-            </div>
-            <div class="hot-today-content" id="hot-today-content" data-static-loading>
-                <div class="hot-today-head-meta">
-                    <span class="hot-today-clock"><span class="hot-today-clock-dot" aria-hidden="true"></span><span data-hot-live="clock">Live · syncing UTC</span></span>
-                </div>
-                <div class="hot-today-strip hot-today-strip-loading" aria-label="Live Pulse loading">
-                    <span class="hot-today-card hot-today-card-placeholder" data-quiet-key="hot-placeholder-0" aria-hidden="true"><i></i><b></b><span></span><em></em></span>
-                    <span class="hot-today-card hot-today-card-placeholder" data-quiet-key="hot-placeholder-1" aria-hidden="true"><i></i><b></b><span></span><em></em></span>
-                    <span class="hot-today-card hot-today-card-placeholder" data-quiet-key="hot-placeholder-2" aria-hidden="true"><i></i><b></b><span></span><em></em></span>
-                </div>
-                <div class="hot-today-progress hot-today-progress-loading" aria-hidden="true"><span></span><span></span><span></span></div>
-            </div>
-        </section>
 
         <!-- Chambers Section -->
         <section class="stats-section chamber-suite-section" id="chambers-section" data-home-block="explore">
@@ -2762,8 +2757,8 @@
 
     <!-- Load app as module -->
     <script defer src="/js/features/hen-mode.js?v=95"></script>
-    <script type="module" src="/js/effects/valley-loader.js?v=579"></script>
-    <script type="module" src="/js/core/app.js?v=579"></script>
+    <script type="module" src="/js/effects/valley-loader.js?v=580"></script>
+    <script type="module" src="/js/core/app.js?v=580"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="my-baker-modal-title" tabindex="-1">

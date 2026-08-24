@@ -158,6 +158,8 @@ async function checkHomeLayoutContracts() {
     readText('README.md'),
     readText('js/features/changelog.js')
   ]);
+  const pulseTicker = await readText('js/ui/pulse-ticker.js');
+  const tickerCss = await readText('css/shell-extras.css');
   const expectedIds = ['ticker', 'search', 'live-pulse', 'explore', 'moments', 'handoff', 'credits'];
   const registryIds = [...layout.matchAll(/Object\.freeze\(\{ id: '([^']+)'/g)].map((match) => match[1]);
   if (JSON.stringify(registryIds) !== JSON.stringify(expectedIds)) {
@@ -170,9 +172,37 @@ async function checkHomeLayoutContracts() {
     }
   }
   const preloadIndex = index.indexOf('js/core/home-layout-preload.js');
+  const pulseTickerIndex = index.indexOf('id="pulse-ticker-strip"');
   const tickerIndex = index.indexOf('id="block-ticker-strip"');
-  if (preloadIndex < 0 || tickerIndex < 0 || preloadIndex > tickerIndex || !styles.includes('[data-home-hidden~="live-pulse"] #hot-today-island')) {
+  if (preloadIndex < 0 || pulseTickerIndex < 0 || tickerIndex < 0 || preloadIndex > pulseTickerIndex || pulseTickerIndex > tickerIndex || !styles.includes('[data-home-hidden~="live-pulse"] #pulse-ticker-strip')) {
     fail('Home layout first-paint preload must run before managed content and own CSS hiding from the root token');
+  }
+  if (!pulseTicker.includes('aria-hidden="true" inert') || !tickerCss.includes('.pulse-ticker-shelf{') || !tickerCss.includes('position: absolute;')) {
+    fail('Live Pulse echo must stay inert and its detail shelf must overlay without changing page flow');
+  }
+  const pulseInfoIndex = index.indexOf('id="hot-today-info-btn"', pulseTickerIndex);
+  const pulseHideIndex = index.indexOf('class="home-block-hide home-block-hide-compact pulse-ticker-hide"', pulseInfoIndex);
+  const pulseBarEnd = index.indexOf('</div>', pulseHideIndex);
+  if (pulseInfoIndex < 0 || pulseHideIndex < pulseInfoIndex || pulseBarEnd < pulseHideIndex
+      || !tickerCss.includes('grid-template-columns: minmax(0, 1fr) auto auto auto;')
+      || !tickerCss.includes('.pulse-ticker-bar .pulse-ticker-hide{')
+      || !tickerCss.includes('width: 26px;')
+      || index.includes('id="pulse-ticker-dot"')
+      || index.includes('class="chain-heartbeat-eyebrow pulse-ticker-kicker"')
+      || index.includes('class="hot-today-clock-dot"')
+      || !/\.pulse-ticker-bar\{[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;[\s\S]*?box-shadow:\s*none;/.test(tickerCss)) {
+    fail('Live Pulse must sit directly on the site background and keep its compact Hide control immediately after the info control inside the bar');
+  }
+  if (!app.includes("closest('.section-header, .pulse-ticker-strip')")
+      || briefing.includes('Latest signal')
+      || !smoke.includes("name: 'live-pulse-ticker'")) {
+    fail('Live Pulse must keep its concise age clock, working anchored explainer, and focused ticker browser regression');
+  }
+  const blockHideIndex = index.indexOf('class="home-block-hide home-block-hide-compact block-ticker-hide"', tickerIndex);
+  if (blockHideIndex < tickerIndex
+      || !tickerCss.includes('.block-ticker-strip[data-home-block] .block-ticker-hide {')
+      || !/\.block-ticker-strip\[data-home-block\] \.block-ticker-hide\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?width:\s*26px;[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;/.test(tickerCss)) {
+    fail('Chain Heartbeat must keep its compact Hide eye embedded subtly at the right edge of the panel');
   }
   for (const id of expectedIds) {
     if (!index.includes(`data-home-block="${id}"`) || !index.includes(`data-home-layout-toggle="${id}"`)) {
@@ -186,14 +216,14 @@ async function checkHomeLayoutContracts() {
   if (!index.includes('data-home-hide="credits"') || !index.includes('class="footer-last-line"')) fail('Credits must render its Hide action on the final build line');
   for (const legacyKey of [
     'tezos-systems-chambers-visible',
-    'tezos-systems-collapsed-hot-today-island',
+    'tezos-systems-collapsed-pulse-ticker',
     'tezos-systems-collapsed-chambers-section',
     'tezos-systems-collapsed-moments-section'
   ]) {
     if (!preload.includes(legacyKey) || !layout.includes(legacyKey)) fail(`Home layout migration is missing ${legacyKey}`);
   }
   if (!app.includes("if (section.hasAttribute('data-home-block')) return;")
-    || index.includes('data-section-collapse aria-expanded="true" aria-controls="hot-today-content"')
+    || index.includes('data-section-collapse aria-expanded="true" aria-controls="pulse-ticker-viewport"')
     || index.includes('data-section-collapse aria-expanded="true" aria-controls="chambers-grid"')) {
     fail('Managed Home blocks must be excluded from legacy collapse wiring');
   }
@@ -952,6 +982,7 @@ async function checkRequiredFiles() {
     'js/features/search.js',
     'js/landing/site-nav.js',
     'js/ui/wayfinder.js',
+    'js/ui/pulse-ticker.js',
     'js/ui/chamber-styles.js',
     'sw.js',
     'og-image.png',
@@ -2083,7 +2114,9 @@ async function checkSelectorContracts() {
     'chambers-section',
     'chambers-grid',
     'hot-today-info-btn',
-    'hot-today-content',
+    'pulse-ticker-strip',
+    'pulse-ticker-viewport',
+    'pulse-ticker-shelf',
     'block-ticker-strip',
     'block-ticker-line',
     'header-activity-button',
@@ -3076,7 +3109,7 @@ async function checkSelectorContracts() {
     ['top continuity statement runtime scale', 'font-size: clamp(1.5rem, 2.15vw, 2rem);', heroSearchCss],
     ['top continuity dedicated runtime font role', 'font-family: var(--font-runtime);', heroSearchCss],
     ['Handoff display font role', 'font-family: var(--font-display, Orbitron', siteMapCss],
-    ['hot-today display font role', 'font-family: var(--font-display, Orbitron', shellExtrasCss],
+    ['Live Pulse display font role', "var(--font-display, 'Space Grotesk'", shellExtrasCss],
     ['Live Pulse clock explicit presentation', '.hot-today-clock:is(:link, :visited)', shellExtrasCss],
     ['Live Pulse clock suppresses visited-link decoration', 'text-decoration: none;', shellExtrasCss],
     ['Maxis display font role', "font-family: var(--font-display, 'Orbitron'", maxisCss],
@@ -3133,9 +3166,9 @@ async function checkSelectorContracts() {
     ['top continuity second activation opens destination', 'openUptimeMilestoneDestination(milestoneSignal);', app],
     ['top continuity cross-tab seen sync', 'event.key !== UPTIME_MILESTONE_SEEN_KEY', app],
     ['top continuity explicit destination action', "topContinuityMilestoneLink?.addEventListener('click'", app],
-    ['milestone card DOM status styles', '.hot-today-milestone-status', shellExtrasCss],
-    ['milestone card protocol trace styles', '.hot-today-milestone-trace', shellExtrasCss],
-    ['milestone card active-only sustained trace', '.is-milestone-crossed.is-hot-active .hot-today-milestone-trace', shellExtrasCss],
+    ['milestone ticker word and glyph styles', '.pulse-ticker-weight', shellExtrasCss],
+    ['milestone ticker weight selector', '[data-pulse-weight="milestone"]', shellExtrasCss],
+    ['milestone ticker arrival treatment', '.pulse-ticker-item.is-arriving', shellExtrasCss],
     ['top continuity loading skeleton respects arrived pills', '.hero-arrival-pending .top-continuity-stat:not(.hero-arrived) strong', loadingCss],
     ['top continuity title theme token', '--header-title-color', styles],
     ['top continuity uptime statement transparent bg', 'background: transparent;', styles],
@@ -5407,11 +5440,12 @@ async function checkStylesheetFreshness() {
     fail('js/ui/theme.js theme list could not be parsed for lazy theme CSS checks');
   }
   const baseCss = await readText('css/styles.min.css');
+  const styles = await readText('css/styles.css');
   const matrixCss = await readText('css/themes/matrix.css');
   const shellExtrasCss = await readText('css/shell-extras.css');
   if (!matrixCss.includes('[data-theme="matrix"] :is(.price-label, .price-mcap)')
       || !matrixCss.includes('color: #8cff8c')
-      || !shellExtrasCss.includes('[data-theme="matrix"] .hot-today-progress-segment')
+      || !shellExtrasCss.includes('.pulse-ticker-weight')
       || !shellExtrasCss.includes('color: #8cff8c')) {
     fail('Matrix small telemetry labels must keep the explicit high-contrast treatment');
   }
@@ -6242,6 +6276,7 @@ async function checkDailyBriefingPriceContracts() {
 
 async function checkNetworkContextNavigationContracts() {
   const briefing = await readText('js/features/daily-briefing.js');
+  const pulseTicker = await readText('js/ui/pulse-ticker.js');
   const curio = await readText('js/core/live-pulse-curio.mjs');
   const myTezos = await readText('js/features/my-tezos.js');
   const siteJourney = await readText('js/core/site-journey.js');
@@ -6288,8 +6323,6 @@ async function checkNetworkContextNavigationContracts() {
     "return 'Your position';",
     "return 'Your collection';",
     "return 'Your .tez name';",
-    'data-hot-personal="1"',
-    'hot-today-you',
     "left?.spectacle !== 'quiet'",
     "if (value == null || value === '') return null;",
     'MILESTONE_MOMENT_TTL_MS',
@@ -6300,8 +6333,6 @@ async function checkNetworkContextNavigationContracts() {
     'shortLabel: milestoneShortLabel',
     'claimMilestoneArrival(seenMilestoneArrivals',
     "signal?.tone === 'milestone' && signal?.milestoneStatus === 'crossed'",
-    'data-milestone-status=',
-    'hot-today-milestone-status',
     'scheduleHotSignalExpiryRefresh(hotTodaySignals)',
     'milestone: hotSignalPayload(milestoneSignal)',
     'dailySnapshotReference',
@@ -6310,11 +6341,6 @@ async function checkNetworkContextNavigationContracts() {
     'SPECTACLE_LEVELS',
     'normalizeSpectacle',
     'selectHotSignalSet',
-    'const itemLeft = strip.scrollLeft + itemRect.left - rect.left',
-    'data-hot-spectacle=',
-    'data-hot-visual=',
-    'data-hot-signal-id=',
-    'hot-today-species-mark',
     'scoreBoostFor(category, profile)',
     'fetchNftPulse',
     'chooseDailyCurio',
@@ -6325,7 +6351,6 @@ async function checkNetworkContextNavigationContracts() {
     'freshHistoryRowsForDailyCurio',
     'prepareDailyCurio',
     'appendDailyCurio',
-    'data-hot-curio="1"',
     'delta: normalizeDelta',
     'BRIEFING_SCHEMA_VERSION = 14',
     'renderHotTodayState',
@@ -6333,8 +6358,6 @@ async function checkNetworkContextNavigationContracts() {
     'getLiveCandidateSignals',
     'getPulseHistoryReceipt',
     'getPulseDomainReceipt',
-    'data-hot-age',
-    'hot-today-rail-chip',
     'network-context-milestone-line',
     'MILESTONE_NEAR_MAX_DAYS = 30',
     'MILESTONE_CATALOG_URL',
@@ -6377,6 +6400,20 @@ async function checkNetworkContextNavigationContracts() {
     if (!briefing.includes(snippet)) fail(`Network Context clickable contract missing snippet: ${snippet}`);
   }
   for (const snippet of [
+    'data-hot-personal="1"',
+    'hot-today-you',
+    'data-milestone-status=',
+    'data-hot-spectacle=',
+    'data-hot-visual=',
+    'data-hot-signal-id=',
+    'data-hot-curio="1"',
+    'data-hot-age',
+    'pulse-ticker-mark',
+    'pulse-ticker-weight'
+  ]) {
+    if (!pulseTicker.includes(snippet)) fail(`Live Pulse ticker presentation contract missing snippet: ${snippet}`);
+  }
+  for (const snippet of [
     'LIVE_PULSE_CURIO_SCORE = 58',
     'LIVE_PULSE_CURIO_MAX_BASE_SIGNALS = 8',
     "source: 'protocol'",
@@ -6395,10 +6432,10 @@ async function checkNetworkContextNavigationContracts() {
     fail('Live Pulse personal ribbon must remain compact and preserve the age label lane');
   }
   for (const snippet of [
-    '.hot-today-card:not(.hot-today-card-release) .hot-today-species-mark',
-    'right: calc(100% - 3.15rem)',
-    'transform-origin: top right',
-    '.hot-today-card:not(.hot-today-card-release) .hot-today-age'
+    '.pulse-ticker-item',
+    'min-width: min(78vw, 330px)',
+    '.pulse-ticker-shelf',
+    '.pulse-ticker-clock'
   ]) {
     if (!shellExtras.includes(snippet)) fail(`Live Pulse mobile reading-lane CSS missing: ${snippet}`);
   }
@@ -6449,15 +6486,14 @@ async function checkNetworkContextNavigationContracts() {
   }
 
   for (const snippet of [
-    '.is-spectacle-quiet',
-    '.is-spectacle-headliner',
-    '.is-spectacle-peacock',
-    '.hot-today-milestone-shell.is-milestone-crossed',
-    '[data-hot-visual="whale"]',
-    '[data-hot-visual="domains"]',
-    '[data-hot-visual="maxis"]'
+    '[data-pulse-weight="state"]',
+    '[data-pulse-weight="priority"]',
+    '[data-pulse-weight="event"]',
+    '[data-pulse-weight="milestone"]',
+    '.pulse-ticker-mark',
+    '.pulse-ticker-shelf'
   ]) {
-    if (!shellExtras.includes(snippet)) fail(`What is hot today spectacle CSS missing: ${snippet}`);
+    if (!shellExtras.includes(snippet)) fail(`Live Pulse ticker weight CSS missing: ${snippet}`);
   }
 
   const chamberSignalContracts = [
@@ -8218,9 +8254,6 @@ async function checkMaxisContracts() {
     || packageJson?.scripts?.['check:maxis-l2-governance'] !== 'node scripts/refresh-maxis-l2-governance.mjs --check') {
     fail('package scripts must expose L2 Governance Maxi refresh and offline validation');
   }
-  if (!/\.hot-today-progress\s*\{[^}]*margin:\s*0\.7rem auto 0;/s.test(shellExtrasCss)) {
-    fail('What is hot today progress controls must stay centered');
-  }
   pass('Tezos Maxis taxonomy, snapshot, scoring, route, and Ledger Flow contracts checked');
 }
 
@@ -8572,10 +8605,11 @@ async function checkLiveNumberMotionContracts() {
 }
 
 async function checkQuietRefreshContracts() {
-  const [quiet, app, daily, myTezos, myBaker, tezlink, capital, minerals, uranium, metals, ecosystem, etherlink, domains, tz4, whales, giants, hen, health, lb, styles, smoke] = await Promise.all([
+  const [quiet, app, daily, pulseTicker, myTezos, myBaker, tezlink, capital, minerals, uranium, metals, ecosystem, etherlink, domains, tz4, whales, giants, hen, health, lb, styles, smoke] = await Promise.all([
     readText('js/core/quiet-refresh.js'),
     readText('js/core/app.js'),
     readText('js/features/daily-briefing.js'),
+    readText('js/ui/pulse-ticker.js'),
     readText('js/features/my-tezos.js'),
     readText('js/features/my-baker.js'),
     readText('js/features/tezlink.js'),
@@ -8600,10 +8634,19 @@ async function checkQuietRefreshContracts() {
   for (const helper of requiredQuietHelpers) {
     if (!quiet.includes(helper)) fail(`quiet refresh helper missing ${helper}`);
   }
-  if (/hotTodayRotateTimer|advanceHotTodayLead|HOT_TODAY_ROTATE_MS/.test(daily)) {
-    fail('What is hot today must not auto-rotate or auto-scroll on a timer');
+  for (const snippet of [
+    'data-pulse-motion',
+    'capturePhase',
+    'restorePhase',
+    "matchMedia('(prefers-reduced-motion: reduce)')",
+    'IntersectionObserver'
+  ]) {
+    if (!pulseTicker.includes(snippet)) fail(`Live Pulse ticker motion contract is missing ${snippet}`);
   }
-  if (!daily.includes('quietlySyncHtml(content, islandHtml)')) fail('What is hot today background signals must reconcile inside the stable rail');
+  if (/requestAnimationFrame|scrollLeft\s*[+-]?=/.test(pulseTicker)) {
+    fail('Live Pulse ticker must drift through one CSS animation, not a scripted loop');
+  }
+  if (!pulseTicker.includes('quietlySyncHtml(viewport, tickerHtml)')) fail('Live Pulse background signals must reconcile inside the stable ticker viewport');
   if (!daily.includes('quietlySyncHtml(container, html)')) fail('My Tezos network context must reconcile in place after its first render');
   if ((app.match(/document\.visibilityState === 'visible'\) refreshInBackground/g) || []).length < 2) {
     fail('headline and heavy dashboard timers must both defer while the tab is hidden');

@@ -86,6 +86,8 @@ the highest-risk gotchas.
   revert to creator-only discovery; the corrected current Sequencer deployment
   has a different origin.
 - `js/core/utils.js`: formatters, debounce/throttle, sanitization helpers.
+- `js/ui/pulse-ticker.js`: Live Pulse ticker presentation, phase-preserving CSS
+  drift, pause/hold interaction, detail shelf, and reduced-motion fallback.
 - `sw.js`: bounded shell/runtime caching and explicit offline navigation. Cross-
   origin API responses are never cached or replayed as current data.
 - `version.json`: build metadata.
@@ -226,6 +228,11 @@ Network Health Chamber: **live data changes; the reader does not move**.
   hash, call `scrollTo`/`scrollIntoView`, move focus, auto-rotate a carousel,
   reset a scroller, or replay an entrance/pulse animation. Those behaviors are
   allowed only after a direct user action when they are part of that action.
+  The Live Pulse ticker (`js/ui/pulse-ticker.js`) is the one surface with
+  intended continuous motion. That motion is a property of the surface, not of
+  a refresh: it pauses on hover, tap, focus, search, hidden tabs, and off-screen,
+  it is disabled under `prefers-reduced-motion`, and a background refresh must
+  restore its exact phase. Every other rule in this contract applies unchanged.
 - Live feeds must compensate for prepends/appends so the visible content stays
   under the reader's eyes. Preserve vertical position by the scroll-height
   delta and preserve horizontal position by the scroll-width delta when items
@@ -447,6 +454,8 @@ Stamping gotchas:
 
 ## UI and Effects
 
+- `js/ui/pulse-ticker.js`: continuously drifting Live Pulse bar, intent pause,
+  two-step touch activation, source shelf, and quiet-refresh phase retention.
 - `js/ui/theme.js`: theme registry, picker, first-visit landing redirect.
 - `js/ui/wayfinder.js`: injects four semantic next steps into chamber overlays
   that do not already provide a native adjacent-room map. Keep contextual

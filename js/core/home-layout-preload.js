@@ -4,7 +4,7 @@
     var IDS = ['ticker', 'search', 'live-pulse', 'explore', 'moments', 'handoff', 'credits'];
     var LEGACY = [
         ['tezos-systems-chambers-visible', 'explore', 'false'],
-        ['tezos-systems-collapsed-hot-today-island', 'live-pulse', '1'],
+        ['tezos-systems-collapsed-pulse-ticker', 'live-pulse', '1'],
         ['tezos-systems-collapsed-chambers-section', 'explore', '1'],
         ['tezos-systems-collapsed-moments-section', 'moments', '1']
     ];
