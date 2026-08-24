@@ -4844,10 +4844,21 @@ async function installShareActionMocks(context, { nativeShare = true } = {}) {
 
 async function smokeAppShell(browser, baseUrl) {
   const issues = [];
+  const mockHistorySources = async (targetContext) => {
+    for (const table of ['market_history', 'network_health_history', 'tezosx_history', 'governance_period_history']) {
+      await targetContext.route(`https://iijpfczftroespicmufb.supabase.co/rest/v1/${table}**`, (route) => (
+        fulfillJson(route, sampleDomainHistoryRows(table))
+      ));
+    }
+    await targetContext.route('https://iijpfczftroespicmufb.supabase.co/rest/v1/tezos_history**', (route) => (
+      fulfillJson(route, sampleHistoryRows())
+    ));
+  };
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'allow'
   });
+  await mockHistorySources(context);
   await context.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => fulfillJson(route, {
     sha: 'cafebabecafebabecafebabecafebabecafebabe',
     html_url: 'https://github.com/Primate411/tezos.systems/commit/cafebabe',
@@ -5163,6 +5174,7 @@ async function smokeAppShell(browser, baseUrl) {
     viewport: { width: 960, height: 720 },
     serviceWorkers: 'block'
   });
+  await mockHistorySources(fallbackContext);
   await fallbackContext.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => route.fulfill({ status: 403, body: '{}' }));
   await fallbackContext.addInitScript(() => {
     localStorage.setItem('tezos-systems-theme', 'matrix');
