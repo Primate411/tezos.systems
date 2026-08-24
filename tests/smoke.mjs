@@ -9642,6 +9642,10 @@ async function smokeLivePulseTicker(browser, baseUrl) {
     document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion === 'paused'
       && !document.getElementById('pulse-ticker-shelf')?.hidden
   ));
+  await page.evaluate(async () => {
+    const animation = document.querySelector('#pulse-ticker-strip [data-pulse-track]')?.getAnimations?.()[0];
+    if (animation?.ready) await animation.ready;
+  });
   const held = await page.evaluate(() => {
     const section = document.getElementById('pulse-ticker-strip');
     const shelf = document.getElementById('pulse-ticker-shelf');
