@@ -4613,7 +4613,10 @@ body.release-update-safe-area-raised .chamber-room-scroll {
 
 .pulse-ticker-viewport{
     min-width: 0;
+    margin-left: -0.8rem;
     overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
 }
 
 .pulse-ticker-track{
@@ -4626,10 +4629,6 @@ body.release-update-safe-area-raised .chamber-room-scroll {
 .pulse-ticker-run{
     display: flex;
     align-items: center;
-}
-
-.pulse-ticker-run-echo{
-    pointer-events: none;
 }
 
 @keyframes pulseTickerDrift {
@@ -4650,18 +4649,23 @@ body.release-update-safe-area-raised .chamber-room-scroll {
     --pulse-item-accent: var(--text-secondary);
     position: relative;
     display: grid;
-    grid-template-columns: 1rem minmax(0, 1fr);
+    grid-template-columns: auto;
     align-items: center;
     flex: 0 0 auto;
     gap: 0.5rem;
+    width: max-content;
     min-width: clamp(255px, 27vw, 390px);
-    max-width: 440px;
+    max-width: none;
     min-height: 44px;
     padding: 0 1rem;
     border-right: 1px solid color-mix(in srgb, var(--text-primary) 9%, transparent);
     color: var(--text-secondary);
     text-decoration: none;
     box-sizing: border-box;
+}
+
+.pulse-ticker-item.has-mark{
+    grid-template-columns: 1rem auto;
 }
 
 .pulse-ticker-item:is(:hover, :focus-visible){
@@ -4727,10 +4731,11 @@ body.release-update-safe-area-raised .chamber-room-scroll {
 
 .pulse-ticker-value{
     min-width: 0;
-    overflow: hidden;
+    flex: 0 0 auto;
+    overflow: visible;
     color: var(--text-secondary);
     font: 650 0.72rem/1.2 'JetBrains Mono', monospace;
-    text-overflow: ellipsis;
+    text-overflow: clip;
     white-space: nowrap;
 }
 
@@ -4741,12 +4746,6 @@ body.release-update-safe-area-raised .chamber-room-scroll {
 
 [data-theme="matrix"] .pulse-ticker-weight{
     color: #8cff8c;
-}
-
-.pulse-ticker-item[data-pulse-weight="priority"],
-.pulse-ticker-item[data-pulse-weight="event"],
-.pulse-ticker-item[data-pulse-weight="milestone"]{
-    background: linear-gradient(90deg, color-mix(in srgb, var(--pulse-item-accent) 7%, transparent), transparent 70%);
 }
 
 .pulse-ticker-clock{
@@ -4947,14 +4946,18 @@ body.release-update-safe-area-raised .chamber-room-scroll {
         padding: 0.48rem 0.62rem;
     }
 
+    .pulse-ticker-viewport{
+        margin-left: -0.62rem;
+    }
+
     .pulse-ticker-clock{
         display: none;
     }
 
     .pulse-ticker-item{
-        width: min(78vw, 330px);
+        width: max-content;
         min-width: min(78vw, 330px);
-        max-width: min(78vw, 330px);
+        max-width: none;
         padding: 0 0.75rem;
     }
 
@@ -4999,6 +5002,8 @@ body.release-update-safe-area-raised .chamber-room-scroll {
     .pulse-ticker-viewport{
         overflow-x: auto;
         scrollbar-width: thin;
+        -webkit-mask-image: none;
+        mask-image: none;
     }
 }
 

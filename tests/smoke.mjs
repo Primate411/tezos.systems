@@ -9566,12 +9566,32 @@ async function smokeLivePulseTicker(browser, baseUrl) {
   const before = await page.evaluate(() => {
     const section = document.getElementById('pulse-ticker-strip');
     const track = section?.querySelector('[data-pulse-track]');
+    const echo = section?.querySelector('[data-pulse-run="echo"]');
+    const viewport = document.getElementById('pulse-ticker-viewport');
+    const heartbeat = document.getElementById('block-ticker-button');
+    const viewportRect = viewport?.getBoundingClientRect();
+    const heartbeatRect = heartbeat?.getBoundingClientRect();
+    const viewportStyles = viewport ? getComputedStyle(viewport) : null;
+    const liveItems = Array.from(section?.querySelectorAll('[data-pulse-run="live"] [data-hot-signal-id]') || []);
+    const release = liveItems.find(item => item.dataset.hotSignalId === 'release-radar');
     window.__pulseTickerTrack = track;
     return {
       motion: section?.dataset.pulseMotion || '',
       time: Number(track?.getAnimations?.()[0]?.currentTime) || 0,
       clock: section?.querySelector('[data-hot-live="clock"]')?.textContent?.trim() || '',
-      echoesInert: Boolean(section?.querySelector('[data-pulse-run="echo"][inert][aria-hidden="true"]'))
+      echoPointerReady: Boolean(echo?.matches('[aria-hidden="true"]:not([inert])'))
+        && getComputedStyle(echo).pointerEvents !== 'none',
+      leftEdgeDelta: viewportRect && heartbeatRect ? Math.abs(viewportRect.left - heartbeatRect.left) : 999,
+      edgeMask: viewportStyles?.maskImage || viewportStyles?.webkitMaskImage || '',
+      clippedValues: liveItems.filter(item => {
+        const value = item.querySelector('.pulse-ticker-value');
+        return value && value.scrollWidth > value.clientWidth + 1;
+      }).map(item => item.dataset.hotSignalId),
+      headlinerStates: liveItems.filter(item => item.dataset.hotSpectacle === 'headliner' && item.dataset.pulseWeight === 'state').map(item => item.dataset.hotSignalId),
+      highlightedSurfaces: liveItems.filter(item => getComputedStyle(item).backgroundImage !== 'none').map(item => item.dataset.hotSignalId),
+      unmarkedItemsWithGlyphs: liveItems.filter(item => ['state', 'priority'].includes(item.dataset.pulseWeight) && item.querySelector('.pulse-ticker-mark')).map(item => item.dataset.hotSignalId),
+      releaseWeight: release?.dataset.pulseWeight || '',
+      releaseMark: release?.querySelector('.pulse-ticker-mark')?.textContent?.trim() || ''
     };
   });
   await page.waitForTimeout(320);
@@ -9588,7 +9608,15 @@ async function smokeLivePulseTicker(browser, baseUrl) {
       && drift.sameTrack
       && drift.time > before.time + 100
       && /^(?:Just now|\d+[smhd] ago)$/i.test(before.clock)
-      && before.echoesInert,
+      && before.echoPointerReady
+      && before.leftEdgeDelta <= 1
+      && /linear-gradient/.test(before.edgeMask)
+      && before.clippedValues.length === 0
+      && before.headlinerStates.length === 0
+      && before.highlightedSurfaces.length === 0
+      && before.unmarkedItemsWithGlyphs.length === 0
+      && before.releaseWeight === 'priority'
+      && before.releaseMark === '',
     `live pulse ticker: continuous motion or concise age contract failed ${JSON.stringify({ before, drift })}`
   );
 
@@ -9614,7 +9642,75 @@ async function smokeLivePulseTicker(browser, baseUrl) {
 
   await firstItem.dispatchEvent('pointerout', { pointerType: 'mouse' });
   await page.waitForFunction(() => document.getElementById('pulse-ticker-shelf')?.hidden === true, null, { timeout: 3000 });
+  const echoTarget = await page.evaluate(async () => {
+    const section = document.getElementById('pulse-ticker-strip');
+    const viewport = document.getElementById('pulse-ticker-viewport');
+    const track = section?.querySelector('[data-pulse-track]');
+    const live = section?.querySelector('[data-pulse-run="live"]');
+    const echo = section?.querySelector('[data-pulse-run="echo"]');
+    const item = echo?.querySelector('[data-pulse-echo-of="release-radar"]')
+      || echo?.querySelector('[data-pulse-echo-of]');
+    const animation = track?.getAnimations?.()[0];
+    const duration = Number(animation?.effect?.getTiming?.().duration);
+    if (!section || !viewport || !live || !echo || !item || !animation || !Number.isFinite(duration) || duration <= 0) return null;
+    animation.pause();
+    const phase = Math.max(0, Math.min(0.995, 1 + ((item.offsetLeft + (item.getBoundingClientRect().width / 2) - (viewport.clientWidth / 2)) / live.getBoundingClientRect().width)));
+    animation.currentTime = phase * duration;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const viewportRect = viewport.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    const left = Math.max(viewportRect.left, itemRect.left);
+    const right = Math.min(viewportRect.right, itemRect.right);
+    const x = left + ((right - left) / 2);
+    const y = itemRect.top + (itemRect.height / 2);
+    const hit = document.elementFromPoint(x, y)?.closest('[data-pulse-echo-of]');
+    window.__pulseEchoAnimation = animation;
+    return {
+      id: item.dataset.pulseEchoOf || '',
+      x,
+      y,
+      visibleWidth: Math.max(0, right - left),
+      hitId: hit?.dataset.pulseEchoOf || ''
+    };
+  });
+  assert(echoTarget?.id && echoTarget.hitId === echoTarget.id && echoTarget.visibleWidth > 24, `live pulse ticker: echo did not expose a real pointer target ${JSON.stringify(echoTarget)}`);
+  await page.mouse.move(echoTarget.x, echoTarget.y);
+  await page.waitForFunction((signalId) => (
+    document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion === 'paused'
+      && !document.getElementById('pulse-ticker-shelf')?.hidden
+      && document.querySelector('[data-pulse-run="live"] [aria-describedby="pulse-ticker-shelf"]')?.getAttribute('data-hot-signal-id') === signalId
+  ), echoTarget.id, { timeout: 3000 });
+  const echoHeld = await page.evaluate((signalId) => {
+    const section = document.getElementById('pulse-ticker-strip');
+    const anchor = section?.querySelector(`[data-pulse-run="echo"] [data-pulse-echo-of="${CSS.escape(signalId)}"]`);
+    const sectionRect = section?.getBoundingClientRect();
+    const anchorRect = anchor?.getBoundingClientRect();
+    const expectedCaret = sectionRect && anchorRect
+      ? Math.max(24, Math.min(sectionRect.width - 24, anchorRect.left - sectionRect.left + (anchorRect.width / 2)))
+      : -1;
+    return {
+      caret: Number.parseFloat(section?.style.getPropertyValue('--pulse-shelf-caret') || '-1'),
+      expectedCaret,
+      shelfText: document.getElementById('pulse-ticker-shelf')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      echoDescribed: anchor?.getAttribute('aria-describedby') || ''
+    };
+  }, echoTarget.id);
+  assert(
+    echoHeld.shelfText
+      && echoHeld.echoDescribed === ''
+      && Math.abs(echoHeld.caret - echoHeld.expectedCaret) <= 1,
+    `live pulse ticker: echo shelf did not anchor to the pointer while preserving the live accessibility twin ${JSON.stringify(echoHeld)}`
+  );
+  await page.mouse.move(10, 500);
+  await page.waitForFunction(() => document.getElementById('pulse-ticker-shelf')?.hidden === true, null, { timeout: 3000 });
+  await page.evaluate(() => window.__pulseEchoAnimation?.play());
   await page.evaluate(() => {
+    const track = document.querySelector('#pulse-ticker-strip [data-pulse-track]');
+    const animation = track?.getAnimations?.()[0];
+    const duration = Number(animation?.effect?.getTiming?.().duration);
+    window.__pulseRefreshPhase = animation && Number.isFinite(duration) && duration > 0
+      ? ((Number(animation.currentTime) || 0) % duration) / duration
+      : null;
     window.dispatchEvent(new CustomEvent('hot-signal', {
       detail: {
         id: 'pulse-ticker-refresh-proof',
@@ -9631,12 +9727,37 @@ async function smokeLivePulseTicker(browser, baseUrl) {
     }));
   });
   await page.locator('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-signal-id="pulse-ticker-refresh-proof"]').waitFor({ state: 'attached', timeout: 10000 });
-  const refreshed = await page.evaluate(() => ({
-    sameTrack: document.querySelector('#pulse-ticker-strip [data-pulse-track]') === window.__pulseTickerTrack,
-    motion: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || '',
-    echoes: document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="echo"] [data-pulse-echo-of="pulse-ticker-refresh-proof"]').length
-  }));
-  assert(refreshed.sameTrack && refreshed.motion === 'running' && refreshed.echoes === 1, `live pulse ticker: quiet refresh reset the motion surface ${JSON.stringify(refreshed)}`);
+  await page.waitForFunction(() => {
+    const animation = document.querySelector('#pulse-ticker-strip [data-pulse-track]')?.getAnimations?.()[0];
+    const duration = Number(animation?.effect?.getTiming?.().duration);
+    return Boolean(animation) && animation.currentTime !== null && Number.isFinite(duration) && duration > 0;
+  }, null, { timeout: 3000 });
+  const refreshed = await page.evaluate(() => {
+    const track = document.querySelector('#pulse-ticker-strip [data-pulse-track]');
+    const animation = track?.getAnimations?.()[0];
+    const duration = Number(animation?.effect?.getTiming?.().duration);
+    const phase = animation && Number.isFinite(duration) && duration > 0
+      ? ((Number(animation.currentTime) || 0) % duration) / duration
+      : null;
+    const beforePhase = window.__pulseRefreshPhase;
+    return {
+      sameTrack: track === window.__pulseTickerTrack,
+      motion: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || '',
+      echoes: document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="echo"] [data-pulse-echo-of="pulse-ticker-refresh-proof"]').length,
+      beforePhase,
+      phase,
+      phaseDelta: Number.isFinite(beforePhase) && Number.isFinite(phase) ? (phase - beforePhase + 1) % 1 : null
+    };
+  });
+  assert(
+    refreshed.sameTrack
+      && refreshed.motion === 'running'
+      && refreshed.echoes === 1
+      && Number.isFinite(refreshed.phaseDelta)
+      && refreshed.phaseDelta >= 0
+      && refreshed.phaseDelta < 0.02,
+    `live pulse ticker: quiet refresh reset or moved the motion phase backward ${JSON.stringify(refreshed)}`
+  );
 
   await page.locator('#hot-today-info-btn').click();
   await page.locator('#hot-today-info-btn-panel.is-visible').waitFor({ state: 'visible', timeout: 3000 });
@@ -9669,20 +9790,67 @@ async function smokeLivePulseTicker(browser, baseUrl) {
   attachIssueCollectors(mobilePage, 'live pulse ticker mobile', issues);
   await mobilePage.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
   await mobilePage.waitForFunction(() => document.getElementById('pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
-  const mobileItem = mobilePage.locator('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-signal-id]').first();
-  await mobileItem.dispatchEvent('click', { detail: 1 });
+  const mobileEchoTarget = await mobilePage.evaluate(async () => {
+    const section = document.getElementById('pulse-ticker-strip');
+    const viewport = document.getElementById('pulse-ticker-viewport');
+    const track = section?.querySelector('[data-pulse-track]');
+    const live = section?.querySelector('[data-pulse-run="live"]');
+    const echo = section?.querySelector('[data-pulse-run="echo"]');
+    const item = echo?.querySelector('[data-pulse-echo-of="release-radar"]')
+      || echo?.querySelector('[data-pulse-echo-of]');
+    const animation = track?.getAnimations?.()[0];
+    const duration = Number(animation?.effect?.getTiming?.().duration);
+    if (!section || !viewport || !live || !item || !animation || !Number.isFinite(duration) || duration <= 0) return null;
+    animation.pause();
+    const phase = Math.max(0, Math.min(0.995, 1 + ((item.offsetLeft + (item.getBoundingClientRect().width / 2) - (viewport.clientWidth / 2)) / live.getBoundingClientRect().width)));
+    animation.currentTime = phase * duration;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const viewportRect = viewport.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    const left = Math.max(viewportRect.left, itemRect.left);
+    const right = Math.min(viewportRect.right, itemRect.right);
+    const x = left + ((right - left) / 2);
+    const y = itemRect.top + (itemRect.height / 2);
+    const hit = document.elementFromPoint(x, y)?.closest('[data-pulse-echo-of]');
+    return {
+      id: item.dataset.pulseEchoOf || '',
+      href: item.href,
+      beforeHref: location.href,
+      x,
+      y,
+      visibleWidth: Math.max(0, right - left),
+      hitId: hit?.dataset.pulseEchoOf || ''
+    };
+  });
+  assert(mobileEchoTarget?.id && mobileEchoTarget.hitId === mobileEchoTarget.id && mobileEchoTarget.visibleWidth > 24, `live pulse ticker mobile: echo did not expose a real tap target ${JSON.stringify(mobileEchoTarget)}`);
+  await mobilePage.touchscreen.tap(mobileEchoTarget.x, mobileEchoTarget.y);
   await mobilePage.waitForFunction(() => !document.getElementById('pulse-ticker-shelf')?.hidden);
   const firstTap = await mobilePage.evaluate(() => ({
-    hash: location.hash,
+    href: location.href,
     held: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || '',
-    shelfVisible: !document.getElementById('pulse-ticker-shelf')?.hidden
+    shelfVisible: !document.getElementById('pulse-ticker-shelf')?.hidden,
+    described: document.querySelector('[data-pulse-run="live"] [aria-describedby="pulse-ticker-shelf"]')?.getAttribute('data-hot-signal-id') || ''
   }));
-  assert(firstTap.held === 'paused' && firstTap.shelfVisible, `live pulse ticker mobile: first tap did not disclose without navigation ${JSON.stringify(firstTap)}`);
+  assert(
+    firstTap.href === mobileEchoTarget.beforeHref
+      && firstTap.held === 'paused'
+      && firstTap.shelfVisible
+      && firstTap.described === mobileEchoTarget.id,
+    `live pulse ticker mobile: first echo tap did not disclose without navigation ${JSON.stringify({ mobileEchoTarget, firstTap })}`
+  );
   await mobilePage.evaluate(() => {
     document.documentElement.style.scrollBehavior = 'auto';
     window.scrollTo({ top: window.scrollY + 64, behavior: 'instant' });
   });
   await mobilePage.waitForFunction(() => document.getElementById('pulse-ticker-shelf')?.hidden === true, null, { timeout: 3000 });
+  await mobilePage.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await mobilePage.waitForTimeout(50);
+  await mobilePage.touchscreen.tap(mobileEchoTarget.x, mobileEchoTarget.y);
+  await mobilePage.waitForFunction(() => !document.getElementById('pulse-ticker-shelf')?.hidden);
+  await mobilePage.touchscreen.tap(mobileEchoTarget.x, mobileEchoTarget.y);
+  await mobilePage.waitForFunction((beforeHref) => location.href !== beforeHref, mobileEchoTarget.beforeHref, { timeout: 5000 });
+  const secondTap = await mobilePage.evaluate(() => ({ href: location.href }));
+  assert(secondTap.href === mobileEchoTarget.href, `live pulse ticker mobile: second echo tap did not launch its route ${JSON.stringify({ mobileEchoTarget, secondTap })}`);
   await mobileContext.close();
 
   const reducedContext = await browser.newContext({
@@ -9704,9 +9872,14 @@ async function smokeLivePulseTicker(browser, baseUrl) {
     motion: document.getElementById('pulse-ticker-strip')?.dataset.pulseMotion || '',
     animations: document.querySelector('#pulse-ticker-strip [data-pulse-track]')?.getAnimations?.().length || 0,
     scrollWidth: document.getElementById('pulse-ticker-viewport')?.scrollWidth || 0,
-    clientWidth: document.getElementById('pulse-ticker-viewport')?.clientWidth || 0
+    clientWidth: document.getElementById('pulse-ticker-viewport')?.clientWidth || 0,
+    edgeMask: (() => {
+      const viewport = document.getElementById('pulse-ticker-viewport');
+      const styles = viewport ? getComputedStyle(viewport) : null;
+      return styles?.maskImage || styles?.webkitMaskImage || '';
+    })()
   }));
-  assert(reduced.motion === 'static' && reduced.animations === 0 && reduced.scrollWidth >= reduced.clientWidth, `live pulse ticker reduced motion: static reading lane failed ${JSON.stringify(reduced)}`);
+  assert(reduced.motion === 'static' && reduced.animations === 0 && reduced.scrollWidth >= reduced.clientWidth && reduced.edgeMask === 'none', `live pulse ticker reduced motion: static reading lane failed ${JSON.stringify(reduced)}`);
   await reducedContext.close();
 
   assert(issues.length === 0, `live pulse ticker browser issues:\n${issues.join('\n')}`);
@@ -9769,6 +9942,9 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
         cardHeight: cardRect?.height || 0,
         viewportWidth: viewportRect?.width || 0,
         cardOverflow: card ? card.scrollWidth - card.clientWidth : 999,
+        valueOverflow: card?.querySelector('.pulse-ticker-value')
+          ? card.querySelector('.pulse-ticker-value').scrollWidth - card.querySelector('.pulse-ticker-value').clientWidth
+          : 999,
         pageOverflow: document.documentElement.scrollWidth - window.innerWidth,
         held: island?.dataset.pulseMotion || '',
         described: card?.getAttribute('aria-describedby') || '',
@@ -9795,23 +9971,22 @@ async function smokeReleaseRadarPulse(browser, baseUrl) {
       `release radar pulse ${label}: compact forecast summary or overlay action drifted ${JSON.stringify(presentation)}`
     );
     assert(
-      presentation.cardWidth <= Math.max(440, presentation.viewportWidth + 1)
+      presentation.cardWidth >= 255
+        && presentation.cardWidth <= 1000
         && presentation.cardOverflow <= 1
+        && presentation.valueOverflow <= 1
         && presentation.pageOverflow <= 1
         && presentation.cardCount >= 4,
-      `release radar pulse ${label}: card or labeled rail escaped its viewport ${JSON.stringify(presentation)}`
+      `release radar pulse ${label}: content-sized card or labeled rail escaped its reading lane ${JSON.stringify(presentation)}`
     );
     if (label === 'desktop') {
       assert(
-        presentation.cardWidth >= 255
-          && presentation.cardWidth <= 440
-          && presentation.cardHeight <= 64,
+        presentation.cardHeight <= 64,
         `release radar pulse desktop: compact priority geometry regressed ${JSON.stringify(presentation)}`
       );
     } else {
       assert(
-          presentation.cardWidth <= 330
-          && presentation.cardHeight <= 64,
+          presentation.cardHeight <= 64,
         `release radar pulse mobile: compact single-column geometry regressed ${JSON.stringify(presentation)}`
       );
     }

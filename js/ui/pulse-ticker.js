@@ -6,15 +6,18 @@ const MOBILE_SPEED_PX_PER_SEC = 34;
 const POINTER_LEAVE_GRACE_MS = 180;
 const RESIZE_DEBOUNCE_MS = 150;
 const COARSE_SCROLL_RELEASE_PX = 48;
+const PULSE_ITEM_SELECTOR = '[data-hot-signal-id], [data-pulse-echo-of]';
 
 let mounted = false;
 let signals = [];
 let heldSignalId = '';
+let heldAnchorRun = 'live';
 let lastPhase = 0;
 let runFitsViewport = false;
 let sectionIsIntersecting = true;
 let leaveTimer = null;
 let resizeTimer = null;
+let durationFrame = null;
 let coarseHoldScrollY = 0;
 let intersectionObserver = null;
 let bodyClassObserver = null;
@@ -99,13 +102,15 @@ function applyDuration(phase = lastPhase) {
   if (seconds > 0) section.style.setProperty('--pulse-ticker-duration', `${seconds}s`);
   updateMotionMode();
   restorePhase(track, phase);
-  window.setTimeout(() => {
+  if (durationFrame !== null) window.cancelAnimationFrame(durationFrame);
+  durationFrame = window.requestAnimationFrame(() => {
+    durationFrame = null;
     if (!track.isConnected) return;
     const elapsedPhase = section.dataset.pulseMotion === 'running' && seconds > 0
       ? (performance.now() - restoreStartedAt) / (seconds * 1000)
       : 0;
     restorePhase(track, (phase + elapsedPhase) % 1);
-  }, 32);
+  });
 }
 
 function truncateAtWord(value, limit = 72) {
@@ -119,15 +124,15 @@ function truncateAtWord(value, limit = 72) {
 function pulseWeight(signal) {
   if (signal?.milestoneStatus === 'crossed') return 'milestone';
   if (signal?.breaking === true) return 'event';
-  if (['peacock', 'historic'].includes(signal?.spectacle)) return 'priority';
+  if (['headliner', 'peacock', 'historic'].includes(signal?.spectacle)) return 'priority';
   return 'state';
 }
 
 function weightMeta(weight) {
   if (weight === 'milestone') return { mark: '◎', word: 'MILESTONE' };
   if (weight === 'event') return { mark: '▲', word: 'BREAKING' };
-  if (weight === 'priority') return { mark: '◉', word: 'PRIORITY' };
-  return { mark: '·', word: '' };
+  if (weight === 'priority') return { mark: '', word: 'PRIORITY' };
+  return { mark: '', word: '' };
 }
 
 function ageMarkup(signal) {
@@ -162,19 +167,21 @@ function buildItem(signal, { echo = false, index = 0 } = {}) {
     ? ` data-milestone-status="${escapeHtml(signal.milestoneStatus)}"`
     : '';
   const arrivalClass = signal?.isArriving ? ' is-arriving' : '';
+  const markClass = meta.mark ? ' has-mark' : '';
+  const markMarkup = meta.mark ? `<span class="pulse-ticker-mark" aria-hidden="true">${meta.mark}</span>` : '';
   const weightWord = meta.word ? `<span class="pulse-ticker-weight">${meta.word}</span>` : '';
   const ariaPrefix = signal?.personalRibbon ? `${signal.personalRibbon}. ` : '';
   const ariaWeight = meta.word ? `${meta.word}. ` : '';
   const ariaLabel = `${ariaPrefix}${ariaWeight}${category}: ${title} — ${String(signal?.text || value)}`;
   return `
-    <a class="pulse-ticker-item is-weight-${weight}${arrivalClass}" href="${escapeHtml(route)}"
+    <a class="pulse-ticker-item is-weight-${weight}${markClass}${arrivalClass}" href="${escapeHtml(route)}"
        data-network-route="${escapeHtml(route)}" data-pulse-item="${escapeHtml(id)}"
        data-quiet-key="${escapeHtml(quietKey)}" data-pulse-weight="${weight}"
        data-hot-score="${Number(signal?.score) || 0}"
        data-hot-visual="${escapeHtml(signal?.visual || signal?.category || 'network')}"
        data-hot-spectacle="${escapeHtml(signal?.spectacle || 'quiet')}"${echoAttributes}${personalAttribute}${curioAttribute}${milestoneAttributes}
        aria-label="${escapeHtml(ariaLabel)}">
-      <span class="pulse-ticker-mark" aria-hidden="true">${meta.mark}</span>
+      ${markMarkup}
       <span class="pulse-ticker-copy">
         <small class="pulse-ticker-eyebrow">${weightWord}<span>${escapeHtml(category)}</span>${ageMarkup(signal)}</small>
         <span class="pulse-ticker-line-copy"><strong class="pulse-ticker-title">${escapeHtml(title)}</strong><span class="pulse-ticker-value">${escapeHtml(value)}</span></span>
@@ -194,15 +201,30 @@ function shelfWeightLabel(signal) {
   return meta.word || 'LIVE STATE';
 }
 
-function renderShelf(signal) {
+function pulseItemSignalId(item) {
+  return String(item?.dataset.hotSignalId || item?.dataset.pulseEchoOf || '');
+}
+
+function findPulseItem(section, signalId, runName = 'live') {
+  const escapedId = escapedSignalId(signalId);
+  return runName === 'echo'
+    ? section?.querySelector(`[data-pulse-run="echo"] [data-pulse-echo-of="${escapedId}"]`)
+    : section?.querySelector(`[data-pulse-run="live"] [data-hot-signal-id="${escapedId}"]`);
+}
+
+function renderShelf(signal, anchorItem = null) {
   const section = pulseTickerElement();
   const shelf = section?.querySelector('#pulse-ticker-shelf');
-  const item = section?.querySelector(`[data-pulse-run="live"] [data-hot-signal-id="${escapedSignalId(signal.id)}"]`);
-  if (!section || !shelf || !item) return;
+  const liveItem = findPulseItem(section, signal.id, 'live');
+  const retainedAnchor = anchorItem?.isConnected && pulseItemSignalId(anchorItem) === signal.id
+    ? anchorItem
+    : findPulseItem(section, signal.id, heldAnchorRun);
+  const item = retainedAnchor || liveItem;
+  if (!section || !shelf || !liveItem || !item) return;
   section.querySelectorAll('[data-hot-signal-id][aria-describedby="pulse-ticker-shelf"]').forEach(element => {
     element.removeAttribute('aria-describedby');
   });
-  item.setAttribute('aria-describedby', 'pulse-ticker-shelf');
+  liveItem.setAttribute('aria-describedby', 'pulse-ticker-shelf');
   const route = String(signal.tickerRoute || signal.route || '#pulse');
   const category = String(signal.categoryLabel || signal.category || 'Network');
   const actionLabel = String(signal.actionLabel || signal.title || 'Open live signal');
@@ -244,7 +266,7 @@ function renderShelf(signal) {
   section.style.setProperty('--pulse-shelf-offset', `${shelfLeft}px`);
 }
 
-function setHeldSignal(signalId, { position = false } = {}) {
+function setHeldSignal(signalId, { position = false, anchorItem = null } = {}) {
   const section = pulseTickerElement();
   const signal = signals.find(candidate => candidate.id === signalId);
   if (!section || !signal) return false;
@@ -253,6 +275,7 @@ function setHeldSignal(signalId, { position = false } = {}) {
     leaveTimer = null;
   }
   heldSignalId = signal.id;
+  heldAnchorRun = anchorItem?.hasAttribute('data-pulse-echo-of') ? 'echo' : 'live';
   if (position) {
     const track = section.querySelector('[data-pulse-track]');
     const run = track?.querySelector('[data-pulse-run="live"]');
@@ -268,7 +291,7 @@ function setHeldSignal(signalId, { position = false } = {}) {
   }
   coarseHoldScrollY = window.scrollY;
   updateMotionMode();
-  renderShelf(signal);
+  renderShelf(signal, anchorItem);
   return true;
 }
 
@@ -284,6 +307,7 @@ export function releasePulseTicker() {
     leaveTimer = null;
   }
   heldSignalId = '';
+  heldAnchorRun = 'live';
   section.querySelectorAll('[aria-describedby="pulse-ticker-shelf"]').forEach(element => {
     element.removeAttribute('aria-describedby');
   });
@@ -313,8 +337,8 @@ export function mountPulseTicker() {
 
   section.addEventListener('pointerover', event => {
     if (!hoverQuery?.matches) return;
-    const item = event.target.closest('[data-hot-signal-id]');
-    if (item && section.contains(item)) setHeldSignal(item.dataset.hotSignalId);
+    const item = event.target.closest(PULSE_ITEM_SELECTOR);
+    if (item && section.contains(item)) setHeldSignal(pulseItemSignalId(item), { anchorItem: item });
   });
   section.addEventListener('pointerout', event => {
     if (!hoverQuery?.matches || !heldSignalId) return;
@@ -339,12 +363,12 @@ export function mountPulseTicker() {
     if (event.key === 'Escape' && heldSignalId) releasePulseTicker();
   });
   section.addEventListener('click', event => {
-    const item = event.target.closest('[data-hot-signal-id]');
+    const item = event.target.closest(PULSE_ITEM_SELECTOR);
     if (!item || !section.contains(item)) return;
-    const signalId = item.dataset.hotSignalId || '';
+    const signalId = pulseItemSignalId(item);
     if (heldSignalId === signalId) return;
     event.preventDefault();
-    setHeldSignal(signalId);
+    setHeldSignal(signalId, { anchorItem: item });
   });
 
   window.addEventListener('scroll', () => {
@@ -409,7 +433,7 @@ export function renderPulseTicker(nextSignals, { hasRendered = false } = {}) {
   const tickerHtml = `
     <div class="pulse-ticker-track" data-pulse-track data-quiet-key="pulse-track">
       <div class="pulse-ticker-run" data-pulse-run="live" data-quiet-key="pulse-live">${liveHtml}</div>
-      <div class="pulse-ticker-run pulse-ticker-run-echo" data-pulse-run="echo" data-quiet-key="pulse-echo" aria-hidden="true" inert>${echoHtml}</div>
+      <div class="pulse-ticker-run pulse-ticker-run-echo" data-pulse-run="echo" data-quiet-key="pulse-echo" aria-hidden="true">${echoHtml}</div>
     </div>`;
   if (hasRendered && viewport.childElementCount) quietlySyncHtml(viewport, tickerHtml);
   else viewport.innerHTML = tickerHtml;

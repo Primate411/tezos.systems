@@ -325,10 +325,15 @@ inline modal styles in `js/core/app.js`.
   target, while the guided tour temporarily reveals all seven without changing
   the saved layout.
 - Live Pulse sits directly above Chain Heartbeat as a right-to-left signal
-  ticker. Hover, tap, or keyboard focus pauses a signal and opens its detail
-  shelf; activating the held signal opens its source Chamber. Motion pauses
-  off-screen and in hidden tabs, becomes a manual horizontal scroller under
-  reduced motion, and retains its exact phase across quiet background refreshes.
+  ticker with word-aware, content-sized labels and narrow feathered edges aligned
+  to the Heartbeat rail. Hover, tap, or keyboard focus on either repeated run
+  pauses a signal and opens its correctly anchored detail shelf; activating the
+  held signal opens its source Chamber. All items keep one transparent surface;
+  priority, breaking, and milestone states use explicit words, type color, and
+  weight instead of persistent card highlighting, and regular/priority items do
+  not reserve a leading glyph. Motion pauses off-screen and in hidden tabs,
+  becomes an unfaded manual horizontal scroller under reduced motion, and
+  retains its exact phase across quiet background refreshes.
 - Explore's seven topics and all 21 individual Chamber launchers are independently
   hideable. Topic headers and Chamber cards provide quick eye-off actions with
   Undo, while **Choose Explore Chambers** in Customize home keeps a compact
@@ -1626,7 +1631,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v575`, including hero search, theme
+- Current aligned shell cache stamp: `v581`, including hero search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical
   Minerals lazy CSS loaders.

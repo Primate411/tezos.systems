@@ -177,8 +177,13 @@ async function checkHomeLayoutContracts() {
   if (preloadIndex < 0 || pulseTickerIndex < 0 || tickerIndex < 0 || preloadIndex > pulseTickerIndex || pulseTickerIndex > tickerIndex || !styles.includes('[data-home-hidden~="live-pulse"] #pulse-ticker-strip')) {
     fail('Home layout first-paint preload must run before managed content and own CSS hiding from the root token');
   }
-  if (!pulseTicker.includes('aria-hidden="true" inert') || !tickerCss.includes('.pulse-ticker-shelf{') || !tickerCss.includes('position: absolute;')) {
-    fail('Live Pulse echo must stay inert and its detail shelf must overlay without changing page flow');
+  if (!pulseTicker.includes('data-pulse-run="echo"')
+      || !pulseTicker.includes('aria-hidden="true">${echoHtml}</div>')
+      || pulseTicker.includes('aria-hidden="true" inert>${echoHtml}</div>')
+      || !pulseTicker.includes("const PULSE_ITEM_SELECTOR = '[data-hot-signal-id], [data-pulse-echo-of]';")
+      || !tickerCss.includes('.pulse-ticker-shelf{')
+      || !tickerCss.includes('position: absolute;')) {
+    fail('Live Pulse echo must remain AT-hidden but pointer-interactive while its detail shelf overlays without changing page flow');
   }
   const pulseInfoIndex = index.indexOf('id="hot-today-info-btn"', pulseTickerIndex);
   const pulseHideIndex = index.indexOf('class="home-block-hide home-block-hide-compact pulse-ticker-hide"', pulseInfoIndex);
@@ -6409,7 +6414,12 @@ async function checkNetworkContextNavigationContracts() {
     'data-hot-curio="1"',
     'data-hot-age',
     'pulse-ticker-mark',
-    'pulse-ticker-weight'
+    'pulse-ticker-weight',
+    "['headliner', 'peacock', 'historic']",
+    "if (weight === 'priority') return { mark: '', word: 'PRIORITY' };",
+    "return { mark: '', word: '' };",
+    'pulseItemSignalId(item)',
+    'setHeldSignal(pulseItemSignalId(item), { anchorItem: item })'
   ]) {
     if (!pulseTicker.includes(snippet)) fail(`Live Pulse ticker presentation contract missing snippet: ${snippet}`);
   }
@@ -6435,7 +6445,11 @@ async function checkNetworkContextNavigationContracts() {
     '.pulse-ticker-item',
     'min-width: min(78vw, 330px)',
     '.pulse-ticker-shelf',
-    '.pulse-ticker-clock'
+    '.pulse-ticker-clock',
+    '-webkit-mask-image: linear-gradient(to right, transparent 0, #000 14px',
+    'mask-image: linear-gradient(to right, transparent 0, #000 14px',
+    '-webkit-mask-image: none;',
+    'mask-image: none;'
   ]) {
     if (!shellExtras.includes(snippet)) fail(`Live Pulse mobile reading-lane CSS missing: ${snippet}`);
   }
@@ -6494,6 +6508,9 @@ async function checkNetworkContextNavigationContracts() {
     '.pulse-ticker-shelf'
   ]) {
     if (!shellExtras.includes(snippet)) fail(`Live Pulse ticker weight CSS missing: ${snippet}`);
+  }
+  if (/\.pulse-ticker-item\[data-pulse-weight="(?:priority|event|milestone)"\][\s\S]{0,300}?background:/.test(shellExtras)) {
+    fail('Live Pulse weight tiers must use words, glyphs, and type color without persistent card highlighting');
   }
 
   const chamberSignalContracts = [
@@ -8638,13 +8655,14 @@ async function checkQuietRefreshContracts() {
     'data-pulse-motion',
     'capturePhase',
     'restorePhase',
+    'window.requestAnimationFrame',
     "matchMedia('(prefers-reduced-motion: reduce)')",
     'IntersectionObserver'
   ]) {
     if (!pulseTicker.includes(snippet)) fail(`Live Pulse ticker motion contract is missing ${snippet}`);
   }
-  if (/requestAnimationFrame|scrollLeft\s*[+-]?=/.test(pulseTicker)) {
-    fail('Live Pulse ticker must drift through one CSS animation, not a scripted loop');
+  if ((pulseTicker.match(/requestAnimationFrame/g) || []).length !== 1 || /scrollLeft\s*[+-]?=/.test(pulseTicker)) {
+    fail('Live Pulse ticker must use one frame-synchronized phase restore while drifting through one CSS animation, not a scripted loop');
   }
   if (!pulseTicker.includes('quietlySyncHtml(viewport, tickerHtml)')) fail('Live Pulse background signals must reconcile inside the stable ticker viewport');
   if (!daily.includes('quietlySyncHtml(container, html)')) fail('My Tezos network context must reconcile in place after its first render');
