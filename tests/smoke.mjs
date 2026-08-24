@@ -14473,9 +14473,16 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const bar = modal?.querySelector('.chamber-loading-bar');
     const text = modal?.querySelector('.chamber-loading-text');
     if (!fill || !bar) return { present: false };
+    const animation = fill.getAnimations?.()[0];
+    if (animation?.ready) await animation.ready;
     const firstStyle = getComputedStyle(fill);
     const firstTransform = firstStyle.transform;
-    await new Promise((resolve) => setTimeout(resolve, 180));
+    const firstTime = Number(animation?.currentTime) || 0;
+    const startedAt = performance.now();
+    while (fill.isConnected && performance.now() - startedAt < 1000) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      if ((Number(animation?.currentTime) || 0) > firstTime + 50) break;
+    }
     const secondStyle = getComputedStyle(fill);
     return {
       present: true,
