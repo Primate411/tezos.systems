@@ -1,12 +1,14 @@
 /**
  * Tezos Systems - XTZ Price Bar Module
- * Displays live XTZ price in USD, EUR, and BTC with 24h change and market cap
+ * Displays live XTZ price in USD, EUR, and BTC with 24h/7d/30d changes and market cap
  * Caches data per user session, refreshes every 30 minutes
  */
 
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd,eur,btc&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true';
+const COINGECKO_HORIZONS_URL = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=tezos&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h,7d,30d';
 const COINGECKO_PAGE = 'https://www.coingecko.com/en/coins/tezos';
 const CACHE_KEY = 'tezos_price_cache';
+const CACHE_SCHEMA = 2;
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
 let priceTimer = null;
@@ -20,7 +22,7 @@ function getCachedPrice() {
         const raw = sessionStorage.getItem(CACHE_KEY);
         if (!raw) return null;
         const cached = JSON.parse(raw);
-        if (Date.now() - cached.timestamp < CACHE_TTL) {
+        if (cached.schema === CACHE_SCHEMA && Date.now() - cached.timestamp < CACHE_TTL) {
             return cached.data;
         }
         sessionStorage.removeItem(CACHE_KEY);
@@ -36,6 +38,7 @@ function getCachedPrice() {
 function setCachedPrice(data) {
     try {
         sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+            schema: CACHE_SCHEMA,
             timestamp: Date.now(),
             data
         }));
@@ -53,10 +56,35 @@ async function fetchPrice() {
     if (cached) return cached;
 
     try {
-        const res = await fetch(COINGECKO_URL);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json();
-        const priceData = data.tezos || null;
+        const fetchJson = async (url) => {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        };
+        const [spotResult, horizonsResult] = await Promise.allSettled([
+            fetchJson(COINGECKO_URL),
+            fetchJson(COINGECKO_HORIZONS_URL)
+        ]);
+        const spot = spotResult.status === 'fulfilled' ? spotResult.value?.tezos : null;
+        const horizons = horizonsResult.status === 'fulfilled' && Array.isArray(horizonsResult.value)
+            ? horizonsResult.value[0]
+            : null;
+        if (!spot && !horizons) {
+            const reason = spotResult.reason?.message || horizonsResult.reason?.message || 'unavailable';
+            throw new Error(reason);
+        }
+        const priceData = {
+            ...(spot || {}),
+            usd: spot?.usd ?? horizons?.current_price ?? null,
+            usd_24h_change: spot?.usd_24h_change
+                ?? horizons?.price_change_percentage_24h_in_currency
+                ?? horizons?.price_change_percentage_24h
+                ?? null,
+            usd_7d_change: horizons?.price_change_percentage_7d_in_currency ?? null,
+            usd_30d_change: horizons?.price_change_percentage_30d_in_currency ?? null,
+            usd_market_cap: spot?.usd_market_cap ?? horizons?.market_cap ?? null,
+            usd_24h_vol: spot?.usd_24h_vol ?? horizons?.total_volume ?? null
+        };
         if (priceData) {
             setCachedPrice(priceData);
             lastPrice = priceData.usd ?? lastPrice;
@@ -131,13 +159,11 @@ function updatePriceBar(data) {
     if (!bar) return;
 
     const priceEl = bar.querySelector('.price-value');
-    const changeEl = bar.querySelector('.price-change');
     const eurEl = document.getElementById('price-eur');
     const btcEl = document.getElementById('price-btc');
     const mcapEl = bar.querySelector('.price-mcap');
 
     const price = data.usd;
-    const change = data.usd_24h_change;
     const mcap = data.usd_market_cap;
 
     // Update USD price
@@ -151,11 +177,24 @@ function updatePriceBar(data) {
     }
     lastPrice = price;
 
-    // Update 24h change
-    if (changeEl && change != null) {
-        changeEl.textContent = formatChange(change);
-        changeEl.className = 'price-change ' + (change >= 0 ? 'positive' : 'negative');
-    }
+    // Update compact rolling USD changes without rebuilding the price strip.
+    const changes = [
+        ['24h', '24 hour', data.usd_24h_change],
+        ['7d', '7 day', data.usd_7d_change],
+        ['30d', '30 day', data.usd_30d_change]
+    ];
+    changes.forEach(([period, spokenPeriod, rawChange]) => {
+        const changeEl = bar.querySelector(`[data-price-change="${period}"]`);
+        const valueEl = changeEl?.querySelector('.price-change-value');
+        if (rawChange === null || rawChange === undefined || rawChange === '') return;
+        const change = Number(rawChange);
+        if (!changeEl || !valueEl || !Number.isFinite(change)) return;
+        const formatted = formatChange(change);
+        valueEl.textContent = formatted;
+        changeEl.classList.toggle('positive', change >= 0);
+        changeEl.classList.toggle('negative', change < 0);
+        changeEl.setAttribute('aria-label', `XTZ ${spokenPeriod} price change ${formatted}`);
+    });
 
     // Update EUR (removed from bar)
     if (eurEl && data.eur) {

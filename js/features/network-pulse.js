@@ -721,7 +721,7 @@ function formatEntryPrice(value) {
 }
 
 function entryPriceChangeDelta() {
-    const text = textFrom('#price-bar .price-change');
+    const text = textFrom('#price-bar [data-price-change="24h"] .price-change-value');
     const domDelta = parsePercentText(text);
     if (domDelta !== null) return domDelta;
     return numericValue(latestMarketRow()?.change_24h_pct);

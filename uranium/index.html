@@ -51,18 +51,18 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="/css/styles.min.css?v=581">
-    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=581">
-    <link rel="stylesheet" href="/css/loading.css?v=581">
-    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=581">
-    <link rel="stylesheet" href="/css/protocol-anthology.css?v=581">
-    <link rel="stylesheet" href="/css/site-map.css?v=581">
+    <link rel="stylesheet" href="/css/styles.min.css?v=582">
+    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=582">
+    <link rel="stylesheet" href="/css/loading.css?v=582">
+    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=582">
+    <link rel="stylesheet" href="/css/protocol-anthology.css?v=582">
+    <link rel="stylesheet" href="/css/site-map.css?v=582">
     <link rel="stylesheet" href="/css/hen-mode.css?v=98">
     <script src="/js/core/hen-init.js?v=79" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="/js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="/js/core/app.js?v=581">
+    <link rel="modulepreload" href="/js/core/app.js?v=582">
     <link rel="modulepreload" href="/js/core/api.js">
     <link rel="modulepreload" href="/js/core/config.js">
     <link rel="modulepreload" href="/js/core/data-assets.js">
@@ -149,8 +149,8 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="/js/core/theme-preload.js?v=581"></script>
-    <script src="/js/core/home-layout-preload.js?v=581"></script>
+    <script src="/js/core/theme-preload.js?v=582"></script>
+    <script src="/js/core/home-layout-preload.js?v=582"></script>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="top-utility-row">
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
@@ -185,7 +185,11 @@
             <a href="https://www.coingecko.com/en/coins/tezos" target="_blank" rel="noopener" class="price-link">
                 <span class="price-label">XTZ</span>
                 <span class="price-value">—</span>
-                <span class="price-change" aria-label="XTZ 24 hour change">—</span>
+                <span class="price-changes" aria-label="XTZ rolling USD price changes" title="Rolling USD price change · 24 hours, 7 days, 30 days">
+                    <span class="price-change" data-price-change="24h" aria-label="XTZ 24 hour price change unavailable"><span class="price-change-period">24H</span><span class="price-change-value">—</span></span>
+                    <span class="price-change price-change-secondary" data-price-change="7d" aria-label="XTZ 7 day price change unavailable"><span class="price-change-period">7D</span><span class="price-change-value">—</span></span>
+                    <span class="price-change price-change-secondary" data-price-change="30d" aria-label="XTZ 30 day price change unavailable"><span class="price-change-period">30D</span><span class="price-change-value">—</span></span>
+                </span>
             </a>
             <span class="price-alt" id="price-btc" title="XTZ price in sats (vs BTC)">—</span>
             <span class="price-separator">·</span>
@@ -2757,8 +2761,8 @@
 
     <!-- Load app as module -->
     <script defer src="/js/features/hen-mode.js?v=95"></script>
-    <script type="module" src="/js/effects/valley-loader.js?v=581"></script>
-    <script type="module" src="/js/core/app.js?v=581"></script>
+    <script type="module" src="/js/effects/valley-loader.js?v=582"></script>
+    <script type="module" src="/js/core/app.js?v=582"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="my-baker-modal-title" tabindex="-1">

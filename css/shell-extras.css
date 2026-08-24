@@ -1,3 +1,44 @@
+.price-changes {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    white-space: nowrap;
+}
+
+.price-change {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2px;
+}
+
+.price-change-period {
+    color: var(--text-muted);
+    font-size: 0.52rem;
+    font-weight: 600;
+    opacity: 0.62;
+}
+
+.price-change-secondary {
+    font-weight: 600;
+}
+
+.price-change-secondary::before {
+    content: '·';
+    color: var(--text-muted);
+    margin-right: 1px;
+    opacity: 0.45;
+}
+
+.price-change-secondary .price-change-value {
+    opacity: 0.82;
+}
+
+@media (max-width: 600px) {
+    .price-change-secondary {
+        display: none;
+    }
+}
+
 .block-ticker-minted .block-ticker-value,
 .block-ticker-fees .block-ticker-value {
     width: 6.6ch;

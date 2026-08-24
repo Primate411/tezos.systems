@@ -2070,6 +2070,18 @@ async function installFeatureMocks(context, options = {}) {
       });
     }
 
+    if (url.includes('api.coingecko.com/api/v3/coins/markets')) {
+      return fulfillJson(route, [{
+        id: 'tezos',
+        current_price: 0.74,
+        market_cap: 780000000,
+        total_volume: 18000000,
+        price_change_percentage_24h_in_currency: 2.5,
+        price_change_percentage_7d_in_currency: -4.2,
+        price_change_percentage_30d_in_currency: 9.8
+      }]);
+    }
+
     if (url.includes('api.coingecko.com/api/v3/coins/tezos')) {
       return fulfillJson(route, { market_data: { price_change_percentage_7d: 4.2 } });
     }
@@ -25722,11 +25734,29 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.waitForFunction(() => /pp$/.test(document.querySelector('#staking-trend')?.textContent?.trim() || ''), null, { timeout: 10000 });
   await page.waitForFunction(() => {
     const price = document.querySelector('#price-bar .price-value')?.textContent?.trim() || '';
-    const change = document.querySelector('#price-bar .price-change')?.textContent?.trim() || '';
+    const change24h = document.querySelector('#price-bar [data-price-change="24h"] .price-change-value')?.textContent?.trim() || '';
+    const change7d = document.querySelector('#price-bar [data-price-change="7d"] .price-change-value')?.textContent?.trim() || '';
+    const change30d = document.querySelector('#price-bar [data-price-change="30d"] .price-change-value')?.textContent?.trim() || '';
     const sats = document.querySelector('#price-btc')?.textContent?.trim() || '';
     const marketCap = document.querySelector('#price-bar .price-mcap')?.textContent?.trim() || '';
-    return price === '$0.740' && change === '+2.5%' && sats === '700 sats' && marketCap === 'MCap $780M';
+    return price === '$0.740'
+      && change24h === '+2.5%'
+      && change7d === '-4.2%'
+      && change30d === '+9.8%'
+      && sats === '700 sats'
+      && marketCap === 'MCap $780M';
   }, null, { timeout: 10000 });
+  const priceChangeState = await page.evaluate(() => ({
+    labels: Array.from(document.querySelectorAll('#price-bar [data-price-change]')).map((node) => node.getAttribute('aria-label')),
+    periods: Array.from(document.querySelectorAll('#price-bar .price-change-period')).map((node) => node.textContent?.trim()),
+    visible: Array.from(document.querySelectorAll('#price-bar [data-price-change]')).map((node) => getComputedStyle(node).display !== 'none')
+  }));
+  assert(
+    priceChangeState.periods.join(',') === '24H,7D,30D'
+      && priceChangeState.visible.every(Boolean)
+      && priceChangeState.labels.every((label) => /XTZ .* price change [+-]\d+\.\d%/.test(label || '')),
+    `feature workflows price horizons mismatch: ${JSON.stringify(priceChangeState)}`
+  );
   const priceLinks = await page.evaluate(() => ({
     coinGecko: document.querySelector('#price-bar .price-link')?.href || '',
     stake: document.querySelector('#price-bar .price-cta[title="Stake XTZ"]')?.href || '',
@@ -26110,6 +26140,21 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   attachIssueCollectors(mobilePage, 'feature workflows mobile baker set', issues);
   const mobileResponse = await mobilePage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(mobileResponse?.ok(), `feature workflows mobile baker set: dashboard failed with HTTP ${mobileResponse?.status()}`);
+  await mobilePage.waitForFunction(() => (
+    document.querySelector('#price-bar [data-price-change="24h"] .price-change-value')?.textContent?.trim() === '+2.5%'
+  ), null, { timeout: 10000 });
+  const mobilePriceChanges = await mobilePage.evaluate(() => {
+    const nodes = Array.from(document.querySelectorAll('#price-bar [data-price-change]'));
+    return {
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      visible: nodes.map((node) => getComputedStyle(node).display !== 'none')
+    };
+  });
+  assert(
+    mobilePriceChanges.overflow <= 1
+      && mobilePriceChanges.visible.join(',') === 'true,false,false',
+    `feature workflows mobile price horizon density mismatch: ${JSON.stringify(mobilePriceChanges)}`
+  );
   const mobileBakersPill = mobilePage.locator('#top-continuity-panel .top-continuity-stat[data-card-history="total-bakers"]');
   await mobileBakersPill.tap();
   await mobilePage.waitForFunction(() => {

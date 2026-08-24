@@ -2177,6 +2177,8 @@ async function checkSelectorContracts() {
     ['widget builder CTA', 'href="/widgets/builder.html"'],
     ['share picker styles hook', 'section-picker-note'],
     ['price bar change surface', 'class="price-change"'],
+    ['price bar 7-day change surface', 'data-price-change="7d"'],
+    ['price bar 30-day change surface', 'data-price-change="30d"'],
     ['price bar cycle health launcher', 'class="cycle-chip" id="cycle-chip" href="#health"'],
     ['Tezos Handoff navigation hook', 'data-site-handoff data-site-context="home"'],
     ['Separate Tezos footer hook', 'data-site-footer data-site-context="home"'],
