@@ -9606,7 +9606,11 @@ async function smokeLivePulseTicker(browser, baseUrl) {
       releaseMark: release?.querySelector('.pulse-ticker-mark')?.textContent?.trim() || ''
     };
   });
-  await page.waitForTimeout(320);
+  await page.waitForFunction(({ beforeTime }) => {
+    const track = document.querySelector('#pulse-ticker-strip [data-pulse-track]');
+    const time = Number(track?.getAnimations?.()[0]?.currentTime) || 0;
+    return track === window.__pulseTickerTrack && time > beforeTime + 100;
+  }, { beforeTime: before.time }, { polling: 50, timeout: 2000 }).catch(() => {});
   const drift = await page.evaluate(() => {
     const section = document.getElementById('pulse-ticker-strip');
     const track = section?.querySelector('[data-pulse-track]');
