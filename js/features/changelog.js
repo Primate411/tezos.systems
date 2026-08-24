@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-08-24',
+        entries: [
+            { type: '🎨', text: 'The header now keeps HEN tucked inside the corner gift tray instead of exposing a separate NFT Feed button' }
+        ]
+    },
+    {
         date: '2026-08-23',
         entries: [
             { type: '🔧', text: 'TezosCRP now checks the official winner feed daily so newly announced recognition rounds reach the archive within roughly 24 hours' },

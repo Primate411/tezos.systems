@@ -2122,7 +2122,6 @@ async function checkSelectorContracts() {
     ['feature launcher grouped menu', 'class="settings-dropdown feature-launcher"'],
     ['expanded My Tezos header action', 'class="glass-button header-nav-btn header-primary-action"'],
     ['My Tezos emoji and text label', '<span class="my-tezos-icon">👤</span> <span class="nav-label">My Tezos</span>'],
-    ['NFT Feed desktop text label', '<span class="nav-label">NFT Feed</span>'],
     ['feature launcher decorative map icon', '<span aria-hidden="true">🗺️</span> <span class="nav-label">Explore</span>'],
     ['header Setup action', '<span aria-hidden="true">⚙️</span> <span class="nav-label">Setup</span>'],
     ['feature launcher Explore title', 'class="feature-launcher-intro-copy"'],
@@ -3003,10 +3002,7 @@ async function checkSelectorContracts() {
     ['top continuity stat panel', 'id="top-continuity-panel"', index],
     ['top continuity title-stack uptime launcher', 'id="top-continuity-history"', index],
     ['top continuity proof opens Protocol Anthology', 'aria-controls="protocol-history-chamber-modal"', index],
-    ['header NFT feed nav action', 'class="glass-button header-nav-btn header-nft-feed-btn"', index],
     ['expanded My Tezos nav label at narrow widths', '#my-tezos-btn .nav-label', heroSearchCss],
-    ['NFT Feed nav label at desktop widths', '@media (min-width: 1024px)', heroSearchCss],
-    ['header NFT feed art-frame icon', '.nft-feed-icon::before', heroSearchCss],
     ['top continuity statement wrapper', 'class="top-continuity-statement"', index],
     ['top continuity mainnet-age statement claim', 'top-continuity-claim">mainnet age', index],
     ['top continuity statement subline', 'class="top-continuity-subline"', index],
@@ -3346,18 +3342,19 @@ async function checkSelectorContracts() {
   if (styles.includes('top-continuity-digits-') || app.includes('top-continuity-digits-')) {
     fail('top continuity runtime must use natural segment widths, not fixed digit slots');
   }
-  if (index.includes('live-feed-pill')) {
-    fail('header NFT feed should not keep the old live-feed-pill class');
+  if (index.includes('live-feed-pill') || index.includes('header-nft-feed-btn')) {
+    fail('header must not expose a separate NFT Feed action');
   }
   const headerMyTezosIndex = index.indexOf('id="my-tezos-btn"');
-  const headerNftFeedIndex = index.indexOf('class="glass-button header-nav-btn header-nft-feed-btn"', headerMyTezosIndex);
-  const headerExploreIndex = index.indexOf('id="features-gear"', headerNftFeedIndex);
+  const headerExploreIndex = index.indexOf('id="features-gear"', headerMyTezosIndex);
   const headerSetupIndex = index.indexOf('id="settings-gear"', headerExploreIndex);
   if (!(headerMyTezosIndex >= 0
-      && headerNftFeedIndex > headerMyTezosIndex
-      && headerExploreIndex > headerNftFeedIndex
+      && headerExploreIndex > headerMyTezosIndex
       && headerSetupIndex > headerExploreIndex)) {
-    fail('header actions must stay ordered My Tezos, NFT Feed, Explore, Setup');
+    fail('header actions must stay ordered My Tezos, Explore, Setup');
+  }
+  if (!index.includes('id="hen-launcher" class="hen-launcher corner-gift-item" href="/hen/"')) {
+    fail('HEN must remain discoverable through the corner gift tray');
   }
   for (const snippet of [
     'id="features-gear" class="glass-button header-nav-btn" aria-label="Open feature launcher" aria-haspopup="dialog" aria-controls="features-dropdown" aria-expanded="false"',

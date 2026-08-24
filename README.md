@@ -371,10 +371,11 @@ inline modal styles in `js/core/app.js`.
   region or replay the arrival animation. Clicking the strip opens the Network
   Health Chamber.
 - The header keeps the current protocol beside the Tezos Systems title and
-  orders its right-side navigation as My Tezos, NFT Feed, Explore, then Setup.
-  My Tezos stays expanded with its emoji and label at narrow widths; desktop
-  widths keep both My Tezos and NFT Feed fully labeled. The header also turns mainnet
-  age into a first-screen statement with years/days/hours/minutes plus a
+  orders its right-side navigation as My Tezos, Explore, then Setup. HEN stays
+  tucked inside the corner gift tray instead of appearing as a separate header
+  action. My Tezos stays expanded with its emoji and label at narrow widths.
+  The header also turns mainnet age into a first-screen statement with years,
+  days, hours, and minutes plus a
   `mainnet age · since 2018` label. The counter measures elapsed time
   since launch, not an availability percentage or incident ledger. Active baker
   count, finality, staked share, and issuance rate remain in theme-matched stat
