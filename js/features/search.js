@@ -1035,6 +1035,17 @@ export function initHeroSearch() {
         input.setAttribute('aria-activedescendant', result ? resultDomId(result) : '');
     };
 
+    const keepOptionVisible = (option) => {
+        if (!(option instanceof HTMLElement)) return;
+        const panelRect = panel.getBoundingClientRect();
+        const optionRect = option.getBoundingClientRect();
+        if (optionRect.top < panelRect.top) {
+            panel.scrollTop -= panelRect.top - optionRect.top + 1;
+        } else if (optionRect.bottom > panelRect.bottom) {
+            panel.scrollTop += optionRect.bottom - panelRect.bottom + 1;
+        }
+    };
+
     const rerenderCurrentQuery = (key) => {
         if (isOpen && bakerSearchKey(input.value) === key) render();
     };
@@ -1298,6 +1309,7 @@ export function initHeroSearch() {
         }
         const selectableResults = results.filter((result) => result.selectable !== false);
         if (!selectableResults.length) return;
+        ensureSearchRoom();
         const dir = event.key === 'ArrowDown' ? 1 : -1;
         const currentIndex = selectableResults.findIndex((result) => result.id === selectedId);
         const nextIndex = currentIndex < 0
@@ -1311,7 +1323,7 @@ export function initHeroSearch() {
         option?.classList.add('is-selected');
         option?.setAttribute('aria-selected', 'true');
         syncActiveDescendant();
-        option?.scrollIntoView({ block: 'nearest' });
+        keepOptionVisible(option);
     });
 
     root.addEventListener('keydown', (event) => {
@@ -1375,9 +1387,9 @@ export function initHeroSearch() {
         input.select();
     });
 
-    window.addEventListener('resize', syncAvailableHeight);
+    window.addEventListener('resize', ensureSearchRoom);
     window.addEventListener('scroll', syncAvailableHeight, { passive: true });
-    window.visualViewport?.addEventListener('resize', syncAvailableHeight);
+    window.visualViewport?.addEventListener('resize', ensureSearchRoom);
     window.visualViewport?.addEventListener('scroll', syncAvailableHeight);
     window.addEventListener('hashchange', dismissForRoute);
     window.addEventListener('popstate', dismissForRoute);

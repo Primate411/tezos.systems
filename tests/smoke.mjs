@@ -6859,9 +6859,21 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   for (let index = 0; index < 20; index += 1) await mobilePage.locator('#hero-search-input').press('ArrowDown');
   const mobileArrowState = await mobilePage.evaluate(() => {
     const activeId = document.getElementById('hero-search-input')?.getAttribute('aria-activedescendant');
-    const panel = document.getElementById('hero-search-panel')?.getBoundingClientRect();
-    const option = activeId ? document.getElementById(activeId)?.getBoundingClientRect() : null;
-    return { activeId, visible: Boolean(panel && option && option.top >= panel.top - 1 && option.bottom <= panel.bottom + 1) };
+    const panelNode = document.getElementById('hero-search-panel');
+    const optionNode = activeId ? document.getElementById(activeId) : null;
+    const panel = panelNode?.getBoundingClientRect();
+    const option = optionNode?.getBoundingClientRect();
+    return {
+      activeId,
+      visible: Boolean(panel && option && option.top >= panel.top - 1 && option.bottom <= panel.bottom + 1),
+      panel: panel ? { top: panel.top, bottom: panel.bottom, height: panel.height } : null,
+      option: option ? { top: option.top, bottom: option.bottom, height: option.height } : null,
+      panelScrollTop: panelNode?.scrollTop ?? null,
+      panelScrollHeight: panelNode?.scrollHeight ?? null,
+      panelClientHeight: panelNode?.clientHeight ?? null,
+      optionOffsetTop: optionNode?.offsetTop ?? null,
+      scrollY: window.scrollY
+    };
   });
   assert(mobileArrowState.activeId && mobileArrowState.visible, `hero command bar mobile keyboard: active option scrolled out of view ${JSON.stringify(mobileArrowState)}`);
 
@@ -8564,7 +8576,9 @@ async function smokeCycleMilestone(browser, baseUrl) {
     `mobile cycle milestone: another open tab must retire the same seen id plus status without navigation ${JSON.stringify(peerState)}`
   );
   await mobilePage.reload({ waitUntil: 'domcontentloaded' });
-  await mobilePage.locator('[data-hot-signal-id="milestone-cycle-1300"]').waitFor({ state: 'visible', timeout: 10000 });
+  await mobilePage.waitForFunction(() => (
+    document.querySelector('#top-continuity-history')?.dataset.milestoneCelebrationWired === '1'
+  ), null, { timeout: 10000 });
   await mobilePage.evaluate(() => {
     window.dispatchEvent(new CustomEvent('hot-signal-rendered', {
       detail: {
@@ -15645,7 +15659,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
-  const liveHeadFirstRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
+  const liveHeadFirstLevel = await page.locator('#live-head-stack .live-head-row[data-live-head-level]').first().getAttribute('data-live-head-level');
+  assert(liveHeadFirstLevel, 'network health chamber: newest Live Head row is missing its keyed level');
+  const liveHeadFirstRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadFirstLevel}"]`);
   await liveHeadFirstRow.scrollIntoViewIfNeeded();
   await page.waitForTimeout(180);
   await page.mouse.move(1, 1);
@@ -15688,10 +15704,16 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && liveHeadInspectorState.operationFacts >= 5, `network health chamber: complete block facts are incomplete ${JSON.stringify(liveHeadInspectorState)}`);
   assert(/Complete block receipt.*Produced by.*Block round.*Payload round.*Cadence.*Attested.*Quorum.*Missed power.*Block activity.*Transactions.*Contract calls.*Staking ops.*Fees.*Rewards \+ bonus.*Block contents.*Missed attestations.*Open Network Health Chamber/i.test(liveHeadInspectorState.text)
       && liveHeadInspectorState.footerHref === '#health', `network health chamber: inspector receipt copy/footer is incomplete ${JSON.stringify(liveHeadInspectorState)}`);
-  const liveHeadMissedRow = page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first();
+  const liveHeadMissedLevel = await page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first().getAttribute('data-live-head-level');
+  assert(liveHeadMissedLevel, 'network health chamber: resolved missed-attester row is missing its keyed level');
+  const liveHeadMissedRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadMissedLevel}"]`);
   await page.mouse.move(1, 1);
   await liveHeadMissedRow.hover();
-  await page.waitForFunction(() => document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href^="https://tzkt.io/"]').length > 0, null, { timeout: 5000 });
+  await page.waitForFunction((level) => {
+    const inspector = document.querySelector('#live-head-inspector:not([hidden])');
+    return inspector?.dataset.liveHeadLevel === level
+      && inspector.querySelectorAll('.live-head-inspector-miss a[href^="https://tzkt.io/"]').length > 0;
+  }, liveHeadMissedLevel, { timeout: 5000 });
   const missedInspectorLinkState = await page.evaluate(() => ({
     tzkt: document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href^="https://tzkt.io/"]').length,
     myTezos: document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href*="#my-baker="]').length,

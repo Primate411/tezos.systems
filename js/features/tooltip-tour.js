@@ -268,6 +268,14 @@
         if (!tooltip || !backdrop || !el) return;
 
         var rect = el.getBoundingClientRect();
+        var targetOffscreen = rect.bottom <= VIEWPORT_PAD
+            || rect.top >= window.innerHeight - VIEWPORT_PAD
+            || rect.right <= VIEWPORT_PAD
+            || rect.left >= window.innerWidth - VIEWPORT_PAD;
+        if (targetOffscreen) {
+            scrollTargetIntoView(el);
+            rect = el.getBoundingClientRect();
+        }
         var pad = Math.max(8, Math.min(10, window.innerWidth * 0.025));
         var highlightLeft = Math.max(0, rect.left - pad);
         var highlightTop = Math.max(0, rect.top - pad);
