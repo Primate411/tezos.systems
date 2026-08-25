@@ -3052,23 +3052,25 @@ async function installFeatureMocks(context, options = {}) {
       if (ledgerFlowMocks && parsedUrl.pathname.endsWith('/operations/transactions/count')) {
         const txParams = parsedUrl.searchParams;
         const target = txParams.get('anyof.sender.target') || '';
-        ledgerFlowRequests.push({
-          kind: 'count',
-          target,
-          limit: 0,
-          sort: '',
-          cursor: '',
-          url
-        });
-        if (target === ledgerFlowDelayTarget) await sleep(900);
-        if (target === ledgerFlowFailureTarget) {
-          return route.fulfill({
-            status: 503,
-            contentType: 'application/json',
-            body: '{"error":"smoke Ledger Flow count unavailable"}'
+        if (target) {
+          ledgerFlowRequests.push({
+            kind: 'count',
+            target,
+            limit: 0,
+            sort: '',
+            cursor: '',
+            url
           });
+          if (target === ledgerFlowDelayTarget) await sleep(900);
+          if (target === ledgerFlowFailureTarget) {
+            return route.fulfill({
+              status: 503,
+              contentType: 'application/json',
+              body: '{"error":"smoke Ledger Flow count unavailable"}'
+            });
+          }
+          return fulfillJson(route, sampleLedgerFlowCount(target, txParams));
         }
-        return fulfillJson(route, sampleLedgerFlowCount(target, txParams));
       }
       if (ledgerFlowMocks && parsedUrl.pathname.endsWith('/operations/originations')) {
         const target = parsedUrl.searchParams.get('originatedContract') || '';
