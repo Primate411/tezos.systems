@@ -31322,6 +31322,14 @@ async function smokeChamberCategories(browser, baseUrl) {
   });
   assert(toggleAfter.open && toggleAfter.focused, `Capital disclosure did not stay open and focused: ${JSON.stringify(toggleAfter)}`);
   assert(Math.abs(toggleAfter.scrollY - toggleBefore) <= 2, `Capital disclosure toggle moved page scroll: ${JSON.stringify({ toggleBefore, toggleAfter })}`);
+  await page.waitForFunction(() => {
+    const staking = document.getElementById('staking-entry-card');
+    return Boolean(
+      staking
+      && !staking.hasAttribute('data-chamber-skeleton')
+      && staking.dataset.stakingWired === '1'
+    );
+  }, null, { timeout: 15000 });
 
   await page.evaluate(() => {
     const networkQuestion = document.querySelector(
