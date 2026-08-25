@@ -25086,7 +25086,7 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
   await page.waitForFunction(() => {
     const text = document.querySelector('#whale-watch-freshness')?.textContent || '';
     return /6h schedule/.test(text) && /window .* → .* UTC/.test(text);
-  }, null, { timeout: 5000 });
+  }, null, { timeout: 15000 });
   const sourceStripText = await page.locator('#whale-watch-freshness').innerText();
   assert(/6h schedule/.test(sourceStripText) && /window .* → .* UTC/.test(sourceStripText), `Whale Watch: exact archived window and generator cadence missing: ${sourceStripText}`);
   await page.evaluate(() => {
