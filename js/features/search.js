@@ -946,8 +946,21 @@ export function initHeroSearch() {
     const syncAvailableHeight = () => {
         if (!isOpen) return;
         const top = panel.getBoundingClientRect().top;
-        const viewportHeight = window.visualViewport?.height || window.innerHeight;
-        root.style.setProperty('--hero-search-available-height', `${Math.max(180, viewportHeight - top - 12)}px`);
+        const viewport = window.visualViewport;
+        const viewportBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+        root.style.setProperty('--hero-search-available-height', `${Math.max(0, viewportBottom - top - 8)}px`);
+    };
+
+    const ensureSearchRoom = () => {
+        if (!isOpen) return;
+        const viewport = window.visualViewport;
+        const viewportBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
+        const available = viewportBottom - panel.getBoundingClientRect().top - 8;
+        const minimum = window.matchMedia('(max-width: 719px)').matches ? 64 : 96;
+        if (available < minimum) {
+            window.scrollBy({ top: minimum - available, behavior: 'instant' });
+        }
+        syncAvailableHeight();
     };
 
     const canRestoreFocus = (target) => {
@@ -982,7 +995,11 @@ export function initHeroSearch() {
         input.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         if (isOpen && !wasOpen) {
             window.dispatchEvent(new Event('hero-search-opened'));
-            requestAnimationFrame(syncAvailableHeight);
+            ensureSearchRoom();
+            requestAnimationFrame(() => {
+                ensureSearchRoom();
+                window.setTimeout(ensureSearchRoom, 240);
+            });
         }
         if (!isOpen) {
             isBrowsingAll = false;
@@ -1152,6 +1169,17 @@ export function initHeroSearch() {
         }).join(''));
         syncActiveDescendant();
         syncAvailableHeight();
+        const selectedOption = selectedId
+            ? panel.querySelector(`[data-result-id="${CSS.escape(selectedId)}"]`)
+            : null;
+        if (selectedOption) {
+            const optionTop = selectedOption.offsetTop;
+            const optionBottom = optionTop + selectedOption.offsetHeight;
+            if (optionTop < panel.scrollTop) panel.scrollTop = optionTop;
+            else if (optionBottom > panel.scrollTop + panel.clientHeight) {
+                panel.scrollTop = Math.max(0, optionBottom - panel.clientHeight);
+            }
+        }
         const announcement = isLoading
             ? `Searching. ${selectableResults.length} results available`
             : `${selectableResults.length} result${selectableResults.length === 1 ? '' : 's'} available`;
@@ -1332,7 +1360,8 @@ export function initHeroSearch() {
             applyQuery(trigger.dataset.heroQuery || '');
             return;
         }
-        if (!isOpen || root.contains(event.target)) return;
+        if (!isOpen || event.defaultPrevented || !event.target.isConnected) return;
+        if (root.contains(event.target) || panel.contains(event.target) || event.target.closest('#hero-search-panel')) return;
         setOpen(false);
     });
 
@@ -1347,6 +1376,7 @@ export function initHeroSearch() {
     });
 
     window.addEventListener('resize', syncAvailableHeight);
+    window.addEventListener('scroll', syncAvailableHeight, { passive: true });
     window.visualViewport?.addEventListener('resize', syncAvailableHeight);
     window.visualViewport?.addEventListener('scroll', syncAvailableHeight);
     window.addEventListener('hashchange', dismissForRoute);

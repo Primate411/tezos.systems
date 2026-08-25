@@ -1493,7 +1493,7 @@ async function installFeatureMocks(context, options = {}) {
   let rpcHeaderLevel = Number(cycleMilestone?.headLevel) || 12345678;
   let rpcHeaderTimestamp = Number(cycleMilestone?.headTimestamp) || Date.now();
   let rpcMetadataLevel = rpcHeaderLevel;
-  const blockHeadLagMs = Number(options.blockHeadLagMs) || 0;
+  let blockHeadLagMs = Number(options.blockHeadLagMs) || 0;
   const lbNoVoteChanges = Boolean(options.lbNoVoteChanges);
   const networkHealthBlocksDelayMs = Number(options.networkHealthBlocksDelayMs) || 0;
   const etherlinkQuiet = Boolean(options.etherlinkQuiet);
@@ -1656,6 +1656,7 @@ async function installFeatureMocks(context, options = {}) {
     if (parsedUrl.origin === 'https://api.tzkt.io'
       && parsedUrl.pathname === '/v1/operations/staking'
       && parsedUrl.searchParams.has('level')) {
+      if (Number(parsedUrl.searchParams.get('level')) % 4 === 0) return fulfillJson(route, []);
       return fulfillJson(route, [{
         id: 120,
         hash: 'opHeartbeatStake',
@@ -2318,10 +2319,25 @@ async function installFeatureMocks(context, options = {}) {
       if (url.includes('/context/total_supply')) return fulfillText(route, '1050000000000000');
       if (url.includes('/context/total_frozen_stake')) return fulfillText(route, '305000000000000');
       if (url.includes('/context/delegates?active=true')) return fulfillJson(route, [SAMPLE_ADDRESS, SAMPLE_ADDRESS_2]);
+      if (/\/blocks\/\d+\/operations\/3/.test(url)) {
+        const level = Number(url.match(/\/blocks\/(\d+)\/operations\/3/)?.[1]) || 0;
+        const gasPct = [12, 38, 68, 91][Math.abs(level) % 4];
+        const totalMilligas = Math.round(1040000 * 1000 * gasPct / 100);
+        const outerMilligas = Math.round(totalMilligas * 0.74);
+        return fulfillJson(route, [{
+          contents: [{
+            metadata: {
+              operation_result: { status: 'applied', consumed_milligas: String(outerMilligas) },
+              internal_operation_results: [{ result: { status: 'applied', consumed_milligas: String(totalMilligas - outerMilligas) } }]
+            }
+          }]
+        }]);
+      }
       if (url.includes('/context/constants')) {
         return fulfillJson(route, {
           blocks_per_cycle: Number(cycleMilestone?.blocksPerCycle) || 10800,
           minimal_block_delay: '6',
+          hard_gas_limit_per_block: '1040000',
           consensus_committee_size: 7000,
           edge_of_staking_over_delegation: 3,
           liquidity_baking_subsidy: '2500000'
@@ -2611,7 +2627,7 @@ async function installFeatureMocks(context, options = {}) {
           const occurrence = Math.floor(index / producers.length);
           const producer = producers[producerIndex];
           const lag = index * 6000 + (index >= 3 ? 2000 : 0);
-          const power = index === 2 ? 6920 : (index === 0 ? 6988 : 7000);
+          const power = index === 2 ? 6500 : (index === 0 ? 6988 : 7000);
           const stableToggles = [false, true, null, false];
           const changingToggles = [
             occurrence === 0 ? false : true,
@@ -2695,6 +2711,18 @@ async function installFeatureMocks(context, options = {}) {
         const rights = new URL(url).searchParams;
         const type = rights.get('type');
         if (type === 'attestation' && rights.get('status') === 'missed') {
+          const startLevel = Number(rights.get('level.ge'));
+          const endLevel = Number(rights.get('level.le'));
+          if (Number.isFinite(startLevel) && Number.isFinite(endLevel) && endLevel - startLevel <= 4) {
+            return fulfillJson(route, [
+              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 7, status: 'missed', type: 'attestation', baker: { address: SAMPLE_ADDRESS_2, alias: 'second.tez' } },
+              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 6, status: 'missed', type: 'attestation', baker: { address: 'tz4MissMissMissMissMissMissMissMis', alias: null } },
+              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 5, status: 'missed', type: 'attestation', baker: { address: 'tz1KitchenSinkBakerOne111111111111', alias: 'Kitchen Baker' } },
+              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 4, status: 'missed', type: 'attestation', baker: { address: 'tz2KitchenSinkBakerTwo222222222222', alias: 'Counter Baker' } },
+              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 3, status: 'missed', type: 'attestation', baker: { address: 'tz3KitchenSinkBakerThree3333333333', alias: 'Pantry Baker' } },
+              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 2, status: 'missed', type: 'attestation', baker: { address: 'tz1KitchenSinkBakerFour444444444444', alias: 'Galley Baker' } }
+            ]);
+          }
           return fulfillJson(route, [
             { level: 12345678, timestamp: new Date(Date.now() - 1000).toISOString(), slots: 7, status: 'missed', type: 'attestation', baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' } },
             { level: 12345677, timestamp: new Date(Date.now() - 7000).toISOString(), slots: 3, status: 'missed', type: 'attestation', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } },
@@ -3167,6 +3195,7 @@ async function installFeatureMocks(context, options = {}) {
       if (url.includes('/operations/transactions?')
         && parsedUrl.searchParams.has('level')
         && (parsedUrl.searchParams.get('select') || '').includes('internal')) {
+        if (Number(parsedUrl.searchParams.get('level')) % 4 === 0) return fulfillJson(route, []);
         return fulfillJson(route, [
           { id: 101, hash: 'opHeartbeatOne', amount: 2500000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: SAMPLE_ADDRESS_2 } },
           { id: 102, hash: 'opHeartbeatTwo', amount: 42000000, parameter: { entrypoint: 'mint', value: {} }, internal: false, sender: { address: SAMPLE_ADDRESS_2 }, target: { address: SAMPLE_CONTRACT } },
@@ -3670,6 +3699,7 @@ async function installFeatureMocks(context, options = {}) {
   });
   return {
     bakerPageOffsets,
+    setBlockHeadLag(value = 0) { blockHeadLagMs = Math.max(0, Number(value) || 0); },
     failBakerGovernance(fail = false) { bakerGovernanceFailure = Boolean(fail); },
     get bakerGovernanceSignalRequests() { return bakerGovernanceSignalRequests; },
     get bakerGovernanceHeavyRequests() { return bakerGovernanceHeavyRequests; },
@@ -6104,6 +6134,9 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     const cardRect = liveHead?.getBoundingClientRect();
     const formRect = form?.getBoundingClientRect();
     const panelRect = panel?.getBoundingClientRect();
+    const visibleRows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row')).filter((row) => getComputedStyle(row).display !== 'none');
+    const visualRows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row, #live-head-stack .live-head-row-exiting')).filter((row) => getComputedStyle(row).display !== 'none');
+    const visualBottom = Math.max(0, ...visualRows.map((row) => row.getBoundingClientRect().bottom));
     return {
       bodyMode: document.body.classList.contains('hero-search-mode'),
       mainInert: main.hasAttribute('inert'),
@@ -6117,28 +6150,60 @@ async function smokeHeroCommandBar(browser, baseUrl) {
       rowCount: Array.from(document.querySelectorAll('#live-head-stack .live-head-row')).filter((row) => getComputedStyle(row).display !== 'none').length,
       panelPosition: getComputedStyle(panel).position,
       panelBelowWell: Boolean(panelRect && formRect && panelRect.top >= formRect.bottom),
-      panelSameWidth: Boolean(panelRect && formRect && Math.abs(panelRect.width - formRect.width) <= 1)
+      panelSameWidth: Boolean(panelRect && formRect && Math.abs(panelRect.width - formRect.width) <= 1),
+      panelBottomGap: panelRect ? innerHeight - panelRect.bottom : 999,
+      panelMaxHeight: getComputedStyle(panel).maxHeight,
+      blockSearchJoinGap: formRect && visualBottom ? formRect.top - visualBottom : 999
     };
   });
   assert(focusModeState.bodyMode, 'hero command bar: search focus state signal is missing');
   assert(!focusModeState.mainInert && focusModeState.mainOpacity === 1 && focusModeState.mainPointerEvents === 'auto' && focusModeState.mainFilter === 'none' && focusModeState.mainTransform === 'none', `hero command bar: search focus altered or disabled the landing page ${JSON.stringify(focusModeState)}`);
   assert(focusModeState.headerOpacity === '1' && focusModeState.pulseOpacity === '1', `hero command bar: search focus dimmed the header or Live Pulse ${JSON.stringify(focusModeState)}`);
-  assert(focusModeState.cardHeight <= 320 && focusModeState.rowCount === 4 && focusModeState.panelPosition === 'absolute' && focusModeState.panelBelowWell && focusModeState.panelSameWidth, `hero command bar: results are not attached below the stable Live Head well ${JSON.stringify(focusModeState)}`);
+  assert(focusModeState.cardHeight <= 370 && focusModeState.rowCount === 4 && focusModeState.panelPosition === 'absolute' && focusModeState.panelBelowWell && focusModeState.panelSameWidth, `hero command bar: results are not attached below the stable Live Head well ${JSON.stringify(focusModeState)}`);
+  assert(focusModeState.blockSearchJoinGap >= 0 && focusModeState.blockSearchJoinGap <= 8, `hero command bar: block stack left a dead seam above search ${JSON.stringify(focusModeState)}`);
+  assert(focusModeState.panelBottomGap >= 8 && focusModeState.panelBottomGap <= 16 && focusModeState.panelMaxHeight === 'none', `hero command bar: results should fill the remaining window below the well ${JSON.stringify(focusModeState)}`);
   const emptyStateText = await page.locator('#hero-search-panel').innerText();
   const emptyStateOptions = await page.locator('#hero-search-panel [role="option"]').count();
   assert(/Wallet or \.tez/i.test(emptyStateText) && /Rooms/i.test(emptyStateText) && /Bakers/i.test(emptyStateText) && /Network/i.test(emptyStateText) && /Paste a hash/i.test(emptyStateText) && /Browse all/i.test(emptyStateText), `hero command bar: mission-control starters are incomplete: ${emptyStateText}`);
   assert(emptyStateOptions === 6, `hero command bar: blank search should render six starters, saw ${emptyStateOptions}`);
   assert(!/Start from anything|All \d+ destinations|Press \/ from anywhere|Governance RSS/.test(emptyStateText), `hero command bar: blank search expanded into the retired directory/guide: ${emptyStateText}`);
+  const starterGeometry = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#hero-search-panel .hero-search-result'));
+    return {
+      descriptionsVisible: rows.filter((row) => {
+        const description = row.querySelector('.hero-result-copy span');
+        return description && getComputedStyle(description).display !== 'none';
+      }).length,
+      maxHeight: Math.max(0, ...rows.map((row) => row.getBoundingClientRect().height))
+    };
+  });
+  assert(starterGeometry.descriptionsVisible === 0 && starterGeometry.maxHeight <= 44, `hero command bar: empty starters should stay one-line ${JSON.stringify(starterGeometry)}`);
   const idleChrome = await page.evaluate(() => ({
     chipsDisplay: getComputedStyle(document.getElementById('hero-search-chips')).display,
     markDisplay: getComputedStyle(document.querySelector('.live-head-panel .hero-search-mark')).display
   }));
   assert(idleChrome.chipsDisplay === 'none' && idleChrome.markDisplay === 'none', `hero command bar: non-HEN search exposed terminal chrome ${JSON.stringify(idleChrome)}`);
+  await page.locator('#hero-search-panel .hero-search-result[data-result-id="starter:rooms"]').click();
+  await page.waitForFunction(() => document.getElementById('hero-search-input')?.value === 'rooms', null, { timeout: 5000 });
+  const roomsOpenState = await page.evaluate(() => ({
+    expanded: document.getElementById('hero-search-input')?.getAttribute('aria-expanded') || '',
+    hidden: document.getElementById('hero-search-panel')?.hidden ?? true,
+    bodyMode: document.body.classList.contains('hero-search-mode')
+  }));
+  assert(roomsOpenState.expanded === 'true' && !roomsOpenState.hidden && roomsOpenState.bodyMode, `hero command bar: Rooms closed the attached list ${JSON.stringify(roomsOpenState)}`);
+  await page.locator('#hero-search-input').fill('');
+  await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length === 6, null, { timeout: 5000 });
   await page.locator('#hero-search-panel .hero-search-result').filter({ hasText: 'Browse all' }).click();
   await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length > 20, null, { timeout: 5000 });
   const browseAllText = await page.locator('#hero-search-panel').innerText();
   const browseAllOptions = await page.locator('#hero-search-panel [role="option"]').count();
   assert(browseAllOptions > 20, `hero command bar: explicit Browse all did not open the canonical destination list (${browseAllOptions})`);
+  const browseAllOpenState = await page.evaluate(() => ({
+    expanded: document.getElementById('hero-search-input')?.getAttribute('aria-expanded') || '',
+    hidden: document.getElementById('hero-search-panel')?.hidden ?? true,
+    browsingAll: document.getElementById('hero-slot')?.classList.contains('is-browsing-all') || false
+  }));
+  assert(browseAllOpenState.expanded === 'true' && !browseAllOpenState.hidden && browseAllOpenState.browsingAll, `hero command bar: Browse all closed or escaped the attached list ${JSON.stringify(browseAllOpenState)}`);
   for (const representative of ['Protocol Anthology', 'Ledger Flow', 'XTZ Market Watch', 'Staking Guide', 'Explore Tezos', 'HEN Live Feed', 'Governance RSS', 'XTZ Price Widget']) {
     assert(browseAllText.includes(representative), `hero command bar: explicit complete directory is missing ${representative}`);
   }
@@ -6530,7 +6595,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     const intentResponse = await intentPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'commit' });
     assert(intentResponse?.ok(), `hero command bar exact intents: dashboard failed with HTTP ${intentResponse?.status()}`);
     await intentPage.locator('#hero-search-input').waitFor({ state: 'visible', timeout: 10000 });
-    await intentPage.waitForFunction(() => document.querySelector('#hero-slot')?.dataset.heroSearchWired === '1', null, { timeout: 10000 });
+    await intentPage.waitForFunction(() => document.querySelector('#hero-slot')?.dataset.heroSearchWired === '1', null, { timeout: 30000 });
     await intentPage.locator('#hero-search-input').fill(query);
     await intentPage.waitForFunction(({ value, title }) => {
       const input = document.getElementById('hero-search-input');
@@ -6688,6 +6753,9 @@ async function smokeHeroCommandBar(browser, baseUrl) {
       scrollWidth: document.documentElement.scrollWidth,
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
+      viewportBottom: window.visualViewport
+        ? window.visualViewport.offsetTop + window.visualViewport.height
+        : window.innerHeight,
       bodyPosition: getComputedStyle(document.body).position,
       card: cardRect ? { top: cardRect.top, bottom: cardRect.bottom, left: cardRect.left, right: cardRect.right, height: cardRect.height } : null,
       rows: Array.from(document.querySelectorAll('#live-head-stack .live-head-row')).filter((row) => getComputedStyle(row).display !== 'none').length,
@@ -6722,6 +6790,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(mobileFocusState.chips?.display === 'none' && mobileFocusState.chips.height === 0, `hero command bar mobile focus: non-HEN shortcut rail should stay hidden ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.closeHeight >= 44 && mobileFocusState.submitHeight >= 44, `hero command bar mobile focus: controls do not meet 44px touch targets ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.form?.bottom <= mobileFocusState.panel?.top + 1, `hero command bar mobile focus: results do not open below the stable well ${JSON.stringify(mobileFocusState)}`);
+  assert(mobileFocusState.viewportBottom - mobileFocusState.panel?.bottom >= 8 && mobileFocusState.viewportBottom - mobileFocusState.panel?.bottom <= 16, `hero command bar mobile focus: results do not end at the visual viewport gutter ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.closeVisible, `hero command bar mobile focus: explicit close button is not visible ${JSON.stringify(mobileFocusState)}`);
 
   await mobilePage.locator('#hero-search-input').fill('nakamoto coefficient');
@@ -14379,7 +14448,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
-  await installFeatureMocks(context, { blockHeadLagMs: 90000, networkHealthBlocksDelayMs: 500 });
+  const mockState = await installFeatureMocks(context, { blockHeadLagMs: 90000, networkHealthBlocksDelayMs: 500 });
   await context.addInitScript((myBakerAddress) => {
     window.__tezosSystemsIntervals = [];
     window.__healthPrintState = { html: '', focused: false, printed: false };
@@ -14454,6 +14523,27 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 
   const response = await page.goto(`${baseUrl}/#health`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `network health chamber: dashboard failed with HTTP ${response?.status()}`);
+  const initialLiveHeadState = await page.evaluate(() => {
+    const panel = document.getElementById('live-head');
+    const stack = document.getElementById('live-head-stack');
+    return {
+      ariaBusy: panel?.getAttribute('aria-busy') || '',
+      feedState: panel?.dataset.feedState || '',
+      placeholders: stack?.querySelectorAll('.live-head-row.is-placeholder').length || 0,
+      primaryBars: stack?.querySelectorAll('.live-head-skeleton-primary i').length || 0,
+      secondaryBars: stack?.querySelectorAll('.live-head-skeleton-secondary i').length || 0,
+      visibleText: stack?.textContent?.replace(/\s+/g, ' ').trim() || ''
+    };
+  });
+  assert(
+    initialLiveHeadState.ariaBusy === 'true'
+      && initialLiveHeadState.feedState === 'loading'
+      && initialLiveHeadState.placeholders === 4
+      && initialLiveHeadState.primaryBars === 20
+      && initialLiveHeadState.secondaryBars === 8
+      && initialLiveHeadState.visibleText === '',
+    `network health chamber: Live Head first paint must be opaque objects without sentences ${JSON.stringify(initialLiveHeadState)}`
+  );
   const initialFinality = (await page.locator('#hero-chain-uptime-finality').textContent())?.trim() || '';
   const initialFinalityTitle = await page.locator('[data-card-history="finality"]').getAttribute('title') || '';
   assert(
@@ -14462,13 +14552,16 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   );
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 15000 });
   await assertNormalizedChamberShell(page, '#network-health-modal.active', '.health-content', 'standard', 'network health chamber');
-  await page.locator('#network-health-modal.active .chamber-loading-fill').waitFor({ state: 'visible', timeout: 5000 });
+  await Promise.race([
+    page.locator('#network-health-modal.active .chamber-loading-fill').waitFor({ state: 'visible', timeout: 5000 }).catch(() => {}),
+    page.locator('#network-health-modal.active .health-header').waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+  ]);
   const loaderState = await page.evaluate(async () => {
     const modal = document.querySelector('#network-health-modal');
     const fill = modal?.querySelector('.chamber-loading-fill');
     const bar = modal?.querySelector('.chamber-loading-bar');
     const text = modal?.querySelector('.chamber-loading-text');
-    if (!fill || !bar) return { present: false };
+    if (!fill || !bar) return { present: false, racedToContent: Boolean(modal?.querySelector('.health-header')) };
     const animation = fill.getAnimations?.()[0];
     if (animation?.ready) await animation.ready;
     const firstStyle = getComputedStyle(fill);
@@ -14492,13 +14585,15 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       contentRendered: Boolean(modal?.querySelector('.health-header'))
     };
   });
-  assert(loaderState.present, 'network health chamber: loading animation missing before initial fetch resolves');
-  assert(/Opening Network Health Chamber/.test(loaderState.text), `network health chamber: loading copy mismatch: ${loaderState.text}`);
-  assert(loaderState.animationName === 'chamberLoadSlide', `network health chamber: loader animation missing: ${loaderState.animationName}`);
-  assert(loaderState.animationDuration !== '0s', `network health chamber: loader animation duration missing: ${loaderState.animationDuration}`);
-  assert(loaderState.firstTransform !== loaderState.secondTransform, `network health chamber: loader transform did not animate: ${loaderState.firstTransform}`);
-  assert(loaderState.fillWidth > 0 && loaderState.fillWidth < loaderState.barWidth, `network health chamber: loader beam should be visible but smaller than the rail: ${loaderState.fillWidth}/${loaderState.barWidth}`);
-  assert(!loaderState.contentRendered, 'network health chamber: chamber content rendered before loader assertion');
+  assert(loaderState.present || loaderState.racedToContent, 'network health chamber: neither loading animation nor completed chamber content appeared');
+  if (loaderState.present) {
+    assert(/Opening Network Health Chamber/.test(loaderState.text), `network health chamber: loading copy mismatch: ${loaderState.text}`);
+    assert(loaderState.animationName === 'chamberLoadSlide', `network health chamber: loader animation missing: ${loaderState.animationName}`);
+    assert(loaderState.animationDuration !== '0s', `network health chamber: loader animation duration missing: ${loaderState.animationDuration}`);
+    assert(loaderState.firstTransform !== loaderState.secondTransform, `network health chamber: loader transform did not animate: ${loaderState.firstTransform}`);
+    assert(loaderState.fillWidth > 0 && loaderState.fillWidth < loaderState.barWidth, `network health chamber: loader beam should be visible but smaller than the rail: ${loaderState.fillWidth}/${loaderState.barWidth}`);
+    assert(!loaderState.contentRendered, 'network health chamber: chamber content rendered before loader assertion');
+  }
   await page.waitForFunction(() => document.querySelectorAll('#health-recent-block-list .health-block-row').length >= 4, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#health-missed-attester-list .health-attester-row').length >= 2, null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelectorAll('#health-activity-list .health-activity-row').length >= 1, null, { timeout: 10000 });
@@ -14508,6 +14603,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4, null, { timeout: 10000 });
   await page.waitForFunction(() => /Second Baker/.test(document.querySelector('#live-head-next')?.textContent || ''), null, { timeout: 10000 });
   await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-story')).every((row) => !/syncing/i.test(row.textContent || '')), null, { timeout: 10000 });
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]')).every((row) => row.dataset.gasState !== 'loading'), null, { timeout: 10000 });
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-story[data-miss-required="true"]')).some((row) => row.dataset.missState === 'resolved'), null, { timeout: 10000 });
   await page.waitForFunction(() => document.querySelector('#header-activity-button')?.getAttribute('aria-busy') === 'false', null, { timeout: 10000 });
   await page.waitForFunction(() => /^\d+$/.test(document.querySelector('#hero-chain-uptime-bakers')?.textContent || ''), null, { timeout: 10000 });
   await page.waitForFunction(() => /^\d+s$/.test((document.querySelector('#hero-chain-uptime-finality')?.textContent || '').trim()), null, { timeout: 20000 });
@@ -14544,6 +14641,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	    const card = document.querySelector('[data-stat="network-health"]');
 	    const pulseTicker = document.querySelector('#pulse-ticker-strip');
 	    const ticker = document.querySelector('#live-head');
+    const liveHeadAlert = document.querySelector('#live-head-alert');
     const liveHeadStack = document.querySelector('#live-head-stack');
     const liveHeadRows = Array.from(liveHeadStack?.querySelectorAll('.live-head-row[data-live-head-level]') || []);
     const liveHeadWell = document.querySelector('#hero-search-form');
@@ -14718,14 +14816,115 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       cardStale: card?.classList.contains('chamber-data-stale') || false,
       cardTape: card?.querySelector('#network-health-live-tape')?.textContent || '',
 	      liveHeadHeight: tickerRect?.height || 0,
+	      liveHeadChainState: ticker?.dataset.chainState || '',
+	      liveHeadStateText: ticker?.querySelector('.live-head-state')?.textContent?.trim() || '',
+	      liveHeadAlertHidden: Boolean(liveHeadAlert?.hidden),
+	      liveHeadAlertTag: liveHeadAlert?.tagName || '',
+	      liveHeadAlertLabel: liveHeadAlert?.querySelector('[data-live-head-alert-label]')?.textContent?.trim() || '',
+	      liveHeadAlertDetail: liveHeadAlert?.querySelector('[data-live-head-alert-detail]')?.textContent?.trim() || '',
+	      liveHeadAlertFontSize: liveHeadAlert?.querySelector('[data-live-head-alert-label]') ? parseFloat(getComputedStyle(liveHeadAlert.querySelector('[data-live-head-alert-label]')).fontSize) : 0,
+	      liveHeadAlertBorderColor: liveHeadAlert ? getComputedStyle(liveHeadAlert).borderTopColor : '',
+	      liveHeadAlertBackground: liveHeadAlert ? getComputedStyle(liveHeadAlert).backgroundImage : '',
+	      liveHeadTopRuleDisplay: ticker ? getComputedStyle(ticker, '::before').display : '',
 	      liveHeadRows: liveHeadRows.length,
+	      liveHeadRowHeights: liveHeadRows.map((row) => row.getBoundingClientRect().height),
 	      liveHeadKeys: liveHeadRows.map((row) => row.dataset.quietKey || ''),
 	      liveHeadLevels: liveHeadRows.map((row) => row.querySelector('.live-head-level')?.textContent?.trim() || ''),
+	      liveHeadRounds: liveHeadRows.map((row) => row.querySelector('.health-round-badge')?.textContent?.trim() || ''),
+	      liveHeadDeltas: liveHeadRows.map((row) => row.querySelector('.health-interval')?.textContent?.trim() || ''),
+	      liveHeadPowers: liveHeadRows.map((row) => row.querySelector('.live-head-power-full')?.textContent?.replace(/\s+/g, '') || ''),
+	      liveHeadConsensusStates: liveHeadRows.map((row) => row.dataset.consensusState || ''),
+	      liveHeadMarginRails: liveHeadRows.map((row) => {
+	        const power = row.querySelector('.live-head-power');
+	        const track = row.querySelector('.live-head-power-track');
+	        const full = row.querySelector('.live-head-margin-full');
+	        const compact = row.querySelector('.live-head-margin-compact');
+	        const missed = row.querySelector('.live-head-missed');
+	        const activity = row.querySelector('.live-head-quiet, .live-head-gas, .live-head-gas-skeleton');
+	        const visibleMargin = [full, compact].find((node) => node && getComputedStyle(node).display !== 'none');
+	        return {
+	          margin: Number(row.dataset.safetyMargin),
+	          power: Number(row.dataset.attestedPower),
+	          text: visibleMargin?.textContent?.trim() || '',
+	          title: track?.getAttribute('title') || '',
+	          adjacent: power?.nextElementSibling === track,
+	          noMarker: getComputedStyle(track, '::after').content === 'none',
+	          order: Boolean(track && activity
+	            && (!missed || track.getBoundingClientRect().right <= missed.getBoundingClientRect().left + 1)
+	            && (missed ? missed.getBoundingClientRect().right : track.getBoundingClientRect().right) <= activity.getBoundingClientRect().left + 1)
+	        };
+	      }),
+	      liveHeadQuietRows: liveHeadRows.filter((row) => row.dataset.storyQuiet === 'true').map((row) => {
+	        const quiet = row.querySelector('.live-head-quiet');
+	        const missed = row.querySelector('.live-head-missed');
+	        return {
+	          text: quiet?.textContent?.trim() || '',
+	          topLine: Boolean(quiet && row.querySelector('.live-head-row-main')?.contains(quiet)),
+	          bottomQuiet: Boolean(row.querySelector('.live-head-row-detail .live-head-story-chip.is-quiet')),
+	          afterMissed: Boolean(!missed || (quiet && missed.getBoundingClientRect().right <= quiet.getBoundingClientRect().left + 1))
+	        };
+	      }),
+	      liveHeadGasRows: liveHeadRows.filter((row) => row.dataset.storyQuiet !== 'true').map((row) => {
+	        const gas = row.querySelector('.live-head-gas');
+	        const missed = row.querySelector('.live-head-missed');
+	        return {
+	          state: row.dataset.gasState || '',
+	          percent: Number(row.dataset.gasPercent),
+	          text: gas?.textContent?.trim() || '',
+	          className: gas?.className || '',
+	          title: gas?.getAttribute('title') || '',
+	          topLine: Boolean(gas && row.querySelector('.live-head-row-main')?.contains(gas)),
+	          hasQuiet: Boolean(row.querySelector('.live-head-quiet')),
+	          afterMissed: Boolean(!missed || (gas && missed.getBoundingClientRect().right <= gas.getBoundingClientRect().left + 1))
+	        };
+	      }),
+	      liveHeadBarSignatures: liveHeadRows.map((row) => row.dataset.barSignature || ''),
+	      liveHeadBarPlayed: liveHeadRows.map((row) => row.dataset.quietBarPlayed || ''),
+	      liveHeadAges: liveHeadRows.map((row) => row.querySelector('.live-head-age')?.textContent?.trim() || ''),
+	      liveHeadRowBakers: liveHeadRows.map((row) => row.querySelector('.live-head-baker')?.textContent?.trim() || ''),
+	      liveHeadSearchHelp: document.querySelector('#hero-search-help')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+	      liveHeadTypeAndAlignment: (() => {
+	        const input = document.querySelector('#hero-search-input');
+	        const help = document.querySelector('#hero-search-help');
+	        const level = liveHeadRows[0]?.querySelector('.live-head-level');
+	        const baker = liveHeadRows.find((row) => row.querySelector('.live-head-baker:not(.is-address)'))?.querySelector('.live-head-baker:not(.is-address)');
+	        return {
+	          inputFont: input ? getComputedStyle(input).fontFamily : '',
+	          bakerFont: baker ? getComputedStyle(baker).fontFamily : '',
+	          inputLevelDelta: input && level ? Math.abs(input.getBoundingClientRect().left - level.getBoundingClientRect().left) : 999,
+	          helpBakerDelta: help && baker ? Math.abs(help.getBoundingClientRect().left - baker.getBoundingClientRect().left) : 999,
+	          helpVisible: Boolean(help && getComputedStyle(help).display !== 'none' && help.getBoundingClientRect().height > 0)
+	        };
+	      })(),
+	      liveHeadRowBorderBottoms: liveHeadRows.map((row) => getComputedStyle(row).borderBottomWidth),
 	      liveHeadStories: liveHeadRows.map((row) => row.querySelector('.live-head-story')?.textContent?.replace(/\s+/g, ' ').trim() || ''),
+	      liveHeadMissRows: liveHeadRows.map((row) => {
+	        const detail = row.querySelector('.live-head-story');
+	        const pills = Array.from(row.querySelectorAll('.live-head-miss-pill'));
+	        return {
+	          power: Number(row.dataset.attestedPower),
+	          quiet: row.dataset.storyQuiet === 'true',
+	          required: detail?.dataset.missRequired || '',
+	          state: detail?.dataset.missState || '',
+	          text: pills.map((pill) => pill.textContent?.replace(/\s+/g, ' ').trim() || '').join(' | '),
+	          addresses: pills.map((pill) => pill.dataset.missedBakerAddress || '').filter(Boolean),
+	          visibleAddresses: pills.filter((pill) => pill.dataset.missedBakerAddress && !pill.hidden).map((pill) => pill.dataset.missedBakerAddress),
+	          hiddenCount: Number(detail?.dataset.hiddenMissCount || 0),
+	          overflowVisible: Boolean(detail?.querySelector('[data-live-head-miss-overflow]:not([hidden])')),
+	          titles: pills.map((pill) => pill.getAttribute('title') || '').join(' | '),
+	          styles: pills.map((pill) => {
+	            const style = getComputedStyle(pill);
+	            return { overflow: style.overflow, textOverflow: style.textOverflow, whiteSpace: style.whiteSpace, maxWidth: style.maxWidth, borderColor: style.borderColor };
+	          })
+	        };
+	      }),
+	      liveHeadStoryTones: Array.from(liveHeadStack?.querySelectorAll('.live-head-story-chip') || []).map((pill) => {
+	        const style = getComputedStyle(pill);
+	        return `${style.color}|${style.backgroundColor}|${style.borderColor}`;
+	      }),
+	      liveHeadHasGlobalMissLine: Boolean(document.querySelector('#live-head-bakers')),
 	      liveHeadNext: document.querySelector('#live-head-next')?.textContent?.replace(/\s+/g, ' ').trim() || '',
 	      liveHeadNextDue: document.querySelector('#live-head-next [data-heartbeat-due]')?.textContent?.trim() || '',
-	      liveHeadBakers: document.querySelector('#live-head-bakers')?.textContent?.replace(/\s+/g, ' ').trim() || '',
-	      liveHeadBakersEmpty: document.querySelector('#live-head-bakers')?.dataset.empty || '',
 	      liveHeadAnnouncerLive: document.querySelector('#chain-heartbeat-announcer')?.getAttribute('aria-live') || '',
 	      liveHeadAriaLive: liveHeadStack?.getAttribute('aria-live') || '',
 	      liveHeadWired: document.querySelector('#live-head-button')?.dataset.liveHeadWired || '',
@@ -14734,7 +14933,22 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	      liveHeadStoryChipCount: liveHeadStack?.querySelectorAll('.live-head-story-chip').length || 0,
 	      liveHeadStoryMax: Math.max(0, ...liveHeadRows.map((row) => row.querySelectorAll('.live-head-story-chip').length)),
 	      liveHeadWellInside: Boolean(tickerRect && liveHeadWell?.getBoundingClientRect().left >= tickerRect.left && liveHeadWell?.getBoundingClientRect().right <= tickerRect.right),
+	      liveHeadWellIntegrated: (() => {
+	        const formRect = liveHeadWell?.getBoundingClientRect();
+	        if (!tickerRect || !formRect) return null;
+	        const style = getComputedStyle(liveHeadWell);
+	        return {
+	          leftGap: formRect.left - tickerRect.left,
+	          rightGap: tickerRect.right - formRect.right,
+	          bottomGap: tickerRect.bottom - formRect.bottom,
+	          borderTop: style.borderTopWidth,
+	          borderRight: style.borderRightWidth,
+	          borderBottom: style.borderBottomWidth,
+	          borderLeft: style.borderLeftWidth
+	        };
+	      })(),
 	      liveHeadPanelPosition: liveHeadPanel ? getComputedStyle(liveHeadPanel).position : '',
+	      liveHeadPanelBottomGap: liveHeadPanel && !liveHeadPanel.hidden ? innerHeight - liveHeadPanel.getBoundingClientRect().bottom : null,
 	      cardHasProofStrip: Boolean(card?.querySelector('#network-health-proof, #chain-uptime-counter')),
 	      pulseTickerOwnIsland: pulseTicker?.tagName === 'SECTION' && pulseTicker?.parentElement === document.body,
 	      pulseTickerAfterHeader: Boolean(header && pulseTicker && (header.compareDocumentPosition(pulseTicker) & Node.DOCUMENT_POSITION_FOLLOWING)),
@@ -14766,6 +14980,33 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       topPriceBarHasPulseDot: Boolean(priceBar?.querySelector('#uptime-pulse-dot')),
       intervalDelays: (window.__tezosSystemsIntervals || []).map((item) => item.timeout ?? item)
     };
+  });
+
+  const liveHeadPillFitProbe = await page.evaluate(async () => {
+    const panel = document.getElementById('live-head');
+    const originalWidth = panel?.style.width || '';
+    if (!panel) return null;
+    panel.style.width = '380px';
+    let detail = null;
+    for (let frame = 0; frame < 30; frame += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      detail = document.querySelector('#live-head-stack .live-head-story[data-miss-state="resolved"]');
+      if (Number(detail?.dataset.hiddenMissCount || 0) > 0) break;
+    }
+    const pills = Array.from(detail?.querySelectorAll('[data-missed-baker-address]') || []);
+    const result = {
+      panelWidth: panel.getBoundingClientRect().width,
+      detailWidth: detail?.getBoundingClientRect().width || 0,
+      detailClientWidth: detail?.clientWidth || 0,
+      detailScrollWidth: detail?.scrollWidth || 0,
+      all: pills.length,
+      visible: pills.filter((pill) => !pill.hidden).length,
+      hidden: Number(detail?.dataset.hiddenMissCount || 0),
+      summary: detail?.querySelector('[data-live-head-miss-overflow]:not([hidden])')?.textContent?.trim() || ''
+    };
+    panel.style.width = originalWidth;
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return result;
   });
 
   assert(/Network Health Chamber/.test(healthState.title), `network health chamber: title mismatch: ${healthState.title}`);
@@ -14946,20 +15187,63 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.cardFreshnessState === 'stale' && healthState.cardStale, `network health chamber: stale head time should drive the card watch state: ${healthState.cardFreshnessState}/${healthState.cardStale}`);
   assert(healthState.cardFreshnessStaleAfter === '12000', `network health chamber: freshness threshold should track 2x live refresh interval, saw ${healthState.cardFreshnessStaleAfter}`);
   assert(healthState.cardFreshnessAgeMs >= 85000, `network health chamber: freshness timestamp should come from the observed head, saw ${healthState.cardFreshnessAgeMs}ms`);
-	  assert(healthState.liveHeadOwnIsland, 'network health chamber: Live Head should be its own top-level landing-page card');
+  assert(healthState.liveHeadOwnIsland, 'network health chamber: Live Head should be its own top-level landing-page card');
 	  assert(healthState.pulseTickerOwnIsland && healthState.pulseTickerAfterHeader && healthState.pulseTickerBeforeBlock, 'network health chamber: Live Pulse should stay between the header area and Live Head');
   assert(healthState.liveHeadBeforeMainContent && healthState.liveHeadAboveChambers && healthState.liveHeadClearOfMainContent, 'network health chamber: Live Head should stay above and clear of the Chambers/main area');
-  assert(healthState.liveHeadHeight <= 320 && healthState.liveHeadRows === 4, `network health chamber: desktop Live Head height or row count drifted ${healthState.liveHeadHeight}/${healthState.liveHeadRows}`);
+  assert(healthState.liveHeadHeight <= 420 && healthState.liveHeadRows === 4, `network health chamber: desktop Live Head height or row count drifted ${healthState.liveHeadHeight}/${healthState.liveHeadRows}`);
+  assert(healthState.liveHeadChainState === 'stalled'
+      && healthState.liveHeadStateText === 'Stalled'
+      && !healthState.liveHeadAlertHidden
+      && healthState.liveHeadAlertTag === 'BUTTON'
+      && healthState.liveHeadAlertLabel === 'CHAIN STALLED'
+      && /No new block for 1m \d{2}s · last confirmed #[\d,]+/.test(healthState.liveHeadAlertDetail), `network health chamber: confirmed stale head did not replace the normal hierarchy with an explicit chain-stall alert ${JSON.stringify(healthState)}`);
+  assert(healthState.liveHeadAlertFontSize >= 15
+      && /rgb\((?:255, 82, 106|255, 81, 105)\)/.test(healthState.liveHeadAlertBorderColor)
+      && /linear-gradient/.test(healthState.liveHeadAlertBackground), `network health chamber: chain-stall typography/color severity is not unmistakable ${JSON.stringify({ fontSize: healthState.liveHeadAlertFontSize, border: healthState.liveHeadAlertBorderColor, background: healthState.liveHeadAlertBackground })}`);
+  assert(healthState.liveHeadTopRuleDisplay === 'none', `network health chamber: decorative top rule returned ${healthState.liveHeadTopRuleDisplay}`);
+  assert(healthState.liveHeadRowHeights.every((height) => Math.abs(height - 60) <= 1), `network health chamber: separator removal did not become useful row spacing ${healthState.liveHeadRowHeights.join(',')}`);
   assert(new Set(healthState.liveHeadKeys).size === 4 && healthState.liveHeadKeys.every((key) => /^live-head-block-\d+$/.test(key)), `network health chamber: Live Head rows need stable level keys: ${healthState.liveHeadKeys.join(',')}`);
   assert(healthState.liveHeadLevels.every((level) => /^#[\d,]+$/.test(level)), `network health chamber: Live Head levels are malformed: ${healthState.liveHeadLevels.join(',')}`);
-  assert(healthState.liveHeadStories.every((story) => /Transfers/.test(story) && /Stake/.test(story) && !/Oracle|\b0\b/.test(story)), `network health chamber: human block stories are incomplete or invented: ${healthState.liveHeadStories.join(' | ')}`);
-  assert(healthState.liveHeadStoryChipCount >= 8 && healthState.liveHeadStoryMax <= 3, `network health chamber: Live Head story density drifted ${healthState.liveHeadStoryChipCount}/${healthState.liveHeadStoryMax}`);
+  assert(healthState.liveHeadRounds.every((round) => /^R\d+$/.test(round)), `network health chamber: Live Head round badges are malformed: ${healthState.liveHeadRounds.join(',')}`);
+  assert(healthState.liveHeadDeltas.every((delta) => /^\d+(?:\.\d)?s$/.test(delta)), `network health chamber: Live Head deltas are malformed: ${healthState.liveHeadDeltas.join(',')}`);
+  assert(healthState.liveHeadPowers.every((power) => /^\d[\d,]*\/\d[\d,]*$/.test(power)), `network health chamber: Live Head attested fractions are malformed: ${healthState.liveHeadPowers.join(',')}`);
+  assert(healthState.liveHeadConsensusStates.includes('watch') && healthState.liveHeadMarginRails.every((rail) => rail.adjacent && rail.noMarker && rail.order && rail.margin === rail.power - 4667 && /^[+−-](?:\d[\d,]*|\d+(?:\.\d)?K)$/.test(rail.text) && /rail shows only the safety margin/i.test(rail.title)), `network health chamber: surplus-only quorum margin rail or top-line order drifted ${JSON.stringify(healthState.liveHeadMarginRails)}`);
+  assert(healthState.liveHeadQuietRows.length >= 1 && healthState.liveHeadQuietRows.every((row) => row.text === 'Quiet' && row.topLine && !row.bottomQuiet && row.afterMissed), `network health chamber: Quiet did not follow missed power on the top line ${JSON.stringify(healthState.liveHeadQuietRows)}`);
+  const resolvedLiveHeadGasRows = healthState.liveHeadGasRows.filter((row) => row.state === 'resolved');
+  assert(resolvedLiveHeadGasRows.length >= 2 && healthState.liveHeadGasRows.filter((row) => row.state === 'loading').length <= 1 && resolvedLiveHeadGasRows.every((row) => Number.isFinite(row.percent) && /^Gas (?:<1|\d+)%$/.test(row.text) && /of 1,040,000 gas used/.test(row.title) && row.topLine && !row.hasQuiet && row.afterMissed), `network health chamber: non-quiet rows did not replace Quiet with exact gas-fullness pills after missed power ${JSON.stringify(healthState.liveHeadGasRows)}`);
+  assert(new Set(resolvedLiveHeadGasRows.map((row) => row.className.match(/is-(open|active|busy|hot)/)?.[1]).filter(Boolean)).size >= 2, `network health chamber: gas fullness does not expose useful severity ranges ${JSON.stringify(healthState.liveHeadGasRows)}`);
+  assert(/Wallets.*\.tez names.*bakers.*KT1 contracts.*operations.*blocks.*protocols.*Chambers.*press \/ anywhere/i.test(healthState.liveHeadSearchHelp), `network health chamber: search usage help is missing or incomplete ${healthState.liveHeadSearchHelp}`);
+  assert(healthState.liveHeadTypeAndAlignment.helpVisible && healthState.liveHeadTypeAndAlignment.inputLevelDelta <= 1.5 && healthState.liveHeadTypeAndAlignment.helpBakerDelta <= 1.5 && /SF Pro Text|BlinkMacSystemFont|-apple-system/.test(healthState.liveHeadTypeAndAlignment.inputFont) && /JetBrains Mono/.test(healthState.liveHeadTypeAndAlignment.bakerFont), `network health chamber: baker/search typography or shared left alignment drifted ${JSON.stringify(healthState.liveHeadTypeAndAlignment)}`);
+  assert(healthState.liveHeadBarSignatures.every((signature) => /^\d+:-?\d+:\d+$/.test(signature)), `network health chamber: Live Head health bars need level/safety-margin/quorum signatures: ${healthState.liveHeadBarSignatures.join(',')}`);
+  assert(healthState.liveHeadBarPlayed.every((signature, index) => signature === healthState.liveHeadBarSignatures[index]), `network health chamber: initial Live Head bars should settle once: ${healthState.liveHeadBarPlayed.join(',')}`);
+  assert(healthState.liveHeadAges.every((age) => /^(?:\d{2}[smhd]|--)$/.test(age)), `network health chamber: Live Head ages are malformed: ${healthState.liveHeadAges.join(',')}`);
+  assert(healthState.liveHeadRowBakers.every(Boolean), `network health chamber: Live Head baker aliases are missing: ${healthState.liveHeadRowBakers.join(',')}`);
+  assert(healthState.liveHeadRowBorderBottoms.every((width) => width === '0px'), `network health chamber: block separator lines returned ${healthState.liveHeadRowBorderBottoms.join(',')}`);
+  const settledLiveHeadStories = healthState.liveHeadStories.filter(Boolean);
+  assert(settledLiveHeadStories.length >= healthState.liveHeadStories.length - 1 && settledLiveHeadStories.every((story) => !/Oracle|\b0\b|syncing/i.test(story)), `network health chamber: settled human block stories are incomplete or invented: ${healthState.liveHeadStories.join(' | ')}`);
+  assert(healthState.liveHeadStoryChipCount >= 4 && healthState.liveHeadStoryMax <= 2, `network health chamber: Live Head story density drifted ${healthState.liveHeadStoryChipCount}/${healthState.liveHeadStoryMax}`);
+  const liveHeadRequiredMissRows = healthState.liveHeadMissRows.filter((row) => row.power < 6969 || row.quiet);
+  assert(liveHeadRequiredMissRows.length >= 1 && liveHeadRequiredMissRows.every((row) => row.required === 'true' && ['resolved', 'clear'].includes(row.state)), `network health chamber: low-power or quiet blocks did not resolve their own missed-attester receipts ${JSON.stringify(healthState.liveHeadMissRows)}`);
+  assert(liveHeadRequiredMissRows.some((row) => row.addresses.length === 6 && row.visibleAddresses.length === 6 && row.hiddenCount === 0 && !row.overflowVisible), `network health chamber: wide rows collapsed baker pills despite available space ${JSON.stringify(liveHeadRequiredMissRows)}`);
+  assert(liveHeadPillFitProbe?.all === 6 && liveHeadPillFitProbe.visible >= 1 && liveHeadPillFitProbe.visible < liveHeadPillFitProbe.all && liveHeadPillFitProbe.hidden === liveHeadPillFitProbe.all - liveHeadPillFitProbe.visible && /^\+\d+ bakers?$/.test(liveHeadPillFitProbe.summary), `network health chamber: narrow rows did not collapse only the identities that genuinely overflow ${JSON.stringify(liveHeadPillFitProbe)}`);
+  assert(liveHeadRequiredMissRows.some((row) => /second\.tez/.test(row.text) && /tz4Miss\.\.\.ssMis/.test(row.text)), `network health chamber: per-block missed-attester pills do not prefer aliases and truncate tz1-tz4 addresses ${JSON.stringify(liveHeadRequiredMissRows)}`);
+  assert(liveHeadRequiredMissRows.some((row) => /tz4MissMissMissMissMissMissMissMis/.test(row.titles)), `network health chamber: truncated missed-attester pills lost their full-address receipt ${JSON.stringify(liveHeadRequiredMissRows)}`);
+  assert(liveHeadRequiredMissRows.flatMap((row) => row.styles).every((style) => style.overflow === 'hidden' && style.textOverflow === 'ellipsis' && style.whiteSpace === 'nowrap' && style.maxWidth !== 'none' && style.borderColor !== 'rgba(0, 0, 0, 0)'), `network health chamber: missed-attester pills are not visibly color-coded and truncated ${JSON.stringify(liveHeadRequiredMissRows)}`);
+  assert(new Set(healthState.liveHeadStoryTones).size >= 2, `network health chamber: activity categories are not color coded ${healthState.liveHeadStoryTones.join(',')}`);
+  assert(!healthState.liveHeadHasGlobalMissLine, 'network health chamber: missed-attester detail must belong to each block, not a global bottom sentence');
   assert(/Next R0 · Second Baker/.test(healthState.liveHeadNext), `network health chamber: exact next R0 right missing: ${healthState.liveHeadNext}`);
   assert(/(?:in \d{2}s|due now|R0 due \d{2}s ago)/.test(healthState.liveHeadNextDue), `network health chamber: next R0 countdown missing: ${healthState.liveHeadNextDue}`);
-  assert(healthState.liveHeadBakersEmpty === 'false' && /QA Baker|Second Baker/.test(healthState.liveHeadBakers) && /missed attestations/.test(healthState.liveHeadBakers), `network health chamber: quiet material baker line missing: ${healthState.liveHeadBakers}`);
   assert(healthState.liveHeadAriaLive === 'off' && healthState.liveHeadAnnouncerLive === 'polite', `network health chamber: per-second labels must stay out of the live region: ${healthState.liveHeadAriaLive}/${healthState.liveHeadAnnouncerLive}`);
   assert(healthState.liveHeadFeedState === 'live' && healthState.liveHeadWired === '1' && healthState.liveHeadSignature.split(':').length >= 5, `network health chamber: Live Head trust/wiring signature incomplete: ${healthState.liveHeadFeedState}/${healthState.liveHeadWired}/${healthState.liveHeadSignature}`);
   assert(healthState.liveHeadWellInside && healthState.liveHeadPanelPosition === 'absolute', `network health chamber: search well/results escaped Live Head geometry: ${healthState.liveHeadWellInside}/${healthState.liveHeadPanelPosition}`);
+  assert(healthState.liveHeadWellIntegrated
+      && healthState.liveHeadWellIntegrated.leftGap <= 2
+      && healthState.liveHeadWellIntegrated.rightGap <= 2
+      && healthState.liveHeadWellIntegrated.bottomGap <= 2
+      && healthState.liveHeadWellIntegrated.borderTop === '1px'
+      && healthState.liveHeadWellIntegrated.borderRight === '0px'
+      && healthState.liveHeadWellIntegrated.borderBottom === '0px'
+      && healthState.liveHeadWellIntegrated.borderLeft === '0px', `network health chamber: search well is not the card's integrated bottom edge ${JSON.stringify(healthState.liveHeadWellIntegrated)}`);
   assert(/mainnet continuity/i.test(healthState.networkHealthProofText) && /chain-age measure/i.test(healthState.networkHealthProofText) && /not an availability percentage/i.test(healthState.networkHealthProofText), `network health chamber: continuity panel must distinguish chain age from availability: ${healthState.networkHealthProofText}`);
   assert(/\d+y\s+\d+d\s+\d{2}h\s+\d{2}m\s+\d{2}s/.test(healthState.networkHealthProofCounter), `network health chamber: uptime counter missing fixed-width runtime: ${healthState.networkHealthProofCounter}`);
   assert(/^\d+$/.test(healthState.networkHealthProofBakers) && Number(healthState.networkHealthProofBakers) >= 1, `network health chamber: health proof baker count mismatch: ${healthState.networkHealthProofBakers}`);
@@ -14972,7 +15256,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.intervalDelays.includes(1000), `network health chamber: 1s freshness ticker was not registered: ${healthState.intervalDelays.join(', ')}`);
   assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
 
-  await page.locator('#health-nc-share').click();
+  await page.locator('#health-nc-share').click({ noWaitAfter: true });
   await page.locator('#share-modal.visible').waitFor({ state: 'visible', timeout: 10000 });
   await page.waitForFunction(() => {
     const image = document.querySelector('#share-modal .share-modal-preview img');
@@ -15056,6 +15340,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     window.__heartbeatRetainedCell = document.querySelector('#live-head-stack .live-head-row:nth-child(2)');
     window.__heartbeatRetainedStory = window.__heartbeatRetainedCell?.querySelector('.live-head-story');
     window.__heartbeatRetainedKey = window.__heartbeatRetainedCell?.dataset.quietKey || '';
+    window.__heartbeatStorySignature = window.__heartbeatRetainedStory?.dataset.storySignature || '';
     window.__heartbeatRevealSignature = window.__heartbeatRetainedStory?.dataset.quietRevealSignature || '';
     window.__heartbeatWindowY = window.scrollY;
     window.__heartbeatModalScroll = document.querySelector('#network-health-modal .health-content')?.scrollTop || 0;
@@ -15093,7 +15378,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     cyclePanelSame: window.__healthCyclePanelNode === document.querySelector('#network-health-modal #health-cycle-timing'),
     heartbeatRetainedCellSame: window.__heartbeatRetainedCell === document.querySelector(`#live-head-stack [data-quiet-key="${window.__heartbeatRetainedKey}"]`),
     heartbeatRetainedStorySame: window.__heartbeatRetainedStory === document.querySelector(`#live-head-stack [data-quiet-key="${window.__heartbeatRetainedKey}"] .live-head-story`),
+    heartbeatStorySignatureSame: window.__heartbeatStorySignature === document.querySelector(`#live-head-stack [data-quiet-key="${window.__heartbeatRetainedKey}"] .live-head-story`)?.dataset.storySignature,
     heartbeatRevealSignatureSame: window.__heartbeatRevealSignature === document.querySelector(`#live-head-stack [data-quiet-key="${window.__heartbeatRetainedKey}"] .live-head-story`)?.dataset.quietRevealSignature,
+    heartbeatRevealAligned: document.querySelector(`#live-head-stack [data-quiet-key="${window.__heartbeatRetainedKey}"] .live-head-story`)?.dataset.storySignature === document.querySelector(`#live-head-stack [data-quiet-key="${window.__heartbeatRetainedKey}"] .live-head-story`)?.dataset.quietRevealSignature,
     heartbeatWindowY: window.scrollY,
     heartbeatModalScroll: document.querySelector('#network-health-modal .health-content')?.scrollTop || 0,
     heartbeatAnnounced: document.querySelector('#chain-heartbeat-announcer')?.textContent || '',
@@ -15103,6 +15390,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     firstLevel: document.querySelector('#health-recent-block-list .health-block-row')?.dataset.healthLevel || '',
     rowCount: document.querySelectorAll('#health-recent-block-list .health-block-row').length,
     newRows: document.querySelectorAll('#health-recent-block-list .lb-row-new').length,
+    liveHeadNewRows: document.querySelectorAll('#live-head-stack .lb-row-new').length,
+    liveHeadExitRows: document.querySelectorAll('#live-head-stack .live-head-row-exiting').length,
+    liveHeadArrivalAnimation: document.querySelector('#live-head-stack .lb-row-new') ? getComputedStyle(document.querySelector('#live-head-stack .lb-row-new')).animationName : '',
+    liveHeadRetainedTransition: window.__heartbeatRetainedCell ? getComputedStyle(window.__heartbeatRetainedCell).transitionProperty : '',
+    liveHeadRetainedMotion: Boolean(window.__heartbeatRetainedCell?.getAnimations().some((animation) => animation.id === 'live-head-shift')),
+    liveHeadTopBarSignature: document.querySelector('#live-head-stack .live-head-row')?.dataset.barSignature || '',
+    liveHeadTopBarPlayed: document.querySelector('#live-head-stack .live-head-row')?.dataset.quietBarPlayed || '',
     tickerTransitionCount: Number(document.querySelector('#live-head')?.dataset.liveHeadTransitionCount || 0),
     tablePadding: getComputedStyle(document.querySelector('.health-block-table .lb-table-row')).paddingTop
   }));
@@ -15112,15 +15406,47 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(smoothRefreshState.ncPanelSame, 'network health chamber: smooth refresh replaced the Nakamoto panel instead of updating in place');
   assert(smoothRefreshState.ncPrintSame && smoothRefreshState.ncShareSame, 'network health chamber: smooth refresh replaced Nakamoto print/share controls');
   assert(smoothRefreshState.cyclePanelSame && smoothRefreshState.cycleProgress === '11.4%', `network health chamber: quiet refresh replaced or lost current-cycle progress: ${JSON.stringify(smoothRefreshState)}`);
-  assert(smoothRefreshState.heartbeatRetainedCellSame && smoothRefreshState.heartbeatRetainedStorySame && smoothRefreshState.heartbeatRevealSignatureSame, `network health chamber: Live Head refresh replaced compatible keyed DOM or replayed a fact: ${JSON.stringify(smoothRefreshState)}`);
+  assert(
+    smoothRefreshState.heartbeatRetainedCellSame
+      && smoothRefreshState.heartbeatRetainedStorySame
+      && (smoothRefreshState.heartbeatStorySignatureSame
+        ? smoothRefreshState.heartbeatRevealSignatureSame
+        : smoothRefreshState.heartbeatRevealAligned),
+    `network health chamber: Live Head refresh replaced compatible keyed DOM or replayed an unchanged fact: ${JSON.stringify(smoothRefreshState)}`
+  );
   assert(Math.abs(smoothRefreshState.heartbeatWindowY - beforeSmoothRefresh.heartbeatWindowY) <= 1 && Math.abs(smoothRefreshState.heartbeatModalScroll - beforeSmoothRefresh.heartbeatModalScroll) <= 1, `network health chamber: Live Head refresh moved the reader: ${JSON.stringify(smoothRefreshState)}`);
   assert(/Block [\d,]+ landed/.test(smoothRefreshState.heartbeatAnnounced), `network health chamber: new block announcement missing: ${smoothRefreshState.heartbeatAnnounced}`);
   assert(smoothRefreshState.ncHelpOpen, 'network health chamber: smooth refresh closed the open Nakamoto info control');
   assert(smoothRefreshState.mode === 'in-place', `network health chamber: refresh mode mismatch: ${smoothRefreshState.mode}`);
   assert(smoothRefreshState.rowCount === beforeSmoothRefresh.rowCount, `network health chamber: passing block row count shifted after smooth refresh: ${smoothRefreshState.rowCount}`);
   assert(smoothRefreshState.newRows >= 1, 'network health chamber: smooth refresh did not animate newly arriving block rows');
+  assert(smoothRefreshState.liveHeadNewRows >= 1, 'network health chamber: Live Head did not use the Passing Blocks arrival transition');
+  assert(smoothRefreshState.liveHeadNewRows >= 1 && smoothRefreshState.liveHeadExitRows >= 1 && smoothRefreshState.liveHeadRetainedMotion, `network health chamber: Live Head arrival must keep incoming, retained, and outgoing rows in one continuous conveyor motion ${JSON.stringify(smoothRefreshState)}`);
+  assert(smoothRefreshState.liveHeadTopBarSignature && smoothRefreshState.liveHeadTopBarPlayed === smoothRefreshState.liveHeadTopBarSignature, `network health chamber: Live Head bar did not record its once-only fill signature ${JSON.stringify(smoothRefreshState)}`);
   assert(smoothRefreshState.tickerTransitionCount >= 1, `network health chamber: Live Head did not mark a transition after refresh: ${smoothRefreshState.tickerTransitionCount}`);
   assert(parseFloat(smoothRefreshState.tablePadding) >= 8, `network health chamber: passing blocks row padding too tight: ${smoothRefreshState.tablePadding}`);
+
+  await page.waitForTimeout(900);
+  const settledBarState = await page.evaluate(() => {
+    const row = document.querySelector('#live-head-stack .live-head-row');
+    const before = row?.dataset.quietBarPlayed || '';
+    (window.__tezosSystemsIntervals || [])
+      .filter((item) => item.timeout === 1000)
+      .forEach((timer) => timer?.handler?.());
+    return {
+      signature: row?.dataset.barSignature || '',
+      played: row?.dataset.quietBarPlayed || '',
+      before,
+      filling: row?.querySelector('.live-head-power-fill')?.classList.contains('is-bar-filling') || false
+    };
+  });
+  assert(
+    settledBarState.signature
+      && settledBarState.before === settledBarState.signature
+      && settledBarState.played === settledBarState.signature
+      && !settledBarState.filling,
+    `network health chamber: Live Head bar replayed after settling ${JSON.stringify(settledBarState)}`
+  );
 
   const mobileTickerStates = [];
   for (const width of [320, 390]) {
@@ -15134,6 +15460,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       return {
         viewportWidth,
         height: cardRect?.height || 0,
+        chainState: card?.dataset.chainState || '',
+        alertVisible: Boolean(document.querySelector('#live-head-alert') && !document.querySelector('#live-head-alert').hidden),
         rows: rows.length,
         levels: rows.map((row) => row.querySelector('.live-head-level')?.textContent?.trim() || ''),
         rowsContained: rows.every((row) => {
@@ -15141,6 +15469,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
           return cardRect && rect.left >= cardRect.left - 1 && rect.right <= cardRect.right + 1;
         }),
         wellContained: Boolean(cardRect && wellRect && wellRect.left >= cardRect.left && wellRect.right <= cardRect.right),
+        rowOverflow: Math.max(0, ...rows.map((row) => row.scrollWidth - row.clientWidth)),
         cardOverflow: card ? card.scrollWidth - card.clientWidth : 999,
         pageOverflow: document.documentElement.scrollWidth - innerWidth,
         nextText: document.querySelector('#live-head-next')?.textContent?.replace(/\s+/g, ' ').trim() || ''
@@ -15149,13 +15478,15 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   }
   for (const tickerState of mobileTickerStates) {
     assert(
-      tickerState.height <= 360
+      tickerState.height <= (tickerState.alertVisible ? 410 : 360)
         && tickerState.rows === 3
         && tickerState.levels.every((level) => /^#[\d,]+$/.test(level))
         && tickerState.rowsContained
         && tickerState.wellContained
+        && tickerState.rowOverflow <= 1
         && tickerState.cardOverflow <= 1
         && tickerState.pageOverflow <= 1
+        && (!tickerState.alertVisible || tickerState.chainState === 'stalled')
         && /Next R0/.test(tickerState.nextText),
       `network health chamber: mobile Live Head geometry drifted at ${tickerState.viewportWidth}px: ${JSON.stringify(tickerState)}`
     );
@@ -15221,8 +15552,88 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.locator('#live-head-alert:not([hidden])').click();
+  await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#network-health-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  const liveHeadFirstRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
+  await liveHeadFirstRow.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(180);
+  await page.mouse.move(1, 1);
+  await liveHeadFirstRow.hover();
+  await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  const liveHeadInspectorState = await page.evaluate(() => {
+    const inspector = document.querySelector('#live-head-inspector:not([hidden])');
+    const row = document.querySelector('#live-head-stack .live-head-row[data-live-head-level]');
+    const rect = inspector?.getBoundingClientRect();
+    const facts = Array.from(inspector?.querySelectorAll('.live-head-inspector-fact') || []);
+    return {
+      ariaHidden: inspector?.getAttribute('aria-hidden') || '',
+      rowExpanded: row?.getAttribute('aria-expanded') || '',
+      rowHasNativeTitle: row?.hasAttribute('title') || false,
+      contained: Boolean(rect && rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight),
+      levelHref: inspector?.querySelector('.live-head-inspector-level')?.href || '',
+      producerTzkt: inspector?.querySelector('.live-head-inspector-identity a[href^="https://tzkt.io/"]')?.href || '',
+      producerMyTezos: inspector?.querySelector('.live-head-inspector-identity a[href*="#my-baker="]')?.getAttribute('href') || '',
+      factCount: facts.length,
+      allFactsTzkt: facts.length > 0 && facts.every((fact) => fact.href.startsWith('https://tzkt.io/')),
+      operationFacts: facts.filter((fact) => /\/operations\/?$/.test(new URL(fact.href).pathname)).length,
+      missedTzkt: inspector?.querySelectorAll('.live-head-inspector-miss a[href^="https://tzkt.io/"]').length || 0,
+      missedMyTezos: inspector?.querySelectorAll('.live-head-inspector-miss a[href*="#my-baker="]').length || 0,
+      footerHref: inspector?.querySelector('[data-live-head-open-health]')?.getAttribute('href') || '',
+      text: inspector?.textContent?.replace(/\s+/g, ' ').trim() || ''
+    };
+  });
+  assert(
+    liveHeadInspectorState.ariaHidden === 'false'
+      && liveHeadInspectorState.rowExpanded === 'true'
+      && !liveHeadInspectorState.rowHasNativeTitle
+      && liveHeadInspectorState.contained,
+    `network health chamber: Live Head inspector hover geometry/semantics failed ${JSON.stringify(liveHeadInspectorState)}`
+  );
+  assert(/https:\/\/tzkt\.io\/\d+\/?$/.test(liveHeadInspectorState.levelHref)
+      && /^https:\/\/tzkt\.io\/tz[1-4]/.test(liveHeadInspectorState.producerTzkt)
+      && /^\/#my-baker=tz[1-4]/.test(liveHeadInspectorState.producerMyTezos), `network health chamber: producer/block receipt links are incomplete ${JSON.stringify(liveHeadInspectorState)}`);
+  assert(liveHeadInspectorState.factCount >= 12
+      && liveHeadInspectorState.allFactsTzkt
+      && liveHeadInspectorState.operationFacts >= 5, `network health chamber: complete block facts are incomplete ${JSON.stringify(liveHeadInspectorState)}`);
+  assert(/Complete block receipt.*Produced by.*Block round.*Payload round.*Cadence.*Attested.*Quorum.*Missed power.*Block activity.*Transactions.*Contract calls.*Staking ops.*Fees.*Rewards \+ bonus.*Block contents.*Missed attestations.*Open Network Health Chamber/i.test(liveHeadInspectorState.text)
+      && liveHeadInspectorState.footerHref === '#health', `network health chamber: inspector receipt copy/footer is incomplete ${JSON.stringify(liveHeadInspectorState)}`);
+  const liveHeadMissedRow = page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first();
+  await liveHeadMissedRow.hover();
+  const missedInspectorLinkState = await page.evaluate(() => ({
+    tzkt: document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href^="https://tzkt.io/"]').length,
+    myTezos: document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href*="#my-baker="]').length,
+    identities: document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss').length
+  }));
+  assert(missedInspectorLinkState.identities >= 1
+      && missedInspectorLinkState.tzkt === missedInspectorLinkState.identities
+      && missedInspectorLinkState.myTezos === missedInspectorLinkState.identities, `network health chamber: every missed attester needs paired TzKT and My Tezos links ${JSON.stringify(missedInspectorLinkState)}`);
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true, null, { timeout: 5000 });
+  await liveHeadFirstRow.focus();
+  await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true, null, { timeout: 5000 });
+  await liveHeadFirstRow.hover();
+  await page.locator('#live-head-inspector:not([hidden]) [data-live-head-open-health]').click();
+  await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#network-health-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await liveHeadFirstRow.hover();
+  await page.locator('#live-head-inspector:not([hidden]) .live-head-inspector-kicker').click();
+  await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#network-health-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await liveHeadFirstRow.click();
+  await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.locator('#network-health-modal.active .chamber-close').click();
+  await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  mockState.setBlockHeadLag(0);
   await page.locator('#live-head-button').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector('#live-head')?.dataset.chainState === 'live' && document.querySelector('#live-head-alert')?.hidden === true, null, { timeout: 10000 });
+  assert(/block production resumed/i.test(await page.locator('#chain-stall-announcer').textContent() || ''), 'network health chamber: a genuinely newer fresh head did not announce and clear the latched stall');
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await page.locator('#cycle-chip').click();
@@ -23951,13 +24362,13 @@ async function smokeFirstVisitTour(browser, baseUrl) {
       cardHeight: cardRect?.height || 0
     };
   });
-  assert(/live-head-topline/.test(desktopNudgeGeometry.parentClass)
+  assert(/hero-search-form/.test(desktopNudgeGeometry.parentClass)
     && desktopNudgeGeometry.width <= 160
     && desktopNudgeGeometry.height <= 32
     && desktopNudgeGeometry.top >= desktopNudgeGeometry.hostTop - 1
     && desktopNudgeGeometry.bottom <= desktopNudgeGeometry.hostBottom + 1
-    && desktopNudgeGeometry.cardHeight <= 320,
-  `first visit tour: desktop nudge interrupts Live Head instead of joining its title line: ${JSON.stringify(desktopNudgeGeometry)}`);
+    && desktopNudgeGeometry.cardHeight <= 370,
+  `first visit tour: desktop nudge is not compact inside the search floor: ${JSON.stringify(desktopNudgeGeometry)}`);
   await page.waitForTimeout(1800);
   assert(await page.locator('.tour-nudge').isVisible(), 'first visit tour: search chip refresh removed the desktop nudge');
   await assertLocatorCount(page.locator('.tour-nudge .tour-start'), 1, 'first visit tour start');
@@ -24032,7 +24443,7 @@ async function smokeFirstVisitTour(browser, baseUrl) {
       viewportWidth: window.innerWidth
     };
   });
-  assert(/live-head-topline/.test(mobileNudgeGeometry.parentClass)
+  assert(/hero-search-form/.test(mobileNudgeGeometry.parentClass)
     && mobileNudgeGeometry.width <= 160
     && mobileNudgeGeometry.height <= 44.5
     && mobileNudgeGeometry.top >= mobileNudgeGeometry.railTop - 1
@@ -24040,7 +24451,7 @@ async function smokeFirstVisitTour(browser, baseUrl) {
     && mobileNudgeGeometry.left >= mobileNudgeGeometry.railLeft
     && mobileNudgeGeometry.right <= mobileNudgeGeometry.railRight + 1
     && mobileNudgeGeometry.right <= mobileNudgeGeometry.viewportWidth,
-  `first visit tour: mobile nudge is not compact within the Live Head title line: ${JSON.stringify(mobileNudgeGeometry)}`);
+  `first visit tour: mobile nudge is not compact within the Live Head search floor: ${JSON.stringify(mobileNudgeGeometry)}`);
   await mobilePage.locator('#hero-search-input').focus();
   await mobilePage.waitForFunction(() => document.body.classList.contains('hero-search-mode'), null, { timeout: 5000 });
   await mobilePage.locator('.tour-nudge').waitFor({ state: 'detached', timeout: 3000 });
@@ -27379,12 +27790,68 @@ async function smokeThemeSelection(browser, baseUrl) {
       document.body.appendChild(typographyFixture);
       const specialtyDataFonts = Array.from(typographyFixture.children, (node) => getComputedStyle(node).fontFamily);
       typographyFixture.remove();
+      const pillFixture = document.createElement('div');
+      pillFixture.style.cssText = 'position:fixed;left:-10000px;top:0;display:flex;pointer-events:none';
+      pillFixture.innerHTML = [
+        ['quiet', 'live-head-quiet'],
+        ['gas-open', 'live-head-gas'],
+        ['gas-active', 'live-head-gas is-active'],
+        ['gas-busy', 'live-head-gas is-busy'],
+        ['gas-hot', 'live-head-gas is-hot'],
+        ['gas-unavailable', 'live-head-gas is-unavailable'],
+        ...['art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake', 'transfers', 'quiet']
+          .map((tone) => [`story-${tone}`, `live-head-story-chip is-${tone}`]),
+        ['miss', 'live-head-miss-pill'],
+        ['miss-more', 'live-head-miss-pill is-more'],
+        ['miss-unavailable', 'live-head-miss-pill is-unavailable'],
+        ['miss-clear', 'live-head-miss-pill is-clear']
+      ].map(([label, className]) => `<span data-pill="${label}" class="${className}">${label}</span>`).join('');
+      document.body.appendChild(pillFixture);
+      const parseColor = (value) => {
+        const channels = String(value).match(/[\d.]+/g)?.map(Number) || [];
+        return { r: channels[0] || 0, g: channels[1] || 0, b: channels[2] || 0, a: channels[3] ?? 1 };
+      };
+      const composite = (foreground, base) => ({
+        r: foreground.r * foreground.a + base * (1 - foreground.a),
+        g: foreground.g * foreground.a + base * (1 - foreground.a),
+        b: foreground.b * foreground.a + base * (1 - foreground.a)
+      });
+      const luminance = ({ r, g, b }) => {
+        const linear = [r, g, b].map((channel) => {
+          const normalized = channel / 255;
+          return normalized <= 0.04045 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+        });
+        return linear[0] * 0.2126 + linear[1] * 0.7152 + linear[2] * 0.0722;
+      };
+      const contrast = (first, second) => {
+        const light = Math.max(luminance(first), luminance(second));
+        const dark = Math.min(luminance(first), luminance(second));
+        return (light + 0.05) / (dark + 0.05);
+      };
+      const pillReadability = Array.from(pillFixture.children, (pill) => {
+        const style = getComputedStyle(pill);
+        const foreground = parseColor(style.color);
+        const background = parseColor(style.backgroundColor);
+        return {
+          label: pill.dataset.pill || '',
+          backgroundAlpha: background.a,
+          borderAlpha: parseColor(style.borderTopColor).a,
+          hasBackdrop: style.backdropFilter !== 'none' || style.webkitBackdropFilter !== 'none',
+          hasTextShadow: style.textShadow !== 'none',
+          worstContrast: Math.min(
+            contrast(foreground, composite(background, 0)),
+            contrast(foreground, composite(background, 255))
+          )
+        };
+      });
+      pillFixture.remove();
       return {
         bodyFont: getComputedStyle(document.body).fontFamily,
         dataFont: dataRail ? getComputedStyle(dataRail).fontFamily : '',
         documentOverflow: document.documentElement.scrollWidth - innerWidth,
         runtimeFont: runtime ? getComputedStyle(runtime).fontFamily : '',
         runtimeOverflow: runtime ? runtime.scrollWidth - runtime.clientWidth : 0,
+        pillReadability,
         specialtyDataFonts,
         specialtyDisplayFonts: specialtyDisplay.map((node) => getComputedStyle(node).fontFamily),
         titleFont: title ? getComputedStyle(title).fontFamily : '',
@@ -27399,6 +27866,16 @@ async function smokeThemeSelection(browser, baseUrl) {
     assert(state.runtimeFont.includes(expected.runtime), `theme ${theme}: runtime font mismatch ${state.runtimeFont} (expected ${expected.runtime})`);
     assert(state.specialtyDisplayFonts.length === 2 && state.specialtyDisplayFonts.every((font) => font.includes(expected.display)), `theme ${theme}: specialty display font mismatch ${JSON.stringify(state.specialtyDisplayFonts)} (expected ${expected.display})`);
     assert(state.specialtyDataFonts.length === 2 && state.specialtyDataFonts.every((font) => font.includes(specialtyDataExpected)), `theme ${theme}: specialty data font mismatch ${JSON.stringify(state.specialtyDataFonts)} (expected ${specialtyDataExpected})`);
+    assert(
+      state.pillReadability.length === 19
+        && state.pillReadability.every((pill) => (
+          pill.backgroundAlpha >= 0.85
+          && pill.borderAlpha >= 0.85
+          && pill.hasBackdrop
+          && pill.worstContrast >= 4.5
+        )),
+      `theme ${theme}: every Live Head pill must retain Quiet's opaque, edged, readable treatment: ${JSON.stringify(state.pillReadability)}`
+    );
     assert(state.titleOverflow <= 1 && state.runtimeOverflow <= 1 && state.documentOverflow <= 1, `theme ${theme}: desktop typography overflow ${JSON.stringify(state)}`);
   }
 

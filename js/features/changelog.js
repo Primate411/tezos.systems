@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-08-25',
+        entries: [
+            { type: '🎨', text: 'Live Head now latches a bold CHAIN STALLED alert until a newer block, opens complete linked block inspectors, and gives every gas, activity, and missed-attester pill Quiet\'s high-contrast backing across all 15 themes' }
+        ]
+    },
+    {
         date: '2026-08-24',
         entries: [
             { type: '🎨', text: 'Live Head now turns recent blocks into concise Art, DeFi, gaming, bridge, Etherlink, staking, and transfer stories above a calm full-width search well, with material missed rights kept to one quiet line' },

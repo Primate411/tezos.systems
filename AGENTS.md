@@ -436,16 +436,56 @@ Stamping gotchas:
   awakenings. TzKT aliases are source context, not inferred ownership; legacy
   `#giants` opens the Chamber's Deep Sleep view.
 - Activity feeds: `moments.js`, `cycle-pulse.js`, `daily-briefing.js`
-- Network Health: `js/features/network-health.js`; Home Live Head combines the
-  newest four desktop or three mobile TzKT blocks, the exact next round-zero
-  baking right, catalog-backed human contents, one optional size-aware quiet-
-  baker line for missed rights in the visible sample, and the site-wide search
-  well. Keep the R0 right explicitly non-guaranteed, classify only reviewed
-  Art/DeFi/Gaming/Bridge/Etherlink identities or factual staking/transfers, and
-  preserve unavailable receipts as unknown. Background head and supplemental
-  updates must keep keyed row DOM, search focus/selection, reader state, last-
-  good data, the visibility gate, one catch-up, reduced-motion behavior, first-
-  fact reveal only once, and announcement-only-on-new-block behavior.
+- Network Health: `js/features/network-health.js`; Home Live Head is the compact
+  twin of the Chamber's Passing Blocks table. Its newest four desktop or three
+  mobile rows always lead with level, round, previous-block delta, attested
+  power/committee, horizontal health bar, age, and baker before optional
+  catalog-backed contents. Keep the exact next round-zero baking right visibly
+  non-guaranteed, keep unavailable supplemental receipts unknown instead of
+  `Quiet`, and reserve `Quiet` for complete empty receipts. Give
+  every activity category its own color-coded truncated pill. When a row's
+  attested power is below 6,969 or its complete activity receipt is `Quiet`,
+  render that block's own missed-attester pills, preferring `.tez` or TzKT
+  aliases and otherwise truncating `tz1`–`tz4`; never collapse these into a
+  global bottom sentence. Render every returned identity and let measured row
+  width decide which pills fit; `+N bakers` is an actual overflow receipt, not a
+  fixed display cap. Keep full unaliased producer addresses on wide rows and
+  allow CSS ellipsis only when their own column is constrained; use the restrained
+  JetBrains Mono identity face for aliases. Give every Quiet, gas, activity,
+  and missed-attester pill the same stable opaque backing, inset edge, shadow,
+  and blur while retaining its category or severity color so every pill remains
+  legible on every theme. Put `Quiet` on
+  line one immediately after missed power, never among line-two activity pills;
+  on every non-quiet row, replace that same slot with a severity-colored `Gas N%`
+  pill computed from exact outer plus internal pass-3 manager-operation milligas
+  against the active `hard_gas_limit_per_block`. Keep unavailable gas unknown.
+  Keep line-one order exact: power fraction, signed safety-margin rail, missed
+  power, then `Quiet` or gas. The rail must exclude the two-thirds power every
+  passing block needs and visualize only surplus above quorum, or a red deficit
+  below it; never restore the white threshold marker or separate Safe/Strong/Risk
+  pill, and keep the signed number high-contrast over every fill. First paint is
+  opaque skeleton objects; a genuine new level softly fades
+  and resolves while retained keyed rows glide together and the outgoing row
+  dissolves. Do not stack the old translate-drop or mechanical level tick onto
+  that motion. Keep block rows free of horizontal separator lines and
+  use generous vertical spacing instead; suppress the
+  inherited `lb-panel` top cap. Search is the card's full-bleed bottom edge, not
+  an inset child box, aligns its input and visible usage help with the block level
+  and baker column, keeps broad search examples visible, houses Quick tour on its
+  right edge, and grows only to the viewport bottom. Keep the complete
+  hover/focus block inspector
+  truthful: every displayed metric, category, and missed baker links to its TzKT
+  receipt, relevant baker identities also link into My Tezos, and the inspector
+  footer, row, and non-link inspector space open Network Health without stealing
+  clicks from receipt links. Only a successfully confirmed head may start the
+  18-second delayed and 30-second stalled clocks; render `CHAIN STALLED` as the
+  large red hierarchy override, retain the last-good rows, latch the critical
+  state through later source failures, and clear it only after a genuinely newer
+  head. Background head and
+  supplemental updates must keep keyed row DOM, search focus/selection, reader
+  state, last-good data, the visibility gate, one motionless catch-up, reduced-
+  motion behavior, first-fact reveal only once, and announcement-only-on-new-
+  block behavior.
 - Staking Chamber: `js/features/staking-chamber.js`; strict applied explicit
   stake/unstake moves over 10,000 tez, with `/stake/` as the chamber route.
   Preserve `/staking/` for the existing explanatory guide.

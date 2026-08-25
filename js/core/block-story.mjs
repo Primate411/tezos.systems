@@ -126,6 +126,10 @@ export function classifyBlockStory({
     stakingClipped = false,
     maxFragments = 3
 } = {}) {
+    const transactionsKnown = Array.isArray(transactions);
+    const stakingKnown = Array.isArray(stakingRows);
+    if (!transactionsKnown && !stakingKnown) return null;
+
     const receipts = new Map(STORY_ORDER.map((key) => [key, { count: 0, amountMutez: 0 }]));
 
     for (const transaction of Array.isArray(transactions) ? transactions : []) {
@@ -155,6 +159,8 @@ export function classifyBlockStory({
             receipts.get(key),
             key === 'stake' || key === 'unstake' ? stakingClipped : transactionsClipped
         ));
+
+    if (!fragments.length && (!transactionsKnown || !stakingKnown)) return null;
 
     if (!fragments.length) {
         return Object.freeze({

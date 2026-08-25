@@ -399,8 +399,10 @@
 
     function keepNudgeInSearchRail() {
         if (!nudge) return;
-        var host = document.querySelector('#live-head .live-head-topline');
-        if (host && nudge.parentElement !== host) host.appendChild(nudge);
+        var host = document.getElementById('hero-search-form');
+        if (host && nudge.parentElement !== host) {
+            host.insertBefore(nudge, host.querySelector('.hero-search-submit'));
+        }
     }
 
     function createNudge() {
@@ -418,9 +420,9 @@
             '</button>' +
             '<button class="tour-dismiss" type="button" aria-label="Dismiss tour offer">×</button>';
         const heroSlot = document.getElementById('hero-slot');
-        const host = document.querySelector('#live-head .live-head-topline');
+        const host = document.getElementById('hero-search-form');
         if (host) {
-            host.appendChild(nudge);
+            host.insertBefore(nudge, host.querySelector('.hero-search-submit'));
         } else {
             (heroSlot || document.getElementById('live-head') || document.body).appendChild(nudge);
         }

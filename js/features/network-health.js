@@ -12,7 +12,6 @@ import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import { quietlySyncElement, quietlySyncHtml } from '../core/quiet-refresh.js';
 import { loadDataAsset } from '../core/data-assets.js';
 import { classifyBlockStory, compileBlockStoryCatalog } from '../core/block-story.mjs';
-import { buildQuietBakerNotice } from '../core/baker-size.mjs';
 
 const TZKT = API_URLS.tzkt;
 const TEZTALE = API_URLS.teztale;
@@ -37,6 +36,9 @@ const PERIOD_TTL = 30 * 60 * 1000;
 const LIVE_REFRESH_INTERVAL = 6 * 1000;
 const CHAMBER_REFRESH_INTERVAL = 6 * 1000;
 const AGE_TICK_INTERVAL = 1000;
+const LIVE_HEAD_DELAYED_AFTER = 18 * 1000;
+const LIVE_HEAD_STALLED_AFTER = 30 * 1000;
+const LIVE_HEAD_CONFIRMATION_MAX_AGE = LIVE_REFRESH_INTERVAL * 2 + 2000;
 const BLOCK_PULSE_THROTTLE = 4 * 1000;
 const ACTIVITY_TAPE_TTL = 60 * 1000;
 const ACTIVITY_TAPE_LIMIT = 5;
@@ -45,6 +47,7 @@ const USAGE_WINDOW_MS = 60 * 60 * 1000;
 const USAGE_AMOUNT_PAGE_LIMIT = 10000;
 const HEARTBEAT_ACTIVITY_LIMIT = 10000;
 const HEARTBEAT_STAKING_LIMIT = 20;
+const LIVE_HEAD_POWER_DETAIL_THRESHOLD = 6969;
 const HEARTBEAT_SUPPLEMENT_MAX_AGE = 2 * 60 * 1000;
 const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 8;
 const CYCLE_TIMING_LIMIT = 8;
@@ -105,7 +108,20 @@ let heartbeatStoryCatalog = null;
 let heartbeatStoryCatalogInFlight = null;
 let heartbeatMissedRightsCache = null;
 let heartbeatMissedRightsInFlight = null;
+let heartbeatMissedRightsFailureRange = null;
+let heartbeatGasLimitCache = null;
+let heartbeatGasLimitCacheAt = 0;
+let heartbeatGasLimitInFlight = null;
+let liveHeadPillResizeObserver = null;
+let liveHeadPillFitFrame = null;
+let liveHeadInspectorCloseTimer = null;
+let liveHeadInspectorLevel = null;
+let liveHeadConfirmedAt = 0;
+let liveHeadConfirmedLevel = 0;
+let liveHeadStallLatchedLevel = 0;
+let liveHeadResumePendingLevel = 0;
 let heartbeatVisibilityWired = false;
+let suppressNextHeartbeatMotion = false;
 let cycleTimingCache = null;
 let cycleTimingCacheAt = 0;
 let cycleTimingInFlight = null;
@@ -216,15 +232,15 @@ function formatTickerAge(timestamp) {
     const timestampMs = new Date(timestamp).getTime();
     if (!Number.isFinite(timestampMs)) return '--';
     const diff = Date.now() - timestampMs;
-    if (diff < 0) return '00s ago';
+    if (diff < 0) return '00s';
     const seconds = Math.floor(diff / 1000);
-    if (seconds < 60) return `${String(seconds).padStart(2, '0')}s ago`;
+    if (seconds < 60) return `${String(seconds).padStart(2, '0')}s`;
     const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${String(minutes).padStart(2, '0')}m ago`;
+    if (minutes < 60) return `${String(minutes).padStart(2, '0')}m`;
     const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${String(hours).padStart(2, '0')}h ago`;
+    if (hours < 24) return `${String(hours).padStart(2, '0')}h`;
     const days = Math.floor(hours / 24);
-    return `${Math.min(days, 99).toString().padStart(2, '0')}d ago`;
+    return `${Math.min(days, 99).toString().padStart(2, '0')}d`;
 }
 
 function formatHeartbeatDue(timestamp) {
@@ -254,6 +270,7 @@ function refreshHealthAgeLabels(root = document) {
         element.textContent = formatHeartbeatDue(element.dataset.heartbeatDue);
     });
     refreshDataFreshnessStates(root);
+    updateLiveHeadStallAlert(heartbeatData);
 }
 
 function startHealthAgeTicker() {
@@ -263,7 +280,91 @@ function startHealthAgeTicker() {
     }, AGE_TICK_INTERVAL);
 }
 
+function confirmLiveHeadObservation(data) {
+    const level = Number(data?.blocks?.[0]?.level);
+    if (!Number.isFinite(level) || level <= 0) return;
+    liveHeadConfirmedAt = Date.now();
+    liveHeadConfirmedLevel = level;
+    if (liveHeadStallLatchedLevel > 0 && level > liveHeadStallLatchedLevel) {
+        liveHeadResumePendingLevel = level;
+        liveHeadStallLatchedLevel = 0;
+    }
+}
+
+function formatLiveHeadStallDuration(milliseconds) {
+    const seconds = Math.max(0, Math.floor(Number(milliseconds) / 1000));
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}m ${String(seconds % 60).padStart(2, '0')}s`;
+}
+
+function updateLiveHeadStallAlert(data, { error = false } = {}) {
+    const panel = document.getElementById('live-head');
+    const alert = document.getElementById('live-head-alert');
+    const stateBadge = panel?.querySelector('.live-head-state');
+    if (!panel || !alert) return;
+    if (!alert.dataset.liveHeadAlertWired) {
+        alert.dataset.liveHeadAlertWired = '1';
+        alert.addEventListener('click', openNetworkHealthChamber);
+    }
+
+    const latest = data?.blocks?.[0] || null;
+    const level = Number(latest?.level);
+    const timestampMs = new Date(latest?.timestamp || '').getTime();
+    const now = Date.now();
+    const ageMs = Number.isFinite(timestampMs) ? Math.max(0, now - timestampMs) : 0;
+    const sourceConfirmed = !error
+        && Number.isFinite(level)
+        && liveHeadConfirmedLevel === level
+        && now - liveHeadConfirmedAt <= LIVE_HEAD_CONFIRMATION_MAX_AGE;
+    const previousState = panel.dataset.chainState || 'warming';
+    let state = error ? 'source-delayed' : 'warming';
+
+    if (liveHeadStallLatchedLevel > 0 && Number.isFinite(level) && level <= liveHeadStallLatchedLevel) {
+        state = 'stalled';
+    } else if (sourceConfirmed && ageMs >= LIVE_HEAD_STALLED_AFTER) {
+        liveHeadStallLatchedLevel = level;
+        state = 'stalled';
+    } else if (sourceConfirmed && ageMs >= LIVE_HEAD_DELAYED_AFTER) {
+        state = 'delayed';
+    } else if (sourceConfirmed) {
+        state = 'live';
+    }
+
+    panel.dataset.chainState = state;
+    alert.dataset.chainState = state;
+    const visible = state === 'stalled' || state === 'delayed';
+    alert.hidden = !visible;
+    alert.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    if (stateBadge) {
+        stateBadge.textContent = state === 'stalled' ? 'Stalled' : state === 'delayed' ? 'Delayed' : error ? 'Source delayed' : 'Live';
+        stateBadge.setAttribute('aria-label', stateBadge.textContent);
+    }
+
+    if (visible) {
+        const label = alert.querySelector('[data-live-head-alert-label]');
+        const detail = alert.querySelector('[data-live-head-alert-detail]');
+        if (label) label.textContent = state === 'stalled' ? 'CHAIN STALLED' : 'BLOCKS DELAYED';
+        if (detail) {
+            detail.textContent = state === 'stalled' && !sourceConfirmed
+                ? `Last confirmed block #${formatCount(liveHeadStallLatchedLevel)} · source recheck delayed`
+                : `No new block for ${formatLiveHeadStallDuration(ageMs)} · last confirmed #${formatCount(level)}`;
+        }
+    }
+
+    const announcer = document.getElementById('chain-stall-announcer');
+    if (announcer && previousState !== state) {
+        if (state === 'stalled') {
+            announcer.textContent = `Critical: Tezos chain stalled. No new block for ${formatLiveHeadStallDuration(ageMs)}. Last confirmed block ${formatCount(level)}.`;
+        } else if (state === 'live' && (previousState === 'stalled' || liveHeadResumePendingLevel > 0)) {
+            announcer.textContent = `Tezos block production resumed at block ${formatCount(liveHeadResumePendingLevel || level)}.`;
+            liveHeadResumePendingLevel = 0;
+        }
+    }
+}
+
 function healthClass(score) {
+    if (!Number.isFinite(score)) return 'unknown';
     if (score >= 99.5) return 'peak';
     if (score >= 98.5) return 'healthy';
     if (score >= 95) return 'watch';
@@ -271,6 +372,7 @@ function healthClass(score) {
 }
 
 function healthLabel(score) {
+    if (!Number.isFinite(score)) return 'Unknown';
     if (score >= 99.5) return 'Peak';
     if (score >= 98.5) return 'Healthy';
     if (score >= 95) return 'Watch';
@@ -318,14 +420,39 @@ function formatBakingPower(value) {
 }
 
 function latestBlockStatus(block) {
-    const score = Number(block?.score);
+    const score = Number.isFinite(block?.score) ? block.score : null;
+    const power = Number(block?.power);
+    const committee = Number(block?.committee);
+    if (!Number.isFinite(score) || !Number.isFinite(power) || !Number.isFinite(committee) || committee <= 0) {
+        return { label: 'Attestation unknown', className: 'unknown', safetyMargin: null, marginRatio: 0 };
+    }
+    const quorumPower = Math.ceil(committee * 2 / 3);
+    const safetyMargin = power - quorumPower;
+    const marginCapacity = Math.max(1, committee - quorumPower);
+    const marginRatio = safetyMargin >= 0
+        ? Math.min(1, safetyMargin / marginCapacity)
+        : Math.min(1, Math.abs(safetyMargin) / quorumPower);
+    const marginCopy = formatCount(Math.abs(safetyMargin));
+    if (safetyMargin < 0) {
+        return {
+            label: `Risk: ${marginCopy} attestation power below quorum`,
+            className: 'degraded',
+            quorumPower,
+            safetyMargin,
+            marginRatio
+        };
+    }
+    const className = score >= 99.5 ? 'peak' : score >= 98.5 ? 'healthy' : 'watch';
     return {
-        label: healthLabel(score),
-        className: healthClass(score)
+        label: `Safe by ${marginCopy} attestation power above quorum`,
+        className,
+        quorumPower,
+        safetyMargin,
+        marginRatio
     };
 }
 
-function blockTickerFallback(message, className = 'loading') {
+function blockTickerFallback(className = 'loading') {
     const stack = document.getElementById('live-head-stack');
     const panel = document.getElementById('live-head');
     if (!stack || !panel) return;
@@ -333,29 +460,28 @@ function blockTickerFallback(message, className = 'loading') {
         panel.dataset.feedState = 'stale';
         return;
     }
-    const signature = `fallback:${className}:${message}`;
-    if (stack.dataset.liveHeadSignature === signature) return;
-    stack.dataset.liveHeadSignature = signature;
     panel.dataset.blockHealth = className;
     panel.dataset.feedState = className;
-    const rows = Array.from({ length: 4 }, (_, index) => `
-        <button class="live-head-row is-placeholder ${index === 3 ? 'live-head-desktop-row' : ''}" type="button" disabled data-quiet-key="live-head-placeholder-${index}">
-            <span>${escapeHtml(index === 0 ? message : 'Waiting for recent block receipts')}</span>
-        </button>
-    `).join('');
-    quietlySyncHtml(stack, rows);
+    panel.setAttribute('aria-busy', 'true');
+    const announcer = document.getElementById('chain-heartbeat-announcer');
+    if (className === 'degraded' && announcer) announcer.textContent = 'Live block feed unavailable.';
 }
 
 function settleLiveHeadReveal(root) {
-    root?.querySelectorAll('.is-revealing, .is-arriving').forEach((element) => {
-        element.classList.remove('is-revealing', 'is-arriving');
+    root?.querySelectorAll('.is-revealing, .is-bar-filling').forEach((element) => {
+        element.classList.remove('is-revealing', 'is-bar-filling');
     });
 }
 
-function revealLiveHeadFacts(panel, { headChanged = false } = {}) {
-    if (!panel) return;
-    const motionAllowed = document.visibilityState === 'visible'
+function liveHeadMotionAllowed({ suppressMotion = false } = {}) {
+    return !suppressMotion
+        && document.visibilityState === 'visible'
         && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+}
+
+function revealLiveHeadFacts(panel, { suppressMotion = false } = {}) {
+    if (!panel) return;
+    const motionAllowed = liveHeadMotionAllowed({ suppressMotion });
     if (!motionAllowed) {
         settleLiveHeadReveal(panel);
         panel.querySelectorAll('[data-story-signature]').forEach((element) => {
@@ -371,12 +497,32 @@ function revealLiveHeadFacts(panel, { headChanged = false } = {}) {
         void element.offsetWidth;
         element.classList.add('is-revealing');
     });
-    if (headChanged) panel.querySelector('.live-head-row')?.classList.add('is-arriving');
     if (liveHeadAnimationTimer) window.clearTimeout(liveHeadAnimationTimer);
     liveHeadAnimationTimer = window.setTimeout(() => {
         settleLiveHeadReveal(panel);
         liveHeadAnimationTimer = null;
     }, 440);
+}
+
+function fillLiveHeadBars(panel, { suppressMotion = false } = {}) {
+    if (!panel) return;
+    const motionAllowed = liveHeadMotionAllowed({ suppressMotion });
+    panel.querySelectorAll('.live-head-row[data-bar-signature]').forEach((row) => {
+        const signature = row.dataset.barSignature || '';
+        if (!signature || row.dataset.quietBarPlayed === signature) return;
+        row.dataset.quietBarPlayed = signature;
+        const fill = row.querySelector('.live-head-power-fill');
+        if (!fill || row.dataset.barAvailable !== 'true' || !motionAllowed) return;
+        const play = () => {
+            if (!fill.isConnected) return;
+            fill.classList.remove('is-bar-filling');
+            void fill.offsetWidth;
+            fill.classList.add('is-bar-filling');
+            window.setTimeout(() => fill.classList.remove('is-bar-filling'), 320);
+        };
+        if (row.classList.contains('lb-row-new')) window.setTimeout(play, 90);
+        else play();
+    });
 }
 
 function usageSlotContent(slot, usage) {
@@ -476,33 +622,518 @@ function visibleLiveHeadBlocks(data) {
     return (Array.isArray(data?.blocks) ? data.blocks : []).slice(0, liveHeadBlockLimit());
 }
 
-function renderLiveHeadStory(activity) {
-    const story = activity?.story;
-    if (!story) {
-        return '<span class="live-head-story is-syncing" data-story-signature="syncing"><span class="live-head-story-chip">Receipts syncing</span></span>';
+function liveHeadMissedState(block, story) {
+    const level = Number(block?.level);
+    const lowPower = Number.isFinite(Number(block?.power)) && Number(block.power) < LIVE_HEAD_POWER_DETAIL_THRESHOLD;
+    const quiet = story?.quiet === true;
+    const required = lowPower || quiet;
+    if (!required || !Number.isFinite(level)) {
+        return { required: false, state: 'not-required', attesters: [], signature: 'miss:not-required' };
     }
-    const title = story.clipped
-        ? 'This receipt sample reached an upstream row limit; + marks a minimum observed count.'
-        : `Applied operations classified from reviewed Tezos Systems catalogs for block ${formatCount(activity.level)}.`;
-    const chips = story.fragments.map((fragment, index) => (
-        `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}" style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`
-    )).join('');
-    return `<span class="live-head-story" data-story-signature="${escapeHtml(story.signature)}" title="${escapeHtml(title)}">${chips}</span>`;
+
+    const cacheCoversLevel = heartbeatMissedRightsCache
+        && level >= heartbeatMissedRightsCache.startLevel
+        && level <= heartbeatMissedRightsCache.endLevel;
+    const failureCoversLevel = heartbeatMissedRightsFailureRange
+        && level >= heartbeatMissedRightsFailureRange.startLevel
+        && level <= heartbeatMissedRightsFailureRange.endLevel;
+    if (!cacheCoversLevel) {
+        const state = failureCoversLevel ? 'unavailable' : 'loading';
+        return { required, state, attesters: [], signature: `miss:${state}` };
+    }
+
+    const byAddress = new Map();
+    for (const right of heartbeatMissedRightsCache.attestations.filter((row) => Number(row.level) === level)) {
+        const address = right.baker?.address || 'unknown';
+        const current = byAddress.get(address) || {
+            address,
+            name: bakerName(right.baker),
+            slots: 0
+        };
+        current.slots += Math.max(0, Number(right.slots) || 0);
+        byAddress.set(address, current);
+    }
+    const attesters = [...byAddress.values()].sort((left, right) => (
+        right.slots - left.slots || left.name.localeCompare(right.name)
+    ));
+    const state = attesters.length ? 'resolved' : 'clear';
+    const signature = `miss:${state}:${attesters.map((item) => `${item.address}:${item.slots}`).join('|')}`;
+    return {
+        required,
+        state,
+        attesters,
+        signature,
+        sampleClipped: heartbeatMissedRightsCache.sampleClipped === true
+    };
 }
 
-function renderLiveHeadRow(block, activity) {
-    const producer = block?.producer || {};
-    const name = bakerName(producer);
-    const status = latestBlockStatus(block);
-    const title = `Open Network Health for block ${formatCount(block.level)} from ${name}. ${status.label}: ${formatCount(block.power)} of ${formatCount(block.committee)} attested.`;
+function renderLiveHeadMissPills(block, missedState) {
+    if (!missedState.required) return '';
+    if (missedState.state === 'loading') {
+        return '<i class="live-head-story-skeleton live-head-miss-skeleton" aria-hidden="true"></i>';
+    }
+    if (missedState.state === 'unavailable') {
+        return '<span class="live-head-miss-pill is-unavailable" title="The missed-attestation receipt is temporarily unavailable">Misses unavailable</span>';
+    }
+    if (missedState.state === 'clear') {
+        const text = Number(block?.missedPower) > 0 ? 'Misses not indexed' : 'No attestation misses';
+        const title = Number(block?.missedPower) > 0
+            ? `Block ${formatCount(block.level)} has reduced attested power, but TzKT returned no missed-attester identities for this level.`
+            : `TzKT returned no missed attestation rights for block ${formatCount(block.level)}.`;
+        return `<span class="live-head-miss-pill is-clear" title="${escapeHtml(title)}">${escapeHtml(text)}</span>`;
+    }
+
+    const pills = missedState.attesters.map((attester) => {
+        const fullIdentity = attester.address && attester.address !== 'unknown'
+            ? `${attester.name} · ${attester.address}`
+            : attester.name;
+        const title = `${fullIdentity} missed ${formatCount(attester.slots)} attestation power at block ${formatCount(block.level)}.`;
+        return `<span class="live-head-miss-pill" data-missed-baker-address="${escapeHtml(attester.address)}" title="${escapeHtml(title)}">${escapeHtml(attester.name)} · −${formatCount(attester.slots)}</span>`;
+    });
+    pills.push('<span class="live-head-miss-pill is-more" data-live-head-miss-overflow hidden></span>');
+    return pills.join('');
+}
+
+function liveHeadPillOverflows(container) {
+    return container.scrollWidth > container.clientWidth + 1;
+}
+
+function fitLiveHeadPills(root = document) {
+    root.querySelectorAll?.('.live-head-story[data-miss-state="resolved"]').forEach((container) => {
+        const missedPills = [...container.querySelectorAll('[data-missed-baker-address]')];
+        const storyPills = [...container.querySelectorAll('.live-head-story-chip')];
+        const overflowPill = container.querySelector('[data-live-head-miss-overflow]');
+        if (!missedPills.length || !overflowPill) return;
+
+        missedPills.forEach((pill) => { pill.hidden = false; });
+        storyPills.forEach((pill) => { pill.hidden = false; });
+        overflowPill.hidden = true;
+        overflowPill.textContent = '';
+        overflowPill.title = '';
+
+        if (liveHeadPillOverflows(container)) {
+            let visibleStoryCount = storyPills.length;
+            while (liveHeadPillOverflows(container) && visibleStoryCount > 1) {
+                storyPills[--visibleStoryCount].hidden = true;
+            }
+
+            const hiddenMisses = [];
+            if (liveHeadPillOverflows(container)) overflowPill.hidden = false;
+            let visibleMissCount = missedPills.length;
+            while (liveHeadPillOverflows(container) && visibleMissCount > 1) {
+                const pill = missedPills[--visibleMissCount];
+                pill.hidden = true;
+                hiddenMisses.unshift(pill);
+                overflowPill.textContent = `+${formatCount(hiddenMisses.length)} baker${hiddenMisses.length === 1 ? '' : 's'}`;
+                overflowPill.title = hiddenMisses.map((item) => item.title).filter(Boolean).join(' ');
+            }
+            if (!hiddenMisses.length) overflowPill.hidden = true;
+            if (liveHeadPillOverflows(container) && visibleStoryCount > 0) {
+                storyPills[--visibleStoryCount].hidden = true;
+            }
+            if (liveHeadPillOverflows(container) && !overflowPill.hidden) overflowPill.hidden = true;
+        }
+
+        const visibleMissCount = missedPills.filter((pill) => !pill.hidden).length;
+        const hiddenMissCount = missedPills.length - visibleMissCount;
+        container.dataset.visibleMissCount = String(visibleMissCount);
+        container.dataset.hiddenMissCount = String(hiddenMissCount);
+    });
+}
+
+function scheduleLiveHeadPillFit(panel) {
+    if (liveHeadPillFitFrame) window.cancelAnimationFrame(liveHeadPillFitFrame);
+    liveHeadPillFitFrame = window.requestAnimationFrame(() => {
+        liveHeadPillFitFrame = null;
+        fitLiveHeadPills(panel);
+    });
+}
+
+function wireLiveHeadPillFitting(panel) {
+    if (!panel || liveHeadPillResizeObserver || typeof ResizeObserver !== 'function') return;
+    liveHeadPillResizeObserver = new ResizeObserver(() => scheduleLiveHeadPillFit(panel));
+    liveHeadPillResizeObserver.observe(panel);
+    document.fonts?.ready?.then(() => scheduleLiveHeadPillFit(panel));
+}
+
+function liveHeadBlockUrl(level, { operations = false } = {}) {
+    const encodedLevel = encodeURIComponent(String(Number(level) || 0));
+    return `https://tzkt.io/${encodedLevel}${operations ? '/operations/' : ''}`;
+}
+
+function liveHeadBakerLinks(baker, { label = '' } = {}) {
+    const address = String(baker?.address || '');
+    const name = label || bakerName(baker);
+    if (!address) return `<strong>${escapeHtml(name)}</strong>`;
+    const encoded = encodeURIComponent(address);
     return `
-        <button class="live-head-row" type="button" data-live-head-level="${block.level}" data-quiet-key="live-head-block-${block.level}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">
+        <span class="live-head-inspector-identity-copy">
+            <strong title="${escapeHtml(address)}">${escapeHtml(name)}</strong>
+            <span>${escapeHtml(address)}</span>
+        </span>
+        <span class="live-head-inspector-links">
+            <a href="https://tzkt.io/${encoded}" target="_blank" rel="noopener" title="Open ${escapeHtml(name)} on TzKT">TzKT ↗</a>
+            <a href="/#my-baker=${encoded}" title="Open ${escapeHtml(name)} in My Tezos">My Tezos</a>
+        </span>`;
+}
+
+function formatLiveHeadTimestamp(value) {
+    const date = new Date(value || '');
+    if (!Number.isFinite(date.getTime())) return 'Timestamp unavailable';
+    return `${date.toLocaleDateString('en-US', {
+        month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+    })} · ${date.toLocaleTimeString('en-US', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'UTC'
+    })} UTC`;
+}
+
+function formatLiveHeadTez(mutez) {
+    const amount = Number(mutez) / 1e6;
+    if (!Number.isFinite(amount)) return '--';
+    return `${amount.toLocaleString('en-US', { maximumFractionDigits: 6 })} ꜩ`;
+}
+
+function renderLiveHeadInspectorFact({ label, value, href, className = '' }) {
+    return `
+        <a class="live-head-inspector-fact ${escapeHtml(className)}" href="${escapeHtml(href)}" target="_blank" rel="noopener">
+            <span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><i aria-hidden="true">↗</i>
+        </a>`;
+}
+
+function renderLiveHeadInspector(block, activity) {
+    const level = Number(block?.level) || 0;
+    const blockUrl = liveHeadBlockUrl(level);
+    const operationsUrl = liveHeadBlockUrl(level, { operations: true });
+    const status = latestBlockStatus(block);
+    const gas = liveHeadGasState(activity);
+    const missedState = liveHeadMissedState(block, activity?.story || null);
+    const powerKnown = Number.isFinite(block?.power) && Number.isFinite(block?.committee);
+    const proposerDiffers = block?.proposer?.address
+        && block.proposer.address !== block?.producer?.address;
+    const safetyLabel = Number(status.safetyMargin) >= 0 ? 'Quorum safety' : 'Quorum deficit';
+    const safetyValue = Number.isFinite(status.safetyMargin)
+        ? `${status.safetyMargin >= 0 ? '+' : '−'}${formatCount(Math.abs(status.safetyMargin))} power`
+        : 'Unavailable';
+    const gasValue = gas.state === 'resolved'
+        ? `${gas.exactPct.toFixed(1)}% · ${formatCount(Math.round(gas.gasUsed))}/${formatCount(gas.gasLimit)}`
+        : gas.state === 'quiet' ? 'Quiet · no reviewed activity' : 'Unavailable';
+    const facts = [
+        { label: 'Block round', value: `R${formatCount(block?.blockRound)}`, href: blockUrl },
+        { label: 'Payload round', value: `R${formatCount(block?.payloadRound)}`, href: blockUrl },
+        { label: 'Cadence', value: formatSeconds(block?.intervalSeconds), href: blockUrl },
+        { label: 'Attested', value: powerKnown ? `${formatCount(block.power)}/${formatCount(block.committee)}` : 'Unavailable', href: blockUrl, className: status.className },
+        { label: safetyLabel, value: safetyValue, href: blockUrl, className: status.className },
+        { label: 'Missed power', value: Number.isFinite(block?.missedPower) ? `−${formatCount(block.missedPower)}` : 'Unavailable', href: blockUrl },
+        { label: 'Block activity', value: gasValue, href: operationsUrl, className: gas.className ? `gas-${gas.className}` : gas.state },
+        { label: 'Transactions', value: Number.isFinite(activity?.txCount) ? formatCount(activity.txCount) : 'Unavailable', href: operationsUrl },
+        { label: 'Contract calls', value: Number.isFinite(activity?.contractCalls) ? formatCount(activity.contractCalls) : 'Unavailable', href: operationsUrl },
+        { label: 'Staking ops', value: Number.isFinite(activity?.stakingCount) ? formatCount(activity.stakingCount) : 'Unavailable', href: operationsUrl },
+        { label: 'Fees', value: Number.isFinite(block?.feesMutez) ? formatLiveHeadTez(block.feesMutez) : 'Unavailable', href: blockUrl },
+        { label: 'Rewards + bonus', value: Number.isFinite(block?.mintedMutez) ? formatLiveHeadTez(block.mintedMutez) : 'Unavailable', href: blockUrl }
+    ];
+    const activityFragments = Array.isArray(activity?.story?.fragments)
+        ? activity.story.fragments.filter((fragment) => fragment.key !== 'quiet')
+        : [];
+    const activityHtml = activityFragments.length
+        ? activityFragments.map((fragment) => renderLiveHeadInspectorFact({
+            label: fragment.label || fragment.key,
+            value: fragment.text || 'Receipt',
+            href: operationsUrl,
+            className: `story-${fragment.key}`
+        })).join('')
+        : renderLiveHeadInspectorFact({
+            label: 'Classified activity',
+            value: activity?.story?.quiet === true ? 'Quiet block' : 'Receipt syncing',
+            href: operationsUrl,
+            className: activity?.story?.quiet === true ? 'quiet' : 'loading'
+        });
+    const largestTransfer = activity?.largestTransfer || null;
+    const largestTransferHref = largestTransfer?.hash
+        ? `https://tzkt.io/${encodeURIComponent(largestTransfer.hash)}`
+        : operationsUrl;
+    const largestTransferHtml = largestTransfer && Number(largestTransfer.amount) > 0
+        ? renderLiveHeadInspectorFact({
+            label: 'Largest transfer',
+            value: formatLiveHeadTez(largestTransfer.amount),
+            href: largestTransferHref,
+            className: 'story-transfers'
+        })
+        : '';
+    let missedHtml = '';
+    if (missedState.state === 'resolved') {
+        missedHtml = missedState.attesters.map((attester) => `
+            <div class="live-head-inspector-miss">
+                <span class="live-head-inspector-miss-power">−${formatCount(attester.slots)}</span>
+                ${liveHeadBakerLinks({ address: attester.address, alias: attester.name }, { label: attester.name })}
+            </div>`).join('');
+    } else {
+        const copy = missedState.state === 'clear'
+            ? (Number(block?.missedPower) > 0 ? 'No baker identities were indexed for the missed power.' : 'No missed attestations in the TzKT receipt.')
+            : missedState.required ? 'Missed-attester receipt is still syncing.' : 'No expanded missed-attester receipt was required.';
+        missedHtml = `<a class="live-head-inspector-empty" href="${escapeHtml(blockUrl)}" target="_blank" rel="noopener">${escapeHtml(copy)} <span aria-hidden="true">↗</span></a>`;
+    }
+
+    return `
+        <div class="live-head-inspector-summary">
+            <span class="live-head-inspector-kicker">Complete block receipt</span>
+            <a class="live-head-inspector-level" href="${escapeHtml(blockUrl)}" target="_blank" rel="noopener">Block #${formatCount(level)} <span aria-hidden="true">↗</span></a>
+            <a class="live-head-inspector-time" href="${escapeHtml(blockUrl)}" target="_blank" rel="noopener">${escapeHtml(formatLiveHeadTimestamp(block?.timestamp))} · ${escapeHtml(formatAge(block?.timestamp))}</a>
+        </div>
+        <div class="live-head-inspector-identity">
+            <span class="live-head-inspector-label">Produced by</span>
+            ${liveHeadBakerLinks(block?.producer || {})}
+        </div>
+        ${proposerDiffers ? `
+            <div class="live-head-inspector-identity">
+                <span class="live-head-inspector-label">Proposed by</span>
+                ${liveHeadBakerLinks(block.proposer)}
+            </div>` : ''}
+        <div class="live-head-inspector-grid">${facts.map(renderLiveHeadInspectorFact).join('')}</div>
+        <div class="live-head-inspector-section">
+            <span class="live-head-inspector-label">Block contents</span>
+            <div class="live-head-inspector-grid is-activity">${activityHtml}${largestTransferHtml}</div>
+        </div>
+        <div class="live-head-inspector-section">
+            <span class="live-head-inspector-label">Missed attestations</span>
+            <div class="live-head-inspector-misses">${missedHtml}</div>
+        </div>
+        <a class="live-head-inspector-health" href="#health" data-live-head-open-health>Open Network Health Chamber <span aria-hidden="true">→</span></a>`;
+}
+
+function cancelLiveHeadInspectorClose() {
+    if (!liveHeadInspectorCloseTimer) return;
+    window.clearTimeout(liveHeadInspectorCloseTimer);
+    liveHeadInspectorCloseTimer = null;
+}
+
+function closeLiveHeadInspector() {
+    cancelLiveHeadInspectorClose();
+    const inspector = document.getElementById('live-head-inspector');
+    if (inspector) {
+        inspector.hidden = true;
+        inspector.setAttribute('aria-hidden', 'true');
+        inspector.removeAttribute('data-open');
+        inspector.style.removeProperty('left');
+        inspector.style.removeProperty('top');
+    }
+    document.querySelectorAll('#live-head-stack .live-head-row[aria-expanded="true"]').forEach((row) => {
+        row.setAttribute('aria-expanded', 'false');
+    });
+    liveHeadInspectorLevel = null;
+}
+
+function scheduleLiveHeadInspectorClose() {
+    cancelLiveHeadInspectorClose();
+    liveHeadInspectorCloseTimer = window.setTimeout(closeLiveHeadInspector, 140);
+}
+
+function positionLiveHeadInspector(row, inspector) {
+    if (!row || !inspector || inspector.hidden) return;
+    const rowRect = row.getBoundingClientRect();
+    const inspectorRect = inspector.getBoundingClientRect();
+    const edge = 10;
+    const anchorLeft = rowRect.left + Math.min(Math.max(rowRect.width * 0.27, 84), 330);
+    const left = Math.max(edge, Math.min(anchorLeft, window.innerWidth - inspectorRect.width - edge));
+    let top = rowRect.bottom + 6;
+    if (top + inspectorRect.height > window.innerHeight - edge) top = rowRect.top - inspectorRect.height - 6;
+    top = Math.max(edge, Math.min(top, window.innerHeight - inspectorRect.height - edge));
+    inspector.style.left = `${Math.round(left)}px`;
+    inspector.style.top = `${Math.round(top)}px`;
+}
+
+function showLiveHeadInspector(row) {
+    const inspector = document.getElementById('live-head-inspector');
+    const level = Number(row?.dataset.liveHeadLevel);
+    const block = heartbeatData?.blocks?.find((item) => Number(item.level) === level);
+    if (!inspector || !row || !block || document.getElementById('network-health-modal')?.classList.contains('active')) return;
+    cancelLiveHeadInspectorClose();
+    document.querySelectorAll('#live-head-stack .live-head-row[aria-expanded="true"]').forEach((item) => {
+        if (item !== row) item.setAttribute('aria-expanded', 'false');
+    });
+    const activity = heartbeatActivityCache.get(level) || null;
+    inspector.innerHTML = renderLiveHeadInspector(block, activity);
+    inspector.hidden = false;
+    inspector.setAttribute('aria-hidden', 'false');
+    inspector.dataset.open = 'true';
+    inspector.dataset.liveHeadLevel = String(level);
+    row.setAttribute('aria-expanded', 'true');
+    liveHeadInspectorLevel = level;
+    positionLiveHeadInspector(row, inspector);
+}
+
+function refreshLiveHeadInspector() {
+    if (!Number.isFinite(liveHeadInspectorLevel)) return;
+    const row = document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadInspectorLevel}"]`);
+    if (!row) closeLiveHeadInspector();
+    else showLiveHeadInspector(row);
+}
+
+function wireLiveHeadInspector(panel, stack) {
+    const inspector = document.getElementById('live-head-inspector');
+    if (!panel || !stack || !inspector || panel.dataset.liveHeadInspectorWired) return;
+    panel.dataset.liveHeadInspectorWired = '1';
+    stack.addEventListener('pointerover', (event) => {
+        const row = event.target.closest('.live-head-row[data-live-head-level]');
+        if (!row || row.contains(event.relatedTarget)) return;
+        showLiveHeadInspector(row);
+    });
+    stack.addEventListener('pointerout', (event) => {
+        const row = event.target.closest('.live-head-row[data-live-head-level]');
+        if (!row || row.contains(event.relatedTarget)) return;
+        scheduleLiveHeadInspectorClose();
+    });
+    stack.addEventListener('focusin', (event) => {
+        const row = event.target.closest('.live-head-row[data-live-head-level]');
+        if (row) showLiveHeadInspector(row);
+    });
+    stack.addEventListener('focusout', (event) => {
+        if (!event.target.closest('.live-head-row[data-live-head-level]')) return;
+        scheduleLiveHeadInspectorClose();
+    });
+    inspector.addEventListener('pointerenter', cancelLiveHeadInspectorClose);
+    inspector.addEventListener('pointerleave', scheduleLiveHeadInspectorClose);
+    inspector.addEventListener('focusin', cancelLiveHeadInspectorClose);
+    inspector.addEventListener('focusout', scheduleLiveHeadInspectorClose);
+    inspector.addEventListener('click', (event) => {
+        const link = event.target.closest('a');
+        if (link && !link.matches('[data-live-head-open-health]')) return;
+        event.preventDefault();
+        closeLiveHeadInspector();
+        openNetworkHealthChamber();
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !inspector.hidden) closeLiveHeadInspector();
+    });
+    window.addEventListener('resize', refreshLiveHeadInspector);
+    window.addEventListener('scroll', closeLiveHeadInspector, { passive: true, capture: true });
+}
+
+function buildLiveHeadDetails(block, activity) {
+    const story = activity?.story || null;
+    const missedState = liveHeadMissedState(block, story);
+    const storySignature = story?.signature || 'story:loading';
+    const titleParts = [];
+    if (story) {
+        titleParts.push(story.clipped
+            ? 'This receipt sample reached an upstream row limit; + marks a minimum observed count.'
+            : `Applied operations classified from reviewed Tezos Systems catalogs for block ${formatCount(activity.level)}.`);
+    }
+    if (missedState.state === 'resolved') {
+        titleParts.push(`Missed attesters: ${missedState.attesters.map((item) => `${item.name} (−${formatCount(item.slots)})`).join(', ')}.`);
+    }
+    const missPills = renderLiveHeadMissPills(block, missedState);
+    const storyPills = story
+        ? story.fragments.filter((fragment) => fragment.key !== 'quiet').slice(0, 2).map((fragment, index) => (
+            `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}" style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`
+        )).join('')
+        : '<i class="live-head-story-skeleton" aria-hidden="true"></i><i class="live-head-story-skeleton is-short" aria-hidden="true"></i>';
+    const signature = `${storySignature}|${missedState.signature}`;
+    return {
+        html: `<span class="live-head-story${story ? '' : ' is-loading'}" data-story-signature="${escapeHtml(signature)}" data-miss-required="${missedState.required ? 'true' : 'false'}" data-miss-state="${escapeHtml(missedState.state)}" title="${escapeHtml(titleParts.join(' '))}">${missPills}${storyPills}</span>`,
+        signature,
+        missedState
+    };
+}
+
+function liveHeadGasState(activity) {
+    const story = activity?.story || null;
+    if (!story) return { state: 'loading', signature: 'gas:loading' };
+    if (story.quiet === true) return { state: 'quiet', signature: 'gas:quiet' };
+
+    const gasUsed = Number(activity?.gasUsed);
+    const gasLimit = Number(activity?.gasLimit);
+    if (!Number.isFinite(gasUsed) || gasUsed < 0 || !Number.isFinite(gasLimit) || gasLimit <= 0) {
+        return { state: 'unavailable', signature: 'gas:unavailable' };
+    }
+
+    const exactPct = (gasUsed / gasLimit) * 100;
+    const pct = Math.max(0, Math.min(100, exactPct));
+    const className = pct >= 85 ? 'hot' : pct >= 60 ? 'busy' : pct >= 25 ? 'active' : 'open';
+    const displayPct = pct > 0 && pct < 1 ? '&lt;1' : formatCount(Math.round(pct));
+    return {
+        state: 'resolved',
+        className,
+        gasUsed,
+        gasLimit,
+        exactPct,
+        pct,
+        displayPct,
+        signature: `gas:${gasUsed.toFixed(3)}:${gasLimit}`
+    };
+}
+
+function renderLiveHeadActivityStatus(activity) {
+    const gas = liveHeadGasState(activity);
+    if (gas.state === 'loading') {
+        return '<i class="live-head-gas-skeleton" aria-hidden="true"></i>';
+    }
+    if (gas.state === 'quiet') {
+        return '<span class="live-head-quiet" title="No reviewed transaction or staking activity was present in the complete block receipt">Quiet</span>';
+    }
+    if (gas.state === 'unavailable') {
+        return '<span class="live-head-gas is-unavailable" title="The exact manager-operation gas receipt or current block gas limit is temporarily unavailable"><span>Gas --</span></span>';
+    }
+    const title = `${formatCount(Math.round(gas.gasUsed))} of ${formatCount(gas.gasLimit)} gas used (${gas.exactPct.toFixed(1)}% full). Includes outer and internal manager-operation receipts.`;
+    return `<span class="live-head-gas is-${gas.className}" style="--live-head-gas:${gas.pct.toFixed(2)}" title="${escapeHtml(title)}"><span>Gas ${gas.displayPct}%</span></span>`;
+}
+
+function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
+    const producer = block?.producer || {};
+    const producerHasAlias = Boolean(producer.alias);
+    const name = producerHasAlias ? producer.alias : (producer.address || 'Unknown baker');
+    const status = latestBlockStatus(block);
+    const powerKnown = Number.isFinite(block?.power) && Number.isFinite(block?.committee);
+    const score = Number.isFinite(block?.score) ? Math.max(0, Math.min(100, block.score)) : null;
+    const attested = powerKnown ? `${formatCount(block.power)} of ${formatCount(block.committee)}` : 'attestation unavailable';
+    const trackTitle = powerKnown
+        ? `${status.label}. The first ${formatCount(status.quorumPower)} power is required; this rail shows only the safety margin beyond it.`
+        : status.label;
+    const details = buildLiveHeadDetails(block, activity);
+    const gas = liveHeadGasState(activity);
+    const activityStatus = renderLiveHeadActivityStatus(activity);
+    const gasSummary = gas.state === 'resolved'
+        ? ` Gas use: ${gas.exactPct.toFixed(1)}% of block capacity.`
+        : gas.state === 'quiet'
+            ? ' No reviewed transaction or staking activity.'
+            : '';
+    const missedSummary = details.missedState.state === 'resolved'
+        ? ` Missed attesters: ${details.missedState.attesters.map((item) => `${item.name}, ${formatCount(item.slots)} power`).join('; ')}.`
+        : '';
+    const title = `Open Network Health for block ${formatCount(block.level)} from ${name}. ${status.label}: ${attested}.${gasSummary}${missedSummary}`;
+    const missed = isMaterialMissedPower(block)
+        ? `<span class="live-head-missed" title="${formatCount(block.missedPower)} committee power missed">−${formatCount(block.missedPower)}</span>`
+        : '';
+    const safetyMargin = Number.isFinite(status.safetyMargin) ? status.safetyMargin : null;
+    const marginSign = safetyMargin === null ? '' : safetyMargin >= 0 ? '+' : '−';
+    const marginAbsolute = safetyMargin === null ? null : Math.abs(safetyMargin);
+    const marginFull = marginAbsolute === null ? '--' : `${marginSign}${formatCount(marginAbsolute)}`;
+    const marginCompact = marginAbsolute === null
+        ? '--'
+        : marginAbsolute >= 1000
+            ? `${marginSign}${(marginAbsolute / 1000).toFixed(marginAbsolute >= 10000 ? 0 : 1)}K`
+            : `${marginSign}${formatCount(marginAbsolute)}`;
+    const barSignature = `${Number(block.level) || 0}:${safetyMargin === null ? 'unknown' : safetyMargin}:${status.quorumPower || 'unknown'}`;
+    return `
+        <button class="live-head-row ${isNew ? 'lb-row-new' : ''}" type="button" data-live-head-level="${block.level}" data-health-level="${Number(block.level) || 0}" data-attested-power="${Number.isFinite(block?.power) ? Number(block.power) : ''}" data-safety-margin="${safetyMargin === null ? '' : safetyMargin}" data-story-quiet="${activity?.story?.quiet === true ? 'true' : 'false'}" data-gas-state="${escapeHtml(gas.state)}" data-gas-percent="${gas.state === 'resolved' ? gas.exactPct.toFixed(2) : ''}" data-consensus-state="${escapeHtml(status.className)}" data-quiet-key="live-head-block-${block.level}" data-bar-signature="${barSignature}" data-bar-available="${safetyMargin === null ? 'false' : 'true'}" aria-label="${escapeHtml(title)}" aria-controls="live-head-inspector" aria-expanded="false">
             <span class="live-head-row-main">
                 <strong class="live-head-level">#${formatCount(block.level)}</strong>
-                <span class="live-head-baker" title="${escapeHtml(producer.address || name)}">${escapeHtml(name)}</span>
+                ${renderRoundBadge(block)}
+                <span class="live-head-delta health-interval ${timingClass(block.intervalSeconds)}">${formatSeconds(block.intervalSeconds)}</span>
+                <span class="live-head-attested">
+                    <span class="live-head-power health-power ${status.className}">
+                        <span class="live-head-power-full">${powerKnown ? `${formatCount(block.power)}<small>/${formatCount(block.committee)}</small>` : '--'}</span>
+                        <span class="live-head-power-compact">${score === null ? '--' : `${formatPct(score)}%`}</span>
+                    </span>
+                    <span class="live-head-power-track ${status.className}" title="${escapeHtml(trackTitle)}" aria-label="${escapeHtml(trackTitle)}"><span class="live-head-power-fill" style="--live-head-margin:${status.marginRatio.toFixed(4)}"></span><span class="live-head-margin"><span class="live-head-margin-full">${marginFull}</span><span class="live-head-margin-compact">${marginCompact}</span></span></span>
+                    ${missed}
+                    ${activityStatus}
+                </span>
                 <span class="live-head-age" data-health-age="${escapeHtml(block.timestamp || '')}" data-health-age-format="ticker" data-magic="off">${escapeHtml(formatTickerAge(block.timestamp))}</span>
             </span>
-            ${renderLiveHeadStory(activity)}
+            <span class="live-head-row-detail">
+                <span class="live-head-baker${producerHasAlias ? '' : ' is-address'}" title="${escapeHtml(producer.address || name)}">${escapeHtml(name)}</span>
+                ${details.html}
+            </span>
         </button>
     `;
 }
@@ -514,6 +1145,113 @@ function renderLiveHeadRows(data) {
     )).join('');
 }
 
+function smoothlyShiftLiveHeadRows(stack, previousTops, { suppressMotion = false } = {}) {
+    if (!previousTops?.size || !liveHeadMotionAllowed({ suppressMotion })) return;
+    stack.querySelectorAll('.live-head-row[data-health-level]').forEach((row) => {
+        const previousTop = previousTops.get(row.dataset.healthLevel);
+        if (!Number.isFinite(previousTop)) return;
+        const delta = previousTop - row.getBoundingClientRect().top;
+        if (Math.abs(delta) < 0.5) return;
+        row.dataset.liveHeadShift = 'settling';
+        if (typeof row.animate === 'function') {
+            row.getAnimations().filter((animation) => animation.id === 'live-head-shift').forEach((animation) => animation.cancel());
+            const animation = row.animate([
+                { transform: `translate3d(0, ${delta}px, 0)` },
+                { transform: 'translate3d(0, 0, 0)' }
+            ], {
+                duration: 520,
+                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                fill: 'both'
+            });
+            animation.id = 'live-head-shift';
+            animation.finished.catch(() => {}).finally(() => {
+                if (row.isConnected) delete row.dataset.liveHeadShift;
+                animation.cancel();
+            });
+            return;
+        }
+        row.style.transition = 'none';
+        row.style.transform = `translate3d(0, ${delta}px, 0)`;
+        void row.offsetHeight;
+        row.style.transition = 'transform 520ms cubic-bezier(0.22, 1, 0.36, 1), background 220ms ease';
+        row.style.transform = 'translate3d(0, 0, 0)';
+        window.setTimeout(() => {
+            if (!row.isConnected) return;
+            delete row.dataset.liveHeadShift;
+            row.style.removeProperty('transition');
+            row.style.removeProperty('transform');
+        }, 560);
+    });
+}
+
+function updateLiveHeadRows(stack, data, { suppressMotion = false } = {}) {
+    const nextBlocks = visibleLiveHeadBlocks(data);
+    const existingRows = [...stack.querySelectorAll('.live-head-row[data-health-level]')];
+    const existingLevels = new Set(existingRows.map((row) => row.dataset.healthLevel));
+    const freshBlocks = nextBlocks.filter((block) => !existingLevels.has(String(Number(block.level) || 0)));
+    const initialRows = existingRows.length === 0;
+    const motionAllowed = freshBlocks.length && liveHeadMotionAllowed({ suppressMotion });
+    const nextLevels = new Set(nextBlocks.map((block) => String(Number(block.level) || 0)));
+    const previousTops = motionAllowed
+        ? new Map(existingRows.map((row) => [row.dataset.healthLevel, row.getBoundingClientRect().top]))
+        : null;
+    const stackTop = motionAllowed ? stack.getBoundingClientRect().top : 0;
+    const exitGhosts = motionAllowed
+        ? existingRows.filter((row) => !nextLevels.has(row.dataset.healthLevel)).map((row) => {
+            const ghost = row.cloneNode(true);
+            ghost.className = 'live-head-row-exiting';
+            ghost.removeAttribute('data-health-level');
+            ghost.removeAttribute('data-live-head-level');
+            ghost.removeAttribute('data-quiet-key');
+            ghost.removeAttribute('title');
+            ghost.setAttribute('aria-hidden', 'true');
+            ghost.setAttribute('tabindex', '-1');
+            ghost.style.top = `${row.getBoundingClientRect().top - stackTop}px`;
+            if ('disabled' in ghost) ghost.disabled = true;
+            return ghost;
+        })
+        : [];
+
+    if (initialRows) {
+        quietlySyncHtml(stack, renderLiveHeadRows(data));
+        delete stack.dataset.quietRefreshSettled;
+    } else {
+        for (const block of [...freshBlocks].reverse()) {
+            stack.insertAdjacentHTML('afterbegin', renderLiveHeadRow(
+                block,
+                heartbeatActivityCache.get(Number(block.level)) || null,
+                { isNew: liveHeadMotionAllowed({ suppressMotion }) }
+            ));
+        }
+        stack.querySelectorAll('.live-head-row.lb-row-new').forEach((row) => {
+            window.setTimeout(() => row.classList.remove('lb-row-new'), 560);
+        });
+
+        stack.querySelectorAll('.live-head-row[data-health-level]').forEach((row) => {
+            if (!nextLevels.has(row.dataset.healthLevel)) row.remove();
+        });
+        for (const block of nextBlocks) {
+            const row = stack.querySelector(`.live-head-row[data-health-level="${Number(block.level) || 0}"]`);
+            if (!row || freshBlocks.includes(block)) continue;
+            quietlySyncElement(row, renderLiveHeadRow(
+                block,
+                heartbeatActivityCache.get(Number(block.level)) || null,
+                { isNew: row.classList.contains('lb-row-new') }
+            ));
+        }
+        while (stack.querySelectorAll('.live-head-row[data-health-level]').length > nextBlocks.length) {
+            stack.querySelector('.live-head-row[data-health-level]:last-child')?.remove();
+        }
+        exitGhosts.forEach((ghost) => {
+            stack.append(ghost);
+            window.setTimeout(() => ghost.remove(), 560);
+        });
+        if (freshBlocks.length) smoothlyShiftLiveHeadRows(stack, previousTops, { suppressMotion });
+    }
+
+    return { freshBlocks, initialRows };
+}
+
 function updateLiveHeadNext(latest, nextRight) {
     const next = document.getElementById('live-head-next');
     if (!next) return;
@@ -522,36 +1260,6 @@ function updateLiveHeadNext(latest, nextRight) {
         ? `<span title="Round-zero right, not a guaranteed block producer. ${escapeHtml(right.baker?.address || '')}">Next R0 · ${escapeHtml(bakerName(right.baker))} · <span data-heartbeat-due="${escapeHtml(right.timestamp || '')}" data-magic="off">${escapeHtml(formatHeartbeatDue(right.timestamp))}</span></span>`
         : '<span>Next R0 syncing</span>';
     quietlySyncHtml(next, html);
-}
-
-function updateLiveHeadBakers(data) {
-    const button = document.getElementById('live-head-bakers');
-    if (!button) return;
-    const levels = visibleLiveHeadBlocks(data).map((block) => Number(block.level)).filter(Number.isFinite);
-    const startLevel = Math.min(...levels);
-    const endLevel = Math.max(...levels);
-    const rights = heartbeatMissedRightsCache;
-    const live = nakamotoCache?.live;
-    const notice = rights?.startLevel === startLevel && rights?.endLevel === endLevel
-        ? buildQuietBakerNotice({
-            attestationRights: rights.attestations,
-            bakingRights: rights.baking,
-            powerByDelegate: live?.powerByDelegate || {},
-            totalPower: live?.totalPower,
-            sampleClipped: rights.sampleClipped
-        })
-        : null;
-    const signature = notice?.signature || 'empty';
-    const currentSignature = button.dataset.noticeSignature || '';
-    button.dataset.noticeSignature = signature;
-    button.dataset.empty = notice ? 'false' : 'true';
-    button.disabled = !notice;
-    button.title = notice
-        ? `Open Network Health missed-rights detail. Visible-block sample${notice.sampleClipped ? ' reached its 90-row cap; the names shown are not a complete network roll call' : ''}.`
-        : 'No material large or mid-sized missed rights in the visible block sample.';
-    button.setAttribute('aria-label', button.title);
-    quietlySyncHtml(button, `<span data-story-signature="${escapeHtml(signature)}">${escapeHtml(notice?.text || 'Missed rights line reserved')}</span>`);
-    if (currentSignature && currentSignature === signature) button.querySelector('[data-story-signature]')?.classList.remove('is-revealing');
 }
 
 function dispatchHotSignal(detail) {
@@ -656,16 +1364,18 @@ async function fetchHeartbeatActivity(level) {
     const stakingFields = 'id,hash,timestamp,action,amount,staker,baker';
     const requests = [
         fetchJson(`${TZKT}/operations/transactions?level=${level}&status=applied&select=${txFields}&limit=${HEARTBEAT_ACTIVITY_LIMIT}`, 1, { priority: 'interactive' }),
-        fetchJson(`${TZKT}/operations/staking?level=${level}&status=applied&select=${stakingFields}&limit=${HEARTBEAT_STAKING_LIMIT}`, 1, { priority: 'interactive' })
+        fetchJson(`${TZKT}/operations/staking?level=${level}&status=applied&select=${stakingFields}&limit=${HEARTBEAT_STAKING_LIMIT}`, 1, { priority: 'interactive' }),
+        fetchHeartbeatGas(level)
     ];
     const promise = Promise.all([loadHeartbeatStoryCatalog(), Promise.allSettled(requests)])
-        .then(([catalog, [transactionsResult, stakingResult]]) => {
+        .then(([catalog, [transactionsResult, stakingResult, gasResult]]) => {
             const transactions = transactionsResult.status === 'fulfilled' && Array.isArray(transactionsResult.value)
                 ? transactionsResult.value
                 : null;
             const stakingRows = stakingResult.status === 'fulfilled' && Array.isArray(stakingResult.value)
                 ? stakingResult.value
                 : null;
+            const gas = gasResult.status === 'fulfilled' ? gasResult.value : null;
             const largestTransfer = transactions?.reduce((largest, row) => (
                 Number(row?.amount) > Number(largest?.amount || 0) ? row : largest
             ), null) || null;
@@ -678,14 +1388,17 @@ async function fetchHeartbeatActivity(level) {
                 stakingCount: stakingRows ? stakingRows.length : null,
                 stakingRows: stakingRows || [],
                 largestTransfer,
+                gasUsed: Number.isFinite(gas?.gasUsed) ? gas.gasUsed : null,
+                gasLimit: Number.isFinite(gas?.gasLimit) ? gas.gasLimit : null,
                 story: classifyBlockStory({
                     transactions,
                     stakingRows,
                     catalog,
                     transactionsClipped,
-                    stakingClipped
+                    stakingClipped,
+                    maxFragments: 8
                 }),
-                complete: transactions !== null && stakingRows !== null,
+                complete: transactions !== null && stakingRows !== null && gas?.complete === true,
                 updatedAt: Date.now()
             };
             heartbeatActivityCache.set(level, activity);
@@ -697,6 +1410,58 @@ async function fetchHeartbeatActivity(level) {
         });
     heartbeatActivityInFlight.set(level, promise);
     return promise;
+}
+
+function consumedMilligas(result) {
+    const milligas = Number(result?.consumed_milligas);
+    if (Number.isFinite(milligas) && milligas >= 0) return milligas;
+    const gas = Number(result?.consumed_gas);
+    return Number.isFinite(gas) && gas >= 0 ? gas * 1000 : 0;
+}
+
+function sumManagerOperationMilligas(groups) {
+    let total = 0;
+    for (const group of Array.isArray(groups) ? groups : []) {
+        for (const content of Array.isArray(group?.contents) ? group.contents : []) {
+            total += consumedMilligas(content?.metadata?.operation_result);
+            for (const internal of Array.isArray(content?.metadata?.internal_operation_results)
+                ? content.metadata.internal_operation_results
+                : []) {
+                total += consumedMilligas(internal?.result);
+            }
+        }
+    }
+    return total;
+}
+
+async function fetchHeartbeatGasLimit() {
+    if (Number.isFinite(heartbeatGasLimitCache)
+        && Date.now() - heartbeatGasLimitCacheAt < PROTOCOL_CONSTANTS_TTL) {
+        return heartbeatGasLimitCache;
+    }
+    if (heartbeatGasLimitInFlight) return heartbeatGasLimitInFlight;
+    const promise = fetchJson(`${API_URLS.octez}/chains/main/blocks/head/context/constants`, 1, { priority: 'interactive' })
+        .then((constants) => {
+            const limit = Number(constants?.hard_gas_limit_per_block);
+            if (!Number.isFinite(limit) || limit <= 0) throw new Error('Current block gas limit is unavailable');
+            heartbeatGasLimitCache = limit;
+            heartbeatGasLimitCacheAt = Date.now();
+            return limit;
+        })
+        .finally(() => {
+            if (heartbeatGasLimitInFlight === promise) heartbeatGasLimitInFlight = null;
+        });
+    heartbeatGasLimitInFlight = promise;
+    return promise;
+}
+
+async function fetchHeartbeatGas(level) {
+    const [groups, gasLimit] = await Promise.all([
+        fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/operations/3`, 1, { priority: 'interactive' }),
+        fetchHeartbeatGasLimit()
+    ]);
+    const gasUsed = sumManagerOperationMilligas(groups) / 1000;
+    return { gasUsed, gasLimit, complete: true };
 }
 
 async function fetchHeartbeatMissedRights(blocks) {
@@ -712,21 +1477,19 @@ async function fetchHeartbeatMissedRights(blocks) {
     if (heartbeatMissedRightsInFlight?.startLevel === startLevel && heartbeatMissedRightsInFlight?.endLevel === endLevel) {
         return heartbeatMissedRightsInFlight.promise;
     }
-    const promise = Promise.all([
-        fetchMissedRights('attestation', startLevel, endLevel, MISSED_RIGHTS_LIMIT, { priority: 'interactive' }),
-        fetchMissedRights('baking', startLevel, endLevel, 30, { priority: 'interactive' })
-    ]).then(([attestations, baking]) => {
+    const promise = fetchMissedRights('attestation', startLevel, endLevel, MISSED_RIGHTS_LIMIT, { priority: 'interactive' }).then((attestations) => {
         heartbeatMissedRightsCache = {
             startLevel,
             endLevel,
             attestations,
-            baking,
             sampleClipped: attestations.length >= MISSED_RIGHTS_LIMIT,
             updatedAt: Date.now()
         };
+        heartbeatMissedRightsFailureRange = null;
         return heartbeatMissedRightsCache;
     }).catch((error) => {
         console.warn('Live Head missed-right sample failed:', error);
+        heartbeatMissedRightsFailureRange = { startLevel, endLevel, updatedAt: Date.now() };
         return heartbeatMissedRightsCache;
     }).finally(() => {
         if (heartbeatMissedRightsInFlight?.promise === promise) heartbeatMissedRightsInFlight = null;
@@ -748,8 +1511,7 @@ function requestHeartbeatSupplements(data) {
     const visible = visibleLiveHeadBlocks(data);
     Promise.allSettled([
         ...visible.map((block) => fetchHeartbeatActivity(Number(block.level))),
-        fetchHeartbeatMissedRights(visible),
-        fetchNakamotoCoefficients()
+        fetchHeartbeatMissedRights(visible)
     ]).then(refreshIfCurrent);
 }
 
@@ -757,16 +1519,19 @@ function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
     const panel = document.getElementById('live-head');
     const button = document.getElementById('live-head-button');
     const stack = document.getElementById('live-head-stack');
-    const bakerButton = document.getElementById('live-head-bakers');
     const activityButton = document.getElementById('header-activity-button');
-    if (!panel || !button || !stack || !bakerButton || !activityButton) return;
+    if (!panel || !button || !stack || !activityButton) return;
+    wireLiveHeadPillFitting(panel);
+    wireLiveHeadInspector(panel, stack);
 
     if (!button.dataset.liveHeadWired) {
         button.dataset.liveHeadWired = '1';
         button.addEventListener('click', openNetworkHealthChamber);
-        bakerButton.addEventListener('click', openNetworkHealthChamber);
         stack.addEventListener('click', (event) => {
-            if (event.target.closest('[data-live-head-level]')) openNetworkHealthChamber();
+            if (event.target.closest('[data-live-head-level]')) {
+                closeLiveHeadInspector();
+                openNetworkHealthChamber();
+            }
         });
     }
     if (!activityButton.dataset.headerActivityWired) {
@@ -776,11 +1541,14 @@ function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
     updateHeaderActivity(usagePulseCache);
 
     const latest = data?.blocks?.[0] || null;
+    updateLiveHeadStallAlert(data, { error });
     if (!latest) {
-        blockTickerFallback(error ? 'Live block feed unavailable' : 'Syncing latest head block', error ? 'degraded' : 'loading');
+        blockTickerFallback(error ? 'degraded' : 'loading');
         return;
     }
     heartbeatData = data;
+    const suppressMotion = Boolean(suppressNextHeartbeatMotion && !supplemental);
+    if (!supplemental) suppressNextHeartbeatMotion = false;
 
     dispatchContestedRoundHotSignal(latest);
     if (!supplemental) fetchUsagePulse().then(patchTickerUsage);
@@ -789,13 +1557,14 @@ function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
     const producerName = bakerName(latest.producer);
     const nextRight = heartbeatNextRightCache?.level === latest.level + 1 ? heartbeatNextRightCache : null;
     updateLiveHeadNext(latest, nextRight);
-    updateLiveHeadBakers(data);
     const visible = visibleLiveHeadBlocks(data);
     const signature = [
-        ...visible.map((block) => `${block.level}:${block.producer?.address || ''}:${heartbeatActivityCache.get(Number(block.level))?.story?.signature || 'syncing'}`),
+        ...visible.map((block) => {
+            const activity = heartbeatActivityCache.get(Number(block.level)) || null;
+            return `${block.level}:${block.intervalSeconds ?? 'unknown'}:${block.blockRound}:${block.power ?? 'unknown'}:${block.committee ?? 'unknown'}:${block.producer?.address || ''}:${buildLiveHeadDetails(block, activity).signature}:${liveHeadGasState(activity).signature}`;
+        }),
         nextRight?.baker?.address || '',
-        nextRight?.timestamp || '',
-        bakerButton.dataset.noticeSignature || 'empty'
+        nextRight?.timestamp || ''
     ].join(':');
     const nextTitle = nextRight
         ? ` Next round-zero proposer for block ${formatCount(nextRight.level)}: ${bakerName(nextRight.baker)}, ${formatHeartbeatDue(nextRight.timestamp)}.`
@@ -805,6 +1574,7 @@ function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
 
     panel.dataset.blockHealth = status.className;
     panel.dataset.feedState = error ? 'stale' : 'live';
+    panel.setAttribute('aria-busy', 'false');
     button.title = title;
     button.setAttribute('aria-label', `Open Network Health Chamber. ${title}`);
 
@@ -819,10 +1589,13 @@ function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
     const headChanged = Boolean(previousLevel && previousLevel !== latest.level);
     stack.dataset.liveHeadSignature = signature;
     panel.dataset.heartbeatLevel = String(latest.level);
-    quietlySyncHtml(stack, renderLiveHeadRows(data));
     const arrivedRecently = heartbeatSupplementIsCurrent(latest);
-    revealLiveHeadFacts(panel, { headChanged: Boolean(headChanged && arrivedRecently) });
-
+    const motionSuppressed = suppressMotion || !arrivedRecently;
+    const { freshBlocks } = updateLiveHeadRows(stack, data, { suppressMotion: motionSuppressed });
+    fitLiveHeadPills(panel);
+    revealLiveHeadFacts(panel, { suppressMotion: motionSuppressed });
+    fillLiveHeadBars(panel, { suppressMotion: motionSuppressed });
+    refreshLiveHeadInspector();
     if (headChanged) {
         panel.dataset.liveHeadTransitionCount = String(Number(panel.dataset.liveHeadTransitionCount || 0) + 1);
         const announcer = document.getElementById('chain-heartbeat-announcer');
@@ -1934,9 +2707,12 @@ function numericRound(value) {
 }
 
 function normalizeBlock(block) {
-    const committee = Number(block.attestationCommittee) || POWER_PER_BLOCK;
-    const rawPower = Number(block.attestationPower ?? block.validations ?? 0);
-    const power = Math.max(0, Math.min(Number.isFinite(rawPower) ? rawPower : 0, committee));
+    const rawCommittee = Number(block.attestationCommittee);
+    const committee = Number.isFinite(rawCommittee) && rawCommittee > 0 ? rawCommittee : null;
+    const rawPower = Number(block.attestationPower ?? block.validations);
+    const power = Number.isFinite(rawPower)
+        ? Math.max(0, committee === null ? rawPower : Math.min(rawPower, committee))
+        : null;
     const payloadRound = numericRound(block.payloadRound);
     const blockRound = Number.isFinite(Number(block.blockRound)) ? Number(block.blockRound) : payloadRound;
     const feesMutez = Number(block.fees);
@@ -1953,9 +2729,9 @@ function normalizeBlock(block) {
         blockRound,
         power,
         committee,
-        missedPower: Math.max(0, committee - power),
+        missedPower: committee !== null && power !== null ? Math.max(0, committee - power) : null,
         intervalSeconds: null,
-        score: committee > 0 ? (power / committee) * 100 : 0,
+        score: committee !== null && power !== null ? (power / committee) * 100 : null,
         feesMutez: Number.isFinite(feesMutez) ? feesMutez : null,
         mintedMutez: rewardParts.some(Number.isFinite)
             ? rewardParts.reduce((sum, part) => sum + (Number.isFinite(part) ? part : 0), 0)
@@ -1976,8 +2752,9 @@ function addBlockIntervals(blocks) {
 }
 
 function summarizeBlocks(blocks) {
-    const totalPower = blocks.reduce((sum, block) => sum + block.power, 0);
-    const totalCommittee = blocks.reduce((sum, block) => sum + block.committee, 0);
+    const knownBlocks = blocks.filter((block) => Number.isFinite(block.power) && Number.isFinite(block.committee));
+    const totalPower = knownBlocks.reduce((sum, block) => sum + block.power, 0);
+    const totalCommittee = knownBlocks.reduce((sum, block) => sum + block.committee, 0);
     const score = totalCommittee > 0 ? (totalPower / totalCommittee) * 100 : 0;
 
     return {
@@ -3820,6 +4597,7 @@ async function refreshNetworkHealthChamber({ initial = false } = {}) {
 
     try {
         const data = await fetchNetworkHealthChamberData();
+        confirmLiveHeadObservation(data);
         if (!overlay.classList.contains('active')) return;
         if (initial) renderNetworkHealthChamber(data, body);
         else updateNetworkHealthInPlace(data, body);
@@ -3856,6 +4634,7 @@ function stopChamberRefresh() {
 }
 
 export async function openNetworkHealthChamber() {
+    closeLiveHeadInspector();
     await ensureNetworkHealthCss();
     document.getElementById('tooltip-network-health')?.classList.remove('is-open');
     let overlay = document.getElementById('network-health-modal');
@@ -3937,6 +4716,7 @@ export async function refreshNetworkHealth({ force = false } = {}) {
     const forcePeriods = force || !cachedData || Date.now() - lastFullFetch > PERIOD_TTL;
     refreshInFlight = fetchNetworkHealth({ forcePeriods })
         .then((data) => {
+            confirmLiveHeadObservation(data);
             cachedData = data;
             lastFullFetch = data.periodUpdatedAt || lastFullFetch;
             saveCachedData(data);
@@ -3969,6 +4749,7 @@ export function initNetworkHealth() {
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState !== 'visible') return;
             refreshHealthAgeLabels(document);
+            suppressNextHeartbeatMotion = true;
             refreshNetworkHealth();
         });
     }
@@ -3991,6 +4772,7 @@ export function initNetworkHealth() {
     }, LIVE_REFRESH_INTERVAL);
 
     window.addEventListener('block-pulse', () => {
+        if (document.visibilityState !== 'visible') return;
         const now = Date.now();
         lastBlockPulseAt = now;
         if (now - lastBlockPulseFetch < BLOCK_PULSE_THROTTLE) return;

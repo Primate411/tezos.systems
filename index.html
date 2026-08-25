@@ -51,18 +51,18 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=584">
-    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=584">
-    <link rel="stylesheet" href="css/loading.css?v=584">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=584">
-    <link rel="stylesheet" href="css/protocol-anthology.css?v=584">
-    <link rel="stylesheet" href="css/site-map.css?v=584">
+    <link rel="stylesheet" href="css/styles.min.css?v=586">
+    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=586">
+    <link rel="stylesheet" href="css/loading.css?v=586">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=586">
+    <link rel="stylesheet" href="css/protocol-anthology.css?v=586">
+    <link rel="stylesheet" href="css/site-map.css?v=586">
     <link rel="stylesheet" href="css/hen-mode.css?v=98">
     <script src="js/core/hen-init.js?v=79" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=584">
+    <link rel="modulepreload" href="js/core/app.js?v=586">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/data-assets.js">
@@ -276,8 +276,8 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=584"></script>
-    <script src="js/core/home-layout-preload.js?v=584"></script>
+    <script src="js/core/theme-preload.js?v=586"></script>
+    <script src="js/core/home-layout-preload.js?v=586"></script>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="top-utility-row">
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
@@ -722,7 +722,7 @@
     </section>
 
     <!-- Live Head: recent blocks flowing into the site-wide search well. -->
-    <section class="live-head-panel lb-panel" id="live-head" aria-label="Live Tezos blocks and search" data-home-block="live-head" data-feed-state="loading">
+    <section class="live-head-panel lb-panel" id="live-head" aria-label="Live Tezos blocks and search" aria-busy="true" data-home-block="live-head" data-feed-state="loading">
         <div class="live-head-topline">
             <button class="live-head-title lb-panel-title" id="live-head-button" type="button" aria-label="Open Network Health Chamber"><span>Live blocks</span></button>
             <span class="live-head-next" id="live-head-next" data-quiet-key="next-right">Next R0 syncing</span>
@@ -732,18 +732,30 @@
                 <span class="home-block-hide-label">Hide</span>
             </button>
         </div>
+        <button class="live-head-alert" id="live-head-alert" type="button" aria-hidden="true" hidden>
+            <span class="live-head-alert-mark" aria-hidden="true">!</span>
+            <span class="live-head-alert-copy">
+                <strong data-live-head-alert-label>CHAIN STALLED</strong>
+                <span data-live-head-alert-detail>No new block has been confirmed.</span>
+            </span>
+            <span class="live-head-alert-action">Open Network Health <span aria-hidden="true">→</span></span>
+        </button>
         <div class="live-head-stack" id="live-head-stack" aria-live="off">
-            <button class="live-head-row is-placeholder" type="button" disabled data-quiet-key="live-head-placeholder-0"><span>Syncing latest block</span></button>
-            <button class="live-head-row is-placeholder" type="button" disabled data-quiet-key="live-head-placeholder-1"><span>Listening for receipts</span></button>
-            <button class="live-head-row is-placeholder" type="button" disabled data-quiet-key="live-head-placeholder-2"><span>Preparing block stories</span></button>
-            <button class="live-head-row is-placeholder live-head-desktop-row" type="button" disabled data-quiet-key="live-head-placeholder-3"><span>Checking recent head</span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-0"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-1"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-2"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+            <button class="live-head-row is-placeholder live-head-desktop-row" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-3"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
         </div>
-        <button class="live-head-bakers" id="live-head-bakers" type="button" aria-label="Open missed rights in Network Health" data-quiet-key="live-head-quiet-bakers" data-empty="true"><span>Missed rights line reserved</span></button>
+        <aside class="live-head-inspector" id="live-head-inspector" aria-label="Complete block receipt" aria-hidden="true" hidden></aside>
         <span class="sr-only" id="chain-heartbeat-announcer" aria-live="polite" aria-atomic="true"></span>
+        <span class="sr-only" id="chain-stall-announcer" aria-live="assertive" aria-atomic="true"></span>
         <div class="hero-slot" id="hero-slot">
             <form class="hero-search-form" id="hero-search-form" role="search" autocomplete="off">
                 <span class="hero-search-mark" aria-hidden="true">⌕</span>
-                <input class="hero-search-input" id="hero-search-input" type="search" aria-label="Search Tezos Systems" role="combobox" aria-controls="hero-search-panel" aria-expanded="false" aria-autocomplete="list" aria-activedescendant="" placeholder="Search Tezos" spellcheck="false" autocomplete="off">
+                <span class="hero-search-copy">
+                    <input class="hero-search-input" id="hero-search-input" type="search" aria-label="Search Tezos Systems" aria-describedby="hero-search-help" role="combobox" aria-controls="hero-search-panel" aria-expanded="false" aria-autocomplete="list" aria-activedescendant="" placeholder="Search Tezos" spellcheck="false" autocomplete="off">
+                    <span class="hero-search-help" id="hero-search-help">Wallets · .tez names · bakers · KT1 contracts · operations · blocks · protocols · Chambers — press / anywhere</span>
+                </span>
                 <button class="hero-search-submit" type="submit" aria-label="Open selected Tezos Systems result">→</button>
                 <button class="hero-search-close" id="hero-search-close" type="button" aria-label="Close search">&times;</button>
             </form>
@@ -2849,8 +2861,8 @@
 
     <!-- Load app as module -->
     <script defer src="js/features/hen-mode.js?v=95"></script>
-    <script type="module" src="js/effects/valley-loader.js?v=584"></script>
-    <script type="module" src="js/core/app.js?v=584"></script>
+    <script type="module" src="js/effects/valley-loader.js?v=586"></script>
+    <script type="module" src="js/core/app.js?v=586"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="my-baker-modal-title" tabindex="-1">

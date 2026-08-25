@@ -366,18 +366,64 @@ inline modal styles in `js/core/app.js`.
   stamps that distinguish generated archive age, live source observation, and
   the oldest contributing source in a multi-ledger room.
 - The **Live Head** card combines recent blocks and site-wide search below
-  the header/title row. Four desktop rows or three mobile rows identify each
-  level, baker, age, and up to three catalog-backed Art, DeFi, Gaming, Bridge,
-  Etherlink, Stake, Unstake, or Transfer facts; an unclassified block says
-  `Quiet`. The title row keeps the exact next round-zero baking right as a right,
-  not a guarantee. One optional muted line names material missed baking or
-  attestation rights in the visible sample, favoring large and medium bakers.
-  Six-second visible-tab polling quietly reconciles stable keyed rows, retains
-  last-good data, catches up once on visibility, and announces only a genuinely
-  new block. New facts settle once and reduced motion shows them immediately.
-  The full-width search well stays at the card floor: focusing it leaves the
-  blocks, Pulse, header, and landing page in place while a short starter/result
-  list opens below. Clicking a block or missed-right notice opens Network Health.
+  the header/title row. Four desktop rows or three mobile rows reuse Network
+  Health's Passing Blocks language: level, round, previous-block delta,
+  attested power/committee, a compact health bar, age, and baker are always
+  present once a block is known. A second line adds at most two reviewed Art,
+  DeFi, Gaming, Bridge, Etherlink, Stake, Unstake, or Transfer facts in distinct
+  color-coded, truncated pills; complete empty receipts are marked `Quiet`,
+  never in place of block telemetry. The title row keeps the exact
+  next round-zero baking right as a right, not a guarantee. Every block below
+  6,969 attested power, and every `Quiet` block, owns its own missed-attester
+  receipt. Those pills prefer `.tez` or TzKT aliases, fall back to truncated
+  `tz1`–`tz4` addresses, retain the full identity in their receipt title, and
+  say explicitly when no miss was indexed or the source is unavailable. Every
+  returned identity is rendered; a width observer shows the full kitchen sink
+  whenever it fits and introduces `+N bakers` only for pills that actually
+  overflow at the current size. Producer aliases use a restrained JetBrains Mono
+  identity face,
+  while an unaliased producer keeps its full address on wide rows and truncates
+  only when the producer column truly runs out of room. The first-line cluster
+  reads power fraction, safety-margin rail, missed power, then activity state.
+  `Quiet` appears after missed power only for a complete empty receipt. Every
+  Quiet, gas, activity, and missed-attester pill uses the same opaque dark
+  backing, inset edge, shadow, and blur so it survives every theme without
+  surrendering its category or severity color. Every non-quiet block replaces it
+  with a `Gas N%` pill derived from exact outer and internal manager-operation
+  milligas against the active protocol block limit. Gas fills progress from
+  cool/open through active, busy, and hot as capacity is consumed, leaving the
+  second line for baker identities and real activity.
+  The compact health rail excludes the power every block must have and shows
+  only the signed margin above the exact two-thirds quorum; sub-quorum power
+  becomes a red deficit. There is no threshold marker or separate Safe/Strong
+  pill. Its high-contrast number stays legible over every severity fill. The raw
+  fraction remains a receipt while rail length, number, and color
+  communicate how comfortably the block cleared quorum.
+  First paint uses opaque slotted bars rather than loading sentences. Six-second
+  visible-tab polling quietly reconciles stable keyed rows, retains last-good
+  data, catches up once without motion, and announces only a genuinely new
+  block. A source-confirmed head gap first becomes an amber `BLOCKS DELAYED`
+  warning after 18 seconds and then a large red `CHAIN STALLED` banner after 30
+  seconds. The critical state keeps the last-good receipts visible, opens
+  Network Health as a whole control, survives a later source-check failure, and
+  remains latched until a genuinely newer block arrives. A new level softly
+  fades and resolves into place while retained keyed
+  rows glide together and the outgoing row dissolves, then its margin rail fills
+  once. The full-width search well stays at the card floor, aligns its title and
+  expanded wallet/domain/baker/contract/operation/block/protocol/Chamber help
+  with the block number and baker column, and keeps that guidance on the idle
+  surface. The optional Quick tour action sits at the search floor's right edge.
+  Focusing it leaves
+  the blocks, Pulse, header, and landing page in place while its starter/result
+  list extends to the viewport's bottom gutter. The block rows use generous breathing
+  room, not horizontal separator lines; the card has no decorative top cap; and
+  the search well is the card's full-bleed bottom edge rather than an inset box.
+  There is no global missed-rights sentence. Hovering or focusing any real row
+  opens a compact complete receipt with direct TzKT links for the block, every
+  metric and activity category, and every missed baker; producer, proposer, and
+  missed-baker identities also expose My Tezos handoffs. Its footer, the row
+  itself, and non-link receipt space open the Network Health Chamber while
+  receipt links remain independently clickable.
 - The header keeps the current protocol beside the Tezos Systems title and
   orders its right-side navigation as My Tezos, Explore, then Setup. HEN stays
   tucked inside the corner gift tray instead of appearing as a separate header
@@ -786,14 +832,15 @@ inline modal styles in `js/core/app.js`.
 - First-screen Live Head is built for liveness and retrieval: the top of the
   page moves from live cycle/market data to `Tezos Systems`, a clickable
   `Running on <current protocol>` Protocol History launcher, Live Pulse, then
-  recent human-readable blocks flowing into a pure search well before Chambers.
+  recent Passing Blocks telemetry flowing into a pure search well before Chambers.
   The search accepts
   Tezos addresses, `.tez` names, protocol names, block levels, block hashes,
   operation hashes, KT1 contracts, and slash commands. Empty focus exposes six
   calm starters; typing replaces them with the ranked canonical destination and
-  runtime-action list. Results stay anchored below the well without dimming,
-  blurring, scaling, or disabling the landing page, and the field never becomes
-  a mobile sheet. HEN terminal chrome is limited to HEN theme/mode. The
+  runtime-action list. Results stay anchored below the well and use the remaining
+  viewport height without dimming, blurring, scaling, or disabling the landing
+  page; the field never becomes a mobile sheet. HEN terminal chrome is limited
+  to HEN theme/mode. The
   compact `What's hot today` live pulse
   sits above Chambers as a horizontally scrolling strip for non-obvious daily
   signals instead of repeating the header's cycle, baker, staking, or security

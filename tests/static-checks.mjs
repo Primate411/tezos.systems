@@ -305,6 +305,8 @@ function checkLiveHeadPureContracts() {
     ]
   });
   assert.equal(staking.text, 'Stake 12,400 ꜩ · Unstake 800 ꜩ');
+  assert.equal(classifyBlockStory({ transactions: null, stakingRows: null }), null);
+  assert.equal(classifyBlockStory({ transactions: [], stakingRows: null }), null);
   assert.equal(classifyBlockStory({ transactions: [], stakingRows: [] }).text, 'Quiet');
   assert(classifyBlockStory({ transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }], stakingRows: [] }).text.startsWith('Transfers'));
   assert(classifyBlockStory({ transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }], stakingRows: [], transactionsClipped: true }).text.endsWith('+'));
@@ -2177,7 +2179,6 @@ async function checkSelectorContracts() {
     'pulse-ticker-shelf',
     'live-head',
     'live-head-stack',
-    'live-head-bakers',
     'live-head-next',
     'header-activity-button',
     'header-activity-line',
@@ -2555,7 +2556,7 @@ async function checkSelectorContracts() {
     ['Hero search explicit mobile close', 'id="hero-search-close"', index],
     ['Hero search runtime changelog command', "title: '/changelog'", search],
     ['Hero search runtime export command', "title: '/export'", search],
-    ['Hero search mobile remains an anchored overlay', 'max-height: min(40vh, 360px', heroSearchCss],
+    ['Hero search remains an anchored bottom-of-window overlay', 'height: var(--hero-search-available-height', heroSearchCss],
     ['Hero search hides shortcut chips outside HEN presentation', '.live-head-panel .hero-search-chips', heroSearchCss],
     ['Top continuity mobile explainer reserves flow', '.top-continuity-explain.is-visible', shellExtrasCss],
     ['Hero search .tez scoped Domains route', '#domains=${encodeURIComponent(domain)}', search],
@@ -3134,17 +3135,42 @@ async function checkSelectorContracts() {
     ['Live Head fixed age formatter', 'function formatTickerAge', health],
     ['Live Head keyed block rows', 'data-quiet-key="live-head-block-${block.level}"', health],
     ['Live Head search floor', 'class="hero-slot" id="hero-slot"', index],
+    ['Live Head search usage help', 'id="hero-search-help">Wallets · .tez names · bakers · KT1 contracts · operations · blocks · protocols · Chambers — press / anywhere', index],
     ['Live Head countdown stays outside its announcer', 'data-magic="off"', health],
     ['Live Head dedicated block announcer', 'id="chain-heartbeat-announcer" aria-live="polite"', index],
     ['Live Head exact next R0 right', 'function fetchHeartbeatNextRight', health],
     ['Live Head per-block activity receipts', 'function fetchHeartbeatActivity', health],
+    ['Live Head per-block missed-attester receipts', 'function liveHeadMissedState', health],
+    ['Live Head exact missed-attester threshold', 'LIVE_HEAD_POWER_DETAIL_THRESHOLD = 6969', health],
+    ['Live Head quiet-block missed-attester trigger', 'const quiet = story?.quiet === true', health],
+    ['Live Head missed-attester identity pills', 'data-missed-baker-address=', health],
+    ['Live Head width-aware pill fitting', 'function fitLiveHeadPills', health],
+    ['Live Head responsive pill observer', 'new ResizeObserver', health],
+    ['Live Head full producer addresses', "producerHasAlias ? producer.alias : (producer.address || 'Unknown baker')", health],
+    ['Live Head two-thirds consensus status', 'const quorumPower = Math.ceil(committee * 2 / 3)', health],
+    ['Live Head top-line Quiet indicator', 'class="live-head-quiet"', health],
+    ['Live Head exact manager gas receipt', '/operations/3', health],
+    ['Live Head protocol gas-limit denominator', 'hard_gas_limit_per_block', health],
+    ['Live Head internal manager gas aggregation', 'internal_operation_results', health],
+    ['Live Head non-quiet gas fullness pill', 'class="live-head-gas is-${gas.className}"', health],
+    ['Live Head gas severity tiers', "pct >= 85 ? 'hot' : pct >= 60 ? 'busy' : pct >= 25 ? 'active' : 'open'", health],
+    ['Live Head quiet removed from detail pills', "filter((fragment) => fragment.key !== 'quiet')", health],
     ['Live Head four-row height-safe cap', 'return window.matchMedia', health],
-    ['Live Head quiet reconciliation', 'quietlySyncHtml(stack, renderLiveHeadRows(data))', health],
+    ['Live Head quiet keyed row reconciliation', 'quietlySyncElement(row, renderLiveHeadRow', health],
+    ['Live Head FLIP row shift', 'function smoothlyShiftLiveHeadRows', health],
+    ['Live Head Passing Blocks level field', 'class="live-head-level"', health],
+    ['Live Head Passing Blocks round field', '${renderRoundBadge(block)}', health],
+    ['Live Head Passing Blocks delta field', 'live-head-delta health-interval', health],
+    ['Live Head Passing Blocks attestation field', 'live-head-power health-power', health],
+    ['Live Head once-per-margin bar signature', 'data-bar-signature="${barSignature}"', health],
+    ['Live Head opaque first paint', 'class="live-head-skeleton-primary"', index],
     ['Live Head visibility-gated supplements', "document.visibilityState !== 'visible'", health],
     ['Live Head health feed hook', 'updateBlockTicker(data)', health],
     ['price bar cycle health wiring', 'function wireCycleChipHealthLauncher', health],
     ['Live Head landing-page panel styles', '.live-head-panel.lb-panel', heroSearchCss],
     ['Live Head story chip styles', '.live-head-story-chip', heroSearchCss],
+    ['Live Head missed-attester pill styles', '.live-head-miss-pill', heroSearchCss],
+    ['Live Head gas fullness fill styles', '.live-head-gas::before', heroSearchCss],
     ['Live Head reduced-motion settle', '.live-head-story-chip,', heroSearchCss],
     ['network health continuity panel styles', '.health-continuity-panel', styles],
     ['network health continuity runtime styles', '.health-continuity-runtime', styles],
@@ -3510,7 +3536,10 @@ async function checkSelectorContracts() {
   }
   const chainHeartbeatUpdateBlock = health.match(/function updateBlockTicker[\s\S]*?function wireCycleChipHealthLauncher/)?.[0] || '';
   const chainHeartbeatActivityBlock = health.match(/async function fetchHeartbeatActivity[\s\S]*?function requestHeartbeatSupplements/)?.[0] || '';
-  if (!chainHeartbeatUpdateBlock.includes('quietlySyncHtml(stack, renderLiveHeadRows(data))')) {
+  const liveHeadRowBlock = health.match(/function renderLiveHeadRow[\s\S]*?function renderLiveHeadRows/)?.[0] || '';
+  if (!health.includes('function updateLiveHeadRows')
+      || !health.includes('quietlySyncElement(row, renderLiveHeadRow')
+      || !health.includes("stack.insertAdjacentHTML('afterbegin'")) {
     fail('Live Head updates must reconcile compatible keyed rows in place');
   }
   if (chainHeartbeatUpdateBlock.includes('stack.innerHTML')) {
@@ -3518,6 +3547,97 @@ async function checkSelectorContracts() {
   }
   if (!chainHeartbeatActivityBlock.includes('Promise.allSettled') || !chainHeartbeatActivityBlock.includes('transactions !== null && stakingRows !== null')) {
     fail('Live Head stories must preserve partial-source receipt truth instead of coercing unavailable data to zero');
+  }
+  const powerIndex = liveHeadRowBlock.indexOf('live-head-power health-power');
+  const trackIndex = liveHeadRowBlock.indexOf('live-head-power-track');
+  const activityStatusIndex = liveHeadRowBlock.indexOf('${activityStatus}');
+  const missedIndex = liveHeadRowBlock.indexOf('${missed}');
+  if (!(powerIndex >= 0 && trackIndex > powerIndex && missedIndex > trackIndex && activityStatusIndex > missedIndex)) {
+    fail('Live Head must read attestation power, safety-margin rail, missed power, then Quiet/gas status');
+  }
+  if (!health.includes("if (story.quiet === true) return { state: 'quiet'")
+      || !health.includes("if (gas.state === 'quiet')")
+      || !health.includes("if (gas.state === 'unavailable')")
+      || !health.includes('data-gas-percent=')) {
+    fail('Live Head must render Quiet and factual gas fullness as mutually exclusive, truth-preserving top-line states');
+  }
+  if (!index.includes('id="live-head-inspector"')
+      || !health.includes('function renderLiveHeadInspector(')
+      || !health.includes('function wireLiveHeadInspector(')
+      || !health.includes('liveHeadBlockUrl(level, { operations: true })')
+      || !health.includes('href="/#my-baker=${encoded}"')
+      || !health.includes('data-live-head-open-health')
+      || !health.includes('maxFragments: 8')
+      || !heroSearchCss.includes('.live-head-inspector-fact')
+      || !heroSearchCss.includes('.live-head-inspector-health')) {
+    fail('Every Live Head block must expose a complete linked TzKT/My Tezos inspector with a Network Health handoff');
+  }
+  if (!index.includes('id="live-head-alert"')
+      || !index.includes('id="chain-stall-announcer"')
+      || !health.includes('const LIVE_HEAD_STALLED_AFTER = 30 * 1000')
+      || !health.includes('function confirmLiveHeadObservation(')
+      || !health.includes("liveHeadStallLatchedLevel = level")
+      || !health.includes("label.textContent = state === 'stalled' ? 'CHAIN STALLED' : 'BLOCKS DELAYED'")
+      || !health.includes('liveHeadResumePendingLevel = level')
+      || !health.includes("state === 'live' && (previousState === 'stalled' || liveHeadResumePendingLevel > 0)")
+      || !heroSearchCss.includes('.live-head-panel[data-chain-state="stalled"]')
+      || !heroSearchCss.includes('.live-head-alert-copy strong')) {
+    fail('Live Head must latch a source-confirmed stale head into an unmistakable chain-stall alert until a newer block resumes the chain');
+  }
+  if (!heroSearchCss.includes('.live-head-quiet,\n.live-head-gas,\n.live-head-story-chip,\n.live-head-miss-pill')
+      || !heroSearchCss.includes('background: rgba(11, 18, 34, 0.88);')
+      || !heroSearchCss.includes('box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 10%, transparent)')
+      || !heroSearchCss.includes('text-shadow: 0 1px 2px rgba(2, 8, 18, 0.9);')
+      || !heroSearchCss.includes('backdrop-filter: blur(4px);')) {
+    fail('Every Live Head pill must inherit Quiet\'s opaque theme-invariant backing, edge, shadow, and blur');
+  }
+  for (const bannedLiveHeadCopy of ['Syncing latest head block', 'Waiting for recent block receipts', 'Receipts syncing', 'Preparing block stories']) {
+    if (index.includes(bannedLiveHeadCopy) || chainHeartbeatUpdateBlock.includes(bannedLiveHeadCopy)) {
+      fail(`Live Head first paint must use opaque objects instead of visible status copy: ${bannedLiveHeadCopy}`);
+    }
+  }
+  if (!heroSearchCss.includes('height: var(--hero-search-available-height')
+      || heroSearchCss.includes('max-height: min(40vh, 420px')
+      || !search.includes('!event.target.isConnected')
+      || !search.includes("window.addEventListener('scroll', syncAvailableHeight, { passive: true })")) {
+    fail('Live Head search must reach the viewport bottom and preserve detached result-menu clicks');
+  }
+  if (index.includes('id="live-head-bakers"')
+      || health.includes('function updateLiveHeadBakers')
+      || health.includes('LIVE_HEAD_MISS_PILL_LIMIT')
+      || !health.includes('data-miss-state=')
+      || !heroSearchCss.includes('.live-head-story-chip.is-transfers')
+      || !heroSearchCss.includes('.live-head-story-chip.is-art')
+      || !heroSearchCss.includes('.live-head-miss-pill')
+      || !heroSearchCss.includes('text-overflow: ellipsis;')
+      || !heroSearchCss.includes('width: calc(100% + 32px);')
+      || !heroSearchCss.includes('margin: 4px -16px -8px;')
+      || !heroSearchCss.includes('border-top: 0;')) {
+    fail('Live Head must put color-coded truncated facts on each block and join the block stack directly to the search well');
+  }
+  const liveHeadRowCss = heroSearchCss.match(/\.live-head-row \{[\s\S]*?\n\}/)?.[0] || '';
+  const liveHeadPanelRuleCss = heroSearchCss.match(/\.live-head-panel\.lb-panel::before \{[\s\S]*?\n\}/)?.[0] || '';
+  const liveHeadSearchFormCss = heroSearchCss.match(/\.live-head-panel \.hero-search-form \{[\s\S]*?\n\}/)?.[0] || '';
+  if (!liveHeadRowCss
+      || /border-bottom\s*:/.test(liveHeadRowCss)
+      || !liveHeadRowCss.includes('height: 60px;')
+      || !liveHeadRowCss.includes('row-gap: 4px;')
+      || !liveHeadPanelRuleCss.includes('content: none;')
+      || !liveHeadPanelRuleCss.includes('display: none;')
+      || !liveHeadSearchFormCss.includes('border: 0;')
+      || !liveHeadSearchFormCss.includes('border-top: 1px solid')
+      || !heroSearchCss.includes('.live-head-baker.is-address')
+      || !/\.live-head-baker\s*\{[\s\S]*?font-family:\s*'JetBrains Mono'/.test(heroSearchCss)
+      || !heroSearchCss.includes('.live-head-panel .hero-search-form > .hero-search-copy > .hero-search-help')
+      || !heroSearchCss.includes('@keyframes liveHeadRowReveal')
+      || !heroSearchCss.includes('@keyframes liveHeadRowExit')
+      || !health.includes("row.style.transform = `translate3d(0, ${delta}px, 0)`")
+      || health.includes("import { blockTick }")
+      || heroSearchCss.includes('.live-head-power-track::after')
+      || heroSearchCss.includes('.live-head-consensus-cue')
+      || !heroSearchCss.includes('transform: scaleX(var(--live-head-margin, 0));')
+      || !health.includes('data-safety-margin=')) {
+    fail('Live Head must remove decorative rules, replace row lines with spacing, and use the search well as its integrated bottom edge');
   }
   if (!health.includes("document.addEventListener('visibilitychange'") || !health.includes("document.visibilityState !== 'visible'")) {
     fail('Chain Heartbeat polling and catch-up must remain visibility gated');
@@ -3932,12 +4052,12 @@ async function checkUxAuditContracts() {
     fail('TezosCRP category icon templates must defer off-screen loading and decoding');
   }
   if (!tooltipTour.includes("document.getElementById('hero-slot')")
-    || !tooltipTour.includes("document.querySelector('#live-head .live-head-topline')")
-    || !tooltipTour.includes('host.appendChild(nudge)')
+    || !tooltipTour.includes("document.getElementById('hero-search-form')")
+    || !tooltipTour.includes("host.insertBefore(nudge, host.querySelector('.hero-search-submit'))")
     || !tooltipTour.includes("window.addEventListener('hot-signal-rendered', keepNudgeInSearchRail)")
     || !/\(heroSlot \|\| document\.getElementById\('live-head'\) \|\| document\.body\)\.appendChild\(nudge\)/.test(tooltipTour)
     || !/\.tour-nudge\s*\{[\s\S]*?position:\s*static[\s\S]*?flex:\s*0 0 auto[\s\S]*?display:\s*inline-flex/.test(styles)
-    || !heroSearchCss.includes('.live-head-topline > .tour-nudge')) {
+    || !heroSearchCss.includes('.live-head-panel .hero-search-form > .tour-nudge')) {
     fail('first-visit guidance must stay compact without reviving an idle search-chip rail');
   }
   if (!/\.site-map-shell \.site-map-sublink\s*\{[\s\S]*?min-height:\s*24px/.test(siteMapCss)
