@@ -454,6 +454,11 @@ Stamping gotchas:
   rows, progressively append available TzKT artwork titles, add transfer total
   then largest sender-to-recipient route, and add stake/unstake amounts on wider
   rows. Fit each richer pill independently and reset mobile rows to compact text.
+  Treat an open block inspector as a reading lock: keep the exact keyed rows,
+  ages, next-right clock, stall state, and visible receipt facts unchanged while
+  newer polling results queue behind it. Hover/focus away, Escape, scroll, or a
+  click outside must close the inspector and apply only the newest queued result
+  as one motionless catch-up; never replace the row being read underneath it.
   Keep full unaliased producer addresses on wide rows and
   allow CSS ellipsis only when their own column is constrained; use the restrained
   JetBrains Mono identity face for aliases. Give every Quiet, gas, activity,

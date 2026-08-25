@@ -3601,13 +3601,19 @@ async function checkSelectorContracts() {
   if (!index.includes('id="live-head-inspector"')
       || !health.includes('function renderLiveHeadInspector(')
       || !health.includes('function wireLiveHeadInspector(')
+      || !health.includes('function liveHeadReadingPaused()')
+      || !health.includes('function queueLiveHeadPausedUpdate(')
+      || !health.includes('function resumeLiveHeadAfterInspector()')
+      || !health.includes("panel.dataset.readingPaused = 'true'")
+      || !health.includes('suppressMotion: true')
+      || !health.includes("document.addEventListener('pointerdown'")
       || !health.includes('liveHeadBlockUrl(level, { operations: true })')
       || !health.includes('href="/#my-baker=${encoded}"')
       || !health.includes('data-live-head-open-health')
       || !health.includes('maxFragments: 8')
       || !heroSearchCss.includes('.live-head-inspector-fact')
       || !heroSearchCss.includes('.live-head-inspector-health')) {
-    fail('Every Live Head block must expose a complete linked TzKT/My Tezos inspector with a Network Health handoff');
+    fail('Every Live Head block must expose a complete linked inspector that freezes its exact reading state until hover, focus, or click-away releases one quiet catch-up');
   }
   if (!index.includes('id="live-head-alert"')
       || !index.includes('id="chain-stall-announcer"')

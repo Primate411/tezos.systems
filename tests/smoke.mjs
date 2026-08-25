@@ -15718,6 +15718,95 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+
+  await page.mouse.move(1, 1);
+  await liveHeadFirstRow.hover();
+  await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  const readingPauseBefore = await page.evaluate(() => {
+    const panel = document.querySelector('#live-head');
+    const stack = document.querySelector('#live-head-stack');
+    const first = stack?.querySelector('.live-head-row[data-live-head-level]');
+    window.__liveHeadReadingLockRow = first;
+    return {
+      level: Number(panel?.dataset.heartbeatLevel || 0),
+      inspectorLevel: document.querySelector('#live-head-inspector')?.dataset.liveHeadLevel || '',
+      signature: stack?.dataset.liveHeadSignature || '',
+      levels: Array.from(stack?.querySelectorAll('.live-head-row[data-live-head-level]') || []).map((row) => row.dataset.liveHeadLevel),
+      age: first?.querySelector('.live-head-age')?.textContent?.trim() || '',
+      paused: panel?.dataset.readingPaused || ''
+    };
+  });
+  await page.evaluate(() => {
+    const timer = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 6000).at(-1);
+    const realNow = Date.now;
+    Date.now = () => realNow() + 13000;
+    try {
+      timer?.handler?.();
+    } finally {
+      Date.now = realNow;
+    }
+  });
+  await page.waitForFunction((previousLevel) => {
+    const panel = document.querySelector('#live-head');
+    return panel?.dataset.readingPaused === 'true'
+      && Number(panel.dataset.liveHeadPendingLevel || 0) > previousLevel;
+  }, readingPauseBefore.level, { timeout: 10000 });
+  await page.evaluate(() => {
+    const timers = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 1000);
+    const realNow = Date.now;
+    Date.now = () => realNow() + 5000;
+    try {
+      timers.forEach((timer) => timer?.handler?.());
+    } finally {
+      Date.now = realNow;
+    }
+  });
+  const readingPausedState = await page.evaluate(() => {
+    const panel = document.querySelector('#live-head');
+    const stack = document.querySelector('#live-head-stack');
+    const first = stack?.querySelector('.live-head-row[data-live-head-level]');
+    return {
+      paused: panel?.dataset.readingPaused || '',
+      renderedLevel: Number(panel?.dataset.heartbeatLevel || 0),
+      pendingLevel: Number(panel?.dataset.liveHeadPendingLevel || 0),
+      inspectorLevel: document.querySelector('#live-head-inspector:not([hidden])')?.dataset.liveHeadLevel || '',
+      signature: stack?.dataset.liveHeadSignature || '',
+      levels: Array.from(stack?.querySelectorAll('.live-head-row[data-live-head-level]') || []).map((row) => row.dataset.liveHeadLevel),
+      age: first?.querySelector('.live-head-age')?.textContent?.trim() || '',
+      sameRow: first === window.__liveHeadReadingLockRow
+    };
+  });
+  assert(readingPauseBefore.paused === 'true'
+      && readingPausedState.paused === 'true'
+      && readingPausedState.renderedLevel === readingPauseBefore.level
+      && readingPausedState.pendingLevel > readingPauseBefore.level
+      && readingPausedState.inspectorLevel === readingPauseBefore.inspectorLevel
+      && readingPausedState.signature === readingPauseBefore.signature
+      && readingPausedState.levels.join('|') === readingPauseBefore.levels.join('|')
+      && readingPausedState.age === readingPauseBefore.age
+      && readingPausedState.sameRow, `network health chamber: open block inspector did not freeze the exact Live Head reading state ${JSON.stringify({ readingPauseBefore, readingPausedState })}`);
+  await page.mouse.move(1, 1);
+  await page.mouse.click(1, 1);
+  await page.waitForFunction((previousLevel) => {
+    const panel = document.querySelector('#live-head');
+    return document.querySelector('#live-head-inspector')?.hidden === true
+      && !panel?.dataset.readingPaused
+      && !panel?.dataset.liveHeadPendingLevel
+      && Number(panel?.dataset.heartbeatLevel || 0) > previousLevel;
+  }, readingPauseBefore.level, { timeout: 10000 });
+  const readingResumedState = await page.evaluate(() => ({
+    level: Number(document.querySelector('#live-head')?.dataset.heartbeatLevel || 0),
+    pending: document.querySelector('#live-head')?.dataset.liveHeadPendingLevel || '',
+    newRows: document.querySelectorAll('#live-head-stack .lb-row-new').length,
+    exitRows: document.querySelectorAll('#live-head-stack .live-head-row-exiting').length,
+    shifting: Array.from(document.querySelectorAll('#live-head-stack .live-head-row')).some((row) => row.getAnimations().some((animation) => animation.id === 'live-head-shift'))
+  }));
+  assert(readingResumedState.level > readingPauseBefore.level
+      && readingResumedState.pending === ''
+      && readingResumedState.newRows === 0
+      && readingResumedState.exitRows === 0
+      && !readingResumedState.shifting, `network health chamber: click-away did not release one motionless Live Head catch-up ${JSON.stringify(readingResumedState)}`);
+
   await liveHeadFirstRow.click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();

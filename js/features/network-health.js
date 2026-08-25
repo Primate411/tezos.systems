@@ -118,6 +118,7 @@ let liveHeadPillResizeObserver = null;
 let liveHeadPillFitFrame = null;
 let liveHeadInspectorCloseTimer = null;
 let liveHeadInspectorLevel = null;
+let liveHeadPendingUpdate = null;
 let liveHeadConfirmedAt = 0;
 let liveHeadConfirmedLevel = 0;
 let liveHeadStallLatchedLevel = 0;
@@ -264,15 +265,18 @@ function healthAgeAttr(timestamp) {
 }
 
 function refreshHealthAgeLabels(root = document) {
+    const pauseLiveHead = liveHeadReadingPaused();
     root.querySelectorAll('[data-health-age]').forEach((element) => {
+        if (pauseLiveHead && element.closest('#live-head')) return;
         const formatter = element.dataset.healthAgeFormat === 'ticker' ? formatTickerAge : formatAge;
         element.textContent = formatter(element.dataset.healthAge);
     });
     root.querySelectorAll('[data-heartbeat-due]').forEach((element) => {
+        if (pauseLiveHead && element.closest('#live-head')) return;
         element.textContent = formatHeartbeatDue(element.dataset.heartbeatDue);
     });
     refreshDataFreshnessStates(root);
-    updateLiveHeadStallAlert(heartbeatData);
+    if (!pauseLiveHead) updateLiveHeadStallAlert(heartbeatData);
 }
 
 function startHealthAgeTicker() {
@@ -948,7 +952,54 @@ function cancelLiveHeadInspectorClose() {
     liveHeadInspectorCloseTimer = null;
 }
 
+function liveHeadReadingPaused() {
+    const inspector = document.getElementById('live-head-inspector');
+    return Boolean(Number.isFinite(liveHeadInspectorLevel) && inspector && !inspector.hidden);
+}
+
+function queueLiveHeadPausedUpdate(data, { error = false, supplemental = false } = {}) {
+    const incomingLevel = Number(data?.blocks?.[0]?.level) || 0;
+    const currentLevel = Number(liveHeadPendingUpdate?.level) || 0;
+    if (!liveHeadPendingUpdate || incomingLevel >= currentLevel) {
+        liveHeadPendingUpdate = {
+            data: data || liveHeadPendingUpdate?.data || heartbeatData,
+            error,
+            supplemental,
+            level: incomingLevel || currentLevel || Number(heartbeatData?.blocks?.[0]?.level) || 0
+        };
+    } else if (error) {
+        liveHeadPendingUpdate.error = true;
+    }
+    const panel = document.getElementById('live-head');
+    if (panel) {
+        panel.dataset.readingPaused = 'true';
+        panel.dataset.liveHeadPendingLevel = String(liveHeadPendingUpdate?.level || '');
+    }
+}
+
+function resumeLiveHeadAfterInspector() {
+    const panel = document.getElementById('live-head');
+    const pending = liveHeadPendingUpdate;
+    liveHeadPendingUpdate = null;
+    if (panel) {
+        delete panel.dataset.readingPaused;
+        delete panel.dataset.liveHeadPendingLevel;
+    }
+    if (pending?.data) {
+        updateBlockTicker(pending.data, {
+            error: pending.error,
+            supplemental: pending.supplemental,
+            suppressMotion: true
+        });
+    } else if (pending?.error && heartbeatData) {
+        updateBlockTicker(heartbeatData, { error: true, suppressMotion: true });
+    } else {
+        refreshHealthAgeLabels(panel || document);
+    }
+}
+
 function closeLiveHeadInspector() {
+    const wasPaused = liveHeadReadingPaused();
     cancelLiveHeadInspectorClose();
     const inspector = document.getElementById('live-head-inspector');
     if (inspector) {
@@ -962,6 +1013,7 @@ function closeLiveHeadInspector() {
         row.setAttribute('aria-expanded', 'false');
     });
     liveHeadInspectorLevel = null;
+    if (wasPaused || liveHeadPendingUpdate) resumeLiveHeadAfterInspector();
 }
 
 function scheduleLiveHeadInspectorClose() {
@@ -1000,6 +1052,8 @@ function showLiveHeadInspector(row) {
     inspector.dataset.liveHeadLevel = String(level);
     row.setAttribute('aria-expanded', 'true');
     liveHeadInspectorLevel = level;
+    const panel = document.getElementById('live-head');
+    if (panel) panel.dataset.readingPaused = 'true';
     positionLiveHeadInspector(row, inspector);
 }
 
@@ -1046,6 +1100,11 @@ function wireLiveHeadInspector(panel, stack) {
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !inspector.hidden) closeLiveHeadInspector();
     });
+    document.addEventListener('pointerdown', (event) => {
+        if (inspector.hidden) return;
+        if (event.target.closest('#live-head-inspector, .live-head-row[data-live-head-level]')) return;
+        closeLiveHeadInspector();
+    }, { capture: true });
     window.addEventListener('resize', refreshLiveHeadInspector);
     window.addEventListener('scroll', closeLiveHeadInspector, { passive: true, capture: true });
 }
@@ -1571,7 +1630,7 @@ function requestHeartbeatSupplements(data) {
     ]).then(refreshIfCurrent);
 }
 
-function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
+function updateBlockTicker(data, { error = false, supplemental = false, suppressMotion = false } = {}) {
     const panel = document.getElementById('live-head');
     const button = document.getElementById('live-head-button');
     const stack = document.getElementById('live-head-stack');
@@ -1596,6 +1655,11 @@ function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
     }
     updateHeaderActivity(usagePulseCache);
 
+    if (liveHeadReadingPaused()) {
+        queueLiveHeadPausedUpdate(data, { error, supplemental });
+        return;
+    }
+
     const latest = data?.blocks?.[0] || null;
     updateLiveHeadStallAlert(data, { error });
     if (!latest) {
@@ -1603,7 +1667,7 @@ function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
         return;
     }
     heartbeatData = data;
-    const suppressMotion = Boolean(suppressNextHeartbeatMotion && !supplemental);
+    const motionSuppressed = Boolean(suppressMotion || (suppressNextHeartbeatMotion && !supplemental));
     if (!supplemental) suppressNextHeartbeatMotion = false;
 
     dispatchContestedRoundHotSignal(latest);
@@ -1646,11 +1710,11 @@ function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
     stack.dataset.liveHeadSignature = signature;
     panel.dataset.heartbeatLevel = String(latest.level);
     const arrivedRecently = heartbeatSupplementIsCurrent(latest);
-    const motionSuppressed = suppressMotion || !arrivedRecently;
-    const { freshBlocks } = updateLiveHeadRows(stack, data, { suppressMotion: motionSuppressed });
+    const settleWithoutMotion = motionSuppressed || !arrivedRecently;
+    const { freshBlocks } = updateLiveHeadRows(stack, data, { suppressMotion: settleWithoutMotion });
     fitLiveHeadPills(panel);
-    revealLiveHeadFacts(panel, { suppressMotion: motionSuppressed });
-    fillLiveHeadBars(panel, { suppressMotion: motionSuppressed });
+    revealLiveHeadFacts(panel, { suppressMotion: settleWithoutMotion });
+    fillLiveHeadBars(panel, { suppressMotion: settleWithoutMotion });
     refreshLiveHeadInspector();
     if (headChanged) {
         panel.dataset.liveHeadTransitionCount = String(Number(panel.dataset.liveHeadTransitionCount || 0) + 1);

@@ -399,6 +399,11 @@ inline modal styles in `js/core/app.js`.
   route, and Stake or Unstake adds its amount. Each pill earns richer detail
   independently so one long artwork title cannot suppress another receipt;
   narrow and mobile rows keep the compact category counts.
+  Hovering or focusing a block opens its complete receipt as a reading lock:
+  the exact rows, ages, next-right clock, and visible facts stay still while
+  polling may finish behind the surface. Hover, focus, Escape, scroll, or a
+  click away releases the lock and applies only the newest queued snapshot as
+  one motionless catch-up.
   The compact health rail excludes the power every block must have and shows
   only the signed margin above the exact two-thirds quorum; sub-quorum power
   becomes a red deficit. There is no threshold marker or separate Safe/Strong
