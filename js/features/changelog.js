@@ -7,7 +7,8 @@ export const CHANGELOG = [
     {
         date: '2026-08-25',
         entries: [
-            { type: '🎨', text: 'Live Head now latches a bold CHAIN STALLED alert until a newer block, opens complete linked block inspectors, and gives every gas, activity, and missed-attester pill Quiet\'s high-contrast backing across all 15 themes' }
+            { type: '🎨', text: 'Live Head now latches a bold CHAIN STALLED alert until a newer block, opens complete linked block inspectors, and gives every gas, activity, and missed-attester pill Quiet\'s high-contrast backing across all 15 themes' },
+            { type: '🎨', text: 'Live Head now spends measured spare row width on artwork titles, transfer totals and routes, and stake or unstake amounts while narrow rows keep compact category counts' }
         ]
     },
     {

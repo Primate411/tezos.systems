@@ -369,9 +369,9 @@ inline modal styles in `js/core/app.js`.
   the header/title row. Four desktop rows or three mobile rows reuse Network
   Health's Passing Blocks language: level, round, previous-block delta,
   attested power/committee, a compact health bar, age, and baker are always
-  present once a block is known. A second line adds at most two reviewed Art,
-  DeFi, Gaming, Bridge, Etherlink, Stake, Unstake, or Transfer facts in distinct
-  color-coded, truncated pills; complete empty receipts are marked `Quiet`,
+  present once a block is known. A second line adds reviewed Art, DeFi, Gaming,
+  Bridge, Etherlink, Stake, Unstake, or Transfer facts in distinct color-coded,
+  truncated pills; complete empty receipts are marked `Quiet`,
   never in place of block telemetry. The title row keeps the exact
   next round-zero baking right as a right, not a guarantee. Every block below
   6,969 attested power, and every `Quiet` block, owns its own missed-attester
@@ -393,6 +393,12 @@ inline modal styles in `js/core/app.js`.
   milligas against the active protocol block limit. Gas fills progress from
   cool/open through active, busy, and hot as capacity is consumed, leaving the
   second line for baker identities and real activity.
+  Every activity pill begins with a compact category and count. When measured
+  row width is genuinely spare, Art progressively appends available TzKT token
+  titles, Transfers adds its total tez and then the largest sender-to-recipient
+  route, and Stake or Unstake adds its amount. Each pill earns richer detail
+  independently so one long artwork title cannot suppress another receipt;
+  narrow and mobile rows keep the compact category counts.
   The compact health rail excludes the power every block must have and shows
   only the signed margin above the exact two-thirds quorum; sub-quorum power
   becomes a red deficit. There is no threshold marker or separate Safe/Strong

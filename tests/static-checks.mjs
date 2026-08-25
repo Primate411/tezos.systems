@@ -304,7 +304,44 @@ function checkLiveHeadPureContracts() {
       { action: 'unstake', amount: 800000000 }
     ]
   });
-  assert.equal(staking.text, 'Stake 12,400 ꜩ · Unstake 800 ꜩ');
+  assert.equal(staking.text, 'Stake · 1 · Unstake · 1');
+  assert.equal(staking.fragments[0].details[0], 'Stake · 1 · 12,400 ꜩ');
+  assert.equal(staking.fragments[1].details[0], 'Unstake · 1 · 800 ꜩ');
+
+  const artCatalog = compileBlockStoryCatalog({
+    apps: [{
+      id: 'reviewed-art',
+      category: 'nft',
+      layers: [{ id: 'tezos', contractSource: { addresses: ['KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w'] }, proofUrls: [] }]
+    }]
+  });
+  const art = classifyBlockStory({
+    catalog: artCatalog,
+    transactions: [{ id: 91, amount: 0, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }],
+    tokenTransfers: [
+      { transactionId: 91, name: 'arachno trip' },
+      { transactionId: 91, name: 'Undoing' }
+    ],
+    stakingRows: []
+  });
+  assert.equal(art.text, 'Art · 2');
+  assert.deepEqual(art.fragments[0].details, [
+    'Art · 2 · arachno trip · +1',
+    'Art · 2 · arachno trip · Undoing'
+  ]);
+
+  const transfers = classifyBlockStory({
+    transactions: [
+      { id: 1, amount: 2500000000, internal: false, sender: { alias: 'Sender.tez' }, target: { alias: 'Receiver' } },
+      { id: 2, amount: 42000000, internal: false, sender: { alias: 'Second sender' }, target: { alias: 'Second receiver' } }
+    ],
+    stakingRows: []
+  });
+  assert.equal(transfers.text, 'Transfers · 2');
+  assert.deepEqual(transfers.fragments[0].details, [
+    'Transfers · 2 · 2,542 ꜩ total',
+    'Transfers · 2 · 2,542 ꜩ total · top Sender.tez → Receiver'
+  ]);
   assert.equal(classifyBlockStory({ transactions: null, stakingRows: null }), null);
   assert.equal(classifyBlockStory({ transactions: [], stakingRows: null }), null);
   assert.equal(classifyBlockStory({ transactions: [], stakingRows: [] }).text, 'Quiet');
@@ -3590,6 +3627,15 @@ async function checkSelectorContracts() {
       || !heroSearchCss.includes('text-shadow: 0 1px 2px rgba(2, 8, 18, 0.9);')
       || !heroSearchCss.includes('backdrop-filter: blur(4px);')) {
     fail('Every Live Head pill must inherit Quiet\'s opaque theme-invariant backing, edge, shadow, and blur');
+  }
+  if (!chainHeartbeatActivityBlock.includes('/tokens/transfers?level=${level}')
+      || !chainHeartbeatActivityBlock.includes('token.metadata.artifactUri.null=false')
+      || !chainHeartbeatActivityBlock.includes('tokenTransfersClipped')
+      || !health.includes('data-live-head-details=')
+      || !health.includes('LIVE_HEAD_DETAIL_MIN_WIDTH = 420')
+      || !health.includes('pill.scrollWidth > pill.clientWidth + 1')
+      || health.includes("story.fragments.filter((fragment) => fragment.key !== 'quiet').slice(0, 2)")) {
+    fail('Live Head activity pills must keep compact counts, fetch optional artwork receipts, and spend only measured spare row width on richer details');
   }
   for (const bannedLiveHeadCopy of ['Syncing latest head block', 'Waiting for recent block receipts', 'Receipts syncing', 'Preparing block stories']) {
     if (index.includes(bannedLiveHeadCopy) || chainHeartbeatUpdateBlock.includes(bannedLiveHeadCopy)) {

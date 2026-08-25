@@ -47,7 +47,9 @@ const USAGE_WINDOW_MS = 60 * 60 * 1000;
 const USAGE_AMOUNT_PAGE_LIMIT = 10000;
 const HEARTBEAT_ACTIVITY_LIMIT = 10000;
 const HEARTBEAT_STAKING_LIMIT = 20;
+const HEARTBEAT_ART_TRANSFER_LIMIT = 50;
 const LIVE_HEAD_POWER_DETAIL_THRESHOLD = 6969;
+const LIVE_HEAD_DETAIL_MIN_WIDTH = 420;
 const HEARTBEAT_SUPPLEMENT_MAX_AGE = 2 * 60 * 1000;
 const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 8;
 const CYCLE_TIMING_LIMIT = 8;
@@ -698,18 +700,42 @@ function liveHeadPillOverflows(container) {
     return container.scrollWidth > container.clientWidth + 1;
 }
 
+function liveHeadStoryDetails(pill) {
+    try {
+        const details = JSON.parse(pill?.dataset?.liveHeadDetails || '[]');
+        return Array.isArray(details) ? details.filter(Boolean) : [];
+    } catch {
+        return [];
+    }
+}
+
+function setLiveHeadStoryDetail(pill, level = 0) {
+    if (!pill) return;
+    const details = liveHeadStoryDetails(pill);
+    const normalizedLevel = Math.max(0, Math.min(details.length, Number(level) || 0));
+    pill.textContent = normalizedLevel > 0
+        ? details[normalizedLevel - 1]
+        : (pill.dataset.liveHeadCompact || pill.textContent || '');
+    pill.dataset.liveHeadDetailLevel = String(normalizedLevel);
+    pill.classList.toggle('is-expanded', normalizedLevel > 0);
+}
+
 function fitLiveHeadPills(root = document) {
-    root.querySelectorAll?.('.live-head-story[data-miss-state="resolved"]').forEach((container) => {
+    root.querySelectorAll?.('.live-head-story').forEach((container) => {
         const missedPills = [...container.querySelectorAll('[data-missed-baker-address]')];
         const storyPills = [...container.querySelectorAll('.live-head-story-chip')];
         const overflowPill = container.querySelector('[data-live-head-miss-overflow]');
-        if (!missedPills.length || !overflowPill) return;
 
         missedPills.forEach((pill) => { pill.hidden = false; });
-        storyPills.forEach((pill) => { pill.hidden = false; });
-        overflowPill.hidden = true;
-        overflowPill.textContent = '';
-        overflowPill.title = '';
+        storyPills.forEach((pill) => {
+            pill.hidden = false;
+            setLiveHeadStoryDetail(pill, 0);
+        });
+        if (overflowPill) {
+            overflowPill.hidden = true;
+            overflowPill.textContent = '';
+            overflowPill.title = '';
+        }
 
         if (liveHeadPillOverflows(container)) {
             let visibleStoryCount = storyPills.length;
@@ -718,20 +744,35 @@ function fitLiveHeadPills(root = document) {
             }
 
             const hiddenMisses = [];
-            if (liveHeadPillOverflows(container)) overflowPill.hidden = false;
+            if (overflowPill && liveHeadPillOverflows(container)) overflowPill.hidden = false;
             let visibleMissCount = missedPills.length;
             while (liveHeadPillOverflows(container) && visibleMissCount > 1) {
                 const pill = missedPills[--visibleMissCount];
                 pill.hidden = true;
                 hiddenMisses.unshift(pill);
-                overflowPill.textContent = `+${formatCount(hiddenMisses.length)} baker${hiddenMisses.length === 1 ? '' : 's'}`;
-                overflowPill.title = hiddenMisses.map((item) => item.title).filter(Boolean).join(' ');
+                if (overflowPill) {
+                    overflowPill.textContent = `+${formatCount(hiddenMisses.length)} baker${hiddenMisses.length === 1 ? '' : 's'}`;
+                    overflowPill.title = hiddenMisses.map((item) => item.title).filter(Boolean).join(' ');
+                }
             }
-            if (!hiddenMisses.length) overflowPill.hidden = true;
+            if (overflowPill && !hiddenMisses.length) overflowPill.hidden = true;
             if (liveHeadPillOverflows(container) && visibleStoryCount > 0) {
                 storyPills[--visibleStoryCount].hidden = true;
             }
-            if (liveHeadPillOverflows(container) && !overflowPill.hidden) overflowPill.hidden = true;
+            if (overflowPill && liveHeadPillOverflows(container) && !overflowPill.hidden) overflowPill.hidden = true;
+        }
+
+        if (container.clientWidth >= LIVE_HEAD_DETAIL_MIN_WIDTH) {
+            storyPills.filter((pill) => !pill.hidden).forEach((pill) => {
+                const details = liveHeadStoryDetails(pill);
+                for (let level = 1; level <= details.length; level += 1) {
+                    setLiveHeadStoryDetail(pill, level);
+                    if (liveHeadPillOverflows(container) || pill.scrollWidth > pill.clientWidth + 1) {
+                        setLiveHeadStoryDetail(pill, level - 1);
+                        break;
+                    }
+                }
+            });
         }
 
         const visibleMissCount = missedPills.filter((pill) => !pill.hidden).length;
@@ -753,6 +794,7 @@ function wireLiveHeadPillFitting(panel) {
     if (!panel || liveHeadPillResizeObserver || typeof ResizeObserver !== 'function') return;
     liveHeadPillResizeObserver = new ResizeObserver(() => scheduleLiveHeadPillFit(panel));
     liveHeadPillResizeObserver.observe(panel);
+    window.addEventListener('resize', () => fitLiveHeadPills(panel), { passive: true });
     document.fonts?.ready?.then(() => scheduleLiveHeadPillFit(panel));
 }
 
@@ -837,7 +879,7 @@ function renderLiveHeadInspector(block, activity) {
     const activityHtml = activityFragments.length
         ? activityFragments.map((fragment) => renderLiveHeadInspectorFact({
             label: fragment.label || fragment.key,
-            value: fragment.text || 'Receipt',
+            value: fragment.details?.[fragment.details.length - 1] || fragment.text || 'Receipt',
             href: operationsUrl,
             className: `story-${fragment.key}`
         })).join('')
@@ -1023,9 +1065,14 @@ function buildLiveHeadDetails(block, activity) {
     }
     const missPills = renderLiveHeadMissPills(block, missedState);
     const storyPills = story
-        ? story.fragments.filter((fragment) => fragment.key !== 'quiet').slice(0, 2).map((fragment, index) => (
-            `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}" style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`
-        )).join('')
+        ? story.fragments.filter((fragment) => fragment.key !== 'quiet').map((fragment, index) => {
+            const details = Array.isArray(fragment.details) ? fragment.details.filter(Boolean) : [];
+            const richest = details[details.length - 1] || fragment.text;
+            const detailAttrs = details.length
+                ? ` data-live-head-details="${escapeHtml(JSON.stringify(details))}" title="${escapeHtml(richest)}" aria-label="${escapeHtml(richest)}"`
+                : '';
+            return `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}${details.length ? ' has-detail' : ''}" data-live-head-compact="${escapeHtml(fragment.text)}" data-live-head-detail-level="0"${detailAttrs} style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`;
+        }).join('')
         : '<i class="live-head-story-skeleton" aria-hidden="true"></i><i class="live-head-story-skeleton is-short" aria-hidden="true"></i>';
     const signature = `${storySignature}|${missedState.signature}`;
     return {
@@ -1362,13 +1409,15 @@ async function fetchHeartbeatActivity(level) {
 
     const txFields = 'id,hash,timestamp,amount,sender,target,parameter,internal';
     const stakingFields = 'id,hash,timestamp,action,amount,staker,baker';
+    const artTransferFields = 'id,token.id as tokenId,token.metadata.name as name,from,to,amount,transactionId';
     const requests = [
         fetchJson(`${TZKT}/operations/transactions?level=${level}&status=applied&select=${txFields}&limit=${HEARTBEAT_ACTIVITY_LIMIT}`, 1, { priority: 'interactive' }),
         fetchJson(`${TZKT}/operations/staking?level=${level}&status=applied&select=${stakingFields}&limit=${HEARTBEAT_STAKING_LIMIT}`, 1, { priority: 'interactive' }),
-        fetchHeartbeatGas(level)
+        fetchHeartbeatGas(level),
+        fetchJson(`${TZKT}/tokens/transfers?level=${level}&token.metadata.artifactUri.null=false&select=${encodeURIComponent(artTransferFields)}&limit=${HEARTBEAT_ART_TRANSFER_LIMIT}`, 1, { priority: 'interactive' })
     ];
     const promise = Promise.all([loadHeartbeatStoryCatalog(), Promise.allSettled(requests)])
-        .then(([catalog, [transactionsResult, stakingResult, gasResult]]) => {
+        .then(([catalog, [transactionsResult, stakingResult, gasResult, artTransfersResult]]) => {
             const transactions = transactionsResult.status === 'fulfilled' && Array.isArray(transactionsResult.value)
                 ? transactionsResult.value
                 : null;
@@ -1376,26 +1425,33 @@ async function fetchHeartbeatActivity(level) {
                 ? stakingResult.value
                 : null;
             const gas = gasResult.status === 'fulfilled' ? gasResult.value : null;
+            const tokenTransfers = artTransfersResult.status === 'fulfilled' && Array.isArray(artTransfersResult.value)
+                ? artTransfersResult.value
+                : null;
             const largestTransfer = transactions?.reduce((largest, row) => (
                 Number(row?.amount) > Number(largest?.amount || 0) ? row : largest
             ), null) || null;
             const transactionsClipped = Boolean(transactions && transactions.length >= HEARTBEAT_ACTIVITY_LIMIT);
             const stakingClipped = Boolean(stakingRows && stakingRows.length >= HEARTBEAT_STAKING_LIMIT);
+            const tokenTransfersClipped = Boolean(tokenTransfers && tokenTransfers.length >= HEARTBEAT_ART_TRANSFER_LIMIT);
             const activity = {
                 level,
                 txCount: transactions ? transactions.length : null,
                 contractCalls: transactions ? transactions.filter((row) => row?.parameter != null).length : null,
                 stakingCount: stakingRows ? stakingRows.length : null,
                 stakingRows: stakingRows || [],
+                tokenTransfers: tokenTransfers || [],
                 largestTransfer,
                 gasUsed: Number.isFinite(gas?.gasUsed) ? gas.gasUsed : null,
                 gasLimit: Number.isFinite(gas?.gasLimit) ? gas.gasLimit : null,
                 story: classifyBlockStory({
                     transactions,
                     stakingRows,
+                    tokenTransfers,
                     catalog,
                     transactionsClipped,
                     stakingClipped,
+                    tokenTransfersClipped,
                     maxFragments: 8
                 }),
                 complete: transactions !== null && stakingRows !== null && gas?.complete === true,

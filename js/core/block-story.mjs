@@ -108,38 +108,112 @@ function formatTez(value) {
     });
 }
 
+function compactParty(account) {
+    const alias = String(account?.alias || '').trim();
+    if (alias) return alias;
+    const address = typeof account === 'string'
+        ? account.trim()
+        : String(account?.address || '').trim();
+    if (!address) return '';
+    return address.length > 16 ? `${address.slice(0, 7)}…${address.slice(-5)}` : address;
+}
+
+function cleanArtworkName(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim().slice(0, 96);
+}
+
+function progressiveArtworkDetails(compact, titles) {
+    const visibleTitles = titles.slice(0, 8);
+    return visibleTitles.map((_, index) => {
+        const shown = visibleTitles.slice(0, index + 1);
+        const remaining = titles.length - shown.length;
+        return `${compact} · ${shown.join(' · ')}${remaining > 0 ? ` · +${remaining}` : ''}`;
+    });
+}
+
 function fragmentFor(key, receipt, clipped) {
     const label = STORY_LABELS[key];
     const suffix = clipped ? '+' : '';
-    if ((key === 'stake' || key === 'unstake') && receipt.amountMutez > 0) {
+    const compact = `${label} · ${receipt.count.toLocaleString('en-US')}${suffix}`;
+    const details = [];
+
+    if (key === 'art' && receipt.artTitles.length) {
+        details.push(...progressiveArtworkDetails(compact, receipt.artTitles));
+    } else if ((key === 'stake' || key === 'unstake') && receipt.amountMutez > 0) {
         const amount = formatTez(receipt.amountMutez / 1e6);
-        return { key, label, value: receipt.amountMutez / 1e6, text: `${label} ${amount}${suffix} ꜩ`, clipped };
+        details.push(`${compact} · ${clipped ? '≥' : ''}${amount} ꜩ${receipt.count > 1 && !clipped ? ' total' : ''}`);
+    } else if (key === 'transfers' && receipt.amountMutez > 0) {
+        const amount = formatTez(receipt.amountMutez / 1e6);
+        const amountDetail = `${compact} · ${clipped ? '≥' : ''}${amount} ꜩ${receipt.count > 1 && !clipped ? ' total' : ''}`;
+        details.push(amountDetail);
+        const largest = receipt.rows.reduce((current, row) => (
+            Number(row?.amount) > Number(current?.amount || 0) ? row : current
+        ), null);
+        const sender = compactParty(largest?.sender);
+        const target = compactParty(largest?.target);
+        if (sender && target) details.push(`${amountDetail} · ${receipt.count > 1 ? 'top ' : ''}${sender} → ${target}`);
     }
-    return { key, label, value: receipt.count, text: `${label} · ${receipt.count.toLocaleString('en-US')}${suffix}`, clipped };
+
+    return { key, label, value: receipt.count, text: compact, details: Object.freeze(details), clipped };
 }
 
 export function classifyBlockStory({
     transactions = null,
     stakingRows = null,
+    tokenTransfers = null,
     catalog = [],
     transactionsClipped = false,
     stakingClipped = false,
+    tokenTransfersClipped = false,
     maxFragments = 3
 } = {}) {
     const transactionsKnown = Array.isArray(transactions);
     const stakingKnown = Array.isArray(stakingRows);
     if (!transactionsKnown && !stakingKnown) return null;
 
-    const receipts = new Map(STORY_ORDER.map((key) => [key, { count: 0, amountMutez: 0 }]));
+    const receipts = new Map(STORY_ORDER.map((key) => [key, {
+        count: 0,
+        amountMutez: 0,
+        rows: [],
+        artTitles: []
+    }]));
+    const artTransactionIds = new Set();
 
     for (const transaction of Array.isArray(transactions) ? transactions : []) {
-        if (transaction?.internal === true) continue;
         const catalogStory = catalogStoryFor(transaction, catalog);
+        if (catalogStory === 'art' && Number.isFinite(Number(transaction?.id))) {
+            artTransactionIds.add(Number(transaction.id));
+        }
+        if (transaction?.internal === true) continue;
         if (catalogStory) {
-            receipts.get(catalogStory).count += 1;
+            const receipt = receipts.get(catalogStory);
+            receipt.count += 1;
+            receipt.rows.push(transaction);
             continue;
         }
-        if (Number(transaction?.amount) > 0) receipts.get('transfers').count += 1;
+        if (Number(transaction?.amount) > 0) {
+            const receipt = receipts.get('transfers');
+            receipt.count += 1;
+            receipt.amountMutez += Number(transaction.amount);
+            receipt.rows.push(transaction);
+        }
+    }
+
+    const artTitles = [];
+    const seenArtTitles = new Set();
+    for (const transfer of Array.isArray(tokenTransfers) ? tokenTransfers : []) {
+        const transactionId = Number(transfer?.transactionId);
+        if (!artTransactionIds.has(transactionId)) continue;
+        const name = cleanArtworkName(transfer?.name || transfer?.token?.metadata?.name);
+        const identity = name.toLocaleLowerCase('en-US');
+        if (!name || seenArtTitles.has(identity)) continue;
+        seenArtTitles.add(identity);
+        artTitles.push(name);
+    }
+    if (artTitles.length) {
+        const receipt = receipts.get('art');
+        receipt.artTitles = artTitles;
+        receipt.count = Math.max(receipt.count, artTitles.length);
     }
 
     for (const row of Array.isArray(stakingRows) ? stakingRows : []) {
@@ -149,6 +223,7 @@ export function classifyBlockStory({
         receipt.count += 1;
         const amount = Number(row?.amount);
         if (Number.isFinite(amount) && amount > 0) receipt.amountMutez += amount;
+        receipt.rows.push(row);
     }
 
     const fragments = STORY_ORDER
@@ -157,7 +232,11 @@ export function classifyBlockStory({
         .map((key) => fragmentFor(
             key,
             receipts.get(key),
-            key === 'stake' || key === 'unstake' ? stakingClipped : transactionsClipped
+            key === 'stake' || key === 'unstake'
+                ? stakingClipped
+                : key === 'art'
+                    ? Boolean(transactionsClipped || tokenTransfersClipped)
+                    : transactionsClipped
         ));
 
     if (!fragments.length && (!transactionsKnown || !stakingKnown)) return null;
@@ -176,7 +255,7 @@ export function classifyBlockStory({
         quiet: false,
         fragments: Object.freeze(fragments.map(Object.freeze)),
         text: fragments.map((fragment) => fragment.text).join(' · '),
-        signature: fragments.map((fragment) => `${fragment.key}:${fragment.value}:${fragment.clipped ? 1 : 0}`).join('|'),
+        signature: fragments.map((fragment) => `${fragment.key}:${fragment.value}:${fragment.clipped ? 1 : 0}:${fragment.details.join('~')}`).join('|'),
         clipped: fragments.some((fragment) => fragment.clipped)
     });
 }

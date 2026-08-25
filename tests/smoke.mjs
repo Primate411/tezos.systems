@@ -1668,6 +1668,33 @@ async function installFeatureMocks(context, options = {}) {
       }]);
     }
 
+    if (parsedUrl.origin === 'https://api.tzkt.io'
+      && parsedUrl.pathname === '/v1/tokens/transfers'
+      && parsedUrl.searchParams.has('level')) {
+      const level = Number(parsedUrl.searchParams.get('level'));
+      if (level % 4 !== 1) return fulfillJson(route, []);
+      return fulfillJson(route, [
+        {
+          id: 501,
+          tokenId: 9001,
+          name: 'Smoke Piece One',
+          from: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+          to: { address: SAMPLE_ADDRESS_3, alias: 'Pending Baker' },
+          amount: '1',
+          transactionId: 105
+        },
+        {
+          id: 502,
+          tokenId: 9002,
+          name: 'Smoke Piece Two',
+          from: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+          to: { address: SAMPLE_ADDRESS_3, alias: 'Pending Baker' },
+          amount: '1',
+          transactionId: 105
+        }
+      ]);
+    }
+
     if (
       dashboardHtml &&
       parsedUrl.origin === dashboardOrigin &&
@@ -3195,7 +3222,20 @@ async function installFeatureMocks(context, options = {}) {
       if (url.includes('/operations/transactions?')
         && parsedUrl.searchParams.has('level')
         && (parsedUrl.searchParams.get('select') || '').includes('internal')) {
-        if (Number(parsedUrl.searchParams.get('level')) % 4 === 0) return fulfillJson(route, []);
+        const levelMod = Number(parsedUrl.searchParams.get('level')) % 4;
+        if (levelMod === 0) return fulfillJson(route, []);
+        if (levelMod === 1) {
+          return fulfillJson(route, [
+            { id: 105, hash: 'opHeartbeatArt', amount: 0, parameter: { entrypoint: 'collect', value: {} }, internal: false, sender: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w', alias: 'Teia Community Marketplace' } },
+            { id: 106, hash: 'opHeartbeatArtTransfer', amount: 750000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }, target: { address: SAMPLE_ADDRESS_3, alias: 'Pending Baker' } }
+          ]);
+        }
+        if (levelMod === 2) {
+          return fulfillJson(route, [
+            { id: 107, hash: 'opHeartbeatTransferOne', amount: 2500000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }, target: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' } },
+            { id: 108, hash: 'opHeartbeatTransferTwo', amount: 42000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }, target: { address: SAMPLE_ADDRESS_3, alias: 'Pending Baker' } }
+          ]);
+        }
         return fulfillJson(route, [
           { id: 101, hash: 'opHeartbeatOne', amount: 2500000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: SAMPLE_ADDRESS_2 } },
           { id: 102, hash: 'opHeartbeatTwo', amount: 42000000, parameter: { entrypoint: 'mint', value: {} }, internal: false, sender: { address: SAMPLE_ADDRESS_2 }, target: { address: SAMPLE_CONTRACT } },
@@ -14922,6 +14962,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	        const style = getComputedStyle(pill);
 	        return `${style.color}|${style.backgroundColor}|${style.borderColor}`;
 	      }),
+	      liveHeadStoryReceipts: Array.from(liveHeadStack?.querySelectorAll('.live-head-story-chip') || []).map((pill) => ({
+	        compact: pill.dataset.liveHeadCompact || '',
+	        details: JSON.parse(pill.dataset.liveHeadDetails || '[]'),
+	        kind: Array.from(pill.classList).find((name) => /^is-(art|transfers|stake|unstake)$/.test(name))?.slice(3) || '',
+	        level: Number(pill.dataset.liveHeadDetailLevel || 0),
+	        text: pill.textContent?.replace(/\s+/g, ' ').trim() || ''
+	      })),
 	      liveHeadHasGlobalMissLine: Boolean(document.querySelector('#live-head-bakers')),
 	      liveHeadNext: document.querySelector('#live-head-next')?.textContent?.replace(/\s+/g, ' ').trim() || '',
 	      liveHeadNextDue: document.querySelector('#live-head-next [data-heartbeat-due]')?.textContent?.trim() || '',
@@ -15221,7 +15268,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.liveHeadRowBorderBottoms.every((width) => width === '0px'), `network health chamber: block separator lines returned ${healthState.liveHeadRowBorderBottoms.join(',')}`);
   const settledLiveHeadStories = healthState.liveHeadStories.filter(Boolean);
   assert(settledLiveHeadStories.length >= healthState.liveHeadStories.length - 1 && settledLiveHeadStories.every((story) => !/Oracle|\b0\b|syncing/i.test(story)), `network health chamber: settled human block stories are incomplete or invented: ${healthState.liveHeadStories.join(' | ')}`);
-  assert(healthState.liveHeadStoryChipCount >= 4 && healthState.liveHeadStoryMax <= 2, `network health chamber: Live Head story density drifted ${healthState.liveHeadStoryChipCount}/${healthState.liveHeadStoryMax}`);
+  assert(healthState.liveHeadStoryChipCount >= 4, `network health chamber: Live Head story density drifted ${healthState.liveHeadStoryChipCount}/${healthState.liveHeadStoryMax}`);
   const liveHeadRequiredMissRows = healthState.liveHeadMissRows.filter((row) => row.power < 6969 || row.quiet);
   assert(liveHeadRequiredMissRows.length >= 1 && liveHeadRequiredMissRows.every((row) => row.required === 'true' && ['resolved', 'clear'].includes(row.state)), `network health chamber: low-power or quiet blocks did not resolve their own missed-attester receipts ${JSON.stringify(healthState.liveHeadMissRows)}`);
   assert(liveHeadRequiredMissRows.some((row) => row.addresses.length === 6 && row.visibleAddresses.length === 6 && row.hiddenCount === 0 && !row.overflowVisible), `network health chamber: wide rows collapsed baker pills despite available space ${JSON.stringify(liveHeadRequiredMissRows)}`);
@@ -15229,8 +15276,18 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(liveHeadRequiredMissRows.some((row) => /second\.tez/.test(row.text) && /tz4Miss\.\.\.ssMis/.test(row.text)), `network health chamber: per-block missed-attester pills do not prefer aliases and truncate tz1-tz4 addresses ${JSON.stringify(liveHeadRequiredMissRows)}`);
   assert(liveHeadRequiredMissRows.some((row) => /tz4MissMissMissMissMissMissMissMis/.test(row.titles)), `network health chamber: truncated missed-attester pills lost their full-address receipt ${JSON.stringify(liveHeadRequiredMissRows)}`);
   assert(liveHeadRequiredMissRows.flatMap((row) => row.styles).every((style) => style.overflow === 'hidden' && style.textOverflow === 'ellipsis' && style.whiteSpace === 'nowrap' && style.maxWidth !== 'none' && style.borderColor !== 'rgba(0, 0, 0, 0)'), `network health chamber: missed-attester pills are not visibly color-coded and truncated ${JSON.stringify(liveHeadRequiredMissRows)}`);
-  assert(new Set(healthState.liveHeadStoryTones).size >= 2, `network health chamber: activity categories are not color coded ${healthState.liveHeadStoryTones.join(',')}`);
-  assert(!healthState.liveHeadHasGlobalMissLine, 'network health chamber: missed-attester detail must belong to each block, not a global bottom sentence');
+	  assert(new Set(healthState.liveHeadStoryTones).size >= 2, `network health chamber: activity categories are not color coded ${healthState.liveHeadStoryTones.join(',')}`);
+	  const artReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'art');
+	  const transferReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'transfers');
+	  const stakeReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'stake');
+	  assert(artReceipt?.compact === 'Art · 2'
+	      && artReceipt.details.some((detail) => /Smoke Piece One.*Smoke Piece Two/.test(detail)), `network health chamber: Art receipt lacks progressive artwork names ${JSON.stringify(artReceipt)}`);
+	  assert(transferReceipt?.compact === 'Transfers · 2'
+	      && transferReceipt.details[0]?.includes('2,542 ꜩ total')
+	      && transferReceipt.details[1]?.includes('QA Baker → Second Baker'), `network health chamber: transfer receipt lacks amount/direction tiers ${JSON.stringify(transferReceipt)}`);
+	  assert(stakeReceipt?.compact === 'Stake · 1'
+	      && stakeReceipt.details[0]?.includes('125 ꜩ'), `network health chamber: staking receipt lacks its amount tier ${JSON.stringify(stakeReceipt)}`);
+	  assert(!healthState.liveHeadHasGlobalMissLine, 'network health chamber: missed-attester detail must belong to each block, not a global bottom sentence');
   assert(/Next R0 · Second Baker/.test(healthState.liveHeadNext), `network health chamber: exact next R0 right missing: ${healthState.liveHeadNext}`);
   assert(/(?:in \d{2}s|due now|R0 due \d{2}s ago)/.test(healthState.liveHeadNextDue), `network health chamber: next R0 countdown missing: ${healthState.liveHeadNextDue}`);
   assert(healthState.liveHeadAriaLive === 'off' && healthState.liveHeadAnnouncerLive === 'polite', `network health chamber: per-second labels must stay out of the live region: ${healthState.liveHeadAriaLive}/${healthState.liveHeadAnnouncerLive}`);
@@ -15253,10 +15310,36 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.topPriceBarCycleChipTag === 'A' && healthState.topPriceBarCycleChipHref === '#health', `network health chamber: cycle chip should be a #health launcher, saw ${healthState.topPriceBarCycleChipTag}/${healthState.topPriceBarCycleChipHref}`);
   assert(healthState.topPriceBarCycleChipWired === '1', `network health chamber: cycle chip click wiring missing: ${healthState.topPriceBarCycleChipWired}`);
   assert(!healthState.topPriceBarHasBlockReadout && !healthState.topPriceBarHasBlockAge && !healthState.topPriceBarHasPulseDot, `network health chamber: top price bar should not carry block/age/pulse readouts: ${healthState.topPriceBarText}`);
-  assert(healthState.intervalDelays.includes(1000), `network health chamber: 1s freshness ticker was not registered: ${healthState.intervalDelays.join(', ')}`);
-  assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
+	  assert(healthState.intervalDelays.includes(1000), `network health chamber: 1s freshness ticker was not registered: ${healthState.intervalDelays.join(', ')}`);
+	  assert(healthState.intervalDelays.includes(6000), `network health chamber: 6s refresh timer was not registered: ${healthState.intervalDelays.join(', ')}`);
 
-  await page.locator('#health-nc-share').click({ noWaitAfter: true });
+	  await page.setViewportSize({ width: 2048, height: 1000 });
+	  await page.waitForFunction(() => {
+	    const pills = Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip'));
+	    return ['art', 'transfers', 'stake'].every((kind) => pills.some((pill) => (
+	      pill.classList.contains(`is-${kind}`)
+	        && !pill.hidden
+	        && Number(pill.dataset.liveHeadDetailLevel || 0) > 0
+	    )));
+	  }, null, { timeout: 5000 });
+	  const wideStoryState = await page.evaluate(() => Object.fromEntries(
+	    ['art', 'transfers', 'stake'].map((kind) => {
+	      const pill = Array.from(document.querySelectorAll(`#live-head-stack .live-head-story-chip.is-${kind}`))
+	        .find((candidate) => !candidate.hidden && Number(candidate.dataset.liveHeadDetailLevel || 0) > 0);
+	      return [kind, {
+	        level: Number(pill?.dataset.liveHeadDetailLevel || 0),
+	        overflow: pill ? pill.scrollWidth - pill.clientWidth : 999,
+	        text: pill?.textContent?.replace(/\s+/g, ' ').trim() || ''
+	      }];
+	    })
+	  ));
+	  assert(/Smoke Piece/.test(wideStoryState.art.text)
+	      && /2,542 ꜩ total/.test(wideStoryState.transfers.text)
+	      && /125 ꜩ/.test(wideStoryState.stake.text)
+	      && Object.values(wideStoryState).every((pill) => pill.level > 0 && pill.overflow <= 1), `network health chamber: wide rows did not spend real spare width on richer receipts ${JSON.stringify(wideStoryState)}`);
+	  await page.setViewportSize({ width: 1440, height: 1000 });
+
+	  await page.locator('#health-nc-share').click({ noWaitAfter: true });
   await page.locator('#share-modal.visible').waitFor({ state: 'visible', timeout: 10000 });
   await page.waitForFunction(() => {
     const image = document.querySelector('#share-modal .share-modal-preview img');
@@ -15470,9 +15553,14 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
         }),
         wellContained: Boolean(cardRect && wellRect && wellRect.left >= cardRect.left && wellRect.right <= cardRect.right),
         rowOverflow: Math.max(0, ...rows.map((row) => row.scrollWidth - row.clientWidth)),
-        cardOverflow: card ? card.scrollWidth - card.clientWidth : 999,
-        pageOverflow: document.documentElement.scrollWidth - innerWidth,
-        nextText: document.querySelector('#live-head-next')?.textContent?.replace(/\s+/g, ' ').trim() || ''
+	        cardOverflow: card ? card.scrollWidth - card.clientWidth : 999,
+	        pageOverflow: document.documentElement.scrollWidth - innerWidth,
+	        storyPills: Array.from(card?.querySelectorAll('.live-head-story-chip:not([hidden])') || []).map((pill) => ({
+	          compact: pill.dataset.liveHeadCompact || '',
+	          level: Number(pill.dataset.liveHeadDetailLevel || 0),
+	          text: pill.textContent?.replace(/\s+/g, ' ').trim() || ''
+	        })),
+	        nextText: document.querySelector('#live-head-next')?.textContent?.replace(/\s+/g, ' ').trim() || ''
       };
     }, width));
   }
@@ -15485,8 +15573,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
         && tickerState.wellContained
         && tickerState.rowOverflow <= 1
         && tickerState.cardOverflow <= 1
-        && tickerState.pageOverflow <= 1
-        && (!tickerState.alertVisible || tickerState.chainState === 'stalled')
+	        && tickerState.pageOverflow <= 1
+	        && tickerState.storyPills.every((pill) => pill.level === 0 && pill.text === pill.compact)
+	        && (!tickerState.alertVisible || tickerState.chainState === 'stalled')
         && /Next R0/.test(tickerState.nextText),
       `network health chamber: mobile Live Head geometry drifted at ${tickerState.viewportWidth}px: ${JSON.stringify(tickerState)}`
     );
@@ -15600,7 +15689,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(/Complete block receipt.*Produced by.*Block round.*Payload round.*Cadence.*Attested.*Quorum.*Missed power.*Block activity.*Transactions.*Contract calls.*Staking ops.*Fees.*Rewards \+ bonus.*Block contents.*Missed attestations.*Open Network Health Chamber/i.test(liveHeadInspectorState.text)
       && liveHeadInspectorState.footerHref === '#health', `network health chamber: inspector receipt copy/footer is incomplete ${JSON.stringify(liveHeadInspectorState)}`);
   const liveHeadMissedRow = page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first();
+  await page.mouse.move(1, 1);
   await liveHeadMissedRow.hover();
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href^="https://tzkt.io/"]').length > 0, null, { timeout: 5000 });
   const missedInspectorLinkState = await page.evaluate(() => ({
     tzkt: document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href^="https://tzkt.io/"]').length,
     myTezos: document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href*="#my-baker="]').length,
@@ -15615,7 +15706,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true, null, { timeout: 5000 });
+  await page.mouse.move(1, 1);
   await liveHeadFirstRow.hover();
+  await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#live-head-inspector:not([hidden]) [data-live-head-open-health]').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();

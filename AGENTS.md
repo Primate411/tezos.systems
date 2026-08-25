@@ -449,7 +449,12 @@ Stamping gotchas:
   aliases and otherwise truncating `tz1`–`tz4`; never collapse these into a
   global bottom sentence. Render every returned identity and let measured row
   width decide which pills fit; `+N bakers` is an actual overflow receipt, not a
-  fixed display cap. Keep full unaliased producer addresses on wide rows and
+  fixed display cap. Activity pills must also spend measured spare width rather
+  than obey a fixed category cap: keep compact category/count text on constrained
+  rows, progressively append available TzKT artwork titles, add transfer total
+  then largest sender-to-recipient route, and add stake/unstake amounts on wider
+  rows. Fit each richer pill independently and reset mobile rows to compact text.
+  Keep full unaliased producer addresses on wide rows and
   allow CSS ellipsis only when their own column is constrained; use the restrained
   JetBrains Mono identity face for aliases. Give every Quiet, gas, activity,
   and missed-attester pill the same stable opaque backing, inset edge, shadow,
