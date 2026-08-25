@@ -23835,13 +23835,24 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   attachIssueCollectors(quietPage, 'quiet governance sizing', issues);
   const quietResponse = await quietPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(quietResponse?.ok(), `quiet governance sizing: dashboard failed with HTTP ${quietResponse?.status()}`);
+  await quietPage.waitForFunction(() => Boolean(window.tezosSystemsChamberCategories), null, { timeout: 15000 });
   await quietPage.locator('#chambers-grid > .chamber-category[data-chamber-category="governance"] .chamber-category-toggle').click();
-  for (const selector of ['#chamber-entry-card', '#etherlink-governance-entry-card', '#lb-entry-card']) {
-    await quietPage.locator(selector).dispatchEvent('pointerenter');
-    await quietPage.waitForFunction((cardSelector) => {
+  for (const [selector, readyKey] of [
+    ['#chamber-entry-card', 'chamberEntrySize'],
+    ['#etherlink-governance-entry-card', 'etherlinkGovernanceSize'],
+    ['#lb-entry-card', 'lbLive']
+  ]) {
+    await quietPage.waitForFunction(({ cardSelector, readyDatasetKey }) => {
       const card = document.querySelector(cardSelector);
-      return Boolean(card && !card.hasAttribute('data-chamber-skeleton'));
-    }, selector, { timeout: 10000 });
+      return Boolean(card && (card.dataset[readyDatasetKey] || card.dataset.lazyChamberWired === '1'));
+    }, { cardSelector: selector, readyDatasetKey: readyKey }, { timeout: 10000 });
+    const alreadyReady = await quietPage.locator(selector).evaluate((card, readyDatasetKey) => (
+      Boolean(card.dataset[readyDatasetKey])
+    ), readyKey);
+    if (!alreadyReady) await quietPage.locator(selector).dispatchEvent('pointerenter');
+    await quietPage.waitForFunction(({ cardSelector, readyDatasetKey }) => (
+      Boolean(document.querySelector(cardSelector)?.dataset[readyDatasetKey])
+    ), { cardSelector: selector, readyDatasetKey: readyKey }, { timeout: 10000 });
     await quietPage.locator(selector).scrollIntoViewIfNeeded();
     await quietPage.locator(selector).hover();
   }

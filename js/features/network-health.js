@@ -106,6 +106,7 @@ let heartbeatNextRightCache = null;
 let heartbeatNextRightInFlight = null;
 const heartbeatActivityInFlight = new Map();
 const heartbeatActivityCache = new Map();
+const liveHeadMissedStateCache = new Map();
 let heartbeatStoryCatalog = null;
 let heartbeatStoryCatalogInFlight = null;
 let heartbeatMissedRightsCache = null;
@@ -628,6 +629,28 @@ function visibleLiveHeadBlocks(data) {
     return (Array.isArray(data?.blocks) ? data.blocks : []).slice(0, liveHeadBlockLimit());
 }
 
+function cacheLiveHeadMissedState(level, state) {
+    if (!Number.isFinite(level) || !state || !['resolved', 'clear'].includes(state.state)) return state;
+    const snapshot = {
+        ...state,
+        attesters: state.attesters.map((attester) => ({ ...attester }))
+    };
+    liveHeadMissedStateCache.delete(level);
+    liveHeadMissedStateCache.set(level, snapshot);
+    while (liveHeadMissedStateCache.size > 16) {
+        liveHeadMissedStateCache.delete(liveHeadMissedStateCache.keys().next().value);
+    }
+    return snapshot;
+}
+
+function cachedLiveHeadMissedState(level) {
+    const state = liveHeadMissedStateCache.get(level);
+    return state ? {
+        ...state,
+        attesters: state.attesters.map((attester) => ({ ...attester }))
+    } : null;
+}
+
 function liveHeadMissedState(block, story) {
     const level = Number(block?.level);
     const lowPower = Number.isFinite(Number(block?.power)) && Number(block.power) < LIVE_HEAD_POWER_DETAIL_THRESHOLD;
@@ -644,6 +667,8 @@ function liveHeadMissedState(block, story) {
         && level >= heartbeatMissedRightsFailureRange.startLevel
         && level <= heartbeatMissedRightsFailureRange.endLevel;
     if (!cacheCoversLevel) {
+        const lastGood = cachedLiveHeadMissedState(level);
+        if (lastGood) return lastGood;
         const state = failureCoversLevel ? 'unavailable' : 'loading';
         return { required, state, attesters: [], signature: `miss:${state}` };
     }
@@ -664,13 +689,13 @@ function liveHeadMissedState(block, story) {
     ));
     const state = attesters.length ? 'resolved' : 'clear';
     const signature = `miss:${state}:${attesters.map((item) => `${item.address}:${item.slots}`).join('|')}`;
-    return {
+    return cacheLiveHeadMissedState(level, {
         required,
         state,
         attesters,
         signature,
         sampleClipped: heartbeatMissedRightsCache.sampleClipped === true
-    };
+    });
 }
 
 function renderLiveHeadMissPills(block, missedState) {
