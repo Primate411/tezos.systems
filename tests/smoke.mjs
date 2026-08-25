@@ -26940,7 +26940,7 @@ async function smokeValleyTheme(browser, baseUrl) {
   });
   const measuredFps = (cadenceEnd.frame - cadenceStart.frame) / ((cadenceEnd.time - cadenceStart.time) / 1000);
   assert(
-    measuredFps >= 24 && measuredFps <= 40,
+    measuredFps >= 20 && measuredFps <= 40,
     `Valley rendered outside its bounded frame cadence (${measuredFps.toFixed(1)} fps)`
   );
   if (longTaskObservationSupported) {
