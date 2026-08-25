@@ -3658,6 +3658,8 @@ async function checkSelectorContracts() {
       || health.includes('function updateLiveHeadBakers')
       || health.includes('LIVE_HEAD_MISS_PILL_LIMIT')
       || !health.includes('data-miss-state=')
+      || !health.includes('data-live-head-missed-snapshot=')
+      || !health.includes('liveHeadMissedStateFromRow(row, level)')
       || !heroSearchCss.includes('.live-head-story-chip.is-transfers')
       || !heroSearchCss.includes('.live-head-story-chip.is-art')
       || !heroSearchCss.includes('.live-head-miss-pill')

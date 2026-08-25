@@ -651,6 +651,45 @@ function cachedLiveHeadMissedState(level) {
     } : null;
 }
 
+function serializeLiveHeadMissedState(level, state) {
+    if (!Number.isFinite(level) || !state || !['resolved', 'clear'].includes(state.state)) return '';
+    return JSON.stringify({
+        level,
+        required: state.required === true,
+        state: state.state,
+        attesters: (Array.isArray(state.attesters) ? state.attesters : []).map((attester) => ({
+            address: String(attester?.address || ''),
+            name: String(attester?.name || attester?.address || 'Unknown baker'),
+            slots: Math.max(0, Number(attester?.slots) || 0)
+        })),
+        signature: String(state.signature || `miss:${state.state}`),
+        sampleClipped: state.sampleClipped === true
+    });
+}
+
+function liveHeadMissedStateFromRow(row, level) {
+    if (!row || !Number.isFinite(level)) return null;
+    try {
+        const state = JSON.parse(row.dataset.liveHeadMissedSnapshot || 'null');
+        if (Number(state?.level) !== level || !['resolved', 'clear'].includes(state?.state)) return null;
+        const attesters = (Array.isArray(state.attesters) ? state.attesters : []).map((attester) => ({
+            address: String(attester?.address || ''),
+            name: String(attester?.name || attester?.address || 'Unknown baker'),
+            slots: Math.max(0, Number(attester?.slots) || 0)
+        }));
+        if (state.state === 'resolved' && !attesters.length) return null;
+        return {
+            required: state.required === true,
+            state: state.state,
+            attesters,
+            signature: String(state.signature || `miss:${state.state}`),
+            sampleClipped: state.sampleClipped === true
+        };
+    } catch {
+        return null;
+    }
+}
+
 function liveHeadMissedState(block, story) {
     const level = Number(block?.level);
     const lowPower = Number.isFinite(Number(block?.power)) && Number(block.power) < LIVE_HEAD_POWER_DETAIL_THRESHOLD;
@@ -871,13 +910,13 @@ function renderLiveHeadInspectorFact({ label, value, href, className = '' }) {
         </a>`;
 }
 
-function renderLiveHeadInspector(block, activity) {
+function renderLiveHeadInspector(block, activity, missedSnapshot = null) {
     const level = Number(block?.level) || 0;
     const blockUrl = liveHeadBlockUrl(level);
     const operationsUrl = liveHeadBlockUrl(level, { operations: true });
     const status = latestBlockStatus(block);
     const gas = liveHeadGasState(activity);
-    const missedState = liveHeadMissedState(block, activity?.story || null);
+    const missedState = missedSnapshot || liveHeadMissedState(block, activity?.story || null);
     const powerKnown = Number.isFinite(block?.power) && Number.isFinite(block?.committee);
     const proposerDiffers = block?.proposer?.address
         && block.proposer.address !== block?.producer?.address;
@@ -1070,7 +1109,8 @@ function showLiveHeadInspector(row) {
         if (item !== row) item.setAttribute('aria-expanded', 'false');
     });
     const activity = heartbeatActivityCache.get(level) || null;
-    inspector.innerHTML = renderLiveHeadInspector(block, activity);
+    const missedSnapshot = liveHeadMissedStateFromRow(row, level);
+    inspector.innerHTML = renderLiveHeadInspector(block, activity, missedSnapshot);
     inspector.hidden = false;
     inspector.setAttribute('aria-hidden', 'false');
     inspector.dataset.open = 'true';
@@ -1244,8 +1284,9 @@ function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
             ? `${marginSign}${(marginAbsolute / 1000).toFixed(marginAbsolute >= 10000 ? 0 : 1)}K`
             : `${marginSign}${formatCount(marginAbsolute)}`;
     const barSignature = `${Number(block.level) || 0}:${safetyMargin === null ? 'unknown' : safetyMargin}:${status.quorumPower || 'unknown'}`;
+    const missedSnapshot = serializeLiveHeadMissedState(Number(block.level), details.missedState);
     return `
-        <button class="live-head-row ${isNew ? 'lb-row-new' : ''}" type="button" data-live-head-level="${block.level}" data-health-level="${Number(block.level) || 0}" data-attested-power="${Number.isFinite(block?.power) ? Number(block.power) : ''}" data-safety-margin="${safetyMargin === null ? '' : safetyMargin}" data-story-quiet="${activity?.story?.quiet === true ? 'true' : 'false'}" data-gas-state="${escapeHtml(gas.state)}" data-gas-percent="${gas.state === 'resolved' ? gas.exactPct.toFixed(2) : ''}" data-consensus-state="${escapeHtml(status.className)}" data-quiet-key="live-head-block-${block.level}" data-bar-signature="${barSignature}" data-bar-available="${safetyMargin === null ? 'false' : 'true'}" aria-label="${escapeHtml(title)}" aria-controls="live-head-inspector" aria-expanded="false">
+        <button class="live-head-row ${isNew ? 'lb-row-new' : ''}" type="button" data-live-head-level="${block.level}" data-health-level="${Number(block.level) || 0}" data-attested-power="${Number.isFinite(block?.power) ? Number(block.power) : ''}" data-safety-margin="${safetyMargin === null ? '' : safetyMargin}" data-story-quiet="${activity?.story?.quiet === true ? 'true' : 'false'}" data-gas-state="${escapeHtml(gas.state)}" data-gas-percent="${gas.state === 'resolved' ? gas.exactPct.toFixed(2) : ''}" data-consensus-state="${escapeHtml(status.className)}" data-live-head-missed-snapshot="${escapeHtml(missedSnapshot)}" data-quiet-key="live-head-block-${block.level}" data-bar-signature="${barSignature}" data-bar-available="${safetyMargin === null ? 'false' : 'true'}" aria-label="${escapeHtml(title)}" aria-controls="live-head-inspector" aria-expanded="false">
             <span class="live-head-row-main">
                 <strong class="live-head-level">#${formatCount(block.level)}</strong>
                 ${renderRoundBadge(block)}

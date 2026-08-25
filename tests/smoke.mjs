@@ -15707,6 +15707,12 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const liveHeadMissedLevel = await page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first().getAttribute('data-live-head-level');
   assert(liveHeadMissedLevel, 'network health chamber: resolved missed-attester row is missing its keyed level');
   const liveHeadMissedRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadMissedLevel}"]`);
+  const liveHeadMissedSnapshot = await liveHeadMissedRow.evaluate((row) => {
+    try { return JSON.parse(row.dataset.liveHeadMissedSnapshot || 'null'); } catch { return null; }
+  });
+  assert(Number(liveHeadMissedSnapshot?.level) === Number(liveHeadMissedLevel)
+      && liveHeadMissedSnapshot?.state === 'resolved'
+      && liveHeadMissedSnapshot.attesters?.length > 0, `network health chamber: resolved row must own its immutable missed-attester receipt ${JSON.stringify(liveHeadMissedSnapshot)}`);
   await page.mouse.move(1, 1);
   await liveHeadMissedRow.hover();
   await page.waitForFunction((level) => {
