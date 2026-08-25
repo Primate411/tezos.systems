@@ -7,6 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-08-24',
         entries: [
+            { type: '🎨', text: 'Live Head now turns recent blocks into concise Art, DeFi, gaming, bridge, Etherlink, staking, and transfer stories above a calm full-width search well, with material missed rights kept to one quiet line' },
             { type: '🎨', text: 'Live Pulse now flows above Chain Heartbeat directly on the site background without a competing lead beacon, with a concise age clock, a working in-place explainer, compact embedded visibility controls for both live bars, and full context on hover, tap, or keyboard focus' },
             { type: '🔧', text: 'Opening a Chamber topic now hydrates its rooms immediately even when the category begins below the viewport' },
             { type: '🎨', text: 'The header now keeps HEN tucked inside the corner gift tray instead of exposing a separate NFT Feed button' }

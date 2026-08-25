@@ -4,8 +4,7 @@ import { enqueueToast } from './toast-queue.js';
 export const HOME_LAYOUT_STORAGE_KEY = 'tezos-systems-home-layout-v1';
 
 export const HOME_BLOCKS = Object.freeze([
-    Object.freeze({ id: 'ticker', label: 'Latest block ticker', selectors: ['#block-ticker-strip'] }),
-    Object.freeze({ id: 'search', label: 'Search and command deck', selectors: ['#upgrade-clock'] }),
+    Object.freeze({ id: 'live-head', label: 'Live blocks and search', selectors: ['#live-head'] }),
     Object.freeze({ id: 'live-pulse', label: 'Live Pulse', selectors: ['#governance-alert-strip', '#pulse-ticker-strip'] }),
     Object.freeze({ id: 'explore', label: 'Explore Tezos', selectors: ['#chambers-section'] }),
     Object.freeze({ id: 'moments', label: 'Network Moments', selectors: ['#moments-section'] }),
@@ -28,15 +27,24 @@ let previewSource = '';
 
 function normalizePreference(value) {
     if (!value || value.version !== 1 || !Array.isArray(value.hidden)) return null;
-    if (value.hidden.some((id) => typeof id !== 'string' || !VALID_IDS.has(id))) return null;
-    return HOME_BLOCKS.map((block) => block.id).filter((id) => value.hidden.includes(id));
+    if (value.hidden.some((id) => typeof id !== 'string')) return null;
+    const legacyTickerHidden = value.hidden.includes('ticker');
+    const legacySearchHidden = value.hidden.includes('search');
+    const hidden = new Set(value.hidden.filter((id) => VALID_IDS.has(id)));
+    if (legacyTickerHidden && legacySearchHidden) hidden.add('live-head');
+    return HOME_BLOCKS.map((block) => block.id).filter((id) => hidden.has(id));
 }
 
 function readPreference() {
     try {
         const raw = localStorage.getItem(HOME_LAYOUT_STORAGE_KEY);
         if (raw === null) return [];
-        return normalizePreference(JSON.parse(raw)) || [];
+        const saved = JSON.parse(raw);
+        const normalized = normalizePreference(saved) || [];
+        if (JSON.stringify(saved?.hidden || []) !== JSON.stringify(normalized)) {
+            localStorage.setItem(HOME_LAYOUT_STORAGE_KEY, JSON.stringify({ version: 1, hidden: normalized }));
+        }
+        return normalized;
     } catch (_) {
         return [];
     }

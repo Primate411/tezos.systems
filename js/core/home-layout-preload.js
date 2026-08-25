@@ -1,7 +1,7 @@
 /* Apply saved Home visibility before the dashboard shell is parsed. */
 (function () {
     var STORAGE_KEY = 'tezos-systems-home-layout-v1';
-    var IDS = ['ticker', 'search', 'live-pulse', 'explore', 'moments', 'handoff', 'credits'];
+    var IDS = ['live-head', 'live-pulse', 'explore', 'moments', 'handoff', 'credits'];
     var LEGACY = [
         ['tezos-systems-chambers-visible', 'explore', 'false'],
         ['tezos-systems-collapsed-pulse-ticker', 'live-pulse', '1'],
@@ -17,8 +17,15 @@
             var valid = saved
                 && saved.version === 1
                 && Array.isArray(saved.hidden)
-                && saved.hidden.every(function (id) { return IDS.indexOf(id) !== -1; });
-            if (valid) hidden = IDS.filter(function (id) { return saved.hidden.indexOf(id) !== -1; });
+                && saved.hidden.every(function (id) { return typeof id === 'string'; });
+            if (valid) {
+                hidden = IDS.filter(function (id) { return saved.hidden.indexOf(id) !== -1; });
+                if (saved.hidden.indexOf('ticker') !== -1 && saved.hidden.indexOf('search') !== -1) hidden.unshift('live-head');
+                hidden = IDS.filter(function (id) { return hidden.indexOf(id) !== -1; });
+                if (JSON.stringify(saved.hidden) !== JSON.stringify(hidden)) {
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify({ version: 1, hidden: hidden }));
+                }
+            }
         } else {
             LEGACY.forEach(function (entry) {
                 if (localStorage.getItem(entry[0]) === entry[2] && hidden.indexOf(entry[1]) === -1) {

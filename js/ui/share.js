@@ -1157,10 +1157,10 @@ async function captureCard(card) {
  */
 async function captureAndShare() {
     const sections = [];
-    // Add Protocols section (upgrade clock)
-    const upgradeClock = document.getElementById('upgrade-clock');
-    if (upgradeClock) {
-        sections.push({ name: 'Protocols', element: upgradeClock });
+    // Add the Live Head landing-page instrument.
+    const liveHead = document.getElementById('live-head');
+    if (liveHead) {
+        sections.push({ name: 'Live Head', element: liveHead });
     }
     document.querySelectorAll('.stats-section').forEach(sec => {
         if (!isCapturableSection(sec)) return;
@@ -1312,26 +1312,24 @@ async function doCaptureAndShare(selectedSections) {
         const clone = mainContent.cloneNode(true);
         clone.style.cssText = 'margin: 0; padding: 0;';
         
-        // Add Protocols section (upgrade-clock is outside .main-content)
+        // Add Live Head (it is outside .main-content).
         const selectedNames = new Set(selectedSections.map(s => s.name));
-        if (selectedNames.has('Protocols')) {
-            const ucOriginal = document.getElementById('upgrade-clock');
-            if (ucOriginal) {
-                const ucClone = ucOriginal.cloneNode(true);
-                ucClone.style.marginBottom = '20px';
-                // Remove infographic (too tall for capture) and toggle
-                ucClone.querySelectorAll('.protocol-infographic, .infographic-toggle, .section-copy-link, .card-copy-link, .upgrade-share-btn, .timeline-share-btn').forEach(el => el.remove());
-                clone.insertBefore(ucClone, clone.firstChild);
+        if (selectedNames.has('Live Head')) {
+            const liveHeadOriginal = document.getElementById('live-head');
+            if (liveHeadOriginal) {
+                const liveHeadClone = liveHeadOriginal.cloneNode(true);
+                liveHeadClone.style.marginBottom = '20px';
+                liveHeadClone.querySelectorAll('.home-block-hide, #hero-search-panel').forEach(el => el.remove());
+                clone.insertBefore(liveHeadClone, clone.firstChild);
             }
         }
         
         // Remove card share buttons, history buttons, and info buttons from clone
         clone.querySelectorAll('.card-share-btn, .card-history-btn, .card-copy-link, .card-info-btn, .card-tooltip, .section-copy-link, .feature-copy-link, .upgrade-share-btn, .timeline-share-btn').forEach(el => el.remove());
         
-        // Remove unselected sections from clone (upgrade-clock already handled above)
-        if (!selectedNames.has('Protocols')) {
-            const uc = clone.querySelector('.upgrade-clock');
-            if (uc) uc.remove();
+        // Remove an unselected Live Head clone if one appears in a future shell.
+        if (!selectedNames.has('Live Head')) {
+            clone.querySelector('#live-head')?.remove();
         }
         
         clone.querySelectorAll('.stats-section').forEach(sec => {

@@ -436,15 +436,16 @@ Stamping gotchas:
   awakenings. TzKT aliases are source context, not inferred ownership; legacy
   `#giants` opens the Chamber's Deep Sleep view.
 - Activity feeds: `moments.js`, `cycle-pulse.js`, `daily-briefing.js`
-- Network Health: `js/features/network-health.js`; the Home Chain Heartbeat
-  combines the latest 16 TzKT blocks, the exact next round-zero baking right,
-  applied per-block transaction/call/token/staking receipts, and at most two
-  curated signals. Keep the R0 right explicitly non-guaranteed, keep operation
-  categories overlapping rather than additive, preserve unavailable receipt
-  values as unknown, and never animate completed attestation power as though it
-  were still assembling. Background head and supplemental updates must keep the
-  keyed ticker DOM, reader state, last-good data, visibility gate, one catch-up,
-  reduced-motion behavior, and announcement-only-on-new-block contract.
+- Network Health: `js/features/network-health.js`; Home Live Head combines the
+  newest four desktop or three mobile TzKT blocks, the exact next round-zero
+  baking right, catalog-backed human contents, one optional size-aware quiet-
+  baker line for missed rights in the visible sample, and the site-wide search
+  well. Keep the R0 right explicitly non-guaranteed, classify only reviewed
+  Art/DeFi/Gaming/Bridge/Etherlink identities or factual staking/transfers, and
+  preserve unavailable receipts as unknown. Background head and supplemental
+  updates must keep keyed row DOM, search focus/selection, reader state, last-
+  good data, the visibility gate, one catch-up, reduced-motion behavior, first-
+  fact reveal only once, and announcement-only-on-new-block behavior.
 - Staking Chamber: `js/features/staking-chamber.js`; strict applied explicit
   stake/unstake moves over 10,000 tez, with `/stake/` as the chamber route.
   Preserve `/staking/` for the existing explanatory guide.

@@ -9,7 +9,9 @@ export const DATA_ASSET_URLS = Object.freeze({
     governanceVotes: '/data/governance-votes.json',
     governanceReport: '/data/governance-refresh-report.json?v=1',
     releaseRadar: '/data/release-radar.json',
-    searchCatalog: '/data/search-catalog.json?v=1'
+    searchCatalog: '/data/search-catalog.json?v=1',
+    ecosystemApps: '/data/ecosystem-apps.json?v=1',
+    maxisContracts: '/data/maxis-contracts.json?v=1'
 });
 
 const DATA_ASSET_CACHE_MODES = Object.freeze({
@@ -17,7 +19,9 @@ const DATA_ASSET_CACHE_MODES = Object.freeze({
     governanceVotes: 'no-cache',
     governanceReport: 'no-cache',
     releaseRadar: 'no-cache',
-    searchCatalog: 'default'
+    searchCatalog: 'default',
+    ecosystemApps: 'default',
+    maxisContracts: 'default'
 });
 
 const assetPromises = new Map();

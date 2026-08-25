@@ -479,8 +479,8 @@ export async function initPriceIntelligence(stats, xtzPrice) {
 
   const section = buildSection(price, change24h, marketCap, volume, stats, cycle);
 
-  // Insert after hero/upgrade-clock, before leaderboard
-  const hero = document.getElementById('upgrade-clock');
+  // Insert after Live Head, before the main dashboard content.
+  const hero = document.getElementById('live-head');
   if (hero) hero.after(section);
   else {
     const main = document.querySelector('main');

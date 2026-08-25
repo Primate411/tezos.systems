@@ -48,6 +48,7 @@ import {
 import { quietlyMutate, quietlySyncElement, quietlySyncHtml } from './quiet-refresh.js';
 import { versionedAsset } from './asset-version.js';
 import { CANONICAL_UPGRADE_COUNT, countProtocolUpgrades, getProtocolUpgradeOrdinal } from './protocol-count.js';
+import { bakerSizeTier } from './baker-size.mjs';
 import {
     MAX_SAVED_MY_TEZOS_ADDRESSES,
     SAVED_ADDRESSES_KEY,
@@ -3414,8 +3415,6 @@ function initUptimeClock() {
     const defaultUptimeAriaControls = topContinuityHistory?.getAttribute('aria-controls') || '';
     const BAKER_SET_LIST_LIMIT = 3;
     const BAKER_SET_REFRESH_MS = 15 * 60 * 1000;
-    const BAKER_SIZE_MEDIUM_SHARE = 0.001;
-    const BAKER_SIZE_LARGE_SHARE = 0.01;
     let bakerSetSnapshot = null;
     let bakerSetRefreshPromise = null;
     let bakerSetRefreshError = '';
@@ -3886,29 +3885,6 @@ function initUptimeClock() {
             hour: 'numeric',
             minute: '2-digit'
         });
-    }
-
-    function bakerSizeTier(bakingPower, totalBakingPower, context = 'current network baking power') {
-        const power = Number(bakingPower);
-        const total = Number(totalBakingPower);
-        if (!Number.isFinite(power) || power <= 0 || !Number.isFinite(total) || total <= 0) return null;
-        const share = power / total;
-        const key = share >= BAKER_SIZE_LARGE_SHARE
-            ? 'large'
-            : share >= BAKER_SIZE_MEDIUM_SHARE
-                ? 'medium'
-                : 'small';
-        const percentage = share * 100;
-        const formattedShare = percentage < 0.01
-            ? percentage.toFixed(3)
-            : percentage < 1
-                ? percentage.toFixed(2)
-                : percentage.toFixed(1);
-        return {
-            key,
-            label: key[0].toUpperCase() + key.slice(1),
-            detail: `${formattedShare}% of ${context}`
-        };
     }
 
     function oneYearBeforeBakerEvent(value) {
@@ -7441,7 +7417,7 @@ function applyDeepLink() {
 
     // #search — make the command bar the next doorway from any site map.
     if (isSearchRoute) {
-        setHomeBlockVisible('search', true, 'deep-link');
+        setHomeBlockVisible('live-head', true, 'deep-link');
         window.clearTimeout(_searchRouteFocusTimer);
         _searchRouteFocusTimer = window.setTimeout(() => {
             _searchRouteFocusTimer = null;

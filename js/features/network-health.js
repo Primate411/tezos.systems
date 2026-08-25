@@ -10,6 +10,9 @@ import { fetchCycleInfo, fetchWithRetry } from '../core/api.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import { quietlySyncElement, quietlySyncHtml } from '../core/quiet-refresh.js';
+import { loadDataAsset } from '../core/data-assets.js';
+import { classifyBlockStory, compileBlockStoryCatalog } from '../core/block-story.mjs';
+import { buildQuietBakerNotice } from '../core/baker-size.mjs';
 
 const TZKT = API_URLS.tzkt;
 const TEZTALE = API_URLS.teztale;
@@ -43,7 +46,7 @@ const USAGE_AMOUNT_PAGE_LIMIT = 10000;
 const HEARTBEAT_ACTIVITY_LIMIT = 10000;
 const HEARTBEAT_STAKING_LIMIT = 20;
 const HEARTBEAT_SUPPLEMENT_MAX_AGE = 2 * 60 * 1000;
-const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 24;
+const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 8;
 const CYCLE_TIMING_LIMIT = 8;
 const CYCLE_TIMING_TTL = 10 * 60 * 1000;
 const CONTESTED_ROUND_HOT_SIGNAL_TTL = 30 * 60 * 1000;
@@ -92,12 +95,16 @@ let activityTapeAppliedSequence = 0;
 let usagePulseCache = null;
 let usagePulseCacheAt = 0;
 let usagePulseInFlight = null;
-let blockTickerAnimationTimer = null;
+let liveHeadAnimationTimer = null;
 let heartbeatData = null;
 let heartbeatNextRightCache = null;
 let heartbeatNextRightInFlight = null;
-let heartbeatActivityInFlight = null;
+const heartbeatActivityInFlight = new Map();
 const heartbeatActivityCache = new Map();
+let heartbeatStoryCatalog = null;
+let heartbeatStoryCatalogInFlight = null;
+let heartbeatMissedRightsCache = null;
+let heartbeatMissedRightsInFlight = null;
 let heartbeatVisibilityWired = false;
 let cycleTimingCache = null;
 let cycleTimingCacheAt = 0;
@@ -319,37 +326,57 @@ function latestBlockStatus(block) {
 }
 
 function blockTickerFallback(message, className = 'loading') {
-    const line = document.getElementById('block-ticker-line');
-    const strip = document.getElementById('block-ticker-strip');
-    if (!line || !strip) return;
-    if (className === 'degraded' && line.dataset.heartbeatLevel) {
-        strip.dataset.feedState = 'stale';
-        strip.querySelector('.block-ticker-pulse')?.classList.add('stale');
+    const stack = document.getElementById('live-head-stack');
+    const panel = document.getElementById('live-head');
+    if (!stack || !panel) return;
+    if (className === 'degraded' && panel.dataset.heartbeatLevel) {
+        panel.dataset.feedState = 'stale';
         return;
     }
     const signature = `fallback:${className}:${message}`;
-    if (line.dataset.blockTickerSignature === signature) return;
-    line.dataset.blockTickerSignature = signature;
-    line.dataset.blockTickerTransitionCount = '0';
-    strip.dataset.blockHealth = className;
-    strip.dataset.feedState = className;
-    strip.querySelector('.block-ticker-pulse')?.classList.toggle('stale', className === 'degraded');
-    quietlySyncHtml(line, `<span class="block-ticker-placeholder">${escapeHtml(message)}</span>`);
+    if (stack.dataset.liveHeadSignature === signature) return;
+    stack.dataset.liveHeadSignature = signature;
+    panel.dataset.blockHealth = className;
+    panel.dataset.feedState = className;
+    const rows = Array.from({ length: 4 }, (_, index) => `
+        <button class="live-head-row is-placeholder ${index === 3 ? 'live-head-desktop-row' : ''}" type="button" disabled data-quiet-key="live-head-placeholder-${index}">
+            <span>${escapeHtml(index === 0 ? message : 'Waiting for recent block receipts')}</span>
+        </button>
+    `).join('');
+    quietlySyncHtml(stack, rows);
 }
 
-function animateBlockTicker(strip, line, changed) {
-    if (!strip) return;
-    strip.classList.remove('is-updating');
-    if (line) line.dataset.blockTickerTransitionCount = changed ? '1' : '0';
-    strip.dataset.tickerTransitionCount = changed ? '1' : '0';
-    if (!changed) return;
-    void strip.offsetWidth;
-    strip.classList.add('is-updating');
-    if (blockTickerAnimationTimer) window.clearTimeout(blockTickerAnimationTimer);
-    blockTickerAnimationTimer = window.setTimeout(() => {
-        strip.classList.remove('is-updating');
-        blockTickerAnimationTimer = null;
-    }, 720);
+function settleLiveHeadReveal(root) {
+    root?.querySelectorAll('.is-revealing, .is-arriving').forEach((element) => {
+        element.classList.remove('is-revealing', 'is-arriving');
+    });
+}
+
+function revealLiveHeadFacts(panel, { headChanged = false } = {}) {
+    if (!panel) return;
+    const motionAllowed = document.visibilityState === 'visible'
+        && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if (!motionAllowed) {
+        settleLiveHeadReveal(panel);
+        panel.querySelectorAll('[data-story-signature]').forEach((element) => {
+            element.dataset.quietRevealSignature = element.dataset.storySignature || '';
+        });
+        return;
+    }
+    panel.querySelectorAll('[data-story-signature]').forEach((element) => {
+        const signature = element.dataset.storySignature || '';
+        if (!signature || element.dataset.quietRevealSignature === signature) return;
+        element.dataset.quietRevealSignature = signature;
+        element.classList.remove('is-revealing');
+        void element.offsetWidth;
+        element.classList.add('is-revealing');
+    });
+    if (headChanged) panel.querySelector('.live-head-row')?.classList.add('is-arriving');
+    if (liveHeadAnimationTimer) window.clearTimeout(liveHeadAnimationTimer);
+    liveHeadAnimationTimer = window.setTimeout(() => {
+        settleLiveHeadReveal(panel);
+        liveHeadAnimationTimer = null;
+    }, 440);
 }
 
 function usageSlotContent(slot, usage) {
@@ -441,121 +468,90 @@ function patchTickerUsage(usage) {
     if (line.dataset.usagePulseStamp !== stamp) updateHeaderActivity(usage);
 }
 
-function heartbeatMetric(value) {
-    return Number.isFinite(Number(value)) ? formatCount(Number(value)) : '--';
+function liveHeadBlockLimit() {
+    return window.matchMedia?.('(max-width: 719px)')?.matches ? 3 : 4;
 }
 
-function heartbeatRailHeight(score) {
-    const value = Number(score);
-    if (!Number.isFinite(value)) return 42;
-    return Math.round(Math.max(36, Math.min(100, 36 + (value - 94) * (64 / 6))));
+function visibleLiveHeadBlocks(data) {
+    return (Array.isArray(data?.blocks) ? data.blocks : []).slice(0, liveHeadBlockLimit());
 }
 
-function renderHeartbeatRail(blocks) {
-    const history = (Array.isArray(blocks) ? blocks : []).slice(0, LAST_BLOCK_LIMIT).reverse();
-    const title = history.length
-        ? `${history.length}-block cadence. Newest block is at the right edge; height is attestation power, amber or red marks slower or contested blocks.`
-        : 'Recent block cadence is syncing.';
-    const cells = history.map((block, index) => {
-        const status = latestBlockStatus(block);
-        const round = Number(block.blockRound) || 0;
-        const cadence = Number(block.intervalSeconds);
-        const cadenceClass = Number.isFinite(cadence) && cadence > TARGET_BLOCK_SECONDS + 2 ? 'is-slow' : '';
-        const roundClass = round > 0 ? 'is-contested' : '';
-        const headClass = index === history.length - 1 ? 'is-head' : '';
-        const cellTitle = `Block ${formatCount(block.level)} · ${formatSeconds(cadence)} · R${formatCount(round)} · ${formatCount(block.power)}/${formatCount(block.committee)} attested`;
-        return `<span class="chain-heartbeat-cell ${status.className} ${cadenceClass} ${roundClass} ${headClass}" data-quiet-key="heartbeat-block-${block.level}" style="--heartbeat-height:${heartbeatRailHeight(block.score)}%" title="${escapeHtml(cellTitle)}" aria-hidden="true"></span>`;
-    }).join('');
-    return `<span class="chain-heartbeat-rail" data-quiet-key="recent-blocks" aria-label="${escapeHtml(title)}" title="${escapeHtml(title)}">${cells}</span>`;
+function renderLiveHeadStory(activity) {
+    const story = activity?.story;
+    if (!story) {
+        return '<span class="live-head-story is-syncing" data-story-signature="syncing"><span class="live-head-story-chip">Receipts syncing</span></span>';
+    }
+    const title = story.clipped
+        ? 'This receipt sample reached an upstream row limit; + marks a minimum observed count.'
+        : `Applied operations classified from reviewed Tezos Systems catalogs for block ${formatCount(activity.level)}.`;
+    const chips = story.fragments.map((fragment, index) => (
+        `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}" style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`
+    )).join('');
+    return `<span class="live-head-story" data-story-signature="${escapeHtml(story.signature)}" title="${escapeHtml(title)}">${chips}</span>`;
 }
 
-function heartbeatSignalRows(block, activity) {
-    const signals = [];
-    const round = Number(block?.blockRound) || 0;
-    const score = Number(block?.score);
-    if (round > 0) signals.push({ className: 'watch', label: `R${formatCount(round)} recovery` });
-    if (Number.isFinite(score) && score < 98.5) {
-        signals.push({ className: score < 95 ? 'degraded' : 'watch', label: `${formatPct(score)}% attested` });
-    }
-    const staking = activity?.stakingRows?.[0];
-    if (staking) {
-        const action = String(staking.action || 'stake').replace(/^./, (letter) => letter.toUpperCase());
-        const amount = Number(staking.amount) / 1e6;
-        signals.push({ className: 'stake', label: `${action} ${formatTezAmount(amount)}ꜩ` });
-    }
-    if (Number(activity?.largestTransfer?.amount) >= 1e9) {
-        signals.push({ className: 'transfer', label: `${formatTezAmount(Number(activity.largestTransfer.amount) / 1e6)}ꜩ moved` });
-    }
-    if (!signals.length) {
-        const status = latestBlockStatus(block);
-        signals.push({ className: status.className, label: `R${formatCount(round)} · ${status.label} attestations` });
-    }
-    return signals.slice(0, 2);
+function renderLiveHeadRow(block, activity) {
+    const producer = block?.producer || {};
+    const name = bakerName(producer);
+    const status = latestBlockStatus(block);
+    const title = `Open Network Health for block ${formatCount(block.level)} from ${name}. ${status.label}: ${formatCount(block.power)} of ${formatCount(block.committee)} attested.`;
+    return `
+        <button class="live-head-row" type="button" data-live-head-level="${block.level}" data-quiet-key="live-head-block-${block.level}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}">
+            <span class="live-head-row-main">
+                <strong class="live-head-level">#${formatCount(block.level)}</strong>
+                <span class="live-head-baker" title="${escapeHtml(producer.address || name)}">${escapeHtml(name)}</span>
+                <span class="live-head-age" data-health-age="${escapeHtml(block.timestamp || '')}" data-health-age-format="ticker" data-magic="off">${escapeHtml(formatTickerAge(block.timestamp))}</span>
+            </span>
+            ${renderLiveHeadStory(activity)}
+        </button>
+    `;
 }
 
-function renderHeartbeatSignals(block, activity) {
-    return heartbeatSignalRows(block, activity).map((signal) => (
-        `<span class="chain-heartbeat-signal ${signal.className}">${escapeHtml(signal.label)}</span>`
+function renderLiveHeadRows(data) {
+    return visibleLiveHeadBlocks(data).map((block) => renderLiveHeadRow(
+        block,
+        heartbeatActivityCache.get(Number(block.level)) || null
     )).join('');
 }
 
-function renderBlockTickerLine(block, blocks, nextRight, activity) {
-    const status = latestBlockStatus(block);
-    const producer = block?.producer || {};
-    const name = bakerName(producer);
-    const right = nextRight?.level === block.level + 1 ? nextRight : null;
-    const rightName = right ? bakerName(right.baker) : 'Right syncing';
-    const round = Number.isFinite(Number(block?.blockRound)) ? `R${formatCount(block.blockRound)}` : 'R--';
-    const compositionTitle = activity
-        ? `Applied operations in block ${formatCount(block.level)}. Categories overlap: contract calls and token moves can be produced by transaction operations.`
-        : `Per-block operation receipts for block ${formatCount(block.level)} are syncing.`;
+function updateLiveHeadNext(latest, nextRight) {
+    const next = document.getElementById('live-head-next');
+    if (!next) return;
+    const right = nextRight?.level === latest.level + 1 ? nextRight : null;
+    const html = right
+        ? `<span title="Round-zero right, not a guaranteed block producer. ${escapeHtml(right.baker?.address || '')}">Next R0 · ${escapeHtml(bakerName(right.baker))} · <span data-heartbeat-due="${escapeHtml(right.timestamp || '')}" data-magic="off">${escapeHtml(formatHeartbeatDue(right.timestamp))}</span></span>`
+        : '<span>Next R0 syncing</span>';
+    quietlySyncHtml(next, html);
+}
 
-    return `
-        <span class="chain-heartbeat-now" data-quiet-key="current-block">
-            <span class="chain-heartbeat-eyebrow">Block landed</span>
-            <span class="block-ticker-segment block-ticker-level">
-                <strong class="block-ticker-value">#${formatCount(block.level)}</strong>
-            </span>
-            <span class="block-ticker-segment block-ticker-baker">
-                <strong class="block-ticker-value" title="${escapeHtml(producer.address || name)}">${escapeHtml(name)}</strong>
-            </span>
-            <span class="block-ticker-segment block-ticker-age">
-                <strong class="block-ticker-value" data-health-age="${escapeHtml(block.timestamp || '')}" data-health-age-format="ticker">${escapeHtml(formatTickerAge(block.timestamp))}</strong>
-            </span>
-        </span>
-        <span class="chain-heartbeat-next" data-quiet-key="next-right">
-            <span class="chain-heartbeat-eyebrow">Next R0 proposer</span>
-            <strong class="chain-heartbeat-next-name" title="${escapeHtml(right?.baker?.address || rightName)}">${escapeHtml(rightName)}</strong>
-            <span class="chain-heartbeat-due" data-heartbeat-due="${escapeHtml(right?.timestamp || '')}">${escapeHtml(formatHeartbeatDue(right?.timestamp))}</span>
-        </span>
-        <span class="chain-heartbeat-composition" data-quiet-key="block-composition" title="${escapeHtml(compositionTitle)}">
-            <span class="chain-heartbeat-eyebrow">This block</span>
-            <span class="chain-heartbeat-metric"><span>Tx ops</span><strong>${heartbeatMetric(activity?.txCount)}</strong></span>
-            <span class="chain-heartbeat-metric"><span>Calls</span><strong>${heartbeatMetric(activity?.contractCalls)}</strong></span>
-            <span class="chain-heartbeat-metric"><span>Tokens</span><strong>${heartbeatMetric(activity?.tokenTransfers)}</strong></span>
-            <span class="chain-heartbeat-metric"><span>Stake</span><strong>${heartbeatMetric(activity?.stakingCount)}</strong></span>
-        </span>
-        <span class="chain-heartbeat-history" data-quiet-key="block-history">
-            <span class="chain-heartbeat-eyebrow">Last ${Math.min((blocks || []).length, LAST_BLOCK_LIMIT)}</span>
-            ${renderHeartbeatRail(blocks)}
-        </span>
-        <span class="chain-heartbeat-events" data-quiet-key="block-signals">
-            <span class="chain-heartbeat-eyebrow">Signal</span>
-            <span class="chain-heartbeat-signal-list">${renderHeartbeatSignals(block, activity)}</span>
-        </span>
-        <span class="block-ticker-segment block-ticker-health ${status.className} block-ticker-health-accessory" aria-hidden="true">
-            <span class="block-ticker-label">Health</span>
-            <strong class="block-ticker-value">${escapeHtml(status.label)}</strong>
-        </span>
-        <span class="block-ticker-segment block-ticker-power block-ticker-power-accessory" aria-hidden="true">
-            <span class="block-ticker-label">Attested</span>
-            <strong class="block-ticker-value">${formatCount(block.power)}<small>/${formatCount(block.committee)}</small></strong>
-        </span>
-        <span class="block-ticker-segment block-ticker-round block-ticker-round-accessory" aria-hidden="true">
-            <span class="block-ticker-label">Round</span>
-            <strong class="block-ticker-value">${escapeHtml(round)}</strong>
-        </span>
-    `;
+function updateLiveHeadBakers(data) {
+    const button = document.getElementById('live-head-bakers');
+    if (!button) return;
+    const levels = visibleLiveHeadBlocks(data).map((block) => Number(block.level)).filter(Number.isFinite);
+    const startLevel = Math.min(...levels);
+    const endLevel = Math.max(...levels);
+    const rights = heartbeatMissedRightsCache;
+    const live = nakamotoCache?.live;
+    const notice = rights?.startLevel === startLevel && rights?.endLevel === endLevel
+        ? buildQuietBakerNotice({
+            attestationRights: rights.attestations,
+            bakingRights: rights.baking,
+            powerByDelegate: live?.powerByDelegate || {},
+            totalPower: live?.totalPower,
+            sampleClipped: rights.sampleClipped
+        })
+        : null;
+    const signature = notice?.signature || 'empty';
+    const currentSignature = button.dataset.noticeSignature || '';
+    button.dataset.noticeSignature = signature;
+    button.dataset.empty = notice ? 'false' : 'true';
+    button.disabled = !notice;
+    button.title = notice
+        ? `Open Network Health missed-rights detail. Visible-block sample${notice.sampleClipped ? ' reached its 90-row cap; the names shown are not a complete network roll call' : ''}.`
+        : 'No material large or mid-sized missed rights in the visible block sample.';
+    button.setAttribute('aria-label', button.title);
+    quietlySyncHtml(button, `<span data-story-signature="${escapeHtml(signature)}">${escapeHtml(notice?.text || 'Missed rights line reserved')}</span>`);
+    if (currentSignature && currentSignature === signature) button.querySelector('[data-story-signature]')?.classList.remove('is-revealing');
 }
 
 function dispatchHotSignal(detail) {
@@ -635,42 +631,61 @@ function trimHeartbeatActivityCache() {
     }
 }
 
+function loadHeartbeatStoryCatalog() {
+    if (heartbeatStoryCatalog) return Promise.resolve(heartbeatStoryCatalog);
+    if (heartbeatStoryCatalogInFlight) return heartbeatStoryCatalogInFlight;
+    heartbeatStoryCatalogInFlight = Promise.all([
+        loadDataAsset('ecosystemApps').catch(() => ({})),
+        loadDataAsset('maxisContracts').catch(() => ({}))
+    ]).then(([ecosystem, maxis]) => {
+        heartbeatStoryCatalog = compileBlockStoryCatalog(ecosystem, maxis);
+        return heartbeatStoryCatalog;
+    }).finally(() => {
+        heartbeatStoryCatalogInFlight = null;
+    });
+    return heartbeatStoryCatalogInFlight;
+}
+
 async function fetchHeartbeatActivity(level) {
     if (!Number.isFinite(level) || level <= 0) return null;
     const cached = heartbeatActivityCache.get(level);
     if (cached && (cached.complete || Date.now() - cached.updatedAt < LIVE_REFRESH_INTERVAL)) return cached;
-    if (heartbeatActivityInFlight?.level === level) return heartbeatActivityInFlight.promise;
+    if (heartbeatActivityInFlight.has(level)) return heartbeatActivityInFlight.get(level);
 
     const txFields = 'id,hash,timestamp,amount,sender,target,parameter,internal';
     const stakingFields = 'id,hash,timestamp,action,amount,staker,baker';
     const requests = [
         fetchJson(`${TZKT}/operations/transactions?level=${level}&status=applied&select=${txFields}&limit=${HEARTBEAT_ACTIVITY_LIMIT}`, 1, { priority: 'interactive' }),
-        fetchJson(`${TZKT}/tokens/transfers/count?level=${level}`, 1, { priority: 'interactive' }),
         fetchJson(`${TZKT}/operations/staking?level=${level}&status=applied&select=${stakingFields}&limit=${HEARTBEAT_STAKING_LIMIT}`, 1, { priority: 'interactive' })
     ];
-    const promise = Promise.allSettled(requests)
-        .then(([transactionsResult, tokenTransfersResult, stakingResult]) => {
+    const promise = Promise.all([loadHeartbeatStoryCatalog(), Promise.allSettled(requests)])
+        .then(([catalog, [transactionsResult, stakingResult]]) => {
             const transactions = transactionsResult.status === 'fulfilled' && Array.isArray(transactionsResult.value)
                 ? transactionsResult.value
                 : null;
             const stakingRows = stakingResult.status === 'fulfilled' && Array.isArray(stakingResult.value)
                 ? stakingResult.value
                 : null;
-            const tokenTransfers = tokenTransfersResult.status === 'fulfilled' && Number.isFinite(Number(tokenTransfersResult.value))
-                ? Number(tokenTransfersResult.value)
-                : null;
             const largestTransfer = transactions?.reduce((largest, row) => (
                 Number(row?.amount) > Number(largest?.amount || 0) ? row : largest
             ), null) || null;
+            const transactionsClipped = Boolean(transactions && transactions.length >= HEARTBEAT_ACTIVITY_LIMIT);
+            const stakingClipped = Boolean(stakingRows && stakingRows.length >= HEARTBEAT_STAKING_LIMIT);
             const activity = {
                 level,
                 txCount: transactions ? transactions.length : null,
                 contractCalls: transactions ? transactions.filter((row) => row?.parameter != null).length : null,
-                tokenTransfers,
                 stakingCount: stakingRows ? stakingRows.length : null,
                 stakingRows: stakingRows || [],
                 largestTransfer,
-                complete: transactions !== null && tokenTransfers !== null && stakingRows !== null,
+                story: classifyBlockStory({
+                    transactions,
+                    stakingRows,
+                    catalog,
+                    transactionsClipped,
+                    stakingClipped
+                }),
+                complete: transactions !== null && stakingRows !== null,
                 updatedAt: Date.now()
             };
             heartbeatActivityCache.set(level, activity);
@@ -678,9 +693,45 @@ async function fetchHeartbeatActivity(level) {
             return activity;
         })
         .finally(() => {
-            if (heartbeatActivityInFlight?.promise === promise) heartbeatActivityInFlight = null;
+            if (heartbeatActivityInFlight.get(level) === promise) heartbeatActivityInFlight.delete(level);
         });
-    heartbeatActivityInFlight = { level, promise };
+    heartbeatActivityInFlight.set(level, promise);
+    return promise;
+}
+
+async function fetchHeartbeatMissedRights(blocks) {
+    const levels = (Array.isArray(blocks) ? blocks : []).map((block) => Number(block.level)).filter(Number.isFinite);
+    if (!levels.length) return null;
+    const startLevel = Math.min(...levels);
+    const endLevel = Math.max(...levels);
+    if (heartbeatMissedRightsCache?.startLevel === startLevel
+        && heartbeatMissedRightsCache?.endLevel === endLevel
+        && Date.now() - heartbeatMissedRightsCache.updatedAt < LIVE_REFRESH_INTERVAL) {
+        return heartbeatMissedRightsCache;
+    }
+    if (heartbeatMissedRightsInFlight?.startLevel === startLevel && heartbeatMissedRightsInFlight?.endLevel === endLevel) {
+        return heartbeatMissedRightsInFlight.promise;
+    }
+    const promise = Promise.all([
+        fetchMissedRights('attestation', startLevel, endLevel, MISSED_RIGHTS_LIMIT, { priority: 'interactive' }),
+        fetchMissedRights('baking', startLevel, endLevel, 30, { priority: 'interactive' })
+    ]).then(([attestations, baking]) => {
+        heartbeatMissedRightsCache = {
+            startLevel,
+            endLevel,
+            attestations,
+            baking,
+            sampleClipped: attestations.length >= MISSED_RIGHTS_LIMIT,
+            updatedAt: Date.now()
+        };
+        return heartbeatMissedRightsCache;
+    }).catch((error) => {
+        console.warn('Live Head missed-right sample failed:', error);
+        return heartbeatMissedRightsCache;
+    }).finally(() => {
+        if (heartbeatMissedRightsInFlight?.promise === promise) heartbeatMissedRightsInFlight = null;
+    });
+    heartbeatMissedRightsInFlight = { startLevel, endLevel, promise };
     return promise;
 }
 
@@ -694,19 +745,29 @@ function requestHeartbeatSupplements(data) {
         }
     };
     fetchHeartbeatNextRight(level + 1).then(refreshIfCurrent);
-    fetchHeartbeatActivity(level).then(refreshIfCurrent);
+    const visible = visibleLiveHeadBlocks(data);
+    Promise.allSettled([
+        ...visible.map((block) => fetchHeartbeatActivity(Number(block.level))),
+        fetchHeartbeatMissedRights(visible),
+        fetchNakamotoCoefficients()
+    ]).then(refreshIfCurrent);
 }
 
 function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
-    const strip = document.getElementById('block-ticker-strip');
-    const button = document.getElementById('block-ticker-button');
-    const line = document.getElementById('block-ticker-line');
+    const panel = document.getElementById('live-head');
+    const button = document.getElementById('live-head-button');
+    const stack = document.getElementById('live-head-stack');
+    const bakerButton = document.getElementById('live-head-bakers');
     const activityButton = document.getElementById('header-activity-button');
-    if (!strip || !button || !line || !activityButton) return;
+    if (!panel || !button || !stack || !bakerButton || !activityButton) return;
 
-    if (!button.dataset.blockTickerWired) {
-        button.dataset.blockTickerWired = '1';
+    if (!button.dataset.liveHeadWired) {
+        button.dataset.liveHeadWired = '1';
         button.addEventListener('click', openNetworkHealthChamber);
+        bakerButton.addEventListener('click', openNetworkHealthChamber);
+        stack.addEventListener('click', (event) => {
+            if (event.target.closest('[data-live-head-level]')) openNetworkHealthChamber();
+        });
     }
     if (!activityButton.dataset.headerActivityWired) {
         activityButton.dataset.headerActivityWired = '1';
@@ -727,54 +788,49 @@ function updateBlockTicker(data, { error = false, supplemental = false } = {}) {
     const status = latestBlockStatus(latest);
     const producerName = bakerName(latest.producer);
     const nextRight = heartbeatNextRightCache?.level === latest.level + 1 ? heartbeatNextRightCache : null;
-    const activity = heartbeatActivityCache.get(latest.level) || null;
+    updateLiveHeadNext(latest, nextRight);
+    updateLiveHeadBakers(data);
+    const visible = visibleLiveHeadBlocks(data);
     const signature = [
-        latest.level,
-        latest.producer?.address || producerName,
-        latest.power,
-        latest.committee,
-        latest.blockRound,
+        ...visible.map((block) => `${block.level}:${block.producer?.address || ''}:${heartbeatActivityCache.get(Number(block.level))?.story?.signature || 'syncing'}`),
         nextRight?.baker?.address || '',
         nextRight?.timestamp || '',
-        activity?.updatedAt || ''
+        bakerButton.dataset.noticeSignature || 'empty'
     ].join(':');
-    const activityTitle = activity
-        ? ` This block has ${heartbeatMetric(activity.txCount)} transaction operations, ${heartbeatMetric(activity.contractCalls)} contract calls, ${heartbeatMetric(activity.tokenTransfers)} token moves, and ${heartbeatMetric(activity.stakingCount)} staking operations.`
-        : ' Per-block operation receipts are syncing.';
     const nextTitle = nextRight
         ? ` Next round-zero proposer for block ${formatCount(nextRight.level)}: ${bakerName(nextRight.baker)}, ${formatHeartbeatDue(nextRight.timestamp)}.`
         : ' Next round-zero proposer is syncing.';
-    const receiptTitle = `Block ${formatCount(latest.level)} landed from ${producerName}. ${status.label}: ${formatCount(latest.power)} / ${formatCount(latest.committee)} attested, round ${formatCount(latest.blockRound)}.${nextTitle}${activityTitle}`;
+    const receiptTitle = `Recent Tezos blocks, newest first. Head ${formatCount(latest.level)} landed from ${producerName}. ${status.label}: ${formatCount(latest.power)} / ${formatCount(latest.committee)} attested, round ${formatCount(latest.blockRound)}.${nextTitle}`;
     const title = error ? `Live source delayed; showing the last good receipt. ${receiptTitle}` : receiptTitle;
 
-    strip.dataset.blockHealth = status.className;
-    strip.dataset.feedState = error ? 'stale' : 'live';
-    strip.querySelector('.block-ticker-pulse')?.classList.toggle('stale', error);
+    panel.dataset.blockHealth = status.className;
+    panel.dataset.feedState = error ? 'stale' : 'live';
     button.title = title;
     button.setAttribute('aria-label', `Open Network Health Chamber. ${title}`);
 
-    if (line.dataset.blockTickerSignature === signature) {
-        refreshHealthAgeLabels(strip);
+    if (stack.dataset.liveHeadSignature === signature) {
+        refreshHealthAgeLabels(panel);
         if (!supplemental && !error) requestHeartbeatSupplements(data);
         return;
     }
 
-    const previousSignature = line.dataset.blockTickerSignature || '';
-    const previousLevel = Number(line.dataset.heartbeatLevel) || 0;
+    const previousSignature = stack.dataset.liveHeadSignature || '';
+    const previousLevel = Number(panel.dataset.heartbeatLevel) || 0;
     const headChanged = Boolean(previousLevel && previousLevel !== latest.level);
-    line.dataset.blockTickerSignature = signature;
-    line.dataset.heartbeatLevel = String(latest.level);
-    quietlySyncHtml(line, renderBlockTickerLine(latest, data.blocks, nextRight, activity));
+    stack.dataset.liveHeadSignature = signature;
+    panel.dataset.heartbeatLevel = String(latest.level);
+    quietlySyncHtml(stack, renderLiveHeadRows(data));
     const arrivedRecently = heartbeatSupplementIsCurrent(latest);
-    animateBlockTicker(strip, line, Boolean(headChanged && arrivedRecently && document.visibilityState === 'visible'));
+    revealLiveHeadFacts(panel, { headChanged: Boolean(headChanged && arrivedRecently) });
 
     if (headChanged) {
+        panel.dataset.liveHeadTransitionCount = String(Number(panel.dataset.liveHeadTransitionCount || 0) + 1);
         const announcer = document.getElementById('chain-heartbeat-announcer');
         if (announcer) {
             announcer.textContent = `Block ${formatCount(latest.level)} landed from ${producerName}, round ${formatCount(latest.blockRound)}, ${formatCount(latest.power)} of ${formatCount(latest.committee)} attested.`;
         }
     } else if (!previousSignature) {
-        line.dataset.blockTickerTransitionCount = '0';
+        panel.dataset.liveHeadTransitionCount = '0';
     }
     if (!supplemental && !error) requestHeartbeatSupplements(data);
 }
@@ -935,6 +991,9 @@ function buildNakamotoCoefficients(payload) {
         sourceUrl: `${OCTEZ_MAINNET}${NAKAMOTO_RPC_PATH}`,
         poweredDelegates: powers.length,
         totalPower: totalPower.toString(),
+        powerByDelegate: Object.fromEntries(
+            [...powerByDelegate.entries()].map(([delegate, power]) => [delegate, power.toString()])
+        ),
         thresholds: {
             oneThird: calculateNakamotoThreshold(powers, totalPower, 1, 3),
             twoThirds: calculateNakamotoThreshold(powers, totalPower, 2, 3)

@@ -84,6 +84,15 @@ const RUNTIME_STARTER_ROWS = [
     }
 ];
 
+const MISSION_STARTERS = Object.freeze([
+    Object.freeze({ id: 'starter:wallet', kind: 'account', group: 'Start', title: 'Wallet or .tez', detail: 'Open the private My Tezos workspace', action: 'page', value: '/my/' }),
+    Object.freeze({ id: 'starter:rooms', kind: 'chamber', group: 'Start', title: 'Rooms', detail: 'Find a focused Tezos Systems room', action: 'query', value: 'rooms' }),
+    Object.freeze({ id: 'starter:bakers', kind: 'baker', group: 'Start', title: 'Bakers', detail: 'Open the factual active-baker directory', action: 'page', value: '/leaderboard/?view=directory' }),
+    Object.freeze({ id: 'starter:network', kind: 'chamber', group: 'Start', title: 'Network', detail: 'Open live consensus and chain health', action: 'page', value: '/health/' }),
+    Object.freeze({ id: 'starter:paste', kind: 'operation', group: 'Start', title: 'Paste a hash', detail: 'Read a block or operation hash from your clipboard', action: 'paste' }),
+    Object.freeze({ id: 'starter:browse', kind: 'page', group: 'Start', title: 'Browse all', detail: 'Open the complete destination list', action: 'browse-all' })
+]);
+
 let protocols = [];
 let protocolsPromise = null;
 const bakerSearchCache = new Map();
@@ -688,10 +697,7 @@ function buildResults(query, { browseAll = false } = {}) {
                 ...siteMapBrowseIntents().map((intent) => siteMapIntentResult(intent, { browse: true }))
             ]);
         }
-        return dedupeResults([
-            ...siteMapStarters().map((entry) => siteMapResult(entry, { starter: true })),
-            ...RUNTIME_STARTER_ROWS
-        ].filter(Boolean));
+        return dedupeResults(MISSION_STARTERS);
     }
 
     const intentMatches = siteMapIntentMatches.slice(0, 6);
@@ -905,13 +911,12 @@ export function initHeroSearch() {
         const routeParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         return window.location.hash === '#search' || routeParams.has('search');
     })();
-    const inertedElements = new Set();
     let lastAnnouncement = '';
     let liveRegion = document.getElementById('hero-search-status');
     if (!liveRegion) {
         liveRegion = document.createElement('div');
         liveRegion.id = 'hero-search-status';
-        liveRegion.className = 'visually-hidden';
+        liveRegion.className = 'sr-only';
         liveRegion.setAttribute('role', 'status');
         liveRegion.setAttribute('aria-live', 'polite');
         liveRegion.setAttribute('aria-atomic', 'true');
@@ -945,28 +950,6 @@ export function initHeroSearch() {
         root.style.setProperty('--hero-search-available-height', `${Math.max(180, viewportHeight - top - 12)}px`);
     };
 
-    const setBackgroundInert = (next) => {
-        if (next) {
-            let activeBranch = root;
-            while (activeBranch?.parentElement) {
-                const parent = activeBranch.parentElement;
-                for (const element of parent.children) {
-                    if (element === activeBranch
-                        || element.contains(root)
-                        || ['SCRIPT', 'STYLE', 'LINK'].includes(element.tagName)
-                        || element.hasAttribute('inert')) continue;
-                    element.setAttribute('inert', '');
-                    inertedElements.add(element);
-                }
-                if (parent === document.body) break;
-                activeBranch = parent;
-            }
-            return;
-        }
-        for (const element of inertedElements) element.removeAttribute('inert');
-        inertedElements.clear();
-    };
-
     const canRestoreFocus = (target) => {
         if (!(target instanceof HTMLElement)
             || target === document.body
@@ -997,7 +980,6 @@ export function initHeroSearch() {
         document.body.classList.toggle('hero-search-mode', isOpen);
         panel.hidden = !isOpen;
         input.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        setBackgroundInert(isOpen);
         if (isOpen && !wasOpen) {
             window.dispatchEvent(new Event('hero-search-opened'));
             requestAnimationFrame(syncAvailableHeight);
@@ -1157,17 +1139,13 @@ export function initHeroSearch() {
             return;
         }
 
-        const destinationCount = siteMapBrowseEntries().length + siteMapBrowseIntents().length;
-        const guide = normalizeQuery(input.value)
-            ? ''
-            : isBrowsingAll
-                ? `<div class="hero-search-guide"><strong>All ${destinationCount} destinations.</strong><span>The complete Tezos Systems directory. Start typing to narrow it, or choose any room, guide, tool, view, widget, or feed.</span></div>`
-                : `<div class="hero-search-guide"><strong>Start from anything.</strong><span>Choose a useful starting point below, paste a wallet, .tez name, baker, contract, operation, block, or protocol, or open All ${destinationCount} for the complete directory. Press / from anywhere.</span></div>`;
-        quietlySyncHtml(panel, guide + groupedResults(results).map((group) => {
+        const groups = groupedResults(results);
+        const showGroupLabels = Boolean(normalizeQuery(input.value)) && groups.length > 1;
+        quietlySyncHtml(panel, groups.map((group) => {
             const rows = group.results.map((result) => resultHtml(result, selectedId)).join('');
             return `
                 <section class="hero-search-group" role="group" aria-label="${escapeHtml(group.label)}" data-quiet-key="group:${escapeHtml(group.label)}">
-                    <div class="hero-search-group-label">${escapeHtml(group.label)}</div>
+                    ${showGroupLabels ? `<div class="hero-search-group-label">${escapeHtml(group.label)}</div>` : ''}
                     ${rows}
                 </section>
             `;
@@ -1205,6 +1183,28 @@ export function initHeroSearch() {
         if (!result || result.selectable === false) return false;
         if (result.action === 'query') {
             applyQuery(result.value);
+            return false;
+        }
+        if (result.action === 'browse-all') {
+            input.value = '';
+            isBrowsingAll = true;
+            selectedId = '';
+            render();
+            return false;
+        }
+        if (result.action === 'paste') {
+            const usePasteHint = () => {
+                input.placeholder = 'Paste a block or operation hash';
+                input.focus({ preventScroll: true });
+            };
+            if (!navigator.clipboard?.readText) {
+                usePasteHint();
+                return false;
+            }
+            navigator.clipboard.readText().then((text) => {
+                if (normalizeQuery(text)) applyQuery(text);
+                else usePasteHint();
+            }).catch(usePasteHint);
             return false;
         }
         return runResult(result);
@@ -1337,22 +1337,10 @@ export function initHeroSearch() {
     });
 
     document.addEventListener('keydown', (event) => {
-        if (isOpen && event.key === 'Tab') {
-            const focusable = [...root.querySelectorAll('button:not([disabled]), input:not([disabled]), a[href]')]
-                .filter((element) => !element.closest('[hidden]') && element.getClientRects().length > 0);
-            if (!focusable.length) return;
-            const current = focusable.indexOf(document.activeElement);
-            const next = event.shiftKey
-                ? (current <= 0 ? focusable.length - 1 : current - 1)
-                : (current < 0 || current === focusable.length - 1 ? 0 : current + 1);
-            event.preventDefault();
-            focusable[next].focus();
-            return;
-        }
         if (event.key !== '/' || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
         if (isTextEntryTarget(event.target) || isBlockingOverlayActive()) return;
         event.preventDefault();
-        setHomeBlockVisible('search', true, 'search-shortcut');
+        setHomeBlockVisible('live-head', true, 'search-shortcut');
         priorFocus = document.activeElement;
         input.focus();
         input.select();
@@ -1373,7 +1361,7 @@ export function initHeroSearch() {
     const searchParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
     const searchHash = searchParams.get('search');
     if (window.location.hash === '#search' || searchParams.has('search')) {
-        setHomeBlockVisible('search', true, 'deep-link');
+        setHomeBlockVisible('live-head', true, 'deep-link');
         if (searchHash) applyQuery(searchHash);
         else requestAnimationFrame(() => input.focus({ preventScroll: true }));
     }

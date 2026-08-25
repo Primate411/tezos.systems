@@ -4625,13 +4625,17 @@ body.release-update-safe-area-raised .chamber-room-scroll {
         transition: none !important;
     }
 }
-/* Live Pulse ticker — the scrolling twin above Chain Heartbeat. */
+/* Live Pulse ticker — the scrolling twin above Live Head. */
 .pulse-ticker-strip{
     position: relative;
     z-index: 5;
     max-width: var(--page-col);
     margin: 0 auto 0.5rem;
     padding: 0 2rem;
+}
+
+.pulse-ticker-strip:has(.pulse-ticker-shelf:not([hidden])){
+    z-index: 80;
 }
 
 .pulse-ticker-bar{
@@ -5051,8 +5055,7 @@ body.release-update-safe-area-raised .chamber-room-scroll {
 
 /* Device-local Home layout. The root tokens are installed by a render-blocking
    preload, so hidden blocks never flash before the module app initializes. */
-html:not([data-home-layout-preview="all"])[data-home-hidden~="ticker"] #block-ticker-strip,
-html:not([data-home-layout-preview="all"])[data-home-hidden~="search"] #upgrade-clock,
+html:not([data-home-layout-preview="all"])[data-home-hidden~="live-head"] #live-head,
 html:not([data-home-layout-preview="all"])[data-home-hidden~="live-pulse"] #governance-alert-strip,
 html:not([data-home-layout-preview="all"])[data-home-hidden~="live-pulse"] #pulse-ticker-strip,
 html:not([data-home-layout-preview="all"])[data-home-hidden~="explore"] #chambers-section,

@@ -51,18 +51,18 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=583">
-    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=583">
-    <link rel="stylesheet" href="css/loading.css?v=583">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=583">
-    <link rel="stylesheet" href="css/protocol-anthology.css?v=583">
-    <link rel="stylesheet" href="css/site-map.css?v=583">
+    <link rel="stylesheet" href="css/styles.min.css?v=584">
+    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=584">
+    <link rel="stylesheet" href="css/loading.css?v=584">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=584">
+    <link rel="stylesheet" href="css/protocol-anthology.css?v=584">
+    <link rel="stylesheet" href="css/site-map.css?v=584">
     <link rel="stylesheet" href="css/hen-mode.css?v=98">
     <script src="js/core/hen-init.js?v=79" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=583">
+    <link rel="modulepreload" href="js/core/app.js?v=584">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/data-assets.js">
@@ -276,8 +276,8 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=583"></script>
-    <script src="js/core/home-layout-preload.js?v=583"></script>
+    <script src="js/core/theme-preload.js?v=584"></script>
+    <script src="js/core/home-layout-preload.js?v=584"></script>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="top-utility-row">
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
@@ -587,7 +587,7 @@
                     </button>
                     <div class="settings-dropdown" id="settings-dropdown" role="dialog" aria-label="Setup and settings">
                         <button id="customize-home-btn" class="glass-button customize-home-trigger" aria-label="Customize home layout" title="Choose which home blocks are shown">
-                            <span aria-hidden="true">☷</span> <span class="dropdown-label">Customize home</span><span class="home-layout-count" data-home-layout-count>7 shown</span>
+                            <span aria-hidden="true">☷</span> <span class="dropdown-label">Customize home</span><span class="home-layout-count" data-home-layout-count>6 shown</span>
                         </button>
                         <div class="dropdown-divider"></div>
                         <button id="theme-toggle" class="glass-button" aria-label="Switch to matrix theme" title="Theme: default">
@@ -721,72 +721,34 @@
         <div class="pulse-ticker-shelf" id="pulse-ticker-shelf" role="group" aria-label="Live Pulse signal detail" hidden></div>
     </section>
 
-    <!-- Live block ticker -->
-    <section class="block-ticker-strip" id="block-ticker-strip" aria-label="Live Tezos Chain Heartbeat" data-magic="off" data-home-block="ticker" data-feed-state="loading">
-        <button class="block-ticker-button" id="block-ticker-button" type="button" aria-label="Open Network Health Chamber">
-            <span class="block-ticker-kicker" aria-hidden="true">
-                <span class="uptime-pulse-dot block-ticker-pulse" id="uptime-pulse-dot" title="Network healthy — blocks on schedule"></span>
-            </span>
-            <span class="block-ticker-line" id="block-ticker-line" aria-live="off">
-                <span class="chain-heartbeat-now" data-quiet-key="current-block">
-                    <span class="chain-heartbeat-eyebrow">Block landed</span>
-                    <span class="block-ticker-placeholder">Syncing latest head</span>
-                </span>
-                <span class="chain-heartbeat-next" data-quiet-key="next-right">
-                    <span class="chain-heartbeat-eyebrow">Next R0 proposer</span>
-                    <span class="block-ticker-placeholder">Right syncing</span>
-                </span>
-                <span class="chain-heartbeat-composition" data-quiet-key="block-composition">
-                    <span class="chain-heartbeat-eyebrow">This block</span>
-                    <span class="block-ticker-placeholder">Receipts syncing</span>
-                </span>
-                <span class="chain-heartbeat-history" data-quiet-key="block-history">
-                    <span class="chain-heartbeat-eyebrow">Recent cadence</span>
-                    <span class="chain-heartbeat-rail is-loading" aria-hidden="true"></span>
-                </span>
-                <span class="chain-heartbeat-events" data-quiet-key="block-signals">
-                    <span class="chain-heartbeat-eyebrow">Signal</span>
-                    <span class="block-ticker-placeholder">Listening</span>
-                </span>
-            </span>
-        </button>
-        <span class="sr-only" id="chain-heartbeat-announcer" aria-live="polite" aria-atomic="true"></span>
-        <button class="home-block-hide home-block-hide-compact block-ticker-hide" type="button" data-home-hide="ticker" aria-label="Hide Chain Heartbeat" title="Hide Chain Heartbeat">
-            <svg class="home-block-hide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.8 10.8 0 0112 4c5.2 0 8.8 5.3 8.8 5.3a13 13 0 01-2.3 2.7M6.2 6.2A15.7 15.7 0 003.2 9.3S6.8 14.7 12 14.7c1 0 1.9-.2 2.7-.5"/></svg>
-            <span class="home-block-hide-label">Hide</span>
-        </button>
-    </section>
-
-    <!-- Command Deck -->
-    <section class="upgrade-clock command-deck" id="upgrade-clock" aria-label="Tezos Systems command surface" data-home-block="search">
-        <div class="upgrade-clock-content command-deck-content">
-            <div class="hero-slot" id="hero-slot">
-                <form class="hero-search-form" id="hero-search-form" role="search" autocomplete="off">
-                    <span class="hero-search-mark" aria-hidden="true">⌕</span>
-                    <input
-                        class="hero-search-input"
-                        id="hero-search-input"
-                        type="search"
-                        aria-label="Search Tezos Systems"
-                        role="combobox"
-                        aria-controls="hero-search-panel"
-                        aria-expanded="false"
-                        aria-autocomplete="list"
-                        aria-activedescendant=""
-                        placeholder="Press / to search every feature or paste any Tezos ID…"
-                        spellcheck="false"
-                        autocomplete="off"
-                    >
-                    <button class="hero-search-submit" type="submit" aria-label="Open selected Tezos Systems result">↵</button>
-                    <button class="hero-search-close" id="hero-search-close" type="button" aria-label="Close search">&times;</button>
-                </form>
-                <div class="hero-search-chips" id="hero-search-chips" aria-label="Suggested searches"><button class="hero-search-chip" type="button" data-hero-browse-all="true">All 83</button><button class="hero-search-chip" type="button" data-hero-route="/my/" data-hero-entry="my-tezos">Wallet or .tez</button><button class="hero-search-chip" type="button" data-hero-route="/pulse/" data-hero-entry="pulse">/pulse</button><button class="hero-search-chip" type="button" data-hero-route="/stake/" data-hero-entry="staking-chamber">/stake</button><button class="hero-search-chip" type="button" data-hero-route="/maxis/" data-hero-entry="maxis">/maxis</button><button class="hero-search-chip" type="button" data-hero-route="/health/" data-hero-entry="health">/health</button><button class="hero-search-chip" type="button" data-hero-route="/domains/" data-hero-entry="domains">/domains</button><button class="hero-search-chip" type="button" data-hero-route="/ledger-flow/" data-hero-entry="ledger-flow">/flow</button><button class="hero-search-chip" type="button" data-hero-query="KT1">KT1</button><button class="hero-search-chip" type="button" data-hero-query="/theme">/theme</button></div>
-                <div class="hero-search-panel" id="hero-search-panel" role="listbox" aria-label="Tezos Systems search results" hidden></div>
-            </div>
-            <button class="home-block-hide command-deck-hide" type="button" data-home-hide="search" aria-label="Hide Search and command deck" title="Hide Search and command deck">
+    <!-- Live Head: recent blocks flowing into the site-wide search well. -->
+    <section class="live-head-panel lb-panel" id="live-head" aria-label="Live Tezos blocks and search" data-home-block="live-head" data-feed-state="loading">
+        <div class="live-head-topline">
+            <button class="live-head-title lb-panel-title" id="live-head-button" type="button" aria-label="Open Network Health Chamber"><span>Live blocks</span></button>
+            <span class="live-head-next" id="live-head-next" data-quiet-key="next-right">Next R0 syncing</span>
+            <span class="live-head-state" aria-label="Live data">Live</span>
+            <button class="home-block-hide home-block-hide-compact live-head-hide" type="button" data-home-hide="live-head" aria-label="Hide Live blocks and search" title="Hide Live blocks and search">
                 <svg class="home-block-hide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.8 10.8 0 0112 4c5.2 0 8.8 5.3 8.8 5.3a13 13 0 01-2.3 2.7M6.2 6.2A15.7 15.7 0 003.2 9.3S6.8 14.7 12 14.7c1 0 1.9-.2 2.7-.5"/></svg>
                 <span class="home-block-hide-label">Hide</span>
             </button>
+        </div>
+        <div class="live-head-stack" id="live-head-stack" aria-live="off">
+            <button class="live-head-row is-placeholder" type="button" disabled data-quiet-key="live-head-placeholder-0"><span>Syncing latest block</span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled data-quiet-key="live-head-placeholder-1"><span>Listening for receipts</span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled data-quiet-key="live-head-placeholder-2"><span>Preparing block stories</span></button>
+            <button class="live-head-row is-placeholder live-head-desktop-row" type="button" disabled data-quiet-key="live-head-placeholder-3"><span>Checking recent head</span></button>
+        </div>
+        <button class="live-head-bakers" id="live-head-bakers" type="button" aria-label="Open missed rights in Network Health" data-quiet-key="live-head-quiet-bakers" data-empty="true"><span>Missed rights line reserved</span></button>
+        <span class="sr-only" id="chain-heartbeat-announcer" aria-live="polite" aria-atomic="true"></span>
+        <div class="hero-slot" id="hero-slot">
+            <form class="hero-search-form" id="hero-search-form" role="search" autocomplete="off">
+                <span class="hero-search-mark" aria-hidden="true">⌕</span>
+                <input class="hero-search-input" id="hero-search-input" type="search" aria-label="Search Tezos Systems" role="combobox" aria-controls="hero-search-panel" aria-expanded="false" aria-autocomplete="list" aria-activedescendant="" placeholder="Search Tezos" spellcheck="false" autocomplete="off">
+                <button class="hero-search-submit" type="submit" aria-label="Open selected Tezos Systems result">→</button>
+                <button class="hero-search-close" id="hero-search-close" type="button" aria-label="Close search">&times;</button>
+            </form>
+            <div class="hero-search-chips" id="hero-search-chips" aria-label="HEN search shortcuts"></div>
+            <div class="hero-search-panel" id="hero-search-panel" role="listbox" aria-label="Tezos Systems search results" hidden></div>
         </div>
     </section>
 
@@ -2112,7 +2074,7 @@
                 <ul>
                     <li><strong>Chain age</strong>: The counter is derived from the launch timestamp, not a status-page SLA</li>
                     <li><strong>Upgrade history</strong>: Protocol amendments are adopted on-chain without resetting that history</li>
-                    <li><strong>Live liveness</strong>: The separate block ticker reports the current head and its freshness</li>
+                    <li><strong>Live liveness</strong>: Live Head reports recent blocks, human-readable contents, and head freshness above its search well</li>
                     <li><strong>Deterministic finality</strong>: Under normal quorum conditions, blocks finalize after two levels (about 12 seconds)</li>
                 </ul>
                 <div class="modal-links">
@@ -2204,8 +2166,7 @@
             </div>
             <fieldset class="home-layout-options">
                 <legend class="visually-hidden">Home blocks to show</legend>
-                <label class="home-layout-option"><span><strong>Latest block ticker</strong><small>Current head, baker, freshness, and attestation health.</small></span><input type="checkbox" role="switch" data-home-layout-toggle="ticker" checked><i aria-hidden="true"></i></label>
-                <label class="home-layout-option"><span><strong>Search and command deck</strong><small>Search every feature or jump with a slash command.</small></span><input type="checkbox" role="switch" data-home-layout-toggle="search" checked><i aria-hidden="true"></i></label>
+                <label class="home-layout-option"><span><strong>Live blocks and search</strong><small>Recent human-readable block contents flowing into site-wide search.</small></span><input type="checkbox" role="switch" data-home-layout-toggle="live-head" checked><i aria-hidden="true"></i></label>
                 <label class="home-layout-option"><span><strong>Live Pulse</strong><small>Ranked live signals and the governance alert strip.</small></span><input type="checkbox" role="switch" data-home-layout-toggle="live-pulse" checked><i aria-hidden="true"></i></label>
                 <label class="home-layout-option"><span><strong>Explore Tezos</strong><small>The complete topic-based Chamber launcher.</small></span><input type="checkbox" role="switch" data-home-layout-toggle="explore" checked><i aria-hidden="true"></i></label>
                 <details class="home-layout-topics" id="home-layout-topics">
@@ -2285,7 +2246,7 @@
                 <label class="home-layout-option"><span><strong>Credits and sources</strong><small>Builder, support, source, license, data, and build details.</small></span><input type="checkbox" role="switch" data-home-layout-toggle="credits" checked><i aria-hidden="true"></i></label>
             </fieldset>
             <div class="home-layout-footer">
-                <span class="home-layout-footer-count" data-home-layout-count>7 shown</span>
+                <span class="home-layout-footer-count" data-home-layout-count>6 shown</span>
                 <button class="glass-button home-layout-show-all" id="home-layout-show-all" type="button">Show all</button>
             </div>
         </div>
@@ -2888,8 +2849,8 @@
 
     <!-- Load app as module -->
     <script defer src="js/features/hen-mode.js?v=95"></script>
-    <script type="module" src="js/effects/valley-loader.js?v=583"></script>
-    <script type="module" src="js/core/app.js?v=583"></script>
+    <script type="module" src="js/effects/valley-loader.js?v=584"></script>
+    <script type="module" src="js/core/app.js?v=584"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="my-baker-modal-title" tabindex="-1">

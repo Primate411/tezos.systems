@@ -20,6 +20,8 @@ import {
   milestoneCatalogCadence
 } from '../js/features/milestone-catalog.mjs';
 import { advanceMilestoneTrack, claimMilestoneArrival, deriveMilestoneMoments, MILESTONE_MOMENT_TTL_MS, normalizeMilestoneStore, qualifyMilestoneNearState } from '../js/features/milestone-lifecycle.mjs';
+import { classifyBlockStory, compileBlockStoryCatalog } from '../js/core/block-story.mjs';
+import { buildQuietBakerNotice } from '../js/core/baker-size.mjs';
 import {
   compileContractCoverage,
   rankAppActivity,
@@ -160,10 +162,10 @@ async function checkHomeLayoutContracts() {
   ]);
   const pulseTicker = await readText('js/ui/pulse-ticker.js');
   const tickerCss = await readText('css/shell-extras.css');
-  const expectedIds = ['ticker', 'search', 'live-pulse', 'explore', 'moments', 'handoff', 'credits'];
+  const expectedIds = ['live-head', 'live-pulse', 'explore', 'moments', 'handoff', 'credits'];
   const registryIds = [...layout.matchAll(/Object\.freeze\(\{ id: '([^']+)'/g)].map((match) => match[1]);
   if (JSON.stringify(registryIds) !== JSON.stringify(expectedIds)) {
-    fail(`Home layout registry must contain exactly the seven ordered blocks: ${JSON.stringify(registryIds)}`);
+    fail(`Home layout registry must contain exactly the six ordered blocks: ${JSON.stringify(registryIds)}`);
   }
   for (const source of [preload, layout]) {
     if (!source.includes('tezos-systems-home-layout-v1') || !source.includes('version: 1') || !source.includes('hidden')) {
@@ -173,8 +175,10 @@ async function checkHomeLayoutContracts() {
   }
   const preloadIndex = index.indexOf('js/core/home-layout-preload.js');
   const pulseTickerIndex = index.indexOf('id="pulse-ticker-strip"');
-  const tickerIndex = index.indexOf('id="block-ticker-strip"');
-  if (preloadIndex < 0 || pulseTickerIndex < 0 || tickerIndex < 0 || preloadIndex > pulseTickerIndex || pulseTickerIndex > tickerIndex || !styles.includes('[data-home-hidden~="live-pulse"] #pulse-ticker-strip')) {
+  const liveHeadIndex = index.indexOf('id="live-head"');
+  if (preloadIndex < 0 || pulseTickerIndex < 0 || liveHeadIndex < 0 || preloadIndex > pulseTickerIndex || pulseTickerIndex > liveHeadIndex
+      || !styles.includes('[data-home-hidden~="live-pulse"] #pulse-ticker-strip')
+      || !styles.includes('[data-home-hidden~="live-head"] #live-head')) {
     fail('Home layout first-paint preload must run before managed content and own CSS hiding from the root token');
   }
   if (!pulseTicker.includes('data-pulse-run="echo"')
@@ -203,18 +207,16 @@ async function checkHomeLayoutContracts() {
       || !smoke.includes("name: 'live-pulse-ticker'")) {
     fail('Live Pulse must keep its concise age clock, working anchored explainer, and focused ticker browser regression');
   }
-  const blockHideIndex = index.indexOf('class="home-block-hide home-block-hide-compact block-ticker-hide"', tickerIndex);
-  if (blockHideIndex < tickerIndex
-      || !tickerCss.includes('.block-ticker-strip[data-home-block] .block-ticker-hide {')
-      || !/\.block-ticker-strip\[data-home-block\] \.block-ticker-hide\s*\{[\s\S]*?position:\s*absolute;[\s\S]*?width:\s*26px;[\s\S]*?border:\s*0;[\s\S]*?background:\s*transparent;/.test(tickerCss)) {
-    fail('Chain Heartbeat must keep its compact Hide eye embedded subtly at the right edge of the panel');
+  const liveHeadHideIndex = index.indexOf('class="home-block-hide home-block-hide-compact live-head-hide"', liveHeadIndex);
+  if (liveHeadHideIndex < liveHeadIndex || !index.includes('data-home-hide="live-head"')) {
+    fail('Live Head must keep one compact Hide eye inside the combined card');
   }
   for (const id of expectedIds) {
     if (!index.includes(`data-home-block="${id}"`) || !index.includes(`data-home-layout-toggle="${id}"`)) {
       fail(`Home layout HTML is missing the managed block and switch for ${id}`);
     }
   }
-  for (const id of ['ticker', 'search', 'live-pulse', 'explore', 'moments']) {
+  for (const id of ['live-head', 'live-pulse', 'explore', 'moments']) {
     if (!index.includes(`data-home-hide="${id}"`)) fail(`Home layout inline Hide action missing for ${id}`);
   }
   if (!handoff.includes('data-home-hide="handoff"')) fail('Keep Exploring must render its inline Hide action');
@@ -235,12 +237,16 @@ async function checkHomeLayoutContracts() {
   for (const snippet of [
     "setHomeBlockVisible('explore', !isHomeBlockVisible('explore'), 'explore-menu')",
     "setHomeBlockVisible('live-pulse', true, 'deep-link')",
-    "setHomeBlockVisible('search', true, 'deep-link')",
+    "setHomeBlockVisible('live-head', true, 'deep-link')",
     "setHomeBlockVisible('handoff', true, 'deep-link')"
   ]) {
     if (!app.includes(snippet)) fail(`Home layout navigation integration missing: ${snippet}`);
   }
-  if (!search.includes("setHomeBlockVisible('search', true, 'search-shortcut')")) fail('The / shortcut must reveal and save the search block');
+  if (!search.includes("setHomeBlockVisible('live-head', true, 'search-shortcut')")) fail('The / shortcut must reveal and save Live Head');
+  if (!preload.includes("saved.hidden.indexOf('ticker')") || !preload.includes("saved.hidden.indexOf('search')")
+      || !layout.includes("value.hidden.includes('ticker')") || !layout.includes("value.hidden.includes('search')")) {
+    fail('Home layout must migrate the retired ticker/search pair without discarding partial or unknown preferences');
+  }
   if (!tour.includes("beginPreview?.('guided-tour')") || !tour.includes("endPreview?.('guided-tour')")) fail('Guided tour must temporarily reveal and restore the saved Home layout');
   for (const snippet of ['hotTodaySurfaceVisible()', 'stopHotTodaySurfaceTimers()', "event.detail?.id === 'live-pulse'", 'hotTodayQuietRestore']) {
     if (!briefing.includes(snippet)) fail(`Live Pulse hidden/quiet restoration contract missing: ${snippet}`);
@@ -267,7 +273,54 @@ async function checkHomeLayoutContracts() {
   if (!smoke.includes("name: 'home-layout'") || !smoke.includes('async function smokeHomeLayout')) fail('Focused home-layout browser suite is missing');
   if (!readme.includes('Customize home') || !readme.includes('tezos-systems-home-layout-v1')) fail('README must document the device-local Home layout contract');
   if (!changelog.includes('Customize home')) fail('User-facing changelog must mention Customize home');
-  pass('device-local seven-block Home layout, recovery, migration, route, tour, and Live Pulse contracts checked');
+  pass('device-local six-block Home layout, recovery, migration, route, tour, and Live Pulse contracts checked');
+}
+
+function checkLiveHeadPureContracts() {
+  const catalog = compileBlockStoryCatalog({
+    apps: [{
+      id: 'reviewed-defi',
+      category: 'defi',
+      layers: [{ id: 'tezos', contractSource: { aliasPatterns: ['^Reviewed DEX$'] }, proofUrls: [] }]
+    }]
+  });
+  const mixed = classifyBlockStory({
+    catalog,
+    transactions: [
+      { amount: 1000000, internal: false, target: { address: 'KT1JNNMMGyNNy36Zo6pcgRTMLUZyqRrttMZ4', alias: 'Reviewed DEX' } },
+      { amount: 2000000, internal: false, target: { address: 'sr1UndWm3nAcuLY4RDcNBpRZgaMRDuRdu9D6', alias: '' } },
+      { amount: 3000000, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w', alias: 'Unknown app' } },
+      { amount: 4000000, internal: true, target: { address: 'KT1JNNMMGyNNy36Zo6pcgRTMLUZyqRrttMZ4', alias: 'Reviewed DEX' } }
+    ],
+    stakingRows: []
+  });
+  assert.deepEqual(mixed.fragments.map(({ key }) => key), ['defi', 'etherlink', 'transfers']);
+  assert(!mixed.text.includes('Oracle') && !mixed.text.includes('· 0'));
+
+  const staking = classifyBlockStory({
+    transactions: [],
+    stakingRows: [
+      { action: 'stake', amount: 12400000000 },
+      { action: 'unstake', amount: 800000000 }
+    ]
+  });
+  assert.equal(staking.text, 'Stake 12,400 ꜩ · Unstake 800 ꜩ');
+  assert.equal(classifyBlockStory({ transactions: [], stakingRows: [] }).text, 'Quiet');
+  assert(classifyBlockStory({ transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }], stakingRows: [] }).text.startsWith('Transfers'));
+  assert(classifyBlockStory({ transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }], stakingRows: [], transactionsClipped: true }).text.endsWith('+'));
+
+  const large = { baker: { address: 'tz1-large', alias: 'Large Baker' }, slots: 8 };
+  const small = { baker: { address: 'tz1-small', alias: 'Small Baker' }, slots: 2 };
+  const notice = buildQuietBakerNotice({
+    attestationRights: [large, small],
+    powerByDelegate: { 'tz1-large': '2000', 'tz1-small': '20' },
+    totalPower: '100000'
+  });
+  assert(notice?.text.includes('Large Baker') && notice.text.includes('missed attestations'));
+  assert.equal(buildQuietBakerNotice({ attestationRights: [small], powerByDelegate: { 'tz1-small': '20' }, totalPower: '100000' }), null);
+  const blockMiss = buildQuietBakerNotice({ bakingRights: [{ baker: { address: 'tz1-small', alias: 'Small Baker' } }] });
+  assert.equal(blockMiss?.text, 'Small Baker missed the block');
+  pass('Live Head catalog classifier, receipt clipping, staking, quiet block, and baker materiality contracts checked');
 }
 
 async function checkMyTezosPortfolioContracts() {
@@ -2122,13 +2175,14 @@ async function checkSelectorContracts() {
     'pulse-ticker-strip',
     'pulse-ticker-viewport',
     'pulse-ticker-shelf',
-    'block-ticker-strip',
-    'block-ticker-line',
+    'live-head',
+    'live-head-stack',
+    'live-head-bakers',
+    'live-head-next',
     'header-activity-button',
     'header-activity-line',
     'header-protocol-chip',
     'header-current-protocol',
-    'upgrade-clock',
     'hero-slot',
     'hero-search-form',
     'hero-search-input',
@@ -2190,11 +2244,11 @@ async function checkSelectorContracts() {
     ['Tezos Handoff human question route', 'What’s being built?', siteHandoffSource],
     ['Tezos Handoff hospitable invitation', 'Stay awhile. When one of these feels like yours, follow it.', siteHandoffSource],
     ['Tezos Handoff topical signal hook', "window.addEventListener('hot-signal-rendered', applySignal)", siteHandoffSource],
-    ['hero command bar slash-tip placeholder', 'Press / to search every feature or paste any Tezos ID…'],
+    ['Live Head search placeholder', 'placeholder="Search Tezos"'],
     ['timeline share fallback host', 'document.querySelector(\'.upgrade-badges\')'],
     ['timeline share protocol history chamber fallback', 'document.querySelector(\'#protocol-history-chamber-modal .protocol-history-feature-panel\')'],
     ['header protocol chip', 'id="header-protocol-chip" href="#protocol-history"'],
-    ['command deck shell', 'class="upgrade-clock command-deck"'],
+    ['Live Head combined shell', 'class="live-head-panel lb-panel" id="live-head"'],
     ['hero command bar slot', 'class="hero-slot" id="hero-slot"'],
     ['hero command bar combobox', 'aria-controls="hero-search-panel"'],
     ['Governance alert strip shell', 'class="stats-section governance-alert-section"'],
@@ -2464,10 +2518,9 @@ async function checkSelectorContracts() {
     ['Protocol History Chamber timeline toggle target', 'protocol-timeline-toggle-btn', app],
     ['Protocol History Chamber action styles', '.protocol-history-chamber-action', heroSearchCss],
     ['Hero search mode body class', "document.body.classList.toggle('hero-search-mode'", search],
-    ['Hero search dims background content', 'body.hero-search-mode .main-content', heroSearchCss],
-    ['Hero search raises command deck', 'body.hero-search-mode .command-deck', heroSearchCss],
-    ['Hero search empty-state guide', 'hero-search-guide', search],
-    ['Hero search guide styles', '.hero-search-guide', heroSearchCss],
+    ['Hero search attaches the calm results list to Live Head', '.live-head-panel .hero-search-panel', heroSearchCss],
+    ['Hero search uses a bounded empty starter menu', 'MISSION_STARTERS', search],
+    ['Hero search offers a real clipboard hash action', "result.action === 'paste'", search],
     ['Hero search imports ranked site map search', 'searchSiteMap', search],
     ['Hero search derives starter rows from site map', 'siteMapStarters', search],
     ['Hero search derives quick chips from site map', 'siteMapSearchChips', search],
@@ -2502,8 +2555,8 @@ async function checkSelectorContracts() {
     ['Hero search explicit mobile close', 'id="hero-search-close"', index],
     ['Hero search runtime changelog command', "title: '/changelog'", search],
     ['Hero search runtime export command', "title: '/export'", search],
-    ['Hero search mobile fixed command sheet', 'body.hero-search-mode .command-deck', heroSearchCss],
-    ['Hero search mobile query shortcut collapse', '.hero-slot.has-query .hero-search-chips', heroSearchCss],
+    ['Hero search mobile remains an anchored overlay', 'max-height: min(40vh, 360px', heroSearchCss],
+    ['Hero search hides shortcut chips outside HEN presentation', '.live-head-panel .hero-search-chips', heroSearchCss],
     ['Top continuity mobile explainer reserves flow', '.top-continuity-explain.is-visible', shellExtrasCss],
     ['Hero search .tez scoped Domains route', '#domains=${encodeURIComponent(domain)}', search],
     ['Hero search Ledger Flow command', 'Ledger Flow', search],
@@ -3061,8 +3114,8 @@ async function checkSelectorContracts() {
     ['top continuity latest baker activation ordering', "'sort.desc': active ? 'activationLevel' : 'deactivationLevel'", app],
     ['top continuity funded active baker filter', "params.set('bakingPower.gt', '0')", app],
     ['top continuity baker TzKT transient retry path', 'function fetchTopContinuityTzktJson', app],
-    ['top continuity baker network-share size tiers', 'BAKER_SIZE_MEDIUM_SHARE = 0.001', app],
-    ['top continuity baker large threshold', 'BAKER_SIZE_LARGE_SHARE = 0.01', app],
+    ['top continuity baker shared network-share size tiers', "import { bakerSizeTier } from './baker-size.mjs'", app],
+    ['Live Head reuses current-cycle baker power', 'powerByDelegate', health],
     ['top continuity closed baker cycle-size receipt', '/rewards/bakers/${encodeURIComponent(row.address)}', app],
     ['top continuity closed baker one-year lookback', 'oneYearBeforeBakerEvent(row.eventTime)', app],
     ['top continuity closed baker timestamp cycle lookup', "'timestamp.le': targetTime", app],
@@ -3077,22 +3130,22 @@ async function checkSelectorContracts() {
     ['top continuity finality all-time pill', 'data-card-history="finality"', index],
     ['top continuity staked all-time pill', 'data-card-history="staking-ratio"', index],
     ['top continuity issuance all-time pill', 'data-card-history="issuance-rate"', index],
-    ['live block ticker renderer', 'function updateBlockTicker', health],
-    ['live block ticker fixed age formatter', 'function formatTickerAge', health],
-    ['live block ticker transition count hook', 'blockTickerTransitionCount', health],
-    ['Chain Heartbeat opts out of data-magic text reveals', 'id="block-ticker-strip" aria-label="Live Tezos Chain Heartbeat" data-magic="off"', index],
-    ['Chain Heartbeat countdown stays outside live region', 'id="block-ticker-line" aria-live="off"', index],
-    ['Chain Heartbeat dedicated block announcer', 'id="chain-heartbeat-announcer" aria-live="polite"', index],
-    ['Chain Heartbeat exact next R0 right', 'function fetchHeartbeatNextRight', health],
-    ['Chain Heartbeat per-block activity receipts', 'function fetchHeartbeatActivity', health],
-    ['Chain Heartbeat 16-block rail', 'function renderHeartbeatRail', health],
-    ['Chain Heartbeat quiet reconciliation', 'quietlySyncHtml(line, renderBlockTickerLine', health],
-    ['Chain Heartbeat visibility-gated supplements', "document.visibilityState !== 'visible'", health],
-    ['live block ticker health feed hook', 'updateBlockTicker(data)', health],
+    ['Live Head renderer', 'function updateBlockTicker', health],
+    ['Live Head fixed age formatter', 'function formatTickerAge', health],
+    ['Live Head keyed block rows', 'data-quiet-key="live-head-block-${block.level}"', health],
+    ['Live Head search floor', 'class="hero-slot" id="hero-slot"', index],
+    ['Live Head countdown stays outside its announcer', 'data-magic="off"', health],
+    ['Live Head dedicated block announcer', 'id="chain-heartbeat-announcer" aria-live="polite"', index],
+    ['Live Head exact next R0 right', 'function fetchHeartbeatNextRight', health],
+    ['Live Head per-block activity receipts', 'function fetchHeartbeatActivity', health],
+    ['Live Head four-row height-safe cap', 'return window.matchMedia', health],
+    ['Live Head quiet reconciliation', 'quietlySyncHtml(stack, renderLiveHeadRows(data))', health],
+    ['Live Head visibility-gated supplements', "document.visibilityState !== 'visible'", health],
+    ['Live Head health feed hook', 'updateBlockTicker(data)', health],
     ['price bar cycle health wiring', 'function wireCycleChipHealthLauncher', health],
-    ['live block ticker styles', '.block-ticker-strip', styles],
-    ['Chain Heartbeat rail styles', '.chain-heartbeat-rail', heroSearchCss],
-    ['Chain Heartbeat reduced-motion arrival', '.block-ticker-strip.is-updating .chain-heartbeat-cell.is-head::after', heroSearchCss],
+    ['Live Head landing-page panel styles', '.live-head-panel.lb-panel', heroSearchCss],
+    ['Live Head story chip styles', '.live-head-story-chip', heroSearchCss],
+    ['Live Head reduced-motion settle', '.live-head-story-chip,', heroSearchCss],
     ['network health continuity panel styles', '.health-continuity-panel', styles],
     ['network health continuity runtime styles', '.health-continuity-runtime', styles],
     ['chain uptime counter updater', "document.getElementById('chain-uptime-counter')", app],
@@ -3241,6 +3294,15 @@ async function checkSelectorContracts() {
   ];
   for (const [label, snippet, text] of deepLinkContracts) {
     if (!text.includes(snippet)) fail(`missing deep-link contract: ${label}`);
+  }
+  if (heroSearchCss.includes('body.hero-search-mode .main-content')
+      || heroSearchCss.includes('body.hero-search-mode .command-deck')
+      || search.includes('setBackgroundInert')
+      || /event\.key === ['"]Tab['"]/.test(search)) {
+    fail('Live Head search must not dim, blur, inert, fix, or keyboard-trap the landing page');
+  }
+  if (index.includes('id="block-ticker-strip"') || index.includes('id="upgrade-clock"')) {
+    fail('The retired ticker strip and command-deck sibling must not survive as hidden compatibility markup');
   }
 
   const chamberPollingContracts = [
@@ -3443,19 +3505,19 @@ async function checkSelectorContracts() {
   if (protocolEntryCardBlock.includes('list.length || 22') || protocolEntryCardBlock.includes('id="protocol-history-entry-count">22')) {
     fail('Protocol Anthology entry card must not show raw 22-record protocol total');
   }
-  if (styles.includes('.block-ticker-strip.is-updating .block-ticker-line') || styles.includes('blockTickerAperture')) {
-    fail('live block ticker text changes must stay unanimated');
+  if (heroSearchCss.includes('dissolve-into-search') || heroSearchCss.includes('blockTickerAperture')) {
+    fail('Live Head rows must not dissolve into the search well');
   }
   const chainHeartbeatUpdateBlock = health.match(/function updateBlockTicker[\s\S]*?function wireCycleChipHealthLauncher/)?.[0] || '';
   const chainHeartbeatActivityBlock = health.match(/async function fetchHeartbeatActivity[\s\S]*?function requestHeartbeatSupplements/)?.[0] || '';
-  if (!chainHeartbeatUpdateBlock.includes('quietlySyncHtml(line, renderBlockTickerLine')) {
-    fail('Chain Heartbeat updates must reconcile compatible DOM nodes in place');
+  if (!chainHeartbeatUpdateBlock.includes('quietlySyncHtml(stack, renderLiveHeadRows(data))')) {
+    fail('Live Head updates must reconcile compatible keyed rows in place');
   }
-  if (chainHeartbeatUpdateBlock.includes('line.innerHTML')) {
-    fail('Chain Heartbeat background updates must not replace the full live line');
+  if (chainHeartbeatUpdateBlock.includes('stack.innerHTML')) {
+    fail('Live Head background updates must not replace the full live stack');
   }
-  if (!chainHeartbeatActivityBlock.includes('Promise.allSettled') || !chainHeartbeatActivityBlock.includes('tokenTransfers !== null')) {
-    fail('Chain Heartbeat composition must preserve partial-source unknowns instead of coercing unavailable data to zero');
+  if (!chainHeartbeatActivityBlock.includes('Promise.allSettled') || !chainHeartbeatActivityBlock.includes('transactions !== null && stakingRows !== null')) {
+    fail('Live Head stories must preserve partial-source receipt truth instead of coercing unavailable data to zero');
   }
   if (!health.includes("document.addEventListener('visibilitychange'") || !health.includes("document.visibilityState !== 'visible'")) {
     fail('Chain Heartbeat polling and catch-up must remain visibility gated');
@@ -3870,13 +3932,13 @@ async function checkUxAuditContracts() {
     fail('TezosCRP category icon templates must defer off-screen loading and decoding');
   }
   if (!tooltipTour.includes("document.getElementById('hero-slot')")
-    || !tooltipTour.includes("firstChip.insertAdjacentElement('afterend', nudge)")
-    || !tooltipTour.includes('chips.prepend(nudge)')
+    || !tooltipTour.includes("document.querySelector('#live-head .live-head-topline')")
+    || !tooltipTour.includes('host.appendChild(nudge)')
     || !tooltipTour.includes("window.addEventListener('hot-signal-rendered', keepNudgeInSearchRail)")
-    || !/\(heroSlot \|\| commandDeck \|\| document\.body\)\.appendChild\(nudge\)/.test(tooltipTour)
+    || !/\(heroSlot \|\| document\.getElementById\('live-head'\) \|\| document\.body\)\.appendChild\(nudge\)/.test(tooltipTour)
     || !/\.tour-nudge\s*\{[\s\S]*?position:\s*static[\s\S]*?flex:\s*0 0 auto[\s\S]*?display:\s*inline-flex/.test(styles)
-    || !/\.tour-nudge\s*\{[\s\S]*?min-height:\s*24px[\s\S]*?scroll-snap-align:\s*start/.test(styles)) {
-    fail('first-visit guidance must stay compact inside the stable search suggestion rail');
+    || !heroSearchCss.includes('.live-head-topline > .tour-nudge')) {
+    fail('first-visit guidance must stay compact without reviving an idle search-chip rail');
   }
   if (!/\.site-map-shell \.site-map-sublink\s*\{[\s\S]*?min-height:\s*24px/.test(siteMapCss)
     || !/\.site-map-shell \.site-map-links \.site-map-link\s*\{[\s\S]*?min-height:\s*24px/.test(siteMapCss)
@@ -6203,7 +6265,7 @@ async function checkTourAndShareCaptureContracts() {
     'Find anything',
     'Quick tour',
     'Start with mainnet history',
-    'Read the latest head',
+    'Read the latest blocks',
     'Protocol Anthology',
     'Network Context',
     'Follow the lifeline',
@@ -6217,7 +6279,7 @@ async function checkTourAndShareCaptureContracts() {
   }
   for (const selector of [
     '#top-continuity-history',
-    '#block-ticker-button',
+    '#live-head-button',
     '#hero-search-form',
     '#chambers-section .section-header',
     '#my-tezos-btn',
@@ -9980,6 +10042,7 @@ async function main() {
 
   await checkRequiredFiles();
   await checkHomeLayoutContracts();
+  checkLiveHeadPureContracts();
   await checkJsonFiles();
   await checkGovernanceVotes();
   await checkLocalReferences();

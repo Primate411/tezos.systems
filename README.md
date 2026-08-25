@@ -185,7 +185,7 @@ tezos.systems/
 3. `app.js` initializes feature modules behind safe wrappers, registers the
    service worker, handles deep links, and starts the refresh loop.
 4. Cached stats and protocol data are displayed first when available.
-5. First-visit default content is the command deck plus the question-led
+5. First-visit default content is the Live Head block/search panel plus the question-led
    Explore Tezos section at `/chambers/`.
    During proposal and ballot windows, a compact Governance Alert strip sits
    above Chambers and reuses the live voting/My Tezos baker-vote logic to expose
@@ -312,21 +312,21 @@ inline modal styles in `js/core/app.js`.
 
 ## Main Surfaces
 
-- Setup starts with **Customize home**, a device-local seven-switch layout for
-  the Chain Heartbeat ticker, search/command deck, the continuously drifting
-  Live Pulse ticker (including its governance strip), Explore Tezos, Network Moments, and the Keep Exploring
+- Setup starts with **Customize home**, a device-local six-switch layout for
+  the unified Live Head block/search panel, the continuously drifting Live
+  Pulse ticker (including its governance strip), Explore Tezos, Network Moments, and the Keep Exploring
   handoff, plus the Credits and sources footer. Every block is shown by default
   and also has an inline eye-off action with Undo. The header, Setup, and My
   Tezos are permanent recovery surfaces; blocks are not reordered. Preferences use
   `tezos-systems-home-layout-v1` with the shape
-  `{ "version": 1, "hidden": ["ticker", "search", "live-pulse", "explore", "moments", "handoff", "credits"] }`,
+  `{ "version": 1, "hidden": ["live-head", "live-pulse", "explore", "moments", "handoff", "credits"] }`,
   synchronize between open tabs, and never leave the current browser/device.
   Explicit Home deep links and the `/` search shortcut reveal and save their
-  target, while the guided tour temporarily reveals all seven without changing
+  target, while the guided tour temporarily reveals all six without changing
   the saved layout.
-- Live Pulse sits directly above Chain Heartbeat as a right-to-left signal
+- Live Pulse sits directly above Live Head as a right-to-left signal
   ticker with word-aware, content-sized labels and narrow feathered edges aligned
-  to the Heartbeat rail. Hover, tap, or keyboard focus on either repeated run
+  to the Home content column. Hover, tap, or keyboard focus on either repeated run
   pauses a signal and opens its correctly anchored detail shelf; activating the
   held signal opens its source Chamber. All items keep one transparent surface;
   priority, breaking, and milestone states use explicit words, type color, and
@@ -365,21 +365,19 @@ inline modal styles in `js/core/app.js`.
   controls, a matching section info button, and quiet source-aware freshness
   stamps that distinguish generated archive age, live source observation, and
   the oldest contributing source in a multi-ledger room.
-- The live **Chain Heartbeat** sits as its own island below the header/title row
-  and above the command deck. It keeps the landed block and producer beside the
-  exact next round-zero baking right, a local one-second due clock, applied
-  per-block transaction/call/token/staking receipts, a 16-block
-  cadence/attestation rail, and at most two curated consensus, staking, or large
-  transfer signals. The next baker is explicitly an R0 right rather than a
-  guarantee, operation categories may overlap, and an unavailable receipt stays
-  `--` instead of becoming zero. Attestation power remains a completed block
-  receipt; the strip does not pretend an immutable block is progressively
-  assembling. Six-second visible-tab polling and the existing `block-pulse`
-  hook quietly reconcile stable keyed DOM, retain the last good line on source
-  failure, and perform one catch-up when the tab becomes visible. Only a newly
-  landed, current block pulses; countdown ticks do not enter the polite live
-  region or replay the arrival animation. Clicking the strip opens the Network
-  Health Chamber.
+- The **Live Head** card combines recent blocks and site-wide search below
+  the header/title row. Four desktop rows or three mobile rows identify each
+  level, baker, age, and up to three catalog-backed Art, DeFi, Gaming, Bridge,
+  Etherlink, Stake, Unstake, or Transfer facts; an unclassified block says
+  `Quiet`. The title row keeps the exact next round-zero baking right as a right,
+  not a guarantee. One optional muted line names material missed baking or
+  attestation rights in the visible sample, favoring large and medium bakers.
+  Six-second visible-tab polling quietly reconciles stable keyed rows, retains
+  last-good data, catches up once on visibility, and announces only a genuinely
+  new block. New facts settle once and reduced motion shows them immediately.
+  The full-width search well stays at the card floor: focusing it leaves the
+  blocks, Pulse, header, and landing page in place while a short starter/result
+  list opens below. Clicking a block or missed-right notice opens Network Health.
 - The header keeps the current protocol beside the Tezos Systems title and
   orders its right-side navigation as My Tezos, Explore, then Setup. HEN stays
   tucked inside the corner gift tray instead of appearing as a separate header
@@ -392,7 +390,7 @@ inline modal styles in `js/core/app.js`.
   pills. A separate trailing-hour activity box sits immediately to the right of
   mainnet age on desktop, shows transaction count, XTZ moved, and NFT transfers,
   and opens Network Health; it stacks below mainnet age on narrow screens rather
-  than crowding the stat pills or the live block ticker. Its first paint reserves
+  than crowding the stat pills or Live Head. Its first paint reserves
   the final `1H Activity / TX / Moved / NFT` metric shape instead of flashing loading prose.
   On the June 30 UTC mainnet anniversary, the continuity statement switches to
   a congratulatory anniversary message while preserving the live counter.
@@ -785,20 +783,17 @@ inline modal styles in `js/core/app.js`.
   names nearing expiration.
 - Price bar, cycle pulse, daily briefing, rewards tracker, and price
   intelligence.
-- First-screen command deck built for retrieval: the top of the page moves from
-  live cycle/market data to `Tezos Systems`, a clickable
-  `Running on <current protocol>` Protocol History launcher, a live
-  block-health ticker, then a pure command bar before Chambers. The former
-  command-deck protocol ribbon stays retired so protocol history access is not
-  repeated in a third first-screen surface. The bar accepts
+- First-screen Live Head is built for liveness and retrieval: the top of the
+  page moves from live cycle/market data to `Tezos Systems`, a clickable
+  `Running on <current protocol>` Protocol History launcher, Live Pulse, then
+  recent human-readable blocks flowing into a pure search well before Chambers.
+  The search accepts
   Tezos addresses, `.tez` names, protocol names, block levels, block hashes,
-  operation hashes, KT1 contracts, and slash commands. Opening it exposes every
-  grouped canonical destination plus runtime actions such as Share, Export,
-  Shortcuts, Changelog, and the external TzSafe recovery path. Maxis lane and
-  direct chain-comparison intents keep their exact room state. While active, the
-  command bar switches the page into a focused search mode that pushes Chambers
-  into a barely-visible background layer; on mobile it becomes a contained
-  command sheet with a one-line shortcut rail that collapses after typing. The
+  operation hashes, KT1 contracts, and slash commands. Empty focus exposes six
+  calm starters; typing replaces them with the ranked canonical destination and
+  runtime-action list. Results stay anchored below the well without dimming,
+  blurring, scaling, or disabling the landing page, and the field never becomes
+  a mobile sheet. HEN terminal chrome is limited to HEN theme/mode. The
   compact `What's hot today` live pulse
   sits above Chambers as a horizontally scrolling strip for non-obvious daily
   signals instead of repeating the header's cycle, baker, staking, or security

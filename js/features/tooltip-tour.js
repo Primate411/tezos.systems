@@ -17,9 +17,9 @@
             text: 'The chain-age counter opens Protocol Anthology; each bright stat pill opens its own all-time chart.',
         },
         {
-            target: '#block-ticker-button',
-            title: 'Read the latest head',
-            text: 'The block ticker tracks the current head, baker, Octez version, freshness, and attestation health. Click it for the Network Health Chamber.',
+            target: '#live-head-button',
+            title: 'Read the latest blocks',
+            text: 'Live Head turns recent block receipts into Art, DeFi, gaming, transfer, bridge, and staking stories. Open any row for Network Health.',
         },
         {
             target: '#hero-search-form',
@@ -397,19 +397,10 @@
         setTimeout(startTour, 320);
     }
 
-    function placeNudgeInSearchRail(chips) {
-        var firstChip = chips.querySelector('.hero-search-chip');
-        if (firstChip) {
-            firstChip.insertAdjacentElement('afterend', nudge);
-        } else {
-            chips.prepend(nudge);
-        }
-    }
-
     function keepNudgeInSearchRail() {
         if (!nudge) return;
-        var chips = document.getElementById('hero-search-chips');
-        if (chips && nudge.parentElement !== chips) placeNudgeInSearchRail(chips);
+        var host = document.querySelector('#live-head .live-head-topline');
+        if (host && nudge.parentElement !== host) host.appendChild(nudge);
     }
 
     function createNudge() {
@@ -427,12 +418,11 @@
             '</button>' +
             '<button class="tour-dismiss" type="button" aria-label="Dismiss tour offer">×</button>';
         const heroSlot = document.getElementById('hero-slot');
-        const chips = document.getElementById('hero-search-chips');
-        const commandDeck = document.getElementById('upgrade-clock');
-        if (chips) {
-            placeNudgeInSearchRail(chips);
+        const host = document.querySelector('#live-head .live-head-topline');
+        if (host) {
+            host.appendChild(nudge);
         } else {
-            (heroSlot || commandDeck || document.body).appendChild(nudge);
+            (heroSlot || document.getElementById('live-head') || document.body).appendChild(nudge);
         }
         setNudgeVisibleState();
         nudge.querySelector('.tour-start').addEventListener('click', startTour);
