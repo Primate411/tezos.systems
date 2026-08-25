@@ -457,11 +457,10 @@ export function renderPulseTickerState(state, copy = {}) {
   releasePulseTicker();
   signals = [];
   const loading = state === 'loading';
-  const glyph = state === 'quiet' ? '○' : '◇';
   const route = String(copy.route || '#pulse');
   const stateHtml = loading
     ? `<div class="pulse-ticker-track" data-pulse-track data-quiet-key="pulse-track"><div class="pulse-ticker-run" data-pulse-run="live" data-quiet-key="pulse-live">${Array.from({ length: 3 }, (_, index) => `<span class="pulse-ticker-item pulse-ticker-item-placeholder" data-quiet-key="pulse-placeholder-${index}" aria-hidden="true"><i></i><b></b><span></span></span>`).join('')}</div></div>`
-    : `<div class="pulse-ticker-track" data-pulse-track data-quiet-key="pulse-track"><div class="pulse-ticker-run" data-pulse-run="live" data-quiet-key="pulse-live"><a class="pulse-ticker-item pulse-ticker-item-state" href="${escapeHtml(route)}" data-network-route="${escapeHtml(route)}" data-quiet-key="pulse-state-${escapeHtml(state)}"><span class="pulse-ticker-mark" aria-hidden="true">${glyph}</span><span class="pulse-ticker-copy"><small class="pulse-ticker-eyebrow">${escapeHtml(copy.title || 'Live Pulse')}</small><span class="pulse-ticker-line-copy"><strong class="pulse-ticker-title">${escapeHtml(copy.title || 'Live Pulse')}</strong><span class="pulse-ticker-value">${escapeHtml(copy.text || '')}</span></span></span></a></div></div>`;
+    : `<div class="pulse-ticker-track" data-pulse-track data-quiet-key="pulse-track"><div class="pulse-ticker-run" data-pulse-run="live" data-quiet-key="pulse-live"><a class="pulse-ticker-item is-weight-state" href="${escapeHtml(route)}" data-network-route="${escapeHtml(route)}" data-quiet-key="pulse-state-${escapeHtml(state)}" data-pulse-weight="state"><span class="pulse-ticker-copy"><small class="pulse-ticker-eyebrow">${escapeHtml(copy.title || 'Live Pulse')}</small><span class="pulse-ticker-line-copy"><strong class="pulse-ticker-title">${escapeHtml(copy.title || 'Live Pulse')}</strong><span class="pulse-ticker-value">${escapeHtml(copy.text || '')}</span></span></span></a></div></div>`;
   if (viewport.childElementCount) quietlySyncHtml(viewport, stateHtml);
   else viewport.innerHTML = stateHtml;
   section.hidden = false;
