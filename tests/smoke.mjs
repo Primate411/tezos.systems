@@ -15751,17 +15751,17 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && liveHeadInspectorState.operationFacts >= 5, `network health chamber: complete block facts are incomplete ${JSON.stringify(liveHeadInspectorState)}`);
   assert(/Complete block receipt.*Produced by.*Block round.*Payload round.*Cadence.*Attested.*Quorum.*Missed power.*Block activity.*Transactions.*Contract calls.*Staking ops.*Fees.*Rewards \+ bonus.*Block contents.*Missed attestations.*Open Network Health Chamber/i.test(liveHeadInspectorState.text)
       && liveHeadInspectorState.footerHref === '#health', `network health chamber: inspector receipt copy/footer is incomplete ${JSON.stringify(liveHeadInspectorState)}`);
-  const liveHeadMissedLevel = await page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first().getAttribute('data-live-head-level');
+  const liveHeadMissedRow = page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first();
+  await page.mouse.move(1, 1);
+  await liveHeadMissedRow.hover();
+  const liveHeadMissedLevel = await liveHeadMissedRow.getAttribute('data-live-head-level');
   assert(liveHeadMissedLevel, 'network health chamber: resolved missed-attester row is missing its keyed level');
-  const liveHeadMissedRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadMissedLevel}"]`);
   const liveHeadMissedSnapshot = await liveHeadMissedRow.evaluate((row) => {
     try { return JSON.parse(row.dataset.liveHeadMissedSnapshot || 'null'); } catch { return null; }
   });
   assert(Number(liveHeadMissedSnapshot?.level) === Number(liveHeadMissedLevel)
       && liveHeadMissedSnapshot?.state === 'resolved'
       && liveHeadMissedSnapshot.attesters?.length > 0, `network health chamber: resolved row must own its immutable missed-attester receipt ${JSON.stringify(liveHeadMissedSnapshot)}`);
-  await page.mouse.move(1, 1);
-  await liveHeadMissedRow.hover();
   await page.waitForFunction((level) => {
     const inspector = document.querySelector('#live-head-inspector:not([hidden])');
     return inspector?.dataset.liveHeadLevel === level
