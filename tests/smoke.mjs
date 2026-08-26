@@ -15782,6 +15782,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const liveHeadFirstLevel = await page.locator('#live-head-stack .live-head-row[data-live-head-level]').first().getAttribute('data-live-head-level');
   assert(liveHeadFirstLevel, 'network health chamber: newest Live Head row is missing its keyed level');
   const liveHeadFirstRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadFirstLevel}"]`);
+  const liveHeadCurrentFirstRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
   await liveHeadFirstRow.scrollIntoViewIfNeeded();
   await page.waitForTimeout(180);
   await page.mouse.move(1, 1);
@@ -15824,11 +15825,12 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && liveHeadInspectorState.operationFacts >= 5, `network health chamber: complete block facts are incomplete ${JSON.stringify(liveHeadInspectorState)}`);
   assert(/Complete block receipt.*Produced by.*Block round.*Payload round.*Cadence.*Attested.*Quorum.*Missed power.*Block activity.*Transactions.*Contract calls.*Staking ops.*Fees.*Rewards \+ bonus.*Block contents.*Missed attestations.*Open Network Health Chamber/i.test(liveHeadInspectorState.text)
       && liveHeadInspectorState.footerHref === '#health', `network health chamber: inspector receipt copy/footer is incomplete ${JSON.stringify(liveHeadInspectorState)}`);
-  const liveHeadMissedRow = page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first();
-  await page.mouse.move(1, 1);
-  await liveHeadMissedRow.hover();
-  const liveHeadMissedLevel = await liveHeadMissedRow.getAttribute('data-live-head-level');
+  const liveHeadMissedCandidate = page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first();
+  const liveHeadMissedLevel = await liveHeadMissedCandidate.getAttribute('data-live-head-level');
   assert(liveHeadMissedLevel, 'network health chamber: resolved missed-attester row is missing its keyed level');
+  const liveHeadMissedRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadMissedLevel}"]`);
+  await page.mouse.move(1, 1);
+  await liveHeadMissedRow.hover({ position: { x: 24, y: 14 } });
   const liveHeadMissedSnapshot = await liveHeadMissedRow.evaluate((row) => {
     try { return JSON.parse(row.dataset.liveHeadMissedSnapshot || 'null'); } catch { return null; }
   });
@@ -15849,26 +15851,28 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && missedInspectorLinkState.tzkt === missedInspectorLinkState.identities
       && missedInspectorLinkState.myTezos === missedInspectorLinkState.identities, `network health chamber: every missed attester needs paired TzKT and My Tezos links ${JSON.stringify(missedInspectorLinkState)}`);
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true, null, { timeout: 5000 });
-  await liveHeadFirstRow.focus();
+  await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true
+    && !document.querySelector('#live-head')?.dataset.readingPaused, null, { timeout: 10000 });
+  await liveHeadCurrentFirstRow.focus();
   await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
   await page.keyboard.press('Escape');
-  await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true, null, { timeout: 5000 });
+  await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true
+    && !document.querySelector('#live-head')?.dataset.readingPaused, null, { timeout: 10000 });
   await page.mouse.move(1, 1);
-  await liveHeadFirstRow.hover();
+  await liveHeadCurrentFirstRow.hover({ position: { x: 18, y: 12 } });
   await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#live-head-inspector:not([hidden]) [data-live-head-open-health]').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
-  await liveHeadFirstRow.hover();
+  await liveHeadCurrentFirstRow.hover({ position: { x: 28, y: 14 } });
   await page.locator('#live-head-inspector:not([hidden]) .live-head-inspector-kicker').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
   await page.mouse.move(1, 1);
-  await liveHeadFirstRow.hover();
+  await liveHeadCurrentFirstRow.hover({ position: { x: 38, y: 16 } });
   await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
   const readingPauseBefore = await page.evaluate(() => {
     const panel = document.querySelector('#live-head');
@@ -15955,7 +15959,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && readingResumedState.exitRows === 0
       && !readingResumedState.shifting, `network health chamber: click-away did not release one motionless Live Head catch-up ${JSON.stringify(readingResumedState)}`);
 
-  await liveHeadFirstRow.click();
+  await liveHeadCurrentFirstRow.click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
