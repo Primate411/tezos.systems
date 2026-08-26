@@ -15548,6 +15548,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const mobileTickerStates = [];
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
+    await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head .live-head-story-chip')).every((pill) => (
+      pill.dataset.liveHeadDetailLevel === '0'
+        && pill.textContent?.replace(/\s+/g, ' ').trim() === pill.dataset.liveHeadCompact
+    )), null, { timeout: 5000 });
     mobileTickerStates.push(await page.evaluate((viewportWidth) => {
       const card = document.querySelector('#live-head');
       const rows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]'))

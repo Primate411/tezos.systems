@@ -118,8 +118,10 @@ let heartbeatGasLimitInFlight = null;
 let liveHeadPillResizeObserver = null;
 let liveHeadPillFitFrame = null;
 let liveHeadInspectorCloseTimer = null;
+let liveHeadInspectorResumeTimer = null;
 let liveHeadInspectorLevel = null;
-let liveHeadInspectorSuppressedLevel = null;
+let liveHeadPointerPosition = { x: null, y: null };
+let liveHeadInspectorSuppressedPointerPosition = null;
 let liveHeadPendingUpdate = null;
 let liveHeadConfirmedAt = 0;
 let liveHeadConfirmedLevel = 0;
@@ -1018,9 +1020,18 @@ function cancelLiveHeadInspectorClose() {
     liveHeadInspectorCloseTimer = null;
 }
 
+function cancelLiveHeadInspectorResume() {
+    if (!liveHeadInspectorResumeTimer) return;
+    window.clearTimeout(liveHeadInspectorResumeTimer);
+    liveHeadInspectorResumeTimer = null;
+}
+
 function liveHeadReadingPaused() {
     const inspector = document.getElementById('live-head-inspector');
-    return Boolean(Number.isFinite(liveHeadInspectorLevel) && inspector && !inspector.hidden);
+    return Boolean(
+        (Number.isFinite(liveHeadInspectorLevel) && inspector && !inspector.hidden)
+        || liveHeadInspectorResumeTimer
+    );
 }
 
 function queueLiveHeadPausedUpdate(data, { error = false, supplemental = false } = {}) {
@@ -1044,6 +1055,7 @@ function queueLiveHeadPausedUpdate(data, { error = false, supplemental = false }
 }
 
 function resumeLiveHeadAfterInspector() {
+    cancelLiveHeadInspectorResume();
     const panel = document.getElementById('live-head');
     const pending = liveHeadPendingUpdate;
     liveHeadPendingUpdate = null;
@@ -1064,10 +1076,10 @@ function resumeLiveHeadAfterInspector() {
     }
 }
 
-function closeLiveHeadInspector({ suppressReopen = false } = {}) {
+function closeLiveHeadInspector({ suppressReopen = false, deferResume = false } = {}) {
     const wasPaused = liveHeadReadingPaused();
-    const closingLevel = liveHeadInspectorLevel;
     cancelLiveHeadInspectorClose();
+    cancelLiveHeadInspectorResume();
     const inspector = document.getElementById('live-head-inspector');
     if (inspector) {
         inspector.hidden = true;
@@ -1080,15 +1092,27 @@ function closeLiveHeadInspector({ suppressReopen = false } = {}) {
         row.setAttribute('aria-expanded', 'false');
     });
     liveHeadInspectorLevel = null;
-    if (suppressReopen && Number.isFinite(closingLevel)) {
-        liveHeadInspectorSuppressedLevel = closingLevel;
+    if (suppressReopen && wasPaused) {
+        liveHeadInspectorSuppressedPointerPosition = { ...liveHeadPointerPosition };
     }
-    if (wasPaused || liveHeadPendingUpdate) resumeLiveHeadAfterInspector();
+    if (wasPaused || liveHeadPendingUpdate) {
+        if (deferResume) {
+            liveHeadInspectorResumeTimer = window.setTimeout(() => {
+                liveHeadInspectorResumeTimer = null;
+                resumeLiveHeadAfterInspector();
+            }, 360);
+        } else {
+            resumeLiveHeadAfterInspector();
+        }
+    }
 }
 
 function scheduleLiveHeadInspectorClose() {
     cancelLiveHeadInspectorClose();
-    liveHeadInspectorCloseTimer = window.setTimeout(closeLiveHeadInspector, 320);
+    liveHeadInspectorCloseTimer = window.setTimeout(() => {
+        liveHeadInspectorCloseTimer = null;
+        closeLiveHeadInspector({ deferResume: true });
+    }, 140);
 }
 
 function positionLiveHeadInspector(row, inspector) {
@@ -1110,8 +1134,7 @@ function showLiveHeadInspector(row) {
     const level = Number(row?.dataset.liveHeadLevel);
     const block = heartbeatData?.blocks?.find((item) => Number(item.level) === level);
     if (!inspector || !row || !block || document.getElementById('network-health-modal')?.classList.contains('active')) return;
-    if (liveHeadInspectorSuppressedLevel === level) return;
-    liveHeadInspectorSuppressedLevel = null;
+    cancelLiveHeadInspectorResume();
     cancelLiveHeadInspectorClose();
     document.querySelectorAll('#live-head-stack .live-head-row[aria-expanded="true"]').forEach((item) => {
         if (item !== row) item.setAttribute('aria-expanded', 'false');
@@ -1144,32 +1167,56 @@ function wireLiveHeadInspector(panel, stack) {
     stack.addEventListener('pointerover', (event) => {
         const row = event.target.closest('.live-head-row[data-live-head-level]');
         if (!row || row.contains(event.relatedTarget)) return;
+        const suppressed = liveHeadInspectorSuppressedPointerPosition;
+        if (suppressed && event.clientX === suppressed.x && event.clientY === suppressed.y) return;
+        liveHeadInspectorSuppressedPointerPosition = null;
         showLiveHeadInspector(row);
     });
     stack.addEventListener('pointerout', (event) => {
         const row = event.target.closest('.live-head-row[data-live-head-level]');
         if (!row || row.contains(event.relatedTarget)) return;
-        if (liveHeadInspectorSuppressedLevel === Number(row.dataset.liveHeadLevel)) {
-            liveHeadInspectorSuppressedLevel = null;
+        if (event.relatedTarget instanceof Element
+            && event.relatedTarget.closest('#live-head-inspector, .live-head-row[data-live-head-level]')) {
+            cancelLiveHeadInspectorClose();
+            return;
         }
         scheduleLiveHeadInspectorClose();
     });
     stack.addEventListener('focusin', (event) => {
         const row = event.target.closest('.live-head-row[data-live-head-level]');
-        if (row) showLiveHeadInspector(row);
+        if (row) {
+            liveHeadInspectorSuppressedPointerPosition = null;
+            showLiveHeadInspector(row);
+        }
     });
     stack.addEventListener('focusout', (event) => {
         const row = event.target.closest('.live-head-row[data-live-head-level]');
         if (!row) return;
-        if (liveHeadInspectorSuppressedLevel === Number(row.dataset.liveHeadLevel)) {
-            liveHeadInspectorSuppressedLevel = null;
+        if (event.relatedTarget instanceof Element
+            && event.relatedTarget.closest('#live-head-inspector, .live-head-row[data-live-head-level]')) {
+            cancelLiveHeadInspectorClose();
+            return;
         }
         scheduleLiveHeadInspectorClose();
     });
     inspector.addEventListener('pointerenter', cancelLiveHeadInspectorClose);
-    inspector.addEventListener('pointerleave', scheduleLiveHeadInspectorClose);
+    inspector.addEventListener('pointerleave', (event) => {
+        if (event.relatedTarget instanceof Element
+            && event.relatedTarget.closest('.live-head-row[data-live-head-level]')) {
+            cancelLiveHeadInspectorClose();
+            return;
+        }
+        scheduleLiveHeadInspectorClose();
+    });
     inspector.addEventListener('focusin', cancelLiveHeadInspectorClose);
-    inspector.addEventListener('focusout', scheduleLiveHeadInspectorClose);
+    inspector.addEventListener('focusout', (event) => {
+        if (event.relatedTarget instanceof Element
+            && event.relatedTarget.closest('.live-head-row[data-live-head-level]')) {
+            cancelLiveHeadInspectorClose();
+            return;
+        }
+        scheduleLiveHeadInspectorClose();
+    });
     inspector.addEventListener('click', (event) => {
         const link = event.target.closest('a');
         if (link && !link.matches('[data-live-head-open-health]')) return;
@@ -1186,11 +1233,7 @@ function wireLiveHeadInspector(panel, stack) {
         closeLiveHeadInspector();
     }, { capture: true });
     document.addEventListener('pointermove', (event) => {
-        if (!Number.isFinite(liveHeadInspectorSuppressedLevel)) return;
-        const row = event.target.closest('.live-head-row[data-live-head-level]');
-        if (Number(row?.dataset.liveHeadLevel) !== liveHeadInspectorSuppressedLevel) {
-            liveHeadInspectorSuppressedLevel = null;
-        }
+        liveHeadPointerPosition = { x: event.clientX, y: event.clientY };
     }, { capture: true, passive: true });
     window.addEventListener('resize', refreshLiveHeadInspector);
     window.addEventListener('scroll', () => closeLiveHeadInspector({ suppressReopen: true }), { passive: true, capture: true });
