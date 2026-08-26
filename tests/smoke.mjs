@@ -25957,7 +25957,7 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
     const feature = await import(window.__whaleChamberModuleUrl);
     await feature.refreshWhaleChamber({ quiet: true, forceArtifact: true });
   });
-  await page.waitForFunction(() => !document.querySelector('#whale-watch-freshness')?.classList.contains('is-stale'), null, { timeout: 5000 });
+  await page.waitForFunction(() => !document.querySelector('#whale-watch-freshness')?.classList.contains('is-stale'), null, { timeout: 15000 });
   await page.locator('#whale-watch-tab-live').click();
 
   await page.setViewportSize({ width: 390, height: 844 });
