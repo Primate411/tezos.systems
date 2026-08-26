@@ -386,8 +386,10 @@ inline modal styles in `js/core/app.js`.
   receipt lane, so short and long baker names share one exact pill alignment
   without clipping. An unaliased producer keeps its full address on wide rows and truncates
   only when the producer column truly runs out of room. The first-line cluster
-  reads power fraction, safety-margin rail, missed power, then activity state.
-  `Quiet` appears after missed power only for a complete empty receipt. Every
+  reads power fraction, safety-margin rail, then activity state. Aggregate
+  missed power is reserved for the complete inspector because the health rail
+  already carries the block-level deficit. `Quiet` appears immediately after
+  the rail only for a complete empty receipt. Every
   Quiet, gas, activity, and missed-attester pill uses the same opaque dark
   backing, inset edge, shadow, and blur so it survives every theme without
   surrendering its category or severity color. Every non-quiet block replaces it
@@ -401,11 +403,13 @@ inline modal styles in `js/core/app.js`.
   route, and Stake or Unstake adds its amount. Each pill earns richer detail
   independently so one long artwork title cannot suppress another receipt;
   narrow and mobile rows keep the compact category counts.
-  Hovering or focusing a block opens its complete receipt as a reading lock:
-  the exact rows, ages, next-right clock, and visible facts stay still while
-  polling may finish behind the surface. Hover, focus, Escape, scroll, or a
-  click away releases the lock and applies only the newest queued snapshot as
-  one motionless catch-up.
+  A tiny info control immediately before each block age opens its complete
+  receipt on hover or focus; ordinary row hover stays quiet, while clicking any
+  non-link, non-control area of the row opens that same receipt. The inspector
+  is a reading lock: the exact rows, ages, next-right clock, and visible facts
+  stay still while polling may finish behind the surface. Leaving the info or
+  receipt surface, Escape, scroll, or a click away releases the lock and applies
+  only the newest queued snapshot as one motionless catch-up.
   The compact health rail excludes the power every block must have and shows
   only the signed margin above the exact two-thirds quorum; sub-quorum power
   becomes a red deficit. There is no threshold marker or separate Safe/Strong
@@ -439,12 +443,13 @@ inline modal styles in `js/core/app.js`.
   Gaming, Bridge, Etherlink, Stake, and Unstake selectors; every category is on
   by default, and deselected activity pills stop spending the row's measured
   receipt width without hiding missed-attester evidence.
-  There is no global missed-rights sentence. Hovering or focusing any real row
-  opens a compact complete receipt with direct TzKT links for the block, every
-  metric and activity category, and every missed baker; producer, proposer, and
-  missed-baker identities also expose My Tezos handoffs. Its footer, the row
-  itself, and non-link receipt space open the Network Health Chamber while
-  receipt links remain independently clickable.
+  There is no global missed-rights sentence. Each real row's info control and
+  non-interactive row click open a compact complete receipt with direct TzKT
+  links for the block, every metric and activity category, and every missed baker;
+  producer, proposer, and
+  missed-baker identities also expose My Tezos handoffs. The receipt footer and
+  non-link receipt space open the Network Health Chamber while receipt links
+  remain independently clickable.
 - The header keeps the current protocol beside the Tezos Systems title and
   orders its right-side navigation as My Tezos, Explore, then Setup. HEN stays
   tucked inside the corner gift tray instead of appearing as a separate header

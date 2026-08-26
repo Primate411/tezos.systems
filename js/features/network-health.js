@@ -1182,8 +1182,8 @@ function closeLiveHeadInspector({ suppressReopen = false, deferResume = false } 
         inspector.style.removeProperty('left');
         inspector.style.removeProperty('top');
     }
-    document.querySelectorAll('#live-head-stack .live-head-row[aria-expanded="true"]').forEach((row) => {
-        row.setAttribute('aria-expanded', 'false');
+    document.querySelectorAll('#live-head-stack .live-head-info[aria-expanded="true"]').forEach((trigger) => {
+        trigger.setAttribute('aria-expanded', 'false');
     });
     liveHeadInspectorLevel = null;
     if (suppressReopen && wasPaused) {
@@ -1212,12 +1212,15 @@ function scheduleLiveHeadInspectorClose() {
 function positionLiveHeadInspector(row, inspector) {
     if (!row || !inspector || inspector.hidden) return;
     const rowRect = row.getBoundingClientRect();
+    const triggerRect = row.querySelector('.live-head-info')?.getBoundingClientRect() || null;
     const inspectorRect = inspector.getBoundingClientRect();
     const edge = 10;
-    const anchorLeft = rowRect.left + Math.min(Math.max(rowRect.width * 0.27, 84), 330);
+    const anchorLeft = triggerRect
+        ? triggerRect.right - inspectorRect.width
+        : rowRect.left + Math.min(Math.max(rowRect.width * 0.27, 84), 330);
     const left = Math.max(edge, Math.min(anchorLeft, window.innerWidth - inspectorRect.width - edge));
-    let top = rowRect.bottom + 6;
-    if (top + inspectorRect.height > window.innerHeight - edge) top = rowRect.top - inspectorRect.height - 6;
+    let top = (triggerRect?.bottom || rowRect.bottom) + 6;
+    if (top + inspectorRect.height > window.innerHeight - edge) top = (triggerRect?.top || rowRect.top) - inspectorRect.height - 6;
     top = Math.max(edge, Math.min(top, window.innerHeight - inspectorRect.height - edge));
     inspector.style.left = `${Math.round(left)}px`;
     inspector.style.top = `${Math.round(top)}px`;
@@ -1230,8 +1233,9 @@ function showLiveHeadInspector(row) {
     if (!inspector || !row || !block || document.getElementById('network-health-modal')?.classList.contains('active')) return;
     cancelLiveHeadInspectorResume();
     cancelLiveHeadInspectorClose();
-    document.querySelectorAll('#live-head-stack .live-head-row[aria-expanded="true"]').forEach((item) => {
-        if (item !== row) item.setAttribute('aria-expanded', 'false');
+    const trigger = row.querySelector('.live-head-info');
+    document.querySelectorAll('#live-head-stack .live-head-info[aria-expanded="true"]').forEach((item) => {
+        if (item !== trigger) item.setAttribute('aria-expanded', 'false');
     });
     const activity = heartbeatActivityCache.get(level) || null;
     const missedSnapshot = liveHeadMissedStateFromRow(row, level);
@@ -1240,7 +1244,7 @@ function showLiveHeadInspector(row) {
     inspector.setAttribute('aria-hidden', 'false');
     inspector.dataset.open = 'true';
     inspector.dataset.liveHeadLevel = String(level);
-    row.setAttribute('aria-expanded', 'true');
+    trigger?.setAttribute('aria-expanded', 'true');
     liveHeadInspectorLevel = level;
     const panel = document.getElementById('live-head');
     if (panel) panel.dataset.readingPaused = 'true';
@@ -1259,44 +1263,58 @@ function wireLiveHeadInspector(panel, stack) {
     if (!panel || !stack || !inspector || panel.dataset.liveHeadInspectorWired) return;
     panel.dataset.liveHeadInspectorWired = '1';
     stack.addEventListener('pointerover', (event) => {
-        const row = event.target.closest('.live-head-row[data-live-head-level]');
-        if (!row || row.contains(event.relatedTarget)) return;
+        const trigger = event.target.closest('.live-head-info');
+        if (!trigger || trigger.contains(event.relatedTarget)) return;
+        const row = trigger.closest('.live-head-row[data-live-head-level]');
+        if (!row) return;
         const suppressed = liveHeadInspectorSuppressedPointerPosition;
         if (suppressed && event.clientX === suppressed.x && event.clientY === suppressed.y) return;
         liveHeadInspectorSuppressedPointerPosition = null;
         showLiveHeadInspector(row);
     });
     stack.addEventListener('pointerout', (event) => {
-        const row = event.target.closest('.live-head-row[data-live-head-level]');
-        if (!row || row.contains(event.relatedTarget)) return;
+        const trigger = event.target.closest('.live-head-info');
+        if (!trigger || trigger.contains(event.relatedTarget)) return;
         if (event.relatedTarget instanceof Element
-            && event.relatedTarget.closest('#live-head-inspector, .live-head-row[data-live-head-level]')) {
+            && event.relatedTarget.closest('#live-head-inspector, .live-head-info')) {
             cancelLiveHeadInspectorClose();
             return;
         }
         scheduleLiveHeadInspectorClose();
     });
     stack.addEventListener('focusin', (event) => {
-        const row = event.target.closest('.live-head-row[data-live-head-level]');
-        if (row) {
+        const trigger = event.target.closest('.live-head-info');
+        const row = trigger?.closest('.live-head-row[data-live-head-level]');
+        if (trigger && row) {
             liveHeadInspectorSuppressedPointerPosition = null;
             showLiveHeadInspector(row);
         }
     });
     stack.addEventListener('focusout', (event) => {
-        const row = event.target.closest('.live-head-row[data-live-head-level]');
-        if (!row) return;
+        const trigger = event.target.closest('.live-head-info');
+        if (!trigger) return;
         if (event.relatedTarget instanceof Element
-            && event.relatedTarget.closest('#live-head-inspector, .live-head-row[data-live-head-level]')) {
+            && event.relatedTarget.closest('#live-head-inspector, .live-head-info')) {
             cancelLiveHeadInspectorClose();
             return;
         }
         scheduleLiveHeadInspectorClose();
     });
+    stack.addEventListener('click', (event) => {
+        const trigger = event.target.closest('.live-head-info');
+        const row = event.target.closest('.live-head-row[data-live-head-level]');
+        if (!row) return;
+        const interactive = event.target.closest('a, button, input, select, textarea, [role="button"], [contenteditable="true"]');
+        if (interactive && interactive !== trigger) return;
+        event.preventDefault();
+        event.stopPropagation();
+        liveHeadInspectorSuppressedPointerPosition = null;
+        showLiveHeadInspector(row);
+    });
     inspector.addEventListener('pointerenter', cancelLiveHeadInspectorClose);
     inspector.addEventListener('pointerleave', (event) => {
         if (event.relatedTarget instanceof Element
-            && event.relatedTarget.closest('.live-head-row[data-live-head-level]')) {
+            && event.relatedTarget.closest('.live-head-info')) {
             cancelLiveHeadInspectorClose();
             return;
         }
@@ -1305,7 +1323,7 @@ function wireLiveHeadInspector(panel, stack) {
     inspector.addEventListener('focusin', cancelLiveHeadInspectorClose);
     inspector.addEventListener('focusout', (event) => {
         if (event.relatedTarget instanceof Element
-            && event.relatedTarget.closest('.live-head-row[data-live-head-level]')) {
+            && event.relatedTarget.closest('.live-head-info')) {
             cancelLiveHeadInspectorClose();
             return;
         }
@@ -1323,7 +1341,7 @@ function wireLiveHeadInspector(panel, stack) {
     });
     document.addEventListener('pointerdown', (event) => {
         if (inspector.hidden) return;
-        if (event.target.closest('#live-head-inspector, .live-head-row[data-live-head-level]')) return;
+        if (event.target.closest('#live-head-inspector, .live-head-info, .live-head-row[data-live-head-level]')) return;
         closeLiveHeadInspector();
     }, { capture: true });
     document.addEventListener('pointermove', (event) => {
@@ -1429,10 +1447,7 @@ function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
     const missedSummary = details.missedState.state === 'resolved'
         ? ` Missed attesters: ${details.missedState.attesters.map((item) => `${item.name}, ${formatCount(item.slots)} power`).join('; ')}.`
         : '';
-    const title = `Open Network Health for block ${formatCount(block.level)} from ${name}. ${status.label}: ${attested}.${gasSummary}${missedSummary}`;
-    const missed = isMaterialMissedPower(block)
-        ? `<span class="live-head-missed" title="${formatCount(block.missedPower)} committee power missed">−${formatCount(block.missedPower)}</span>`
-        : '';
+    const title = `Inspect block ${formatCount(block.level)} from ${name}. ${status.label}: ${attested}.${gasSummary}${missedSummary}`;
     const safetyMargin = Number.isFinite(status.safetyMargin) ? status.safetyMargin : null;
     const marginSign = safetyMargin === null ? '' : safetyMargin >= 0 ? '+' : '−';
     const marginAbsolute = safetyMargin === null ? null : Math.abs(safetyMargin);
@@ -1445,7 +1460,7 @@ function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
     const barSignature = `${Number(block.level) || 0}:${safetyMargin === null ? 'unknown' : safetyMargin}:${status.quorumPower || 'unknown'}`;
     const missedSnapshot = serializeLiveHeadMissedState(Number(block.level), details.missedState);
     return `
-        <button class="live-head-row ${isNew ? 'lb-row-new' : ''}" type="button" data-live-head-level="${block.level}" data-health-level="${Number(block.level) || 0}" data-attested-power="${Number.isFinite(block?.power) ? Number(block.power) : ''}" data-safety-margin="${safetyMargin === null ? '' : safetyMargin}" data-story-quiet="${activity?.story?.quiet === true ? 'true' : 'false'}" data-gas-state="${escapeHtml(gas.state)}" data-gas-percent="${gas.state === 'resolved' ? gas.exactPct.toFixed(2) : ''}" data-consensus-state="${escapeHtml(status.className)}" data-live-head-missed-snapshot="${escapeHtml(missedSnapshot)}" data-quiet-key="live-head-block-${block.level}" data-bar-signature="${barSignature}" data-bar-available="${safetyMargin === null ? 'false' : 'true'}" aria-label="${escapeHtml(title)}" aria-controls="live-head-inspector" aria-expanded="false">
+        <div class="live-head-row ${isNew ? 'lb-row-new' : ''}" data-live-head-level="${block.level}" data-health-level="${Number(block.level) || 0}" data-attested-power="${Number.isFinite(block?.power) ? Number(block.power) : ''}" data-safety-margin="${safetyMargin === null ? '' : safetyMargin}" data-story-quiet="${activity?.story?.quiet === true ? 'true' : 'false'}" data-gas-state="${escapeHtml(gas.state)}" data-gas-percent="${gas.state === 'resolved' ? gas.exactPct.toFixed(2) : ''}" data-consensus-state="${escapeHtml(status.className)}" data-live-head-missed-snapshot="${escapeHtml(missedSnapshot)}" data-quiet-key="live-head-block-${block.level}" data-bar-signature="${barSignature}" data-bar-available="${safetyMargin === null ? 'false' : 'true'}">
             <span class="live-head-row-main">
                 <strong class="live-head-level">#${formatCount(block.level)}</strong>
                 ${renderRoundBadge(block)}
@@ -1456,16 +1471,18 @@ function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
                         <span class="live-head-power-compact">${score === null ? '--' : `${formatPct(score)}%`}</span>
                     </span>
                     <span class="live-head-power-track ${status.className}" title="${escapeHtml(trackTitle)}" aria-label="${escapeHtml(trackTitle)}"><span class="live-head-power-fill" style="--live-head-margin:${status.marginRatio.toFixed(4)}"></span><span class="live-head-margin"><span class="live-head-margin-full">${marginFull}</span><span class="live-head-margin-compact">${marginCompact}</span></span></span>
-                    ${missed}
                     ${activityStatus}
                 </span>
-                <span class="live-head-age" data-health-age="${escapeHtml(block.timestamp || '')}" data-health-age-format="ticker" data-magic="off">${escapeHtml(formatTickerAge(block.timestamp))}</span>
+                <span class="live-head-recency">
+                    <button class="live-head-info" type="button" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}" aria-controls="live-head-inspector" aria-expanded="false"><span aria-hidden="true">i</span></button>
+                    <span class="live-head-age" data-health-age="${escapeHtml(block.timestamp || '')}" data-health-age-format="ticker" data-magic="off">${escapeHtml(formatTickerAge(block.timestamp))}</span>
+                </span>
             </span>
             <span class="live-head-row-detail">
                 <span class="live-head-baker${producerHasAlias ? '' : ' is-address'}" title="${escapeHtml(producer.address || name)}"><span class="live-head-baker-name">${escapeHtml(name)}</span><span class="live-head-story-connector" aria-hidden="true"></span></span>
                 ${details.html}
             </span>
-        </button>
+        </div>
     `;
 }
 
@@ -1868,12 +1885,6 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     if (!button.dataset.liveHeadWired) {
         button.dataset.liveHeadWired = '1';
         button.addEventListener('click', openNetworkHealthChamber);
-        stack.addEventListener('click', (event) => {
-            if (event.target.closest('[data-live-head-level]')) {
-                closeLiveHeadInspector();
-                openNetworkHealthChamber();
-            }
-        });
     }
     if (!activityButton.dataset.headerActivityWired) {
         activityButton.dataset.headerActivityWired = '1';

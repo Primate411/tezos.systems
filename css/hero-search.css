@@ -1824,7 +1824,7 @@
 }
 
 .live-head-title:focus-visible,
-.live-head-row:focus-visible {
+.live-head-info:focus-visible {
     outline: 2px solid var(--accent-cyan);
     outline-offset: 2px;
 }
@@ -1841,24 +1841,7 @@
 }
 
 .live-head-state {
-    margin-left: 0.3rem;
-    padding: 0.18rem 0.45rem;
-    border: 1px solid color-mix(in srgb, var(--live-head-accent) 30%, transparent);
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--live-head-accent) 8%, transparent);
-    color: color-mix(in srgb, var(--live-head-accent) 84%, var(--text-primary));
-    font-family: var(--font-runtime);
-    font-size: 0.56rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    line-height: 1;
-    text-transform: uppercase;
-}
-
-.live-head-panel[data-feed-state="stale"] .live-head-state {
-    border-color: color-mix(in srgb, #f5b84b 38%, transparent);
-    background: color-mix(in srgb, #f5b84b 8%, transparent);
-    color: #f5b84b;
+    display: none;
 }
 
 .live-head-alert[hidden] {
@@ -1959,18 +1942,6 @@
 .live-head-panel[data-chain-state="stalled"] {
     border-color: color-mix(in srgb, #ff526a 64%, var(--glass-border));
     box-shadow: 0 0 0 1px rgba(255, 82, 106, 0.1), 0 12px 40px rgba(75, 4, 17, 0.2);
-}
-
-.live-head-panel[data-chain-state="stalled"] .live-head-state {
-    border-color: #ff7486;
-    background: rgba(113, 8, 27, 0.72);
-    color: #fff;
-}
-
-.live-head-panel[data-chain-state="delayed"] .live-head-state {
-    border-color: #f5b84b;
-    background: rgba(91, 57, 6, 0.62);
-    color: #ffe0a2;
 }
 
 .live-head-hide.home-block-hide {
@@ -2321,7 +2292,7 @@
 
 .live-head-row-main {
     display: grid;
-    grid-template-columns: 13ch 34px 5ch minmax(15rem, 1fr) 7ch;
+    grid-template-columns: 13ch 34px 5ch minmax(15rem, 1fr) max-content;
     align-items: center;
     gap: 0.55rem;
     min-width: 0;
@@ -2508,15 +2479,6 @@
     animation: liveHeadPowerFill 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.live-head-missed {
-    min-width: 0;
-    overflow: hidden;
-    color: var(--chamber-watch-color, #f5b84b);
-    font: 750 0.58rem/1 var(--font-runtime);
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
 .live-head-baker {
     display: flex;
     min-width: 0;
@@ -2585,6 +2547,42 @@
     font-size: 0.65rem;
     text-align: right;
     white-space: nowrap;
+}
+
+.live-head-recency {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+}
+
+.live-head-info {
+    display: grid;
+    width: 15px;
+    height: 15px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--text-tertiary) 42%, transparent);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--bg-primary) 22%, transparent);
+    color: color-mix(in srgb, var(--text-tertiary) 82%, var(--text-primary));
+    cursor: help;
+    opacity: 0.62;
+    transition: opacity 140ms ease, color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.live-head-info > span {
+    font: 800 0.5rem/1 var(--font-data);
+    transform: translateY(-0.2px);
+}
+
+.live-head-info:is(:hover, :focus-visible),
+.live-head-info[aria-expanded="true"] {
+    border-color: color-mix(in srgb, var(--accent-cyan) 70%, transparent);
+    background: color-mix(in srgb, var(--accent-cyan) 10%, transparent);
+    color: color-mix(in srgb, var(--accent-cyan) 86%, var(--text-primary));
+    opacity: 1;
 }
 
 .live-head-story {
@@ -3368,7 +3366,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     }
 
     .live-head-row-main {
-        grid-template-columns: 10.5ch minmax(0, 1fr) 3.5ch;
+        grid-template-columns: 10.5ch minmax(0, 1fr) max-content;
         gap: 0.14rem;
     }
 
@@ -3427,10 +3425,6 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
     .live-head-margin-full { display: none; }
     .live-head-margin-compact { display: inline; }
-
-    .live-head-missed {
-        display: none;
-    }
 
     .live-head-skeleton-primary {
         grid-template-columns: 9ch 0 0 minmax(64px, 1fr) 5ch;
@@ -3648,8 +3642,13 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     }
 
     .live-head-row-main {
-        grid-template-columns: 74px minmax(0, 1fr) 25px;
+        grid-template-columns: 74px minmax(0, 1fr) max-content;
         gap: 1px;
+    }
+
+    .live-head-info {
+        width: 13px;
+        height: 13px;
     }
 
     .live-head-level {

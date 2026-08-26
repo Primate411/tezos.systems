@@ -3213,11 +3213,12 @@ async function checkSelectorContracts() {
     ['Live Head health feed hook', 'updateBlockTicker(data)', health],
     ['price bar cycle health wiring', 'function wireCycleChipHealthLauncher', health],
     ['Live Head landing-page panel styles', '.live-head-panel.lb-panel', heroSearchCss],
+    ['Live Head redundant status badge removed', '.live-head-state {\n    display: none;\n}', heroSearchCss],
     ['Live Head story chip styles', '.live-head-story-chip', heroSearchCss],
     ['Live Head missed-attester pill styles', '.live-head-miss-pill', heroSearchCss],
     ['Live Head clear attestation pill remains complete', '.live-head-miss-pill.is-clear {\n    max-width: none;', heroSearchCss],
     ['Live Head gas fullness fill styles', '.live-head-gas::before', heroSearchCss],
-    ['Live Head mobile three-column fact rail', 'grid-template-columns: 10.5ch minmax(0, 1fr) 3.5ch;', heroSearchCss],
+    ['Live Head mobile info-and-age fact rail', 'grid-template-columns: 10.5ch minmax(0, 1fr) max-content;', heroSearchCss],
     ['Live Head mobile viewport-width panel', 'width: var(--page-col);', heroSearchCss],
     ['Live Head full-bleed search unclamped', 'max-width: none;', heroSearchCss],
     ['Live Head reduced-motion settle', '.live-head-story-chip,', heroSearchCss],
@@ -3600,9 +3601,10 @@ async function checkSelectorContracts() {
   const powerIndex = liveHeadRowBlock.indexOf('live-head-power health-power');
   const trackIndex = liveHeadRowBlock.indexOf('live-head-power-track');
   const activityStatusIndex = liveHeadRowBlock.indexOf('${activityStatus}');
-  const missedIndex = liveHeadRowBlock.indexOf('${missed}');
-  if (!(powerIndex >= 0 && trackIndex > powerIndex && missedIndex > trackIndex && activityStatusIndex > missedIndex)) {
-    fail('Live Head must read attestation power, safety-margin rail, missed power, then Quiet/gas status');
+  if (!(powerIndex >= 0 && trackIndex > powerIndex && activityStatusIndex > trackIndex)
+      || liveHeadRowBlock.includes('class="live-head-missed"')
+      || liveHeadRowBlock.includes('${missed}')) {
+    fail('Live Head must read attestation power, safety-margin rail, then Quiet/gas status without repeating aggregate missed power');
   }
   if (!health.includes("if (story.quiet === true) return { state: 'quiet'")
       || !health.includes("if (gas.state === 'quiet')")
@@ -3619,13 +3621,18 @@ async function checkSelectorContracts() {
       || !health.includes("panel.dataset.readingPaused = 'true'")
       || !health.includes('suppressMotion: true')
       || !health.includes("document.addEventListener('pointerdown'")
+      || !health.includes("event.target.closest('.live-head-info')")
+      || !health.includes("event.target.closest('.live-head-row[data-live-head-level]')")
+      || !health.includes("event.target.closest('a, button, input, select, textarea, [role=\"button\"], [contenteditable=\"true\"]')")
+      || !health.includes('class="live-head-info"')
       || !health.includes('liveHeadBlockUrl(level, { operations: true })')
       || !health.includes('href="/#my-baker=${encoded}"')
       || !health.includes('data-live-head-open-health')
       || !health.includes('maxFragments: 8')
       || !heroSearchCss.includes('.live-head-inspector-fact')
-      || !heroSearchCss.includes('.live-head-inspector-health')) {
-    fail('Every Live Head block must expose a complete linked inspector that freezes its exact reading state until hover, focus, or click-away releases one quiet catch-up');
+      || !heroSearchCss.includes('.live-head-inspector-health')
+      || !heroSearchCss.includes('.live-head-info:is(:hover, :focus-visible)')) {
+    fail('Every Live Head block must expose its complete linked inspector from info hover/focus or a non-interactive row click, while freezing the exact reading state until click-away releases one quiet catch-up');
   }
   if (!index.includes('id="live-head-alert"')
       || !index.includes('id="chain-stall-announcer"')

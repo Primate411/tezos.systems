@@ -4,7 +4,7 @@
  * HTML and the service worker are checked against this value in CI. Runtime
  * modules should use versionedAsset() instead of carrying private ?v= stamps.
  */
-export const ASSET_VERSION = '596';
+export const ASSET_VERSION = '597';
 
 export function versionedAsset(pathname) {
     const path = String(pathname || '');
