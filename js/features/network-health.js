@@ -119,6 +119,7 @@ let liveHeadPillResizeObserver = null;
 let liveHeadPillFitFrame = null;
 let liveHeadInspectorCloseTimer = null;
 let liveHeadInspectorLevel = null;
+let liveHeadInspectorSuppressedLevel = null;
 let liveHeadPendingUpdate = null;
 let liveHeadConfirmedAt = 0;
 let liveHeadConfirmedLevel = 0;
@@ -1063,8 +1064,9 @@ function resumeLiveHeadAfterInspector() {
     }
 }
 
-function closeLiveHeadInspector() {
+function closeLiveHeadInspector({ suppressReopen = false } = {}) {
     const wasPaused = liveHeadReadingPaused();
+    const closingLevel = liveHeadInspectorLevel;
     cancelLiveHeadInspectorClose();
     const inspector = document.getElementById('live-head-inspector');
     if (inspector) {
@@ -1078,12 +1080,15 @@ function closeLiveHeadInspector() {
         row.setAttribute('aria-expanded', 'false');
     });
     liveHeadInspectorLevel = null;
+    if (suppressReopen && Number.isFinite(closingLevel)) {
+        liveHeadInspectorSuppressedLevel = closingLevel;
+    }
     if (wasPaused || liveHeadPendingUpdate) resumeLiveHeadAfterInspector();
 }
 
 function scheduleLiveHeadInspectorClose() {
     cancelLiveHeadInspectorClose();
-    liveHeadInspectorCloseTimer = window.setTimeout(closeLiveHeadInspector, 140);
+    liveHeadInspectorCloseTimer = window.setTimeout(closeLiveHeadInspector, 320);
 }
 
 function positionLiveHeadInspector(row, inspector) {
@@ -1105,6 +1110,8 @@ function showLiveHeadInspector(row) {
     const level = Number(row?.dataset.liveHeadLevel);
     const block = heartbeatData?.blocks?.find((item) => Number(item.level) === level);
     if (!inspector || !row || !block || document.getElementById('network-health-modal')?.classList.contains('active')) return;
+    if (liveHeadInspectorSuppressedLevel === level) return;
+    liveHeadInspectorSuppressedLevel = null;
     cancelLiveHeadInspectorClose();
     document.querySelectorAll('#live-head-stack .live-head-row[aria-expanded="true"]').forEach((item) => {
         if (item !== row) item.setAttribute('aria-expanded', 'false');
@@ -1142,6 +1149,9 @@ function wireLiveHeadInspector(panel, stack) {
     stack.addEventListener('pointerout', (event) => {
         const row = event.target.closest('.live-head-row[data-live-head-level]');
         if (!row || row.contains(event.relatedTarget)) return;
+        if (liveHeadInspectorSuppressedLevel === Number(row.dataset.liveHeadLevel)) {
+            liveHeadInspectorSuppressedLevel = null;
+        }
         scheduleLiveHeadInspectorClose();
     });
     stack.addEventListener('focusin', (event) => {
@@ -1149,7 +1159,11 @@ function wireLiveHeadInspector(panel, stack) {
         if (row) showLiveHeadInspector(row);
     });
     stack.addEventListener('focusout', (event) => {
-        if (!event.target.closest('.live-head-row[data-live-head-level]')) return;
+        const row = event.target.closest('.live-head-row[data-live-head-level]');
+        if (!row) return;
+        if (liveHeadInspectorSuppressedLevel === Number(row.dataset.liveHeadLevel)) {
+            liveHeadInspectorSuppressedLevel = null;
+        }
         scheduleLiveHeadInspectorClose();
     });
     inspector.addEventListener('pointerenter', cancelLiveHeadInspectorClose);
@@ -1164,15 +1178,22 @@ function wireLiveHeadInspector(panel, stack) {
         openNetworkHealthChamber();
     });
     document.addEventListener('keydown', (event) => {
-        if (event.key === 'Escape' && !inspector.hidden) closeLiveHeadInspector();
+        if (event.key === 'Escape' && !inspector.hidden) closeLiveHeadInspector({ suppressReopen: true });
     });
     document.addEventListener('pointerdown', (event) => {
         if (inspector.hidden) return;
         if (event.target.closest('#live-head-inspector, .live-head-row[data-live-head-level]')) return;
         closeLiveHeadInspector();
     }, { capture: true });
+    document.addEventListener('pointermove', (event) => {
+        if (!Number.isFinite(liveHeadInspectorSuppressedLevel)) return;
+        const row = event.target.closest('.live-head-row[data-live-head-level]');
+        if (Number(row?.dataset.liveHeadLevel) !== liveHeadInspectorSuppressedLevel) {
+            liveHeadInspectorSuppressedLevel = null;
+        }
+    }, { capture: true, passive: true });
     window.addEventListener('resize', refreshLiveHeadInspector);
-    window.addEventListener('scroll', closeLiveHeadInspector, { passive: true, capture: true });
+    window.addEventListener('scroll', () => closeLiveHeadInspector({ suppressReopen: true }), { passive: true, capture: true });
 }
 
 function buildLiveHeadDetails(block, activity) {
