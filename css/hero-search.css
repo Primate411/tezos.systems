@@ -2455,6 +2455,7 @@
 }
 
 .live-head-miss-pill.is-clear {
+    max-width: none;
     color: #64e7bd;
 }
 
@@ -2466,6 +2467,7 @@
     position: relative;
     z-index: 30;
     width: calc(100% + 32px);
+    max-width: none;
     margin: 4px -16px -8px;
     padding-top: 0;
     border-top: 0;
@@ -2750,7 +2752,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
 @media (max-width: 719px) {
     .live-head-panel.lb-panel {
-        width: calc(var(--page-col) - 2rem);
+        width: var(--page-col);
         min-height: 0;
         margin-bottom: 0.7rem;
     }
@@ -2824,7 +2826,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     }
 
     .live-head-row-main {
-        grid-template-columns: 10.5ch 0 0 minmax(0, 1fr) 5.5ch;
+        grid-template-columns: 10.5ch minmax(0, 1fr) 3.5ch;
         gap: 0.14rem;
     }
 
@@ -2981,7 +2983,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     }
 
     .live-head-row-main {
-        grid-template-columns: 74px 0 0 minmax(0, 1fr) 25px;
+        grid-template-columns: 74px minmax(0, 1fr) 25px;
         gap: 1px;
     }
 

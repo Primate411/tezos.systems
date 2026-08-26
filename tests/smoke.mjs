@@ -15552,9 +15552,36 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       const card = document.querySelector('#live-head');
       const rows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]'))
         .filter((row) => getComputedStyle(row).display !== 'none');
-      const cardRect = card?.getBoundingClientRect();
-      const wellRect = document.querySelector('#hero-search-form')?.getBoundingClientRect();
-      return {
+	      const cardRect = card?.getBoundingClientRect();
+	      const wellRect = document.querySelector('#hero-search-form')?.getBoundingClientRect();
+	      const metricRows = rows.map((row) => {
+	        const main = row.querySelector('.live-head-row-main');
+	        const attested = row.querySelector('.live-head-attested');
+	        const age = row.querySelector('.live-head-age');
+	        const power = row.querySelector('.live-head-power');
+	        const track = row.querySelector('.live-head-power-track');
+	        const status = row.querySelector('.live-head-quiet, .live-head-gas, .live-head-gas-skeleton');
+	        const mainRect = main?.getBoundingClientRect();
+	        const attestedRect = attested?.getBoundingClientRect();
+	        const ageRect = age?.getBoundingClientRect();
+	        const powerRect = power?.getBoundingClientRect();
+	        const trackRect = track?.getBoundingClientRect();
+	        const statusRect = status?.getBoundingClientRect();
+	        return {
+	          mainColumns: main ? getComputedStyle(main).gridTemplateColumns.split(' ').filter((part) => part !== '0px').length : 0,
+	          attestedWidth: attestedRect?.width || 0,
+	          ageWidth: ageRect?.width || 0,
+	          contained: Boolean(mainRect && attestedRect && ageRect && statusRect
+	            && attestedRect.left >= mainRect.left - 1
+	            && statusRect.right <= attestedRect.right + 1
+	            && attestedRect.right <= ageRect.left + 1
+	            && ageRect.right <= mainRect.right + 1),
+	          ordered: Boolean(powerRect && trackRect && statusRect
+	            && powerRect.right <= trackRect.left + 1
+	            && trackRect.right <= statusRect.left + 1)
+	        };
+	      });
+	      return {
         viewportWidth,
         height: cardRect?.height || 0,
         chainState: card?.dataset.chainState || '',
@@ -15565,7 +15592,16 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
           const rect = row.getBoundingClientRect();
           return cardRect && rect.left >= cardRect.left - 1 && rect.right <= cardRect.right + 1;
         }),
-        wellContained: Boolean(cardRect && wellRect && wellRect.left >= cardRect.left && wellRect.right <= cardRect.right),
+	        wellContained: Boolean(cardRect && wellRect && wellRect.left >= cardRect.left - 1 && wellRect.right <= cardRect.right + 1),
+	        wellJoined: Boolean(cardRect && wellRect
+	          && Math.abs(wellRect.left - cardRect.left) <= 1
+	          && Math.abs(wellRect.right - cardRect.right) <= 1
+	          && Math.abs(wellRect.bottom - cardRect.bottom) <= 1),
+	        metricRows,
+	        clearMissPills: Array.from(card?.querySelectorAll('.live-head-miss-pill.is-clear') || []).map((pill) => ({
+	          text: pill.textContent?.replace(/\s+/g, ' ').trim() || '',
+	          clipped: pill.scrollWidth > pill.clientWidth + 1
+	        })),
         rowOverflow: Math.max(0, ...rows.map((row) => row.scrollWidth - row.clientWidth)),
 	        cardOverflow: card ? card.scrollWidth - card.clientWidth : 999,
 	        pageOverflow: document.documentElement.scrollWidth - innerWidth,
@@ -15583,8 +15619,15 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       tickerState.height <= (tickerState.alertVisible ? 410 : 360)
         && tickerState.rows === 3
         && tickerState.levels.every((level) => /^#[\d,]+$/.test(level))
-        && tickerState.rowsContained
-        && tickerState.wellContained
+	        && tickerState.rowsContained
+	        && tickerState.wellContained
+	        && tickerState.wellJoined
+	        && tickerState.metricRows.every((row) => row.mainColumns === 3
+	          && row.attestedWidth > 0
+	          && row.ageWidth > 0
+	          && row.contained
+	          && row.ordered)
+	        && tickerState.clearMissPills.every((pill) => /^(No attestation misses|Misses not indexed)$/.test(pill.text) && !pill.clipped)
         && tickerState.rowOverflow <= 1
         && tickerState.cardOverflow <= 1
 	        && tickerState.pageOverflow <= 1
