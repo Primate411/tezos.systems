@@ -789,6 +789,7 @@ function setLiveHeadStoryDetail(pill, level = 0) {
 }
 
 function fitLiveHeadPills(root = document) {
+    const compactViewport = window.matchMedia?.('(max-width: 719px)')?.matches === true;
     root.querySelectorAll?.('.live-head-story').forEach((container) => {
         const missedPills = [...container.querySelectorAll('[data-missed-baker-address]')];
         const storyPills = [...container.querySelectorAll('.live-head-story-chip')];
@@ -830,7 +831,7 @@ function fitLiveHeadPills(root = document) {
             if (overflowPill && liveHeadPillOverflows(container) && !overflowPill.hidden) overflowPill.hidden = true;
         }
 
-        if (container.clientWidth >= LIVE_HEAD_DETAIL_MIN_WIDTH) {
+        if (!compactViewport && container.clientWidth >= LIVE_HEAD_DETAIL_MIN_WIDTH) {
             storyPills.filter((pill) => !pill.hidden).forEach((pill) => {
                 const details = liveHeadStoryDetails(pill);
                 for (let level = 1; level <= details.length; level += 1) {
