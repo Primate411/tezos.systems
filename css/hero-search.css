@@ -1588,6 +1588,7 @@
     padding: 8px 16px;
     overflow: visible;
     border-color: var(--glass-border);
+    border-radius: 20px;
     background: color-mix(in srgb, var(--text-primary) 3%, transparent);
     box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 3%, transparent);
 }
@@ -2477,11 +2478,11 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) 38px;
     gap: 0.35rem;
-    min-height: 58px;
-    padding: 4px 16px;
+    min-height: 48px;
+    padding: 2px 16px;
     border: 0;
     border-top: 1px solid color-mix(in srgb, var(--text-primary) 10%, var(--glass-border));
-    border-radius: 0 0 7px 7px;
+    border-radius: 0 0 19px 19px;
     background: color-mix(in srgb, var(--bg-primary) 72%, var(--text-primary) 3%);
     box-shadow: inset 0 1px 7px color-mix(in srgb, #000 16%, transparent);
 }
@@ -2922,7 +2923,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
     .live-head-panel .hero-search-form {
         grid-template-columns: minmax(0, 1fr) 44px;
-        min-height: 60px;
+        min-height: 50px;
     }
 
     .live-head-panel .hero-search-form:has(> .tour-nudge) {
