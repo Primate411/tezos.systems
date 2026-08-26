@@ -7338,7 +7338,7 @@ async function smokeRouteSearchState(browser, baseUrl) {
     const panel = document.getElementById('hero-search-panel');
     return document.getElementById('hero-search-input')?.value === 'frobnicate'
       && !panel?.querySelector('.hero-search-status-row')
-      && /No result matched/i.test(panel?.textContent || '');
+      && /No path surfaced/i.test(panel?.textContent || '');
   }, null, { timeout: 10000 });
   const irrelevantSuggestionState = await page.evaluate(() => ({
     href: window.location.href,
