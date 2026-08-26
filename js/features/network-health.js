@@ -39,6 +39,7 @@ const AGE_TICK_INTERVAL = 1000;
 const LIVE_HEAD_DELAYED_AFTER = 18 * 1000;
 const LIVE_HEAD_STALLED_AFTER = 30 * 1000;
 const LIVE_HEAD_CONFIRMATION_MAX_AGE = LIVE_REFRESH_INTERVAL * 2 + 2000;
+const LIVE_HEAD_INSPECTOR_CLOSE_DELAY = 420;
 const BLOCK_PULSE_THROTTLE = 4 * 1000;
 const ACTIVITY_TAPE_TTL = 60 * 1000;
 const ACTIVITY_TAPE_LIMIT = 5;
@@ -1206,7 +1207,7 @@ function scheduleLiveHeadInspectorClose() {
     liveHeadInspectorCloseTimer = window.setTimeout(() => {
         liveHeadInspectorCloseTimer = null;
         closeLiveHeadInspector({ deferResume: true });
-    }, 140);
+    }, LIVE_HEAD_INSPECTOR_CLOSE_DELAY);
 }
 
 function positionLiveHeadInspector(row, inspector) {
