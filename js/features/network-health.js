@@ -72,6 +72,8 @@ const NETWORK_HEALTH_CSS_URL = versionedAsset('/css/network-health.min.css');
 const STORAGE_KEY = 'tezos-systems-network-health';
 const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
 const CONTESTED_ROUND_SIGNAL_KEY = 'tezos-systems-contested-round-hot-signal-at';
+const LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v1';
+const LIVE_HEAD_ACTIVITY_TYPES = ['transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'];
 
 const PERIODS = [
     { key: '24h', label: '24H', hours: 24, exactLimit: 22000 },
@@ -117,6 +119,8 @@ let heartbeatGasLimitCacheAt = 0;
 let heartbeatGasLimitInFlight = null;
 let liveHeadPillResizeObserver = null;
 let liveHeadPillFitFrame = null;
+let liveHeadActivityFiltersLoaded = false;
+let liveHeadSelectedActivityTypes = new Set(LIVE_HEAD_ACTIVITY_TYPES);
 let liveHeadInspectorCloseTimer = null;
 let liveHeadInspectorResumeTimer = null;
 let liveHeadInspectorLevel = null;
@@ -791,6 +795,95 @@ function setLiveHeadStoryDetail(pill, level = 0) {
     pill.classList.toggle('is-expanded', normalizedLevel > 0);
 }
 
+function loadLiveHeadActivityFilters() {
+    if (liveHeadActivityFiltersLoaded) return;
+    liveHeadActivityFiltersLoaded = true;
+    try {
+        const saved = JSON.parse(localStorage.getItem(LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY) || 'null');
+        if (Array.isArray(saved)) {
+            liveHeadSelectedActivityTypes = new Set(saved.filter((kind) => LIVE_HEAD_ACTIVITY_TYPES.includes(kind)));
+        }
+    } catch {
+        liveHeadSelectedActivityTypes = new Set(LIVE_HEAD_ACTIVITY_TYPES);
+    }
+}
+
+function liveHeadActivityTypeIsSelected(kind) {
+    loadLiveHeadActivityFilters();
+    return liveHeadSelectedActivityTypes.has(kind);
+}
+
+function syncLiveHeadActivityFilterUi(panel) {
+    if (!panel) return;
+    loadLiveHeadActivityFilters();
+    const toggle = panel.querySelector('#live-head-filter-toggle');
+    const allSelected = liveHeadSelectedActivityTypes.size === LIVE_HEAD_ACTIVITY_TYPES.length;
+    panel.querySelectorAll('[data-live-head-filter-kind]').forEach((button) => {
+        const kind = button.dataset.liveHeadFilterKind;
+        const selected = kind === 'all' ? allSelected : liveHeadSelectedActivityTypes.has(kind);
+        button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    if (toggle) {
+        const selectedCount = liveHeadSelectedActivityTypes.size;
+        toggle.classList.toggle('is-filtered', !allSelected);
+        toggle.setAttribute('aria-label', `Choose visible block activity, ${selectedCount} of ${LIVE_HEAD_ACTIVITY_TYPES.length} selected`);
+        toggle.title = `${selectedCount} of ${LIVE_HEAD_ACTIVITY_TYPES.length} block activity types selected`;
+    }
+}
+
+function closeLiveHeadActivityFilter(panel, { restoreFocus = false } = {}) {
+    const toggle = panel?.querySelector('#live-head-filter-toggle');
+    const menu = panel?.querySelector('#live-head-filter-menu');
+    if (!toggle || !menu || menu.hidden) return;
+    menu.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+    if (restoreFocus) toggle.focus({ preventScroll: true });
+}
+
+function wireLiveHeadActivityFilter(panel) {
+    if (!panel || panel.dataset.liveHeadActivityFilterWired) return;
+    const filter = panel.querySelector('.live-head-filter');
+    const toggle = panel.querySelector('#live-head-filter-toggle');
+    const menu = panel.querySelector('#live-head-filter-menu');
+    if (!filter || !toggle || !menu) return;
+    panel.dataset.liveHeadActivityFilterWired = '1';
+    syncLiveHeadActivityFilterUi(panel);
+
+    toggle.addEventListener('click', () => {
+        const opening = menu.hidden;
+        menu.hidden = !opening;
+        toggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
+        if (opening) menu.querySelector('[data-live-head-filter-kind]')?.focus({ preventScroll: true });
+    });
+    menu.addEventListener('click', (event) => {
+        const button = event.target.closest('[data-live-head-filter-kind]');
+        if (!button) return;
+        const kind = button.dataset.liveHeadFilterKind;
+        if (kind === 'all') {
+            liveHeadSelectedActivityTypes = liveHeadSelectedActivityTypes.size === LIVE_HEAD_ACTIVITY_TYPES.length
+                ? new Set()
+                : new Set(LIVE_HEAD_ACTIVITY_TYPES);
+        } else if (LIVE_HEAD_ACTIVITY_TYPES.includes(kind)) {
+            if (liveHeadSelectedActivityTypes.has(kind)) liveHeadSelectedActivityTypes.delete(kind);
+            else liveHeadSelectedActivityTypes.add(kind);
+        }
+        try {
+            localStorage.setItem(LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY, JSON.stringify([...liveHeadSelectedActivityTypes]));
+        } catch { /* preference storage unavailable */ }
+        syncLiveHeadActivityFilterUi(panel);
+        fitLiveHeadPills(panel);
+    });
+    document.addEventListener('pointerdown', (event) => {
+        if (!menu.hidden && !event.target.closest('.live-head-filter')) closeLiveHeadActivityFilter(panel);
+    }, { capture: true });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !menu.hidden) {
+            event.stopPropagation();
+            closeLiveHeadActivityFilter(panel, { restoreFocus: true });
+        }
+    });
+}
+
 function fitLiveHeadPills(root = document) {
     const compactViewport = window.matchMedia?.('(max-width: 719px)')?.matches === true;
     root.querySelectorAll?.('.live-head-story').forEach((container) => {
@@ -800,9 +893,10 @@ function fitLiveHeadPills(root = document) {
 
         missedPills.forEach((pill) => { pill.hidden = false; });
         storyPills.forEach((pill) => {
-            pill.hidden = false;
+            pill.hidden = !liveHeadActivityTypeIsSelected(pill.dataset.liveHeadKind);
             setLiveHeadStoryDetail(pill, 0);
         });
+        const selectedStoryPills = storyPills.filter((pill) => !pill.hidden);
         if (overflowPill) {
             overflowPill.hidden = true;
             overflowPill.textContent = '';
@@ -810,9 +904,9 @@ function fitLiveHeadPills(root = document) {
         }
 
         if (liveHeadPillOverflows(container)) {
-            let visibleStoryCount = storyPills.length;
+            let visibleStoryCount = selectedStoryPills.length;
             while (liveHeadPillOverflows(container) && visibleStoryCount > 1) {
-                storyPills[--visibleStoryCount].hidden = true;
+                selectedStoryPills[--visibleStoryCount].hidden = true;
             }
 
             const hiddenMisses = [];
@@ -829,13 +923,13 @@ function fitLiveHeadPills(root = document) {
             }
             if (overflowPill && !hiddenMisses.length) overflowPill.hidden = true;
             if (liveHeadPillOverflows(container) && visibleStoryCount > 0) {
-                storyPills[--visibleStoryCount].hidden = true;
+                selectedStoryPills[--visibleStoryCount].hidden = true;
             }
             if (overflowPill && liveHeadPillOverflows(container) && !overflowPill.hidden) overflowPill.hidden = true;
         }
 
         if (!compactViewport && container.clientWidth >= LIVE_HEAD_DETAIL_MIN_WIDTH) {
-            storyPills.filter((pill) => !pill.hidden).forEach((pill) => {
+            selectedStoryPills.filter((pill) => !pill.hidden).forEach((pill) => {
                 const details = liveHeadStoryDetails(pill);
                 for (let level = 1; level <= details.length; level += 1) {
                     setLiveHeadStoryDetail(pill, level);
@@ -1260,7 +1354,7 @@ function buildLiveHeadDetails(block, activity) {
             const detailAttrs = details.length
                 ? ` data-live-head-details="${escapeHtml(JSON.stringify(details))}" title="${escapeHtml(richest)}" aria-label="${escapeHtml(richest)}"`
                 : '';
-            return `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}${details.length ? ' has-detail' : ''}" data-live-head-compact="${escapeHtml(fragment.text)}" data-live-head-detail-level="0"${detailAttrs} style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`;
+            return `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}${details.length ? ' has-detail' : ''}" data-live-head-kind="${escapeHtml(fragment.key)}" data-live-head-compact="${escapeHtml(fragment.text)}" data-live-head-detail-level="0"${detailAttrs} style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`;
         }).join('')
         : '<i class="live-head-story-skeleton" aria-hidden="true"></i><i class="live-head-story-skeleton is-short" aria-hidden="true"></i>';
     const signature = `${storySignature}|${missedState.signature}`;
@@ -1368,7 +1462,7 @@ function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
                 <span class="live-head-age" data-health-age="${escapeHtml(block.timestamp || '')}" data-health-age-format="ticker" data-magic="off">${escapeHtml(formatTickerAge(block.timestamp))}</span>
             </span>
             <span class="live-head-row-detail">
-                <span class="live-head-baker${producerHasAlias ? '' : ' is-address'}" title="${escapeHtml(producer.address || name)}">${escapeHtml(name)}</span>
+                <span class="live-head-baker${producerHasAlias ? '' : ' is-address'}" title="${escapeHtml(producer.address || name)}"><span class="live-head-baker-name">${escapeHtml(name)}</span><span class="live-head-story-connector" aria-hidden="true"></span></span>
                 ${details.html}
             </span>
         </button>
@@ -1768,6 +1862,7 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     const activityButton = document.getElementById('header-activity-button');
     if (!panel || !button || !stack || !activityButton) return;
     wireLiveHeadPillFitting(panel);
+    wireLiveHeadActivityFilter(panel);
     wireLiveHeadInspector(panel, stack);
 
     if (!button.dataset.liveHeadWired) {

@@ -5819,6 +5819,8 @@ async function smokeHeroIntermediate(browser, baseUrl) {
     const left = document.querySelector('.header-continuity-row');
     const history = document.querySelector('#top-continuity-history');
     const activity = document.querySelector('#header-activity-button');
+    const filter = document.querySelector('#live-head-filter-toggle');
+    const liveHead = document.querySelector('#live-head');
     const activityLine = document.querySelector('#header-activity-line');
     const panel = document.querySelector('#top-continuity-panel');
     const pills = Array.from(document.querySelectorAll('#top-continuity-panel .top-continuity-stat'));
@@ -5827,6 +5829,7 @@ async function smokeHeroIntermediate(browser, baseUrl) {
     const leftRect = rect(left);
     const historyRect = rect(history);
     const activityRect = rect(activity);
+    const filterRect = rect(filter);
     const panelRect = rect(panel);
     const pillRects = pills.map((pill) => rect(pill));
     return {
@@ -5836,8 +5839,10 @@ async function smokeHeroIntermediate(browser, baseUrl) {
       pillColumns: panel?.querySelector('.top-continuity-stats')
         ? getComputedStyle(panel.querySelector('.top-continuity-stats')).gridTemplateColumns
         : '',
-      ageBesideActivity: Boolean(historyRect && activityRect
-        && Math.abs((historyRect.top + historyRect.height / 2) - (activityRect.top + activityRect.height / 2)) <= 4),
+      activityInLiveHead: Boolean(activity && liveHead?.contains(activity)),
+      activityBesideFilter: Boolean(activityRect && filterRect
+        && activityRect.right <= filterRect.left + 1
+        && Math.abs((activityRect.top + activityRect.height / 2) - (filterRect.top + filterRect.height / 2)) <= 4),
       pillsBelowLead: Boolean(leftRect && panelRect && leftRect.bottom <= panelRect.top + 1),
       fullWidthRows: Boolean(rowRect && leftRect && panelRect
         && Math.abs(leftRect.width - rowRect.width) <= 2
@@ -5855,9 +5860,9 @@ async function smokeHeroIntermediate(browser, baseUrl) {
     };
   });
 
-  assert(state.breakpoint && state.leftDisplay === 'flex', `hero intermediate: breakpoint did not keep uptime and 1H activity on one line ${JSON.stringify(state)}`);
-  assert(state.ageBesideActivity, `hero intermediate: uptime and 1H activity should share the lead row ${JSON.stringify(state)}`);
-  assert(state.pillsBelowLead && state.fullWidthRows, `hero intermediate: network signals should occupy a full-width row below uptime and 1H activity ${JSON.stringify(state)}`);
+  assert(state.breakpoint && state.leftDisplay === 'flex', `hero intermediate: breakpoint did not keep the uptime lead stable ${JSON.stringify(state)}`);
+  assert(state.activityInLiveHead && state.activityBesideFilter, `hero intermediate: 1H activity should sit immediately before the Live Head setup control ${JSON.stringify(state)}`);
+  assert(state.pillsBelowLead && state.fullWidthRows, `hero intermediate: network signals should occupy a full-width row below uptime ${JSON.stringify(state)}`);
   assert(state.pillCount === 4 && state.onePillRow, `hero intermediate: network signals should remain one uninterrupted four-pill row ${JSON.stringify(state)}`);
   assert(state.rowInsideViewport && state.activityOverflow <= 1 && state.documentOverflow <= 1, `hero intermediate: responsive signal row escaped or clipped ${JSON.stringify(state)}`);
 
@@ -5919,17 +5924,23 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     const row = document.querySelector('.header-continuity-row');
     const history = document.querySelector('#top-continuity-history');
     const activity = document.querySelector('#header-activity-button');
+    const filter = document.querySelector('#live-head-filter-toggle');
+    const liveHead = document.querySelector('#live-head');
     const line = document.querySelector('#header-activity-line');
     const cluster = line?.querySelector('.header-activity-cluster');
     const historyRect = history?.getBoundingClientRect();
     const activityRect = activity?.getBoundingClientRect();
+    const filterRect = filter?.getBoundingClientRect();
     const center = (rect) => rect ? rect.top + (rect.height / 2) : 0;
     return {
       shellExtrasReady: Boolean(document.getElementById('shell-extras-css')?.sheet),
       rowDisplay: row ? getComputedStyle(row).display : '',
       buttonDisplay: activity ? getComputedStyle(activity).display : '',
       buttonHeight: activityRect?.height || 0,
-      sameBand: Boolean(historyRect && activityRect && Math.abs(center(historyRect) - center(activityRect)) <= 2),
+      activityInLiveHead: Boolean(activity && liveHead?.contains(activity)),
+      activityBeforeFilter: Boolean(activityRect && filterRect
+        && activityRect.right <= filterRect.left + 1
+        && Math.abs(center(activityRect) - center(filterRect)) <= 4),
       clusterPresent: Boolean(cluster),
       clusterLoading: cluster?.classList.contains('is-loading') || false,
       slots: Array.from(line?.querySelectorAll('[data-usage-slot]') || [], (node) => node.dataset.usageSlot),
@@ -5942,8 +5953,9 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     firstPaintState.shellExtrasReady
       && firstPaintState.rowDisplay === 'flex'
       && firstPaintState.buttonDisplay === 'block'
-      && firstPaintState.buttonHeight >= 35
-      && firstPaintState.sameBand,
+      && firstPaintState.buttonHeight >= 29
+      && firstPaintState.activityInLiveHead
+      && firstPaintState.activityBeforeFilter,
     `hero command bar first paint: render-blocking shell geometry is not ready ${JSON.stringify(firstPaintState)}`
   );
   assert(
@@ -6217,12 +6229,12 @@ async function smokeHeroCommandBar(browser, baseUrl) {
       maxHeight: Math.max(0, ...rows.map((row) => row.getBoundingClientRect().height))
     };
   });
-  assert(starterGeometry.descriptionsVisible === 0 && starterGeometry.maxHeight <= 44, `hero command bar: empty starters should stay one-line ${JSON.stringify(starterGeometry)}`);
+  assert(starterGeometry.descriptionsVisible === 6 && starterGeometry.maxHeight >= 88 && starterGeometry.maxHeight <= 118, `hero command bar: empty starters should read as six composed index cards ${JSON.stringify(starterGeometry)}`);
   const idleChrome = await page.evaluate(() => ({
     chipsDisplay: getComputedStyle(document.getElementById('hero-search-chips')).display,
     markDisplay: getComputedStyle(document.querySelector('.live-head-panel .hero-search-mark')).display
   }));
-  assert(idleChrome.chipsDisplay === 'none' && idleChrome.markDisplay === 'none', `hero command bar: non-HEN search exposed terminal chrome ${JSON.stringify(idleChrome)}`);
+  assert(idleChrome.chipsDisplay === 'none' && idleChrome.markDisplay === 'grid', `hero command bar: open search should expose its index sigil without reviving terminal chips ${JSON.stringify(idleChrome)}`);
   await page.locator('#hero-search-panel .hero-search-result[data-result-id="starter:rooms"]').click();
   await page.waitForFunction(() => document.getElementById('hero-search-input')?.value === 'rooms', null, { timeout: 5000 });
   const roomsOpenState = await page.evaluate(() => ({
@@ -6740,6 +6752,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     deviceScaleFactor: 3,
     hasTouch: true,
     isMobile: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1',
     serviceWorkers: 'block'
   });
   await installFeatureMocks(mobileContext);
@@ -6754,10 +6767,23 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   const mobileResponse = await mobilePage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(mobileResponse?.ok(), `hero command bar mobile focus: dashboard failed with HTTP ${mobileResponse?.status()}`);
   await mobilePage.locator('#hero-search-input').waitFor({ state: 'visible', timeout: 10000 });
+  await mobilePage.evaluate(() => {
+    const probe = document.createElement('span');
+    probe.id = 'ios-tez-fallback-probe';
+    probe.hidden = true;
+    probe.textContent = 'ꜩ';
+    document.body.append(probe);
+  });
+  await mobilePage.waitForFunction(() => document.getElementById('ios-tez-fallback-probe')?.textContent === 'tz');
   const mobileBeforeFocus = await mobilePage.evaluate(() => ({
     scale: window.visualViewport?.scale || 1,
-    scrollWidth: document.documentElement.scrollWidth
+    scrollWidth: document.documentElement.scrollWidth,
+    iosTezFallback: document.documentElement.dataset.iosTezFallback || '',
+    retainsTezGlyph: document.body.innerText.includes('ꜩ'),
+    hasTextFallback: document.getElementById('ios-tez-fallback-probe')?.textContent === 'tz'
   }));
+  await mobilePage.locator('#ios-tez-fallback-probe').evaluate((node) => node.remove());
+  assert(mobileBeforeFocus.iosTezFallback === 'true' && !mobileBeforeFocus.retainsTezGlyph && mobileBeforeFocus.hasTextFallback, `hero command bar iOS: Tezos glyph did not settle to the small-letter tz fallback ${JSON.stringify(mobileBeforeFocus)}`);
 
   await mobilePage.locator('.top-continuity-stat[data-card-history="staking-ratio"]').click();
   await mobilePage.locator('#top-continuity-explain.is-visible').waitFor({ state: 'visible', timeout: 5000 });
@@ -6845,7 +6871,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     })()
   }));
   assert(mobileQueryState.chipsDisplay === 'none' && mobileQueryState.selectedVisible, `hero command bar mobile query: shortcuts should collapse and first result stay visible ${JSON.stringify(mobileQueryState)}`);
-  assert(mobileQueryState.badgeDisplay === 'none', `hero command bar mobile query: default results should not carry badge clutter ${JSON.stringify(mobileQueryState)}`);
+  assert(mobileQueryState.badgeDisplay === 'flex', `hero command bar mobile query: result provenance badge is missing ${JSON.stringify(mobileQueryState)}`);
 
   await mobilePage.setViewportSize({ width: 390, height: 667 });
   const shortViewportState = await mobilePage.evaluate(() => {
@@ -14692,6 +14718,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const headerActivityCluster = headerActivityLine?.querySelector('.header-activity-cluster');
     const headerActivityRect = headerActivityButton?.getBoundingClientRect();
     const headerActivityClusterRect = headerActivityCluster?.getBoundingClientRect();
+	    const liveHeadFilterToggle = document.querySelector('#live-head-filter-toggle');
+	    const liveHeadFilterMenu = document.querySelector('#live-head-filter-menu');
+	    const liveHeadFilterRect = liveHeadFilterToggle?.getBoundingClientRect();
 	    const card = document.querySelector('[data-stat="network-health"]');
 	    const pulseTicker = document.querySelector('#pulse-ticker-strip');
 	    const ticker = document.querySelector('#live-head');
@@ -14825,10 +14854,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       topProofStaked: topProof?.querySelector('#hero-chain-uptime-staked')?.textContent || '',
       topProofIssuance: topProof?.querySelector('#hero-chain-uptime-issuance')?.textContent || '',
       headerActivityText: headerActivityLine?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      headerActivityInHeader: Boolean(headerActivityButton && header?.contains(headerActivityButton)),
-      headerActivityAfterHistory: Boolean(headerActivityButton && topProofHistory && (topProofHistory.compareDocumentPosition(headerActivityButton) & Node.DOCUMENT_POSITION_FOLLOWING)),
-      headerActivityRightOfHistory: Boolean(headerActivityRect && topProofHistoryRect && headerActivityRect.left >= topProofHistoryRect.right - 1),
-      headerActivityVerticallyAligned: Boolean(headerActivityRect && topProofHistoryRect && Math.abs((headerActivityRect.top + headerActivityRect.height / 2) - (topProofHistoryRect.top + topProofHistoryRect.height / 2)) <= 4),
+      headerActivityInLiveHead: Boolean(headerActivityButton && ticker?.contains(headerActivityButton)),
+      headerActivityBeforeFilter: Boolean(headerActivityRect && liveHeadFilterRect && headerActivityRect.right <= liveHeadFilterRect.left + 1),
+      headerActivityAlignedWithFilter: Boolean(headerActivityRect && liveHeadFilterRect && Math.abs((headerActivityRect.top + headerActivityRect.height / 2) - (liveHeadFilterRect.top + liveHeadFilterRect.height / 2)) <= 4),
       headerActivityFullyVisible: Boolean(headerActivityRect && headerActivityClusterRect
         && headerActivityClusterRect.left >= headerActivityRect.left - 1
         && headerActivityClusterRect.right <= headerActivityRect.right + 1
@@ -14842,7 +14870,23 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       headerActivityType: headerActivityButton?.getAttribute('type') || '',
       headerActivityBusy: headerActivityButton?.getAttribute('aria-busy') || '',
       headerActivityLoading: headerActivityCluster?.classList.contains('is-loading') || false,
-      headerActivityOutsideTicker: Boolean(headerActivityButton && ticker && !ticker.contains(headerActivityButton)),
+	      liveHeadFilterMenuHidden: Boolean(liveHeadFilterMenu?.hidden),
+	      liveHeadFilterAllPressed: liveHeadFilterMenu?.querySelector('[data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
+	      liveHeadFilterSelectedCount: liveHeadFilterMenu?.querySelectorAll('.live-head-filter-pill[aria-pressed="true"]').length || 0,
+	      liveHeadFilterWired: ticker?.dataset.liveHeadActivityFilterWired || '',
+	      liveHeadConnectors: liveHeadRows.map((row) => {
+	        const baker = row.querySelector('.live-head-baker');
+	        const name = row.querySelector('.live-head-baker-name');
+	        const connector = row.querySelector('.live-head-story-connector');
+	        const story = row.querySelector('.live-head-story');
+	        const connectorRect = connector?.getBoundingClientRect();
+	        const storyRect = story?.getBoundingClientRect();
+	        return {
+	          width: connectorRect?.width || 0,
+	          pointsIntoStory: Boolean(connectorRect && storyRect && connectorRect.right <= storyRect.left + 14),
+	          aliasClipped: Boolean(baker && !baker.classList.contains('is-address') && name && name.scrollWidth > name.clientWidth + 1)
+	        };
+	      }),
       systemLinks: modal?.querySelectorAll('.health-baker-name-link[href^="#baker="]').length || 0,
       tzktLinks: modal?.querySelectorAll('.lb-baker-source-link[href^="https://tzkt.io/"]').length || 0,
       footer: modal?.querySelector('.chamber-footer')?.textContent || '',
@@ -15223,12 +15267,14 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(/\d+s/.test(healthState.topProofFinality), `network health chamber: top proof finality missing: ${healthState.topProofFinality}`);
   assert(/^\d+(?:\.\d+)?%$/.test(healthState.topProofStaked), `network health chamber: top proof staked ratio mismatch: ${healthState.topProofStaked}`);
   assert(/^\d+(?:\.\d+)?%$/.test(healthState.topProofIssuance), `network health chamber: top proof issuance mismatch: ${healthState.topProofIssuance}`);
-  assert(healthState.headerActivityInHeader && healthState.headerActivityAfterHistory && healthState.headerActivityRightOfHistory && healthState.headerActivityVerticallyAligned, `network health chamber: trailing-hour activity should sit directly right of mainnet age ${JSON.stringify({ inHeader: healthState.headerActivityInHeader, afterHistory: healthState.headerActivityAfterHistory, rightOfHistory: healthState.headerActivityRightOfHistory, verticallyAligned: healthState.headerActivityVerticallyAligned })}`);
+  assert(healthState.headerActivityInLiveHead && healthState.headerActivityBeforeFilter && healthState.headerActivityAlignedWithFilter, `network health chamber: trailing-hour activity should sit directly before the Live Head setup control ${JSON.stringify({ inLiveHead: healthState.headerActivityInLiveHead, beforeFilter: healthState.headerActivityBeforeFilter, aligned: healthState.headerActivityAlignedWithFilter })}`);
   assert(healthState.headerActivityTag === 'BUTTON' && healthState.headerActivityType === 'button' && healthState.headerActivityWired === '1', `network health chamber: trailing-hour activity launcher semantics missing: ${healthState.headerActivityTag}/${healthState.headerActivityType}/${healthState.headerActivityWired}`);
   assert(healthState.headerActivityBusy === 'false' && !healthState.headerActivityLoading, `network health chamber: trailing-hour activity did not leave its first-paint loading state ${JSON.stringify({ busy: healthState.headerActivityBusy, loading: healthState.headerActivityLoading })}`);
-  assert(healthState.headerActivityOutsideTicker && healthState.headerActivityFullyVisible, `network health chamber: trailing-hour activity must be a separate unclipped header line: ${JSON.stringify({ outsideTicker: healthState.headerActivityOutsideTicker, fullyVisible: healthState.headerActivityFullyVisible })}`);
+  assert(healthState.headerActivityFullyVisible, `network health chamber: trailing-hour activity is clipped in its Live Head control rail`);
   assert(/1H Activity/.test(healthState.headerActivityText) && /\bTX\b/.test(healthState.headerActivityText) && /Moved/.test(healthState.headerActivityText) && /NFT/.test(healthState.headerActivityText), `network health chamber: trailing-hour label, TX, moved, and NFT text missing: ${healthState.headerActivityText}`);
   assert(['TX', 'Moved', 'NFT'].every((label) => healthState.headerActivityLabels.includes(label)), `network health chamber: trailing-hour activity labels are hidden: ${healthState.headerActivityLabels.join(', ')}`);
+  assert(healthState.liveHeadFilterMenuHidden && healthState.liveHeadFilterAllPressed === 'true' && healthState.liveHeadFilterSelectedCount === 8 && healthState.liveHeadFilterWired === '1', `network health chamber: activity setup control is not wired with every receipt type selected by default ${JSON.stringify({ hidden: healthState.liveHeadFilterMenuHidden, all: healthState.liveHeadFilterAllPressed, selected: healthState.liveHeadFilterSelectedCount, wired: healthState.liveHeadFilterWired })}`);
+  assert(healthState.liveHeadConnectors.every((connector) => connector.width >= 10 && connector.pointsIntoStory && !connector.aliasClipped), `network health chamber: baker-to-receipt connectors are missing, reversed, or clipping an alias ${JSON.stringify(healthState.liveHeadConnectors)}`);
   assert(healthState.systemLinks >= healthState.attesterRows, `network health chamber: baker profile links missing, saw ${healthState.systemLinks}`);
   assert(healthState.tzktLinks >= healthState.attesterRows, `network health chamber: TzKT links missing, saw ${healthState.tzktLinks}`);
   assert(/Direct: \/health\//.test(healthState.footer), `network health chamber: direct footer missing: ${healthState.footer}`);
@@ -15702,6 +15748,33 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.locator('#live-head-filter-toggle').click();
+  await page.locator('#live-head-filter-menu:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('[data-live-head-filter-kind="all"]').click();
+  const activityFilterOff = await page.evaluate(() => ({
+    allPressed: document.querySelector('[data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
+    selectedCount: document.querySelectorAll('.live-head-filter-pill[aria-pressed="true"]').length,
+    visibleStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip')).filter((pill) => !pill.hidden).length,
+    visibleMissPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-miss-pill')).filter((pill) => !pill.hidden).length,
+    height: document.querySelector('#live-head')?.getBoundingClientRect().height || 0
+  }));
+  await page.locator('[data-live-head-filter-kind="all"]').click();
+  const activityFilterOn = await page.evaluate(() => ({
+    allPressed: document.querySelector('[data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
+    selectedCount: document.querySelectorAll('.live-head-filter-pill[aria-pressed="true"]').length,
+    visibleStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip')).filter((pill) => !pill.hidden).length,
+    height: document.querySelector('#live-head')?.getBoundingClientRect().height || 0
+  }));
+  await page.keyboard.press('Escape');
+  assert(activityFilterOff.allPressed === 'false'
+      && activityFilterOff.selectedCount === 0
+      && activityFilterOff.visibleStoryPills === 0
+      && activityFilterOff.visibleMissPills >= 1
+      && activityFilterOn.allPressed === 'true'
+      && activityFilterOn.selectedCount === 8
+      && activityFilterOn.visibleStoryPills >= 1
+      && Math.abs(activityFilterOff.height - activityFilterOn.height) <= 1,
+    `network health chamber: activity setup did not deselect and restore every transaction pill without moving the card ${JSON.stringify({ activityFilterOff, activityFilterOn })}`);
   await page.locator('#live-head-alert:not([hidden])').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
@@ -15891,6 +15964,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.waitForFunction(() => document.querySelector('#live-head')?.dataset.chainState === 'live' && document.querySelector('#live-head-alert')?.hidden === true, null, { timeout: 10000 });
   assert(/block production resumed/i.test(await page.locator('#chain-stall-announcer').textContent() || ''), 'network health chamber: a genuinely newer fresh head did not announce and clear the latched stall');
+  const liveHeadResumedHeight = await page.locator('#live-head').evaluate((element) => element.getBoundingClientRect().height);
+  assert(Math.abs(liveHeadResumedHeight - healthState.liveHeadHeight) <= 1, `network health chamber: delayed/stalled hierarchy changed the Live Head outer height ${healthState.liveHeadHeight}/${liveHeadResumedHeight}`);
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await page.locator('#cycle-chip').click();

@@ -47,6 +47,7 @@ import {
 } from './utils.js';
 import { quietlyMutate, quietlySyncElement, quietlySyncHtml } from './quiet-refresh.js';
 import { versionedAsset } from './asset-version.js';
+import { initPlatformTextFallbacks } from './platform-text.js';
 import { CANONICAL_UPGRADE_COUNT, countProtocolUpgrades, getProtocolUpgradeOrdinal } from './protocol-count.js';
 import { bakerSizeTier } from './baker-size.mjs';
 import {
@@ -292,6 +293,8 @@ function ensureMyTezosCss() {
  */
 async function init() {
     debugLog('Initializing Tezos Systems dashboard...');
+
+    safe('platformTextFallbacks', initPlatformTextFallbacks);
 
     // Initialize theme
     safe('theme', initTheme);

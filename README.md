@@ -381,8 +381,10 @@ inline modal styles in `js/core/app.js`.
   returned identity is rendered; a width observer shows the full kitchen sink
   whenever it fits and introduces `+N bakers` only for pills that actually
   overflow at the current size. Producer aliases use a restrained JetBrains Mono
-  identity face,
-  while an unaliased producer keeps its full address on wide rows and truncates
+  identity face. A uniform low-opacity hairline grows through the baker column's
+  remaining measured width and ends in a right arrow immediately before the
+  receipt lane, so short and long baker names share one exact pill alignment
+  without clipping. An unaliased producer keeps its full address on wide rows and truncates
   only when the producer column truly runs out of room. The first-line cluster
   reads power fraction, safety-margin rail, missed power, then activity state.
   `Quiet` appears after missed power only for a complete empty receipt. Every
@@ -415,7 +417,9 @@ inline modal styles in `js/core/app.js`.
   data, catches up once without motion, and announces only a genuinely new
   block. A source-confirmed head gap first becomes an amber `BLOCKS DELAYED`
   warning after 18 seconds and then a large red `CHAIN STALLED` banner after 30
-  seconds. The critical state keeps the last-good receipts visible, opens
+  seconds. Both alerts occupy the card's reserved overlay plane, so a delayed
+  chain never changes the Live Head card's outer size. The critical state keeps
+  the last-good receipts visible, opens
   Network Health as a whole control, survives a later source-check failure, and
   remains latched until a genuinely newer block arrives. A new level softly
   fades and resolves into place while retained keyed
@@ -429,6 +433,12 @@ inline modal styles in `js/core/app.js`.
   list extends to the viewport's bottom gutter. The block rows use generous breathing
   room, not horizontal separator lines; the card has no decorative top cap; and
   the search well is the card's full-bleed bottom edge rather than an inset box.
+  The top-right control rail keeps the complete trailing-hour
+  `1H Activity / TX / Moved / NFT` receipt immediately before one setup icon and
+  the `Live` state. Setup expands into persisted All, Transfer, Art, DeFi,
+  Gaming, Bridge, Etherlink, Stake, and Unstake selectors; every category is on
+  by default, and deselected activity pills stop spending the row's measured
+  receipt width without hiding missed-attester evidence.
   There is no global missed-rights sentence. Hovering or focusing any real row
   opens a compact complete receipt with direct TzKT links for the block, every
   metric and activity category, and every missed baker; producer, proposer, and
@@ -444,11 +454,13 @@ inline modal styles in `js/core/app.js`.
   `mainnet age · since 2018` label. The counter measures elapsed time
   since launch, not an availability percentage or incident ledger. Active baker
   count, finality, staked share, and issuance rate remain in theme-matched stat
-  pills. A separate trailing-hour activity box sits immediately to the right of
-  mainnet age on desktop, shows transaction count, XTZ moved, and NFT transfers,
-  and opens Network Health; it stacks below mainnet age on narrow screens rather
-  than crowding the stat pills or Live Head. Its first paint reserves
-  the final `1H Activity / TX / Moved / NFT` metric shape instead of flashing loading prose.
+  pills. The trailing-hour activity receipt now belongs to Live Head's compact
+  top-right control rail instead of competing with mainnet age; it shows
+  transaction count, XTZ moved, and NFT transfers and opens Network Health. Its
+  first paint reserves the final `1H Activity / TX / Moved / NFT` metric shape
+  instead of flashing loading prose. On iOS and iPadOS, the unsupported Tezos
+  currency glyph is rendered as the small letters `tz`, including live text
+  inserted after first paint.
   On the June 30 UTC mainnet anniversary, the continuity statement switches to
   a congratulatory anniversary message while preserving the live counter.
   An unseen imminent or newly crossed network milestone gives the live runtime

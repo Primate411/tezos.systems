@@ -2342,9 +2342,14 @@ async function checkSelectorContracts() {
   const brandStackStart = index.indexOf('<div class="header-brand-stack">');
   const titleRowIndex = index.indexOf('<div class="header-title-row"', brandStackStart);
   const continuityRowIndex = index.indexOf('<div class="top-continuity-row">', titleRowIndex);
-  const activityButtonIndex = index.indexOf('id="header-activity-button"', brandStackStart);
-  if (brandStackStart < 0 || titleRowIndex < brandStackStart || continuityRowIndex < titleRowIndex || uptimeClusterStart < continuityRowIndex || activityButtonIndex < milestoneLinkIndex) {
-    fail('header must keep title first, then order mainnet age and trailing-hour activity in the lower continuity row');
+  const liveHeadIndex = index.indexOf('id="live-head"');
+  const activityButtonIndex = index.indexOf('id="header-activity-button"');
+  const liveHeadFilterIndex = index.indexOf('id="live-head-filter-toggle"', liveHeadIndex);
+  if (brandStackStart < 0 || titleRowIndex < brandStackStart || continuityRowIndex < titleRowIndex || uptimeClusterStart < continuityRowIndex) {
+    fail('header must keep title first, then mainnet age in the lower continuity row');
+  }
+  if (liveHeadIndex < 0 || activityButtonIndex < liveHeadIndex || liveHeadFilterIndex < activityButtonIndex) {
+    fail('trailing-hour activity must move into the Live Head right rail immediately before its activity setup control');
   }
   if (index.includes('Syncing 1H activity')) {
     fail('header first paint must not expose the retired one-hour activity loading sentence');
@@ -2556,8 +2561,11 @@ async function checkSelectorContracts() {
     ['Protocol History Chamber timeline toggle target', 'protocol-timeline-toggle-btn', app],
     ['Protocol History Chamber action styles', '.protocol-history-chamber-action', heroSearchCss],
     ['Hero search mode body class', "document.body.classList.toggle('hero-search-mode'", search],
-    ['Hero search attaches the calm results list to Live Head', '.live-head-panel .hero-search-panel', heroSearchCss],
+    ['Hero search attaches the composed index room to Live Head', '.live-head-panel .hero-search-panel', heroSearchCss],
     ['Hero search uses a bounded empty starter menu', 'MISSION_STARTERS', search],
+    ['Hero search renders a state-aware index threshold', 'function searchPanelHeaderHtml', search],
+    ['Hero search index threshold has chamber-level anatomy', '.live-head-panel .hero-search-panel-head', heroSearchCss],
+    ['Hero search starters use a curated responsive card grid', '.live-head-panel .hero-search-group.is-starter', heroSearchCss],
     ['Hero search offers a real clipboard hash action', "result.action === 'paste'", search],
     ['Hero search imports ranked site map search', 'searchSiteMap', search],
     ['Hero search derives starter rows from site map', 'siteMapStarters', search],
@@ -2593,7 +2601,7 @@ async function checkSelectorContracts() {
     ['Hero search explicit mobile close', 'id="hero-search-close"', index],
     ['Hero search runtime changelog command', "title: '/changelog'", search],
     ['Hero search runtime export command', "title: '/export'", search],
-    ['Hero search remains an anchored bottom-of-window overlay', 'height: var(--hero-search-available-height', heroSearchCss],
+    ['Hero search remains an anchored bottom-of-window index room', 'height: var(--hero-search-available-height', heroSearchCss],
     ['Hero search hides shortcut chips outside HEN presentation', '.live-head-panel .hero-search-chips', heroSearchCss],
     ['Top continuity mobile explainer reserves flow', '.top-continuity-explain.is-visible', shellExtrasCss],
     ['Hero search .tez scoped Domains route', '#domains=${encodeURIComponent(domain)}', search],
@@ -3628,8 +3636,28 @@ async function checkSelectorContracts() {
       || !health.includes('liveHeadResumePendingLevel = level')
       || !health.includes("state === 'live' && (previousState === 'stalled' || liveHeadResumePendingLevel > 0)")
       || !heroSearchCss.includes('.live-head-panel[data-chain-state="stalled"]')
-      || !heroSearchCss.includes('.live-head-alert-copy strong')) {
+      || !heroSearchCss.includes('.live-head-alert-copy strong')
+      || !/\.live-head-alert\s*\{[\s\S]*?position:\s*absolute;/.test(heroSearchCss)) {
     fail('Live Head must latch a source-confirmed stale head into an unmistakable chain-stall alert until a newer block resumes the chain');
+  }
+  if (!index.includes('id="live-head-filter-menu"')
+      || !['transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'].every((kind) => index.includes(`data-live-head-filter-kind="${kind}"`))
+      || !health.includes('LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY')
+      || !health.includes('function wireLiveHeadActivityFilter(')
+      || !health.includes('data-live-head-kind=')
+      || !health.includes('fitLiveHeadPills(panel)')
+      || !heroSearchCss.includes('.live-head-filter-menu button[aria-pressed="false"]')) {
+    fail('Live Head must expose one persisted all-on activity setup menu and apply each category choice through measured pill fitting');
+  }
+  if (!health.includes('live-head-baker-name')
+      || !health.includes('live-head-story-connector')
+      || !heroSearchCss.includes('.live-head-story-connector::after')) {
+    fail('Live Head baker identities must hand receipts across a restrained right-pointing connector without spending receipt width');
+  }
+  if (!app.includes("import { initPlatformTextFallbacks } from './platform-text.js'")
+      || !app.includes("safe('platformTextFallbacks', initPlatformTextFallbacks)")
+      || !(await pathExists('js/core/platform-text.js'))) {
+    fail('dashboard must initialize the iOS-safe Tezos glyph text fallback');
   }
   if (!heroSearchCss.includes('.live-head-quiet,\n.live-head-gas,\n.live-head-story-chip,\n.live-head-miss-pill')
       || !heroSearchCss.includes('background: rgba(11, 18, 34, 0.88);')

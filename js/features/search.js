@@ -759,6 +759,39 @@ function resultDomId(result) {
     return `hero-search-option-${(hash >>> 0).toString(36)}`;
 }
 
+function searchPanelHeaderHtml(query, { browseAll = false, resultCount = 0 } = {}) {
+    const q = normalizeQuery(query);
+    const countLabel = `${resultCount} ${resultCount === 1 ? 'path' : 'paths'}`;
+    const state = browseAll ? 'directory' : q ? 'results' : 'threshold';
+    const kicker = browseAll ? 'Complete index' : q ? 'Search receipts' : 'The Index';
+    const title = browseAll
+        ? `${siteMapBrowseEntries().length + siteMapBrowseIntents().length} destinations. One deliberate map.`
+        : q
+            ? `${countLabel} for “${escapeHtml(q)}”`
+            : 'Find a room. Resolve a receipt. Follow the chain.';
+    const detail = browseAll
+        ? 'Every first-party room, view, guide, and utility — grouped by purpose.'
+        : q
+            ? 'Exact identities and native Tezos Systems rooms lead; broader matches follow.'
+            : 'Begin with an account, a name, a hash, or a question. Search reveals detail as you need it.';
+
+    return `
+        <header class="hero-search-panel-head" data-panel-state="${state}" data-quiet-key="search-panel-head">
+            <span class="hero-search-panel-sigil" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="hero-search-panel-copy">
+                <span class="hero-search-panel-kicker">${kicker}</span>
+                <strong>${title}</strong>
+                <span>${detail}</span>
+            </span>
+            <span class="hero-search-keys" aria-hidden="true">
+                <span><kbd>↑↓</kbd> move</span>
+                <span><kbd>↵</kbd> open</span>
+                <span><kbd>esc</kbd> close</span>
+            </span>
+        </header>
+    `;
+}
+
 function resultHtml(result, selectedId) {
     if (result.selectable === false) {
         return `
@@ -792,7 +825,7 @@ function resultHtml(result, selectedId) {
                 <span>${escapeHtml(result.detail || '')}</span>
             </span>
             <span class="hero-result-badge" data-kind="${escapeHtml(result.badge || result.kind)}">${escapeHtml(result.badge || result.kind)}</span>
-            ${isExternal ? '<span class="hero-result-external" aria-hidden="true">↗</span>' : ''}
+            <span class="hero-result-arrow ${isExternal ? 'hero-result-external' : ''}" aria-hidden="true">${isExternal ? '↗' : '→'}</span>
         </button>
     `;
 }
@@ -956,7 +989,10 @@ export function initHeroSearch() {
         const viewport = window.visualViewport;
         const viewportBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
         const available = viewportBottom - panel.getBoundingClientRect().top - 8;
-        const minimum = window.matchMedia('(max-width: 719px)').matches ? 64 : 96;
+        // Leave room for the index threshold plus one complete result receipt.
+        // The former list-only surface needed much less height; the composed
+        // header must never crowd the selected option below the viewport.
+        const minimum = window.matchMedia('(max-width: 719px)').matches ? 184 : 210;
         if (available < minimum) {
             window.scrollBy({ top: minimum - available, behavior: 'instant' });
         }
@@ -1158,7 +1194,8 @@ export function initHeroSearch() {
         panel.setAttribute('aria-busy', isLoading ? 'true' : 'false');
 
         if (!results.length) {
-            quietlySyncHtml(panel, '<div class="hero-search-empty" data-quiet-key="empty">No result matched. Try a complete wallet, .tez name, contract, operation, block, protocol, app, identity, or slash command.</div>');
+            const header = searchPanelHeaderHtml(input.value, { browseAll: isBrowsingAll, resultCount: 0 });
+            quietlySyncHtml(panel, `${header}<div class="hero-search-empty" data-quiet-key="empty"><strong>No path surfaced.</strong><span>Check the original casing, or try a complete wallet, .tez name, contract, operation, block, protocol, room, or slash command.</span></div>`);
             syncActiveDescendant();
             if (lastAnnouncement !== 'No results') {
                 liveRegion.textContent = 'No results';
@@ -1169,15 +1206,20 @@ export function initHeroSearch() {
 
         const groups = groupedResults(results);
         const showGroupLabels = Boolean(normalizeQuery(input.value)) && groups.length > 1;
-        quietlySyncHtml(panel, groups.map((group) => {
+        const header = searchPanelHeaderHtml(input.value, {
+            browseAll: isBrowsingAll,
+            resultCount: selectableResults.length
+        });
+        const groupMarkup = groups.map((group) => {
             const rows = group.results.map((result) => resultHtml(result, selectedId)).join('');
             return `
-                <section class="hero-search-group" role="group" aria-label="${escapeHtml(group.label)}" data-quiet-key="group:${escapeHtml(group.label)}">
+                <section class="hero-search-group ${group.label === 'Start' ? 'is-starter' : ''}" role="group" aria-label="${escapeHtml(group.label)}" data-quiet-key="group:${escapeHtml(group.label)}">
                     ${showGroupLabels ? `<div class="hero-search-group-label">${escapeHtml(group.label)}</div>` : ''}
                     ${rows}
                 </section>
             `;
-        }).join(''));
+        }).join('');
+        quietlySyncHtml(panel, `${header}<div class="hero-search-panel-body" data-quiet-key="search-panel-body">${groupMarkup}</div>`);
         syncActiveDescendant();
         syncAvailableHeight();
         const selectedOption = selectedId

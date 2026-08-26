@@ -51,18 +51,18 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=594">
-    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=594">
-    <link rel="stylesheet" href="css/loading.css?v=594">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=594">
-    <link rel="stylesheet" href="css/protocol-anthology.css?v=594">
-    <link rel="stylesheet" href="css/site-map.css?v=594">
+    <link rel="stylesheet" href="css/styles.min.css?v=596">
+    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=596">
+    <link rel="stylesheet" href="css/loading.css?v=596">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=596">
+    <link rel="stylesheet" href="css/protocol-anthology.css?v=596">
+    <link rel="stylesheet" href="css/site-map.css?v=596">
     <link rel="stylesheet" href="css/hen-mode.css?v=98">
     <script src="js/core/hen-init.js?v=79" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=594">
+    <link rel="modulepreload" href="js/core/app.js?v=596">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/data-assets.js">
@@ -276,8 +276,8 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=594"></script>
-    <script src="js/core/home-layout-preload.js?v=594"></script>
+    <script src="js/core/theme-preload.js?v=596"></script>
+    <script src="js/core/home-layout-preload.js?v=596"></script>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="top-utility-row">
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
@@ -655,29 +655,6 @@
                             </span>
                         </div>
                     </div>
-                    <button class="header-activity-button is-loading" id="header-activity-button" type="button" aria-label="Open Network Health Chamber. Trailing hour Tezos L1 activity is loading." aria-busy="true">
-                        <span class="header-activity-line" id="header-activity-line" aria-live="polite" aria-busy="true">
-                            <span class="header-activity-cluster is-loading" title="Network pulse — trailing hour across Tezos L1">
-                                <span class="header-activity-cluster-kicker" aria-hidden="true">1H Activity</span>
-                                <span class="block-ticker-segment block-ticker-usage block-ticker-usage-tx">
-                                    <span class="block-ticker-label">TX</span>
-                                    <strong class="block-ticker-value" data-usage-slot="tx">&mdash;</strong>
-                                </span>
-                                <span class="block-ticker-segment block-ticker-usage block-ticker-usage-moved">
-                                    <span class="block-ticker-label">Moved</span>
-                                    <strong class="block-ticker-value" data-usage-slot="moved">&mdash;</strong>
-                                </span>
-                                <span class="block-ticker-segment block-ticker-usage block-ticker-usage-nft">
-                                    <span class="block-ticker-label">NFT</span>
-                                    <strong class="block-ticker-value" data-usage-slot="nft">&mdash;</strong>
-                                </span>
-                                <span class="block-ticker-segment block-ticker-usage block-ticker-whale">
-                                    <span class="block-ticker-label">Whale</span>
-                                    <strong class="block-ticker-value" data-usage-slot="whale">&mdash;</strong>
-                                </span>
-                            </span>
-                        </span>
-                    </button>
                 </div>
                 <div class="top-continuity-panel" id="top-continuity-panel" aria-label="Critical Tezos network signals">
                     <span class="top-continuity-stats" aria-label="Critical Tezos network signals">
@@ -726,11 +703,55 @@
         <div class="live-head-topline">
             <button class="live-head-title lb-panel-title" id="live-head-button" type="button" aria-label="Open Network Health Chamber"><span>Live blocks</span></button>
             <span class="live-head-next" id="live-head-next" data-quiet-key="next-right">Next R0 syncing</span>
-            <span class="live-head-state" aria-label="Live data">Live</span>
-            <button class="home-block-hide home-block-hide-compact live-head-hide" type="button" data-home-hide="live-head" aria-label="Hide Live blocks and search" title="Hide Live blocks and search">
-                <svg class="home-block-hide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.8 10.8 0 0112 4c5.2 0 8.8 5.3 8.8 5.3a13 13 0 01-2.3 2.7M6.2 6.2A15.7 15.7 0 003.2 9.3S6.8 14.7 12 14.7c1 0 1.9-.2 2.7-.5"/></svg>
-                <span class="home-block-hide-label">Hide</span>
-            </button>
+            <span class="live-head-controls">
+                <button class="header-activity-button is-loading" id="header-activity-button" type="button" aria-label="Open Network Health Chamber. Trailing hour Tezos L1 activity is loading." aria-busy="true">
+                    <span class="header-activity-line" id="header-activity-line" aria-live="polite" aria-busy="true">
+                        <span class="header-activity-cluster is-loading" title="Network pulse — trailing hour across Tezos L1">
+                            <span class="header-activity-cluster-kicker" aria-hidden="true">1H Activity</span>
+                            <span class="block-ticker-segment block-ticker-usage block-ticker-usage-tx">
+                                <span class="block-ticker-label">TX</span>
+                                <strong class="block-ticker-value" data-usage-slot="tx">&mdash;</strong>
+                            </span>
+                            <span class="block-ticker-segment block-ticker-usage block-ticker-usage-moved">
+                                <span class="block-ticker-label">Moved</span>
+                                <strong class="block-ticker-value" data-usage-slot="moved">&mdash;</strong>
+                            </span>
+                            <span class="block-ticker-segment block-ticker-usage block-ticker-usage-nft">
+                                <span class="block-ticker-label">NFT</span>
+                                <strong class="block-ticker-value" data-usage-slot="nft">&mdash;</strong>
+                            </span>
+                            <span class="block-ticker-segment block-ticker-usage block-ticker-whale">
+                                <span class="block-ticker-label">Whale</span>
+                                <strong class="block-ticker-value" data-usage-slot="whale">&mdash;</strong>
+                            </span>
+                        </span>
+                    </span>
+                </button>
+                <span class="live-head-filter">
+                    <button class="live-head-filter-toggle" id="live-head-filter-toggle" type="button" aria-label="Choose visible block activity" aria-controls="live-head-filter-menu" aria-expanded="false" title="Choose visible block activity">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M6 14v6"/></svg>
+                    </button>
+                    <span class="live-head-filter-menu" id="live-head-filter-menu" role="group" aria-label="Visible block activity" hidden>
+                        <span class="live-head-filter-heading"><span>Block activity</span><small>Choose the receipts that cross each block.</small></span>
+                        <button class="live-head-filter-all" type="button" data-live-head-filter-kind="all" aria-pressed="true">All activity</button>
+                        <span class="live-head-filter-options">
+                            <button class="live-head-filter-pill is-transfers" type="button" data-live-head-filter-kind="transfers" aria-pressed="true">Transfers</button>
+                            <button class="live-head-filter-pill is-art" type="button" data-live-head-filter-kind="art" aria-pressed="true">Art / NFTs</button>
+                            <button class="live-head-filter-pill is-defi" type="button" data-live-head-filter-kind="defi" aria-pressed="true">DeFi</button>
+                            <button class="live-head-filter-pill is-gaming" type="button" data-live-head-filter-kind="gaming" aria-pressed="true">Gaming</button>
+                            <button class="live-head-filter-pill is-bridge" type="button" data-live-head-filter-kind="bridge" aria-pressed="true">Bridge</button>
+                            <button class="live-head-filter-pill is-etherlink" type="button" data-live-head-filter-kind="etherlink" aria-pressed="true">Etherlink</button>
+                            <button class="live-head-filter-pill is-stake" type="button" data-live-head-filter-kind="stake" aria-pressed="true">Stake</button>
+                            <button class="live-head-filter-pill is-unstake" type="button" data-live-head-filter-kind="unstake" aria-pressed="true">Unstake</button>
+                        </span>
+                    </span>
+                </span>
+                <span class="live-head-state" aria-label="Live data">Live</span>
+                <button class="home-block-hide home-block-hide-compact live-head-hide" type="button" data-home-hide="live-head" aria-label="Hide Live blocks and search" title="Hide Live blocks and search">
+                    <svg class="home-block-hide-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3l18 18M10.6 10.7a2 2 0 002.7 2.7M9.9 4.2A10.8 10.8 0 0112 4c5.2 0 8.8 5.3 8.8 5.3a13 13 0 01-2.3 2.7M6.2 6.2A15.7 15.7 0 003.2 9.3S6.8 14.7 12 14.7c1 0 1.9-.2 2.7-.5"/></svg>
+                    <span class="home-block-hide-label">Hide</span>
+                </button>
+            </span>
         </div>
         <button class="live-head-alert" id="live-head-alert" type="button" aria-hidden="true" hidden>
             <span class="live-head-alert-mark" aria-hidden="true">!</span>
@@ -2861,8 +2882,8 @@
 
     <!-- Load app as module -->
     <script defer src="js/features/hen-mode.js?v=95"></script>
-    <script type="module" src="js/effects/valley-loader.js?v=594"></script>
-    <script type="module" src="js/core/app.js?v=594"></script>
+    <script type="module" src="js/effects/valley-loader.js?v=596"></script>
+    <script type="module" src="js/core/app.js?v=596"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="my-baker-modal-title" tabindex="-1">
