@@ -1868,7 +1868,8 @@
     box-shadow: 0 0 0 1px rgba(255, 82, 106, 0.12), 0 8px 24px rgba(78, 5, 19, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
     color: #fff;
     text-align: left;
-    cursor: pointer;
+    cursor: default;
+    pointer-events: none;
 }
 
 .live-head-alert:hover,
@@ -1920,10 +1921,16 @@
 }
 
 .live-head-alert-action {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding-inline: 4px;
     color: #ffe8ec;
+    cursor: pointer;
     font-family: var(--font-runtime);
     font-size: 0.6rem;
     font-weight: 820;
+    pointer-events: auto;
     white-space: nowrap;
 }
 
@@ -2667,7 +2674,7 @@
 }
 
 .live-head-miss-pill {
-    max-width: 20ch;
+    max-width: 100%;
     flex-shrink: 0;
     color: #ff8999;
     font-family: var(--font-runtime);
@@ -3303,13 +3310,26 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
         top: 58px;
         right: 56px;
         left: 8px;
-        grid-template-columns: 30px minmax(0, 1fr);
+        grid-template-columns: 30px minmax(0, 1fr) auto;
         min-height: 48px;
         padding-inline: 8px;
     }
 
     .live-head-alert-action {
-        display: none;
+        min-width: 48px;
+        min-height: 38px;
+        justify-content: center;
+        padding-inline: 5px;
+        font-size: 0;
+    }
+
+    .live-head-alert-action::before {
+        content: 'Health';
+        font-size: 0.58rem;
+    }
+
+    .live-head-alert-action > span {
+        font-size: 0.68rem;
     }
 
     .live-head-alert-copy strong {
@@ -3403,7 +3423,6 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     }
 
     .live-head-miss-pill {
-        max-width: 15ch;
         padding-inline: 0.26rem;
     }
 
@@ -3454,7 +3473,11 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     }
 
     .live-head-controls .header-activity-button {
-        min-height: 34px;
+        display: flex;
+        height: 39px;
+        min-height: 39px;
+        align-items: center;
+        margin-block: -2.5px;
         padding: 0.3rem 0.42rem;
     }
 
@@ -3468,8 +3491,8 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
     .live-head-filter-toggle {
         width: 44px;
-        height: 44px;
-        margin-block: -5px;
+        height: 39px;
+        margin-block: -2.5px;
     }
 
     .live-head-filter-menu {

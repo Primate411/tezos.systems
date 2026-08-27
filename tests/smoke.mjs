@@ -14521,8 +14521,137 @@ async function smokeNetworkHealthInteractivePriority(browser, baseUrl) {
   assert(issues.length === 0, `network health interactive priority browser issues:\n${issues.join('\n')}`);
 }
 
+async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 762, height: 900 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+  });
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'live head all-theme geometry', issues);
+  const response = await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `live head all-theme geometry: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('#live-head-button[data-live-head-wired="1"]').waitFor({ state: 'visible', timeout: 15000 });
+  await page.evaluate(() => {
+    const fixture = document.createElement('span');
+    fixture.className = 'live-head-story';
+    fixture.dataset.liveHeadThemeFitFixture = 'true';
+    fixture.style.cssText = 'position:fixed;left:-10000px;top:0;width:250px;visibility:hidden;pointer-events:none';
+    fixture.innerHTML = `
+      <span class="live-head-miss-pill" data-missed-baker-address="tz1ThemeFitOne">Bake tz For Me · −2</span>
+      <span class="live-head-miss-pill" data-missed-baker-address="tz1ThemeFitTwo">tz1bf81...XiriR · −1</span>
+      <span class="live-head-miss-pill" data-missed-baker-address="tz1ThemeFitThree">tz1YviC...haZiC · −1</span>
+      <span class="live-head-miss-pill is-more" data-live-head-miss-overflow hidden></span>`;
+    document.getElementById('live-head')?.appendChild(fixture);
+  });
+
+  const states = [];
+  const themes = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
+  for (const scenario of [
+    { viewportWidth: 320, fixtureWidth: 132, controlHeight: 39 },
+      { viewportWidth: 390, fixtureWidth: 192, controlHeight: 39 },
+    { viewportWidth: 762, fixtureWidth: 250, controlHeight: 30 }
+  ]) {
+    await page.setViewportSize({ width: scenario.viewportWidth, height: 900 });
+    await page.evaluate(async (fixtureWidth) => {
+      const fixture = document.querySelector('[data-live-head-theme-fit-fixture]');
+      if (fixture) fixture.style.width = `${fixtureWidth}px`;
+      window.dispatchEvent(new Event('resize'));
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }, scenario.fixtureWidth);
+    for (const theme of themes) {
+      await page.evaluate(async (nextTheme) => {
+        const { setTheme } = await import('/js/ui/theme.js');
+        setTheme(nextTheme);
+      }, theme);
+      await page.waitForFunction((expected) => (
+        document.body.dataset.theme === expected
+          && Boolean(document.getElementById(`theme-css-${expected}`)?.sheet)
+      ), theme, { timeout: 5000 });
+      await page.evaluate(async () => {
+        await document.fonts?.ready;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      });
+      states.push(await page.evaluate(({ expectedTheme, expectedFixtureWidth, expectedControlHeight, viewportWidth }) => {
+        const panel = document.getElementById('live-head');
+        const story = panel?.querySelector('[data-live-head-theme-fit-fixture]');
+        const storyRect = story?.getBoundingClientRect();
+        const identityPills = Array.from(story?.querySelectorAll('[data-missed-baker-address]') || []);
+        const visibleIdentityPills = identityPills.filter((pill) => !pill.hidden);
+        const overflowPill = story?.querySelector('[data-live-head-miss-overflow]');
+        const visiblePills = Array.from(story?.querySelectorAll('.live-head-miss-pill:not([hidden])') || []);
+        const activityRect = document.querySelector('#header-activity-button')?.getBoundingClientRect();
+        const filterRect = document.querySelector('#live-head-filter-toggle')?.getBoundingClientRect();
+        return {
+          theme: expectedTheme,
+          viewportWidth,
+          expectedFixtureWidth,
+          expectedControlHeight,
+          pageOverflow: document.documentElement.scrollWidth - innerWidth,
+          panelOverflow: panel ? panel.scrollWidth - panel.clientWidth : 999,
+          identityTotal: identityPills.length,
+          visibleIdentities: visibleIdentityPills.length,
+          hiddenMisses: Number(story?.dataset.hiddenMissCount || 0),
+          overflowVisible: Boolean(overflowPill && !overflowPill.hidden),
+          overflowText: overflowPill?.textContent?.trim() || '',
+          activityHeight: activityRect?.height || 0,
+          filterHeight: filterRect?.height || 0,
+          controlTopDelta: activityRect && filterRect ? Math.abs(activityRect.top - filterRect.top) : 999,
+          controlBottomDelta: activityRect && filterRect ? Math.abs(activityRect.bottom - filterRect.bottom) : 999,
+          fixtureWidth: storyRect?.width || 0,
+          storyOverflow: story ? story.scrollWidth - story.clientWidth : 999,
+          pillsUnclipped: visiblePills.every((pill) => pill.scrollWidth <= pill.clientWidth + 1),
+          pillsContained: Boolean(storyRect && visiblePills.length && visiblePills.every((pill) => {
+            const rect = pill.getBoundingClientRect();
+            return rect.left >= storyRect.left - 1 && rect.right <= storyRect.right + 1;
+          }))
+        };
+      }, {
+        expectedTheme: theme,
+        expectedFixtureWidth: scenario.fixtureWidth,
+        expectedControlHeight: scenario.controlHeight,
+        viewportWidth: scenario.viewportWidth
+      }));
+    }
+  }
+
+  assert(
+    states.length === 45
+      && states.every((state) => (
+        state.pageOverflow <= 1
+          && state.panelOverflow <= 1
+          && Math.abs(state.activityHeight - state.expectedControlHeight) <= 1
+          && Math.abs(state.activityHeight - state.filterHeight) <= 1
+          && state.controlTopDelta <= 1
+          && state.controlBottomDelta <= 1
+          && state.identityTotal === 3
+          && state.visibleIdentities + state.hiddenMisses === state.identityTotal
+          && state.hiddenMisses >= 1
+          && state.overflowVisible
+          && state.overflowText === `+${state.hiddenMisses} baker${state.hiddenMisses === 1 ? '' : 's'}`
+          && Math.abs(state.fixtureWidth - state.expectedFixtureWidth) <= 1
+          && state.pillsUnclipped
+          && state.pillsContained
+          && state.storyOverflow <= 1
+      )),
+    `live head all-theme geometry: missed-baker pills escaped at compact desktop width ${JSON.stringify(states)}`
+  );
+
+  await context.close();
+  assert(issues.length === 0, `live head all-theme geometry browser issues:\n${issues.join('\n')}`);
+}
+
 async function smokeNetworkHealthChamber(browser, baseUrl) {
   await smokeNetworkHealthInteractivePriority(browser, baseUrl);
+  await smokeLiveHeadThemeGeometry(browser, baseUrl);
   const issues = [];
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
@@ -15593,6 +15722,15 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     `network health chamber: Live Head bar replayed after settling ${JSON.stringify(settledBarState)}`
   );
 
+  await page.evaluate(() => {
+    const fixture = document.createElement('span');
+    fixture.className = 'live-head-story';
+    fixture.dataset.liveHeadMobileMissFixture = 'true';
+    fixture.style.cssText = 'position:fixed;left:-10000px;top:0;width:140px;visibility:hidden;pointer-events:none';
+    fixture.innerHTML = '<span class="live-head-miss-pill" data-missed-baker-address="tz1MobileFit">tz1YyjC...haZic · −1</span>';
+    document.getElementById('live-head')?.appendChild(fixture);
+    window.dispatchEvent(new Event('resize'));
+  });
   const mobileTickerStates = [];
   for (const width of [320, 390]) {
     await page.setViewportSize({ width, height: 844 });
@@ -15602,6 +15740,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     )), null, { timeout: 5000 });
     mobileTickerStates.push(await page.evaluate((viewportWidth) => {
       const card = document.querySelector('#live-head');
+      const activityButton = document.querySelector('#header-activity-button');
+      const filterToggle = document.querySelector('#live-head-filter-toggle');
+      const missFixture = document.querySelector('[data-live-head-mobile-miss-fixture]');
+      const missFixturePill = missFixture?.querySelector('.live-head-miss-pill');
       const rows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]'))
         .filter((row) => getComputedStyle(row).display !== 'none');
 	      const cardRect = card?.getBoundingClientRect();
@@ -15636,6 +15778,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	      return {
         viewportWidth,
         height: cardRect?.height || 0,
+        activityHeight: activityButton?.getBoundingClientRect().height || 0,
+        filterHeight: filterToggle?.getBoundingClientRect().height || 0,
         chainState: card?.dataset.chainState || '',
         alertVisible: Boolean(document.querySelector('#live-head-alert') && !document.querySelector('#live-head-alert').hidden),
         rows: rows.length,
@@ -15654,6 +15798,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	          text: pill.textContent?.replace(/\s+/g, ' ').trim() || '',
 	          clipped: pill.scrollWidth > pill.clientWidth + 1
 	        })),
+        missFixture: {
+          clipped: missFixturePill ? missFixturePill.scrollWidth > missFixturePill.clientWidth + 1 : true,
+          contained: Boolean(missFixture && missFixturePill
+            && missFixturePill.getBoundingClientRect().left >= missFixture.getBoundingClientRect().left - 1
+            && missFixturePill.getBoundingClientRect().right <= missFixture.getBoundingClientRect().right + 1),
+          overflow: missFixture ? missFixture.scrollWidth - missFixture.clientWidth : 999
+        },
         rowOverflow: Math.max(0, ...rows.map((row) => row.scrollWidth - row.clientWidth)),
 	        cardOverflow: card ? card.scrollWidth - card.clientWidth : 999,
 	        pageOverflow: document.documentElement.scrollWidth - innerWidth,
@@ -15669,6 +15820,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   for (const tickerState of mobileTickerStates) {
     assert(
       tickerState.height <= (tickerState.alertVisible ? 410 : 360)
+        && Math.abs(tickerState.activityHeight - 39) <= 1
+        && Math.abs(tickerState.activityHeight - tickerState.filterHeight) <= 1
         && tickerState.rows === 3
         && tickerState.levels.every((level) => /^#[\d,]+$/.test(level))
 	        && tickerState.rowsContained
@@ -15680,6 +15833,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	          && row.contained
 	          && row.ordered)
 	        && tickerState.clearMissPills.every((pill) => /^(No attestation misses|Misses not indexed)$/.test(pill.text) && !pill.clipped)
+        && !tickerState.missFixture.clipped
+        && tickerState.missFixture.contained
+        && tickerState.missFixture.overflow <= 1
         && tickerState.rowOverflow <= 1
         && tickerState.cardOverflow <= 1
 	        && tickerState.pageOverflow <= 1
@@ -15689,6 +15845,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       `network health chamber: mobile Live Head geometry drifted at ${tickerState.viewportWidth}px: ${JSON.stringify(tickerState)}`
     );
   }
+  await page.evaluate(() => document.querySelector('[data-live-head-mobile-miss-fixture]')?.remove());
 
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator('#health-nakamoto-coefficient .health-nc-help .lb-help-popover').scrollIntoViewIfNeeded();
@@ -15777,10 +15934,16 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && activityFilterOn.visibleStoryPills >= 1
       && Math.abs(activityFilterOff.height - activityFilterOn.height) <= 1,
     `network health chamber: activity setup did not deselect and restore every transaction pill without moving the card ${JSON.stringify({ activityFilterOff, activityFilterOn })}`);
-  await page.locator('#live-head-alert:not([hidden])').click();
+  const stalledAlertHitTesting = await page.locator('#live-head-alert:not([hidden])').evaluate((alert) => ({
+    alert: getComputedStyle(alert).pointerEvents,
+    action: getComputedStyle(alert.querySelector('.live-head-alert-action')).pointerEvents
+  }));
+  assert(stalledAlertHitTesting.alert === 'none' && stalledAlertHitTesting.action === 'auto', `network health chamber: stalled alert must leave retained block rows inspectable outside its explicit action ${JSON.stringify(stalledAlertHitTesting)}`);
+  await page.locator('#live-head-alert:not([hidden]) .live-head-alert-action').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+  await page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first().waitFor({ state: 'visible', timeout: 15000 });
   const liveHeadFirstLevel = await page.locator('#live-head-stack .live-head-row[data-live-head-level]').first().getAttribute('data-live-head-level');
   assert(liveHeadFirstLevel, 'network health chamber: newest Live Head row is missing its keyed level');
   const liveHeadFirstRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadFirstLevel}"]`);

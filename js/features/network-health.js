@@ -773,7 +773,9 @@ function renderLiveHeadMissPills(block, missedState) {
 }
 
 function liveHeadPillOverflows(container) {
-    return container.scrollWidth > container.clientWidth + 1;
+    if (container.scrollWidth > container.clientWidth + 1) return true;
+    return [...container.querySelectorAll('.live-head-miss-pill:not([hidden])')]
+        .some((pill) => pill.scrollWidth > pill.clientWidth + 1);
 }
 
 function liveHeadStoryDetails(pill) {
@@ -926,7 +928,16 @@ function fitLiveHeadPills(root = document) {
             if (liveHeadPillOverflows(container) && visibleStoryCount > 0) {
                 selectedStoryPills[--visibleStoryCount].hidden = true;
             }
-            if (overflowPill && liveHeadPillOverflows(container) && !overflowPill.hidden) overflowPill.hidden = true;
+            while (overflowPill && !overflowPill.hidden && liveHeadPillOverflows(container) && visibleMissCount > 0) {
+                const pill = missedPills[--visibleMissCount];
+                pill.hidden = true;
+                hiddenMisses.unshift(pill);
+                overflowPill.textContent = `+${formatCount(hiddenMisses.length)} baker${hiddenMisses.length === 1 ? '' : 's'}`;
+                overflowPill.title = hiddenMisses.map((item) => item.title).filter(Boolean).join(' ');
+            }
+            if (overflowPill && !overflowPill.hidden && hiddenMisses.length && liveHeadPillOverflows(container)) {
+                overflowPill.textContent = `+${formatCount(hiddenMisses.length)}`;
+            }
         }
 
         if (!compactViewport && container.clientWidth >= LIVE_HEAD_DETAIL_MIN_WIDTH) {
@@ -959,10 +970,25 @@ function scheduleLiveHeadPillFit(panel) {
 
 function wireLiveHeadPillFitting(panel) {
     if (!panel || liveHeadPillResizeObserver || typeof ResizeObserver !== 'function') return;
+    const scheduleAfterPaint = () => window.requestAnimationFrame(() => scheduleLiveHeadPillFit(panel));
+    const refitForTheme = (event = null) => {
+        const theme = event?.detail?.theme || document.body?.dataset?.theme || '';
+        scheduleAfterPaint();
+        document.fonts?.ready?.then(scheduleAfterPaint);
+
+        for (const link of [
+            document.getElementById(`theme-css-${theme}`),
+            document.getElementById(`theme-fonts-${theme}`)
+        ]) {
+            if (link && !link.sheet) link.addEventListener('load', scheduleAfterPaint, { once: true });
+        }
+    };
     liveHeadPillResizeObserver = new ResizeObserver(() => scheduleLiveHeadPillFit(panel));
     liveHeadPillResizeObserver.observe(panel);
     window.addEventListener('resize', () => fitLiveHeadPills(panel), { passive: true });
-    document.fonts?.ready?.then(() => scheduleLiveHeadPillFit(panel));
+    window.addEventListener('themechange', refitForTheme);
+    document.fonts?.addEventListener?.('loadingdone', scheduleAfterPaint);
+    refitForTheme();
 }
 
 function liveHeadBlockUrl(level, { operations = false } = {}) {

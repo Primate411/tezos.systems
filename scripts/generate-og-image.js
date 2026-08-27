@@ -14,11 +14,104 @@ const { launchChromium } = require('./lib/playwright-browser.cjs');
 const PROJECT_ROOT = path.join(__dirname, '..');
 const OG_ORIGIN = 'http://tezos-og.local';
 const OG_PREVIEW_PATH = '/scripts/_og-preview.html';
+const DAY_MS = 24 * 60 * 60 * 1000;
+const LB_EMA_DISABLE_THRESHOLD = 1_000_000_000;
+
+function readPublicSupabaseConfig() {
+    const source = fs.readFileSync(path.join(PROJECT_ROOT, 'js/core/config.js'), 'utf8');
+    const url = process.env.SUPABASE_URL || source.match(/url:\s*'([^']+)'/)?.[1];
+    const key = process.env.SUPABASE_ANON_KEY || source.match(/key:\s*'([^']+)'/)?.[1];
+    if (!url || !key) throw new Error('Public Supabase history configuration is unavailable');
+    return { url: url.replace(/\/$/, ''), key };
+}
+
+async function fetchChecked(url, options = {}) {
+    const response = await fetch(url, options);
+    if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}`);
+    return response;
+}
+
+function numeric(value) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function fetchCurrentIssuance(supplyMutez) {
+    const rpc = 'https://eu.rpc.tez.capital';
+    const [rateResponse, constantsResponse, blockResponse] = await Promise.all([
+        fetchChecked(`${rpc}/chains/main/blocks/head/context/issuance/current_yearly_rate`),
+        fetchChecked(`${rpc}/chains/main/blocks/head/context/constants`),
+        fetchChecked('https://api.tzkt.io/v1/blocks?sort.desc=level&limit=1&select=level,lbToggleEma')
+    ]);
+    const protocolRate = numeric(String(await rateResponse.text()).replace(/"/g, ''));
+    const constants = await constantsResponse.json();
+    const blocks = await blockResponse.json();
+    const lbEma = numeric(Array.isArray(blocks) ? blocks[0]?.lbToggleEma : null);
+    const lbDisabled = lbEma !== null && lbEma >= LB_EMA_DISABLE_THRESHOLD;
+    const lbSubsidyMutezPerMinute = numeric(constants?.liquidity_baking_subsidy);
+    const supplyXTZ = numeric(supplyMutez) / 1e6;
+    const lbRate = lbDisabled
+        ? 0
+        : lbEma !== null && lbSubsidyMutezPerMinute !== null && supplyXTZ > 0
+            ? ((lbSubsidyMutezPerMinute / 1e6) * 365.25 * 24 * 60 / supplyXTZ) * 100
+            : null;
+    if (protocolRate === null || protocolRate <= 0) throw new Error('Current protocol issuance rate is unavailable');
+    return lbRate === null ? protocolRate : protocolRate + lbRate;
+}
+
+async function fetchThirtyDayHistory() {
+    const { url, key } = readPublicSupabaseConfig();
+    const target = Date.now() - 30 * DAY_MS;
+    const endpoint = new URL(`${url}/rest/v1/tezos_history`);
+    endpoint.searchParams.set('select', 'timestamp,total_bakers,current_issuance_rate,tz4_percentage,staking_ratio,total_supply');
+    endpoint.searchParams.append('timestamp', `gte.${new Date(target - 5 * DAY_MS).toISOString()}`);
+    endpoint.searchParams.append('timestamp', `lte.${new Date(target + 5 * DAY_MS).toISOString()}`);
+    endpoint.searchParams.set('order', 'timestamp.asc');
+    endpoint.searchParams.set('limit', '1000');
+    const response = await fetchChecked(endpoint, {
+        headers: { apikey: key, Authorization: `Bearer ${key}` }
+    });
+    const rows = await response.json();
+    if (!Array.isArray(rows) || !rows.length) throw new Error('No retained snapshots cover the 30-day comparison window');
+    return { rows, target };
+}
+
+function closestHistoricalValue(history, field) {
+    const candidates = history.rows
+        .map((row) => ({ value: numeric(row[field]), timestamp: Date.parse(row.timestamp) }))
+        .filter((row) => row.value !== null && row.value > 0 && Number.isFinite(row.timestamp));
+    candidates.sort((left, right) => Math.abs(left.timestamp - history.target) - Math.abs(right.timestamp - history.target));
+    return candidates[0]?.value ?? null;
+}
+
+function percentChange(current, previous) {
+    const next = numeric(current);
+    const baseline = numeric(previous);
+    if (next === null || baseline === null || baseline === 0) return null;
+    return ((next - baseline) / Math.abs(baseline)) * 100;
+}
+
+function formatDelta(value) {
+    if (!Number.isFinite(value)) return null;
+    const absolute = Math.abs(value);
+    const decimals = absolute >= 10 ? 0 : absolute >= 1 ? 1 : 2;
+    const normalized = Number(absolute.toFixed(decimals));
+    if (normalized === 0) return '0.00%';
+    return `${value > 0 ? '+' : '−'}${normalized.toFixed(decimals)}%`;
+}
+
+function deltaHtml(value) {
+    const label = formatDelta(value);
+    if (!label) return '<span class="stat-delta is-unavailable"><strong>—</strong><small>30D</small></span>';
+    const tone = value > 0 ? 'is-up' : value < 0 ? 'is-down' : 'is-flat';
+    return `<span class="stat-delta ${tone}"><strong>${label}</strong><small>30D</small></span>`;
+}
 
 async function fetchStats() {
-    const [statsResp, protocolResp] = await Promise.all([
-        fetch('https://api.tzkt.io/v1/statistics/current'),
-        fetch('https://api.tzkt.io/v1/protocols/current')
+    const [statsResp, protocolResp, history] = await Promise.all([
+        fetchChecked('https://api.tzkt.io/v1/statistics/current'),
+        fetchChecked('https://api.tzkt.io/v1/protocols/current'),
+        fetchThirtyDayHistory()
     ]);
     const stats = await statsResp.json();
     const protocolData = await protocolResp.json();
@@ -28,7 +121,8 @@ async function fetchStats() {
     const stakedMutez = (Number(stats.totalOwnStaked || 0) + Number(stats.totalExternalStaked || 0))
         || Number(stats.totalFrozen || 0);
     const supply = supplyMutez / 1e6;
-    const stakingRatio = supplyMutez > 0 ? ((stakedMutez / supplyMutez) * 100).toFixed(1) : '0.0';
+    const stakingRatioValue = supplyMutez > 0 ? (stakedMutez / supplyMutez) * 100 : 0;
+    const stakingRatio = stakingRatioValue.toFixed(1);
     let bakers = stats.totalBakers || 0;
     let tz4Bakers = 0;
     try {
@@ -39,10 +133,28 @@ async function fetchStats() {
         tz4Bakers = fundedBakers.filter(b => String(b.consensusAddress || b.address || '').startsWith('tz4')).length;
     } catch(e) { console.error('tz4 fetch error:', e); }
 
-    const tz4Pct = bakers > 0 ? ((tz4Bakers / bakers) * 100).toFixed(1) : '0';
+    const tz4PctValue = bakers > 0 ? (tz4Bakers / bakers) * 100 : 0;
+    const tz4Pct = tz4PctValue.toFixed(1);
     const supplyB = (supply / 1e9).toFixed(2) + 'B';
+    const issuanceRate = await fetchCurrentIssuance(supplyMutez);
+    const deltas = {
+        bakers: percentChange(bakers, closestHistoricalValue(history, 'total_bakers')),
+        issuance: percentChange(issuanceRate, closestHistoricalValue(history, 'current_issuance_rate')),
+        tz4: percentChange(tz4PctValue, closestHistoricalValue(history, 'tz4_percentage')),
+        staking: percentChange(stakingRatioValue, closestHistoricalValue(history, 'staking_ratio')),
+        supply: percentChange(supply, closestHistoricalValue(history, 'total_supply'))
+    };
 
-    return { bakers, tz4Bakers, tz4Pct, stakingRatio, supply: supplyB, protocolName };
+    return {
+        bakers,
+        tz4Bakers,
+        tz4Pct,
+        issuance: issuanceRate.toFixed(2),
+        stakingRatio,
+        supply: supplyB,
+        protocolName,
+        deltas
+    };
 }
 
 function buildHTML(stats) {
@@ -138,6 +250,23 @@ function buildHTML(stats) {
   .stat-value.accent {
     color: #f4a083;
   }
+  .stat-value-row {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    min-width: 0; gap: 14px;
+  }
+  .stat-delta {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    flex: 0 0 auto; margin-bottom: 3px; padding: 6px 9px 5px;
+    border: 1px solid rgba(231, 182, 108, 0.28); border-radius: 999px;
+    background: rgba(8, 12, 8, 0.48); color: #ead9b6;
+    font-size: 16px; line-height: 1; white-space: nowrap;
+  }
+  .stat-delta strong { font-weight: 700; }
+  .stat-delta small { color: rgba(234, 217, 182, 0.68); font-size: 11px; letter-spacing: 0.7px; }
+  .stat-delta.is-up strong { color: #c8e7b4; }
+  .stat-delta.is-down strong { color: #f4a083; }
+  .stat-delta.is-flat strong { color: #ead9b6; }
+  .stat-delta.is-unavailable { opacity: 0.72; }
   .footer {
     display: flex; justify-content: space-between;
     align-items: center;
@@ -168,23 +297,23 @@ function buildHTML(stats) {
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Active Bakers</div>
-        <div class="stat-value live">${stats.bakers}</div>
+        <div class="stat-value-row"><div class="stat-value live">${stats.bakers}</div>${deltaHtml(stats.deltas.bakers)}</div>
       </div>
       <div class="stat-card">
-        <div class="stat-label">TZ4 Keys</div>
-        <div class="stat-value">${stats.tz4Bakers}</div>
+        <div class="stat-label">Issuance</div>
+        <div class="stat-value-row"><div class="stat-value">${stats.issuance}%</div>${deltaHtml(stats.deltas.issuance)}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">TZ4 Adoption</div>
-        <div class="stat-value accent">${stats.tz4Pct}%</div>
+        <div class="stat-value-row"><div class="stat-value accent">${stats.tz4Pct}%</div>${deltaHtml(stats.deltas.tz4)}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Staked</div>
-        <div class="stat-value live">${stats.stakingRatio}%</div>
+        <div class="stat-value-row"><div class="stat-value live">${stats.stakingRatio}%</div>${deltaHtml(stats.deltas.staking)}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Total Supply</div>
-        <div class="stat-value">${stats.supply}</div>
+        <div class="stat-value-row"><div class="stat-value">${stats.supply}</div>${deltaHtml(stats.deltas.supply)}</div>
       </div>
       <div class="stat-card">
         <div class="stat-label">Protocol</div>
@@ -269,7 +398,7 @@ async function main() {
     }
 
     console.log(`✅ OG image saved to ${outputPath}`);
-    console.log(`   Stats: ${stats.bakers} bakers, ${stats.tz4Bakers} tz4 (${stats.tz4Pct}%), ${stats.stakingRatio}% staked, ${stats.supply} supply`);
+    console.log(`   Stats: ${stats.bakers} bakers, ${stats.issuance}% issuance, ${stats.tz4Pct}% tz4, ${stats.stakingRatio}% staked, ${stats.supply} supply`);
 }
 
 main().catch(err => {

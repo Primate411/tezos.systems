@@ -6223,12 +6223,23 @@ async function checkPortableTooling() {
     ['class="valley-wash"', 'protect foreground contrast over the Valley scene'],
     ['font-size: 64px', 'keep the root social-card title readable after feed downscaling'],
     ['font-size: 18px; line-height: 1.05', 'keep root social-card metric labels readable after feed downscaling'],
+    ['<div class="stat-label">Issuance</div>', 'replace the raw tz4-key count with current issuance'],
+    ['current_issuance_rate', 'compare issuance against the retained 30-day history ledger'],
+    ['tz4_percentage', 'compare tz4 adoption against the retained 30-day history ledger'],
+    ['staking_ratio', 'compare staking against the retained 30-day history ledger'],
+    ["percentChange(tz4PctValue, closestHistoricalValue(history, 'tz4_percentage'))", 'calculate tz4 adoption change from the unrounded live ratio'],
+    ["percentChange(stakingRatioValue, closestHistoricalValue(history, 'staking_ratio'))", 'calculate staking change from the unrounded live ratio'],
+    ['total_bakers', 'compare active bakers against the retained 30-day history ledger'],
+    ['<small>30D</small>', 'label compact 30-day percentage deltas beside applicable numeric stats'],
     ['data-og-ready', 'wait for the deterministic Valley frame before capture']
   ];
   for (const [snippet, description] of rootOgContracts) {
     if (!rootOgGenerator.includes(snippet)) {
       fail(`scripts/generate-og-image.js must ${description}`);
     }
+  }
+  if (rootOgGenerator.includes('<div class="stat-label">TZ4 Keys</div>')) {
+    fail('scripts/generate-og-image.js must not restore the raw tz4-key count to the root social card');
   }
 
   if (!(await pathExists('scripts/lib/playwright-browser.cjs'))) {
