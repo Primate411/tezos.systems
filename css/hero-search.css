@@ -1981,6 +1981,58 @@
     margin-top: 4px;
 }
 
+html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-placeholder:nth-child(n + 5) {
+    display: none;
+}
+
+.live-head-depth-rail {
+    display: flex;
+    min-height: 24px;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 1px;
+}
+
+.live-head-depth-toggle {
+    display: grid;
+    width: 30px;
+    height: 24px;
+    padding: 0;
+    place-items: center;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: color-mix(in srgb, var(--accent-cyan) 64%, var(--text-tertiary));
+    cursor: pointer;
+    opacity: 0.66;
+}
+
+.live-head-depth-toggle svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+    transition: transform 180ms ease;
+}
+
+.live-head-depth-toggle[aria-expanded="true"] svg {
+    transform: rotate(180deg);
+}
+
+.live-head-depth-toggle:is(:hover, :focus-visible) {
+    background: color-mix(in srgb, var(--accent-cyan) 9%, transparent);
+    color: var(--accent-cyan);
+    opacity: 1;
+}
+
+.live-head-depth-toggle:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 1px;
+}
+
 .live-head-row {
     display: grid;
     grid-template-rows: 27px 25px;
@@ -3301,9 +3353,22 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
         margin-bottom: 0.7rem;
     }
 
-    .live-head-stack .live-head-desktop-row,
-    .live-head-stack .live-head-row:nth-child(n + 4) {
+    html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-desktop-row,
+    html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-placeholder:nth-child(n + 4) {
         display: none;
+    }
+
+    html[data-live-head-expanded="true"] .live-head-stack .live-head-row.is-placeholder:nth-child(n + 10) {
+        display: none;
+    }
+
+    .live-head-depth-rail {
+        min-height: 44px;
+    }
+
+    .live-head-depth-toggle {
+        width: 44px;
+        height: 44px;
     }
 
     .live-head-alert {
@@ -3779,6 +3844,10 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     .live-head-row.is-placeholder i,
     .live-head-story-skeleton {
         animation: none !important;
+    }
+
+    .live-head-depth-toggle svg {
+        transition: none;
     }
 }
 

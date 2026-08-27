@@ -589,6 +589,11 @@
                         <button id="customize-home-btn" class="glass-button customize-home-trigger" aria-label="Customize home layout" title="Choose which home blocks are shown">
                             <span aria-hidden="true">☷</span> <span class="dropdown-label">Customize home</span><span class="home-layout-count" data-home-layout-count>6 shown</span>
                         </button>
+                        <button id="live-head-depth-setting" class="glass-button live-head-depth-setting" type="button" aria-label="Expand Live blocks" aria-controls="live-head-stack" aria-pressed="false" title="Expand Live blocks">
+                            <span class="live-head-depth-setting-icon" aria-hidden="true">⌄</span>
+                            <span class="dropdown-label">Live blocks depth</span>
+                            <span class="live-head-depth-setting-count" data-live-head-depth-count>Compact</span>
+                        </button>
                         <div class="dropdown-divider"></div>
                         <button id="theme-toggle" class="glass-button" aria-label="Switch to matrix theme" title="Theme: default">
                             <span class="theme-icon">🎨</span> <span class="dropdown-label">Theme</span>
@@ -699,7 +704,7 @@
     </section>
 
     <!-- Live Head: recent blocks flowing into the site-wide search well. -->
-    <section class="live-head-panel lb-panel" id="live-head" aria-label="Live Tezos blocks and search" aria-busy="true" data-home-block="live-head" data-feed-state="loading">
+    <section class="live-head-panel lb-panel" id="live-head" aria-label="Live Tezos blocks and search" aria-busy="true" data-home-block="live-head" data-feed-state="loading" data-live-head-expanded="false">
         <div class="live-head-topline">
             <button class="live-head-title lb-panel-title" id="live-head-button" type="button" aria-label="Open Network Health Chamber"><span>Live blocks</span></button>
             <span class="live-head-next" id="live-head-next" data-quiet-key="next-right">Next R0 syncing</span>
@@ -766,6 +771,18 @@
             <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-1"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
             <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-2"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
             <button class="live-head-row is-placeholder live-head-desktop-row" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-3"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-4"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-5"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-6"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-7"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-8"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+            <button class="live-head-row is-placeholder" type="button" disabled tabindex="-1" aria-hidden="true" data-quiet-key="live-head-placeholder-9"><span class="live-head-skeleton-primary"><i></i><i></i><i></i><i></i><i></i></span><span class="live-head-skeleton-secondary"><i></i><i></i></span></button>
+        </div>
+        <div class="live-head-depth-rail">
+            <button class="live-head-depth-toggle" id="live-head-depth-toggle" type="button" aria-label="Expand Live blocks" aria-controls="live-head-stack" aria-expanded="false" title="Expand Live blocks">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+                <span class="sr-only" data-live-head-depth-action>Expand Live blocks</span>
+            </button>
         </div>
         <aside class="live-head-inspector" id="live-head-inspector" aria-label="Complete block receipt" aria-hidden="true" hidden></aside>
         <span class="sr-only" id="chain-heartbeat-announcer" aria-live="polite" aria-atomic="true"></span>

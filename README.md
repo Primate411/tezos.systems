@@ -369,7 +369,10 @@ inline modal styles in `js/core/app.js`.
   the header/title row. Four desktop rows or three mobile rows reuse Network
   Health's Passing Blocks language: level, round, previous-block delta,
   attested power/committee, a compact health bar, age, and baker are always
-  present once a block is known. A second line adds reviewed Art, DeFi, Gaming,
+  present once a block is known. Its bottom-right depth arrow and matching
+  Setup action expand the history to ten desktop rows or nine mobile rows,
+  contract back to the compact count, and persist that browser-local choice.
+  A second line adds reviewed Art, DeFi, Gaming,
   Bridge, Etherlink, Stake, Unstake, or Transfer facts in distinct color-coded,
   truncated pills; complete empty receipts are marked `Quiet`,
   never in place of block telemetry. The title row keeps the exact

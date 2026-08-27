@@ -211,6 +211,11 @@ async function checkHomeLayoutContracts() {
   if (liveHeadHideIndex < liveHeadIndex || !index.includes('data-home-hide="live-head"')) {
     fail('Live Head must keep one compact Hide eye inside the combined card');
   }
+  if (!preload.includes('tezos-systems-live-head-depth-v1')
+      || !index.includes('id="live-head-depth-setting"')
+      || !index.includes('id="live-head-depth-toggle"')) {
+    fail('Live Head depth preference must preload and remain available from both the card corner and Setup');
+  }
   for (const id of expectedIds) {
     if (!index.includes(`data-home-block="${id}"`) || !index.includes(`data-home-layout-toggle="${id}"`)) {
       fail(`Home layout HTML is missing the managed block and switch for ${id}`);
@@ -2217,6 +2222,8 @@ async function checkSelectorContracts() {
     'live-head',
     'live-head-stack',
     'live-head-next',
+    'live-head-depth-toggle',
+    'live-head-depth-setting',
     'header-activity-button',
     'header-activity-line',
     'header-protocol-chip',
@@ -3207,7 +3214,12 @@ async function checkSelectorContracts() {
     ['Live Head non-quiet gas fullness pill', 'class="live-head-gas is-${gas.className}"', health],
     ['Live Head gas severity tiers', "pct >= 85 ? 'hot' : pct >= 60 ? 'busy' : pct >= 25 ? 'active' : 'open'", health],
     ['Live Head quiet removed from detail pills', "filter((fragment) => fragment.key !== 'quiet')", health],
-    ['Live Head four-row height-safe cap', 'return window.matchMedia', health],
+    ['Live Head compact responsive cap', 'function compactLiveHeadBlockLimit', health],
+    ['Live Head ten-row desktop expanded cap', 'LIVE_HEAD_EXPANDED_DESKTOP_LIMIT = 10', health],
+    ['Live Head nine-row mobile expanded cap', 'LIVE_HEAD_EXPANDED_MOBILE_LIMIT = 9', health],
+    ['Live Head persistent depth preference', 'tezos-systems-live-head-depth-v1', health],
+    ['Live Head shared corner and Setup depth controls', 'function wireLiveHeadDepthControls', health],
+    ['Live Head expanded receipt cache', 'HEARTBEAT_ACTIVITY_CACHE_LIMIT = 12', health],
     ['Live Head quiet keyed row reconciliation', 'quietlySyncElement(row, renderLiveHeadRow', health],
     ['Live Head FLIP row shift', 'function smoothlyShiftLiveHeadRows', health],
     ['Live Head Passing Blocks level field', 'class="live-head-level"', health],
@@ -3216,6 +3228,8 @@ async function checkSelectorContracts() {
     ['Live Head Passing Blocks attestation field', 'live-head-power health-power', health],
     ['Live Head once-per-margin bar signature', 'data-bar-signature="${barSignature}"', health],
     ['Live Head opaque first paint', 'class="live-head-skeleton-primary"', index],
+    ['Live Head bottom-right depth arrow', 'id="live-head-depth-toggle"', index],
+    ['Live Head Setup depth option', 'id="live-head-depth-setting"', index],
     ['Live Head visibility-gated supplements', "document.visibilityState !== 'visible'", health],
     ['Live Head health feed hook', 'updateBlockTicker(data)', health],
     ['price bar cycle health wiring', 'function wireCycleChipHealthLauncher', health],
@@ -3229,6 +3243,7 @@ async function checkSelectorContracts() {
     ['Live Head mobile viewport-width panel', 'width: var(--page-col);', heroSearchCss],
     ['Live Head full-bleed search unclamped', 'max-width: none;', heroSearchCss],
     ['Live Head reduced-motion settle', '.live-head-story-chip,', heroSearchCss],
+    ['Live Head depth arrow styling', '.live-head-depth-toggle[aria-expanded="true"] svg', heroSearchCss],
     ['network health continuity panel styles', '.health-continuity-panel', styles],
     ['network health continuity runtime styles', '.health-continuity-runtime', styles],
     ['chain uptime counter updater', "document.getElementById('chain-uptime-counter')", app],

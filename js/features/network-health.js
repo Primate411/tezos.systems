@@ -52,7 +52,7 @@ const HEARTBEAT_ART_TRANSFER_LIMIT = 50;
 const LIVE_HEAD_POWER_DETAIL_THRESHOLD = 6969;
 const LIVE_HEAD_DETAIL_MIN_WIDTH = 420;
 const HEARTBEAT_SUPPLEMENT_MAX_AGE = 2 * 60 * 1000;
-const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 8;
+const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 12;
 const CYCLE_TIMING_LIMIT = 8;
 const CYCLE_TIMING_TTL = 10 * 60 * 1000;
 const CONTESTED_ROUND_HOT_SIGNAL_TTL = 30 * 60 * 1000;
@@ -74,6 +74,9 @@ const STORAGE_KEY = 'tezos-systems-network-health';
 const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
 const CONTESTED_ROUND_SIGNAL_KEY = 'tezos-systems-contested-round-hot-signal-at';
 const LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v1';
+const LIVE_HEAD_DEPTH_STORAGE_KEY = 'tezos-systems-live-head-depth-v1';
+const LIVE_HEAD_EXPANDED_DESKTOP_LIMIT = 10;
+const LIVE_HEAD_EXPANDED_MOBILE_LIMIT = 9;
 const LIVE_HEAD_ACTIVITY_TYPES = ['transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'];
 
 const PERIODS = [
@@ -120,6 +123,8 @@ let heartbeatGasLimitCacheAt = 0;
 let heartbeatGasLimitInFlight = null;
 let liveHeadPillResizeObserver = null;
 let liveHeadPillFitFrame = null;
+let liveHeadExpanded = false;
+let liveHeadDepthControlsWired = false;
 let liveHeadActivityFiltersLoaded = false;
 let liveHeadSelectedActivityTypes = new Set(LIVE_HEAD_ACTIVITY_TYPES);
 let liveHeadInspectorCloseTimer = null;
@@ -629,12 +634,126 @@ function patchTickerUsage(usage) {
     if (line.dataset.usagePulseStamp !== stamp) updateHeaderActivity(usage);
 }
 
-function liveHeadBlockLimit() {
+function compactLiveHeadBlockLimit() {
     return window.matchMedia?.('(max-width: 719px)')?.matches ? 3 : 4;
+}
+
+function expandedLiveHeadBlockLimit() {
+    return window.matchMedia?.('(max-width: 719px)')?.matches
+        ? LIVE_HEAD_EXPANDED_MOBILE_LIMIT
+        : LIVE_HEAD_EXPANDED_DESKTOP_LIMIT;
+}
+
+function liveHeadBlockLimit() {
+    return liveHeadExpanded ? expandedLiveHeadBlockLimit() : compactLiveHeadBlockLimit();
 }
 
 function visibleLiveHeadBlocks(data) {
     return (Array.isArray(data?.blocks) ? data.blocks : []).slice(0, liveHeadBlockLimit());
+}
+
+function readLiveHeadDepthPreference() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(LIVE_HEAD_DEPTH_STORAGE_KEY) || 'null');
+        return Boolean(saved && saved.version === 1 && saved.expanded === true);
+    } catch (_) {
+        return false;
+    }
+}
+
+function persistLiveHeadDepthPreference() {
+    try {
+        localStorage.setItem(LIVE_HEAD_DEPTH_STORAGE_KEY, JSON.stringify({
+            version: 1,
+            expanded: liveHeadExpanded
+        }));
+    } catch (_) {}
+}
+
+function syncLiveHeadDepthControls() {
+    const compactLimit = compactLiveHeadBlockLimit();
+    const panel = document.getElementById('live-head');
+    const corner = document.getElementById('live-head-depth-toggle');
+    const setting = document.getElementById('live-head-depth-setting');
+    const expandedLimit = expandedLiveHeadBlockLimit();
+    const action = liveHeadExpanded
+        ? `Contract Live blocks to ${compactLimit}`
+        : `Expand Live blocks to ${expandedLimit}`;
+
+    document.documentElement.setAttribute('data-live-head-expanded', liveHeadExpanded ? 'true' : 'false');
+    panel?.setAttribute('data-live-head-expanded', liveHeadExpanded ? 'true' : 'false');
+    if (corner) {
+        corner.setAttribute('aria-expanded', liveHeadExpanded ? 'true' : 'false');
+        corner.setAttribute('aria-label', action);
+        corner.title = action;
+        const copy = corner.querySelector('[data-live-head-depth-action]');
+        if (copy) copy.textContent = action;
+    }
+    if (setting) {
+        setting.setAttribute('aria-pressed', liveHeadExpanded ? 'true' : 'false');
+        setting.setAttribute('aria-label', action);
+        setting.title = action;
+    }
+    document.querySelectorAll('[data-live-head-depth-count]').forEach((badge) => {
+        badge.textContent = liveHeadExpanded ? `${expandedLimit} blocks` : 'Compact';
+    });
+}
+
+function setLiveHeadExpanded(expanded, { persist = true, source = 'api' } = {}) {
+    const nextExpanded = Boolean(expanded);
+    if (liveHeadExpanded === nextExpanded) {
+        syncLiveHeadDepthControls();
+        return false;
+    }
+
+    closeLiveHeadInspector({ suppressReopen: true });
+    liveHeadExpanded = nextExpanded;
+    syncLiveHeadDepthControls();
+    if (persist) persistLiveHeadDepthPreference();
+
+    const stack = document.getElementById('live-head-stack');
+    if (stack) delete stack.dataset.liveHeadSignature;
+    if (heartbeatData) updateBlockTicker(heartbeatData, { suppressMotion: true });
+    window.dispatchEvent(new CustomEvent('tezos:live-head-depth-change', {
+        detail: { expanded: liveHeadExpanded, limit: liveHeadBlockLimit(), source }
+    }));
+    return true;
+}
+
+function wireLiveHeadDepthControls() {
+    if (liveHeadDepthControlsWired) {
+        syncLiveHeadDepthControls();
+        return;
+    }
+    liveHeadDepthControlsWired = true;
+    liveHeadExpanded = readLiveHeadDepthPreference();
+    syncLiveHeadDepthControls();
+
+    document.getElementById('live-head-depth-toggle')?.addEventListener('click', () => {
+        setLiveHeadExpanded(!liveHeadExpanded, { source: 'corner' });
+    });
+    document.getElementById('live-head-depth-setting')?.addEventListener('click', () => {
+        setLiveHeadExpanded(!liveHeadExpanded, { source: 'setup' });
+        document.getElementById('settings-dropdown')?.classList.remove('open');
+        const settingsGear = document.getElementById('settings-gear');
+        settingsGear?.setAttribute('aria-expanded', 'false');
+        settingsGear?.focus({ preventScroll: true });
+    });
+    window.addEventListener('storage', (event) => {
+        if (event.key !== LIVE_HEAD_DEPTH_STORAGE_KEY) return;
+        setLiveHeadExpanded(readLiveHeadDepthPreference(), { persist: false, source: 'storage' });
+    });
+    window.matchMedia?.('(max-width: 719px)')?.addEventListener?.('change', () => {
+        syncLiveHeadDepthControls();
+        if (!heartbeatData) return;
+        const stack = document.getElementById('live-head-stack');
+        if (stack) delete stack.dataset.liveHeadSignature;
+        updateBlockTicker(heartbeatData, { suppressMotion: true });
+    });
+    window.tezosSystemsLiveHead = Object.freeze({
+        isExpanded: () => liveHeadExpanded,
+        setExpanded: (expanded, source = 'api') => setLiveHeadExpanded(expanded, { source })
+    });
 }
 
 function cacheLiveHeadMissedState(level, state) {
@@ -1372,6 +1491,10 @@ function wireLiveHeadInspector(panel, stack) {
         closeLiveHeadInspector();
     }, { capture: true });
     document.addEventListener('pointermove', (event) => {
+        const suppressed = liveHeadInspectorSuppressedPointerPosition;
+        if (suppressed && (event.clientX !== suppressed.x || event.clientY !== suppressed.y)) {
+            liveHeadInspectorSuppressedPointerPosition = null;
+        }
         liveHeadPointerPosition = { x: event.clientX, y: event.clientY };
     }, { capture: true, passive: true });
     window.addEventListener('resize', refreshLiveHeadInspector);
@@ -1591,8 +1714,20 @@ function updateLiveHeadRows(stack, data, { suppressMotion = false } = {}) {
         quietlySyncHtml(stack, renderLiveHeadRows(data));
         delete stack.dataset.quietRefreshSettled;
     } else {
-        for (const block of [...freshBlocks].reverse()) {
+        const oldestExistingLevel = existingRows.length
+            ? Math.min(...existingRows.map((row) => Number(row.dataset.healthLevel)).filter(Number.isFinite))
+            : Infinity;
+        const trailingFreshBlocks = freshBlocks.filter((block) => Number(block.level) < oldestExistingLevel);
+        const leadingFreshBlocks = freshBlocks.filter((block) => Number(block.level) >= oldestExistingLevel);
+        for (const block of [...leadingFreshBlocks].reverse()) {
             stack.insertAdjacentHTML('afterbegin', renderLiveHeadRow(
+                block,
+                heartbeatActivityCache.get(Number(block.level)) || null,
+                { isNew: liveHeadMotionAllowed({ suppressMotion }) }
+            ));
+        }
+        for (const block of trailingFreshBlocks) {
+            stack.insertAdjacentHTML('beforeend', renderLiveHeadRow(
                 block,
                 heartbeatActivityCache.get(Number(block.level)) || null,
                 { isNew: liveHeadMotionAllowed({ suppressMotion }) }
@@ -1905,6 +2040,7 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     const stack = document.getElementById('live-head-stack');
     const activityButton = document.getElementById('header-activity-button');
     if (!panel || !button || !stack || !activityButton) return;
+    wireLiveHeadDepthControls();
     wireLiveHeadPillFitting(panel);
     wireLiveHeadActivityFilter(panel);
     wireLiveHeadInspector(panel, stack);
@@ -1943,6 +2079,7 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     updateLiveHeadNext(latest, nextRight);
     const visible = visibleLiveHeadBlocks(data);
     const signature = [
+        `depth:${liveHeadBlockLimit()}`,
         ...visible.map((block) => {
             const activity = heartbeatActivityCache.get(Number(block.level)) || null;
             return `${block.level}:${block.intervalSeconds ?? 'unknown'}:${block.blockRound}:${block.power ?? 'unknown'}:${block.committee ?? 'unknown'}:${block.producer?.address || ''}:${buildLiveHeadDetails(block, activity).signature}:${liveHeadGasState(activity).signature}`;
@@ -5125,6 +5262,7 @@ export function initNetworkHealth() {
     if (!document.querySelector('[data-stat="network-health"]')) return;
 
     ensureNetworkHealthCss().catch((error) => console.warn('Network Health styles unavailable', error));
+    wireLiveHeadDepthControls();
     wireCycleChipHealthLauncher();
     wireNetworkHealthCard();
     startHealthAgeTicker();

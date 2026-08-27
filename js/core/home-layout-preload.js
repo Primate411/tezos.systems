@@ -43,6 +43,23 @@
 
     document.documentElement.setAttribute('data-home-hidden', hidden.join(' '));
 
+    var LIVE_HEAD_DEPTH_STORAGE_KEY = 'tezos-systems-live-head-depth-v1';
+    var liveHeadExpanded = false;
+    try {
+        var liveHeadDepthRaw = localStorage.getItem(LIVE_HEAD_DEPTH_STORAGE_KEY);
+        if (liveHeadDepthRaw !== null) {
+            var liveHeadDepthSaved = JSON.parse(liveHeadDepthRaw);
+            liveHeadExpanded = Boolean(
+                liveHeadDepthSaved
+                && liveHeadDepthSaved.version === 1
+                && liveHeadDepthSaved.expanded === true
+            );
+        }
+    } catch (_) {
+        liveHeadExpanded = false;
+    }
+    document.documentElement.setAttribute('data-live-head-expanded', liveHeadExpanded ? 'true' : 'false');
+
     var CATEGORY_STORAGE_KEY = 'tezos-systems-explore-layout-v1';
     var LEGACY_CATEGORY_STORAGE_KEY = 'tezos-systems-chamber-categories-v1';
     var CATEGORY_IDS = ['network', 'capital', 'ecosystem', 'bakers', 'governance', 'people', 'history'];

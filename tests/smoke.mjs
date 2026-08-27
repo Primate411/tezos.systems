@@ -14750,6 +14750,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       ariaBusy: panel?.getAttribute('aria-busy') || '',
       feedState: panel?.dataset.feedState || '',
       placeholders: stack?.querySelectorAll('.live-head-row.is-placeholder').length || 0,
+      visiblePlaceholders: Array.from(stack?.querySelectorAll('.live-head-row.is-placeholder') || [])
+        .filter((row) => getComputedStyle(row).display !== 'none').length,
       primaryBars: stack?.querySelectorAll('.live-head-skeleton-primary i').length || 0,
       secondaryBars: stack?.querySelectorAll('.live-head-skeleton-secondary i').length || 0,
       visibleText: stack?.textContent?.replace(/\s+/g, ' ').trim() || ''
@@ -14758,9 +14760,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(
     initialLiveHeadState.ariaBusy === 'true'
       && initialLiveHeadState.feedState === 'loading'
-      && initialLiveHeadState.placeholders === 4
-      && initialLiveHeadState.primaryBars === 20
-      && initialLiveHeadState.secondaryBars === 8
+      && initialLiveHeadState.placeholders === 10
+      && initialLiveHeadState.visiblePlaceholders === 4
+      && initialLiveHeadState.primaryBars === 50
+      && initialLiveHeadState.secondaryBars === 20
       && initialLiveHeadState.visibleText === '',
     `network health chamber: Live Head first paint must be opaque objects without sentences ${JSON.stringify(initialLiveHeadState)}`
   );
@@ -14828,6 +14831,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelector('#header-activity-button')?.getAttribute('aria-busy') === 'false', null, { timeout: 10000 });
   await page.waitForFunction(() => /^\d+$/.test(document.querySelector('#hero-chain-uptime-bakers')?.textContent || ''), null, { timeout: 10000 });
   await page.waitForFunction(() => /^\d+s$/.test((document.querySelector('#hero-chain-uptime-finality')?.textContent || '').trim()), null, { timeout: 20000 });
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row-exiting').length === 0, null, { timeout: 5000 });
 
   const healthState = await page.evaluate(() => {
     const modal = document.querySelector('#network-health-modal');
@@ -15918,6 +15922,107 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
+
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4);
+  await page.evaluate(() => {
+    window.__liveHeadDepthRetainedRow = document.querySelector('#live-head-stack .live-head-row[data-live-head-level]');
+  });
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 10);
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-story')).every((row) => !/syncing/i.test(row.textContent || '')), null, { timeout: 15000 });
+  const expandedDepthState = await page.evaluate(() => {
+    const panel = document.getElementById('live-head');
+    const stack = document.getElementById('live-head-stack');
+    const toggle = document.getElementById('live-head-depth-toggle');
+    const setting = document.getElementById('live-head-depth-setting');
+    const rows = Array.from(stack?.querySelectorAll('.live-head-row[data-live-head-level]') || []);
+    const levels = rows.map((row) => Number(row.dataset.liveHeadLevel));
+    const toggleRect = toggle?.getBoundingClientRect();
+    const stackRect = stack?.getBoundingClientRect();
+    return {
+      expanded: panel?.dataset.liveHeadExpanded || '',
+      rowCount: rows.length,
+      descending: levels.every((level, index) => index === 0 || levels[index - 1] > level),
+      retainedHead: window.__liveHeadDepthRetainedRow === rows[0],
+      cornerExpanded: toggle?.getAttribute('aria-expanded') || '',
+      cornerLabel: toggle?.getAttribute('aria-label') || '',
+      cornerAtBottomRight: Boolean(toggleRect && stackRect
+        && Math.abs(toggleRect.right - stackRect.right) <= 10
+        && toggleRect.top >= stackRect.bottom - 1),
+      setupPressed: setting?.getAttribute('aria-pressed') || '',
+      setupCount: setting?.querySelector('[data-live-head-depth-count]')?.textContent?.trim() || '',
+      stored: JSON.parse(localStorage.getItem('tezos-systems-live-head-depth-v1') || 'null')
+    };
+  });
+  assert(expandedDepthState.expanded === 'true'
+      && expandedDepthState.rowCount === 10
+      && expandedDepthState.descending
+      && expandedDepthState.retainedHead
+      && expandedDepthState.cornerExpanded === 'true'
+      && /Contract Live blocks to 4/.test(expandedDepthState.cornerLabel)
+      && expandedDepthState.cornerAtBottomRight
+      && expandedDepthState.setupPressed === 'true'
+      && expandedDepthState.setupCount === '10 blocks'
+      && expandedDepthState.stored?.version === 1
+      && expandedDepthState.stored?.expanded === true,
+    `network health chamber: Live Head corner expansion did not expose ten ordered persistent receipts ${JSON.stringify(expandedDepthState)}`);
+
+  await openDropdown(page, '#settings-gear', '#settings-dropdown');
+  await page.locator('#live-head-depth-setting').click();
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4);
+  const setupContractState = await page.evaluate(() => ({
+    expanded: document.getElementById('live-head')?.dataset.liveHeadExpanded || '',
+    cornerExpanded: document.getElementById('live-head-depth-toggle')?.getAttribute('aria-expanded') || '',
+    setupPressed: document.getElementById('live-head-depth-setting')?.getAttribute('aria-pressed') || '',
+    setupCount: document.querySelector('[data-live-head-depth-count]')?.textContent?.trim() || '',
+    setupOpen: document.getElementById('settings-dropdown')?.classList.contains('open') || false,
+    focusReturned: document.activeElement === document.getElementById('settings-gear'),
+    stored: JSON.parse(localStorage.getItem('tezos-systems-live-head-depth-v1') || 'null')
+  }));
+  assert(setupContractState.expanded === 'false'
+      && setupContractState.cornerExpanded === 'false'
+      && setupContractState.setupPressed === 'false'
+      && setupContractState.setupCount === 'Compact'
+      && !setupContractState.setupOpen
+      && setupContractState.focusReturned
+      && setupContractState.stored?.expanded === false,
+    `network health chamber: Setup did not contract the shared Live Head depth state ${JSON.stringify(setupContractState)}`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 3);
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]')).filter((row) => getComputedStyle(row).display !== 'none').length === 9);
+  const mobileExpandedDepthState = await page.evaluate(() => {
+    const panel = document.getElementById('live-head');
+    const toggle = document.getElementById('live-head-depth-toggle');
+    const rows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]'))
+      .filter((row) => getComputedStyle(row).display !== 'none');
+    const rect = toggle?.getBoundingClientRect();
+    return {
+      rows: rows.length,
+      label: toggle?.getAttribute('aria-label') || '',
+      targetWidth: rect?.width || 0,
+      targetHeight: rect?.height || 0,
+      cardOverflow: panel ? panel.scrollWidth - panel.clientWidth : 999,
+      pageOverflow: document.documentElement.scrollWidth - innerWidth
+    };
+  });
+  assert(mobileExpandedDepthState.rows === 9
+      && /Contract Live blocks to 3/.test(mobileExpandedDepthState.label)
+      && mobileExpandedDepthState.targetWidth >= 44
+      && mobileExpandedDepthState.targetHeight >= 44
+      && mobileExpandedDepthState.cardOverflow <= 1
+      && mobileExpandedDepthState.pageOverflow <= 1,
+    `network health chamber: expanded nine-block mobile mode overflowed or lost its contract action ${JSON.stringify(mobileExpandedDepthState)}`);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 10);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 9);
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 3);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4);
   await page.locator('#live-head-filter-toggle').click();
   await page.locator('#live-head-filter-menu:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('[data-live-head-filter-kind="all"]').click();
@@ -15955,11 +16060,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first().waitFor({ state: 'visible', timeout: 15000 });
-  const liveHeadFirstLevel = await page.locator('#live-head-stack .live-head-row[data-live-head-level]').first().getAttribute('data-live-head-level');
-  assert(liveHeadFirstLevel, 'network health chamber: newest Live Head row is missing its keyed level');
-  const liveHeadFirstRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadFirstLevel}"]`);
   const liveHeadCurrentFirstRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
-  const liveHeadFirstInfo = liveHeadFirstRow.locator('.live-head-info');
   const liveHeadCurrentFirstInfo = liveHeadCurrentFirstRow.locator('.live-head-info');
   const openCurrentLiveHeadInspector = async (pointerOrigin) => {
     const level = await liveHeadCurrentFirstRow.getAttribute('data-live-head-level');
@@ -15990,14 +16091,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     await page.mouse.move(entry.x, entry.y);
     await page.waitForFunction(() => Boolean(document.querySelector('#live-head-inspector:not([hidden])')), null, { timeout: 5000 });
   };
-  await liveHeadFirstRow.scrollIntoViewIfNeeded();
+  await liveHeadCurrentFirstRow.scrollIntoViewIfNeeded();
   await page.waitForTimeout(180);
   await page.mouse.move(1, 1);
-  await liveHeadFirstRow.hover();
+  await liveHeadCurrentFirstRow.hover();
   await page.waitForTimeout(180);
   assert(await page.evaluate(() => document.querySelector('#live-head-inspector')?.hidden === true), 'network health chamber: ordinary row hover must not open the block inspector');
-  await liveHeadFirstInfo.hover();
-  await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  await openCurrentLiveHeadInspector({ x: 1, y: 1 });
   const liveHeadInspectorState = await page.evaluate(() => {
     const inspector = document.querySelector('#live-head-inspector:not([hidden])');
     const row = document.querySelector('#live-head-stack .live-head-row[data-live-head-level]');
@@ -16040,23 +16140,27 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && liveHeadInspectorState.operationFacts >= 5, `network health chamber: complete block facts are incomplete ${JSON.stringify(liveHeadInspectorState)}`);
   assert(/Complete block receipt.*Produced by.*Block round.*Payload round.*Cadence.*Attested.*Quorum.*Missed power.*Block activity.*Transactions.*Contract calls.*Staking ops.*Fees.*Rewards \+ bonus.*Block contents.*Missed attestations.*Open Network Health Chamber/i.test(liveHeadInspectorState.text)
       && liveHeadInspectorState.footerHref === '#health', `network health chamber: inspector receipt copy/footer is incomplete ${JSON.stringify(liveHeadInspectorState)}`);
-  const liveHeadMissedCandidate = page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"])').first();
-  const liveHeadMissedLevel = await liveHeadMissedCandidate.getAttribute('data-live-head-level');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true
+    && !document.querySelector('#live-head')?.dataset.readingPaused, null, { timeout: 10000 });
+  const liveHeadMissedInfo = page.locator('#live-head-stack .live-head-row:has(.live-head-story[data-miss-state="resolved"]) .live-head-info').first();
+  await liveHeadMissedInfo.click();
+  await page.waitForFunction(() => {
+    const inspector = document.querySelector('#live-head-inspector:not([hidden])');
+    return Boolean(inspector?.dataset.liveHeadLevel)
+      && inspector.querySelectorAll('.live-head-inspector-miss a[href^="https://tzkt.io/"]').length > 0;
+  }, null, { timeout: 5000 });
+  const liveHeadMissedLevel = await page.locator('#live-head-inspector:not([hidden])').getAttribute('data-live-head-level');
   assert(liveHeadMissedLevel, 'network health chamber: resolved missed-attester row is missing its keyed level');
   const liveHeadMissedRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadMissedLevel}"]`);
-  await page.mouse.move(1, 1);
-  await liveHeadMissedRow.locator('.live-head-info').hover();
   const liveHeadMissedSnapshot = await liveHeadMissedRow.evaluate((row) => {
     try { return JSON.parse(row.dataset.liveHeadMissedSnapshot || 'null'); } catch { return null; }
   });
   assert(Number(liveHeadMissedSnapshot?.level) === Number(liveHeadMissedLevel)
       && liveHeadMissedSnapshot?.state === 'resolved'
       && liveHeadMissedSnapshot.attesters?.length > 0, `network health chamber: resolved row must own its immutable missed-attester receipt ${JSON.stringify(liveHeadMissedSnapshot)}`);
-  await page.waitForFunction((level) => {
-    const inspector = document.querySelector('#live-head-inspector:not([hidden])');
-    return inspector?.dataset.liveHeadLevel === level
-      && inspector.querySelectorAll('.live-head-inspector-miss a[href^="https://tzkt.io/"]').length > 0;
-  }, liveHeadMissedLevel, { timeout: 5000 });
+  assert(await page.locator('#live-head-inspector:not([hidden])').getAttribute('data-live-head-level') === liveHeadMissedLevel,
+    'network health chamber: resolved missed-attester receipt must remain locked to its source row');
   const missedInspectorLinkState = await page.evaluate(() => ({
     tzkt: document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href^="https://tzkt.io/"]').length,
     myTezos: document.querySelectorAll('#live-head-inspector:not([hidden]) .live-head-inspector-miss a[href*="#my-baker="]').length,
@@ -16185,8 +16289,19 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.waitForFunction(() => document.querySelector('#live-head')?.dataset.chainState === 'live' && document.querySelector('#live-head-alert')?.hidden === true, null, { timeout: 10000 });
   assert(/block production resumed/i.test(await page.locator('#chain-stall-announcer').textContent() || ''), 'network health chamber: a genuinely newer fresh head did not announce and clear the latched stall');
-  const liveHeadResumedHeight = await page.locator('#live-head').evaluate((element) => element.getBoundingClientRect().height);
-  assert(Math.abs(liveHeadResumedHeight - healthState.liveHeadHeight) <= 1, `network health chamber: delayed/stalled hierarchy changed the Live Head outer height ${healthState.liveHeadHeight}/${liveHeadResumedHeight}`);
+  const liveHeadResumedGeometry = await page.locator('#live-head').evaluate((element) => ({
+    height: element.getBoundingClientRect().height,
+    viewportWidth: innerWidth,
+    mobile: matchMedia('(max-width: 719px)').matches,
+    expanded: element.dataset.liveHeadExpanded || '',
+    rows: Array.from(element.querySelectorAll('#live-head-stack .live-head-row')).map((row) => ({
+      level: row.getAttribute('data-live-head-level') || '',
+      display: getComputedStyle(row).display,
+      height: row.getBoundingClientRect().height,
+      exiting: row.classList.contains('live-head-row-exiting')
+    }))
+  }));
+  assert(Math.abs(liveHeadResumedGeometry.height - healthState.liveHeadHeight) <= 1, `network health chamber: delayed/stalled hierarchy changed the Live Head outer height ${healthState.liveHeadHeight}/${JSON.stringify(liveHeadResumedGeometry)}`);
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await page.locator('#cycle-chip').click();
@@ -24698,6 +24813,8 @@ async function smokeHomeLayout(browser, baseUrl) {
     await mobilePage.locator('#home-layout-modal.active').waitFor({ state: 'visible', timeout: 5000 });
     await mobilePage.locator('#home-layout-topics > summary').click();
     await mobilePage.locator('[data-chamber-topic-group="network"] > summary').click();
+    await mobilePage.waitForFunction(() => Array.from(document.querySelector('.home-layout-sheet')?.getAnimations() || [])
+      .every((animation) => animation.playState !== 'running'), null, { timeout: 5000 });
     const mobileGeometry = await mobilePage.evaluate(() => {
       const sheet = document.querySelector('.home-layout-sheet');
       const sheetRect = sheet?.getBoundingClientRect();
