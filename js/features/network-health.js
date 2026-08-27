@@ -20,7 +20,10 @@ const POWER_PER_BLOCK = 7000;
 const TARGET_BLOCK_SECONDS = 6;
 const LAST_BLOCK_LIMIT = 16;
 const HEALTH_CARD_BLOCK_LIMIT = 5;
-const CHAMBER_BLOCK_LIMIT = 16;
+const CHAMBER_BLOCK_LIMIT = 15;
+const CHAMBER_EXPANDED_MOBILE_BLOCK_LIMIT = 12;
+const CHAMBER_COMPACT_DESKTOP_BLOCK_LIMIT = 8;
+const CHAMBER_COMPACT_MOBILE_BLOCK_LIMIT = 6;
 const TEZTALE_BLOCK_LOOKBACK = 12;
 const TEZTALE_QUORUM_TARGET = 2 / 3;
 const TEZTALE_RECEPTION_BIN_MS = 500;
@@ -52,7 +55,7 @@ const HEARTBEAT_ART_TRANSFER_LIMIT = 50;
 const LIVE_HEAD_POWER_DETAIL_THRESHOLD = 6969;
 const LIVE_HEAD_DETAIL_MIN_WIDTH = 420;
 const HEARTBEAT_SUPPLEMENT_MAX_AGE = 2 * 60 * 1000;
-const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 12;
+const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 20;
 const CYCLE_TIMING_LIMIT = 8;
 const CYCLE_TIMING_TTL = 10 * 60 * 1000;
 const CONTESTED_ROUND_HOT_SIGNAL_TTL = 30 * 60 * 1000;
@@ -125,6 +128,9 @@ let liveHeadPillResizeObserver = null;
 let liveHeadPillFitFrame = null;
 let liveHeadExpanded = false;
 let liveHeadDepthControlsWired = false;
+let recentBlockSupplementBlocks = [];
+let recentBlockSupplementInFlight = false;
+let recentBlockSupplementQueued = false;
 let liveHeadActivityFiltersLoaded = false;
 let liveHeadSelectedActivityTypes = new Set(LIVE_HEAD_ACTIVITY_TYPES);
 let liveHeadInspectorCloseTimer = null;
@@ -638,6 +644,18 @@ function compactLiveHeadBlockLimit() {
     return window.matchMedia?.('(max-width: 719px)')?.matches ? 3 : 4;
 }
 
+function compactChamberBlockLimit() {
+    return window.matchMedia?.('(max-width: 719px)')?.matches
+        ? CHAMBER_COMPACT_MOBILE_BLOCK_LIMIT
+        : CHAMBER_COMPACT_DESKTOP_BLOCK_LIMIT;
+}
+
+function expandedChamberBlockLimit() {
+    return window.matchMedia?.('(max-width: 719px)')?.matches
+        ? CHAMBER_EXPANDED_MOBILE_BLOCK_LIMIT
+        : CHAMBER_BLOCK_LIMIT;
+}
+
 function expandedLiveHeadBlockLimit() {
     return window.matchMedia?.('(max-width: 719px)')?.matches
         ? LIVE_HEAD_EXPANDED_MOBILE_LIMIT
@@ -672,13 +690,19 @@ function persistLiveHeadDepthPreference() {
 
 function syncLiveHeadDepthControls() {
     const compactLimit = compactLiveHeadBlockLimit();
+    const chamberCompactLimit = compactChamberBlockLimit();
     const panel = document.getElementById('live-head');
     const corner = document.getElementById('live-head-depth-toggle');
     const setting = document.getElementById('live-head-depth-setting');
+    const chamber = document.getElementById('health-block-depth-toggle');
     const expandedLimit = expandedLiveHeadBlockLimit();
+    const chamberExpandedLimit = expandedChamberBlockLimit();
     const action = liveHeadExpanded
         ? `Contract Live blocks to ${compactLimit}`
         : `Expand Live blocks to ${expandedLimit}`;
+    const chamberAction = liveHeadExpanded
+        ? `Show ${chamberCompactLimit} Passing Blocks`
+        : `Show all ${chamberExpandedLimit} Passing Blocks`;
 
     document.documentElement.setAttribute('data-live-head-expanded', liveHeadExpanded ? 'true' : 'false');
     panel?.setAttribute('data-live-head-expanded', liveHeadExpanded ? 'true' : 'false');
@@ -693,6 +717,15 @@ function syncLiveHeadDepthControls() {
         setting.setAttribute('aria-pressed', liveHeadExpanded ? 'true' : 'false');
         setting.setAttribute('aria-label', action);
         setting.title = action;
+    }
+    if (chamber) {
+        chamber.setAttribute('aria-expanded', liveHeadExpanded ? 'true' : 'false');
+        chamber.setAttribute('aria-label', chamberAction);
+        chamber.title = chamberAction;
+        const copy = chamber.querySelector('[data-health-block-depth-action]');
+        if (copy) copy.textContent = chamberAction;
+        const count = chamber.querySelector('[data-health-block-depth-count]');
+        if (count) count.textContent = `${liveHeadExpanded ? chamberExpandedLimit : chamberCompactLimit} blocks`;
     }
     document.querySelectorAll('[data-live-head-depth-count]').forEach((badge) => {
         badge.textContent = liveHeadExpanded ? `${expandedLimit} blocks` : 'Compact';
@@ -754,6 +787,20 @@ function wireLiveHeadDepthControls() {
         isExpanded: () => liveHeadExpanded,
         setExpanded: (expanded, source = 'api') => setLiveHeadExpanded(expanded, { source })
     });
+}
+
+function wireHealthBlockDepthControl(root = document) {
+    const toggle = root.querySelector('#health-block-depth-toggle');
+    if (!toggle || toggle.dataset.healthBlockDepthWired) {
+        syncLiveHeadDepthControls();
+        return;
+    }
+    toggle.dataset.healthBlockDepthWired = '1';
+    toggle.addEventListener('click', () => {
+        setLiveHeadExpanded(!liveHeadExpanded, { source: 'chamber' });
+        requestRecentBlockSupplements(recentBlockSupplementBlocks);
+    });
+    syncLiveHeadDepthControls();
 }
 
 function cacheLiveHeadMissedState(level, state) {
@@ -935,12 +982,22 @@ function liveHeadActivityTypeIsSelected(kind) {
     return liveHeadSelectedActivityTypes.has(kind);
 }
 
-function syncLiveHeadActivityFilterUi(panel) {
-    if (!panel) return;
+function liveHeadActivityFilterParts(root) {
+    if (!root) return {};
+    const filter = root.matches?.('.live-head-filter') ? root : root.querySelector?.('.live-head-filter');
+    return {
+        filter,
+        toggle: filter?.querySelector('[data-live-head-filter-toggle], #live-head-filter-toggle'),
+        menu: filter?.querySelector('[data-live-head-filter-menu], #live-head-filter-menu')
+    };
+}
+
+function syncLiveHeadActivityFilterUi(root) {
+    const { filter, toggle } = liveHeadActivityFilterParts(root);
+    if (!filter) return;
     loadLiveHeadActivityFilters();
-    const toggle = panel.querySelector('#live-head-filter-toggle');
     const allSelected = liveHeadSelectedActivityTypes.size === LIVE_HEAD_ACTIVITY_TYPES.length;
-    panel.querySelectorAll('[data-live-head-filter-kind]').forEach((button) => {
+    filter.querySelectorAll('[data-live-head-filter-kind]').forEach((button) => {
         const kind = button.dataset.liveHeadFilterKind;
         const selected = kind === 'all' ? allSelected : liveHeadSelectedActivityTypes.has(kind);
         button.setAttribute('aria-pressed', selected ? 'true' : 'false');
@@ -953,27 +1010,35 @@ function syncLiveHeadActivityFilterUi(panel) {
     }
 }
 
-function closeLiveHeadActivityFilter(panel, { restoreFocus = false } = {}) {
-    const toggle = panel?.querySelector('#live-head-filter-toggle');
-    const menu = panel?.querySelector('#live-head-filter-menu');
+function syncAllLiveHeadActivityFilterUis() {
+    document.querySelectorAll('.live-head-filter').forEach(syncLiveHeadActivityFilterUi);
+}
+
+function closeLiveHeadActivityFilter(root, { restoreFocus = false } = {}) {
+    const { filter, toggle, menu } = liveHeadActivityFilterParts(root);
     if (!toggle || !menu || menu.hidden) return;
     menu.hidden = true;
+    if (filter) delete filter.dataset.overlayEscapeOpen;
     toggle.setAttribute('aria-expanded', 'false');
     if (restoreFocus) toggle.focus({ preventScroll: true });
 }
 
-function wireLiveHeadActivityFilter(panel) {
-    if (!panel || panel.dataset.liveHeadActivityFilterWired) return;
-    const filter = panel.querySelector('.live-head-filter');
-    const toggle = panel.querySelector('#live-head-filter-toggle');
-    const menu = panel.querySelector('#live-head-filter-menu');
+function wireLiveHeadActivityFilter(root) {
+    const { filter, toggle, menu } = liveHeadActivityFilterParts(root);
     if (!filter || !toggle || !menu) return;
-    panel.dataset.liveHeadActivityFilterWired = '1';
-    syncLiveHeadActivityFilterUi(panel);
+    if (root !== filter && root?.dataset) root.dataset.liveHeadActivityFilterWired = '1';
+    if (filter.dataset.liveHeadActivityFilterWired) {
+        syncLiveHeadActivityFilterUi(filter);
+        return;
+    }
+    filter.dataset.liveHeadActivityFilterWired = '1';
+    syncLiveHeadActivityFilterUi(filter);
 
     toggle.addEventListener('click', () => {
         const opening = menu.hidden;
         menu.hidden = !opening;
+        if (opening) filter.dataset.overlayEscapeOpen = 'true';
+        else delete filter.dataset.overlayEscapeOpen;
         toggle.setAttribute('aria-expanded', opening ? 'true' : 'false');
         if (opening) menu.querySelector('[data-live-head-filter-kind]')?.focus({ preventScroll: true });
     });
@@ -992,16 +1057,16 @@ function wireLiveHeadActivityFilter(panel) {
         try {
             localStorage.setItem(LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY, JSON.stringify([...liveHeadSelectedActivityTypes]));
         } catch { /* preference storage unavailable */ }
-        syncLiveHeadActivityFilterUi(panel);
-        fitLiveHeadPills(panel);
+        syncAllLiveHeadActivityFilterUis();
+        fitLiveHeadPills(document);
     });
     document.addEventListener('pointerdown', (event) => {
-        if (!menu.hidden && !event.target.closest('.live-head-filter')) closeLiveHeadActivityFilter(panel);
+        if (!menu.hidden && !filter.contains(event.target)) closeLiveHeadActivityFilter(filter);
     }, { capture: true });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && !menu.hidden) {
             event.stopPropagation();
-            closeLiveHeadActivityFilter(panel, { restoreFocus: true });
+            closeLiveHeadActivityFilter(filter, { restoreFocus: true });
         }
     });
 }
@@ -4703,17 +4768,64 @@ function renderRoundBadge(block) {
     return `<span class="health-round-badge ${cls}" title="${escapeHtml(title)}">R${formatCount(block.blockRound)}</span>`;
 }
 
+function renderHealthBlockActivitySetup() {
+    return `
+        <div class="live-head-filter health-block-filter">
+            <button class="live-head-filter-toggle health-block-filter-toggle" id="health-block-filter-toggle" data-live-head-filter-toggle type="button" aria-expanded="false" aria-controls="health-block-filter-menu" aria-label="Choose visible block activity">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10M14 4v6M7 14v6"/></svg>
+                <span>Setup</span>
+            </button>
+            <div class="live-head-filter-menu health-block-filter-menu" id="health-block-filter-menu" data-live-head-filter-menu hidden>
+                <div class="live-head-filter-heading">Block activity <small>Choose which transaction receipts can spend the right-hand rail. Gas and missed-attester receipts stay visible.</small></div>
+                <button class="live-head-filter-all" type="button" data-live-head-filter-kind="all" aria-pressed="true">All activity</button>
+                <div class="live-head-filter-options">
+                    <button class="live-head-filter-pill is-transfers" type="button" data-live-head-filter-kind="transfers" aria-pressed="true">Transfers</button>
+                    <button class="live-head-filter-pill is-art" type="button" data-live-head-filter-kind="art" aria-pressed="true">Art</button>
+                    <button class="live-head-filter-pill is-defi" type="button" data-live-head-filter-kind="defi" aria-pressed="true">DeFi</button>
+                    <button class="live-head-filter-pill is-gaming" type="button" data-live-head-filter-kind="gaming" aria-pressed="true">Gaming</button>
+                    <button class="live-head-filter-pill is-bridge" type="button" data-live-head-filter-kind="bridge" aria-pressed="true">Bridge</button>
+                    <button class="live-head-filter-pill is-etherlink" type="button" data-live-head-filter-kind="etherlink" aria-pressed="true">Etherlink</button>
+                    <button class="live-head-filter-pill is-stake" type="button" data-live-head-filter-kind="stake" aria-pressed="true">Stake</button>
+                    <button class="live-head-filter-pill is-unstake" type="button" data-live-head-filter-kind="unstake" aria-pressed="true">Unstake</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function recentBlockReceiptState(block) {
+    const activity = heartbeatActivityCache.get(Number(block.level)) || null;
+    const details = buildLiveHeadDetails(block, activity);
+    const gas = liveHeadGasState(activity);
+    return {
+        activity,
+        details,
+        signature: `${Number(block.level) || 0}:${details.signature}:${gas.signature}`
+    };
+}
+
+function renderRecentBlockReceipts(block) {
+    const state = recentBlockReceiptState(block);
+    return `
+        <div class="health-block-receipts" data-health-block-receipts data-quiet-key="health-block-receipts-${Number(block.level) || 0}" data-health-receipt-signature="${escapeHtml(state.signature)}" aria-label="Block ${formatCount(block.level)} receipts">
+            ${renderLiveHeadActivityStatus(state.activity)}
+            ${state.details.html}
+        </div>
+    `;
+}
+
 function renderRecentBlockRow(block, { isNew = false } = {}) {
         const cls = healthClass(block.score);
         const timeCls = timingClass(block.intervalSeconds);
         return `
             <div class="lb-table-row health-block-row ${isNew ? 'lb-row-new' : ''}" data-health-level="${Number(block.level) || 0}">
-                <span>${formatCount(block.level)}</span>
+                <span class="health-block-level">${formatCount(block.level)}</span>
                 <span class="health-interval ${timeCls}">${formatSeconds(block.intervalSeconds)}</span>
                 <span>${renderRoundBadge(block)}</span>
                 <span class="health-power ${cls}">${formatCount(block.power)}<small>/${formatCount(block.committee)}</small></span>
                 <span>${formatCount(block.missedPower)}</span>
                 <div class="lb-baker-cell">${bakerLinks(block.producer?.address, bakerName(block.producer))}</div>
+                ${renderRecentBlockReceipts(block)}
             </div>
         `;
 }
@@ -4722,12 +4834,75 @@ function renderRecentBlockRows(blocks, { markLatest = true } = {}) {
     return blocks.map((block, index) => renderRecentBlockRow(block, { isNew: markLatest && index === 0 })).join('');
 }
 
+function updateRecentBlockReceipt(block) {
+    const level = Number(block?.level);
+    if (!Number.isFinite(level)) return;
+    const row = document.querySelector(`#health-recent-block-list .health-block-row[data-health-level="${level}"]`);
+    const receipt = row?.querySelector('[data-health-block-receipts]');
+    if (!row || !receipt) return;
+    const next = recentBlockReceiptState(block);
+    if (receipt.dataset.healthReceiptSignature === next.signature) {
+        fitLiveHeadPills(row);
+        return;
+    }
+    quietlySyncElement(receipt, renderRecentBlockReceipts(block));
+    fitLiveHeadPills(row);
+}
+
+function requestRecentBlockSupplements(blocks) {
+    recentBlockSupplementBlocks = (Array.isArray(blocks) ? blocks : []).slice(0, CHAMBER_BLOCK_LIMIT);
+    if (recentBlockSupplementInFlight) {
+        recentBlockSupplementQueued = true;
+        return;
+    }
+    const recent = recentBlockSupplementBlocks.slice(0, liveHeadExpanded ? expandedChamberBlockLimit() : compactChamberBlockLimit());
+    const latest = recent[0];
+    if (!latest || !heartbeatSupplementIsCurrent(latest) || document.visibilityState !== 'visible') return;
+    recentBlockSupplementInFlight = true;
+
+    const chamberIsCurrent = () => {
+        const overlay = document.getElementById('network-health-modal');
+        const renderedLevel = Number(document.querySelector('#health-recent-block-list .health-block-row')?.dataset.healthLevel);
+        return overlay?.classList.contains('active') && renderedLevel === Number(latest.level);
+    };
+    const refreshBlock = (block) => {
+        if (chamberIsCurrent()) updateRecentBlockReceipt(block);
+    };
+
+    const missedRights = fetchHeartbeatMissedRights(recent).then(() => {
+        if (chamberIsCurrent()) recent.forEach(updateRecentBlockReceipt);
+    });
+    (async () => {
+        for (const block of recent) {
+            await fetchHeartbeatActivity(Number(block.level));
+            refreshBlock(block);
+        }
+        await missedRights;
+    })().finally(() => {
+        recentBlockSupplementInFlight = false;
+        if (!recentBlockSupplementQueued) return;
+        recentBlockSupplementQueued = false;
+        requestRecentBlockSupplements(recentBlockSupplementBlocks);
+    });
+}
+
 function renderRecentBlocksPanel(data) {
     return `
         <section class="lb-panel health-panel health-recent-blocks chamber-anim-fade" style="animation-delay:300ms">
-            <div class="lb-panel-title">Passing Blocks <span class="lb-live-pill">live</span></div>
+            <div class="lb-panel-title health-recent-blocks-title">
+                <span>Passing Blocks</span>
+                <span class="lb-live-pill">live</span>
+                <span class="health-recent-blocks-actions">
+                    ${renderHealthBlockActivitySetup()}
+                    <button class="health-block-depth-toggle" id="health-block-depth-toggle" type="button" aria-label="Show all ${expandedChamberBlockLimit()} Passing Blocks" aria-controls="health-recent-block-list" aria-expanded="false" title="Show all ${expandedChamberBlockLimit()} Passing Blocks">
+                        <span data-health-block-depth-count>${compactChamberBlockLimit()} blocks</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                        <span class="health-block-depth-sr" data-health-block-depth-action>Show all ${expandedChamberBlockLimit()} Passing Blocks</span>
+                    </button>
+                </span>
+            </div>
             <div class="lb-table health-block-table">
-                <div class="lb-table-head"><span>Level</span><span>Delta</span><span>Round</span><span>Attested</span><span>Missed</span><span>Baker</span></div>
+                <div class="lb-table-head"><span>Level</span><span>Delta</span><span>Round</span><span>Attested</span><span>Missed</span><span>Baker</span><span>Receipts</span></div>
                 <div id="health-recent-block-list">${renderRecentBlockRows(data.blocks)}</div>
             </div>
         </section>
@@ -4879,9 +5054,13 @@ function renderNetworkHealthChamber(data, container) {
         </div>
     `;
     container.dataset.healthRendered = 'true';
+    wireHealthBlockDepthControl(container);
+    wireLiveHeadActivityFilter(container.querySelector('.health-block-filter'));
     wireNakamotoActions(container.querySelector('#health-nakamoto-coefficient'), data.nakamoto || {});
     initHealthBakerProfileLinks(container);
     refreshHealthAgeLabels(container);
+    window.requestAnimationFrame(() => fitLiveHeadPills(container));
+    window.setTimeout(() => requestRecentBlockSupplements(data.blocks), 500);
 }
 
 function updateHealthHeader(data) {
@@ -5010,6 +5189,7 @@ function updateRecentBlockRows(blocks) {
     }
     list.dataset.healthSignature = signature;
     initHealthBakerProfileLinks(list);
+    nextBlocks.forEach(updateRecentBlockReceipt);
 }
 
 function updateHealthStoryPanels(data) {
@@ -5069,6 +5249,7 @@ function updateNetworkHealthInPlace(data, container) {
     );
     updateRecentBlockRows(data.blocks);
     updateBlockTicker(data);
+    window.setTimeout(() => requestRecentBlockSupplements(data.blocks), 500);
     refreshHealthAgeLabels(container);
 }
 

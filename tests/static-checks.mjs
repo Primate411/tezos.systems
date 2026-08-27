@@ -3219,7 +3219,17 @@ async function checkSelectorContracts() {
     ['Live Head nine-row mobile expanded cap', 'LIVE_HEAD_EXPANDED_MOBILE_LIMIT = 9', health],
     ['Live Head persistent depth preference', 'tezos-systems-live-head-depth-v1', health],
     ['Live Head shared corner and Setup depth controls', 'function wireLiveHeadDepthControls', health],
-    ['Live Head expanded receipt cache', 'HEARTBEAT_ACTIVITY_CACHE_LIMIT = 12', health],
+    ['Network Health Passing Blocks shares the depth control', 'id="health-block-depth-toggle"', health],
+    ['Network Health Passing Blocks compact desktop depth', 'CHAMBER_COMPACT_DESKTOP_BLOCK_LIMIT = 8', health],
+    ['Network Health Passing Blocks compact mobile depth', 'CHAMBER_COMPACT_MOBILE_BLOCK_LIMIT = 6', health],
+    ['Network Health Passing Blocks expanded desktop depth', 'CHAMBER_BLOCK_LIMIT = 15', health],
+    ['Network Health Passing Blocks expanded mobile depth', 'CHAMBER_EXPANDED_MOBILE_BLOCK_LIMIT = 12', health],
+    ['Network Health Passing Blocks depth wiring', 'function wireHealthBlockDepthControl', health],
+    ['Network Health Passing Blocks activity Setup', 'id="health-block-filter-toggle"', health],
+    ['Network Health Passing Blocks receipt rail', 'data-health-block-receipts', health],
+    ['Network Health Passing Blocks shared supplement request', 'function requestRecentBlockSupplements', health],
+    ['Network Health Passing Blocks quiet receipt update', 'quietlySyncElement(receipt, renderRecentBlockReceipts(block))', health],
+    ['Live Head expanded receipt cache', 'HEARTBEAT_ACTIVITY_CACHE_LIMIT = 20', health],
     ['Live Head quiet keyed row reconciliation', 'quietlySyncElement(row, renderLiveHeadRow', health],
     ['Live Head FLIP row shift', 'function smoothlyShiftLiveHeadRows', health],
     ['Live Head Passing Blocks level field', 'class="live-head-level"', health],
@@ -3244,6 +3254,12 @@ async function checkSelectorContracts() {
     ['Live Head full-bleed search unclamped', 'max-width: none;', heroSearchCss],
     ['Live Head reduced-motion settle', '.live-head-story-chip,', heroSearchCss],
     ['Live Head depth arrow styling', '.live-head-depth-toggle[aria-expanded="true"] svg', heroSearchCss],
+    ['Network Health Passing Blocks depth arrow styling', '.health-block-depth-toggle[aria-expanded="true"] svg', networkHealthCss],
+    ['Network Health Passing Blocks compact row styling', '#health-recent-block-list .health-block-row:nth-child(n + 9)', networkHealthCss],
+    ['Network Health Passing Blocks expanded mobile row styling', 'html[data-live-head-expanded="true"] #health-recent-block-list .health-block-row:nth-child(n + 13)', networkHealthCss],
+    ['Network Health Passing Blocks reclaimed level lane', 'grid-template-columns: 124px 58px 58px 112px 56px', networkHealthCss],
+    ['Network Health Passing Blocks right receipt rail styling', '.health-block-receipts {', networkHealthCss],
+    ['Network Health Passing Blocks Setup styling', '.health-block-filter-toggle.live-head-filter-toggle', networkHealthCss],
     ['network health continuity panel styles', '.health-continuity-panel', styles],
     ['network health continuity runtime styles', '.health-continuity-runtime', styles],
     ['chain uptime counter updater', "document.getElementById('chain-uptime-counter')", app],
@@ -3671,12 +3687,15 @@ async function checkSelectorContracts() {
   }
   if (!index.includes('id="live-head-filter-menu"')
       || !['transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'].every((kind) => index.includes(`data-live-head-filter-kind="${kind}"`))
+      || !health.includes('id="health-block-filter-menu"')
+      || !['transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'].every((kind) => health.includes(`data-live-head-filter-kind="${kind}"`))
       || !health.includes('LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY')
       || !health.includes('function wireLiveHeadActivityFilter(')
+      || !health.includes('function syncAllLiveHeadActivityFilterUis(')
       || !health.includes('data-live-head-kind=')
       || !health.includes('fitLiveHeadPills(panel)')
       || !heroSearchCss.includes('.live-head-filter-menu button[aria-pressed="false"]')) {
-    fail('Live Head must expose one persisted all-on activity setup menu and apply each category choice through measured pill fitting');
+    fail('Live Head and Network Health Passing Blocks must share one persisted all-on activity setup and apply each category choice through measured pill fitting');
   }
   if (!health.includes('live-head-baker-name')
       || !health.includes('live-head-story-connector')

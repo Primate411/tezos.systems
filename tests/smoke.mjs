@@ -2751,17 +2751,19 @@ async function installFeatureMocks(context, options = {}) {
         if (type === 'attestation' && rights.get('status') === 'missed') {
           const startLevel = Number(rights.get('level.ge'));
           const endLevel = Number(rights.get('level.le'));
+          const blockMisses = [endLevel - 1, endLevel - 2].flatMap((level) => [
+            { level, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 7, status: 'missed', type: 'attestation', baker: { address: 'tz1SecondTezReceipt11111111111111111', alias: 'second.tez' } },
+            { level, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 6, status: 'missed', type: 'attestation', baker: { address: 'tz4MissMissMissMissMissMissMissMis', alias: null } },
+            { level, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 5, status: 'missed', type: 'attestation', baker: { address: 'tz1KitchenSinkBakerOne111111111111', alias: 'Kitchen Baker' } },
+            { level, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 4, status: 'missed', type: 'attestation', baker: { address: 'tz2KitchenSinkBakerTwo222222222222', alias: 'Counter Baker' } },
+            { level, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 3, status: 'missed', type: 'attestation', baker: { address: 'tz3KitchenSinkBakerThree3333333333', alias: 'Pantry Baker' } },
+            { level, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 2, status: 'missed', type: 'attestation', baker: { address: 'tz1KitchenSinkBakerFour444444444444', alias: 'Galley Baker' } }
+          ]);
           if (Number.isFinite(startLevel) && Number.isFinite(endLevel) && endLevel - startLevel <= 4) {
-            return fulfillJson(route, [
-              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 7, status: 'missed', type: 'attestation', baker: { address: SAMPLE_ADDRESS_2, alias: 'second.tez' } },
-              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 6, status: 'missed', type: 'attestation', baker: { address: 'tz4MissMissMissMissMissMissMissMis', alias: null } },
-              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 5, status: 'missed', type: 'attestation', baker: { address: 'tz1KitchenSinkBakerOne111111111111', alias: 'Kitchen Baker' } },
-              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 4, status: 'missed', type: 'attestation', baker: { address: 'tz2KitchenSinkBakerTwo222222222222', alias: 'Counter Baker' } },
-              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 3, status: 'missed', type: 'attestation', baker: { address: 'tz3KitchenSinkBakerThree3333333333', alias: 'Pantry Baker' } },
-              { level: endLevel - 2, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 2, status: 'missed', type: 'attestation', baker: { address: 'tz1KitchenSinkBakerFour444444444444', alias: 'Galley Baker' } }
-            ]);
+            return fulfillJson(route, blockMisses);
           }
           return fulfillJson(route, [
+            ...blockMisses,
             { level: 12345678, timestamp: new Date(Date.now() - 1000).toISOString(), slots: 7, status: 'missed', type: 'attestation', baker: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' } },
             { level: 12345677, timestamp: new Date(Date.now() - 7000).toISOString(), slots: 3, status: 'missed', type: 'attestation', baker: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } },
             { level: 12345676, timestamp: new Date(Date.now() - 13000).toISOString(), slots: 2, status: 'missed', type: 'attestation', baker: { address: 'tz1MissMissMissMissMissMissMissMis', alias: 'Missed Attester' } }
@@ -14897,6 +14899,34 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       hero: modal?.querySelector('#health-hero-score')?.textContent || '',
       avg: modal?.querySelector('#health-avg-block')?.textContent || '',
       blockRows: modal?.querySelectorAll('#health-recent-block-list .health-block-row').length || 0,
+      visibleBlockRows: Array.from(modal?.querySelectorAll('#health-recent-block-list .health-block-row') || [])
+        .filter((row) => getComputedStyle(row).display !== 'none').length,
+      blockDepthExpanded: modal?.querySelector('#health-block-depth-toggle')?.getAttribute('aria-expanded') || '',
+      blockDepthLabel: modal?.querySelector('#health-block-depth-toggle')?.getAttribute('aria-label') || '',
+      blockDepthCount: modal?.querySelector('[data-health-block-depth-count]')?.textContent?.trim() || '',
+      blockSetupText: modal?.querySelector('#health-block-filter-toggle')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      blockSetupExpanded: modal?.querySelector('#health-block-filter-toggle')?.getAttribute('aria-expanded') || '',
+      blockSetupWired: modal?.querySelector('.health-block-filter')?.dataset.liveHeadActivityFilterWired || '',
+      blockReceiptRows: modal?.querySelectorAll('#health-recent-block-list [data-health-block-receipts]').length || 0,
+      blockReceiptStatuses: modal?.querySelectorAll('#health-recent-block-list .health-block-receipts > :is(.live-head-gas, .live-head-quiet)').length || 0,
+      blockReceiptStories: modal?.querySelectorAll('#health-recent-block-list .health-block-receipts .live-head-story-chip').length || 0,
+      blockReceiptMisses: modal?.querySelectorAll('#health-recent-block-list .health-block-receipts .live-head-miss-pill').length || 0,
+      blockReceiptGeometry: (() => {
+        const table = modal?.querySelector('.health-block-table');
+        const row = table?.querySelector('.health-block-row');
+        const level = row?.querySelector('.health-block-level');
+        const baker = row?.querySelector('.lb-baker-cell');
+        const receipts = row?.querySelector('.health-block-receipts');
+        const levelRect = level?.getBoundingClientRect();
+        const bakerRect = baker?.getBoundingClientRect();
+        const receiptRect = receipts?.getBoundingClientRect();
+        return {
+          levelWidth: levelRect?.width || 0,
+          receiptWidth: receiptRect?.width || 0,
+          receiptsAfterBaker: Boolean(bakerRect && receiptRect && bakerRect.right <= receiptRect.left + 1),
+          overflow: table ? table.scrollWidth - table.clientWidth : 999
+        };
+      })(),
       roundOne: modal?.querySelectorAll('.health-round-badge.round-watch').length || 0,
       attesterRows: modal?.querySelectorAll('#health-missed-attester-list .health-attester-row').length || 0,
       missedBlockRows: modal?.querySelectorAll('#health-missed-block-list .health-missed-block-row').length || 0,
@@ -15259,6 +15289,21 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     return result;
   });
 
+  await page.waitForFunction(() => {
+    const rows = Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'));
+    const visibleRows = rows.filter((row) => getComputedStyle(row).display !== 'none');
+    return rows.length === 15
+      && visibleRows.length === 8
+      && visibleRows.every((row) => row.querySelector('[data-health-block-receipts]'))
+      && visibleRows.every((row) => !row.querySelector('.live-head-gas-skeleton, .live-head-story.is-loading'));
+  }, null, { timeout: 20000 });
+  const chamberReceiptState = await page.evaluate(() => ({
+    rows: document.querySelectorAll('#health-recent-block-list [data-health-block-receipts]').length,
+    statuses: document.querySelectorAll('#health-recent-block-list .health-block-receipts > :is(.live-head-gas, .live-head-quiet)').length,
+    stories: document.querySelectorAll('#health-recent-block-list .health-block-receipts .live-head-story-chip').length,
+    misses: document.querySelectorAll('#health-recent-block-list .health-block-receipts .live-head-miss-pill').length
+  }));
+
   assert(/Network Health Chamber/.test(healthState.title), `network health chamber: title mismatch: ${healthState.title}`);
   assert(healthState.modalRole === 'dialog' && healthState.modalAriaModal === 'true' && /Network Health Chamber/.test(healthState.modalAriaLabel), `network health chamber: dialog semantics missing: ${JSON.stringify(healthState)}`);
   assert(healthState.modalAriaHidden === 'false' && healthState.focusedClose, `network health chamber: open dialog state/focus mismatch: hidden=${healthState.modalAriaHidden} focusedClose=${healthState.focusedClose}`);
@@ -15267,7 +15312,140 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(/auto-refresh 6s/.test(healthState.refreshState), `network health chamber: refresh label mismatch: ${healthState.refreshState}`);
   assert(/%/.test(healthState.hero), `network health chamber: hero score missing: ${healthState.hero}`);
   assert(/s/.test(healthState.avg), `network health chamber: average block time missing: ${healthState.avg}`);
-  assert(healthState.blockRows >= 4, `network health chamber: recent block rows missing, saw ${healthState.blockRows}`);
+  assert(healthState.blockRows === 15
+      && healthState.visibleBlockRows === 8
+      && healthState.blockDepthExpanded === 'false'
+      && /Show all 15 Passing Blocks/.test(healthState.blockDepthLabel)
+      && healthState.blockDepthCount === '8 blocks',
+    `network health chamber: compact Passing Blocks depth mismatch ${JSON.stringify({
+      rows: healthState.blockRows,
+      visible: healthState.visibleBlockRows,
+      expanded: healthState.blockDepthExpanded,
+      label: healthState.blockDepthLabel,
+      count: healthState.blockDepthCount
+    })}`);
+  assert(healthState.blockSetupText === 'Setup'
+      && healthState.blockSetupExpanded === 'false'
+      && healthState.blockSetupWired === '1'
+      && chamberReceiptState.rows === 15
+      && chamberReceiptState.statuses >= 8
+      && chamberReceiptState.stories >= 1
+      && chamberReceiptState.misses >= 1
+      && healthState.blockReceiptGeometry.levelWidth <= 126
+      && healthState.blockReceiptGeometry.receiptWidth >= 290
+      && healthState.blockReceiptGeometry.receiptsAfterBaker
+      && healthState.blockReceiptGeometry.overflow <= 1,
+    `network health chamber: reclaimed Level lane, shared receipts, or top-right Setup geometry mismatch ${JSON.stringify({
+      setup: [healthState.blockSetupText, healthState.blockSetupExpanded, healthState.blockSetupWired],
+      receipts: chamberReceiptState,
+      geometry: healthState.blockReceiptGeometry
+    })}`);
+
+  const chamberSetupToggle = page.locator('#health-block-filter-toggle');
+  await chamberSetupToggle.scrollIntoViewIfNeeded();
+  await chamberSetupToggle.click();
+  await page.locator('#health-block-filter-menu:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#health-block-filter-menu [data-live-head-filter-kind="all"]').click();
+  const chamberActivityFilterOff = await page.evaluate(() => ({
+    chamberAllPressed: document.querySelector('#health-block-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
+    homeAllPressed: document.querySelector('#live-head-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
+    visibleStories: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-story-chip')).filter((pill) => !pill.hidden).length,
+    visibleStatuses: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-gas, #health-recent-block-list .live-head-quiet')).filter((pill) => !pill.hidden).length,
+    visibleMisses: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-miss-pill')).filter((pill) => !pill.hidden).length
+  }));
+  await page.locator('#health-block-filter-menu [data-live-head-filter-kind="all"]').click();
+  const chamberActivityFilterOn = await page.evaluate(() => ({
+    chamberAllPressed: document.querySelector('#health-block-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
+    homeAllPressed: document.querySelector('#live-head-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
+    visibleStories: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-story-chip')).filter((pill) => !pill.hidden).length
+  }));
+  await page.keyboard.press('Escape');
+  assert(chamberActivityFilterOff.chamberAllPressed === 'false'
+      && chamberActivityFilterOff.homeAllPressed === 'false'
+      && chamberActivityFilterOff.visibleStories === 0
+      && chamberActivityFilterOff.visibleStatuses >= 8
+      && chamberActivityFilterOff.visibleMisses >= 1
+      && chamberActivityFilterOn.chamberAllPressed === 'true'
+      && chamberActivityFilterOn.homeAllPressed === 'true'
+      && chamberActivityFilterOn.visibleStories >= 1,
+    `network health chamber: top-right Setup did not share the homepage activity choices while retaining gas and missed receipts ${JSON.stringify({ chamberActivityFilterOff, chamberActivityFilterOn })}`);
+  const chamberDepthToggle = page.locator('#health-block-depth-toggle');
+  await chamberDepthToggle.scrollIntoViewIfNeeded();
+  await page.evaluate(() => {
+    window.__healthDepthFirstRow = document.querySelector('#health-recent-block-list .health-block-row');
+    window.__healthDepthFirstLevel = window.__healthDepthFirstRow?.dataset.healthLevel || '';
+    window.__healthDepthScroll = document.querySelector('#network-health-modal .health-content')?.scrollTop || 0;
+  });
+  await chamberDepthToggle.click();
+  await page.waitForFunction(() => (
+    Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
+      .filter((row) => getComputedStyle(row).display !== 'none').length === 15
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 10
+    && Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
+      .every((row) => !row.querySelector('.live-head-gas-skeleton, .live-head-story.is-loading'))
+  ), null, { timeout: 20000 });
+  const chamberExpandedDepthState = await page.evaluate(() => {
+    const toggle = document.getElementById('health-block-depth-toggle');
+    const rows = Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'));
+    return {
+      total: rows.length,
+      visible: rows.filter((row) => getComputedStyle(row).display !== 'none').length,
+      retainedHead: window.__healthDepthFirstRow === document.querySelector(`#health-recent-block-list .health-block-row[data-health-level="${window.__healthDepthFirstLevel}"]`),
+      expanded: toggle?.getAttribute('aria-expanded') || '',
+      label: toggle?.getAttribute('aria-label') || '',
+      count: toggle?.querySelector('[data-health-block-depth-count]')?.textContent?.trim() || '',
+      receiptStatuses: document.querySelectorAll('#health-recent-block-list .health-block-receipts > :is(.live-head-gas, .live-head-quiet)').length,
+      receiptStories: document.querySelectorAll('#health-recent-block-list .health-block-receipts .live-head-story-chip').length,
+      arrowTransform: toggle?.querySelector('svg') ? getComputedStyle(toggle.querySelector('svg')).transform : '',
+      focusStayed: document.activeElement === toggle,
+      initialScroll: window.__healthDepthScroll,
+      modalScroll: document.querySelector('#network-health-modal .health-content')?.scrollTop || 0,
+      homeRows: document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length,
+      homeExpanded: document.getElementById('live-head-depth-toggle')?.getAttribute('aria-expanded') || '',
+      setupPressed: document.getElementById('live-head-depth-setting')?.getAttribute('aria-pressed') || '',
+      stored: JSON.parse(localStorage.getItem('tezos-systems-live-head-depth-v1') || 'null')
+    };
+  });
+  assert(chamberExpandedDepthState.total === 15
+      && chamberExpandedDepthState.visible === 15
+      && chamberExpandedDepthState.retainedHead
+      && chamberExpandedDepthState.expanded === 'true'
+      && /Show 8 Passing Blocks/.test(chamberExpandedDepthState.label)
+      && chamberExpandedDepthState.count === '15 blocks'
+      && chamberExpandedDepthState.receiptStatuses === 15
+      && chamberExpandedDepthState.receiptStories >= 1
+      && chamberExpandedDepthState.arrowTransform !== 'none'
+      && chamberExpandedDepthState.focusStayed
+      && Math.abs(chamberExpandedDepthState.modalScroll - chamberExpandedDepthState.initialScroll) <= 1
+      && chamberExpandedDepthState.homeRows === 10
+      && chamberExpandedDepthState.homeExpanded === 'true'
+      && chamberExpandedDepthState.setupPressed === 'true'
+      && chamberExpandedDepthState.stored?.expanded === true,
+    `network health chamber: Passing Blocks did not share the persistent expanded depth without replacing its rows ${JSON.stringify(chamberExpandedDepthState)}`);
+  await chamberDepthToggle.click();
+  await page.waitForFunction(() => (
+    Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
+      .filter((row) => getComputedStyle(row).display !== 'none').length === 8
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4
+  ));
+  const chamberContractedDepthState = await page.evaluate(() => ({
+    visible: Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
+      .filter((row) => getComputedStyle(row).display !== 'none').length,
+    expanded: document.getElementById('health-block-depth-toggle')?.getAttribute('aria-expanded') || '',
+    label: document.getElementById('health-block-depth-toggle')?.getAttribute('aria-label') || '',
+    count: document.querySelector('[data-health-block-depth-count]')?.textContent?.trim() || '',
+    retainedHead: window.__healthDepthFirstRow === document.querySelector(`#health-recent-block-list .health-block-row[data-health-level="${window.__healthDepthFirstLevel}"]`),
+    focusStayed: document.activeElement === document.getElementById('health-block-depth-toggle'),
+    stored: JSON.parse(localStorage.getItem('tezos-systems-live-head-depth-v1') || 'null')
+  }));
+  assert(chamberContractedDepthState.visible === 8
+      && chamberContractedDepthState.expanded === 'false'
+      && /Show all 15 Passing Blocks/.test(chamberContractedDepthState.label)
+      && chamberContractedDepthState.count === '8 blocks'
+      && chamberContractedDepthState.retainedHead
+      && chamberContractedDepthState.focusStayed
+      && chamberContractedDepthState.stored?.expanded === false,
+    `network health chamber: Passing Blocks did not contract cleanly ${JSON.stringify(chamberContractedDepthState)}`);
   assert(healthState.roundOne >= 1, 'network health chamber: round-one block badge missing');
   assert(healthState.attesterRows >= 2, `network health chamber: missed attester rows missing, saw ${healthState.attesterRows}`);
   assert(healthState.missedBlockRows >= 1, `network health chamber: missed block rows missing, saw ${healthState.missedBlockRows}`);
@@ -15540,7 +15718,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	    })
 	  ));
 	  assert(/Smoke Piece/.test(wideStoryState.art.text)
-	      && /2,542 ꜩ total/.test(wideStoryState.transfers.text)
+	      && /\d[\d,]* ꜩ/.test(wideStoryState.transfers.text)
+	      && /→/.test(wideStoryState.transfers.text)
 	      && /125 ꜩ/.test(wideStoryState.stake.text)
 	      && Object.values(wideStoryState).every((pill) => pill.level > 0 && pill.overflow <= 1), `network health chamber: wide rows did not spend real spare width on richer receipts ${JSON.stringify(wideStoryState)}`);
 	  await page.setViewportSize({ width: 1440, height: 1000 });
@@ -15626,6 +15805,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     window.__healthNcPrintNode = document.querySelector('#network-health-modal #health-nc-print');
     window.__healthNcShareNode = document.querySelector('#network-health-modal #health-nc-share');
     window.__healthCyclePanelNode = document.querySelector('#network-health-modal #health-cycle-timing');
+    window.__healthBlockDepthToggleNode = document.querySelector('#health-block-depth-toggle');
+    window.__healthBlockSetupNode = document.querySelector('#health-block-filter-toggle');
+    window.__healthReceiptLevel = document.querySelector('#health-recent-block-list .health-block-row')?.dataset.healthLevel || '';
+    window.__healthReceiptNode = document.querySelector('#health-recent-block-list .health-block-row [data-health-block-receipts]');
     window.__heartbeatRetainedCell = document.querySelector('#live-head-stack .live-head-row:nth-child(2)');
     window.__heartbeatRetainedStory = window.__heartbeatRetainedCell?.querySelector('.live-head-story');
     window.__heartbeatRetainedKey = window.__heartbeatRetainedCell?.dataset.quietKey || '';
@@ -15637,6 +15820,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       hasTimer: Boolean(timer?.handler),
       firstLevel: document.querySelector('#health-recent-block-list .health-block-row')?.dataset.healthLevel || '',
       rowCount: document.querySelectorAll('#health-recent-block-list .health-block-row').length,
+      visibleRowCount: Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
+        .filter((row) => getComputedStyle(row).display !== 'none').length,
       heartbeatWindowY: window.__heartbeatWindowY,
       heartbeatModalScroll: window.__heartbeatModalScroll
     };
@@ -15665,6 +15850,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     ncPrintSame: window.__healthNcPrintNode === document.querySelector('#network-health-modal #health-nc-print'),
     ncShareSame: window.__healthNcShareNode === document.querySelector('#network-health-modal #health-nc-share'),
     cyclePanelSame: window.__healthCyclePanelNode === document.querySelector('#network-health-modal #health-cycle-timing'),
+    blockDepthToggleSame: window.__healthBlockDepthToggleNode === document.querySelector('#health-block-depth-toggle'),
+    blockSetupSame: window.__healthBlockSetupNode === document.querySelector('#health-block-filter-toggle'),
+    blockReceiptSame: window.__healthReceiptNode === document.querySelector(`#health-recent-block-list .health-block-row[data-health-level="${window.__healthReceiptLevel}"] [data-health-block-receipts]`),
     heartbeatRetainedCellSame: window.__heartbeatRetainedCell === document.querySelector(`#live-head-stack [data-quiet-key="${window.__heartbeatRetainedKey}"]`),
     heartbeatRetainedStorySame: window.__heartbeatRetainedStory === document.querySelector(`#live-head-stack [data-quiet-key="${window.__heartbeatRetainedKey}"] .live-head-story`),
     heartbeatStorySignatureSame: window.__heartbeatStorySignature === document.querySelector(`#live-head-stack [data-quiet-key="${window.__heartbeatRetainedKey}"] .live-head-story`)?.dataset.storySignature,
@@ -15678,6 +15866,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     mode: document.querySelector('#network-health-modal .health-body')?.dataset.healthRefreshMode || '',
     firstLevel: document.querySelector('#health-recent-block-list .health-block-row')?.dataset.healthLevel || '',
     rowCount: document.querySelectorAll('#health-recent-block-list .health-block-row').length,
+    visibleRowCount: Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
+      .filter((row) => getComputedStyle(row).display !== 'none').length,
+    blockDepthExpanded: document.querySelector('#health-block-depth-toggle')?.getAttribute('aria-expanded') || '',
+    blockDepthCount: document.querySelector('[data-health-block-depth-count]')?.textContent?.trim() || '',
     newRows: document.querySelectorAll('#health-recent-block-list .lb-row-new').length,
     liveHeadNewRows: document.querySelectorAll('#live-head-stack .lb-row-new').length,
     liveHeadExitRows: document.querySelectorAll('#live-head-stack .live-head-row-exiting').length,
@@ -15695,6 +15887,14 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(smoothRefreshState.ncPanelSame, 'network health chamber: smooth refresh replaced the Nakamoto panel instead of updating in place');
   assert(smoothRefreshState.ncPrintSame && smoothRefreshState.ncShareSame, 'network health chamber: smooth refresh replaced Nakamoto print/share controls');
   assert(smoothRefreshState.cyclePanelSame && smoothRefreshState.cycleProgress === '11.4%', `network health chamber: quiet refresh replaced or lost current-cycle progress: ${JSON.stringify(smoothRefreshState)}`);
+  assert(smoothRefreshState.blockDepthToggleSame
+      && smoothRefreshState.blockSetupSame
+      && smoothRefreshState.blockReceiptSame
+      && smoothRefreshState.rowCount === beforeSmoothRefresh.rowCount
+      && smoothRefreshState.visibleRowCount === beforeSmoothRefresh.visibleRowCount
+      && smoothRefreshState.blockDepthExpanded === 'false'
+      && smoothRefreshState.blockDepthCount === '8 blocks',
+    `network health chamber: smooth refresh replaced or reset Passing Blocks depth ${JSON.stringify(smoothRefreshState)}`);
   assert(
     smoothRefreshState.heartbeatRetainedCellSame
       && smoothRefreshState.heartbeatRetainedStorySame
@@ -15918,6 +16118,89 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(nakamotoMobileState.actionButtonMinSize >= 28, `network health chamber: Nakamoto mobile print/share controls are too small: ${JSON.stringify(nakamotoMobileState)}`);
   assert(nakamotoMobileState.helpInFlow && nakamotoMobileState.helpPosition === 'static', `network health chamber: Nakamoto mobile info should expand in flow: ${JSON.stringify(nakamotoMobileState)}`);
   assert(nakamotoMobileState.triggerSize >= 28, `network health chamber: Nakamoto info control is too small on mobile: ${nakamotoMobileState.triggerSize}`);
+  await chamberDepthToggle.scrollIntoViewIfNeeded();
+  const chamberMobileCompactDepthState = await page.evaluate(() => {
+    const panel = document.querySelector('.health-recent-blocks');
+    const toggle = document.getElementById('health-block-depth-toggle');
+    const setup = document.getElementById('health-block-filter-toggle');
+    const rows = Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'));
+    const rect = toggle?.getBoundingClientRect();
+    const setupRect = setup?.getBoundingClientRect();
+    const visibleRows = rows.filter((row) => getComputedStyle(row).display !== 'none');
+    return {
+      visible: visibleRows.length,
+      label: toggle?.getAttribute('aria-label') || '',
+      count: toggle?.querySelector('[data-health-block-depth-count]')?.textContent?.trim() || '',
+      targetWidth: rect?.width || 0,
+      targetHeight: rect?.height || 0,
+      setupWidth: setupRect?.width || 0,
+      setupHeight: setupRect?.height || 0,
+      setupBeforeDepth: Boolean(setupRect && rect && setupRect.right <= rect.left + 1),
+      receiptRows: visibleRows.filter((row) => row.querySelector('[data-health-block-receipts]')).length,
+      rowOverflow: Math.max(0, ...visibleRows.map((row) => row.scrollWidth - row.clientWidth)),
+      receiptOverflow: Math.max(0, ...visibleRows.map((row) => {
+        const receipt = row.querySelector('[data-health-block-receipts]');
+        return receipt ? receipt.scrollWidth - receipt.clientWidth : 999;
+      })),
+      panelOverflow: panel ? panel.scrollWidth - panel.clientWidth : 999,
+      pageOverflow: document.documentElement.scrollWidth - innerWidth
+    };
+  });
+  assert(chamberMobileCompactDepthState.visible === 6
+      && /Show all 12 Passing Blocks/.test(chamberMobileCompactDepthState.label)
+      && chamberMobileCompactDepthState.count === '6 blocks'
+      && chamberMobileCompactDepthState.targetWidth >= 44
+      && chamberMobileCompactDepthState.targetHeight >= 44
+      && chamberMobileCompactDepthState.setupWidth >= 44
+      && chamberMobileCompactDepthState.setupHeight >= 44
+      && chamberMobileCompactDepthState.setupBeforeDepth
+      && chamberMobileCompactDepthState.receiptRows === 6
+      && chamberMobileCompactDepthState.rowOverflow <= 1
+      && chamberMobileCompactDepthState.receiptOverflow <= 1
+      && chamberMobileCompactDepthState.panelOverflow <= 1
+      && chamberMobileCompactDepthState.pageOverflow <= 1,
+    `network health chamber: compact mobile Passing Blocks depth overflowed or lost its action ${JSON.stringify(chamberMobileCompactDepthState)}`);
+  await chamberDepthToggle.click();
+  await page.waitForFunction(() => (
+    Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
+      .filter((row) => getComputedStyle(row).display !== 'none').length === 12
+    && Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]'))
+      .filter((row) => getComputedStyle(row).display !== 'none').length === 9
+  ));
+  const chamberMobileExpandedDepthState = await page.evaluate(() => {
+    const panel = document.querySelector('.health-recent-blocks');
+    const toggle = document.getElementById('health-block-depth-toggle');
+    const visibleRows = Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
+      .filter((row) => getComputedStyle(row).display !== 'none');
+    return {
+      visible: visibleRows.length,
+      label: toggle?.getAttribute('aria-label') || '',
+      count: toggle?.querySelector('[data-health-block-depth-count]')?.textContent?.trim() || '',
+      focusStayed: document.activeElement === toggle,
+      rowOverflow: Math.max(0, ...visibleRows.map((row) => row.scrollWidth - row.clientWidth)),
+      receiptOverflow: Math.max(0, ...visibleRows.map((row) => {
+        const receipt = row.querySelector('[data-health-block-receipts]');
+        return receipt ? receipt.scrollWidth - receipt.clientWidth : 999;
+      })),
+      panelOverflow: panel ? panel.scrollWidth - panel.clientWidth : 999,
+      pageOverflow: document.documentElement.scrollWidth - innerWidth
+    };
+  });
+  assert(chamberMobileExpandedDepthState.visible === 12
+      && /Show 6 Passing Blocks/.test(chamberMobileExpandedDepthState.label)
+      && chamberMobileExpandedDepthState.count === '12 blocks'
+      && chamberMobileExpandedDepthState.focusStayed
+      && chamberMobileExpandedDepthState.rowOverflow <= 1
+      && chamberMobileExpandedDepthState.receiptOverflow <= 1
+      && chamberMobileExpandedDepthState.panelOverflow <= 1
+      && chamberMobileExpandedDepthState.pageOverflow <= 1,
+    `network health chamber: expanded mobile Passing Blocks depth overflowed ${JSON.stringify(chamberMobileExpandedDepthState)}`);
+  await chamberDepthToggle.click();
+  await page.waitForFunction(() => (
+    Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
+      .filter((row) => getComputedStyle(row).display !== 'none').length === 6
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 3
+  ));
   await page.setViewportSize({ width: 1440, height: 1000 });
 
   await page.locator('#network-health-modal.active .chamber-close').click();
@@ -16025,18 +16308,18 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4);
   await page.locator('#live-head-filter-toggle').click();
   await page.locator('#live-head-filter-menu:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
-  await page.locator('[data-live-head-filter-kind="all"]').click();
+  await page.locator('#live-head-filter-menu [data-live-head-filter-kind="all"]').click();
   const activityFilterOff = await page.evaluate(() => ({
-    allPressed: document.querySelector('[data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
-    selectedCount: document.querySelectorAll('.live-head-filter-pill[aria-pressed="true"]').length,
+    allPressed: document.querySelector('#live-head-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
+    selectedCount: document.querySelectorAll('#live-head-filter-menu .live-head-filter-pill[aria-pressed="true"]').length,
     visibleStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip')).filter((pill) => !pill.hidden).length,
     visibleMissPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-miss-pill')).filter((pill) => !pill.hidden).length,
     height: document.querySelector('#live-head')?.getBoundingClientRect().height || 0
   }));
-  await page.locator('[data-live-head-filter-kind="all"]').click();
+  await page.locator('#live-head-filter-menu [data-live-head-filter-kind="all"]').click();
   const activityFilterOn = await page.evaluate(() => ({
-    allPressed: document.querySelector('[data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
-    selectedCount: document.querySelectorAll('.live-head-filter-pill[aria-pressed="true"]').length,
+    allPressed: document.querySelector('#live-head-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
+    selectedCount: document.querySelectorAll('#live-head-filter-menu .live-head-filter-pill[aria-pressed="true"]').length,
     visibleStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip')).filter((pill) => !pill.hidden).length,
     height: document.querySelector('#live-head')?.getBoundingClientRect().height || 0
   }));

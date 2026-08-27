@@ -223,6 +223,7 @@ function handleKeydown(event) {
     if (!state) return;
 
     if (event.key === 'Escape') {
+        if (state.dialog.querySelector('[data-overlay-escape-open="true"]')) return;
         if (state.closeOnEscape === false) return;
         event.preventDefault();
         event.stopPropagation();

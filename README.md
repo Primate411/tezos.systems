@@ -824,7 +824,12 @@ inline modal styles in `js/core/app.js`.
   baker summary. Its Chambers card spans two
   tiles and includes compact block-power bars plus a deduped throttled 1,000+
   XTZ live activity tape; the open chamber refreshes on the block cadence with
-  in-place row updates instead of a full rerender, and now adds incident memory,
+  in-place row updates instead of a full rerender. Its Passing Blocks table
+  keeps a narrow level lane and spends the reclaimed right-hand space on the
+  same Gas, Quiet, activity, and missed-attester receipts as Live Head. A
+  top-right Setup menu shares Live Head's persisted activity filters, while the
+  shared depth control keeps eight desktop or six mobile rows compact and
+  expands to fifteen desktop or twelve mobile rows. The chamber also adds incident memory,
   current-cycle progress, completed-cycle timing, Octez versions, period
   telemetry, network-load, and Consensus Lens panels.
 - Ledger Flow Chamber with direct `#ledger-flow` and `/ledger-flow/` access,
