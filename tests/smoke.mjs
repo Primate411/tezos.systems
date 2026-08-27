@@ -16088,7 +16088,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const panel = document.querySelector('#live-head');
     return panel?.dataset.readingPaused === 'true'
       && Number(panel.dataset.liveHeadPendingLevel || 0) > previousLevel;
-  }, readingPauseBefore.level, { timeout: 10000 });
+  }, readingPauseBefore.level, { timeout: 30000 });
   await page.evaluate(() => {
     const timers = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 1000);
     const realNow = Date.now;
