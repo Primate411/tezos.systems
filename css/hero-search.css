@@ -2033,8 +2033,24 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
     outline-offset: 1px;
 }
 
-body.hero-search-mode .live-head-depth-rail {
-    display: none;
+@media (min-width: 761px) {
+    .live-head-depth-rail {
+        position: absolute;
+        z-index: 31;
+        right: 16px;
+        bottom: 56px;
+        width: 30px;
+        padding-right: 0;
+        pointer-events: none;
+    }
+
+    .live-head-depth-toggle {
+        pointer-events: auto;
+    }
+
+    .live-head-stack > .live-head-row:last-child {
+        padding-right: 42px;
+    }
 }
 
 .live-head-row {
