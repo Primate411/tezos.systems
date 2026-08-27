@@ -5180,6 +5180,18 @@ body::before {
     color: var(--text-primary);
 }
 
+/* Chamber close controls stay visually bare: the X is the control chrome. */
+.chamber-close {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+}
+
+.chamber-close:is(:hover, :focus-visible) {
+    text-shadow: 0 0 10px currentColor;
+}
+
 .modal-title {
     font-size: 1.5rem;
     font-weight: 700;
@@ -16598,8 +16610,6 @@ body {
     .chamber-close {
         top: 0.9rem;
         right: 0.9rem;
-        background: rgba(0, 0, 0, 0.22);
-        border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .chamber-process-card {
         padding: 12px;

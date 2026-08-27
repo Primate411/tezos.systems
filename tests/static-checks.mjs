@@ -2519,6 +2519,8 @@ async function checkSelectorContracts() {
     ['shared Chamber title normalization', "title.classList.add('chamber-entry-title')", chamberAccessibility],
     ['shared Chamber full-card launcher', "card.dataset.chamberSurfaceWired !== '1'", chamberAccessibility],
     ['shared Chamber nested control exclusion', 'target.closest(CHAMBER_INTERACTIVE_SELECTOR)', chamberAccessibility],
+    ['shared Chamber close controls stay unframed', '.chamber-close {\n    background: transparent !important;\n    border: 0 !important;\n    box-shadow: none !important;\n    outline: 0 !important;\n}', styles],
+    ['shared Chamber close focus stays on the X', '.chamber-close:is(:hover, :focus-visible)', styles],
     ['shared overlay focus trap', "event.key !== 'Tab'", overlayStack],
     ['shared overlay topmost Escape close', "event.key === 'Escape'", overlayStack],
     ['shared overlay opener restoration', 'state.opener.isConnected', overlayStack],
