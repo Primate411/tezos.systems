@@ -583,10 +583,10 @@ const overdelegatedBaker = {
 
 function sampleHistoryRows() {
   const now = Date.now();
-  return Array.from({ length: 8 }, (_, index) => {
-    const step = index + 1;
+  return Array.from({ length: 91 }, (_, index) => {
+    const step = Math.round(1 + (index * 7 / 90));
     return {
-      timestamp: new Date(now - (8 - step) * 24 * 60 * 60 * 1000).toISOString(),
+      timestamp: new Date(now - (90 - index) * 24 * 60 * 60 * 1000).toISOString(),
       tz4_percentage: 40 + step,
       staking_ratio: 28 + step / 10,
       total_bakers: 220 + step,
@@ -2614,8 +2614,19 @@ async function installFeatureMocks(context, options = {}) {
         return fulfillJson(route, 12344000);
       }
       if (url.includes('/blocks?')) {
-        if (networkHealthBlocksDelayMs > 0) await sleep(networkHealthBlocksDelayMs);
         const params = new URL(url).searchParams;
+        const priorBakeAddress = params.get('anyof.proposer.producer');
+        if (priorBakeAddress) {
+          if (priorBakeAddress !== SAMPLE_ADDRESS_2) return fulfillJson(route, []);
+          const activationLevel = Number(params.get('level.lt')) || 12295000;
+          return fulfillJson(route, [{
+            level: activationLevel - 1000,
+            timestamp: new Date(Date.now() - 180 * 86400000).toISOString(),
+            proposer: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+            producer: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }
+          }]);
+        }
+        if (networkHealthBlocksDelayMs > 0) await sleep(networkHealthBlocksDelayMs);
         const bakerSizeTimestamp = params.get('timestamp.le');
         if (bakerSizeTimestamp && params.get('select') === 'level,cycle,timestamp') {
           return fulfillJson(route, [{ level: 9887330, cycle: 961, timestamp: bakerSizeTimestamp }]);
@@ -26612,9 +26623,12 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await page.locator('#top-continuity-panel > #top-continuity-explain.is-visible').waitFor({ state: 'visible', timeout: 5000 });
   await page.waitForFunction(() => {
     const roster = document.querySelector('#top-continuity-baker-roster');
+    const horizons = document.querySelector('[data-top-continuity-horizons]');
     return roster?.getAttribute('aria-busy') === 'false'
       && roster.querySelectorAll('.top-continuity-baker-list').length === 2
-      && roster.querySelectorAll('.top-continuity-baker-row').length === 6;
+      && roster.querySelectorAll('.top-continuity-baker-row').length === 6
+      && horizons?.getAttribute('aria-busy') === 'false'
+      && horizons.querySelectorAll('.top-continuity-horizon').length === 3;
   }, null, { timeout: 10000 });
   const topExplainState = await page.evaluate((beforeTop) => {
     const panel = document.querySelector('#top-continuity-panel');
@@ -26643,6 +26657,10 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
       domains: Array.from(popover?.querySelectorAll('.top-continuity-baker-identity strong') || []).map((name) => name.textContent?.trim() || ''),
       sizes: Array.from(popover?.querySelectorAll('[data-baker-size]') || []).map((badge) => badge.dataset.bakerSize || ''),
       sizeLabels: Array.from(popover?.querySelectorAll('[data-baker-size]') || []).map((badge) => badge.getAttribute('aria-label') || ''),
+      entryKinds: Array.from(popover?.querySelectorAll('.top-continuity-baker-row.is-gained') || []).map((row) => row.dataset.bakerEntry || ''),
+      newBadges: Array.from(popover?.querySelectorAll('.top-continuity-baker-new') || []).map((badge) => badge.textContent?.trim() || ''),
+      horizonLabels: Array.from(popover?.querySelectorAll('.top-continuity-horizon > span') || []).map((label) => label.textContent?.trim() || ''),
+      horizonValues: Array.from(popover?.querySelectorAll('.top-continuity-horizon strong') || []).map((value) => value.textContent?.trim() || ''),
       saveActions: popover?.querySelectorAll('[data-baker-set-save-address]').length || 0,
       tzktLinks: Array.from(popover?.querySelectorAll('.top-continuity-baker-actions a[href^="https://tzkt.io/"]') || []).map((link) => link.href),
       freshness: popover?.querySelector('[data-baker-set-status]')?.textContent?.trim() || ''
@@ -26661,12 +26679,16 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
     && topExplainState.domains.includes('qa-baker.tez')
     && topExplainState.domains.includes('retired-baker.tez')
     && topExplainState.domains.includes('Former Baker')
-    && /Newest Bakers/i.test(topExplainState.popoverText)
+    && /New \+ Reactivated/i.test(topExplainState.popoverText)
     && /baking rights gained/i.test(topExplainState.popoverText)
     && /Closed Bakers/i.test(topExplainState.popoverText)
     && /baking rights lost/i.test(topExplainState.popoverText), `feature workflows baker right-change lists mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.sizes.join(',') === 'large,medium,small,small,medium,large'
     && topExplainState.sizeLabels.every((label) => /baker, .*% of (current network baking power|network baking power one year before closure)/.test(label)), `feature workflows baker size tiers mismatch: ${JSON.stringify(topExplainState)}`);
+  assert(topExplainState.entryKinds.join(',') === 'new,reactivated,new'
+    && topExplainState.newBadges.join(',') === 'NEW,NEW', `feature workflows baker new/reactivated classification mismatch: ${JSON.stringify(topExplainState)}`);
+  assert(topExplainState.horizonLabels.join(',') === '7D,30D,90D'
+    && topExplainState.horizonValues.every((value) => value !== '—' && /^[-+−]?\d[\d,]*$/.test(value)), `feature workflows baker horizon changes mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.saveActions === 6
     && topExplainState.tzktLinks.length === 6
     && /^Live /.test(topExplainState.freshness), `feature workflows baker right-change actions or provenance mismatch: ${JSON.stringify(topExplainState)}`);
@@ -26722,6 +26744,24 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   assert(!topExplainChartState.explainerVisible && /Total Bakers/.test(topExplainChartState.title), `feature workflows top pill chart CTA mismatch: ${JSON.stringify(topExplainChartState)}`);
   await page.locator('#card-history-close').click();
   await page.locator('#card-history-modal[aria-hidden="true"]').waitFor({ state: 'attached', timeout: 5000 });
+  for (const metricKey of ['staking-ratio', 'issuance-rate']) {
+    const metricPill = page.locator(`#top-continuity-panel .top-continuity-stat[data-card-history="${metricKey}"]`);
+    await metricPill.click();
+    await page.waitForFunction((key) => {
+      const explain = document.querySelector('#top-continuity-explain.is-visible');
+      const horizons = explain?.querySelector('[data-top-continuity-horizons]');
+      return document.querySelector(`.top-continuity-stat[data-card-history="${key}"]`)?.classList.contains('is-explaining')
+        && horizons?.getAttribute('aria-busy') === 'false'
+        && horizons.querySelectorAll('.top-continuity-horizon strong').length === 3;
+    }, metricKey, { timeout: 5000 });
+    const metricHorizonState = await page.evaluate(() => ({
+      labels: Array.from(document.querySelectorAll('#top-continuity-explain .top-continuity-horizon > span')).map((node) => node.textContent?.trim() || ''),
+      values: Array.from(document.querySelectorAll('#top-continuity-explain .top-continuity-horizon strong')).map((node) => node.textContent?.trim() || '')
+    }));
+    assert(metricHorizonState.labels.join(',') === '7D,30D,90D'
+      && metricHorizonState.values.every((value) => /^[-+−]?\d+\.\d{2} pp$/.test(value)), `feature workflows ${metricKey} horizon changes mismatch: ${JSON.stringify(metricHorizonState)}`);
+    await page.locator('[data-close-top-continuity-explain]').click();
+  }
   log('ok - feature workflow: top pill explainer popover');
   await page.evaluate(async () => {
     localStorage.setItem('tezos-systems-pi-visible', 'false');
@@ -26999,8 +27039,14 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await mobileBakersPill.tap();
   await mobilePage.waitForFunction(() => {
     const roster = document.querySelector('#top-continuity-baker-roster');
+    const horizons = document.querySelector('[data-top-continuity-horizons]');
+    const horizonValues = Array.from(horizons?.querySelectorAll('.top-continuity-horizon strong') || [])
+      .map((value) => value.textContent?.trim() || '');
     return roster?.getAttribute('aria-busy') === 'false'
-      && roster.querySelectorAll('.top-continuity-baker-row').length === 6;
+      && roster.querySelectorAll('.top-continuity-baker-row').length === 6
+      && horizons?.getAttribute('aria-busy') === 'false'
+      && horizonValues.length === 3
+      && horizonValues.every((value) => value !== '—');
   }, null, { timeout: 10000 });
   const mobileBakerSet = await mobilePage.evaluate(() => {
     const panel = document.querySelector('#top-continuity-panel');
@@ -27023,6 +27069,8 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
       pageOverflow: document.documentElement.scrollWidth - innerWidth,
       listCounts: Array.from(popover?.querySelectorAll('.top-continuity-baker-list') || []).map((list) => list.querySelectorAll('.top-continuity-baker-row').length),
       headings: Array.from(popover?.querySelectorAll('.top-continuity-baker-heading strong') || []).map((heading) => heading.textContent?.trim() || ''),
+      horizonValues: Array.from(popover?.querySelectorAll('.top-continuity-horizon strong') || []).map((value) => value.textContent?.trim() || ''),
+      newBadges: popover?.querySelectorAll('.top-continuity-baker-new').length || 0,
       actionCount: controls.length,
       controls,
       text: popover?.textContent || ''
@@ -27036,7 +27084,10 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
     && mobileBakerSet.pageOverflow <= 1,
   `feature workflows mobile baker set: in-flow panel geometry mismatch ${JSON.stringify(mobileBakerSet)}`);
   assert(mobileBakerSet.listCounts.join(',') === '3,3'
-    && mobileBakerSet.headings.join(',') === 'Newest Bakers,Closed Bakers'
+    && mobileBakerSet.headings.join(',') === 'New + Reactivated,Closed Bakers'
+    && mobileBakerSet.horizonValues.length === 3
+    && mobileBakerSet.horizonValues.every((value) => value !== '—')
+    && mobileBakerSet.newBadges === 2
     && /baking rights gained/i.test(mobileBakerSet.text)
     && /baking rights lost/i.test(mobileBakerSet.text),
   `feature workflows mobile baker set: lifecycle rows missing ${JSON.stringify(mobileBakerSet)}`);

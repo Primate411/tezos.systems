@@ -107,6 +107,48 @@
     margin: 0;
 }
 
+.top-continuity-horizons {
+    display: grid;
+    min-width: 0;
+    gap: 0.28rem;
+}
+
+.top-continuity-horizon-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.34rem;
+}
+
+.top-continuity-horizon {
+    min-width: 0;
+    display: grid;
+    gap: 0.12rem;
+    padding: 0.42rem 0.48rem;
+    border: 1px solid color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 18%, var(--glass-border));
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 6%, transparent);
+}
+
+.top-continuity-horizon > span {
+    color: var(--text-tertiary, var(--text-secondary));
+    font: 800 0.52rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.08em;
+}
+
+.top-continuity-horizon strong {
+    overflow: hidden;
+    color: color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 82%, var(--text-primary));
+    font: 850 0.7rem/1.2 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.top-continuity-horizon-note {
+    color: var(--text-tertiary, var(--text-secondary)) !important;
+    font: 650 0.54rem/1.3 'JetBrains Mono', monospace !important;
+}
+
 .top-continuity-explain .feature-kicker {
     color: color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 78%, var(--text-primary));
 }
@@ -210,6 +252,29 @@
     line-height: 1.25;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.top-continuity-baker-name {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.28rem;
+}
+
+.top-continuity-baker-name strong {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.top-continuity-baker-new {
+    flex: 0 0 auto;
+    padding: 0.15rem 0.24rem;
+    border: 1px solid color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 48%, transparent);
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 11%, transparent);
+    color: color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 88%, var(--text-primary));
+    font: 900 0.43rem/1 'JetBrains Mono', monospace;
+    letter-spacing: 0.055em;
 }
 
 .top-continuity-baker-size {

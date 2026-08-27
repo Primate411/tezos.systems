@@ -4,7 +4,7 @@
  */
 
 import './tzkt-throttle.js';
-import { fetchAllStats, fetchHeroStats, checkApiHealth, fetchWithDeadline, fetchWithRetry } from './api.js';
+import { fetchAllStats, fetchHeroStats, fetchHistoricalDataReceipt, checkApiHealth, fetchWithDeadline, fetchWithRetry } from './api.js';
 import {
     CHAMBER_CATEGORY_META,
     findCurrentSiteMapContext,
@@ -3326,7 +3326,7 @@ const TOP_CONTINUITY_EXPLANATIONS = {
     'total-bakers': {
         kicker: 'Baker set',
         title: 'Permissionless operators are the continuity layer.',
-        body: 'The newest and recently closed bakers, ordered by when baking rights were gained or lost.'
+        body: 'The latest active registrations include first-time and returning bakers. NEW means no earlier baked block was found before the latest activation.'
     },
     finality: {
         kicker: 'Finality',
@@ -3418,9 +3418,24 @@ function initUptimeClock() {
     const defaultUptimeAriaControls = topContinuityHistory?.getAttribute('aria-controls') || '';
     const BAKER_SET_LIST_LIMIT = 3;
     const BAKER_SET_REFRESH_MS = 15 * 60 * 1000;
+    const TOP_CONTINUITY_TREND_REFRESH_MS = 15 * 60 * 1000;
+    const TOP_CONTINUITY_TREND_BASELINE_TOLERANCE_MS = 36 * 60 * 60 * 1000;
+    const TOP_CONTINUITY_TREND_HORIZONS = [
+        { label: '7D', days: 7 },
+        { label: '30D', days: 30 },
+        { label: '90D', days: 90 }
+    ];
+    const TOP_CONTINUITY_TREND_METRICS = {
+        'total-bakers': { field: 'total_bakers', stateKey: 'totalBakers', kind: 'count' },
+        'staking-ratio': { field: 'staking_ratio', stateKey: 'stakingRatio', kind: 'points' },
+        'issuance-rate': { field: 'current_issuance_rate', stateKey: 'currentIssuanceRate', kind: 'points' }
+    };
     let bakerSetSnapshot = null;
     let bakerSetRefreshPromise = null;
     let bakerSetRefreshError = '';
+    let topContinuityTrendSnapshot = null;
+    let topContinuityTrendRefreshPromise = null;
+    let topContinuityTrendRefreshError = '';
 
     const finalityButton = document.querySelector('[data-card-history="finality"]');
     finalityButton?.classList.remove('is-loading');
@@ -3861,6 +3876,123 @@ function initUptimeClock() {
         return value ? `${value}: ${copy.title}` : copy.title;
     }
 
+    function getTopContinuityCurrentMetric(key) {
+        const config = TOP_CONTINUITY_TREND_METRICS[key];
+        if (!config) return null;
+        const liveValue = finiteMetric(state.currentStats?.[config.stateKey]);
+        if (liveValue !== null) return liveValue;
+        const pillValue = getTopContinuityPillValue(getTopContinuityPillByKey(key));
+        const parsed = Number.parseFloat(String(pillValue || '').replace(/[^\d.+-]/g, ''));
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function findTopContinuityTrendBaseline(rows, field, targetTime) {
+        let nearest = null;
+        (Array.isArray(rows) ? rows : []).forEach((row) => {
+            const value = Number(row?.[field]);
+            const timestamp = Date.parse(row?.timestamp || '');
+            if (!Number.isFinite(value) || !Number.isFinite(timestamp)) return;
+            const distance = Math.abs(timestamp - targetTime);
+            if (!nearest || distance < nearest.distance) nearest = { value, timestamp, distance };
+        });
+        return nearest && nearest.distance <= TOP_CONTINUITY_TREND_BASELINE_TOLERANCE_MS
+            ? nearest
+            : null;
+    }
+
+    function formatTopContinuityTrendDelta(delta, kind) {
+        if (!Number.isFinite(delta)) return '—';
+        const rounded = kind === 'count'
+            ? Math.round(delta)
+            : Number(delta.toFixed(2));
+        const sign = rounded > 0 ? '+' : rounded < 0 ? '−' : '';
+        const magnitude = Math.abs(rounded).toLocaleString('en-US', {
+            minimumFractionDigits: kind === 'points' ? 2 : 0,
+            maximumFractionDigits: kind === 'points' ? 2 : 0
+        });
+        return `${sign}${magnitude}${kind === 'points' ? ' pp' : ''}`;
+    }
+
+    function topContinuityTrendAriaLabel(label, formatted, kind) {
+        if (formatted === '—') return `${label} change unavailable`;
+        return `${label} change ${formatted}${kind === 'count' ? ' bakers' : ''}`;
+    }
+
+    function renderTopContinuityTrends() {
+        const explain = document.getElementById('top-continuity-explain');
+        const holder = explain?.querySelector('[data-top-continuity-horizons]');
+        const config = TOP_CONTINUITY_TREND_METRICS[explainActiveKey];
+        if (!holder || !config) return;
+
+        const loading = Boolean(topContinuityTrendRefreshPromise && !topContinuityTrendSnapshot);
+        holder.setAttribute('aria-busy', loading ? 'true' : 'false');
+        const currentValue = getTopContinuityCurrentMetric(explainActiveKey);
+        const observedAt = statsObservationDate(state.currentStats, state.lastScalarRefreshAt).getTime();
+        const rows = topContinuityTrendSnapshot?.rows || [];
+        const horizons = TOP_CONTINUITY_TREND_HORIZONS.map(({ label, days }) => {
+            const baseline = Number.isFinite(currentValue)
+                ? findTopContinuityTrendBaseline(rows, config.field, observedAt - days * 24 * 60 * 60 * 1000)
+                : null;
+            const formatted = baseline
+                ? formatTopContinuityTrendDelta(currentValue - baseline.value, config.kind)
+                : '—';
+            return { label, formatted };
+        });
+        const hasCoverage = horizons.some(({ formatted }) => formatted !== '—');
+        const status = loading
+            ? 'Reading scheduled history…'
+            : topContinuityTrendRefreshError && !hasCoverage
+                ? 'Scheduled history unavailable'
+                : 'Change from the current value';
+        quietlySyncHtml(holder, `
+            <div class="top-continuity-horizon-grid">
+                ${horizons.map(({ label, formatted }) => `
+                    <span class="top-continuity-horizon" aria-label="${escapeHtml(topContinuityTrendAriaLabel(label, formatted, config.kind))}">
+                        <span>${escapeHtml(label)}</span>
+                        <strong>${escapeHtml(formatted)}</strong>
+                    </span>
+                `).join('')}
+            </div>
+            <p class="top-continuity-horizon-note">${escapeHtml(status)}</p>
+        `);
+    }
+
+    function refreshTopContinuityTrends({ force = false } = {}) {
+        const fresh = topContinuityTrendSnapshot
+            && Date.now() - topContinuityTrendSnapshot.observedAt < TOP_CONTINUITY_TREND_REFRESH_MS;
+        if (!force && fresh) {
+            renderTopContinuityTrends();
+            return Promise.resolve(topContinuityTrendSnapshot);
+        }
+        if (topContinuityTrendRefreshPromise) {
+            renderTopContinuityTrends();
+            return topContinuityTrendRefreshPromise;
+        }
+
+        topContinuityTrendRefreshError = '';
+        topContinuityTrendRefreshPromise = (async () => {
+            try {
+                const receipt = await fetchHistoricalDataReceipt('90d');
+                if (receipt?.status !== 'available') {
+                    throw new Error(receipt?.error || 'Scheduled history is unavailable');
+                }
+                topContinuityTrendSnapshot = {
+                    rows: Array.isArray(receipt.rows) ? receipt.rows : [],
+                    observedAt: Date.now()
+                };
+                return topContinuityTrendSnapshot;
+            } catch (error) {
+                topContinuityTrendRefreshError = error?.message || 'Scheduled history is unavailable';
+                return topContinuityTrendSnapshot;
+            } finally {
+                topContinuityTrendRefreshPromise = null;
+                renderTopContinuityTrends();
+            }
+        })();
+        renderTopContinuityTrends();
+        return topContinuityTrendRefreshPromise;
+    }
+
     function compactBakerSetAge(value, now = Date.now()) {
         const timestamp = Date.parse(value || '');
         if (!Number.isFinite(timestamp)) return '—';
@@ -3973,6 +4105,36 @@ function initUptimeClock() {
         }));
     }
 
+    async function attachLatestBakerEntryKinds(rows) {
+        return Promise.all(rows.map(async (row) => {
+            if (!Number.isFinite(row.eventLevel) || row.eventLevel <= 0) {
+                return { ...row, entryKind: 'unknown' };
+            }
+            try {
+                const params = new URLSearchParams({
+                    'anyof.proposer.producer': row.address,
+                    'level.lt': String(row.eventLevel),
+                    'sort.desc': 'level',
+                    select: 'level,timestamp,proposer,producer',
+                    limit: '1'
+                });
+                const priorBlocks = await fetchTopContinuityTzktJson(`${API_URLS.tzkt}/blocks?${params}`);
+                if (!Array.isArray(priorBlocks)) throw new Error('TzKT prior-bake receipt is malformed');
+                const priorBlock = priorBlocks[0] || null;
+                return priorBlock
+                    ? {
+                        ...row,
+                        entryKind: 'reactivated',
+                        priorBakeLevel: Number(priorBlock.level) || null,
+                        priorBakeTime: priorBlock.timestamp || null
+                    }
+                    : { ...row, entryKind: 'new' };
+            } catch {
+                return { ...row, entryKind: 'unknown' };
+            }
+        }));
+    }
+
     async function fetchTopContinuityBakerSet() {
         const [latest, closed, totalBakingPower] = await Promise.all([
             fetchTopContinuityBakerRows(true),
@@ -3983,17 +4145,20 @@ function initUptimeClock() {
             const size = bakerSizeTier(row.bakingPower, totalBakingPower);
             return size ? { ...row, size } : row;
         });
-        const closedWithSizes = await attachClosedBakerSizes(closed);
+        const [latestWithEntryKinds, closedWithSizes] = await Promise.all([
+            attachLatestBakerEntryKinds(latestWithSizes),
+            attachClosedBakerSizes(closed)
+        ]);
         let domains = new Map();
         try {
             domains = await resolveTezReverseNames(
-                [...latestWithSizes, ...closedWithSizes].map((row) => row.address)
+                [...latestWithEntryKinds, ...closedWithSizes].map((row) => row.address)
             );
         } catch (error) {
             console.warn('[baker-set] Tezos Domains reverse lookup failed:', error?.message || error);
         }
         return {
-            latest: latestWithSizes,
+            latest: latestWithEntryKinds,
             closed: closedWithSizes,
             domains,
             observedAt: Date.now()
@@ -4009,6 +4174,17 @@ function initUptimeClock() {
                 ? `${row.alias} · ${row.address}`
                 : row.address;
         const saved = savedAddresses.has(row.address);
+        const entryKind = kind === 'gained' ? row.entryKind || 'unknown' : 'closed';
+        const entryDetail = entryKind === 'new'
+            ? 'Brand-new baker · no earlier proposer or producer block before this activation'
+            : entryKind === 'reactivated'
+                ? `Reactivated baker · prior baked block${row.priorBakeLevel ? ` ${Number(row.priorBakeLevel).toLocaleString('en-US')}` : ''}`
+                : entryKind === 'unknown'
+                    ? 'First-bake history unavailable'
+                    : '';
+        const newBadge = entryKind === 'new'
+            ? '<span class="top-continuity-baker-new" aria-label="Brand-new baker with no earlier baked block" title="Brand new · no earlier baked block">NEW</span>'
+            : '';
         const sizeLabel = row.size ? `${row.size.label} baker, ${row.size.detail}` : 'Baker size unavailable';
         const sizeBadge = row.size
             ? `<span class="top-continuity-baker-size is-${escapeHtml(row.size.key)}" data-baker-size="${escapeHtml(row.size.key)}" aria-label="${escapeHtml(sizeLabel)}" title="${escapeHtml(`${row.size.label} baker · ${row.size.detail}`)}">${escapeHtml(row.size.label)}</span>`
@@ -4017,9 +4193,9 @@ function initUptimeClock() {
             ? `<a href="/#my-baker=${encodeURIComponent(row.address)}" data-quiet-key="baker-set-my:${escapeHtml(row.address)}" data-baker-set-my-address="${escapeHtml(row.address)}" aria-label="Open ${escapeHtml(label)} in My Tezos" title="Open in My Tezos">My</a>`
             : `<button type="button" data-quiet-key="baker-set-my:${escapeHtml(row.address)}" data-baker-set-save-address="${escapeHtml(row.address)}" data-baker-set-label="${escapeHtml(label)}" aria-label="Add ${escapeHtml(label)} to saved My Tezos addresses" title="Add to My Tezos">+ My</button>`;
         return `
-            <article class="top-continuity-baker-row is-${kind}" data-quiet-key="baker-set-${kind}:${escapeHtml(row.address)}" data-address="${escapeHtml(row.address)}">
+            <article class="top-continuity-baker-row is-${kind}" data-quiet-key="baker-set-${kind}:${escapeHtml(row.address)}" data-address="${escapeHtml(row.address)}" data-baker-entry="${escapeHtml(entryKind)}">
                 <time datetime="${escapeHtml(row.eventTime || '')}" title="${escapeHtml(absoluteBakerSetTime(row.eventTime))}">${escapeHtml(compactBakerSetAge(row.eventTime))}</time>
-                <span class="top-continuity-baker-identity" title="${escapeHtml(identityTitle)}"><strong>${escapeHtml(label)}</strong></span>
+                <span class="top-continuity-baker-identity" title="${escapeHtml([identityTitle, entryDetail].filter(Boolean).join(' · '))}"><span class="top-continuity-baker-name"><strong>${escapeHtml(label)}</strong>${newBadge}</span></span>
                 ${sizeBadge}
                 <span class="top-continuity-baker-actions">
                     ${myTezosAction}
@@ -4063,7 +4239,7 @@ function initUptimeClock() {
                 ? `Last good ${observed} · refresh unavailable`
                 : `Live ${observed}`;
         quietlySyncHtml(roster, `
-            ${renderTopContinuityBakerList('Newest Bakers', 'baking rights gained', bakerSetSnapshot.latest, 'gained', savedAddresses)}
+            ${renderTopContinuityBakerList('New + Reactivated', 'baking rights gained', bakerSetSnapshot.latest, 'gained', savedAddresses)}
             ${renderTopContinuityBakerList('Closed Bakers', 'baking rights lost', bakerSetSnapshot.closed, 'closed', savedAddresses)}
             <p class="top-continuity-baker-freshness" data-baker-set-status data-tone="${bakerSetRefreshError ? 'stale' : 'live'}">${escapeHtml(freshness)}</p>
         `);
@@ -4126,6 +4302,7 @@ function initUptimeClock() {
 
     function renderTopContinuityExplain(explain, pill, copy, key) {
         const isBakerSet = key === 'total-bakers';
+        const hasTrends = Boolean(TOP_CONTINUITY_TREND_METRICS[key]);
         explain.classList.toggle('is-baker-set', isBakerSet);
         explain.innerHTML = `
             <button type="button" class="top-continuity-explain-close" data-close-top-continuity-explain aria-label="Dismiss explanation">&times;</button>
@@ -4134,11 +4311,13 @@ function initUptimeClock() {
                 <strong id="top-continuity-explain-title" data-top-continuity-explain-title>${escapeHtml(formatTopContinuityExplainTitle(pill, copy))}</strong>
                 <p>${escapeHtml(copy.body)}</p>
             </div>
-            ${isBakerSet ? '<div class="top-continuity-baker-roster" id="top-continuity-baker-roster" aria-label="Newest and closed bakers by baking-right change" aria-busy="true"></div>' : ''}
+            ${hasTrends ? '<div class="top-continuity-horizons" data-top-continuity-horizons aria-label="7, 30, and 90 day change" aria-busy="true"></div>' : ''}
+            ${isBakerSet ? '<div class="top-continuity-baker-roster" id="top-continuity-baker-roster" aria-label="New, reactivated, and closed bakers by baking-right change" aria-busy="true"></div>' : ''}
             <div class="top-continuity-explain-actions">
                 <button type="button" class="top-continuity-explain-chart" data-open-card-history="${escapeHtml(key)}">Open all-time chart</button>
             </div>
         `;
+        if (hasTrends) refreshTopContinuityTrends();
         if (isBakerSet) refreshTopContinuityBakerRoster();
     }
 
@@ -4589,6 +4768,9 @@ function initUptimeClock() {
             chainIssuanceText = issuanceText;
             if (issuanceEl) setMagicNumber(issuanceEl, issuanceText);
             setChainText('chain-uptime-issuance', issuanceText);
+        }
+        if (TOP_CONTINUITY_TREND_METRICS[explainActiveKey]) {
+            renderTopContinuityTrends();
         }
     };
 }
