@@ -15961,6 +15961,35 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const liveHeadCurrentFirstRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
   const liveHeadFirstInfo = liveHeadFirstRow.locator('.live-head-info');
   const liveHeadCurrentFirstInfo = liveHeadCurrentFirstRow.locator('.live-head-info');
+  const openCurrentLiveHeadInspector = async (pointerOrigin) => {
+    const level = await liveHeadCurrentFirstRow.getAttribute('data-live-head-level');
+    assert(level, 'network health chamber: current Live Head row is missing its keyed level');
+    const info = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${level}"] .live-head-info`);
+    await page.mouse.move(pointerOrigin.x, pointerOrigin.y);
+    await info.hover();
+    await page.waitForFunction((expectedLevel) => {
+      const inspector = document.querySelector('#live-head-inspector:not([hidden])');
+      return inspector?.dataset.liveHeadLevel === expectedLevel;
+    }, level, { timeout: 10000 });
+    return { level, info };
+  };
+  const enterLiveHeadInspector = async () => {
+    const entry = await page.evaluate(() => {
+      const inspector = document.querySelector('#live-head-inspector:not([hidden])');
+      const trigger = document.querySelector('#live-head-stack .live-head-info[aria-expanded="true"]');
+      const inspectorRect = inspector?.getBoundingClientRect();
+      const triggerRect = trigger?.getBoundingClientRect();
+      if (!inspectorRect || !triggerRect) return null;
+      const x = Math.max(inspectorRect.left + 2, Math.min(triggerRect.left + triggerRect.width / 2, inspectorRect.right - 2));
+      const y = inspectorRect.top >= triggerRect.bottom
+        ? inspectorRect.top + 2
+        : inspectorRect.bottom - 2;
+      return { x, y };
+    });
+    assert(entry && Number.isFinite(entry.x) && Number.isFinite(entry.y), 'network health chamber: could not resolve a stable inspector entry point');
+    await page.mouse.move(entry.x, entry.y);
+    await page.waitForFunction(() => Boolean(document.querySelector('#live-head-inspector:not([hidden])')), null, { timeout: 5000 });
+  };
   await liveHeadFirstRow.scrollIntoViewIfNeeded();
   await page.waitForTimeout(180);
   await page.mouse.move(1, 1);
@@ -16044,22 +16073,20 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true
     && !document.querySelector('#live-head')?.dataset.readingPaused, null, { timeout: 10000 });
-  await page.mouse.move(1, 1);
-  await liveHeadCurrentFirstInfo.hover();
-  await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  await openCurrentLiveHeadInspector({ x: 2, y: 2 });
+  await enterLiveHeadInspector();
   await page.locator('#live-head-inspector:not([hidden]) [data-live-head-open-health]').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
-  await liveHeadCurrentFirstInfo.hover();
+  await openCurrentLiveHeadInspector({ x: 3, y: 3 });
+  await enterLiveHeadInspector();
   await page.locator('#live-head-inspector:not([hidden]) .live-head-inspector-kicker').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
-  await page.mouse.move(1, 1);
-  await liveHeadCurrentFirstInfo.hover();
-  await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  await openCurrentLiveHeadInspector({ x: 4, y: 4 });
   const readingPauseBefore = await page.evaluate(() => {
     const panel = document.querySelector('#live-head');
     const stack = document.querySelector('#live-head-stack');
