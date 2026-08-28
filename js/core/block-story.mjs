@@ -12,8 +12,8 @@ const STORY_ORDER = Object.freeze([
 ]);
 
 const STORY_LABELS = Object.freeze({
-    'l1-vote': 'L1 vote',
-    'l2-vote': 'L2 vote',
+    'l1-vote': 'L1: Vote',
+    'l2-vote': 'L2: Vote',
     art: 'Art',
     defi: 'DeFi',
     gaming: 'Gaming',

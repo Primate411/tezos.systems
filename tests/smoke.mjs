@@ -15511,13 +15511,19 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	        const style = getComputedStyle(pill);
 	        return `${style.color}|${style.backgroundColor}|${style.borderColor}`;
 	      }),
-	      liveHeadStoryReceipts: Array.from(liveHeadStack?.querySelectorAll('.live-head-story-chip') || []).map((pill) => ({
-	        compact: pill.dataset.liveHeadCompact || '',
-	        details: JSON.parse(pill.dataset.liveHeadDetails || '[]'),
-	        kind: Array.from(pill.classList).find((name) => /^is-(l1-vote|l2-vote|art|transfers|stake|unstake)$/.test(name))?.slice(3) || '',
-	        level: Number(pill.dataset.liveHeadDetailLevel || 0),
-	        text: pill.textContent?.replace(/\s+/g, ' ').trim() || ''
-	      })),
+	      liveHeadStoryReceipts: Array.from(liveHeadStack?.querySelectorAll('.live-head-story-chip') || []).map((pill) => {
+	        const style = getComputedStyle(pill);
+	        return {
+	          backgroundColor: style.backgroundColor,
+	          color: style.color,
+	          compact: pill.dataset.liveHeadCompact || '',
+	          details: JSON.parse(pill.dataset.liveHeadDetails || '[]'),
+	          fontWeight: Number(style.fontWeight || 0),
+	          kind: Array.from(pill.classList).find((name) => /^is-(l1-vote|l2-vote|art|transfers|stake|unstake)$/.test(name))?.slice(3) || '',
+	          level: Number(pill.dataset.liveHeadDetailLevel || 0),
+	          text: pill.textContent?.replace(/\s+/g, ' ').trim() || ''
+	        };
+	      }),
 	      liveHeadHasGlobalMissLine: Boolean(document.querySelector('#live-head-bakers')),
 	      liveHeadNext: document.querySelector('#live-head-next')?.textContent?.replace(/\s+/g, ' ').trim() || '',
 	      liveHeadNextDue: document.querySelector('#live-head-next [data-heartbeat-due]')?.textContent?.trim() || '',
@@ -16037,8 +16043,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	  const stakeReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'stake');
 	  const l1VoteReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'l1-vote');
 	  const l2VoteReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'l2-vote');
-	  assert(l1VoteReceipt?.compact === 'L1 vote · 2', `network health chamber: L1 ballot/proposal receipt missing ${JSON.stringify(l1VoteReceipt)}`);
-	  assert(l2VoteReceipt?.compact === 'L2 vote · 1', `network health chamber: current Etherlink governance receipt missing ${JSON.stringify(l2VoteReceipt)}`);
+	  assert(l1VoteReceipt?.compact === 'L1: Vote · 2', `network health chamber: L1 ballot/proposal receipt missing ${JSON.stringify(l1VoteReceipt)}`);
+	  assert(l2VoteReceipt?.compact === 'L2: Vote · 1', `network health chamber: current Etherlink governance receipt missing ${JSON.stringify(l2VoteReceipt)}`);
+	  assert(l1VoteReceipt?.color === l2VoteReceipt?.color
+	      && l1VoteReceipt?.backgroundColor === l2VoteReceipt?.backgroundColor
+	      && l1VoteReceipt?.fontWeight >= 800
+	      && l2VoteReceipt?.fontWeight >= 800,
+	  `network health chamber: voting receipts should share one bold treatment ${JSON.stringify({ l1VoteReceipt, l2VoteReceipt })}`);
 	  assert(artReceipt?.compact === 'Art · 2'
 	      && artReceipt.details.some((detail) => /Smoke Piece One.*Smoke Piece Two/.test(detail)), `network health chamber: Art receipt lacks progressive artwork names ${JSON.stringify(artReceipt)}`);
 	  assert(transferReceipt?.compact === 'Transfers · 2'
@@ -29298,8 +29309,11 @@ async function smokeThemeSelection(browser, baseUrl) {
         const background = parseColor(style.backgroundColor);
         return {
           label: pill.dataset.pill || '',
+          backgroundColor: style.backgroundColor,
           backgroundAlpha: background.a,
           borderAlpha: parseColor(style.borderTopColor).a,
+          color: style.color,
+          fontWeight: Number(style.fontWeight || 0),
           hasBackdrop: style.backdropFilter !== 'none' || style.webkitBackdropFilter !== 'none',
           hasTextShadow: style.textShadow !== 'none',
           worstContrast: Math.min(
@@ -29339,6 +29353,15 @@ async function smokeThemeSelection(browser, baseUrl) {
           && pill.worstContrast >= 4.5
         )),
       `theme ${theme}: every Live Head pill must retain Quiet's opaque, edged, readable treatment: ${JSON.stringify(state.pillReadability)}`
+    );
+    const l1VotePill = state.pillReadability.find((pill) => pill.label === 'story-l1-vote');
+    const l2VotePill = state.pillReadability.find((pill) => pill.label === 'story-l2-vote');
+    assert(
+      l1VotePill?.color === l2VotePill?.color
+        && l1VotePill?.backgroundColor === l2VotePill?.backgroundColor
+        && l1VotePill?.fontWeight >= 800
+        && l2VotePill?.fontWeight >= 800,
+      `theme ${theme}: L1/L2 voting pills should share one bold governance treatment: ${JSON.stringify({ l1VotePill, l2VotePill })}`
     );
     assert(state.titleOverflow <= 1 && state.runtimeOverflow <= 1 && state.documentOverflow <= 1, `theme ${theme}: desktop typography overflow ${JSON.stringify(state)}`);
   }

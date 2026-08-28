@@ -1853,8 +1853,7 @@
 }
 
 .live-head-filter-pill.is-art { color: #ff9ddd; }
-.live-head-filter-pill.is-l1-vote { color: #8ceaff; }
-.live-head-filter-pill.is-l2-vote { color: #c9a6ff; }
+.live-head-filter-pill:is(.is-l1-vote, .is-l2-vote) { color: #c9a6ff; }
 .live-head-filter-pill.is-defi { color: #62e2ff; }
 .live-head-filter-pill.is-gaming { color: #ffd47d; }
 .live-head-filter-pill.is-bridge { color: #91bdff; }
@@ -2792,12 +2791,13 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
     color: #ff9ddd;
 }
 
-.live-head-story-chip.is-l1-vote {
-    color: #8ceaff;
-}
-
-.live-head-story-chip.is-l2-vote {
+.live-head-story-chip:is(.is-l1-vote, .is-l2-vote) {
     color: #c9a6ff;
+    background: color-mix(in srgb, #c9a6ff 16%, rgba(11, 18, 34, 0.94));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #c9a6ff 18%, transparent), 0 0 9px rgba(129, 86, 190, 0.2), 0 1px 3px rgba(2, 8, 18, 0.55);
+    font-family: var(--font-runtime);
+    font-weight: 860;
+    letter-spacing: 0.025em;
 }
 
 .live-head-story-chip.is-defi {

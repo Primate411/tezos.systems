@@ -311,7 +311,7 @@ function checkLiveHeadPureContracts() {
     maxFragments: 10
   });
   assert.deepEqual(governance.fragments.map(({ key }) => key), ['l1-vote', 'l2-vote', 'transfers']);
-  assert.equal(governance.text, 'L1 vote · 2 · L2 vote · 1 · Transfers · 1');
+  assert.equal(governance.text, 'L1: Vote · 2 · L2: Vote · 1 · Transfers · 1');
   assert.equal(governance.fragments.filter(({ key }) => key === 'transfers').length, 1);
 
   const mixed = classifyBlockStory({
