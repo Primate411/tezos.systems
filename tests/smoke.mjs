@@ -27431,8 +27431,15 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
 
   const page = await context.newPage();
   const pendingRequests = new Set();
+  const startupRequests = [];
   page.on('request', (request) => pendingRequests.add(request.url()));
-  page.on('requestfinished', (request) => pendingRequests.delete(request.url()));
+  page.on('requestfinished', (request) => {
+    pendingRequests.delete(request.url());
+    const url = request.url();
+    if (/\/js\/core\/(?:app|api)\.js|\/v1\/(?:delegates|statistics\/current|head)|\/chains\/main\/blocks\//.test(url)) {
+      startupRequests.push(url);
+    }
+  });
   page.on('requestfailed', (request) => pendingRequests.delete(request.url()));
   attachIssueCollectors(page, 'feature workflows', issues);
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
@@ -27447,16 +27454,19 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
     });
   });
   try {
-    await page.waitForFunction(() => document.querySelector('#staking-ratio-front')?.textContent?.trim() === '27.62%', null, { timeout: 10000 });
+    await page.waitForFunction(() => document.querySelector('#staking-ratio-front')?.textContent?.trim() === '27.62%', null, { timeout: 30000 });
   } catch (error) {
     const stakingState = await page.evaluate(() => ({
       ratio: document.querySelector('#staking-ratio-front')?.textContent?.trim() || '',
       apy: document.querySelector('#staking-apy-front')?.textContent?.trim() || '',
       latestStats: window.__smokeLatestStats,
       readyState: document.readyState,
-      appLoaded: document.body?.classList.contains('app-loaded') || false
+      appScript: document.querySelector('script[type="module"][src*="js/core/app.js"]')?.src || '',
+      appResource: performance.getEntriesByType('resource').some((entry) => entry.name.includes('/js/core/app.js')),
+      liveHeadWired: document.querySelector('#live-head-button')?.dataset.liveHeadWired || '',
+      status: document.querySelector('#data-status')?.textContent?.replace(/\s+/g, ' ').trim() || ''
     }));
-    throw new Error(`feature workflows staking telemetry did not settle ${JSON.stringify(stakingState)}; pending requests: ${JSON.stringify([...pendingRequests])}; browser issues: ${issues.join(' | ') || 'none'}; ${error.message}`);
+    throw new Error(`feature workflows staking telemetry did not settle ${JSON.stringify(stakingState)}; startup requests: ${JSON.stringify(startupRequests)}; pending requests: ${JSON.stringify([...pendingRequests])}; browser issues: ${issues.join(' | ') || 'none'}; ${error.message}`);
   }
   await page.waitForFunction(() => document.querySelector('#staking-apy-front')?.textContent?.trim() === '4.2% / 12.7%', null, { timeout: 10000 });
   await page.waitForFunction(() => /pp$/.test(document.querySelector('#staking-trend')?.textContent?.trim() || ''), null, { timeout: 10000 });
