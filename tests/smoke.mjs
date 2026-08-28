@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
+const releaseRadarFixture = require('../data/release-radar.json');
 const { launchChromium: launchPlaywrightChromium } = require('../scripts/lib/playwright-browser.cjs');
 let cli;
 try {
@@ -1652,6 +1653,14 @@ async function installFeatureMocks(context, options = {}) {
     const url = request.url();
     const postData = request.postData() || '';
     const parsedUrl = new URL(url);
+
+    if (parsedUrl.pathname.endsWith('/data/release-radar.json')) {
+      return fulfillJson(route, {
+        ...releaseRadarFixture,
+        updatedAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+      });
+    }
 
     if (parsedUrl.origin === 'https://api.tzkt.io'
       && parsedUrl.pathname === '/v1/operations/staking'
@@ -9764,6 +9773,7 @@ async function smokeLivePulseTicker(browser, baseUrl) {
   await page.waitForFunction(() => (
     document.getElementById('pulse-ticker-strip')?.dataset.pulseState === 'ready'
       && document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-signal-id]').length >= 4
+      && document.querySelector('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-signal-id="release-radar"]')
   ), null, { timeout: 15000 });
 
   const before = await page.evaluate(() => {
