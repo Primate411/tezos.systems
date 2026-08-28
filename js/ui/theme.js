@@ -246,6 +246,7 @@ export function openThemePicker() {
     // Add event listeners
     const themeRows = picker.querySelectorAll('.theme-row');
     const themeRadios = picker.querySelectorAll('.theme-radio');
+    const themeCopyButtons = picker.querySelectorAll('.theme-link-copy');
 
     themeRows.forEach(row => {
         const theme = row.dataset.theme;
@@ -280,6 +281,16 @@ export function openThemePicker() {
             originalTheme = theme;
         });
 
+    });
+
+    const restoreConfirmedThemeBeforeCopy = () => {
+        if (!currentPreviewTheme || !originalTheme) return;
+        setTheme(originalTheme, true);
+        currentPreviewTheme = null;
+    };
+    themeCopyButtons.forEach(button => {
+        button.addEventListener('pointerenter', restoreConfirmedThemeBeforeCopy);
+        button.addEventListener('focus', restoreConfirmedThemeBeforeCopy);
     });
 
     // Hover out of picker - revert to original
