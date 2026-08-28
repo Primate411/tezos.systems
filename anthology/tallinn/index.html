@@ -51,18 +51,18 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="/css/styles.min.css?v=599">
-    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=599">
-    <link rel="stylesheet" href="/css/loading.css?v=599">
-    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=599">
-    <link rel="stylesheet" href="/css/protocol-anthology.css?v=599">
-    <link rel="stylesheet" href="/css/site-map.css?v=599">
+    <link rel="stylesheet" href="/css/styles.min.css?v=600">
+    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=600">
+    <link rel="stylesheet" href="/css/loading.css?v=600">
+    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=600">
+    <link rel="stylesheet" href="/css/protocol-anthology.css?v=600">
+    <link rel="stylesheet" href="/css/site-map.css?v=600">
     <link rel="stylesheet" href="/css/hen-mode.css?v=98">
     <script src="/js/core/hen-init.js?v=79" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="/js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="/js/core/app.js?v=599">
+    <link rel="modulepreload" href="/js/core/app.js?v=600">
     <link rel="modulepreload" href="/js/core/api.js">
     <link rel="modulepreload" href="/js/core/config.js">
     <link rel="modulepreload" href="/js/core/data-assets.js">
@@ -151,8 +151,8 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="/js/core/theme-preload.js?v=599"></script>
-    <script src="/js/core/home-layout-preload.js?v=599"></script>
+    <script src="/js/core/theme-preload.js?v=600"></script>
+    <script src="/js/core/home-layout-preload.js?v=600"></script>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="top-utility-row">
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
@@ -617,7 +617,7 @@
                         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10m4 0h2M4 17h2m4 0h10M14 4v6M6 14v6"/></svg>
                     </button>
                     <span class="live-head-filter-menu" id="live-head-filter-menu" role="group" aria-label="Visible block activity" hidden>
-                        <span class="live-head-filter-heading"><span>Block activity</span><small>Choose the receipts that cross each block.</small></span>
+                        <span class="live-head-filter-heading"><span>Block activity</span><small>Choose normal receipts. Evidence, milestones, and baker changes always remain visible.</small></span>
                         <button class="live-head-filter-my-tezos" type="button" data-live-head-my-tezos-toggle aria-pressed="false">
                             <span>Only My Tezos blocks</span>
                             <small>Produced by or carrying activity from a saved address.</small>
@@ -627,14 +627,20 @@
                         <span class="live-head-filter-options">
                             <button class="live-head-filter-pill is-l1-vote" type="button" data-live-head-filter-kind="l1-vote" aria-pressed="true">L1 voting</button>
                             <button class="live-head-filter-pill is-l2-vote" type="button" data-live-head-filter-kind="l2-vote" aria-pressed="true">L2 voting</button>
-                            <button class="live-head-filter-pill is-transfers" type="button" data-live-head-filter-kind="transfers" aria-pressed="true">Transfers</button>
+                            <button class="live-head-filter-pill is-etherlink" type="button" data-live-head-filter-kind="etherlink" aria-pressed="true">Etherlink / Tezos X</button>
+                            <button class="live-head-filter-pill is-dal" type="button" data-live-head-filter-kind="dal" aria-pressed="true">DAL</button>
                             <button class="live-head-filter-pill is-art" type="button" data-live-head-filter-kind="art" aria-pressed="true">Art / NFTs</button>
                             <button class="live-head-filter-pill is-defi" type="button" data-live-head-filter-kind="defi" aria-pressed="true">DeFi</button>
                             <button class="live-head-filter-pill is-gaming" type="button" data-live-head-filter-kind="gaming" aria-pressed="true">Gaming</button>
                             <button class="live-head-filter-pill is-bridge" type="button" data-live-head-filter-kind="bridge" aria-pressed="true">Bridge</button>
-                            <button class="live-head-filter-pill is-etherlink" type="button" data-live-head-filter-kind="etherlink" aria-pressed="true">Etherlink</button>
+                            <button class="live-head-filter-pill is-domains" type="button" data-live-head-filter-kind="domains" aria-pressed="true">Domains</button>
                             <button class="live-head-filter-pill is-stake" type="button" data-live-head-filter-kind="stake" aria-pressed="true">Stake</button>
                             <button class="live-head-filter-pill is-unstake" type="button" data-live-head-filter-kind="unstake" aria-pressed="true">Unstake</button>
+                            <button class="live-head-filter-pill is-delegate" type="button" data-live-head-filter-kind="delegate" aria-pressed="true">Delegation</button>
+                            <button class="live-head-filter-pill is-tokens" type="button" data-live-head-filter-kind="tokens" aria-pressed="true">Tokens</button>
+                            <button class="live-head-filter-pill is-contract" type="button" data-live-head-filter-kind="contract" aria-pressed="true">Contracts</button>
+                            <button class="live-head-filter-pill is-transfers" type="button" data-live-head-filter-kind="transfers" aria-pressed="true">Transfers</button>
+                            <button class="live-head-filter-pill is-calls" type="button" data-live-head-filter-kind="calls" aria-pressed="true">Calls</button>
                         </span>
                     </span>
                 </span>
@@ -2786,8 +2792,8 @@
 
     <!-- Load app as module -->
     <script defer src="/js/features/hen-mode.js?v=95"></script>
-    <script type="module" src="/js/effects/valley-loader.js?v=599"></script>
-    <script type="module" src="/js/core/app.js?v=599"></script>
+    <script type="module" src="/js/effects/valley-loader.js?v=600"></script>
+    <script type="module" src="/js/core/app.js?v=600"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="my-baker-modal-title" tabindex="-1">

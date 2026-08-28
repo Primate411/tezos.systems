@@ -373,9 +373,15 @@ inline modal styles in `js/core/app.js`.
   Setup action expand the history to ten desktop rows or nine mobile rows,
   contract back to the compact count, and persist that browser-local choice.
   A second line adds applied Tezos L1 voting, current Etherlink L2 governance,
-  reviewed Art, DeFi, Gaming, Bridge, Etherlink, Stake, Unstake, or Transfer
-  facts in distinct color-coded, truncated pills; complete empty receipts are marked `Quiet`,
-  never in place of block telemetry. The title row keeps the exact
+  exact Tezos X rollup publish/cement/outbox actions, DAL commitment
+  publications, reviewed Art, DeFi, Gaming, Bridge, and Tezos Domains calls,
+  Stake, Unstake, delegation, non-Art FA token movement, originations,
+  tez transfers, and uncatalogued top-level zero-tez contract calls in distinct
+  color-coded, truncated pills. A generic `sr1` target is not enough to claim
+  Etherlink, a DAL publication does not claim slot availability, and a contract
+  origination is not called a new app. Complete empty receipts are marked `Quiet`
+  only after every required activity lane is known, never in place of block
+  telemetry. The title row keeps the exact
   next round-zero baking right as a right, not a guarantee. Every block below
   6,969 attested power, and every `Quiet` block, owns its own missed-attester
   receipt. Those pills prefer `.tez` or TzKT aliases, fall back to truncated
@@ -400,12 +406,20 @@ inline modal styles in `js/core/app.js`.
   milligas against the active protocol block limit. Gas fills progress from
   cool/open through active, busy, and hot as capacity is consumed, leaving the
   second line for baker identities and real activity.
-  Every activity pill begins with a compact category and count. When measured
-  row width is genuinely spare, Art progressively appends available TzKT token
-  titles, Transfers adds its total tez and then the largest sender-to-recipient
-  route, and Stake or Unstake adds its amount. Each pill earns richer detail
-  independently so one long artwork title cannot suppress another receipt;
-  narrow and mobile rows keep the compact category counts.
+  Every normal activity pill begins with a compact category and count. When
+  measured row width is genuinely spare, Art progressively appends available
+  TzKT token titles, generic Tokens append source-native symbols or names,
+  Tezos X names publish/cement/outbox actions, DAL names observed slot indexes,
+  delegation distinguishes new, switch, undelegate, and self-registration when
+  TzKT enrichment is available, Transfers adds its total tez and then the
+  largest sender-to-recipient route, and Stake or Unstake adds its amount. Each
+  pill earns richer detail independently so one long title cannot suppress
+  another receipt; narrow and mobile rows keep compact factual counts.
+  Double-baking, double-attestation, double-preattestation, DAL-entrapment, and
+  delegate-drain evidence; cycle, voting-period, and protocol-activation
+  milestones; and baker key, staking-policy, or deposit-limit changes outrank
+  ordinary activity and remain visible even when every normal category is
+  filtered off.
   A tiny info control immediately before each block age opens its complete
   receipt on hover or focus; ordinary row hover stays quiet, while clicking any
   non-link, non-control area of the row opens that same receipt. The inspector
@@ -447,9 +461,12 @@ inline modal styles in `js/core/app.js`.
   The top-right control rail keeps the complete trailing-hour
   `1H Activity / TX / Moved / NFT` receipt immediately before one setup icon and
   the `Live` state. Setup expands into persisted All, L1 voting, L2 voting,
-  Transfer, Art, DeFi, Gaming, Bridge, Etherlink, Stake, and Unstake selectors; every category is on
-  by default, and deselected activity pills stop spending the row's measured
-  receipt width without hiding missed-attester evidence.
+  Etherlink / Tezos X, DAL, Art, DeFi, Gaming, Bridge, Domains, Stake, Unstake,
+  Delegation, Tokens, Contracts, Transfers, and Calls selectors. Every normal
+  category is on by default, prior all-on preferences migrate forward, and
+  deselected normal pills stop spending the row's measured receipt width
+  without hiding missed-attester receipts or mandatory evidence, milestone, and
+  baker-change pills.
   There is no global missed-rights sentence. Each real row's info control and
   non-interactive row click open a compact complete receipt with direct TzKT
   links for the block, every metric and activity category, and every missed baker;
@@ -830,9 +847,10 @@ inline modal styles in `js/core/app.js`.
   XTZ live activity tape; the open chamber refreshes on the block cadence with
   in-place row updates instead of a full rerender. Its Passing Blocks table
   keeps a narrow level lane and spends the reclaimed right-hand space on the
-  same Gas, Quiet, activity, and missed-attester receipts as Live Head. A
-  top-right Setup menu shares Live Head's persisted activity filters, while the
-  shared depth control keeps eight desktop or six mobile rows compact and
+  same Gas, Quiet, normal activity, mandatory chain-event, and missed-attester
+  receipts as Live Head. A top-right Setup menu shares Live Head's persisted
+  normal-activity filters while evidence, milestones, and baker changes remain
+  visible. The shared depth control keeps eight desktop or six mobile rows compact and
   expands to fifteen desktop or twelve mobile rows. The chamber also adds incident memory,
   current-cycle progress, completed-cycle timing, Octez versions, period
   telemetry, network-load, and Consensus Lens panels.
@@ -1713,7 +1731,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v599`, including hero search, theme
+- Current aligned shell cache stamp: `v600`, including hero search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical
   Minerals lazy CSS loaders.

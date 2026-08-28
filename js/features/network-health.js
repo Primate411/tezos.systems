@@ -12,7 +12,7 @@ import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } f
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import { quietlyMutate, quietlySyncElement, quietlySyncHtml } from '../core/quiet-refresh.js';
 import { loadDataAsset } from '../core/data-assets.js';
-import { classifyBlockStory, compileBlockStoryCatalog } from '../core/block-story.mjs';
+import { BLOCK_STORY_FILTER_TYPES, classifyBlockStory, compileBlockStoryCatalog } from '../core/block-story.mjs';
 import { ETHERLINK_GOVERNANCE_CURRENT_CONTRACTS } from '../core/etherlink-governance-contracts.mjs';
 
 const TZKT = API_URLS.tzkt;
@@ -54,7 +54,8 @@ const USAGE_AMOUNT_PAGE_LIMIT = 10000;
 const HEARTBEAT_ACTIVITY_LIMIT = 10000;
 const HEARTBEAT_STAKING_LIMIT = 20;
 const HEARTBEAT_L1_VOTING_LIMIT = 1000;
-const HEARTBEAT_ART_TRANSFER_LIMIT = 50;
+const HEARTBEAT_TOKEN_TRANSFER_LIMIT = 250;
+const HEARTBEAT_MANAGER_ENRICHMENT_LIMIT = 100;
 const LIVE_HEAD_POWER_DETAIL_THRESHOLD = 6969;
 const LIVE_HEAD_DETAIL_MIN_WIDTH = 420;
 const HEARTBEAT_SUPPLEMENT_MAX_AGE = 2 * 60 * 1000;
@@ -79,13 +80,15 @@ const NETWORK_HEALTH_CSS_URL = versionedAsset('/css/network-health.min.css');
 const STORAGE_KEY = 'tezos-systems-network-health';
 const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
 const CONTESTED_ROUND_SIGNAL_KEY = 'tezos-systems-contested-round-hot-signal-at';
-const LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v2';
+const LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v3';
+const LIVE_HEAD_ACTIVITY_FILTER_V2_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v2';
 const LIVE_HEAD_ACTIVITY_FILTER_LEGACY_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v1';
 const LIVE_HEAD_MY_TEZOS_STORAGE_KEY = 'tezos-systems-live-head-my-tezos-only-v1';
 const LIVE_HEAD_DEPTH_STORAGE_KEY = 'tezos-systems-live-head-depth-v1';
 const LIVE_HEAD_EXPANDED_DESKTOP_LIMIT = 10;
 const LIVE_HEAD_EXPANDED_MOBILE_LIMIT = 9;
-const LIVE_HEAD_ACTIVITY_TYPES = ['l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'];
+const LIVE_HEAD_ACTIVITY_TYPES = [...BLOCK_STORY_FILTER_TYPES];
+const LIVE_HEAD_ACTIVITY_V2_TYPES = ['l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'];
 const ETHERLINK_GOVERNANCE_CURRENT_ADDRESS_SET = new Set(Object.values(ETHERLINK_GOVERNANCE_CURRENT_CONTRACTS));
 const ETHERLINK_GOVERNANCE_ENTRYPOINTS = new Set(['new_proposal', 'upvote', 'upvote_proposal', 'vote']);
 
@@ -121,11 +124,13 @@ let heartbeatData = null;
 let heartbeatNextRightCache = null;
 let heartbeatNextRightInFlight = null;
 const heartbeatActivityInFlight = new Map();
+const heartbeatActivityEnrichmentInFlight = new Map();
 const heartbeatActivityCache = new Map();
 let heartbeatL1VotingCoverage = null;
 let heartbeatL1VotingInFlight = null;
 const liveHeadMissedStateCache = new Map();
 let heartbeatStoryCatalog = null;
+let heartbeatProtocolMilestones = null;
 let heartbeatStoryCatalogInFlight = null;
 let heartbeatMissedRightsCache = null;
 let heartbeatMissedRightsInFlight = null;
@@ -823,23 +828,35 @@ function operationAddress(value) {
     return String(value?.address || '');
 }
 
-function collectHeartbeatActorAddresses(transactions, stakingRows, tokenTransfers, l1VotingRows) {
+function collectHeartbeatActorAddresses(transactions, stakingRows, tokenTransfers, l1VotingRows, managerOperations, evidenceRows, delegationRows, originationRows) {
     const actors = new Set();
     for (const row of transactions || []) {
-        const address = operationAddress(row?.sender);
-        if (address) actors.add(address);
+        for (const account of [row?.sender, row?.target]) {
+            const address = operationAddress(account);
+            if (address) actors.add(address);
+        }
     }
     for (const row of stakingRows || []) {
-        const address = operationAddress(row?.staker || row?.sender);
-        if (address) actors.add(address);
+        for (const account of [row?.staker, row?.sender, row?.baker]) {
+            const address = operationAddress(account);
+            if (address) actors.add(address);
+        }
     }
     for (const row of tokenTransfers || []) {
-        const address = operationAddress(row?.from);
-        if (address) actors.add(address);
+        for (const account of [row?.from, row?.to, row?.contract]) {
+            const address = operationAddress(account);
+            if (address) actors.add(address);
+        }
     }
     for (const row of l1VotingRows || []) {
         const address = operationAddress(row?.delegate || row?.initiator || row?.sender);
         if (address) actors.add(address);
+    }
+    for (const row of [...(managerOperations || []), ...(evidenceRows || []), ...(delegationRows || []), ...(originationRows || [])]) {
+        for (const account of [row?.source, row?.sender, row?.initiator, row?.destination, row?.delegate, row?.newDelegate, row?.prevDelegate, row?.originatedContract]) {
+            const address = operationAddress(account);
+            if (address) actors.add(address);
+        }
     }
     return [...actors];
 }
@@ -1167,13 +1184,25 @@ function loadLiveHeadActivityFilters() {
     liveHeadActivityFiltersLoaded = true;
     try {
         const stored = localStorage.getItem(LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY);
-        const migrated = stored === null;
-        const saved = JSON.parse(stored || localStorage.getItem(LIVE_HEAD_ACTIVITY_FILTER_LEGACY_STORAGE_KEY) || 'null');
+        const v2Stored = stored === null ? localStorage.getItem(LIVE_HEAD_ACTIVITY_FILTER_V2_STORAGE_KEY) : null;
+        const v1Stored = stored === null && v2Stored === null
+            ? localStorage.getItem(LIVE_HEAD_ACTIVITY_FILTER_LEGACY_STORAGE_KEY)
+            : null;
+        const saved = JSON.parse(stored || v2Stored || v1Stored || 'null');
         if (Array.isArray(saved)) {
-            liveHeadSelectedActivityTypes = new Set(saved.filter((kind) => LIVE_HEAD_ACTIVITY_TYPES.includes(kind)));
-            if (migrated) {
+            const savedSet = new Set(saved);
+            const priorTypes = v1Stored !== null
+                ? LIVE_HEAD_ACTIVITY_V2_TYPES.filter((kind) => kind !== 'l1-vote' && kind !== 'l2-vote')
+                : LIVE_HEAD_ACTIVITY_V2_TYPES;
+            const priorAllSelected = stored === null && priorTypes.every((kind) => savedSet.has(kind));
+            liveHeadSelectedActivityTypes = priorAllSelected
+                ? new Set(LIVE_HEAD_ACTIVITY_TYPES)
+                : new Set(saved.filter((kind) => LIVE_HEAD_ACTIVITY_TYPES.includes(kind)));
+            if (v1Stored !== null && !priorAllSelected) {
                 liveHeadSelectedActivityTypes.add('l1-vote');
                 liveHeadSelectedActivityTypes.add('l2-vote');
+            }
+            if (stored === null) {
                 localStorage.setItem(LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY, JSON.stringify([...liveHeadSelectedActivityTypes]));
             }
         }
@@ -1287,10 +1316,12 @@ function fitLiveHeadPills(root = document) {
 
         missedPills.forEach((pill) => { pill.hidden = false; });
         storyPills.forEach((pill) => {
-            pill.hidden = !liveHeadActivityTypeIsSelected(pill.dataset.liveHeadKind);
+            pill.hidden = pill.dataset.liveHeadMandatory !== 'true'
+                && !liveHeadActivityTypeIsSelected(pill.dataset.liveHeadKind);
             setLiveHeadStoryDetail(pill, 0);
         });
         const selectedStoryPills = storyPills.filter((pill) => !pill.hidden);
+        const optionalStoryPills = selectedStoryPills.filter((pill) => pill.dataset.liveHeadMandatory !== 'true');
         if (overflowPill) {
             overflowPill.hidden = true;
             overflowPill.textContent = '';
@@ -1298,9 +1329,9 @@ function fitLiveHeadPills(root = document) {
         }
 
         if (liveHeadPillOverflows(container)) {
-            let visibleStoryCount = selectedStoryPills.length;
-            while (liveHeadPillOverflows(container) && visibleStoryCount > 1) {
-                selectedStoryPills[--visibleStoryCount].hidden = true;
+            let visibleOptionalStoryCount = optionalStoryPills.length;
+            while (liveHeadPillOverflows(container) && visibleOptionalStoryCount > 0) {
+                optionalStoryPills[--visibleOptionalStoryCount].hidden = true;
             }
 
             const hiddenMisses = [];
@@ -1316,9 +1347,6 @@ function fitLiveHeadPills(root = document) {
                 }
             }
             if (overflowPill && !hiddenMisses.length) overflowPill.hidden = true;
-            if (liveHeadPillOverflows(container) && visibleStoryCount > 0) {
-                selectedStoryPills[--visibleStoryCount].hidden = true;
-            }
             while (overflowPill && !overflowPill.hidden && liveHeadPillOverflows(container) && visibleMissCount > 0) {
                 const pill = missedPills[--visibleMissCount];
                 pill.hidden = true;
@@ -1781,7 +1809,9 @@ function buildLiveHeadDetails(block, activity) {
     if (story) {
         titleParts.push(story.clipped
             ? 'This receipt sample reached an upstream row limit; + marks a minimum observed count.'
-            : `Applied operations classified from reviewed Tezos Systems catalogs for block ${formatCount(activity.level)}.`);
+            : story.complete
+                ? `Complete applied-operation receipts classified for block ${formatCount(activity.level)}; application identities use reviewed Tezos Systems catalogs.`
+                : `Available applied-operation receipts classified for block ${formatCount(activity.level)}; one or more supplemental lanes remain unavailable.`);
     }
     if (missedState.state === 'resolved') {
         titleParts.push(`Missed attesters: ${missedState.attesters.map((item) => `${item.name} (−${formatCount(item.slots)})`).join(', ')}.`);
@@ -1794,7 +1824,8 @@ function buildLiveHeadDetails(block, activity) {
             const detailAttrs = details.length
                 ? ` data-live-head-details="${escapeHtml(JSON.stringify(details))}" title="${escapeHtml(richest)}" aria-label="${escapeHtml(richest)}"`
                 : '';
-            return `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}${details.length ? ' has-detail' : ''}" data-live-head-kind="${escapeHtml(fragment.key)}" data-live-head-compact="${escapeHtml(fragment.text)}" data-live-head-detail-level="0"${detailAttrs} style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`;
+            const mandatoryAttr = fragment.mandatory === true ? ' data-live-head-mandatory="true"' : '';
+            return `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}${details.length ? ' has-detail' : ''}" data-live-head-kind="${escapeHtml(fragment.key)}"${mandatoryAttr} data-live-head-compact="${escapeHtml(fragment.text)}" data-live-head-detail-level="0"${detailAttrs} style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`;
         }).join('')
         : '<i class="live-head-story-skeleton" aria-hidden="true"></i><i class="live-head-story-skeleton is-short" aria-hidden="true"></i>';
     const signature = `${storySignature}|${missedState.signature}`;
@@ -1838,7 +1869,7 @@ function renderLiveHeadActivityStatus(activity) {
         return '<i class="live-head-gas-skeleton" aria-hidden="true"></i>';
     }
     if (gas.state === 'quiet') {
-        return '<span class="live-head-quiet" title="No reviewed transaction, governance, or staking activity was present in the complete block receipt">Quiet</span>';
+        return '<span class="live-head-quiet" title="No classified application, transfer, token, governance, delegation, origination, rollup, DAL, baker-policy, evidence, or milestone event was present in the complete block receipt">Quiet</span>';
     }
     if (gas.state === 'unavailable') {
         return '<span class="live-head-gas is-unavailable" title="The exact manager-operation gas receipt or current block gas limit is temporarily unavailable"><span>Gas --</span></span>';
@@ -1864,7 +1895,7 @@ function renderLiveHeadRow(block, activity, { isNew = false, savedAddresses = nu
     const gasSummary = gas.state === 'resolved'
         ? ` Gas use: ${gas.exactPct.toFixed(1)}% of block capacity.`
         : gas.state === 'quiet'
-            ? ' No reviewed transaction, governance, or staking activity.'
+            ? ' No classified chain activity was present in the complete receipt.'
             : '';
     const missedSummary = details.missedState.state === 'resolved'
         ? ` Missed attesters: ${details.missedState.attesters.map((item) => `${item.name}, ${formatCount(item.slots)} power`).join('; ')}.`
@@ -2139,9 +2170,15 @@ function loadHeartbeatStoryCatalog() {
     if (heartbeatStoryCatalogInFlight) return heartbeatStoryCatalogInFlight;
     heartbeatStoryCatalogInFlight = Promise.all([
         loadDataAsset('ecosystemApps').catch(() => ({})),
-        loadDataAsset('maxisContracts').catch(() => ({}))
-    ]).then(([ecosystem, maxis]) => {
+        loadDataAsset('maxisContracts').catch(() => ({})),
+        loadDataAsset('protocolData').catch(() => null)
+    ]).then(([ecosystem, maxis, protocolData]) => {
         heartbeatStoryCatalog = compileBlockStoryCatalog(ecosystem, maxis);
+        heartbeatProtocolMilestones = protocolData
+            ? new Map((Array.isArray(protocolData?.protocols) ? protocolData.protocols : [])
+                .map((protocol) => [Number(protocol?.block), protocol])
+                .filter(([level]) => Number.isFinite(level) && level > 0))
+            : null;
         return heartbeatStoryCatalog;
     }).finally(() => {
         heartbeatStoryCatalogInFlight = null;
@@ -2178,16 +2215,21 @@ async function fetchHeartbeatL1Voting(blocks) {
     const query = `level.ge=${startLevel}&level.le=${endLevel}&status=applied&limit=${HEARTBEAT_L1_VOTING_LIMIT}`;
     const promise = Promise.allSettled([
         fetchJson(`${TZKT}/operations/ballots?${query}&select=${ballotFields}`, 1, { priority: 'interactive' }),
-        fetchJson(`${TZKT}/operations/proposals?${query}&select=${proposalFields}`, 1, { priority: 'interactive' })
-    ]).then(([ballotsResult, proposalsResult]) => {
+        fetchJson(`${TZKT}/operations/proposals?${query}&select=${proposalFields}`, 1, { priority: 'interactive' }),
+        fetchJson(`${TZKT}/voting/periods?firstLevel.ge=${startLevel}&firstLevel.le=${endLevel}&select=index,firstLevel,kind&limit=${HEARTBEAT_L1_VOTING_LIMIT}`, 1, { priority: 'interactive' })
+    ]).then(([ballotsResult, proposalsResult, periodsResult]) => {
         const ballots = ballotsResult.status === 'fulfilled' && Array.isArray(ballotsResult.value)
             ? ballotsResult.value
             : null;
         const proposals = proposalsResult.status === 'fulfilled' && Array.isArray(proposalsResult.value)
             ? proposalsResult.value
             : null;
-        const complete = ballots !== null && proposals !== null;
+        const periods = periodsResult.status === 'fulfilled' && Array.isArray(periodsResult.value)
+            ? periodsResult.value
+            : null;
+        const complete = ballots !== null && proposals !== null && periods !== null;
         const byLevel = new Map(levels.map((level) => [level, []]));
+        const periodsByLevel = new Map(levels.map((level) => [level, []]));
         if (complete) {
             for (const row of ballots) {
                 const level = Number(row?.level);
@@ -2197,15 +2239,21 @@ async function fetchHeartbeatL1Voting(blocks) {
                 const level = Number(row?.level);
                 if (byLevel.has(level)) byLevel.get(level).push({ ...row, votingKind: 'proposal' });
             }
+            for (const row of periods) {
+                const level = Number(row?.firstLevel);
+                if (periodsByLevel.has(level)) periodsByLevel.get(level).push(row);
+            }
         }
         const coverage = {
             startLevel,
             endLevel,
             byLevel,
+            periodsByLevel,
             complete,
             clipped: Boolean(
                 (ballots && ballots.length >= HEARTBEAT_L1_VOTING_LIMIT)
                 || (proposals && proposals.length >= HEARTBEAT_L1_VOTING_LIMIT)
+                || (periods && periods.length >= HEARTBEAT_L1_VOTING_LIMIT)
             ),
             updatedAt: Date.now()
         };
@@ -2218,7 +2266,25 @@ async function fetchHeartbeatL1Voting(blocks) {
     return promise;
 }
 
-async function fetchHeartbeatActivity(level, { l1VotingCoverage = heartbeatL1VotingCoverage } = {}) {
+function heartbeatMilestoneRows(block, l1VotingCoverage) {
+    if (!block || block.cycleStartKnown !== true) return null;
+    if (!heartbeatL1VotingCoverageIncludes(l1VotingCoverage, Number(block.level), Number(block.level))) return null;
+    if (!(heartbeatProtocolMilestones instanceof Map)) return null;
+    const rows = [];
+    if (block.cycleStart === true) rows.push({ kind: 'cycle', cycle: Number(block.cycle) });
+    const protocol = heartbeatProtocolMilestones.get(Number(block.level));
+    if (protocol) rows.push({ kind: 'protocol', name: protocol.name, hash: protocol.hash });
+    for (const period of l1VotingCoverage.periodsByLevel?.get(Number(block.level)) || []) {
+        rows.push({ kind: 'voting', period: period.kind, index: period.index });
+    }
+    return rows;
+}
+
+function managerOperationKindIs(rows, kind) {
+    return Array.isArray(rows) && rows.some((row) => String(row?.kind || '') === kind);
+}
+
+async function fetchHeartbeatActivity(level, { block = null, l1VotingCoverage = heartbeatL1VotingCoverage } = {}) {
     if (!Number.isFinite(level) || level <= 0) return null;
     const cached = heartbeatActivityCache.get(level);
     if (cached && (cached.complete || Date.now() - cached.updatedAt < LIVE_REFRESH_INTERVAL)) return cached;
@@ -2226,15 +2292,15 @@ async function fetchHeartbeatActivity(level, { l1VotingCoverage = heartbeatL1Vot
 
     const txFields = 'id,hash,timestamp,amount,sender,target,parameter,internal';
     const stakingFields = 'id,hash,timestamp,action,amount,staker,baker';
-    const artTransferFields = 'id,token.id as tokenId,token.metadata.name as name,from,to,amount,transactionId';
+    const tokenTransferFields = 'id,token.id as tokenId,token.contract as contract,token.standard as standard,token.metadata.symbol as symbol,token.metadata.name as name,token.metadata.artifactUri as artifactUri,from,to,amount,transactionId';
     const requests = [
         fetchJson(`${TZKT}/operations/transactions?level=${level}&status=applied&select=${txFields}&limit=${HEARTBEAT_ACTIVITY_LIMIT}`, 1, { priority: 'interactive' }),
         fetchJson(`${TZKT}/operations/staking?level=${level}&status=applied&select=${stakingFields}&limit=${HEARTBEAT_STAKING_LIMIT}`, 1, { priority: 'interactive' }),
         fetchHeartbeatGas(level),
-        fetchJson(`${TZKT}/tokens/transfers?level=${level}&token.metadata.artifactUri.null=false&select=${encodeURIComponent(artTransferFields)}&limit=${HEARTBEAT_ART_TRANSFER_LIMIT}`, 1, { priority: 'interactive' })
+        fetchJson(`${TZKT}/tokens/transfers?level=${level}&select=${encodeURIComponent(tokenTransferFields)}&limit=${HEARTBEAT_TOKEN_TRANSFER_LIMIT}`, 1, { priority: 'interactive' })
     ];
     const promise = Promise.all([loadHeartbeatStoryCatalog(), Promise.allSettled(requests)])
-        .then(([catalog, [transactionsResult, stakingResult, gasResult, artTransfersResult]]) => {
+        .then(([catalog, [transactionsResult, stakingResult, gasResult, tokenTransfersResult]]) => {
             const transactions = transactionsResult.status === 'fulfilled' && Array.isArray(transactionsResult.value)
                 ? transactionsResult.value
                 : null;
@@ -2242,20 +2308,46 @@ async function fetchHeartbeatActivity(level, { l1VotingCoverage = heartbeatL1Vot
                 ? stakingResult.value
                 : null;
             const gas = gasResult.status === 'fulfilled' ? gasResult.value : null;
-            const tokenTransfers = artTransfersResult.status === 'fulfilled' && Array.isArray(artTransfersResult.value)
-                ? artTransfersResult.value
+            const tokenTransfers = tokenTransfersResult.status === 'fulfilled' && Array.isArray(tokenTransfersResult.value)
+                ? tokenTransfersResult.value
                 : null;
+            const managerOperations = Array.isArray(gas?.managerOperations) ? gas.managerOperations : null;
+            const evidenceRows = Array.isArray(gas?.evidenceRows) ? gas.evidenceRows : null;
             const l1VotingRows = heartbeatL1VotingCoverageIncludes(l1VotingCoverage, level, level)
                 ? (l1VotingCoverage.byLevel.get(level) || [])
                 : null;
             const l2VotingRows = transactions?.filter(isEtherlinkGovernanceActivity) || null;
+            const resolvedBlock = block
+                || heartbeatData?.blocks?.find((row) => Number(row?.level) === level)
+                || recentBlockSupplementBlocks.find((row) => Number(row?.level) === level)
+                || null;
+            const milestoneRows = heartbeatMilestoneRows(resolvedBlock, l1VotingCoverage);
             const largestTransfer = transactions?.reduce((largest, row) => (
                 Number(row?.amount) > Number(largest?.amount || 0) ? row : largest
             ), null) || null;
             const transactionsClipped = Boolean(transactions && transactions.length >= HEARTBEAT_ACTIVITY_LIMIT);
             const stakingClipped = Boolean(stakingRows && stakingRows.length >= HEARTBEAT_STAKING_LIMIT);
-            const tokenTransfersClipped = Boolean(tokenTransfers && tokenTransfers.length >= HEARTBEAT_ART_TRANSFER_LIMIT);
+            const tokenTransfersClipped = Boolean(tokenTransfers && tokenTransfers.length >= HEARTBEAT_TOKEN_TRANSFER_LIMIT);
             const l1VotingClipped = l1VotingCoverage?.clipped === true;
+            const story = classifyBlockStory({
+                transactions,
+                stakingRows,
+                l1VotingRows,
+                l2VotingRows,
+                tokenTransfers,
+                managerOperations,
+                evidenceRows,
+                milestoneRows,
+                delegationRows: [],
+                originationRows: [],
+                catalog,
+                transactionsClipped,
+                stakingClipped,
+                l1VotingClipped,
+                l2VotingClipped: transactionsClipped,
+                tokenTransfersClipped,
+                maxFragments: LIVE_HEAD_ACTIVITY_TYPES.length + 3
+            });
             const activity = {
                 level,
                 txCount: transactions ? transactions.length : null,
@@ -2264,34 +2356,102 @@ async function fetchHeartbeatActivity(level, { l1VotingCoverage = heartbeatL1Vot
                 stakingRows: stakingRows || [],
                 tokenTransfers: tokenTransfers || [],
                 largestTransfer,
-                actorAddresses: collectHeartbeatActorAddresses(transactions, stakingRows, tokenTransfers, l1VotingRows),
+                actorAddresses: collectHeartbeatActorAddresses(
+                    transactions,
+                    stakingRows,
+                    tokenTransfers,
+                    l1VotingRows,
+                    managerOperations,
+                    evidenceRows,
+                    [],
+                    []
+                ),
                 actorCoverageComplete: transactions !== null
                     && stakingRows !== null
                     && l1VotingRows !== null
+                    && tokenTransfers !== null
+                    && managerOperations !== null
+                    && evidenceRows !== null
                     && !transactionsClipped
                     && !stakingClipped
+                    && !tokenTransfersClipped
                     && !l1VotingClipped,
                 gasUsed: Number.isFinite(gas?.gasUsed) ? gas.gasUsed : null,
                 gasLimit: Number.isFinite(gas?.gasLimit) ? gas.gasLimit : null,
-                story: classifyBlockStory({
-                    transactions,
-                    stakingRows,
-                    l1VotingRows,
-                    l2VotingRows,
-                    tokenTransfers,
-                    catalog,
-                    transactionsClipped,
-                    stakingClipped,
-                    l1VotingClipped,
-                    l2VotingClipped: transactionsClipped,
-                    tokenTransfersClipped,
-                    maxFragments: LIVE_HEAD_ACTIVITY_TYPES.length
-                }),
-                complete: transactions !== null && stakingRows !== null && l1VotingRows !== null && gas?.complete === true,
+                story,
+                complete: story?.complete === true && gas?.complete === true,
                 updatedAt: Date.now()
             };
             heartbeatActivityCache.set(level, activity);
             trimHeartbeatActivityCache();
+
+            const needsDelegationEnrichment = managerOperationKindIs(managerOperations, 'delegation');
+            const needsOriginationEnrichment = managerOperationKindIs(managerOperations, 'origination');
+            if ((needsDelegationEnrichment || needsOriginationEnrichment)
+                && !heartbeatActivityEnrichmentInFlight.has(level)) {
+                const enrichmentPromise = Promise.allSettled([
+                    needsDelegationEnrichment
+                        ? fetchJson(`${TZKT}/operations/delegations?level=${level}&status=applied&select=id,hash,timestamp,sender,prevDelegate,newDelegate&limit=${HEARTBEAT_MANAGER_ENRICHMENT_LIMIT}`, 1)
+                        : Promise.resolve([]),
+                    needsOriginationEnrichment
+                        ? fetchJson(`${TZKT}/operations/originations?level=${level}&status=applied&select=id,hash,timestamp,sender,initiator,originatedContract&limit=${HEARTBEAT_MANAGER_ENRICHMENT_LIMIT}`, 1)
+                        : Promise.resolve([])
+                ]).then(([delegationResult, originationResult]) => {
+                    if (heartbeatActivityCache.get(level) !== activity) return;
+                    const delegationRows = delegationResult.status === 'fulfilled' && Array.isArray(delegationResult.value)
+                        ? delegationResult.value
+                        : [];
+                    const originationRows = originationResult.status === 'fulfilled' && Array.isArray(originationResult.value)
+                        ? originationResult.value
+                        : [];
+                    if (!delegationRows.length && !originationRows.length) return;
+                    const enrichedStory = classifyBlockStory({
+                        transactions,
+                        stakingRows,
+                        l1VotingRows,
+                        l2VotingRows,
+                        tokenTransfers,
+                        managerOperations,
+                        evidenceRows,
+                        milestoneRows,
+                        delegationRows,
+                        originationRows,
+                        catalog,
+                        transactionsClipped,
+                        stakingClipped,
+                        l1VotingClipped,
+                        l2VotingClipped: transactionsClipped,
+                        tokenTransfersClipped,
+                        maxFragments: LIVE_HEAD_ACTIVITY_TYPES.length + 3
+                    });
+                    const enrichedActivity = {
+                        ...activity,
+                        actorAddresses: collectHeartbeatActorAddresses(
+                            transactions,
+                            stakingRows,
+                            tokenTransfers,
+                            l1VotingRows,
+                            managerOperations,
+                            evidenceRows,
+                            delegationRows,
+                            originationRows
+                        ),
+                        story: enrichedStory,
+                        complete: enrichedStory?.complete === true && gas?.complete === true
+                    };
+                    heartbeatActivityCache.set(level, enrichedActivity);
+                    if (heartbeatData?.blocks?.some((row) => Number(row?.level) === level)) {
+                        updateBlockTicker(heartbeatData, { supplemental: true });
+                    }
+                    const recentBlock = recentBlockSupplementBlocks.find((row) => Number(row?.level) === level);
+                    if (recentBlock) updateRecentBlockReceipt(recentBlock);
+                }).finally(() => {
+                    if (heartbeatActivityEnrichmentInFlight.get(level) === enrichmentPromise) {
+                        heartbeatActivityEnrichmentInFlight.delete(level);
+                    }
+                });
+                heartbeatActivityEnrichmentInFlight.set(level, enrichmentPromise);
+            }
             return activity;
         })
         .finally(() => {
@@ -2323,6 +2483,53 @@ function sumManagerOperationMilligas(groups) {
     return total;
 }
 
+function operationResultIsApplied(result) {
+    const status = String(result?.status || 'applied').toLowerCase();
+    return status === 'applied';
+}
+
+function flattenAppliedManagerOperations(groups) {
+    const operations = [];
+    for (const group of Array.isArray(groups) ? groups : []) {
+        for (const content of Array.isArray(group?.contents) ? group.contents : []) {
+            const result = content?.metadata?.operation_result;
+            if (operationResultIsApplied(result)) {
+                operations.push({
+                    ...content,
+                    applied: true,
+                    operationHash: group?.hash || '',
+                    slotIndex: content?.slot_header?.index ?? result?.slot_header?.index ?? null
+                });
+            }
+            for (const internal of Array.isArray(content?.metadata?.internal_operation_results)
+                ? content.metadata.internal_operation_results
+                : []) {
+                if (!operationResultIsApplied(internal?.result)) continue;
+                operations.push({
+                    ...internal,
+                    applied: true,
+                    internal: true,
+                    operationHash: group?.hash || '',
+                    parentKind: content?.kind || '',
+                    slotIndex: internal?.slot_header?.index ?? internal?.result?.slot_header?.index ?? null
+                });
+            }
+        }
+    }
+    return operations;
+}
+
+function flattenAppliedEvidenceOperations(groups) {
+    const operations = [];
+    for (const group of Array.isArray(groups) ? groups : []) {
+        for (const content of Array.isArray(group?.contents) ? group.contents : []) {
+            if (!operationResultIsApplied(content?.metadata?.operation_result)) continue;
+            operations.push({ ...content, applied: true, operationHash: group?.hash || '' });
+        }
+    }
+    return operations;
+}
+
 async function fetchHeartbeatGasLimit() {
     if (Number.isFinite(heartbeatGasLimitCache)
         && Date.now() - heartbeatGasLimitCacheAt < PROTOCOL_CONSTANTS_TTL) {
@@ -2345,12 +2552,27 @@ async function fetchHeartbeatGasLimit() {
 }
 
 async function fetchHeartbeatGas(level) {
-    const [groups, gasLimit] = await Promise.all([
+    const [managerResult, evidenceResult, gasLimitResult] = await Promise.allSettled([
         fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/operations/3`, 1, { priority: 'interactive' }),
+        fetchJson(`${API_URLS.octez}/chains/main/blocks/${encodeURIComponent(level)}/operations/2`, 1, { priority: 'interactive' }),
         fetchHeartbeatGasLimit()
     ]);
-    const gasUsed = sumManagerOperationMilligas(groups) / 1000;
-    return { gasUsed, gasLimit, complete: true };
+    const groups = managerResult.status === 'fulfilled' && Array.isArray(managerResult.value)
+        ? managerResult.value
+        : null;
+    const evidenceGroups = evidenceResult.status === 'fulfilled' && Array.isArray(evidenceResult.value)
+        ? evidenceResult.value
+        : null;
+    const gasLimit = gasLimitResult.status === 'fulfilled' && Number.isFinite(Number(gasLimitResult.value))
+        ? Number(gasLimitResult.value)
+        : null;
+    return {
+        gasUsed: groups ? sumManagerOperationMilligas(groups) / 1000 : null,
+        gasLimit,
+        managerOperations: groups ? flattenAppliedManagerOperations(groups) : null,
+        evidenceRows: evidenceGroups ? flattenAppliedEvidenceOperations(evidenceGroups) : null,
+        complete: groups !== null && evidenceGroups !== null && gasLimit !== null
+    };
 }
 
 async function fetchHeartbeatMissedRights(blocks) {
@@ -2400,7 +2622,7 @@ function requestHeartbeatSupplements(data) {
     const visible = visibleLiveHeadBlocks(data);
     Promise.allSettled([
         fetchHeartbeatL1Voting(visible).then((l1VotingCoverage) => Promise.allSettled(
-            visible.map((block) => fetchHeartbeatActivity(Number(block.level), { l1VotingCoverage }))
+            visible.map((block) => fetchHeartbeatActivity(Number(block.level), { block, l1VotingCoverage }))
         )),
         fetchHeartbeatMissedRights(visible)
     ]).then(refreshIfCurrent);
@@ -2443,7 +2665,7 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     if (!supplemental) suppressNextHeartbeatMotion = false;
 
     dispatchContestedRoundHotSignal(latest);
-    if (!supplemental) fetchUsagePulse().then(patchTickerUsage);
+    if (!supplemental) fetchUsagePulse({ priority: 'interactive' }).then(patchTickerUsage);
 
     const status = latestBlockStatus(latest);
     const producerName = bakerName(latest.producer);
@@ -3186,7 +3408,7 @@ function usageWindowStart() {
     return encodeURIComponent(start.toISOString());
 }
 
-async function fetchUsagePulse({ force = false } = {}) {
+async function fetchUsagePulse({ force = false, priority = 'normal' } = {}) {
     if (!force && usagePulseCache && Date.now() - usagePulseCacheAt < USAGE_PULSE_TTL) {
         return usagePulseCache;
     }
@@ -3194,10 +3416,10 @@ async function fetchUsagePulse({ force = false } = {}) {
 
     const since = usageWindowStart();
     usagePulseInFlight = Promise.all([
-        fetchJson(`${TZKT}/operations/transactions/count?status=applied&timestamp.ge=${since}`, 1).catch(() => null),
-        fetchJson(`${TZKT}/operations/transactions?status=applied&timestamp.ge=${since}&select=amount&limit=${USAGE_AMOUNT_PAGE_LIMIT}`, 1).catch(() => null),
-        fetchJson(`${TZKT}/tokens/transfers/count?token.metadata.artifactUri.null=false&timestamp.ge=${since}`, 1).catch(() => null),
-        fetchActivityTape().catch(() => activityTapeCache)
+        fetchJson(`${TZKT}/operations/transactions/count?status=applied&timestamp.ge=${since}`, 1, { priority }).catch(() => null),
+        fetchJson(`${TZKT}/operations/transactions?status=applied&timestamp.ge=${since}&select=amount&limit=${USAGE_AMOUNT_PAGE_LIMIT}`, 1, { priority }).catch(() => null),
+        fetchJson(`${TZKT}/tokens/transfers/count?token.metadata.artifactUri.null=false&timestamp.ge=${since}`, 1, { priority }).catch(() => null),
+        fetchActivityTape({ priority }).catch(() => activityTapeCache)
     ]).then(([txCount, amounts, nftCount, tape]) => {
         const previous = usagePulseCache;
         const amountRows = Array.isArray(amounts) ? amounts : null;
@@ -3617,6 +3839,8 @@ function normalizeBlock(block) {
     ].map(Number);
     return {
         level: Number(block.level) || 0,
+        cycle: Number.isFinite(Number(block.cycle)) ? Number(block.cycle) : null,
+        protocol: Number.isFinite(Number(block.proto)) ? Number(block.proto) : null,
         timestamp: block.timestamp || null,
         producer: block.producer || null,
         proposer: block.proposer || null,
@@ -3637,10 +3861,14 @@ function normalizeBlock(block) {
 function addBlockIntervals(blocks) {
     return blocks.map((block, index) => {
         const older = blocks[index + 1];
-        if (!block.timestamp || !older?.timestamp) return block;
+        const cycleStartKnown = Number.isFinite(block?.cycle) && Number.isFinite(older?.cycle);
+        const cycleStart = cycleStartKnown && block.cycle !== older.cycle;
+        if (!block.timestamp || !older?.timestamp) return { ...block, cycleStartKnown, cycleStart };
         const diff = (new Date(block.timestamp).getTime() - new Date(older.timestamp).getTime()) / 1000;
         return {
             ...block,
+            cycleStartKnown,
+            cycleStart,
             intervalSeconds: Number.isFinite(diff) && diff >= 0 ? diff : null
         };
     });
@@ -3684,12 +3912,12 @@ function summarizeTiming(blocks) {
 }
 
 async function fetchRecentBlocks(limit = LAST_BLOCK_LIMIT, { priority = 'normal' } = {}) {
-    const fields = 'level,timestamp,producer,proposer,attestationPower,attestationCommittee,payloadRound,blockRound'
+    const fields = 'level,cycle,proto,timestamp,producer,proposer,attestationPower,attestationCommittee,payloadRound,blockRound'
         + ',fees,rewardDelegated,rewardStakedOwn,rewardStakedEdge,rewardStakedShared'
         + ',bonusDelegated,bonusStakedOwn,bonusStakedEdge,bonusStakedShared';
-    const url = `${TZKT}/blocks?sort.desc=level&limit=${limit}&select=${fields}`;
+    const url = `${TZKT}/blocks?sort.desc=level&limit=${limit + 1}&select=${fields}`;
     const blocks = await fetchJson(url, 2, { priority });
-    return addBlockIntervals((Array.isArray(blocks) ? blocks : []).map(normalizeBlock));
+    return addBlockIntervals((Array.isArray(blocks) ? blocks : []).map(normalizeBlock)).slice(0, limit);
 }
 
 async function fetchLastBlocks() {
@@ -5085,7 +5313,7 @@ function renderHealthBlockActivitySetup() {
                 <span>Setup</span>
             </button>
             <div class="live-head-filter-menu health-block-filter-menu" id="health-block-filter-menu" data-live-head-filter-menu hidden>
-                <div class="live-head-filter-heading">Block activity <small>Choose which transaction receipts can spend the right-hand rail. Gas and missed-attester receipts stay visible.</small></div>
+                <div class="live-head-filter-heading">Block activity <small>Choose which normal receipts can spend the right-hand rail. Gas, missed attesters, evidence, milestones, and baker changes stay visible.</small></div>
                 <button class="live-head-filter-my-tezos" type="button" data-live-head-my-tezos-toggle aria-pressed="false">
                     <span>Only My Tezos blocks</span>
                     <small>Produced by or carrying activity from a saved address.</small>
@@ -5095,14 +5323,20 @@ function renderHealthBlockActivitySetup() {
                 <div class="live-head-filter-options">
                     <button class="live-head-filter-pill is-l1-vote" type="button" data-live-head-filter-kind="l1-vote" aria-pressed="true">L1 voting</button>
                     <button class="live-head-filter-pill is-l2-vote" type="button" data-live-head-filter-kind="l2-vote" aria-pressed="true">L2 voting</button>
-                    <button class="live-head-filter-pill is-transfers" type="button" data-live-head-filter-kind="transfers" aria-pressed="true">Transfers</button>
+                    <button class="live-head-filter-pill is-etherlink" type="button" data-live-head-filter-kind="etherlink" aria-pressed="true">Etherlink / Tezos X</button>
+                    <button class="live-head-filter-pill is-dal" type="button" data-live-head-filter-kind="dal" aria-pressed="true">DAL</button>
                     <button class="live-head-filter-pill is-art" type="button" data-live-head-filter-kind="art" aria-pressed="true">Art</button>
                     <button class="live-head-filter-pill is-defi" type="button" data-live-head-filter-kind="defi" aria-pressed="true">DeFi</button>
                     <button class="live-head-filter-pill is-gaming" type="button" data-live-head-filter-kind="gaming" aria-pressed="true">Gaming</button>
                     <button class="live-head-filter-pill is-bridge" type="button" data-live-head-filter-kind="bridge" aria-pressed="true">Bridge</button>
-                    <button class="live-head-filter-pill is-etherlink" type="button" data-live-head-filter-kind="etherlink" aria-pressed="true">Etherlink</button>
+                    <button class="live-head-filter-pill is-domains" type="button" data-live-head-filter-kind="domains" aria-pressed="true">Domains</button>
                     <button class="live-head-filter-pill is-stake" type="button" data-live-head-filter-kind="stake" aria-pressed="true">Stake</button>
                     <button class="live-head-filter-pill is-unstake" type="button" data-live-head-filter-kind="unstake" aria-pressed="true">Unstake</button>
+                    <button class="live-head-filter-pill is-delegate" type="button" data-live-head-filter-kind="delegate" aria-pressed="true">Delegation</button>
+                    <button class="live-head-filter-pill is-tokens" type="button" data-live-head-filter-kind="tokens" aria-pressed="true">Tokens</button>
+                    <button class="live-head-filter-pill is-contract" type="button" data-live-head-filter-kind="contract" aria-pressed="true">Contracts</button>
+                    <button class="live-head-filter-pill is-transfers" type="button" data-live-head-filter-kind="transfers" aria-pressed="true">Transfers</button>
+                    <button class="live-head-filter-pill is-calls" type="button" data-live-head-filter-kind="calls" aria-pressed="true">Calls</button>
                 </div>
             </div>
         </div>
@@ -5203,7 +5437,7 @@ function requestRecentBlockSupplements(blocks) {
     (async () => {
         const l1VotingCoverage = await fetchHeartbeatL1Voting(recent);
         for (const block of recent) {
-            await fetchHeartbeatActivity(Number(block.level), { l1VotingCoverage });
+            await fetchHeartbeatActivity(Number(block.level), { block, l1VotingCoverage });
             refreshBlock(block);
         }
         await missedRights;

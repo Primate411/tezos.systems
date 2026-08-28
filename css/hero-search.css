@@ -1858,9 +1858,15 @@
 .live-head-filter-pill.is-gaming { color: #ffd47d; }
 .live-head-filter-pill.is-bridge { color: #91bdff; }
 .live-head-filter-pill.is-etherlink { color: #eca9ff; }
+.live-head-filter-pill.is-dal { color: #77d9ff; }
+.live-head-filter-pill.is-domains { color: #73efd5; }
 .live-head-filter-pill.is-stake { color: #b7a9ff; }
 .live-head-filter-pill.is-unstake { color: #ffb181; }
+.live-head-filter-pill.is-delegate { color: #c9a6ff; }
+.live-head-filter-pill.is-tokens { color: #d8ed7c; }
+.live-head-filter-pill.is-contract { color: #ffad9e; }
 .live-head-filter-pill.is-transfers { color: #64e7bd; }
+.live-head-filter-pill.is-calls { color: #a9c9dc; }
 
 .live-head-row.is-my-tezos-filtered-out {
     display: none !important;
@@ -2791,6 +2797,29 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
     color: #ff9ddd;
 }
 
+.live-head-story-chip:is(.is-evidence, .is-milestone, .is-baker) {
+    flex-shrink: 0;
+    font-family: var(--font-runtime);
+    font-weight: 860;
+    letter-spacing: 0.02em;
+}
+
+.live-head-story-chip.is-evidence {
+    color: #ff7187;
+    background: color-mix(in srgb, #ff7187 18%, rgba(11, 18, 34, 0.96));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #ff7187 22%, transparent), 0 0 10px rgba(212, 45, 76, 0.25), 0 1px 3px rgba(2, 8, 18, 0.58);
+}
+
+.live-head-story-chip.is-milestone {
+    color: #ffd071;
+    background: color-mix(in srgb, #ffd071 16%, rgba(11, 18, 34, 0.96));
+}
+
+.live-head-story-chip.is-baker {
+    color: #ffb181;
+    background: color-mix(in srgb, #ffb181 14%, rgba(11, 18, 34, 0.96));
+}
+
 .live-head-story-chip:is(.is-l1-vote, .is-l2-vote) {
     color: #c9a6ff;
     background: color-mix(in srgb, #c9a6ff 16%, rgba(11, 18, 34, 0.94));
@@ -2816,6 +2845,14 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
     color: #eca9ff;
 }
 
+.live-head-story-chip.is-dal {
+    color: #77d9ff;
+}
+
+.live-head-story-chip.is-domains {
+    color: #73efd5;
+}
+
 .live-head-story-chip.is-stake {
     color: #b7a9ff;
 }
@@ -2824,8 +2861,24 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
     color: #ffb181;
 }
 
+.live-head-story-chip.is-delegate {
+    color: #c9a6ff;
+}
+
+.live-head-story-chip.is-tokens {
+    color: #d8ed7c;
+}
+
+.live-head-story-chip.is-contract {
+    color: #ffad9e;
+}
+
 .live-head-story-chip.is-transfers {
     color: #64e7bd;
+}
+
+.live-head-story-chip.is-calls {
+    color: #a9c9dc;
 }
 
 .live-head-story-chip.is-quiet {

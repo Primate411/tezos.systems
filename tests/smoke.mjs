@@ -199,9 +199,11 @@ const SAMPLE_LARGE_STAKER_ADDRESS = 'tz1dCgGWymGmVefmNTHSBhSYXXfeJ2aprCLv';
 const SAMPLE_STAKING_BAKER_ADDRESS = 'tz1StakingBaker11111111111111111111111';
 const SAMPLE_UNSTAKER_ADDRESS = 'tz1Unstaker11111111111111111111111111';
 const OVERDELEGATED_ADDRESS = 'tz1bA9zZpouVgtMRLijvw5safwDKSxg62r1x';
+const ETHERLINK_ROLLUP_ADDRESS = 'sr1Ghq66tYK9y3r8CC1Tf8i8m5nxh8nTvZEf';
 const ETHERLINK_FAST_CONTRACT = 'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo';
 const ETHERLINK_SLOW_CONTRACT = 'KT1AXRU3wLc87WNhLhVGrgqDGubLACUMUgPb';
 const ETHERLINK_SEQUENCER_CONTRACT = 'KT1KiVz8ZpHo3HpE1GCP5HLgywPDRwVUkCFh';
+const TEZOS_DOMAINS_CONTRACT = 'KT1F7JKNqwaoLzRsMio1MQC7zv3jG9dHcDdJ';
 const ETHERLINK_FAST_PROPOSAL = '00625d22abf10a520cae5489b7e19df70219a150d336ee6dc0a8eb4c21eca43c1b';
 const ETHERLINK_FAST_OLDER_PROPOSAL = '0056aea7f98b2bc4d18edb450b2f098f6e95e5356f30a1fac2b50080f3e482bad1';
 const ETHERLINK_SLOW_PROPOSAL = '0079e0f348b608ce486c9e5e1fdf84b650019922bf3383b562522c2c8f60a098da';
@@ -1681,6 +1683,19 @@ async function installFeatureMocks(context, options = {}) {
       && parsedUrl.pathname === '/v1/tokens/transfers'
       && parsedUrl.searchParams.has('level')) {
       const level = Number(parsedUrl.searchParams.get('level'));
+      if (level % 4 === 2) {
+        return fulfillJson(route, [{
+          id: 503,
+          tokenId: 9003,
+          standard: 'fa2',
+          symbol: 'USDt',
+          name: 'Tether USD',
+          from: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+          to: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+          amount: '2500000',
+          transactionId: 107
+        }]);
+      }
       if (level % 4 !== 1) return fulfillJson(route, []);
       return fulfillJson(route, [
         {
@@ -1702,6 +1717,34 @@ async function installFeatureMocks(context, options = {}) {
           transactionId: 105
         }
       ]);
+    }
+
+    if (parsedUrl.origin === 'https://api.tzkt.io'
+      && parsedUrl.pathname === '/v1/operations/delegations'
+      && parsedUrl.searchParams.has('level')) {
+      const level = Number(parsedUrl.searchParams.get('level'));
+      return fulfillJson(route, level % 4 === 3 ? [{
+        id: 601,
+        hash: 'opHeartbeatDelegate',
+        timestamp: new Date().toISOString(),
+        sender: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
+        prevDelegate: null,
+        newDelegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }
+      }] : []);
+    }
+
+    if (parsedUrl.origin === 'https://api.tzkt.io'
+      && parsedUrl.pathname === '/v1/operations/originations'
+      && parsedUrl.searchParams.has('level')) {
+      const level = Number(parsedUrl.searchParams.get('level'));
+      return fulfillJson(route, level % 4 === 3 ? [{
+        id: 602,
+        hash: 'opHeartbeatOrigination',
+        timestamp: new Date().toISOString(),
+        sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+        initiator: { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
+        originatedContract: { address: 'KT1SmokeOriginated1111111111111111111', kind: 'smart_contract' }
+      }] : []);
     }
 
     if (
@@ -2360,14 +2403,67 @@ async function installFeatureMocks(context, options = {}) {
         const gasPct = [12, 38, 68, 91][Math.abs(level) % 4];
         const totalMilligas = Math.round(1040000 * 1000 * gasPct / 100);
         const outerMilligas = Math.round(totalMilligas * 0.74);
+        const chainEventContents = level % 4 === 3 ? [
+          {
+            kind: 'smart_rollup_publish',
+            source: SAMPLE_ADDRESS,
+            rollup: ETHERLINK_ROLLUP_ADDRESS,
+            metadata: { operation_result: { status: 'applied', consumed_milligas: '0' } }
+          },
+          {
+            kind: 'dal_publish_commitment',
+            source: SAMPLE_ADDRESS_2,
+            slot_header: { index: 8 },
+            metadata: { operation_result: { status: 'applied', consumed_milligas: '0' } }
+          },
+          {
+            kind: 'delegation',
+            source: SAMPLE_ADDRESS_2,
+            delegate: SAMPLE_ADDRESS,
+            metadata: { operation_result: { status: 'applied', consumed_milligas: '0' } }
+          },
+          {
+            kind: 'update_companion_key',
+            source: SAMPLE_ADDRESS,
+            metadata: { operation_result: { status: 'applied', consumed_milligas: '0' } }
+          },
+          {
+            kind: 'transaction',
+            source: SAMPLE_ADDRESS,
+            metadata: {
+              operation_result: { status: 'applied', consumed_milligas: '0' },
+              internal_operation_results: [{
+                kind: 'origination',
+                source: SAMPLE_ADDRESS,
+                result: {
+                  status: 'applied',
+                  consumed_milligas: '0',
+                  originated_contracts: ['KT1SmokeOriginated1111111111111111111']
+                }
+              }]
+            }
+          }
+        ] : [];
         return fulfillJson(route, [{
+          hash: 'opHeartbeatManagerGroup',
           contents: [{
+            kind: 'transaction',
             metadata: {
               operation_result: { status: 'applied', consumed_milligas: String(outerMilligas) },
               internal_operation_results: [{ result: { status: 'applied', consumed_milligas: String(totalMilligas - outerMilligas) } }]
             }
-          }]
+          }, ...chainEventContents]
         }]);
+      }
+      if (/\/blocks\/\d+\/operations\/2/.test(url)) {
+        const level = Number(url.match(/\/blocks\/(\d+)\/operations\/2/)?.[1]) || 0;
+        return fulfillJson(route, level % 4 === 3 ? [{
+          hash: 'opHeartbeatEvidenceGroup',
+          contents: [{
+            kind: 'double_baking_evidence',
+            metadata: { operation_result: { status: 'applied' } }
+          }]
+        }] : []);
       }
       if (url.includes('/context/constants')) {
         return fulfillJson(route, {
@@ -2684,6 +2780,8 @@ async function installFeatureMocks(context, options = {}) {
           ];
           return {
             level: head - index,
+            cycle: 1143,
+            proto: 25,
             timestamp: new Date(now - lag).toISOString(),
             producer,
             proposer: producer,
@@ -3255,13 +3353,14 @@ async function installFeatureMocks(context, options = {}) {
         if (levelMod === 2) {
           return fulfillJson(route, [
             { id: 107, hash: 'opHeartbeatTransferOne', amount: 2500000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }, target: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' } },
-            { id: 108, hash: 'opHeartbeatTransferTwo', amount: 42000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }, target: { address: SAMPLE_ADDRESS_3, alias: 'Pending Baker' } }
+            { id: 108, hash: 'opHeartbeatTransferTwo', amount: 42000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }, target: { address: SAMPLE_ADDRESS_3, alias: 'Pending Baker' } },
+            { id: 110, hash: 'opHeartbeatDomains', amount: 0, parameter: { entrypoint: 'update_operators', value: [] }, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: TEZOS_DOMAINS_CONTRACT, alias: 'Tezos Domains' } }
           ]);
         }
         return fulfillJson(route, [
           { id: 101, hash: 'opHeartbeatOne', amount: 2500000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: SAMPLE_ADDRESS_2 } },
           { id: 102, hash: 'opHeartbeatTwo', amount: 42000000, parameter: { entrypoint: 'mint', value: {} }, internal: false, sender: { address: SAMPLE_ADDRESS_2 }, target: { address: SAMPLE_CONTRACT } },
-          { id: 103, hash: 'opHeartbeatThree', amount: 0, parameter: { entrypoint: 'transfer', value: [] }, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: SAMPLE_CONTRACT } },
+          { id: 103, hash: 'opHeartbeatThree', amount: 0, parameter: { entrypoint: 'transfer', value: [] }, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: 'KT1UncataloguedCall111111111111111111' } },
           { id: 109, hash: 'opHeartbeatL2Vote', amount: 0, parameter: { entrypoint: 'vote', value: 'yea' }, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: ETHERLINK_FAST_CONTRACT, alias: 'Etherlink FAST governance' } },
           { id: 104, hash: 'opHeartbeatFour', amount: 0, parameter: null, internal: true, sender: { address: SAMPLE_CONTRACT }, target: { address: SAMPLE_ADDRESS_2 } }
         ]);
@@ -3663,6 +3762,13 @@ async function installFeatureMocks(context, options = {}) {
         ]);
       }
       if (url.includes('/voting/periods?')) {
+        if (parsedUrl.searchParams.has('firstLevel.ge')) {
+          const startLevel = Number(parsedUrl.searchParams.get('firstLevel.ge'));
+          const endLevel = Number(parsedUrl.searchParams.get('firstLevel.le'));
+          let firstLevel = endLevel;
+          while (firstLevel >= startLevel && firstLevel % 4 !== 3) firstLevel -= 1;
+          return fulfillJson(route, firstLevel >= startLevel ? [{ index: 174, firstLevel, kind: 'proposal' }] : []);
+        }
         return fulfillJson(route, [
           { firstLevel: 458753, kind: 'proposal' },
           { firstLevel: 5726209, kind: 'promotion' }
@@ -15035,6 +15141,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-live-head-activity-filter-v2', JSON.stringify([
+      'l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'
+    ]));
     localStorage.setItem('tezos-systems-my-baker-address', myBakerAddress);
     localStorage.setItem('tezos-systems-saved-addresses', JSON.stringify([{
       network: 'tezos-l1',
@@ -15146,10 +15255,11 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-story')).every((row) => !/syncing/i.test(row.textContent || '')), null, { timeout: 10000 });
   await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]')).every((row) => row.dataset.gasState !== 'loading'), null, { timeout: 10000 });
   await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-story[data-miss-required="true"]')).some((row) => row.dataset.missState === 'resolved'), null, { timeout: 10000 });
-  await page.waitForFunction(() => document.querySelector('#header-activity-button')?.getAttribute('aria-busy') === 'false', null, { timeout: 10000 });
-  await page.waitForFunction(() => /^\d+$/.test(document.querySelector('#hero-chain-uptime-bakers')?.textContent || ''), null, { timeout: 10000 });
+  await page.waitForFunction(() => document.querySelector('#header-activity-button')?.getAttribute('aria-busy') === 'false', null, { timeout: 15000 });
+  await page.waitForFunction(() => /^\d+$/.test(document.querySelector('#hero-chain-uptime-bakers')?.textContent || ''), null, { timeout: 20000 });
   await page.waitForFunction(() => /^\d+s$/.test((document.querySelector('#hero-chain-uptime-finality')?.textContent || '').trim()), null, { timeout: 20000 });
   await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row-exiting').length === 0, null, { timeout: 5000 });
+  await page.waitForFunction(() => Boolean(document.querySelector('#live-head-stack .live-head-row[data-story-quiet="true"] .live-head-quiet')), null, { timeout: 15000 });
 
   const healthState = await page.evaluate(() => {
     const modal = document.querySelector('#network-health-modal');
@@ -15363,6 +15473,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	      liveHeadFilterMenuHidden: Boolean(liveHeadFilterMenu?.hidden),
 	      liveHeadFilterAllPressed: liveHeadFilterMenu?.querySelector('[data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
 	      liveHeadFilterSelectedCount: liveHeadFilterMenu?.querySelectorAll('.live-head-filter-pill[aria-pressed="true"]').length || 0,
+	      liveHeadFilterStoredCount: JSON.parse(localStorage.getItem('tezos-systems-live-head-activity-filter-v3') || '[]').length,
 	      liveHeadFilterWired: ticker?.dataset.liveHeadActivityFilterWired || '',
 	      liveHeadConnectors: liveHeadRows.map((row) => {
 	        const baker = row.querySelector('.live-head-baker');
@@ -15519,7 +15630,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	          compact: pill.dataset.liveHeadCompact || '',
 	          details: JSON.parse(pill.dataset.liveHeadDetails || '[]'),
 	          fontWeight: Number(style.fontWeight || 0),
-	          kind: Array.from(pill.classList).find((name) => /^is-(l1-vote|l2-vote|art|transfers|stake|unstake)$/.test(name))?.slice(3) || '',
+	          hidden: pill.hidden,
+	          mandatory: pill.dataset.liveHeadMandatory === 'true',
+	          kind: Array.from(pill.classList).find((name) => /^is-(evidence|milestone|baker|l1-vote|l2-vote|etherlink|dal|art|defi|gaming|bridge|domains|stake|unstake|delegate|tokens|contract|transfers|calls)$/.test(name))?.slice(3) || '',
 	          level: Number(pill.dataset.liveHeadDetailLevel || 0),
 	          text: pill.textContent?.replace(/\s+/g, ' ').trim() || ''
 	        };
@@ -15672,6 +15785,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     chamberAllPressed: document.querySelector('#health-block-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
     homeAllPressed: document.querySelector('#live-head-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
     visibleStories: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-story-chip')).filter((pill) => !pill.hidden).length,
+    visibleMandatoryStories: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-story-chip[data-live-head-mandatory="true"]')).filter((pill) => !pill.hidden).length,
+    visibleOptionalStories: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-story-chip:not([data-live-head-mandatory="true"])')).filter((pill) => !pill.hidden).length,
     visibleStatuses: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-gas, #health-recent-block-list .live-head-quiet')).filter((pill) => !pill.hidden).length,
     visibleMisses: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-miss-pill')).filter((pill) => !pill.hidden).length
   }));
@@ -15679,18 +15794,22 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const chamberActivityFilterOn = await page.evaluate(() => ({
     chamberAllPressed: document.querySelector('#health-block-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
     homeAllPressed: document.querySelector('#live-head-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
-    visibleStories: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-story-chip')).filter((pill) => !pill.hidden).length
+    visibleStories: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-story-chip')).filter((pill) => !pill.hidden).length,
+    visibleMandatoryStories: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-story-chip[data-live-head-mandatory="true"]')).filter((pill) => !pill.hidden).length,
+    visibleOptionalStories: Array.from(document.querySelectorAll('#health-recent-block-list .live-head-story-chip:not([data-live-head-mandatory="true"])')).filter((pill) => !pill.hidden).length
   }));
   await page.keyboard.press('Escape');
   assert(chamberActivityFilterOff.chamberAllPressed === 'false'
       && chamberActivityFilterOff.homeAllPressed === 'false'
-      && chamberActivityFilterOff.visibleStories === 0
+      && chamberActivityFilterOff.visibleMandatoryStories >= 3
+      && chamberActivityFilterOff.visibleOptionalStories === 0
       && chamberActivityFilterOff.visibleStatuses >= 8
       && chamberActivityFilterOff.visibleMisses >= 1
       && chamberActivityFilterOn.chamberAllPressed === 'true'
       && chamberActivityFilterOn.homeAllPressed === 'true'
-      && chamberActivityFilterOn.visibleStories >= 1,
-    `network health chamber: top-right Setup did not share the homepage activity choices while retaining gas and missed receipts ${JSON.stringify({ chamberActivityFilterOff, chamberActivityFilterOn })}`);
+      && chamberActivityFilterOn.visibleMandatoryStories === chamberActivityFilterOff.visibleMandatoryStories
+      && chamberActivityFilterOn.visibleOptionalStories >= 1,
+    `network health chamber: top-right Setup did not share normal activity choices while retaining gas, missed, evidence, milestone, and baker receipts ${JSON.stringify({ chamberActivityFilterOff, chamberActivityFilterOn })}`);
 
   await chamberSetupToggle.click();
   await page.locator('#health-block-filter-menu:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
@@ -15973,7 +16092,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.headerActivityFullyVisible, `network health chamber: trailing-hour activity is clipped in its Live Head control rail`);
   assert(/1H Activity/.test(healthState.headerActivityText) && /\bTX\b/.test(healthState.headerActivityText) && /Moved/.test(healthState.headerActivityText) && /NFT/.test(healthState.headerActivityText), `network health chamber: trailing-hour label, TX, moved, and NFT text missing: ${healthState.headerActivityText}`);
   assert(['TX', 'Moved', 'NFT'].every((label) => healthState.headerActivityLabels.includes(label)), `network health chamber: trailing-hour activity labels are hidden: ${healthState.headerActivityLabels.join(', ')}`);
-  assert(healthState.liveHeadFilterMenuHidden && healthState.liveHeadFilterAllPressed === 'true' && healthState.liveHeadFilterSelectedCount === 10 && healthState.liveHeadFilterWired === '1', `network health chamber: activity setup control is not wired with every receipt type selected by default ${JSON.stringify({ hidden: healthState.liveHeadFilterMenuHidden, all: healthState.liveHeadFilterAllPressed, selected: healthState.liveHeadFilterSelectedCount, wired: healthState.liveHeadFilterWired })}`);
+  assert(healthState.liveHeadFilterMenuHidden && healthState.liveHeadFilterAllPressed === 'true' && healthState.liveHeadFilterSelectedCount === 16 && healthState.liveHeadFilterStoredCount === 16 && healthState.liveHeadFilterWired === '1', `network health chamber: v2 all-on activity setup did not migrate to every v3 normal receipt type ${JSON.stringify({ hidden: healthState.liveHeadFilterMenuHidden, all: healthState.liveHeadFilterAllPressed, selected: healthState.liveHeadFilterSelectedCount, stored: healthState.liveHeadFilterStoredCount, wired: healthState.liveHeadFilterWired })}`);
   assert(healthState.liveHeadConnectors.every((connector) => connector.width >= 10 && connector.pointsIntoStory && !connector.aliasClipped), `network health chamber: baker-to-receipt connectors are missing, reversed, or clipping an alias ${JSON.stringify(healthState.liveHeadConnectors)}`);
   assert(healthState.systemLinks >= healthState.attesterRows, `network health chamber: baker profile links missing, saw ${healthState.systemLinks}`);
   assert(healthState.tzktLinks >= healthState.attesterRows, `network health chamber: TzKT links missing, saw ${healthState.tzktLinks}`);
@@ -16016,7 +16135,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.liveHeadDeltas.every((delta) => /^\d+(?:\.\d)?s$/.test(delta)), `network health chamber: Live Head deltas are malformed: ${healthState.liveHeadDeltas.join(',')}`);
   assert(healthState.liveHeadPowers.every((power) => /^\d[\d,]*\/\d[\d,]*$/.test(power)), `network health chamber: Live Head attested fractions are malformed: ${healthState.liveHeadPowers.join(',')}`);
   assert(healthState.liveHeadConsensusStates.includes('watch') && healthState.liveHeadMarginRails.every((rail) => rail.adjacent && rail.noMarker && rail.noStandaloneMissed && rail.order && rail.infoBeforeAge && rail.infoAgeGap >= 0 && rail.infoAgeGap <= 5 && rail.infoSize <= 16 && /^Inspect block /.test(rail.infoLabel) && rail.margin === rail.power - 4667 && /^[+−-](?:\d[\d,]*|\d+(?:\.\d)?K)$/.test(rail.text) && /rail shows only the safety margin/i.test(rail.title)), `network health chamber: compact quorum rail/info control or top-line order drifted ${JSON.stringify(healthState.liveHeadMarginRails)}`);
-  assert(healthState.liveHeadQuietRows.length >= 1 && healthState.liveHeadQuietRows.every((row) => row.text === 'Quiet' && row.topLine && !row.bottomQuiet), `network health chamber: Quiet did not stay on the top line ${JSON.stringify(healthState.liveHeadQuietRows)}`);
+  assert(healthState.liveHeadQuietRows.length >= 1 && healthState.liveHeadQuietRows.every((row) => row.text === 'Quiet' && row.topLine && !row.bottomQuiet), `network health chamber: Quiet did not stay on the top line ${JSON.stringify({ quiet: healthState.liveHeadQuietRows, stories: healthState.liveHeadStories, gas: healthState.liveHeadGasRows })}`);
   const resolvedLiveHeadGasRows = healthState.liveHeadGasRows.filter((row) => row.state === 'resolved');
   assert(resolvedLiveHeadGasRows.length >= 2 && healthState.liveHeadGasRows.filter((row) => row.state === 'loading').length <= 1 && resolvedLiveHeadGasRows.every((row) => Number.isFinite(row.percent) && /^Gas (?:<1|\d+)%$/.test(row.text) && /of 1,040,000 gas used/.test(row.title) && row.topLine && !row.hasQuiet), `network health chamber: non-quiet rows did not replace Quiet with exact gas-fullness pills ${JSON.stringify(healthState.liveHeadGasRows)}`);
   assert(new Set(resolvedLiveHeadGasRows.map((row) => row.className.match(/is-(open|active|busy|hot)/)?.[1]).filter(Boolean)).size >= 2, `network health chamber: gas fullness does not expose useful severity ranges ${JSON.stringify(healthState.liveHeadGasRows)}`);
@@ -16036,13 +16155,23 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(liveHeadPillFitProbe?.all === 6 && liveHeadPillFitProbe.visible >= 1 && liveHeadPillFitProbe.visible < liveHeadPillFitProbe.all && liveHeadPillFitProbe.hidden === liveHeadPillFitProbe.all - liveHeadPillFitProbe.visible && /^\+\d+ bakers?$/.test(liveHeadPillFitProbe.summary), `network health chamber: narrow rows did not collapse only the identities that genuinely overflow ${JSON.stringify(liveHeadPillFitProbe)}`);
   assert(liveHeadRequiredMissRows.some((row) => /second\.tez/.test(row.text) && /tz4Miss\.\.\.ssMis/.test(row.text)), `network health chamber: per-block missed-attester pills do not prefer aliases and truncate tz1-tz4 addresses ${JSON.stringify(liveHeadRequiredMissRows)}`);
   assert(liveHeadRequiredMissRows.some((row) => /tz4MissMissMissMissMissMissMissMis/.test(row.titles)), `network health chamber: truncated missed-attester pills lost their full-address receipt ${JSON.stringify(liveHeadRequiredMissRows)}`);
-  assert(liveHeadRequiredMissRows.flatMap((row) => row.styles).every((style) => style.overflow === 'hidden' && style.textOverflow === 'ellipsis' && style.whiteSpace === 'nowrap' && style.maxWidth !== 'none' && style.borderColor !== 'rgba(0, 0, 0, 0)'), `network health chamber: missed-attester pills are not visibly color-coded and truncated ${JSON.stringify(liveHeadRequiredMissRows)}`);
+  assert(liveHeadRequiredMissRows.filter((row) => row.state === 'resolved').flatMap((row) => row.styles).every((style) => style.overflow === 'hidden' && style.textOverflow === 'ellipsis' && style.whiteSpace === 'nowrap' && style.maxWidth !== 'none' && style.borderColor !== 'rgba(0, 0, 0, 0)'), `network health chamber: indexed missed-attester pills are not visibly color-coded and truncated ${JSON.stringify(liveHeadRequiredMissRows)}`);
 	  assert(new Set(healthState.liveHeadStoryTones).size >= 2, `network health chamber: activity categories are not color coded ${healthState.liveHeadStoryTones.join(',')}`);
 	  const artReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'art');
-	  const transferReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'transfers');
+	  const transferReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'transfers' && pill.compact === 'Transfers · 2');
 	  const stakeReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'stake');
 	  const l1VoteReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'l1-vote');
 	  const l2VoteReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'l2-vote');
+	  const evidenceReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'evidence');
+	  const milestoneReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'milestone');
+	  const bakerReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'baker');
+	  const etherlinkReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'etherlink');
+	  const dalReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'dal');
+	  const domainsReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'domains');
+	  const delegateReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'delegate');
+	  const tokensReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'tokens');
+	  const contractReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'contract');
+	  const callsReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'calls');
 	  assert(l1VoteReceipt?.compact === 'L1: Vote · 2', `network health chamber: L1 ballot/proposal receipt missing ${JSON.stringify(l1VoteReceipt)}`);
 	  assert(l2VoteReceipt?.compact === 'L2: Vote · 1', `network health chamber: current Etherlink governance receipt missing ${JSON.stringify(l2VoteReceipt)}`);
 	  assert(l1VoteReceipt?.color === l2VoteReceipt?.color
@@ -16057,6 +16186,24 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	      && transferReceipt.details[1]?.includes('QA Baker → Second Baker'), `network health chamber: transfer receipt lacks amount/direction tiers ${JSON.stringify(transferReceipt)}`);
 	  assert(stakeReceipt?.compact === 'Stake · 1'
 	      && stakeReceipt.details[0]?.includes('125 ꜩ'), `network health chamber: staking receipt lacks its amount tier ${JSON.stringify(stakeReceipt)}`);
+	  assert(evidenceReceipt?.compact === 'Evidence · Double bake' && evidenceReceipt.mandatory,
+	    `network health chamber: exceptional evidence receipt is missing or filterable ${JSON.stringify(evidenceReceipt)}`);
+	  assert(milestoneReceipt?.compact === 'Voting · proposal' && milestoneReceipt.mandatory,
+	    `network health chamber: voting-period milestone receipt is missing or filterable ${JSON.stringify(milestoneReceipt)}`);
+	  assert(bakerReceipt?.compact === 'Baker · companion key' && bakerReceipt.mandatory,
+	    `network health chamber: baker key-change receipt is missing or filterable ${JSON.stringify(bakerReceipt)}`);
+	  assert(etherlinkReceipt?.compact === 'TEZOS X · 1' && etherlinkReceipt.details.at(-1)?.includes('publish'),
+	    `network health chamber: exact Etherlink rollup lifecycle receipt is missing ${JSON.stringify(etherlinkReceipt)}`);
+	  assert(dalReceipt?.compact === 'DAL · 1' && dalReceipt.details.at(-1)?.includes('slot 8'),
+	    `network health chamber: DAL publication receipt is missing its slot ${JSON.stringify(dalReceipt)}`);
+	  assert(domainsReceipt?.compact === 'Domains · 1', `network health chamber: reviewed Tezos Domains call is not classified ${JSON.stringify(domainsReceipt)}`);
+	  assert(delegateReceipt?.compact === 'Delegate · 1' && delegateReceipt.details.at(-1)?.includes('new'),
+	    `network health chamber: delegation receipt is missing semantics ${JSON.stringify(delegateReceipt)}`);
+	  assert(tokensReceipt?.compact === 'Tokens · 1' && tokensReceipt.details.at(-1)?.includes('USDt'),
+	    `network health chamber: generic FA token movement is missing or double-counted as art ${JSON.stringify(tokensReceipt)}`);
+	  assert(contractReceipt?.compact === 'Contract · 1', `network health chamber: origination receipt is missing ${JSON.stringify(contractReceipt)}`);
+	  assert(callsReceipt?.compact === 'Calls · 1' && callsReceipt.details.at(-1)?.includes('transfer'),
+	    `network health chamber: uncatalogued zero-tez contract call fell through to Quiet ${JSON.stringify(callsReceipt)}`);
 	  assert(!healthState.liveHeadHasGlobalMissLine, 'network health chamber: missed-attester detail must belong to each block, not a global bottom sentence');
   assert(/Next R0 · Second Baker/.test(healthState.liveHeadNext), `network health chamber: exact next R0 right missing: ${healthState.liveHeadNext}`);
   assert(/(?:in \d{2}s|due now|R0 due \d{2}s ago)/.test(healthState.liveHeadNextDue), `network health chamber: next R0 countdown missing: ${healthState.liveHeadNextDue}`);
@@ -16707,6 +16854,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     allPressed: document.querySelector('#live-head-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
     selectedCount: document.querySelectorAll('#live-head-filter-menu .live-head-filter-pill[aria-pressed="true"]').length,
     visibleStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip')).filter((pill) => !pill.hidden).length,
+    mandatoryStoryPills: document.querySelectorAll('#live-head-stack .live-head-story-chip[data-live-head-mandatory="true"]').length,
+    visibleMandatoryStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip[data-live-head-mandatory="true"]')).filter((pill) => !pill.hidden).length,
+    visibleOptionalStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip:not([data-live-head-mandatory="true"])')).filter((pill) => !pill.hidden).length,
     visibleMissPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-miss-pill')).filter((pill) => !pill.hidden).length,
     height: document.querySelector('#live-head')?.getBoundingClientRect().height || 0
   }));
@@ -16715,16 +16865,22 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     allPressed: document.querySelector('#live-head-filter-menu [data-live-head-filter-kind="all"]')?.getAttribute('aria-pressed') || '',
     selectedCount: document.querySelectorAll('#live-head-filter-menu .live-head-filter-pill[aria-pressed="true"]').length,
     visibleStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip')).filter((pill) => !pill.hidden).length,
+    mandatoryStoryPills: document.querySelectorAll('#live-head-stack .live-head-story-chip[data-live-head-mandatory="true"]').length,
+    visibleMandatoryStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip[data-live-head-mandatory="true"]')).filter((pill) => !pill.hidden).length,
+    visibleOptionalStoryPills: Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip:not([data-live-head-mandatory="true"])')).filter((pill) => !pill.hidden).length,
     height: document.querySelector('#live-head')?.getBoundingClientRect().height || 0
   }));
   await page.keyboard.press('Escape');
   assert(activityFilterOff.allPressed === 'false'
       && activityFilterOff.selectedCount === 0
-      && activityFilterOff.visibleStoryPills === 0
+      && activityFilterOff.visibleMandatoryStoryPills === activityFilterOff.mandatoryStoryPills
+      && activityFilterOff.visibleOptionalStoryPills === 0
       && activityFilterOff.visibleMissPills >= 1
       && activityFilterOn.allPressed === 'true'
-      && activityFilterOn.selectedCount === 10
-      && activityFilterOn.visibleStoryPills >= 1
+      && activityFilterOn.selectedCount === 16
+      && activityFilterOn.mandatoryStoryPills === activityFilterOff.mandatoryStoryPills
+      && activityFilterOn.visibleMandatoryStoryPills === activityFilterOn.mandatoryStoryPills
+      && activityFilterOn.visibleOptionalStoryPills >= 1
       && Math.abs(activityFilterOff.height - activityFilterOn.height) <= 1,
     `network health chamber: activity setup did not deselect and restore every transaction pill without moving the card ${JSON.stringify({ activityFilterOff, activityFilterOn })}`);
   const stalledAlertHitTesting = await page.locator('#live-head-alert:not([hidden])').evaluate((alert) => ({
@@ -16818,12 +16974,21 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const liveHeadInspectorState = await page.evaluate(() => {
     const inspector = document.querySelector('#live-head-inspector:not([hidden])');
     const row = document.querySelector('#live-head-stack .live-head-row[data-live-head-level]');
+    const inspectorLevel = inspector?.dataset.liveHeadLevel || '';
+    const inspectorRow = inspectorLevel
+      ? document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${inspectorLevel}"]`)
+      : null;
     const rect = inspector?.getBoundingClientRect();
     const infoRect = row?.querySelector('.live-head-info')?.getBoundingClientRect();
     const facts = Array.from(inspector?.querySelectorAll('.live-head-inspector-fact') || []);
     return {
       ariaHidden: inspector?.getAttribute('aria-hidden') || '',
       infoExpanded: row?.querySelector('.live-head-info')?.getAttribute('aria-expanded') || '',
+      inspectorLevel,
+      firstRowLevel: row?.dataset.liveHeadLevel || '',
+      inspectorRowExpanded: inspectorRow?.querySelector('.live-head-info')?.getAttribute('aria-expanded') || '',
+      readingPaused: document.getElementById('live-head')?.dataset.readingPaused || '',
+      pendingLevel: document.getElementById('live-head')?.dataset.liveHeadPendingLevel || '',
       rowHasNativeTitle: row?.hasAttribute('title') || false,
       infoHasNativeTitle: row?.querySelector('.live-head-info')?.hasAttribute('title') || false,
       contained: Boolean(rect && rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight),
@@ -25050,10 +25215,26 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     ['#etherlink-governance-entry-card', 'etherlinkGovernanceSize'],
     ['#lb-entry-card', 'lbLive']
   ]) {
-    await quietPage.waitForFunction(({ cardSelector, readyDatasetKey }) => {
-      const card = document.querySelector(cardSelector);
-      return Boolean(card && (card.dataset[readyDatasetKey] || card.dataset.lazyChamberWired === '1'));
-    }, { cardSelector: selector, readyDatasetKey: readyKey }, { timeout: 10000 });
+    try {
+      await quietPage.waitForFunction(({ cardSelector, readyDatasetKey }) => {
+        const card = document.querySelector(cardSelector);
+        return Boolean(card && (card.dataset[readyDatasetKey] || card.dataset.lazyChamberWired === '1'));
+      }, { cardSelector: selector, readyDatasetKey: readyKey }, { timeout: 10000 });
+    } catch (error) {
+      const readiness = await quietPage.evaluate(({ cardSelector, readyDatasetKey }) => {
+        const card = document.querySelector(cardSelector);
+        const category = document.querySelector('#chambers-grid > .chamber-category[data-chamber-category="governance"]');
+        return {
+          cardPresent: Boolean(card),
+          readyValue: card?.dataset?.[readyDatasetKey] || '',
+          lazyWired: card?.dataset?.lazyChamberWired || '',
+          categoryOpen: category?.dataset?.chamberCategoryOpen || '',
+          categoryExpanded: category?.querySelector('.chamber-category-toggle')?.getAttribute('aria-expanded') || '',
+          bodyTheme: document.body?.dataset?.theme || ''
+        };
+      }, { cardSelector: selector, readyDatasetKey: readyKey });
+      throw new Error(`governance testing period: ${selector} did not become lazy-ready ${JSON.stringify(readiness)}\n${error.message}`);
+    }
     const alreadyReady = await quietPage.locator(selector).evaluate((card, readyDatasetKey) => (
       Boolean(card.dataset[readyDatasetKey])
     ), readyKey);

@@ -20,7 +20,7 @@ import {
   milestoneCatalogCadence
 } from '../js/features/milestone-catalog.mjs';
 import { advanceMilestoneTrack, claimMilestoneArrival, deriveMilestoneMoments, MILESTONE_MOMENT_TTL_MS, normalizeMilestoneStore, qualifyMilestoneNearState } from '../js/features/milestone-lifecycle.mjs';
-import { classifyBlockStory, compileBlockStoryCatalog } from '../js/core/block-story.mjs';
+import { ETHERLINK_ROLLUP_ADDRESS, classifyBlockStory, compileBlockStoryCatalog } from '../js/core/block-story.mjs';
 import { buildQuietBakerNotice } from '../js/core/baker-size.mjs';
 import {
   compileContractCoverage,
@@ -282,12 +282,29 @@ async function checkHomeLayoutContracts() {
 }
 
 function checkLiveHeadPureContracts() {
+  const knownLanes = {
+    transactions: [],
+    stakingRows: [],
+    l1VotingRows: [],
+    l2VotingRows: [],
+    tokenTransfers: [],
+    managerOperations: [],
+    evidenceRows: [],
+    milestoneRows: []
+  };
   const catalog = compileBlockStoryCatalog({
-    apps: [{
-      id: 'reviewed-defi',
-      category: 'defi',
-      layers: [{ id: 'tezos', contractSource: { aliasPatterns: ['^Reviewed DEX$'] }, proofUrls: [] }]
-    }]
+    apps: [
+      {
+        id: 'reviewed-defi',
+        category: 'defi',
+        layers: [{ id: 'tezos', contractSource: { aliasPatterns: ['^Reviewed DEX$'] }, proofUrls: [] }]
+      },
+      {
+        id: 'tezos-domains',
+        category: 'identity',
+        layers: [{ id: 'tezos', contractSource: { addresses: ['KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton'] }, proofUrls: [] }]
+      }
+    ]
   });
   const l2Vote = {
     id: 81,
@@ -298,6 +315,7 @@ function checkLiveHeadPureContracts() {
     parameter: { entrypoint: 'vote', value: 'yea' }
   };
   const governance = classifyBlockStory({
+    ...knownLanes,
     transactions: [
       l2Vote,
       { id: 82, amount: 12000000, internal: false, target: { address: 'tz1Recipient111111111111111111111111' } }
@@ -308,27 +326,31 @@ function checkLiveHeadPureContracts() {
       { id: 72, delegate: { address: 'tz1LayerOneProposer1111111111111111' } }
     ],
     l2VotingRows: [l2Vote],
-    maxFragments: 10
+    maxFragments: 30
   });
   assert.deepEqual(governance.fragments.map(({ key }) => key), ['l1-vote', 'l2-vote', 'transfers']);
   assert.equal(governance.text, 'L1: Vote · 2 · L2: Vote · 1 · Transfers · 1');
   assert.equal(governance.fragments.filter(({ key }) => key === 'transfers').length, 1);
 
   const mixed = classifyBlockStory({
+    ...knownLanes,
     catalog,
+    managerOperations: [{ kind: 'smart_rollup_publish', rollup: ETHERLINK_ROLLUP_ADDRESS }],
     transactions: [
       { amount: 1000000, internal: false, target: { address: 'KT1JNNMMGyNNy36Zo6pcgRTMLUZyqRrttMZ4', alias: 'Reviewed DEX' } },
       { amount: 2000000, internal: false, target: { address: 'sr1UndWm3nAcuLY4RDcNBpRZgaMRDuRdu9D6', alias: '' } },
       { amount: 3000000, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w', alias: 'Unknown app' } },
+      { amount: 0, internal: false, target: { address: 'KT1UnknownCall111111111111111111111111' }, parameter: { entrypoint: 'mint' } },
       { amount: 4000000, internal: true, target: { address: 'KT1JNNMMGyNNy36Zo6pcgRTMLUZyqRrttMZ4', alias: 'Reviewed DEX' } }
     ],
-    stakingRows: []
+    maxFragments: 30
   });
-  assert.deepEqual(mixed.fragments.map(({ key }) => key), ['defi', 'etherlink', 'transfers']);
+  assert.deepEqual(mixed.fragments.map(({ key }) => key), ['etherlink', 'defi', 'transfers', 'calls']);
+  assert.equal(mixed.fragments.find(({ key }) => key === 'transfers').value, 2, 'a generic sr1 transfer must not be called Etherlink');
   assert(!mixed.text.includes('Oracle') && !mixed.text.includes('· 0'));
 
   const staking = classifyBlockStory({
-    transactions: [],
+    ...knownLanes,
     stakingRows: [
       { action: 'stake', amount: 12400000000 },
       { action: 'unstake', amount: 800000000 }
@@ -346,38 +368,102 @@ function checkLiveHeadPureContracts() {
     }]
   });
   const art = classifyBlockStory({
+    ...knownLanes,
     catalog: artCatalog,
     transactions: [{ id: 91, amount: 0, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }],
     tokenTransfers: [
       { transactionId: 91, name: 'arachno trip' },
-      { transactionId: 91, name: 'Undoing' }
+      { transactionId: 91, name: 'Undoing' },
+      { transactionId: 92, symbol: 'USDt', name: 'Tether USD' }
     ],
-    stakingRows: []
+    maxFragments: 30
   });
-  assert.equal(art.text, 'Art · 2');
+  assert.equal(art.text, 'Art · 2 · Tokens · 1');
   assert.deepEqual(art.fragments[0].details, [
     'Art · 2 · arachno trip · +1',
     'Art · 2 · arachno trip · Undoing'
   ]);
+  assert.deepEqual(art.fragments[1].details, ['Tokens · 1 · USDt']);
+
+  const domains = classifyBlockStory({
+    ...knownLanes,
+    catalog,
+    transactions: [{ id: 93, amount: 0, internal: false, target: { address: 'KT1RJ6PbjHpwc3M5rw5s2Nbmefwbuwbdxton' }, parameter: { entrypoint: 'update_operators' } }],
+    maxFragments: 30
+  });
+  assert.equal(domains.text, 'Domains · 1');
+
+  const chainEvents = classifyBlockStory({
+    ...knownLanes,
+    managerOperations: [
+      { kind: 'smart_rollup_publish', rollup: ETHERLINK_ROLLUP_ADDRESS },
+      { kind: 'smart_rollup_publish', rollup: ETHERLINK_ROLLUP_ADDRESS },
+      { kind: 'smart_rollup_cement', rollup: ETHERLINK_ROLLUP_ADDRESS },
+      { kind: 'smart_rollup_publish', rollup: 'sr1UndWm3nAcuLY4RDcNBpRZgaMRDuRdu9D6' },
+      { kind: 'dal_publish_commitment', slotIndex: 8 },
+      { kind: 'delegation', source: 'tz1DelegateSource11111111111111111111', delegate: 'tz1DelegateTarget11111111111111111111' },
+      { kind: 'origination', result: { originated_contracts: ['KT1Originated11111111111111111111111'] } },
+      { kind: 'update_companion_key' },
+      { kind: 'set_delegate_parameters' }
+    ],
+    evidenceRows: [
+      { kind: 'double_baking_evidence' },
+      { kind: 'drain_delegate' }
+    ],
+    milestoneRows: [
+      { kind: 'cycle', cycle: 1337 },
+      { kind: 'protocol', name: 'Ushuaia' },
+      { kind: 'voting', period: 'proposal' }
+    ],
+    maxFragments: 30
+  });
+  assert.deepEqual(chainEvents.fragments.map(({ key }) => key), [
+    'evidence', 'milestone', 'baker', 'etherlink', 'dal', 'delegate', 'contract'
+  ]);
+  assert(chainEvents.fragments.slice(0, 3).every(({ mandatory }) => mandatory === true));
+  assert.deepEqual(chainEvents.fragments.find(({ key }) => key === 'etherlink').details, [
+    'TEZOS X · 3 · publish 2 · +1',
+    'TEZOS X · 3 · publish 2 · cement'
+  ]);
+  assert.equal(chainEvents.fragments.find(({ key }) => key === 'dal').details.at(-1), 'DAL · 1 · slot 8');
+  assert.equal(chainEvents.fragments.find(({ key }) => key === 'delegate').details.at(-1), 'Delegate · 1 · new');
+
+  const delegationSemantics = classifyBlockStory({
+    ...knownLanes,
+    managerOperations: [{ kind: 'delegation' }],
+    delegationRows: [
+      { sender: { address: 'tz1Self' }, newDelegate: { address: 'tz1Self' } },
+      { sender: { address: 'tz1A' }, newDelegate: { address: 'tz1B' } },
+      { sender: { address: 'tz1A' }, prevDelegate: { address: 'tz1B' }, newDelegate: { address: 'tz1C' } },
+      { sender: { address: 'tz1A' }, prevDelegate: { address: 'tz1C' }, newDelegate: null }
+    ],
+    maxFragments: 30
+  });
+  assert.deepEqual(delegationSemantics.fragments[0].details, [
+    'Delegate · 4 · self register · +3',
+    'Delegate · 4 · self register · new · +2',
+    'Delegate · 4 · self register · new · switch · +1',
+    'Delegate · 4 · self register · new · switch · undelegate'
+  ]);
 
   const transfers = classifyBlockStory({
+    ...knownLanes,
     transactions: [
       { id: 1, amount: 2500000000, internal: false, sender: { alias: 'Sender.tez' }, target: { alias: 'Receiver' } },
       { id: 2, amount: 42000000, internal: false, sender: { alias: 'Second sender' }, target: { alias: 'Second receiver' } }
     ],
-    stakingRows: []
   });
   assert.equal(transfers.text, 'Transfers · 2');
   assert.deepEqual(transfers.fragments[0].details, [
     'Transfers · 2 · 2,542 ꜩ total',
     'Transfers · 2 · 2,542 ꜩ total · top Sender.tez → Receiver'
   ]);
-  assert.equal(classifyBlockStory({ transactions: null, stakingRows: null }), null);
-  assert.equal(classifyBlockStory({ transactions: [], stakingRows: null }), null);
-  assert.equal(classifyBlockStory({ transactions: [], stakingRows: [], l1VotingRows: null }), null);
-  assert.equal(classifyBlockStory({ transactions: [], stakingRows: [] }).text, 'Quiet');
-  assert(classifyBlockStory({ transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }], stakingRows: [] }).text.startsWith('Transfers'));
-  assert(classifyBlockStory({ transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }], stakingRows: [], transactionsClipped: true }).text.endsWith('+'));
+  assert.equal(classifyBlockStory(), null);
+  assert.equal(classifyBlockStory({ ...knownLanes, evidenceRows: null }), null);
+  assert.equal(classifyBlockStory({ ...knownLanes, transactionsClipped: true }), null);
+  assert.equal(classifyBlockStory(knownLanes).text, 'Quiet');
+  assert(classifyBlockStory({ ...knownLanes, transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }] }).text.startsWith('Transfers'));
+  assert(classifyBlockStory({ ...knownLanes, transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }], transactionsClipped: true }).text.endsWith('+'));
 
   const large = { baker: { address: 'tz1-large', alias: 'Large Baker' }, slots: 8 };
   const small = { baker: { address: 'tz1-small', alias: 'Small Baker' }, slots: 2 };
@@ -390,7 +476,7 @@ function checkLiveHeadPureContracts() {
   assert.equal(buildQuietBakerNotice({ attestationRights: [small], powerByDelegate: { 'tz1-small': '20' }, totalPower: '100000' }), null);
   const blockMiss = buildQuietBakerNotice({ bakingRights: [{ baker: { address: 'tz1-small', alias: 'Small Baker' } }] });
   assert.equal(blockMiss?.text, 'Small Baker missed the block');
-  pass('Live Head catalog classifier, receipt clipping, staking, quiet block, and baker materiality contracts checked');
+  pass('Live Head application, token, call, rollup, DAL, delegation, origination, evidence, milestone, baker, clipping, quiet-block, and baker-materiality contracts checked');
 }
 
 async function checkMyTezosPortfolioContracts() {
@@ -3660,11 +3746,15 @@ async function checkSelectorContracts() {
     fail('Live Head background updates must not replace the full live stack');
   }
   if (!chainHeartbeatActivityBlock.includes('Promise.allSettled')
-      || !chainHeartbeatActivityBlock.includes('transactions !== null && stakingRows !== null && l1VotingRows !== null')
+      || !chainHeartbeatActivityBlock.includes('story?.complete === true && gas?.complete === true')
       || !health.includes('/operations/ballots?${query}')
       || !health.includes('/operations/proposals?${query}')
+      || !health.includes('/voting/periods?firstLevel.ge=${startLevel}')
       || !health.includes('fetchHeartbeatL1Voting(visible)')
-      || !chainHeartbeatActivityBlock.includes('transactions?.filter(isEtherlinkGovernanceActivity)')) {
+      || !chainHeartbeatActivityBlock.includes('transactions?.filter(isEtherlinkGovernanceActivity)')
+      || !chainHeartbeatActivityBlock.includes('managerOperations !== null')
+      || !chainHeartbeatActivityBlock.includes('evidenceRows !== null')
+      || !chainHeartbeatActivityBlock.includes('milestoneRows')) {
     fail('Live Head stories must preserve partial-source receipt truth instead of coercing unavailable data to zero');
   }
   const powerIndex = liveHeadRowBlock.indexOf('live-head-power health-power');
@@ -3697,7 +3787,7 @@ async function checkSelectorContracts() {
       || !health.includes('liveHeadBlockUrl(level, { operations: true })')
       || !health.includes('href="/#my-baker=${encoded}"')
       || !health.includes('data-live-head-open-health')
-      || !health.includes('maxFragments: LIVE_HEAD_ACTIVITY_TYPES.length')
+      || !health.includes('maxFragments: LIVE_HEAD_ACTIVITY_TYPES.length + 3')
       || !heroSearchCss.includes('.live-head-inspector-fact')
       || !heroSearchCss.includes('.live-head-inspector-health')
       || !heroSearchCss.includes('.live-head-info:is(:hover, :focus-visible)')) {
@@ -3717,25 +3807,31 @@ async function checkSelectorContracts() {
     fail('Live Head must latch a source-confirmed stale head into an unmistakable chain-stall alert until a newer block resumes the chain');
   }
   if (!index.includes('id="live-head-filter-menu"')
-      || !['l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'].every((kind) => index.includes(`data-live-head-filter-kind="${kind}"`))
+      || !['l1-vote', 'l2-vote', 'etherlink', 'dal', 'art', 'defi', 'gaming', 'bridge', 'domains', 'stake', 'unstake', 'delegate', 'tokens', 'contract', 'transfers', 'calls'].every((kind) => index.includes(`data-live-head-filter-kind="${kind}"`))
       || !health.includes('id="health-block-filter-menu"')
-      || !['l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'].every((kind) => health.includes(`data-live-head-filter-kind="${kind}"`))
+      || !['l1-vote', 'l2-vote', 'etherlink', 'dal', 'art', 'defi', 'gaming', 'bridge', 'domains', 'stake', 'unstake', 'delegate', 'tokens', 'contract', 'transfers', 'calls'].every((kind) => health.includes(`data-live-head-filter-kind="${kind}"`))
       || !health.includes('LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY')
+      || !health.includes("tezos-systems-live-head-activity-filter-v3")
       || !health.includes('function wireLiveHeadActivityFilter(')
       || !health.includes('function syncAllLiveHeadActivityFilterUis(')
       || !health.includes('data-live-head-kind=')
+      || !health.includes('data-live-head-mandatory=')
+      || !health.includes("pill.dataset.liveHeadMandatory !== 'true'")
       || !health.includes('fitLiveHeadPills(panel)')
       || !heroSearchCss.includes('.live-head-filter-menu button[aria-pressed="false"]')) {
-    fail('Live Head and Network Health Passing Blocks must share one persisted all-on activity setup and apply each category choice through measured pill fitting');
+    fail('Live Head and Network Health Passing Blocks must share one persisted all-on normal-activity setup, keep exceptional chain receipts unfiltered, and apply each category choice through measured pill fitting');
   }
   if (!index.includes('id="live-head-my-tezos-setting"')
       || (index.match(/data-live-head-my-tezos-toggle/g) || []).length < 2
       || !health.includes('data-live-head-my-tezos-toggle')
       || !health.includes("import { readSavedMyTezosEntries } from '../core/wallet.js'")
       || !health.includes('LIVE_HEAD_MY_TEZOS_STORAGE_KEY')
-      || !health.includes('actorAddresses: collectHeartbeatActorAddresses(transactions, stakingRows, tokenTransfers, l1VotingRows)')
+      || !health.includes('actorAddresses: collectHeartbeatActorAddresses(')
+      || !chainHeartbeatActivityBlock.includes('managerOperations,')
+      || !chainHeartbeatActivityBlock.includes('evidenceRows,')
       || !health.includes('&& !transactionsClipped')
       || !health.includes('&& !stakingClipped')
+      || !health.includes('&& !tokenTransfersClipped')
       || !health.includes('&& !l1VotingClipped')
       || !health.includes('function syncLiveHeadMyTezosRows()')
       || !health.includes('quietlyMutate(surface.container')
@@ -3778,13 +3874,33 @@ async function checkSelectorContracts() {
     fail('Every Live Head pill must inherit Quiet\'s opaque theme-invariant backing, edge, shadow, and blur');
   }
   if (!chainHeartbeatActivityBlock.includes('/tokens/transfers?level=${level}')
-      || !chainHeartbeatActivityBlock.includes('token.metadata.artifactUri.null=false')
+      || chainHeartbeatActivityBlock.includes('token.metadata.artifactUri.null=false')
+      || !chainHeartbeatActivityBlock.includes('token.metadata.symbol as symbol')
+      || !chainHeartbeatActivityBlock.includes('HEARTBEAT_TOKEN_TRANSFER_LIMIT')
       || !chainHeartbeatActivityBlock.includes('tokenTransfersClipped')
+      || !health.includes('/operations/3`')
+      || !health.includes('/operations/2`')
+      || !health.includes('flattenAppliedManagerOperations')
+      || !health.includes('flattenAppliedEvidenceOperations')
       || !health.includes('data-live-head-details=')
       || !health.includes('LIVE_HEAD_DETAIL_MIN_WIDTH = 420')
       || !health.includes('pill.scrollWidth > pill.clientWidth + 1')
       || health.includes("story.fragments.filter((fragment) => fragment.key !== 'quiet').slice(0, 2)")) {
-    fail('Live Head activity pills must keep compact counts, fetch optional artwork receipts, and spend only measured spare row width on richer details');
+    fail('Live Head activity pills must reuse exact block receipts, classify all token transfers without double-counting art, and spend only measured spare row width on richer details');
+  }
+  const heartbeatBaseCacheIndex = chainHeartbeatActivityBlock.indexOf('heartbeatActivityCache.set(level, activity)');
+  const heartbeatEnrichmentIndex = chainHeartbeatActivityBlock.indexOf('const needsDelegationEnrichment');
+  const heartbeatEnrichmentBlock = chainHeartbeatActivityBlock.match(/const enrichmentPromise = Promise\.allSettled\([\s\S]*?heartbeatActivityEnrichmentInFlight\.set\(level, enrichmentPromise\);/)?.[0] || '';
+  if (!health.includes('const heartbeatActivityEnrichmentInFlight = new Map()')
+      || !(heartbeatBaseCacheIndex >= 0 && heartbeatEnrichmentIndex > heartbeatBaseCacheIndex)
+      || !chainHeartbeatActivityBlock.includes('delegationRows: []')
+      || !chainHeartbeatActivityBlock.includes('originationRows: []')
+      || !chainHeartbeatActivityBlock.includes('heartbeatActivityCache.get(level) !== activity')
+      || !heartbeatEnrichmentBlock.includes('/operations/delegations?level=${level}')
+      || !heartbeatEnrichmentBlock.includes('/operations/originations?level=${level}')
+      || heartbeatEnrichmentBlock.includes("priority: 'interactive'")
+      || !heartbeatEnrichmentBlock.includes('updateBlockTicker(heartbeatData, { supplemental: true })')) {
+    fail('Optional delegation and origination enrichment must yield to explicit user work, leave the complete base receipt available first, and reconcile only the matching cached block');
   }
   for (const bannedLiveHeadCopy of ['Syncing latest head block', 'Waiting for recent block receipts', 'Receipts syncing', 'Preparing block stories']) {
     if (index.includes(bannedLiveHeadCopy) || chainHeartbeatUpdateBlock.includes(bannedLiveHeadCopy)) {

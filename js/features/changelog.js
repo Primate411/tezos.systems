@@ -7,7 +7,8 @@ export const CHANGELOG = [
     {
         date: '2026-08-28',
         entries: [
-            { type: '🎨', text: 'Live Head can now show only blocks produced by or carrying activity from saved My Tezos addresses, keeps fixed compact and expanded geometry, and adds distinct L1 and L2 governance voting receipts' }
+            { type: '🎨', text: 'Live Head can now show only blocks produced by or carrying activity from saved My Tezos addresses, keeps fixed compact and expanded geometry, and adds distinct L1 and L2 governance voting receipts' },
+            { type: '✨', text: 'Live Head and Network Health now classify Tezos X rollup actions, DAL publications, Domains, delegation, token movement, originations, and uncatalogued contract calls, while evidence, protocol milestones, and baker changes remain visible above normal activity filters' }
         ]
     },
     {
