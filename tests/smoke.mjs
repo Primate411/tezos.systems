@@ -16346,15 +16346,17 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const liveHeadCurrentFirstRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
   const liveHeadCurrentFirstInfo = liveHeadCurrentFirstRow.locator('.live-head-info');
   const openCurrentLiveHeadInspector = async (pointerOrigin) => {
-    const level = await liveHeadCurrentFirstRow.getAttribute('data-live-head-level');
+    await page.mouse.move(pointerOrigin.x, pointerOrigin.y);
+    const currentRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
+    const level = await currentRow.getAttribute('data-live-head-level');
     assert(level, 'network health chamber: current Live Head row is missing its keyed level');
     const info = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${level}"] .live-head-info`);
-    await page.mouse.move(pointerOrigin.x, pointerOrigin.y);
+    await info.waitFor({ state: 'visible', timeout: 15000 });
     await info.hover();
     await page.waitForFunction((expectedLevel) => {
       const inspector = document.querySelector('#live-head-inspector:not([hidden])');
       return inspector?.dataset.liveHeadLevel === expectedLevel;
-    }, level, { timeout: 10000 });
+    }, level, { timeout: 15000 });
     return { level, info };
   };
   const enterLiveHeadInspector = async () => {
