@@ -16362,8 +16362,14 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const enterLiveHeadInspector = async () => {
     const inspector = page.locator('#live-head-inspector:not([hidden])');
     await inspector.waitFor({ state: 'visible', timeout: 15000 });
-    await inspector.hover({ timeout: 15000 });
-    await page.waitForFunction(() => Boolean(document.querySelector('#live-head-inspector:not([hidden])')), null, { timeout: 15000 });
+    await page.waitForTimeout(180);
+    const box = await inspector.boundingBox();
+    assert(box && box.width > 32 && box.height > 32, 'network health chamber: Live Head inspector has no stable pointer target');
+    await page.mouse.move(box.x + (box.width / 2), box.y + Math.min(24, box.height / 2));
+    await page.waitForFunction(() => {
+      const openInspector = document.querySelector('#live-head-inspector:not([hidden])');
+      return Boolean(openInspector?.matches(':hover'));
+    }, null, { timeout: 15000 });
   };
   await liveHeadCurrentFirstRow.scrollIntoViewIfNeeded();
   await page.waitForTimeout(180);
