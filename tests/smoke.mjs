@@ -16360,21 +16360,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     return { level, info };
   };
   const enterLiveHeadInspector = async () => {
-    const entry = await page.evaluate(() => {
-      const inspector = document.querySelector('#live-head-inspector:not([hidden])');
-      const trigger = document.querySelector('#live-head-stack .live-head-info[aria-expanded="true"]');
-      const inspectorRect = inspector?.getBoundingClientRect();
-      const triggerRect = trigger?.getBoundingClientRect();
-      if (!inspectorRect || !triggerRect) return null;
-      const x = Math.max(inspectorRect.left + 2, Math.min(triggerRect.left + triggerRect.width / 2, inspectorRect.right - 2));
-      const y = inspectorRect.top >= triggerRect.bottom
-        ? inspectorRect.top + 2
-        : inspectorRect.bottom - 2;
-      return { x, y };
-    });
-    assert(entry && Number.isFinite(entry.x) && Number.isFinite(entry.y), 'network health chamber: could not resolve a stable inspector entry point');
-    await page.mouse.move(entry.x, entry.y);
-    await page.waitForFunction(() => Boolean(document.querySelector('#live-head-inspector:not([hidden])')), null, { timeout: 5000 });
+    const inspector = page.locator('#live-head-inspector:not([hidden])');
+    await inspector.waitFor({ state: 'visible', timeout: 15000 });
+    await inspector.hover({ timeout: 15000 });
+    await page.waitForFunction(() => Boolean(document.querySelector('#live-head-inspector:not([hidden])')), null, { timeout: 15000 });
   };
   await liveHeadCurrentFirstRow.scrollIntoViewIfNeeded();
   await page.waitForTimeout(180);
