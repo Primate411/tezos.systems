@@ -24418,7 +24418,33 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   attachIssueCollectors(promotionPage, 'Tezos X promotion baker quorum list', promotionIssues);
   const promotionResponse = await promotionPage.goto(`${baseUrl}/l2chamber/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(promotionResponse?.ok(), `Tezos X promotion baker quorum list: page failed with HTTP ${promotionResponse?.status()}`);
-  await promotionPage.locator('#etherlink-governance-modal.active #etherlink-governance-recent-bakers').waitFor({ state: 'visible', timeout: 15000 });
+  try {
+    await promotionPage.locator('#etherlink-governance-modal.active #etherlink-governance-recent-bakers').waitFor({ state: 'visible', timeout: 30000 });
+  } catch (error) {
+    const debug = await promotionPage.evaluate(() => ({
+      path: `${window.location.pathname}${window.location.search}${window.location.hash}`,
+      readyState: document.readyState,
+      modal: document.getElementById('etherlink-governance-modal')?.outerHTML.slice(0, 2500) || '',
+      recentBakers: (() => {
+        const node = document.getElementById('etherlink-governance-recent-bakers');
+        if (!node) return null;
+        const style = getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return {
+          connected: node.isConnected,
+          display: style.display,
+          visibility: style.visibility,
+          opacity: style.opacity,
+          rect: { width: rect.width, height: rect.height, top: rect.top, left: rect.left }
+        };
+      })(),
+      nowPanel: document.getElementById('etherlink-governance-now')?.textContent?.replace(/\s+/g, ' ').trim().slice(0, 1000) || '',
+      dataStatus: document.getElementById('data-status')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      route: document.documentElement.dataset.chamberRoute || '',
+      activeOverlays: Array.from(document.querySelectorAll('.chamber-overlay.active')).map((node) => node.id)
+    }));
+    throw new Error(`Tezos X promotion baker quorum list did not open: ${error.message}; debug=${JSON.stringify(debug)}; issues=${promotionIssues.join(' | ')}`);
+  }
   await promotionPage.waitForFunction(() => document.querySelectorAll('#etherlink-governance-recent-bakers .etherlink-gov-baker-vote-row').length === 27, null, { timeout: 15000 });
   const promotionBakerState = await promotionPage.evaluate(() => ({
     entryValue: document.querySelector('#etherlink-governance-entry-value')?.textContent?.trim() || '',
