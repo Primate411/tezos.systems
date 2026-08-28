@@ -16360,6 +16360,33 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     window.__heartbeatRevealSignature = window.__heartbeatRetainedStory?.dataset.quietRevealSignature || '';
     window.__heartbeatWindowY = window.scrollY;
     window.__heartbeatModalScroll = document.querySelector('#network-health-modal .health-content')?.scrollTop || 0;
+    window.__heartbeatMotionProbeObserver?.disconnect();
+    window.__heartbeatMotionProbe = {
+      healthNewRows: 0,
+      liveHeadNewRows: 0,
+      liveHeadExitRows: 0,
+      liveHeadArrivalAnimation: '',
+      liveHeadRetainedMotion: false
+    };
+    window.__heartbeatMotionProbeCapture = () => {
+      const probe = window.__heartbeatMotionProbe;
+      const liveHeadNewRow = document.querySelector('#live-head-stack .lb-row-new');
+      probe.healthNewRows = Math.max(probe.healthNewRows, document.querySelectorAll('#health-recent-block-list .lb-row-new').length);
+      probe.liveHeadNewRows = Math.max(probe.liveHeadNewRows, document.querySelectorAll('#live-head-stack .lb-row-new').length);
+      probe.liveHeadExitRows = Math.max(probe.liveHeadExitRows, document.querySelectorAll('#live-head-stack .live-head-row-exiting').length);
+      if (liveHeadNewRow) probe.liveHeadArrivalAnimation = getComputedStyle(liveHeadNewRow).animationName;
+      probe.liveHeadRetainedMotion ||= Boolean(
+        window.__heartbeatRetainedCell?.dataset.liveHeadShift === 'settling'
+        || window.__heartbeatRetainedCell?.getAnimations().some((animation) => animation.id === 'live-head-shift')
+      );
+    };
+    const motionProbeObserver = new MutationObserver(window.__heartbeatMotionProbeCapture);
+    const healthRows = document.querySelector('#health-recent-block-list');
+    const liveHeadRows = document.querySelector('#live-head-stack');
+    if (healthRows) motionProbeObserver.observe(healthRows, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    if (liveHeadRows) motionProbeObserver.observe(liveHeadRows, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-live-head-shift'] });
+    window.__heartbeatMotionProbeObserver = motionProbeObserver;
+    window.__heartbeatMotionProbeCapture();
     return {
       hasTimer: Boolean(timer?.handler),
       firstLevel: document.querySelector('#health-recent-block-list .health-block-row')?.dataset.healthLevel || '',
@@ -16387,7 +16414,11 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const first = document.querySelector('#health-recent-block-list .health-block-row');
     return first?.dataset.healthLevel && first.dataset.healthLevel !== previousLevel;
   }, beforeSmoothRefresh.firstLevel, { timeout: 10000 });
-  const smoothRefreshState = await page.evaluate(() => ({
+  const smoothRefreshState = await page.evaluate(() => {
+    window.__heartbeatMotionProbeCapture?.();
+    window.__heartbeatMotionProbeObserver?.disconnect();
+    const motionProbe = window.__heartbeatMotionProbe || {};
+    return {
     bodySame: window.__healthBodyNode === document.querySelector('#network-health-modal .health-body'),
     headerSame: window.__healthHeaderNode === document.querySelector('#network-health-modal .health-header'),
     scorePanelSame: window.__healthScorePanelNode === document.querySelector('#network-health-modal .health-score-panel'),
@@ -16415,17 +16446,18 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       .filter((row) => getComputedStyle(row).display !== 'none').length,
     blockDepthExpanded: document.querySelector('#health-block-depth-toggle')?.getAttribute('aria-expanded') || '',
     blockDepthCount: document.querySelector('[data-health-block-depth-count]')?.textContent?.trim() || '',
-    newRows: document.querySelectorAll('#health-recent-block-list .lb-row-new').length,
-    liveHeadNewRows: document.querySelectorAll('#live-head-stack .lb-row-new').length,
-    liveHeadExitRows: document.querySelectorAll('#live-head-stack .live-head-row-exiting').length,
-    liveHeadArrivalAnimation: document.querySelector('#live-head-stack .lb-row-new') ? getComputedStyle(document.querySelector('#live-head-stack .lb-row-new')).animationName : '',
+    newRows: Math.max(Number(motionProbe.healthNewRows || 0), document.querySelectorAll('#health-recent-block-list .lb-row-new').length),
+    liveHeadNewRows: Math.max(Number(motionProbe.liveHeadNewRows || 0), document.querySelectorAll('#live-head-stack .lb-row-new').length),
+    liveHeadExitRows: Math.max(Number(motionProbe.liveHeadExitRows || 0), document.querySelectorAll('#live-head-stack .live-head-row-exiting').length),
+    liveHeadArrivalAnimation: motionProbe.liveHeadArrivalAnimation || (document.querySelector('#live-head-stack .lb-row-new') ? getComputedStyle(document.querySelector('#live-head-stack .lb-row-new')).animationName : ''),
     liveHeadRetainedTransition: window.__heartbeatRetainedCell ? getComputedStyle(window.__heartbeatRetainedCell).transitionProperty : '',
-    liveHeadRetainedMotion: Boolean(window.__heartbeatRetainedCell?.getAnimations().some((animation) => animation.id === 'live-head-shift')),
+    liveHeadRetainedMotion: Boolean(motionProbe.liveHeadRetainedMotion || window.__heartbeatRetainedCell?.getAnimations().some((animation) => animation.id === 'live-head-shift')),
     liveHeadTopBarSignature: document.querySelector('#live-head-stack .live-head-row')?.dataset.barSignature || '',
     liveHeadTopBarPlayed: document.querySelector('#live-head-stack .live-head-row')?.dataset.quietBarPlayed || '',
     tickerTransitionCount: Number(document.querySelector('#live-head')?.dataset.liveHeadTransitionCount || 0),
     tablePadding: getComputedStyle(document.querySelector('.health-block-table .lb-table-row')).paddingTop
-  }));
+    };
+  });
   assert(smoothRefreshState.bodySame, 'network health chamber: smooth refresh replaced the chamber body');
   assert(smoothRefreshState.headerSame, 'network health chamber: smooth refresh replaced the header instead of updating in place');
   assert(smoothRefreshState.scorePanelSame, 'network health chamber: smooth refresh replaced the score panel instead of updating in place');
