@@ -2035,21 +2035,20 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
 
 @media (min-width: 761px) {
     .live-head-depth-rail {
-        position: absolute;
+        position: relative;
         z-index: 31;
-        right: 16px;
-        bottom: 56px;
-        width: 30px;
+        width: 100%;
+        min-height: 0;
+        height: 0;
         padding-right: 0;
         pointer-events: none;
     }
 
     .live-head-depth-toggle {
+        position: absolute;
+        top: 0;
+        right: 1px;
         pointer-events: auto;
-    }
-
-    .live-head-stack > .live-head-row:last-child {
-        padding-right: 42px;
     }
 }
 
