@@ -3253,6 +3253,7 @@ async function installFeatureMocks(context, options = {}) {
           { id: 101, hash: 'opHeartbeatOne', amount: 2500000000, parameter: null, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: SAMPLE_ADDRESS_2 } },
           { id: 102, hash: 'opHeartbeatTwo', amount: 42000000, parameter: { entrypoint: 'mint', value: {} }, internal: false, sender: { address: SAMPLE_ADDRESS_2 }, target: { address: SAMPLE_CONTRACT } },
           { id: 103, hash: 'opHeartbeatThree', amount: 0, parameter: { entrypoint: 'transfer', value: [] }, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: SAMPLE_CONTRACT } },
+          { id: 109, hash: 'opHeartbeatL2Vote', amount: 0, parameter: { entrypoint: 'vote', value: 'yea' }, internal: false, sender: { address: SAMPLE_ADDRESS }, target: { address: ETHERLINK_FAST_CONTRACT, alias: 'Etherlink FAST governance' } },
           { id: 104, hash: 'opHeartbeatFour', amount: 0, parameter: null, internal: true, sender: { address: SAMPLE_CONTRACT }, target: { address: SAMPLE_ADDRESS_2 } }
         ]);
       }
@@ -3611,6 +3612,35 @@ async function installFeatureMocks(context, options = {}) {
         ]);
       }
       if (url.includes('/smart_rollups/count')) return fulfillJson(route, 18);
+      if (url.includes('/operations/ballots?') && (parsedUrl.searchParams.has('level') || parsedUrl.searchParams.has('level.ge'))) {
+        const startLevel = Number(parsedUrl.searchParams.get('level') || parsedUrl.searchParams.get('level.ge'));
+        const endLevel = Number(parsedUrl.searchParams.get('level') || parsedUrl.searchParams.get('level.le'));
+        let level = endLevel;
+        while (level >= startLevel && level % 4 !== 3) level -= 1;
+        return fulfillJson(route, level >= startLevel ? [{
+          id: 7101,
+          hash: 'opHeartbeatL1Ballot',
+          level,
+          timestamp: new Date().toISOString(),
+          status: 'applied',
+          vote: 'yay',
+          delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker' }
+        }] : []);
+      }
+      if (url.includes('/operations/proposals?') && (parsedUrl.searchParams.has('level') || parsedUrl.searchParams.has('level.ge'))) {
+        const startLevel = Number(parsedUrl.searchParams.get('level') || parsedUrl.searchParams.get('level.ge'));
+        const endLevel = Number(parsedUrl.searchParams.get('level') || parsedUrl.searchParams.get('level.le'));
+        let level = endLevel;
+        while (level >= startLevel && level % 4 !== 3) level -= 1;
+        return fulfillJson(route, level >= startLevel ? [{
+          id: 7201,
+          hash: 'opHeartbeatL1Proposal',
+          level,
+          timestamp: new Date().toISOString(),
+          status: 'applied',
+          delegate: { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' }
+        }] : []);
+      }
       if (url.includes('/operations/ballots?')) {
         return fulfillJson(route, [
           { id: 1, timestamp: new Date(Date.now() - 11 * 3600000).toISOString(), votingPower: 5000, vote: 'yay', delegate: { address: SAMPLE_ADDRESS, alias: 'QA Baker' } },
@@ -14662,6 +14692,272 @@ async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
   assert(issues.length === 0, `live head all-theme geometry browser issues:\n${issues.join('\n')}`);
 }
 
+async function smokeMyTezosBlockMonitor(browser, baseUrl) {
+  const issues = [];
+  const context = await browser.newContext({
+    viewport: { width: 1440, height: 1000 },
+    serviceWorkers: 'block'
+  });
+  await installFeatureMocks(context);
+  await context.addInitScript((address) => {
+    localStorage.setItem('tezos-systems-theme', 'matrix');
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-welcomed', '1');
+    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-my-baker-address', address);
+    localStorage.setItem('tezos-systems-saved-addresses', JSON.stringify([{
+      network: 'tezos-l1',
+      address,
+      label: 'Second Baker',
+      included: true,
+      addedAt: Date.now()
+    }]));
+    localStorage.removeItem('tezos-systems-live-head-my-tezos-only-v1');
+  }, SAMPLE_ADDRESS_2);
+
+  const page = await context.newPage();
+  attachIssueCollectors(page, 'My Tezos block monitor', issues);
+  const response = await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+  assert(response?.ok(), `My Tezos block monitor: dashboard failed with HTTP ${response?.status()}`);
+  await page.locator('#live-head-button[data-live-head-wired="1"]').waitFor({ state: 'visible', timeout: 15000 });
+  await page.waitForFunction(() => (
+    document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 4
+      && Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]'))
+        .every((row) => ['match', 'no-match'].includes(row.dataset.myTezosBlockState || ''))
+  ), null, { timeout: 15000 });
+
+  const readTickerGeometry = () => page.evaluate(() => {
+    const panel = document.getElementById('live-head');
+    const stack = document.getElementById('live-head-stack');
+    const depth = document.getElementById('live-head-depth-toggle');
+    const search = panel?.querySelector('.hero-search-form');
+    const panelRect = panel?.getBoundingClientRect();
+    const stackRect = stack?.getBoundingClientRect();
+    const depthRect = depth?.getBoundingClientRect();
+    const searchRect = search?.getBoundingClientRect();
+    return {
+      expanded: document.documentElement.dataset.liveHeadExpanded === 'true',
+      panelHeight: panelRect?.height || 0,
+      stackHeight: stackRect?.height || 0,
+      stackTop: panelRect && stackRect ? stackRect.top - panelRect.top : 0,
+      depthTop: panelRect && depthRect ? depthRect.top - panelRect.top : 0,
+      depthHeight: depthRect?.height || 0,
+      depthRight: panelRect && depthRect ? panelRect.right - depthRect.right : 0,
+      searchTop: panelRect && searchRect ? searchRect.top - panelRect.top : 0,
+      visibleRows: Array.from(stack?.querySelectorAll('.live-head-row[data-health-level]') || [])
+        .filter((row) => getComputedStyle(row).display !== 'none').length
+    };
+  });
+  const sameTickerGeometry = (actual, expected) => (
+    Math.abs(actual.panelHeight - expected.panelHeight) <= 1
+      && Math.abs(actual.stackHeight - expected.stackHeight) <= 1
+      && Math.abs(actual.stackTop - expected.stackTop) <= 1
+      && Math.abs(actual.depthTop - expected.depthTop) <= 1
+      && Math.abs(actual.depthRight - expected.depthRight) <= 1
+      && Math.abs(actual.searchTop - expected.searchTop) <= 1
+  );
+  const compactBaseline = await readTickerGeometry();
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'true'
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 10, null, { timeout: 5000 });
+  const expandedBaseline = await readTickerGeometry();
+  assert(compactBaseline.depthRight >= 7 && compactBaseline.depthRight <= 10
+      && expandedBaseline.depthRight >= 7 && expandedBaseline.depthRight <= 10
+      && compactBaseline.depthTop + compactBaseline.depthHeight <= compactBaseline.searchTop - 3
+      && expandedBaseline.depthTop + expandedBaseline.depthHeight <= expandedBaseline.searchTop - 3,
+    `My Tezos block monitor: desktop depth arrow is not pinned to the ticker edge ${JSON.stringify({ compactBaseline, expandedBaseline })}`);
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'false'
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 4, null, { timeout: 5000 });
+
+  await openDropdown(page, '#settings-gear', '#settings-dropdown');
+  const globalToggle = page.locator('#live-head-my-tezos-setting');
+  assert(await globalToggle.isEnabled(), 'My Tezos block monitor: one saved address should enable the global Setup control');
+  await globalToggle.click();
+  await page.waitForFunction(() => (
+    localStorage.getItem('tezos-systems-live-head-my-tezos-only-v1') === '1'
+      && document.querySelector('#live-head-my-tezos-setting')?.getAttribute('aria-pressed') === 'true'
+  ), null, { timeout: 5000 });
+  const enabled = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]'));
+    const matches = rows.filter((row) => row.dataset.myTezosBlockState === 'match');
+    return {
+      globalPressed: document.querySelector('#live-head-my-tezos-setting')?.getAttribute('aria-pressed') || '',
+      setupClosed: !document.querySelector('#settings-dropdown')?.classList.contains('open'),
+      badge: document.querySelector('#live-head-my-tezos-setting [data-live-head-my-tezos-count]')?.textContent?.trim() || '',
+      matches: matches.length,
+      matchingVisible: matches.filter((row) => getComputedStyle(row).display !== 'none').length,
+      filtered: rows.filter((row) => row.classList.contains('is-my-tezos-filtered-out')).length,
+      statusPresent: Boolean(document.querySelector('#live-head-stack [data-live-head-my-tezos-status]'))
+    };
+  });
+  assert(enabled.globalPressed === 'true'
+      && enabled.setupClosed
+      && enabled.badge === '1 saved'
+      && enabled.matches >= 1
+      && enabled.matchingVisible >= 1
+      && enabled.filtered >= 1
+      && enabled.statusPresent === false,
+    `My Tezos block monitor: global Setup did not retain only matched recent blocks ${JSON.stringify(enabled)}`);
+  const filteredCompact = await readTickerGeometry();
+  assert(sameTickerGeometry(filteredCompact, compactBaseline),
+    `My Tezos block monitor: compact filtering moved the ticker, search, or expand arrow ${JSON.stringify({ compactBaseline, filteredCompact })}`);
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'true'
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 10, null, { timeout: 5000 });
+  const filteredExpanded = await readTickerGeometry();
+  assert(sameTickerGeometry(filteredExpanded, expandedBaseline),
+    `My Tezos block monitor: expanded filtering moved the ticker, search, or collapse arrow ${JSON.stringify({ expandedBaseline, filteredExpanded })}`);
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'false'
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 4, null, { timeout: 5000 });
+
+  const transitionStartLevel = await page.locator('#live-head').evaluate((panel) => Number(panel.dataset.heartbeatLevel || 0));
+  await page.evaluate(() => {
+    const stack = document.getElementById('live-head-stack');
+    window.__myTezosBlockPaintAudit = { unfilteredInsertions: [], exitGhosts: [] };
+    window.__myTezosBlockPaintObserver?.disconnect();
+    window.__myTezosBlockPaintObserver = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const added of record.addedNodes) {
+          if (!(added instanceof Element)) continue;
+          const candidates = added.matches('.live-head-row, .live-head-row-exiting')
+            ? [added]
+            : Array.from(added.querySelectorAll('.live-head-row, .live-head-row-exiting'));
+          for (const row of candidates) {
+            if (row.classList.contains('live-head-row-exiting')) {
+              const stackRect = stack.getBoundingClientRect();
+              const rowRect = row.getBoundingClientRect();
+              window.__myTezosBlockPaintAudit.exitGhosts.push({
+                state: row.dataset.myTezosBlockState || '',
+                contained: rowRect.left >= stackRect.left - 1
+                  && rowRect.right <= stackRect.right + 1
+                  && rowRect.top >= stackRect.top - 1
+                  && rowRect.bottom <= stackRect.bottom + 1
+              });
+              continue;
+            }
+            if (row.dataset.myTezosBlockState !== 'match'
+                && !row.classList.contains('is-my-tezos-filtered-out')) {
+              window.__myTezosBlockPaintAudit.unfilteredInsertions.push({
+                level: row.dataset.healthLevel || '',
+                state: row.dataset.myTezosBlockState || '',
+                className: row.className
+              });
+            }
+          }
+        }
+      }
+    });
+    window.__myTezosBlockPaintObserver.observe(stack, { childList: true, subtree: true });
+    window.dispatchEvent(new CustomEvent('block-pulse'));
+  });
+  await page.waitForFunction((previousLevel) => (
+    Number(document.querySelector('#live-head')?.dataset.heartbeatLevel || 0) > previousLevel
+  ), transitionStartLevel, { timeout: 10000 });
+  await page.waitForTimeout(700);
+  const transition = await page.evaluate(() => {
+    window.__myTezosBlockPaintObserver?.disconnect();
+    return {
+      audit: window.__myTezosBlockPaintAudit,
+      visibleNonMatches: Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]'))
+        .filter((row) => row.dataset.myTezosBlockState !== 'match' && getComputedStyle(row).display !== 'none')
+        .map((row) => ({ level: row.dataset.healthLevel || '', state: row.dataset.myTezosBlockState || '' })),
+      statusPresent: Boolean(document.querySelector('#live-head-stack [data-live-head-my-tezos-status]'))
+    };
+  });
+  const filteredAfterTransition = await readTickerGeometry();
+  assert(transition.audit.unfilteredInsertions.length === 0
+      && transition.audit.exitGhosts.length === 0
+      && transition.visibleNonMatches.length === 0
+      && transition.statusPresent === false
+      && sameTickerGeometry(filteredAfterTransition, compactBaseline),
+    `My Tezos block monitor: filtered refresh painted a transient row, retained the placeholder box, or moved ticker geometry ${JSON.stringify({ transition, compactBaseline, filteredAfterTransition })}`);
+
+  const themeStates = [];
+  for (const theme of ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone']) {
+    await page.evaluate(async (nextTheme) => {
+      const { setTheme } = await import('/js/ui/theme.js');
+      setTheme(nextTheme);
+    }, theme);
+    await page.waitForFunction((expected) => (
+      document.body.dataset.theme === expected
+        && Boolean(document.getElementById(`theme-css-${expected}`)?.sheet)
+    ), theme, { timeout: 5000 });
+    themeStates.push(await page.evaluate((expectedTheme) => {
+      const panel = document.getElementById('live-head');
+      return {
+        theme: expectedTheme,
+        statusPresent: Boolean(panel?.querySelector('[data-live-head-my-tezos-status]')),
+        pageOverflow: document.documentElement.scrollWidth - innerWidth,
+        panelOverflow: panel ? panel.scrollWidth - panel.clientWidth : 999,
+        visibleNonMatches: Array.from(panel?.querySelectorAll('.live-head-row[data-health-level]') || [])
+          .filter((row) => row.dataset.myTezosBlockState !== 'match' && getComputedStyle(row).display !== 'none').length
+      };
+    }, theme));
+  }
+  assert(themeStates.length === 15
+      && themeStates.every((state) => state.statusPresent === false
+        && state.pageOverflow <= 1
+        && state.panelOverflow <= 1
+        && state.visibleNonMatches === 0),
+    `My Tezos block monitor: the quiet monitor state regressed across themes ${JSON.stringify(themeStates)}`);
+
+  await page.locator('#live-head-filter-toggle').click();
+  const activityToggle = page.locator('#live-head-filter-menu [data-live-head-my-tezos-toggle]');
+  await activityToggle.waitFor({ state: 'visible', timeout: 5000 });
+  assert(await activityToggle.getAttribute('aria-pressed') === 'true', 'My Tezos block monitor: activity Setup did not mirror the active global preference');
+  await activityToggle.click();
+  await page.waitForFunction(() => (
+    localStorage.getItem('tezos-systems-live-head-my-tezos-only-v1') === '0'
+      && !document.querySelector('#live-head-stack .live-head-row.is-my-tezos-filtered-out')
+  ), null, { timeout: 5000 });
+  const disabled = await page.evaluate(() => ({
+    activityPressed: document.querySelector('#live-head-filter-menu [data-live-head-my-tezos-toggle]')?.getAttribute('aria-pressed') || '',
+    globalPressed: document.querySelector('#live-head-my-tezos-setting')?.getAttribute('aria-pressed') || '',
+    visibleRows: Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]'))
+      .filter((row) => getComputedStyle(row).display !== 'none').length
+  }));
+  assert(disabled.activityPressed === 'false'
+      && disabled.globalPressed === 'false'
+      && disabled.visibleRows === 4,
+    `My Tezos block monitor: the shared Setup preference did not restore all compact rows ${JSON.stringify(disabled)}`);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 3, null, { timeout: 5000 });
+  const mobileCompactBaseline = await readTickerGeometry();
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'true'
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 9, null, { timeout: 5000 });
+  const mobileExpandedBaseline = await readTickerGeometry();
+  assert(mobileCompactBaseline.depthRight >= 7 && mobileCompactBaseline.depthRight <= 10
+      && mobileExpandedBaseline.depthRight >= 7 && mobileExpandedBaseline.depthRight <= 10
+      && mobileCompactBaseline.depthTop + mobileCompactBaseline.depthHeight <= mobileCompactBaseline.searchTop - 3
+      && mobileExpandedBaseline.depthTop + mobileExpandedBaseline.depthHeight <= mobileExpandedBaseline.searchTop - 3,
+    `My Tezos block monitor: mobile depth arrow is not pinned to the ticker edge ${JSON.stringify({ mobileCompactBaseline, mobileExpandedBaseline })}`);
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'false'
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 3, null, { timeout: 5000 });
+  await page.evaluate(() => window.tezosSystemsLiveHead?.setMyTezosOnly(true, 'mobile-geometry-smoke'));
+  await page.waitForFunction(() => document.documentElement.dataset.liveHeadMyTezosOnly === 'true', null, { timeout: 5000 });
+  const mobileFilteredCompact = await readTickerGeometry();
+  await page.locator('#live-head-depth-toggle').click();
+  await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'true'
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 9, null, { timeout: 5000 });
+  const mobileFilteredExpanded = await readTickerGeometry();
+  assert(sameTickerGeometry(mobileFilteredCompact, mobileCompactBaseline)
+      && sameTickerGeometry(mobileFilteredExpanded, mobileExpandedBaseline),
+    `My Tezos block monitor: mobile compact or expanded filtering moved the ticker or depth control ${JSON.stringify({ mobileCompactBaseline, mobileFilteredCompact, mobileExpandedBaseline, mobileFilteredExpanded })}`);
+  await page.evaluate(() => {
+    window.tezosSystemsLiveHead?.setMyTezosOnly(false, 'mobile-geometry-smoke');
+    window.tezosSystemsLiveHead?.setExpanded(false, 'mobile-geometry-smoke');
+  });
+
+  await context.close();
+  assert(issues.length === 0, `My Tezos block monitor browser issues:\n${issues.join('\n')}`);
+  log('ok - My Tezos-only block monitor');
+}
+
 async function smokeNetworkHealthChamber(browser, baseUrl) {
   await smokeNetworkHealthInteractivePriority(browser, baseUrl);
   await smokeLiveHeadThemeGeometry(browser, baseUrl);
@@ -14727,6 +15023,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
     localStorage.setItem('tezos-systems-my-baker-address', myBakerAddress);
+    localStorage.setItem('tezos-systems-saved-addresses', JSON.stringify([{
+      network: 'tezos-l1',
+      address: myBakerAddress,
+      label: 'Second Baker',
+      included: true,
+      addedAt: Date.now()
+    }]));
     localStorage.setItem('tezos-systems-network-health', JSON.stringify({
       updatedAt: Date.now(),
       periodUpdatedAt: Date.now(),
@@ -15198,7 +15501,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	      liveHeadStoryReceipts: Array.from(liveHeadStack?.querySelectorAll('.live-head-story-chip') || []).map((pill) => ({
 	        compact: pill.dataset.liveHeadCompact || '',
 	        details: JSON.parse(pill.dataset.liveHeadDetails || '[]'),
-	        kind: Array.from(pill.classList).find((name) => /^is-(art|transfers|stake|unstake)$/.test(name))?.slice(3) || '',
+	        kind: Array.from(pill.classList).find((name) => /^is-(l1-vote|l2-vote|art|transfers|stake|unstake)$/.test(name))?.slice(3) || '',
 	        level: Number(pill.dataset.liveHeadDetailLevel || 0),
 	        text: pill.textContent?.replace(/\s+/g, ' ').trim() || ''
 	      })),
@@ -15369,6 +15672,61 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && chamberActivityFilterOn.homeAllPressed === 'true'
       && chamberActivityFilterOn.visibleStories >= 1,
     `network health chamber: top-right Setup did not share the homepage activity choices while retaining gas and missed receipts ${JSON.stringify({ chamberActivityFilterOff, chamberActivityFilterOn })}`);
+
+  await chamberSetupToggle.click();
+  await page.locator('#health-block-filter-menu:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  const chamberMyTezosToggle = page.locator('#health-block-filter-menu [data-live-head-my-tezos-toggle]');
+  assert(!(await chamberMyTezosToggle.isDisabled()), 'network health chamber: saved My Tezos addresses should enable the personal block monitor');
+  await chamberMyTezosToggle.click();
+  await page.waitForFunction(() => (
+    localStorage.getItem('tezos-systems-live-head-my-tezos-only-v1') === '1'
+      && document.querySelector('#health-block-filter-menu [data-live-head-my-tezos-toggle]')?.getAttribute('aria-pressed') === 'true'
+      && Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row')).some((row) => row.dataset.myTezosBlockState === 'match')
+  ), null, { timeout: 10000 });
+  const myTezosMonitorOn = await page.evaluate(() => {
+    const rows = Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'));
+    const matching = rows.filter((row) => row.dataset.myTezosBlockState === 'match');
+    const filtered = rows.filter((row) => row.classList.contains('is-my-tezos-filtered-out'));
+    return {
+      stored: localStorage.getItem('tezos-systems-live-head-my-tezos-only-v1'),
+      chamberPressed: document.querySelector('#health-block-filter-menu [data-live-head-my-tezos-toggle]')?.getAttribute('aria-pressed') || '',
+      homePressed: document.querySelector('#live-head-filter-menu [data-live-head-my-tezos-toggle]')?.getAttribute('aria-pressed') || '',
+      setupPressed: document.querySelector('#live-head-my-tezos-setting')?.getAttribute('aria-pressed') || '',
+      setupCount: document.querySelector('#live-head-my-tezos-setting [data-live-head-my-tezos-count]')?.textContent?.trim() || '',
+      matching: matching.length,
+      filtered: filtered.length,
+      matchingVisible: matching.filter((row) => getComputedStyle(row).display !== 'none').length,
+      statusPresent: Boolean(document.querySelector('#health-recent-block-list [data-live-head-my-tezos-status]'))
+    };
+  });
+  assert(myTezosMonitorOn.stored === '1'
+      && myTezosMonitorOn.chamberPressed === 'true'
+      && myTezosMonitorOn.homePressed === 'true'
+      && myTezosMonitorOn.setupPressed === 'true'
+      && myTezosMonitorOn.setupCount === '1 saved'
+      && myTezosMonitorOn.matching >= 1
+      && myTezosMonitorOn.filtered >= 1
+      && myTezosMonitorOn.matchingVisible >= 1
+      && myTezosMonitorOn.statusPresent === false,
+    `network health chamber: My Tezos monitor did not persist, share controls, or retain only matched block rows ${JSON.stringify(myTezosMonitorOn)}`);
+
+  await chamberMyTezosToggle.click();
+  await page.waitForFunction(() => (
+    localStorage.getItem('tezos-systems-live-head-my-tezos-only-v1') === '0'
+      && !document.querySelector('#health-recent-block-list .health-block-row.is-my-tezos-filtered-out')
+  ), null, { timeout: 5000 });
+  const myTezosMonitorOff = await page.evaluate(() => ({
+    stored: localStorage.getItem('tezos-systems-live-head-my-tezos-only-v1'),
+    chamberPressed: document.querySelector('#health-block-filter-menu [data-live-head-my-tezos-toggle]')?.getAttribute('aria-pressed') || '',
+    setupPressed: document.querySelector('#live-head-my-tezos-setting')?.getAttribute('aria-pressed') || '',
+    visibleRows: Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row')).filter((row) => getComputedStyle(row).display !== 'none').length
+  }));
+  await page.keyboard.press('Escape');
+  assert(myTezosMonitorOff.stored === '0'
+      && myTezosMonitorOff.chamberPressed === 'false'
+      && myTezosMonitorOff.setupPressed === 'false'
+      && myTezosMonitorOff.visibleRows === 8,
+    `network health chamber: My Tezos monitor did not return both block surfaces to the shared all-block state ${JSON.stringify(myTezosMonitorOff)}`);
   const chamberDepthToggle = page.locator('#health-block-depth-toggle');
   await chamberDepthToggle.scrollIntoViewIfNeeded();
   await page.evaluate(() => {
@@ -15596,7 +15954,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.headerActivityFullyVisible, `network health chamber: trailing-hour activity is clipped in its Live Head control rail`);
   assert(/1H Activity/.test(healthState.headerActivityText) && /\bTX\b/.test(healthState.headerActivityText) && /Moved/.test(healthState.headerActivityText) && /NFT/.test(healthState.headerActivityText), `network health chamber: trailing-hour label, TX, moved, and NFT text missing: ${healthState.headerActivityText}`);
   assert(['TX', 'Moved', 'NFT'].every((label) => healthState.headerActivityLabels.includes(label)), `network health chamber: trailing-hour activity labels are hidden: ${healthState.headerActivityLabels.join(', ')}`);
-  assert(healthState.liveHeadFilterMenuHidden && healthState.liveHeadFilterAllPressed === 'true' && healthState.liveHeadFilterSelectedCount === 8 && healthState.liveHeadFilterWired === '1', `network health chamber: activity setup control is not wired with every receipt type selected by default ${JSON.stringify({ hidden: healthState.liveHeadFilterMenuHidden, all: healthState.liveHeadFilterAllPressed, selected: healthState.liveHeadFilterSelectedCount, wired: healthState.liveHeadFilterWired })}`);
+  assert(healthState.liveHeadFilterMenuHidden && healthState.liveHeadFilterAllPressed === 'true' && healthState.liveHeadFilterSelectedCount === 10 && healthState.liveHeadFilterWired === '1', `network health chamber: activity setup control is not wired with every receipt type selected by default ${JSON.stringify({ hidden: healthState.liveHeadFilterMenuHidden, all: healthState.liveHeadFilterAllPressed, selected: healthState.liveHeadFilterSelectedCount, wired: healthState.liveHeadFilterWired })}`);
   assert(healthState.liveHeadConnectors.every((connector) => connector.width >= 10 && connector.pointsIntoStory && !connector.aliasClipped), `network health chamber: baker-to-receipt connectors are missing, reversed, or clipping an alias ${JSON.stringify(healthState.liveHeadConnectors)}`);
   assert(healthState.systemLinks >= healthState.attesterRows, `network health chamber: baker profile links missing, saw ${healthState.systemLinks}`);
   assert(healthState.tzktLinks >= healthState.attesterRows, `network health chamber: TzKT links missing, saw ${healthState.tzktLinks}`);
@@ -15664,6 +16022,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	  const artReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'art');
 	  const transferReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'transfers');
 	  const stakeReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'stake');
+	  const l1VoteReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'l1-vote');
+	  const l2VoteReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'l2-vote');
+	  assert(l1VoteReceipt?.compact === 'L1 vote · 2', `network health chamber: L1 ballot/proposal receipt missing ${JSON.stringify(l1VoteReceipt)}`);
+	  assert(l2VoteReceipt?.compact === 'L2 vote · 1', `network health chamber: current Etherlink governance receipt missing ${JSON.stringify(l2VoteReceipt)}`);
 	  assert(artReceipt?.compact === 'Art · 2'
 	      && artReceipt.details.some((detail) => /Smoke Piece One.*Smoke Piece Two/.test(detail)), `network health chamber: Art receipt lacks progressive artwork names ${JSON.stringify(artReceipt)}`);
 	  assert(transferReceipt?.compact === 'Transfers · 2'
@@ -15700,11 +16062,15 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	  await page.setViewportSize({ width: 2048, height: 1000 });
 	  await page.waitForFunction(() => {
 	    const pills = Array.from(document.querySelectorAll('#live-head-stack .live-head-story-chip'));
-	    return ['art', 'transfers', 'stake'].every((kind) => pills.some((pill) => (
+	    const votingVisible = ['l1-vote', 'l2-vote'].every((kind) => pills.some((pill) => (
+	      pill.classList.contains(`is-${kind}`) && !pill.hidden
+	    )));
+	    const progressiveVisible = ['art', 'transfers', 'stake'].every((kind) => pills.some((pill) => (
 	      pill.classList.contains(`is-${kind}`)
 	        && !pill.hidden
 	        && Number(pill.dataset.liveHeadDetailLevel || 0) > 0
 	    )));
+	    return votingVisible && progressiveVisible;
 	  }, null, { timeout: 5000 });
 	  const wideStoryState = await page.evaluate(() => Object.fromEntries(
 	    ['art', 'transfers', 'stake'].map((kind) => {
@@ -16219,10 +16585,12 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const stack = document.getElementById('live-head-stack');
     const toggle = document.getElementById('live-head-depth-toggle');
     const setting = document.getElementById('live-head-depth-setting');
+    const search = panel?.querySelector('.hero-search-form');
     const rows = Array.from(stack?.querySelectorAll('.live-head-row[data-live-head-level]') || []);
     const levels = rows.map((row) => Number(row.dataset.liveHeadLevel));
     const toggleRect = toggle?.getBoundingClientRect();
     const stackRect = stack?.getBoundingClientRect();
+    const searchRect = search?.getBoundingClientRect();
     return {
       expanded: panel?.dataset.liveHeadExpanded || '',
       rowCount: rows.length,
@@ -16232,7 +16600,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       cornerLabel: toggle?.getAttribute('aria-label') || '',
       cornerAtBottomRight: Boolean(toggleRect && stackRect
         && Math.abs(toggleRect.right - stackRect.right) <= 10
-        && toggleRect.top >= stackRect.bottom - 1),
+        && searchRect
+        && toggleRect.bottom <= searchRect.top - 3
+        && searchRect.top - toggleRect.bottom <= 8),
       setupPressed: setting?.getAttribute('aria-pressed') || '',
       setupCount: setting?.querySelector('[data-live-head-depth-count]')?.textContent?.trim() || '',
       stored: JSON.parse(localStorage.getItem('tezos-systems-live-head-depth-v1') || 'null')
@@ -16329,7 +16699,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && activityFilterOff.visibleStoryPills === 0
       && activityFilterOff.visibleMissPills >= 1
       && activityFilterOn.allPressed === 'true'
-      && activityFilterOn.selectedCount === 8
+      && activityFilterOn.selectedCount === 10
       && activityFilterOn.visibleStoryPills >= 1
       && Math.abs(activityFilterOff.height - activityFilterOn.height) <= 1,
     `network health chamber: activity setup did not deselect and restore every transaction pill without moving the card ${JSON.stringify({ activityFilterOff, activityFilterOn })}`);
@@ -28839,7 +29209,7 @@ async function smokeThemeSelection(browser, baseUrl) {
         ['gas-busy', 'live-head-gas is-busy'],
         ['gas-hot', 'live-head-gas is-hot'],
         ['gas-unavailable', 'live-head-gas is-unavailable'],
-        ...['art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake', 'transfers', 'quiet']
+        ...['l1-vote', 'l2-vote', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake', 'transfers', 'quiet']
           .map((tone) => [`story-${tone}`, `live-head-story-chip is-${tone}`]),
         ['miss', 'live-head-miss-pill'],
         ['miss-more', 'live-head-miss-pill is-more'],
@@ -28907,7 +29277,7 @@ async function smokeThemeSelection(browser, baseUrl) {
     assert(state.specialtyDisplayFonts.length === 2 && state.specialtyDisplayFonts.every((font) => font.includes(expected.display)), `theme ${theme}: specialty display font mismatch ${JSON.stringify(state.specialtyDisplayFonts)} (expected ${expected.display})`);
     assert(state.specialtyDataFonts.length === 2 && state.specialtyDataFonts.every((font) => font.includes(specialtyDataExpected)), `theme ${theme}: specialty data font mismatch ${JSON.stringify(state.specialtyDataFonts)} (expected ${specialtyDataExpected})`);
     assert(
-      state.pillReadability.length === 19
+      state.pillReadability.length === 21
         && state.pillReadability.every((pill) => (
           pill.backgroundAlpha >= 0.85
           && pill.borderAlpha >= 0.85
@@ -33732,6 +34102,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-pretty-route', description: 'The bare /my URL resolves to the canonical My Tezos drawer route', run: () => smokeMyTezosPrettyRoute(browser, baseUrl) },
     { name: 'my-tezos-deep-link-override', description: 'My Tezos direct address links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) },
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
+    { name: 'my-tezos-block-monitor', description: 'Setup keeps one persisted saved-address-only block monitor synchronized across Home and Network Health', run: () => smokeMyTezosBlockMonitor(browser, baseUrl) },
     { name: 'network-health', description: 'Live Head stories and Network Health expose block cadence, missed rights, live 33/66 Nakamoto coefficients, reports, and saved-baker context', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'ledger-flow', description: 'Ledger Flow opens #ledger-flow with sent, received, first-funding, and amount-weighted transfer paths', run: () => smokeLedgerFlowChamber(browser, baseUrl) },
     { name: 'maxis-domain-passport', description: 'Maxi Passport resolves .tez names and subdomains without mutating My Tezos or assigning KT1 activity to an owner', run: () => smokeMaxisDomainPassport(browser, baseUrl) },

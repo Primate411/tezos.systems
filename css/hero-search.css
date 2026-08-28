@@ -1756,6 +1756,64 @@
     text-transform: none;
 }
 
+.live-head-filter-my-tezos {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.16rem 0.65rem;
+    width: 100%;
+    min-height: 48px;
+    padding: 0.5rem 0.62rem;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 22%, var(--glass-border));
+    border-radius: 9px;
+    background: color-mix(in srgb, var(--accent-cyan) 5%, transparent);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-family: var(--font-runtime);
+    text-align: left;
+}
+
+.live-head-filter-my-tezos > span {
+    align-self: end;
+    font-size: 0.66rem;
+    font-weight: 780;
+}
+
+.live-head-filter-my-tezos > small {
+    grid-column: 1;
+    color: var(--text-tertiary);
+    font-size: 0.56rem;
+    font-weight: 560;
+    line-height: 1.35;
+}
+
+.live-head-filter-my-tezos > em {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    padding: 0.22rem 0.42rem;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 28%, var(--glass-border));
+    border-radius: 999px;
+    color: color-mix(in srgb, var(--accent-cyan) 78%, var(--text-primary));
+    font: 760 0.54rem/1 var(--font-runtime);
+    font-style: normal;
+    white-space: nowrap;
+}
+
+.live-head-filter-my-tezos[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--accent-cyan) 58%, var(--glass-border));
+    background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
+    box-shadow: inset 2px 0 0 var(--accent-cyan);
+}
+
+.live-head-filter-my-tezos[aria-pressed="false"] {
+    text-decoration: none !important;
+}
+
+.live-head-filter-my-tezos:disabled {
+    cursor: not-allowed;
+    opacity: 0.52;
+}
+
 .live-head-filter-all,
 .live-head-filter-pill {
     min-height: 30px;
@@ -1795,6 +1853,8 @@
 }
 
 .live-head-filter-pill.is-art { color: #ff9ddd; }
+.live-head-filter-pill.is-l1-vote { color: #8ceaff; }
+.live-head-filter-pill.is-l2-vote { color: #c9a6ff; }
 .live-head-filter-pill.is-defi { color: #62e2ff; }
 .live-head-filter-pill.is-gaming { color: #ffd47d; }
 .live-head-filter-pill.is-bridge { color: #91bdff; }
@@ -1802,6 +1862,10 @@
 .live-head-filter-pill.is-stake { color: #b7a9ff; }
 .live-head-filter-pill.is-unstake { color: #ffb181; }
 .live-head-filter-pill.is-transfers { color: #64e7bd; }
+
+.live-head-row.is-my-tezos-filtered-out {
+    display: none !important;
+}
 
 .live-head-title.lb-panel-title {
     min-width: 0;
@@ -1975,10 +2039,20 @@
 }
 
 .live-head-stack {
+    --live-head-compact-stack-height: 246px;
+    --live-head-expanded-stack-height: 618px;
     position: relative;
     display: grid;
     gap: 2px;
     margin-top: 4px;
+}
+
+html[data-live-head-my-tezos-only="true"] .live-head-stack {
+    height: var(--live-head-compact-stack-height);
+}
+
+html[data-live-head-my-tezos-only="true"][data-live-head-expanded="true"] .live-head-stack {
+    height: var(--live-head-expanded-stack-height);
 }
 
 html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-placeholder:nth-child(n + 5) {
@@ -2035,7 +2109,7 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
 
 @media (min-width: 761px) {
     .live-head-depth-rail {
-        position: relative;
+        position: static;
         z-index: 31;
         width: 100%;
         min-height: 0;
@@ -2046,9 +2120,15 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
 
     .live-head-depth-toggle {
         position: absolute;
-        top: 0;
-        right: 1px;
+        right: 8px;
+        bottom: 56px;
         pointer-events: auto;
+    }
+}
+
+@media (max-width: 760px) {
+    .live-head-depth-toggle {
+        transform: translateX(9px);
     }
 }
 
@@ -2710,6 +2790,14 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
 
 .live-head-story-chip.is-art {
     color: #ff9ddd;
+}
+
+.live-head-story-chip.is-l1-vote {
+    color: #8ceaff;
+}
+
+.live-head-story-chip.is-l2-vote {
+    color: #c9a6ff;
 }
 
 .live-head-story-chip.is-defi {
@@ -3379,6 +3467,11 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
     html[data-live-head-expanded="true"] .live-head-stack .live-head-row.is-placeholder:nth-child(n + 10) {
         display: none;
+    }
+
+    .live-head-stack {
+        --live-head-compact-stack-height: 196px;
+        --live-head-expanded-stack-height: 592px;
     }
 
     .live-head-depth-rail {

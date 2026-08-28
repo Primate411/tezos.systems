@@ -289,6 +289,31 @@ function checkLiveHeadPureContracts() {
       layers: [{ id: 'tezos', contractSource: { aliasPatterns: ['^Reviewed DEX$'] }, proofUrls: [] }]
     }]
   });
+  const l2Vote = {
+    id: 81,
+    amount: 0,
+    internal: false,
+    sender: { address: 'tz1GovernanceVoter1111111111111111111' },
+    target: { address: 'KT19oUVQPnVLuUBYXrBVd46WJnNAMpqkKSwo', alias: 'Etherlink FAST governance' },
+    parameter: { entrypoint: 'vote', value: 'yea' }
+  };
+  const governance = classifyBlockStory({
+    transactions: [
+      l2Vote,
+      { id: 82, amount: 12000000, internal: false, target: { address: 'tz1Recipient111111111111111111111111' } }
+    ],
+    stakingRows: [],
+    l1VotingRows: [
+      { id: 71, delegate: { address: 'tz1LayerOneVoter11111111111111111111' }, vote: 'yay' },
+      { id: 72, delegate: { address: 'tz1LayerOneProposer1111111111111111' } }
+    ],
+    l2VotingRows: [l2Vote],
+    maxFragments: 10
+  });
+  assert.deepEqual(governance.fragments.map(({ key }) => key), ['l1-vote', 'l2-vote', 'transfers']);
+  assert.equal(governance.text, 'L1 vote · 2 · L2 vote · 1 · Transfers · 1');
+  assert.equal(governance.fragments.filter(({ key }) => key === 'transfers').length, 1);
+
   const mixed = classifyBlockStory({
     catalog,
     transactions: [
@@ -349,6 +374,7 @@ function checkLiveHeadPureContracts() {
   ]);
   assert.equal(classifyBlockStory({ transactions: null, stakingRows: null }), null);
   assert.equal(classifyBlockStory({ transactions: [], stakingRows: null }), null);
+  assert.equal(classifyBlockStory({ transactions: [], stakingRows: [], l1VotingRows: null }), null);
   assert.equal(classifyBlockStory({ transactions: [], stakingRows: [] }).text, 'Quiet');
   assert(classifyBlockStory({ transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }], stakingRows: [] }).text.startsWith('Transfers'));
   assert(classifyBlockStory({ transactions: [{ amount: 1, internal: false, target: { address: 'KT1PHubm9HtyQEJ4BBpMTVomq6mhbfNZ9z5w' } }], stakingRows: [], transactionsClipped: true }).text.endsWith('+'));
@@ -3633,7 +3659,12 @@ async function checkSelectorContracts() {
   if (chainHeartbeatUpdateBlock.includes('stack.innerHTML')) {
     fail('Live Head background updates must not replace the full live stack');
   }
-  if (!chainHeartbeatActivityBlock.includes('Promise.allSettled') || !chainHeartbeatActivityBlock.includes('transactions !== null && stakingRows !== null')) {
+  if (!chainHeartbeatActivityBlock.includes('Promise.allSettled')
+      || !chainHeartbeatActivityBlock.includes('transactions !== null && stakingRows !== null && l1VotingRows !== null')
+      || !health.includes('/operations/ballots?${query}')
+      || !health.includes('/operations/proposals?${query}')
+      || !health.includes('fetchHeartbeatL1Voting(visible)')
+      || !chainHeartbeatActivityBlock.includes('transactions?.filter(isEtherlinkGovernanceActivity)')) {
     fail('Live Head stories must preserve partial-source receipt truth instead of coercing unavailable data to zero');
   }
   const powerIndex = liveHeadRowBlock.indexOf('live-head-power health-power');
@@ -3666,7 +3697,7 @@ async function checkSelectorContracts() {
       || !health.includes('liveHeadBlockUrl(level, { operations: true })')
       || !health.includes('href="/#my-baker=${encoded}"')
       || !health.includes('data-live-head-open-health')
-      || !health.includes('maxFragments: 8')
+      || !health.includes('maxFragments: LIVE_HEAD_ACTIVITY_TYPES.length')
       || !heroSearchCss.includes('.live-head-inspector-fact')
       || !heroSearchCss.includes('.live-head-inspector-health')
       || !heroSearchCss.includes('.live-head-info:is(:hover, :focus-visible)')) {
@@ -3686,9 +3717,9 @@ async function checkSelectorContracts() {
     fail('Live Head must latch a source-confirmed stale head into an unmistakable chain-stall alert until a newer block resumes the chain');
   }
   if (!index.includes('id="live-head-filter-menu"')
-      || !['transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'].every((kind) => index.includes(`data-live-head-filter-kind="${kind}"`))
+      || !['l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'].every((kind) => index.includes(`data-live-head-filter-kind="${kind}"`))
       || !health.includes('id="health-block-filter-menu"')
-      || !['transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'].every((kind) => health.includes(`data-live-head-filter-kind="${kind}"`))
+      || !['l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'].every((kind) => health.includes(`data-live-head-filter-kind="${kind}"`))
       || !health.includes('LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY')
       || !health.includes('function wireLiveHeadActivityFilter(')
       || !health.includes('function syncAllLiveHeadActivityFilterUis(')
@@ -3696,6 +3727,38 @@ async function checkSelectorContracts() {
       || !health.includes('fitLiveHeadPills(panel)')
       || !heroSearchCss.includes('.live-head-filter-menu button[aria-pressed="false"]')) {
     fail('Live Head and Network Health Passing Blocks must share one persisted all-on activity setup and apply each category choice through measured pill fitting');
+  }
+  if (!index.includes('id="live-head-my-tezos-setting"')
+      || (index.match(/data-live-head-my-tezos-toggle/g) || []).length < 2
+      || !health.includes('data-live-head-my-tezos-toggle')
+      || !health.includes("import { readSavedMyTezosEntries } from '../core/wallet.js'")
+      || !health.includes('LIVE_HEAD_MY_TEZOS_STORAGE_KEY')
+      || !health.includes('actorAddresses: collectHeartbeatActorAddresses(transactions, stakingRows, tokenTransfers, l1VotingRows)')
+      || !health.includes('&& !transactionsClipped')
+      || !health.includes('&& !stakingClipped')
+      || !health.includes('&& !l1VotingClipped')
+      || !health.includes('function syncLiveHeadMyTezosRows()')
+      || !health.includes('quietlyMutate(surface.container')
+      || !health.includes('data-my-tezos-block-state="${personal.state}"')
+      || !health.includes("!row.classList.contains('is-my-tezos-filtered-out') && row.getClientRects().length > 0")
+      || !health.includes('const exitGhosts = motionAllowed && !liveHeadMyTezosOnly')
+      || !health.includes("window.addEventListener('my-tezos-portfolio-changed'")
+      || health.includes('ensureLiveHeadMyTezosStatus')
+      || health.includes('Watching My Tezos')
+      || !heroSearchCss.includes('.live-head-row.is-my-tezos-filtered-out')
+      || heroSearchCss.includes('.live-head-my-tezos-status')
+      || !heroSearchCss.includes('--live-head-compact-stack-height: 246px')
+      || !heroSearchCss.includes('--live-head-expanded-stack-height: 618px')
+      || !heroSearchCss.includes('--live-head-compact-stack-height: 196px')
+      || !heroSearchCss.includes('--live-head-expanded-stack-height: 592px')
+      || !heroSearchCss.includes('html[data-live-head-my-tezos-only="true"] .live-head-stack')
+      || !heroSearchCss.includes('height: var(--live-head-compact-stack-height)')
+      || !heroSearchCss.includes('height: var(--live-head-expanded-stack-height)')
+      || !/\.live-head-depth-rail\s*\{[\s\S]*?position:\s*static;/.test(heroSearchCss)
+      || !/\.live-head-depth-toggle\s*\{[\s\S]*?right:\s*8px;[\s\S]*?bottom:\s*56px;/.test(heroSearchCss)
+      || !networkHealthCss.includes('.health-block-row.is-my-tezos-filtered-out')
+      || !shellExtrasCss.includes('.live-head-my-tezos-setting-count')) {
+    fail('Setup must persist one silent My Tezos-only block monitor, preclassify rows before insertion, exclude hidden rows from exit ghosts, preserve canonical compact and expanded geometry, pin the depth arrow to the card edge, and reconcile both block surfaces quietly');
   }
   if (!health.includes('live-head-baker-name')
       || !health.includes('live-head-story-connector')

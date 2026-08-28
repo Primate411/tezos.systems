@@ -7,11 +7,13 @@ import { API_URLS } from '../core/config.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { escapeHtml, formatFreshnessStamp, refreshDataFreshnessStates, setDataFreshnessState } from '../core/utils.js';
 import { fetchCycleInfo, fetchWithRetry } from '../core/api.js';
+import { readSavedMyTezosEntries } from '../core/wallet.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
-import { quietlySyncElement, quietlySyncHtml } from '../core/quiet-refresh.js';
+import { quietlyMutate, quietlySyncElement, quietlySyncHtml } from '../core/quiet-refresh.js';
 import { loadDataAsset } from '../core/data-assets.js';
 import { classifyBlockStory, compileBlockStoryCatalog } from '../core/block-story.mjs';
+import { ETHERLINK_GOVERNANCE_CURRENT_CONTRACTS } from '../core/etherlink-governance-contracts.mjs';
 
 const TZKT = API_URLS.tzkt;
 const TEZTALE = API_URLS.teztale;
@@ -51,6 +53,7 @@ const USAGE_WINDOW_MS = 60 * 60 * 1000;
 const USAGE_AMOUNT_PAGE_LIMIT = 10000;
 const HEARTBEAT_ACTIVITY_LIMIT = 10000;
 const HEARTBEAT_STAKING_LIMIT = 20;
+const HEARTBEAT_L1_VOTING_LIMIT = 1000;
 const HEARTBEAT_ART_TRANSFER_LIMIT = 50;
 const LIVE_HEAD_POWER_DETAIL_THRESHOLD = 6969;
 const LIVE_HEAD_DETAIL_MIN_WIDTH = 420;
@@ -76,11 +79,15 @@ const NETWORK_HEALTH_CSS_URL = versionedAsset('/css/network-health.min.css');
 const STORAGE_KEY = 'tezos-systems-network-health';
 const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
 const CONTESTED_ROUND_SIGNAL_KEY = 'tezos-systems-contested-round-hot-signal-at';
-const LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v1';
+const LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v2';
+const LIVE_HEAD_ACTIVITY_FILTER_LEGACY_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v1';
+const LIVE_HEAD_MY_TEZOS_STORAGE_KEY = 'tezos-systems-live-head-my-tezos-only-v1';
 const LIVE_HEAD_DEPTH_STORAGE_KEY = 'tezos-systems-live-head-depth-v1';
 const LIVE_HEAD_EXPANDED_DESKTOP_LIMIT = 10;
 const LIVE_HEAD_EXPANDED_MOBILE_LIMIT = 9;
-const LIVE_HEAD_ACTIVITY_TYPES = ['transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'];
+const LIVE_HEAD_ACTIVITY_TYPES = ['l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'];
+const ETHERLINK_GOVERNANCE_CURRENT_ADDRESS_SET = new Set(Object.values(ETHERLINK_GOVERNANCE_CURRENT_CONTRACTS));
+const ETHERLINK_GOVERNANCE_ENTRYPOINTS = new Set(['new_proposal', 'upvote', 'upvote_proposal', 'vote']);
 
 const PERIODS = [
     { key: '24h', label: '24H', hours: 24, exactLimit: 22000 },
@@ -115,6 +122,8 @@ let heartbeatNextRightCache = null;
 let heartbeatNextRightInFlight = null;
 const heartbeatActivityInFlight = new Map();
 const heartbeatActivityCache = new Map();
+let heartbeatL1VotingCoverage = null;
+let heartbeatL1VotingInFlight = null;
 const liveHeadMissedStateCache = new Map();
 let heartbeatStoryCatalog = null;
 let heartbeatStoryCatalogInFlight = null;
@@ -133,6 +142,9 @@ let recentBlockSupplementInFlight = false;
 let recentBlockSupplementQueued = false;
 let liveHeadActivityFiltersLoaded = false;
 let liveHeadSelectedActivityTypes = new Set(LIVE_HEAD_ACTIVITY_TYPES);
+let liveHeadMyTezosOnlyLoaded = false;
+let liveHeadMyTezosOnly = false;
+let liveHeadMyTezosControlsWired = false;
 let liveHeadInspectorCloseTimer = null;
 let liveHeadInspectorResumeTimer = null;
 let liveHeadInspectorLevel = null;
@@ -761,6 +773,7 @@ function wireLiveHeadDepthControls() {
     liveHeadDepthControlsWired = true;
     liveHeadExpanded = readLiveHeadDepthPreference();
     syncLiveHeadDepthControls();
+    wireLiveHeadMyTezosControls(document);
 
     document.getElementById('live-head-depth-toggle')?.addEventListener('click', () => {
         setLiveHeadExpanded(!liveHeadExpanded, { source: 'corner' });
@@ -785,8 +798,193 @@ function wireLiveHeadDepthControls() {
     });
     window.tezosSystemsLiveHead = Object.freeze({
         isExpanded: () => liveHeadExpanded,
-        setExpanded: (expanded, source = 'api') => setLiveHeadExpanded(expanded, { source })
+        setExpanded: (expanded, source = 'api') => setLiveHeadExpanded(expanded, { source }),
+        isMyTezosOnly: () => liveHeadMyTezosOnly,
+        setMyTezosOnly: (enabled, source = 'api') => setLiveHeadMyTezosOnly(enabled, { source })
     });
+}
+
+function loadLiveHeadMyTezosPreference() {
+    if (liveHeadMyTezosOnlyLoaded) return;
+    liveHeadMyTezosOnlyLoaded = true;
+    try {
+        liveHeadMyTezosOnly = localStorage.getItem(LIVE_HEAD_MY_TEZOS_STORAGE_KEY) === '1';
+    } catch {
+        liveHeadMyTezosOnly = false;
+    }
+}
+
+function savedMyTezosAddressSet() {
+    return new Set(readSavedMyTezosEntries().map((entry) => String(entry.address || '')).filter(Boolean));
+}
+
+function operationAddress(value) {
+    if (typeof value === 'string') return value;
+    return String(value?.address || '');
+}
+
+function collectHeartbeatActorAddresses(transactions, stakingRows, tokenTransfers, l1VotingRows) {
+    const actors = new Set();
+    for (const row of transactions || []) {
+        const address = operationAddress(row?.sender);
+        if (address) actors.add(address);
+    }
+    for (const row of stakingRows || []) {
+        const address = operationAddress(row?.staker || row?.sender);
+        if (address) actors.add(address);
+    }
+    for (const row of tokenTransfers || []) {
+        const address = operationAddress(row?.from);
+        if (address) actors.add(address);
+    }
+    for (const row of l1VotingRows || []) {
+        const address = operationAddress(row?.delegate || row?.initiator || row?.sender);
+        if (address) actors.add(address);
+    }
+    return [...actors];
+}
+
+function isEtherlinkGovernanceActivity(transaction) {
+    const target = operationAddress(transaction?.target);
+    const entrypoint = String(transaction?.parameter?.entrypoint || '');
+    return ETHERLINK_GOVERNANCE_CURRENT_ADDRESS_SET.has(target)
+        && ETHERLINK_GOVERNANCE_ENTRYPOINTS.has(entrypoint);
+}
+
+function liveHeadMyTezosState(level, producerAddress, savedAddresses) {
+    if (!savedAddresses.size) return 'no-addresses';
+    const producer = String(producerAddress || '');
+    if (producer && savedAddresses.has(producer)) return 'match';
+    const numericLevel = Number(level);
+    const activity = Number.isFinite(numericLevel) ? heartbeatActivityCache.get(numericLevel) : null;
+    if ((activity?.actorAddresses || []).some((address) => savedAddresses.has(address))) return 'match';
+    return activity?.actorCoverageComplete ? 'no-match' : 'checking';
+}
+
+function liveHeadMyTezosBlockState(row, savedAddresses) {
+    return liveHeadMyTezosState(
+        row?.dataset?.healthLevel || row?.dataset?.liveHeadLevel,
+        row?.dataset?.producerAddress,
+        savedAddresses
+    );
+}
+
+function liveHeadMyTezosRowPresentation(level, producerAddress, savedAddresses = savedMyTezosAddressSet()) {
+    loadLiveHeadMyTezosPreference();
+    const state = liveHeadMyTezosState(level, producerAddress, savedAddresses);
+    return {
+        state,
+        filtered: liveHeadMyTezosOnly && state !== 'match'
+    };
+}
+
+function syncLiveHeadMyTezosRows() {
+    loadLiveHeadMyTezosPreference();
+    const savedAddresses = savedMyTezosAddressSet();
+    const surfaces = [
+        { container: document.getElementById('live-head-stack'), selector: '.live-head-row[data-health-level]' },
+        { container: document.getElementById('health-recent-block-list'), selector: '.health-block-row[data-health-level]' }
+    ];
+
+    document.documentElement.setAttribute('data-live-head-my-tezos-only', liveHeadMyTezosOnly ? 'true' : 'false');
+    document.getElementById('live-head')?.setAttribute('data-live-head-my-tezos-only', liveHeadMyTezosOnly ? 'true' : 'false');
+
+    for (const surface of surfaces) {
+        if (!surface.container) continue;
+        quietlyMutate(surface.container, () => {
+            const rows = [...surface.container.querySelectorAll(surface.selector)];
+            for (const row of rows) {
+                const state = liveHeadMyTezosBlockState(row, savedAddresses);
+                const hidden = liveHeadMyTezosOnly && state !== 'match';
+                row.dataset.myTezosBlockState = state;
+                row.classList.toggle('is-my-tezos-filtered-out', hidden);
+                if (hidden) row.setAttribute('aria-hidden', 'true');
+                else row.removeAttribute('aria-hidden');
+            }
+        });
+    }
+}
+
+function syncLiveHeadMyTezosControls() {
+    loadLiveHeadMyTezosPreference();
+    const savedCount = savedMyTezosAddressSet().size;
+    document.querySelectorAll('[data-live-head-my-tezos-toggle]').forEach((button) => {
+        const active = liveHeadMyTezosOnly;
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        button.classList.toggle('is-active', active);
+        button.disabled = savedCount === 0 && !active;
+        const count = button.querySelector('[data-live-head-my-tezos-count]');
+        if (count) count.textContent = active ? `${savedCount} saved` : savedCount ? 'All' : 'Set My Tezos';
+        const action = active
+            ? 'Show all recent blocks'
+            : savedCount
+                ? `Show only blocks produced by or carrying activity from ${savedCount} saved My Tezos address${savedCount === 1 ? '' : 'es'}`
+                : 'Save an address in My Tezos before turning on the personal block monitor';
+        button.setAttribute('aria-label', action);
+        button.title = action;
+    });
+    syncAllLiveHeadActivityFilterUis();
+}
+
+function setLiveHeadMyTezosOnly(enabled, { persist = true, source = 'api' } = {}) {
+    loadLiveHeadMyTezosPreference();
+    const next = Boolean(enabled);
+    if (next && !savedMyTezosAddressSet().size) {
+        syncLiveHeadMyTezosControls();
+        return false;
+    }
+    closeLiveHeadInspector({ suppressReopen: true });
+    liveHeadMyTezosOnly = next;
+    if (persist) {
+        try {
+            localStorage.setItem(LIVE_HEAD_MY_TEZOS_STORAGE_KEY, next ? '1' : '0');
+        } catch { /* preference storage unavailable */ }
+    }
+    syncLiveHeadMyTezosControls();
+    syncLiveHeadMyTezosRows();
+    if (next && heartbeatData) requestHeartbeatSupplements(heartbeatData);
+    if (next && recentBlockSupplementBlocks.length) requestRecentBlockSupplements(recentBlockSupplementBlocks);
+    window.dispatchEvent(new CustomEvent('tezos:live-head-my-tezos-change', {
+        detail: { enabled: next, savedAddresses: savedMyTezosAddressSet().size, source }
+    }));
+    return true;
+}
+
+function wireLiveHeadMyTezosControls(root = document) {
+    loadLiveHeadMyTezosPreference();
+    const controls = [
+        ...(root.matches?.('[data-live-head-my-tezos-toggle]') ? [root] : []),
+        ...(root.querySelectorAll?.('[data-live-head-my-tezos-toggle]') || [])
+    ];
+    controls.forEach((button) => {
+        if (button.dataset.liveHeadMyTezosWired) return;
+        button.dataset.liveHeadMyTezosWired = '1';
+        button.addEventListener('click', () => {
+            if (button.disabled) return;
+            setLiveHeadMyTezosOnly(!liveHeadMyTezosOnly, { source: button.id || 'activity-setup' });
+            const settings = button.closest('#settings-dropdown');
+            if (settings) {
+                settings.classList.remove('open');
+                const gear = document.getElementById('settings-gear');
+                gear?.setAttribute('aria-expanded', 'false');
+                gear?.focus({ preventScroll: true });
+            }
+        });
+    });
+
+    if (!liveHeadMyTezosControlsWired) {
+        liveHeadMyTezosControlsWired = true;
+        window.addEventListener('storage', (event) => {
+            if (event.key !== LIVE_HEAD_MY_TEZOS_STORAGE_KEY) return;
+            setLiveHeadMyTezosOnly(event.newValue === '1', { persist: false, source: 'storage' });
+        });
+        window.addEventListener('my-tezos-portfolio-changed', () => {
+            syncLiveHeadMyTezosControls();
+            syncLiveHeadMyTezosRows();
+            if (liveHeadMyTezosOnly && heartbeatData) requestHeartbeatSupplements(heartbeatData);
+        });
+    }
+    syncLiveHeadMyTezosControls();
 }
 
 function wireHealthBlockDepthControl(root = document) {
@@ -968,9 +1166,16 @@ function loadLiveHeadActivityFilters() {
     if (liveHeadActivityFiltersLoaded) return;
     liveHeadActivityFiltersLoaded = true;
     try {
-        const saved = JSON.parse(localStorage.getItem(LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY) || 'null');
+        const stored = localStorage.getItem(LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY);
+        const migrated = stored === null;
+        const saved = JSON.parse(stored || localStorage.getItem(LIVE_HEAD_ACTIVITY_FILTER_LEGACY_STORAGE_KEY) || 'null');
         if (Array.isArray(saved)) {
             liveHeadSelectedActivityTypes = new Set(saved.filter((kind) => LIVE_HEAD_ACTIVITY_TYPES.includes(kind)));
+            if (migrated) {
+                liveHeadSelectedActivityTypes.add('l1-vote');
+                liveHeadSelectedActivityTypes.add('l2-vote');
+                localStorage.setItem(LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY, JSON.stringify([...liveHeadSelectedActivityTypes]));
+            }
         }
     } catch {
         liveHeadSelectedActivityTypes = new Set(LIVE_HEAD_ACTIVITY_TYPES);
@@ -1004,9 +1209,10 @@ function syncLiveHeadActivityFilterUi(root) {
     });
     if (toggle) {
         const selectedCount = liveHeadSelectedActivityTypes.size;
-        toggle.classList.toggle('is-filtered', !allSelected);
-        toggle.setAttribute('aria-label', `Choose visible block activity, ${selectedCount} of ${LIVE_HEAD_ACTIVITY_TYPES.length} selected`);
-        toggle.title = `${selectedCount} of ${LIVE_HEAD_ACTIVITY_TYPES.length} block activity types selected`;
+        const personal = liveHeadMyTezosOnly ? ', My Tezos blocks only' : '';
+        toggle.classList.toggle('is-filtered', !allSelected || liveHeadMyTezosOnly);
+        toggle.setAttribute('aria-label', `Choose visible block activity, ${selectedCount} of ${LIVE_HEAD_ACTIVITY_TYPES.length} selected${personal}`);
+        toggle.title = `${selectedCount} of ${LIVE_HEAD_ACTIVITY_TYPES.length} block activity types selected${personal}`;
     }
 }
 
@@ -1026,6 +1232,7 @@ function closeLiveHeadActivityFilter(root, { restoreFocus = false } = {}) {
 function wireLiveHeadActivityFilter(root) {
     const { filter, toggle, menu } = liveHeadActivityFilterParts(root);
     if (!filter || !toggle || !menu) return;
+    wireLiveHeadMyTezosControls(filter);
     if (root !== filter && root?.dataset) root.dataset.liveHeadActivityFilterWired = '1';
     if (filter.dataset.liveHeadActivityFilterWired) {
         syncLiveHeadActivityFilterUi(filter);
@@ -1631,7 +1838,7 @@ function renderLiveHeadActivityStatus(activity) {
         return '<i class="live-head-gas-skeleton" aria-hidden="true"></i>';
     }
     if (gas.state === 'quiet') {
-        return '<span class="live-head-quiet" title="No reviewed transaction or staking activity was present in the complete block receipt">Quiet</span>';
+        return '<span class="live-head-quiet" title="No reviewed transaction, governance, or staking activity was present in the complete block receipt">Quiet</span>';
     }
     if (gas.state === 'unavailable') {
         return '<span class="live-head-gas is-unavailable" title="The exact manager-operation gas receipt or current block gas limit is temporarily unavailable"><span>Gas --</span></span>';
@@ -1640,7 +1847,7 @@ function renderLiveHeadActivityStatus(activity) {
     return `<span class="live-head-gas is-${gas.className}" style="--live-head-gas:${gas.pct.toFixed(2)}" title="${escapeHtml(title)}"><span>Gas ${gas.displayPct}%</span></span>`;
 }
 
-function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
+function renderLiveHeadRow(block, activity, { isNew = false, savedAddresses = null } = {}) {
     const producer = block?.producer || {};
     const producerHasAlias = Boolean(producer.alias);
     const name = producerHasAlias ? producer.alias : (producer.address || 'Unknown baker');
@@ -1657,7 +1864,7 @@ function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
     const gasSummary = gas.state === 'resolved'
         ? ` Gas use: ${gas.exactPct.toFixed(1)}% of block capacity.`
         : gas.state === 'quiet'
-            ? ' No reviewed transaction or staking activity.'
+            ? ' No reviewed transaction, governance, or staking activity.'
             : '';
     const missedSummary = details.missedState.state === 'resolved'
         ? ` Missed attesters: ${details.missedState.attesters.map((item) => `${item.name}, ${formatCount(item.slots)} power`).join('; ')}.`
@@ -1674,8 +1881,15 @@ function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
             : `${marginSign}${formatCount(marginAbsolute)}`;
     const barSignature = `${Number(block.level) || 0}:${safetyMargin === null ? 'unknown' : safetyMargin}:${status.quorumPower || 'unknown'}`;
     const missedSnapshot = serializeLiveHeadMissedState(Number(block.level), details.missedState);
+    const personal = liveHeadMyTezosRowPresentation(
+        Number(block.level) || 0,
+        producer.address || '',
+        savedAddresses || savedMyTezosAddressSet()
+    );
+    const personalClass = personal.filtered ? ' is-my-tezos-filtered-out' : '';
+    const personalHidden = personal.filtered ? ' aria-hidden="true"' : '';
     return `
-        <div class="live-head-row ${isNew ? 'lb-row-new' : ''}" data-live-head-level="${block.level}" data-health-level="${Number(block.level) || 0}" data-attested-power="${Number.isFinite(block?.power) ? Number(block.power) : ''}" data-safety-margin="${safetyMargin === null ? '' : safetyMargin}" data-story-quiet="${activity?.story?.quiet === true ? 'true' : 'false'}" data-gas-state="${escapeHtml(gas.state)}" data-gas-percent="${gas.state === 'resolved' ? gas.exactPct.toFixed(2) : ''}" data-consensus-state="${escapeHtml(status.className)}" data-live-head-missed-snapshot="${escapeHtml(missedSnapshot)}" data-quiet-key="live-head-block-${block.level}" data-bar-signature="${barSignature}" data-bar-available="${safetyMargin === null ? 'false' : 'true'}">
+        <div class="live-head-row${isNew ? ' lb-row-new' : ''}${personalClass}" data-live-head-level="${block.level}" data-health-level="${Number(block.level) || 0}" data-producer-address="${escapeHtml(producer.address || '')}" data-my-tezos-block-state="${personal.state}" data-attested-power="${Number.isFinite(block?.power) ? Number(block.power) : ''}" data-safety-margin="${safetyMargin === null ? '' : safetyMargin}" data-story-quiet="${activity?.story?.quiet === true ? 'true' : 'false'}" data-gas-state="${escapeHtml(gas.state)}" data-gas-percent="${gas.state === 'resolved' ? gas.exactPct.toFixed(2) : ''}" data-consensus-state="${escapeHtml(status.className)}" data-live-head-missed-snapshot="${escapeHtml(missedSnapshot)}" data-quiet-key="live-head-block-${block.level}" data-bar-signature="${barSignature}" data-bar-available="${safetyMargin === null ? 'false' : 'true'}"${personalHidden}>
             <span class="live-head-row-main">
                 <strong class="live-head-level">#${formatCount(block.level)}</strong>
                 ${renderRoundBadge(block)}
@@ -1702,9 +1916,11 @@ function renderLiveHeadRow(block, activity, { isNew = false } = {}) {
 }
 
 function renderLiveHeadRows(data) {
+    const savedAddresses = savedMyTezosAddressSet();
     return visibleLiveHeadBlocks(data).map((block) => renderLiveHeadRow(
         block,
-        heartbeatActivityCache.get(Number(block.level)) || null
+        heartbeatActivityCache.get(Number(block.level)) || null,
+        { savedAddresses }
     )).join('');
 }
 
@@ -1750,17 +1966,21 @@ function smoothlyShiftLiveHeadRows(stack, previousTops, { suppressMotion = false
 function updateLiveHeadRows(stack, data, { suppressMotion = false } = {}) {
     const nextBlocks = visibleLiveHeadBlocks(data);
     const existingRows = [...stack.querySelectorAll('.live-head-row[data-health-level]')];
+    const visibleExistingRows = existingRows.filter((row) => (
+        !row.classList.contains('is-my-tezos-filtered-out') && row.getClientRects().length > 0
+    ));
+    const savedAddresses = savedMyTezosAddressSet();
     const existingLevels = new Set(existingRows.map((row) => row.dataset.healthLevel));
     const freshBlocks = nextBlocks.filter((block) => !existingLevels.has(String(Number(block.level) || 0)));
     const initialRows = existingRows.length === 0;
     const motionAllowed = freshBlocks.length && liveHeadMotionAllowed({ suppressMotion });
     const nextLevels = new Set(nextBlocks.map((block) => String(Number(block.level) || 0)));
     const previousTops = motionAllowed
-        ? new Map(existingRows.map((row) => [row.dataset.healthLevel, row.getBoundingClientRect().top]))
+        ? new Map(visibleExistingRows.map((row) => [row.dataset.healthLevel, row.getBoundingClientRect().top]))
         : null;
     const stackTop = motionAllowed ? stack.getBoundingClientRect().top : 0;
-    const exitGhosts = motionAllowed
-        ? existingRows.filter((row) => !nextLevels.has(row.dataset.healthLevel)).map((row) => {
+    const exitGhosts = motionAllowed && !liveHeadMyTezosOnly
+        ? visibleExistingRows.filter((row) => !nextLevels.has(row.dataset.healthLevel)).map((row) => {
             const ghost = row.cloneNode(true);
             ghost.className = 'live-head-row-exiting';
             ghost.removeAttribute('data-health-level');
@@ -1788,14 +2008,14 @@ function updateLiveHeadRows(stack, data, { suppressMotion = false } = {}) {
             stack.insertAdjacentHTML('afterbegin', renderLiveHeadRow(
                 block,
                 heartbeatActivityCache.get(Number(block.level)) || null,
-                { isNew: liveHeadMotionAllowed({ suppressMotion }) }
+                { isNew: liveHeadMotionAllowed({ suppressMotion }), savedAddresses }
             ));
         }
         for (const block of trailingFreshBlocks) {
             stack.insertAdjacentHTML('beforeend', renderLiveHeadRow(
                 block,
                 heartbeatActivityCache.get(Number(block.level)) || null,
-                { isNew: liveHeadMotionAllowed({ suppressMotion }) }
+                { isNew: liveHeadMotionAllowed({ suppressMotion }), savedAddresses }
             ));
         }
         stack.querySelectorAll('.live-head-row.lb-row-new').forEach((row) => {
@@ -1811,7 +2031,7 @@ function updateLiveHeadRows(stack, data, { suppressMotion = false } = {}) {
             quietlySyncElement(row, renderLiveHeadRow(
                 block,
                 heartbeatActivityCache.get(Number(block.level)) || null,
-                { isNew: row.classList.contains('lb-row-new') }
+                { isNew: row.classList.contains('lb-row-new'), savedAddresses }
             ));
         }
         while (stack.querySelectorAll('.live-head-row[data-health-level]').length > nextBlocks.length) {
@@ -1929,7 +2149,76 @@ function loadHeartbeatStoryCatalog() {
     return heartbeatStoryCatalogInFlight;
 }
 
-async function fetchHeartbeatActivity(level) {
+function heartbeatL1VotingCoverageIncludes(coverage, startLevel, endLevel) {
+    return coverage?.complete === true
+        && startLevel >= Number(coverage.startLevel)
+        && endLevel <= Number(coverage.endLevel);
+}
+
+async function fetchHeartbeatL1Voting(blocks) {
+    const levels = (Array.isArray(blocks) ? blocks : [])
+        .map((block) => Number(block?.level ?? block))
+        .filter((level) => Number.isFinite(level) && level > 0);
+    if (!levels.length) return null;
+    const startLevel = Math.min(...levels);
+    const endLevel = Math.max(...levels);
+    if (heartbeatL1VotingCoverageIncludes(heartbeatL1VotingCoverage, startLevel, endLevel)
+        && Date.now() - heartbeatL1VotingCoverage.updatedAt < HEARTBEAT_SUPPLEMENT_MAX_AGE) {
+        return heartbeatL1VotingCoverage;
+    }
+    if (heartbeatL1VotingInFlight) {
+        const active = heartbeatL1VotingInFlight;
+        if (startLevel >= active.startLevel && endLevel <= active.endLevel) return active.promise;
+        await active.promise;
+        return fetchHeartbeatL1Voting(blocks);
+    }
+
+    const ballotFields = 'id,hash,level,timestamp,delegate,vote';
+    const proposalFields = 'id,hash,level,timestamp,delegate';
+    const query = `level.ge=${startLevel}&level.le=${endLevel}&status=applied&limit=${HEARTBEAT_L1_VOTING_LIMIT}`;
+    const promise = Promise.allSettled([
+        fetchJson(`${TZKT}/operations/ballots?${query}&select=${ballotFields}`, 1, { priority: 'interactive' }),
+        fetchJson(`${TZKT}/operations/proposals?${query}&select=${proposalFields}`, 1, { priority: 'interactive' })
+    ]).then(([ballotsResult, proposalsResult]) => {
+        const ballots = ballotsResult.status === 'fulfilled' && Array.isArray(ballotsResult.value)
+            ? ballotsResult.value
+            : null;
+        const proposals = proposalsResult.status === 'fulfilled' && Array.isArray(proposalsResult.value)
+            ? proposalsResult.value
+            : null;
+        const complete = ballots !== null && proposals !== null;
+        const byLevel = new Map(levels.map((level) => [level, []]));
+        if (complete) {
+            for (const row of ballots) {
+                const level = Number(row?.level);
+                if (byLevel.has(level)) byLevel.get(level).push({ ...row, votingKind: 'ballot' });
+            }
+            for (const row of proposals) {
+                const level = Number(row?.level);
+                if (byLevel.has(level)) byLevel.get(level).push({ ...row, votingKind: 'proposal' });
+            }
+        }
+        const coverage = {
+            startLevel,
+            endLevel,
+            byLevel,
+            complete,
+            clipped: Boolean(
+                (ballots && ballots.length >= HEARTBEAT_L1_VOTING_LIMIT)
+                || (proposals && proposals.length >= HEARTBEAT_L1_VOTING_LIMIT)
+            ),
+            updatedAt: Date.now()
+        };
+        if (complete) heartbeatL1VotingCoverage = coverage;
+        return coverage;
+    }).finally(() => {
+        if (heartbeatL1VotingInFlight?.promise === promise) heartbeatL1VotingInFlight = null;
+    });
+    heartbeatL1VotingInFlight = { startLevel, endLevel, promise };
+    return promise;
+}
+
+async function fetchHeartbeatActivity(level, { l1VotingCoverage = heartbeatL1VotingCoverage } = {}) {
     if (!Number.isFinite(level) || level <= 0) return null;
     const cached = heartbeatActivityCache.get(level);
     if (cached && (cached.complete || Date.now() - cached.updatedAt < LIVE_REFRESH_INTERVAL)) return cached;
@@ -1956,12 +2245,17 @@ async function fetchHeartbeatActivity(level) {
             const tokenTransfers = artTransfersResult.status === 'fulfilled' && Array.isArray(artTransfersResult.value)
                 ? artTransfersResult.value
                 : null;
+            const l1VotingRows = heartbeatL1VotingCoverageIncludes(l1VotingCoverage, level, level)
+                ? (l1VotingCoverage.byLevel.get(level) || [])
+                : null;
+            const l2VotingRows = transactions?.filter(isEtherlinkGovernanceActivity) || null;
             const largestTransfer = transactions?.reduce((largest, row) => (
                 Number(row?.amount) > Number(largest?.amount || 0) ? row : largest
             ), null) || null;
             const transactionsClipped = Boolean(transactions && transactions.length >= HEARTBEAT_ACTIVITY_LIMIT);
             const stakingClipped = Boolean(stakingRows && stakingRows.length >= HEARTBEAT_STAKING_LIMIT);
             const tokenTransfersClipped = Boolean(tokenTransfers && tokenTransfers.length >= HEARTBEAT_ART_TRANSFER_LIMIT);
+            const l1VotingClipped = l1VotingCoverage?.clipped === true;
             const activity = {
                 level,
                 txCount: transactions ? transactions.length : null,
@@ -1970,19 +2264,30 @@ async function fetchHeartbeatActivity(level) {
                 stakingRows: stakingRows || [],
                 tokenTransfers: tokenTransfers || [],
                 largestTransfer,
+                actorAddresses: collectHeartbeatActorAddresses(transactions, stakingRows, tokenTransfers, l1VotingRows),
+                actorCoverageComplete: transactions !== null
+                    && stakingRows !== null
+                    && l1VotingRows !== null
+                    && !transactionsClipped
+                    && !stakingClipped
+                    && !l1VotingClipped,
                 gasUsed: Number.isFinite(gas?.gasUsed) ? gas.gasUsed : null,
                 gasLimit: Number.isFinite(gas?.gasLimit) ? gas.gasLimit : null,
                 story: classifyBlockStory({
                     transactions,
                     stakingRows,
+                    l1VotingRows,
+                    l2VotingRows,
                     tokenTransfers,
                     catalog,
                     transactionsClipped,
                     stakingClipped,
+                    l1VotingClipped,
+                    l2VotingClipped: transactionsClipped,
                     tokenTransfersClipped,
-                    maxFragments: 8
+                    maxFragments: LIVE_HEAD_ACTIVITY_TYPES.length
                 }),
-                complete: transactions !== null && stakingRows !== null && gas?.complete === true,
+                complete: transactions !== null && stakingRows !== null && l1VotingRows !== null && gas?.complete === true,
                 updatedAt: Date.now()
             };
             heartbeatActivityCache.set(level, activity);
@@ -2094,7 +2399,9 @@ function requestHeartbeatSupplements(data) {
     fetchHeartbeatNextRight(level + 1).then(refreshIfCurrent);
     const visible = visibleLiveHeadBlocks(data);
     Promise.allSettled([
-        ...visible.map((block) => fetchHeartbeatActivity(Number(block.level))),
+        fetchHeartbeatL1Voting(visible).then((l1VotingCoverage) => Promise.allSettled(
+            visible.map((block) => fetchHeartbeatActivity(Number(block.level), { l1VotingCoverage }))
+        )),
         fetchHeartbeatMissedRights(visible)
     ]).then(refreshIfCurrent);
 }
@@ -2165,6 +2472,7 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     button.setAttribute('aria-label', `Open Network Health Chamber. ${title}`);
 
     if (stack.dataset.liveHeadSignature === signature) {
+        syncLiveHeadMyTezosRows();
         refreshHealthAgeLabels(panel);
         if (!supplemental && !error) requestHeartbeatSupplements(data);
         return;
@@ -2178,6 +2486,7 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     const arrivedRecently = heartbeatSupplementIsCurrent(latest);
     const settleWithoutMotion = motionSuppressed || !arrivedRecently;
     const { freshBlocks } = updateLiveHeadRows(stack, data, { suppressMotion: settleWithoutMotion });
+    syncLiveHeadMyTezosRows();
     fitLiveHeadPills(panel);
     revealLiveHeadFacts(panel, { suppressMotion: settleWithoutMotion });
     fillLiveHeadBars(panel, { suppressMotion: settleWithoutMotion });
@@ -4777,8 +5086,15 @@ function renderHealthBlockActivitySetup() {
             </button>
             <div class="live-head-filter-menu health-block-filter-menu" id="health-block-filter-menu" data-live-head-filter-menu hidden>
                 <div class="live-head-filter-heading">Block activity <small>Choose which transaction receipts can spend the right-hand rail. Gas and missed-attester receipts stay visible.</small></div>
+                <button class="live-head-filter-my-tezos" type="button" data-live-head-my-tezos-toggle aria-pressed="false">
+                    <span>Only My Tezos blocks</span>
+                    <small>Produced by or carrying activity from a saved address.</small>
+                    <em data-live-head-my-tezos-count>All</em>
+                </button>
                 <button class="live-head-filter-all" type="button" data-live-head-filter-kind="all" aria-pressed="true">All activity</button>
                 <div class="live-head-filter-options">
+                    <button class="live-head-filter-pill is-l1-vote" type="button" data-live-head-filter-kind="l1-vote" aria-pressed="true">L1 voting</button>
+                    <button class="live-head-filter-pill is-l2-vote" type="button" data-live-head-filter-kind="l2-vote" aria-pressed="true">L2 voting</button>
                     <button class="live-head-filter-pill is-transfers" type="button" data-live-head-filter-kind="transfers" aria-pressed="true">Transfers</button>
                     <button class="live-head-filter-pill is-art" type="button" data-live-head-filter-kind="art" aria-pressed="true">Art</button>
                     <button class="live-head-filter-pill is-defi" type="button" data-live-head-filter-kind="defi" aria-pressed="true">DeFi</button>
@@ -4814,11 +5130,18 @@ function renderRecentBlockReceipts(block) {
     `;
 }
 
-function renderRecentBlockRow(block, { isNew = false } = {}) {
+function renderRecentBlockRow(block, { isNew = false, savedAddresses = null } = {}) {
         const cls = healthClass(block.score);
         const timeCls = timingClass(block.intervalSeconds);
+        const personal = liveHeadMyTezosRowPresentation(
+            Number(block.level) || 0,
+            block.producer?.address || '',
+            savedAddresses || savedMyTezosAddressSet()
+        );
+        const personalClass = personal.filtered ? ' is-my-tezos-filtered-out' : '';
+        const personalHidden = personal.filtered ? ' aria-hidden="true"' : '';
         return `
-            <div class="lb-table-row health-block-row ${isNew ? 'lb-row-new' : ''}" data-health-level="${Number(block.level) || 0}">
+            <div class="lb-table-row health-block-row${isNew ? ' lb-row-new' : ''}${personalClass}" data-health-level="${Number(block.level) || 0}" data-producer-address="${escapeHtml(block.producer?.address || '')}" data-my-tezos-block-state="${personal.state}"${personalHidden}>
                 <span class="health-block-level">${formatCount(block.level)}</span>
                 <span class="health-interval ${timeCls}">${formatSeconds(block.intervalSeconds)}</span>
                 <span>${renderRoundBadge(block)}</span>
@@ -4831,7 +5154,11 @@ function renderRecentBlockRow(block, { isNew = false } = {}) {
 }
 
 function renderRecentBlockRows(blocks, { markLatest = true } = {}) {
-    return blocks.map((block, index) => renderRecentBlockRow(block, { isNew: markLatest && index === 0 })).join('');
+    const savedAddresses = savedMyTezosAddressSet();
+    return blocks.map((block, index) => renderRecentBlockRow(block, {
+        isNew: markLatest && index === 0,
+        savedAddresses
+    })).join('');
 }
 
 function updateRecentBlockReceipt(block) {
@@ -4847,6 +5174,7 @@ function updateRecentBlockReceipt(block) {
     }
     quietlySyncElement(receipt, renderRecentBlockReceipts(block));
     fitLiveHeadPills(row);
+    syncLiveHeadMyTezosRows();
 }
 
 function requestRecentBlockSupplements(blocks) {
@@ -4873,8 +5201,9 @@ function requestRecentBlockSupplements(blocks) {
         if (chamberIsCurrent()) recent.forEach(updateRecentBlockReceipt);
     });
     (async () => {
+        const l1VotingCoverage = await fetchHeartbeatL1Voting(recent);
         for (const block of recent) {
-            await fetchHeartbeatActivity(Number(block.level));
+            await fetchHeartbeatActivity(Number(block.level), { l1VotingCoverage });
             refreshBlock(block);
         }
         await missedRights;
@@ -5056,6 +5385,7 @@ function renderNetworkHealthChamber(data, container) {
     container.dataset.healthRendered = 'true';
     wireHealthBlockDepthControl(container);
     wireLiveHeadActivityFilter(container.querySelector('.health-block-filter'));
+    syncLiveHeadMyTezosRows();
     wireNakamotoActions(container.querySelector('#health-nakamoto-coefficient'), data.nakamoto || {});
     initHealthBakerProfileLinks(container);
     refreshHealthAgeLabels(container);
@@ -5167,10 +5497,12 @@ function updateRecentBlockRows(blocks) {
     const list = document.getElementById('health-recent-block-list');
     if (!list) return;
     const nextBlocks = blocks.slice(0, CHAMBER_BLOCK_LIMIT);
+    const savedAddresses = savedMyTezosAddressSet();
     const signature = nextBlocks.map((block) => `${block.level}:${block.power}:${block.committee}:${block.missedPower}:${block.blockRound}`).join('|');
     if (!list.children.length) {
         setHtmlIfSignatureChanged(list, renderRecentBlockRows(nextBlocks), signature);
         initHealthBakerProfileLinks(list);
+        syncLiveHeadMyTezosRows();
         return;
     }
 
@@ -5178,11 +5510,12 @@ function updateRecentBlockRows(blocks) {
     const freshBlocks = nextBlocks.filter((block) => !existingLevels.has(String(Number(block.level) || 0)));
     if (!freshBlocks.length) {
         updateListIfChanged(list, renderRecentBlockRows(nextBlocks, { markLatest: false }), signature);
+        syncLiveHeadMyTezosRows();
         return;
     }
 
     for (const block of [...freshBlocks].reverse()) {
-        list.insertAdjacentHTML('afterbegin', renderRecentBlockRow(block, { isNew: true }));
+        list.insertAdjacentHTML('afterbegin', renderRecentBlockRow(block, { isNew: true, savedAddresses }));
     }
     while (list.querySelectorAll('.health-block-row').length > nextBlocks.length) {
         list.querySelector('.health-block-row:last-child')?.remove();
@@ -5190,6 +5523,7 @@ function updateRecentBlockRows(blocks) {
     list.dataset.healthSignature = signature;
     initHealthBakerProfileLinks(list);
     nextBlocks.forEach(updateRecentBlockReceipt);
+    syncLiveHeadMyTezosRows();
 }
 
 function updateHealthStoryPanels(data) {

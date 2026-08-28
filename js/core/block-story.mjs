@@ -1,4 +1,6 @@
 const STORY_ORDER = Object.freeze([
+    'l1-vote',
+    'l2-vote',
     'art',
     'defi',
     'gaming',
@@ -10,6 +12,8 @@ const STORY_ORDER = Object.freeze([
 ]);
 
 const STORY_LABELS = Object.freeze({
+    'l1-vote': 'L1 vote',
+    'l2-vote': 'L2 vote',
     art: 'Art',
     defi: 'DeFi',
     gaming: 'Gaming',
@@ -160,16 +164,21 @@ function fragmentFor(key, receipt, clipped) {
 export function classifyBlockStory({
     transactions = null,
     stakingRows = null,
+    l1VotingRows = [],
+    l2VotingRows = [],
     tokenTransfers = null,
     catalog = [],
     transactionsClipped = false,
     stakingClipped = false,
+    l1VotingClipped = false,
+    l2VotingClipped = false,
     tokenTransfersClipped = false,
     maxFragments = 3
 } = {}) {
     const transactionsKnown = Array.isArray(transactions);
     const stakingKnown = Array.isArray(stakingRows);
-    if (!transactionsKnown && !stakingKnown) return null;
+    const l1VotingKnown = Array.isArray(l1VotingRows);
+    if (!transactionsKnown && !stakingKnown && !l1VotingKnown) return null;
 
     const receipts = new Map(STORY_ORDER.map((key) => [key, {
         count: 0,
@@ -178,8 +187,22 @@ export function classifyBlockStory({
         artTitles: []
     }]));
     const artTransactionIds = new Set();
+    const l2VotingTransactions = new Set(Array.isArray(l2VotingRows) ? l2VotingRows : []);
+
+    for (const row of Array.isArray(l1VotingRows) ? l1VotingRows : []) {
+        const receipt = receipts.get('l1-vote');
+        receipt.count += 1;
+        receipt.rows.push(row);
+    }
+
+    for (const row of Array.isArray(l2VotingRows) ? l2VotingRows : []) {
+        const receipt = receipts.get('l2-vote');
+        receipt.count += 1;
+        receipt.rows.push(row);
+    }
 
     for (const transaction of Array.isArray(transactions) ? transactions : []) {
+        if (l2VotingTransactions.has(transaction)) continue;
         const catalogStory = catalogStoryFor(transaction, catalog);
         if (catalogStory === 'art' && Number.isFinite(Number(transaction?.id))) {
             artTransactionIds.add(Number(transaction.id));
@@ -232,14 +255,18 @@ export function classifyBlockStory({
         .map((key) => fragmentFor(
             key,
             receipts.get(key),
-            key === 'stake' || key === 'unstake'
+            key === 'l1-vote'
+                ? l1VotingClipped
+                : key === 'l2-vote'
+                    ? l2VotingClipped
+                    : key === 'stake' || key === 'unstake'
                 ? stakingClipped
                 : key === 'art'
                     ? Boolean(transactionsClipped || tokenTransfersClipped)
                     : transactionsClipped
         ));
 
-    if (!fragments.length && (!transactionsKnown || !stakingKnown)) return null;
+    if (!fragments.length && (!transactionsKnown || !stakingKnown || !l1VotingKnown)) return null;
 
     if (!fragments.length) {
         return Object.freeze({
@@ -247,7 +274,7 @@ export function classifyBlockStory({
             fragments: Object.freeze([{ key: 'quiet', label: 'Quiet', value: 0, text: 'Quiet', clipped: false }]),
             text: 'Quiet',
             signature: 'quiet',
-            clipped: Boolean(transactionsClipped || stakingClipped)
+            clipped: Boolean(transactionsClipped || stakingClipped || l1VotingClipped || l2VotingClipped)
         });
     }
 

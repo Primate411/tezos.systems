@@ -372,9 +372,9 @@ inline modal styles in `js/core/app.js`.
   present once a block is known. Its bottom-right depth arrow and matching
   Setup action expand the history to ten desktop rows or nine mobile rows,
   contract back to the compact count, and persist that browser-local choice.
-  A second line adds reviewed Art, DeFi, Gaming,
-  Bridge, Etherlink, Stake, Unstake, or Transfer facts in distinct color-coded,
-  truncated pills; complete empty receipts are marked `Quiet`,
+  A second line adds applied Tezos L1 voting, current Etherlink L2 governance,
+  reviewed Art, DeFi, Gaming, Bridge, Etherlink, Stake, Unstake, or Transfer
+  facts in distinct color-coded, truncated pills; complete empty receipts are marked `Quiet`,
   never in place of block telemetry. The title row keeps the exact
   next round-zero baking right as a right, not a guarantee. Every block below
   6,969 attested power, and every `Quiet` block, owns its own missed-attester
@@ -440,10 +440,14 @@ inline modal styles in `js/core/app.js`.
   list extends to the viewport's bottom gutter. The block rows use generous breathing
   room, not horizontal separator lines; the card has no decorative top cap; and
   the search well is the card's full-bleed bottom edge rather than an inset box.
+  A synchronized Setup and activity-menu control can restrict both Home and
+  Network Health to blocks produced by or carrying activity from a saved My
+  Tezos address. The filter stays silent when nothing matches and preserves the
+  canonical compact or expanded ticker height as blocks arrive and leave.
   The top-right control rail keeps the complete trailing-hour
   `1H Activity / TX / Moved / NFT` receipt immediately before one setup icon and
-  the `Live` state. Setup expands into persisted All, Transfer, Art, DeFi,
-  Gaming, Bridge, Etherlink, Stake, and Unstake selectors; every category is on
+  the `Live` state. Setup expands into persisted All, L1 voting, L2 voting,
+  Transfer, Art, DeFi, Gaming, Bridge, Etherlink, Stake, and Unstake selectors; every category is on
   by default, and deselected activity pills stop spending the row's measured
   receipt width without hiding missed-attester evidence.
   There is no global missed-rights sentence. Each real row's info control and
@@ -1709,7 +1713,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v598`, including hero search, theme
+- Current aligned shell cache stamp: `v599`, including hero search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical
   Minerals lazy CSS loaders.
