@@ -3780,6 +3780,7 @@ async function checkSelectorContracts() {
       || !health.includes("panel.dataset.readingPaused = 'true'")
       || !health.includes('suppressMotion: true')
       || !health.includes("document.addEventListener('pointerdown'")
+      || !health.includes("event.target.closest('#live-head-inspector')")
       || !health.includes("event.target.closest('.live-head-info')")
       || !health.includes("event.target.closest('.live-head-row[data-live-head-level]')")
       || !health.includes("event.target.closest('a, button, input, select, textarea, [role=\"button\"], [contenteditable=\"true\"]')")
@@ -3791,7 +3792,7 @@ async function checkSelectorContracts() {
       || !heroSearchCss.includes('.live-head-inspector-fact')
       || !heroSearchCss.includes('.live-head-inspector-health')
       || !heroSearchCss.includes('.live-head-info:is(:hover, :focus-visible)')) {
-    fail('Every Live Head block must expose its complete linked inspector from info hover/focus or a non-interactive row click, while freezing the exact reading state until click-away releases one quiet catch-up');
+    fail('Every Live Head block must expose its complete linked inspector from info hover/focus or a non-interactive row click, retain the lock while that receipt scrolls, and release one quiet catch-up on click-away');
   }
   if (!index.includes('id="live-head-alert"')
       || !index.includes('id="chain-stall-announcer"')

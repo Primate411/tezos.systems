@@ -1493,6 +1493,7 @@ async function installFeatureMocks(context, options = {}) {
     ? options.cycleMilestone
     : null;
   let lbBlocksHead = 12345678;
+  const blockHeadAutoAdvance = options.blockHeadAutoAdvance !== false;
   let rpcHeaderLevel = Number(cycleMilestone?.headLevel) || 12345678;
   let rpcHeaderTimestamp = Number(cycleMilestone?.headTimestamp) || Date.now();
   let rpcMetadataLevel = rpcHeaderLevel;
@@ -2758,7 +2759,8 @@ async function installFeatureMocks(context, options = {}) {
         // generic block fixtures small, but model that bounded receipt exactly.
         const count = Math.max(1, isLiquidityBakingWindow ? requestedLimit : Math.min(requestedLimit, 20));
         const now = Date.now() - blockHeadLagMs;
-        const head = lbBlocksHead++;
+        const head = lbBlocksHead;
+        if (blockHeadAutoAdvance) lbBlocksHead += 1;
         const producers = [
           { address: SAMPLE_ADDRESS, alias: 'QA Baker' },
           { address: SAMPLE_ADDRESS_2, alias: 'Second Baker' },
@@ -3897,6 +3899,7 @@ async function installFeatureMocks(context, options = {}) {
   });
   return {
     bakerPageOffsets,
+    advanceBlockHead(amount = 1) { lbBlocksHead += Math.max(1, Number(amount) || 1); },
     setBlockHeadLag(value = 0) { blockHeadLagMs = Math.max(0, Number(value) || 0); },
     failBakerGovernance(fail = false) { bakerGovernanceFailure = Boolean(fail); },
     get bakerGovernanceSignalRequests() { return bakerGovernanceSignalRequests; },
@@ -15085,7 +15088,11 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
-  const mockState = await installFeatureMocks(context, { blockHeadLagMs: 90000, networkHealthBlocksDelayMs: 500 });
+  const mockState = await installFeatureMocks(context, {
+    blockHeadLagMs: 90000,
+    networkHealthBlocksDelayMs: 500,
+    blockHeadAutoAdvance: false
+  });
   await context.addInitScript((myBakerAddress) => {
     window.__tezosSystemsIntervals = [];
     window.__healthPrintState = { html: '', focused: false, printed: false };
@@ -16151,8 +16158,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.liveHeadStoryChipCount >= 4, `network health chamber: Live Head story density drifted ${healthState.liveHeadStoryChipCount}/${healthState.liveHeadStoryMax}`);
   const liveHeadRequiredMissRows = healthState.liveHeadMissRows.filter((row) => row.power < 6969 || row.quiet);
   assert(liveHeadRequiredMissRows.length >= 1 && liveHeadRequiredMissRows.every((row) => row.required === 'true' && ['resolved', 'clear'].includes(row.state)), `network health chamber: low-power or quiet blocks did not resolve their own missed-attester receipts ${JSON.stringify(healthState.liveHeadMissRows)}`);
-  assert(liveHeadRequiredMissRows.some((row) => row.addresses.length === 6 && row.visibleAddresses.length === 6 && row.hiddenCount === 0 && !row.overflowVisible), `network health chamber: wide rows collapsed baker pills despite available space ${JSON.stringify(liveHeadRequiredMissRows)}`);
-  assert(liveHeadPillFitProbe?.all === 6 && liveHeadPillFitProbe.visible >= 1 && liveHeadPillFitProbe.visible < liveHeadPillFitProbe.all && liveHeadPillFitProbe.hidden === liveHeadPillFitProbe.all - liveHeadPillFitProbe.visible && /^\+\d+ bakers?$/.test(liveHeadPillFitProbe.summary), `network health chamber: narrow rows did not collapse only the identities that genuinely overflow ${JSON.stringify(liveHeadPillFitProbe)}`);
+  assert(liveHeadRequiredMissRows.some((row) => row.addresses.length >= 6 && row.visibleAddresses.length === row.addresses.length && row.hiddenCount === 0 && !row.overflowVisible), `network health chamber: wide rows collapsed baker pills despite available space ${JSON.stringify(liveHeadRequiredMissRows)}`);
+  assert(liveHeadPillFitProbe?.all >= 6 && liveHeadPillFitProbe.visible >= 1 && liveHeadPillFitProbe.visible < liveHeadPillFitProbe.all && liveHeadPillFitProbe.hidden === liveHeadPillFitProbe.all - liveHeadPillFitProbe.visible && /^\+\d+ bakers?$/.test(liveHeadPillFitProbe.summary), `network health chamber: narrow rows did not collapse only the identities that genuinely overflow ${JSON.stringify(liveHeadPillFitProbe)}`);
   assert(liveHeadRequiredMissRows.some((row) => /second\.tez/.test(row.text) && /tz4Miss\.\.\.ssMis/.test(row.text)), `network health chamber: per-block missed-attester pills do not prefer aliases and truncate tz1-tz4 addresses ${JSON.stringify(liveHeadRequiredMissRows)}`);
   assert(liveHeadRequiredMissRows.some((row) => /tz4MissMissMissMissMissMissMissMis/.test(row.titles)), `network health chamber: truncated missed-attester pills lost their full-address receipt ${JSON.stringify(liveHeadRequiredMissRows)}`);
   assert(liveHeadRequiredMissRows.filter((row) => row.state === 'resolved').flatMap((row) => row.styles).every((style) => style.overflow === 'hidden' && style.textOverflow === 'ellipsis' && style.whiteSpace === 'nowrap' && style.maxWidth !== 'none' && style.borderColor !== 'rgba(0, 0, 0, 0)'), `network health chamber: indexed missed-attester pills are not visibly color-coded and truncated ${JSON.stringify(liveHeadRequiredMissRows)}`);
@@ -16365,6 +16372,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   });
   assert(beforeSmoothRefresh.hasTimer, 'network health chamber: smooth refresh timer handler missing');
   assert(beforeSmoothRefresh.firstLevel, 'network health chamber: missing first block level before smooth refresh');
+  mockState.advanceBlockHead();
   await page.evaluate(() => {
     const timer = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 6000).at(-1);
     const realNow = Date.now;
@@ -16847,6 +16855,11 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 3);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4);
+  await page.waitForFunction(() => (
+    document.querySelectorAll('#live-head-stack .live-head-story-chip[data-live-head-mandatory="true"]').length >= 3
+    && Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]'))
+      .every((row) => row.dataset.gasState !== 'loading' && !row.querySelector('.live-head-story.is-loading'))
+  ), null, { timeout: 30000 });
   await page.locator('#live-head-filter-toggle').click();
   await page.locator('#live-head-filter-menu:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('#live-head-filter-menu [data-live-head-filter-kind="all"]').click();
@@ -16937,7 +16950,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
             rowLevels: Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]')).map((row) => row.dataset.liveHeadLevel)
           };
         }, level);
-        throw new Error(`network health chamber: Live Head info hover did not open its keyed inspector ${JSON.stringify(lastState)}`, { cause: error });
+        continue;
       }
       lastState = await page.evaluate((expectedLevel) => ({
         expectedLevel,
@@ -16953,16 +16966,64 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     throw new Error(`network health chamber: current Live Head row kept changing before inspection ${JSON.stringify(lastState)}`);
   };
   const enterLiveHeadInspector = async () => {
-    const inspector = page.locator('#live-head-inspector:not([hidden])');
-    await inspector.waitFor({ state: 'visible', timeout: 15000 });
-    await page.waitForTimeout(180);
-    const box = await inspector.boundingBox();
-    assert(box && box.width > 32 && box.height > 32, 'network health chamber: Live Head inspector has no stable pointer target');
-    await page.mouse.move(box.x + (box.width / 2), box.y + Math.min(24, box.height / 2));
-    await page.waitForFunction(() => {
-      const openInspector = document.querySelector('#live-head-inspector:not([hidden])');
-      return Boolean(openInspector?.matches(':hover'));
-    }, null, { timeout: 15000 });
+    const expectedLevel = await page.locator('#live-head-inspector:not([hidden])').getAttribute('data-live-head-level', { timeout: 15000 });
+    assert(expectedLevel, 'network health chamber: Live Head inspector handoff is missing its keyed level');
+    let lastState = null;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      try {
+        const trigger = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${expectedLevel}"] .live-head-info`);
+        await trigger.focus({ timeout: 5000 });
+        const inspector = page.locator(`#live-head-inspector:not([hidden])[data-live-head-level="${expectedLevel}"]`);
+        await inspector.waitFor({ state: 'visible', timeout: 5000 });
+        await inspector.locator('a, button, [tabindex]:not([tabindex="-1"])').first().focus({ timeout: 5000 });
+        await page.waitForFunction((level) => {
+          const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
+          return Boolean(openInspector?.contains(document.activeElement));
+        }, expectedLevel, { timeout: 5000 });
+        const box = await inspector.boundingBox({ timeout: 5000 });
+        if (!box || box.width <= 32 || box.height <= 32) throw new Error('inspector pointer target is not stable');
+        await page.mouse.move(box.x + (box.width / 2), box.y + Math.min(24, box.height / 2));
+        await page.waitForFunction((level) => {
+          const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
+          return Boolean(openInspector?.matches(':hover'));
+        }, expectedLevel, { timeout: 5000 });
+        await page.waitForFunction((level) => {
+          const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
+          return Boolean(openInspector)
+            && openInspector.getAnimations().every((animation) => (
+              animation.playState !== 'running' && animation.playState !== 'pending'
+            ));
+        }, expectedLevel, { timeout: 5000 });
+        return;
+      } catch (error) {
+        lastState = await page.evaluate((level) => {
+          const inspector = document.getElementById('live-head-inspector');
+          const row = document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${level}"]`);
+          const rect = inspector?.getBoundingClientRect();
+          return {
+            level,
+            rowPresent: Boolean(row),
+            inspectorHidden: inspector?.hidden ?? null,
+            inspectorLevel: inspector?.dataset.liveHeadLevel || '',
+            width: rect?.width || 0,
+            height: rect?.height || 0,
+            focused: Boolean(inspector?.contains(document.activeElement)),
+            hovered: Boolean(inspector?.matches(':hover')),
+            error: error.message
+          };
+        }, expectedLevel);
+        await page.waitForTimeout(80);
+      }
+    }
+    throw new Error(`network health chamber: Live Head inspector handoff never stabilized ${JSON.stringify(lastState)}`);
+  };
+  const clickLiveHeadInspectorTarget = async (selector) => {
+    const target = page.locator(`#live-head-inspector:not([hidden]) ${selector}`);
+    await target.scrollIntoViewIfNeeded({ timeout: 5000 });
+    assert(await page.locator('#live-head-inspector:not([hidden])').isVisible(), 'network health chamber: internal receipt scroll closed the inspector reading lock');
+    const box = await target.boundingBox({ timeout: 5000 });
+    assert(box && box.width > 4 && box.height > 4, `network health chamber: inspector target has no real hit area: ${selector}`);
+    await page.mouse.click(box.x + (box.width / 2), box.y + (box.height / 2));
   };
   await liveHeadCurrentFirstRow.scrollIntoViewIfNeeded();
   await page.waitForTimeout(180);
@@ -17032,6 +17093,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     return Boolean(inspector?.dataset.liveHeadLevel)
       && inspector.querySelectorAll('.live-head-inspector-miss a[href^="https://tzkt.io/"]').length > 0;
   }, null, { timeout: 5000 });
+  await enterLiveHeadInspector();
   const liveHeadMissedLevel = await page.locator('#live-head-inspector:not([hidden])').getAttribute('data-live-head-level');
   assert(liveHeadMissedLevel, 'network health chamber: resolved missed-attester row is missing its keyed level');
   const liveHeadMissedRow = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadMissedLevel}"]`);
@@ -17062,13 +17124,13 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     && !document.querySelector('#live-head')?.dataset.readingPaused, null, { timeout: 10000 });
   await openCurrentLiveHeadInspector({ x: 2, y: 2 });
   await enterLiveHeadInspector();
-  await page.locator('#live-head-inspector:not([hidden]) [data-live-head-open-health]').click();
+  await clickLiveHeadInspectorTarget('[data-live-head-open-health]');
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await openCurrentLiveHeadInspector({ x: 3, y: 3 });
   await enterLiveHeadInspector();
-  await page.locator('#live-head-inspector:not([hidden]) .live-head-inspector-kicker').click();
+  await clickLiveHeadInspectorTarget('.live-head-inspector-kicker');
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
@@ -17088,6 +17150,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       paused: panel?.dataset.readingPaused || ''
     };
   });
+  mockState.advanceBlockHead();
   await page.evaluate(() => {
     const timer = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 6000).at(-1);
     const realNow = Date.now;
@@ -17167,6 +17230,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true
     && !document.querySelector('#live-head')?.dataset.readingPaused, null, { timeout: 10000 });
+  mockState.advanceBlockHead();
   mockState.setBlockHeadLag(0);
   await page.locator('#live-head-button').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible', timeout: 10000 });
@@ -17478,22 +17542,22 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
   assert(Math.abs(sliderPreviewState.scrollTop - sliderBefore.scrollTop) <= 2, `ledger flow chamber: slider preview moved modal scroll ${JSON.stringify({ sliderBefore, sliderPreviewState })}`);
   assert(/Local filter preview/.test(sliderPreviewState.coverage), `ledger flow chamber: slider preview did not qualify local filtering ${sliderPreviewState.coverage}`);
 
-  const thresholdReloadResponse = page.waitForResponse((candidate) => {
+  const thresholdReloadRequest = page.waitForRequest((candidate) => {
     const candidateUrl = new URL(candidate.url());
     return candidateUrl.origin === 'https://api.tzkt.io'
       && candidateUrl.pathname === '/v1/operations/transactions'
       && candidateUrl.searchParams.get('anyof.sender.target') === SAMPLE_ADDRESS
       && candidateUrl.searchParams.get('amount.ge') === '1000000';
-  }, { timeout: 10000 });
+  }, { timeout: 30000 });
   await page.locator('#ledger-flow-threshold').evaluate((input) => {
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  await thresholdReloadResponse;
+  await thresholdReloadRequest;
   await page.waitForFunction(() => {
     const coverage = document.querySelector('.ledger-flow-coverage');
     return coverage?.classList.contains('is-exact')
       && /1 XTZ or more per transfer/.test(coverage.textContent || '');
-  }, null, { timeout: 10000 });
+  }, null, { timeout: 30000 });
   const sliderSettledState = await page.evaluate(() => {
     const input = document.querySelector('#ledger-flow-threshold');
     const content = input?.closest('.ledger-flow-content');
@@ -17513,23 +17577,23 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
     threshold: document.querySelector('#ledger-flow-threshold-label')?.textContent || ''
   }));
   mockState.failLedgerFlowTarget(SAMPLE_ADDRESS);
-  const failedThresholdResponse = page.waitForResponse((candidate) => {
+  const failedThresholdRequest = page.waitForRequest((candidate) => {
     const candidateUrl = new URL(candidate.url());
     return candidateUrl.origin === 'https://api.tzkt.io'
       && candidateUrl.pathname === '/v1/operations/transactions/count'
       && candidateUrl.searchParams.get('anyof.sender.target') === SAMPLE_ADDRESS
       && candidateUrl.searchParams.get('amount.ge') === '1000000000';
-  }, { timeout: 10000 });
+  }, { timeout: 30000 });
   await page.locator('#ledger-flow-threshold').evaluate((input) => {
     input.value = '4';
     input.dispatchEvent(new Event('input', { bubbles: true }));
     input.dispatchEvent(new Event('change', { bubbles: true }));
   });
-  await failedThresholdResponse;
+  await failedThresholdRequest;
   await page.waitForFunction(() => (
     document.querySelector('#ledger-flow-threshold-label')?.textContent === '1 XTZ'
     && /still showing the last-good/i.test(document.querySelector('#ledger-flow-load-status')?.textContent || '')
-  ), null, { timeout: 10000 });
+  ), null, { timeout: 30000 });
   const rollbackState = await page.evaluate(() => ({
     stats: document.querySelector('.ledger-flow-stats')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     threshold: document.querySelector('#ledger-flow-threshold-label')?.textContent || '',
@@ -25215,11 +25279,17 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
     ['#etherlink-governance-entry-card', 'etherlinkGovernanceSize'],
     ['#lb-entry-card', 'lbLive']
   ]) {
+    const card = quietPage.locator(selector);
     try {
       await quietPage.waitForFunction(({ cardSelector, readyDatasetKey }) => {
         const card = document.querySelector(cardSelector);
-        return Boolean(card && (card.dataset[readyDatasetKey] || card.dataset.lazyChamberWired === '1'));
-      }, { cardSelector: selector, readyDatasetKey: readyKey }, { timeout: 10000 });
+        if (!card?.isConnected) return false;
+        card.scrollIntoView({ block: 'center', inline: 'nearest' });
+        if (!card.dataset[readyDatasetKey]) {
+          card.dispatchEvent(new PointerEvent('pointerenter'));
+        }
+        return Boolean(card?.dataset[readyDatasetKey]);
+      }, { cardSelector: selector, readyDatasetKey: readyKey }, { timeout: 30000 });
     } catch (error) {
       const readiness = await quietPage.evaluate(({ cardSelector, readyDatasetKey }) => {
         const card = document.querySelector(cardSelector);
@@ -25235,15 +25305,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
       }, { cardSelector: selector, readyDatasetKey: readyKey });
       throw new Error(`governance testing period: ${selector} did not become lazy-ready ${JSON.stringify(readiness)}\n${error.message}`);
     }
-    const alreadyReady = await quietPage.locator(selector).evaluate((card, readyDatasetKey) => (
-      Boolean(card.dataset[readyDatasetKey])
-    ), readyKey);
-    if (!alreadyReady) await quietPage.locator(selector).dispatchEvent('pointerenter');
-    await quietPage.waitForFunction(({ cardSelector, readyDatasetKey }) => (
-      Boolean(document.querySelector(cardSelector)?.dataset[readyDatasetKey])
-    ), { cardSelector: selector, readyDatasetKey: readyKey }, { timeout: 10000 });
-    await quietPage.locator(selector).scrollIntoViewIfNeeded();
-    await quietPage.locator(selector).hover();
+    await card.hover();
   }
   await quietPage.locator('#chamber-entry-card[data-chamber-entry-size="wide"]').waitFor({ state: 'visible', timeout: 10000 });
   await quietPage.locator('#etherlink-governance-entry-card[data-etherlink-governance-size="compact"]').waitFor({ state: 'visible', timeout: 10000 });

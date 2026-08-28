@@ -1798,7 +1798,13 @@ function wireLiveHeadInspector(panel, stack) {
         liveHeadPointerPosition = { x: event.clientX, y: event.clientY };
     }, { capture: true, passive: true });
     window.addEventListener('resize', refreshLiveHeadInspector);
-    window.addEventListener('scroll', () => closeLiveHeadInspector({ suppressReopen: true }), { passive: true, capture: true });
+    window.addEventListener('scroll', (event) => {
+        if (event.target instanceof Element && event.target.closest('#live-head-inspector')) {
+            cancelLiveHeadInspectorClose();
+            return;
+        }
+        closeLiveHeadInspector({ suppressReopen: true });
+    }, { passive: true, capture: true });
 }
 
 function buildLiveHeadDetails(block, activity) {

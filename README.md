@@ -424,9 +424,10 @@ inline modal styles in `js/core/app.js`.
   receipt on hover or focus; ordinary row hover stays quiet, while clicking any
   non-link, non-control area of the row opens that same receipt. The inspector
   is a reading lock: the exact rows, ages, next-right clock, and visible facts
-  stay still while polling may finish behind the surface. Leaving the info or
-  receipt surface, Escape, scroll, or a click away releases the lock and applies
-  only the newest queued snapshot as one motionless catch-up.
+  stay still while polling may finish behind the surface. The receipt may
+  scroll internally when its complete facts exceed the viewport; leaving that
+  surface, Escape, page/outside scroll, or a click away releases the lock and
+  applies only the newest queued snapshot as one motionless catch-up.
   The compact health rail excludes the power every block must have and shows
   only the signed margin above the exact two-thirds quorum; sub-quorum power
   becomes a red deficit. There is no threshold marker or separate Safe/Strong
@@ -1731,7 +1732,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v600`, including hero search, theme
+- Current aligned shell cache stamp: `v601`, including hero search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical
   Minerals lazy CSS loaders.
