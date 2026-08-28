@@ -16980,13 +16980,6 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
           const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
           return Boolean(openInspector?.contains(document.activeElement));
         }, expectedLevel, { timeout: 5000 });
-        const box = await inspector.boundingBox({ timeout: 5000 });
-        if (!box || box.width <= 32 || box.height <= 32) throw new Error('inspector pointer target is not stable');
-        await page.mouse.move(box.x + (box.width / 2), box.y + Math.min(24, box.height / 2));
-        await page.waitForFunction((level) => {
-          const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
-          return Boolean(openInspector?.matches(':hover'));
-        }, expectedLevel, { timeout: 5000 });
         await page.waitForFunction((level) => {
           const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
           return Boolean(openInspector)
@@ -16994,9 +16987,18 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
               animation.playState !== 'running' && animation.playState !== 'pending'
             ));
         }, expectedLevel, { timeout: 5000 });
+        const box = await inspector.boundingBox({ timeout: 5000 });
+        if (!box || box.width <= 32 || box.height <= 32) throw new Error('inspector pointer target is not stable');
+        const pointer = { x: box.x + (box.width / 2), y: box.y + Math.min(24, box.height / 2) };
+        await page.mouse.move(pointer.x, pointer.y);
+        await page.waitForFunction(({ level, x, y }) => {
+          const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
+          const hit = document.elementFromPoint(x, y);
+          return Boolean(openInspector && hit && openInspector.contains(hit));
+        }, { level: expectedLevel, ...pointer }, { timeout: 5000 });
         return;
       } catch (error) {
-        lastState = await page.evaluate((level) => {
+        lastState = await page.evaluate(({ level, message }) => {
           const inspector = document.getElementById('live-head-inspector');
           const row = document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${level}"]`);
           const rect = inspector?.getBoundingClientRect();
@@ -17009,9 +17011,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
             height: rect?.height || 0,
             focused: Boolean(inspector?.contains(document.activeElement)),
             hovered: Boolean(inspector?.matches(':hover')),
-            error: error.message
+            error: message
           };
-        }, expectedLevel);
+        }, { level: expectedLevel, message: error.message });
         await page.waitForTimeout(80);
       }
     }
@@ -17136,6 +17138,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
   await openCurrentLiveHeadInspector({ x: 4, y: 4 });
+  await enterLiveHeadInspector();
   const readingPauseBefore = await page.evaluate(() => {
     const panel = document.querySelector('#live-head');
     const stack = document.querySelector('#live-head-stack');
@@ -17151,15 +17154,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     };
   });
   mockState.advanceBlockHead();
-  await page.evaluate(() => {
-    const timer = (window.__tezosSystemsIntervals || []).filter((item) => item.timeout === 6000).at(-1);
-    const realNow = Date.now;
-    Date.now = () => realNow() + 13000;
-    try {
-      timer?.handler?.();
-    } finally {
-      Date.now = realNow;
-    }
+  await page.evaluate(async () => {
+    const { refreshNetworkHealth } = await import('/js/features/network-health.js');
+    await refreshNetworkHealth({ force: true });
+    await refreshNetworkHealth({ force: true });
   });
   await page.waitForFunction((previousLevel) => {
     const panel = document.querySelector('#live-head');
