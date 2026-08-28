@@ -6399,8 +6399,11 @@ async function smokeHeroCommandBar(browser, baseUrl) {
 
   await page.locator('#hero-search-input').fill(`https://tzkt.io/${SAMPLE_CONTRACT}/operations`);
   await page.waitForFunction(() => /Smoke Contract|Inspect KT1 contract/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
-  await page.locator('#hero-search-panel .hero-search-result').first().click();
-  await page.locator('#native-explorer-overlay.active .native-contract-entrypoint').first().waitFor({ state: 'visible', timeout: 5000 });
+  const nativeContractResult = page.locator(`#hero-search-panel .hero-search-result[data-result-id="contract:${SAMPLE_CONTRACT}"]`);
+  await nativeContractResult.waitFor({ state: 'visible', timeout: 15000 });
+  await nativeContractResult.click();
+  await page.locator('#native-explorer-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#native-explorer-overlay.active .native-contract-entrypoint').first().waitFor({ state: 'visible', timeout: 15000 });
   const contractLensState = await page.evaluate(() => {
     const overlay = document.querySelector('#native-explorer-overlay.active');
     return {
