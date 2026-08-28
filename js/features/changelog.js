@@ -5,6 +5,12 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-08-28',
+        entries: [
+            { type: '🎨', text: 'Live Head can now show only blocks produced by or carrying activity from saved My Tezos addresses, keeps fixed compact and expanded geometry, and adds distinct L1 and L2 governance voting receipts' }
+        ]
+    },
+    {
         date: '2026-08-25',
         entries: [
             { type: '🎨', text: 'Live Head now latches a bold CHAIN STALLED alert until a newer block, opens complete linked block inspectors, and gives every gas, activity, and missed-attester pill Quiet\'s high-contrast backing across all 15 themes' },
