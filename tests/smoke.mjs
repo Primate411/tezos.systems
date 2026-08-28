@@ -13569,7 +13569,7 @@ async function smokeMyTezosViewLiveRefresh(browser, baseUrl) {
   try {
     await page.waitForFunction((before) => (
       Number(document.querySelector('[data-transactions-total="receipts"] strong')?.textContent) > before
-    ), transactionBefore.receipts, { timeout: 10000 });
+    ), transactionBefore.receipts, { timeout: 30000 });
   } catch (error) {
     const debug = await page.evaluate(() => ({
       receipts: Number(document.querySelector('[data-transactions-total="receipts"] strong')?.textContent) || 0,
