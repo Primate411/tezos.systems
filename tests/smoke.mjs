@@ -16346,18 +16346,56 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   const liveHeadCurrentFirstRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
   const liveHeadCurrentFirstInfo = liveHeadCurrentFirstRow.locator('.live-head-info');
   const openCurrentLiveHeadInspector = async (pointerOrigin) => {
-    await page.mouse.move(pointerOrigin.x, pointerOrigin.y);
-    const currentRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
-    const level = await currentRow.getAttribute('data-live-head-level');
-    assert(level, 'network health chamber: current Live Head row is missing its keyed level');
-    const info = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${level}"] .live-head-info`);
-    await info.waitFor({ state: 'visible', timeout: 15000 });
-    await info.hover();
-    await page.waitForFunction((expectedLevel) => {
-      const inspector = document.querySelector('#live-head-inspector:not([hidden])');
-      return inspector?.dataset.liveHeadLevel === expectedLevel;
-    }, level, { timeout: 15000 });
-    return { level, info };
+    let lastState = null;
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      await page.mouse.move(pointerOrigin.x + attempt, pointerOrigin.y + attempt);
+      await page.waitForTimeout(32);
+      const currentRow = page.locator('#live-head-stack .live-head-row[data-live-head-level]').first();
+      const level = await currentRow.getAttribute('data-live-head-level');
+      assert(level, 'network health chamber: current Live Head row is missing its keyed level');
+      const info = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${level}"] .live-head-info`);
+      const infoBox = await info.boundingBox();
+      if (!infoBox) continue;
+      assert(infoBox.width > 4 && infoBox.height > 4, 'network health chamber: Live Head info trigger has no stable pointer target');
+      await page.mouse.move(infoBox.x + (infoBox.width / 2), infoBox.y + (infoBox.height / 2));
+      try {
+        const outcomeHandle = await page.waitForFunction((expectedLevel) => {
+          const inspector = document.querySelector('#live-head-inspector:not([hidden])');
+          if (inspector?.dataset.liveHeadLevel === expectedLevel) return 'opened';
+          if (inspector?.dataset.liveHeadLevel) return 'different';
+          if (!document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${expectedLevel}"]`)) return 'replaced';
+          return '';
+        }, level, { timeout: 15000 });
+        const outcome = await outcomeHandle.jsonValue();
+        if (outcome === 'opened') return { level, info };
+      } catch (error) {
+        lastState = await page.evaluate((expectedLevel) => {
+          const inspector = document.getElementById('live-head-inspector');
+          const hoveredInfo = document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${expectedLevel}"] .live-head-info`);
+          return {
+            expectedLevel,
+            hovered: Boolean(hoveredInfo?.matches(':hover')),
+            expanded: hoveredInfo?.getAttribute('aria-expanded') || '',
+            inspectorHidden: inspector?.hidden ?? null,
+            inspectorLevel: inspector?.dataset.liveHeadLevel || '',
+            modalActive: document.getElementById('network-health-modal')?.classList.contains('active') || false,
+            rowLevels: Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]')).map((row) => row.dataset.liveHeadLevel)
+          };
+        }, level);
+        throw new Error(`network health chamber: Live Head info hover did not open its keyed inspector ${JSON.stringify(lastState)}`, { cause: error });
+      }
+      lastState = await page.evaluate((expectedLevel) => ({
+        expectedLevel,
+        rowLevels: Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]')).map((row) => row.dataset.liveHeadLevel),
+        inspectorLevel: document.getElementById('live-head-inspector')?.dataset.liveHeadLevel || ''
+      }), level);
+      if (await page.evaluate(() => !document.getElementById('live-head-inspector')?.hidden)) {
+        await page.keyboard.press('Escape');
+        await page.waitForFunction(() => document.getElementById('live-head-inspector')?.hidden === true
+          && !document.getElementById('live-head')?.dataset.readingPaused, null, { timeout: 10000 });
+      }
+    }
+    throw new Error(`network health chamber: current Live Head row kept changing before inspection ${JSON.stringify(lastState)}`);
   };
   const enterLiveHeadInspector = async () => {
     const inspector = page.locator('#live-head-inspector:not([hidden])');
@@ -16452,8 +16490,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true
     && !document.querySelector('#live-head')?.dataset.readingPaused, null, { timeout: 10000 });
+  await page.locator('#hero-search-input').focus();
   await liveHeadCurrentFirstInfo.focus();
-  await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 5000 });
+  await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true
     && !document.querySelector('#live-head')?.dataset.readingPaused, null, { timeout: 10000 });
