@@ -16740,13 +16740,18 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       const infoBox = await info.boundingBox();
       if (!infoBox) continue;
       assert(infoBox.width > 4 && infoBox.height > 4, 'network health chamber: Live Head info trigger has no stable pointer target');
-      await page.mouse.move(infoBox.x + (infoBox.width / 2), infoBox.y + (infoBox.height / 2));
+      await info.hover({
+        position: { x: infoBox.width / 2, y: infoBox.height / 2 },
+        timeout: 5000
+      });
       try {
         const outcomeHandle = await page.waitForFunction((expectedLevel) => {
           const inspector = document.querySelector('#live-head-inspector:not([hidden])');
           if (inspector?.dataset.liveHeadLevel === expectedLevel) return 'opened';
           if (inspector?.dataset.liveHeadLevel) return 'different';
-          if (!document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${expectedLevel}"]`)) return 'replaced';
+          const expectedInfo = document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${expectedLevel}"] .live-head-info`);
+          const currentLevel = document.querySelector('#live-head-stack .live-head-row[data-live-head-level]')?.dataset.liveHeadLevel || '';
+          if (!expectedInfo || currentLevel !== expectedLevel || !expectedInfo.matches(':hover')) return 'replaced';
           return '';
         }, level, { timeout: 15000 });
         const outcome = await outcomeHandle.jsonValue();
