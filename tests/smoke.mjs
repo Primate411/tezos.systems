@@ -21152,12 +21152,18 @@ async function smokeUraniumChamber(browser, baseUrl) {
   `uranium chamber: Markets view is incomplete ${JSON.stringify(marketsState)}`);
 
   const rangeExpectations = [
-    { id: '24H', source: /Kraken direct WebSocket snapshot/i, cadence: /\b5m\b/i, minimumObservations: 4, eventMarker: false },
-    { id: '7D', source: /Kraken direct WebSocket snapshot/i, cadence: /\b15m\b/i, minimumObservations: 6, eventMarker: false },
-    { id: '30D', source: /CoinGecko cross-venue aggregate/i, cadence: /\bdaily\b/i, minimumObservations: 20, eventMarker: true },
-    { id: '90D', source: /CoinGecko cross-venue aggregate/i, cadence: /\bdaily\b/i, minimumObservations: 70, eventMarker: true },
-    { id: '1Y', source: /CoinGecko cross-venue aggregate/i, cadence: /\bdaily\b/i, minimumObservations: 300, eventMarker: true }
+    { id: '24H', source: /Kraken direct WebSocket snapshot/i, cadence: /\b5m\b/i, minimumObservations: 4, eventMarkerDays: null },
+    { id: '7D', source: /Kraken direct WebSocket snapshot/i, cadence: /\b15m\b/i, minimumObservations: 6, eventMarkerDays: null },
+    { id: '30D', source: /CoinGecko cross-venue aggregate/i, cadence: /\bdaily\b/i, minimumObservations: 20, eventMarkerDays: 30 },
+    { id: '90D', source: /CoinGecko cross-venue aggregate/i, cadence: /\bdaily\b/i, minimumObservations: 70, eventMarkerDays: 90 },
+    { id: '1Y', source: /CoinGecko cross-venue aggregate/i, cadence: /\bdaily\b/i, minimumObservations: 300, eventMarkerDays: 365 }
   ];
+  const krakenEventAt = Date.parse(snapshotFixture?.market?.kraken?.firstTradeAt
+    || snapshotFixture?.identity?.krakenListing?.announcedLiveDate
+    || '');
+  const latestCoinGeckoAt = Math.max(...(snapshotFixture?.market?.priceHistoryUsd || []).map((row) => (
+    Date.parse(row?.timestamp || row?.date || '')
+  )).filter(Number.isFinite));
   const rangeStates = {};
   for (const expectation of rangeExpectations) {
     await page.locator(`[data-uranium-range="${expectation.id}"]`).click();
@@ -21200,7 +21206,12 @@ async function smokeUraniumChamber(browser, baseUrl) {
     assert(/^\$\d/.test(state.readoutPrice) && state.readout.length > state.readoutPrice.length
       && state.readoutPrimary.length > 0 && state.readoutSecondary.length > 0 && state.sliderValueText.length > 0,
     `uranium chamber: ${expectation.id} historical readout is incomplete ${JSON.stringify(state)}`);
-    assert(expectation.eventMarker === state.eventMarkers.some((label) => /Kraken USD live/i.test(label)),
+    const expectsEventMarker = Number.isFinite(expectation.eventMarkerDays)
+      && Number.isFinite(krakenEventAt)
+      && Number.isFinite(latestCoinGeckoAt)
+      && krakenEventAt >= latestCoinGeckoAt - (expectation.eventMarkerDays * 24 * 60 * 60 * 1000)
+      && krakenEventAt <= latestCoinGeckoAt;
+    assert(expectsEventMarker === state.eventMarkers.some((label) => /Kraken USD live/i.test(label)),
       `uranium chamber: ${expectation.id} event marker visibility is dishonest ${JSON.stringify(state)}`);
   }
 

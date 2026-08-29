@@ -985,8 +985,12 @@ function renderPriceChart(input, rangeId = currentRange, compact = false) {
     const actualCoverage = `${formatChartTimestamp(first.timestamp, series.intervalMinutes)} → ${formatChartTimestamp(latest.timestamp, series.intervalMinutes)} · ${formatNumber(points.length)} ${intervalLabel(series.intervalMinutes)} observations`;
     const coordinates = points.map((point) => ({ x: x(point.timestamp), y: y(point.value) }));
     chartSeriesRegistry.set(chartId, { ...series, points, coordinates, left, right, top, bottom });
-    const markerMarkup = (series.events || []).filter((event) => event.timestamp >= first.timestamp && event.timestamp <= latest.timestamp).map((event) => {
-        const markerX = x(event.timestamp);
+    const rangeDays = RANGE_BY_ID.get(series.rangeId)?.days;
+    const requestedStart = Number.isFinite(rangeDays) ? latest.timestamp - (rangeDays * DAY_MS) : first.timestamp;
+    const intervalMs = Math.max(0, Number(series.intervalMinutes) || 0) * 60 * 1000;
+    const markerStart = Math.max(requestedStart, first.timestamp - intervalMs);
+    const markerMarkup = (series.events || []).filter((event) => event.timestamp >= markerStart && event.timestamp <= latest.timestamp).map((event) => {
+        const markerX = Math.max(left, Math.min(right, x(event.timestamp)));
         const labelX = Math.max(left + 52, Math.min(right - 52, markerX));
         return `<g class="uranium-chart-event" data-uranium-event="${escapeHtml(event.id)}"><line x1="${markerX.toFixed(2)}" y1="${top}" x2="${markerX.toFixed(2)}" y2="${volumeBottom}"></line><text x="${labelX.toFixed(2)}" y="${top - 9}" text-anchor="middle">${escapeHtml(event.label)}</text></g>`;
     }).join('');
