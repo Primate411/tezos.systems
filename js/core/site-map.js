@@ -163,11 +163,11 @@ export const SITE_MAP = [
         hash: '#ecosystem',
         group: 'Live Rooms',
         chamberCategory: 'ecosystem',
-        detail: 'Weekly active-wallet rankings and complete on-chain history for reviewed Tezos L1 and Etherlink dapps',
+        detail: 'Network-wide weekly active addresses across Tezos L1 and Etherlink beside complete rankings and history for reviewed dapps',
         keywords: ['ecosystem activity', 'tezos dapps', 'etherlink dapps', 'top dapps', 'popular dapps', 'active users', 'active wallets', 'weekly active wallets', 'dapp rankings', 'dapp history', 'ecosystem stats', 'yoy'],
         searchIntents: [
-            { id: 'ecosystem-l1', title: 'Tezos L1 Dapp Activity', href: '/ecosystem/?layer=tezos', detail: 'Rank reviewed Tezos L1 apps by last-completed-week active wallet addresses', keywords: ['tezos l1 apps', 'l1 dapps', 'tezos active wallets'], directory: true },
-            { id: 'ecosystem-l2', title: 'Etherlink Dapp Activity', href: '/ecosystem/?layer=etherlink', detail: 'Inspect Etherlink app active wallets, interactions, and complete tracked history', keywords: ['etherlink apps', 'etherlink active wallets', 'l2 dapps'], directory: true },
+            { id: 'ecosystem-l1', title: 'Tezos L1 Dapp Activity', href: '/ecosystem/?layer=tezos', detail: 'Compare all transaction-sending Tezos addresses with the reviewed-L1-dapp subset and ranking', keywords: ['tezos l1 apps', 'l1 dapps', 'tezos active wallets'], directory: true },
+            { id: 'ecosystem-l2', title: 'Etherlink Dapp Activity', href: '/ecosystem/?layer=etherlink', detail: 'Compare all Etherlink active accounts with reviewed-dapp wallets, interactions, and tracked history', keywords: ['etherlink apps', 'etherlink active wallets', 'l2 dapps'], directory: true },
             { id: 'ecosystem-history', title: 'Dapp Activity History', href: '/ecosystem/?range=all', detail: 'Chart the complete disclosed weekly history with WoW, YoY, retention, and partial-week context', keywords: ['dapp history', 'historical active users', 'active wallet history', 'year over year dapps'], directory: true }
         ],
         fresh: true,
@@ -528,7 +528,7 @@ export const CHAMBER_CATEGORY_META = Object.freeze([
     Object.freeze({
         key: 'ecosystem',
         label: 'Ecosystem',
-        question: 'Which apps are seeing on-chain activity?',
+        question: 'How many addresses are active, and which apps are they using?',
         entryIds: Object.freeze(['ecosystem'])
     }),
     Object.freeze({

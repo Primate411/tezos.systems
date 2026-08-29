@@ -9656,6 +9656,36 @@ async function checkEcosystemActivityContracts() {
     || !Array.isArray(snapshot.rankings?.all) || snapshot.rankings.all.length < 10) {
     fail('Ecosystem snapshot must retain at least one year, every manifested app, and an all-layer top 10');
   }
+  const networkWeeks = snapshot.networkActivity?.weeks || [];
+  const networkLatest = networkWeeks.at(-1);
+  if (!networkWeeks.length
+    || snapshot.networkActivity?.coverageStart !== networkWeeks[0]?.weekStart
+    || networkLatest?.weekStart !== snapshot.completeWeek?.weekStart
+    || snapshot.networkActivity?.partialWeek?.weekStart !== snapshot.partialWeek?.weekStart
+    || snapshot.networkActivity?.partialWeek?.observedAt !== snapshot.partialWeek?.observedAt) {
+    fail('Ecosystem network-wide activity must cover the latest completed week and aligned partial week');
+  }
+  for (const [label, row, status] of [
+    ['completed', networkLatest, 'complete'],
+    ['partial', snapshot.networkActivity?.partialWeek, 'partial']
+  ]) {
+    const tezos = row?.layers?.tezos;
+    const etherlink = row?.layers?.etherlink;
+    if (row?.status !== status
+      || tezos?.status !== status
+      || etherlink?.status !== status
+      || !Number.isSafeInteger(tezos?.activeWallets)
+      || !Number.isSafeInteger(etherlink?.activeWallets)
+      || row?.all?.activeWallets !== tezos.activeWallets + etherlink.activeWallets
+      || typeof row?.all?.approximate !== 'boolean') {
+      fail(`Ecosystem network-wide ${label} wallet-layer total is invalid`);
+    }
+  }
+  if (snapshot.sourceReceipts?.tzkt?.networkActivity?.pagination !== 'daily id.gt keyset'
+    || snapshot.sourceReceipts?.etherlink?.networkActivity?.chart !== 'activeAccounts'
+    || snapshot.sourceReceipts?.etherlink?.networkActivity?.resolution !== 'WEEK') {
+    fail('Ecosystem network-wide TzKT and Etherlink source receipts are incomplete');
+  }
   if (snapshot.completeWeek?.weekEnd !== snapshot.partialWeek?.weekStart
     || snapshot.partialWeek?.status !== 'partial'
     || Date.parse(snapshot.partialWeek?.observedAt) < Date.parse(snapshot.partialWeek?.weekStart)) {
@@ -9751,7 +9781,13 @@ async function checkEcosystemActivityContracts() {
     'earliestNewContract',
     'normalizeEcosystemCoverage',
     'contractUniverseHash',
-    'Raw wallet sets are aggregate-only'
+    'Raw wallet sets are aggregate-only',
+    "'initiator.null': 'true'",
+    "'select.values': 'id,sender'",
+    'daily id.gt keyset',
+    '/lines/activeAccounts',
+    "resolution: 'WEEK'",
+    'combineNetworkActivity'
   ]) {
     if (!generator.includes(snippet)) fail(`Ecosystem source/continuity contract is missing: ${snippet}`);
   }
@@ -9761,7 +9797,7 @@ async function checkEcosystemActivityContracts() {
   if (blockscoutSliceStart < 0 || blockscoutPreSplit < blockscoutSliceStart || blockscoutPreSplit > blockscoutRequest) {
     fail('Ecosystem incremental Blockscout scans must subdivide oversized time ranges before making the request');
   }
-  for (const snippet of ['contractUniverseHash', 'retentionRate', 'summarizeApp', 'rankApps', 'snapshotContentHash', 'validateManifest', 'validateSnapshot']) {
+  for (const snippet of ['combineNetworkActivity', 'contractUniverseHash', 'retentionRate', 'summarizeApp', 'tezosNetworkWallet', 'rankApps', 'snapshotContentHash', 'validateManifest', 'validateSnapshot']) {
     if (!library.includes(snippet)) fail(`Ecosystem deterministic library contract is missing: ${snippet}`);
   }
 
@@ -9783,12 +9819,14 @@ async function checkEcosystemActivityContracts() {
   for (const snippet of [
     "const ECOSYSTEM_SNAPSHOT_URL = '/data/ecosystem-stats.json'",
     'last completed Monday-to-Monday UTC week',
-    'partial, not ranked',
+    'All active addresses',
+    'Tracked-app wallets',
+    'network-wide + app activity',
     "const RANGES = Object.freeze([",
     'data-ecosystem-category',
     'data-ecosystem-app',
     'data-ecosystem-leader-rank',
-    'Top apps and ecosystem totals',
+    'All active addresses plus the reviewed-dapp subset',
     'Download full JSON',
     'Contract-universe SHA-256',
     'quietlySyncHtml(body, markup)',
@@ -9807,6 +9845,7 @@ async function checkEcosystemActivityContracts() {
     '.ecosystem-overlay.active .ecosystem-content',
     '.ecosystem-tabs',
     '.ecosystem-kpis',
+    '.ecosystem-kpis article.is-network-primary',
     '.ecosystem-chart-grid',
     '.ecosystem-table',
     '.ecosystem-directory',
@@ -9843,7 +9882,7 @@ async function checkEcosystemActivityContracts() {
     }
   }
 
-  pass(`Ecosystem Activity manifest, ${snapshot.weeks.length}-week history, rankings, source receipts, route, and quiet-refresh contracts checked`);
+  pass(`Ecosystem Activity all-address monitor, ${snapshot.weeks.length}-week reviewed-app history, rankings, source receipts, route, and quiet-refresh contracts checked`);
 }
 
 async function checkChamberCategoryContracts() {
@@ -9865,7 +9904,7 @@ async function checkChamberCategoryContracts() {
     {
       key: 'ecosystem',
       label: 'Ecosystem',
-      question: 'Which apps are seeing on-chain activity?',
+      question: 'How many addresses are active, and which apps are they using?',
       entryIds: ['ecosystem']
     },
     {

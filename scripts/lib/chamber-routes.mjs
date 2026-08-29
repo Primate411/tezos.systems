@@ -96,10 +96,10 @@ export const CHAMBER_ROUTES = [
   {
     slug: 'ecosystem',
     hash: '#ecosystem',
-    title: 'Ecosystem Activity - Tezos and Etherlink Dapp Stats',
+    title: 'Ecosystem Activity - Tezos and Etherlink Active Addresses',
     shortTitle: 'Ecosystem Activity',
-    description: 'Rank reviewed Tezos L1 and Etherlink dapps by weekly active wallet addresses, then inspect complete history, YoY change, retention, interactions, and contract receipts.',
-    eyebrow: 'Dapp Intelligence',
+    description: 'See all weekly transaction-originating addresses across Tezos L1 and Etherlink, then compare the reviewed-dapp subset, rankings, history, retention, interactions, and contract receipts.',
+    eyebrow: 'Network + Dapp Intelligence',
     accent: '#55e2c3'
   },
   {

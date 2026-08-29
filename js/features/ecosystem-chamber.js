@@ -162,6 +162,9 @@ async function validateEntrySummary(summary) {
         || !/^[0-9a-f]{64}$/.test(summary.source?.fileSha256 || '')
         || !Array.isArray(summary.weeks)
         || summary.weeks.length === 0
+        || !Array.isArray(summary.networkActivity?.weeks)
+        || summary.networkActivity.weeks.length === 0
+        || !summary.networkActivity?.partialWeek
         || !Array.isArray(summary.leaders?.all)
         || summary.leaders.all.length < 3) {
         throw new Error('Ecosystem launcher projection is missing required sections.');
@@ -177,6 +180,9 @@ async function validateSnapshot(snapshot) {
         || snapshot.apps.length < 10
         || !Array.isArray(snapshot.weeks)
         || snapshot.weeks.length === 0
+        || !Array.isArray(snapshot.networkActivity?.weeks)
+        || snapshot.networkActivity.weeks.length === 0
+        || !snapshot.networkActivity?.partialWeek
         || !Array.isArray(snapshot.rankings?.all)
         || snapshot.rankings.all.length < 10
         || !snapshot.methodology
@@ -404,16 +410,30 @@ function renderCategoryFilters(snapshot) {
     `;
 }
 
+function networkRows(snapshot) {
+    return snapshot?.networkActivity?.weeks || [];
+}
+
+function networkSplit(row) {
+    return `${formatNumber(metricFor(row, 'tezos')?.activeWallets)} L1 · ${formatNumber(metricFor(row, 'etherlink')?.activeWallets)} Etherlink`;
+}
+
 function renderKpis(rows, snapshot) {
-    const summary = summarizeRows(rows);
-    const partial = metricFor(snapshot.partialWeek);
+    const tracked = summarizeRows(rows);
+    const networkWeek = networkRows(snapshot).at(-1);
+    const network = metricFor(networkWeek);
+    const networkPartial = metricFor(snapshot.networkActivity?.partialWeek);
+    const networkLabel = currentLayer === 'all' ? 'All active' : `${layerLabel()} active`;
+    const trackedAppCount = currentLayer === 'all'
+        ? snapshot.universe?.eligibleApps
+        : snapshot.universe?.layers?.[currentLayer];
     return `
         <div class="ecosystem-kpis">
-            <article><span>Weekly active wallets</span><strong>${escapeHtml(formatNumber(summary.activeWallets))}</strong><small>${escapeHtml(layerLabel())} · completed week</small></article>
-            <article><span>Interactions</span><strong>${escapeHtml(formatNumber(summary.interactions))}</strong><small>${escapeHtml(formatNumber(summary.callsPerWallet, 2))} calls / active wallet</small></article>
-            <article><span>Year over year</span><strong class="${trendClass(summary.yoyPct)}">${escapeHtml(formatPct(summary.yoyPct, { signed: true }))}</strong><small>weekday-aligned, 52 weeks</small></article>
-            <article><span>Returning wallets</span><strong>${escapeHtml(formatPct(summary.returningWalletRate))}</strong><small>from the prior completed week</small></article>
-            <article class="is-partial"><span>Current week pulse</span><strong>${escapeHtml(formatNumber(partial?.activeWallets))}</strong><small>partial through ${escapeHtml(formatTimestamp(snapshot.partialWeek?.observedAt))}</small></article>
+            <article class="is-network-primary" data-ecosystem-network-kpi><span>${escapeHtml(`${networkLabel} addresses`)}</span><strong>${escapeHtml(formatNumber(network?.activeWallets))}</strong><small>${escapeHtml(currentLayer === 'all' ? networkSplit(networkWeek) : layerLabel())} · completed week</small></article>
+            <article><span>Tracked-app wallets</span><strong>${escapeHtml(formatNumber(tracked.activeWallets))}</strong><small>${escapeHtml(formatNumber(trackedAppCount))} reviewed dapps · same week</small></article>
+            <article><span>Tracked interactions</span><strong>${escapeHtml(formatNumber(tracked.interactions))}</strong><small>${escapeHtml(formatNumber(tracked.callsPerWallet, 2))} calls / tracked wallet</small></article>
+            <article><span>Returning tracked wallets</span><strong>${escapeHtml(formatPct(tracked.returningWalletRate))}</strong><small>from the prior completed week</small></article>
+            <article class="is-partial"><span>${escapeHtml(networkLabel)} · current week</span><strong>${escapeHtml(formatNumber(networkPartial?.activeWallets))}</strong><small>partial through ${escapeHtml(formatTimestamp(snapshot.networkActivity?.partialWeek?.observedAt))}</small></article>
         </div>
     `;
 }
@@ -435,7 +455,7 @@ function renderRankTable(snapshot) {
         : '<tr><td colspan="7" class="ecosystem-empty-cell">No tracked apps have completed-week coverage for this filter.</td></tr>';
     return `
         <section class="ecosystem-panel" data-quiet-key="ecosystem-top-ten">
-            <div class="ecosystem-panel-head"><div><span class="ecosystem-eyebrow">Stable ranking</span><h3>Top 10 dapps</h3><p>Distinct active wallet addresses in the last completed Monday-to-Monday UTC week.</p></div><span class="ecosystem-week-label">${escapeHtml(formatWeek(snapshot.completeWeek?.weekStart))}</span></div>
+            <div class="ecosystem-panel-head"><div><span class="ecosystem-eyebrow">Reviewed-app ranking</span><h3>Top 10 dapps</h3><p>Distinct addresses that called reviewed app contracts in the last completed Monday-to-Monday UTC week; this ranking is separate from the network-wide total above.</p></div><span class="ecosystem-week-label">${escapeHtml(formatWeek(snapshot.completeWeek?.weekStart))}</span></div>
             <div class="ecosystem-table-wrap">
                 <table class="ecosystem-table">
                     <caption class="sr-only">Top dapps by weekly active wallet address</caption>
@@ -518,7 +538,7 @@ function renderHistoryPanel(snapshot) {
     const selected = currentApp ? snapshot.apps.find((app) => app.id === currentApp) : null;
     const sourceRows = selected?.weekly || snapshot.weeks;
     const rows = rangeRows(sourceRows).filter((row) => numeric(metricFor(row)?.activeWallets) !== null);
-    const title = selected ? selected.name : 'Tracked ecosystem';
+    const title = selected ? selected.name : 'Tracked dapp universe';
     const summary = summarizeRows(sourceRows);
     const partial = selected ? metricFor(selected.partial) : metricFor(snapshot.partialWeek);
     return `
@@ -527,14 +547,14 @@ function renderHistoryPanel(snapshot) {
                 <div>
                     <span class="ecosystem-eyebrow">${selected ? escapeHtml(categoryLabel(selected.category)) : 'Historical activity'}</span>
                     <h3 id="ecosystem-detail-title" tabindex="-1">${escapeHtml(title)}</h3>
-                    <p>${selected ? escapeHtml(selected.description) : 'Unique wallet-layer identities across the disclosed app universe; no L1/L2 ownership merge is inferred.'}</p>
+                    <p>${selected ? escapeHtml(selected.description) : 'Unique wallet-layer identities that touched the disclosed app universe. This is the reviewed-app subset, not the all-address network count.'}</p>
                 </div>
                 <div class="ecosystem-detail-actions">
                     ${selected ? `<a href="${escapeHtml(safeExternalUrl(selected.website))}" target="_blank" rel="noopener">Open dapp ↗</a><button type="button" data-ecosystem-clear-app>Show ecosystem</button>` : ''}
                 </div>
             </div>
             <div class="ecosystem-detail-kpis">
-                <span><small>Completed week</small><strong>${escapeHtml(formatNumber(summary.activeWallets))}</strong><em>active wallets</em></span>
+                <span><small>Completed week</small><strong>${escapeHtml(formatNumber(summary.activeWallets))}</strong><em>${selected ? 'active wallets' : 'tracked-app wallets'}</em></span>
                 <span><small>WoW</small><strong class="${trendClass(summary.wowPct)}">${escapeHtml(formatPct(summary.wowPct, { signed: true }))}</strong><em>weekly change</em></span>
                 <span><small>YoY</small><strong class="${trendClass(summary.yoyPct)}">${escapeHtml(formatPct(summary.yoyPct, { signed: true }))}</strong><em>52-week change</em></span>
                 <span class="is-partial"><small>Partial week</small><strong>${escapeHtml(formatNumber(partial?.activeWallets))}</strong><em>not ranked</em></span>
@@ -583,8 +603,11 @@ function renderMethodology(snapshot) {
         <details class="ecosystem-methodology">
             <summary>Methodology and coverage boundary</summary>
             <div class="ecosystem-method-grid">
-                <p><strong>Rank:</strong> ${escapeHtml(method.ranking || '')}</p>
                 <p><strong>Week:</strong> ${escapeHtml(method.weekBoundary || '')}</p>
+                <p><strong>All active:</strong> ${escapeHtml(method.networkActivity || '')}</p>
+                <p><strong>L1 all active:</strong> ${escapeHtml(method.networkTezosWallet || '')}</p>
+                <p><strong>L2 all active:</strong> ${escapeHtml(method.networkEtherlinkWallet || '')}</p>
+                <p><strong>Ranked dapps:</strong> ${escapeHtml(method.ranking || '')}</p>
                 <p><strong>Tezos:</strong> ${escapeHtml(method.tezosWallet || '')}</p>
                 <p><strong>Etherlink:</strong> ${escapeHtml(method.etherlinkWallet || '')}</p>
                 <p><strong>Cross-layer:</strong> ${escapeHtml(method.allLayerIdentity || '')}</p>
@@ -594,6 +617,9 @@ function renderMethodology(snapshot) {
                 <p><strong>Boundary:</strong> ${escapeHtml(method.caveat || '')}</p>
             </div>
             <div class="ecosystem-receipts">
+                <p><strong>Network coverage begins:</strong> ${escapeHtml(formatWeek(snapshot.networkActivity?.coverageStart))}</p>
+                <p><strong>TzKT all-address scan:</strong> ${escapeHtml(snapshot.sourceReceipts?.tzkt?.networkActivity?.filter || 'Receipt unavailable')} · ${escapeHtml(snapshot.sourceReceipts?.tzkt?.networkActivity?.pagination || 'Pagination unavailable')}</p>
+                <p><strong>Etherlink all-address chart:</strong> ${escapeHtml(snapshot.sourceReceipts?.etherlink?.networkActivity?.chart || 'Receipt unavailable')} · ${escapeHtml(snapshot.sourceReceipts?.etherlink?.networkActivity?.resolution || 'Resolution unavailable')}</p>
                 <p><strong>TzKT catalog:</strong> ${escapeHtml(catalogReceipt || 'Catalog receipt unavailable')}</p>
                 <p><strong>Content SHA-256:</strong> <code>${escapeHtml(snapshot.contentHash || 'Unavailable')}</code></p>
                 <p><strong>Contract-universe SHA-256:</strong> <code>${escapeHtml(snapshot.contractUniverseHash || 'Unavailable')}</code></p>
@@ -610,13 +636,13 @@ function renderChamber(snapshot) {
     const freshness = freshnessPresentation(snapshot);
     return `
         <header class="ecosystem-header" data-quiet-key="ecosystem-header">
-            <div class="ecosystem-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>cross-layer app activity</span></div>
+            <div class="ecosystem-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>network-wide + app activity</span></div>
             <div class="ecosystem-title-row">
                 <h2 id="ecosystem-title">Ecosystem Activity</h2>
                 <span class="ecosystem-badge">Weekly address ledger</span>
                 <span class="ecosystem-freshness${freshness.stale ? ' is-stale' : ''}" id="ecosystem-freshness">${escapeHtml(freshness.label)}</span>
             </div>
-            <p class="ecosystem-intro">Popular Tezos L1 and Etherlink apps ranked by distinct weekly active wallet addresses, with full generated history, explicit partial-week telemetry, and contract-level receipts.</p>
+            <p class="ecosystem-intro">All transaction-originating addresses across Tezos L1 and Etherlink, beside the distinct subset that touched reviewed dapps. Network-wide activity, app rankings, partial-week telemetry, and contract receipts stay explicitly separate.</p>
             ${renderLayerTabs()}
         </header>
         <div class="ecosystem-toolbar" data-quiet-key="ecosystem-toolbar">
@@ -625,8 +651,8 @@ function renderChamber(snapshot) {
         </div>
         ${renderKpis(rows, snapshot)}
         <div class="ecosystem-chart-grid ecosystem-overview-charts">
-            ${lineChart(rangeRows(rows), 'activeWallets', `${layerLabel()} active wallets`, 'is-wallets')}
-            ${lineChart(rangeRows(rows), 'interactions', `${layerLabel()} interactions`, 'is-interactions')}
+            ${lineChart(rangeRows(rows), 'activeWallets', `${layerLabel()} tracked-app wallets`, 'is-wallets')}
+            ${lineChart(rangeRows(rows), 'interactions', `${layerLabel()} tracked-app interactions`, 'is-interactions')}
         </div>
         ${renderRankTable(snapshot)}
         ${renderDirectory(snapshot)}
@@ -660,6 +686,10 @@ function summaryRows(snapshot) {
     return (snapshot.weeks || []).slice(-26);
 }
 
+function networkSummaryRows(snapshot) {
+    return networkRows(snapshot).slice(-26);
+}
+
 function summaryLeaders(snapshot) {
     const ranked = snapshot.leaders?.all || snapshot.rankings?.all || [];
     return Array.from({ length: 3 }, (_unused, index) => ranked[index] || null);
@@ -679,7 +709,7 @@ function entryLeaderMarkup(leader, index) {
 
 function entrySparkline(rows) {
     const values = (rows || []).map((row) => numeric(metricFor(row, 'all')?.activeWallets)).filter((value) => value !== null);
-    if (values.length < 2) return '<div class="ecosystem-entry-empty">Weekly history is building</div>';
+    if (values.length < 2) return '<div class="ecosystem-entry-empty">Network monitor starts here</div>';
     const width = 360;
     const height = 76;
     const max = Math.max(1, ...values);
@@ -690,38 +720,41 @@ function entrySparkline(rows) {
         const y = 6 + ((height - 12) * (1 - ((value - min) / span)));
         return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(' ');
-    return `<svg class="ecosystem-entry-sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Trailing weekly active wallet history"><polyline points="${points}"></polyline></svg>`;
+    return `<svg class="ecosystem-entry-sparkline" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="Trailing network-wide weekly active address history"><polyline points="${points}"></polyline></svg>`;
 }
 
 function entryMarkup(snapshot) {
-    const rows = summaryRows(snapshot);
-    const latest = metricFor(rows.at(-1), 'all');
-    const partial = metricFor(snapshot.partialWeek, 'all');
+    const trackedRows = summaryRows(snapshot);
+    const trackedLatest = metricFor(trackedRows.at(-1), 'all');
+    const allAddressRows = networkSummaryRows(snapshot);
+    const networkWeek = allAddressRows.at(-1);
+    const networkLatest = metricFor(networkWeek, 'all');
+    const networkPartial = metricFor(snapshot.networkActivity?.partialWeek, 'all');
     const leaders = summaryLeaders(snapshot);
-    const completedWeek = snapshot.completeWeek?.weekStart || rows.at(-1)?.weekStart;
+    const completedWeek = snapshot.completeWeek?.weekStart || networkWeek?.weekStart;
     const layerUniverse = snapshot.universe?.layers || {};
     return `
         <div class="ecosystem-entry-heading">
             <div class="ecosystem-entry-title-line"><h2 class="stat-label" id="ecosystem-entry-title">Ecosystem Activity</h2><span>Weekly</span></div>
-            <p>Top apps and ecosystem totals · completed Monday-to-Monday UTC week</p>
+            <p>All active addresses plus the reviewed-dapp subset · completed Monday-to-Monday UTC week</p>
         </div>
-        <div class="ecosystem-entry-kpis ecosystem-entry-grid" role="list" aria-label="Top apps and weekly ecosystem summary">
+        <div class="ecosystem-entry-kpis ecosystem-entry-grid" role="list" aria-label="Top apps, all active addresses, and reviewed-dapp activity">
             ${leaders.map(entryLeaderMarkup).join('')}
-            <div class="ecosystem-entry-tile ecosystem-entry-summary ecosystem-entry-completed" role="listitem">
-                <small>Completed week · ${escapeHtml(formatWeek(completedWeek))}</small>
-                <strong class="ecosystem-entry-value">${escapeHtml(formatNumber(latest?.activeWallets))}</strong>
-                <em>active wallet-layer identities</em>
-                <div class="ecosystem-entry-chart">${entrySparkline(rows)}<span>26-week pulse</span></div>
+            <div class="ecosystem-entry-tile ecosystem-entry-summary ecosystem-entry-completed ecosystem-entry-network" role="listitem">
+                <small>All active · ${escapeHtml(formatWeek(completedWeek))}</small>
+                <strong class="ecosystem-entry-value">${escapeHtml(formatNumber(networkLatest?.activeWallets))}</strong>
+                <em>${escapeHtml(networkSplit(networkWeek))}</em>
+                <div class="ecosystem-entry-chart">${entrySparkline(allAddressRows)}<span>Network-wide weekly history</span></div>
             </div>
             <div class="ecosystem-entry-tile ecosystem-entry-summary" role="listitem">
-                <small>Tracked apps</small>
-                <strong>${escapeHtml(formatNumber(snapshot.universe?.eligibleApps))}</strong>
-                <em>${escapeHtml(formatNumber(layerUniverse.tezos))} L1 · ${escapeHtml(formatNumber(layerUniverse.etherlink))} Etherlink</em>
+                <small>Tracked-dapp activity</small>
+                <strong>${escapeHtml(formatNumber(trackedLatest?.activeWallets))}</strong>
+                <em>${escapeHtml(formatNumber(snapshot.universe?.eligibleApps))} apps · ${escapeHtml(formatNumber(layerUniverse.tezos))} L1 / ${escapeHtml(formatNumber(layerUniverse.etherlink))} L2</em>
             </div>
             <div class="ecosystem-entry-tile ecosystem-entry-summary is-partial" role="listitem">
-                <small>This week · partial</small>
-                <strong>${escapeHtml(formatNumber(partial?.activeWallets))}</strong>
-                <em>partial, not ranked</em>
+                <small>All active · partial</small>
+                <strong>${escapeHtml(formatNumber(networkPartial?.activeWallets))}</strong>
+                <em>${escapeHtml(networkSplit(snapshot.networkActivity?.partialWeek))}</em>
             </div>
         </div>
     `;

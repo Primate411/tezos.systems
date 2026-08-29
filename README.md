@@ -91,8 +91,8 @@ tezos.systems/
 │   ├── metals-snapshot.json           # Generated eight-metal market, supply, and receipt proofbook
 │   ├── metals-entry-summary.json      # Compact integrity-checked Precious Metals launcher projection
 │   ├── ecosystem-apps.json            # Reviewed L1/L2 app and contract-discovery manifest
-│   ├── ecosystem-stats.json           # Complete generated weekly dapp activity ledger
-│   ├── ecosystem-entry-summary.json   # Compact integrity-checked Ecosystem launcher projection
+│   ├── ecosystem-stats.json           # Network-wide active addresses plus reviewed-dapp history
+│   ├── ecosystem-entry-summary.json   # Compact network and dapp Ecosystem launcher projection
 │   ├── whale-watch.json               # Complete 24h whale/dormancy snapshot and receipts
 │   ├── maxis-contracts.json            # Reviewed app/entrypoint taxonomy
 │   ├── maxis-careers.json              # Exact all-history governance career records
@@ -136,7 +136,7 @@ tezos.systems/
 │   ├── refresh-capital-data.mjs       # Public-source Capital snapshot generator/checker
 │   ├── refresh-minerals-data.mjs      # Critical Minerals snapshot and launcher generator/checker
 │   ├── refresh-metals-data.mjs        # Precious Metals snapshot and launcher generator/checker
-│   ├── refresh-ecosystem-stats.mjs    # Complete weekly L1/L2 dapp history generator/checker
+│   ├── refresh-ecosystem-stats.mjs    # Network active-address and reviewed-dapp generator/checker
 │   ├── generate-ecosystem-entry-summary.mjs # Compact Ecosystem launcher projection
 │   ├── refresh-whale-watch-data.mjs   # Complete large-transfer/dormancy snapshot generator
 │   ├── refresh-tezoscrp-awards.mjs    # Official Medium RSS award refresh/checker
@@ -667,12 +667,22 @@ inline modal styles in `js/core/app.js`.
   buy, sell, swap, bridge, or redeem action. Its compact launcher reads an
   integrity-checked projection while the complete source ledger loads only
   after the room opens and retains per-source last-good state.
-- Ecosystem Activity with direct `#ecosystem` and `/ecosystem/` access. It
-  ranks the disclosed Tezos L1 and Etherlink app universe by distinct
-  source-native wallet addresses in the last completed Monday-to-Monday UTC
-  week, keeps the in-progress week visibly partial and out of the ranking, and
-  exposes interactions, calls per wallet, returning-wallet rate, WoW, YoY, and
-  selectable 12W/1Y/3Y/all history. The reviewed Etherlink exchange slice
+- Ecosystem Activity with direct `#ecosystem` and `/ecosystem/` access. Its
+  primary measure is every transaction-active source-native wallet-layer
+  address in the last completed Monday-to-Monday UTC week, with the in-progress
+  week shown separately as partial. Tezos L1 counts distinct implicit senders
+  of applied top-level transactions; Etherlink uses the official weekly Active
+  Accounts series, which counts distinct transaction `from` addresses in
+  consensus blocks. The two source-native layer counts are summed without
+  claiming that addresses are people or inferring cross-layer ownership. This
+  network monitor starts with the latest completed week and appends completed
+  weeks over time rather than presenting an invented historical backfill.
+
+  A separate reviewed-dapp subset ranks the disclosed Tezos L1 and Etherlink
+  app universe by distinct source-native wallet addresses, retains its complete
+  historical ledger, and exposes interactions, calls per wallet,
+  returning-wallet rate, WoW, YoY, and selectable 12W/1Y/3Y/all history. The
+  reviewed Etherlink exchange slice
   includes every exchange in Etherlink's
   [current official directory](https://docs.etherlink.com/tools/exchanges/):
   Curve, Hanji, Oku Trade, and IguanaDEX, using their first-party deployment
@@ -685,9 +695,9 @@ inline modal styles in `js/core/app.js`.
   aggregate inputs only and are not published in the browser artifact. The
   homepage fetches a compact projection;
   the complete history waits for an explicit room open and then follows the
-  quiet-refresh contract. That compact launcher shows the completed-week top
-  three above three summary tiles on desktop, while narrow phones retain the
-  lead app plus completed-week, tracked-app, and partial-week summaries.
+  quiet-refresh contract. That compact launcher leads with all active
+  wallet-layer addresses, keeps the reviewed-dapp subset visibly distinct,
+  and retains the completed-week app leaders on desktop and narrow phones.
 - Staking Chamber with direct `#staking` and `/stake/` access, while the existing
   `/staking/` guide remains the explanatory staking page. Its narrow launcher
   keeps one latest applied stake and one latest applied unstake strictly over
@@ -1212,7 +1222,7 @@ The governance SEO page also funnels high-intent searches into `/chamber/`,
 
 | Source | Purpose |
 |--------|---------|
-| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, baker Octez software/version telemetry, blocks, operations, account transfer flow, governance, accounts, Maxis account/delegate ranks and recognized app calls, Ecosystem Activity's frozen L1 contract catalog and complete applied top-level transaction backfill, Etherlink governance contract discovery/storage/bigmaps, ctez oven discovery, and Capital's Tezos counters, 30-day transaction-operation series, and completed-day L1 block-fee pools |
+| TzKT `https://api.tzkt.io/v1` | Chain stats, delegates, baker Octez software/version telemetry, blocks, operations, account transfer flow, governance, accounts, Maxis account/delegate ranks and recognized app calls, Ecosystem Activity's network-wide distinct implicit senders of applied top-level transactions plus its frozen L1 contract catalog and complete reviewed-dapp backfill, Etherlink governance contract discovery/storage/bigmaps, ctez oven discovery, and Capital's Tezos counters, 30-day transaction-operation series, and completed-day L1 block-fee pools |
 | Octez RPC `https://eu.rpc.tez.capital` | Issuance, supply, constants, cycle/head metadata |
 | Official Octez mainnet RPC `https://tezos-mainnet.octez.io` | Current-cycle baking-power distribution used for Network Health's live one-third and two-thirds address coefficients |
 | Teztale `https://teztale-server-mainnet-ro-prd.octez.tech` | Consensus timing lens for Network Health, including earliest-observer, endorsing-power-weighted reception distributions, exact two-thirds and 90% arrival thresholds, validation-to-quorum phases, and observer count; Teztale is by Nomadic Labs |
@@ -1224,7 +1234,7 @@ The governance SEO page also funnels high-intent searches into `/chamber/`,
 | OBJKT APIs | HEN mode's live Teia + OBJKT feed, My Tezos summary-first Collection holdings and profiles, Maxis 30-day buyer/artist ranks, and Capital's source-bounded art-economy history |
 | Supabase REST | Historical Tezos snapshots via public anon client config |
 | DefiLlama `https://api.llama.fi` | Tezos and Etherlink TVL, protocol, stablecoin, and public RWA registry histories plus Uranium.io protocol context; DefiLlama currently indexes Tezos X as Etherlink |
-| Etherlink Blockscout `https://explorer.etherlink.com/api` plus `/api/v2` and stats service | Ecosystem Activity's successful inbound transaction histories for reviewed app contracts; My Tezos account-linked L2 counters, assets, and receipts; Tezos X chamber transaction, address, gas, and block stats; Capital's current counters, daily activity, transaction fees, average user fees, and gas-price history; Uranium's xU3O8 supply; Metals' VNXAU contract state; and Critical Minerals' bounded xCo, xNi, and RARE token metadata, counters, holder-address, latest-transfer, and verified-proxy receipts, all kept separate from custody or backing evidence |
+| Etherlink Blockscout `https://explorer.etherlink.com/api` plus `/api/v2` and stats service | Ecosystem Activity's official weekly Active Accounts series and successful inbound transaction histories for reviewed app contracts; My Tezos account-linked L2 counters, assets, and receipts; Tezos X chamber transaction, address, gas, and block stats; Capital's current counters, daily activity, transaction fees, average user fees, and gas-price history; Uranium's xU3O8 supply; Metals' VNXAU contract state; and Critical Minerals' bounded xCo, xNi, and RARE token metadata, counters, holder-address, latest-transfer, and verified-proxy receipts, all kept separate from custody or backing evidence |
 | Kraken public API and official listing notice | XU3O8/USD pair identity, status, ticker, OHLC, book levels, and bounded public trade receipts; a market venue, not backing or redemption proof |
 | Uranium.io issuer documentation, oracle, and proof-of-reserves page | Issuer-confirmed xU3O8 contract and terms, indicative USD/lb uranium reference, and the dated Cameco contract-balance statement |
 | Federal Register 90 FR 50494 | Canonical final 2025 U.S. critical-minerals list of 60 entries; list membership is taxonomy, not evidence of a current price, reserve, or investable product |
@@ -1244,8 +1254,8 @@ The governance SEO page also funnels high-intent searches into `/chamber/`,
 | `data/metals-entry-summary.json` | Compact integrity-checked Precious Metals launcher projection; the complete eight-metal market, annual-context, and VNXAU receipt ledger waits for an explicit room open |
 | `data/metals-snapshot.json` | Same-origin generated Precious Metals dataset with stable content and source hashes, completed-month IMF observations, separately clocked indicative references, USGS annual context, and chain-scoped VNXAU receipts |
 | `data/ecosystem-apps.json` | Reviewed app identity, layer, start-time, contract-discovery, and proof manifest for the disclosed ranking universe |
-| `data/ecosystem-stats.json` | Same-origin generated weekly active-wallet and interaction history with stable content hash, frozen contract receipts, last-completed-week rankings, and a separate partial current-week pulse |
-| `data/ecosystem-entry-summary.json` | Compact, integrity-checked Ecosystem launcher projection; the complete weekly and per-app history waits for an explicit room open |
+| `data/ecosystem-stats.json` | Same-origin generated network-wide completed/partial active-address totals plus the separate reviewed-dapp weekly wallet and interaction ledger, with stable content hash, frozen contract receipts, and last-completed-week app rankings |
+| `data/ecosystem-entry-summary.json` | Compact, integrity-checked network-wide active-address and reviewed-dapp launcher projection; the complete per-app history waits for an explicit room open |
 | `data/maxis/entry-summary.json` | Compact, integrity-checked launcher projection generated from the reviewed ongoing, L2 Governance, manifest, and active-season Maxis artifacts; full Maxis and Baker Directory governance ledgers wait for an explicit room open |
 | Tezos Commons rewards page and official Medium publication | TezosCRP category definitions, official icons, monthly winner announcements, and source receipts |
 | `data/tezoscrp-awards.json` | Same-origin full TezosCRP recognition archive, with human-identity aliases, monthly/category coverage, and known published amounts kept separate from award counts |
@@ -1384,9 +1394,15 @@ rate-limit pacing. A normal
 refresh re-fetches a warm-up cohort plus the latest three completed weeks so
 returning-wallet rates remain reproducible; newly resolved contracts are
 append-only and move that rebuild boundary back to their first eligible week.
+Every refresh also cursor-scans the latest completed and current partial Tezos
+week for distinct implicit senders of applied top-level transactions and reads
+Etherlink's official weekly Active Accounts series. Those network-wide rows are
+kept separate from the reviewed-dapp ledger and begin at the first monitored
+completed week; future completed weeks append to that history.
 `npm run check:ecosystem` is network-free and validates the manifest receipt,
-stable content and contract-universe hashes, app and contract coverage, top-10
-availability, and 4 MiB browser payload budget. Scheduled/full generated runs
+stable content and contract-universe hashes, network layer sums and continuity,
+app and contract coverage, top-10 availability, and 4 MiB browser payload
+budget. Scheduled/full generated runs
 refresh and optionally stage the ledger; pre-commit validates it without
 rescanning chain history.
 `npm run refresh:whales` rebuilds the Whale Watch snapshot from complete,
@@ -1668,10 +1684,11 @@ Current smoke suites:
   room-aware protocol-season selector, Maxis/Season/Passport/Champions views,
   scoped load failures and finalization phases, career-plus-season address
   progression, Champion/rank receipts, and Ledger Flow handoff)
-- `ecosystem-activity` (covers last-completed-week ranking, the explicitly
-  partial current-week pulse, L1/L2 and category filters, complete app
-  directory, historical range controls, app proofbooks, quiet refresh, direct
-  `/ecosystem/` routing, and desktop/mobile containment)
+- `ecosystem-activity` (covers network-wide completed and partial active-address
+  totals, their separation from reviewed-dapp activity, last-completed-week app
+  ranking, L1/L2 and category filters, complete app directory, historical range
+  controls, app proofbooks, quiet refresh, direct `/ecosystem/` routing, and
+  desktop/mobile containment)
 - `launcher-projections` (proves Capital, Ecosystem Activity, and Maxis request only their compact
   summaries at first render, defers the Baker Directory governance ledger and
   reviewed full artifacts until room open, preserves launcher parity, accepts
@@ -1732,7 +1749,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v601`, including hero search, theme
+- Current aligned shell cache stamp: `v602`, including hero search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical
   Minerals lazy CSS loaders.

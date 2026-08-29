@@ -249,7 +249,7 @@ const EXPECTED_CHAMBER_CATEGORIES = [
   {
     key: 'ecosystem',
     label: 'Ecosystem',
-    question: 'Which apps are seeing on-chain activity?',
+    question: 'How many addresses are active, and which apps are they using?',
     cards: ['ecosystem-entry-card'],
     layouts: ['featured']
   },
@@ -19335,8 +19335,11 @@ async function smokeLauncherProjections(browser, baseUrl) {
   await page.waitForFunction(() => {
     const capitalPath = document.querySelector('#capital-entry-card .capital-entry-price-line')?.getAttribute('d') || '';
     const ecosystemPoints = document.querySelector('#ecosystem-entry-card .ecosystem-entry-sparkline polyline')?.getAttribute('points') || '';
+    const ecosystemMonitor = document.querySelector('#ecosystem-entry-card .ecosystem-entry-empty')?.textContent || '';
     const maxisIdentities = document.querySelectorAll('#maxis-entry-card [data-maxis-entry-identity]').length;
-    return capitalPath.length > 80 && ecosystemPoints.length > 40 && maxisIdentities === 10;
+    return capitalPath.length > 80
+      && (ecosystemPoints.length > 40 || /Network monitor starts here/i.test(ecosystemMonitor))
+      && maxisIdentities === 10;
   }, null, { timeout: 25000 });
   await page.waitForTimeout(250);
 
@@ -19384,6 +19387,8 @@ async function smokeLauncherProjections(browser, baseUrl) {
 
   const beforeOpen = await entryMarkup();
   assert(/CoinGecko/.test(beforeOpen.capital) && /6h schedule/.test(beforeOpen.capital), `Capital launcher freshness truth missing: ${beforeOpen.capital}`);
+  assert(/All active/.test(beforeOpen.ecosystem) && /Tracked-dapp activity/.test(beforeOpen.ecosystem),
+    `Ecosystem launcher must separate network-wide and reviewed-dapp activity: ${beforeOpen.ecosystem}`);
   assert(/6h schedule/.test(beforeOpen.ecosystemUpdated), `Ecosystem launcher schedule disclosure missing: ${beforeOpen.ecosystemUpdated}`);
   assert(/6h schedule/.test(beforeOpen.maxisUpdated), `Maxis launcher schedule disclosure missing: ${beforeOpen.maxisUpdated}`);
   await page.locator('#capital-entry-front').click();
@@ -19455,6 +19460,7 @@ async function smokeLauncherProjections(browser, baseUrl) {
   await noSubtlePage.waitForFunction(() => {
     const capitalPath = document.querySelector('#capital-entry-card .capital-entry-price-line')?.getAttribute('d') || '';
     const ecosystemPoints = document.querySelector('#ecosystem-entry-card .ecosystem-entry-sparkline polyline')?.getAttribute('points') || '';
+    const ecosystemMonitor = document.querySelector('#ecosystem-entry-card .ecosystem-entry-empty')?.textContent || '';
     const maxisIdentities = document.querySelectorAll('#maxis-entry-card [data-maxis-entry-identity]').length;
     const visibleText = [
       document.querySelector('#capital-entry-card')?.textContent || '',
@@ -19462,7 +19468,7 @@ async function smokeLauncherProjections(browser, baseUrl) {
       document.querySelector('#maxis-entry-card')?.textContent || ''
     ].join(' ');
     return capitalPath.length > 80
-      && ecosystemPoints.length > 40
+      && (ecosystemPoints.length > 40 || /Network monitor starts here/i.test(ecosystemMonitor))
       && maxisIdentities === 10
       && !/Unavailable/.test(visibleText);
   }, null, { timeout: 30000 });
@@ -23221,6 +23227,16 @@ async function smokeEcosystemActivity(browser, baseUrl) {
           snapshot.partialWeek.layers.etherlink.interactions = Number(snapshot.partialWeek.layers.etherlink.interactions || 0) + revision;
         }
       }
+      if (snapshot.networkActivity?.partialWeek) {
+        snapshot.networkActivity.partialWeek.observedAt = generatedAt;
+        if (snapshot.networkActivity.partialWeek.all) {
+          snapshot.networkActivity.partialWeek.all.activeWallets = Number(snapshot.networkActivity.partialWeek.all.activeWallets || 0) + revision;
+        }
+        if (snapshot.networkActivity.partialWeek.layers?.etherlink) {
+          snapshot.networkActivity.partialWeek.layers.etherlink.activeWallets = Number(snapshot.networkActivity.partialWeek.layers.etherlink.activeWallets || 0) + revision;
+          snapshot.networkActivity.partialWeek.layers.etherlink.approximate = true;
+        }
+      }
       const morphoWeek = snapshot.apps?.find((app) => app.id === 'morpho-blue')?.weekly?.at(-1);
       if (morphoWeek?.all) {
         morphoWeek.all.activeWallets = Number(morphoWeek.all.activeWallets || 0) + revision;
@@ -23242,6 +23258,7 @@ async function smokeEcosystemActivity(browser, baseUrl) {
     entry.source.contentHash = snapshot.contentHash;
     entry.source.fileSha256 = createHash('sha256').update(sourceText).digest('hex');
     if (snapshot.partialWeek) entry.partialWeek = clone(snapshot.partialWeek);
+    if (snapshot.networkActivity) entry.networkActivity = clone(snapshot.networkActivity);
     const { contentHash: ignored, ...unsigned } = entry;
     entry.contentHash = stableTestHash(unsigned);
     return entry;
@@ -23325,6 +23342,9 @@ async function smokeEcosystemActivity(browser, baseUrl) {
     directoryCards: document.querySelectorAll('#ecosystem-activity-modal .ecosystem-directory-card').length,
     charts: document.querySelectorAll('#ecosystem-activity-modal .ecosystem-chart svg').length,
     partialText: document.querySelector('#ecosystem-activity-modal .ecosystem-kpis .is-partial')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    networkText: document.querySelector('#ecosystem-activity-modal [data-ecosystem-network-kpi]')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    trackedText: Array.from(document.querySelectorAll('#ecosystem-activity-modal .ecosystem-kpis article'))
+      .find((node) => /Tracked-app wallets/i.test(node.textContent || ''))?.textContent?.replace(/\s+/g, ' ').trim() || '',
     methodology: document.querySelector('#ecosystem-activity-modal .ecosystem-methodology')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     sourceLinks: document.querySelectorAll('#ecosystem-activity-modal .ecosystem-footer a[href^="https://"]').length,
     rawWalletRows: document.querySelectorAll('#ecosystem-activity-modal [data-wallet], #ecosystem-activity-modal [data-address]').length
@@ -23333,7 +23353,11 @@ async function smokeEcosystemActivity(browser, baseUrl) {
     `ecosystem activity: direct route state drifted ${JSON.stringify(initial)}`);
   assert(initial.topRows === 10 && initial.directoryCards >= 10 && initial.charts >= 4
     && /partial through/i.test(initial.partialText)
+    && /Tezos L1 active addresses/i.test(initial.networkText)
+    && /Tracked-app wallets/i.test(initial.trackedText)
     && /pseudonymous addresses, not people/i.test(initial.methodology)
+    && /TzKT all-address scan:.*initiator\.null=true.*daily id\.gt keyset/i.test(initial.methodology)
+    && /Etherlink all-address chart: activeAccounts · WEEK/i.test(initial.methodology)
     && /TzKT catalog:.*id\.gt keyset/i.test(initial.methodology)
     && /Contract-universe SHA-256: [0-9a-f]{64}/i.test(initial.methodology)
     && initial.sourceLinks >= 2 && initial.rawWalletRows === 0,

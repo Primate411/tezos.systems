@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 export const ECOSYSTEM_SCHEMA_VERSION = 1;
 export const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 export const LAYER_IDS = Object.freeze(['tezos', 'etherlink']);
+export const TEZOS_IMPLICIT_ADDRESS_PATTERN = /^tz[1-4][1-9A-HJ-NP-Za-km-z]{33}$/;
 
 export function stableValue(value) {
   if (Array.isArray(value)) return value.map(stableValue);
@@ -44,6 +45,14 @@ export function addWeeks(value, count) {
   return new Date(new Date(value).getTime() + count * WEEK_MS);
 }
 
+export function networkRebuildStart(previousWeeks, lastCompleteStart) {
+  const latestStart = new Date(lastCompleteStart);
+  const previousEnd = new Date(Array.isArray(previousWeeks) ? previousWeeks.at(-1)?.weekEnd || '' : '').getTime();
+  return Number.isFinite(previousEnd) && previousEnd < latestStart.getTime()
+    ? new Date(previousEnd)
+    : latestStart;
+}
+
 export function iso(value) {
   return new Date(value).toISOString();
 }
@@ -68,6 +77,23 @@ export function mergeMetric(target, source, walletPrefix = '') {
   for (const wallet of source.wallets || []) target.wallets.add(`${walletPrefix}${wallet}`);
   for (const operation of source.operations || []) target.operations.add(operation);
   return target;
+}
+
+export function tezosNetworkWallet(transaction) {
+  const address = transaction?.initiator?.address || transaction?.sender?.address || null;
+  return TEZOS_IMPLICIT_ADDRESS_PATTERN.test(address || '') ? address : null;
+}
+
+export function combineNetworkActivity(layers, status = 'complete') {
+  const metrics = LAYER_IDS.map((layerId) => layers?.[layerId]);
+  if (metrics.some((metric) => !Number.isSafeInteger(metric?.activeWallets) || metric.activeWallets < 0)) {
+    return { status: 'unavailable', activeWallets: null, approximate: false };
+  }
+  return {
+    status,
+    activeWallets: metrics.reduce((total, metric) => total + metric.activeWallets, 0),
+    approximate: metrics.some((metric) => metric.approximate === true)
+  };
 }
 
 export function publicMetric(metric, previousMetric = null) {
@@ -189,7 +215,7 @@ export function snapshotContentHash(snapshot) {
   return stableHash(unsigned);
 }
 
-export function validateSnapshot(snapshot, manifest = null) {
+export function validateSnapshot(snapshot, manifest = null, { allowMissingNetworkActivity = false } = {}) {
   const errors = [];
   const validCount = (value) => Number.isSafeInteger(value) && value >= 0;
   const nullMetric = (metric) => (
@@ -228,6 +254,69 @@ export function validateSnapshot(snapshot, manifest = null) {
   if (!Array.isArray(snapshot?.apps) || snapshot.apps.length < 10) errors.push('snapshot must contain at least 10 apps');
   if (!Array.isArray(snapshot?.weeks) || !snapshot.weeks.length) errors.push('snapshot must contain ecosystem weeks');
   if (!Array.isArray(snapshot?.rankings?.all) || snapshot.rankings.all.length < 10) errors.push('snapshot must contain a top 10 all-layer ranking');
+  const networkActivity = snapshot?.networkActivity;
+  if (!networkActivity) {
+    if (!allowMissingNetworkActivity) errors.push('snapshot network-wide activity is missing');
+  } else {
+    const networkRows = networkActivity.weeks;
+    if (!Array.isArray(networkRows) || !networkRows.length) {
+      errors.push('snapshot network-wide activity must contain completed weeks');
+    } else {
+      if (networkActivity.coverageStart !== networkRows[0]?.weekStart) {
+        errors.push('snapshot network-wide activity coverageStart does not match its first week');
+      }
+      for (const [index, row] of networkRows.entries()) {
+        if (row?.status !== 'complete'
+          || !Number.isFinite(Date.parse(row?.weekStart || ''))
+          || row?.weekEnd !== iso(addWeeks(row.weekStart, 1))) {
+          errors.push(`network-wide week ${index} has invalid boundaries or status`);
+          continue;
+        }
+        const layers = row.layers || {};
+        for (const layerId of LAYER_IDS) {
+          const metric = layers[layerId];
+          if (metric?.status !== 'complete'
+            || !validCount(metric?.activeWallets)
+            || typeof metric?.approximate !== 'boolean') {
+            errors.push(`network-wide week ${index} ${layerId} metric is invalid`);
+          }
+        }
+        const expected = combineNetworkActivity(layers, 'complete');
+        if (row?.all?.status !== 'complete'
+          || row.all.activeWallets !== expected.activeWallets
+          || row.all.approximate !== expected.approximate) {
+          errors.push(`network-wide week ${index} all-layer metric does not match its layers`);
+        }
+        if (index > 0 && row.weekStart !== networkRows[index - 1].weekEnd) {
+          errors.push(`network-wide week ${index} is not contiguous`);
+        }
+      }
+      if (networkRows.at(-1)?.weekStart !== snapshot?.completeWeek?.weekStart) {
+        errors.push('latest network-wide week is not completeWeek');
+      }
+    }
+    const networkPartial = networkActivity.partialWeek;
+    if (networkPartial?.weekStart !== snapshot?.partialWeek?.weekStart
+      || networkPartial?.observedAt !== snapshot?.partialWeek?.observedAt
+      || networkPartial?.status !== 'partial') {
+      errors.push('network-wide partial week does not match the snapshot boundary');
+    } else {
+      for (const layerId of LAYER_IDS) {
+        const metric = networkPartial.layers?.[layerId];
+        if (metric?.status !== 'partial'
+          || !validCount(metric?.activeWallets)
+          || typeof metric?.approximate !== 'boolean') {
+          errors.push(`network-wide partial ${layerId} metric is invalid`);
+        }
+      }
+      const expected = combineNetworkActivity(networkPartial.layers, 'partial');
+      if (networkPartial?.all?.status !== 'partial'
+        || networkPartial.all.activeWallets !== expected.activeWallets
+        || networkPartial.all.approximate !== expected.approximate) {
+        errors.push('network-wide partial all-layer metric does not match its layers');
+      }
+    }
+  }
   if (Array.isArray(snapshot?.apps)) {
     const expectedCategories = [...new Set(snapshot.apps.map((app) => app.category))].sort();
     const expectedLayers = Object.fromEntries(LAYER_IDS.map((layerId) => [

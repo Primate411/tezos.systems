@@ -10,15 +10,18 @@ import {
   LAYER_IDS,
   WEEK_MS,
   addWeeks,
+  combineNetworkActivity,
   contractUniverseHash,
   emptyMetric,
   iso,
   mergeMetric,
   mergeResolvedContracts,
+  networkRebuildStart,
   publicMetric,
   rankApps,
   stableHash,
   summarizeApp,
+  tezosNetworkWallet,
   utcWeekStart,
   validateManifest,
   validateSnapshot
@@ -29,6 +32,7 @@ const MANIFEST_FILE = path.join(ROOT, 'data/ecosystem-apps.json');
 const OUTPUT_FILE = path.join(ROOT, 'data/ecosystem-stats.json');
 const TZKT = 'https://api.tzkt.io/v1';
 const ETHERLINK = 'https://explorer.etherlink.com/api';
+const ETHERLINK_STATS = 'https://explorer.etherlink.com/stats-service/api/v1';
 const TZKT_PAGE_SIZE = 10_000;
 const TZKT_ADDRESS_BATCH = 25;
 const BLOCKSCOUT_MAX_ROWS = 10_000;
@@ -36,11 +40,13 @@ const REQUEST_CONCURRENCY = 8;
 const BLOCKSCOUT_REQUEST_CONCURRENCY = 2;
 const BLOCKSCOUT_REQUEST_GAP_MS = 1_200;
 const BLOCKSCOUT_MAX_QUERY_RANGE_MS = 7 * 24 * 60 * 60 * 1000;
+const TZKT_NETWORK_REQUEST_GAP_MS = 350;
 const RECENT_WEEKS_TO_REBUILD = 3;
 const tzktCatalogReceipt = [];
 const execFileAsync = promisify(execFile);
 let blockscoutRequestGate = Promise.resolve();
 let blockscoutNextRequestAt = 0;
+let tzktNetworkNextRequestAt = 0;
 
 // Raw wallet sets are aggregate-only generator state. They are never written
 // to the public snapshot or launcher projection.
@@ -103,6 +109,41 @@ async function requestJson(url, { attempts = 4 } = {}) {
     await wait(Math.min(4_000, attempt * 500));
   }
   throw lastError;
+}
+
+async function requestTzktNetworkJson(url, { attempts = 8 } = {}) {
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    const paceDelay = Math.max(0, tzktNetworkNextRequestAt - Date.now());
+    if (paceDelay) await wait(paceDelay);
+    tzktNetworkNextRequestAt = Date.now() + TZKT_NETWORK_REQUEST_GAP_MS;
+    let retryAfterMs = 0;
+    try {
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(60_000),
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'tezos.systems network-wide activity generator'
+        }
+      });
+      if (response.ok) return response.json();
+      const body = await response.text();
+      const retryAfter = Number(response.headers.get('retry-after'));
+      if (Number.isFinite(retryAfter) && retryAfter > 0) retryAfterMs = retryAfter * 1000;
+      if (response.status !== 429 && ![500, 502, 503, 504].includes(response.status)) {
+        throw new Error(`HTTP ${response.status}: ${body.slice(0, 240)}`);
+      }
+      lastError = new Error(`HTTP ${response.status}: ${body.slice(0, 240)}`);
+    } catch (error) {
+      lastError = error;
+    }
+    if (attempt < attempts) {
+      const delay = Math.max(retryAfterMs, Math.min(30_000, 1_000 * (2 ** (attempt - 1))));
+      console.warn(`TzKT network-wide scan throttled; retrying in ${Math.round(delay / 1000)}s (${attempt}/${attempts})`);
+      await waitForRetry(delay);
+    }
+  }
+  throw new Error(`TzKT network-wide scan exhausted ${attempts} attempts: ${cleanError(lastError)}`);
 }
 
 async function paceBlockscoutRequest() {
@@ -390,6 +431,82 @@ async function fetchTzktMetrics(assignments, from, to) {
     for (const [appId, metric] of local) mergeMetric(metrics.get(appId), metric);
   }
   return metrics;
+}
+
+async function fetchTzktNetworkMetric(from, to, status) {
+  const wallets = new Set();
+  const fromMs = new Date(from).getTime();
+  const toMs = new Date(to).getTime();
+  assert(Number.isFinite(fromMs) && Number.isFinite(toMs) && fromMs < toMs, 'Invalid TzKT network-wide activity range');
+  let transactionsScanned = 0;
+  let requests = 0;
+
+  for (let dayStartMs = fromMs; dayStartMs < toMs; dayStartMs += 24 * 60 * 60 * 1000) {
+    const dayStart = new Date(dayStartMs);
+    const dayEnd = new Date(Math.min(dayStartMs + (24 * 60 * 60 * 1000), toMs));
+    let after = 0;
+    while (true) {
+      const query = new URLSearchParams({
+        'timestamp.ge': iso(dayStart),
+        'timestamp.lt': iso(dayEnd),
+        status: 'applied',
+        'initiator.null': 'true',
+        'select.values': 'id,sender',
+        'sort.asc': 'id',
+        limit: String(TZKT_PAGE_SIZE)
+      });
+      if (after) query.set('id.gt', String(after));
+      const rows = await requestTzktNetworkJson(`${TZKT}/operations/transactions?${query}`);
+      assert(Array.isArray(rows), 'TzKT network-wide transaction response is not an array');
+      requests += 1;
+      transactionsScanned += rows.length;
+      for (const row of rows) {
+        const [id, sender] = row;
+        const wallet = tezosNetworkWallet({ sender });
+        if (wallet) wallets.add(wallet);
+        after = Number(id);
+      }
+      if (rows.length < TZKT_PAGE_SIZE) break;
+      assert(Number.isSafeInteger(after), 'TzKT network-wide transaction keyset did not advance');
+    }
+  }
+
+  console.log(`Measured ${wallets.size} Tezos network-wide active addresses from ${transactionsScanned} applied top-level transactions`);
+  return {
+    status,
+    activeWallets: wallets.size,
+    approximate: false,
+    transactionsScanned,
+    requests
+  };
+}
+
+async function fetchEtherlinkNetworkChart(from, to) {
+  const query = new URLSearchParams({
+    from: iso(from).slice(0, 10),
+    to: iso(to).slice(0, 10),
+    resolution: 'WEEK'
+  });
+  const payload = await requestJson(`${ETHERLINK_STATS}/lines/activeAccounts?${query}`);
+  assert(payload?.info?.id === 'activeAccounts', 'Etherlink network-wide source did not return the activeAccounts chart');
+  assert(payload.info.resolutions?.includes('WEEK'), 'Etherlink activeAccounts chart does not expose weekly resolution');
+  assert(Array.isArray(payload.chart), 'Etherlink activeAccounts chart is missing rows');
+  return new Map(payload.chart.map((row) => [row.date, row]));
+}
+
+function etherlinkNetworkMetric(chart, weekStart, status) {
+  const row = chart.get(iso(weekStart).slice(0, 10));
+  const activeWallets = Number(row?.value);
+  assert(Number.isSafeInteger(activeWallets) && activeWallets >= 0, `Etherlink activeAccounts is unavailable for ${iso(weekStart).slice(0, 10)}`);
+  return {
+    status,
+    activeWallets,
+    approximate: row?.is_approximate === true,
+    sourcePeriod: {
+      from: row.date,
+      to: row.date_to
+    }
+  };
 }
 
 function blockscoutSucceeded(row) {
@@ -729,6 +846,54 @@ function mergeRows(existing, replacement, replaceFrom) {
   ].sort((left, right) => Date.parse(left.weekStart) - Date.parse(right.weekStart));
 }
 
+async function buildNetworkActivity(existing, lastCompleteStart, currentWeekStart, generatedAt) {
+  const previousWeeks = Array.isArray(existing?.weeks) ? existing.weeks : [];
+  const rebuildStart = networkRebuildStart(previousWeeks, lastCompleteStart);
+  const etherlinkChartPromise = fetchEtherlinkNetworkChart(rebuildStart, generatedAt);
+  const completedTezos = [];
+  for (let weekStart = new Date(rebuildStart); weekStart < currentWeekStart; weekStart = addWeeks(weekStart, 1)) {
+    const weekEnd = addWeeks(weekStart, 1);
+    completedTezos.push({
+      weekStart,
+      weekEnd,
+      metric: await fetchTzktNetworkMetric(weekStart, weekEnd, 'complete')
+    });
+  }
+  const tezosPartial = await fetchTzktNetworkMetric(currentWeekStart, generatedAt, 'partial');
+  const etherlinkChart = await etherlinkChartPromise;
+  const replacements = completedTezos.map(({ weekStart, weekEnd, metric }) => {
+    const layers = {
+      tezos: metric,
+      etherlink: etherlinkNetworkMetric(etherlinkChart, weekStart, 'complete')
+    };
+    return {
+      weekStart: iso(weekStart),
+      weekEnd: iso(weekEnd),
+      status: 'complete',
+      layers,
+      all: combineNetworkActivity(layers, 'complete')
+    };
+  });
+  const partialLayers = {
+    tezos: tezosPartial,
+    etherlink: etherlinkNetworkMetric(etherlinkChart, currentWeekStart, 'partial')
+  };
+  const weeks = mergeRows(previousWeeks, replacements, rebuildStart);
+  const partialWeek = {
+    weekStart: iso(currentWeekStart),
+    observedAt: iso(generatedAt),
+    status: 'partial',
+    layers: partialLayers,
+    all: combineNetworkActivity(partialLayers, 'partial')
+  };
+  return {
+    definition: 'Distinct source-native addresses originating transactions anywhere on each layer; the all-layer value sums wallet-layer identities without inferring shared ownership',
+    coverageStart: weeks[0].weekStart,
+    weeks,
+    partialWeek
+  };
+}
+
 function normalizeEcosystemCoverage(rows, manifest) {
   const firstActive = Object.fromEntries(LAYER_IDS.map((layerId) => [
     layerId,
@@ -771,7 +936,7 @@ async function buildSnapshot(manifest, existing, generatedAt) {
   const manifestHash = stableHash(manifest);
   const reusableExisting = existing
     && existing.manifestHash === manifestHash
-    && validateSnapshot(existing, manifest).length === 0
+    && validateSnapshot(existing, manifest, { allowMissingNetworkActivity: true }).length === 0
     ? existing
     : null;
   const resolved = await resolveContracts(manifest, reusableExisting);
@@ -863,18 +1028,36 @@ async function buildSnapshot(manifest, existing, generatedAt) {
   for (const layerId of LAYER_IDS) mergeMetric(partialAll, partialTotals[layerId], `${layerId}:`);
 
   const weeks = normalizeEcosystemCoverage(mergeRows(existing?.weeks, ecosystemRows, replaceFrom), manifest);
+  const networkActivity = await buildNetworkActivity(
+    reusableExisting?.networkActivity,
+    lastCompleteStart,
+    currentWeekStart,
+    generatedAt
+  );
   const sourceReceipts = {
     tzkt: {
       label: 'TzKT API',
       url: 'https://api.tzkt.io/',
       credit: 'Powered by TzKT API',
-      role: 'Applied top-level Tezos transactions and reviewed contract aliases',
+      role: 'Network-wide applied top-level Tezos senders, reviewed-app transactions, and contract aliases',
+      networkActivity: {
+        endpoint: '/v1/operations/transactions',
+        filter: 'status=applied, initiator.null=true, implicit sender',
+        pagination: 'daily id.gt keyset',
+        pageSize: TZKT_PAGE_SIZE
+      },
       catalog: [...tzktCatalogReceipt].sort((left, right) => left.kind.localeCompare(right.kind, 'en'))
     },
     etherlink: {
       label: 'Etherlink Blockscout',
       url: 'https://explorer.etherlink.com/',
-      role: 'Successful inbound address-scoped Etherlink transactions from complete CSV exports or bounded JSON ranges'
+      role: 'Official network-wide weekly active-account statistics plus successful inbound reviewed-app transactions',
+      networkActivity: {
+        endpoint: '/stats-service/api/v1/lines/activeAccounts',
+        chart: 'activeAccounts',
+        resolution: 'WEEK',
+        definition: 'Distinct from-addresses on transactions in consensus blocks'
+      }
     }
   };
   const unsigned = {
@@ -884,6 +1067,9 @@ async function buildSnapshot(manifest, existing, generatedAt) {
     contractUniverseHash: resolvedHash,
     methodology: {
       weekBoundary: 'Monday 00:00 UTC through the following Monday 00:00 UTC',
+      networkActivity: 'Distinct transaction-originating addresses anywhere on the selected layer during the week',
+      networkTezosWallet: 'Implicit sender on an applied top-level TzKT transaction; this is equivalent to using the initiator for internal calls and otherwise the external sender',
+      networkEtherlinkWallet: 'Official Blockscout Active Accounts weekly value: distinct from-addresses on transactions in consensus blocks; the current week may be approximate while it is still open',
       ranking: 'Distinct source-native wallets with at least one successful top-level call to a reviewed app contract in the last completed week',
       tezosWallet: 'Implicit tz1-tz4 sender on an applied nonce-free TzKT transaction',
       etherlinkWallet: 'Nonzero EVM from address on a successful inbound Blockscout transaction',
@@ -891,7 +1077,7 @@ async function buildSnapshot(manifest, existing, generatedAt) {
       interaction: 'One unique top-level operation or EVM transaction hash',
       retention: 'Share of the previous completed week wallet cohort returning in the current completed week',
       yoy: 'Change from the weekday-aligned week beginning 52 weeks earlier',
-      caveat: 'Wallets are pseudonymous addresses, not people. Automation and multi-wallet behavior are not inferred away. Alias-based L1 families are exhaustively resolved from paged TzKT smart-contract and asset rows, frozen and retained append-only across refreshes; a new match rebuilds from its first eligible week. The ranking covers only that disclosed contract universe.'
+      caveat: 'Wallets are pseudonymous addresses, not people. Automation, account-abstraction users, and multi-wallet behavior are not inferred away. The network-wide count and reviewed-app ranking are separate measures. Alias-based L1 app families are exhaustively resolved from paged TzKT smart-contract and asset rows, frozen and retained append-only across refreshes; a new match rebuilds from its first eligible week. The ranking covers only that disclosed contract universe.'
     },
     universe: {
       eligibleApps: apps.length,
@@ -915,6 +1101,7 @@ async function buildSnapshot(manifest, existing, generatedAt) {
       }])),
       all: { status: 'partial', ...publicMetric(partialAll) }
     },
+    networkActivity,
     sourceReceipts,
     weeks,
     rankings: {
