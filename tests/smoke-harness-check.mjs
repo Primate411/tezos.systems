@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import {
   executeSuiteCatalog,
   formatSuiteSummary,
@@ -187,6 +191,25 @@ async function main() {
   });
   assert.equal(overrideRuns, 3);
   assert.equal(suiteRepeatOverride[0].repeatEach, 3);
+
+  const versionOutputDir = await mkdtemp(path.join(os.tmpdir(), 'tezos-playwright-version-'));
+  try {
+    const versionOutputPath = path.join(versionOutputDir, 'github-output');
+    const resolver = spawnSync(process.execPath, ['scripts/resolve-playwright-version.mjs'], {
+      cwd: process.cwd(),
+      env: { ...process.env, GITHUB_OUTPUT: versionOutputPath },
+      encoding: 'utf8'
+    });
+    assert.equal(resolver.status, 0, resolver.stderr || resolver.stdout);
+    const packageJson = JSON.parse(await readFile('node_modules/playwright/package.json', 'utf8'));
+    assert.equal(
+      await readFile(versionOutputPath, 'utf8'),
+      `version=${packageJson.version}\n`,
+      'workflow helper must publish the installed Playwright version through GITHUB_OUTPUT'
+    );
+  } finally {
+    await rm(versionOutputDir, { recursive: true, force: true });
+  }
 
   console.log('ok - smoke harness sharding, affected ownership, repetition, assertion/infra retry classification, continuation, and summaries');
 }

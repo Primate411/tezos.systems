@@ -127,6 +127,7 @@ tezos.systems/
 │   ├── static-checks.mjs              # Dependency-free repo contract checks
 │   └── smoke.mjs                      # Playwright browser smoke suites
 ├── scripts/
+│   ├── resolve-playwright-version.mjs # Portable GitHub Actions cache-key output
 │   ├── refresh-governance-data.mjs    # Canonical governance refresh command
 │   ├── refresh-maxis-data.mjs         # Canonical Maxis and protocol-season artifacts
 │   ├── refresh-maxis-careers.mjs      # Canonical governance career history

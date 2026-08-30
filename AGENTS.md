@@ -46,7 +46,9 @@ the highest-risk gotchas.
 - Playwright callers should use `scripts/lib/playwright-browser.cjs`. It tries
   bundled Chromium first, falls back to system Chrome/Chromium, and honors
   `BROWSER_EXECUTABLE_PATH`; do not copy browser-candidate lists into new
-  scripts.
+  scripts. GitHub workflows must resolve the installed package version through
+  `scripts/resolve-playwright-version.mjs`; do not inline nested shell quoting
+  for the Playwright browser cache key.
 - `tests/smoke.mjs` supports deterministic runtime-balanced `--shard
   index/total` selection from `tests/fixtures/smoke-suite-costs.json`,
   `--continue-on-failure`, diagnostic fresh-browser assertion retries, typed

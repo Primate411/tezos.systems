@@ -1346,6 +1346,7 @@ async function checkRequiredFiles() {
     'tests/lib/smoke-metadata.mjs',
     'tests/fixtures/smoke-intentional-waits.json',
     'tests/fixtures/smoke-suite-costs.json',
+    'scripts/resolve-playwright-version.mjs',
     'scripts/update-smoke-costs.mjs',
     '.github/workflows/smoke-canary.yml',
     'data/protocol-data.json',
@@ -6728,6 +6729,8 @@ async function checkSmokeSuiteCatalogContracts() {
   const affected = await readText('tests/lib/smoke-affected.mjs');
   const metadata = await readText('tests/lib/smoke-metadata.mjs');
   const costUpdater = await readText('scripts/update-smoke-costs.mjs');
+  const versionResolver = await readText('scripts/resolve-playwright-version.mjs');
+  const ciWorkflow = await readText('.github/workflows/ci.yml');
   const canaryWorkflow = await readText('.github/workflows/smoke-canary.yml');
   const intentionalWaits = JSON.parse(await readText('tests/fixtures/smoke-intentional-waits.json'));
   const suiteCosts = JSON.parse(await readText('tests/fixtures/smoke-suite-costs.json'));
@@ -6765,6 +6768,17 @@ async function checkSmokeSuiteCatalogContracts() {
   }
   for (const snippet of ['githubActions', 'result.status !== \'passed\'', 'median(values)', 'planSuiteShards', 'observed * 0.7']) {
     if (!costUpdater.includes(snippet)) fail(`hosted smoke timing learner must preserve ${snippet}`);
+  }
+  for (const [label, workflow] of [['CI', ciWorkflow], ['nightly canary', canaryWorkflow]]) {
+    if (!workflow.includes('run: node scripts/resolve-playwright-version.mjs')) {
+      fail(`${label} must resolve the installed Playwright version through the tested portable helper`);
+    }
+    if (workflow.includes('node -p \\"require(')) {
+      fail(`${label} must not restore the nested shell quoting that breaks Playwright version resolution`);
+    }
+  }
+  for (const snippet of ['process.env.GITHUB_OUTPUT', "new URL('../node_modules/playwright/package.json'", 'appendFileSync(outputPath', 'Invalid installed Playwright version']) {
+    if (!versionResolver.includes(snippet)) fail(`Playwright version resolver must preserve ${snippet}`);
   }
   for (const snippet of ["cron: '17 9 * * *'", '--risk high', '--repeat-each 5', '--hermetic', '--allow-live-network', 'octez-connect-sdk-loader,kraken-websocket-canary', 'if: always()']) {
     if (!canaryWorkflow.includes(snippet)) fail(`nightly smoke canary must include ${snippet}`);
