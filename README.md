@@ -911,9 +911,14 @@ inline modal styles in `js/core/app.js`.
   Tezos addresses, `.tez` names, protocol names, block levels, block hashes,
   operation hashes, KT1 contracts, and slash commands. Empty focus exposes six
   calm starters; typing replaces them with the ranked canonical destination and
-  runtime-action list. Focus moves the same search node into the full-viewport
-  Index Chamber, putting the field at the top and giving results the rest of the
-  screen. Launch is synchronous, opaque, and free of backdrop blur; the shared
+  runtime-action list. The first paint is globally capped at ten selectable
+  results, then an anchored `Show all` row reveals the remainder without sending
+  the reader back to the top. Literal matches are highlighted; rows ranked by a
+  hidden alias or keyword expose that matching context instead of appearing
+  arbitrary. Focus moves the same search node into the full-viewport Index
+  Chamber, putting the field at the top and a content-sized visible results sheet
+  inside the remaining full-height scroller. Launch is synchronous, opaque, and
+  free of backdrop blur; the shared
   overlay contract isolates the visually undimmed background, contains keyboard
   focus, follows the mobile visual viewport, and restores the exact opener and
   scroll position. HEN terminal chrome is limited to HEN theme/mode. The
@@ -960,13 +965,14 @@ inline modal styles in `js/core/app.js`.
   addresses or `.tez` names also expose a scoped Maxi Passport path. Baker-name
   searches hydrate from active leaderboard data and bounded TzKT alias
   suggestions that remain labeled as source aliases rather than verified
-  identities. Loading rows are never selectable, keyboard selection survives
+  identities. Loading rows are never selectable and use an explicit
+  `Searching…` header, keyboard selection survives
   asynchronous result arrival, blank Enter is inert, focus is contained and
   restored, and search stores no raw query history. TzKT remains available from
-  native receipts as an audit trail. Blank search stays intentionally
-  compact with eight useful starting points; the dynamic `All` chip explicitly opens
-  the complete manifest directory without making every search session begin in
-  an atlas.
+  native receipts as an audit trail. Blank search stays intentionally compact
+  with six useful starting points; `Browse all` explicitly opens the complete
+  manifest directory without making every search session begin in an atlas.
+  Runtime shortcut chips remain a HEN-only affordance.
 - Cycle History Chamber with direct `#history` and `/history/` access keeps the
   fifteen captured global, market, Network Health, Tezos X, and governance
   signals in one measured archive. Its 24-hour, 7-day, 30-day, and all-captured
@@ -1816,7 +1822,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v603`, including the full-viewport Index
+- Current aligned shell cache stamp: `v606`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

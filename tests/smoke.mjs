@@ -7021,6 +7021,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     const overlayRect = overlay?.getBoundingClientRect();
     const formRect = form?.getBoundingClientRect();
     const panelRect = panel?.getBoundingClientRect();
+    const sheetRect = panel?.querySelector('.hero-search-sheet')?.getBoundingClientRect();
     const viewport = window.visualViewport;
     const viewportRect = {
       top: viewport?.offsetTop || 0,
@@ -7057,6 +7058,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       formTopGap: formRect ? formRect.top - viewportRect.top : 999,
       panelBottomGap: panelRect ? viewportBottom - panelRect.bottom : 999,
       panelMaxHeight: getComputedStyle(panel).maxHeight,
+      sheetContentSized: Boolean(panelRect && sheetRect && sheetRect.height < panelRect.height - 20),
       panelBackdrop: getComputedStyle(panel).backdropFilter || getComputedStyle(panel).webkitBackdropFilter || '',
       overlayBackdrop: getComputedStyle(overlay).backdropFilter || getComputedStyle(overlay).webkitBackdropFilter || '',
       resultButtons: panel.querySelectorAll('button[role="option"]').length,
@@ -7095,6 +7097,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       && focusModeState.panelMaxHeight === 'none',
     `hero command bar: Index Chamber does not fill the visual viewport ${JSON.stringify(focusModeState)}`
   );
+  assert(focusModeState.sheetContentSized, `hero command bar: visible Index sheet does not track starter content ${JSON.stringify(focusModeState)}`);
   assert(
     ['none', ''].includes(focusModeState.panelBackdrop)
       && ['none', ''].includes(focusModeState.overlayBackdrop)
@@ -7291,6 +7294,53 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   await page.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-result strong')?.textContent?.trim() === 'QuipuSwap', null, { timeout: 5000 });
   const quipuSearchText = await page.locator('#hero-search-panel').innerText();
   assert(/reviewed contract universe/i.test(quipuSearchText), `hero command bar: generated app catalog did not outrank unverified aliases: ${quipuSearchText}`);
+  assert(await page.locator('#hero-search-panel .hero-search-result strong mark').filter({ hasText: 'QuipuSwap' }).count() >= 1, 'hero command bar: visible result does not explain its title match');
+
+  await page.locator('#hero-search-input').fill('staking');
+  await page.waitForFunction(() => /Show all \d+ results/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
+  const boundedSearchState = await page.evaluate(() => ({
+    options: document.querySelectorAll('#hero-search-panel .hero-search-result').length,
+    groups: Array.from(document.querySelectorAll('#hero-search-panel .hero-search-group-label'), (label) => label.textContent?.trim() || ''),
+    unexplained: Array.from(document.querySelectorAll('#hero-search-panel .hero-search-result:not([data-result-id="show-more"])'))
+      .filter((row) => !row.querySelector('mark'))
+      .map((row) => row.querySelector('strong')?.textContent?.trim() || '')
+  }));
+  assert(
+    boundedSearchState.options <= 11
+      && boundedSearchState.groups.includes('More')
+      && boundedSearchState.unexplained.length === 0,
+    `hero command bar: first result paint is not globally budgeted or visibly explained ${JSON.stringify(boundedSearchState)}`
+  );
+  const showAllResult = page.locator('#hero-search-panel .hero-search-result').filter({ hasText: /Show all \d+ results/ });
+  await showAllResult.scrollIntoViewIfNeeded();
+  const expansionBefore = await page.evaluate(() => {
+    const panel = document.getElementById('hero-search-panel');
+    const option = panel?.querySelector('[data-result-id="show-more"]');
+    const panelRect = panel?.getBoundingClientRect();
+    const optionRect = option?.getBoundingClientRect();
+    return {
+      anchorOffset: optionRect && panelRect ? optionRect.top - panelRect.top : 0,
+      visibleIds: Array.from(panel?.querySelectorAll('.hero-search-result:not([data-result-id="show-more"])') || [], (row) => row.dataset.resultId)
+    };
+  });
+  await showAllResult.click();
+  await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel .hero-search-result').length > 11, null, { timeout: 5000 });
+  const expansionAfter = await page.evaluate((before) => {
+    const panel = document.getElementById('hero-search-panel');
+    const selected = panel?.querySelector('.hero-search-result.is-selected');
+    const panelRect = panel?.getBoundingClientRect();
+    const selectedRect = selected?.getBoundingClientRect();
+    return {
+      selectedId: selected?.dataset.resultId || '',
+      selectedIsNew: Boolean(selected?.dataset.resultId && !before.visibleIds.includes(selected.dataset.resultId)),
+      anchorDelta: selectedRect && panelRect ? Math.abs((selectedRect.top - panelRect.top) - before.anchorOffset) : Infinity,
+      scrollTop: panel?.scrollTop || 0
+    };
+  }, expansionBefore);
+  assert(
+    expansionAfter.selectedIsNew && expansionAfter.anchorDelta <= 5 && expansionAfter.scrollTop > 0,
+    `hero command bar: Show all expansion lost its reading anchor ${JSON.stringify({ expansionBefore, expansionAfter })}`
+  );
 
   await page.locator('#hero-search-input').fill('governence');
   await page.waitForFunction(() => /Did you mean “governance”/i.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
@@ -7299,9 +7349,13 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   await page.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-status-row'), null, { timeout: 5000 });
   const loadingState = await page.evaluate(() => ({
     statusRows: document.querySelectorAll('#hero-search-panel .hero-search-status-row[role="status"]').length,
-    selectableStatusRows: document.querySelectorAll('#hero-search-panel .hero-search-status-row[role="option"], #hero-search-panel .hero-search-status-row button').length
+    selectableStatusRows: document.querySelectorAll('#hero-search-panel .hero-search-status-row[role="option"], #hero-search-panel .hero-search-status-row button').length,
+    header: document.querySelector('#hero-search-panel .hero-search-panel-count')?.textContent?.trim() || ''
   }));
-  assert(loadingState.statusRows >= 1 && loadingState.selectableStatusRows === 0, `hero command bar: async loading rows must not enter keyboard selection ${JSON.stringify(loadingState)}`);
+  assert(
+    loadingState.statusRows >= 1 && loadingState.selectableStatusRows === 0 && loadingState.header === 'Searching…',
+    `hero command bar: async loading rows must not enter keyboard selection or contradict their pending state ${JSON.stringify(loadingState)}`
+  );
 
   await page.locator('#hero-search-input').fill('network health');
   await page.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-result strong')?.textContent?.trim() === 'Network Health', null, { timeout: 5000 });
@@ -7309,8 +7363,13 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     window.__heroSearchHoverNode = document.querySelector('#hero-search-panel .hero-search-result');
   });
   await page.locator('#hero-search-panel .hero-search-result').nth(1).hover();
-  const hoverPreservedNode = await page.evaluate(() => window.__heroSearchHoverNode === document.querySelector('#hero-search-panel .hero-search-result'));
-  assert(hoverPreservedNode, 'hero command bar: pointer movement replaced stable result nodes');
+  const hoverState = await page.evaluate(() => ({
+    preservedNode: window.__heroSearchHoverNode === document.querySelector('#hero-search-panel .hero-search-result'),
+    selectedCount: document.querySelectorAll('#hero-search-panel .hero-search-result.is-selected').length,
+    selectedAria: document.querySelector('#hero-search-panel .hero-search-result.is-selected')?.getAttribute('aria-selected') || '',
+    staleAria: document.querySelectorAll('#hero-search-panel .hero-search-result[aria-selected="true"]:not(.is-selected)').length
+  }));
+  assert(hoverState.preservedNode && hoverState.selectedCount === 1 && hoverState.selectedAria === 'true' && hoverState.staleAria === 0, `hero command bar: pointer selection replaced a node or left conflicting state ${JSON.stringify(hoverState)}`);
 
   await page.locator('#hero-search-input').fill('');
   const blankEnterState = await page.evaluate(() => ({ href: location.href, hash: location.hash }));
@@ -7334,7 +7393,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   await page.locator('#hero-search-input').fill('viral.tez');
   await page.waitForFunction(() => /Check viral\.tez in Tezos Domains/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
   const domainEntityText = await page.locator('#hero-search-panel').innerText();
-  assert(/Check viral\.tez in Tezos Domains/.test(domainEntityText) && /Open viral\.tez in Maxi Passport/.test(domainEntityText) && /Lookup availability/i.test(domainEntityText), `hero command bar: .tez entity should offer Domains and Maxi Passport routes: ${domainEntityText}`);
+  assert(/Check viral\.tez in Tezos Domains/.test(domainEntityText) && /Maxi Passport/.test(domainEntityText) && /Lookup availability/i.test(domainEntityText), `hero command bar: .tez entity should offer Domains and Maxi Passport routes: ${domainEntityText}`);
 
   await page.locator('#hero-search-input').fill(SAMPLE_CONTRACT.toLowerCase());
   await page.waitForFunction(() => /Checksum failed/.test(document.querySelector('#hero-search-panel')?.textContent || ''), null, { timeout: 5000 });
@@ -7647,7 +7706,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
 
   const immediateResponse = await intentPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(immediateResponse?.ok(), `hero command bar immediate intent: dashboard failed with HTTP ${immediateResponse?.status()}`);
-  await intentPage.waitForFunction(() => document.querySelectorAll('#hero-search-chips button').length > 0, null, { timeout: 10000 });
+  await intentPage.waitForFunction(() => document.getElementById('hero-slot')?.dataset.heroSearchWired === '1', null, { timeout: 10000 });
   await intentPage.locator('#hero-search-input').focus();
   await intentPage.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-result strong')?.textContent?.trim() === 'Wallet or .tez', null, { timeout: 5000 });
   await intentPage.evaluate(() => {
@@ -7664,6 +7723,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   assert(stableSelectionResponse?.ok(), `hero command bar stable selection: dashboard failed with HTTP ${stableSelectionResponse?.status()}`);
   await intentPage.locator('#hero-search-input').fill('governance');
   await intentPage.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-result strong')?.textContent?.trim() === 'Tezos L1 Governance', null, { timeout: 5000 });
+  await intentPage.locator('#hero-search-panel .hero-search-result').filter({ hasText: /Show all \d+ results/ }).click();
   await intentPage.locator('#hero-search-input').press('ArrowDown');
   const selectedBeforeAsync = await intentPage.evaluate(() => {
     const selected = document.querySelector('#hero-search-panel .hero-search-result.is-selected');
@@ -7686,11 +7746,11 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
 
   await seedIntent('viral.tez', 'Check viral.tez in Tezos Domains');
   assert(await intentPage.locator('#hero-search-panel .hero-search-result').filter({ hasText: 'Try viral.tez as baker' }).count() === 0, 'hero command bar: unresolved .tez names must not become arbitrary baker routes');
-  await intentPage.locator('#hero-search-panel .hero-search-result').filter({ hasText: 'Open viral.tez in Ledger Flow' }).click();
+  await intentPage.locator('#hero-search-panel .hero-search-result').filter({ hasText: 'Ledger Flow' }).click();
   await intentPage.waitForFunction((address) => window.location.hash === `#ledger-flow=${address}`, SAMPLE_ADDRESS, { timeout: 5000 });
 
-  await seedIntent(SAMPLE_ADDRESS, 'Inspect account');
-  await intentPage.locator('#hero-search-panel .hero-search-result').filter({ hasText: `Open ${SAMPLE_ADDRESS} in Maxi Passport` }).click();
+  await seedIntent(SAMPLE_ADDRESS, 'Account');
+  await intentPage.locator('#hero-search-panel .hero-search-result').filter({ hasText: 'Maxi Passport' }).click();
   await intentPage.waitForURL((url) => url.pathname === '/maxis/' && url.searchParams.get('view') === 'passport' && url.searchParams.get('address') === SAMPLE_ADDRESS, { timeout: intentNavigationTimeout });
 
   await seedIntent('transaction maxi', 'Transaction Maxi');
@@ -7939,7 +7999,6 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   await mobilePage.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-result strong')?.textContent?.trim() === 'Network Health', null, { timeout: 5000 });
   const mobileQueryState = await mobilePage.evaluate(() => ({
     chipsDisplay: getComputedStyle(document.getElementById('hero-search-chips')).display,
-    badgeDisplay: getComputedStyle(document.querySelector('#hero-search-panel .hero-result-badge')).display,
     selectedVisible: (() => {
       const panel = document.getElementById('hero-search-panel')?.getBoundingClientRect();
       const option = document.querySelector('#hero-search-panel .hero-search-result.is-selected')?.getBoundingClientRect();
@@ -7947,7 +8006,13 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     })()
   }));
   assert(mobileQueryState.chipsDisplay === 'none' && mobileQueryState.selectedVisible, `hero command bar mobile query: shortcuts should collapse and first result stay visible ${JSON.stringify(mobileQueryState)}`);
-  assert(mobileQueryState.badgeDisplay === 'flex', `hero command bar mobile query: result provenance badge is missing ${JSON.stringify(mobileQueryState)}`);
+  await mobilePage.locator('#hero-search-input').fill('capital chamber');
+  await mobilePage.waitForFunction(() => document.querySelector('#hero-search-panel .hero-result-meta')?.textContent?.trim() === 'New', null, { timeout: 5000 });
+  const mobileMetaState = await mobilePage.evaluate(() => ({
+    text: document.querySelector('#hero-search-panel .hero-result-meta')?.textContent?.trim() || '',
+    display: getComputedStyle(document.querySelector('#hero-search-panel .hero-result-meta')).display
+  }));
+  assert(mobileMetaState.text === 'New' && mobileMetaState.display === 'flex', `hero command bar mobile query: meaningful result meta is missing ${JSON.stringify(mobileMetaState)}`);
 
   await mobilePage.setViewportSize({ width: 390, height: 667 });
   await mobilePage.waitForFunction(() => {
@@ -8481,7 +8546,7 @@ async function smokeRouteSearchState(browser, baseUrl) {
     const panel = document.getElementById('hero-search-panel');
     return document.getElementById('hero-search-input')?.value === 'frobnicate'
       && !panel?.querySelector('.hero-search-status-row')
-      && /No path surfaced/i.test(panel?.textContent || '');
+      && /No matches for/i.test(panel?.textContent || '');
   }, null, { timeout: 10000 });
   const irrelevantSuggestionState = await page.evaluate(() => ({
     href: window.location.href,
@@ -8502,6 +8567,8 @@ async function smokeRouteSearchState(browser, baseUrl) {
   });
   await input.fill('govern');
   await partialSuggestionResponse;
+  const partialShowMore = page.locator('#hero-search-panel .hero-search-result').filter({ hasText: /Show all \d+ results/ });
+  if (await partialShowMore.count()) await partialShowMore.click();
   await page.waitForFunction(() => /Governance Baker Alias/.test(document.getElementById('hero-search-panel')?.textContent || ''), null, { timeout: 10000 });
   const partialSuggestionState = await page.evaluate(() => document.getElementById('hero-search-panel')?.textContent || '');
   assert(/Governance Baker Alias/.test(partialSuggestionState) && /TzKT alias/.test(partialSuggestionState), 'route and search state: an intended on-chain alias prefix was filtered out');
@@ -8805,12 +8872,70 @@ async function smokeBreakpointAccessibility(browser, baseUrl) {
   await seedContext(breakpointContext);
   const breakpointPage = await openDashboard(breakpointContext, 'breakpoint accessibility matrix');
   const breakpointInput = breakpointPage.locator('#hero-search-input');
+  await breakpointPage.setViewportSize({ width: 390, height: 843 });
+  await breakpointInput.click();
+  await breakpointPage.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length === 6);
+  const mobileBlankHeader = await breakpointPage.evaluate(() => {
+    const header = document.querySelector('.hero-search-overlay .hero-search-panel-head');
+    const copy = header?.querySelector('.hero-search-panel-copy');
+    const title = copy?.querySelector('strong');
+    const subtitle = copy?.querySelector('span');
+    const headerRect = header?.getBoundingClientRect();
+    const copyRect = copy?.getBoundingClientRect();
+    return {
+      columns: header ? getComputedStyle(header).gridTemplateColumns : '',
+      widthShare: headerRect?.width ? (copyRect?.width || 0) / headerRect.width : 0,
+      titleSize: Number.parseFloat(title ? getComputedStyle(title).fontSize : '0'),
+      subtitleSize: Number.parseFloat(subtitle ? getComputedStyle(subtitle).fontSize : '0'),
+      overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
+    };
+  });
+  assert(
+    mobileBlankHeader.widthShare >= 0.85
+      && mobileBlankHeader.titleSize >= 13.8
+      && mobileBlankHeader.subtitleSize >= 12.3
+      && mobileBlankHeader.overflow <= 1,
+    `breakpoint accessibility: mobile blank-state header regressed ${JSON.stringify(mobileBlankHeader)}`
+  );
   await breakpointInput.fill('network health');
   await breakpointPage.waitForFunction(() => (
     document.body.classList.contains('hero-search-mode')
       && document.activeElement?.id === 'hero-search-input'
       && !document.getElementById('hero-search-panel')?.hidden
   ));
+  await breakpointPage.waitForFunction(() => Boolean(
+    document.querySelector('#hero-search-panel .hero-search-result.is-selected .hero-result-enter[aria-hidden="true"]')
+  ));
+  const cleanSelectionContrast = await breakpointPage.evaluate(() => {
+    const parseRgb = (value) => {
+      const match = String(value || '').match(/rgba?\((\d+(?:\.\d+)?)[, ]+(\d+(?:\.\d+)?)[, ]+(\d+(?:\.\d+)?)/i);
+      return match ? match.slice(1, 4).map(Number) : [0, 0, 0];
+    };
+    const luminance = (rgb) => rgb.reduce((sum, channel, index) => {
+      const value = channel / 255;
+      const linear = value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4;
+      return sum + linear * [0.2126, 0.7152, 0.0722][index];
+    }, 0);
+    const selected = document.querySelector('#hero-search-panel .hero-search-result.is-selected');
+    const detail = selected?.querySelector('.hero-result-copy > span');
+    const foreground = parseRgb(detail ? getComputedStyle(detail).color : '');
+    const background = parseRgb(selected ? getComputedStyle(selected).backgroundColor : '');
+    const light = Math.max(luminance(foreground), luminance(background));
+    const dark = Math.min(luminance(foreground), luminance(background));
+    return {
+      foreground,
+      background,
+      ratio: (light + 0.05) / (dark + 0.05),
+      enterHidden: selected?.querySelector('.hero-result-enter')?.getAttribute('aria-hidden') === 'true',
+      pseudoContent: selected ? getComputedStyle(selected, '::after').content : ''
+    };
+  });
+  assert(
+    cleanSelectionContrast.ratio >= 4.5
+      && cleanSelectionContrast.enterHidden
+      && ['none', 'normal', ''].includes(cleanSelectionContrast.pseudoContent),
+    `breakpoint accessibility: selected result contrast or decorative Enter semantics regressed ${JSON.stringify(cleanSelectionContrast)}`
+  );
 
   for (const width of breakpointWidths) {
     await breakpointPage.setViewportSize({ width, height: 900 });
@@ -9003,19 +9128,26 @@ async function smokeBreakpointAccessibility(browser, baseUrl) {
   await seedContext(forcedColorsContext);
   const forcedColorsPage = await openDashboard(forcedColorsContext, 'forced colors accessibility');
   await forcedColorsPage.locator('#hero-search-input').fill('network health');
-  await forcedColorsPage.keyboard.press('Tab');
-  await forcedColorsPage.keyboard.press('Tab');
+  await forcedColorsPage.locator('#hero-search-input').press('Tab');
+  await forcedColorsPage.locator('.hero-search-submit').press('Tab');
   await forcedColorsPage.waitForFunction(() => document.activeElement?.id === 'hero-search-close');
   const forcedColorsState = await forcedColorsPage.evaluate(() => {
     const focused = document.activeElement;
     const rect = focused?.getBoundingClientRect();
     const style = focused ? getComputedStyle(focused) : null;
+    const selected = document.querySelector('#hero-search-panel .hero-search-result.is-selected');
+    const selectedStyle = selected ? getComputedStyle(selected) : null;
+    const selectedDetail = selected?.querySelector('.hero-result-copy > span');
+    const selectedEnter = selected?.querySelector('.hero-result-enter');
     return {
       forcedColors: matchMedia('(forced-colors: active)').matches,
       active: focused?.id || '',
       focusVisible: focused?.matches?.(':focus-visible') || false,
       outlineStyle: style?.outlineStyle || '',
       outlineWidth: Number.parseFloat(style?.outlineWidth || '0') || 0,
+      selectedColor: selectedStyle?.color || '',
+      selectedDetailColor: selectedDetail ? getComputedStyle(selectedDetail).color : '',
+      selectedEnterColor: selectedEnter ? getComputedStyle(selectedEnter).color : '',
       focusContained: Boolean(rect
         && rect.left >= -1
         && rect.right <= innerWidth + 1
@@ -9030,6 +9162,8 @@ async function smokeBreakpointAccessibility(browser, baseUrl) {
       && forcedColorsState.focusVisible
       && forcedColorsState.outlineStyle !== 'none'
       && forcedColorsState.outlineWidth >= 2
+      && forcedColorsState.selectedDetailColor === forcedColorsState.selectedColor
+      && forcedColorsState.selectedEnterColor === forcedColorsState.selectedColor
       && forcedColorsState.focusContained
       && forcedColorsState.horizontalOverflow <= 1,
     `forced colors accessibility: search focus was not visibly contained ${JSON.stringify(forcedColorsState)}`
@@ -9044,8 +9178,8 @@ async function smokeBreakpointAccessibility(browser, baseUrl) {
   await seedContext(reducedMotionContext);
   const reducedMotionPage = await openDashboard(reducedMotionContext, 'reduced motion accessibility');
   await reducedMotionPage.locator('#hero-search-input').fill('network health');
-  await reducedMotionPage.keyboard.press('Tab');
-  await reducedMotionPage.keyboard.press('Tab');
+  await reducedMotionPage.locator('#hero-search-input').press('Tab');
+  await reducedMotionPage.locator('.hero-search-submit').press('Tab');
   await reducedMotionPage.waitForFunction(() => document.activeElement?.id === 'hero-search-close');
   const reducedMotionState = await reducedMotionPage.evaluate(() => {
     const durationIsZero = (value) => String(value || '')
@@ -9055,19 +9189,20 @@ async function smokeBreakpointAccessibility(browser, baseUrl) {
     const focusedRect = focused?.getBoundingClientRect();
     const focusedStyle = focused ? getComputedStyle(focused) : null;
     const motionSelectors = [
-      '.header',
-      '.live-head-row',
-      '.main-content',
-      '.hero-search-form',
-      '.hero-search-submit',
-      '.hero-search-close',
-      '.hero-search-chip'
+      { selector: '.header' },
+      { selector: '.live-head-row' },
+      { selector: '.main-content' },
+      { selector: '.hero-search-form' },
+      { selector: '.hero-search-submit' },
+      { selector: '.hero-search-close' },
+      { selector: '.hero-search-chip', optional: true }
     ];
-    const motion = motionSelectors.map((selector) => {
+    const motion = motionSelectors.map(({ selector, optional = false }) => {
       const element = document.querySelector(selector);
       const style = element ? getComputedStyle(element) : null;
       return {
         selector,
+        optional,
         present: Boolean(element),
         transitionDuration: style?.transitionDuration || '',
         animationDuration: style?.animationDuration || '',
@@ -9101,7 +9236,9 @@ async function smokeBreakpointAccessibility(browser, baseUrl) {
     `reduced motion accessibility: search focus/containment failed ${JSON.stringify(reducedMotionState)}`
   );
   assert(
-    reducedMotionState.motion.every((entry) => entry.present && entry.still),
+    reducedMotionState.motion.every((entry) => (
+      (entry.optional && !entry.present) || (entry.present && entry.still)
+    )),
     `reduced motion accessibility: command transition/animation remained active ${JSON.stringify(reducedMotionState.motion)}`
   );
   await reducedMotionContext.close();
@@ -16662,6 +16799,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	        const baker = liveHeadRows.find((row) => row.querySelector('.live-head-baker:not(.is-address)'))?.querySelector('.live-head-baker:not(.is-address)');
 	        return {
 	          inputFont: input ? getComputedStyle(input).fontFamily : '',
+	          helpFont: help ? getComputedStyle(help).fontFamily : '',
 	          bakerFont: baker ? getComputedStyle(baker).fontFamily : '',
 	          inputLevelDelta: input && level ? Math.abs(input.getBoundingClientRect().left - level.getBoundingClientRect().left) : 999,
 	          helpBakerDelta: help && baker ? Math.abs(help.getBoundingClientRect().left - baker.getBoundingClientRect().left) : 999,
@@ -17218,7 +17356,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(resolvedLiveHeadGasRows.length >= 2 && healthState.liveHeadGasRows.filter((row) => row.state === 'loading').length <= 1 && resolvedLiveHeadGasRows.every((row) => Number.isFinite(row.percent) && /^Gas (?:<1|\d+)%$/.test(row.text) && /of 1,040,000 gas used/.test(row.title) && row.topLine && !row.hasQuiet), `network health chamber: non-quiet rows did not replace Quiet with exact gas-fullness pills ${JSON.stringify(healthState.liveHeadGasRows)}`);
   assert(new Set(resolvedLiveHeadGasRows.map((row) => row.className.match(/is-(open|active|busy|hot)/)?.[1]).filter(Boolean)).size >= 2, `network health chamber: gas fullness does not expose useful severity ranges ${JSON.stringify(healthState.liveHeadGasRows)}`);
   assert(/Wallets.*\.tez names.*bakers.*KT1 contracts.*operations.*blocks.*protocols.*Chambers.*press \/ anywhere/i.test(healthState.liveHeadSearchHelp), `network health chamber: search usage help is missing or incomplete ${healthState.liveHeadSearchHelp}`);
-  assert(healthState.liveHeadTypeAndAlignment.helpVisible && healthState.liveHeadTypeAndAlignment.inputLevelDelta <= 1.5 && healthState.liveHeadTypeAndAlignment.helpBakerDelta <= 1.5 && /SF Pro Text|BlinkMacSystemFont|-apple-system/.test(healthState.liveHeadTypeAndAlignment.inputFont) && /JetBrains Mono/.test(healthState.liveHeadTypeAndAlignment.bakerFont), `network health chamber: baker/search typography or shared left alignment drifted ${JSON.stringify(healthState.liveHeadTypeAndAlignment)}`);
+  assert(healthState.liveHeadTypeAndAlignment.helpVisible && healthState.liveHeadTypeAndAlignment.inputLevelDelta <= 1.5 && healthState.liveHeadTypeAndAlignment.helpBakerDelta <= 1.5 && healthState.liveHeadTypeAndAlignment.inputFont === healthState.liveHeadTypeAndAlignment.helpFont && /JetBrains Mono/.test(healthState.liveHeadTypeAndAlignment.bakerFont), `network health chamber: search UI role, baker data role, or shared left alignment drifted ${JSON.stringify(healthState.liveHeadTypeAndAlignment)}`);
   assert(healthState.liveHeadBarSignatures.every((signature) => /^\d+:-?\d+:\d+$/.test(signature)), `network health chamber: Live Head health bars need level/safety-margin/quorum signatures: ${healthState.liveHeadBarSignatures.join(',')}`);
   assert(healthState.liveHeadBarPlayed.every((signature, index) => signature === healthState.liveHeadBarSignatures[index]), `network health chamber: initial Live Head bars should settle once: ${healthState.liveHeadBarPlayed.join(',')}`);
   assert(healthState.liveHeadAges.every((age) => /^(?:\d{2}[smhd]|--)$/.test(age)), `network health chamber: Live Head ages are malformed: ${healthState.liveHeadAges.join(',')}`);

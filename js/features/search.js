@@ -28,6 +28,7 @@ import {
     siteMapBrowseEntries,
     siteMapBrowseIntents,
     siteMapRoute,
+    searchMatchRanges,
     siteMapSearchScore,
     siteMapSearchChips,
     siteMapStarters,
@@ -297,8 +298,9 @@ function maxiPassportEntityResult(target, group = 'Maxis & Identity') {
         id: `passport:${target}`,
         kind: 'page',
         group,
-        title: `Open ${target} in Maxi Passport`,
-        detail: 'Resolve one address into career stamps, ongoing crowns, and current-season progress',
+        title: 'Maxi Passport',
+        detail: `${target} · Career stamps, ongoing crowns, and current-season progress`,
+        detailIsData: true,
         badge: 'passport',
         action: 'page',
         value: `/maxis/?view=passport&address=${encodeURIComponent(target)}`
@@ -322,6 +324,7 @@ function bakerResult(baker) {
         group: 'Bakers & Accounts',
         title: baker.name || baker.alias || baker.address,
         detail,
+        detailIsData: true,
         badge: 'baker',
         action: 'hash',
         value: `#baker=${encodeURIComponent(baker.address)}`,
@@ -336,7 +339,7 @@ function bakerLoadingResult(query) {
         group: 'Bakers & Accounts',
         title: `Searching on-chain names for "${query}"`,
         detail: 'Checking active bakers and TzKT account aliases',
-        badge: 'baker',
+        badge: 'checking',
         action: null,
         selectable: false
     };
@@ -364,6 +367,7 @@ function accountSuggestionResult(account) {
         group: 'On-chain names',
         title: account?.alias || address,
         detail: `TzKT alias · ${address} · verify identity before acting`,
+        detailIsData: true,
         badge: 'TzKT alias',
         action: 'hash',
         value: `#${isContract ? 'contract' : 'account'}=${encodeURIComponent(address)}`,
@@ -380,14 +384,15 @@ function cachedNameResults(query) {
 }
 
 function accountActions(address, account = null, { group = 'Account actions', domain = '' } = {}) {
-    const label = domain || address;
+    const target = domain || address;
     const results = [
         {
             id: `account:${address}`,
             kind: 'account',
             group,
-            title: `Inspect ${domain ? label : 'account'}`,
+            title: 'Account',
             detail: `${address} · native balance, identity, and recent flow`,
+            detailIsData: true,
             badge: 'account',
             action: 'hash',
             value: `#account=${encodeURIComponent(address)}`
@@ -396,8 +401,9 @@ function accountActions(address, account = null, { group = 'Account actions', do
             id: `my-tezos:${address}`,
             kind: 'account',
             group,
-            title: `Track ${domain ? label : 'in My Tezos'}`,
-            detail: 'Save this account in the browser-local My Tezos workspace',
+            title: 'My Tezos',
+            detail: `${target} · Save this account in the browser-local workspace`,
+            detailIsData: true,
             badge: 'account',
             action: 'hash',
             value: `#my-baker=${encodeURIComponent(domain || address)}`
@@ -407,8 +413,9 @@ function accountActions(address, account = null, { group = 'Account actions', do
             id: `ledger-flow:${address}`,
             kind: 'chamber',
             group,
-            title: `Open ${domain ? label : 'account'} in Ledger Flow`,
-            detail: 'Map bounded sent and received tez paths with receipt context',
+            title: 'Ledger Flow',
+            detail: `${target} · Map bounded sent and received tez paths with receipt context`,
+            detailIsData: true,
             badge: 'flow',
             action: 'hash',
             value: `#ledger-flow=${encodeURIComponent(address)}`
@@ -419,8 +426,9 @@ function accountActions(address, account = null, { group = 'Account actions', do
             id: `baker:${address}`,
             kind: 'baker',
             group,
-            title: `Open ${domain ? label : 'active baker'} profile`,
-            detail: 'TzKT identifies this address as a delegate',
+            title: 'Baker profile',
+            detail: `${target} · TzKT identifies this address as a delegate`,
+            detailIsData: true,
             badge: 'baker',
             action: 'hash',
             value: `#baker=${encodeURIComponent(address)}`
@@ -437,6 +445,7 @@ function contractActions(address, account = null) {
             group: 'Contract actions',
             title: account?.alias || 'Inspect KT1 contract',
             detail: `${address} · native code, entrypoints, activity, and related deployments`,
+            detailIsData: true,
             badge: 'contract',
             action: 'hash',
             value: `#contract=${encodeURIComponent(address)}`
@@ -445,8 +454,9 @@ function contractActions(address, account = null) {
             id: `ledger-flow:${address}`,
             kind: 'chamber',
             group: 'Contract actions',
-            title: 'Open in Ledger Flow',
-            detail: 'Map bounded sent and received tez paths with receipt context',
+            title: 'Ledger Flow',
+            detail: `${address} · Map bounded sent and received tez paths with receipt context`,
+            detailIsData: true,
             badge: 'flow',
             action: 'hash',
             value: `#ledger-flow=${encodeURIComponent(address)}`
@@ -484,6 +494,7 @@ function entityResults(query) {
             group: 'Etherlink',
             title: entity.kind === 'etherlink-address' ? 'Open Etherlink address' : 'Open Etherlink transaction',
             detail: `${entity.value} · external Blockscout explorer`,
+            detailIsData: true,
             badge: 'external',
             action: 'external',
             value: explorerUrlForEntity(entity)
@@ -496,6 +507,7 @@ function entityResults(query) {
             group: 'Operations & Blocks',
             title: `Block #${Number(entity.value).toLocaleString('en-US')}`,
             detail: 'Open native block receipt and producer view',
+            detailIsData: true,
             badge: 'block',
             action: 'hash',
             value: `#block=${encodeURIComponent(entity.value)}`
@@ -551,6 +563,7 @@ function entityResults(query) {
             group: 'Operations & Blocks',
             title: entity.value,
             detail: 'Open native operation contents and status',
+            detailIsData: true,
             badge: 'operation',
             action: 'hash',
             value: `#operation=${encodeURIComponent(entity.value)}`
@@ -563,6 +576,7 @@ function entityResults(query) {
             group: 'Operations & Blocks',
             title: entity.value,
             detail: 'Open native block receipt and producer view',
+            detailIsData: true,
             badge: 'block',
             action: 'hash',
             value: `#block=${encodeURIComponent(entity.value)}`
@@ -747,6 +761,49 @@ function groupedResults(results) {
     return groups;
 }
 
+function foldThinResultGroups(results) {
+    const groups = groupedResults(results);
+    if (groups.length < 2) return groups;
+    const kept = [groups[0]];
+    const more = [];
+    for (const group of groups.slice(1)) {
+        if (group.results.length < 2) more.push(...group.results);
+        else kept.push(group);
+    }
+    if (more.length) kept.push({ label: 'More', results: more });
+    return kept;
+}
+
+function budgetResultGroups(results, { showAll = false, limit = 10 } = {}) {
+    const groups = foldThinResultGroups(results);
+    const totalSelectable = results.filter((result) => result.selectable !== false).length;
+    if (showAll || totalSelectable <= limit) return { groups, totalSelectable, hasMore: false };
+
+    let remaining = limit;
+    const visibleGroups = groups.map((group) => ({
+        ...group,
+        results: group.results.filter((result) => {
+            if (result.selectable === false) return true;
+            if (remaining <= 0) return false;
+            remaining -= 1;
+            return true;
+        })
+    })).filter((group) => group.results.length);
+    const showMoreResult = {
+        id: 'show-more',
+        kind: 'command',
+        group: 'More',
+        title: `Show all ${totalSelectable} results`,
+        detail: 'Reveal every matching destination',
+        action: 'show-more',
+        selectable: true
+    };
+    const moreGroup = visibleGroups.find((group) => group.label === 'More');
+    if (moreGroup) moreGroup.results.push(showMoreResult);
+    else visibleGroups.push({ label: 'More', results: [showMoreResult] });
+    return { groups: visibleGroups, totalSelectable, hasMore: true };
+}
+
 function groupOrderedResults(results) {
     return groupedResults(results).flatMap((group) => group.results);
 }
@@ -760,40 +817,75 @@ function resultDomId(result) {
     return `hero-search-option-${(hash >>> 0).toString(36)}`;
 }
 
-function searchPanelHeaderHtml(query, { browseAll = false, resultCount = 0 } = {}) {
+function searchPanelHeaderHtml(query, { browseAll = false, resultCount = 0, isLoading = false } = {}) {
     const q = normalizeQuery(query);
-    const countLabel = `${resultCount} ${resultCount === 1 ? 'path' : 'paths'}`;
-    const state = browseAll ? 'directory' : q ? 'results' : 'threshold';
-    const kicker = browseAll ? 'Complete index' : q ? 'Search receipts' : 'The Index';
-    const title = browseAll
-        ? `${siteMapBrowseEntries().length + siteMapBrowseIntents().length} destinations. One deliberate map.`
-        : q
-            ? `${countLabel} for “${escapeHtml(q)}”`
-            : 'Find a room. Resolve a receipt. Follow the chain.';
-    const detail = browseAll
-        ? 'Every first-party room, view, guide, and utility — grouped by purpose.'
-        : q
-            ? 'Exact identities and native Tezos Systems rooms lead; broader matches follow.'
-            : 'Begin with an account, a name, a hash, or a question. Search reveals detail as you need it.';
+    const keys = `
+        <span class="hero-search-keys" aria-hidden="true">
+            <span><kbd>↑↓</kbd></span><span><kbd>↵</kbd></span><span><kbd>esc</kbd></span>
+        </span>`;
+
+    if (!q && !browseAll) {
+        return `
+            <header class="hero-search-panel-head" data-panel-state="threshold" data-quiet-key="search-panel-head">
+                <span class="hero-search-panel-copy">
+                    <strong>Find a room. Resolve a receipt. Follow the chain.</strong>
+                    <span>Start with an account, a name, a hash, or a question.</span>
+                </span>
+                ${keys}
+            </header>`;
+    }
+
+    const label = isLoading && !browseAll
+        ? 'Searching…'
+        : browseAll
+        ? `${siteMapBrowseEntries().length + siteMapBrowseIntents().length} destinations`
+        : `${resultCount} ${resultCount === 1 ? 'result' : 'results'}`;
 
     return `
-        <header class="hero-search-panel-head" data-panel-state="${state}" data-quiet-key="search-panel-head">
-            <span class="hero-search-panel-sigil" aria-hidden="true"><i></i><i></i><i></i></span>
-            <span class="hero-search-panel-copy">
-                <span class="hero-search-panel-kicker">${kicker}</span>
-                <strong>${title}</strong>
-                <span>${detail}</span>
-            </span>
-            <span class="hero-search-keys" aria-hidden="true">
-                <span><kbd>↑↓</kbd> move</span>
-                <span><kbd>↵</kbd> open</span>
-                <span><kbd>esc</kbd> close</span>
-            </span>
+        <header class="hero-search-panel-head is-compact" data-panel-state="${browseAll ? 'directory' : 'results'}" data-quiet-key="search-panel-head">
+            <span class="hero-search-panel-count">${escapeHtml(label)}</span>
+            ${keys}
         </header>
     `;
 }
 
-function resultHtml(result, selectedId) {
+function resultMeta(result) {
+    if (result.action === 'external') return '';
+    if (result.badge === 'new') return 'New';
+    if (result.group === 'On-chain names') return 'Unverified';
+    if (result.badge === 'checking') return '';
+    const badge = String(result.badge || '');
+    if (!badge) return '';
+    if (badge === result.group || badge === result.kind) return '';
+    if (badge === 'official archive' || badge === 'site') return '';
+    return '';
+}
+
+function highlightHtml(text, query) {
+    const source = String(text || '');
+    const ranges = query ? searchMatchRanges(source, query) : [];
+    if (!ranges.length) return escapeHtml(source);
+    let output = '';
+    let cursor = 0;
+    for (const [start, end] of ranges) {
+        output += escapeHtml(source.slice(cursor, start));
+        output += `<mark>${escapeHtml(source.slice(start, end))}</mark>`;
+        cursor = end;
+    }
+    return output + escapeHtml(source.slice(cursor));
+}
+
+function hiddenMatchContext(result, query) {
+    if (!query || searchMatchRanges(result.title, query).length || searchMatchRanges(result.detail, query).length) return '';
+    return (Array.isArray(result.aliases) ? result.aliases : [])
+        .map((alias) => String(alias || '').trim())
+        .filter((alias) => alias && searchMatchRanges(alias, query).length)
+        .sort((left, right) => left.length - right.length)[0] || '';
+}
+
+function resultHtml(result, selectedId, query) {
+    const meta = resultMeta(result);
+    const matchContext = hiddenMatchContext(result, query);
     if (result.selectable === false) {
         return `
             <div class="hero-search-status-row" role="status" data-quiet-key="${escapeHtml(result.id)}">
@@ -802,7 +894,6 @@ function resultHtml(result, selectedId) {
                     <strong>${escapeHtml(result.title)}</strong>
                     <span>${escapeHtml(result.detail || '')}</span>
                 </span>
-                <span class="hero-result-badge" data-kind="${escapeHtml(result.badge || result.kind)}">${escapeHtml(result.badge || result.kind)}</span>
             </div>
         `;
     }
@@ -821,11 +912,13 @@ function resultHtml(result, selectedId) {
         >
             <span class="hero-result-mark" data-kind="${escapeHtml(result.kind)}" aria-hidden="true"></span>
             <span class="hero-result-copy">
-                <strong>${escapeHtml(result.title)}</strong>
-                <span>${escapeHtml(result.detail || '')}</span>
+                <strong>${highlightHtml(result.title, query)}</strong>
+                <span${result.detailIsData ? ' class="is-data"' : ''}>${highlightHtml(result.detail || '', query)}</span>
+                ${matchContext ? `<span class="hero-result-match">Matches ${highlightHtml(matchContext, query)}</span>` : ''}
             </span>
-            <span class="hero-result-badge" data-kind="${escapeHtml(result.badge || result.kind)}">${escapeHtml(result.badge || result.kind)}</span>
-            <span class="hero-result-arrow ${isExternal ? 'hero-result-external' : ''}" aria-hidden="true">${isExternal ? '↗' : '→'}</span>
+            ${meta ? `<span class="hero-result-meta">${escapeHtml(meta)}</span>` : ''}
+            ${isExternal ? '<span class="hero-result-arrow hero-result-external" aria-hidden="true">↗</span>' : ''}
+            <span class="hero-result-enter" aria-hidden="true">⏎</span>
         </div>
     `;
 }
@@ -952,6 +1045,8 @@ export function initHeroSearch() {
 
     let isOpen = false;
     let isBrowsingAll = false;
+    let showAll = false;
+    let expansionAnchor = null;
     let selectedId = '';
     let results = [];
     let priorFocus = null;
@@ -976,6 +1071,11 @@ export function initHeroSearch() {
     }
 
     const renderQuickChips = () => {
+        const henActive = document.body.dataset.theme === 'hen' || document.body.classList.contains('hen-active');
+        if (!henActive) {
+            if (chips.innerHTML !== '') chips.innerHTML = '';
+            return;
+        }
         const chipList = [
             { label: `All ${siteMapBrowseEntries().length + siteMapBrowseIntents().length}`, browseAll: true },
             ...siteMapSearchChips(),
@@ -994,6 +1094,7 @@ export function initHeroSearch() {
     };
 
     renderQuickChips();
+    window.addEventListener('themechange', renderQuickChips);
 
     const syncViewportGeometry = () => {
         if (!isOpen) return;
@@ -1232,9 +1333,18 @@ export function initHeroSearch() {
         queueNameLookups(input.value);
         queueEntityResolution(input.value);
         queueCatalogLookup(input.value);
-        root.classList.toggle('has-query', Boolean(normalizeQuery(input.value)));
+        const query = normalizeQuery(input.value);
+        root.classList.toggle('has-query', Boolean(query));
         root.classList.toggle('is-browsing-all', isBrowsingAll);
-        results = groupOrderedResults(buildResults(input.value, { browseAll: isBrowsingAll }));
+        const builtResults = groupOrderedResults(buildResults(input.value, { browseAll: isBrowsingAll }));
+        if (expansionAnchor) {
+            const firstNewResult = builtResults.find((result) => (
+                result.selectable !== false && !expansionAnchor.visibleIds.has(result.id)
+            ));
+            selectedId = firstNewResult?.id || '';
+        }
+        const budget = budgetResultGroups(builtResults, { showAll: showAll || isBrowsingAll });
+        results = budget.groups.flatMap((group) => group.results);
         const selectableResults = results.filter((result) => result.selectable !== false);
         if (!selectableResults.some((result) => result.id === selectedId)) selectedId = '';
         if (!selectedId && normalizeQuery(input.value) && selectableResults.length) selectedId = selectableResults[0].id;
@@ -1243,7 +1353,11 @@ export function initHeroSearch() {
 
         if (!results.length) {
             const header = searchPanelHeaderHtml(input.value, { browseAll: isBrowsingAll, resultCount: 0 });
-            quietlySyncHtml(panel, `${header}<div class="hero-search-empty" data-quiet-key="empty"><strong>No path surfaced.</strong><span>Check the original casing, or try a complete wallet, .tez name, contract, operation, block, protocol, room, or slash command.</span></div>`);
+            quietlySyncHtml(panel, `
+                <div class="hero-search-sheet" data-quiet-key="search-sheet">
+                    ${header}
+                    <div class="hero-search-empty" data-quiet-key="empty"><strong>No matches for “${escapeHtml(query)}”</strong><span>Check the original casing, or try a complete wallet, .tez name, contract, operation, block, protocol, room, or slash command.</span></div>
+                </div>`);
             syncActiveDescendant();
             if (lastAnnouncement !== 'No results') {
                 liveRegion.textContent = 'No results';
@@ -1256,23 +1370,33 @@ export function initHeroSearch() {
         const showGroupLabels = Boolean(normalizeQuery(input.value)) && groups.length > 1;
         const header = searchPanelHeaderHtml(input.value, {
             browseAll: isBrowsingAll,
-            resultCount: selectableResults.length
+            resultCount: budget.totalSelectable,
+            isLoading
         });
         const groupMarkup = groups.map((group) => {
-            const rows = group.results.map((result) => resultHtml(result, selectedId)).join('');
+            const rows = group.results.map((result) => resultHtml(result, selectedId, query)).join('');
             return `
                 <section class="hero-search-group ${group.label === 'Start' ? 'is-starter' : ''}" role="group" aria-label="${escapeHtml(group.label)}" data-quiet-key="group:${escapeHtml(group.label)}">
-                    ${showGroupLabels ? `<div class="hero-search-group-label">${escapeHtml(group.label)}</div>` : ''}
+                    ${showGroupLabels ? `<div class="hero-search-group-label" aria-hidden="true">${escapeHtml(group.label)}</div>` : ''}
                     ${rows}
                 </section>
             `;
         }).join('');
-        quietlySyncHtml(panel, `${header}<div class="hero-search-panel-body" data-quiet-key="search-panel-body">${groupMarkup}</div>`);
+        quietlySyncHtml(panel, `
+            <div class="hero-search-sheet" data-quiet-key="search-sheet">
+                ${header}
+                <div class="hero-search-panel-body" data-quiet-key="search-panel-body">${groupMarkup}</div>
+            </div>`);
         syncActiveDescendant();
         const selectedOption = selectedId
             ? panel.querySelector(`[data-result-id="${CSS.escape(selectedId)}"]`)
             : null;
-        if (selectedOption) {
+        if (selectedOption && expansionAnchor) {
+            const panelRect = panel.getBoundingClientRect();
+            const selectedRect = selectedOption.getBoundingClientRect();
+            panel.scrollTop += selectedRect.top - panelRect.top - expansionAnchor.viewportOffset;
+            expansionAnchor = null;
+        } else if (selectedOption) {
             const optionTop = selectedOption.offsetTop;
             const optionBottom = optionTop + selectedOption.offsetHeight;
             if (optionTop < panel.scrollTop) panel.scrollTop = optionTop;
@@ -1281,8 +1405,8 @@ export function initHeroSearch() {
             }
         }
         const announcement = isLoading
-            ? `Searching. ${selectableResults.length} results available`
-            : `${selectableResults.length} result${selectableResults.length === 1 ? '' : 's'} available`;
+            ? `Searching. ${budget.totalSelectable} results available`
+            : `${budget.totalSelectable} result${budget.totalSelectable === 1 ? '' : 's'} available${budget.hasMore ? '. Show more available' : ''}`;
         if (announcement !== lastAnnouncement) {
             liveRegion.textContent = announcement;
             lastAnnouncement = announcement;
@@ -1299,6 +1423,7 @@ export function initHeroSearch() {
 
     const applyQuery = (value) => {
         isBrowsingAll = false;
+        showAll = false;
         input.value = value || '';
         if (!isOpen && document.activeElement !== input && !root.contains(document.activeElement)) {
             priorFocus = document.activeElement;
@@ -1319,6 +1444,21 @@ export function initHeroSearch() {
         if (result.action === 'browse-all') {
             input.value = '';
             isBrowsingAll = true;
+            selectedId = '';
+            render();
+            return false;
+        }
+        if (result.action === 'show-more') {
+            const option = panel.querySelector('[data-result-id="show-more"]');
+            const panelRect = panel.getBoundingClientRect();
+            const optionRect = option?.getBoundingClientRect();
+            expansionAnchor = {
+                viewportOffset: optionRect ? optionRect.top - panelRect.top : 0,
+                visibleIds: new Set(results
+                    .filter((candidate) => candidate.selectable !== false && candidate.id !== 'show-more')
+                    .map((candidate) => candidate.id))
+            };
+            showAll = true;
             selectedId = '';
             render();
             return false;
@@ -1385,6 +1525,7 @@ export function initHeroSearch() {
     input.addEventListener('input', () => {
         if (!isOpen) setOpen(true);
         isBrowsingAll = false;
+        showAll = false;
         selectedId = '';
         debouncedRender();
     });
@@ -1435,6 +1576,22 @@ export function initHeroSearch() {
         if (!option) return;
         const result = results.find((candidate) => candidate.id === option.dataset.resultId);
         executeResult(result);
+    });
+
+    panel.addEventListener('pointermove', (event) => {
+        if (event.pointerType !== 'mouse') return;
+        const option = event.target.closest('[data-result-id]');
+        const id = option?.dataset.resultId;
+        if (!id || id === selectedId) return;
+        const result = results.find((candidate) => candidate.id === id);
+        if (!result || result.selectable === false) return;
+        const previousOption = panel.querySelector('.hero-search-result.is-selected');
+        previousOption?.classList.remove('is-selected');
+        previousOption?.setAttribute('aria-selected', 'false');
+        selectedId = id;
+        option.classList.add('is-selected');
+        option.setAttribute('aria-selected', 'true');
+        syncActiveDescendant();
     });
 
     chips.addEventListener('click', (event) => {

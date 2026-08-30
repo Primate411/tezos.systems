@@ -770,45 +770,114 @@ function coversSearchTokens(queryTokens, candidateTokens) {
     ));
 }
 
-export function siteMapSearchScore(entry, query) {
-    const q = String(query || '').trim().toLowerCase();
-    const bare = q.replace(/^\//, '');
-    const normalized = normalizedSearchValue(q);
-    const title = normalizedSearchValue(entry.title);
-    const id = normalizedSearchValue(entry.id);
-    const href = String(entry.href || '').toLowerCase();
-    const hash = String(entry.hash || '').toLowerCase().replace(/^#/, '');
+const searchIndexCache = new WeakMap();
+let lastQueryShape = null;
+
+/**
+ * Build the query-independent search model for a canonical or catalog entry.
+ * Stable entry object identities make this a one-time cost per loaded row.
+ */
+export function siteMapSearchIndex(entry) {
+    const cached = searchIndexCache.get(entry);
+    if (cached) return cached;
+
     const keywords = [...(entry.keywords || []), ...(entry.aliases || [])]
         .map((keyword) => String(keyword).toLowerCase());
-    const normalizedKeywords = keywords.map(normalizedSearchValue);
-    const queryTokens = searchTokens(q);
     const titleTokens = searchTokens(entry.title, { keepStopWords: true });
     const idTokens = searchTokens(entry.id, { keepStopWords: true });
     const keywordTokens = keywords.flatMap((keyword) => searchTokens(keyword, { keepStopWords: true }));
-    const detailTokens = searchTokens(entry.detail, { keepStopWords: true });
-    const groupTokens = searchTokens(entry.group, { keepStopWords: true });
-    const routeTokens = [
-        ...searchTokens(entry.href, { keepStopWords: true }),
-        ...searchTokens(entry.hash, { keepStopWords: true }),
-        ...(entry.paths || []).flatMap((path) => searchTokens(path, { keepStopWords: true }))
-    ];
-    const allTokens = [...titleTokens, ...idTokens, ...keywordTokens, ...detailTokens, ...groupTokens, ...routeTokens];
+    const index = {
+        href: String(entry.href || '').toLowerCase(),
+        hash: String(entry.hash || '').toLowerCase().replace(/^#/, ''),
+        rawHref: String(entry.href || '').toLowerCase(),
+        rawHash: String(entry.hash || '').toLowerCase(),
+        title: normalizedSearchValue(entry.title),
+        id: normalizedSearchValue(entry.id),
+        normalizedKeywords: keywords.map(normalizedSearchValue),
+        titleTokens,
+        idTokens,
+        keywordTokens,
+        titleIdKeywordTokens: [...titleTokens, ...idTokens, ...keywordTokens],
+        allTokens: [
+            ...titleTokens,
+            ...idTokens,
+            ...keywordTokens,
+            ...searchTokens(entry.detail, { keepStopWords: true }),
+            ...searchTokens(entry.group, { keepStopWords: true }),
+            ...searchTokens(entry.href, { keepStopWords: true }),
+            ...searchTokens(entry.hash, { keepStopWords: true }),
+            ...(entry.paths || []).flatMap((path) => searchTokens(path, { keepStopWords: true }))
+        ]
+    };
+    searchIndexCache.set(entry, index);
+    return index;
+}
 
-    if (q === String(entry.href || '').toLowerCase() || q === String(entry.hash || '').toLowerCase()) return 120;
-    if (q.startsWith('/') && hash === bare) return 118;
+/** Shape one query once for every source scored during the same render. */
+export function siteMapQueryShape(query) {
+    const q = String(query || '').trim().toLowerCase();
+    if (lastQueryShape?.q === q) return lastQueryShape;
+
+    const bare = q.replace(/^\//, '');
+    const normalized = normalizedSearchValue(q);
+    lastQueryShape = { q, bare, normalized, tokens: searchTokens(q) };
+    return lastQueryShape;
+}
+
+/** Compare already-shaped entry and query models without changing ranking. */
+export function siteMapScoreIndexed(index, shape) {
+    const { q, bare, normalized, tokens } = shape;
+    if (q === index.rawHref || q === index.rawHash) return 120;
+    if (q.startsWith('/') && index.hash === bare) return 118;
     if (!normalized) return 0;
-    if (normalized === title || normalized === id || normalized === hash) return 115;
-    if (title.includes(normalized) && normalizedKeywords.includes(normalized)) return 113;
-    if (normalized.length >= 4 && (title.startsWith(normalized) || id.startsWith(normalized))) return 112;
-    if (normalizedKeywords.includes(normalized)) return 110;
-    if (href === `/${bare}` || href === `/${bare}/` || href === `/#${bare}`) return 105;
-    if (coversSearchTokens(queryTokens, titleTokens)) return 96;
-    if (coversSearchTokens(queryTokens, keywordTokens)) return 92;
-    if (coversSearchTokens(queryTokens, [...titleTokens, ...idTokens, ...keywordTokens])) return 88;
-    if (coversSearchTokens(queryTokens, allTokens)) return 78;
-    if (normalized.length >= 4 && normalizedKeywords.some((keyword) => keyword.startsWith(normalized))) return 76;
-    if (normalized.length >= 4 && (title.includes(normalized) || id.includes(normalized))) return 74;
+    if (normalized === index.title || normalized === index.id || normalized === index.hash) return 115;
+    if (index.title.includes(normalized) && index.normalizedKeywords.includes(normalized)) return 113;
+    if (normalized.length >= 4 && (index.title.startsWith(normalized) || index.id.startsWith(normalized))) return 112;
+    if (index.normalizedKeywords.includes(normalized)) return 110;
+    if (index.href === `/${bare}` || index.href === `/${bare}/` || index.href === `/#${bare}`) return 105;
+    if (coversSearchTokens(tokens, index.titleTokens)) return 96;
+    if (coversSearchTokens(tokens, index.keywordTokens)) return 92;
+    if (coversSearchTokens(tokens, index.titleIdKeywordTokens)) return 88;
+    if (coversSearchTokens(tokens, index.allTokens)) return 78;
+    if (normalized.length >= 4 && index.normalizedKeywords.some((keyword) => keyword.startsWith(normalized))) return 76;
+    if (normalized.length >= 4 && (index.title.includes(normalized) || index.id.includes(normalized))) return 74;
     return 0;
+}
+
+export function siteMapSearchScore(entry, query) {
+    return siteMapScoreIndexed(siteMapSearchIndex(entry), siteMapQueryShape(query));
+}
+
+function mergeSearchRanges(ranges) {
+    if (ranges.length < 2) return ranges;
+    const sorted = ranges.slice().sort((left, right) => left[0] - right[0] || left[1] - right[1]);
+    const merged = [sorted[0].slice()];
+    for (const [start, end] of sorted.slice(1)) {
+        const previous = merged[merged.length - 1];
+        if (start <= previous[1]) previous[1] = Math.max(previous[1], end);
+        else merged.push([start, end]);
+    }
+    return merged;
+}
+
+/** Character ranges used only to explain a match visually; ranking is separate. */
+export function searchMatchRanges(text, query) {
+    const source = String(text || '');
+    if (!source) return [];
+    const tokens = searchTokens(query).filter((token) => token.length >= 2);
+    if (!tokens.length) return [];
+    const haystack = source.toLowerCase();
+    const ranges = [];
+    for (const token of tokens) {
+        let from = 0;
+        for (;;) {
+            const at = haystack.indexOf(token, from);
+            if (at < 0) break;
+            ranges.push([at, at + token.length]);
+            from = at + token.length;
+        }
+    }
+    return mergeSearchRanges(ranges);
 }
 
 export function searchSiteMap(query) {
