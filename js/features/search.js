@@ -1347,7 +1347,7 @@ export function initHeroSearch() {
     });
 
     form.addEventListener('click', (event) => {
-        if (event.target.closest('.hero-search-submit, .hero-search-close')) return;
+        if (event.target.closest('.hero-search-submit, .hero-search-close, .tour-nudge')) return;
         if (document.activeElement !== input) input.focus();
         if (!isOpen) {
             setOpen(true);

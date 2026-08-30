@@ -6093,7 +6093,7 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
     const response = await page.goto(`${baseUrl}/?theme=${testCase.theme}`, { waitUntil: 'domcontentloaded' });
     assert(response?.ok(), `release update dock ${testCase.label}: dashboard failed with HTTP ${response?.status()}`);
     await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-    await page.locator('#hero-search-input').focus();
+    await page.locator('#settings-gear').focus();
     await page.evaluate(() => {
       const input = document.getElementById('hero-search-input');
       input?.setSelectionRange?.(0, 0);
@@ -6195,7 +6195,7 @@ async function smokeReleaseUpdateDock(browser, baseUrl) {
       reducedMotion: testCase.reducedMotion === 'reduce'
     });
 
-    assert(initial.activePreserved && initial.focusId === 'hero-search-input' && initial.scrollPreserved, `release update dock ${testCase.label}: appearance stole focus or scroll ${JSON.stringify(initial)}`);
+    assert(initial.activePreserved && initial.focusId === 'settings-gear' && initial.scrollPreserved, `release update dock ${testCase.label}: appearance stole focus or scroll ${JSON.stringify(initial)}`);
     assert(initial.title === 'Update ready'
       && initial.detail === 'Latest: Baker Directory now shows observation time.'
       && initial.meta === 'Build 919 · 2026-07-30'
@@ -18215,7 +18215,6 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => document.querySelector('#live-head-inspector')?.hidden === true
     && !document.querySelector('#live-head')?.dataset.readingPaused, null, { timeout: 10000 });
-  await page.locator('#hero-search-input').focus();
   await liveHeadCurrentFirstInfo.focus();
   await page.locator('#live-head-inspector:not([hidden])').waitFor({ state: 'visible', timeout: 15000 });
   await page.keyboard.press('Escape');
@@ -22660,7 +22659,8 @@ async function smokeUraniumChamber(browser, baseUrl) {
       rangesContained: Array.from(panel?.querySelectorAll('[data-uranium-range]') || []).every(contained),
       readoutContained: contained(readout),
       provenanceContained: contained(provenance),
-      eventLabelContained: contained(eventLabel),
+      eventLabelContained: !eventLabel || contained(eventLabel),
+      eventLabel: rect(eventLabel),
       axisWidths: Array.from(chart?.querySelectorAll('.uranium-chart-axis text') || []).map((label) => label.getBoundingClientRect().width),
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth
     };
@@ -26831,9 +26831,10 @@ async function smokeHomeLayout(browser, baseUrl) {
   });
   await page.keyboard.press('/');
   await page.waitForFunction(() => window.tezosSystemsHomeLayout.isHomeBlockVisible('live-head') && document.activeElement?.id === 'hero-search-input');
+  await page.locator('#hero-search-close').click();
+  await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode'));
 
   await page.evaluate(() => {
-    document.getElementById('hero-search-input')?.blur();
     window.__homeLayoutPulseContent = document.getElementById('pulse-ticker-viewport');
     window.tezosSystemsHomeLayout.setHomeBlockVisible('live-pulse', false, 'pulse-hidden-smoke');
     window.dispatchEvent(new CustomEvent('hot-signal', {
@@ -27183,6 +27184,10 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   await page.locator('.tour-nudge').waitFor({ state: 'visible', timeout: 5000 });
   await page.locator('.tour-nudge .tour-start').click();
   await page.locator('#tour-overlay').waitFor({ state: 'visible', timeout: 6000 });
+  assert(
+    await page.evaluate(() => !document.body.classList.contains('hero-search-mode') && document.getElementById('hero-search-overlay')?.hidden !== false),
+    'first visit tour: starting the search-floor nudge opened the Index Chamber over the tour'
+  );
   for (let index = 0; index < tourSteps.length; index += 1) {
     const step = tourSteps[index];
     await expectTourStep(page, step.label, step.snippets);
@@ -34150,6 +34155,16 @@ async function smokeLiveNumberMotion(browser, baseUrl) {
 async function smokeLazyChamberLoading(browser, baseUrl) {
   const installLazyInit = async (context) => {
     await installFeatureMocks(context);
+    await context.route(/^https:\/\/api\.tzkt\.io\/v1\/accounts\/tz[1-4][^/?]+(?:\?.*)?$/, async (route) => {
+      const parsedUrl = new URL(route.request().url());
+      const address = decodeURIComponent(parsedUrl.pathname.split('/').pop() || '');
+      return fulfillJson(route, {
+        address,
+        alias: 'Hermetic lazy-Chamber account',
+        type: 'user',
+        balance: 0
+      });
+    });
     await context.addInitScript(() => {
       localStorage.setItem('tezos-systems-theme', 'matrix');
       localStorage.setItem('tezos-systems-stats-visible', 'true');

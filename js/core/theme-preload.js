@@ -8,7 +8,7 @@
  */
 (function () {
     var DEFAULT = 'aurora';
-    var THEME_CSS_VERSION = '603';
+    var THEME_CSS_VERSION = '604';
     var VALID = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
     var THEME_FONTS = {
         aurora: ['Chakra+Petch:wght@400;600;700'],
