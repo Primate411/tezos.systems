@@ -1651,6 +1651,18 @@ function scheduleLiveHeadInspectorClose() {
     cancelLiveHeadInspectorClose();
     liveHeadInspectorCloseTimer = window.setTimeout(() => {
         liveHeadInspectorCloseTimer = null;
+        const inspector = document.getElementById('live-head-inspector');
+        const trigger = Number.isFinite(liveHeadInspectorLevel)
+            ? document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadInspectorLevel}"] .live-head-info`)
+            : null;
+        const active = document.activeElement;
+        const stillReading = Boolean(
+            inspector?.matches(':hover')
+            || trigger?.matches(':hover')
+            || (active instanceof Element && inspector?.contains(active))
+            || active === trigger
+        );
+        if (stillReading) return;
         closeLiveHeadInspector({ deferResume: true });
     }, LIVE_HEAD_INSPECTOR_CLOSE_DELAY);
 }

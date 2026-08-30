@@ -18207,7 +18207,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     throw new Error(`network health chamber: current Live Head row kept changing before inspection ${JSON.stringify(lastState)}`);
   };
   const enterLiveHeadInspector = async () => {
-    const expectedLevel = await page.locator('#live-head-inspector:not([hidden])').getAttribute('data-live-head-level', { timeout: 15000 });
+    // The close delay may elapse between the preceding visibility receipt and
+    // this handoff on a slow hosted runner. The keyed level remains on the
+    // hidden inspector so the loop can deliberately reopen that exact row.
+    const expectedLevel = await page.locator('#live-head-inspector').getAttribute('data-live-head-level', { timeout: 5000 });
     assert(expectedLevel, 'network health chamber: Live Head inspector handoff is missing its keyed level');
     let lastState = null;
     for (let attempt = 0; attempt < 4; attempt += 1) {
@@ -18408,6 +18411,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 
   await openCurrentLiveHeadInspector({ x: 4, y: 4 });
   await enterLiveHeadInspector();
+  await page.mouse.move(1, 1);
+  await page.waitForTimeout(500);
   const readingPauseBefore = await page.evaluate(() => {
     const panel = document.querySelector('#live-head');
     const stack = document.querySelector('#live-head-stack');
@@ -18419,9 +18424,17 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       signature: stack?.dataset.liveHeadSignature || '',
       levels: Array.from(stack?.querySelectorAll('.live-head-row[data-live-head-level]') || []).map((row) => row.dataset.liveHeadLevel),
       age: first?.querySelector('.live-head-age')?.textContent?.trim() || '',
-      paused: panel?.dataset.readingPaused || ''
+      paused: panel?.dataset.readingPaused || '',
+      inspectorHidden: document.getElementById('live-head-inspector')?.hidden ?? true,
+      inspectorFocused: Boolean(document.getElementById('live-head-inspector')?.contains(document.activeElement))
     };
   });
+  assert(
+    readingPauseBefore.paused === 'true'
+      && !readingPauseBefore.inspectorHidden
+      && readingPauseBefore.inspectorFocused,
+    `network health chamber: focused inspector did not retain its reading lock after pointer exit ${JSON.stringify(readingPauseBefore)}`
+  );
   mockState.advanceBlockHead();
   await page.evaluate(async () => {
     const { refreshNetworkHealth } = await import('/js/features/network-health.js');
