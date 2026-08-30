@@ -4681,12 +4681,20 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
         nativeScrollTo,
         readerIntent: false,
         restoreCallsAfterIntent: 0,
+        displacingCallsAfterIntent: 0,
         targetY: Math.max(0, window.scrollY - 240),
         appliedY: window.scrollY
       };
       window.scrollTo = function (...args) {
-        if (window.__chamberCategoryScrollProbe?.readerIntent) {
-          window.__chamberCategoryScrollProbe.restoreCallsAfterIntent += 1;
+        const probe = window.__chamberCategoryScrollProbe;
+        if (probe?.readerIntent) {
+          probe.restoreCallsAfterIntent += 1;
+          const requestedY = typeof args[0] === 'object'
+            ? Number(args[0]?.top ?? window.scrollY)
+            : Number(args[1] ?? window.scrollY);
+          if (Number.isFinite(requestedY) && Math.abs(requestedY - probe.targetY) > 2) {
+            probe.displacingCallsAfterIntent += 1;
+          }
         }
         return nativeScrollTo.apply(window, args);
       };
@@ -4713,6 +4721,7 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
         open: category?.dataset.chamberExpanded === 'true',
         focused: document.activeElement === category?.querySelector(':scope > .chamber-category-head > .chamber-category-toggle'),
         restoreCallsAfterIntent: probe?.restoreCallsAfterIntent ?? -1,
+        displacingCallsAfterIntent: probe?.displacingCallsAfterIntent ?? -1,
         targetY: probe?.targetY ?? -1,
         appliedY: probe?.appliedY ?? -1
       };
@@ -4724,7 +4733,8 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
       !afterReaderScroll.open
         && afterReaderScroll.focused
         && Math.abs(afterReaderScroll.appliedY - afterReaderScroll.targetY) <= 2
-        && afterReaderScroll.restoreCallsAfterIntent === 0,
+        && Math.abs(afterReaderScroll.scrollY - afterReaderScroll.targetY) <= 2
+        && afterReaderScroll.displacingCallsAfterIntent === 0,
       `${label}: delayed disclosure restore overwrote immediate reader scroll ${JSON.stringify(afterReaderScroll)}`
     );
     await page.evaluate(() => {

@@ -4987,7 +4987,7 @@ async function checkChamberEfficiencyContracts() {
     'if (restoreFrame < maxRestoreFrames) requestAnimationFrame(restoreBrowserShift)',
     'else clearScrollIntentListeners()',
     'const simulatedAnchoringShift = 369',
-    'afterReaderScroll.restoreCallsAfterIntent === 0'
+    'afterReaderScroll.displacingCallsAfterIntent === 0'
   ]) {
     if (!(app.includes(snippet) || smoke.includes(snippet))) {
       fail(`mobile Chamber disclosure scroll preservation is missing contract: ${snippet}`);
