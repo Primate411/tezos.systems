@@ -15,7 +15,7 @@ import {
     MY_TEZOS_COLLECTION_PAGE_SIZE,
     fetchObjktCollectionPage
 } from '../core/objkt-client.mjs';
-import { quietlySyncHtml } from '../core/quiet-refresh.js';
+import { quietlyMutate, quietlySyncHtml } from '../core/quiet-refresh.js';
 import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import { readSavedMyTezosEntries, shortAddress } from '../core/wallet.js';
 import { collectionSummary } from './my-tezos-collection-model.mjs';
@@ -220,6 +220,16 @@ function renderCollection() {
     }
 }
 
+function reconcileCollectionRender({ background = false, message, state }) {
+    const render = () => {
+        renderCollection();
+        setStatus(message, state);
+    };
+    const panel = background ? document.getElementById('my-tezos-panel-collection') : null;
+    if (panel) quietlyMutate(panel, render);
+    else render();
+}
+
 async function readCachedRecords(entries) {
     const records = [];
     for (const entry of entries) {
@@ -404,14 +414,14 @@ export async function refreshMyTezosCollection({ force = false, background = fal
                 if (!background || scanComplete) {
                     nextOffset = scanNextOffset;
                     complete = scanComplete;
-                    renderCollection();
                     const summary = collectionSummary(currentRecords.filter((record) => showSpam || !record.spam));
-                    setStatus(
-                        scanComplete
+                    reconcileCollectionRender({
+                        background,
+                        message: scanComplete
                             ? `Complete Objkt coverage · ${summary.assets.toLocaleString()} collected assets · ${summary.createdAssets.toLocaleString()} created · ${saved ? 'saved on this device' : 'temporary view; storage unavailable'} · ${formatFreshnessStamp(new Date(), { source: 'Objkt' })}`
                             : `Syncing complete Objkt coverage · ${summary.assets.toLocaleString()} collected assets loaded across ${pageCount.toLocaleString()} page${pageCount === 1 ? '' : 's'}…`,
-                        saved ? (scanComplete ? 'complete' : 'partial') : 'error'
-                    );
+                        state: saved ? (scanComplete ? 'complete' : 'partial') : 'error'
+                    });
                 }
                 offset = scanNextOffset;
             } while (!scanComplete && offset > 0 && requestGeneration === generation && isVisible());
@@ -423,8 +433,11 @@ export async function refreshMyTezosCollection({ force = false, background = fal
                 complete = previous.complete;
                 nextOffset = previous.nextOffset;
             }
-            renderCollection();
-            setStatus(`${error.message || 'Objkt unavailable'} · showing last saved holdings`, 'error');
+            reconcileCollectionRender({
+                background,
+                message: `${error.message || 'Objkt unavailable'} · showing last saved holdings`,
+                state: 'error'
+            });
             return null;
         } finally {
             if (refreshInFlight === pending) {

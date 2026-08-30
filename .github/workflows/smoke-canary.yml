@@ -1,0 +1,117 @@
+name: Nightly Smoke Canary
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-smoke-canary
+  cancel-in-progress: true
+
+jobs:
+  high-risk-repeat:
+    name: High-risk repeat (${{ matrix.shard }}/6)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4, 5, 6]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve Playwright version
+        id: playwright-version
+        run: echo "version=$(node -p \"require('./node_modules/playwright/package.json').version\")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright-version.outputs.version }}-chromium-shell
+
+      - name: Install Chromium dependencies
+        run: npx playwright install-deps chromium
+
+      - name: Install Chromium headless shell
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --only-shell chromium
+
+      - name: Repeat high-risk suites
+        run: >-
+          node tests/smoke.mjs
+          --risk high
+          --repeat-each 5
+          --shard ${{ matrix.shard }}/6
+          --continue-on-failure
+          --retry-infrastructure 2
+          --isolate-suites
+          --hermetic
+          --artifacts-dir test-artifacts/high-risk-${{ matrix.shard }}
+
+      - name: Upload canary results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: high-risk-canary-${{ matrix.shard }}-of-6
+          path: test-artifacts/high-risk-${{ matrix.shard }}
+          if-no-files-found: ignore
+          retention-days: 30
+
+  live-upstream:
+    name: Pinned browser dependencies live canary
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Chromium
+        run: |
+          npx playwright install-deps chromium
+          npx playwright install --only-shell chromium
+
+      - name: Exercise the pinned SDK and Kraken WebSocket upstreams
+        run: >-
+          node tests/smoke.mjs
+          --only octez-connect-sdk-loader,kraken-websocket-canary
+          --repeat-each 2
+          --continue-on-failure
+          --retry-infrastructure 2
+          --isolate-suites
+          --allow-live-network
+          --strict-external
+          --artifacts-dir test-artifacts/live-upstream
+
+      - name: Upload live-canary results
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: live-upstream-canary
+          path: test-artifacts/live-upstream
+          if-no-files-found: ignore
+          retention-days: 30

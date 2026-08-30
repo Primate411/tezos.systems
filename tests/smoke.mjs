@@ -1,16 +1,32 @@
 #!/usr/bin/env node
 
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  executeSuiteCatalog,
+  formatSuiteSummary,
+  isSmokeInfrastructureError,
+  parseShard,
+  selectSuiteCatalog,
+  SmokeInfrastructureError,
+  summarizeSuiteResults,
+  unstableSuiteResults
+} from './lib/smoke-harness.mjs';
+import { selectAffectedSmokeSuites } from './lib/smoke-affected.mjs';
+import { metadataForSmokeSuite } from './lib/smoke-metadata.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
 const releaseRadarFixture = require('../data/release-radar.json');
+const intentionalWaits = require('./fixtures/smoke-intentional-waits.json');
+const defaultSmokeSuiteCosts = require('./fixtures/smoke-suite-costs.json');
 const { launchChromium: launchPlaywrightChromium } = require('../scripts/lib/playwright-browser.cjs');
 let cli;
 try {
@@ -22,8 +38,25 @@ try {
 const BASE_URL = cli.baseUrl || process.env.BASE_URL || '';
 const HEADLESS = !(cli.headed || process.env.SMOKE_HEADED === '1');
 const STRICT_EXTERNAL = cli.strictExternal || process.env.STRICT_EXTERNAL === '1';
+const HERMETIC_NETWORK = !cli.allowLiveNetwork && (cli.hermetic || process.env.SMOKE_HERMETIC === '1');
 const BROWSER_EXECUTABLE_PATH = cli.browserExecutablePath || process.env.BROWSER_EXECUTABLE_PATH || '';
 const ONLY_SUITES = cli.onlySuites;
+const ONLY_RISKS = cli.onlyRisks;
+const ARTIFACTS_DIR_VALUE = cli.artifactsDir || process.env.SMOKE_ARTIFACTS_DIR || '';
+const ARTIFACTS_DIR = ARTIFACTS_DIR_VALUE ? path.resolve(ROOT, ARTIFACTS_DIR_VALUE) : '';
+const CONTINUE_ON_FAILURE = cli.continueOnFailure || process.env.SMOKE_CONTINUE_ON_FAILURE === '1';
+const ISOLATE_SUITES = cli.isolateSuites || process.env.SMOKE_ISOLATE_SUITES === '1';
+const REPEAT_EACH = cli.repeatEach;
+const RETRY_FAILURES = cli.retryFailures;
+const RETRY_INFRASTRUCTURE = cli.retryInfrastructure;
+const SHARD = cli.shard;
+const AFFECTED_SINCE = cli.affectedSince;
+const AFFECTED_HIGH_RISK_REPEAT = cli.affectedHighRiskRepeat;
+const SUITE_COSTS_PATH = cli.suiteCostsPath ? path.resolve(ROOT, cli.suiteCostsPath) : '';
+const smokeSuiteCosts = SUITE_COSTS_PATH
+  ? JSON.parse(readFileSync(SUITE_COSTS_PATH, 'utf8'))
+  : defaultSmokeSuiteCosts;
+let affectedSelectionReport = null;
 
 function stableTestValue(value) {
   if (Array.isArray(value)) return value.map(stableTestValue);
@@ -33,6 +66,14 @@ function stableTestValue(value) {
 
 function stableTestHash(value) {
   return createHash('sha256').update(JSON.stringify(stableTestValue(value))).digest('hex');
+}
+
+async function waitForIntentionalRealTime(page, key) {
+  const receipt = intentionalWaits[key];
+  if (!receipt || !Number.isInteger(receipt.milliseconds) || receipt.milliseconds < 1 || !receipt.reason) {
+    throw new Error(`undocumented intentional real-time wait: ${key}`);
+  }
+  await page.waitForTimeout(receipt.milliseconds);
 }
 
 const allowedWarningPatterns = [
@@ -313,10 +354,24 @@ Usage: node tests/smoke.mjs [options]
 
 Options:
   --base-url <url>             Test an existing local or remote server instead of starting one
+  --affected-since <git-ref>   Run static-selected owners of files changed since a Git reference
+  --affected-high-risk-repeat <count>
+                                Repeat selected high-risk suites this many times
   --headed                     Run Chromium visibly
   --strict-external            Fail on upstream warnings normally tolerated in local smoke runs
+  --hermetic                   Block every undeclared non-target request and use shared pinned fixtures
+  --allow-live-network         Explicitly disable hermetic routing for the live upstream canary
   --browser-executable <path>  Use a specific Chrome/Chromium executable
   --only <suite[,suite]>       Run selected suites by name
+  --risk <level[,level]>       Run suites tagged low, normal, or high risk
+  --shard <index/total>        Run one deterministic runtime-balanced shard of the selected suites
+  --suite-costs <path>         Use an adaptive hosted timing ledger instead of the committed baseline
+  --repeat-each <count>        Repeat every selected suite to expose intermittent behavior
+  --retry-failures <count>     Re-run a failed suite in a fresh browser for diagnosis
+  --retry-infrastructure <n>   Transparently retry pre-test browser/server startup failures
+  --continue-on-failure        Run every selected suite and report all failures together
+  --isolate-suites             Give every suite a fresh browser process
+  --artifacts-dir <path>       Save JSON results and retry traces under this directory
   --list                       List available suites and exit
   --help                       Show this help
 `.trim();
@@ -328,14 +383,35 @@ function readArg(argv, index, flag) {
   return value;
 }
 
+function readIntegerOption(value, flag, { min = 0, max = 100 } = {}) {
+  const number = Number(value);
+  if (!Number.isInteger(number) || number < min || number > max) {
+    throw new Error(`${flag} must be an integer from ${min} to ${max}\n\n${usage()}`);
+  }
+  return number;
+}
+
 function parseArgs(argv) {
   const options = {
+    artifactsDir: '',
+    allowLiveNetwork: false,
+    affectedHighRiskRepeat: 1,
+    affectedSince: '',
     baseUrl: '',
     browserExecutablePath: '',
+    continueOnFailure: false,
     headed: false,
+    hermetic: false,
+    isolateSuites: false,
     list: false,
+    onlyRisks: [],
     onlySuites: [],
-    strictExternal: false
+    repeatEach: 1,
+    retryFailures: 0,
+    retryInfrastructure: 0,
+    shard: null,
+    strictExternal: false,
+    suiteCostsPath: ''
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -348,11 +424,30 @@ function parseArgs(argv) {
       options.headed = true;
     } else if (arg === '--strict-external') {
       options.strictExternal = true;
+    } else if (arg === '--hermetic') {
+      options.hermetic = true;
+    } else if (arg === '--allow-live-network') {
+      options.allowLiveNetwork = true;
+      options.hermetic = false;
+    } else if (arg === '--continue-on-failure') {
+      options.continueOnFailure = true;
+    } else if (arg === '--isolate-suites') {
+      options.isolateSuites = true;
     } else if (arg === '--base-url') {
       options.baseUrl = readArg(argv, index, arg);
       index += 1;
     } else if (arg.startsWith('--base-url=')) {
       options.baseUrl = arg.slice('--base-url='.length);
+    } else if (arg === '--affected-since') {
+      options.affectedSince = readArg(argv, index, arg);
+      index += 1;
+    } else if (arg.startsWith('--affected-since=')) {
+      options.affectedSince = arg.slice('--affected-since='.length);
+    } else if (arg === '--affected-high-risk-repeat') {
+      options.affectedHighRiskRepeat = readIntegerOption(readArg(argv, index, arg), arg, { min: 1, max: 20 });
+      index += 1;
+    } else if (arg.startsWith('--affected-high-risk-repeat=')) {
+      options.affectedHighRiskRepeat = readIntegerOption(arg.slice('--affected-high-risk-repeat='.length), '--affected-high-risk-repeat', { min: 1, max: 20 });
     } else if (arg === '--browser-executable') {
       options.browserExecutablePath = readArg(argv, index, arg);
       index += 1;
@@ -363,12 +458,50 @@ function parseArgs(argv) {
       index += 1;
     } else if (arg.startsWith('--only=')) {
       options.onlySuites.push(...arg.slice('--only='.length).split(','));
+    } else if (arg === '--risk') {
+      options.onlyRisks.push(...readArg(argv, index, arg).split(','));
+      index += 1;
+    } else if (arg.startsWith('--risk=')) {
+      options.onlyRisks.push(...arg.slice('--risk='.length).split(','));
+    } else if (arg === '--shard') {
+      options.shard = parseShard(readArg(argv, index, arg));
+      index += 1;
+    } else if (arg.startsWith('--shard=')) {
+      options.shard = parseShard(arg.slice('--shard='.length));
+    } else if (arg === '--suite-costs') {
+      options.suiteCostsPath = readArg(argv, index, arg);
+      index += 1;
+    } else if (arg.startsWith('--suite-costs=')) {
+      options.suiteCostsPath = arg.slice('--suite-costs='.length);
+    } else if (arg === '--repeat-each') {
+      options.repeatEach = readIntegerOption(readArg(argv, index, arg), arg, { min: 1, max: 100 });
+      index += 1;
+    } else if (arg.startsWith('--repeat-each=')) {
+      options.repeatEach = readIntegerOption(arg.slice('--repeat-each='.length), '--repeat-each', { min: 1, max: 100 });
+    } else if (arg === '--retry-failures') {
+      options.retryFailures = readIntegerOption(readArg(argv, index, arg), arg, { min: 0, max: 10 });
+      index += 1;
+    } else if (arg.startsWith('--retry-failures=')) {
+      options.retryFailures = readIntegerOption(arg.slice('--retry-failures='.length), '--retry-failures', { min: 0, max: 10 });
+    } else if (arg === '--retry-infrastructure') {
+      options.retryInfrastructure = readIntegerOption(readArg(argv, index, arg), arg, { min: 0, max: 10 });
+      index += 1;
+    } else if (arg.startsWith('--retry-infrastructure=')) {
+      options.retryInfrastructure = readIntegerOption(arg.slice('--retry-infrastructure='.length), '--retry-infrastructure', { min: 0, max: 10 });
+    } else if (arg === '--artifacts-dir') {
+      options.artifactsDir = readArg(argv, index, arg);
+      index += 1;
+    } else if (arg.startsWith('--artifacts-dir=')) {
+      options.artifactsDir = arg.slice('--artifacts-dir='.length);
     } else {
       throw new Error(`unknown smoke option: ${arg}\n\n${usage()}`);
     }
   }
 
   options.baseUrl = options.baseUrl.replace(/\/$/, '');
+  options.onlyRisks = options.onlyRisks.map((risk) => risk.trim()).filter(Boolean);
+  const unknownRisks = options.onlyRisks.filter((risk) => !['low', 'normal', 'high'].includes(risk));
+  if (unknownRisks.length) throw new Error(`unknown smoke risk level(s): ${unknownRisks.join(', ')}`);
   options.onlySuites = options.onlySuites.map((suite) => suite.trim()).filter(Boolean);
   return options;
 }
@@ -1656,6 +1789,9 @@ async function installFeatureMocks(context, options = {}) {
     const url = request.url();
     const postData = request.postData() || '';
     const parsedUrl = new URL(url);
+    if (process.env.SMOKE_NETWORK_DEBUG === '1' && parsedUrl.origin !== dashboardOrigin) {
+      log(`network mock saw ${request.method()} ${url}`);
+    }
 
     if (parsedUrl.pathname.endsWith('/data/release-radar.json')) {
       return fulfillJson(route, {
@@ -3895,7 +4031,7 @@ async function installFeatureMocks(context, options = {}) {
       }
     }
 
-    return route.continue();
+    return route.fallback();
   });
   return {
     bakerPageOffsets,
@@ -4774,7 +4910,12 @@ async function waitForServer(url) {
 async function startLocalServer() {
   if (BASE_URL) return { baseUrl: BASE_URL.replace(/\/$/, ''), stop: async () => {} };
 
-  const port = await findFreePort();
+  let port;
+  try {
+    port = await findFreePort();
+  } catch (error) {
+    throw new SmokeInfrastructureError(`could not allocate a local smoke port: ${error.message}`, { cause: error });
+  }
   const child = spawn('python3', ['-m', 'http.server', String(port)], {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe']
@@ -4789,7 +4930,7 @@ async function startLocalServer() {
     await waitForServer(`${baseUrl}/`);
   } catch (error) {
     child.kill();
-    throw new Error(`${error.message}\n${output}`);
+    throw new SmokeInfrastructureError(`${error.message}\n${output}`, { cause: error });
   }
 
   return {
@@ -4806,6 +4947,23 @@ async function startLocalServer() {
       });
     }
   };
+}
+
+async function startSmokeServer() {
+  let lastError;
+  for (let retry = 0; retry <= RETRY_INFRASTRUCTURE; retry += 1) {
+    try {
+      return await startLocalServer();
+    } catch (error) {
+      lastError = isSmokeInfrastructureError(error)
+        ? error
+        : new SmokeInfrastructureError(`local smoke server startup failed: ${error.message}`, { cause: error });
+      if (retry < RETRY_INFRASTRUCTURE) {
+        log(`infra-retry - local smoke server startup ${retry + 1}/${RETRY_INFRASTRUCTURE}: ${lastError.message}`);
+      }
+    }
+  }
+  throw lastError;
 }
 
 async function loadPlaywright() {
@@ -4885,11 +5043,453 @@ async function installOctezConnectMock(context, address = SAMPLE_ADDRESS, option
 }
 
 async function launchChromium(chromium) {
-  return launchPlaywrightChromium(chromium, {
-    executablePath: BROWSER_EXECUTABLE_PATH,
-    headless: HEADLESS,
-    logger: log
+  try {
+    return await launchPlaywrightChromium(chromium, {
+      executablePath: BROWSER_EXECUTABLE_PATH,
+      headless: HEADLESS,
+      logger: log
+    });
+  } catch (error) {
+    throw new SmokeInfrastructureError(`Chromium startup failed before the suite began: ${error.message}`, { cause: error });
+  }
+}
+
+const hermeticAssetCache = new Map();
+
+async function readHermeticAsset(key, resolvePath) {
+  if (!hermeticAssetCache.has(key)) {
+    hermeticAssetCache.set(key, readFile(resolvePath(), 'utf8'));
+  }
+  return hermeticAssetCache.get(key);
+}
+
+function octezConnectHermeticModule() {
+  return `
+export const NetworkType = { MAINNET: 'mainnet' };
+export const TezosOperationType = { TRANSACTION: 'transaction', DELEGATION: 'delegation' };
+export const PermissionScope = { OPERATION_REQUEST: 'operation_request', SIGN: 'sign' };
+export const BeaconEvent = { ACTIVE_ACCOUNT_SET: 'ACTIVE_ACCOUNT_SET', PAIR_ABORTED: 'PAIR_ABORTED' };
+export const Regions = { EUROPE_WEST: 'EUROPE_WEST', NORTH_AMERICA_EAST: 'NORTH_AMERICA_EAST' };
+export class DAppClient {
+  async requestPermissions() { return null; }
+  async requestOperation() { return { transactionHash: 'ooHermeticSmoke' }; }
+  async getActiveAccount() { return null; }
+  async disconnect() {}
+  async clearActiveAccount() {}
+  async subscribeToEvent() {}
+}
+let instance;
+export function getDAppClientInstance() {
+  instance ||= new DAppClient();
+  return instance;
+}
+`;
+}
+
+async function fulfillHermeticSharedAsset(route, url) {
+  if (url.origin === 'https://fonts.googleapis.com') {
+    await route.fulfill({ status: 200, contentType: 'text/css; charset=utf-8', body: '/* hermetic font fallback */' });
+    return true;
+  }
+  if (url.origin === 'https://fonts.gstatic.com') {
+    await route.fulfill({ status: 204, contentType: 'font/woff2', body: '' });
+    return true;
+  }
+  if (url.hostname === 'gc.zgo.at' || url.hostname.endsWith('.goatcounter.com')) {
+    const isScript = route.request().resourceType() === 'script';
+    await route.fulfill({
+      status: isScript ? 200 : 204,
+      contentType: isScript ? 'application/javascript; charset=utf-8' : 'text/plain; charset=utf-8',
+      body: isScript ? 'window.goatcounter = window.goatcounter || { count() {} };' : ''
+    });
+    return true;
+  }
+  if (url.href === 'https://esm.sh/@tezos-x/octez.connect-sdk@4.8.5?bundle') {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/javascript; charset=utf-8',
+      body: octezConnectHermeticModule()
+    });
+    return true;
+  }
+  if (url.origin === 'https://cdn.jsdelivr.net' && url.pathname.includes('/chart.js@4.4.1/')) {
+    const source = await readHermeticAsset('chart.js@4.4.1', () => (
+      path.join(path.dirname(require.resolve('chart.js')), 'chart.umd.js')
+    ));
+    await route.fulfill({ status: 200, contentType: 'application/javascript; charset=utf-8', body: source });
+    return true;
+  }
+  if (url.origin === 'https://cdn.jsdelivr.net' && url.pathname.includes('/chartjs-adapter-date-fns@3.0.0/')) {
+    const source = await readHermeticAsset('chartjs-adapter-date-fns@3.0.0', () => (
+      path.join(path.dirname(require.resolve('chartjs-adapter-date-fns')), 'chartjs-adapter-date-fns.bundle.min.js')
+    ));
+    await route.fulfill({ status: 200, contentType: 'application/javascript; charset=utf-8', body: source });
+    return true;
+  }
+  if (url.origin === 'https://cdn.jsdelivr.net' && url.pathname.includes('/html2canvas@1.4.1/')) {
+    const source = await readHermeticAsset('html2canvas@1.4.1', () => require.resolve('html2canvas/dist/html2canvas.min.js'));
+    await route.fulfill({ status: 200, contentType: 'application/javascript; charset=utf-8', body: source });
+    return true;
+  }
+  return false;
+}
+
+function fulfillHermeticSharedWebSocket(socket, url) {
+  if (url.href !== 'wss://ws.kraken.com/v2') return false;
+  socket.onMessage((payload) => {
+    let message;
+    try {
+      message = JSON.parse(String(payload));
+    } catch {
+      return;
+    }
+    if (message?.method !== 'subscribe') return;
+    const channel = message.params?.channel;
+    const interval = Number(message.params?.interval) || 5;
+    const observedAt = new Date().toISOString();
+    socket.send(JSON.stringify({
+      method: 'subscribe',
+      req_id: message.req_id,
+      result: { channel, snapshot: true, symbol: ['XU3O8/USD'] },
+      success: true,
+      time_in: observedAt,
+      time_out: observedAt
+    }));
+    if (channel === 'ticker') {
+      socket.send(JSON.stringify({
+        channel: 'ticker',
+        type: 'snapshot',
+        data: [{
+          ask: 5.614,
+          ask_qty: 98.25,
+          bid: 5.610,
+          bid_qty: 120.5,
+          change: 0.152,
+          change_pct: 2.7839,
+          high: 5.620,
+          last: 5.612,
+          low: 5.458,
+          symbol: 'XU3O8/USD',
+          timestamp: observedAt,
+          trades: 88,
+          volume: 1184.75,
+          vwap: 5.581
+        }]
+      }));
+      return;
+    }
+    if (channel === 'ohlc') {
+      const intervalMs = interval * 60_000;
+      const end = Math.floor(Date.now() / intervalMs) * intervalMs;
+      const data = Array.from({ length: 6 }, (_, index) => {
+        const close = 5.56 + index * 0.01;
+        return {
+          close,
+          high: close + 0.008,
+          interval,
+          interval_begin: new Date(end - ((5 - index) * intervalMs)).toISOString(),
+          low: close - 0.008,
+          open: close - 0.004,
+          symbol: 'XU3O8/USD',
+          trades: 6 + index,
+          volume: 20 + index * 3,
+          vwap: close - 0.001
+        };
+      });
+      socket.send(JSON.stringify({ channel: 'ohlc', type: 'snapshot', data }));
+    }
   });
+  return true;
+}
+
+async function installHermeticNetworkGuard(context, { baseUrl, violations }) {
+  const targetUrl = new URL(baseUrl);
+  const targetOrigin = targetUrl.origin;
+  const loopbackHosts = ['127.0.0.1', 'localhost', '::1', '[::1]'];
+  const isLoopback = (url) => loopbackHosts.includes(url.hostname);
+  await context.route('**/*', async (route) => {
+    const request = route.request();
+    let url;
+    try {
+      url = new URL(request.url());
+    } catch {
+      return route.fallback();
+    }
+    if (url.origin === targetOrigin || isLoopback(url)) return route.continue();
+    if (await fulfillHermeticSharedAsset(route, url)) return;
+    violations.push({
+      method: request.method(),
+      resourceType: request.resourceType(),
+      serviceWorker: Boolean(request.serviceWorker?.()),
+      url: url.href
+    });
+    await route.fulfill({
+      status: 599,
+      contentType: 'text/plain; charset=utf-8',
+      body: `Undeclared external request blocked by smoke harness: ${url.href}`
+    });
+  });
+  await context.routeWebSocket('**/*', async (socket) => {
+    let url;
+    try {
+      url = new URL(socket.url());
+    } catch {
+      await socket.close({ code: 1008, reason: 'Invalid WebSocket URL' });
+      return;
+    }
+    if (fulfillHermeticSharedWebSocket(socket, url)) return;
+    const targetPort = targetUrl.port || (targetUrl.protocol === 'https:' ? '443' : '80');
+    const socketPort = url.port || (url.protocol === 'wss:' ? '443' : '80');
+    const sameTarget = url.hostname === targetUrl.hostname && socketPort === targetPort;
+    if (sameTarget || isLoopback(url)) {
+      socket.connectToServer();
+      return;
+    }
+    violations.push({
+      method: 'WS',
+      resourceType: 'websocket',
+      serviceWorker: false,
+      url: url.href
+    });
+    await socket.close({ code: 1008, reason: 'Undeclared external WebSocket blocked by smoke harness' });
+  });
+}
+
+async function instrumentBrowserForHermeticNetwork(rawBrowser, { baseUrl }) {
+  const violations = [];
+  const browser = new Proxy(rawBrowser, {
+    get(target, property) {
+      if (property === 'newContext') {
+        return async (...args) => {
+          const context = await target.newContext(...args);
+          await installHermeticNetworkGuard(context, { baseUrl, violations });
+          return context;
+        };
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }
+  });
+  return {
+    browser,
+    assertClean() {
+      if (!violations.length) return;
+      const unique = [...new Map(violations.map((violation) => (
+        [`${violation.method} ${violation.url}`, violation]
+      ))).values()];
+      throw new Error([
+        `hermetic smoke blocked ${unique.length} undeclared external request(s)`,
+        ...unique.map((violation) => `- ${violation.method} ${violation.resourceType}${violation.serviceWorker ? ' service-worker' : ''} ${violation.url}`)
+      ].join('\n'));
+    }
+  };
+}
+
+function artifactSegment(value) {
+  return String(value || 'unknown').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'unknown';
+}
+
+async function instrumentBrowserForArtifacts(rawBrowser, { suiteName, iteration, attempt }) {
+  const attemptDirectory = path.join(
+    ARTIFACTS_DIR,
+    artifactSegment(suiteName),
+    `iteration-${iteration}`,
+    `attempt-${attempt}`
+  );
+  await mkdir(attemptDirectory, { recursive: true });
+  const contexts = new Map();
+  const artifactIssues = [];
+  let contextSequence = 0;
+
+  const instrumentContext = async (rawContext) => {
+    contextSequence += 1;
+    const contextId = `context-${String(contextSequence).padStart(2, '0')}`;
+    let finalized = false;
+    let tracing = false;
+    try {
+      await rawContext.tracing.start({ screenshots: true, snapshots: true, sources: true });
+      tracing = true;
+    } catch (error) {
+      artifactIssues.push(`${contextId} trace start: ${error.message}`);
+    }
+
+    const finalize = async () => {
+      if (finalized) return;
+      finalized = true;
+      const pageMetadata = [];
+      const pages = rawContext.pages();
+      for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+        const page = pages[pageIndex];
+        const pageId = `${contextId}-page-${String(pageIndex + 1).padStart(2, '0')}`;
+        pageMetadata.push({ id: pageId, url: page.url(), closed: page.isClosed() });
+        if (page.isClosed()) continue;
+        try {
+          await page.screenshot({
+            path: path.join(attemptDirectory, `${pageId}.png`),
+            fullPage: false,
+            timeout: 5000
+          });
+        } catch (error) {
+          artifactIssues.push(`${pageId} screenshot: ${error.message}`);
+        }
+        try {
+          await writeFile(path.join(attemptDirectory, `${pageId}.html`), await page.content());
+        } catch (error) {
+          artifactIssues.push(`${pageId} html: ${error.message}`);
+        }
+      }
+      try {
+        await writeFile(
+          path.join(attemptDirectory, `${contextId}-pages.json`),
+          `${JSON.stringify(pageMetadata, null, 2)}\n`
+        );
+      } catch (error) {
+        artifactIssues.push(`${contextId} metadata: ${error.message}`);
+      }
+      if (tracing) {
+        try {
+          await rawContext.tracing.stop({ path: path.join(attemptDirectory, `${contextId}-trace.zip`) });
+        } catch (error) {
+          artifactIssues.push(`${contextId} trace stop: ${error.message}`);
+        }
+      }
+    };
+
+    const contextProxy = new Proxy(rawContext, {
+      get(target, property) {
+        if (property === 'close') {
+          return async (...args) => {
+            try {
+              await finalize();
+            } finally {
+              contexts.delete(rawContext);
+            }
+            return target.close(...args);
+          };
+        }
+        const value = Reflect.get(target, property, target);
+        return typeof value === 'function' ? value.bind(target) : value;
+      }
+    });
+    contexts.set(rawContext, finalize);
+    return contextProxy;
+  };
+
+  const browserProxy = new Proxy(rawBrowser, {
+    get(target, property) {
+      if (property === 'newContext') {
+        return async (...args) => instrumentContext(await target.newContext(...args));
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }
+  });
+
+  return {
+    browser: browserProxy,
+    async flush() {
+      await Promise.allSettled([...contexts.values()].map((finalize) => finalize()));
+      if (artifactIssues.length) {
+        await writeFile(
+          path.join(attemptDirectory, 'artifact-errors.txt'),
+          `${artifactIssues.join('\n')}\n`
+        );
+      }
+    }
+  };
+}
+
+async function closeOpenBrowserContexts(rawBrowser) {
+  let contexts = [];
+  try {
+    contexts = rawBrowser?.contexts?.() || [];
+  } catch {
+    return 0;
+  }
+  if (!contexts.length) return 0;
+  await Promise.allSettled(contexts.map((context) => context.close()));
+  return contexts.length;
+}
+
+function withHarnessDiagnostic(error, diagnostic) {
+  const original = error instanceof Error ? error : new Error(String(error));
+  const wrapped = new Error(`${original.message}\nHarness diagnostic: ${diagnostic}`, { cause: original });
+  wrapped.name = original.name;
+  if (original.stack) wrapped.stack = `${original.stack}\nHarness diagnostic: ${diagnostic}`;
+  return wrapped;
+}
+
+async function writeSmokeResults({ results, selectedSuites, baseUrl }) {
+  const summary = summarizeSuiteResults(results, selectedSuites.length);
+  const estimatedDurationSeconds = selectedSuites.reduce(
+    (total, suite) => total + (Number(smokeSuiteCosts[suite.name]) || 10),
+    0
+  );
+  const payload = {
+    generatedAt: new Date().toISOString(),
+    baseUrl,
+    environment: {
+      ci: Boolean(process.env.CI),
+      githubActions: process.env.GITHUB_ACTIONS === 'true',
+      githubRunAttempt: process.env.GITHUB_RUN_ATTEMPT || '',
+      githubRunId: process.env.GITHUB_RUN_ID || '',
+      sha: process.env.GITHUB_SHA || ''
+    },
+    shard: SHARD?.value || '',
+    suiteCostsSource: SUITE_COSTS_PATH || 'tests/fixtures/smoke-suite-costs.json',
+    options: {
+      continueOnFailure: CONTINUE_ON_FAILURE,
+      isolateSuites: ISOLATE_SUITES,
+      hermeticNetwork: HERMETIC_NETWORK,
+      repeatEach: REPEAT_EACH,
+      retryFailures: RETRY_FAILURES,
+      retryInfrastructure: RETRY_INFRASTRUCTURE
+    },
+    selectedSuites: selectedSuites.map((suite) => suite.name),
+    estimatedDurationSeconds,
+    summary,
+    results
+  };
+  if (ARTIFACTS_DIR) {
+    await mkdir(ARTIFACTS_DIR, { recursive: true });
+    await writeFile(path.join(ARTIFACTS_DIR, 'results.json'), `${JSON.stringify(payload, null, 2)}\n`);
+  }
+
+  const githubSummary = process.env.GITHUB_STEP_SUMMARY || '';
+  if (githubSummary) {
+    const rows = results.map((result) => (
+      `| \`${result.name}\` | ${result.status} | ${(result.durationMs / 1000).toFixed(1)}s |`
+    ));
+    const markdown = [
+      `### Browser smoke${SHARD ? ` shard ${SHARD.value}` : ''}`,
+      '',
+      `**${formatSuiteSummary(results, selectedSuites.length)}**`,
+      '',
+      '| Suite | Result | Duration |',
+      '| --- | --- | ---: |',
+      ...rows,
+      ''
+    ].join('\n');
+    try {
+      await appendFile(githubSummary, markdown);
+    } catch (error) {
+      log(`warn - could not append smoke summary: ${error.message}`);
+    }
+  }
+}
+
+function aggregateSmokeFailure(results, selectedCount) {
+  const unstable = unstableSuiteResults(results);
+  const lines = unstable.map((result) => {
+    const failedAttempts = result.iterations.flatMap((iteration) => iteration.attempts.filter((attempt) => attempt.status === 'failed'));
+    const firstMessage = failedAttempts[0]?.error?.message || 'unknown failure';
+    return `- ${result.name}: ${result.status} - ${firstMessage}`;
+  });
+  return new Error([
+    `smoke harness rejected ${unstable.length} unstable suite(s): ${formatSuiteSummary(results, selectedCount)}`,
+    ...lines,
+    ARTIFACTS_DIR ? `Diagnostics: ${ARTIFACTS_DIR}` : ''
+  ].filter(Boolean).join('\n'));
 }
 
 function attachIssueCollectors(page, label, issues) {
@@ -5106,6 +5706,7 @@ async function smokeAppShell(browser, baseUrl) {
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'allow'
   });
+  await installFeatureMocks(context);
   await mockHistorySources(context);
   await context.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => fulfillJson(route, {
     sha: 'cafebabecafebabecafebabecafebabecafebabe',
@@ -5422,6 +6023,7 @@ async function smokeAppShell(browser, baseUrl) {
     viewport: { width: 960, height: 720 },
     serviceWorkers: 'block'
   });
+  await installFeatureMocks(fallbackContext);
   await mockHistorySources(fallbackContext);
   await fallbackContext.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => route.fulfill({ status: 403, body: '{}' }));
   await fallbackContext.addInitScript(() => {
@@ -6069,9 +6671,10 @@ async function smokeHeroIntermediate(browser, baseUrl) {
   log('ok - hero intermediate continuity rows');
 }
 
-async function smokeHeroCommandBar(browser, baseUrl) {
+async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   const intentNavigationTimeout = 15000;
   const issues = [];
+  if (section === 'all' || section === 'first-paint') {
   const firstPaintContext = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     javaScriptEnabled: false,
@@ -6129,7 +6732,9 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     `hero command bar first paint: activity shell is not shape-correct ${JSON.stringify(firstPaintState)}`
   );
   await firstPaintContext.close();
+  }
 
+  if (section === 'all' || section === 'desktop') {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'block'
@@ -6142,6 +6747,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
   });
   const page = await context.newPage();
+  await page.clock.install();
   attachIssueCollectors(page, 'hero command bar', issues);
 
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
@@ -6283,7 +6889,7 @@ async function smokeHeroCommandBar(browser, baseUrl) {
     before: await page.evaluate(() => Math.round(window.scrollY)),
     targetId: bottomScrollTarget.targetId
   };
-  await page.waitForTimeout(8500);
+  await page.clock.fastForward(8500);
   const bottomScrollAfter = await page.evaluate(() => Math.round(window.scrollY));
   assert(Math.abs(bottomScrollAfter - bottomScrollState.before) <= 12, `hero command bar: live pulse rotation should not pull the page from ${bottomScrollState.targetId}, scroll ${bottomScrollState.before} -> ${bottomScrollAfter}`);
   const bottomMapOrder = await page.evaluate(() => {
@@ -6373,7 +6979,10 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(!focusModeState.mainInert && focusModeState.mainOpacity === 1 && focusModeState.mainPointerEvents === 'auto' && focusModeState.mainFilter === 'none' && focusModeState.mainTransform === 'none', `hero command bar: search focus altered or disabled the landing page ${JSON.stringify(focusModeState)}`);
   assert(focusModeState.headerOpacity === '1' && focusModeState.pulseOpacity === '1', `hero command bar: search focus dimmed the header or Live Pulse ${JSON.stringify(focusModeState)}`);
   assert(focusModeState.cardHeight <= 370 && focusModeState.rowCount === 4 && focusModeState.panelPosition === 'absolute' && focusModeState.panelBelowWell && focusModeState.panelSameWidth, `hero command bar: results are not attached below the stable Live Head well ${JSON.stringify(focusModeState)}`);
-  assert(focusModeState.blockSearchJoinGap >= 0 && focusModeState.blockSearchJoinGap <= 8, `hero command bar: block stack left a dead seam above search ${JSON.stringify(focusModeState)}`);
+  // Fractional layout can overlap the two painted edges by less than one CSS
+  // pixel. That closes the seam; only a larger overlap or a visible gap is a
+  // geometry regression.
+  assert(focusModeState.blockSearchJoinGap >= -1 && focusModeState.blockSearchJoinGap <= 8, `hero command bar: block stack/search join escaped the one-pixel overlap and eight-pixel gap bounds ${JSON.stringify(focusModeState)}`);
   assert(focusModeState.panelBottomGap >= 8 && focusModeState.panelBottomGap <= 16 && focusModeState.panelMaxHeight === 'none', `hero command bar: results should fill the remaining window below the well ${JSON.stringify(focusModeState)}`);
   const emptyStateText = await page.locator('#hero-search-panel').innerText();
   const emptyStateOptions = await page.locator('#hero-search-panel [role="option"]').count();
@@ -6910,7 +7519,9 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   await intentPage.waitForURL((url) => url.pathname === '/hen/' && !url.searchParams.has('hen'), { timeout: intentNavigationTimeout });
 
   await context.close();
+  }
 
+  if (section === 'all' || section === 'mobile') {
   const mobileContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 3,
@@ -7085,9 +7696,10 @@ async function smokeHeroCommandBar(browser, baseUrl) {
   assert(tabletRailState.cardPosition !== 'fixed' && tabletRailState.display === 'none' && tabletRailState.height === 0 && tabletRailState.cardHeight <= 360, `hero command bar tablet: search became a sheet or exposed the retired shortcut rail ${JSON.stringify(tabletRailState)}`);
   await mobilePage.locator('#hero-search-close').click();
   await mobileContext.close();
+  }
 
   assert(issues.length === 0, `hero command bar browser issues:\n${issues.join('\n')}`);
-  log('ok - hero command bar smoke');
+  log(`ok - hero command bar ${section} smoke`);
 }
 
 async function smokeHandoffQuestionField(browser, baseUrl) {
@@ -7102,6 +7714,7 @@ async function smokeHandoffQuestionField(browser, baseUrl) {
     viewport: { width: viewports[0].width, height: viewports[0].height },
     serviceWorkers: 'block'
   });
+  await installFeatureMocks(context);
   await context.route('https://cdn.jsdelivr.net/**', (route) => route.fulfill({
     status: 200,
     contentType: 'application/javascript',
@@ -7489,6 +8102,7 @@ async function smokeRouteSearchState(browser, baseUrl) {
   });
 
   const page = await context.newPage();
+  await page.clock.install();
   page.setDefaultNavigationTimeout(90000);
   attachIssueCollectors(page, 'route and search state', issues);
   const response = await page.goto(`${baseUrl}/?theme=aurora`, { waitUntil: 'commit' });
@@ -7689,15 +8303,37 @@ async function smokeRouteSearchState(browser, baseUrl) {
       && !document.querySelector('#network-health-modal')?.classList.contains('active')
   ), null, { timeout: 10000 });
 
+  // Model the reader's real interaction so the overlay focus-restoration
+  // guard observes intent before typing into the command bar.
+  await input.click();
   await input.fill('network health');
-  await page.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-result strong')?.textContent?.trim() === 'Network Health', null, { timeout: 10000 });
-  await input.press('Enter');
   await page.waitForFunction(() => (
-    window.location.pathname === '/health/'
-      && document.querySelector('#network-health-modal')?.classList.contains('active')
-      && !document.body.classList.contains('hero-search-mode')
-      && document.activeElement?.id !== 'hero-search-input'
-  ), null, { timeout: 15000 });
+    document.querySelector('#hero-search-panel .hero-search-result.is-selected strong')?.textContent?.trim() === 'Network Health'
+      && document.activeElement?.id === 'hero-search-input'
+  ), null, { timeout: 10000 });
+  await input.press('Enter');
+  try {
+    await page.waitForFunction(() => (
+      window.location.pathname === '/health/'
+        && document.querySelector('#network-health-modal')?.classList.contains('active')
+        && !document.body.classList.contains('hero-search-mode')
+        && document.activeElement?.id !== 'hero-search-input'
+    ), null, { timeout: 15000 });
+  } catch (error) {
+    const failedState = await page.evaluate(() => ({
+      path: window.location.pathname,
+      search: window.location.search,
+      hash: window.location.hash,
+      healthOpen: Boolean(document.querySelector('#network-health-modal.active')),
+      healthHidden: document.querySelector('#network-health-modal')?.getAttribute('aria-hidden') || '',
+      searchOpen: document.body.classList.contains('hero-search-mode'),
+      focus: document.activeElement?.id || document.activeElement?.tagName || '',
+      query: document.getElementById('hero-search-input')?.value || '',
+      selectedId: document.querySelector('#hero-search-panel .hero-search-result.is-selected')?.getAttribute('data-result-id') || '',
+      selectedText: document.querySelector('#hero-search-panel .hero-search-result.is-selected strong')?.textContent?.trim() || ''
+    }));
+    throw new Error(`route and search state: selected Network Health did not settle ${JSON.stringify(failedState)}`, { cause: error });
+  }
 
   await page.goBack();
   await page.waitForFunction(() => (
@@ -7723,7 +8359,7 @@ async function smokeRouteSearchState(browser, baseUrl) {
     });
   });
   assert(await page.title() === 'Network Health | tezos.systems', `route and search state: telemetry immediately replaced the Forward title (${await page.title()})`);
-  await page.waitForTimeout(10250);
+  await page.clock.fastForward(10250);
   const forwardState = await page.evaluate(() => ({
     path: window.location.pathname,
     title: document.title,
@@ -8266,7 +8902,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
       detachedInfoControls: document.querySelectorAll('.top-continuity-milestone-info').length
     };
   });
-  await page.waitForTimeout(1000);
+  await waitForIntentionalRealTime(page, 'cycle-milestone-marker-settle');
   const settledMarker = await page.evaluate(() => {
     const clock = document.querySelector('#top-continuity-history');
     const outline = clock?.querySelector('.top-continuity-milestone-outline');
@@ -8301,7 +8937,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
       expanded: clock?.getAttribute('aria-expanded') || ''
     };
   });
-  await page.waitForTimeout(1400);
+  await waitForIntentionalRealTime(page, 'cycle-milestone-quiet-refresh');
   const after = await page.evaluate(() => {
     const card = document.querySelector('[data-hot-signal-id="milestone-cycle-1300"]');
     const strip = card?.closest('[data-pulse-run="live"]');
@@ -10880,7 +11516,7 @@ async function smokeLivePulseDailyCurio(browser, baseUrl) {
 
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.locator('#pulse-ticker-strip [data-pulse-run="live"]').waitFor({ state: 'visible', timeout: 15000 });
-    await page.waitForTimeout(2500);
+    await waitForIntentionalRealTime(page, 'daily-curio-reload-scarcity');
     const reloadState = await page.evaluate(() => ({
       count: document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-curio="1"]').length,
       stamp: localStorage.getItem('tezos-systems-live-pulse-curio-day-v1') || '',
@@ -10934,7 +11570,7 @@ async function smokeLivePulseDailyCurio(browser, baseUrl) {
   await scarcityPage.waitForFunction(() => (
     document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-id^="curio-scarcity-proof-"]').length >= 8
   ), null, { timeout: 15000 });
-  await scarcityPage.waitForTimeout(2500);
+  await waitForIntentionalRealTime(scarcityPage, 'daily-curio-stronger-signal-window');
   const scarcityState = await scarcityPage.evaluate(() => ({
     stronger: document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-id^="curio-scarcity-proof-"]').length,
     curio: document.querySelectorAll('#pulse-ticker-strip [data-pulse-run="live"] [data-hot-curio="1"]').length,
@@ -11646,6 +12282,60 @@ async function smokeOctezConnectSdkLoader(browser, baseUrl) {
   await context.close();
   assert(issues.length === 0, `octez connect sdk loader browser issues:\n${issues.join('\n')}`);
   log('ok - octez connect sdk loader');
+}
+
+async function smokeKrakenWebSocketCanary(browser) {
+  const context = await browser.newContext({ serviceWorkers: 'block' });
+  const page = await context.newPage();
+  const receipt = await page.evaluate(() => new Promise((resolve, reject) => {
+    const socket = new WebSocket('wss://ws.kraken.com/v2');
+    let settled = false;
+    const finish = (error, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(deadline);
+      try { socket.close(1000, 'Smoke receipt complete'); } catch {}
+      if (error) reject(error);
+      else resolve(value);
+    };
+    const deadline = setTimeout(() => finish(new Error('Kraken ticker snapshot timed out')), 15000);
+    socket.addEventListener('open', () => {
+      socket.send(JSON.stringify({
+        method: 'subscribe',
+        params: { channel: 'ticker', symbol: ['XU3O8/USD'], event_trigger: 'bbo', snapshot: true },
+        req_id: 1
+      }));
+    });
+    socket.addEventListener('message', (event) => {
+      let message;
+      try { message = JSON.parse(event.data); } catch { return; }
+      const row = message?.channel === 'ticker' && Array.isArray(message.data)
+        ? message.data.find((entry) => entry?.symbol === 'XU3O8/USD')
+        : null;
+      if (!row) return;
+      finish(null, {
+        ask: Number(row.ask),
+        bid: Number(row.bid),
+        channel: message.channel,
+        last: Number(row.last),
+        symbol: row.symbol,
+        type: message.type
+      });
+    });
+    socket.addEventListener('error', () => finish(new Error('Kraken WebSocket connection failed')));
+    socket.addEventListener('close', (event) => {
+      if (!settled && event.code !== 1000) finish(new Error(`Kraken WebSocket closed before a ticker snapshot (${event.code})`));
+    });
+  }));
+  await context.close();
+  assert(
+    receipt.channel === 'ticker'
+      && receipt.type === 'snapshot'
+      && receipt.symbol === 'XU3O8/USD'
+      && [receipt.ask, receipt.bid, receipt.last].every((value) => Number.isFinite(value) && value > 0),
+    `Kraken WebSocket canary returned an invalid ticker receipt ${JSON.stringify(receipt)}`
+  );
+  log('ok - Kraken XU3O8/USD WebSocket ticker canary');
 }
 
 async function smokeMyTezosBakerCapacity(browser, baseUrl) {
@@ -13041,9 +13731,12 @@ async function smokeMyTezosMemory(browser, baseUrl) {
   await page.locator('[data-portfolio-range="all"]').click();
   await page.waitForFunction(() => {
     const chart = window.Chart?.getChart(document.querySelector('#portfolio-history-chart'));
+    const status = document.querySelector('#portfolio-history-status')?.textContent || '';
+    const coverage = status.match(/(\d+)\/(\d+) exact points/i);
     return chart?.data?.datasets?.length === 1
       && chart.data.datasets[0].label === 'Total XTZ'
-      && chart.data.datasets[0].data.length >= 2;
+      && chart.data.datasets[0].data.length >= 4
+      && Number(coverage?.[1]) >= 4;
   }, null, { timeout: 30000 });
   await page.locator('#my-tezos-tab-story').click();
   await page.waitForFunction(() => (
@@ -13830,7 +14523,7 @@ async function smokeMyTezosViewLiveRefresh(browser, baseUrl) {
   // the assertion below covers new timer work during a full refresh interval.
   await page.waitForTimeout(700);
   const hiddenRequestCount = activeViewRequests.length;
-  await page.waitForTimeout(1400);
+  await waitForIntentionalRealTime(page, 'my-tezos-hidden-refresh-window');
   assert(activeViewRequests.length === hiddenRequestCount, `my tezos live views polled while hidden (${hiddenRequestCount} -> ${activeViewRequests.length})`);
   await page.evaluate(() => {
     window.__myTezosLiveVisibility = 'visible';
@@ -14457,7 +15150,7 @@ async function runMyTezosDeepLinkOverride(browser, baseUrl, scenario) {
   assert(issues.length === 0, `${scenario.label} browser issues:\n${issues.join('\n')}`);
 }
 
-async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
+async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl, routeKind = 'all') {
   const directAddressPath = `/${SAMPLE_ADDRESS_2}`;
   const directDomainPath = '/qa-baker.tez';
   const directSubdomainPath = '/skllz.hack.tez';
@@ -14503,11 +15196,16 @@ async function smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) {
     }
   ];
 
-  for (const scenario of scenarios) {
+  const selectedScenarios = scenarios.filter((scenario) => (
+    routeKind === 'all'
+      || (routeKind === 'hash' && scenario.path.startsWith('/#'))
+      || (routeKind === 'path' && !scenario.path.startsWith('/#'))
+  ));
+  for (const scenario of selectedScenarios) {
     await runMyTezosDeepLinkOverride(browser, baseUrl, scenario);
     log(`ok - ${scenario.label}`);
   }
-  log('ok - my tezos deep link override smoke');
+  log(`ok - my tezos ${routeKind} deep link override smoke`);
 }
 
 async function smokeMyTezosPrettyRoute(browser, baseUrl) {
@@ -15708,24 +16406,30 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     const panel = document.getElementById('live-head');
     const originalWidth = panel?.style.width || '';
     if (!panel) return null;
-    panel.style.width = '380px';
-    let detail = null;
-    for (let frame = 0; frame < 30; frame += 1) {
-      await new Promise((resolve) => requestAnimationFrame(resolve));
-      detail = document.querySelector('#live-head-stack .live-head-story[data-miss-state="resolved"]');
-      if (Number(detail?.dataset.hiddenMissCount || 0) > 0) break;
+    const naturalWidth = Math.round(panel.getBoundingClientRect().width);
+    const candidates = [];
+    for (let width = 380; width < naturalWidth; width += 20) candidates.push(width);
+    let result = null;
+    for (const width of candidates) {
+      panel.style.width = `${width}px`;
+      for (let frame = 0; frame < 6; frame += 1) {
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+      }
+      const detail = document.querySelector('#live-head-stack .live-head-story[data-miss-state="resolved"]');
+      const pills = Array.from(detail?.querySelectorAll('[data-missed-baker-address]') || []);
+      const candidate = {
+        panelWidth: panel.getBoundingClientRect().width,
+        detailWidth: detail?.getBoundingClientRect().width || 0,
+        detailClientWidth: detail?.clientWidth || 0,
+        detailScrollWidth: detail?.scrollWidth || 0,
+        all: pills.length,
+        visible: pills.filter((pill) => !pill.hidden).length,
+        hidden: Number(detail?.dataset.hiddenMissCount || 0),
+        summary: detail?.querySelector('[data-live-head-miss-overflow]:not([hidden])')?.textContent?.trim() || ''
+      };
+      result = candidate;
+      if (candidate.visible > 0 && candidate.hidden > 0 && candidate.visible + candidate.hidden === candidate.all) break;
     }
-    const pills = Array.from(detail?.querySelectorAll('[data-missed-baker-address]') || []);
-    const result = {
-      panelWidth: panel.getBoundingClientRect().width,
-      detailWidth: detail?.getBoundingClientRect().width || 0,
-      detailClientWidth: detail?.clientWidth || 0,
-      detailScrollWidth: detail?.scrollWidth || 0,
-      all: pills.length,
-      visible: pills.filter((pill) => !pill.hidden).length,
-      hidden: Number(detail?.dataset.hiddenMissCount || 0),
-      summary: detail?.querySelector('[data-live-head-miss-overflow]:not([hidden])')?.textContent?.trim() || ''
-    };
     panel.style.width = originalWidth;
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     return result;
@@ -17002,35 +17706,61 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     assert(expectedLevel, 'network health chamber: Live Head inspector handoff is missing its keyed level');
     let lastState = null;
     for (let attempt = 0; attempt < 4; attempt += 1) {
+      let stage = 'reacquire-trigger';
       try {
         const trigger = page.locator(`#live-head-stack .live-head-row[data-live-head-level="${expectedLevel}"] .live-head-info`);
-        await trigger.focus({ timeout: 5000 });
+        // A stale close timer can hide the inspector while leaving its trigger
+        // focused. Reacquire its live geometry, then invoke the same click
+        // handler without letting Playwright's pointer preflight create a new
+        // pointerout/scroll close race.
+        await trigger.scrollIntoViewIfNeeded({ timeout: 5000 });
+        stage = 'reopen-keyed-inspector';
+        await trigger.evaluate((element) => element.click());
+        stage = 'wait-for-keyed-geometry';
+        await page.waitForFunction((level) => {
+          const row = document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${level}"]`);
+          const inspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
+          const rect = inspector?.getBoundingClientRect();
+          return Boolean(row && inspector && rect && rect.width > 32 && rect.height > 32);
+        }, expectedLevel, { timeout: 5000 });
         const inspector = page.locator(`#live-head-inspector:not([hidden])[data-live-head-level="${expectedLevel}"]`);
-        await inspector.waitFor({ state: 'visible', timeout: 5000 });
-        await inspector.locator('a, button, [tabindex]:not([tabindex="-1"])').first().focus({ timeout: 5000 });
-        await page.waitForFunction((level) => {
-          const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
-          return Boolean(openInspector?.contains(document.activeElement));
-        }, expectedLevel, { timeout: 5000 });
-        await page.waitForFunction((level) => {
-          const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
-          return Boolean(openInspector)
-            && openInspector.getAnimations().every((animation) => (
-              animation.playState !== 'running' && animation.playState !== 'pending'
-            ));
-        }, expectedLevel, { timeout: 5000 });
-        const box = await inspector.boundingBox({ timeout: 5000 });
-        if (!box || box.width <= 32 || box.height <= 32) throw new Error('inspector pointer target is not stable');
-        const pointer = { x: box.x + (box.width / 2), y: box.y + Math.min(24, box.height / 2) };
+        stage = 'sample-live-hit-point';
+        const pointer = await inspector.evaluate((openInspector) => {
+          const rect = openInspector.getBoundingClientRect();
+          const candidates = [
+            [0.5, 0.08], [0.25, 0.08], [0.75, 0.08],
+            [0.5, 0.25], [0.25, 0.25], [0.75, 0.25],
+            [0.5, 0.5], [0.25, 0.5], [0.75, 0.5]
+          ];
+          for (const [xRatio, yRatio] of candidates) {
+            const x = Math.max(1, Math.min(innerWidth - 1, rect.left + rect.width * xRatio));
+            const y = Math.max(1, Math.min(innerHeight - 1, rect.top + rect.height * yRatio));
+            const hit = document.elementFromPoint(x, y);
+            if (hit && openInspector.contains(hit)) return { x, y };
+          }
+          return null;
+        });
+        if (!pointer) throw new Error('inspector has no live hit-tested entry point');
+        stage = 'enter-live-hit-point';
         await page.mouse.move(pointer.x, pointer.y);
         await page.waitForFunction(({ level, x, y }) => {
           const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
           const hit = document.elementFromPoint(x, y);
-          return Boolean(openInspector && hit && openInspector.contains(hit));
+          return Boolean(openInspector && hit && openInspector.contains(hit) && openInspector.matches(':hover'));
         }, { level: expectedLevel, ...pointer }, { timeout: 5000 });
+        stage = 'focus-inspector-receipt';
+        await inspector.locator('a, button, [tabindex]:not([tabindex="-1"])').first().focus({ timeout: 5000 });
+        stage = 'settle-inspector-handoff';
+        await page.waitForFunction((level) => {
+          const openInspector = document.querySelector(`#live-head-inspector:not([hidden])[data-live-head-level="${level}"]`);
+          return Boolean(openInspector?.contains(document.activeElement))
+            && openInspector.getAnimations().every((animation) => (
+              animation.playState !== 'running' && animation.playState !== 'pending'
+            ));
+        }, expectedLevel, { timeout: 5000 });
         return;
       } catch (error) {
-        lastState = await page.evaluate(({ level, message }) => {
+        lastState = await page.evaluate(({ level, message, stage }) => {
           const inspector = document.getElementById('live-head-inspector');
           const row = document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${level}"]`);
           const rect = inspector?.getBoundingClientRect();
@@ -17043,9 +17773,12 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
             height: rect?.height || 0,
             focused: Boolean(inspector?.contains(document.activeElement)),
             hovered: Boolean(inspector?.matches(':hover')),
+            triggerFocused: Boolean(row?.querySelector('.live-head-info') === document.activeElement),
+            triggerExpanded: row?.querySelector('.live-head-info')?.getAttribute('aria-expanded') || '',
+            stage,
             error: message
           };
-        }, { level: expectedLevel, message: error.message });
+        }, { level: expectedLevel, message: error.message, stage });
         await page.waitForTimeout(80);
       }
     }
@@ -19932,6 +20665,7 @@ async function smokeCapitalChamber(browser, baseUrl) {
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
   });
+  await installFeatureMocks(context);
   await context.route('**/data/capital-entry-summary.json*', async (route) => {
     capitalEntryRequests += 1;
     if (!capitalEntryFixture) {
@@ -20275,6 +21009,7 @@ async function smokeCapitalChamber(browser, baseUrl) {
     viewport: { width: 390, height: 844 },
     serviceWorkers: 'block'
   });
+  await installFeatureMocks(mobileContext);
   await mobileContext.addInitScript(() => {
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
@@ -20732,7 +21467,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
   const categoryAppGate = new Promise((resolve) => { releaseCategoryApp = resolve; });
   await categoryFirstPaintContext.route('**/js/core/app.js*', async (route) => {
     await categoryAppGate;
-    await route.continue();
+    await route.fallback();
   });
   const categoryFirstPaintPage = await categoryFirstPaintContext.newPage();
   attachIssueCollectors(categoryFirstPaintPage, 'Chamber category first paint', issues);
@@ -23939,8 +24674,9 @@ async function smokeCtezChamber(browser, baseUrl) {
   log('ok - ctez chamber smoke');
 }
 
-async function smokeGovernanceTestingPeriod(browser, baseUrl) {
+async function smokeGovernanceTestingPeriod(browser, baseUrl, section = 'all') {
   const issues = [];
+  if (section === 'all' || section === 'active') {
   const context = await browser.newContext({
     viewport: { width: 1512, height: 982 },
     serviceWorkers: 'block'
@@ -25320,7 +26056,9 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   await page.waitForFunction(() => !document.querySelector('#tz4-adoption-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
   await context.close();
+  }
 
+  if (section === 'all' || section === 'quiet') {
   const quietContext = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
@@ -25452,9 +26190,10 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl) {
   const quietChamberText = await quietPage.locator('#chamber-modal .chamber-body').textContent();
   assert(/No proposals submitted yet/.test(quietChamberText || '') && /waiting for the first submission/.test(quietChamberText || '') && /Prior epoch proposals remain available below as historical receipts/.test(quietChamberText || ''), `quiet governance sizing: empty live proposal window borrowed stale proposal lore ${quietChamberText}`);
   await quietContext.close();
+  }
 
   assert(issues.length === 0, `governance testing period browser issues:\n${issues.join('\n')}`);
-  log('ok - governance testing period smoke');
+  log(`ok - governance testing period ${section} smoke`);
 }
 
 async function smokeHashModalCleanup(browser, baseUrl) {
@@ -26056,7 +26795,7 @@ async function smokeFirstVisitTour(browser, baseUrl) {
   assert(response?.ok(), `first visit tour deep link: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#liquidity-baking-modal.active').waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForTimeout(3200);
+  await waitForIntentionalRealTime(page, 'first-visit-deep-link-deferral');
   await assertLocatorCount(page.locator('.tour-nudge'), 0, 'deep-link tour nudge');
   await assertLocatorCount(page.locator('#tour-overlay'), 0, 'deep-link tour overlay');
   const firstVisitState = await page.evaluate(() => ({
@@ -26102,7 +26841,7 @@ async function smokeFirstVisitTour(browser, baseUrl) {
     && desktopNudgeGeometry.bottom <= desktopNudgeGeometry.hostBottom + 1
     && desktopNudgeGeometry.cardHeight <= 370,
   `first visit tour: desktop nudge is not compact inside the search floor: ${JSON.stringify(desktopNudgeGeometry)}`);
-  await page.waitForTimeout(1800);
+  await waitForIntentionalRealTime(page, 'first-visit-nudge-refresh');
   assert(await page.locator('.tour-nudge').isVisible(), 'first visit tour: search chip refresh removed the desktop nudge');
   await assertLocatorCount(page.locator('.tour-nudge .tour-start'), 1, 'first visit tour start');
   await page.locator('#features-gear').click();
@@ -26238,7 +26977,7 @@ async function smokeVisitSignalBloom(browser, baseUrl) {
   assert(response?.ok(), `visit signal bloom desktop: dashboard failed with HTTP ${response?.status()}`);
   const desktopBloom = desktopPage.locator('.signal-bloom.visible[data-streak-count="111"]');
   await desktopBloom.waitFor({ state: 'visible', timeout: 15000 });
-  await desktopPage.waitForTimeout(1250);
+  await waitForIntentionalRealTime(desktopPage, 'signal-bloom-entrance');
   const desktopState = await desktopBloom.evaluate((node) => {
     const rect = node.getBoundingClientRect();
     const digits = [...node.querySelectorAll('.signal-bloom-number > *')];
@@ -26293,7 +27032,7 @@ async function smokeVisitSignalBloom(browser, baseUrl) {
   response = await desktopPage.reload({ waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `visit signal bloom reload: dashboard failed with HTTP ${response?.status()}`);
   await desktopPage.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-  await desktopPage.waitForTimeout(1600);
+  await waitForIntentionalRealTime(desktopPage, 'signal-bloom-no-replay');
   await assertLocatorCount(desktopPage.locator('.signal-bloom'), 0, 'visit signal bloom same-day reload');
   await desktopContext.close();
 
@@ -27720,8 +28459,9 @@ async function smokeCycleHistoryChamber(browser, baseUrl) {
   log('ok - Cycle History direct route, range, metric focus, close lifecycle, entry focus, and mobile smoke');
 }
 
-async function smokeFeatureWorkflows(browser, baseUrl) {
+async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
   const issues = [];
+  if (section === 'all' || section === 'desktop') {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'
@@ -28206,7 +28946,9 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   log('ok - feature workflow: state of tezos share');
 
   await context.close();
+  }
 
+  if (section === 'all' || section === 'mobile') {
   const mobileContext = await browser.newContext({
     viewport: { width: 390, height: 844 },
     isMobile: true,
@@ -28304,9 +29046,10 @@ async function smokeFeatureWorkflows(browser, baseUrl) {
   await mobilePage.waitForFunction(() => document.querySelector('#top-continuity-explain')?.getAttribute('aria-hidden') === 'true', null, { timeout: 5000 });
   await mobileContext.close();
   log('ok - feature workflow: mobile baker lifecycle roster');
+  }
 
   assert(issues.length === 0, `feature workflows browser issues:\n${issues.join('\n')}`);
-  log('ok - feature workflows smoke');
+  log(`ok - feature workflows ${section} smoke`);
 }
 
 async function smokeShareActions(browser, baseUrl) {
@@ -29002,7 +29745,7 @@ async function smokeValleyTheme(browser, baseUrl) {
     frame: Number(document.getElementById('valley-background-canvas')?.dataset.valleyFrame) || 0,
     time: performance.now()
   }));
-  await page.waitForTimeout(2500);
+  await waitForIntentionalRealTime(page, 'valley-cadence-sample');
   const cadenceEnd = await page.evaluate(() => ({
     frame: Number(document.getElementById('valley-background-canvas')?.dataset.valleyFrame) || 0,
     time: performance.now()
@@ -30015,6 +30758,7 @@ async function smokeWidgetBuilder(browser, baseUrl) {
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'block'
   });
+  await installFeatureMocks(context);
   const page = await context.newPage();
   attachIssueCollectors(page, 'widget builder', issues);
 
@@ -30452,6 +31196,7 @@ async function smokeStandaloneLinks(browser, baseUrl) {
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'block'
   });
+  await installFeatureMocks(context);
   const page = await context.newPage();
   attachIssueCollectors(page, 'standalone links', issues);
   const checkedTargets = new Map();
@@ -30532,6 +31277,7 @@ async function smokeRouteFormatting(browser, baseUrl) {
       viewport,
       serviceWorkers: 'block'
     });
+    await installFeatureMocks(context);
     await context.route('https://api.tzkt.io/v1/operations/transactions**', (route) => fulfillJson(route, []));
     await context.route('https://api.tzkt.io/v1/operations/staking**', (route) => fulfillJson(route, []));
     await context.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => fulfillJson(route, {
@@ -30939,7 +31685,7 @@ async function smokeQuietRefresh(browser, baseUrl) {
     window.__quietTezlinkFocus = focus;
     return { top: content.scrollTop };
   });
-  await page.waitForTimeout(1400);
+  await waitForIntentionalRealTime(page, 'tezlink-quiet-refresh');
   const tezlinkAfter = await page.evaluate(() => {
     const content = document.querySelector('#tezlink-modal.active .tezlink-content');
     const body = document.querySelector('#tezlink-chamber-body');
@@ -30995,7 +31741,7 @@ async function smokeLiveNumberShellMotion(browser, baseUrl, issues) {
       await route.abort('aborted');
       return;
     }
-    await route.continue();
+    await route.fallback();
   });
 
   const response = await page.goto(`${baseUrl}/#theme=matrix`, { waitUntil: 'domcontentloaded' });
@@ -33102,7 +33848,7 @@ async function smokeLazyChamberLoading(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `lazy Chamber loading: dashboard failed with HTTP ${response?.status()}`);
   await waitForLauncherShell(page);
-  await page.waitForTimeout(1000);
+  await waitForIntentionalRealTime(page, 'lazy-chamber-no-intent');
 
   const forbiddenBeforeIntent = new Set([
     ...DEFERRED_CHAMBER_MODULE_PATHS,
@@ -34073,6 +34819,7 @@ async function smokeOverlayStack(browser, baseUrl) {
     viewport: { width: 390, height: 844 },
     serviceWorkers: 'block'
   });
+  await installFeatureMocks(context);
   const page = await context.newPage();
   attachIssueCollectors(page, 'overlay stack', issues);
   const response = await page.goto(`${baseUrl}/widgets/block-height.html`, { waitUntil: 'domcontentloaded', timeout: 15000 });
@@ -34432,14 +35179,16 @@ async function smokeOverlayStack(browser, baseUrl) {
 }
 
 function getSuiteCatalog(browser, baseUrl) {
-  return [
+  const suites = [
     { name: 'first-visit-tour', description: 'Deep-link onboarding, first root visit, and tour prompt behavior', run: () => smokeFirstVisitTour(browser, baseUrl) },
     { name: 'visit-signal-bloom', description: 'Rare visit landmarks bloom as theme-aware, shareable, reduced-motion-safe hidden signals without same-day replay', run: () => smokeVisitSignalBloom(browser, baseUrl) },
     { name: 'home-layout', description: 'Six device-local Home switches, inline Hide/Undo, persistence, tab sync, deep-link recovery, tour preview, Live Pulse gating, and responsive accessibility', run: () => smokeHomeLayout(browser, baseUrl) },
     { name: 'app-shell', description: 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets', run: () => smokeAppShell(browser, baseUrl) },
     { name: 'release-update', description: 'Persistent desktop/mobile release dock, Later pill, activation fallback, and cross-tab service-worker lifecycle', run: () => smokeReleaseUpdateDock(browser, baseUrl) },
     { name: 'hero-landscape', description: 'Hero continuity signals form one uptime/activity row above one uninterrupted four-pill row at intermediate widths', run: () => smokeHeroIntermediate(browser, baseUrl) },
-    { name: 'hero-command-bar', description: 'Live Head search stays inside the card, keeps the dashboard interactive, and routes retrieval without a takeover', run: () => smokeHeroCommandBar(browser, baseUrl) },
+    { name: 'hero-command-bar-first-paint', description: 'The no-JavaScript Live Head command shell paints with stable geometry and truthful loading state', run: () => smokeHeroCommandBar(browser, baseUrl, 'first-paint') },
+    { name: 'hero-command-bar-desktop', description: 'Desktop Live Head search stays inside the card, keeps the dashboard interactive, and routes retrieval without a takeover', run: () => smokeHeroCommandBar(browser, baseUrl, 'desktop') },
+    { name: 'hero-command-bar-mobile', description: 'Mobile Live Head search preserves keyboard, viewport, focus, fallback glyph, and result geometry', run: () => smokeHeroCommandBar(browser, baseUrl, 'mobile') },
     { name: 'handoff-question-field', description: 'The Handoff keeps seven anchor and six satellite questions readable and non-overlapping across every theme and phone/compact/desktop geometry', run: () => smokeHandoffQuestionField(browser, baseUrl) },
     { name: 'route-search-state', description: 'Alias transitions, bare routes, search relevance, Escape focus, query preservation, and Back/Forward state stay coherent', run: () => smokeRouteSearchState(browser, baseUrl) },
     { name: 'breakpoint-accessibility', description: 'Exact paired breakpoints, 200% reflow, forced colors, and reduced motion preserve shell/search/Chamber focus, containment, and horizontal fit', run: () => smokeBreakpointAccessibility(browser, baseUrl) },
@@ -34469,6 +35218,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-drawer-live-refresh', description: 'My Tezos opening drawer refreshes stale brief, header, and baker-grid stats together', run: () => smokeMyTezosDrawerLiveRefresh(browser, baseUrl) },
     { name: 'my-tezos-wallet-connect', description: 'My Tezos drawer connects through Octez.Connect and keeps the saved profile after wallet disconnect', run: () => smokeMyTezosWalletConnect(browser, baseUrl) },
     { name: 'octez-connect-sdk-loader', description: 'Octez.Connect SDK imports through the real CSP-safe ESM loader and exposes the dApp client API', run: () => smokeOctezConnectSdkLoader(browser, baseUrl) },
+    { name: 'kraken-websocket-canary', description: 'Kraken XU3O8/USD WebSocket subscription returns a shaped ticker snapshot through the pinned hermetic fixture or explicit live canary', run: () => smokeKrakenWebSocketCanary(browser) },
     { name: 'my-tezos-baker-capacity', description: 'My Tezos connected baker drawer shows signed over-delegation capacity', run: () => smokeMyTezosBakerCapacity(browser, baseUrl) },
     { name: 'my-tezos-staker-rewards', description: 'My Tezos connected drawer uses personal staker reward rows for regular and mostly-staked accounts', run: () => smokeMyTezosStakerRewards(browser, baseUrl) },
     { name: 'my-tezos-delegator-rewards', description: 'My Tezos connected drawer uses delegator estimate rows for zero-stake delegated accounts', run: () => smokeMyTezosDelegatorRewards(browser, baseUrl) },
@@ -34485,7 +35235,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-subdomain-input', description: 'My Tezos connected drawer accepts Tezos Domains subdomains and saves their resolved address', run: () => smokeMyTezosSubdomainInput(browser, baseUrl) },
     { name: 'my-tezos-proposal-attribution', description: 'My Tezos Story distinguishes a delegator from their baker when accepted proposals are shown', run: () => smokeMyTezosProposalAttribution(browser, baseUrl) },
     { name: 'my-tezos-pretty-route', description: 'The bare /my URL resolves to the canonical My Tezos drawer route', run: () => smokeMyTezosPrettyRoute(browser, baseUrl) },
-    { name: 'my-tezos-deep-link-override', description: 'My Tezos direct address links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl) },
+    { name: 'my-tezos-deep-link-hash', description: 'My Tezos address and domain hash links override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl, 'hash') },
+    { name: 'my-tezos-deep-link-path', description: 'My Tezos direct address and domain paths override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl, 'path') },
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'my-tezos-block-monitor', description: 'Setup keeps one persisted saved-address-only block monitor synchronized across Home and Network Health', run: () => smokeMyTezosBlockMonitor(browser, baseUrl) },
     { name: 'network-health', description: 'Live Head stories and Network Health expose block cadence, missed rights, live 33/66 Nakamoto coefficients, reports, and saved-baker context', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
@@ -34495,7 +35246,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'tezoscrp', description: 'Human-identity Recognition Hall, official category icons, latest winners, sourced monthly archive, and mobile geometry', run: () => smokeTezosCrpChamber(browser, baseUrl) },
     { name: 'tezos-domains', description: 'Tezos Domains opens #domains with fresh .tez names, auctions, offers, and expiring-name pressure', run: () => smokeTezosDomainsChamber(browser, baseUrl) },
     { name: 'ctez', description: 'ctez End of Life opens #ctez with opt-in oven discovery and wallet-reviewed operations', run: () => smokeCtezChamber(browser, baseUrl) },
-    { name: 'governance-lb', description: 'Governance cooldown state, Chamber, Tezos X Governance, LB dashboard tile, LB modal, lore, links, smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl) },
+    { name: 'governance-lb-active', description: 'Active Governance, Tezos X Governance, LB dashboard/modal receipts, lore, links, and smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl, 'active') },
+    { name: 'governance-lb-quiet', description: 'Quiet L1, L2, and LB periods retain truthful sizing, gaps, receipts, and room geometry', run: () => smokeGovernanceTestingPeriod(browser, baseUrl, 'quiet') },
     { name: 'hash-modal-cleanup', description: 'Hash-routed modal navigation closes stale history and chamber overlays before opening the next room', run: () => smokeHashModalCleanup(browser, baseUrl) },
     { name: 'overlay-stack', description: 'Share, Protocol Stories, nested card history, Native Explorer, and the shared stack preserve modal focus, isolation, topmost Escape, routes, and scroll', run: async () => {
       await smokeOverlayFeatureIntegrations(browser, baseUrl);
@@ -34508,7 +35260,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'baker-wallet-actions', description: 'Every canonical baker row exposes wallet-reviewed first-time delegation and exact Tezos stake operations', run: () => smokeBakerWalletActions(browser, baseUrl) },
     { name: 'whale-watch-chamber', description: 'Complete-window receipts, grouped flow legs, timestamp dormancy, receipt-backed awakenings, legacy giants alias, prepend anchoring, and mobile geometry', run: () => smokeWhaleWatchChamber(browser, baseUrl) },
     { name: 'cycle-history-chamber', description: 'Direct range and metric routes, focused charts, close lifecycle, restored entry focus, and mobile geometry', run: () => smokeCycleHistoryChamber(browser, baseUrl) },
-    { name: 'feature-workflows', description: 'Desktop/mobile baker lifecycle roster, Baker Directory, calculator modes, price intelligence, comparison, Whale Watch, Cycle History, and share cards', run: () => smokeFeatureWorkflows(browser, baseUrl) },
+    { name: 'feature-workflows-desktop', description: 'Desktop baker lifecycle, Baker Directory, calculator, price intelligence, comparison, Whale Watch, Cycle History, and share cards', run: () => smokeFeatureWorkflows(browser, baseUrl, 'desktop') },
+    { name: 'feature-workflows-mobile', description: 'Mobile baker lifecycle roster, price chronology, touch actions, and in-flow geometry', run: () => smokeFeatureWorkflows(browser, baseUrl, 'mobile') },
     { name: 'share-actions', description: 'Share modal copy, post, download, native share, and mobile photo fallback buttons', run: () => smokeShareActions(browser, baseUrl) },
     { name: 'info-modals', description: 'All section info modals and About Tezos launch-date copy', run: () => smokeInfoModals(browser, baseUrl) },
     { name: 'valley-theme', description: 'Valley lazy renderer, data motion, lifecycle, reading-state preservation, reduced motion, and responsive geometry', run: () => smokeValleyTheme(browser, baseUrl) },
@@ -34519,16 +35272,51 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'standalone-links', description: 'Visible first-party links on public and widget routes resolve without local/custom-domain drift', run: () => smokeStandaloneLinks(browser, baseUrl) },
     { name: 'route-crawl', description: 'Dashboard, SEO pages, compare pages, and standalone widget routes render non-empty bodies', run: () => crawlRoutes(browser, baseUrl) }
   ];
+  return suites.map((suite) => ({
+    ...suite,
+    ...metadataForSmokeSuite(suite.name)
+  }));
+}
+
+function readGitPathList(args) {
+  const output = execFileSync('git', args, {
+    cwd: ROOT,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe']
+  });
+  return output.split(/\r?\n/).map((file) => file.trim()).filter(Boolean);
+}
+
+function collectAffectedFiles(ref) {
+  try {
+    return [...new Set([
+      ...readGitPathList(['diff', '--name-only', '--diff-filter=ACMRD', `${ref}...HEAD`]),
+      ...readGitPathList(['diff', '--name-only', '--diff-filter=ACMRD']),
+      ...readGitPathList(['diff', '--cached', '--name-only', '--diff-filter=ACMRD']),
+      ...readGitPathList(['ls-files', '--others', '--exclude-standard'])
+    ])];
+  } catch (error) {
+    throw new Error(`could not resolve affected smoke files from ${ref}: ${error.stderr?.toString().trim() || error.message}`);
+  }
 }
 
 function selectSuites(catalog) {
-  if (!ONLY_SUITES.length) return catalog;
-  const available = new Set(catalog.map((suite) => suite.name));
-  const missing = ONLY_SUITES.filter((suite) => !available.has(suite));
-  if (missing.length) {
-    throw new Error(`unknown smoke suite(s): ${missing.join(', ')}\nAvailable suites: ${catalog.map((suite) => suite.name).join(', ')}`);
+  let candidates = ONLY_RISKS.length
+    ? catalog.filter((suite) => ONLY_RISKS.includes(suite.risk))
+    : catalog;
+  if (AFFECTED_SINCE) {
+    affectedSelectionReport = selectAffectedSmokeSuites(candidates, collectAffectedFiles(AFFECTED_SINCE));
+    candidates = affectedSelectionReport.suites.map((suite) => (
+      suite.risk === 'high' && AFFECTED_HIGH_RISK_REPEAT > 1
+        ? { ...suite, repeatEach: AFFECTED_HIGH_RISK_REPEAT }
+        : suite
+    ));
   }
-  return catalog.filter((suite) => ONLY_SUITES.includes(suite.name));
+  return selectSuiteCatalog(candidates, {
+    onlySuites: ONLY_SUITES,
+    shard: SHARD,
+    suiteCosts: smokeSuiteCosts
+  });
 }
 
 async function main() {
@@ -34538,29 +35326,163 @@ async function main() {
   }
 
   if (cli.list) {
-    for (const { name, description } of getSuiteCatalog(null, '')) console.log(`${name} - ${description}`);
+    for (const { name, description } of selectSuites(getSuiteCatalog(null, ''))) {
+      console.log(`${name} - ${description}`);
+    }
     return;
   }
 
-  const server = await startLocalServer();
-  let browser;
+  const server = await startSmokeServer();
+  let sharedBrowser;
   try {
     const { chromium } = await loadPlaywright();
-    browser = await launchChromium(chromium);
-
     log(`Smoke target: ${server.baseUrl}`);
-    const suites = selectSuites(getSuiteCatalog(browser, server.baseUrl));
+    const suites = selectSuites(getSuiteCatalog(null, server.baseUrl));
+    if (affectedSelectionReport) {
+      log(`Affected smoke: ${affectedSelectionReport.mode} · ${affectedSelectionReport.reason}`);
+    }
+    if (!suites.length && affectedSelectionReport?.mode === 'none') {
+      log('Smoke suites: none; static checks cover the changed files');
+      return;
+    }
+    if (!suites.length) throw new Error(`smoke selection is empty${SHARD ? ` for shard ${SHARD.value}` : ''}`);
+    if (SHARD) {
+      const estimatedSeconds = suites.reduce(
+        (total, suite) => total + (Number(smokeSuiteCosts[suite.name]) || 10),
+        0
+      );
+      log(`Smoke shard: ${SHARD.value} · estimated ${(estimatedSeconds / 60).toFixed(2)} minutes`);
+    }
     log(`Smoke suites: ${suites.map((suite) => suite.name).join(', ')}`);
-    for (const suite of suites) {
-      await suite.run();
+    log(`Smoke harness: ${ISOLATE_SUITES ? 'isolated browsers' : 'shared browser'} · ${CONTINUE_ON_FAILURE ? 'aggregate failures' : 'fail fast'} · ${RETRY_FAILURES} assertion retries · ${RETRY_INFRASTRUCTURE} infrastructure retries · ${REPEAT_EACH} repetitions · ${HERMETIC_NETWORK ? 'hermetic network' : 'live network allowed'}`);
+
+    const closeBrowser = async (browser) => {
+      if (!browser) return;
+      try {
+        await browser.close();
+      } catch (error) {
+        log(`warn - browser close failed: ${error.message}`);
+      }
+    };
+
+    const runAttempt = async (suite, { iteration, attempt, diagnostic }) => {
+      const ownsBrowser = ISOLATE_SUITES || diagnostic;
+      let rawBrowser;
+      if (ownsBrowser) {
+        rawBrowser = await launchChromium(chromium);
+      } else {
+        if (!sharedBrowser) sharedBrowser = await launchChromium(chromium);
+        rawBrowser = sharedBrowser;
+      }
+
+      let hermeticRuntime = null;
+      let artifactRuntime = null;
+      let suiteBrowser = rawBrowser;
+      if (HERMETIC_NETWORK) {
+        hermeticRuntime = await instrumentBrowserForHermeticNetwork(rawBrowser, { baseUrl: server.baseUrl });
+        suiteBrowser = hermeticRuntime.browser;
+      }
+      if (diagnostic && ARTIFACTS_DIR) {
+        artifactRuntime = await instrumentBrowserForArtifacts(suiteBrowser, {
+          suiteName: suite.name,
+          iteration,
+          attempt
+        });
+        suiteBrowser = artifactRuntime.browser;
+      }
+
+      let runError = null;
+      try {
+        const executableSuite = getSuiteCatalog(suiteBrowser, server.baseUrl)
+          .find((candidate) => candidate.name === suite.name);
+        if (!executableSuite) throw new Error(`smoke suite disappeared from catalog: ${suite.name}`);
+        await executableSuite.run();
+      } catch (error) {
+        runError = error;
+      }
+
+      if (artifactRuntime) {
+        try {
+          await artifactRuntime.flush();
+        } catch (error) {
+          runError = runError
+            ? withHarnessDiagnostic(runError, `artifact flush failed: ${error.message}`)
+            : new Error(`artifact flush failed: ${error.message}`);
+        }
+      }
+
+      if (hermeticRuntime) {
+        try {
+          hermeticRuntime.assertClean();
+        } catch (error) {
+          runError = runError
+            ? withHarnessDiagnostic(runError, error.message)
+            : error;
+        }
+      }
+
+      const leakedContexts = await closeOpenBrowserContexts(rawBrowser);
+      if (leakedContexts && !runError) {
+        const diagnosticText = `${suite.name} leaked ${leakedContexts} browser context(s); the harness closed them before continuing`;
+        runError = new Error(diagnosticText);
+      }
+
+      if (ownsBrowser) {
+        await closeBrowser(rawBrowser);
+      } else if (runError) {
+        await closeBrowser(sharedBrowser);
+        sharedBrowser = null;
+      }
+
+      if (runError) throw runError;
+    };
+
+    const results = await executeSuiteCatalog(suites, {
+      continueOnFailure: CONTINUE_ON_FAILURE,
+      repeatEach: REPEAT_EACH,
+      retryFailures: RETRY_FAILURES,
+      retryInfrastructure: RETRY_INFRASTRUCTURE,
+      runAttempt,
+      onEvent: ({ type, suite, iteration, attempt, repeats, retries, infrastructureRetry, infrastructureRetries, error, result }) => {
+        if (type === 'attempt-start') {
+          const detail = [
+            repeats > 1 ? `repeat ${iteration}/${repeats}` : '',
+            retries > 0 ? `attempt ${attempt}/${retries + 1}` : ''
+          ].filter(Boolean).join(', ');
+          log(`run - ${suite.name}${detail ? ` (${detail})` : ''}`);
+        } else if (type === 'attempt-fail') {
+          const callsite = String(error.stack || '')
+            .split('\n')
+            .map((line) => line.trim())
+            .find((line) => line.includes('/tests/smoke.mjs:')) || '';
+          log(`unstable - ${suite.name} attempt ${attempt}: ${error.message}${callsite ? `\n${callsite}` : ''}`);
+        } else if (type === 'infrastructure-retry') {
+          log(`infra-retry - ${suite.name} pre-test startup ${infrastructureRetry}/${infrastructureRetries}: ${error.message}`);
+        } else if (type === 'suite-complete' && result.status === 'flaky') {
+          log(`flaky - ${suite.name} passed only after a fresh-browser retry; the harness will remain red`);
+        } else if (type === 'suite-complete' && result.status === 'failed') {
+          log(`failed - ${suite.name} remained broken after ${result.iterations.at(-1)?.attempts.length || 1} attempt(s)`);
+        }
+      }
+    });
+    await writeSmokeResults({ results, selectedSuites: suites, baseUrl: server.baseUrl });
+    log(`Smoke summary: ${formatSuiteSummary(results, suites.length)}`);
+    if (unstableSuiteResults(results).length) {
+      throw aggregateSmokeFailure(results, suites.length);
     }
   } finally {
-    if (browser) await browser.close();
+    if (sharedBrowser) {
+      try {
+        await sharedBrowser.close();
+      } catch (error) {
+        log(`warn - browser close failed: ${error.message}`);
+      }
+    }
     await server.stop();
   }
 }
 
 main().catch((error) => {
   console.error(`fail - ${error.stack || error.message}`);
-  process.exit(1);
+  process.exit(isSmokeInfrastructureError(error) ? 75 : 1);
 });

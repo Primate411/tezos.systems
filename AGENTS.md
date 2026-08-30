@@ -47,6 +47,22 @@ the highest-risk gotchas.
   bundled Chromium first, falls back to system Chrome/Chromium, and honors
   `BROWSER_EXECUTABLE_PATH`; do not copy browser-candidate lists into new
   scripts.
+- `tests/smoke.mjs` supports deterministic runtime-balanced `--shard
+  index/total` selection from `tests/fixtures/smoke-suite-costs.json`,
+  `--continue-on-failure`, diagnostic fresh-browser assertion retries, typed
+  pre-test infrastructure retries, isolated suites, repeat runs, hermetic
+  external I/O, affected-file ownership, and trace/result artifacts. CI runs six
+  fail-independent shards and uploads every result ledger; a suite that passes
+  only on an assertion retry remains a red flaky result, and Pages waits for
+  every shard. Successful hosted ledgers update the next run's adaptive cached
+  costs while the committed fixture remains the fallback. Direct waits of at
+  least one second require a named receipt in
+  `tests/fixtures/smoke-intentional-waits.json`. Keep
+  the Octez.Connect SDK and Kraken ticker subscription in the separate nightly
+  live-upstream canary; normal CI uses pinned hermetic fixtures for both. Keep
+  `tests/smoke-harness-check.mjs` in the static gate when changing runner
+  semantics. `npm test` uses the same isolated/aggregate/retry-classifying
+  profile through `test:smoke:ci`; keep it aligned with the workflow.
 - `README.md` contains some stale guidance. Verify against code before relying
   on README claims.
 

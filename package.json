@@ -10,14 +10,18 @@
     "check:supabase": "node scripts/check-supabase-history-schema.mjs",
     "check:supabase:freshness": "node scripts/check-supabase-history-freshness.mjs",
     "backfill:supabase": "node scripts/backfill-supabase-history.mjs",
-    "test": "npm run test:static && npm run test:smoke",
-    "test:static": "node tests/static-checks.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers",
+    "test": "npm run test:static && npm run test:smoke:ci",
+    "test:static": "node tests/static-checks.mjs && node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers",
     "test:scheduled-refresh": "node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs",
     "test:smoke": "node tests/smoke.mjs",
+    "test:smoke:ci": "node tests/smoke.mjs --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic",
+    "test:affected": "npm run test:static && node tests/smoke.mjs --affected-since origin/main --affected-high-risk-repeat 3 --continue-on-failure --retry-infrastructure 1 --isolate-suites --hermetic",
+    "test:smoke:harness": "node tests/smoke-harness-check.mjs",
     "test:smoke:list": "node tests/smoke.mjs --list",
     "test:smoke:headed": "node tests/smoke.mjs --headed",
     "test:smoke:strict": "node tests/smoke.mjs --strict-external",
-    "test:smoke:live": "node tests/smoke.mjs --base-url https://tezos.systems",
+    "test:smoke:live": "node tests/smoke.mjs --base-url https://tezos.systems --allow-live-network --strict-external",
+    "test:smoke:costs:update": "node scripts/update-smoke-costs.mjs",
     "test:tezoscrp": "node tests/tezoscrp-check.mjs",
     "test:uranium": "node tests/uranium-check.mjs",
     "test:metals": "node tests/metals-check.mjs",
@@ -90,8 +94,15 @@
     "playwright": "^1.58.2"
   },
   "devDependencies": {
+    "chart.js": "4.4.1",
+    "chartjs-adapter-date-fns": "3.0.0",
     "clean-css-cli": "^5.6.3",
+    "date-fns": "3.6.0",
+    "html2canvas": "1.4.1",
     "knip": "^6.3.1",
     "sharp": "^0.35.1"
+  },
+  "overrides": {
+    "brace-expansion": "1.1.18"
   }
 }

@@ -1036,12 +1036,19 @@ async function statOrNull(file) {
   }
 }
 
+const WALK_IGNORED_DIR_NAMES = new Set([
+  '.cache',
+  '.git',
+  'node_modules',
+  'test-artifacts'
+]);
+
 async function walk(dir, predicate, results = []) {
   const entries = await fs.readdir(path.join(ROOT, dir), { withFileTypes: true });
   for (const entry of entries) {
     const child = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (child === 'node_modules' || child === '.git') continue;
+      if (WALK_IGNORED_DIR_NAMES.has(entry.name)) continue;
       await walk(child, predicate, results);
     } else if (predicate(child)) {
       results.push(child.replaceAll(path.sep, '/'));
@@ -1333,6 +1340,14 @@ async function checkRequiredFiles() {
     'tests/metals-check.mjs',
     'tests/minerals-check.mjs',
     'tests/service-worker-cache-check.mjs',
+    'tests/smoke-harness-check.mjs',
+    'tests/lib/smoke-affected.mjs',
+    'tests/lib/smoke-harness.mjs',
+    'tests/lib/smoke-metadata.mjs',
+    'tests/fixtures/smoke-intentional-waits.json',
+    'tests/fixtures/smoke-suite-costs.json',
+    'scripts/update-smoke-costs.mjs',
+    '.github/workflows/smoke-canary.yml',
     'data/protocol-data.json',
     'data/protocol-debates.json',
     'data/tweets.json'
@@ -5392,6 +5407,8 @@ async function checkHistoricalPagination() {
   const generatedFreshness = await readText('scripts/lib/generated-freshness.mjs');
   const backfillWorkflow = await readText('.github/workflows/backfill-supabase-history.yml');
   const packageJson = await readText('package.json');
+  const smokeHarness = await readText('tests/lib/smoke-harness.mjs');
+  const smokeRunner = await readText('tests/smoke.mjs');
   const migration = await readText('supabase/migrations/20260618190000_expand_historical_capture.sql');
   if (!api.includes('HISTORICAL_PAGE_SIZE')) {
     fail('fetchHistoricalData must page Supabase history results; default REST responses are capped at 1,000 rows');
@@ -5583,6 +5600,18 @@ async function checkHistoricalPagination() {
   if (!packageJson.includes('"check:generated:freshness": "node scripts/check-generated-freshness.mjs"')) {
     fail('package scripts must expose check:generated:freshness');
   }
+  if (!packageJson.includes('"test:smoke:ci": "node tests/smoke.mjs --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic"')
+    || !packageJson.includes('"test:affected": "npm run test:static && node tests/smoke.mjs --affected-since origin/main --affected-high-risk-repeat 3')
+    || !packageJson.includes('"test:smoke:harness": "node tests/smoke-harness-check.mjs"')
+    || !packageJson.includes('node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs')) {
+    fail('package scripts must keep CI smoke semantics and the smoke harness contract check in the standard static gate');
+  }
+  for (const snippet of ['parseShard', 'selectSuiteCatalog', 'executeSuiteCatalog', "suiteStatus = 'flaky'", 'continueOnFailure', 'SmokeInfrastructureError', 'infrastructure-retry']) {
+    if (!smokeHarness.includes(snippet)) fail(`shared smoke harness must preserve ${snippet}`);
+  }
+  for (const snippet of ['instrumentBrowserForArtifacts', 'instrumentBrowserForHermeticNetwork', 'closeOpenBrowserContexts', 'writeSmokeResults', 'aggregateSmokeFailure', 'passed only after a fresh-browser retry; the harness will remain red']) {
+    if (!smokeRunner.includes(snippet)) fail(`browser smoke runner must preserve ${snippet}`);
+  }
   for (const snippet of ['workflow_dispatch:', 'SUPABASE_KEY', 'BACKFILL_DRY_RUN', "node-version: '24'", 'actions/checkout@v7', 'actions/setup-node@v6']) {
     if (!backfillWorkflow.includes(snippet)) {
       fail(`Supabase backfill workflow must include ${snippet}`);
@@ -5603,7 +5632,7 @@ async function checkHistoricalPagination() {
     }
   }
   const ciWorkflow = await readText('.github/workflows/ci.yml');
-  for (const snippet of ['pull_request:', 'branches: [main]', 'workflow_dispatch:', "github.event_name == 'workflow_dispatch'", 'npm run test:static', 'playwright install --with-deps chromium', 'npm run test:smoke', 'needs: browser-smoke', 'pages: write', 'id-token: write', 'actions/configure-pages@v6', 'actions/upload-pages-artifact@v5', 'include-hidden-files: true', 'actions/deploy-pages@v5']) {
+  for (const snippet of ['pull_request:', 'branches: [main]', 'workflow_dispatch:', "github.event_name == 'workflow_dispatch'", 'npm run test:static', 'fail-fast: false', 'shard: [1, 2, 3, 4, 5, 6]', 'actions/cache@v5', 'playwright install-deps chromium', 'playwright install --only-shell chromium', 'npm run test:smoke:ci', '--suite-costs .cache/smoke-suite-costs.json', '--shard ${{ matrix.shard }}/6', 'if: always()', 'actions/upload-artifact@v5', 'Learn hosted smoke timings', 'scripts/update-smoke-costs.mjs', 'actions/cache/save@v5', 'needs: browser-smoke', 'pages: write', 'id-token: write', 'actions/configure-pages@v6', 'actions/upload-pages-artifact@v5', 'include-hidden-files: true', 'actions/deploy-pages@v5']) {
     if (!ciWorkflow.includes(snippet)) fail(`site validation workflow must include ${snippet}`);
   }
 
@@ -6389,14 +6418,17 @@ async function checkPortableTooling() {
     'check:generated:freshness': 'node scripts/check-generated-freshness.mjs',
     'refresh:milestones': 'node scripts/generate-milestone-catalog.mjs --force',
     'refresh:nakamoto': 'node scripts/refresh-nakamoto-sources.mjs',
-    test: 'npm run test:static && npm run test:smoke',
-    'test:static': 'node tests/static-checks.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers',
+    test: 'npm run test:static && npm run test:smoke:ci',
+    'test:static': 'node tests/static-checks.mjs && node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers',
     'test:scheduled-refresh': 'node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs',
     'test:smoke': 'node tests/smoke.mjs',
+    'test:smoke:ci': 'node tests/smoke.mjs --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic',
+    'test:affected': 'npm run test:static && node tests/smoke.mjs --affected-since origin/main --affected-high-risk-repeat 3 --continue-on-failure --retry-infrastructure 1 --isolate-suites --hermetic',
     'test:smoke:list': 'node tests/smoke.mjs --list',
     'test:smoke:headed': 'node tests/smoke.mjs --headed',
     'test:smoke:strict': 'node tests/smoke.mjs --strict-external',
-    'test:smoke:live': 'node tests/smoke.mjs --base-url https://tezos.systems',
+    'test:smoke:live': 'node tests/smoke.mjs --base-url https://tezos.systems --allow-live-network --strict-external',
+    'test:smoke:costs:update': 'node scripts/update-smoke-costs.mjs',
     'test:ledger-flow': 'node tests/ledger-flow-check.mjs',
     'test:baker-governance-signals': 'node tests/baker-governance-signals-check.mjs',
     'test:chamber-polling': 'node tests/chamber-polling-check.mjs',
@@ -6678,15 +6710,88 @@ async function checkRepositoryLicense() {
 
 async function checkSmokeSuiteCatalogContracts() {
   const smoke = await readText('tests/smoke.mjs');
+  const affected = await readText('tests/lib/smoke-affected.mjs');
+  const metadata = await readText('tests/lib/smoke-metadata.mjs');
+  const costUpdater = await readText('scripts/update-smoke-costs.mjs');
+  const canaryWorkflow = await readText('.github/workflows/smoke-canary.yml');
+  const intentionalWaits = JSON.parse(await readText('tests/fixtures/smoke-intentional-waits.json'));
+  const suiteCosts = JSON.parse(await readText('tests/fixtures/smoke-suite-costs.json'));
 
   if (smoke.includes('const suiteNames = [')) {
     fail('tests/smoke.mjs --list must not maintain a separate hard-coded suite list');
   }
-  if (!/if \(cli\.list\) \{\s*for \(const \{ name, description \} of getSuiteCatalog\(null, ''\)\)/.test(smoke)) {
-    fail('tests/smoke.mjs --list must derive from getSuiteCatalog so every runnable suite is discoverable');
+  if (!/if \(cli\.list\) \{\s*for \(const \{ name, description \} of selectSuites\(getSuiteCatalog\(null, ''\)\)/.test(smoke)) {
+    fail('tests/smoke.mjs --list must derive from the selected executable catalog so focused shards are discoverable');
+  }
+  if (!smoke.includes("require('./fixtures/smoke-suite-costs.json')")
+    || !smoke.includes('suiteCosts: smokeSuiteCosts')) {
+    fail('tests/smoke.mjs must apply the measured suite-cost ledger when selecting CI shards');
+  }
+  for (const snippet of [
+    'metadataForSmokeSuite(suite.name)',
+    'selectAffectedSmokeSuites',
+    'affectedHighRiskRepeat',
+    'instrumentBrowserForHermeticNetwork',
+    'fulfillHermeticSharedAsset',
+    'fulfillHermeticSharedWebSocket',
+    "['127.0.0.1', 'localhost', '::1', '[::1]']",
+    "context.routeWebSocket('**/*'",
+    'SmokeInfrastructureError',
+    'page.clock.fastForward(8500)',
+    'page.clock.fastForward(10250)'
+  ]) {
+    if (!smoke.includes(snippet)) fail(`tests/smoke.mjs must preserve hardening contract ${snippet}`);
+  }
+  for (const snippet of ['GLOBAL_SMOKE_PATTERNS', 'NO_BROWSER_IMPACT_PATTERNS', "mode: 'full'", 'not mapped to a bounded smoke owner']) {
+    if (!affected.includes(snippet)) fail(`affected smoke selection must remain conservative through ${snippet}`);
+  }
+  for (const snippet of ['files, risk, tags', "risk: 'high'", "tags: ['live-canary']"]) {
+    if (!metadata.includes(snippet)) fail(`smoke catalog metadata must preserve ${snippet}`);
+  }
+  for (const snippet of ['githubActions', 'result.status !== \'passed\'', 'median(values)', 'planSuiteShards', 'observed * 0.7']) {
+    if (!costUpdater.includes(snippet)) fail(`hosted smoke timing learner must preserve ${snippet}`);
+  }
+  for (const snippet of ["cron: '17 9 * * *'", '--risk high', '--repeat-each 5', '--hermetic', '--allow-live-network', 'octez-connect-sdk-loader,kraken-websocket-canary', 'if: always()']) {
+    if (!canaryWorkflow.includes(snippet)) fail(`nightly smoke canary must include ${snippet}`);
   }
 
-  pass('smoke suite list derives from the executable catalog');
+  const directLongWaits = Array.from(smoke.matchAll(/waitForTimeout\(\s*([\d_]+)\s*\)/g))
+    .map((match) => ({ literal: match[1], milliseconds: Number(match[1].replaceAll('_', '')) }))
+    .filter((wait) => wait.milliseconds >= 1000);
+  if (directLongWaits.length) {
+    fail(`browser smoke contains undocumented direct waits >=1s: ${JSON.stringify(directLongWaits)}`);
+  }
+  for (const [key, receipt] of Object.entries(intentionalWaits)) {
+    if (!Number.isInteger(receipt?.milliseconds) || receipt.milliseconds < 1000 || typeof receipt.reason !== 'string' || receipt.reason.length < 20) {
+      fail(`intentional smoke wait ${key} needs a >=1s duration and specific reason`);
+    }
+    if (!smoke.includes(`'${key}'`)) {
+      fail(`intentional smoke wait ${key} is not referenced by the executable runner`);
+    }
+  }
+  const catalogStart = smoke.indexOf('function getSuiteCatalog(browser, baseUrl)');
+  const catalogEnd = smoke.indexOf('\nfunction selectSuites(catalog)', catalogStart);
+  const catalogSource = catalogStart >= 0 && catalogEnd > catalogStart
+    ? smoke.slice(catalogStart, catalogEnd)
+    : '';
+  const suiteNames = Array.from(catalogSource.matchAll(/\{ name: '([^']+)'/g), (match) => match[1]);
+  const missingCosts = suiteNames.filter((name) => !Object.hasOwn(suiteCosts, name));
+  const unknownCosts = Object.keys(suiteCosts).filter((name) => !suiteNames.includes(name));
+  const invalidCosts = Object.entries(suiteCosts)
+    .filter(([, seconds]) => !Number.isInteger(seconds) || seconds <= 0)
+    .map(([name]) => name);
+  if (!suiteNames.length || missingCosts.length || unknownCosts.length || invalidCosts.length) {
+    fail(`smoke suite cost ledger drifted ${JSON.stringify({ suiteCount: suiteNames.length, missingCosts, unknownCosts, invalidCosts })}`);
+  }
+
+  for (const oldName of ['hero-command-bar', 'my-tezos-deep-link-override', 'governance-lb', 'feature-workflows']) {
+    if (suiteNames.includes(oldName)) fail(`oversized smoke suite ${oldName} must stay split into independent failure domains`);
+  }
+  for (const splitName of ['hero-command-bar-first-paint', 'hero-command-bar-desktop', 'hero-command-bar-mobile', 'my-tezos-deep-link-hash', 'my-tezos-deep-link-path', 'governance-lb-active', 'governance-lb-quiet', 'feature-workflows-desktop', 'feature-workflows-mobile']) {
+    if (!suiteNames.includes(splitName)) fail(`split smoke catalog is missing ${splitName}`);
+  }
+
+  pass(`hardened smoke catalog, intentional waits, affected ownership, canaries, and measured costs derive from ${suiteNames.length} executable suites`);
 }
 
 async function checkTourAndShareCaptureContracts() {

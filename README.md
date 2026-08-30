@@ -1510,6 +1510,32 @@ The lockfile is tracked so fresh clones can use `npm ci`. Repo Playwright
 callers use `scripts/lib/playwright-browser.cjs`, which tries Playwright's
 bundled Chromium first and falls back to a local Chrome/Chromium-family browser.
 Set `BROWSER_EXECUTABLE_PATH` only when you need to force a specific executable.
+The smoke runner supports deterministic runtime-balanced `--shard index/total`
+selection from `tests/fixtures/smoke-suite-costs.json`, fresh-browser
+`--isolate-suites`, repeated focused runs through
+`--repeat-each`, aggregate reporting through `--continue-on-failure`, and
+diagnostic `--retry-failures`. CI also uses `--hermetic`: every request outside
+the tested origin must be handled by a suite mock or one of the pinned shared
+browser fixtures, including the Kraken WebSocket feed. `npm run test:smoke:live`
+is the explicit upstream-network canary; the nightly live job exercises both
+the Octez.Connect SDK and Kraken ticker subscription. A suite that passes only on an assertion retry is reported as flaky and
+still fails the gate; only a typed browser/server startup failure can use the
+separate transparent `--retry-infrastructure` allowance. When
+`--artifacts-dir` is set, every run writes a machine-readable `results.json`,
+and diagnostic retries additionally retain Playwright traces, viewport
+screenshots, and DOM snapshots.
+
+`npm run test:affected` runs the static gate, maps files changed since
+`origin/main` to suite-declared `files`, `tags`, and `risk`, and repeats selected
+high-risk owners three times. Shared harness/runtime files or any unmapped
+product file conservatively fall back to the full browser catalog. This is a
+preflight optimization only; the push/release workflow always runs the full
+catalog. Direct fixed waits of one second or longer are forbidden unless they
+are named and justified in `tests/fixtures/smoke-intentional-waits.json`;
+long timer assertions use Playwright's controlled clock instead.
+`npm test` uses the same aggregate, retry-classifying, isolated-browser profile
+as CI so the standard local gate and the push gate do not exercise different
+runner semantics.
 
 `npm run measure:load -- --base-url http://127.0.0.1:9000 --runs 5` records a
 repeatable clean-profile initial-load row with request and decoded-byte totals,
@@ -1582,13 +1608,19 @@ npm run backfill:supabase
 npm test
 npm run test:static
 npm run test:smoke
+npm run test:smoke:ci
+npm run test:affected
+npm run test:smoke:harness
 npm run test:smoke:list
 npm run test:smoke:headed
 npm run test:smoke:strict
 npm run test:smoke:live
+npm run test:smoke:costs:update -- test-artifacts/hosted
 npm run measure:load -- --base-url http://127.0.0.1:9000 --runs 5
 node tests/smoke.mjs --only app-shell,route-crawl
-node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
+node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb-active
+node tests/smoke.mjs --only network-health --repeat-each 3 --isolate-suites
+node tests/smoke.mjs --shard 1/6 --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic --artifacts-dir test-artifacts/smoke-1
 ```
 
 `QA.md` has the pre-deploy checklist and manual visual pass.
@@ -1618,9 +1650,20 @@ node tests/smoke.mjs --base-url http://127.0.0.1:9000 --only governance-lb
   continuity.
 - `npm run test:ecosystem`: focused Ecosystem manifest, completed-week,
   contract-receipt, projection, and content-hash reconciliation.
-- `npm run test:smoke`: a Playwright browser run against a throwaway local
-  server by default. It uses mocked live-data endpoints for deterministic
-  feature flows.
+- `npm run test:smoke:ci`: the full Playwright gate used by `npm test` and CI.
+  It runs against a throwaway local server with hermetic external I/O, isolates
+  every suite, gathers all failures, retries failed assertions once for
+  diagnosis, and rejects retry-only passes as flaky. Pre-test infrastructure
+  recovery is reported separately and does not launder an assertion failure.
+- `npm run test:affected`: conservative static-plus-owned-suite preflight with
+  three repetitions for selected high-risk suites and full-suite fallback for
+  shared or unmapped changes.
+- `npm run test:smoke`: the same browser catalog with fail-fast/shared-browser
+  defaults for quick focused `--only` development loops.
+- `npm run test:smoke:harness`: fast non-browser contracts for suite selection,
+  stable sharding, affected-file ownership, aggregate failure collection,
+  assertion versus infrastructure retry classification, per-risk repetition,
+  and summary accounting. It is also part of `test:static`.
 
 Current smoke suites:
 
@@ -1628,7 +1671,9 @@ Current smoke suites:
 - `app-shell`
 - `release-update` (covers the compact-by-default update pill, explicit
   expansion, Later behavior, activation fallback, and cross-tab worker state)
-- `hero-command-bar`
+- `hero-command-bar-first-paint`, `hero-command-bar-desktop`, and
+  `hero-command-bar-mobile` (independent first-paint, desktop interaction, and
+  mobile geometry failure domains)
 - `route-search-state` (covers alias transitions, bare routes, relevant-only
   TzKT suggestions, query-preserving close, Back/Forward cleanup, and routed
   title ownership)
@@ -1654,6 +1699,7 @@ Current smoke suites:
 - `my-tezos-empty-state`
 - `my-tezos-wallet-connect`
 - `octez-connect-sdk-loader`
+- `kraken-websocket-canary`
 - `my-tezos-baker-capacity`
 - `my-tezos-staker-rewards`
 - `my-tezos-delegator-rewards`
@@ -1668,7 +1714,8 @@ Current smoke suites:
 - `my-tezos-ledger-flow-handoff`
 - `my-tezos-subdomain-input`
 - `my-tezos-proposal-attribution`
-- `my-tezos-deep-link-override`
+- `my-tezos-deep-link-hash`
+- `my-tezos-deep-link-path`
 - `tezlink`
 - `network-health`
 - `staking-chamber` (covers the narrow latest stake/unstake tape, strict >10K
@@ -1721,7 +1768,8 @@ Current smoke suites:
 - `leaderboard-signals` (covers the 2018 OG and through-2021 Veteran tiers,
   accepted-proposal initiator attribution, completed-ballot streaks, factual
   legend copy, quiet refresh, and desktop/mobile containment)
-- `feature-workflows` (covers all sparkline card latest values, history, share, and optional feature flows)
+- `feature-workflows-desktop` and `feature-workflows-mobile` (independent
+  desktop feature-map and mobile lifecycle failure domains)
 - `share-actions` (covers share modal copy, editable X post text, optional handle persistence, download, native share, Network Moment image cards, and mobile photo fallback buttons)
 - `info-modals`
 - `cycle-history-chamber` (covers direct range/metric routes, focused charts,
@@ -1737,12 +1785,24 @@ Run `npm run test:smoke:list` for the current suite descriptions.
 ## Deployment, Hooks, And Versioning
 
 The `Validate Site` workflow deploys pushes to `main` only after static contracts
-and the full browser smoke suite pass. GitHub Pages must use **GitHub Actions** as
-its build source; the workflow uploads the validated repository artifact and
-preserves dot-prefixed public paths such as `.well-known`. Scheduled repository
-writers explicitly dispatch that workflow after a bot-authored commit because
-GitHub does not emit another push-triggered workflow from its own token; their
-generated-data updates therefore pass the same validation gate before Pages.
+and all six deterministic browser-smoke shards pass. Each shard runs suites
+sequentially in isolated browser processes, continues after a failure to expose
+the complete shard result, retries only the failed suite once for diagnosis,
+and keeps the gate red when that retry is the only pass. Every shard uploads its
+result ledger; failed retry attempts add traces and rendered diagnostics. A
+post-success job blends robust hosted timings into an adaptive cache ledger for
+the next run while the committed cost fixture remains the cold-start fallback.
+The workflow installs only Chromium's headless shell, retries its download, and
+caches it by the resolved Playwright version rather than invalidating the large
+browser cache for unrelated lockfile edits. A scheduled high-risk five-repeat
+canary and a separate live pinned-dependency canary expose flakes and upstream
+drift without weakening the release gate.
+GitHub Pages must use **GitHub Actions** as its build source; the workflow uploads
+the validated repository artifact and preserves dot-prefixed public paths such
+as `.well-known`. Scheduled repository writers explicitly dispatch that workflow
+after a bot-authored commit because GitHub does not emit another push-triggered
+workflow from its own token; their generated-data updates therefore pass the
+same validation gate before Pages.
 
 Before deploying JS, CSS, or data-dependency changes, review cache and version
 metadata:
