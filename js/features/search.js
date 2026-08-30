@@ -955,6 +955,8 @@ export function initHeroSearch() {
     let selectedId = '';
     let results = [];
     let priorFocus = null;
+    let focusReturnTarget = null;
+    let restoringSearchFocus = false;
     let anchor = null;
     let savedScroll = null;
     let searchRouteWasActive = (() => {
@@ -1047,6 +1049,7 @@ export function initHeroSearch() {
             priorFocus = document.activeElement;
         }
         if (isOpen && !wasOpen) {
+            if (!(focusReturnTarget instanceof HTMLElement)) focusReturnTarget = priorFocus;
             savedScroll = { x: window.scrollX, y: window.scrollY };
             anchor = createAnchor();
             chamber.appendChild(root);
@@ -1072,18 +1075,25 @@ export function initHeroSearch() {
             window.dispatchEvent(new Event('hero-search-opened'));
         }
         if (!isOpen && wasOpen) {
+            const restoreInputAfterMove = restoreFocus && focusReturnTarget === input;
             isBrowsingAll = false;
             selectedId = '';
             root.classList.remove('has-query');
             root.classList.remove('is-browsing-all');
             input.setAttribute('aria-activedescendant', '');
             blurSearchFocus();
-            deactivateOverlayDialog(overlay, { restoreFocus });
+            deactivateOverlayDialog(overlay, { restoreFocus: restoreFocus && !restoreInputAfterMove });
             restoreSearchRoot();
             overlay.classList.remove('is-open');
             overlay.hidden = true;
             restoreWindowScroll();
+            if (restoreInputAfterMove && input.isConnected) {
+                restoringSearchFocus = true;
+                input.focus({ preventScroll: true });
+                restoringSearchFocus = false;
+            }
             priorFocus = null;
+            focusReturnTarget = null;
             savedScroll = null;
         }
     };
@@ -1358,10 +1368,12 @@ export function initHeroSearch() {
     });
 
     form.addEventListener('pointerdown', () => {
+        if (!isOpen) focusReturnTarget = input;
         if (!isOpen && !root.contains(document.activeElement)) priorFocus = document.activeElement;
     });
 
     input.addEventListener('focus', (event) => {
+        if (restoringSearchFocus) return;
         if (!isOpen && event.relatedTarget instanceof HTMLElement && !root.contains(event.relatedTarget)) {
             priorFocus = event.relatedTarget;
         }

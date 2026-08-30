@@ -6925,6 +6925,29 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   assert(deckChromeState.commandDeckHeadCount === 0, 'hero command bar: command deck should not show protocol chrome above search');
   assert(deckChromeState.upgradeShareCount === 0, 'hero command bar: old upgrade share button should not remain in the first-screen search deck');
 
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await page.waitForFunction(() => window.scrollY === 0, null, { timeout: 3000 });
+  const pointerSearchBox = await page.locator('#hero-search-input').boundingBox();
+  const pointerViewport = page.viewportSize();
+  assert(pointerSearchBox && pointerViewport && pointerSearchBox.y >= 0 && pointerSearchBox.y + pointerSearchBox.height <= pointerViewport.height, `hero command bar: search input is not available for a direct pointer launch ${JSON.stringify({ pointerSearchBox, pointerViewport })}`);
+  const pointerSearchScroll = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+  await page.mouse.click(pointerSearchBox.x + (pointerSearchBox.width / 2), pointerSearchBox.y + (pointerSearchBox.height / 2));
+  await page.waitForFunction(() => document.body.classList.contains('hero-search-mode') && document.activeElement?.id === 'hero-search-input', null, { timeout: 5000 });
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.activeElement?.id === 'hero-search-input', null, { timeout: 5000 });
+  const pointerSearchRestore = await page.evaluate(() => ({
+    parentId: document.getElementById('hero-slot')?.parentElement?.id || '',
+    overlayHidden: document.getElementById('hero-search-overlay')?.hidden ?? false,
+    scroll: { x: window.scrollX, y: window.scrollY }
+  }));
+  assert(
+    pointerSearchRestore.parentId === 'live-head'
+      && pointerSearchRestore.overlayHidden
+      && Math.abs(pointerSearchRestore.scroll.x - pointerSearchScroll.x) <= 1
+      && Math.abs(pointerSearchRestore.scroll.y - pointerSearchScroll.y) <= 1,
+    `hero command bar: direct pointer close did not restore the search opener and exact scroll ${JSON.stringify({ pointerSearchScroll, pointerSearchRestore })}`
+  );
+
   await page.locator('#header-protocol-chip').click();
   await page.waitForFunction(() => window.location.hash === '#protocol-history', null, { timeout: 5000 });
   await page.locator('#protocol-history-chamber-modal.active .protocol-anthology-list .protocol-anthology-chapter').first().waitFor({ state: 'visible', timeout: 10000 });
