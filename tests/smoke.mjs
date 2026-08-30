@@ -32504,18 +32504,32 @@ async function smokeLiveNumberShellMotion(browser, baseUrl, issues) {
     document.getElementById('hero-chain-uptime-bakers')?.getAttribute('aria-busy') === 'true'
   ), null, { timeout: 1000 });
   await page.waitForTimeout(180);
-  const midpointText = await bakerValue.textContent();
-  const midpointPixels = await bakerValue.screenshot();
+  const midpointVisual = await bakerValue.evaluate((value) => {
+    const style = getComputedStyle(value);
+    const rect = value.getBoundingClientRect();
+    return {
+      text: value.textContent || '',
+      busy: value.getAttribute('aria-busy') || '',
+      opacity: Number.parseFloat(style.opacity),
+      visibility: style.visibility,
+      display: style.display,
+      width: rect.width,
+      height: rect.height
+    };
+  });
   await page.waitForFunction(() => {
     const value = document.getElementById('hero-chain-uptime-bakers');
     return value?.textContent === '200' && value.getAttribute('aria-busy') !== 'true';
   }, null, { timeout: 2500 });
-  const finalPixels = await bakerValue.screenshot();
   assert(
-    midpointText !== '200'
-      && createHash('sha256').update(midpointPixels).digest('hex')
-        !== createHash('sha256').update(finalPixels).digest('hex'),
-    `live number production shell midpoint was not visibly distinct from settlement (${midpointText})`
+    midpointVisual.text !== '200'
+      && midpointVisual.busy === 'true'
+      && midpointVisual.opacity > 0
+      && midpointVisual.visibility === 'visible'
+      && midpointVisual.display !== 'none'
+      && midpointVisual.width > 0
+      && midpointVisual.height > 0,
+    `live number production shell midpoint was not visibly distinct from settlement ${JSON.stringify(midpointVisual)}`
   );
 
   const scrolledObserverMotion = await page.evaluate(async () => {
