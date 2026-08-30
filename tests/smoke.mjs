@@ -6940,7 +6940,39 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     throw new Error(`${error.message}\nhero command bar focus snapshot: ${JSON.stringify(active)}`);
   }
 
-  await page.keyboard.press('/');
+  const launchState = await page.evaluate(() => {
+    const root = document.getElementById('hero-slot');
+    window.__heroSearchOriginalRoot = root;
+    window.__heroSearchOriginalParent = root?.parentElement;
+    const opener = document.activeElement;
+    const scroll = { x: window.scrollX, y: window.scrollY };
+    const startedAt = performance.now();
+    document.dispatchEvent(new KeyboardEvent('keydown', {
+      key: '/',
+      bubbles: true,
+      cancelable: true
+    }));
+    return {
+      elapsed: performance.now() - startedAt,
+      open: document.body.classList.contains('hero-search-mode'),
+      focused: document.activeElement?.id === 'hero-search-input',
+      starterCount: document.querySelectorAll('#hero-search-panel [role="option"]').length,
+      sameRoot: document.getElementById('hero-slot') === root,
+      openerId: opener?.id || '',
+      scroll,
+      scrollAfter: { x: window.scrollX, y: window.scrollY }
+    };
+  });
+  assert(
+    launchState.open
+      && launchState.focused
+      && launchState.starterCount === 6
+      && launchState.sameRoot
+      && launchState.elapsed < 100
+      && launchState.scroll.x === launchState.scrollAfter.x
+      && launchState.scroll.y === launchState.scrollAfter.y,
+    `hero command bar: Index Chamber did not launch synchronously with six starter actions ${JSON.stringify(launchState)}`
+  );
   await page.waitForFunction(() => document.activeElement?.id === 'hero-search-input', null, { timeout: 5000 });
   await page.locator('#hero-search-panel').waitFor({ state: 'visible', timeout: 5000 });
   const focusModeState = await page.evaluate(() => {
@@ -6948,14 +6980,22 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     const header = document.querySelector('header.header');
     const pulse = document.querySelector('#pulse-ticker-strip');
     const liveHead = document.querySelector('#live-head');
+    const root = document.querySelector('#hero-slot');
+    const overlay = document.querySelector('#hero-search-overlay');
+    const chamber = overlay?.querySelector('[data-hero-search-chamber]');
     const form = document.querySelector('#hero-search-form');
     const panel = document.querySelector('#hero-search-panel');
-    const cardRect = liveHead?.getBoundingClientRect();
+    const overlayRect = overlay?.getBoundingClientRect();
     const formRect = form?.getBoundingClientRect();
     const panelRect = panel?.getBoundingClientRect();
-    const visibleRows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row')).filter((row) => getComputedStyle(row).display !== 'none');
-    const visualRows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row, #live-head-stack .live-head-row-exiting')).filter((row) => getComputedStyle(row).display !== 'none');
-    const visualBottom = Math.max(0, ...visualRows.map((row) => row.getBoundingClientRect().bottom));
+    const viewport = window.visualViewport;
+    const viewportRect = {
+      top: viewport?.offsetTop || 0,
+      left: viewport?.offsetLeft || 0,
+      width: viewport?.width || innerWidth,
+      height: viewport?.height || innerHeight
+    };
+    const viewportBottom = viewportRect.top + viewportRect.height;
     return {
       bodyMode: document.body.classList.contains('hero-search-mode'),
       mainInert: main.hasAttribute('inert'),
@@ -6963,27 +7003,170 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       mainPointerEvents: getComputedStyle(main).pointerEvents,
       mainFilter: getComputedStyle(main).filter,
       mainTransform: getComputedStyle(main).transform,
+      headerInert: header.hasAttribute('inert'),
+      pulseInert: pulse.hasAttribute('inert'),
       headerOpacity: getComputedStyle(header).opacity,
       pulseOpacity: getComputedStyle(pulse).opacity,
-      cardHeight: cardRect?.height || 0,
-      rowCount: Array.from(document.querySelectorAll('#live-head-stack .live-head-row')).filter((row) => getComputedStyle(row).display !== 'none').length,
+      overlayPosition: getComputedStyle(overlay).position,
+      overlayHidden: overlay.hidden,
+      overlayAriaHidden: overlay.getAttribute('aria-hidden'),
+      overlayRect: overlayRect ? { top: overlayRect.top, left: overlayRect.left, width: overlayRect.width, height: overlayRect.height } : null,
+      viewportRect,
+      rootSameNode: root === window.__heroSearchOriginalRoot,
+      rootInChamber: root?.parentElement === chamber,
+      anchorInLiveHead: Boolean(liveHead?.querySelector('.hero-search-anchor')),
+      dialogRole: chamber?.getAttribute('role') || '',
+      dialogModal: chamber?.getAttribute('aria-modal') || '',
+      dialogLabel: chamber?.getAttribute('aria-label') || '',
       panelPosition: getComputedStyle(panel).position,
-      panelBelowWell: Boolean(panelRect && formRect && panelRect.top >= formRect.bottom),
+      panelBelowForm: Boolean(panelRect && formRect && panelRect.top >= formRect.bottom),
       panelSameWidth: Boolean(panelRect && formRect && Math.abs(panelRect.width - formRect.width) <= 1),
-      panelBottomGap: panelRect ? innerHeight - panelRect.bottom : 999,
+      formTopGap: formRect ? formRect.top - viewportRect.top : 999,
+      panelBottomGap: panelRect ? viewportBottom - panelRect.bottom : 999,
       panelMaxHeight: getComputedStyle(panel).maxHeight,
-      blockSearchJoinGap: formRect && visualBottom ? formRect.top - visualBottom : 999
+      panelBackdrop: getComputedStyle(panel).backdropFilter || getComputedStyle(panel).webkitBackdropFilter || '',
+      overlayBackdrop: getComputedStyle(overlay).backdropFilter || getComputedStyle(overlay).webkitBackdropFilter || '',
+      resultButtons: panel.querySelectorAll('button[role="option"]').length,
+      bodyOverflow: getComputedStyle(document.body).overflow,
+      htmlOverflow: getComputedStyle(document.documentElement).overflow,
+      scroll: { x: window.scrollX, y: window.scrollY }
     };
   });
   assert(focusModeState.bodyMode, 'hero command bar: search focus state signal is missing');
-  assert(!focusModeState.mainInert && focusModeState.mainOpacity === 1 && focusModeState.mainPointerEvents === 'auto' && focusModeState.mainFilter === 'none' && focusModeState.mainTransform === 'none', `hero command bar: search focus altered or disabled the landing page ${JSON.stringify(focusModeState)}`);
+  assert(focusModeState.mainInert && focusModeState.headerInert && focusModeState.pulseInert && focusModeState.mainOpacity === 1 && focusModeState.mainFilter === 'none' && focusModeState.mainTransform === 'none', `hero command bar: Index Chamber did not isolate its undimmed background ${JSON.stringify(focusModeState)}`);
   assert(focusModeState.headerOpacity === '1' && focusModeState.pulseOpacity === '1', `hero command bar: search focus dimmed the header or Live Pulse ${JSON.stringify(focusModeState)}`);
-  assert(focusModeState.cardHeight <= 370 && focusModeState.rowCount === 4 && focusModeState.panelPosition === 'absolute' && focusModeState.panelBelowWell && focusModeState.panelSameWidth, `hero command bar: results are not attached below the stable Live Head well ${JSON.stringify(focusModeState)}`);
-  // Fractional layout can overlap the two painted edges by less than one CSS
-  // pixel. That closes the seam; only a larger overlap or a visible gap is a
-  // geometry regression.
-  assert(focusModeState.blockSearchJoinGap >= -1 && focusModeState.blockSearchJoinGap <= 8, `hero command bar: block stack/search join escaped the one-pixel overlap and eight-pixel gap bounds ${JSON.stringify(focusModeState)}`);
-  assert(focusModeState.panelBottomGap >= 8 && focusModeState.panelBottomGap <= 16 && focusModeState.panelMaxHeight === 'none', `hero command bar: results should fill the remaining window below the well ${JSON.stringify(focusModeState)}`);
+  assert(
+    focusModeState.overlayPosition === 'fixed'
+      && !focusModeState.overlayHidden
+      && focusModeState.overlayAriaHidden === 'false'
+      && focusModeState.rootSameNode
+      && focusModeState.rootInChamber
+      && focusModeState.anchorInLiveHead
+      && focusModeState.dialogRole === 'dialog'
+      && focusModeState.dialogModal === 'true'
+      && /The Index/.test(focusModeState.dialogLabel),
+    `hero command bar: full-screen dialog/root identity contract failed ${JSON.stringify(focusModeState)}`
+  );
+  assert(
+    Math.abs(focusModeState.overlayRect.top - focusModeState.viewportRect.top) <= 2
+      && Math.abs(focusModeState.overlayRect.left - focusModeState.viewportRect.left) <= 2
+      && Math.abs(focusModeState.overlayRect.width - focusModeState.viewportRect.width) <= 2
+      && Math.abs(focusModeState.overlayRect.height - focusModeState.viewportRect.height) <= 2
+      && focusModeState.formTopGap >= 8
+      && focusModeState.formTopGap <= 16
+      && focusModeState.panelPosition === 'relative'
+      && focusModeState.panelBelowForm
+      && focusModeState.panelSameWidth
+      && focusModeState.panelBottomGap >= 8
+      && focusModeState.panelBottomGap <= 16
+      && focusModeState.panelMaxHeight === 'none',
+    `hero command bar: Index Chamber does not fill the visual viewport ${JSON.stringify(focusModeState)}`
+  );
+  assert(
+    ['none', ''].includes(focusModeState.panelBackdrop)
+      && ['none', ''].includes(focusModeState.overlayBackdrop)
+      && focusModeState.resultButtons === 0
+      && focusModeState.bodyOverflow === 'hidden'
+      && focusModeState.htmlOverflow === 'hidden'
+      && Math.abs(focusModeState.scroll.x - launchState.scroll.x) <= 1
+      && Math.abs(focusModeState.scroll.y - launchState.scroll.y) <= 1,
+    `hero command bar: fast launch, active-descendant, or scroll-lock contract failed ${JSON.stringify(focusModeState)}`
+  );
+
+  const themeStates = await page.evaluate(async (themes) => {
+    const { setTheme } = await import('/js/ui/theme.js');
+    const states = [];
+    for (const theme of themes) {
+      setTheme(theme);
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+      const overlay = document.getElementById('hero-search-overlay');
+      const panel = document.getElementById('hero-search-panel');
+      const panelRect = panel?.getBoundingClientRect();
+      const starters = Array.from(panel?.querySelectorAll('.hero-search-group.is-starter .hero-search-result') || []);
+      states.push({
+        theme,
+        visible: Boolean(overlay && !overlay.hidden && overlay.getClientRects().length),
+        position: getComputedStyle(overlay).position,
+        panelPosition: getComputedStyle(panel).position,
+        panelBackdrop: getComputedStyle(panel).backdropFilter || getComputedStyle(panel).webkitBackdropFilter || '',
+        starterCount: starters.length,
+        startersVisible: starters.every((row) => {
+          const rect = row.getBoundingClientRect();
+          return panelRect && rect.top >= panelRect.top - 1 && rect.bottom <= panelRect.bottom + 1;
+        }),
+        overflow: document.documentElement.scrollWidth - innerWidth
+      });
+    }
+    setTheme('matrix');
+    return states;
+  }, ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone']);
+  assert(
+    themeStates.every((state) => state.visible
+      && state.position === 'fixed'
+      && state.panelPosition === 'relative'
+      && ['none', ''].includes(state.panelBackdrop)
+      && state.starterCount === 6
+      && state.startersVisible
+      && state.overflow <= 1),
+    `hero command bar: Index Chamber drifted across themes ${JSON.stringify(themeStates)}`
+  );
+
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  const reducedMotionState = await page.evaluate(() => {
+    const overlay = document.getElementById('hero-search-overlay');
+    const panel = document.getElementById('hero-search-panel');
+    const form = document.getElementById('hero-search-form');
+    return {
+      overlayAnimation: getComputedStyle(overlay).animationName,
+      panelAnimation: getComputedStyle(panel).animationName,
+      panelTransition: getComputedStyle(panel).transitionDuration,
+      formTransition: getComputedStyle(form).transitionDuration
+    };
+  });
+  assert(
+    reducedMotionState.overlayAnimation === 'none'
+      && reducedMotionState.panelAnimation === 'none'
+      && /^0s(?:, 0s)*$/.test(reducedMotionState.panelTransition)
+      && /^0s(?:, 0s)*$/.test(reducedMotionState.formTransition),
+    `hero command bar: reduced motion retained search animation ${JSON.stringify(reducedMotionState)}`
+  );
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+
+  await page.locator('#hero-search-close').focus();
+  await page.keyboard.press('Tab');
+  assert(await page.evaluate(() => document.activeElement?.id === 'hero-search-input'), 'hero command bar: Tab escaped the Index Chamber instead of wrapping to search');
+  await page.keyboard.press('Shift+Tab');
+  assert(await page.evaluate(() => document.activeElement?.id === 'hero-search-close'), 'hero command bar: reverse Tab did not wrap to the Index Chamber close control');
+  await page.locator('#hero-search-input').focus();
+
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.activeElement?.id === 'header-protocol-chip', null, { timeout: 5000 });
+  const restorationState = await page.evaluate(() => ({
+    sameRoot: document.getElementById('hero-slot') === window.__heroSearchOriginalRoot,
+    originalParent: document.getElementById('hero-slot')?.parentElement === window.__heroSearchOriginalParent,
+    parentId: document.getElementById('hero-slot')?.parentElement?.id || '',
+    anchorCount: document.querySelectorAll('.hero-search-anchor').length,
+    overlayHidden: document.getElementById('hero-search-overlay')?.hidden ?? false,
+    mainInert: document.querySelector('main')?.hasAttribute('inert') || false,
+    bodyOverflow: getComputedStyle(document.body).overflow,
+    htmlOverflow: getComputedStyle(document.documentElement).overflow,
+    scroll: { x: window.scrollX, y: window.scrollY }
+  }));
+  assert(
+    restorationState.sameRoot
+      && restorationState.originalParent
+      && restorationState.parentId === 'live-head'
+      && restorationState.anchorCount === 0
+      && restorationState.overlayHidden
+      && !restorationState.mainInert
+      && restorationState.bodyOverflow !== 'hidden'
+      && restorationState.htmlOverflow !== 'hidden'
+      && Math.abs(restorationState.scroll.x - launchState.scroll.x) <= 1
+      && Math.abs(restorationState.scroll.y - launchState.scroll.y) <= 1,
+    `hero command bar: Escape did not restore exact root, focus, scroll, and overlay state ${JSON.stringify(restorationState)}`
+  );
+  await page.keyboard.press('/');
+  await page.waitForFunction(() => document.activeElement?.id === 'hero-search-input' && document.querySelectorAll('#hero-search-panel [role="option"]').length === 6, null, { timeout: 5000 });
   const emptyStateText = await page.locator('#hero-search-panel').innerText();
   const emptyStateOptions = await page.locator('#hero-search-panel [role="option"]').count();
   assert(/Wallet or \.tez/i.test(emptyStateText) && /Rooms/i.test(emptyStateText) && /Bakers/i.test(emptyStateText) && /Network/i.test(emptyStateText) && /Paste a hash/i.test(emptyStateText) && /Browse all/i.test(emptyStateText), `hero command bar: mission-control starters are incomplete: ${emptyStateText}`);
@@ -7496,9 +7679,23 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   await seedIntent('/changelog', '/changelog');
   await intentPage.locator('#hero-search-input').press('Enter');
   await intentPage.locator('#changelog-modal[aria-hidden="false"]').waitFor({ state: 'visible', timeout: 5000 });
+  const changelogOverlayState = await intentPage.evaluate(() => ({
+    searchHidden: document.getElementById('hero-search-overlay')?.hidden ?? false,
+    searchMode: document.body.classList.contains('hero-search-mode'),
+    searchAnchorCount: document.querySelectorAll('.hero-search-anchor').length,
+    searchParentId: document.getElementById('hero-slot')?.parentElement?.id || '',
+    changelogVisible: document.getElementById('changelog-modal')?.getAttribute('aria-hidden') === 'false'
+  }));
+  assert(changelogOverlayState.searchHidden && !changelogOverlayState.searchMode && changelogOverlayState.searchAnchorCount === 0 && changelogOverlayState.searchParentId === 'live-head' && changelogOverlayState.changelogVisible, `hero command bar exact intents: nested overlay sequencing stranded the Index Chamber ${JSON.stringify(changelogOverlayState)}`);
   assert(await intentPage.locator('#changelog-body').getByText('Command search now opens into the complete canonical destination map', { exact: false }).count(), 'hero command bar exact intents: latest search changelog entry missing');
   await intentPage.locator('.changelog-modal-close').click();
   await intentPage.locator('#changelog-modal[aria-hidden="true"]').waitFor({ state: 'hidden', timeout: 5000 });
+  const changelogCloseState = await intentPage.evaluate(() => ({
+    bodyOverflow: getComputedStyle(document.body).overflow,
+    htmlOverflow: getComputedStyle(document.documentElement).overflow,
+    mainInert: document.querySelector('main')?.hasAttribute('inert') || false
+  }));
+  assert(changelogCloseState.bodyOverflow !== 'hidden' && changelogCloseState.htmlOverflow !== 'hidden' && !changelogCloseState.mainInert, `hero command bar exact intents: closing a child overlay left stale search isolation ${JSON.stringify(changelogCloseState)}`);
 
   await seedIntent('/stake', 'Staking Chamber');
   await intentPage.locator('#hero-search-input').press('Enter');
@@ -7576,6 +7773,12 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   assert(mobileExplainerState.position === 'relative', `hero command bar mobile: stat explainer must reserve header flow ${JSON.stringify(mobileExplainerState)}`);
   assert(mobileExplainerState.popoverBottom <= mobileExplainerState.tickerTop + 1 && mobileExplainerState.popoverBottom <= mobileExplainerState.formTop + 1, `hero command bar mobile: stat explainer overlaps Live Head or search ${JSON.stringify(mobileExplainerState)}`);
 
+  await mobilePage.evaluate(() => {
+    window.__mobileHeroRoot = document.getElementById('hero-slot');
+    window.__mobileHeroParent = document.getElementById('hero-slot')?.parentElement;
+    window.__mobileHeroOpener = document.activeElement;
+    window.__mobileHeroScroll = { x: window.scrollX, y: window.scrollY };
+  });
   await mobilePage.locator('#hero-search-input').focus();
   await mobilePage.waitForFunction(() => document.activeElement?.id === 'hero-search-input', null, { timeout: 5000 });
   await mobilePage.waitForFunction(() => !document.getElementById('top-continuity-explain')?.classList.contains('is-visible'), null, { timeout: 5000 });
@@ -7583,8 +7786,19 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     const input = document.getElementById('hero-search-input');
     const inputRect = input?.getBoundingClientRect();
     const card = document.getElementById('live-head');
-    const cardRect = card?.getBoundingClientRect();
+    const overlay = document.getElementById('hero-search-overlay');
+    const chamber = overlay?.querySelector('[data-hero-search-chamber]');
+    const overlayRect = overlay?.getBoundingClientRect();
     const main = document.querySelector('main.main-content');
+    const viewport = window.visualViewport;
+    const viewportRect = {
+      top: viewport?.offsetTop || 0,
+      left: viewport?.offsetLeft || 0,
+      width: viewport?.width || innerWidth,
+      height: viewport?.height || innerHeight
+    };
+    const starterRects = Array.from(document.querySelectorAll('#hero-search-panel .hero-search-group.is-starter .hero-search-result'), (row) => row.getBoundingClientRect());
+    const starterRowTops = [...new Set(starterRects.map((rect) => Math.round(rect.top)))];
     return {
       beforeScale: before.scale,
       beforeScrollWidth: before.scrollWidth,
@@ -7594,12 +7808,13 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       scrollWidth: document.documentElement.scrollWidth,
       viewportWidth: window.innerWidth,
       viewportHeight: window.innerHeight,
-      viewportBottom: window.visualViewport
-        ? window.visualViewport.offsetTop + window.visualViewport.height
-        : window.innerHeight,
+      viewportRect,
       bodyPosition: getComputedStyle(document.body).position,
-      card: cardRect ? { top: cardRect.top, bottom: cardRect.bottom, left: cardRect.left, right: cardRect.right, height: cardRect.height } : null,
-      rows: Array.from(document.querySelectorAll('#live-head-stack .live-head-row')).filter((row) => getComputedStyle(row).display !== 'none').length,
+      overlayPosition: getComputedStyle(overlay).position,
+      overlay: overlayRect ? { top: overlayRect.top, left: overlayRect.left, right: overlayRect.right, bottom: overlayRect.bottom, width: overlayRect.width, height: overlayRect.height } : null,
+      rootSameNode: document.getElementById('hero-slot') === window.__mobileHeroRoot,
+      rootInChamber: document.getElementById('hero-slot')?.parentElement === chamber,
+      anchorInCard: Boolean(card?.querySelector('.hero-search-anchor')),
       mainOpacity: getComputedStyle(main).opacity,
       mainFilter: getComputedStyle(main).filter,
       mainTransform: getComputedStyle(main).transform,
@@ -7615,24 +7830,77 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       })(),
       panel: (() => {
         const rect = document.getElementById('hero-search-panel')?.getBoundingClientRect();
-        return rect ? { top: rect.top, bottom: rect.bottom } : null;
+        return rect ? { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right } : null;
       })(),
+      panelPosition: getComputedStyle(document.getElementById('hero-search-panel')).position,
+      panelBackdrop: getComputedStyle(document.getElementById('hero-search-panel')).backdropFilter || getComputedStyle(document.getElementById('hero-search-panel')).webkitBackdropFilter || '',
+      starterCount: starterRects.length,
+      starterRows: starterRowTops.length,
+      starterVisible: starterRects.every((rect) => {
+        const panelRect = document.getElementById('hero-search-panel')?.getBoundingClientRect();
+        return panelRect && rect.top >= panelRect.top - 1 && rect.bottom <= panelRect.bottom + 1;
+      }),
+      optionButtons: document.querySelectorAll('#hero-search-panel button[role="option"]').length,
       closeVisible: getComputedStyle(document.getElementById('hero-search-close')).display !== 'none',
       closeHeight: document.getElementById('hero-search-close')?.getBoundingClientRect().height || 0,
-      submitHeight: document.querySelector('.hero-search-submit')?.getBoundingClientRect().height || 0
+      submitHeight: document.querySelector('.hero-search-submit')?.getBoundingClientRect().height || 0,
+      bodyOverflow: getComputedStyle(document.body).overflow,
+      htmlOverflow: getComputedStyle(document.documentElement).overflow,
+      scroll: { x: window.scrollX, y: window.scrollY }
     };
   }, mobileBeforeFocus);
   assert(mobileFocusState.fontSize >= 16, `hero command bar mobile focus: input font must stay at least 16px, saw ${JSON.stringify(mobileFocusState)}`);
   assert(Math.abs(mobileFocusState.scale - mobileFocusState.beforeScale) < 0.01, `hero command bar mobile focus: focus changed viewport scale ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.scrollWidth <= mobileFocusState.beforeScrollWidth + 1, `hero command bar mobile focus: focus widened the page ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.inputRight <= mobileFocusState.viewportWidth + 1, `hero command bar mobile focus: input overflows viewport ${JSON.stringify(mobileFocusState)}`);
-  assert(mobileFocusState.bodyPosition !== 'fixed' && mobileFocusState.card?.left >= 0 && mobileFocusState.card?.right <= mobileFocusState.viewportWidth + 1 && mobileFocusState.card?.height <= 360 && mobileFocusState.rows === 3, `hero command bar mobile focus: Live Head became a command sheet or lost its mobile stack ${JSON.stringify(mobileFocusState)}`);
-  assert(mobileFocusState.mainOpacity === '1' && mobileFocusState.mainFilter === 'none' && mobileFocusState.mainTransform === 'none' && !mobileFocusState.mainInert, `hero command bar mobile focus: landing page was dimmed, transformed, or disabled ${JSON.stringify(mobileFocusState)}`);
+  assert(
+    mobileFocusState.bodyPosition !== 'fixed'
+      && mobileFocusState.overlayPosition === 'fixed'
+      && Math.abs(mobileFocusState.overlay.top - mobileFocusState.viewportRect.top) <= 2
+      && Math.abs(mobileFocusState.overlay.left - mobileFocusState.viewportRect.left) <= 2
+      && Math.abs(mobileFocusState.overlay.width - mobileFocusState.viewportRect.width) <= 2
+      && Math.abs(mobileFocusState.overlay.height - mobileFocusState.viewportRect.height) <= 2
+      && mobileFocusState.rootSameNode
+      && mobileFocusState.rootInChamber
+      && mobileFocusState.anchorInCard,
+    `hero command bar mobile focus: Index Chamber did not take the exact visual viewport ${JSON.stringify(mobileFocusState)}`
+  );
+  assert(mobileFocusState.mainOpacity === '1' && mobileFocusState.mainFilter === 'none' && mobileFocusState.mainTransform === 'none' && mobileFocusState.mainInert, `hero command bar mobile focus: background isolation dimmed or failed ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.chips?.display === 'none' && mobileFocusState.chips.height === 0, `hero command bar mobile focus: non-HEN shortcut rail should stay hidden ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.closeHeight >= 44 && mobileFocusState.submitHeight >= 44, `hero command bar mobile focus: controls do not meet 44px touch targets ${JSON.stringify(mobileFocusState)}`);
-  assert(mobileFocusState.form?.bottom <= mobileFocusState.panel?.top + 1, `hero command bar mobile focus: results do not open below the stable well ${JSON.stringify(mobileFocusState)}`);
-  assert(mobileFocusState.viewportBottom - mobileFocusState.panel?.bottom >= 8 && mobileFocusState.viewportBottom - mobileFocusState.panel?.bottom <= 16, `hero command bar mobile focus: results do not end at the visual viewport gutter ${JSON.stringify(mobileFocusState)}`);
+  assert(mobileFocusState.form?.bottom <= mobileFocusState.panel?.top + 1 && mobileFocusState.panelPosition === 'relative', `hero command bar mobile focus: results do not fill the Chamber below its search control ${JSON.stringify(mobileFocusState)}`);
+  assert(mobileFocusState.overlay.bottom - mobileFocusState.panel?.bottom >= 8 && mobileFocusState.overlay.bottom - mobileFocusState.panel?.bottom <= 10, `hero command bar mobile focus: results do not end at the visual viewport gutter ${JSON.stringify(mobileFocusState)}`);
+  assert(mobileFocusState.starterCount === 6 && mobileFocusState.starterRows === 3 && mobileFocusState.starterVisible, `hero command bar mobile focus: six starter actions are not immediately visible in a two-by-three grid ${JSON.stringify(mobileFocusState)}`);
+  assert(['none', ''].includes(mobileFocusState.panelBackdrop) && mobileFocusState.optionButtons === 0 && mobileFocusState.bodyOverflow === 'hidden' && mobileFocusState.htmlOverflow === 'hidden', `hero command bar mobile focus: fast opaque active-descendant contract failed ${JSON.stringify(mobileFocusState)}`);
+  assert(Math.abs(mobileFocusState.scroll.x - await mobilePage.evaluate(() => window.__mobileHeroScroll.x)) <= 1 && Math.abs(mobileFocusState.scroll.y - await mobilePage.evaluate(() => window.__mobileHeroScroll.y)) <= 1, `hero command bar mobile focus: opening moved the reader ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.closeVisible, `hero command bar mobile focus: explicit close button is not visible ${JSON.stringify(mobileFocusState)}`);
+
+  await mobilePage.setViewportSize({ width: 320, height: 844 });
+  await mobilePage.waitForFunction(() => {
+    const rect = document.getElementById('hero-search-overlay')?.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    return rect && Math.abs(rect.width - (viewport?.width || innerWidth)) <= 2;
+  }, null, { timeout: 5000 });
+  const narrowStarterState = await mobilePage.evaluate(() => {
+    const panel = document.getElementById('hero-search-panel');
+    const group = panel?.querySelector('.hero-search-group.is-starter');
+    const rows = Array.from(group?.querySelectorAll('.hero-search-result') || []);
+    const rects = rows.map((row) => row.getBoundingClientRect());
+    return {
+      count: rows.length,
+      columns: getComputedStyle(group).gridTemplateColumns.split(/\s+/).filter(Boolean).length,
+      rowCount: [...new Set(rects.map((rect) => Math.round(rect.top)))].length,
+      overflow: document.documentElement.scrollWidth - innerWidth,
+      panelOverflow: panel ? panel.scrollWidth - panel.clientWidth : 999
+    };
+  });
+  assert(narrowStarterState.count === 6 && narrowStarterState.columns === 2 && narrowStarterState.rowCount === 3 && narrowStarterState.overflow <= 1 && narrowStarterState.panelOverflow <= 1, `hero command bar 320px: starter grid or horizontal fit failed ${JSON.stringify(narrowStarterState)}`);
+  await mobilePage.setViewportSize({ width: 390, height: 844 });
+  await mobilePage.waitForFunction(() => {
+    const rect = document.getElementById('hero-search-overlay')?.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    return rect && Math.abs(rect.width - (viewport?.width || innerWidth)) <= 2;
+  }, null, { timeout: 5000 });
 
   await mobilePage.locator('#hero-search-input').fill('nakamoto coefficient');
   await mobilePage.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-result strong')?.textContent?.trim() === 'Network Health', null, { timeout: 5000 });
@@ -7649,14 +7917,39 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   assert(mobileQueryState.badgeDisplay === 'flex', `hero command bar mobile query: result provenance badge is missing ${JSON.stringify(mobileQueryState)}`);
 
   await mobilePage.setViewportSize({ width: 390, height: 667 });
+  await mobilePage.waitForFunction(() => {
+    const rect = document.getElementById('hero-search-overlay')?.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    return rect && Math.abs(rect.height - (viewport?.height || innerHeight)) <= 2;
+  }, null, { timeout: 5000 });
   const shortViewportState = await mobilePage.evaluate(() => {
-    const deck = document.querySelector('#live-head')?.getBoundingClientRect();
+    const overlay = document.getElementById('hero-search-overlay')?.getBoundingClientRect();
+    const form = document.getElementById('hero-search-form')?.getBoundingClientRect();
     const panel = document.getElementById('hero-search-panel')?.getBoundingClientRect();
-    return { height: window.innerHeight, deckBottom: deck?.bottom || 0, panelBottom: panel?.bottom || 0 };
+    const viewport = window.visualViewport;
+    return {
+      height: window.innerHeight,
+      viewportTop: viewport?.offsetTop || 0,
+      viewportHeight: viewport?.height || innerHeight,
+      overlay: overlay ? { top: overlay.top, bottom: overlay.bottom, height: overlay.height } : null,
+      formBottom: form?.bottom || 0,
+      panelTop: panel?.top || 0,
+      panelBottom: panel?.bottom || 0,
+      panelHeight: panel?.height || 0
+    };
   });
-  assert(shortViewportState.deckBottom > 0 && shortViewportState.panelBottom > shortViewportState.deckBottom, `hero command bar mobile keyboard viewport: attached results did not continue below Live Head ${JSON.stringify(shortViewportState)}`);
+  assert(
+    Math.abs(shortViewportState.overlay.top - shortViewportState.viewportTop) <= 2
+      && Math.abs(shortViewportState.overlay.height - shortViewportState.viewportHeight) <= 2
+      && shortViewportState.panelTop >= shortViewportState.formBottom
+      && shortViewportState.overlay.bottom - shortViewportState.panelBottom >= 8
+      && shortViewportState.overlay.bottom - shortViewportState.panelBottom <= 10
+      && shortViewportState.panelHeight > 200,
+    `hero command bar mobile keyboard viewport: Index Chamber did not follow the shortened visual viewport ${JSON.stringify(shortViewportState)}`
+  );
 
   await mobilePage.locator('#hero-search-input').fill('');
+  await mobilePage.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length === 6, null, { timeout: 5000 });
   for (let index = 0; index < 20; index += 1) await mobilePage.locator('#hero-search-input').press('ArrowDown');
   const mobileArrowState = await mobilePage.evaluate(() => {
     const activeId = document.getElementById('hero-search-input')?.getAttribute('aria-activedescendant');
@@ -7680,20 +7973,58 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
 
   await mobilePage.locator('#hero-search-close').click();
   await mobilePage.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.getElementById('hero-search-panel')?.hidden, null, { timeout: 5000 });
+  await mobilePage.waitForFunction(() => document.activeElement === window.__mobileHeroOpener, null, { timeout: 5000 });
+  const mobileRestorationState = await mobilePage.evaluate(() => ({
+    sameRoot: document.getElementById('hero-slot') === window.__mobileHeroRoot,
+    originalParent: document.getElementById('hero-slot')?.parentElement === window.__mobileHeroParent,
+    parentId: document.getElementById('hero-slot')?.parentElement?.id || '',
+    anchors: document.querySelectorAll('.hero-search-anchor').length,
+    overlayHidden: document.getElementById('hero-search-overlay')?.hidden ?? false,
+    mainInert: document.querySelector('main')?.hasAttribute('inert') || false,
+    bodyOverflow: getComputedStyle(document.body).overflow,
+    htmlOverflow: getComputedStyle(document.documentElement).overflow,
+    openerRestored: document.activeElement === window.__mobileHeroOpener,
+    scroll: { x: window.scrollX, y: window.scrollY },
+    originalScroll: window.__mobileHeroScroll
+  }));
+  assert(
+    mobileRestorationState.sameRoot
+      && mobileRestorationState.originalParent
+      && mobileRestorationState.parentId === 'live-head'
+      && mobileRestorationState.anchors === 0
+      && mobileRestorationState.overlayHidden
+      && !mobileRestorationState.mainInert
+      && mobileRestorationState.bodyOverflow !== 'hidden'
+      && mobileRestorationState.htmlOverflow !== 'hidden'
+      && mobileRestorationState.openerRestored
+      && Math.abs(mobileRestorationState.scroll.x - mobileRestorationState.originalScroll.x) <= 1
+      && Math.abs(mobileRestorationState.scroll.y - mobileRestorationState.originalScroll.y) <= 1,
+    `hero command bar mobile close: exact root, opener, scroll, or isolation was not restored ${JSON.stringify(mobileRestorationState)}`
+  );
 
   await mobilePage.setViewportSize({ width: 700, height: 900 });
   await mobilePage.locator('#hero-search-input').focus();
+  await mobilePage.waitForFunction(() => {
+    const rect = document.getElementById('hero-search-overlay')?.getBoundingClientRect();
+    const viewport = window.visualViewport;
+    return rect && Math.abs(rect.width - (viewport?.width || innerWidth)) <= 2;
+  }, null, { timeout: 5000 });
   const tabletRailState = await mobilePage.evaluate(() => {
     const chips = document.getElementById('hero-search-chips');
     const rect = chips?.getBoundingClientRect();
+    const overlay = document.getElementById('hero-search-overlay')?.getBoundingClientRect();
+    const viewport = window.visualViewport;
     return {
-      cardPosition: getComputedStyle(document.querySelector('#live-head')).position,
+      overlayPosition: getComputedStyle(document.getElementById('hero-search-overlay')).position,
+      overlayWidth: overlay?.width || 0,
+      viewportWidth: viewport?.width || innerWidth,
       display: getComputedStyle(chips).display,
       height: rect?.height || 0,
-      cardHeight: document.querySelector('#live-head')?.getBoundingClientRect().height || 0
+      rootInChamber: Boolean(document.getElementById('hero-slot')?.closest('[data-hero-search-chamber]')),
+      overflow: document.documentElement.scrollWidth - innerWidth
     };
   });
-  assert(tabletRailState.cardPosition !== 'fixed' && tabletRailState.display === 'none' && tabletRailState.height === 0 && tabletRailState.cardHeight <= 360, `hero command bar tablet: search became a sheet or exposed the retired shortcut rail ${JSON.stringify(tabletRailState)}`);
+  assert(tabletRailState.overlayPosition === 'fixed' && Math.abs(tabletRailState.overlayWidth - tabletRailState.viewportWidth) <= 2 && tabletRailState.display === 'none' && tabletRailState.height === 0 && tabletRailState.rootInChamber && tabletRailState.overflow <= 1, `hero command bar tablet: full-screen Index Chamber or hidden shortcut rail drifted ${JSON.stringify(tabletRailState)}`);
   await mobilePage.locator('#hero-search-close').click();
   await mobileContext.close();
   }
@@ -8111,6 +8442,7 @@ async function smokeRouteSearchState(browser, baseUrl) {
   await page.waitForFunction(() => document.querySelector('#hero-slot')?.dataset.heroSearchWired === '1', null, { timeout: 150000 });
 
   const input = page.locator('#hero-search-input');
+  await input.click();
   await input.fill('frobnicate');
   await page.waitForFunction(() => {
     const panel = document.getElementById('hero-search-panel');
@@ -35187,8 +35519,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'release-update', description: 'Persistent desktop/mobile release dock, Later pill, activation fallback, and cross-tab service-worker lifecycle', run: () => smokeReleaseUpdateDock(browser, baseUrl) },
     { name: 'hero-landscape', description: 'Hero continuity signals form one uptime/activity row above one uninterrupted four-pill row at intermediate widths', run: () => smokeHeroIntermediate(browser, baseUrl) },
     { name: 'hero-command-bar-first-paint', description: 'The no-JavaScript Live Head command shell paints with stable geometry and truthful loading state', run: () => smokeHeroCommandBar(browser, baseUrl, 'first-paint') },
-    { name: 'hero-command-bar-desktop', description: 'Desktop Live Head search stays inside the card, keeps the dashboard interactive, and routes retrieval without a takeover', run: () => smokeHeroCommandBar(browser, baseUrl, 'desktop') },
-    { name: 'hero-command-bar-mobile', description: 'Mobile Live Head search preserves keyboard, viewport, focus, fallback glyph, and result geometry', run: () => smokeHeroCommandBar(browser, baseUrl, 'mobile') },
+    { name: 'hero-command-bar-desktop', description: 'Desktop Index Chamber launches synchronously, fills the visual viewport, isolates accessibly, and restores exact reader state', run: () => smokeHeroCommandBar(browser, baseUrl, 'desktop') },
+    { name: 'hero-command-bar-mobile', description: 'Mobile Index Chamber preserves visual viewport, keyboard, focus, scroll, fallback glyph, starter grid, and result geometry', run: () => smokeHeroCommandBar(browser, baseUrl, 'mobile') },
     { name: 'handoff-question-field', description: 'The Handoff keeps seven anchor and six satellite questions readable and non-overlapping across every theme and phone/compact/desktop geometry', run: () => smokeHandoffQuestionField(browser, baseUrl) },
     { name: 'route-search-state', description: 'Alias transitions, bare routes, search relevance, Escape focus, query preservation, and Back/Forward state stay coherent', run: () => smokeRouteSearchState(browser, baseUrl) },
     { name: 'breakpoint-accessibility', description: 'Exact paired breakpoints, 200% reflow, forced colors, and reduced motion preserve shell/search/Chamber focus, containment, and horizontal fit', run: () => smokeBreakpointAccessibility(browser, baseUrl) },

@@ -495,10 +495,19 @@ Stamping gotchas:
   dissolves. Do not stack the old translate-drop or mechanical level tick onto
   that motion. Keep block rows free of horizontal separator lines and
   use generous vertical spacing instead; suppress the
-  inherited `lb-panel` top cap. Search is the card's full-bleed bottom edge, not
-  an inset child box, aligns its input and visible usage help with the block level
-  and baker column, keeps broad search examples visible, houses Quick tour on its
-  right edge, and grows only to the viewport bottom. Keep the complete
+  inherited `lb-panel` top cap. At rest, Search is the card's full-bleed bottom
+  edge, not an inset child box, aligns its input and visible usage help with the
+  block level and baker column, keeps broad search examples visible, and houses
+  Quick tour on its right edge. On focus, move that exact search node into the
+  precreated full-visual-viewport Index Chamber: show all six starter actions
+  synchronously without waiting for data, keep the field at the screen top and
+  results in the remaining space, use opaque theme-aware surfaces without
+  backdrop blur, and hide idle-only tour/HEN chips. Use the shared overlay stack
+  for inert background, focus containment, Escape, and scroll locking; close
+  before launching a nested overlay or route, then restore the exact opener,
+  page scroll, and search node at the Live Head floor. Keep two starter columns
+  through 320px and follow `visualViewport` while a mobile keyboard is present.
+  Keep the complete
   hover/focus block inspector
   truthful: every displayed metric, category, and missed baker links to its TzKT
   receipt, relevant baker identities also link into My Tezos, and the inspector

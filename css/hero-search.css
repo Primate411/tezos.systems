@@ -7214,3 +7214,360 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
         width: 100%;
     }
 }
+
+/* The Index Chamber — an instant, full-visual-viewport search room. */
+.hero-search-anchor {
+    display: block;
+    box-sizing: border-box;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.hero-search-overlay[hidden] {
+    display: none !important;
+}
+
+.hero-search-overlay.live-head-panel {
+    position: fixed !important;
+    top: var(--hero-search-vv-top, 0) !important;
+    left: var(--hero-search-vv-left, 0) !important;
+    z-index: 12000;
+    display: grid;
+    width: var(--hero-search-vv-width, 100vw) !important;
+    height: var(--hero-search-vv-height, 100dvh) !important;
+    min-height: 0 !important;
+    box-sizing: border-box;
+    place-items: stretch center;
+    margin: 0 !important;
+    padding:
+        max(12px, env(safe-area-inset-top))
+        max(12px, env(safe-area-inset-right))
+        max(12px, env(safe-area-inset-bottom))
+        max(12px, env(safe-area-inset-left));
+    overflow: hidden;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background-color: color-mix(in srgb, var(--bg-primary) 94%, #050814);
+    background-image:
+        radial-gradient(circle at 12% 8%, color-mix(in srgb, var(--accent-cyan) 15%, transparent), transparent 32%),
+        radial-gradient(circle at 88% 92%, color-mix(in srgb, var(--accent-purple) 11%, transparent), transparent 36%),
+        linear-gradient(135deg, color-mix(in srgb, var(--text-primary) 2%, transparent), transparent 42%);
+    box-shadow: none !important;
+    isolation: isolate;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+}
+
+.hero-search-overlay::before,
+.hero-search-overlay::after {
+    position: absolute;
+    z-index: -1;
+    content: '';
+    pointer-events: none;
+}
+
+.hero-search-overlay::before {
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: min(100%, 1280px);
+    border-right: 1px solid color-mix(in srgb, var(--accent-cyan) 8%, transparent);
+    border-left: 1px solid color-mix(in srgb, var(--accent-cyan) 8%, transparent);
+    transform: translateX(-50%);
+}
+
+.hero-search-overlay::after {
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+    left: max(12px, env(safe-area-inset-left));
+    height: 1px;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent-cyan) 42%, transparent), transparent);
+}
+
+.hero-search-overlay .hero-search-chamber {
+    display: grid;
+    width: min(100%, 1240px);
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.hero-search-overlay.live-head-panel .hero-slot {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: clamp(8px, 1.6vh, 14px);
+    width: 100% !important;
+    max-width: none;
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-form,
+[data-theme="hen"] .hero-search-overlay.live-head-panel .hero-search-form,
+body.hen-active .hero-search-overlay.live-head-panel .hero-search-form,
+.hero-search-overlay.live-head-panel .hero-search-form:has(> .tour-nudge),
+[data-theme="hen"] .hero-search-overlay.live-head-panel .hero-search-form:has(> .tour-nudge),
+body.hen-active .hero-search-overlay.live-head-panel .hero-search-form:has(> .tour-nudge) {
+    grid-template-columns: 46px minmax(0, 1fr) 48px 48px !important;
+    gap: 0.42rem;
+    width: 100%;
+    min-height: 68px;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    overflow: hidden;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 30%, var(--glass-border));
+    border-radius: 18px;
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--accent-cyan) 9%, transparent), transparent 36%),
+        color-mix(in srgb, var(--bg-primary) 96%, #07101b);
+    box-shadow:
+        0 12px 36px color-mix(in srgb, #000 22%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--text-primary) 10%, transparent),
+        inset 0 0 32px color-mix(in srgb, var(--accent-cyan) 3%, transparent);
+    transition: none;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-form > .tour-nudge,
+.hero-search-overlay.live-head-panel .hero-search-chips {
+    display: none !important;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-mark,
+[data-theme="hen"] .hero-search-overlay.live-head-panel .hero-search-mark,
+body.hen-active .hero-search-overlay.live-head-panel .hero-search-mark {
+    display: grid !important;
+    width: 40px;
+    height: 40px;
+    font-family: var(--font-data);
+    font-size: 1.05rem;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-copy {
+    gap: 3px;
+    padding-inline: 0.28rem;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-form > .hero-search-copy > .hero-search-input,
+[data-theme="hen"] .hero-search-overlay.live-head-panel .hero-search-input,
+body.hen-active .hero-search-overlay.live-head-panel .hero-search-input {
+    height: 30px;
+    color: var(--text-primary);
+    font-size: clamp(1rem, 2vw, 1.16rem);
+    line-height: 1.2;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-form > .hero-search-copy > .hero-search-help {
+    color: color-mix(in srgb, var(--text-tertiary) 92%, transparent);
+    font-size: 0.64rem;
+}
+
+.hero-search-overlay.live-head-panel :is(.hero-search-submit, .hero-search-close),
+[data-theme="hen"] .hero-search-overlay.live-head-panel :is(.hero-search-submit, .hero-search-close),
+body.hen-active .hero-search-overlay.live-head-panel :is(.hero-search-submit, .hero-search-close) {
+    width: 44px;
+    height: 44px;
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-panel {
+    position: relative !important;
+    inset: auto !important;
+    z-index: 1;
+    align-self: stretch;
+    width: 100%;
+    height: 100% !important;
+    min-height: 0;
+    max-height: none !important;
+    box-sizing: border-box;
+    margin: 0 !important;
+    padding: 0.62rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 24%, var(--glass-border));
+    border-radius: 20px;
+    background:
+        radial-gradient(circle at 84% 12%, color-mix(in srgb, var(--accent-cyan) 9%, transparent), transparent 28%),
+        linear-gradient(145deg, color-mix(in srgb, var(--text-primary) 3%, transparent), transparent 44%),
+        color-mix(in srgb, var(--bg-primary) 97%, #050814);
+    box-shadow:
+        0 22px 70px color-mix(in srgb, #000 34%, transparent),
+        inset 0 1px 0 color-mix(in srgb, var(--text-primary) 9%, transparent),
+        inset 0 0 56px color-mix(in srgb, var(--accent-cyan) 3%, transparent);
+    scrollbar-color: color-mix(in srgb, var(--accent-cyan) 36%, transparent) transparent;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    animation: none !important;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-panel-head {
+    top: -0.62rem;
+    min-height: 84px;
+    margin: -0.62rem -0.62rem 0.72rem;
+    padding: 0.82rem 1rem;
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--accent-cyan) 8%, transparent), transparent 42%),
+        color-mix(in srgb, var(--bg-primary) 98%, #050814);
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-group.is-starter {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.56rem;
+}
+
+.hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-search-result {
+    min-height: 104px;
+    padding: 0.78rem;
+    background:
+        linear-gradient(145deg, color-mix(in srgb, var(--text-primary) 5%, transparent), transparent 58%),
+        color-mix(in srgb, var(--bg-primary) 88%, #07101b);
+}
+
+.hero-search-overlay.live-head-panel .hero-search-result {
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+[data-theme="clean"] .hero-search-overlay.live-head-panel {
+    background-color: #edf3f8;
+}
+
+[data-theme="clean"] .hero-search-overlay.live-head-panel :is(.hero-search-form, .hero-search-panel, .hero-search-panel-head) {
+    box-shadow: 0 16px 44px rgba(15, 23, 42, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+@media (max-width: 719px) {
+    .hero-search-overlay.live-head-panel {
+        padding:
+            max(8px, env(safe-area-inset-top))
+            max(8px, env(safe-area-inset-right))
+            max(8px, env(safe-area-inset-bottom))
+            max(8px, env(safe-area-inset-left));
+    }
+
+    .hero-search-overlay::after {
+        top: max(8px, env(safe-area-inset-top));
+        right: max(8px, env(safe-area-inset-right));
+        left: max(8px, env(safe-area-inset-left));
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-form,
+    [data-theme="hen"] .hero-search-overlay.live-head-panel .hero-search-form,
+    body.hen-active .hero-search-overlay.live-head-panel .hero-search-form,
+    .hero-search-overlay.live-head-panel .hero-search-form:has(> .tour-nudge),
+    [data-theme="hen"] .hero-search-overlay.live-head-panel .hero-search-form:has(> .tour-nudge),
+    body.hen-active .hero-search-overlay.live-head-panel .hero-search-form:has(> .tour-nudge) {
+        grid-template-columns: 34px minmax(0, 1fr) 44px 44px !important;
+        min-height: 62px;
+        padding: 6px;
+        border-radius: 15px;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-mark,
+    [data-theme="hen"] .hero-search-overlay.live-head-panel .hero-search-mark,
+    body.hen-active .hero-search-overlay.live-head-panel .hero-search-mark {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-form > .hero-search-copy > .hero-search-input,
+    [data-theme="hen"] .hero-search-overlay.live-head-panel .hero-search-input,
+    body.hen-active .hero-search-overlay.live-head-panel .hero-search-input {
+        height: 28px;
+        font-size: 16px;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-form > .hero-search-copy > .hero-search-help {
+        font-size: 0.56rem;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-panel {
+        position: relative !important;
+        height: 100% !important;
+        max-height: none !important;
+        margin: 0 !important;
+        padding: 0.45rem;
+        border-radius: 16px;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-panel-head {
+        top: -0.45rem;
+        min-height: 72px;
+        margin: -0.45rem -0.45rem 0.48rem;
+        padding: 0.66rem 0.72rem;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.4rem;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-search-result {
+        min-height: 92px;
+        padding: 0.58rem 0.52rem;
+    }
+}
+
+@media (max-width: 359px) {
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-search-result {
+        grid-template-columns: 28px minmax(0, 1fr) 16px;
+        min-height: 88px;
+        padding-inline: 0.42rem;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-panel-copy > span:last-child {
+        display: block;
+        font-size: 0.54rem;
+    }
+}
+
+@media (max-height: 560px) {
+    .hero-search-overlay.live-head-panel {
+        padding-block: 6px;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-slot {
+        gap: 6px;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-form,
+    [data-theme="hen"] .hero-search-overlay.live-head-panel .hero-search-form,
+    body.hen-active .hero-search-overlay.live-head-panel .hero-search-form {
+        min-height: 56px;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-panel-head {
+        min-height: 60px;
+        padding-block: 0.5rem;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-search-result {
+        min-height: 70px;
+    }
+
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-result-copy span {
+        -webkit-line-clamp: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-search-overlay,
+    .hero-search-overlay * {
+        scroll-behavior: auto !important;
+        animation: none !important;
+        transition: none !important;
+    }
+}

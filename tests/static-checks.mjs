@@ -2737,7 +2737,13 @@ async function checkSelectorContracts() {
     ['Hero search explicit mobile close', 'id="hero-search-close"', index],
     ['Hero search runtime changelog command', "title: '/changelog'", search],
     ['Hero search runtime export command', "title: '/export'", search],
-    ['Hero search remains an anchored bottom-of-window index room', 'height: var(--hero-search-available-height', heroSearchCss],
+    ['Hero search uses the shared overlay accessibility stack', 'activateOverlayDialog(overlay', search],
+    ['Hero search precreates an instant full-screen Index Chamber', "overlay.id = 'hero-search-overlay'", search],
+    ['Hero search moves the same search root into its Chamber', 'chamber.appendChild(root)', search],
+    ['Hero search restores its original DOM position', 'restoreSearchRoot', search],
+    ['Hero search follows the complete visual viewport', '--hero-search-vv-height', heroSearchCss],
+    ['Hero search overlay is a fixed full-screen room', '.hero-search-overlay.live-head-panel', heroSearchCss],
+    ['Hero search keeps two starter columns on the narrowest supported screen', '@media (max-width: 359px)', heroSearchCss],
     ['Hero search hides shortcut chips outside HEN presentation', '.live-head-panel .hero-search-chips', heroSearchCss],
     ['Top continuity mobile explainer reserves flow', '.top-continuity-explain.is-visible', shellExtrasCss],
     ['Hero search .tez scoped Domains route', '#domains=${encodeURIComponent(domain)}', search],
@@ -3923,11 +3929,11 @@ async function checkSelectorContracts() {
       fail(`Live Head first paint must use opaque objects instead of visible status copy: ${bannedLiveHeadCopy}`);
     }
   }
-  if (!heroSearchCss.includes('height: var(--hero-search-available-height')
+  if (!heroSearchCss.includes('height: var(--hero-search-vv-height, 100dvh)')
       || heroSearchCss.includes('max-height: min(40vh, 420px')
       || !search.includes('!event.target.isConnected')
-      || !search.includes("window.addEventListener('scroll', syncAvailableHeight, { passive: true })")) {
-    fail('Live Head search must reach the viewport bottom and preserve detached result-menu clicks');
+      || !search.includes("window.visualViewport?.addEventListener('scroll', syncViewportGeometry)")) {
+    fail('Live Head search must fill the visual viewport and preserve detached result-menu clicks');
   }
   if (index.includes('id="live-head-bakers"')
       || health.includes('function updateLiveHeadBakers')
@@ -4000,6 +4006,15 @@ async function checkSelectorContracts() {
   }
   if (!/@media \(max-width: 768px\)[\s\S]*?\.hero-search-input\s*\{[\s\S]*?font-size:\s*16px;/.test(heroSearchCss)) {
     fail('mobile hero search input must keep 16px text to avoid iOS focus zoom');
+  }
+  if (search.includes('window.scrollBy') || search.includes('--hero-search-available-height')) {
+    fail('hero search must fill the visual viewport without moving the reader or measuring a below-the-fold remainder');
+  }
+  if (/<button[\s\S]{0,320}?role="option"/.test(search) || !/<div[\s\S]{0,320}?role="option"/.test(search)) {
+    fail('hero search options must use the combobox active-descendant pattern without entering the dialog Tab order');
+  }
+  if (!/@media \(max-width: 359px\)[\s\S]*?\.hero-search-overlay\.live-head-panel \.hero-search-group\.is-starter\s*\{[\s\S]*?grid-template-columns:\s*repeat\(2, minmax\(0, 1fr\)\)/.test(heroSearchCss)) {
+    fail('the Index Chamber must keep all six starter actions in a two-column grid at 320px');
   }
   if (index.includes('top-continuity-proof-item') || styles.includes('.top-continuity-proof-item')) {
     fail('top header uptime badge should not retain the old Zero Forks / Zero Outages proof stamps');

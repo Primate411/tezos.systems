@@ -450,9 +450,13 @@ inline modal styles in `js/core/app.js`.
   expanded wallet/domain/baker/contract/operation/block/protocol/Chamber help
   with the block number and baker column, and keeps that guidance on the idle
   surface. The optional Quick tour action sits at the search floor's right edge.
-  Focusing it leaves
-  the blocks, Pulse, header, and landing page in place while its starter/result
-  list extends to the viewport's bottom gutter. The block rows use generous breathing
+  Focusing it launches the same search node into an instant full-visual-viewport
+  Index Chamber. The six starter actions paint synchronously without waiting
+  for a catalog or network read; the opaque room leaves the underlying blocks,
+  Pulse, header, and landing page visually undimmed while the shared overlay
+  stack makes that background inert, traps focus, and locks scroll. Closing
+  restores the exact opener, page position, and search node at the card floor.
+  The block rows use generous breathing
   room, not horizontal separator lines; the card has no decorative top cap; and
   the search well is the card's full-bleed bottom edge rather than an inset box.
   A synchronized Setup and activity-menu control can restrict both Home and
@@ -906,10 +910,12 @@ inline modal styles in `js/core/app.js`.
   Tezos addresses, `.tez` names, protocol names, block levels, block hashes,
   operation hashes, KT1 contracts, and slash commands. Empty focus exposes six
   calm starters; typing replaces them with the ranked canonical destination and
-  runtime-action list. Results stay anchored below the well and use the remaining
-  viewport height without dimming, blurring, scaling, or disabling the landing
-  page; the field never becomes a mobile sheet. HEN terminal chrome is limited
-  to HEN theme/mode. The
+  runtime-action list. Focus moves the same search node into the full-viewport
+  Index Chamber, putting the field at the top and giving results the rest of the
+  screen. Launch is synchronous, opaque, and free of backdrop blur; the shared
+  overlay contract isolates the visually undimmed background, contains keyboard
+  focus, follows the mobile visual viewport, and restores the exact opener and
+  scroll position. HEN terminal chrome is limited to HEN theme/mode. The
   compact `What's hot today` live pulse
   sits above Chambers as a horizontally scrolling strip for non-obvious daily
   signals instead of repeating the header's cycle, baker, staking, or security
@@ -1809,7 +1815,8 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v602`, including hero search, theme
+- Current aligned shell cache stamp: `v603`, including the full-viewport Index
+  Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical
   Minerals lazy CSS loaders.

@@ -35,6 +35,7 @@ import {
 } from '../core/site-map.js';
 import { getAvailableThemes, openThemePicker, setTheme } from '../ui/theme.js';
 import { setHomeBlockVisible } from '../ui/home-layout.js';
+import { activateOverlayDialog, deactivateOverlayDialog } from '../ui/overlay-stack.js';
 
 const HERO_SEARCH_CSS_URL = versionedAsset('/css/hero-search.css');
 
@@ -809,10 +810,9 @@ function resultHtml(result, selectedId) {
     const selected = result.id === selectedId;
     const domId = resultDomId(result);
     return `
-        <button
+        <div
             class="hero-search-result ${selected ? 'is-selected' : ''}"
             id="${domId}"
-            type="button"
             role="option"
             tabindex="-1"
             aria-selected="${selected ? 'true' : 'false'}"
@@ -826,7 +826,7 @@ function resultHtml(result, selectedId) {
             </span>
             <span class="hero-result-badge" data-kind="${escapeHtml(result.badge || result.kind)}">${escapeHtml(result.badge || result.kind)}</span>
             <span class="hero-result-arrow ${isExternal ? 'hero-result-external' : ''}" aria-hidden="true">${isExternal ? '↗' : '→'}</span>
-        </button>
+        </div>
     `;
 }
 
@@ -935,11 +935,28 @@ export function initHeroSearch() {
     if (!root || !form || !input || !panel || !chips || !closeButton) return;
     ensureHeroSearchStyles();
 
+    const originalParent = root.parentElement;
+    const originalNextSibling = root.nextSibling;
+    let overlay = document.getElementById('hero-search-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'hero-search-overlay';
+        overlay.className = 'hero-search-overlay live-head-panel';
+        overlay.hidden = true;
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.innerHTML = '<div class="hero-search-chamber" data-hero-search-chamber></div>';
+        document.body.appendChild(overlay);
+    }
+    const chamber = overlay.querySelector('[data-hero-search-chamber]');
+    if (!(chamber instanceof HTMLElement) || !originalParent) return;
+
     let isOpen = false;
     let isBrowsingAll = false;
     let selectedId = '';
     let results = [];
     let priorFocus = null;
+    let anchor = null;
+    let savedScroll = null;
     let searchRouteWasActive = (() => {
         const routeParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
         return window.location.hash === '#search' || routeParams.has('search');
@@ -976,42 +993,46 @@ export function initHeroSearch() {
 
     renderQuickChips();
 
-    const syncAvailableHeight = () => {
+    const syncViewportGeometry = () => {
         if (!isOpen) return;
-        const top = panel.getBoundingClientRect().top;
         const viewport = window.visualViewport;
-        const viewportBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
-        root.style.setProperty('--hero-search-available-height', `${Math.max(0, viewportBottom - top - 8)}px`);
+        overlay.style.setProperty('--hero-search-vv-top', `${viewport?.offsetTop || 0}px`);
+        overlay.style.setProperty('--hero-search-vv-left', `${viewport?.offsetLeft || 0}px`);
+        overlay.style.setProperty('--hero-search-vv-width', `${viewport?.width || window.innerWidth}px`);
+        overlay.style.setProperty('--hero-search-vv-height', `${viewport?.height || window.innerHeight}px`);
     };
 
-    const ensureSearchRoom = () => {
-        if (!isOpen) return;
-        const viewport = window.visualViewport;
-        const viewportBottom = viewport ? viewport.offsetTop + viewport.height : window.innerHeight;
-        const available = viewportBottom - panel.getBoundingClientRect().top - 8;
-        // Leave room for the index threshold plus one complete result receipt.
-        // The former list-only surface needed much less height; the composed
-        // header must never crowd the selected option below the viewport.
-        const minimum = window.matchMedia('(max-width: 719px)').matches ? 184 : 210;
-        if (available < minimum) {
-            window.scrollBy({ top: minimum - available, behavior: 'instant' });
+    const restoreWindowScroll = () => {
+        if (!savedScroll) return;
+        window.scrollTo(savedScroll.x, savedScroll.y);
+    };
+
+    const createAnchor = () => {
+        const rect = root.getBoundingClientRect();
+        const style = getComputedStyle(root);
+        const placeholder = document.createElement('div');
+        placeholder.className = 'hero-search-anchor';
+        placeholder.setAttribute('aria-hidden', 'true');
+        placeholder.style.width = `${rect.width}px`;
+        placeholder.style.height = `${rect.height}px`;
+        placeholder.style.marginTop = style.marginTop;
+        placeholder.style.marginRight = style.marginRight;
+        placeholder.style.marginBottom = style.marginBottom;
+        placeholder.style.marginLeft = style.marginLeft;
+        originalParent.insertBefore(placeholder, root);
+        return placeholder;
+    };
+
+    const restoreSearchRoot = () => {
+        if (anchor?.isConnected && anchor.parentNode) {
+            anchor.parentNode.insertBefore(root, anchor);
+            anchor.remove();
+        } else if (originalNextSibling?.isConnected && originalNextSibling.parentNode === originalParent) {
+            originalParent.insertBefore(root, originalNextSibling);
+        } else {
+            originalParent.appendChild(root);
         }
-        syncAvailableHeight();
-    };
-
-    const canRestoreFocus = (target) => {
-        if (!(target instanceof HTMLElement)
-            || target === document.body
-            || target === document.documentElement
-            || !target.isConnected
-            || target.closest('[inert], [hidden]')) return false;
-        const rect = target.getBoundingClientRect();
-        return rect.width > 0
-            && rect.height > 0
-            && rect.bottom > 0
-            && rect.top < window.innerHeight
-            && rect.right > 0
-            && rect.left < window.innerWidth;
+        anchor = null;
     };
 
     const blurSearchFocus = () => {
@@ -1025,28 +1046,45 @@ export function initHeroSearch() {
         if (isOpen && !wasOpen && document.activeElement !== input && !root.contains(document.activeElement)) {
             priorFocus = document.activeElement;
         }
+        if (isOpen && !wasOpen) {
+            savedScroll = { x: window.scrollX, y: window.scrollY };
+            anchor = createAnchor();
+            chamber.appendChild(root);
+            overlay.hidden = false;
+            overlay.classList.add('is-open');
+            syncViewportGeometry();
+        }
         root.classList.toggle('is-open', isOpen);
         document.body.classList.toggle('hero-search-mode', isOpen);
         panel.hidden = !isOpen;
         input.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         if (isOpen && !wasOpen) {
-            window.dispatchEvent(new Event('hero-search-opened'));
-            ensureSearchRoom();
-            requestAnimationFrame(() => {
-                ensureSearchRoom();
-                window.setTimeout(ensureSearchRoom, 240);
+            activateOverlayDialog(overlay, {
+                close: () => setOpen(false),
+                dialogSelector: chamber,
+                label: 'The Index — search Tezos Systems',
+                initialFocus: input,
+                opener: priorFocus,
+                restoreFocusTarget: priorFocus,
+                lockScroll: true
             });
+            restoreWindowScroll();
+            window.dispatchEvent(new Event('hero-search-opened'));
         }
-        if (!isOpen) {
+        if (!isOpen && wasOpen) {
             isBrowsingAll = false;
             selectedId = '';
             root.classList.remove('has-query');
             root.classList.remove('is-browsing-all');
             input.setAttribute('aria-activedescendant', '');
-            root.style.removeProperty('--hero-search-available-height');
-            if (restoreFocus && canRestoreFocus(priorFocus)) priorFocus.focus({ preventScroll: true });
-            else if (restoreFocus) blurSearchFocus();
+            blurSearchFocus();
+            deactivateOverlayDialog(overlay, { restoreFocus });
+            restoreSearchRoot();
+            overlay.classList.remove('is-open');
+            overlay.hidden = true;
+            restoreWindowScroll();
             priorFocus = null;
+            savedScroll = null;
         }
     };
 
@@ -1221,7 +1259,6 @@ export function initHeroSearch() {
         }).join('');
         quietlySyncHtml(panel, `${header}<div class="hero-search-panel-body" data-quiet-key="search-panel-body">${groupMarkup}</div>`);
         syncActiveDescendant();
-        syncAvailableHeight();
         const selectedOption = selectedId
             ? panel.querySelector(`[data-result-id="${CSS.escape(selectedId)}"]`)
             : null;
@@ -1253,8 +1290,11 @@ export function initHeroSearch() {
     const applyQuery = (value) => {
         isBrowsingAll = false;
         input.value = value || '';
-        input.focus();
+        if (!isOpen && document.activeElement !== input && !root.contains(document.activeElement)) {
+            priorFocus = document.activeElement;
+        }
         setOpen(true);
+        input.focus({ preventScroll: true });
         ensureProtocols();
         selectedId = '';
         render();
@@ -1288,6 +1328,8 @@ export function initHeroSearch() {
             }).catch(usePasteHint);
             return false;
         }
+        if (result.action === 'button' && !document.getElementById(result.value)) return false;
+        setOpen(false, { restoreFocus: false });
         return runResult(result);
     };
 
@@ -1297,12 +1339,11 @@ export function initHeroSearch() {
         render();
         if (!normalizeQuery(input.value) && !isBrowsingAll) return;
         const result = results.find((candidate) => candidate.id === selectedId && candidate.selectable !== false);
-        if (executeResult(result)) setOpen(false, { restoreFocus: false });
+        executeResult(result);
     });
 
     closeButton.addEventListener('click', () => {
         setOpen(false);
-        input.blur();
     });
 
     form.addEventListener('click', (event) => {
@@ -1320,7 +1361,10 @@ export function initHeroSearch() {
         if (!isOpen && !root.contains(document.activeElement)) priorFocus = document.activeElement;
     });
 
-    input.addEventListener('focus', () => {
+    input.addEventListener('focus', (event) => {
+        if (!isOpen && event.relatedTarget instanceof HTMLElement && !root.contains(event.relatedTarget)) {
+            priorFocus = event.relatedTarget;
+        }
         setOpen(true);
         ensureProtocols();
         render();
@@ -1340,7 +1384,7 @@ export function initHeroSearch() {
             render();
             if (!normalizeQuery(input.value) && !isBrowsingAll) return;
             const result = results.find((candidate) => candidate.id === selectedId && candidate.selectable !== false);
-            if (executeResult(result)) setOpen(false, { restoreFocus: false });
+            executeResult(result);
             return;
         }
         if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return;
@@ -1351,7 +1395,6 @@ export function initHeroSearch() {
         }
         const selectableResults = results.filter((result) => result.selectable !== false);
         if (!selectableResults.length) return;
-        ensureSearchRoom();
         const dir = event.key === 'ArrowDown' ? 1 : -1;
         const currentIndex = selectableResults.findIndex((result) => result.id === selectedId);
         const nextIndex = currentIndex < 0
@@ -1379,7 +1422,7 @@ export function initHeroSearch() {
         const option = event.target.closest('[data-result-id]');
         if (!option) return;
         const result = results.find((candidate) => candidate.id === option.dataset.resultId);
-        if (executeResult(result)) setOpen(false, { restoreFocus: false });
+        executeResult(result);
     });
 
     chips.addEventListener('click', (event) => {
@@ -1397,9 +1440,11 @@ export function initHeroSearch() {
         const routeChip = event.target.closest('[data-hero-route]');
         if (routeChip) {
             const buttonTarget = SITE_MAP_BUTTON_TARGETS.get(routeChip.dataset.heroEntry || '');
-            if (buttonTarget) document.getElementById(buttonTarget)?.click();
+            const target = buttonTarget ? document.getElementById(buttonTarget) : null;
+            if (buttonTarget && !target) return;
+            setOpen(false, { restoreFocus: false });
+            if (target) target.click();
             else runRoute(routeChip.dataset.heroRoute || '', routeChip.dataset.heroEntry || '');
-            setOpen(false);
             return;
         }
         const chip = event.target.closest('[data-hero-query]');
@@ -1429,10 +1474,9 @@ export function initHeroSearch() {
         input.select();
     });
 
-    window.addEventListener('resize', ensureSearchRoom);
-    window.addEventListener('scroll', syncAvailableHeight, { passive: true });
-    window.visualViewport?.addEventListener('resize', ensureSearchRoom);
-    window.visualViewport?.addEventListener('scroll', syncAvailableHeight);
+    window.addEventListener('resize', syncViewportGeometry);
+    window.visualViewport?.addEventListener('resize', syncViewportGeometry);
+    window.visualViewport?.addEventListener('scroll', syncViewportGeometry);
     window.addEventListener('hashchange', dismissForRoute);
     window.addEventListener('popstate', dismissForRoute);
     window.addEventListener('tezos:routechange', dismissForRoute);
