@@ -8517,7 +8517,9 @@ async function smokeRouteSearchState(browser, baseUrl) {
   assert(!/Governance Baker Alias|TzKT alias/.test(suffixSuggestionState), `route and search state: nonsense alias suffix survived relevance gating (${suffixSuggestionState})`);
 
   await input.press('Escape');
-  await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.activeElement?.id !== 'hero-search-input');
+  await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.activeElement?.id === 'hero-search-input');
+  await page.locator('#header-protocol-chip').focus();
+  await page.waitForFunction(() => document.activeElement?.id === 'header-protocol-chip');
   const offscreenScroll = await page.evaluate(() => {
     window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
     return Math.round(window.scrollY);
