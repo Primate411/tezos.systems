@@ -3342,7 +3342,7 @@ async function checkSelectorContracts() {
     ['top continuity Chamber action navigation', 'navigateSiteMapEntry(entryId)', app],
     ['top continuity Baker Directory handoff', "chamberEntry: 'leaderboard'", app],
     ['top continuity Network Health handoff', "chamberEntry: 'health'", app],
-    ['top continuity Staking Chamber handoff', "chamberEntry: 'staking'", app],
+    ['top continuity Staking Chamber handoff', "chamberEntry: 'staking-chamber'", app],
     ['top continuity paired action spacing', 'gap: 0.42rem', shellExtrasCss],
     ['top continuity mobile paired action columns', 'grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr)', shellExtrasCss],
     ['top continuity Closed Bakers heading', "renderTopContinuityBakerList('Closed Bakers', 'baking rights lost'", app],
