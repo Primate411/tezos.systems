@@ -2065,6 +2065,12 @@ async function installFeatureMocks(context, options = {}) {
       });
     }
 
+    if (url.includes('tezos-mainnet.octez.io') && url.includes('/context/delegates?active=true')) {
+      const currentSet = [SAMPLE_ADDRESS, SAMPLE_ADDRESS_2, SAMPLE_DELEGATOR_ADDRESS];
+      const baselineSet = [SAMPLE_IDLE_ADDRESS, SAMPLE_REGULAR_DELEGATOR_ADDRESS, SAMPLE_STAKER_ADDRESS];
+      return fulfillJson(route, url.includes('/blocks/head/') ? currentSet : baselineSet);
+    }
+
     if (url.includes('tezos-mainnet.octez.io') && url.includes('/helpers/baking_power_distribution_for_current_cycle')) {
       return route.fulfill({
         status: 200,
@@ -2857,6 +2863,14 @@ async function installFeatureMocks(context, options = {}) {
       }
       if (url.includes('/blocks?')) {
         const params = new URL(url).searchParams;
+        const bakerBaselineTimestamp = params.get('timestamp.le');
+        if (bakerBaselineTimestamp && params.get('select') === 'level,hash,timestamp') {
+          return fulfillJson(route, [{
+            level: 12290000,
+            hash: 'BMsmokeBakerSetBaseline11111111111111111111111111111111',
+            timestamp: bakerBaselineTimestamp
+          }]);
+        }
         const priorBakeAddress = params.get('anyof.proposer.producer');
         if (priorBakeAddress) {
           if (priorBakeAddress !== SAMPLE_ADDRESS_2) return fulfillJson(route, []);
@@ -2961,13 +2975,26 @@ async function installFeatureMocks(context, options = {}) {
           { code: 25, hash: 'PsUshuai9QapM5TGj1JpuVGkdxz5GykdnEvS6Rh8SUVrARvZLCY', firstLevel: 13857889 }
         ]);
       }
-      if (parsedUrl.pathname === '/v1/delegates' && parsedUrl.searchParams.get('sort.desc') === 'activationLevel') {
+      if (parsedUrl.pathname === '/v1/delegates' && parsedUrl.searchParams.get('sort.desc') === 'id' && parsedUrl.searchParams.get('select')?.includes('activationLevel')) {
         const now = Date.now();
         return fulfillJson(route, [
           { address: SAMPLE_ADDRESS, alias: 'QA Baker', active: true, bakingPower: 6000000000000, activationLevel: 12325000, activationTime: new Date(now - 86400000).toISOString(), deactivationLevel: null, deactivationTime: null },
           { address: SAMPLE_ADDRESS_2, alias: 'Second Baker', active: true, bakingPower: 600000000000, activationLevel: 12295000, activationTime: new Date(now - 3 * 86400000).toISOString(), deactivationLevel: null, deactivationTime: null },
           { address: SAMPLE_DELEGATOR_ADDRESS, alias: null, active: true, bakingPower: 50000000000, activationLevel: 12050000, activationTime: new Date(now - 21 * 86400000).toISOString(), deactivationLevel: null, deactivationTime: null }
         ]);
+      }
+      if (parsedUrl.pathname.startsWith('/v1/delegates/')) {
+        const address = decodeURIComponent(parsedUrl.pathname.slice('/v1/delegates/'.length));
+        const now = Date.now();
+        const rows = new Map([
+          [SAMPLE_ADDRESS, { address: SAMPLE_ADDRESS, alias: 'QA Baker', active: true, bakingPower: 6000000000000, activationLevel: 12325000, activationTime: new Date(now - 86400000).toISOString(), deactivationLevel: null, deactivationTime: null }],
+          [SAMPLE_ADDRESS_2, { address: SAMPLE_ADDRESS_2, alias: 'Second Baker', active: true, bakingPower: 600000000000, activationLevel: 12295000, activationTime: new Date(now - 3 * 86400000).toISOString(), deactivationLevel: null, deactivationTime: null }],
+          [SAMPLE_DELEGATOR_ADDRESS, { address: SAMPLE_DELEGATOR_ADDRESS, alias: null, active: true, bakingPower: 50000000000, activationLevel: 12050000, activationTime: new Date(now - 21 * 86400000).toISOString(), deactivationLevel: null, deactivationTime: null }],
+          [SAMPLE_IDLE_ADDRESS, { address: SAMPLE_IDLE_ADDRESS, alias: 'Retired Baker', active: false, bakingPower: 0, activationLevel: 11900000, activationTime: new Date(now - 90 * 86400000).toISOString(), deactivationLevel: 12310000, deactivationTime: new Date(now - 2 * 86400000).toISOString() }],
+          [SAMPLE_REGULAR_DELEGATOR_ADDRESS, { address: SAMPLE_REGULAR_DELEGATOR_ADDRESS, alias: 'Former Baker', active: false, bakingPower: 0, activationLevel: 11600000, activationTime: new Date(now - 180 * 86400000).toISOString(), deactivationLevel: 12200000, deactivationTime: new Date(now - 8 * 86400000).toISOString() }],
+          [SAMPLE_STAKER_ADDRESS, { address: SAMPLE_STAKER_ADDRESS, alias: null, active: false, bakingPower: 0, activationLevel: 11000000, activationTime: new Date(now - 365 * 86400000).toISOString(), deactivationLevel: 11800000, deactivationTime: new Date(now - 28 * 86400000).toISOString() }]
+        ]);
+        return fulfillJson(route, rows.get(address) || null);
       }
       if (parsedUrl.pathname === '/v1/delegates' && parsedUrl.searchParams.get('sort.desc') === 'deactivationLevel') {
         const now = Date.now();
@@ -29359,7 +29386,7 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
       sizes: Array.from(popover?.querySelectorAll('[data-baker-size]') || []).map((badge) => badge.dataset.bakerSize || ''),
       sizeLabels: Array.from(popover?.querySelectorAll('[data-baker-size]') || []).map((badge) => badge.getAttribute('aria-label') || ''),
       entryKinds: Array.from(popover?.querySelectorAll('.top-continuity-baker-row.is-gained') || []).map((row) => row.dataset.bakerEntry || ''),
-      newBadges: Array.from(popover?.querySelectorAll('.top-continuity-baker-new') || []).map((badge) => badge.textContent?.trim() || ''),
+      entryBadges: Array.from(popover?.querySelectorAll('.top-continuity-baker-new') || []).map((badge) => badge.textContent?.trim() || ''),
       horizonLabels: Array.from(popover?.querySelectorAll('.top-continuity-horizon > span') || []).map((label) => label.textContent?.trim() || ''),
       horizonValues: Array.from(popover?.querySelectorAll('.top-continuity-horizon strong') || []).map((value) => value.textContent?.trim() || ''),
       saveActions: popover?.querySelectorAll('[data-baker-set-save-address]').length || 0,
@@ -29380,18 +29407,18 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
   assert(topExplainState.popoverCompact && topExplainState.popoverTintsFromPill, `feature workflows top pill popover geometry mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.listCounts.join(',') === '3,3'
     && topExplainState.ages[0] === '1d'
-    && topExplainState.ages[2] === '3w'
+    && topExplainState.ages[2] === '≤7d'
     && topExplainState.domains.includes('qa-baker.tez')
     && topExplainState.domains.includes('retired-baker.tez')
     && topExplainState.domains.includes('Former Baker')
     && /New \+ Reactivated/i.test(topExplainState.popoverText)
-    && /baking rights gained/i.test(topExplainState.popoverText)
+    && /active set entered/i.test(topExplainState.popoverText)
     && /Closed Bakers/i.test(topExplainState.popoverText)
-    && /baking rights lost/i.test(topExplainState.popoverText), `feature workflows baker right-change lists mismatch: ${JSON.stringify(topExplainState)}`);
+    && /active set left/i.test(topExplainState.popoverText), `feature workflows baker right-change lists mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.sizes.join(',') === 'large,medium,small,small,medium,large'
     && topExplainState.sizeLabels.every((label) => /baker, .*% of (current network baking power|network baking power one year before closure)/.test(label)), `feature workflows baker size tiers mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.entryKinds.join(',') === 'new,reactivated,new'
-    && topExplainState.newBadges.join(',') === 'NEW,NEW', `feature workflows baker new/reactivated classification mismatch: ${JSON.stringify(topExplainState)}`);
+    && topExplainState.entryBadges.join(',') === 'NEW,REACTIVATED,NEW', `feature workflows baker new/reactivated classification mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.horizonLabels.join(',') === '7D,30D,90D'
     && topExplainState.horizonValues.every((value) => value !== '—' && /^[-+−]?\d[\d,]*$/.test(value)), `feature workflows baker horizon changes mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.saveActions === 6
@@ -29832,7 +29859,7 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
       listCounts: Array.from(popover?.querySelectorAll('.top-continuity-baker-list') || []).map((list) => list.querySelectorAll('.top-continuity-baker-row').length),
       headings: Array.from(popover?.querySelectorAll('.top-continuity-baker-heading strong') || []).map((heading) => heading.textContent?.trim() || ''),
       horizonValues: Array.from(popover?.querySelectorAll('.top-continuity-horizon strong') || []).map((value) => value.textContent?.trim() || ''),
-      newBadges: popover?.querySelectorAll('.top-continuity-baker-new').length || 0,
+      entryBadges: Array.from(popover?.querySelectorAll('.top-continuity-baker-new') || []).map((badge) => badge.textContent?.trim() || ''),
       actionCount: controls.length,
       controls,
       primaryActions,
@@ -29847,12 +29874,12 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
     && mobileBakerSet.pageOverflow <= 1,
   `feature workflows mobile baker set: in-flow panel geometry mismatch ${JSON.stringify(mobileBakerSet)}`);
   assert(mobileBakerSet.listCounts.join(',') === '3,3'
-    && mobileBakerSet.headings.join(',') === 'New + Reactivated,Closed Bakers'
+    && mobileBakerSet.headings.join(',') === '7D New + Reactivated,7D Closed Bakers'
     && mobileBakerSet.horizonValues.length === 3
     && mobileBakerSet.horizonValues.every((value) => value !== '—')
-    && mobileBakerSet.newBadges === 2
-    && /baking rights gained/i.test(mobileBakerSet.text)
-    && /baking rights lost/i.test(mobileBakerSet.text),
+    && mobileBakerSet.entryBadges.join(',') === 'NEW,REACTIVATED,NEW'
+    && /active set entered/i.test(mobileBakerSet.text)
+    && /active set left/i.test(mobileBakerSet.text),
   `feature workflows mobile baker set: lifecycle rows missing ${JSON.stringify(mobileBakerSet)}`);
   assert(mobileBakerSet.actionCount === 12
     && mobileBakerSet.controls.every(({ width, height }) => width >= 43.9 && height >= 43.9),

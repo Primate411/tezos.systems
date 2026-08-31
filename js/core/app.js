@@ -3326,7 +3326,7 @@ const TOP_CONTINUITY_EXPLANATIONS = {
     'total-bakers': {
         kicker: 'Baker set',
         title: 'Permissionless operators are the continuity layer.',
-        body: 'The latest active registrations include first-time and returning bakers. NEW means no earlier baked block was found before the latest activation.',
+        body: 'The 7D roster compares the same protocol active-baker set used by the 7D change. NEW means no earlier baked block was found before the baker entered that set.',
         chamberEntry: 'leaderboard',
         chamberLabel: 'Baker Directory'
     },
@@ -3425,6 +3425,7 @@ function initUptimeClock() {
     const defaultUptimeTitle = topContinuityHistory?.getAttribute('title') || '';
     const defaultUptimeAriaControls = topContinuityHistory?.getAttribute('aria-controls') || '';
     const BAKER_SET_LIST_LIMIT = 3;
+    const BAKER_SET_BASELINE_DAYS = 7;
     const BAKER_SET_REFRESH_MS = 15 * 60 * 1000;
     const TOP_CONTINUITY_TREND_REFRESH_MS = 15 * 60 * 1000;
     const TOP_CONTINUITY_TREND_BASELINE_TOLERANCE_MS = 36 * 60 * 60 * 1000;
@@ -4001,7 +4002,8 @@ function initUptimeClock() {
         return topContinuityTrendRefreshPromise;
     }
 
-    function compactBakerSetAge(value, now = Date.now()) {
+    function compactBakerSetAge(value, now = Date.now(), windowDays = null) {
+        if (Number.isFinite(windowDays) && windowDays > 0) return `≤${Math.round(windowDays)}d`;
         const timestamp = Date.parse(value || '');
         if (!Number.isFinite(timestamp)) return '—';
         const elapsed = Math.max(0, now - timestamp);
@@ -4046,27 +4048,80 @@ function initUptimeClock() {
         }, retries);
     }
 
-    async function fetchTopContinuityBakerRows(active) {
+    function normalizeTopContinuityBaker(row) {
+        if (!isTezosAddress(row?.address)) return null;
+        return {
+            address: String(row.address),
+            alias: String(row.alias || '').replace(/\s+/g, ' ').trim().slice(0, 80),
+            bakingPower: Number(row.bakingPower) || 0,
+            activationLevel: Number(row.activationLevel) || null,
+            activationTime: row.activationTime || null,
+            deactivationLevel: Number(row.deactivationLevel) || null,
+            deactivationTime: row.deactivationTime || null
+        };
+    }
+
+    async function fetchTopContinuityCurrentBakers() {
         const params = new URLSearchParams({
-            active: String(active),
+            active: 'true',
             select: 'address,alias,activationLevel,activationTime,deactivationLevel,deactivationTime,bakingPower',
-            'sort.desc': active ? 'activationLevel' : 'deactivationLevel',
-            limit: String(BAKER_SET_LIST_LIMIT)
+            'sort.desc': 'id',
+            limit: '10000'
         });
-        if (active) params.set('bakingPower.gt', '0');
+        params.set('bakingPower.gt', '0');
         const rows = await fetchTopContinuityTzktJson(`${API_URLS.tzkt}/delegates?${params}`);
         if (!Array.isArray(rows)) throw new Error('TzKT baker set returned an invalid payload');
         return rows
-            .filter((row) => isTezosAddress(row?.address))
-            .filter((row) => !active || Number(row?.bakingPower) > 0)
-            .slice(0, BAKER_SET_LIST_LIMIT)
-            .map((row) => ({
-                address: String(row.address),
-                alias: String(row.alias || '').replace(/\s+/g, ' ').trim().slice(0, 80),
-                bakingPower: Number(row.bakingPower) || 0,
-                eventLevel: Number(active ? row.activationLevel : row.deactivationLevel) || null,
-                eventTime: active ? row.activationTime : row.deactivationTime
-            }));
+            .map(normalizeTopContinuityBaker)
+            .filter(Boolean)
+            .filter((row) => row.bakingPower > 0);
+    }
+
+    async function fetchTopContinuityBaker(address) {
+        const row = await fetchTopContinuityTzktJson(`${API_URLS.tzkt}/delegates/${encodeURIComponent(address)}`);
+        const normalized = normalizeTopContinuityBaker(row);
+        if (!normalized) throw new Error(`TzKT baker ${address} returned an invalid payload`);
+        return normalized;
+    }
+
+    async function fetchTopContinuityProtocolBakerSet(blockId) {
+        const url = `${API_URLS.octezMainnet}/chains/main/blocks/${encodeURIComponent(blockId)}/context/delegates?active=true&with_minimal_stake=true`;
+        const rows = await fetchWithRetry(url, {
+            cache: 'no-store',
+            memoryCache: false,
+            timeoutMs: 15_000,
+            __tezosSystemsPriority: 'interactive'
+        }, 2);
+        if (!Array.isArray(rows)) throw new Error('Octez active baker set returned an invalid payload');
+        return rows.map(String).filter(isTezosAddress);
+    }
+
+    async function fetchTopContinuityBaselineBlock(timestamp) {
+        const params = new URLSearchParams({
+            'timestamp.le': new Date(timestamp).toISOString(),
+            'sort.desc': 'level',
+            select: 'level,hash,timestamp',
+            limit: '1'
+        });
+        const rows = await fetchTopContinuityTzktJson(`${API_URLS.tzkt}/blocks?${params}`);
+        const block = Array.isArray(rows) ? rows[0] : null;
+        if (!Number.isFinite(Number(block?.level)) || !block?.hash) {
+            throw new Error('TzKT 7D baker baseline block is unavailable');
+        }
+        return {
+            level: Number(block.level),
+            hash: String(block.hash),
+            timestamp: block.timestamp || new Date(timestamp).toISOString()
+        };
+    }
+
+    function getTopContinuityBakerBaseline() {
+        const observedAt = statsObservationDate(state.currentStats, state.lastScalarRefreshAt).getTime();
+        return findTopContinuityTrendBaseline(
+            topContinuityTrendSnapshot?.rows || [],
+            'total_bakers',
+            observedAt - BAKER_SET_BASELINE_DAYS * 24 * 60 * 60 * 1000
+        );
     }
 
     async function fetchTopContinuityTotalBakingPower() {
@@ -4119,9 +4174,10 @@ function initUptimeClock() {
                 return { ...row, entryKind: 'unknown' };
             }
             try {
+                const boundaryLevel = Number(row.entryBoundaryLevel || row.eventLevel);
                 const params = new URLSearchParams({
                     'anyof.proposer.producer': row.address,
-                    'level.lt': String(row.eventLevel),
+                    'level.lt': String(boundaryLevel),
                     'sort.desc': 'level',
                     select: 'level,timestamp,proposer,producer',
                     limit: '1'
@@ -4144,11 +4200,51 @@ function initUptimeClock() {
     }
 
     async function fetchTopContinuityBakerSet() {
-        const [latest, closed, totalBakingPower] = await Promise.all([
-            fetchTopContinuityBakerRows(true),
-            fetchTopContinuityBakerRows(false),
+        await refreshTopContinuityTrends();
+        const baseline = getTopContinuityBakerBaseline();
+        if (!baseline) throw new Error('The 7D baker baseline is unavailable');
+        const baselineBlock = await fetchTopContinuityBaselineBlock(baseline.timestamp);
+        const [currentBakers, currentAddresses, baselineAddresses, totalBakingPower] = await Promise.all([
+            fetchTopContinuityCurrentBakers(),
+            fetchTopContinuityProtocolBakerSet('head'),
+            fetchTopContinuityProtocolBakerSet(baselineBlock.hash),
             fetchTopContinuityTotalBakingPower().catch(() => null)
         ]);
+        const currentSet = new Set(currentAddresses);
+        const baselineSet = new Set(baselineAddresses);
+        const currentByAddress = new Map(currentBakers.map((row) => [row.address, row]));
+        const gainedAddresses = currentAddresses
+            .filter((address) => !baselineSet.has(address))
+            .slice(0, BAKER_SET_LIST_LIMIT);
+        const closedAddresses = baselineAddresses
+            .filter((address) => !currentSet.has(address))
+            .slice(0, BAKER_SET_LIST_LIMIT);
+        const gainedMetadata = await Promise.all(gainedAddresses.map(async (address) => (
+            currentByAddress.get(address) || fetchTopContinuityBaker(address)
+        )));
+        const closedMetadata = await Promise.all(closedAddresses.map(fetchTopContinuityBaker));
+        const baselineTime = Date.parse(baselineBlock.timestamp);
+        const latest = gainedMetadata.map((row) => {
+            const activationTime = Date.parse(row.activationTime || '');
+            const exactActivation = Number.isFinite(activationTime) && activationTime > baselineTime;
+            return {
+                ...row,
+                eventLevel: exactActivation ? row.activationLevel : baselineBlock.level,
+                eventTime: exactActivation ? row.activationTime : baselineBlock.timestamp,
+                eventWindowDays: exactActivation ? null : BAKER_SET_BASELINE_DAYS,
+                entryBoundaryLevel: exactActivation ? row.activationLevel : baselineBlock.level
+            };
+        });
+        const closed = closedMetadata.map((row) => {
+            const deactivationTime = Date.parse(row.deactivationTime || '');
+            const exactDeactivation = Number.isFinite(deactivationTime) && deactivationTime > baselineTime;
+            return {
+                ...row,
+                eventLevel: exactDeactivation ? row.deactivationLevel : baselineBlock.level,
+                eventTime: exactDeactivation ? row.deactivationTime : baselineBlock.timestamp,
+                eventWindowDays: exactDeactivation ? null : BAKER_SET_BASELINE_DAYS
+            };
+        });
         const latestWithSizes = latest.map((row) => {
             const size = bakerSizeTier(row.bakingPower, totalBakingPower);
             return size ? { ...row, size } : row;
@@ -4169,6 +4265,10 @@ function initUptimeClock() {
             latest: latestWithEntryKinds,
             closed: closedWithSizes,
             domains,
+            baselineAt: baselineBlock.timestamp,
+            baselineLevel: baselineBlock.level,
+            baselineCount: baseline.value,
+            currentCount: currentAddresses.length,
             observedAt: Date.now()
         };
     }
@@ -4190,9 +4290,15 @@ function initUptimeClock() {
                 : entryKind === 'unknown'
                     ? 'First-bake history unavailable'
                     : '';
-        const newBadge = entryKind === 'new'
+        const entryBadge = entryKind === 'new'
             ? '<span class="top-continuity-baker-new" aria-label="Brand-new baker with no earlier baked block" title="Brand new · no earlier baked block">NEW</span>'
-            : '';
+            : entryKind === 'reactivated'
+                ? '<span class="top-continuity-baker-new is-reactivated" aria-label="Reactivated baker with an earlier baked block" title="Reactivated · earlier baked block found">REACTIVATED</span>'
+                : '';
+        const eventWindowDays = Number(row.eventWindowDays);
+        const eventTimeTitle = Number.isFinite(eventWindowDays) && eventWindowDays > 0
+            ? `${kind === 'gained' ? 'Entered' : 'Left'} the active baker set after ${absoluteBakerSetTime(row.eventTime)}`
+            : absoluteBakerSetTime(row.eventTime);
         const sizeLabel = row.size ? `${row.size.label} baker, ${row.size.detail}` : 'Baker size unavailable';
         const sizeBadge = row.size
             ? `<span class="top-continuity-baker-size is-${escapeHtml(row.size.key)}" data-baker-size="${escapeHtml(row.size.key)}" aria-label="${escapeHtml(sizeLabel)}" title="${escapeHtml(`${row.size.label} baker · ${row.size.detail}`)}">${escapeHtml(row.size.label)}</span>`
@@ -4202,8 +4308,8 @@ function initUptimeClock() {
             : `<button type="button" data-quiet-key="baker-set-my:${escapeHtml(row.address)}" data-baker-set-save-address="${escapeHtml(row.address)}" data-baker-set-label="${escapeHtml(label)}" aria-label="Add ${escapeHtml(label)} to saved My Tezos addresses" title="Add to My Tezos">+ My</button>`;
         return `
             <article class="top-continuity-baker-row is-${kind}" data-quiet-key="baker-set-${kind}:${escapeHtml(row.address)}" data-address="${escapeHtml(row.address)}" data-baker-entry="${escapeHtml(entryKind)}">
-                <time datetime="${escapeHtml(row.eventTime || '')}" title="${escapeHtml(absoluteBakerSetTime(row.eventTime))}">${escapeHtml(compactBakerSetAge(row.eventTime))}</time>
-                <span class="top-continuity-baker-identity" title="${escapeHtml([identityTitle, entryDetail].filter(Boolean).join(' · '))}"><span class="top-continuity-baker-name"><strong>${escapeHtml(label)}</strong>${newBadge}</span></span>
+                <time datetime="${escapeHtml(row.eventTime || '')}" title="${escapeHtml(eventTimeTitle)}">${escapeHtml(compactBakerSetAge(row.eventTime, Date.now(), eventWindowDays))}</time>
+                <span class="top-continuity-baker-identity" title="${escapeHtml([identityTitle, entryDetail].filter(Boolean).join(' · '))}"><span class="top-continuity-baker-name"><strong>${escapeHtml(label)}</strong>${entryBadge}</span></span>
                 ${sizeBadge}
                 <span class="top-continuity-baker-actions">
                     ${myTezosAction}
@@ -4247,8 +4353,8 @@ function initUptimeClock() {
                 ? `Last good ${observed} · refresh unavailable`
                 : `Live ${observed}`;
         quietlySyncHtml(roster, `
-            ${renderTopContinuityBakerList('New + Reactivated', 'baking rights gained', bakerSetSnapshot.latest, 'gained', savedAddresses)}
-            ${renderTopContinuityBakerList('Closed Bakers', 'baking rights lost', bakerSetSnapshot.closed, 'closed', savedAddresses)}
+            ${renderTopContinuityBakerList('7D New + Reactivated', 'active set entered', bakerSetSnapshot.latest, 'gained', savedAddresses)}
+            ${renderTopContinuityBakerList('7D Closed Bakers', 'active set left', bakerSetSnapshot.closed, 'closed', savedAddresses)}
             <p class="top-continuity-baker-freshness" data-baker-set-status data-tone="${bakerSetRefreshError ? 'stale' : 'live'}">${escapeHtml(freshness)}</p>
         `);
     }
