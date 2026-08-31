@@ -4078,7 +4078,10 @@ function initUptimeClock() {
     }
 
     async function fetchTopContinuityBaker(address) {
-        const row = await fetchTopContinuityTzktJson(`${API_URLS.tzkt}/delegates/${encodeURIComponent(address)}`);
+        const params = new URLSearchParams({
+            select: 'address,alias,activationLevel,activationTime,deactivationLevel,deactivationTime,bakingPower'
+        });
+        const row = await fetchTopContinuityTzktJson(`${API_URLS.tzkt}/delegates/${encodeURIComponent(address)}?${params}`);
         const normalized = normalizeTopContinuityBaker(row);
         if (!normalized) throw new Error(`TzKT baker ${address} returned an invalid payload`);
         return normalized;

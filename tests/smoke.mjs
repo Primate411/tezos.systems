@@ -2983,8 +2983,9 @@ async function installFeatureMocks(context, options = {}) {
           { address: SAMPLE_DELEGATOR_ADDRESS, alias: null, active: true, bakingPower: 50000000000, activationLevel: 12050000, activationTime: new Date(now - 21 * 86400000).toISOString(), deactivationLevel: null, deactivationTime: null }
         ]);
       }
-      if (parsedUrl.pathname.startsWith('/v1/delegates/')) {
-        const address = decodeURIComponent(parsedUrl.pathname.slice('/v1/delegates/'.length));
+      const bakerRosterDetailMatch = parsedUrl.pathname.match(/^\/v1\/delegates\/([^/]+)$/);
+      if (bakerRosterDetailMatch && parsedUrl.searchParams.get('select')?.includes('activationLevel')) {
+        const address = decodeURIComponent(bakerRosterDetailMatch[1]);
         const now = Date.now();
         const rows = new Map([
           [SAMPLE_ADDRESS, { address: SAMPLE_ADDRESS, alias: 'QA Baker', active: true, bakingPower: 6000000000000, activationLevel: 12325000, activationTime: new Date(now - 86400000).toISOString(), deactivationLevel: null, deactivationTime: null }],
