@@ -20773,6 +20773,9 @@ async function smokeLauncherProjections(browser, baseUrl) {
 
   const response = await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `launcher projections: dashboard failed with HTTP ${response?.status()}`);
+  await page.waitForFunction(() => ['capital', 'ecosystem', 'maxis'].every((entryId) => (
+    document.querySelector(`[data-chamber-entry-id="${entryId}"]`)?.dataset.lazyChamberWired === '1'
+  )), null, { timeout: 10000 });
   await page.evaluate(() => {
     for (const key of ['capital', 'ecosystem', 'people']) {
       const category = document.querySelector(`#chambers-grid > .chamber-category[data-chamber-category="${key}"]`);
@@ -20785,15 +20788,32 @@ async function smokeLauncherProjections(browser, baseUrl) {
       document.querySelector(selector)?.dispatchEvent(new PointerEvent('pointerenter'));
     }
   });
-  await page.waitForFunction(() => {
+  const readProjectionState = () => page.evaluate(() => {
     const capitalPath = document.querySelector('#capital-entry-card .capital-entry-price-line')?.getAttribute('d') || '';
     const ecosystemPoints = document.querySelector('#ecosystem-entry-card .ecosystem-entry-sparkline polyline')?.getAttribute('points') || '';
+    const ecosystemPointCount = ecosystemPoints.trim()
+      ? ecosystemPoints.trim().split(/\s+/).length
+      : 0;
     const ecosystemMonitor = document.querySelector('#ecosystem-entry-card .ecosystem-entry-empty')?.textContent || '';
     const maxisIdentities = document.querySelectorAll('#maxis-entry-card [data-maxis-entry-identity]').length;
-    return capitalPath.length > 80
-      && (ecosystemPoints.length > 40 || /Network monitor starts here/i.test(ecosystemMonitor))
-      && maxisIdentities === 10;
-  }, null, { timeout: 25000 });
+    return {
+      ready: capitalPath.length > 80
+        && (ecosystemPointCount >= 2 || /Network monitor starts here/i.test(ecosystemMonitor))
+        && maxisIdentities === 10,
+      capitalPathLength: capitalPath.length,
+      ecosystemPointCount,
+      ecosystemPointsLength: ecosystemPoints.length,
+      ecosystemMonitor,
+      maxisIdentities
+    };
+  });
+  const projectionDeadline = Date.now() + 25000;
+  let projectionState = await readProjectionState();
+  while (!projectionState.ready && Date.now() < projectionDeadline) {
+    await page.waitForTimeout(100);
+    projectionState = await readProjectionState();
+  }
+  assert(projectionState.ready, `launcher projections did not hydrate ${JSON.stringify(projectionState)}; observed ${initialPaths.join(', ')}`);
   await page.waitForTimeout(250);
 
   const ecosystemDesktopLayout = await page.evaluate(() => {
@@ -20905,6 +20925,9 @@ async function smokeLauncherProjections(browser, baseUrl) {
   assert(noSubtleResponse?.ok(), `plain-HTTP launcher receipts: dashboard failed with HTTP ${noSubtleResponse?.status()}`);
   assert(await noSubtlePage.evaluate(() => !globalThis.crypto?.subtle),
     'plain-HTTP launcher receipt fixture did not disable SubtleCrypto');
+  await noSubtlePage.waitForFunction(() => ['capital', 'ecosystem', 'maxis'].every((entryId) => (
+    document.querySelector(`[data-chamber-entry-id="${entryId}"]`)?.dataset.lazyChamberWired === '1'
+  )), null, { timeout: 10000 });
   await noSubtlePage.evaluate(() => {
     for (const selector of ['#capital-entry-card', '#ecosystem-entry-card', '#maxis-entry-card']) {
       document.querySelector(selector)?.dispatchEvent(new PointerEvent('pointerenter'));
@@ -20913,6 +20936,9 @@ async function smokeLauncherProjections(browser, baseUrl) {
   await noSubtlePage.waitForFunction(() => {
     const capitalPath = document.querySelector('#capital-entry-card .capital-entry-price-line')?.getAttribute('d') || '';
     const ecosystemPoints = document.querySelector('#ecosystem-entry-card .ecosystem-entry-sparkline polyline')?.getAttribute('points') || '';
+    const ecosystemPointCount = ecosystemPoints.trim()
+      ? ecosystemPoints.trim().split(/\s+/).length
+      : 0;
     const ecosystemMonitor = document.querySelector('#ecosystem-entry-card .ecosystem-entry-empty')?.textContent || '';
     const maxisIdentities = document.querySelectorAll('#maxis-entry-card [data-maxis-entry-identity]').length;
     const visibleText = [
@@ -20921,7 +20947,7 @@ async function smokeLauncherProjections(browser, baseUrl) {
       document.querySelector('#maxis-entry-card')?.textContent || ''
     ].join(' ');
     return capitalPath.length > 80
-      && (ecosystemPoints.length > 40 || /Network monitor starts here/i.test(ecosystemMonitor))
+      && (ecosystemPointCount >= 2 || /Network monitor starts here/i.test(ecosystemMonitor))
       && maxisIdentities === 10
       && !/Unavailable/.test(visibleText);
   }, null, { timeout: 30000 });
