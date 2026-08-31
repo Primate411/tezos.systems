@@ -357,6 +357,370 @@
     padding: 0.42rem 0.68rem;
 }
 
+.staking-guide-panel {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(var(--staking-accent-rgb), 0.25);
+    border-radius: 10px;
+    background:
+        linear-gradient(135deg, rgba(var(--staking-accent-rgb), 0.075), transparent 42%),
+        color-mix(in srgb, var(--glass-bg, rgba(255, 255, 255, 0.03)) 94%, transparent);
+}
+
+.staking-guide-panel > summary {
+    min-height: 74px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    list-style: none;
+    cursor: pointer;
+}
+
+.staking-guide-panel > summary::-webkit-details-marker {
+    display: none;
+}
+
+.staking-guide-panel > summary:is(:hover, :focus-visible) {
+    background: rgba(var(--staking-accent-rgb), 0.055);
+    outline: none;
+}
+
+.staking-guide-panel > summary:focus-visible {
+    box-shadow: inset 0 0 0 2px var(--staking-accent);
+}
+
+.staking-guide-summary-copy {
+    min-width: 0;
+    display: grid;
+    gap: 0.12rem;
+}
+
+.staking-guide-summary-copy > span,
+.staking-guide-section-head span {
+    color: var(--staking-accent);
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.staking-guide-summary-copy > strong {
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    line-height: 1.25;
+}
+
+.staking-guide-summary-copy > small {
+    color: var(--text-tertiary);
+    font-size: 0.66rem;
+    line-height: 1.35;
+}
+
+.staking-guide-summary-action {
+    flex: 0 0 auto;
+    min-height: 34px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.62rem;
+    border: 1px solid rgba(var(--staking-accent-rgb), 0.28);
+    border-radius: 999px;
+    color: var(--staking-accent);
+    font-size: 0.62rem;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.staking-guide-summary-action::after {
+    content: '+';
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+}
+
+.staking-guide-panel[open] .staking-guide-summary-action::after {
+    content: '−';
+}
+
+.staking-guide-body {
+    display: grid;
+    gap: 1rem;
+    padding: 0 1rem 1rem;
+    border-top: 1px solid rgba(var(--staking-accent-rgb), 0.14);
+}
+
+.staking-guide-intro {
+    max-width: 48rem;
+    margin: 0;
+    padding-top: 0.9rem;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    line-height: 1.55;
+}
+
+.staking-guide-role-grid,
+.staking-guide-metric-grid,
+.staking-guide-lower-grid {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.staking-guide-role-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.staking-guide-role-grid article {
+    min-width: 0;
+    padding: 0.78rem;
+    border: 1px solid color-mix(in srgb, var(--glass-border) 82%, transparent);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.018);
+}
+
+.staking-guide-role-grid article > span {
+    color: var(--staking-accent);
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.staking-guide-role-grid article > strong {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--text-primary);
+    font-size: 0.77rem;
+}
+
+.staking-guide-role-grid article > p,
+.staking-guide-rate-note,
+.staking-guide-edge-note,
+.staking-guide-faq p {
+    margin: 0.38rem 0 0;
+    color: var(--text-secondary);
+    font-size: 0.68rem;
+    line-height: 1.5;
+}
+
+.staking-guide-economics,
+.staking-guide-comparison,
+.staking-guide-faq,
+.staking-guide-lower-grid > section {
+    min-width: 0;
+    padding: 0.82rem;
+    border: 1px solid color-mix(in srgb, var(--glass-border) 78%, transparent);
+    border-radius: 9px;
+    background: rgba(0, 0, 0, 0.055);
+}
+
+.staking-guide-section-head {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+}
+
+.staking-guide-section-head h2 {
+    margin: 0.12rem 0 0;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    line-height: 1.25;
+}
+
+.staking-guide-freshness {
+    flex: 0 0 auto;
+    max-width: 15rem;
+    padding: 0.25rem 0.42rem;
+    border: 1px solid rgba(var(--staking-accent-rgb), 0.2);
+    border-radius: 999px;
+    color: var(--text-secondary) !important;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.52rem !important;
+    letter-spacing: 0.02em !important;
+    text-align: right;
+    text-transform: none !important;
+}
+
+.staking-guide-freshness[data-quality="unavailable"] {
+    border-color: rgba(var(--staking-unstake-rgb), 0.24);
+    color: var(--staking-unstake) !important;
+}
+
+.staking-guide-metric-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.staking-guide-metric-grid > div {
+    min-width: 0;
+    display: grid;
+    align-content: start;
+    gap: 0.16rem;
+    padding: 0.62rem;
+    border-radius: 7px;
+    background: rgba(var(--staking-accent-rgb), 0.045);
+}
+
+.staking-guide-metric-grid span {
+    color: var(--text-tertiary);
+    font-size: 0.55rem;
+    font-weight: 800;
+    line-height: 1.3;
+    text-transform: uppercase;
+}
+
+.staking-guide-metric-grid strong {
+    overflow-wrap: anywhere;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.94rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.staking-guide-metric-grid small {
+    color: var(--text-tertiary);
+    font-size: 0.56rem;
+    line-height: 1.35;
+}
+
+.staking-guide-rate-note,
+.staking-guide-edge-note {
+    padding: 0.62rem;
+    border-left: 2px solid rgba(var(--staking-accent-rgb), 0.5);
+    background: rgba(var(--staking-accent-rgb), 0.035);
+}
+
+.staking-guide-table-wrap {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+}
+
+.staking-guide-comparison table {
+    width: 100%;
+    min-width: 620px;
+    border-collapse: collapse;
+    color: var(--text-secondary);
+    font-size: 0.64rem;
+    line-height: 1.4;
+}
+
+.staking-guide-comparison th,
+.staking-guide-comparison td {
+    padding: 0.52rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 72%, transparent);
+    text-align: left;
+    vertical-align: top;
+}
+
+.staking-guide-comparison thead th,
+.staking-guide-comparison tbody th {
+    color: var(--text-primary);
+    font-weight: 850;
+}
+
+.staking-guide-lower-grid {
+    grid-template-columns: 1.1fr 0.9fr;
+}
+
+.staking-guide-lower-grid ol,
+.staking-guide-lower-grid ul {
+    display: grid;
+    gap: 0.48rem;
+    margin: 0;
+    padding-left: 1.15rem;
+    color: var(--text-secondary);
+}
+
+.staking-guide-lower-grid li {
+    padding-left: 0.18rem;
+    font-size: 0.67rem;
+    line-height: 1.45;
+}
+
+.staking-guide-lower-grid li strong,
+.staking-guide-lower-grid li span {
+    display: block;
+}
+
+.staking-guide-lower-grid li strong {
+    color: var(--text-primary);
+}
+
+.staking-guide-faq > div:last-child {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.staking-guide-faq details {
+    border: 1px solid color-mix(in srgb, var(--glass-border) 74%, transparent);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.014);
+}
+
+.staking-guide-faq summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.55rem 0.65rem;
+    color: var(--text-primary);
+    font-size: 0.68rem;
+    font-weight: 800;
+    list-style: none;
+    cursor: pointer;
+}
+
+.staking-guide-faq summary::-webkit-details-marker {
+    display: none;
+}
+
+.staking-guide-faq summary::after {
+    content: '+';
+    color: var(--staking-accent);
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.staking-guide-faq details[open] summary::after {
+    content: '−';
+}
+
+.staking-guide-faq p {
+    margin: 0;
+    padding: 0 0.65rem 0.65rem;
+}
+
+.staking-guide-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.staking-guide-actions a {
+    min-width: 0;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 0.52rem 0.65rem;
+    border: 1px solid rgba(var(--staking-accent-rgb), 0.18);
+    border-radius: 7px;
+    background: rgba(var(--staking-accent-rgb), 0.035);
+    color: var(--staking-blue);
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1.35;
+    text-decoration: none;
+}
+
+.staking-guide-actions a:is(:hover, :focus-visible) {
+    border-color: rgba(var(--staking-accent-rgb), 0.4);
+    color: var(--staking-accent);
+    outline: none;
+}
+
 .staking-overview-grid {
     display: grid;
     grid-template-columns: 1.12fr 1fr 1fr;
@@ -1135,6 +1499,100 @@
 
     .staking-live-pill {
         align-self: flex-start;
+    }
+
+    .staking-guide-panel > summary {
+        min-height: 88px;
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 0.8rem;
+    }
+
+    .staking-guide-summary-action {
+        min-height: 44px;
+    }
+
+    .staking-guide-body {
+        padding: 0 0.75rem 0.75rem;
+    }
+
+    .staking-guide-role-grid,
+    .staking-guide-metric-grid,
+    .staking-guide-lower-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .staking-guide-section-head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .staking-guide-freshness {
+        max-width: none;
+        align-self: flex-start;
+        text-align: left;
+    }
+
+    .staking-guide-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .staking-guide-table-wrap {
+        overflow: visible;
+    }
+
+    .staking-guide-comparison table,
+    .staking-guide-comparison tbody {
+        min-width: 0;
+        display: block;
+    }
+
+    .staking-guide-comparison thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+    }
+
+    .staking-guide-comparison tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.2rem 0.55rem;
+        padding: 0.52rem 0;
+        border-bottom: 1px solid color-mix(in srgb, var(--glass-border) 72%, transparent);
+    }
+
+    .staking-guide-comparison th,
+    .staking-guide-comparison td {
+        min-width: 0;
+        padding: 0;
+        border: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .staking-guide-comparison tbody th {
+        grid-column: 1 / -1;
+        padding-bottom: 0.15rem;
+    }
+
+    .staking-guide-comparison td::before {
+        display: block;
+        margin-bottom: 0.16rem;
+        color: var(--staking-accent);
+        font-size: 0.5rem;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .staking-guide-comparison td:nth-child(2)::before {
+        content: 'Delegation';
+    }
+
+    .staking-guide-comparison td:nth-child(3)::before {
+        content: 'Direct staking';
     }
 
     .staking-overview-grid,

@@ -7399,7 +7399,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     ['/stake', 'Staking Chamber'],
     ['missed blocks octez', 'Network Health'],
     ['cost to transact', 'Network Fees by Layer'],
-    ['how do i stake', 'Staking Chamber'],
+    ['how do i stake', 'Staking Guide'],
     ['fee', 'Network Fees by Layer']
   ];
   for (const [query, expectedTitle] of rankedSearchIntents) {
@@ -10313,6 +10313,28 @@ async function smokeStakingChamber(browser, baseUrl) {
   await assertNormalizedChamberShell(page, '#staking-chamber-modal.active', '.staking-chamber-content', 'narrow', label);
   await page.waitForFunction(() => /Showing 4 of 4 complete >10K moves/.test(document.querySelector('#staking-archive-count')?.textContent || ''), null, { timeout: 30000 });
 
+  assert(!(await page.locator('#staking-guide').evaluate((guide) => guide.open)), `${label}: live movement room should keep the explanatory guide collapsed by default`);
+  await page.locator('#staking-guide > summary').click();
+  await page.waitForFunction(() => document.querySelector('#staking-guide')?.open === true);
+  const guideState = await page.evaluate(() => ({
+    actionHrefs: Array.from(document.querySelectorAll('.staking-guide-actions a')).map((link) => link.getAttribute('href')),
+    faqCount: document.querySelectorAll('.staking-guide-faq details').length,
+    metricValues: Array.from(document.querySelectorAll('.staking-guide-metric-grid strong')).map((node) => node.textContent?.trim() || ''),
+    roleIds: Array.from(document.querySelectorAll('[data-staking-role]')).map((node) => node.dataset.stakingRole),
+    text: document.querySelector('#staking-guide')?.textContent?.replace(/\s+/g, ' ').trim() || ''
+  }));
+  assert(guideState.roleIds.join(',') === 'delegation,direct-staking,baking', `${label}: guide must preserve all three distinct Tezos roles ${JSON.stringify(guideState)}`);
+  assert(guideState.faqCount === 5, `${label}: visible guide FAQ must match the five shared schema questions ${JSON.stringify(guideState)}`);
+  assert(guideState.metricValues.length === 4 && guideState.metricValues.every((value) => value && value !== 'Unavailable'), `${label}: source-backed rate and participation context did not resolve ${JSON.stringify(guideState.metricValues)}`);
+  assert(/Keep custody and liquidity/.test(guideState.text)
+    && /protocol unstaking and finalization process/.test(guideState.text)
+    && /Off-chain baker payout policy/.test(guideState.text)
+    && /0–100% external-staker edge/.test(guideState.text)
+    && /It is not a delegation fee/.test(guideState.text), `${label}: the strongest explanatory copy from the former guide is missing ${guideState.text}`);
+  assert(guideState.actionHrefs.join(',') === '/#calculator,/leaderboard/,https://stake.tezos.com,https://docs.tez.capital', `${label}: guide next steps are incomplete ${JSON.stringify(guideState.actionHrefs)}`);
+  await page.locator('#staking-guide > summary').click();
+  await page.waitForFunction(() => document.querySelector('#staking-guide')?.open === false);
+
   const roomState = await page.evaluate(() => ({
     actionIds: Array.from(document.querySelectorAll('#staking-archive-rows .staking-operation-row')).map((row) => Number(row.dataset.stakingOperation)),
     amounts: Array.from(document.querySelectorAll('#staking-archive-rows .staking-operation-amount')).map((node) => node.textContent?.trim()),
@@ -10374,6 +10396,7 @@ async function smokeStakingChamber(browser, baseUrl) {
   assert(moverState.flowHref === `#ledger-flow=${SAMPLE_LARGE_STAKER_ADDRESS}`, `${label}: mover Ledger Flow route is wrong ${moverState.flowHref}`);
   assert(requests.some((entry) => entry.staker === SAMPLE_LARGE_STAKER_ADDRESS && entry.action === 'stake') && requests.some((entry) => entry.staker === SAMPLE_LARGE_STAKER_ADDRESS && entry.action === 'unstake'), `${label}: mover trail did not scan both explicit actions`);
 
+  await page.locator('#staking-guide > summary').click();
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const mobileState = await page.evaluate(() => {
@@ -10381,17 +10404,27 @@ async function smokeStakingChamber(browser, baseUrl) {
     const modalRect = modal?.getBoundingClientRect();
     const rows = Array.from(document.querySelectorAll('#staking-archive-rows .staking-operation-row'));
     const filterControls = Array.from(document.querySelectorAll('.staking-action-filter button'));
+    const guide = document.querySelector('#staking-guide');
+    const guideActions = Array.from(document.querySelectorAll('.staking-guide-actions a'));
+    const guideTable = document.querySelector('.staking-guide-comparison table');
+    const directStakeCell = document.querySelector('.staking-guide-comparison tbody tr td:nth-child(3)');
     const inside = (rect) => rect && rect.left >= -1 && rect.right <= innerWidth + 1;
     return {
       controlsMinHeight: Math.min(...filterControls.map((node) => node.getBoundingClientRect().height)),
+      guideActionsMinHeight: Math.min(...guideActions.map((node) => node.getBoundingClientRect().height)),
+      guideInside: inside(guide?.getBoundingClientRect()),
+      guideRoleColumns: getComputedStyle(document.querySelector('.staking-guide-role-grid')).gridTemplateColumns.split(' ').length,
+      guideTableFits: guideTable ? guideTable.scrollWidth <= guideTable.clientWidth + 1 : false,
+      guideDirectStakeVisible: directStakeCell ? inside(directStakeCell.getBoundingClientRect()) : false,
       horizontalOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       modalInside: inside(modalRect),
       modalWidth: modalRect?.width || 0,
       operationRowsInside: rows.every((row) => inside(row.getBoundingClientRect()))
     };
   });
-  assert(mobileState.modalInside && Math.abs(mobileState.modalWidth - 390) <= 1 && mobileState.operationRowsInside && mobileState.horizontalOverflow <= 1, `${label}: mobile full-bleed modal or receipt rows escape the viewport ${JSON.stringify(mobileState)}`);
+  assert(mobileState.modalInside && Math.abs(mobileState.modalWidth - 390) <= 1 && mobileState.operationRowsInside && mobileState.guideInside && mobileState.horizontalOverflow <= 1, `${label}: mobile full-bleed modal, guide, or receipt rows escape the viewport ${JSON.stringify(mobileState)}`);
   assert(mobileState.controlsMinHeight >= 44, `${label}: mobile filter controls are smaller than 44px ${JSON.stringify(mobileState)}`);
+  assert(mobileState.guideActionsMinHeight >= 44 && mobileState.guideRoleColumns === 1 && mobileState.guideTableFits && mobileState.guideDirectStakeVisible, `${label}: mobile guide must use one readable role column, side-by-side visible comparisons, and 44px actions ${JSON.stringify(mobileState)}`);
 
   await page.locator('#staking-chamber-modal .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#staking-chamber-modal')?.classList.contains('active'));
@@ -10411,10 +10444,27 @@ async function smokeStakingChamber(browser, baseUrl) {
   assert(prettyResponse?.ok(), `${label}: /stake/ failed with HTTP ${prettyResponse?.status()}`);
   await page.locator('#staking-chamber-modal.active').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => /Showing 4 of 4 complete >10K moves/.test(document.querySelector('#staking-archive-count')?.textContent || ''), null, { timeout: 30000 });
-  const prettyState = await page.evaluate(() => ({ hash: location.hash, pathname: location.pathname, title: document.querySelector('#staking-chamber-title')?.textContent?.trim() || '' }));
-  assert(prettyState.pathname === '/stake/' && prettyState.hash === '' && prettyState.title === 'Staking Chamber', `${label}: pretty route should open the room without hash redirection ${JSON.stringify(prettyState)}`);
+  const prettyState = await page.evaluate(() => ({ guideOpen: document.querySelector('#staking-guide')?.open, hash: location.hash, pathname: location.pathname, search: location.search, title: document.querySelector('#staking-chamber-title')?.textContent?.trim() || '' }));
+  assert(prettyState.pathname === '/stake/' && prettyState.search === '' && prettyState.hash === '' && prettyState.title === 'Staking Chamber' && prettyState.guideOpen === false, `${label}: pretty route should open the live room with its guide collapsed and no hash redirection ${JSON.stringify(prettyState)}`);
   const revisitArchiveRequests = requests.slice(requestMarker).filter((entry) => entry.limit === 10000 && !entry.staker);
   assert(revisitArchiveRequests.length === 2 && revisitArchiveRequests.every((entry) => entry.afterId && !entry.cursor), `${label}: persisted archive revisit should request only IDs above each saved high-water mark ${JSON.stringify(revisitArchiveRequests)}`);
+
+  const guideResponse = await page.goto(`${baseUrl}/stake/?view=guide`, { waitUntil: 'domcontentloaded' });
+  assert(guideResponse?.ok(), `${label}: canonical guide view failed with HTTP ${guideResponse?.status()}`);
+  await page.locator('#staking-guide[open]').waitFor({ state: 'visible', timeout: 15000 });
+  const canonicalGuideState = await page.evaluate(() => ({
+    canonical: document.querySelector('link[rel="canonical"]')?.href || '',
+    faqSchema: Array.from(document.querySelectorAll('script[type="application/ld+json"]')).some((node) => /"@type":\s*"FAQPage"/.test(node.textContent || '')),
+    pathname: location.pathname,
+    search: location.search
+  }));
+  assert(canonicalGuideState.pathname === '/stake/' && canonicalGuideState.search === '?view=guide' && canonicalGuideState.canonical === 'https://tezos.systems/stake/' && canonicalGuideState.faqSchema, `${label}: canonical guide route or matching FAQ schema is wrong ${JSON.stringify(canonicalGuideState)}`);
+
+  await page.goto(`${baseUrl}/staking/`, { waitUntil: 'domcontentloaded' });
+  await page.waitForURL(`${baseUrl}/stake/?view=guide`, { timeout: 10000 });
+  await page.locator('#staking-guide[open]').waitFor({ state: 'visible', timeout: 15000 });
+  const redirectState = await page.evaluate(() => ({ canonical: document.querySelector('link[rel="canonical"]')?.href || '', pathname: location.pathname, search: location.search }));
+  assert(redirectState.pathname === '/stake/' && redirectState.search === '?view=guide' && redirectState.canonical === 'https://tezos.systems/stake/', `${label}: /staking/ compatibility route did not converge on the canonical guide view ${JSON.stringify(redirectState)}`);
 
   await context.close();
   assert(issues.length === 0, `${label}: browser issues:\n${issues.join('\n')}`);
@@ -31951,8 +32001,8 @@ async function smokeStandaloneLinks(browser, baseUrl) {
     }
   }
 
-  const disclosureResponse = await page.goto(`${baseUrl}/staking/`, { waitUntil: 'domcontentloaded' });
-  assert(disclosureResponse?.ok(), 'standalone links: staking disclosure route failed');
+  const disclosureResponse = await page.goto(`${baseUrl}/governance/`, { waitUntil: 'domcontentloaded' });
+  assert(disclosureResponse?.ok(), 'standalone links: governance disclosure route failed');
   const footerSeparation = await page.evaluate(() => {
     const handoff = document.querySelector('[data-site-handoff]');
     const footer = document.querySelector('[data-site-footer]');
@@ -32032,7 +32082,7 @@ async function smokeRouteFormatting(browser, baseUrl) {
         }, null, { timeout: 3000 });
       }
 
-      if (['/staking/', '/governance/', '/bakers/'].includes(route)) {
+      if (['/governance/', '/bakers/'].includes(route)) {
         const navState = await page.evaluate(() => {
           const nav = document.querySelector('.landing-nav');
           const menu = document.querySelector('.landing-nav-menu');

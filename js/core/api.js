@@ -740,7 +740,7 @@ async function fetchGovernance() {
  * Fetch current yearly issuance rate.
  * Uses Octez RPC for protocol rate plus active LB subsidy when the EMA has not disabled it.
  */
-async function fetchIssuance() {
+export async function fetchIssuance() {
     try {
         const [rpcRateRaw, constantsRaw, supplyRaw, lbStateRaw] = await Promise.allSettled([
             fetchSharedYearlyRate(),

@@ -523,9 +523,10 @@ Stamping gotchas:
   state, last-good data, the visibility gate, one motionless catch-up, reduced-
   motion behavior, first-fact reveal only once, and announcement-only-on-new-
   block behavior.
-- Staking Chamber: `js/features/staking-chamber.js`; strict applied explicit
-  stake/unstake moves over 10,000 tez, with `/stake/` as the chamber route.
-  Preserve `/staking/` for the existing explanatory guide.
+- Staking Chamber: `js/features/staking-chamber.js`; `/stake/` combines strict
+  applied explicit stake/unstake moves over 10,000 tez with the explanatory
+  delegation/direct-staking guide. `/staking/` is a noindex compatibility
+  redirect to `/stake/?view=guide`; do not restore it as a separate content page.
 - OBJKT/HEN: `objkt.js`, `hen-mode.js`
 - Extras: `streak.js`, `state-of-tezos.js`, `upgrade-effect.js`,
   `tooltip-tour.js`, `changelog.js`

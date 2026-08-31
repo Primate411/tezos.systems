@@ -1,3 +1,5 @@
+import { STAKING_GUIDE_FAQ } from '../../js/core/staking-guide-content.mjs';
+
 export const CHAMBER_ROUTES = [
   {
     slug: 'chambers',
@@ -114,11 +116,12 @@ export const CHAMBER_ROUTES = [
   {
     slug: 'stake',
     hash: '#staking',
-    title: 'Staking Chamber - Large Tezos Stake and Unstake Moves',
+    title: 'Tezos Staking - Live Stake Moves, Delegation and Direct Staking',
     shortTitle: 'Staking Chamber',
-    description: 'Track large Tezos stake and unstake operations, the current staking share, and the complete history above 10,000 tez.',
+    description: 'Learn how Tezos delegation and direct staking differ, inspect live network rate context, and track every applied stake and unstake move above 10,000 tez.',
     eyebrow: 'Stake / Unstake',
-    accent: '#a78bfa'
+    accent: '#a78bfa',
+    faq: STAKING_GUIDE_FAQ
   },
   {
     slug: 'leaderboard',

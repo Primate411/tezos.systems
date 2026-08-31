@@ -111,6 +111,21 @@ function renderRouteStructuredData(route, url, image) {
     }
   ];
 
+  if (Array.isArray(route.faq) && route.faq.length) {
+    schema.push({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: route.faq.map((item) => ({
+        '@type': 'Question',
+        name: item.question,
+        acceptedAnswer: {
+          '@type': 'Answer',
+          text: item.answer
+        }
+      }))
+    });
+  }
+
   return `    <!-- Route-specific structured data: generated, do not edit in route shells -->
     <script type="application/ld+json">
 ${jsonLd(schema)}

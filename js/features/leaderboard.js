@@ -618,7 +618,7 @@ function fitFinderHtml(ranked) {
                     <h3>Find bakers that fit your delegation lane</h3>
                     <p class="baker-fit-method">Filters are strict: enough current room plus the selected key or tenure evidence. Community orders by delegators + stakers; Capacity orders by free room; ties use the other fact, then name. No blended score is calculated. Delegation fees and payout policy are off-chain; the protocol's external-staker edge is not a delegation fee.</p>
                 </div>
-                <a href="/staking/">Staking guide</a>
+                <a href="/stake/?view=guide">Staking guide</a>
             </div>
             <div class="baker-fit-questions">
                 ${FIT_QUESTIONS.map((question) => `
@@ -1637,7 +1637,7 @@ function bakerDirectoryDiscoverHtml() {
                             <span class="feature-kicker">Delegator fit</span>
                             <h2 id="baker-directory-discover-title">Narrow the on-chain facts</h2>
                         </div>
-                        <a href="/staking/">Read the staking guide</a>
+                        <a href="/stake/?view=guide">Read the staking guide</a>
                     </div>
                     <p class="baker-directory-method">The room and evidence choices are strict filters. Community orders by current delegators + stakers; Capacity orders by current free delegation room; ties use the other fact, then baker name. No blended score or inferred quality grade is calculated.</p>
                     <div class="baker-directory-fit-questions">

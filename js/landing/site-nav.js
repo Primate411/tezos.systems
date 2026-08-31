@@ -67,7 +67,7 @@ function renderNav() {
     const nav = document.querySelector('[data-site-nav], .landing-nav');
     if (!nav) return;
     const current = contextEntry(nav);
-    const ids = ['staking', 'governance-guide', 'bakers-guide', 'anthology', 'health', 'home'];
+    const ids = ['staking-chamber', 'governance-guide', 'bakers-guide', 'anthology', 'health', 'home'];
     nav.classList.add('landing-nav');
     nav.setAttribute('data-site-nav', 'true');
     nav.setAttribute('aria-label', 'Tezos Systems guides');

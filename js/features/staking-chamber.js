@@ -5,9 +5,10 @@
 
 import { API_URLS } from '../core/config.js';
 import { versionedAsset } from '../core/asset-version.js';
-import { fetchHistoricalData, fetchStakingRatio } from '../core/api.js';
+import { fetchHistoricalData, fetchIssuance, fetchStakingAPY, fetchStakingRatio } from '../core/api.js';
 import { siteMapRoute } from '../core/site-map.js';
 import { siteMapJourneyLinks } from '../core/site-journey.js';
+import { STAKING_GUIDE_COPY } from '../core/staking-guide-content.mjs';
 import { loadStats, loadStatsTimestamp } from '../core/storage.js';
 import { escapeHtml, formatFreshnessStamp, matchesTextQuery, pluralize, setDataFreshnessState } from '../core/utils.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
@@ -48,6 +49,7 @@ let savedHtmlOverflow = null;
 let moverTrail = null;
 let moverTrailRequest = 0;
 let moverTrailReturnFocus = null;
+let guideOpen = false;
 const richRowCache = new Map();
 const moverTrailCache = new Map();
 
@@ -115,6 +117,136 @@ function formatRatioDelta(value) {
     const number = Number(value);
     if (!Number.isFinite(number)) return '—';
     return `${number > 0 ? '+' : ''}${number.toFixed(2)}pp`;
+}
+
+function formatRate(value, digits = 1) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? `~${number.toFixed(digits)}%` : 'Unavailable';
+}
+
+function guideViewRequested() {
+    if (typeof window === 'undefined') return false;
+    return new URLSearchParams(window.location.search).get('view') === 'guide';
+}
+
+function updateGuideRoute(open) {
+    if (typeof window === 'undefined' || !/^\/stake\/?$/.test(window.location.pathname)) return;
+    const url = new URL(window.location.href);
+    if (open) url.searchParams.set('view', 'guide');
+    else url.searchParams.delete('view');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+}
+
+function guideFreshness(overview) {
+    const quality = overview?.stakingAPYQuality || {};
+    const status = quality.status || 'unavailable';
+    const observedAt = quality.observedAt || quality.checkedAt || null;
+    if (status === 'live') return { status, label: `live inputs · ${formatAge(observedAt)}` };
+    if (status === 'stale') return { status, label: `last good inputs · ${formatAge(observedAt)}` };
+    return { status: 'unavailable', label: 'rate inputs unavailable' };
+}
+
+function guideIssuanceDetail(overview) {
+    const protocol = Number(overview?.protocolIssuanceRate);
+    const lb = Number(overview?.lbIssuanceRate);
+    if (!Number.isFinite(protocol) || protocol <= 0) return 'Protocol and LB inputs unavailable';
+    if (overview?.lbSubsidyDisabled === true) return `${protocol.toFixed(2)}% protocol · 0.00% LB (disabled)`;
+    if (Number.isFinite(lb) && lb >= 0) return `${protocol.toFixed(2)}% protocol · ${lb.toFixed(2)}% LB`;
+    return `${protocol.toFixed(2)}% protocol · LB state unavailable`;
+}
+
+function renderStakingGuide(overview = null) {
+    const copy = STAKING_GUIDE_COPY;
+    const freshness = guideFreshness(overview);
+    const totalDelegated = overview?.totalDelegated === null || overview?.totalDelegated === undefined
+        ? 'Unavailable'
+        : formatCompactXtz(Number(overview.totalDelegated) * 1e6);
+    const totalIssuance = Number(overview?.currentIssuanceRate);
+    return `
+        <details class="staking-guide-panel chamber-anim-fade" id="staking-guide"${guideOpen ? ' open' : ''}>
+            <summary>
+                <span class="staking-guide-summary-copy">
+                    <span>${escapeHtml(copy.kicker)}</span>
+                    <strong>${escapeHtml(copy.title)}</strong>
+                    <small>Role differences, live rate context, risks, and a careful start path</small>
+                </span>
+                <span class="staking-guide-summary-action" data-staking-guide-action>${guideOpen ? 'Close guide' : 'Open guide'}</span>
+            </summary>
+            <div class="staking-guide-body">
+                <p class="staking-guide-intro">${escapeHtml(copy.intro)}</p>
+
+                <section class="staking-guide-role-grid" aria-label="Tezos staking roles">
+                    ${copy.roles.map((role) => `
+                        <article data-staking-role="${escapeHtml(role.id)}">
+                            <span>${escapeHtml(role.label)}</span>
+                            <strong>${escapeHtml(role.summary)}</strong>
+                            <p>${escapeHtml(role.detail)}</p>
+                        </article>
+                    `).join('')}
+                </section>
+
+                <section class="staking-guide-economics" aria-labelledby="staking-guide-economics-title">
+                    <div class="staking-guide-section-head">
+                        <div><span>Live network context</span><h2 id="staking-guide-economics-title">Rates and participation</h2></div>
+                        <span class="staking-guide-freshness" data-quality="${escapeHtml(freshness.status)}">${escapeHtml(freshness.label)}</span>
+                    </div>
+                    <div class="staking-guide-metric-grid">
+                        <div><span>Direct-staking gross rate</span><strong>${escapeHtml(formatRate(overview?.stakeAPY))}</strong><small>Before the selected baker's edge</small></div>
+                        <div><span>Delegation gross context</span><strong>${escapeHtml(formatRate(overview?.delegateAPY))}</strong><small>Before the baker's off-chain policy</small></div>
+                        <div><span>Issuance rate</span><strong>${escapeHtml(Number.isFinite(totalIssuance) && totalIssuance > 0 ? `${totalIssuance.toFixed(2)}%` : 'Unavailable')}</strong><small>${escapeHtml(guideIssuanceDetail(overview))}</small></div>
+                        <div><span>Total delegated</span><strong>${escapeHtml(totalDelegated)}</strong><small>Liquid delegation, separate from frozen stake</small></div>
+                    </div>
+                    <p class="staking-guide-rate-note">${escapeHtml(copy.apyNote)}</p>
+                </section>
+
+                <section class="staking-guide-comparison" aria-labelledby="staking-guide-comparison-title">
+                    <div class="staking-guide-section-head"><div><span>Role comparison</span><h2 id="staking-guide-comparison-title">Delegation vs direct staking</h2></div></div>
+                    <div class="staking-guide-table-wrap">
+                        <table>
+                            <thead><tr><th scope="col">Question</th><th scope="col">Delegation</th><th scope="col">Direct staking</th></tr></thead>
+                            <tbody>${copy.comparisonRows.map((row) => `<tr><th scope="row">${escapeHtml(row.label)}</th><td>${escapeHtml(row.delegation)}</td><td>${escapeHtml(row.staking)}</td></tr>`).join('')}</tbody>
+                        </table>
+                    </div>
+                    <p class="staking-guide-edge-note">${escapeHtml(copy.edgeNote)}</p>
+                </section>
+
+                <div class="staking-guide-lower-grid">
+                    <section aria-labelledby="staking-guide-start-title">
+                        <div class="staking-guide-section-head"><div><span>Start carefully</span><h2 id="staking-guide-start-title">How to begin</h2></div></div>
+                        <ol>${copy.steps.map((step) => `<li><strong>${escapeHtml(step.label)}</strong><span>${escapeHtml(step.detail)}</span></li>`).join('')}</ol>
+                    </section>
+                    <section aria-labelledby="staking-guide-context-title">
+                        <div class="staking-guide-section-head"><div><span>Tezos context</span><h2 id="staking-guide-context-title">What remains true</h2></div></div>
+                        <ul>${copy.context.map((item) => `<li>${escapeHtml(item)}</li>`).join('')}</ul>
+                    </section>
+                </div>
+
+                <section class="staking-guide-faq" aria-labelledby="staking-guide-faq-title">
+                    <div class="staking-guide-section-head"><div><span>Common questions</span><h2 id="staking-guide-faq-title">Staking FAQ</h2></div></div>
+                    <div>${copy.faq.map((item) => `<details><summary>${escapeHtml(item.question)}</summary><p>${escapeHtml(item.answer)}</p></details>`).join('')}</div>
+                </section>
+
+                <nav class="staking-guide-actions" aria-label="Staking next steps">
+                    <a href="/#calculator">Calculate reward scenarios</a>
+                    <a href="/leaderboard/">Browse the Baker Directory</a>
+                    <a href="https://stake.tezos.com" target="_blank" rel="noopener">Open the official staking app ↗</a>
+                    <a href="https://docs.tez.capital" target="_blank" rel="noopener">Run a baker with Tez Capital docs ↗</a>
+                </nav>
+            </div>
+        </details>
+    `;
+}
+
+function wireGuideDisclosure() {
+    const guide = document.getElementById('staking-guide');
+    if (!guide || guide.dataset.stakingGuideWired) return;
+    guide.dataset.stakingGuideWired = '1';
+    guide.addEventListener('toggle', () => {
+        guideOpen = guide.open;
+        const action = guide.querySelector('[data-staking-guide-action]');
+        if (action) action.textContent = guideOpen ? 'Close guide' : 'Open guide';
+        updateGuideRoute(guideOpen);
+    });
 }
 
 function formatAge(timestamp) {
@@ -387,9 +519,11 @@ function sevenDayRatioDelta(rows, currentRatio) {
 
 async function fetchOverview() {
     const cached = loadStats() || {};
-    const [live, history] = await Promise.all([
+    const [live, history, apy, issuance] = await Promise.all([
         fetchStakingRatio(),
-        fetchHistoricalData('7d')
+        fetchHistoricalData('7d'),
+        fetchStakingAPY(),
+        fetchIssuance()
     ]);
     const stakingRatio = Number(live?.stakingRatio) > 0
         ? Number(live.stakingRatio)
@@ -405,6 +539,15 @@ async function fetchOverview() {
         stakingRatio,
         totalStaked,
         totalStakers,
+        totalDelegated: live?.totalDelegated ?? cached?.totalDelegated ?? null,
+        delegateAPY: apy?.delegateAPY ?? cached?.delegateAPY ?? null,
+        stakeAPY: apy?.stakeAPY ?? cached?.stakeAPY ?? null,
+        stakingAPYQuality: apy?._quality || null,
+        currentIssuanceRate: issuance?.total ?? cached?.currentIssuanceRate ?? null,
+        protocolIssuanceRate: issuance?.protocol ?? cached?.protocolIssuanceRate ?? null,
+        lbIssuanceRate: issuance?.lb ?? cached?.lbIssuanceRate ?? null,
+        lbSubsidyDisabled: issuance?.lbDisabled ?? cached?.lbSubsidyDisabled ?? null,
+        issuanceQuality: issuance?._quality || null,
         ratioDelta7d: sevenDayRatioDelta(history, stakingRatio),
         statsTimestamp: loadStatsTimestamp() || Date.now()
     };
@@ -594,6 +737,7 @@ function renderLoadingRoom() {
             </div>
             <span class="staking-live-pill">&gt;10,000 ꜩ</span>
         </header>
+        ${renderStakingGuide(overviewData)}
         <section class="staking-overview-grid" aria-label="Current staking overview">
             <div class="staking-overview-card is-primary"><span>Current staked</span><strong id="staking-loading-ratio">—</strong><small>own + external stake / supply</small></div>
             <div class="staking-overview-card"><span>History scan</span><strong>Opening</strong><small id="staking-archive-progress">Scanning applied operations</small></div>
@@ -603,11 +747,20 @@ function renderLoadingRoom() {
             <p>Building the complete &gt;10K stake / unstake tape…</p>
         </div>
     `;
+    wireGuideDisclosure();
 }
 
 function patchLoadingOverview(overview) {
     const ratio = document.getElementById('staking-loading-ratio');
     if (ratio) ratio.textContent = formatRatio(overview?.stakingRatio);
+    const currentGuide = document.getElementById('staking-guide');
+    if (currentGuide) {
+        guideOpen = currentGuide.open;
+        const template = document.createElement('template');
+        template.innerHTML = renderStakingGuide(overview).trim();
+        currentGuide.replaceWith(template.content.firstElementChild);
+        wireGuideDisclosure();
+    }
 }
 
 function archiveSummary(rows) {
@@ -882,6 +1035,8 @@ function renderRoom() {
             <span class="staking-live-pill">complete &gt;10K tape</span>
         </header>
 
+        ${renderStakingGuide(overviewData)}
+
         <section class="staking-overview-grid chamber-anim-fade" aria-label="Current staking overview">
             <div class="staking-overview-card is-primary">
                 <span>Current staked</span>
@@ -956,7 +1111,7 @@ function renderRoom() {
             </div>
             <nav aria-label="Staking Chamber sources and routes">
                 <a href="https://api.tzkt.io/" target="_blank" rel="noopener">TzKT API ↗</a>
-                <a href="/staking/">How staking works</a>
+                <a href="/stake/?view=guide">How staking works</a>
                 <a href="/stake/">Direct: /stake/</a>
             </nav>
         </section>
@@ -976,6 +1131,7 @@ function renderRoomError(error) {
             <div><span class="staking-chamber-kicker">Tezos capital movement</span><h1 class="chamber-title" id="staking-chamber-title">Staking Chamber</h1></div>
             <span class="staking-live-pill">&gt;10,000 ꜩ</span>
         </header>
+        ${renderStakingGuide(overviewData)}
         <section class="staking-overview-grid">
             <div class="staking-overview-card is-primary"><span>Current staked</span><strong>${escapeHtml(formatRatio(overviewData?.stakingRatio))}</strong><small>The ratio remains available independently of the tape.</small></div>
         </section>
@@ -986,11 +1142,12 @@ function renderRoomError(error) {
             <button type="button" id="staking-room-retry">Retry complete scan</button>
         </div>
         <section class="staking-method-panel">
-            <nav><a href="https://tzkt.io/staking" target="_blank" rel="noopener">Open TzKT ↗</a><a href="/staking/">How staking works</a><a href="/stake/">Direct: /stake/</a></nav>
+            <nav><a href="https://tzkt.io/staking" target="_blank" rel="noopener">Open TzKT ↗</a><a href="/stake/?view=guide">How staking works</a><a href="/stake/">Direct: /stake/</a></nav>
         </section>
         ${renderNativeWayfinder()}
     `;
     document.getElementById('staking-room-retry')?.addEventListener('click', () => loadRoom({ force: true }));
+    wireGuideDisclosure();
 }
 
 function wireInternalRoomLinks(root = document) {
@@ -1012,6 +1169,7 @@ function wireInternalRoomLinks(root = document) {
 }
 
 function wireRoomInteractions() {
+    wireGuideDisclosure();
     document.getElementById('staking-ratio-history')?.addEventListener('click', () => {
         openCardHistoryModal('staking-ratio', 'all');
     });
@@ -1144,6 +1302,7 @@ async function loadRoom({ force = false } = {}) {
 
 export async function openStakingChamber() {
     await ensureStakingStyles();
+    if (guideViewRequested()) guideOpen = true;
     const overlay = ensureOverlay();
     overlay.classList.add('active');
     activateChamberDialog(overlay, {

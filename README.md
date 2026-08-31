@@ -706,10 +706,14 @@ inline modal styles in `js/core/app.js`.
   quiet-refresh contract. That compact launcher leads with all active
   wallet-layer addresses, keeps the reviewed-dapp subset visibly distinct,
   and retains the completed-week app leaders on desktop and narrow phones.
-- Staking Chamber with direct `#staking` and `/stake/` access, while the existing
-  `/staking/` guide remains the explanatory staking page. Its narrow launcher
-  keeps one latest applied stake and one latest applied unstake strictly over
-  10,000 tez visible. The opened room shows the canonical current staking ratio,
+- Staking Chamber with direct `#staking` and canonical `/stake/` access. Its
+  progressive guide preserves the former `/staking/` page's delegation,
+  direct-staking, baking, liquidity, penalty, reward-policy, baker-edge, and
+  getting-started explanations alongside source-state-aware gross rate and
+  participation context. `/staking/` is retained only as a noindex compatibility
+  redirect into `/stake/?view=guide`. The narrow launcher keeps one latest
+  applied stake and one latest applied unstake strictly over 10,000 tez visible.
+  The opened room shows the canonical current staking ratio,
   seven-day direction, threshold-scoped 24-hour gross/net flow, a cursor-scanned
   persistent incremental history of qualifying TzKT receipts, local address
   search, filtered CSV export, and full per-mover stake/unstake trails with
@@ -1743,7 +1747,8 @@ Current smoke suites:
 - `network-health`
 - `staking-chamber` (covers the narrow latest stake/unstake tape, strict >10K
   boundary, complete applied-operation scan, current ratio, flow summaries,
-  mover trails, receipts, `/stake/`, and preservation of the `/staking/` guide)
+  mover trails, receipts, the progressive guide and live economics, canonical
+  `/stake/`, and the `/staking/` compatibility redirect)
 - `ledger-flow`
 - `maxis-domain-passport` (covers normalized `.tez` names, multi-label owner
   fallback, canonical resolved routes, unresolved names, KT1 rejection, and

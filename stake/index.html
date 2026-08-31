@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Track large Tezos stake and unstake operations, the current staking share, and the complete history above 10,000 tez.">
+    <meta name="description" content="Learn how Tezos delegation and direct staking differ, inspect live network rate context, and track every applied stake and unstake move above 10,000 tez.">
     <meta name="keywords" content="Tezos, XTZ, Etherlink, dapp analytics, active wallets, ecosystem statistics, capital markets, market structure, real-world assets, RWA, stablecoins, DeFi, NFT analytics, art economy, blockchain, proof-of-stake, baking, staking, governance, network statistics, baker dashboard">
     <meta name="author" content="Primate">
-    <title>Staking Chamber - Large Tezos Stake and Unstake Moves | tezos.systems</title>
+    <title>Tezos Staking - Live Stake Moves, Delegation and Direct Staking | tezos.systems</title>
     <link rel="canonical" href="https://tezos.systems/stake/">
     <link rel="license" href="/LICENSE">
 
     <!-- Open Graph / Social -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://tezos.systems/stake/">
-    <meta property="og:title" content="Staking Chamber - Large Tezos Stake and Unstake Moves">
-    <meta property="og:description" content="Track large Tezos stake and unstake operations, the current staking share, and the complete history above 10,000 tez.">
+    <meta property="og:title" content="Tezos Staking - Live Stake Moves, Delegation and Direct Staking">
+    <meta property="og:description" content="Learn how Tezos delegation and direct staking differ, inspect live network rate context, and track every applied stake and unstake move above 10,000 tez.">
     <meta property="og:image" content="https://tezos.systems/og/stake.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Staking Chamber - Large Tezos Stake and Unstake Moves">
-    <meta name="twitter:description" content="Track large Tezos stake and unstake operations, the current staking share, and the complete history above 10,000 tez.">
+    <meta name="twitter:title" content="Tezos Staking - Live Stake Moves, Delegation and Direct Staking">
+    <meta name="twitter:description" content="Learn how Tezos delegation and direct staking differ, inspect live network rate context, and track every applied stake and unstake move above 10,000 tez.">
     <meta name="twitter:image" content="https://tezos.systems/og/stake.png">
     <meta name="twitter:site" content="@TezCapital">
     <link rel="alternate" type="application/rss+xml" title="Tezos Systems Governance RSS" href="https://tezos.systems/feed.xml">
@@ -51,18 +51,18 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="/css/styles.min.css?v=610">
-    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=610">
-    <link rel="stylesheet" href="/css/loading.css?v=610">
-    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=610">
-    <link rel="stylesheet" href="/css/protocol-anthology.css?v=610">
-    <link rel="stylesheet" href="/css/site-map.css?v=610">
+    <link rel="stylesheet" href="/css/styles.min.css?v=611">
+    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=611">
+    <link rel="stylesheet" href="/css/loading.css?v=611">
+    <link id="hero-search-css" rel="stylesheet" href="/css/hero-search.css?v=611">
+    <link rel="stylesheet" href="/css/protocol-anthology.css?v=611">
+    <link rel="stylesheet" href="/css/site-map.css?v=611">
     <link rel="stylesheet" href="/css/hen-mode.css?v=98">
     <script src="/js/core/hen-init.js?v=79" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="/js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="/js/core/app.js?v=610">
+    <link rel="modulepreload" href="/js/core/app.js?v=611">
     <link rel="modulepreload" href="/js/core/api.js">
     <link rel="modulepreload" href="/js/core/config.js">
     <link rel="modulepreload" href="/js/core/data-assets.js">
@@ -90,9 +90,9 @@
     "@context": "https://schema.org",
     "@type": "WebPage",
     "name": "Staking Chamber",
-    "headline": "Staking Chamber - Large Tezos Stake and Unstake Moves",
+    "headline": "Tezos Staking - Live Stake Moves, Delegation and Direct Staking",
     "url": "https://tezos.systems/stake/",
-    "description": "Track large Tezos stake and unstake operations, the current staking share, and the complete history above 10,000 tez.",
+    "description": "Learn how Tezos delegation and direct staking differ, inspect live network rate context, and track every applied stake and unstake move above 10,000 tez.",
     "primaryImageOfPage": "https://tezos.systems/og/stake.png",
     "isPartOf": {
       "@type": "WebSite",
@@ -136,6 +136,52 @@
         "item": "https://tezos.systems/stake/"
       }
     ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "What is Tezos staking?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Tezos lets an account delegate transferable XTZ to a baker or stake directly with one. Delegation does not freeze the balance; direct staking does. Baking is the separate validator role that proposes and attests blocks."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "How much can I earn?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Rates are dynamic and depend on network participation, protocol issuance, and the terms of the selected baker. The Staking Chamber shows gross network-rate estimates only when their live source inputs are available."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Are XTZ locked when staking?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Delegated XTZ are not frozen and remain transferable. Directly staked XTZ are frozen and must pass through the protocol unstaking and finalization process before becoming spendable again."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is the direct-staking edge a delegation fee?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "No. A baker's on-chain external-staker edge applies to direct external staking. Delegation payouts are separate baker-operated transfers whose timing, rate, and fee policy are not enforced by the protocol."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Is there a minimum amount?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "There is no protocol minimum to delegate or directly stake, although a baker can set an acceptance minimum for external stakers. Running a baker is a separate operator role with current protocol requirements."
+        }
+      }
+    ]
   }
 ]
     </script>
@@ -149,8 +195,8 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="/js/core/theme-preload.js?v=610"></script>
-    <script src="/js/core/home-layout-preload.js?v=610"></script>
+    <script src="/js/core/theme-preload.js?v=611"></script>
+    <script src="/js/core/home-layout-preload.js?v=611"></script>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="top-utility-row">
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
@@ -2790,8 +2836,8 @@
 
     <!-- Load app as module -->
     <script defer src="/js/features/hen-mode.js?v=95"></script>
-    <script type="module" src="/js/effects/valley-loader.js?v=610"></script>
-    <script type="module" src="/js/core/app.js?v=610"></script>
+    <script type="module" src="/js/effects/valley-loader.js?v=611"></script>
+    <script type="module" src="/js/core/app.js?v=611"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="my-baker-modal-title" tabindex="-1">

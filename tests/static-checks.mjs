@@ -1860,15 +1860,15 @@ async function checkSiteMapGraphContracts() {
       || !routeShell.includes(`<title>${route.title} | tezos.systems</title>`)) {
       fail(`${route.slug}/index.html must keep its route-specific title and summary in document metadata`);
     }
+    const shouldExposeFaq = route.slug === 'stake';
     if (!routeShell.includes('"@type": "WebPage"')
       || !routeShell.includes('"@type": "BreadcrumbList"')
-      || routeShell.includes('"@type": "FAQPage"')) {
-      fail(`${route.slug}/index.html must use route-specific WebPage/Breadcrumb schema without inherited dashboard FAQ claims`);
+      || routeShell.includes('"@type": "FAQPage"') !== shouldExposeFaq) {
+      fail(`${route.slug}/index.html must use route-specific WebPage/Breadcrumb schema${shouldExposeFaq ? ' plus the canonical visible guide FAQ' : ' without inherited dashboard FAQ claims'}`);
     }
   }
 
   const standalonePages = [
-    'staking/index.html',
     'governance/index.html',
     'bakers/index.html',
     'landing.html',
@@ -2206,7 +2206,6 @@ async function checkCacheBustAlignment() {
   } else {
     const rootOgConsumers = [
       'landing.html',
-      'staking/index.html',
       'governance/index.html',
       'bakers/index.html',
       'hen/index.html',
@@ -2305,7 +2304,7 @@ async function checkSitemapCoverage() {
 
   const canonicalPages = {
     'landing.html': 'https://tezos.systems/',
-    'staking/index.html': 'https://tezos.systems/staking/',
+    'staking/index.html': 'https://tezos.systems/stake/',
     'governance/index.html': 'https://tezos.systems/governance/',
     'bakers/index.html': 'https://tezos.systems/bakers/',
     'hen/index.html': 'https://tezos.systems/hen/',
@@ -2320,6 +2319,16 @@ async function checkSitemapCoverage() {
     if (file === 'landing.html' && !html.includes(`<meta property="og:url" content="${canonical}">`)) {
       fail(`landing.html Open Graph URL must agree with its Dashboard canonical: ${canonical}`);
     }
+  }
+
+  const stakingRedirect = await readText('staking/index.html');
+  const stakingRedirectScript = await readText('js/landing/staking-redirect.js');
+  if (!stakingRedirect.includes('<meta name="robots" content="noindex, follow">')
+    || !stakingRedirect.includes('<meta http-equiv="refresh" content="0; url=/stake/?view=guide">')
+    || !stakingRedirect.includes('href="/stake/?view=guide"')
+    || !stakingRedirect.includes('src="/js/landing/staking-redirect.js"')
+    || !stakingRedirectScript.includes("window.location.replace('/stake/?view=guide')")) {
+    fail('/staking/ must remain a noindex compatibility redirect into the canonical /stake/ guide view');
   }
 
   pass(`canonical sitemap equality checked: ${locs.size} URLs`);
@@ -4315,7 +4324,6 @@ async function checkUxAuditContracts() {
   const skipPages = [
     ['index.html', index],
     ['landing.html', await readText('landing.html')],
-    ['staking/index.html', await readText('staking/index.html')],
     ['governance/index.html', await readText('governance/index.html')],
     ['bakers/index.html', await readText('bakers/index.html')],
     ['compare/index.html', await readText('compare/index.html')],
@@ -5727,7 +5735,8 @@ async function checkTruthSurfaceContracts() {
   const comparisonVerification = JSON.parse(await readText('data/chain-comparison-verification.json'));
   const comparisonRefresh = await readText('scripts/refresh-chain-comparison.mjs');
   const comparisonWorkflow = await readText('.github/workflows/refresh-chain-comparison.yml');
-  const stakingGuide = await readText('staking/index.html');
+  const stakingGuide = await readText('js/core/staking-guide-content.mjs');
+  const stakingChamber = await readText('js/features/staking-chamber.js');
   const bakersGuide = await readText('bakers/index.html');
   const tweetTemplates = await readText('data/tweets.json');
   const protocolData = await readText('data/protocol-data.json');
@@ -5941,7 +5950,7 @@ async function checkTruthSurfaceContracts() {
   if (/below 67% attestation rate get deactivated/i.test(bakersGuide)) {
     fail('baker guide must separate reward participation thresholds from inactivity deactivation');
   }
-  if (!stakingGuide.includes('direct staking freezes XTZ')
+  if (!/direct staking freezes XTZ/i.test(stakingGuide)
       || !stakingGuide.includes('protocol unstaking and finalization process')
       || !bakersGuide.includes('deactivation is a separate consequence of sustained inactivity')) {
     fail('staking and baker guides must preserve lockup and deactivation semantics');
@@ -5951,6 +5960,13 @@ async function checkTruthSurfaceContracts() {
       || !stakingGuide.includes('0–100% external-staker edge')
       || !stakingGuide.includes('It is not a delegation fee.')) {
     fail('staking guide must distinguish off-chain delegation terms from the on-chain direct-staking edge');
+  }
+  if (!stakingChamber.includes('STAKING_GUIDE_COPY')
+      || !stakingChamber.includes('renderStakingGuide(overviewData)')
+      || !stakingChamber.includes('fetchStakingAPY()')
+      || !stakingChamber.includes('fetchIssuance()')
+      || !stakingChamber.includes("url.searchParams.set('view', 'guide')")) {
+    fail('Staking Chamber must visibly render the shared guide, source its live economics, and preserve the canonical guide-view route');
   }
 
   const publicCopy = `${tweetTemplates}\n${protocolData}\n${comparison}\n${siteMapCopy}\n${dailyBriefingCopy}\n${changelogCopy}`;
@@ -6704,7 +6720,7 @@ async function checkRepositoryLicense() {
     fail('changelog must disclose the public MPL-2.0 source-license change');
   }
 
-  const standalonePages = ['staking/index.html', 'governance/index.html', 'bakers/index.html'];
+  const standalonePages = ['governance/index.html', 'bakers/index.html'];
   for (const file of standalonePages) {
     const page = await readText(file);
     if (!/"publisher":\s*\{\s*"@type": "Person",\s*"name": "Primate",\s*"url": "https:\/\/tezos\.systems\/",\s*"email": "primate@tez\.capital",\s*"sameAs": "https:\/\/github\.com\/Primate411",\s*"affiliation":\s*\{\s*"@type": "Organization",\s*"name": "Tez Capital",\s*"url": "https:\/\/tez\.capital"\s*\}\s*\}/s.test(page)) {
