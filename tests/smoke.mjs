@@ -10684,7 +10684,8 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   await expectCount(page, '#widgets-gallery a[href="/widgets/builder.html"]', 1, label);
   assert(await page.locator('#widgets-gallery .widget-preview-card').count() === 0, `${label}: raw widget preview cards should be demoted out of dashboard`);
   assert(await page.locator('#widgets-gallery a[href^="/widgets/"]:not([href="/widgets/builder.html"])').count() === 0, `${label}: dashboard widget utility should not link to raw widget endpoints`);
-  await expectCount(page, '.section-copy-link', 7, label);
+  await expectCount(page, '.section-copy-link', 6, label);
+  await expectCount(page, '#chambers-section .section-copy-link', 0, `${label} Explore Tezos header`);
 
   await openDropdown(page, '#settings-gear', '#settings-dropdown');
   await page.locator('#changelog-btn').click();
@@ -30079,7 +30080,7 @@ async function smokeInfoModals(browser, baseUrl) {
     exploreTitle: document.querySelector('#chambers-section .section-title')?.textContent?.trim() || '',
     buildingEmoji: /🏛️/.test(document.querySelector('#chambers-section .section-header')?.textContent || ''),
     pulseInfo: document.querySelector('#pulse-ticker-strip #hot-today-info-btn')?.getAttribute('aria-controls') || '',
-    exploreCopy: document.querySelector('#chambers-section .section-copy-link')?.dataset.copyHash || '',
+    exploreCopyCount: document.querySelectorAll('#chambers-section .section-copy-link').length,
     staleModal: Boolean(document.getElementById('chambers-modal'))
   }));
   assert(
@@ -30088,7 +30089,7 @@ async function smokeInfoModals(browser, baseUrl) {
       && sectionHeaderState.exploreTitle === 'Choose a topic'
       && !sectionHeaderState.buildingEmoji
       && sectionHeaderState.pulseInfo === 'hot-today-info-btn-panel'
-      && sectionHeaderState.exploreCopy === '#chambers'
+      && sectionHeaderState.exploreCopyCount === 0
       && !sectionHeaderState.staleModal,
     `descriptive section header contract failed ${JSON.stringify(sectionHeaderState)}`
   );

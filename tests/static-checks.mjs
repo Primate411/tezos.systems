@@ -10175,6 +10175,10 @@ async function checkChamberCategoryContracts() {
   }
   assert(siteMapSource.includes("href: '/chambers/'"), 'Explore Tezos must expose the canonical /chambers/ route');
   assert(
+    !app.includes("{ selector: '#chambers-section .section-header', hash: '#chambers', label: 'Explore Tezos' }"),
+    'Explore Tezos header must omit the redundant direct-link control'
+  );
+  assert(
     CHAMBER_ROUTES.some((route) => route.slug === 'chambers' && route.hash === '#chambers'),
     'generated Chamber routes must include the Explore Tezos dashboard directory'
   );

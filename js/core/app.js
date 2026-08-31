@@ -6733,7 +6733,6 @@ function initDeepLinkAffordances() {
         { selector: '#calculator-section .section-header', hash: '#calculator', label: 'rewards calculator' },
         { selector: '#price-intelligence .section-header', hash: '#price', label: 'price intelligence' },
         { selector: '#widgets-gallery .section-header', hash: '#widgets', label: 'embed builder' },
-        { selector: '#chambers-section .section-header', hash: '#chambers', label: 'Explore Tezos' },
         { selector: '#consensus-section .section-header', hash: '#section=consensus', label: 'consensus stats' },
         { selector: '#economy-section .section-header', hash: '#section=economy', label: 'economy stats' },
         { selector: '#governance-section .section-header', hash: '#section=governance', label: 'governance stats' },
