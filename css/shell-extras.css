@@ -396,6 +396,8 @@
 .top-continuity-explain-actions {
     display: flex;
     justify-content: flex-start;
+    align-items: stretch;
+    gap: 0.42rem;
     min-width: 0;
 }
 
@@ -418,6 +420,22 @@
     border-color: color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 72%, var(--text-primary));
     outline: none;
     box-shadow: 0 0 18px color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 16%, transparent);
+}
+
+.top-continuity-explain-chamber {
+    border-color: color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 64%, var(--glass-border));
+    background: color-mix(in srgb, var(--pill-color, var(--accent-cyan)) 18%, transparent);
+}
+
+.top-continuity-explain-chamber span {
+    display: inline-block;
+    margin-left: 0.12rem;
+    transition: transform 160ms ease-out;
+}
+
+.top-continuity-explain-chamber:hover span,
+.top-continuity-explain-chamber:focus-visible span {
+    transform: translateX(2px);
 }
 
 .top-continuity-explain-close {
@@ -1321,7 +1339,13 @@
         width: 100%;
     }
 
+    .top-continuity-explain-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+    }
+
     .top-continuity-explain-chart {
+        min-height: 44px;
         white-space: normal;
     }
 

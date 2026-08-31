@@ -3326,22 +3326,30 @@ const TOP_CONTINUITY_EXPLANATIONS = {
     'total-bakers': {
         kicker: 'Baker set',
         title: 'Permissionless operators are the continuity layer.',
-        body: 'The latest active registrations include first-time and returning bakers. NEW means no earlier baked block was found before the latest activation.'
+        body: 'The latest active registrations include first-time and returning bakers. NEW means no earlier baked block was found before the latest activation.',
+        chamberEntry: 'leaderboard',
+        chamberLabel: 'Baker Directory Chamber'
     },
     finality: {
         kicker: 'Finality',
         title: 'Fast finality keeps the chain readable in real time.',
-        body: 'The finality pill tracks recent block cadence so the top bar reflects how quickly new Tezos state settles.'
+        body: 'The finality pill tracks recent block cadence so the top bar reflects how quickly new Tezos state settles.',
+        chamberEntry: 'health',
+        chamberLabel: 'Network Health Chamber'
     },
     'staking-ratio': {
         kicker: 'Staked supply',
         title: 'Staked XTZ is economic weight securing blocks.',
-        body: 'The staking ratio combines own and external staked XTZ from TzKT so security participation is visible at a glance.'
+        body: 'The staking ratio combines own and external staked XTZ from TzKT so security participation is visible at a glance.',
+        chamberEntry: 'staking',
+        chamberLabel: 'Staking Chamber'
     },
     'issuance-rate': {
         kicker: 'Issuance',
         title: 'Adaptive issuance is part of the current economic contract.',
-        body: 'This pill follows the live protocol issuance rate, including how the chain pays for staking and validation.'
+        body: 'This pill follows the live protocol issuance rate, including how the chain pays for staking and validation.',
+        chamberEntry: 'staking',
+        chamberLabel: 'Staking Chamber'
     }
 };
 
@@ -4315,6 +4323,7 @@ function initUptimeClock() {
             ${isBakerSet ? '<div class="top-continuity-baker-roster" id="top-continuity-baker-roster" aria-label="New, reactivated, and closed bakers by baking-right change" aria-busy="true"></div>' : ''}
             <div class="top-continuity-explain-actions">
                 <button type="button" class="top-continuity-explain-chart" data-open-card-history="${escapeHtml(key)}">Open all-time chart</button>
+                <button type="button" class="top-continuity-explain-chart top-continuity-explain-chamber" data-open-top-continuity-chamber="${escapeHtml(copy.chamberEntry)}" aria-label="Open ${escapeHtml(copy.chamberLabel)}">Chamber <span aria-hidden="true">&rarr;</span></button>
             </div>
         `;
         if (hasTrends) refreshTopContinuityTrends();
@@ -4401,6 +4410,14 @@ function initUptimeClock() {
 
             if (target.closest('[data-baker-set-retry]')) {
                 refreshTopContinuityBakerRoster({ force: true });
+                return;
+            }
+
+            const chamberButton = target.closest('[data-open-top-continuity-chamber]');
+            if (chamberButton) {
+                const entryId = chamberButton.dataset.openTopContinuityChamber || '';
+                closeTopContinuityExplanation();
+                navigateSiteMapEntry(entryId);
                 return;
             }
 

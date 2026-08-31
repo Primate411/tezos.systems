@@ -29266,6 +29266,9 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
       ariaExpanded: pill?.getAttribute('aria-expanded') || '',
       ariaHidden: popover?.getAttribute('aria-hidden') || '',
       chartButton: Boolean(popover?.querySelector('[data-open-card-history="total-bakers"]')),
+      chamberButton: popover?.querySelector('[data-open-top-continuity-chamber]')?.dataset.openTopContinuityChamber || '',
+      chamberLabel: popover?.querySelector('[data-open-top-continuity-chamber]')?.getAttribute('aria-label') || '',
+      primaryActions: Array.from(popover?.querySelectorAll('.top-continuity-explain-actions > button') || []).map((button) => button.textContent?.trim() || ''),
       closeButton: Boolean(popover?.querySelector('[data-close-top-continuity-explain]')),
       insidePanel: Boolean(panel && popover && popover.parentElement === panel),
       mainDelta: Math.abs(mainTopAfter - beforeTop),
@@ -29292,8 +29295,12 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
   assert(topExplainState.mainDelta <= 1, `feature workflows top pill explainer caused layout shift: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.active && topExplainState.ariaControls === 'top-continuity-explain' && topExplainState.ariaExpanded === 'true', `feature workflows top pill active ARIA mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.ariaHidden === 'false' && topExplainState.role === 'region', `feature workflows top pill popover disclosure state mismatch: ${JSON.stringify(topExplainState)}`);
-  assert(topExplainState.closeButton && topExplainState.chartButton, `feature workflows top pill popover controls missing: ${JSON.stringify(topExplainState)}`);
-  assert(/Baker set/.test(topExplainState.popoverText) && /Open all-time chart/.test(topExplainState.popoverText), `feature workflows top pill popover copy mismatch: ${topExplainState.popoverText}`);
+  assert(topExplainState.closeButton
+    && topExplainState.chartButton
+    && topExplainState.chamberButton === 'leaderboard'
+    && topExplainState.chamberLabel === 'Open Baker Directory Chamber'
+    && topExplainState.primaryActions.join(',') === 'Open all-time chart,Chamber →', `feature workflows top pill popover controls missing or out of order: ${JSON.stringify(topExplainState)}`);
+  assert(/Baker set/.test(topExplainState.popoverText) && /Open all-time chart/.test(topExplainState.popoverText) && /Chamber/.test(topExplainState.popoverText), `feature workflows top pill popover copy mismatch: ${topExplainState.popoverText}`);
   assert(topExplainState.popoverCompact && topExplainState.popoverTintsFromPill, `feature workflows top pill popover geometry mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.listCounts.join(',') === '3,3'
     && topExplainState.ages[0] === '1d'
@@ -29366,22 +29373,50 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
   assert(!topExplainChartState.explainerVisible && /Total Bakers/.test(topExplainChartState.title), `feature workflows top pill chart CTA mismatch: ${JSON.stringify(topExplainChartState)}`);
   await page.locator('#card-history-close').click();
   await page.locator('#card-history-modal[aria-hidden="true"]').waitFor({ state: 'attached', timeout: 5000 });
-  for (const metricKey of ['staking-ratio', 'issuance-rate']) {
+  await topBakersPill.click();
+  await page.locator('#top-continuity-panel > #top-continuity-explain.is-visible [data-open-top-continuity-chamber="leaderboard"]').click();
+  await page.waitForURL((url) => url.pathname === '/leaderboard/', { timeout: 10000 });
+  await page.locator('#baker-directory-modal.active').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#baker-directory-modal.active #baker-directory-title').waitFor({ state: 'visible', timeout: 15000 });
+  const topExplainChamberState = await page.evaluate(() => ({
+    explainerVisible: document.querySelector('#top-continuity-explain')?.classList.contains('is-visible') || false,
+    route: window.location.pathname,
+    chamberTitle: document.querySelector('#baker-directory-modal.active #baker-directory-title')?.textContent?.trim() || ''
+  }));
+  assert(!topExplainChamberState.explainerVisible
+    && topExplainChamberState.route === '/leaderboard/'
+    && /Baker Directory/.test(topExplainChamberState.chamberTitle), `feature workflows top pill Chamber CTA mismatch: ${JSON.stringify(topExplainChamberState)}`);
+  await page.locator('#baker-directory-modal.active .chamber-close').click();
+  await page.waitForURL((url) => url.pathname === '/', { timeout: 5000 });
+  await page.locator('#baker-directory-modal.active').waitFor({ state: 'hidden', timeout: 5000 });
+  for (const { metricKey, chamberEntry, chamberLabel, hasTrends } of [
+    { metricKey: 'finality', chamberEntry: 'health', chamberLabel: 'Open Network Health Chamber', hasTrends: false },
+    { metricKey: 'staking-ratio', chamberEntry: 'staking', chamberLabel: 'Open Staking Chamber', hasTrends: true },
+    { metricKey: 'issuance-rate', chamberEntry: 'staking', chamberLabel: 'Open Staking Chamber', hasTrends: true }
+  ]) {
     const metricPill = page.locator(`#top-continuity-panel .top-continuity-stat[data-card-history="${metricKey}"]`);
     await metricPill.click();
-    await page.waitForFunction((key) => {
+    await page.waitForFunction(({ key, waitForTrends }) => {
       const explain = document.querySelector('#top-continuity-explain.is-visible');
       const horizons = explain?.querySelector('[data-top-continuity-horizons]');
       return document.querySelector(`.top-continuity-stat[data-card-history="${key}"]`)?.classList.contains('is-explaining')
-        && horizons?.getAttribute('aria-busy') === 'false'
-        && horizons.querySelectorAll('.top-continuity-horizon strong').length === 3;
-    }, metricKey, { timeout: 5000 });
+        && (!waitForTrends || (
+          horizons?.getAttribute('aria-busy') === 'false'
+          && horizons.querySelectorAll('.top-continuity-horizon strong').length === 3
+        ));
+    }, { key: metricKey, waitForTrends: hasTrends }, { timeout: 5000 });
     const metricHorizonState = await page.evaluate(() => ({
       labels: Array.from(document.querySelectorAll('#top-continuity-explain .top-continuity-horizon > span')).map((node) => node.textContent?.trim() || ''),
-      values: Array.from(document.querySelectorAll('#top-continuity-explain .top-continuity-horizon strong')).map((node) => node.textContent?.trim() || '')
+      values: Array.from(document.querySelectorAll('#top-continuity-explain .top-continuity-horizon strong')).map((node) => node.textContent?.trim() || ''),
+      chamberEntry: document.querySelector('#top-continuity-explain [data-open-top-continuity-chamber]')?.dataset.openTopContinuityChamber || '',
+      chamberLabel: document.querySelector('#top-continuity-explain [data-open-top-continuity-chamber]')?.getAttribute('aria-label') || ''
     }));
-    assert(metricHorizonState.labels.join(',') === '7D,30D,90D'
-      && metricHorizonState.values.every((value) => /^[-+−]?\d+\.\d{2} pp$/.test(value)), `feature workflows ${metricKey} horizon changes mismatch: ${JSON.stringify(metricHorizonState)}`);
+    assert(metricHorizonState.chamberEntry === chamberEntry
+      && metricHorizonState.chamberLabel === chamberLabel, `feature workflows ${metricKey} Chamber handoff mismatch: ${JSON.stringify(metricHorizonState)}`);
+    if (hasTrends) {
+      assert(metricHorizonState.labels.join(',') === '7D,30D,90D'
+        && metricHorizonState.values.every((value) => /^[-+−]?\d+\.\d{2} pp$/.test(value)), `feature workflows ${metricKey} horizon changes mismatch: ${JSON.stringify(metricHorizonState)}`);
+    }
     await page.locator('[data-close-top-continuity-explain]').click();
   }
   log('ok - feature workflow: top pill explainer popover');
@@ -29684,6 +29719,11 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
         const rect = control.getBoundingClientRect();
         return { width: rect.width, height: rect.height };
       });
+    const primaryActions = Array.from(popover?.querySelectorAll('.top-continuity-explain-actions > button') || [])
+      .map((control) => {
+        const rect = control.getBoundingClientRect();
+        return { text: control.textContent?.trim() || '', left: rect.left, right: rect.right, width: rect.width, height: rect.height };
+      });
     return {
       position: popover ? getComputedStyle(popover).position : '',
       panelOwnsPopover: popover?.parentElement === panel,
@@ -29697,6 +29737,7 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
       newBadges: popover?.querySelectorAll('.top-continuity-baker-new').length || 0,
       actionCount: controls.length,
       controls,
+      primaryActions,
       text: popover?.textContent || ''
     };
   });
@@ -29718,6 +29759,11 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
   assert(mobileBakerSet.actionCount === 12
     && mobileBakerSet.controls.every(({ width, height }) => width >= 43.9 && height >= 43.9),
   `feature workflows mobile baker set: action touch targets regressed ${JSON.stringify(mobileBakerSet)}`);
+  assert(mobileBakerSet.primaryActions.length === 2
+    && mobileBakerSet.primaryActions.map(({ text }) => text).join(',') === 'Open all-time chart,Chamber →'
+    && mobileBakerSet.primaryActions.every(({ width, height }) => width >= 80 && height >= 43.9)
+    && mobileBakerSet.primaryActions[1].left >= mobileBakerSet.primaryActions[0].right - 1,
+  `feature workflows mobile baker set: paired chart/Chamber actions regressed ${JSON.stringify(mobileBakerSet.primaryActions)}`);
   await mobilePage.locator('[data-close-top-continuity-explain]').tap();
   await mobilePage.waitForFunction(() => document.querySelector('#top-continuity-explain')?.getAttribute('aria-hidden') === 'true', null, { timeout: 5000 });
   await mobileContext.close();

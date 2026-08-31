@@ -489,7 +489,10 @@ inline modal styles in `js/core/app.js`.
   `mainnet age · since 2018` label. The counter measures elapsed time
   since launch, not an availability percentage or incident ledger. Active baker
   count, finality, staked share, and issuance rate remain in theme-matched stat
-  pills. The trailing-hour activity receipt now belongs to Live Head's compact
+  pills. Each pill's explanation keeps the all-time chart action beside a
+  contextual Chamber handoff: Baker Directory for baker count, Network Health
+  for finality, and Staking Chamber for staked share or issuance. The
+  trailing-hour activity receipt now belongs to Live Head's compact
   top-right control rail instead of competing with mainnet age; it shows
   transaction count, XTZ moved, and NFT transfers and opens Network Health. Its
   first paint reserves the final `1H Activity / TX / Moved / NFT` metric shape
