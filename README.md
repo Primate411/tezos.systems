@@ -910,14 +910,21 @@ inline modal styles in `js/core/app.js`.
   The search accepts
   Tezos addresses, `.tez` names, protocol names, block levels, block hashes,
   operation hashes, KT1 contracts, and slash commands. Empty focus exposes six
-  calm starters; typing replaces them with the ranked canonical destination and
-  runtime-action list. The first paint is globally capped at ten selectable
-  results, then an anchored `Show all` row reveals the remainder without sending
-  the reader back to the top. Literal matches are highlighted; rows ranked by a
-  hidden alias or keyword expose that matching context instead of appearing
-  arbitrary. Focus moves the same search node into the full-viewport Index
-  Chamber, putting the field at the top and a content-sized visible results sheet
-  inside the remaining full-height scroller. Launch is synchronous, opaque, and
+  calm starters plus the Index Loom: six connected, keyboard-reachable paths
+  through wallets, the network, rooms, bakers, receipts, and the complete site
+  directory. Choosing any Loom node seeds the matching search. Typing replaces
+  both idle layers with the ranked canonical destination and runtime-action list,
+  keeps a quiet semantic path above the results that links to the related
+  Chamber, and expands the result sheet to the bottom of the remaining
+  full-height scroller. An unmatched query retains
+  the closest path as a recovery route instead of ending in a dead state. The
+  first paint is globally capped at ten selectable results, then an anchored
+  `Show all` row reveals the remainder without sending the reader back to the
+  top. Literal matches are highlighted; rows ranked by a hidden alias or keyword
+  expose that matching context instead of appearing arbitrary. Focus moves the
+  same search node into the full-viewport Index Chamber, putting the field at the
+  top and the idle or result surface inside the remaining full-height scroller.
+  Launch is synchronous, opaque, and
   free of backdrop blur; the shared
   overlay contract isolates the visually undimmed background, contains keyboard
   focus, follows the mobile visual viewport, and restores the exact opener and
@@ -1822,7 +1829,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v607`, including the full-viewport Index
+- Current aligned shell cache stamp: `v608`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

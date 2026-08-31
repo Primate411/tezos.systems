@@ -6990,6 +6990,9 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       open: document.body.classList.contains('hero-search-mode'),
       focused: document.activeElement?.id === 'hero-search-input',
       starterCount: document.querySelectorAll('#hero-search-panel [role="option"]').length,
+      loomRouteCount: document.querySelectorAll('#hero-search-panel .hero-search-index-route').length,
+      loomNodeCount: document.querySelectorAll('#hero-search-panel [data-hero-loom-query]').length,
+      loomActiveRoute: document.querySelector('#hero-search-panel .hero-search-index-loom')?.dataset.indexActiveRoute || '',
       sameRoot: document.getElementById('hero-slot') === root,
       openerId: opener?.id || '',
       scroll,
@@ -7000,6 +7003,9 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     launchState.open
       && launchState.focused
       && launchState.starterCount === 6
+      && launchState.loomRouteCount === 6
+      && launchState.loomNodeCount === 24
+      && launchState.loomActiveRoute === 'network'
       && launchState.sameRoot
       && launchState.elapsed < 100
       && launchState.scroll.x === launchState.scrollAfter.x
@@ -7022,6 +7028,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     const formRect = form?.getBoundingClientRect();
     const panelRect = panel?.getBoundingClientRect();
     const sheetRect = panel?.querySelector('.hero-search-sheet')?.getBoundingClientRect();
+    const loomRect = panel?.querySelector('.hero-search-index-loom')?.getBoundingClientRect();
     const viewport = window.visualViewport;
     const viewportRect = {
       top: viewport?.offsetTop || 0,
@@ -7059,6 +7066,10 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       panelBottomGap: panelRect ? viewportBottom - panelRect.bottom : 999,
       panelMaxHeight: getComputedStyle(panel).maxHeight,
       sheetContentSized: Boolean(panelRect && sheetRect && sheetRect.height < panelRect.height - 20),
+      loomBelowSheet: Boolean(sheetRect && loomRect && loomRect.top >= sheetRect.bottom - 1),
+      loomWithinPanel: Boolean(panelRect && loomRect && loomRect.bottom <= panelRect.bottom + 1),
+      loomRouteCount: panel.querySelectorAll('.hero-search-index-route').length,
+      loomNodeCount: panel.querySelectorAll('[data-hero-loom-query]').length,
       panelBackdrop: getComputedStyle(panel).backdropFilter || getComputedStyle(panel).webkitBackdropFilter || '',
       overlayBackdrop: getComputedStyle(overlay).backdropFilter || getComputedStyle(overlay).webkitBackdropFilter || '',
       resultButtons: panel.querySelectorAll('button[role="option"]').length,
@@ -7097,7 +7108,14 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       && focusModeState.panelMaxHeight === 'none',
     `hero command bar: Index Chamber does not fill the visual viewport ${JSON.stringify(focusModeState)}`
   );
-  assert(focusModeState.sheetContentSized, `hero command bar: visible Index sheet does not track starter content ${JSON.stringify(focusModeState)}`);
+  assert(
+    focusModeState.sheetContentSized
+      && focusModeState.loomBelowSheet
+      && focusModeState.loomWithinPanel
+      && focusModeState.loomRouteCount === 6
+      && focusModeState.loomNodeCount === 24,
+    `hero command bar: starter sheet or Index Loom geometry drifted ${JSON.stringify(focusModeState)}`
+  );
   assert(
     ['none', ''].includes(focusModeState.panelBackdrop)
       && ['none', ''].includes(focusModeState.overlayBackdrop)
@@ -7118,6 +7136,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       const overlay = document.getElementById('hero-search-overlay');
       const panel = document.getElementById('hero-search-panel');
       const panelRect = panel?.getBoundingClientRect();
+      const loom = panel?.querySelector('.hero-search-index-loom');
       const starters = Array.from(panel?.querySelectorAll('.hero-search-group.is-starter .hero-search-result') || []);
       states.push({
         theme,
@@ -7126,6 +7145,9 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
         panelPosition: getComputedStyle(panel).position,
         panelBackdrop: getComputedStyle(panel).backdropFilter || getComputedStyle(panel).webkitBackdropFilter || '',
         starterCount: starters.length,
+        loomDisplay: loom ? getComputedStyle(loom).display : 'none',
+        loomRouteCount: loom?.querySelectorAll('.hero-search-index-route').length || 0,
+        loomNodeCount: loom?.querySelectorAll('[data-hero-loom-query]').length || 0,
         startersVisible: starters.every((row) => {
           const rect = row.getBoundingClientRect();
           return panelRect && rect.top >= panelRect.top - 1 && rect.bottom <= panelRect.bottom + 1;
@@ -7142,6 +7164,9 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       && state.panelPosition === 'relative'
       && ['none', ''].includes(state.panelBackdrop)
       && state.starterCount === 6
+      && state.loomDisplay === 'grid'
+      && state.loomRouteCount === 6
+      && state.loomNodeCount === 24
       && state.startersVisible
       && state.overflow <= 1),
     `hero command bar: Index Chamber drifted across themes ${JSON.stringify(themeStates)}`
@@ -7152,9 +7177,11 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     const overlay = document.getElementById('hero-search-overlay');
     const panel = document.getElementById('hero-search-panel');
     const form = document.getElementById('hero-search-form');
+    const loom = document.querySelector('.hero-search-index-loom');
     return {
       overlayAnimation: getComputedStyle(overlay).animationName,
       panelAnimation: getComputedStyle(panel).animationName,
+      loomAnimation: getComputedStyle(loom).animationName,
       panelTransition: getComputedStyle(panel).transitionDuration,
       formTransition: getComputedStyle(form).transitionDuration
     };
@@ -7162,6 +7189,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   assert(
     reducedMotionState.overlayAnimation === 'none'
       && reducedMotionState.panelAnimation === 'none'
+      && reducedMotionState.loomAnimation === 'none'
       && /^0s(?:, 0s)*$/.test(reducedMotionState.panelTransition)
       && /^0s(?:, 0s)*$/.test(reducedMotionState.formTransition),
     `hero command bar: reduced motion retained search animation ${JSON.stringify(reducedMotionState)}`
@@ -7170,9 +7198,12 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
 
   await page.locator('#hero-search-close').focus();
   await page.keyboard.press('Tab');
-  assert(await page.evaluate(() => document.activeElement?.id === 'hero-search-input'), 'hero command bar: Tab escaped the Index Chamber instead of wrapping to search');
+  assert(await page.evaluate(() => document.activeElement?.matches('[data-hero-loom-query]')), 'hero command bar: Tab did not enter the Index Loom after the close control');
+  await page.locator('[data-hero-loom-query]').last().focus();
+  await page.keyboard.press('Tab');
+  assert(await page.evaluate(() => document.activeElement?.id === 'hero-search-input'), 'hero command bar: Tab escaped the Index Chamber instead of wrapping from the Loom to search');
   await page.keyboard.press('Shift+Tab');
-  assert(await page.evaluate(() => document.activeElement?.id === 'hero-search-close'), 'hero command bar: reverse Tab did not wrap to the Index Chamber close control');
+  assert(await page.evaluate(() => document.activeElement === document.querySelector('[data-hero-loom-query]:last-of-type') || document.activeElement?.matches('[data-hero-loom-query]')), 'hero command bar: reverse Tab did not wrap to the final Index Loom control');
   await page.locator('#hero-search-input').focus();
 
   await page.keyboard.press('Escape');
@@ -7224,6 +7255,76 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     markDisplay: getComputedStyle(document.querySelector('.live-head-panel .hero-search-mark')).display
   }));
   assert(idleChrome.chipsDisplay === 'none' && idleChrome.markDisplay === 'grid', `hero command bar: open search should expose its index sigil without reviving terminal chips ${JSON.stringify(idleChrome)}`);
+  await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel .hero-search-index-weave path').length === 20, null, { timeout: 5000 });
+  const loomState = await page.evaluate(() => {
+    const loom = document.querySelector('#hero-search-panel .hero-search-index-loom');
+    const routes = loom?.querySelector('.hero-search-index-routes');
+    return {
+      routes: loom?.querySelectorAll('.hero-search-index-route').length || 0,
+      nodes: loom?.querySelectorAll('[data-hero-loom-query]').length || 0,
+      weavePaths: loom?.querySelectorAll('.hero-search-index-weave path').length || 0,
+      columns: routes ? getComputedStyle(routes).gridTemplateColumns.split(/\s+/).filter(Boolean).length : 0,
+      activeRoute: loom?.dataset.indexActiveRoute || '',
+      labels: Array.from(loom?.querySelectorAll('.hero-search-index-node > span:last-child') || [], (node) => node.textContent?.trim() || ''),
+      overflow: document.documentElement.scrollWidth - innerWidth
+    };
+  });
+  assert(
+    loomState.routes === 6
+      && loomState.nodes === 24
+      && loomState.weavePaths === 20
+      && loomState.columns === 6
+      && loomState.activeRoute === 'network'
+      && ['WALLET', '.TEZ', 'DELEGATION', 'REWARDS', 'NETWORK', 'BLOCKS', 'CONSENSUS', 'HEALTH', 'ROOMS', 'ECOSYSTEM', 'GOVERNANCE', 'HISTORY', 'BAKERS', 'DIRECTORY', 'RIGHTS', 'PERFORMANCE', 'HASH', 'OPERATION', 'CONTRACT', 'RECEIPT', 'BROWSE', 'CHAMBERS', 'GUIDES', 'TOOLS'].every((label) => loomState.labels.includes(label))
+      && loomState.overflow <= 1,
+    `hero command bar: idle Index Loom is incomplete or overflowed ${JSON.stringify(loomState)}`
+  );
+  await page.locator('#hero-search-panel [data-hero-loom-query="network"]').click();
+  await page.waitForFunction(() => (
+    document.getElementById('hero-search-input')?.value === 'network'
+      && !document.querySelector('#hero-search-panel .hero-search-index-loom')
+      && document.querySelector('#hero-search-panel .hero-search-route-trail')
+  ), null, { timeout: 5000 });
+  const typedLoomState = await page.evaluate(() => {
+    const panel = document.getElementById('hero-search-panel');
+    const sheet = panel?.querySelector('.hero-search-sheet.is-results');
+    const selected = panel?.querySelector('.hero-search-result.is-selected');
+    const panelRect = panel?.getBoundingClientRect();
+    const sheetRect = sheet?.getBoundingClientRect();
+    const selectedRect = selected?.getBoundingClientRect();
+    const formRect = document.getElementById('hero-search-form')?.getBoundingClientRect();
+    const inputRect = document.getElementById('hero-search-input')?.getBoundingClientRect();
+    const markRect = document.querySelector('.hero-search-mark')?.getBoundingClientRect();
+    const submitRect = document.querySelector('.hero-search-submit')?.getBoundingClientRect();
+    const closeRect = document.querySelector('.hero-search-close')?.getBoundingClientRect();
+    const center = (rect) => rect ? rect.top + rect.height / 2 : Number.NaN;
+    const formCenter = center(formRect);
+    return {
+      path: document.getElementById('hero-slot')?.dataset.heroSearchPath || '',
+      trail: panel?.querySelector('.hero-search-route-trail')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      trailHref: panel?.querySelector('.hero-search-route-trail')?.getAttribute('href') || '',
+      loomPresent: Boolean(panel?.querySelector('.hero-search-index-loom')),
+      sheetReachesFloor: Boolean(panelRect && sheetRect && sheetRect.height >= panelRect.height - 1),
+      selectedVisible: Boolean(panelRect && selectedRect && selectedRect.top >= panelRect.top - 1 && selectedRect.bottom <= panelRect.bottom + 1),
+      panelMaxHeight: panel ? getComputedStyle(panel).maxHeight : '',
+      queryHelpDisplay: getComputedStyle(document.querySelector('.hero-search-help')).display,
+      maxControlCenterDelta: Math.max(...[inputRect, markRect, submitRect, closeRect].map((rect) => Math.abs(center(rect) - formCenter)))
+    };
+  });
+  assert(
+    typedLoomState.path === 'network'
+      && /NETWORK.*BLOCKS.*CONSENSUS.*HEALTH/.test(typedLoomState.trail)
+      && typedLoomState.trailHref === '/health/'
+      && !typedLoomState.loomPresent
+      && typedLoomState.sheetReachesFloor
+      && typedLoomState.selectedVisible
+      && typedLoomState.panelMaxHeight === 'none'
+      && typedLoomState.queryHelpDisplay === 'none'
+      && typedLoomState.maxControlCenterDelta <= 1,
+    `hero command bar: typing did not replace the Loom with a full-height routed result sheet ${JSON.stringify(typedLoomState)}`
+  );
+  await page.locator('#hero-search-input').fill('');
+  await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length === 6 && Boolean(document.querySelector('#hero-search-panel .hero-search-index-loom')), null, { timeout: 5000 });
   await page.locator('#hero-search-panel .hero-search-result[data-result-id="starter:rooms"]').click();
   await page.waitForFunction(() => document.getElementById('hero-search-input')?.value === 'rooms', null, { timeout: 5000 });
   const roomsOpenState = await page.evaluate(() => ({
@@ -7233,7 +7334,28 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   }));
   assert(roomsOpenState.expanded === 'true' && !roomsOpenState.hidden && roomsOpenState.bodyMode, `hero command bar: Rooms closed the attached list ${JSON.stringify(roomsOpenState)}`);
   await page.locator('#hero-search-input').fill('');
-  await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length === 6, null, { timeout: 5000 });
+  await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length === 6 && Boolean(document.querySelector('#hero-search-panel .hero-search-index-loom')), null, { timeout: 5000 });
+  await page.locator('#hero-search-input').fill('zzzz-no-index-path');
+  await page.waitForFunction(() => Boolean(document.querySelector('#hero-search-panel .hero-search-empty') && document.querySelector('#hero-search-panel .hero-search-index-recovery')), null, { timeout: 5000 });
+  const recoveryState = await page.evaluate(() => ({
+    path: document.getElementById('hero-slot')?.dataset.heroSearchPath || '',
+    fullLoom: Boolean(document.querySelector('#hero-search-panel .hero-search-index-loom')),
+    recoveryNodes: document.querySelectorAll('#hero-search-panel .hero-search-index-recovery [data-hero-loom-query]').length,
+    recoveryText: document.querySelector('#hero-search-panel .hero-search-index-recovery')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+    trailText: document.querySelector('#hero-search-panel .hero-search-route-trail')?.textContent?.replace(/\s+/g, ' ').trim() || ''
+  }));
+  assert(
+    recoveryState.path === 'browse'
+      && !recoveryState.fullLoom
+      && recoveryState.recoveryNodes === 4
+      && /Try a nearby path.*BROWSE.*CHAMBERS.*GUIDES.*TOOLS/.test(recoveryState.recoveryText)
+      && /BROWSE.*CHAMBERS.*GUIDES.*TOOLS/.test(recoveryState.trailText),
+    `hero command bar: unmatched query did not retain the nearest Loom branch ${JSON.stringify(recoveryState)}`
+  );
+  await page.locator('#hero-search-panel .hero-search-index-recovery [data-hero-loom-query="guides"]').click();
+  await page.waitForFunction(() => document.getElementById('hero-search-input')?.value === 'guides' && Boolean(document.querySelector('#hero-search-panel .hero-search-result')), null, { timeout: 5000 });
+  await page.locator('#hero-search-input').fill('');
+  await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length === 6 && Boolean(document.querySelector('#hero-search-panel .hero-search-index-loom')), null, { timeout: 5000 });
   await page.locator('#hero-search-panel .hero-search-result').filter({ hasText: 'Browse all' }).click();
   await page.waitForFunction(() => document.querySelectorAll('#hero-search-panel [role="option"]').length > 20, null, { timeout: 5000 });
   const browseAllText = await page.locator('#hero-search-panel').innerText();
@@ -7892,6 +8014,8 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     };
     const starterRects = Array.from(document.querySelectorAll('#hero-search-panel .hero-search-group.is-starter .hero-search-result'), (row) => row.getBoundingClientRect());
     const starterRowTops = [...new Set(starterRects.map((rect) => Math.round(rect.top)))];
+    const loom = document.querySelector('#hero-search-panel .hero-search-index-loom');
+    const loomRoutes = loom?.querySelector('.hero-search-index-routes');
     return {
       beforeScale: before.scale,
       beforeScrollWidth: before.scrollWidth,
@@ -7929,6 +8053,9 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
       panelBackdrop: getComputedStyle(document.getElementById('hero-search-panel')).backdropFilter || getComputedStyle(document.getElementById('hero-search-panel')).webkitBackdropFilter || '',
       starterCount: starterRects.length,
       starterRows: starterRowTops.length,
+      loomRouteCount: loom?.querySelectorAll('.hero-search-index-route').length || 0,
+      loomNodeCount: loom?.querySelectorAll('[data-hero-loom-query]').length || 0,
+      loomColumns: loomRoutes ? getComputedStyle(loomRoutes).gridTemplateColumns.split(/\s+/).filter(Boolean).length : 0,
       starterVisible: starterRects.every((rect) => {
         const panelRect = document.getElementById('hero-search-panel')?.getBoundingClientRect();
         return panelRect && rect.top >= panelRect.top - 1 && rect.bottom <= panelRect.bottom + 1;
@@ -7964,6 +8091,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   assert(mobileFocusState.form?.bottom <= mobileFocusState.panel?.top + 1 && mobileFocusState.panelPosition === 'relative', `hero command bar mobile focus: results do not fill the Chamber below its search control ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.overlay.bottom - mobileFocusState.panel?.bottom >= 8 && mobileFocusState.overlay.bottom - mobileFocusState.panel?.bottom <= 10, `hero command bar mobile focus: results do not end at the visual viewport gutter ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.starterCount === 6 && mobileFocusState.starterRows === 3 && mobileFocusState.starterVisible, `hero command bar mobile focus: six starter actions are not immediately visible in a two-by-three grid ${JSON.stringify(mobileFocusState)}`);
+  assert(mobileFocusState.loomRouteCount === 6 && mobileFocusState.loomNodeCount === 24 && mobileFocusState.loomColumns === 2, `hero command bar mobile focus: Index Loom did not collapse to two discovery columns ${JSON.stringify(mobileFocusState)}`);
   assert(['none', ''].includes(mobileFocusState.panelBackdrop) && mobileFocusState.optionButtons === 0 && mobileFocusState.bodyOverflow === 'hidden' && mobileFocusState.htmlOverflow === 'hidden', `hero command bar mobile focus: fast opaque active-descendant contract failed ${JSON.stringify(mobileFocusState)}`);
   assert(Math.abs(mobileFocusState.scroll.x - await mobilePage.evaluate(() => window.__mobileHeroScroll.x)) <= 1 && Math.abs(mobileFocusState.scroll.y - await mobilePage.evaluate(() => window.__mobileHeroScroll.y)) <= 1, `hero command bar mobile focus: opening moved the reader ${JSON.stringify(mobileFocusState)}`);
   assert(mobileFocusState.closeVisible, `hero command bar mobile focus: explicit close button is not visible ${JSON.stringify(mobileFocusState)}`);
@@ -7979,15 +8107,18 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
     const group = panel?.querySelector('.hero-search-group.is-starter');
     const rows = Array.from(group?.querySelectorAll('.hero-search-result') || []);
     const rects = rows.map((row) => row.getBoundingClientRect());
+    const loomRoutes = panel?.querySelector('.hero-search-index-routes');
     return {
       count: rows.length,
       columns: getComputedStyle(group).gridTemplateColumns.split(/\s+/).filter(Boolean).length,
       rowCount: [...new Set(rects.map((rect) => Math.round(rect.top)))].length,
+      loomColumns: loomRoutes ? getComputedStyle(loomRoutes).gridTemplateColumns.split(/\s+/).filter(Boolean).length : 0,
+      loomNodes: loomRoutes?.querySelectorAll('[data-hero-loom-query]').length || 0,
       overflow: document.documentElement.scrollWidth - innerWidth,
       panelOverflow: panel ? panel.scrollWidth - panel.clientWidth : 999
     };
   });
-  assert(narrowStarterState.count === 6 && narrowStarterState.columns === 2 && narrowStarterState.rowCount === 3 && narrowStarterState.overflow <= 1 && narrowStarterState.panelOverflow <= 1, `hero command bar 320px: starter grid or horizontal fit failed ${JSON.stringify(narrowStarterState)}`);
+  assert(narrowStarterState.count === 6 && narrowStarterState.columns === 2 && narrowStarterState.rowCount === 3 && narrowStarterState.loomColumns === 2 && narrowStarterState.loomNodes === 24 && narrowStarterState.overflow <= 1 && narrowStarterState.panelOverflow <= 1, `hero command bar 320px: starter grid, Index Loom, or horizontal fit failed ${JSON.stringify(narrowStarterState)}`);
   await mobilePage.setViewportSize({ width: 390, height: 844 });
   await mobilePage.waitForFunction(() => {
     const rect = document.getElementById('hero-search-overlay')?.getBoundingClientRect();
@@ -7997,15 +8128,36 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
 
   await mobilePage.locator('#hero-search-input').fill('nakamoto coefficient');
   await mobilePage.waitForFunction(() => document.querySelector('#hero-search-panel .hero-search-result strong')?.textContent?.trim() === 'Network Health', null, { timeout: 5000 });
-  const mobileQueryState = await mobilePage.evaluate(() => ({
-    chipsDisplay: getComputedStyle(document.getElementById('hero-search-chips')).display,
-    selectedVisible: (() => {
-      const panel = document.getElementById('hero-search-panel')?.getBoundingClientRect();
-      const option = document.querySelector('#hero-search-panel .hero-search-result.is-selected')?.getBoundingClientRect();
-      return Boolean(panel && option && option.top >= panel.top - 1 && option.bottom <= panel.bottom + 1);
-    })()
-  }));
-  assert(mobileQueryState.chipsDisplay === 'none' && mobileQueryState.selectedVisible, `hero command bar mobile query: shortcuts should collapse and first result stay visible ${JSON.stringify(mobileQueryState)}`);
+  const mobileQueryState = await mobilePage.evaluate(() => {
+    const panelNode = document.getElementById('hero-search-panel');
+    const panel = panelNode?.getBoundingClientRect();
+    const sheet = panelNode?.querySelector('.hero-search-sheet.is-results')?.getBoundingClientRect();
+    const option = panelNode?.querySelector('.hero-search-result.is-selected')?.getBoundingClientRect();
+    const form = document.getElementById('hero-search-form')?.getBoundingClientRect();
+    const center = (rect) => rect ? rect.top + rect.height / 2 : Number.NaN;
+    const formCenter = center(form);
+    const controls = [
+      document.getElementById('hero-search-input')?.getBoundingClientRect(),
+      document.querySelector('.hero-search-mark')?.getBoundingClientRect(),
+      document.querySelector('.hero-search-submit')?.getBoundingClientRect(),
+      document.querySelector('.hero-search-close')?.getBoundingClientRect()
+    ];
+    return {
+      chipsDisplay: getComputedStyle(document.getElementById('hero-search-chips')).display,
+      path: document.getElementById('hero-slot')?.dataset.heroSearchPath || '',
+      trail: panelNode?.querySelector('.hero-search-route-trail')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      trailHref: panelNode?.querySelector('.hero-search-route-trail')?.getAttribute('href') || '',
+      loomPresent: Boolean(panelNode?.querySelector('.hero-search-index-loom')),
+      sheetReachesFloor: Boolean(panel && sheet && sheet.height >= panel.height - 1),
+      panelRect: panel ? { top: panel.top, bottom: panel.bottom, height: panel.height } : null,
+      sheetRect: sheet ? { top: sheet.top, bottom: sheet.bottom, height: sheet.height } : null,
+      panelScrollTop: panelNode?.scrollTop || 0,
+      selectedVisible: Boolean(panel && option && option.top >= panel.top - 1 && option.bottom <= panel.bottom + 1),
+      queryHelpDisplay: getComputedStyle(document.querySelector('.hero-search-help')).display,
+      maxControlCenterDelta: Math.max(...controls.map((rect) => Math.abs(center(rect) - formCenter)))
+    };
+  });
+  assert(mobileQueryState.chipsDisplay === 'none' && mobileQueryState.path === 'network' && /NETWORK.*BLOCKS.*CONSENSUS.*HEALTH/.test(mobileQueryState.trail) && mobileQueryState.trailHref === '/health/' && !mobileQueryState.loomPresent && mobileQueryState.sheetReachesFloor && mobileQueryState.selectedVisible && mobileQueryState.queryHelpDisplay === 'none' && mobileQueryState.maxControlCenterDelta <= 1, `hero command bar mobile query: Loom transition, routed result floor, or vertically centered controls failed ${JSON.stringify(mobileQueryState)}`);
   await mobilePage.locator('#hero-search-input').fill('capital chamber');
   await mobilePage.waitForFunction(() => document.querySelector('#hero-search-panel .hero-result-meta')?.textContent?.trim() === 'New', null, { timeout: 5000 });
   const mobileMetaState = await mobilePage.evaluate(() => ({
@@ -35734,8 +35886,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'release-update', description: 'Persistent desktop/mobile release dock, Later pill, activation fallback, and cross-tab service-worker lifecycle', run: () => smokeReleaseUpdateDock(browser, baseUrl) },
     { name: 'hero-landscape', description: 'Hero continuity signals form one uptime/activity row above one uninterrupted four-pill row at intermediate widths', run: () => smokeHeroIntermediate(browser, baseUrl) },
     { name: 'hero-command-bar-first-paint', description: 'The no-JavaScript Live Head command shell paints with stable geometry and truthful loading state', run: () => smokeHeroCommandBar(browser, baseUrl, 'first-paint') },
-    { name: 'hero-command-bar-desktop', description: 'Desktop Index Chamber launches synchronously, fills the visual viewport, isolates accessibly, and restores exact reader state', run: () => smokeHeroCommandBar(browser, baseUrl, 'desktop') },
-    { name: 'hero-command-bar-mobile', description: 'Mobile Index Chamber preserves visual viewport, keyboard, focus, scroll, fallback glyph, starter grid, and result geometry', run: () => smokeHeroCommandBar(browser, baseUrl, 'mobile') },
+    { name: 'hero-command-bar-desktop', description: 'Desktop Index Chamber launches synchronously with its Index Loom, routed full-height results, accessible isolation, and exact reader-state restoration', run: () => smokeHeroCommandBar(browser, baseUrl, 'desktop') },
+    { name: 'hero-command-bar-mobile', description: 'Mobile Index Chamber preserves visual viewport, keyboard, focus, scroll, fallback glyph, starter and Loom grids, and routed result geometry', run: () => smokeHeroCommandBar(browser, baseUrl, 'mobile') },
     { name: 'handoff-question-field', description: 'The Handoff keeps seven anchor and six satellite questions readable and non-overlapping across every theme and phone/compact/desktop geometry', run: () => smokeHandoffQuestionField(browser, baseUrl) },
     { name: 'route-search-state', description: 'Alias transitions, bare routes, search relevance, Escape focus, query preservation, and Back/Forward state stay coherent', run: () => smokeRouteSearchState(browser, baseUrl) },
     { name: 'breakpoint-accessibility', description: 'Exact paired breakpoints, 200% reflow, forced colors, and reduced motion preserve shell/search/Chamber focus, containment, and horizontal fit', run: () => smokeBreakpointAccessibility(browser, baseUrl) },

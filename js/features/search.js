@@ -95,6 +95,86 @@ const MISSION_STARTERS = Object.freeze([
     Object.freeze({ id: 'starter:browse', kind: 'page', group: 'Start', title: 'Browse all', detail: 'Open the complete destination list', action: 'browse-all' })
 ]);
 
+const INDEX_LOOM_ROUTES = Object.freeze([
+    Object.freeze({
+        id: 'wallet',
+        href: '/my/',
+        nodes: Object.freeze([
+            Object.freeze({ label: 'WALLET', query: 'wallet' }),
+            Object.freeze({ label: '.TEZ', query: '.tez' }),
+            Object.freeze({ label: 'DELEGATION', query: 'delegation' }),
+            Object.freeze({ label: 'REWARDS', query: 'rewards' })
+        ]),
+        keywords: Object.freeze(['account', 'address', 'balance', 'domain', 'identity', 'my tezos', 'portfolio', 'staking rewards'])
+    }),
+    Object.freeze({
+        id: 'network',
+        href: '/health/',
+        nodes: Object.freeze([
+            Object.freeze({ label: 'NETWORK', query: 'network' }),
+            Object.freeze({ label: 'BLOCKS', query: 'blocks' }),
+            Object.freeze({ label: 'CONSENSUS', query: 'consensus' }),
+            Object.freeze({ label: 'HEALTH', query: 'network health' })
+        ]),
+        keywords: Object.freeze(['attestation', 'finality', 'live head', 'nakamoto coefficient', 'octez', 'quorum', 'round'])
+    }),
+    Object.freeze({
+        id: 'rooms',
+        href: '/chambers/',
+        nodes: Object.freeze([
+            Object.freeze({ label: 'ROOMS', query: 'rooms' }),
+            Object.freeze({ label: 'ECOSYSTEM', query: 'ecosystem' }),
+            Object.freeze({ label: 'GOVERNANCE', query: 'governance' }),
+            Object.freeze({ label: 'HISTORY', query: 'history' })
+        ]),
+        keywords: Object.freeze(['capital', 'chamber', 'protocol', 'story', 'tezos systems'])
+    }),
+    Object.freeze({
+        id: 'bakers',
+        href: '/leaderboard/?view=directory',
+        nodes: Object.freeze([
+            Object.freeze({ label: 'BAKERS', query: 'bakers' }),
+            Object.freeze({ label: 'DIRECTORY', query: 'baker directory' }),
+            Object.freeze({ label: 'RIGHTS', query: 'baking rights' }),
+            Object.freeze({ label: 'PERFORMANCE', query: 'baker performance' })
+        ]),
+        keywords: Object.freeze(['baking', 'delegate', 'delegator', 'producer', 'validator'])
+    }),
+    Object.freeze({
+        id: 'hash',
+        href: '/health/',
+        nodes: Object.freeze([
+            Object.freeze({ label: 'HASH', query: 'hash' }),
+            Object.freeze({ label: 'OPERATION', query: 'operation' }),
+            Object.freeze({ label: 'CONTRACT', query: 'contract' }),
+            Object.freeze({ label: 'RECEIPT', query: 'receipt' })
+        ]),
+        keywords: Object.freeze(['block hash', 'kt1', 'operation hash', 'smart contract', 'transaction'])
+    }),
+    Object.freeze({
+        id: 'browse',
+        href: '/chambers/',
+        nodes: Object.freeze([
+            Object.freeze({ label: 'BROWSE', query: 'browse' }),
+            Object.freeze({ label: 'CHAMBERS', query: 'chambers' }),
+            Object.freeze({ label: 'GUIDES', query: 'guides' }),
+            Object.freeze({ label: 'TOOLS', query: 'tools' })
+        ]),
+        keywords: Object.freeze(['all pages', 'directory', 'explore', 'site map', 'widgets'])
+    })
+]);
+
+const INDEX_LOOM_BRIDGES = Object.freeze([
+    Object.freeze({ from: ['wallet', 1], to: ['network', 2] }),
+    Object.freeze({ from: ['network', 0], to: ['rooms', 0] }),
+    Object.freeze({ from: ['rooms', 1], to: ['bakers', 2] }),
+    Object.freeze({ from: ['rooms', 2], to: ['bakers', 3] }),
+    Object.freeze({ from: ['bakers', 0], to: ['hash', 0] }),
+    Object.freeze({ from: ['hash', 0], to: ['browse', 0] }),
+    Object.freeze({ from: ['hash', 1], to: ['browse', 2] }),
+    Object.freeze({ from: ['hash', 2], to: ['browse', 3] })
+]);
+
 let protocols = [];
 let protocolsPromise = null;
 const bakerSearchCache = new Map();
@@ -142,6 +222,99 @@ function ensureHeroSearchStyles() {
 
 function normalizeQuery(value) {
     return String(value || '').trim();
+}
+
+function indexLoomRoute(routeId) {
+    return INDEX_LOOM_ROUTES.find((route) => route.id === routeId) || INDEX_LOOM_ROUTES[1];
+}
+
+function indexLoomRouteFor(query, candidates = [], { browseAll = false } = {}) {
+    if (browseAll) return indexLoomRoute('browse');
+    const q = normalizeQuery(query);
+    if (!q) return indexLoomRoute('network');
+    const entity = parseSearchEntity(q);
+    if (entity?.kind === 'block') return indexLoomRoute('network');
+    if (entity?.kind === 'operation' || entity?.kind === 'contract') return indexLoomRoute('hash');
+    if (entity?.kind === 'account' || entity?.kind === 'domain') return indexLoomRoute('wallet');
+
+    const scored = INDEX_LOOM_ROUTES
+        .map((route, index) => ({
+            route,
+            index,
+            score: siteMapSearchScore({
+                id: route.id,
+                title: route.nodes.map((node) => node.label).join(' '),
+                detail: route.keywords.join(' '),
+                group: 'Index Loom',
+                href: '',
+                keywords: route.keywords
+            }, q)
+        }))
+        .sort((left, right) => right.score - left.score || left.index - right.index);
+    if (scored[0]?.score > 0) return scored[0].route;
+
+    const first = candidates.find((candidate) => candidate?.selectable !== false) || candidates[0];
+    const fingerprint = [first?.kind, first?.group, first?.title, first?.detail]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+    if (/baker|delegate|validator/.test(fingerprint)) return indexLoomRoute('bakers');
+    if (/wallet|account|domain|reward|portfolio/.test(fingerprint)) return indexLoomRoute('wallet');
+    if (/block|network|consensus|health|attest|quorum/.test(fingerprint)) return indexLoomRoute('network');
+    if (/hash|operation|contract|receipt|transaction/.test(fingerprint)) return indexLoomRoute('hash');
+    if (/room|chamber|ecosystem|governance|history|protocol/.test(fingerprint)) return indexLoomRoute('rooms');
+    return indexLoomRoute('browse');
+}
+
+function indexLoomNodeHtml(node, routeId) {
+    return `
+        <button
+            class="hero-search-index-node"
+            type="button"
+            data-hero-loom-query="${escapeHtml(node.query)}"
+            data-index-route="${escapeHtml(routeId)}"
+            aria-label="Search for ${escapeHtml(node.label)}"
+        >
+            <span class="hero-search-index-node-dot" aria-hidden="true"></span>
+            <span>${escapeHtml(node.label)}</span>
+        </button>`;
+}
+
+function indexLoomHtml(activeRouteId = 'network') {
+    const routes = INDEX_LOOM_ROUTES.map((route) => `
+        <section class="hero-search-index-route ${route.id === activeRouteId ? 'is-active' : ''}" data-index-route="${escapeHtml(route.id)}">
+            ${route.nodes.map((node) => indexLoomNodeHtml(node, route.id)).join('')}
+        </section>`).join('');
+    return `
+        <nav class="hero-search-index-loom" aria-label="Explore connected Tezos Systems search paths" data-quiet-key="index-loom" data-index-active-route="${escapeHtml(activeRouteId)}">
+            <svg class="hero-search-index-weave" aria-hidden="true" focusable="false"></svg>
+            <div class="hero-search-index-routes">
+                ${routes}
+            </div>
+        </nav>`;
+}
+
+function indexLoomBreadcrumbHtml(route, query) {
+    const normalized = normalizeQuery(query).toLowerCase();
+    let currentIndex = route.nodes.findIndex((node) => normalized.includes(node.query.toLowerCase()));
+    if (currentIndex < 0) currentIndex = route.nodes.length - 1;
+    const nodes = route.nodes.map((node, index) => `
+        ${index ? '<span class="hero-search-route-separator" aria-hidden="true">→</span>' : ''}
+        <span class="hero-search-route-node ${index === currentIndex ? 'is-current' : ''}">${escapeHtml(node.label)}</span>`).join('');
+    return `
+        <a class="hero-search-route-trail" href="${escapeHtml(route.href)}" aria-label="Open the related chamber. Search path: ${escapeHtml(route.nodes.map((node) => node.label).join(', '))}" data-index-route="${escapeHtml(route.id)}" data-quiet-key="index-route-trail">
+            ${nodes}
+        </a>`;
+}
+
+function indexLoomRecoveryHtml(route) {
+    return `
+        <nav class="hero-search-index-recovery" aria-label="Try a nearby search path" data-index-route="${escapeHtml(route.id)}" data-quiet-key="index-recovery">
+            <span class="hero-search-index-recovery-label">Try a nearby path</span>
+            <div class="hero-search-index-recovery-track">
+                ${route.nodes.map((node) => indexLoomNodeHtml(node, route.id)).join('<span class="hero-search-route-separator" aria-hidden="true">→</span>')}
+            </div>
+        </nav>`;
 }
 
 function matchesQuery(result, query) {
@@ -1070,6 +1243,80 @@ export function initHeroSearch() {
         root.appendChild(liveRegion);
     }
 
+    let indexLoomFrame = 0;
+
+    const drawIndexLoomWeave = () => {
+        indexLoomFrame = 0;
+        const loom = panel.querySelector('.hero-search-index-loom');
+        const svg = loom?.querySelector('.hero-search-index-weave');
+        if (!(loom instanceof HTMLElement) || !(svg instanceof SVGElement)) return;
+        if (getComputedStyle(svg).display === 'none') {
+            svg.replaceChildren();
+            return;
+        }
+        const loomRect = loom.getBoundingClientRect();
+        if (loomRect.width < 1 || loomRect.height < 1) return;
+        const routePoints = new Map();
+        for (const route of INDEX_LOOM_ROUTES) {
+            const routeNode = loom.querySelector(`.hero-search-index-route[data-index-route="${route.id}"]`);
+            const nodes = Array.from(routeNode?.querySelectorAll('.hero-search-index-node') || []);
+            const points = nodes.map((node) => {
+                const buttonRect = node.getBoundingClientRect();
+                const dotRect = node.querySelector('.hero-search-index-node-dot')?.getBoundingClientRect();
+                return {
+                    button: {
+                        left: buttonRect.left - loomRect.left,
+                        right: buttonRect.right - loomRect.left
+                    },
+                    x: dotRect ? dotRect.left + dotRect.width / 2 - loomRect.left : buttonRect.left - loomRect.left,
+                    y: dotRect ? dotRect.top + dotRect.height / 2 - loomRect.top : buttonRect.top + buttonRect.height / 2 - loomRect.top
+                };
+            });
+            if (points.length) routePoints.set(route.id, points);
+        }
+        if (routePoints.size !== INDEX_LOOM_ROUTES.length) return;
+
+        const activeRoute = loom.dataset.indexActiveRoute || 'network';
+        const routeStep = (routePoints.get('network')?.[0]?.x || 0) - (routePoints.get('wallet')?.[0]?.x || 0);
+        const entryShift = [0.82, 0.18, -0.34, 0.34, -0.34, 0];
+        const paths = [];
+        INDEX_LOOM_ROUTES.forEach((route, index) => {
+            const points = routePoints.get(route.id);
+            const first = points[0];
+            const last = points[points.length - 1];
+            const routeClass = route.id === activeRoute ? ' is-active' : '';
+            paths.push(`<path class="hero-search-index-path is-strand${routeClass}" data-index-route="${route.id}" d="M ${first.x.toFixed(2)} ${first.y.toFixed(2)} L ${last.x.toFixed(2)} ${last.y.toFixed(2)}" />`);
+
+            const startX = first.x + routeStep * entryShift[index];
+            const shoulderY = Math.max(16, first.y * 0.42);
+            const curveY = Math.max(28, first.y * 0.72);
+            paths.push(`<path class="hero-search-index-path is-entry${routeClass}" data-index-route="${route.id}" d="M ${startX.toFixed(2)} 0 L ${startX.toFixed(2)} ${shoulderY.toFixed(2)} C ${startX.toFixed(2)} ${curveY.toFixed(2)}, ${first.x.toFixed(2)} ${curveY.toFixed(2)}, ${first.x.toFixed(2)} ${first.y.toFixed(2)}" />`);
+        });
+
+        for (const bridge of INDEX_LOOM_BRIDGES) {
+            const [fromRoute, fromIndex] = bridge.from;
+            const [toRoute, toIndex] = bridge.to;
+            const from = routePoints.get(fromRoute)?.[fromIndex];
+            const to = routePoints.get(toRoute)?.[toIndex];
+            if (!from || !to) continue;
+            const startX = Math.min(from.button.right + 3, to.x - 22);
+            const span = Math.max(24, to.x - startX);
+            const control = Math.min(96, Math.max(24, span * 0.46));
+            const activeClass = activeRoute === fromRoute || activeRoute === toRoute ? ' is-active' : '';
+            paths.push(`<path class="hero-search-index-path is-bridge${activeClass}" data-index-route="${fromRoute} ${toRoute}" d="M ${startX.toFixed(2)} ${from.y.toFixed(2)} C ${(startX + control).toFixed(2)} ${from.y.toFixed(2)}, ${(to.x - control).toFixed(2)} ${to.y.toFixed(2)}, ${to.x.toFixed(2)} ${to.y.toFixed(2)}" />`);
+        }
+
+        svg.setAttribute('viewBox', `0 0 ${loomRect.width.toFixed(2)} ${loomRect.height.toFixed(2)}`);
+        svg.innerHTML = paths.join('');
+    };
+
+    const scheduleIndexLoomWeave = () => {
+        if (indexLoomFrame) cancelAnimationFrame(indexLoomFrame);
+        indexLoomFrame = requestAnimationFrame(() => {
+            indexLoomFrame = requestAnimationFrame(drawIndexLoomWeave);
+        });
+    };
+
     const renderQuickChips = () => {
         const henActive = document.body.dataset.theme === 'hen' || document.body.classList.contains('hen-active');
         if (!henActive) {
@@ -1103,6 +1350,7 @@ export function initHeroSearch() {
         overlay.style.setProperty('--hero-search-vv-left', `${viewport?.offsetLeft || 0}px`);
         overlay.style.setProperty('--hero-search-vv-width', `${viewport?.width || window.innerWidth}px`);
         overlay.style.setProperty('--hero-search-vv-height', `${viewport?.height || window.innerHeight}px`);
+        scheduleIndexLoomWeave();
     };
 
     const restoreWindowScroll = () => {
@@ -1345,6 +1593,8 @@ export function initHeroSearch() {
         }
         const budget = budgetResultGroups(builtResults, { showAll: showAll || isBrowsingAll });
         results = budget.groups.flatMap((group) => group.results);
+        const indexRoute = indexLoomRouteFor(query, results, { browseAll: isBrowsingAll });
+        root.dataset.heroSearchPath = indexRoute.id;
         const selectableResults = results.filter((result) => result.selectable !== false);
         if (!selectableResults.some((result) => result.id === selectedId)) selectedId = '';
         if (!selectedId && normalizeQuery(input.value) && selectableResults.length) selectedId = selectableResults[0].id;
@@ -1354,10 +1604,13 @@ export function initHeroSearch() {
         if (!results.length) {
             const header = searchPanelHeaderHtml(input.value, { browseAll: isBrowsingAll, resultCount: 0 });
             quietlySyncHtml(panel, `
-                <div class="hero-search-sheet" data-quiet-key="search-sheet">
+                <div class="hero-search-sheet is-empty" data-quiet-key="search-sheet">
                     ${header}
+                    ${indexLoomBreadcrumbHtml(indexRoute, query)}
                     <div class="hero-search-empty" data-quiet-key="empty"><strong>No matches for “${escapeHtml(query)}”</strong><span>Check the original casing, or try a complete wallet, .tez name, contract, operation, block, protocol, room, or slash command.</span></div>
+                    ${indexLoomRecoveryHtml(indexRoute)}
                 </div>`);
+            panel.scrollTop = 0;
             syncActiveDescendant();
             if (lastAnnouncement !== 'No results') {
                 liveRegion.textContent = 'No results';
@@ -1367,7 +1620,8 @@ export function initHeroSearch() {
         }
 
         const groups = groupedResults(results);
-        const showGroupLabels = Boolean(normalizeQuery(input.value)) && groups.length > 1;
+        const idle = !query && !isBrowsingAll;
+        const showGroupLabels = Boolean(query) && groups.length > 1;
         const header = searchPanelHeaderHtml(input.value, {
             browseAll: isBrowsingAll,
             resultCount: budget.totalSelectable,
@@ -1383,10 +1637,14 @@ export function initHeroSearch() {
             `;
         }).join('');
         quietlySyncHtml(panel, `
-            <div class="hero-search-sheet" data-quiet-key="search-sheet">
+            <div class="hero-search-sheet ${idle ? 'is-threshold' : 'is-results'}" data-quiet-key="search-sheet">
                 ${header}
+                ${idle ? '' : indexLoomBreadcrumbHtml(indexRoute, query)}
                 <div class="hero-search-panel-body" data-quiet-key="search-panel-body">${groupMarkup}</div>
-            </div>`);
+            </div>
+            ${idle ? indexLoomHtml(indexRoute.id) : ''}`);
+        if (idle) panel.scrollTop = 0;
+        if (idle) scheduleIndexLoomWeave();
         syncActiveDescendant();
         const selectedOption = selectedId
             ? panel.querySelector(`[data-result-id="${CSS.escape(selectedId)}"]`)
@@ -1572,6 +1830,12 @@ export function initHeroSearch() {
     });
 
     panel.addEventListener('click', (event) => {
+        const loomNode = event.target.closest('[data-hero-loom-query]');
+        if (loomNode) {
+            event.preventDefault();
+            applyQuery(loomNode.dataset.heroLoomQuery || '');
+            return;
+        }
         const option = event.target.closest('[data-result-id]');
         if (!option) return;
         const result = results.find((candidate) => candidate.id === option.dataset.resultId);
