@@ -32470,6 +32470,98 @@ async function smokeLiveNumberShellMotion(browser, baseUrl, issues) {
   assert(response?.ok(), `live number production shell failed with HTTP ${response?.status()}`);
   await page.waitForFunction(() => typeof window._updateUptimeClock === 'function', null, { timeout: 15000 });
 
+  const pillLoadingGeometry = await page.evaluate(() => {
+    const settledValues = new Map([
+      ['total-bakers', '197'],
+      ['finality', '~12s'],
+      ['staking-ratio', '30.4%'],
+      ['issuance-rate', '2.97%']
+    ]);
+    const pills = Array.from(document.querySelectorAll('.top-continuity-stat[data-card-history]'));
+    const saved = pills.map((pill) => ({
+      pill,
+      className: pill.className,
+      busy: pill.getAttribute('aria-busy'),
+      text: pill.querySelector('strong')?.textContent || ''
+    }));
+    const measure = (pill) => {
+      const value = pill.querySelector('strong');
+      const label = pill.querySelector('.top-continuity-label');
+      const pillRect = pill.getBoundingClientRect();
+      const valueRect = value?.getBoundingClientRect();
+      const labelRect = label?.getBoundingClientRect();
+      return {
+        x: pillRect.x,
+        width: pillRect.width,
+        center: pillRect.x + (pillRect.width / 2),
+        valueWidth: valueRect?.width || 0,
+        labelX: labelRect?.x || 0,
+        contentCenter: valueRect && labelRect
+          ? (valueRect.x + labelRect.right) / 2
+          : 0
+      };
+    };
+
+    for (const pill of pills) {
+      pill.classList.add('is-loading');
+      pill.setAttribute('aria-busy', 'true');
+      const value = pill.querySelector('strong');
+      if (value) value.textContent = '';
+    }
+    const loading = new Map(pills.map((pill) => [pill.dataset.cardHistory, measure(pill)]));
+
+    for (const pill of pills) {
+      pill.classList.remove('is-loading');
+      pill.setAttribute('aria-busy', 'false');
+      const value = pill.querySelector('strong');
+      if (value) value.textContent = settledValues.get(pill.dataset.cardHistory) || '';
+    }
+    const settled = new Map(pills.map((pill) => [pill.dataset.cardHistory, measure(pill)]));
+
+    for (const entry of saved) {
+      entry.pill.className = entry.className;
+      if (entry.busy == null) entry.pill.removeAttribute('aria-busy');
+      else entry.pill.setAttribute('aria-busy', entry.busy);
+      const value = entry.pill.querySelector('strong');
+      if (value) value.textContent = entry.text;
+    }
+
+    return Array.from(settledValues.keys(), (key) => ({
+      key,
+      loading: loading.get(key),
+      settled: settled.get(key)
+    }));
+  });
+  for (const geometry of pillLoadingGeometry) {
+    const loading = geometry.loading;
+    const settled = geometry.settled;
+    const pillDrift = Math.max(
+      Math.abs(loading.x - settled.x),
+      Math.abs(loading.width - settled.width),
+      Math.abs(loading.center - settled.center)
+    );
+    const valueWidthDrift = Math.abs(loading.valueWidth - settled.valueWidth);
+    const labelDrift = Math.abs(loading.labelX - settled.labelX);
+    const loadingCenterOffset = Math.abs(loading.contentCenter - loading.center);
+    const settledCenterOffset = Math.abs(settled.contentCenter - settled.center);
+    assert(
+      pillDrift <= 0.5
+        && valueWidthDrift <= 0.5
+        && labelDrift <= 0.5
+        && loadingCenterOffset <= 0.5
+        && settledCenterOffset <= 0.5,
+      `top continuity ${geometry.key} loading geometry jumps at settlement ${JSON.stringify({
+        pillDrift,
+        valueWidthDrift,
+        labelDrift,
+        loadingCenterOffset,
+        settledCenterOffset,
+        loading,
+        settled
+      })}`
+    );
+  }
+
   const shellMotion = await page.evaluate(async () => {
     const value = document.getElementById('hero-chain-uptime-bakers');
     const pill = value?.closest('.top-continuity-stat');

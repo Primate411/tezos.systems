@@ -886,6 +886,7 @@ body::before {
 }
 
 .top-continuity-stat {
+    --pill-value-width: 5.5ch;
     display: inline-flex;
     align-items: baseline;
     gap: 6px;
@@ -901,10 +902,12 @@ body::before {
 
 .top-continuity-stat[data-card-history="total-bakers"] {
     --pill-color: var(--top-pill-bakers);
+    --pill-value-width: 3ch;
 }
 
 .top-continuity-stat[data-card-history="finality"] {
     --pill-color: var(--top-pill-finality);
+    --pill-value-width: 4ch;
 }
 
 .top-continuity-stat[data-card-history="staking-ratio"] {
@@ -923,11 +926,8 @@ body::before {
 
 .top-continuity-stat strong {
     display: inline-block;
+    min-width: var(--pill-value-width);
     color: var(--pill-color, var(--top-pill-bakers));
-}
-
-.top-continuity-stat[data-card-history="finality"] strong {
-    min-width: 3ch;
 }
 
 .top-continuity-label {
