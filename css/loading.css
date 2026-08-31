@@ -96,9 +96,27 @@
 }
 
 .hero-arrival-pending .top-continuity-stat:not(.hero-arrived) strong {
+    position: relative;
     min-width: var(--pill-value-width);
-    border-radius: 5px;
     color: transparent !important;
+    background: none;
+}
+
+.hero-arrival-pending .top-continuity-stat:not(.hero-arrived) strong:empty::after,
+.top-continuity-stat.is-loading strong:empty::after {
+    content: '0';
+    visibility: hidden;
+}
+
+.hero-arrival-pending .top-continuity-stat:not(.hero-arrived) strong::before,
+.top-continuity-stat.is-loading strong::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--pill-value-width);
+    height: 0.9em;
+    border-radius: 999px;
     background: linear-gradient(
         90deg,
         var(--glass-bg) 25%,
@@ -106,33 +124,32 @@
         var(--glass-bg) 75%
     );
     background-size: 200% 100%;
+    transform: translate(-50%, -50%);
     animation: shimmer 1.6s ease-in-out infinite;
 }
 
 .top-continuity-stat.is-loading strong {
+    position: relative;
     display: inline-block;
     width: var(--pill-value-width);
-    height: 0.9em;
-    border-radius: 999px;
     color: transparent !important;
     text-shadow: none !important;
-    background: linear-gradient(90deg, var(--glass-bg) 25%, rgba(255,255,255,0.1) 50%, var(--glass-bg) 75%);
-    background-size: 200% 100%;
-    animation: shimmer 1.6s ease-in-out infinite;
+    background: none;
 }
 
 .top-continuity-stat.is-loading .top-continuity-label {
     opacity: 0.76;
 }
 
-[data-theme="clean"] .top-continuity-stat.is-loading strong {
+[data-theme="clean"] .hero-arrival-pending .top-continuity-stat:not(.hero-arrived) strong::before,
+[data-theme="clean"] .top-continuity-stat.is-loading strong::before {
     background: linear-gradient(90deg, #f0f1f3 25%, #dbe4f0 50%, #f0f1f3 75%);
     background-size: 200% 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .hero-arrival-pending .top-continuity-stat:not(.hero-arrived) strong,
-    .top-continuity-stat.is-loading strong {
+    .hero-arrival-pending .top-continuity-stat:not(.hero-arrived) strong::before,
+    .top-continuity-stat.is-loading strong::before {
         animation: none;
     }
 }

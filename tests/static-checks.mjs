@@ -3521,6 +3521,8 @@ async function checkSelectorContracts() {
     ['top continuity issuance color selector', '.top-continuity-stat[data-card-history="issuance-rate"]', styles],
     ['top continuity metric-sized settled value slots', 'min-width: var(--pill-value-width);', styles],
     ['top continuity metric-sized loading value slots', 'width: var(--pill-value-width);', loadingCss],
+    ['top continuity loading bar matches the visible value width', 'width: var(--pill-value-width);', loadingCss],
+    ['top continuity empty loading value preserves the settled line box', '.top-continuity-stat.is-loading strong:empty::after', loadingCss],
     ['top continuity mobile pill grid', 'grid-template-columns: repeat(2, minmax(0, 1fr))', styles],
     ['top continuity isolated decrypt styles', '.top-continuity-stat.is-shuffling', styles],
     ['top continuity stable finality slot', '--pill-value-width: 4ch;', styles],

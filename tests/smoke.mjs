@@ -29374,9 +29374,9 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
   assert(topExplainState.closeButton
     && topExplainState.chartButton
     && topExplainState.chamberButton === 'leaderboard'
-    && topExplainState.chamberLabel === 'Open Baker Directory Chamber'
-    && topExplainState.primaryActions.join(',') === 'Open all-time chart,Chamber →', `feature workflows top pill popover controls missing or out of order: ${JSON.stringify(topExplainState)}`);
-  assert(/Baker set/.test(topExplainState.popoverText) && /Open all-time chart/.test(topExplainState.popoverText) && /Chamber/.test(topExplainState.popoverText), `feature workflows top pill popover copy mismatch: ${topExplainState.popoverText}`);
+    && topExplainState.chamberLabel === 'Open Baker Directory'
+    && topExplainState.primaryActions.join(',') === 'Open all-time chart,Baker Directory →', `feature workflows top pill popover controls missing or out of order: ${JSON.stringify(topExplainState)}`);
+  assert(/Baker set/.test(topExplainState.popoverText) && /Open all-time chart/.test(topExplainState.popoverText) && /Baker Directory/.test(topExplainState.popoverText), `feature workflows top pill popover copy mismatch: ${topExplainState.popoverText}`);
   assert(topExplainState.popoverCompact && topExplainState.popoverTintsFromPill, `feature workflows top pill popover geometry mismatch: ${JSON.stringify(topExplainState)}`);
   assert(topExplainState.listCounts.join(',') === '3,3'
     && topExplainState.ages[0] === '1d'
@@ -29466,9 +29466,9 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
   await page.waitForURL((url) => url.pathname === '/', { timeout: 5000 });
   await page.locator('#baker-directory-modal.active').waitFor({ state: 'hidden', timeout: 5000 });
   for (const { metricKey, chamberEntry, chamberLabel, hasTrends } of [
-    { metricKey: 'finality', chamberEntry: 'health', chamberLabel: 'Open Network Health Chamber', hasTrends: false },
-    { metricKey: 'staking-ratio', chamberEntry: 'staking', chamberLabel: 'Open Staking Chamber', hasTrends: true },
-    { metricKey: 'issuance-rate', chamberEntry: 'staking', chamberLabel: 'Open Staking Chamber', hasTrends: true }
+    { metricKey: 'finality', chamberEntry: 'health', chamberLabel: 'Open Network Health', hasTrends: false },
+    { metricKey: 'staking-ratio', chamberEntry: 'staking-chamber', chamberLabel: 'Open Staking', hasTrends: true },
+    { metricKey: 'issuance-rate', chamberEntry: 'staking-chamber', chamberLabel: 'Open Staking', hasTrends: true }
   ]) {
     const metricPill = page.locator(`#top-continuity-panel .top-continuity-stat[data-card-history="${metricKey}"]`);
     await metricPill.click();
@@ -29493,8 +29493,30 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
       assert(metricHorizonState.labels.join(',') === '7D,30D,90D'
         && metricHorizonState.values.every((value) => /^[-+−]?\d+\.\d{2} pp$/.test(value)), `feature workflows ${metricKey} horizon changes mismatch: ${JSON.stringify(metricHorizonState)}`);
     }
-    await page.locator('[data-close-top-continuity-explain]').click();
+    if (metricKey === 'staking-ratio') {
+      await page.locator('#top-continuity-explain.is-visible [data-open-top-continuity-chamber="staking-chamber"]').click();
+      await page.waitForURL((url) => url.pathname === '/stake/', { timeout: 10000 });
+      await page.locator('#staking-chamber-modal.active #staking-chamber-title').waitFor({ state: 'visible', timeout: 15000 });
+      const stakingHandoffState = await page.evaluate(() => ({
+        explainerVisible: document.querySelector('#top-continuity-explain')?.classList.contains('is-visible') || false,
+        route: window.location.pathname,
+        title: document.querySelector('#staking-chamber-modal.active #staking-chamber-title')?.textContent?.trim() || ''
+      }));
+      assert(!stakingHandoffState.explainerVisible
+        && stakingHandoffState.route === '/stake/'
+        && stakingHandoffState.title === 'Staking Chamber', `feature workflows staking destination action mismatch: ${JSON.stringify(stakingHandoffState)}`);
+      await page.locator('#staking-chamber-modal.active .chamber-close').click();
+      await page.waitForURL((url) => url.pathname === '/', { timeout: 5000 });
+      await page.locator('#staking-chamber-modal.active').waitFor({ state: 'hidden', timeout: 5000 });
+    } else {
+      await page.locator('[data-close-top-continuity-explain]').click();
+    }
   }
+  await page.waitForFunction(() => (
+    window.location.pathname === '/'
+      && document.readyState === 'complete'
+      && typeof window.TezosStats?.refresh === 'function'
+  ), null, { timeout: 10000 });
   log('ok - feature workflow: top pill explainer popover');
   await page.evaluate(async () => {
     localStorage.setItem('tezos-systems-pi-visible', 'false');
@@ -29836,10 +29858,10 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
     && mobileBakerSet.controls.every(({ width, height }) => width >= 43.9 && height >= 43.9),
   `feature workflows mobile baker set: action touch targets regressed ${JSON.stringify(mobileBakerSet)}`);
   assert(mobileBakerSet.primaryActions.length === 2
-    && mobileBakerSet.primaryActions.map(({ text }) => text).join(',') === 'Open all-time chart,Chamber →'
+    && mobileBakerSet.primaryActions.map(({ text }) => text).join(',') === 'Open all-time chart,Baker Directory →'
     && mobileBakerSet.primaryActions.every(({ width, height }) => width >= 80 && height >= 43.9)
     && mobileBakerSet.primaryActions[1].left >= mobileBakerSet.primaryActions[0].right - 1,
-  `feature workflows mobile baker set: paired chart/Chamber actions regressed ${JSON.stringify(mobileBakerSet.primaryActions)}`);
+  `feature workflows mobile baker set: paired chart/destination actions regressed ${JSON.stringify(mobileBakerSet.primaryActions)}`);
   await mobilePage.locator('[data-close-top-continuity-explain]').tap();
   await mobilePage.waitForFunction(() => document.querySelector('#top-continuity-explain')?.getAttribute('aria-hidden') === 'true', null, { timeout: 5000 });
   await mobileContext.close();
@@ -32566,11 +32588,32 @@ async function smokeLiveNumberShellMotion(browser, baseUrl, issues) {
       const pillRect = pill.getBoundingClientRect();
       const valueRect = value?.getBoundingClientRect();
       const labelRect = label?.getBoundingClientRect();
+      const beforeStyle = value ? getComputedStyle(value, '::before') : null;
+      const range = document.createRange();
+      let textRect = null;
+      if (value?.textContent) {
+        range.selectNodeContents(value);
+        textRect = range.getBoundingClientRect();
+      }
+      const loading = pill.classList.contains('is-loading');
+      const skeletonWidth = Number.parseFloat(beforeStyle?.width || '') || 0;
+      const visualWidth = loading ? skeletonWidth : (textRect?.width || 0);
+      const visualCenterX = loading
+        ? ((valueRect?.left || 0) + ((valueRect?.width || 0) / 2))
+        : ((textRect?.left || 0) + ((textRect?.width || 0) / 2));
+      const visualCenterY = loading
+        ? ((valueRect?.top || 0) + ((valueRect?.height || 0) / 2))
+        : ((textRect?.top || 0) + ((textRect?.height || 0) / 2));
       return {
         x: pillRect.x,
         width: pillRect.width,
         center: pillRect.x + (pillRect.width / 2),
         valueWidth: valueRect?.width || 0,
+        valueTop: valueRect?.top || 0,
+        valueHeight: valueRect?.height || 0,
+        visualWidth,
+        visualCenterX,
+        visualCenterY,
         labelX: labelRect?.x || 0,
         contentCenter: valueRect && labelRect
           ? (valueRect.x + labelRect.right) / 2
@@ -32617,18 +32660,33 @@ async function smokeLiveNumberShellMotion(browser, baseUrl, issues) {
       Math.abs(loading.center - settled.center)
     );
     const valueWidthDrift = Math.abs(loading.valueWidth - settled.valueWidth);
+    const valueTopDrift = Math.abs(loading.valueTop - settled.valueTop);
+    const valueHeightDrift = Math.abs(loading.valueHeight - settled.valueHeight);
+    const visualWidthDrift = Math.abs(loading.visualWidth - settled.visualWidth);
+    const visualCenterXDrift = Math.abs(loading.visualCenterX - settled.visualCenterX);
+    const visualCenterYDrift = Math.abs(loading.visualCenterY - settled.visualCenterY);
     const labelDrift = Math.abs(loading.labelX - settled.labelX);
     const loadingCenterOffset = Math.abs(loading.contentCenter - loading.center);
     const settledCenterOffset = Math.abs(settled.contentCenter - settled.center);
     assert(
       pillDrift <= 0.5
         && valueWidthDrift <= 0.5
+        && valueTopDrift <= 0.5
+        && valueHeightDrift <= 0.5
+        && visualWidthDrift <= 0.75
+        && visualCenterXDrift <= 0.5
+        && visualCenterYDrift <= 0.5
         && labelDrift <= 0.5
         && loadingCenterOffset <= 0.5
         && settledCenterOffset <= 0.5,
       `top continuity ${geometry.key} loading geometry jumps at settlement ${JSON.stringify({
         pillDrift,
         valueWidthDrift,
+        valueTopDrift,
+        valueHeightDrift,
+        visualWidthDrift,
+        visualCenterXDrift,
+        visualCenterYDrift,
         labelDrift,
         loadingCenterOffset,
         settledCenterOffset,
