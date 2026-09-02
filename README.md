@@ -1681,6 +1681,22 @@ transitions retain the room and offer retry or normal navigation; other Chamber
 routes retain their current startup path. Service-worker installation no longer
 preloads dashboard-only modules; runtime assets are still cached when requested.
 
+`npm run measure:chamber-boot -- --baseline-root /absolute/path/to/exported-pre-pilot-tree --runs 3 --output /tmp/chamber-boot/results.json`
+compares this pilot with an exported full-shell baseline. It serves both trees on temporary loopback ports,
+verifies identical Recognition Hall data, and alternates cold/cached-repeat pairs
+at desktop and 390px/6× CPU slowdown. Unlike routed smoke fixtures, it leaves the
+HTTP cache enabled and asserts that repeat scripts never reach the server. The
+controlled server uses ten-minute asset caching and ETag revalidation for
+HTML/JSON. This is a local lab comparison, not physical-phone or production
+network timing. Run it without concurrent browser QA; retain its JSON and rendered
+screenshots alongside the normal navigation/recovery smoke evidence. The
+`standalone-chamber-boot` smoke also runs its mobile navigation, Search, and
+My Tezos handoff at 6× CPU slowdown, separately from performance measurements.
+The dated local comparison is retained in `tests/fixtures/chamber-boot-pilot.json`:
+99 to 14 JavaScript resources and 4,792 to 632 DOM elements, with unchanged award
+data. Its 6×-slowdown medians were 1,175 to 357ms cold and 611 to 162ms HTTP-cached;
+these are diagnostics from that controlled run, not user-facing speed guarantees.
+
 HEN's feed runtime loads only for its route, query/legacy NFT link, or launcher;
 its shared gift-tray, TzSafe, and theme stylesheet remains eager. Protocol Anthology
 loads its editorial stylesheet before opening either the library or a chapter.

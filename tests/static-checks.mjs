@@ -4880,6 +4880,35 @@ async function checkInitialLoadMeasurementContracts() {
   }
 
   pass(`initial-load measurement harness and ${baseline.measuredAt.slice(0, 10)} baseline checked`);
+
+  const chamberMeasurement = await readText('scripts/measure-chamber-boot.mjs');
+  if (packageJson.scripts?.['measure:chamber-boot'] !== 'node scripts/measure-chamber-boot.mjs') {
+    fail('package scripts must expose the cache-enabled Chamber boot measurement');
+  }
+  for (const contract of ["require('./lib/playwright-browser.cjs')", 'Network.setCacheDisabled',
+    'cacheDisabled: false', 'Network.setBlockedURLs', 'Emulation.setCPUThrottlingRate',
+    'cachedScripts', 'warm scripts reached the HTTP server', 'Archive changed between trees',
+    "page.goto('about:blank')", 'not a measured physical phone', 'totalBlockingTimeMs']) {
+    if (!chamberMeasurement.includes(contract)) fail(`Chamber boot measurement missing ${contract}`);
+  }
+  if (/\b(?:context|page)\.route\s*\(/.test(chamberMeasurement)) {
+    fail('Chamber cached-repeat measurement must not disable HTTP caching through Playwright routing');
+  }
+  const pilotReceipt = JSON.parse(await readText('tests/fixtures/chamber-boot-pilot.json'));
+  assert.equal(pilotReceipt.schemaVersion, 1);
+  assert.match(pilotReceipt.baselineCommit, /^[a-f0-9]{40}$/);
+  assert.match(pilotReceipt.candidateCommit, /^[a-f0-9]{40}$/);
+  assert.equal(pilotReceipt.runsPerGroup, 3);
+  assert.equal(pilotReceipt.summary.length, 8);
+  assert.equal(new Set(pilotReceipt.summary.map(row => `${row.profile}/${row.label}/${row.warmth}`)).size, 8);
+  for (const row of pilotReceipt.summary) {
+    assert(row.readyMs > 0 && row.jsDecodedBytes > 0 && row.domNodes > 0);
+    if (row.warmth === 'warm') {
+      assert.equal(row.cachedScripts, row.jsResources);
+      assert.equal(row.jsTransferBytes, 0);
+    }
+  }
+  pass('Chamber boot measurement retains real HTTP-cache receipts and explicitly synthetic CPU profiles');
 }
 
 async function checkChamberEfficiencyContracts() {

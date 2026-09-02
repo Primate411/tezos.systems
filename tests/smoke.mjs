@@ -19394,6 +19394,12 @@ async function smokeStandaloneChamberBoot(browser, baseUrl) {
       window.__standaloneDocument = true;
     }, theme);
     const page = await context.newPage();
+    // Exercise the mobile handoff on a constrained CPU too, not just a narrow
+    // desktop viewport. This is an emulated regression profile, not phone timing.
+    if (width === 390) {
+      const cdp = await context.newCDPSession(page);
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+    }
     const requests = [];
     const issues = [];
     page.on('request', request => requests.push(request.url()));
@@ -19578,7 +19584,7 @@ async function smokeStandaloneChamberBoot(browser, baseUrl) {
   await cancelledPage.waitForFunction(() => Boolean(document.getElementById('tezoscrp-css')?.sheet));
   assert(await cancelledPage.locator('#tezoscrp-modal.active').count() === 0, 'late archive stylesheet reopened a cancelled room');
   await cancelledContext.close();
-  log('ok - standalone TezosCRP budgets, no idle dashboard, same-document exit, history, search, My Tezos, and failure recovery');
+  log('ok - standalone TezosCRP desktop/mobile-6x budgets, no idle dashboard, same-document exit, history, search, My Tezos, and failure recovery');
 }
 
 async function smokeTezosCrpChamber(browser, baseUrl) {
