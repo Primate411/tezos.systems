@@ -1,5 +1,23 @@
 /* Critical first-paint shell state */
 
+.chamber-first-paint { padding: clamp(22px, 4vw, 48px); color: inherit; }
+/* Keep cache verification out of the source-date pill's wrapping geometry. */
+.chamber-snapshot-status { display: block; min-height: 14px; margin: 6px 0; font: 400 10px/14px "JetBrains Mono", monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: .8; }
+.chamber-first-paint-kicker { font-size: .72rem; letter-spacing: .16em; text-transform: uppercase; opacity: .7; }
+.chamber-first-paint h2 { margin: 12px 0; font-size: clamp(1.7rem, 4vw, 2.8rem); }
+.chamber-first-paint p { font-size: .85rem; opacity: .75; }
+.chamber-first-paint-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 30px 0; }
+.chamber-first-paint-grid section { min-width: 0; min-height: 180px; padding: 24px; border: 1px solid currentColor; border-color: color-mix(in srgb, currentColor 18%, transparent); border-radius: 16px; }
+.chamber-first-paint h3 { margin: 0 0 28px; font-size: .9rem; font-weight: 500; }
+.chamber-first-paint-lines { display: grid; gap: 16px; }
+.chamber-first-paint-lines i { display: block; width: 88%; height: 12px; border-radius: 5px; background: currentColor; opacity: .09; }
+.chamber-first-paint-lines i:first-child { width: 55%; height: 24px; }
+.chamber-first-paint-lines i:last-child { width: 70%; }
+@media (max-width: 600px) {
+    .chamber-first-paint-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+    .chamber-first-paint-grid section { min-height: 150px; padding: 20px; }
+}
+
 /*
  * My Tezos is styled by a lazy bundle, but its complete drawer markup ships in
  * the initial HTML. Keep the closed geometry render-blocking so a cold load

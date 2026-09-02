@@ -11,6 +11,7 @@ import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.
 import { versionedAsset } from '../core/asset-version.js';
 import { escapeHtml, formatUtcDateTime } from '../core/utils.js';
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
+import { createChamberSnapshotCache } from '../core/chamber-snapshot-cache.js';
 import {
     activateChamberDialog,
     deactivateChamberDialog,
@@ -43,6 +44,7 @@ import {
 
 const CSS_URL = versionedAsset('/css/whale-chamber.min.css');
 const ARTIFACT_URL = '/data/whale-watch.json';
+const snapshotCache = createChamberSnapshotCache({ key: 'whales', validateSnapshot: validateArtifact });
 const LIVE_REFRESH_MS = 20_000;
 const ARTIFACT_REFRESH_MS = 5 * 60_000;
 const GIANT_MONITOR_MS = 5 * 60_000;
@@ -62,6 +64,11 @@ let minimumXtz = 1000;
 let operationType = 'all';
 let searchQuery = '';
 let lastArtifact = null;
+let savedArtifact = false;
+let openEpoch = 0;
+let chamberRefreshWork = null;
+let activeForcedRefresh = false;
+let queuedForcedRefresh = null;
 let artifactError = '';
 let liveError = '';
 let artifactFetch = null;
@@ -76,7 +83,7 @@ let whaleWatchFocusedBeforeOpen = null;
 const artifactSubscribers = new Set();
 
 function whaleWatchArtifactPhase() {
-    if (lastArtifact) return artifactError ? 'last-good' : 'ready';
+    if (lastArtifact) return artifactError || savedArtifact ? 'last-good' : 'ready';
     if (artifactFetch) return 'loading';
     return artifactError ? 'unavailable' : 'idle';
 }
@@ -87,6 +94,7 @@ export function peekWhaleWatchArtifactState() {
         artifact: lastArtifact,
         refreshing: Boolean(artifactFetch),
         refreshFailed: Boolean(artifactError),
+        cached: savedArtifact,
         error: artifactError || '',
         fetchedAt: lastArtifactRead || null,
         scheduleLabel: GENERATED_PROOFBOOK_SCHEDULE_LABEL
@@ -94,6 +102,7 @@ export function peekWhaleWatchArtifactState() {
 }
 
 function publishWhaleWatchArtifactState() {
+    if (document.visibilityState !== 'visible') return;
     if (!artifactSubscribers.size) return;
     const state = peekWhaleWatchArtifactState();
     [...artifactSubscribers].forEach((listener) => {
@@ -236,13 +245,19 @@ async function fetchWhaleArtifact({ force = false } = {}) {
     if (!force && lastArtifact && Date.now() - lastArtifactRead < ARTIFACT_REFRESH_MS) return lastArtifact;
     if (artifactFetch) return artifactFetch;
     artifactFetch = fetch(ARTIFACT_URL, { cache: 'no-cache' })
-        .then((response) => {
+        .then(async (response) => {
             if (!response.ok) throw new Error(`Shared Whale Watch snapshot unavailable (${response.status})`);
-            return response.json();
+            const text = await response.text();
+            const artifact = validateArtifact(JSON.parse(text));
+            if (lastArtifact && Date.parse(artifact.generatedAt) < Date.parse(lastArtifact.generatedAt)) {
+                throw new Error('Shared archive is older than the retained receipt.');
+            }
+            void snapshotCache.save(text);
+            return artifact;
         })
-        .then(validateArtifact)
         .then((artifact) => {
             lastArtifact = artifact;
+            savedArtifact = false;
             artifactError = '';
             lastArtifactRead = Date.now();
             return artifact;
@@ -396,8 +411,8 @@ function sourceStripMarkup() {
             <strong>Shared archive</strong>
             <span>${generatedAt ? `generated ${escapeHtml(ageLabel(generatedAt))} · ${escapeHtml(GENERATED_PROOFBOOK_SCHEDULE_LABEL)}` : 'not yet available'}</span>
             ${lastArtifact?.transfers24h ? `<span>window ${escapeHtml(archiveWindowLabel())}</span>` : ''}
-            ${artifactError ? `<span>last-good retained · refresh failed</span>` : ''}
             <a href="${ARTIFACT_URL}" target="_blank" rel="noopener">JSON receipt</a>
+            <span class="whale-watch-cache-state">${artifactError ? (lastArtifact ? 'Last-good retained · refresh failed' : 'Archive unavailable · refresh failed') : savedArtifact ? 'Saved snapshot · update pending' : generatedAt ? 'Generated archive verified' : 'Awaiting generated archive'}</span>
         </div>`;
 }
 
@@ -865,26 +880,57 @@ async function monitorAwakeningsIfEnabled() {
     }
 }
 
-export async function refreshWhaleChamber({ quiet = true, forceArtifact = false } = {}) {
-    if (document.visibilityState !== 'visible') {
+export async function refreshWhaleChamber({ quiet = true, forceArtifact = false, initial = false } = {}) {
+    const initialPaint = initial && !lastArtifact;
+    const mayRender = () => document.visibilityState === 'visible'
+        || (initialPaint && document.getElementById('whale-watch-modal')?.classList.contains('active'));
+    if (!mayRender()) {
         refreshDeferred = true;
         return { artifact: lastArtifact, live: getWhaleSnapshot() };
     }
-    const artifactPromise = fetchWhaleArtifact({ force: forceArtifact }).catch(() => lastArtifact);
-    const livePromise = refreshWhaleData({ initial: liveOperations().length === 0 })
-        .then((snapshot) => {
-            liveError = '';
-            return snapshot;
-        })
-        .catch((error) => {
-            liveError = error?.message || String(error);
-            return getWhaleSnapshot();
+    if (chamberRefreshWork) {
+        // A user-requested archive retry must not disappear behind an ordinary
+        // live-tape tick. Coalesce simultaneous retries into one follow-up.
+        if (!forceArtifact || activeForcedRefresh) return chamberRefreshWork;
+        if (!queuedForcedRefresh) {
+            queuedForcedRefresh = chamberRefreshWork.then(() => refreshWhaleChamber({ quiet: true, forceArtifact: true }))
+                .finally(() => { queuedForcedRefresh = null; });
+        }
+        return queuedForcedRefresh;
+    }
+    activeForcedRefresh = forceArtifact;
+    chamberRefreshWork = (async () => {
+        // The generated archive has its own clock and must not wait for live APIs.
+        const artifactPromise = fetchWhaleArtifact({ force: forceArtifact }).catch(() => lastArtifact).then((artifact) => {
+            // Split the requested first paint only; background catch-ups still
+            // reconcile once, after the live lanes have settled below.
+            if (!initial) return artifact;
+            if (!mayRender()) { refreshDeferred = true; return artifact; }
+            if (document.visibilityState === 'visible') updateWhaleWatchEntry({ quiet: true });
+            if (document.getElementById('whale-watch-modal')?.classList.contains('active')) renderBody({ quiet: true });
+            return artifact;
         });
-    const [artifact, live] = await Promise.all([artifactPromise, livePromise, monitorAwakeningsIfEnabled()]).then(([shared, tape]) => [shared, tape]);
-    refreshDeferred = false;
-    updateWhaleWatchEntry({ quiet });
-    if (document.getElementById('whale-watch-modal')?.classList.contains('active')) renderBody({ quiet });
-    return { artifact, live };
+        const livePromise = document.visibilityState !== 'visible' ? Promise.resolve(getWhaleSnapshot())
+            : refreshWhaleData({ initial: liveOperations().length === 0 })
+            .then((snapshot) => {
+                liveError = '';
+                return snapshot;
+            })
+            .catch((error) => {
+                liveError = error?.message || String(error);
+                return getWhaleSnapshot();
+            });
+        const monitor = document.visibilityState === 'visible' ? monitorAwakeningsIfEnabled() : null;
+        const [artifact, live] = await Promise.all([artifactPromise, livePromise, monitor]).then(([shared, tape]) => [shared, tape]);
+        refreshDeferred = document.visibilityState !== 'visible';
+        if (document.visibilityState === 'visible') {
+            publishWhaleWatchArtifactState();
+            updateWhaleWatchEntry({ quiet: true });
+            if (document.getElementById('whale-watch-modal')?.classList.contains('active')) renderBody({ quiet: true });
+        }
+        return { artifact, live };
+    })().finally(() => { chamberRefreshWork = null; activeForcedRefresh = false; });
+    return chamberRefreshWork;
 }
 
 function stopRefreshTimer() {
@@ -916,7 +962,10 @@ function bindVisibilityRefresh() {
 }
 
 export async function openWhaleChamber(requestedView = '') {
+    const opening = ++openEpoch;
+    const cached = !lastArtifact ? snapshotCache.read() : null;
     await ensureWhaleCss();
+    if (opening !== openEpoch) return;
     readRouteState();
     const normalizedView = requestedView === 'giants' ? 'dormant' : requestedView;
     if (VIEW_IDS.has(normalizedView)) currentView = normalizedView;
@@ -940,11 +989,19 @@ export async function openWhaleChamber(requestedView = '') {
         label: 'Whale Watch Chamber',
         initialFocusSelector: '.chamber-close'
     });
-    await refreshWhaleChamber({ quiet: false, forceArtifact: !lastArtifact });
-    if (overlay.classList.contains('active')) startRefreshTimer();
+    const retained = await cached;
+    if (opening !== openEpoch || !overlay.classList.contains('active')) return;
+    if (!lastArtifact && retained) {
+        lastArtifact = retained.snapshot;
+        savedArtifact = true;
+        renderBody({ quiet: true });
+    }
+    await refreshWhaleChamber({ quiet: true, forceArtifact: savedArtifact || !lastArtifact, initial: true });
+    if (opening === openEpoch && overlay.classList.contains('active')) startRefreshTimer();
 }
 
 export function closeWhaleChamber({ preserveRoute = false } = {}) {
+    openEpoch += 1;
     stopRefreshTimer();
     const overlay = document.getElementById('whale-watch-modal');
     overlay?.classList.remove('active');
@@ -982,7 +1039,10 @@ export function initWhaleChamber() {
     if (lastArtifact) updateWhaleWatchEntry();
     else if (document.visibilityState === 'visible') {
         fetchWhaleArtifact()
-            .then(() => updateWhaleWatchEntry({ quiet: true }))
-            .catch(() => updateWhaleWatchEntry({ quiet: true }));
+            .catch(() => null)
+            .then(() => {
+                if (document.visibilityState === 'visible') updateWhaleWatchEntry({ quiet: true });
+                else refreshDeferred = true;
+            });
     } else refreshDeferred = true;
 }

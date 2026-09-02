@@ -6528,7 +6528,7 @@ async function checkPortableTooling() {
     'refresh:milestones': 'node scripts/generate-milestone-catalog.mjs --force',
     'refresh:nakamoto': 'node scripts/refresh-nakamoto-sources.mjs',
     test: 'npm run test:static && npm run test:smoke:ci',
-    'test:static': 'node tests/static-checks.mjs && node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers',
+    'test:static': 'node tests/static-checks.mjs && node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/chamber-snapshot-cache-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers',
     'test:scheduled-refresh': 'node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs',
     'test:smoke': 'node tests/smoke.mjs',
     'test:smoke:ci': 'node tests/smoke.mjs --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic',
@@ -6540,7 +6540,7 @@ async function checkPortableTooling() {
     'test:smoke:costs:update': 'node scripts/update-smoke-costs.mjs',
     'test:ledger-flow': 'node tests/ledger-flow-check.mjs',
     'test:baker-governance-signals': 'node tests/baker-governance-signals-check.mjs',
-    'test:chamber-polling': 'node tests/chamber-polling-check.mjs',
+    'test:chamber-polling': 'node tests/chamber-polling-check.mjs && node tests/chamber-snapshot-cache-check.mjs',
     'test:service-worker-cache': 'node tests/service-worker-cache-check.mjs'
   };
 
@@ -10561,7 +10561,7 @@ async function checkPromotedChamberContracts() {
     '__WHALE_WATCH_REFRESH_MS__',
     'captureLiveTapeAnchor',
     'restoreLiveTapeAnchor',
-    'last-good retained',
+    'Last-good retained',
     'operation ids remain distinct receipts',
     'namedEndpointSample',
     'current TzKT alias receipts',
@@ -10772,6 +10772,7 @@ async function main() {
   await checkPublicDataDiscoveryContracts();
   await checkInitialLoadMeasurementContracts();
   await checkChamberEfficiencyContracts();
+  await checkChamberFirstPaintContracts();
   await checkLauncherProjectionContracts();
   await checkModuleImportVersions();
   await checkHistoricalPagination();
@@ -10807,6 +10808,28 @@ async function main() {
 
   console.log(`\nStatic checks: ${passes.length} passed, ${warnings.length} warnings, ${failures.length} failed`);
   if (failures.length) process.exit(1);
+}
+
+async function checkChamberFirstPaintContracts() {
+  for (const key of ['capital', 'ecosystem', 'minerals', 'metals', 'uranium', 'whale']) {
+    const source = await fs.readFile(path.join(ROOT, `js/features/${key}-chamber.js`), 'utf8');
+    for (const contract of ['createChamberSnapshotCache', 'snapshotCache.read()', 'snapshotCache.save(', 'initial = false',
+      "document.visibilityState === 'visible'", 'chamberRefreshWork', 'openEpoch', 'quiet: true']) {
+      assert(source.includes(contract), `${key}: missing first-paint contract ${contract}`);
+    }
+    if (key !== 'whale') {
+      assert(source.includes('chamberSkeleton(') && source.includes('pendingSnapshotRefresh'), `${key}: missing frames or queued receipt`);
+      assert(source.includes('snapshotStatusMarkup(') && source.includes('syncSnapshotStatus(') && source.includes('assertSnapshotMatchesProjection('), `${key}: missing honest saved-state receipt`);
+    }
+  }
+  const cache = await fs.readFile(path.join(ROOT, 'js/core/chamber-snapshot-cache.js'), 'utf8');
+  for (const contract of ['4 * 1024 * 1024', '7 * 24 * 60 * 60 * 1000', 'STORAGE_TIMEOUT_MS',
+    'validateSnapshot(JSON.parse(record.text))', 'validateSummary(record.summary)', 'assertSnapshotMatchesProjection(',
+    'sha256Text(record.text)', 'snapshot.generatedAt !== record.generatedAt']) assert(cache.includes(contract), `cache safety: ${contract}`);
+  assert(!cache.includes('fetch(') && !cache.includes('localStorage'), 'saved snapshots must not intercept HTTP or exhaust localStorage');
+  const styles = await fs.readFile(path.join(ROOT, 'css/loading.css'), 'utf8');
+  assert(styles.includes('.chamber-first-paint-grid') && styles.includes('grid-template-columns: minmax(0, 1fr)'), 'static loading frames must fit phones');
+  pass('six Chambers separate requested first paint from gated polling and verify bounded saved receipts before quiet revalidation');
 }
 
 main().catch((error) => {

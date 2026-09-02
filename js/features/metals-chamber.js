@@ -8,6 +8,8 @@
  */
 
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
+import { createChamberSnapshotCache } from '../core/chamber-snapshot-cache.js';
+import { chamberSkeleton, snapshotStatusMarkup, syncSnapshotStatus } from '../ui/chamber-skeleton.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { sha256Text } from '../core/sha256.js';
@@ -20,6 +22,11 @@ import {
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
+
+const snapshotCache = createChamberSnapshotCache({
+    key: 'metals', validateSnapshot, validateSummary: validateEntrySummary,
+    receiptFor: (summary) => summary.source
+});
 
 const METALS_CSS_URL = versionedAsset('/css/metals-chamber.min.css');
 const MARKET_ROOM_CSS_URL = versionedAsset('/css/market-room.min.css');
@@ -55,6 +62,10 @@ let currentMetal = 'XAU';
 let lastSnapshot = null;
 let lastEntrySummary = null;
 let lastRefreshError = '';
+let savedSnapshot = false;
+let openEpoch = 0;
+let chamberRefreshWork = null;
+let pendingSnapshotRefresh = null;
 let activeFetch = null;
 let activeEntryFetch = null;
 let chamberTimer = null;
@@ -336,6 +347,7 @@ function fetchMetalsSnapshot(summary = lastEntrySummary) {
             }
             await validateSnapshot(snapshot);
             await assertSnapshotMatchesProjection(snapshot, sourceText, sourceReceipt, { label: 'Metals snapshot' });
+            void snapshotCache.save(sourceText, summary);
             return snapshot;
         })
         .finally(() => { activeFetch = null; });
@@ -616,6 +628,7 @@ function freshnessPresentation(snapshot) {
 }
 
 function syncMetalsFreshness(snapshot) {
+    syncSnapshotStatus(document.getElementById('metals-chamber-body'), savedSnapshot, lastRefreshError);
     const presentation = freshnessPresentation(snapshot);
     const freshness = document.getElementById('metals-freshness');
     if (freshness) {
@@ -634,11 +647,14 @@ function syncMetalsFreshness(snapshot) {
 function renderChamber(snapshot) {
     const view = VIEWS.find(({ id }) => id === currentView) || VIEWS[0];
     const freshness = freshnessPresentation(snapshot);
-    return `<header class="metals-header market-room-header" data-quiet-key="metals-header"><div class="metals-system-strip market-room-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>precious-metal intelligence</span></div><div class="metals-title-row market-room-title-row"><h2 class="market-room-title is-editorial" id="metals-title">Precious Metals Chamber</h2><span class="metals-badge market-room-badge">8 metals</span><span class="metals-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="metals-freshness" aria-live="polite">${escapeHtml(freshness.label)}</span></div><p class="metals-intro market-room-intro">Gold, silver, and all six platinum-group metals—with current indications, completed-month history, annual context, and VNXAU evidence kept on their natural clocks.</p><div class="metals-tabs market-room-tabs" role="tablist" aria-label="Precious Metals Chamber views">${VIEWS.map((item) => `<button class="metals-tab market-room-tab" id="metals-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="metals-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-metals-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div></header><section class="metals-view-shell market-room-view-shell" id="metals-view-panel" role="tabpanel" aria-labelledby="metals-tab-${view.id}" data-quiet-key="metals-view-panel"><div class="metals-view-head market-room-view-head"><div><h3>${escapeHtml(view.title)}</h3><p>${escapeHtml(view.detail)}</p></div></div><div class="metals-view-content market-room-view-content" id="metals-view-content" data-quiet-key="metals-view-content">${renderView(snapshot)}</div></section><p class="metals-disclaimer">Information only · public-source observations · not investment, custody, legal, redemption, or trading advice.</p>`;
+    return `<header class="metals-header market-room-header" data-quiet-key="metals-header"><div class="metals-system-strip market-room-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>precious-metal intelligence</span></div><div class="metals-title-row market-room-title-row"><h2 class="market-room-title is-editorial" id="metals-title">Precious Metals Chamber</h2><span class="metals-badge market-room-badge">8 metals</span><span class="metals-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="metals-freshness" aria-live="polite">${escapeHtml(freshness.label)}</span></div>${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}<p class="metals-intro market-room-intro">Gold, silver, and all six platinum-group metals—with current indications, completed-month history, annual context, and VNXAU evidence kept on their natural clocks.</p><div class="metals-tabs market-room-tabs" role="tablist" aria-label="Precious Metals Chamber views">${VIEWS.map((item) => `<button class="metals-tab market-room-tab" id="metals-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="metals-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-metals-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div></header><section class="metals-view-shell market-room-view-shell" id="metals-view-panel" role="tabpanel" aria-labelledby="metals-tab-${view.id}" data-quiet-key="metals-view-panel"><div class="metals-view-head market-room-view-head"><div><h3>${escapeHtml(view.title)}</h3><p>${escapeHtml(view.detail)}</p></div></div><div class="metals-view-content market-room-view-content" id="metals-view-content" data-quiet-key="metals-view-content">${renderView(snapshot)}</div></section><p class="metals-disclaimer">Information only · public-source observations · not investment, custody, legal, redemption, or trading advice.</p>`;
 }
 
 function renderLoading(body) {
-    body.innerHTML = '<div class="metals-loading chamber-state chamber-state-loading" role="status" aria-live="polite"><div class="metals-loader" aria-hidden="true"></div><div><strong>Opening the assay vault…</strong><span>Verifying the generated eight-metal proofbook.</span></div></div>';
+    body.innerHTML = chamberSkeleton({
+        title: 'Precious Metals Chamber', titleId: 'metals-title',
+        sections: ["Eight-metal assay","Monthly market history","VNXAU evidence","Source proofbook"]
+    });
 }
 
 function renderError(body, error) {
@@ -751,6 +767,7 @@ function markEntryRefreshFailure(error, { quiet = true } = {}) {
 }
 
 function markRefreshFailure(error) {
+    syncSnapshotStatus(document.getElementById('metals-chamber-body'), savedSnapshot, lastRefreshError);
     const freshness = document.getElementById('metals-freshness');
     if (freshness && lastSnapshot) {
         freshness.textContent = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
@@ -957,39 +974,54 @@ async function refreshMetalsEntry({ quiet = true } = {}) {
     }
 }
 
-async function refreshMetalsChamber({ quiet = true } = {}) {
-    if (document.visibilityState !== 'visible') {
+async function refreshMetalsChamber({ quiet = true, initial = false } = {}) {
+    // Only a requested, not-yet-painted room may finish its initial load hidden.
+    // All repeat rendering, network polling, and catch-up work remain gated.
+    const mayRender = () => document.visibilityState === 'visible'
+        || (initial && !lastSnapshot && document.getElementById('metals-modal')?.classList.contains('active'));
+    if (!mayRender()) {
         refreshDeferred = true;
         return lastSnapshot;
     }
-    try {
-        const hadRefreshError = Boolean(lastRefreshError);
-        const { snapshot, changed } = await resolveMetalsSnapshotRefresh();
-        if (document.visibilityState !== 'visible') {
-            refreshDeferred = true;
+    if (chamberRefreshWork) return chamberRefreshWork;
+    quiet = quiet || Boolean(lastSnapshot);
+    chamberRefreshWork = (async () => {
+        try {
+            const hadRefreshError = Boolean(lastRefreshError);
+            const result = pendingSnapshotRefresh || await resolveMetalsSnapshotRefresh();
+            const { snapshot, changed } = result;
+            if (!mayRender()) {
+                pendingSnapshotRefresh = result;
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            pendingSnapshotRefresh = null;
+            lastSnapshot = snapshot;
+            savedSnapshot = false;
+            lastRefreshError = '';
+            refreshDeferred = document.visibilityState !== 'visible';
+            if (document.visibilityState === 'visible') {
+                if (changed || hadRefreshError) updateEntry(snapshot, { quiet: true });
+                else syncMetalsFreshness(snapshot);
+            }
+            if ((changed || hadRefreshError) && document.getElementById('metals-modal')?.classList.contains('active')) {
+                renderBody(snapshot, { quiet });
+            }
+            return snapshot;
+        } catch (error) {
+            if (!mayRender()) {
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            console.warn('Metals snapshot refresh failed:', error);
+            lastRefreshError = error?.message || String(error);
+            markRefreshFailure(error);
+            const body = document.getElementById('metals-chamber-body');
+            if (!lastSnapshot && body && document.getElementById('metals-modal')?.classList.contains('active')) renderError(body, error);
             return lastSnapshot;
         }
-        lastSnapshot = snapshot;
-        lastRefreshError = '';
-        refreshDeferred = false;
-        if (changed || hadRefreshError) updateEntry(snapshot, { quiet });
-        else syncMetalsFreshness(snapshot);
-        if ((changed || hadRefreshError) && document.getElementById('metals-modal')?.classList.contains('active')) {
-            renderBody(snapshot, { quiet });
-        }
-        return snapshot;
-    } catch (error) {
-        if (document.visibilityState !== 'visible') {
-            refreshDeferred = true;
-            return lastSnapshot;
-        }
-        console.warn('Metals snapshot refresh failed:', error);
-        lastRefreshError = error?.message || String(error);
-        markRefreshFailure(error);
-        const body = document.getElementById('metals-chamber-body');
-        if (!lastSnapshot && body && document.getElementById('metals-modal')?.classList.contains('active')) renderError(body, error);
-        return lastSnapshot;
-    }
+    })().finally(() => { chamberRefreshWork = null; });
+    return chamberRefreshWork;
 }
 
 function ensureEntryCard() {
@@ -1007,7 +1039,10 @@ function ensureEntryCard() {
 }
 
 export async function openMetalsChamber() {
+    const opening = ++openEpoch;
+    const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureMetalsCss();
+    if (opening !== openEpoch) return;
     applyRouteState();
     const overlay = ensureOverlay();
     const body = overlay.querySelector('.metals-body');
@@ -1024,11 +1059,20 @@ export async function openMetalsChamber() {
         label: 'Precious Metals Chamber',
         initialFocusSelector: '.chamber-close'
     });
-    await refreshMetalsChamber({ quiet: painted });
-    if (overlay.classList.contains('active')) startRefreshTimer();
+    const retained = await cached;
+    if (opening !== openEpoch || !overlay.classList.contains('active')) return;
+    if (!lastSnapshot && retained) {
+        lastSnapshot = retained.snapshot;
+        lastEntrySummary ||= retained.summary;
+        savedSnapshot = true;
+        renderBody(lastSnapshot, { quiet: true });
+    }
+    await refreshMetalsChamber({ quiet: true, initial: true });
+    if (opening === openEpoch && overlay.classList.contains('active')) startRefreshTimer();
 }
 
 export function closeMetalsChamber() {
+    openEpoch += 1;
     stopRefreshTimer();
     const overlay = document.getElementById('metals-modal');
     overlay?.classList.remove('active');

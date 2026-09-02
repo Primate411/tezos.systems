@@ -593,6 +593,39 @@ async function checkConcurrentHistoryReceipts() {
   assert.equal(freshness[0], freshness[1]);
 }
 
+async function checkWhaleForcedRefreshCoalescing() {
+  const sourceText = await fs.readFile(new URL('data/whale-watch.json', ROOT), 'utf8');
+  const artifact = JSON.parse(sourceText);
+  let requests = 0;
+  let liveRequests = 0;
+  let release;
+  const liveGate = new Promise(resolve => { release = resolve; });
+  const { api } = await loadBrowserModule('js/features/whale-chamber.js',
+    'refreshWhaleChamber, seed: (artifact) => { lastArtifact = artifact; lastArtifactRead = Date.now(); }', {
+      versionedAsset: value => value,
+      createChamberSnapshotCache: () => ({ save: async () => {} }),
+      GENERATED_PROOFBOOK_SCHEDULE_LABEL: '6h schedule',
+      document: { visibilityState: 'visible', getElementById: () => null },
+      getWhaleSnapshot: () => ({ transactions: [], delegations: [], stake: [], unstake: [] }),
+      getAwakeningNotificationState: () => ({ enabled: false }),
+      refreshWhaleData: async () => { liveRequests += 1; await liveGate; return {}; },
+      fetch: async () => { requests += 1; return { ok: true, text: async () => sourceText }; }
+    });
+  api.seed(artifact);
+  const ordinary = api.refreshWhaleChamber();
+  const forced = api.refreshWhaleChamber({ forceArtifact: true });
+  const joined = api.refreshWhaleChamber({ forceArtifact: true });
+  assert.equal(requests, 0, 'forced archive reads must queue behind the active live tick');
+  release();
+  const results = await Promise.all([ordinary, forced, joined]);
+  assert.equal(requests, 1, 'simultaneous explicit retries must share one queued archive request');
+  assert.equal(liveRequests, 2, 'one normal refresh plus one forced follow-up');
+  assert.equal(results[1], results[2], 'queued callers receive the same settled refresh');
+  await Promise.all([api.refreshWhaleChamber({ forceArtifact: true }), api.refreshWhaleChamber({ forceArtifact: true })]);
+  assert.equal(requests, 2, 'callers also coalesce when the active request is already forced');
+}
+
+await checkWhaleForcedRefreshCoalescing();
 await checkConcurrentHistoryReceipts();
 await checkLiquidityBakingIncrementalRing();
 await checkLiquidityBakingRejectsPartialCanonicalWindow();

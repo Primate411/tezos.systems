@@ -21,6 +21,7 @@ import {
 } from './lib/smoke-harness.mjs';
 import { selectAffectedSmokeSuites } from './lib/smoke-affected.mjs';
 import { metadataForSmokeSuite } from './lib/smoke-metadata.mjs';
+import { smokeChamberFirstPaint } from './lib/chamber-first-paint-smoke.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -24480,10 +24481,6 @@ async function smokeMetalsChamber(browser, baseUrl) {
     window.__metalsSmokeVisibility = 'visible';
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  const delayedCatchupDeadline = Date.now() + 6000;
-  while (snapshotRequests <= requestsBeforeDelayedCatchup && Date.now() < delayedCatchupDeadline) await page.waitForTimeout(25);
-  assert(snapshotRequests === requestsBeforeDelayedCatchup + 1,
-    `metals chamber: hidden-completion path did not perform exactly one visible catch-up ${JSON.stringify({ requestsBeforeDelayedCatchup, snapshotRequests })}`);
   await page.waitForFunction(() => {
     const body = document.querySelector('#metals-chamber-body');
     const price = document.querySelector('#metals-view-content .metals-clock-pair article strong')?.textContent?.trim() || '';
@@ -24491,6 +24488,8 @@ async function smokeMetalsChamber(browser, baseUrl) {
       && !body.hasAttribute('data-quiet-refreshing')
       && price !== window.__metalsHiddenCompletionFixture?.baselinePrice;
   }, null, { timeout: 6000 });
+  assert(snapshotRequests === requestsBeforeDelayedCatchup,
+    `metals chamber: the visible catch-up must reuse the exact verified hidden completion, not download it again ${JSON.stringify({ requestsBeforeDelayedCatchup, snapshotRequests })}`);
   const delayedCatchup = await page.evaluate(() => {
     const saved = window.__metalsHiddenCompletionFixture;
     const body = document.querySelector('#metals-chamber-body');
@@ -36547,6 +36546,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'lazy-chamber-loading', description: 'Chamber code, projections, and CSS remain deferred until intent; hydration preserves focus; failed modules and styles retry without unstyled rooms', run: () => smokeLazyChamberLoading(browser, baseUrl) },
     { name: 'network-pulse-launcher', description: 'Network Pulse lower launcher row hydrates from collected history without opening the modal or enabling legacy full stats', run: () => smokeNetworkPulseLauncher(browser, baseUrl) },
     { name: 'launcher-projections', description: 'Capital, Ecosystem Activity, and Maxis hydrate from compact summaries, defer reviewed full artifacts until room open, preserve parity, and fall back safely', run: () => smokeLauncherProjections(browser, baseUrl) },
+    { name: 'chamber-first-paint', description: 'Six snapshot rooms finish hidden first render, paint verified saved receipts before network, and revalidate without moving desktop or mobile readers', run: () => smokeChamberFirstPaint(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'capital-chamber', description: 'Capital Chamber renders sourced cross-layer, market, asset, RWA, and art-economy views with quality quarantine, explicit gaps, direct routing, and quiet refresh', run: () => smokeCapitalChamber(browser, baseUrl) },
     { name: 'minerals-chamber', description: 'Critical Minerals keeps its compact launcher independent, exposes five accessible sourced views, preserves routes and quiet reading state, retains last-good receipts, and fits 320/390px rooms', run: () => smokeMineralsChamber(browser, baseUrl) },
     { name: 'uranium-chamber', description: 'Uranium Chamber preserves ranged chart history, deterministic Kraken live receipts, direct routing, hidden gating, and quiet reading state', run: () => smokeUraniumChamber(browser, baseUrl) },

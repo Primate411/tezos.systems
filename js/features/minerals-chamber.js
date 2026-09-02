@@ -8,6 +8,8 @@
  */
 
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
+import { createChamberSnapshotCache } from '../core/chamber-snapshot-cache.js';
+import { chamberSkeleton, snapshotStatusMarkup, syncSnapshotStatus } from '../ui/chamber-skeleton.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { sha256Text } from '../core/sha256.js';
@@ -20,6 +22,11 @@ import {
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
+
+const snapshotCache = createChamberSnapshotCache({
+    key: 'minerals', validateSnapshot, validateSummary: validateEntrySummary,
+    receiptFor: (summary) => summary.fullSnapshot
+});
 
 const MINERALS_CSS_URL = versionedAsset('/css/minerals-chamber.min.css');
 const MARKET_ROOM_CSS_URL = versionedAsset('/css/market-room.min.css');
@@ -64,6 +71,10 @@ let atlasQuery = '';
 let lastSnapshot = null;
 let lastEntrySummary = null;
 let lastRefreshError = '';
+let savedSnapshot = false;
+let openEpoch = 0;
+let chamberRefreshWork = null;
+let pendingSnapshotRefresh = null;
 let activeFetch = null;
 let activeEntryFetch = null;
 let chamberTimer = null;
@@ -199,6 +210,7 @@ function freshnessModel(value) {
 }
 
 function syncMineralsFreshness(snapshot) {
+    syncSnapshotStatus(document.getElementById('minerals-chamber-body'), savedSnapshot, lastRefreshError);
     const freshness = freshnessModel(snapshot);
     const chamberFreshness = document.getElementById('minerals-freshness');
     if (chamberFreshness) {
@@ -347,6 +359,7 @@ function fetchMineralsSnapshot(summary = lastEntrySummary) {
             }
             await validateSnapshot(snapshot);
             await assertSnapshotMatchesProjection(snapshot, text, sourceReceipt, { label: 'Minerals snapshot' });
+            void snapshotCache.save(text, summary);
             return snapshot;
         })
         .finally(() => { activeFetch = null; });
@@ -698,11 +711,14 @@ function renderView(snapshot) {
 function renderChamber(snapshot) {
     const view = VIEWS.find(({ id }) => id === currentView) || VIEWS[0];
     const freshness = freshnessModel(snapshot);
-    return `<header class="minerals-header market-room-header" data-quiet-key="minerals-header"><div class="minerals-system-strip market-room-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>critical-mineral intelligence</span></div><div class="minerals-title-row market-room-title-row"><h2 class="market-room-title is-editorial" id="minerals-title">${escapeHtml(firstText(snapshot.identity?.title, 'Critical Minerals Chamber'))}</h2><span class="minerals-badge market-room-badge">60 minerals</span><span class="minerals-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="minerals-freshness" aria-live="polite">${escapeHtml(freshness.label)}</span></div><p class="minerals-intro market-room-intro">A complete critical-minerals atlas with annual supply context, monthly market series, selected Etherlink receipts, and explicit evidence gaps kept on their natural clocks.</p><div class="minerals-tabs market-room-tabs" role="tablist" aria-label="Critical Minerals Chamber views">${VIEWS.map((item) => `<button class="minerals-tab market-room-tab" id="minerals-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="minerals-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-minerals-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div></header><section class="minerals-view-shell market-room-view-shell" id="minerals-view-panel" role="tabpanel" aria-labelledby="minerals-tab-${view.id}" data-quiet-key="minerals-view-panel"><div class="minerals-view-head market-room-view-head"><div><h3>${escapeHtml(view.title)}</h3><p>${escapeHtml(view.detail)}</p></div></div><div class="minerals-view-content market-room-view-content" id="minerals-view-content" data-quiet-key="minerals-view-content">${renderView(snapshot)}</div></section><p class="minerals-disclaimer">Information only · public-source observations · no investment, custody, legal, redemption, or execution advice.</p>`;
+    return `<header class="minerals-header market-room-header" data-quiet-key="minerals-header"><div class="minerals-system-strip market-room-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>critical-mineral intelligence</span></div><div class="minerals-title-row market-room-title-row"><h2 class="market-room-title is-editorial" id="minerals-title">${escapeHtml(firstText(snapshot.identity?.title, 'Critical Minerals Chamber'))}</h2><span class="minerals-badge market-room-badge">60 minerals</span><span class="minerals-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="minerals-freshness" aria-live="polite">${escapeHtml(freshness.label)}</span></div>${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}<p class="minerals-intro market-room-intro">A complete critical-minerals atlas with annual supply context, monthly market series, selected Etherlink receipts, and explicit evidence gaps kept on their natural clocks.</p><div class="minerals-tabs market-room-tabs" role="tablist" aria-label="Critical Minerals Chamber views">${VIEWS.map((item) => `<button class="minerals-tab market-room-tab" id="minerals-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="minerals-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-minerals-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div></header><section class="minerals-view-shell market-room-view-shell" id="minerals-view-panel" role="tabpanel" aria-labelledby="minerals-tab-${view.id}" data-quiet-key="minerals-view-panel"><div class="minerals-view-head market-room-view-head"><div><h3>${escapeHtml(view.title)}</h3><p>${escapeHtml(view.detail)}</p></div></div><div class="minerals-view-content market-room-view-content" id="minerals-view-content" data-quiet-key="minerals-view-content">${renderView(snapshot)}</div></section><p class="minerals-disclaimer">Information only · public-source observations · no investment, custody, legal, redemption, or execution advice.</p>`;
 }
 
 function renderLoading(body) {
-    body.innerHTML = `<div class="minerals-loading chamber-state chamber-state-loading" role="status"><div class="minerals-loader" aria-hidden="true"></div><div><strong>Reading the mineral proofbook</strong><span>Verifying the 60-row atlas and its SHA-256 receipt…</span></div></div>`;
+    body.innerHTML = chamberSkeleton({
+        title: 'Critical Minerals Chamber', titleId: 'minerals-title',
+        sections: ["Mineral atlas","Supply + annual context","Monthly markets","Etherlink proofbook"]
+    });
 }
 
 function renderError(body, error) {
@@ -809,6 +825,7 @@ function markEntryRefreshFailure(error, { quiet = true } = {}) {
 }
 
 function markRefreshFailure(error) {
+    syncSnapshotStatus(document.getElementById('minerals-chamber-body'), savedSnapshot, lastRefreshError);
     const freshness = document.getElementById('minerals-freshness');
     if (freshness && lastSnapshot) {
         freshness.textContent = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
@@ -1077,39 +1094,54 @@ async function refreshMineralsEntry({ quiet = true } = {}) {
     }
 }
 
-async function refreshMineralsChamber({ quiet = true } = {}) {
-    if (document.visibilityState !== 'visible') {
+async function refreshMineralsChamber({ quiet = true, initial = false } = {}) {
+    // Only a requested, not-yet-painted room may finish its initial load hidden.
+    // All repeat rendering, network polling, and catch-up work remain gated.
+    const mayRender = () => document.visibilityState === 'visible'
+        || (initial && !lastSnapshot && document.getElementById('minerals-modal')?.classList.contains('active'));
+    if (!mayRender()) {
         refreshDeferred = true;
         return lastSnapshot;
     }
-    try {
-        const hadRefreshError = Boolean(lastRefreshError);
-        const { snapshot, changed } = await resolveMineralsSnapshotRefresh();
-        if (document.visibilityState !== 'visible') {
-            refreshDeferred = true;
+    if (chamberRefreshWork) return chamberRefreshWork;
+    quiet = quiet || Boolean(lastSnapshot);
+    chamberRefreshWork = (async () => {
+        try {
+            const hadRefreshError = Boolean(lastRefreshError);
+            const result = pendingSnapshotRefresh || await resolveMineralsSnapshotRefresh();
+            const { snapshot, changed } = result;
+            if (!mayRender()) {
+                pendingSnapshotRefresh = result;
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            pendingSnapshotRefresh = null;
+            lastSnapshot = snapshot;
+            savedSnapshot = false;
+            lastRefreshError = '';
+            refreshDeferred = document.visibilityState !== 'visible';
+            if (document.visibilityState === 'visible') {
+                if (changed || hadRefreshError) updateEntry(snapshot, { quiet: true });
+                else syncMineralsFreshness(snapshot);
+            }
+            if ((changed || hadRefreshError) && document.getElementById('minerals-modal')?.classList.contains('active')) {
+                renderBody(snapshot, { quiet });
+            }
+            return snapshot;
+        } catch (error) {
+            if (!mayRender()) {
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            console.warn('Minerals snapshot refresh failed:', error);
+            lastRefreshError = error?.message || String(error);
+            markRefreshFailure(error);
+            const body = document.getElementById('minerals-chamber-body');
+            if (!lastSnapshot && body && document.getElementById('minerals-modal')?.classList.contains('active')) renderError(body, error);
             return lastSnapshot;
         }
-        lastSnapshot = snapshot;
-        lastRefreshError = '';
-        refreshDeferred = false;
-        if (changed || hadRefreshError) updateEntry(snapshot, { quiet });
-        else syncMineralsFreshness(snapshot);
-        if ((changed || hadRefreshError) && document.getElementById('minerals-modal')?.classList.contains('active')) {
-            renderBody(snapshot, { quiet });
-        }
-        return snapshot;
-    } catch (error) {
-        if (document.visibilityState !== 'visible') {
-            refreshDeferred = true;
-            return lastSnapshot;
-        }
-        console.warn('Minerals snapshot refresh failed:', error);
-        lastRefreshError = error?.message || String(error);
-        markRefreshFailure(error);
-        const body = document.getElementById('minerals-chamber-body');
-        if (!lastSnapshot && body && document.getElementById('minerals-modal')?.classList.contains('active')) renderError(body, error);
-        return lastSnapshot;
-    }
+    })().finally(() => { chamberRefreshWork = null; });
+    return chamberRefreshWork;
 }
 
 function ensureEntryCard() {
@@ -1127,7 +1159,10 @@ function ensureEntryCard() {
 }
 
 export async function openMineralsChamber() {
+    const opening = ++openEpoch;
+    const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureMineralsCss();
+    if (opening !== openEpoch) return;
     applyRouteState();
     const overlay = ensureOverlay();
     const body = overlay.querySelector('.minerals-body');
@@ -1144,11 +1179,20 @@ export async function openMineralsChamber() {
         label: 'Critical Minerals Chamber',
         initialFocusSelector: '.chamber-close'
     });
-    await refreshMineralsChamber({ quiet: painted });
-    if (overlay.classList.contains('active')) startRefreshTimer();
+    const retained = await cached;
+    if (opening !== openEpoch || !overlay.classList.contains('active')) return;
+    if (!lastSnapshot && retained) {
+        lastSnapshot = retained.snapshot;
+        lastEntrySummary ||= retained.summary;
+        savedSnapshot = true;
+        renderBody(lastSnapshot, { quiet: true });
+    }
+    await refreshMineralsChamber({ quiet: true, initial: true });
+    if (opening === openEpoch && overlay.classList.contains('active')) startRefreshTimer();
 }
 
 export function closeMineralsChamber() {
+    openEpoch += 1;
     stopRefreshTimer();
     const overlay = document.getElementById('minerals-modal');
     overlay?.classList.remove('active');

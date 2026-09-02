@@ -1656,6 +1656,22 @@ node tests/smoke.mjs --shard 1/6 --continue-on-failure --retry-failures 1 --retr
 
 Startup keeps the changelog archive and its DOM deferred until an explicit open.
 
+Capital, Ecosystem, Critical Minerals, Precious Metals, Uranium, and Whale Watch
+can paint a previously verified generated snapshot before network revalidation.
+The optional `tezos-chamber-snapshots-v1` IndexedDB store keeps one bounded
+record per room and reuses it for at most seven days after storage. Original bytes, source
+dates, schema checks, and exact launcher receipts are rechecked before reuse;
+saved content is explicitly labeled until revalidation succeeds. Storage denial,
+corruption, or expiry falls back to the normal fetch path. No live API response
+is stored here, and the service worker still fails closed for generated receipts.
+An explicitly requested first render may finish while hidden; subsequent polling
+and rendering remain visibility-gated, coalesce in flight, and quietly apply a
+verified queued response on return. Five large rooms show static section frames
+while cold. Whale Watch's generated archive does not wait for its separate live
+lanes. The `chamber-first-paint` smoke covers all six at desktop and phone widths;
+`tests/chamber-snapshot-cache-check.mjs` covers corrupt, mismatched, expired,
+oversized, denied, and blocked cache reads.
+
 The standalone `/tezoscrp/` pilot boots only its Recognition Hall, shared theme
 styles, wayfinder, and build/update lifecycle. It does not initialize dashboard
 telemetry on an idle timer. Closing the room or following its dashboard/search
@@ -1855,7 +1871,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v614`, including the full-viewport Index
+- Current aligned shell cache stamp: `v615`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

@@ -7,6 +7,8 @@
  */
 
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
+import { createChamberSnapshotCache } from '../core/chamber-snapshot-cache.js';
+import { chamberSkeleton, snapshotStatusMarkup, syncSnapshotStatus } from '../ui/chamber-skeleton.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { sha256Text } from '../core/sha256.js';
@@ -18,6 +20,11 @@ import {
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
+
+const snapshotCache = createChamberSnapshotCache({
+    key: 'ecosystem', validateSnapshot, validateSummary: validateEntrySummary,
+    receiptFor: (summary) => summary.source
+});
 
 const ECOSYSTEM_CSS_URL = versionedAsset('/css/ecosystem.min.css');
 const ECOSYSTEM_SNAPSHOT_URL = '/data/ecosystem-stats.json';
@@ -54,6 +61,10 @@ let currentApp = '';
 let lastSnapshot = null;
 let lastEntrySummary = null;
 let lastRefreshError = '';
+let savedSnapshot = false;
+let openEpoch = 0;
+let chamberRefreshWork = null;
+let pendingSnapshotRefresh = null;
 let activeSnapshotFetch = null;
 let activeEntryFetch = null;
 let chamberTimer = null;
@@ -225,6 +236,7 @@ async function fetchSnapshot(summary = lastEntrySummary) {
         .then(async ({ value, text }) => {
             await validateSnapshot(value);
             await assertSnapshotMatchesProjection(value, text, sourceReceipt, { label: 'Ecosystem snapshot' });
+            void snapshotCache.save(text, summary);
             return value;
         })
         .finally(() => {
@@ -581,6 +593,7 @@ function freshnessPresentation(snapshot) {
 }
 
 function syncEcosystemFreshness(snapshot) {
+    syncSnapshotStatus(document.getElementById('ecosystem-chamber-body'), savedSnapshot, lastRefreshError);
     const presentation = freshnessPresentation(snapshot);
     const freshness = document.getElementById('ecosystem-freshness');
     if (freshness) {
@@ -642,7 +655,7 @@ function renderChamber(snapshot) {
                 <span class="ecosystem-badge">Weekly address ledger</span>
                 <span class="ecosystem-freshness${freshness.stale ? ' is-stale' : ''}" id="ecosystem-freshness">${escapeHtml(freshness.label)}</span>
             </div>
-            <p class="ecosystem-intro">All transaction-originating addresses across Tezos L1 and Etherlink, beside the distinct subset that touched reviewed dapps. Network-wide activity, app rankings, partial-week telemetry, and contract receipts stay explicitly separate.</p>
+            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}<p class="ecosystem-intro">All transaction-originating addresses across Tezos L1 and Etherlink, beside the distinct subset that touched reviewed dapps. Network-wide activity, app rankings, partial-week telemetry, and contract receipts stay explicitly separate.</p>
             ${renderLayerTabs()}
         </header>
         <div class="ecosystem-toolbar" data-quiet-key="ecosystem-toolbar">
@@ -666,7 +679,10 @@ function renderChamber(snapshot) {
 }
 
 function renderLoading(body) {
-    body.innerHTML = '<div class="ecosystem-loading"><div><strong>Opening the activity ledger…</strong><span>Loading the generated first-party history.</span></div></div>';
+    body.innerHTML = chamberSkeleton({
+        title: 'Ecosystem Activity', titleId: 'ecosystem-title',
+        sections: ["Completed-week activity","Reviewed app ranking","Wallet history","Methodology + coverage"]
+    });
 }
 
 function renderError(body, error) {
@@ -774,6 +790,7 @@ function updateEntry(snapshot, { quiet = false } = {}) {
 }
 
 function markRefreshFailure() {
+    syncSnapshotStatus(document.getElementById('ecosystem-chamber-body'), savedSnapshot, lastRefreshError);
     const freshness = document.getElementById('ecosystem-freshness');
     if (freshness && lastSnapshot) {
         freshness.textContent = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
@@ -1013,39 +1030,54 @@ function markEcosystemEntryUnavailable(error) {
     window.syncChamberEntryFooters?.(card);
 }
 
-async function refreshEcosystemChamber({ quiet = true } = {}) {
-    if (document.visibilityState !== 'visible') {
+async function refreshEcosystemChamber({ quiet = true, initial = false } = {}) {
+    // Only a requested, not-yet-painted room may finish its initial load hidden.
+    // All repeat rendering, network polling, and catch-up work remain gated.
+    const mayRender = () => document.visibilityState === 'visible'
+        || (initial && !lastSnapshot && document.getElementById('ecosystem-activity-modal')?.classList.contains('active'));
+    if (!mayRender()) {
         refreshDeferred = true;
         return lastSnapshot;
     }
-    try {
-        const hadRefreshError = Boolean(lastRefreshError);
-        const { snapshot, changed } = await resolveEcosystemSnapshotRefresh();
-        if (document.visibilityState !== 'visible') {
-            refreshDeferred = true;
+    if (chamberRefreshWork) return chamberRefreshWork;
+    quiet = quiet || Boolean(lastSnapshot);
+    chamberRefreshWork = (async () => {
+        try {
+            const hadRefreshError = Boolean(lastRefreshError);
+            const result = pendingSnapshotRefresh || await resolveEcosystemSnapshotRefresh();
+            const { snapshot, changed } = result;
+            if (!mayRender()) {
+                pendingSnapshotRefresh = result;
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            pendingSnapshotRefresh = null;
+            lastSnapshot = snapshot;
+            savedSnapshot = false;
+            lastRefreshError = '';
+            refreshDeferred = document.visibilityState !== 'visible';
+            if (document.visibilityState === 'visible') {
+                if (changed || hadRefreshError) updateEntry(snapshot, { quiet: true });
+                else syncEcosystemFreshness(snapshot);
+            }
+            if ((changed || hadRefreshError) && document.getElementById('ecosystem-activity-modal')?.classList.contains('active')) {
+                renderBody(snapshot, { quiet });
+            }
+            return snapshot;
+        } catch (error) {
+            if (!mayRender()) {
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            console.warn('Ecosystem Activity snapshot refresh failed:', error);
+            lastRefreshError = error?.message || String(error);
+            markRefreshFailure();
+            const body = document.getElementById('ecosystem-chamber-body');
+            if (!lastSnapshot && body && document.getElementById('ecosystem-activity-modal')?.classList.contains('active')) renderError(body, error);
             return lastSnapshot;
         }
-        lastSnapshot = snapshot;
-        lastRefreshError = '';
-        refreshDeferred = false;
-        if (changed || hadRefreshError) updateEntry(snapshot, { quiet });
-        else syncEcosystemFreshness(snapshot);
-        if ((changed || hadRefreshError) && document.getElementById('ecosystem-activity-modal')?.classList.contains('active')) {
-            renderBody(snapshot, { quiet });
-        }
-        return snapshot;
-    } catch (error) {
-        if (document.visibilityState !== 'visible') {
-            refreshDeferred = true;
-            return lastSnapshot;
-        }
-        console.warn('Ecosystem Activity snapshot refresh failed:', error);
-        lastRefreshError = error?.message || String(error);
-        markRefreshFailure();
-        const body = document.getElementById('ecosystem-chamber-body');
-        if (!lastSnapshot && body && document.getElementById('ecosystem-activity-modal')?.classList.contains('active')) renderError(body, error);
-        return lastSnapshot;
-    }
+    })().finally(() => { chamberRefreshWork = null; });
+    return chamberRefreshWork;
 }
 
 function ensureEntryCard() {
@@ -1080,7 +1112,10 @@ function wireEntry(card) {
 }
 
 export async function openEcosystemChamber() {
+    const opening = ++openEpoch;
+    const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureEcosystemCss();
+    if (opening !== openEpoch) return;
     readRouteState();
     const overlay = ensureOverlay();
     const body = overlay.querySelector('.ecosystem-body');
@@ -1096,11 +1131,20 @@ export async function openEcosystemChamber() {
         label: 'Ecosystem Activity',
         initialFocusSelector: '.chamber-close'
     });
-    await refreshEcosystemChamber({ quiet: false });
-    if (overlay.classList.contains('active')) startRefreshTimer();
+    const retained = await cached;
+    if (opening !== openEpoch || !overlay.classList.contains('active')) return;
+    if (!lastSnapshot && retained) {
+        lastSnapshot = retained.snapshot;
+        lastEntrySummary ||= retained.summary;
+        savedSnapshot = true;
+        renderBody(lastSnapshot, { quiet: true });
+    }
+    await refreshEcosystemChamber({ quiet: true, initial: true });
+    if (opening === openEpoch && overlay.classList.contains('active')) startRefreshTimer();
 }
 
 export function closeEcosystemChamber() {
+    openEpoch += 1;
     stopRefreshTimer();
     const overlay = document.getElementById('ecosystem-activity-modal');
     overlay?.classList.remove('active');

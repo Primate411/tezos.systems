@@ -1,5 +1,11 @@
 const RULES = [
   {
+    suites: /^(chamber-first-paint|capital-chamber|minerals-chamber|uranium-chamber|metals-chamber|ecosystem-activity|whale-watch-chamber)$/,
+    files: ['js/core/chamber-snapshot-cache.js', 'js/ui/chamber-skeleton.js', 'tests/lib/chamber-first-paint-smoke.mjs', 'js/features/*-chamber.js', 'css/loading.css'],
+    tags: ['chamber', 'first-paint', 'quiet-refresh'],
+    risk: 'high'
+  },
+  {
     suites: /^(standalone-chamber-boot|tezoscrp|release-update|route-search-state|overlay-stack)$/,
     files: ['js/core/standalone-chamber.js', 'js/core/shell-lifecycle.js', 'scripts/lib/standalone-chamber-shell.mjs', 'scripts/generate-chamber-routes.mjs', 'tezoscrp/index.html'],
     tags: ['shell', 'navigation', 'tezoscrp'],

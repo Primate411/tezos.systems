@@ -7,6 +7,8 @@
  */
 
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
+import { createChamberSnapshotCache } from '../core/chamber-snapshot-cache.js';
+import { chamberSkeleton, snapshotStatusMarkup, syncSnapshotStatus } from '../ui/chamber-skeleton.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { sha256Text } from '../core/sha256.js';
@@ -19,6 +21,11 @@ import {
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
+
+const snapshotCache = createChamberSnapshotCache({
+    key: 'capital', validateSnapshot, validateSummary: validateEntrySummary,
+    receiptFor: (summary) => summary.source
+});
 
 const CAPITAL_CSS_URL = versionedAsset('/css/capital.min.css');
 const MARKET_ROOM_CSS_URL = versionedAsset('/css/market-room.min.css');
@@ -56,6 +63,10 @@ let currentRange = '30D';
 let lastSnapshot = null;
 let lastEntrySummary = null;
 let lastRefreshError = '';
+let savedSnapshot = false;
+let openEpoch = 0;
+let chamberRefreshWork = null;
+let pendingSnapshotRefresh = null;
 let activeFetch = null;
 let activeEntryFetch = null;
 let chamberTimer = null;
@@ -308,6 +319,7 @@ function fetchCapitalSnapshot(summary = lastEntrySummary) {
             }
             await validateSnapshot(snapshot);
             await assertSnapshotMatchesProjection(snapshot, sourceText, sourceReceipt, { label: 'Capital snapshot' });
+            void snapshotCache.save(sourceText, summary);
             return snapshot;
         })
         .finally(() => {
@@ -1072,6 +1084,7 @@ function freshnessPresentation(snapshot) {
 }
 
 function syncCapitalFreshness(snapshot) {
+    syncSnapshotStatus(document.getElementById('capital-chamber-body'), savedSnapshot, lastRefreshError);
     const presentation = freshnessPresentation(snapshot);
     const freshness = document.getElementById('capital-freshness');
     if (freshness) {
@@ -1094,7 +1107,7 @@ function renderChamber(snapshot) {
                 <span class="capital-badge market-room-badge">Generated proofbook</span>
                 <span class="capital-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="capital-freshness">${escapeHtml(freshness.label)}</span>
             </div>
-            <p class="capital-intro market-room-intro">A Tezos-native reconstruction of the useful public intelligence surface: reproducible data, explicit coverage limits, no proprietary impersonation, and no invented totals.</p>
+            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}<p class="capital-intro market-room-intro">A Tezos-native reconstruction of the useful public intelligence surface: reproducible data, explicit coverage limits, no proprietary impersonation, and no invented totals.</p>
             <div class="capital-tabs market-room-tabs" role="tablist" aria-label="Capital Chamber views">
                 ${VIEWS.map((item) => `<button class="capital-tab market-room-tab" id="capital-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="capital-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-capital-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}
             </div>
@@ -1110,7 +1123,10 @@ function renderChamber(snapshot) {
 }
 
 function renderLoading(body) {
-    body.innerHTML = '<div class="capital-loading chamber-state chamber-state-loading"><div><strong>Building the Capital Chamber…</strong><span>Loading the generated first-party snapshot.</span></div></div>';
+    body.innerHTML = chamberSkeleton({
+        title: 'Capital Chamber', titleId: 'capital-title',
+        sections: ["Tezos L1 + Etherlink L2","Markets","Assets + RWA","Art economy"]
+    });
 }
 
 function renderError(body, error) {
@@ -1162,6 +1178,7 @@ function updateEntry(snapshot, { quiet = false } = {}) {
 }
 
 function markRefreshFailure() {
+    syncSnapshotStatus(document.getElementById('capital-chamber-body'), savedSnapshot, lastRefreshError);
     const freshness = document.getElementById('capital-freshness');
     if (freshness && lastSnapshot) {
         freshness.textContent = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
@@ -1300,7 +1317,7 @@ function bindVisibilityRefresh() {
         if (document.visibilityState !== 'visible') return;
         if (entryRefreshDeferred) {
             entryRefreshDeferred = false;
-            refreshCapitalEntry({ quiet: false });
+            refreshCapitalEntry({ quiet: true });
         }
         const overlayOpen = document.getElementById('capital-modal')?.classList.contains('active');
         if (!refreshDeferred && !overlayOpen) return;
@@ -1316,12 +1333,20 @@ async function refreshCapitalEntry({ quiet = true } = {}) {
     }
     try {
         const summary = await fetchCapitalEntrySummary();
+        if (document.visibilityState !== 'visible') {
+            entryRefreshDeferred = true;
+            return lastSnapshot || lastEntrySummary;
+        }
         lastEntrySummary = summary;
         entryRefreshDeferred = false;
         if (lastSnapshot) return lastSnapshot;
         updateEntry(summary, { quiet });
         return summary;
     } catch (error) {
+        if (document.visibilityState !== 'visible') {
+            entryRefreshDeferred = true;
+            return lastSnapshot || lastEntrySummary;
+        }
         console.warn('Capital Chamber entry summary refresh failed; retaining the last good launcher:', error);
         entryRefreshDeferred = true;
         const retained = lastEntrySummary || lastSnapshot;
@@ -1349,37 +1374,56 @@ function markCapitalEntryUnavailable(error) {
     window.syncChamberEntryFooters?.(card);
 }
 
-async function refreshCapitalChamber({ quiet = true } = {}) {
-    if (document.visibilityState !== 'visible') {
+async function refreshCapitalChamber({ quiet = true, initial = false } = {}) {
+    // Only a requested, not-yet-painted room may finish its initial load hidden.
+    // All repeat rendering, network polling, and catch-up work remain gated.
+    const mayRender = () => document.visibilityState === 'visible'
+        || (initial && !lastSnapshot && document.getElementById('capital-modal')?.classList.contains('active'));
+    if (!mayRender()) {
         refreshDeferred = true;
         return lastSnapshot;
     }
-    try {
-        const hadRefreshError = Boolean(lastRefreshError);
-        const { snapshot, changed } = await resolveCapitalSnapshotRefresh();
-        if (document.visibilityState !== 'visible') {
-            refreshDeferred = true;
+    if (chamberRefreshWork) return chamberRefreshWork;
+    quiet = quiet || Boolean(lastSnapshot);
+    chamberRefreshWork = (async () => {
+        try {
+            const hadRefreshError = Boolean(lastRefreshError);
+            const result = pendingSnapshotRefresh || await resolveCapitalSnapshotRefresh();
+            const { snapshot, changed } = result;
+            if (!mayRender()) {
+                pendingSnapshotRefresh = result;
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            pendingSnapshotRefresh = null;
+            lastSnapshot = snapshot;
+            savedSnapshot = false;
+            lastRefreshError = '';
+            refreshDeferred = document.visibilityState !== 'visible';
+            if (document.visibilityState === 'visible') {
+                if (changed || hadRefreshError) updateEntry(snapshot, { quiet: true });
+                else syncCapitalFreshness(snapshot);
+            }
+            if ((changed || hadRefreshError) && document.getElementById('capital-modal')?.classList.contains('active')) {
+                renderBody(snapshot, { quiet });
+            }
+            return snapshot;
+        } catch (error) {
+            if (!mayRender()) {
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            console.warn('Capital Chamber snapshot refresh failed:', error);
+            lastRefreshError = error?.message || String(error);
+            markRefreshFailure();
+            const body = document.getElementById('capital-chamber-body');
+            if (!lastSnapshot && body && document.getElementById('capital-modal')?.classList.contains('active')) {
+                renderError(body, error);
+            }
             return lastSnapshot;
         }
-        lastSnapshot = snapshot;
-        lastRefreshError = '';
-        refreshDeferred = false;
-        if (changed || hadRefreshError) updateEntry(snapshot, { quiet });
-        else syncCapitalFreshness(snapshot);
-        if ((changed || hadRefreshError) && document.getElementById('capital-modal')?.classList.contains('active')) {
-            renderBody(snapshot, { quiet });
-        }
-        return snapshot;
-    } catch (error) {
-        console.warn('Capital Chamber snapshot refresh failed:', error);
-        lastRefreshError = error?.message || String(error);
-        markRefreshFailure();
-        const body = document.getElementById('capital-chamber-body');
-        if (!lastSnapshot && body && document.getElementById('capital-modal')?.classList.contains('active')) {
-            renderError(body, error);
-        }
-        return lastSnapshot;
-    }
+    })().finally(() => { chamberRefreshWork = null; });
+    return chamberRefreshWork;
 }
 
 function ensureEntryCard() {
@@ -1415,7 +1459,10 @@ function wireEntry(card) {
 }
 
 export async function openCapitalChamber() {
+    const opening = ++openEpoch;
+    const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureCapitalCss();
+    if (opening !== openEpoch) return;
     const route = routeView();
     const focus = routeFocus();
     if (route) currentView = route;
@@ -1433,16 +1480,25 @@ export async function openCapitalChamber() {
         label: 'Capital Chamber',
         initialFocusSelector: '.chamber-close'
     });
-    await refreshCapitalChamber({ quiet: false });
-    if (focus === 'fees' && overlay.classList.contains('active')) {
+    const retained = await cached;
+    if (opening !== openEpoch || !overlay.classList.contains('active')) return;
+    if (!lastSnapshot && retained) {
+        lastSnapshot = retained.snapshot;
+        lastEntrySummary ||= retained.summary;
+        savedSnapshot = true;
+        renderBody(lastSnapshot, { quiet: true });
+    }
+    await refreshCapitalChamber({ quiet: true, initial: true });
+    if (focus === 'fees' && opening === openEpoch && body.scrollTop === 0 && overlay.classList.contains('active')) {
         const target = document.getElementById('capital-network-costs');
         const header = body.querySelector('.capital-header');
         if (target) body.scrollTop = Math.max(0, target.offsetTop - (header?.offsetHeight || 0) - 12);
     }
-    if (overlay.classList.contains('active')) startRefreshTimer();
+    if (opening === openEpoch && overlay.classList.contains('active')) startRefreshTimer();
 }
 
 export function closeCapitalChamber() {
+    openEpoch += 1;
     stopRefreshTimer();
     const overlay = document.getElementById('capital-modal');
     overlay?.classList.remove('active');

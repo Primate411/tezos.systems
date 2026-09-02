@@ -7,6 +7,8 @@
  */
 
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
+import { createChamberSnapshotCache } from '../core/chamber-snapshot-cache.js';
+import { chamberSkeleton, snapshotStatusMarkup, syncSnapshotStatus } from '../ui/chamber-skeleton.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.mjs';
 import { sha256Text } from '../core/sha256.js';
@@ -19,6 +21,11 @@ import {
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
+
+const snapshotCache = createChamberSnapshotCache({
+    key: 'uranium', validateSnapshot, validateSummary: validateEntrySummary,
+    receiptFor: (summary) => summary.source
+});
 
 const URANIUM_CSS_URL = versionedAsset('/css/uranium-chamber.min.css');
 const MARKET_ROOM_CSS_URL = versionedAsset('/css/market-room.min.css');
@@ -67,6 +74,10 @@ let currentRange = '30D';
 let lastSnapshot = null;
 let lastEntrySummary = null;
 let lastRefreshError = '';
+let savedSnapshot = false;
+let openEpoch = 0;
+let chamberRefreshWork = null;
+let pendingSnapshotRefresh = null;
 let activeFetch = null;
 let activeEntryFetch = null;
 let liveKrakenMarket = null;
@@ -355,6 +366,7 @@ function fetchUraniumSnapshot(summary = lastEntrySummary) {
             }
             await validateSnapshot(snapshot);
             await assertSnapshotMatchesProjection(snapshot, sourceText, sourceReceipt, { label: 'Uranium snapshot' });
+            void snapshotCache.save(sourceText, summary);
             return snapshot;
         })
         .finally(() => { activeFetch = null; });
@@ -1427,6 +1439,7 @@ function freshnessPresentation(snapshot) {
 }
 
 function syncUraniumFreshness(snapshot) {
+    syncSnapshotStatus(document.getElementById('uranium-chamber-body'), savedSnapshot, lastRefreshError);
     const presentation = freshnessPresentation(snapshot);
     const freshness = document.getElementById('uranium-freshness');
     if (freshness) {
@@ -1445,7 +1458,7 @@ function renderChamber(snapshot) {
         <header class="uranium-header market-room-header" data-quiet-key="uranium-header">
             <div class="uranium-system-strip market-room-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>commodity market intelligence</span></div>
             <div class="uranium-title-row market-room-title-row"><h2 class="market-room-title is-editorial" id="uranium-title">Uranium Chamber</h2><span class="uranium-badge market-room-badge">xU3O8</span><span class="uranium-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="uranium-freshness" aria-live="polite">${escapeHtml(freshness.label)}</span></div>
-            <p class="uranium-intro market-room-intro">A source-bounded view of xU3O8, physical U3O8 custody receipts, Uranium.io, Kraken price discovery, and Etherlink state—with each claim kept on its natural clock.</p>
+            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}<p class="uranium-intro market-room-intro">A source-bounded view of xU3O8, physical U3O8 custody receipts, Uranium.io, Kraken price discovery, and Etherlink state—with each claim kept on its natural clock.</p>
             <div class="uranium-tabs market-room-tabs" role="tablist" aria-label="Uranium Chamber views">${VIEWS.map((item) => `<button class="uranium-tab market-room-tab" id="uranium-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="uranium-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-uranium-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div>
         </header>
         <section class="uranium-view-shell market-room-view-shell" id="uranium-view-panel" role="tabpanel" aria-labelledby="uranium-tab-${view.id}" data-quiet-key="uranium-view-panel">
@@ -1457,7 +1470,10 @@ function renderChamber(snapshot) {
 }
 
 function renderLoading(body) {
-    body.innerHTML = '<div class="uranium-loading chamber-state chamber-state-loading"><div class="uranium-loader-core" aria-hidden="true"></div><div><strong>Charging the Uranium Chamber…</strong><span>Verifying the generated first-party proofbook.</span></div></div>';
+    body.innerHTML = chamberSkeleton({
+        title: 'Uranium Chamber', titleId: 'uranium-title',
+        sections: ["Uranium references","Market history","Etherlink token receipts","Source proofbook"]
+    });
 }
 
 function renderError(body, error) {
@@ -1520,6 +1536,7 @@ function updateEntry(snapshot, { quiet = false } = {}) {
 }
 
 function markRefreshFailure() {
+    syncSnapshotStatus(document.getElementById('uranium-chamber-body'), savedSnapshot, lastRefreshError);
     const freshness = document.getElementById('uranium-freshness');
     if (freshness && lastSnapshot) {
         freshness.textContent = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
@@ -1759,7 +1776,7 @@ function bindVisibilityRefresh() {
         }
         if (entryRefreshDeferred) {
             entryRefreshDeferred = false;
-            refreshUraniumEntry({ quiet: false });
+            refreshUraniumEntry({ quiet: true });
         }
         const overlayOpen = document.getElementById('uranium-modal')?.classList.contains('active');
         if (overlayOpen) startKrakenStream();
@@ -1776,12 +1793,20 @@ async function refreshUraniumEntry({ quiet = true } = {}) {
     }
     try {
         const summary = await fetchUraniumEntrySummary();
+        if (document.visibilityState !== 'visible') {
+            entryRefreshDeferred = true;
+            return lastSnapshot || lastEntrySummary;
+        }
         lastEntrySummary = summary;
         entryRefreshDeferred = false;
         if (lastSnapshot) return lastSnapshot;
         updateEntry(summary, { quiet });
         return summary;
     } catch (error) {
+        if (document.visibilityState !== 'visible') {
+            entryRefreshDeferred = true;
+            return lastSnapshot || lastEntrySummary;
+        }
         console.warn('Uranium Chamber entry summary refresh failed; retaining the last good launcher:', error);
         entryRefreshDeferred = true;
         const retained = lastEntrySummary || lastSnapshot;
@@ -1807,35 +1832,54 @@ function markUraniumEntryUnavailable(error) {
     window.syncChamberEntryFooters?.(card);
 }
 
-async function refreshUraniumChamber({ quiet = true } = {}) {
-    if (document.visibilityState !== 'visible') {
+async function refreshUraniumChamber({ quiet = true, initial = false } = {}) {
+    // Only a requested, not-yet-painted room may finish its initial load hidden.
+    // All repeat rendering, network polling, and catch-up work remain gated.
+    const mayRender = () => document.visibilityState === 'visible'
+        || (initial && !lastSnapshot && document.getElementById('uranium-modal')?.classList.contains('active'));
+    if (!mayRender()) {
         refreshDeferred = true;
         return lastSnapshot;
     }
-    try {
-        const hadRefreshError = Boolean(lastRefreshError);
-        const { snapshot, changed } = await resolveUraniumSnapshotRefresh();
-        if (document.visibilityState !== 'visible') {
-            refreshDeferred = true;
+    if (chamberRefreshWork) return chamberRefreshWork;
+    quiet = quiet || Boolean(lastSnapshot);
+    chamberRefreshWork = (async () => {
+        try {
+            const hadRefreshError = Boolean(lastRefreshError);
+            const result = pendingSnapshotRefresh || await resolveUraniumSnapshotRefresh();
+            const { snapshot, changed } = result;
+            if (!mayRender()) {
+                pendingSnapshotRefresh = result;
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            pendingSnapshotRefresh = null;
+            lastSnapshot = snapshot;
+            savedSnapshot = false;
+            lastRefreshError = '';
+            refreshDeferred = document.visibilityState !== 'visible';
+            if (document.visibilityState === 'visible') {
+                if (changed || hadRefreshError) updateEntry(snapshot, { quiet: true });
+                else syncUraniumFreshness(snapshot);
+            }
+            if ((changed || hadRefreshError) && document.getElementById('uranium-modal')?.classList.contains('active')) {
+                renderBody(snapshot, { quiet });
+            }
+            return snapshot;
+        } catch (error) {
+            if (!mayRender()) {
+                refreshDeferred = true;
+                return lastSnapshot;
+            }
+            console.warn('Uranium Chamber snapshot refresh failed:', error);
+            lastRefreshError = error?.message || String(error);
+            markRefreshFailure();
+            const body = document.getElementById('uranium-chamber-body');
+            if (!lastSnapshot && body && document.getElementById('uranium-modal')?.classList.contains('active')) renderError(body, error);
             return lastSnapshot;
         }
-        lastSnapshot = snapshot;
-        lastRefreshError = '';
-        refreshDeferred = false;
-        if (changed || hadRefreshError) updateEntry(snapshot, { quiet });
-        else syncUraniumFreshness(snapshot);
-        if ((changed || hadRefreshError) && document.getElementById('uranium-modal')?.classList.contains('active')) {
-            renderBody(snapshot, { quiet });
-        }
-        return snapshot;
-    } catch (error) {
-        console.warn('Uranium Chamber snapshot refresh failed:', error);
-        lastRefreshError = error?.message || String(error);
-        markRefreshFailure();
-        const body = document.getElementById('uranium-chamber-body');
-        if (!lastSnapshot && body && document.getElementById('uranium-modal')?.classList.contains('active')) renderError(body, error);
-        return lastSnapshot;
-    }
+    })().finally(() => { chamberRefreshWork = null; });
+    return chamberRefreshWork;
 }
 
 function ensureEntryCard() {
@@ -1860,7 +1904,10 @@ function ensureEntryCard() {
 }
 
 export async function openUraniumChamber() {
+    const opening = ++openEpoch;
+    const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureUraniumCss();
+    if (opening !== openEpoch) return;
     const route = routeView();
     if (route) currentView = route;
     const range = routeRange();
@@ -1880,14 +1927,23 @@ export async function openUraniumChamber() {
         label: 'Uranium Chamber',
         initialFocusSelector: '.chamber-close'
     });
-    await refreshUraniumChamber({ quiet: paintedSnapshot });
-    if (overlay.classList.contains('active')) {
+    const retained = await cached;
+    if (opening !== openEpoch || !overlay.classList.contains('active')) return;
+    if (!lastSnapshot && retained) {
+        lastSnapshot = retained.snapshot;
+        lastEntrySummary ||= retained.summary;
+        savedSnapshot = true;
+        renderBody(lastSnapshot, { quiet: true });
+    }
+    await refreshUraniumChamber({ quiet: true, initial: true });
+    if (opening === openEpoch && overlay.classList.contains('active')) {
         startRefreshTimer();
         startKrakenStream();
     }
 }
 
 export function closeUraniumChamber() {
+    openEpoch += 1;
     stopRefreshTimer();
     stopKrakenStream();
     const overlay = document.getElementById('uranium-modal');
