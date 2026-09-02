@@ -2566,6 +2566,7 @@ async function checkSelectorContracts() {
   const loadingCss = await readText('css/loading.css');
   const henModeCss = await readText('css/hen-mode.css');
   const henMode = await readText('js/features/hen-mode.js');
+  const henInit = await readText('js/core/hen-init.js');
   const henPage = await readText('hen/index.html');
   const objkt = await readText('js/features/objkt.js');
     const chamber = await readText('js/features/chamber.js');
@@ -3057,9 +3058,9 @@ async function checkSelectorContracts() {
     ['HEN source OBJKT tab', 'data-hen-mode="objkt"', index],
     ['HEN standalone canonical URL', '<link rel="canonical" href="https://tezos.systems/hen/">', henPage],
     ['HEN standalone live overlay', 'id="hen-overlay"', henPage],
-    ['HEN standalone auto activator', '/js/features/hen-mode.js?v=95', henPage],
+    ['HEN standalone lazy activator', '/js/core/hen-init.js?v=80', henPage],
     ['HEN CSS cache stamp', 'css/hen-mode.css?v=98', index],
-    ['HEN JS cache stamp', 'js/features/hen-mode.js?v=95', index],
+    ['HEN JS cache stamp', '/js/features/hen-mode.js?v=96', henInit],
     ['HEN setup status strip', 'id="hen-status-strip"', index],
     ['HEN permanent now line', 'id="hen-now-line"', index],
     ['HEN mobile filter toggle', 'id="hen-mobile-filter-toggle"', index],
@@ -4421,9 +4422,10 @@ async function checkUxAuditContracts() {
   if (!app.includes("document.addEventListener('visibilitychange', pollBlockWhenVisible)") || !tooltipTour.includes('.visit-streak-toast.visible')) {
     fail('RPC polling and first-visit surfaces must respect document visibility and toast occupancy');
   }
-  if (!index.includes('<script defer src="js/features/hen-mode.js?v=95"></script>')
+  if (index.includes('<script defer src="js/features/hen-mode.js')
+    || !index.includes('<script src="js/core/hen-init.js?v=80" defer></script>')
     || !index.includes('<link rel="stylesheet" href="css/hen-mode.css?v=98">')) {
-    fail('HEN JavaScript may defer, but its first-paint overlay stylesheet must remain eager');
+    fail('HEN feed runtime must load on intent while shared theme and launcher styles remain eager');
   }
   if (!index.includes('id="portfolio-import-file" type="file" accept="application/json,.json" aria-label="Import My Tezos portfolio JSON file"')
     || !index.includes('id="hen-cli-input" class="hen-cli-input" type="text" aria-label="HEN command input"')) {
@@ -5168,6 +5170,28 @@ async function checkChamberEfficiencyContracts() {
   }
 
   pass(`lazy Chamber registry, stylesheet readiness, freshness reconciliation, and cache policy checked across ${lazyModules.length} deferred modules`);
+
+  const changelogLauncher = await readText('js/ui/changelog-launcher.js');
+  const henLoader = await readText('js/core/hen-init.js');
+  if (app.includes("from '../features/changelog.js'")
+    || !app.includes("from '../ui/changelog-launcher.js'")
+    || !changelogLauncher.includes('module.openChangelog()')
+    || !changelogLauncher.includes('importAttempt += 1')) {
+    fail('changelog archive must remain lazy, shared, and retryable after a failed module fetch');
+  }
+  if (index.includes('href="css/protocol-anthology.css')
+    || !app.includes("ensureChamberStylesheet('protocol-anthology-css', versionedAsset('/css/protocol-anthology.css'))")
+    || !app.includes('loadProtocolData(), ensureProtocolAnthologyCss()')
+    || !app.includes('if (!await ensureProtocolAnthologyCss()')) {
+    fail('Anthology library and story openers must both await their lazy stylesheet');
+  }
+  if (!henLoader.includes('runtimePromise = null')
+    || !henLoader.includes('window.location.href !== requestedRoute')
+    || !henLoader.includes("closest('#hen-launcher, [data-hen-launch]')")
+    || !app.includes('window.openHenMode?.()')) {
+    fail('lazy HEN must retain shared loading, retries, cancelled routes, launchers, and the legacy NFT route');
+  }
+  pass('optional startup assets remain deferred without changing shared HEN styles or route entry points');
 }
 
 async function checkLauncherProjectionContracts() {

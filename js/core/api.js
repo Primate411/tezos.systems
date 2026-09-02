@@ -3,7 +3,7 @@
  * Fetches data from TzKT API and Octez RPC
  */
 
-import { API_URLS, CACHE_TTLS, FETCH_LIMITS, HISTORY_START } from './config.js';
+import { API_URLS, CACHE_TTLS, FETCH_LIMITS, HISTORY_START, SUPABASE_CONFIG } from './config.js';
 import { loadDataAsset } from './data-assets.js';
 import { HISTORY_FRESHNESS_LIMITS } from './freshness-contracts.mjs';
 import { calculatePercentage } from './utils.js';
@@ -1526,7 +1526,7 @@ function unavailableHistoryReceipt(error) {
 export async function fetchHistoricalDataReceipt(range = '7d') {
     const cacheKey = `history:${range}`;
     const cached = historicalDataCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < cache.ttl) {
+    if (cached && (cached.promise || (Date.now() - cached.timestamp) < cache.ttl)) {
         try {
             return await (cached.promise || cached.data);
         } catch (error) {
@@ -1534,7 +1534,8 @@ export async function fetchHistoricalDataReceipt(range = '7d') {
         }
     }
 
-    const { SUPABASE_CONFIG } = await import('./config.js');
+    // Do not yield between checking the cache and registering the request.
+    // Concurrent charts share the complete paginated receipt, even past its TTL.
     const startTime = getHistoryStartTime(range);
 
     const url = `${SUPABASE_CONFIG.url}/rest/v1/tezos_history?timestamp=gte.${startTime.toISOString()}&order=timestamp.asc`;
@@ -1594,7 +1595,7 @@ async function fetchSupabaseHistoryRowsReceipt(table, range = '7d', select = '*'
 
     const cacheKey = `history-table:${table}:${range}:${select}`;
     const cached = historicalDataCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < cache.ttl) {
+    if (cached && (cached.promise || (Date.now() - cached.timestamp) < cache.ttl)) {
         try {
             return await (cached.promise || cached.data);
         } catch (error) {
@@ -1602,7 +1603,6 @@ async function fetchSupabaseHistoryRowsReceipt(table, range = '7d', select = '*'
         }
     }
 
-    const { SUPABASE_CONFIG } = await import('./config.js');
     const startTime = getHistoryStartTime(range);
     const headers = {
         'apikey': SUPABASE_CONFIG.key,
@@ -1690,11 +1690,10 @@ async function fetchLatestHistoryRow(config, table) {
 export async function fetchSupabaseHistoryFreshness() {
     const cacheKey = 'history-freshness';
     const cached = historicalDataCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < cache.ttl) {
+    if (cached && (cached.promise || (Date.now() - cached.timestamp) < cache.ttl)) {
         return cached.promise || cached.data;
     }
 
-    const { SUPABASE_CONFIG } = await import('./config.js');
     const tables = ['tezos_history', ...Object.values(DOMAIN_HISTORY_TABLES)];
     const requestPromise = (async () => {
         const now = Date.now();

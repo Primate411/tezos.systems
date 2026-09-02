@@ -1654,6 +1654,14 @@ node tests/smoke.mjs --shard 1/6 --continue-on-failure --retry-failures 1 --retr
 
 ## Testing
 
+Startup keeps the changelog archive and its DOM deferred until an explicit open.
+HEN's feed runtime loads only for its route, query/legacy NFT link, or launcher;
+its shared gift-tray, TzSafe, and theme stylesheet remains eager. Protocol Anthology
+loads its editorial stylesheet before opening either the library or a chapter.
+Failed optional loads can be retried without reloading the dashboard. Concurrent
+Supabase history readers share a complete paginated receipt, including slow
+in-flight requests; ranges and source availability semantics are unchanged.
+
 `npm test` runs:
 
 - `npm run test:static`: JSON validity, generated governance freshness, local
@@ -1837,7 +1845,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v608`, including the full-viewport Index
+- Current aligned shell cache stamp: `v613`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

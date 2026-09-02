@@ -68,6 +68,7 @@ import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js
 import { closeCycleHistoryChamber, initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric, openCardHistoryModal } from '../features/history.js';
 import { ensureCardShareButton, initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
+import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import { activateOverlayDialog, deactivateOverlayDialog, reconcileOverlayEnvironment } from '../ui/overlay-stack.js';
 import { setToastGate } from '../ui/toast-queue.js';
 import { fetchProtocols } from '../features/governance.js';
@@ -112,7 +113,7 @@ import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-b
 import { initCalculator } from '../features/calculator.js';
 import { checkMoments, initMomentsTimeline } from '../features/moments.js';
 import { initVibes } from '../effects/vibes.js';
-import { initChangelog } from '../features/changelog.js';
+import { initChangelog } from '../ui/changelog-launcher.js';
 import { initBakerReportCard } from '../features/baker-report-card.js';
 
 import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
@@ -5550,7 +5551,9 @@ async function openProtocolHistoryByName(protocolName, { updateRoute = true, rep
     // Capture the launcher before the data await: a quiet timeline refresh may
     // otherwise move focus before the Story joins the overlay stack.
     const opener = document.activeElement;
-    const data = await loadProtocolData();
+    const requestedRoute = window.location.href;
+    const [data, styled] = await Promise.all([loadProtocolData(), ensureProtocolAnthologyCss()]);
+    if (!styled || window.location.href !== requestedRoute) return false;
     const match = findProtocolByRouteValue(data?.protocols, target)
         || data?.protocols?.find((protocol) => protocol.name.toLowerCase().includes(target.toLowerCase()));
     const history = protocolToHistory(match);
@@ -6231,6 +6234,16 @@ function showProtocolHistoryModal(history, protocolName, { opener = null, protoc
 
 let protocolHistoryChamberCloseTimer = null;
 
+async function ensureProtocolAnthologyCss() {
+    try {
+        await ensureChamberStylesheet('protocol-anthology-css', versionedAsset('/css/protocol-anthology.css'));
+        return true;
+    } catch (error) {
+        console.warn('Protocol Anthology styles unavailable; open again to retry:', error);
+        return false;
+    }
+}
+
 function ensureProtocolHistoryChamberModal() {
     let overlay = document.getElementById('protocol-history-chamber-modal');
     if (overlay) return overlay;
@@ -6390,6 +6403,8 @@ function closeProtocolHistoryChamber() {
 }
 
 async function openProtocolHistoryChamber() {
+    const requestedRoute = window.location.href;
+    if (!await ensureProtocolAnthologyCss() || window.location.href !== requestedRoute) return;
     document.getElementById('tooltip-protocol-history-entry-card')?.classList.remove('is-open');
     const overlay = ensureProtocolHistoryChamberModal();
     window.clearTimeout(protocolHistoryChamberCloseTimer);
@@ -8016,7 +8031,7 @@ function applyDeepLink() {
     // #nfts
     if (params.has('nfts') || hash === 'nfts') {
         window.history.replaceState(null, '', '/?hen=1');
-        if (window.HenMode?.activate) window.HenMode.activate();
+        window.openHenMode?.();
     }
 
     // #widgets

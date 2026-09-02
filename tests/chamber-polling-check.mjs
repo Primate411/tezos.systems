@@ -9,7 +9,7 @@ async function loadBrowserModule(relativePath, exposure, globals = {}) {
   let source = await fs.readFile(new URL(relativePath, ROOT), 'utf8');
   source = source
     .replace(/^import\s+[^;]+;\s*$/gm, '')
-    .replace(/^export\s+\{[^;]+\}\s+from\s+['"][^'"]+['"];\s*$/gm, '')
+    .replace(/^export\s+\{[^;]+\}(?:\s+from\s+['"][^'"]+['"])?;\s*$/gm, '')
     .replace(/\bexport\s+(?=(?:async\s+)?function\b|(?:const|let|class)\b)/g, '');
   source += `\nglobalThis.__pollingCheck = { ${exposure} };\n`;
   const context = vm.createContext({
@@ -517,6 +517,83 @@ async function checkSnapshotProjectionReceiptBinding() {
   }
 }
 
+async function checkConcurrentHistoryReceipts() {
+  let now = Date.parse('2026-09-02T12:34:56.789Z');
+  class Clock extends Date {
+    constructor(...args) { super(...(args.length ? args : [now])); }
+    static now() { return now; }
+  }
+  const { api, context } = await loadBrowserModule(
+    'js/core/api.js',
+    'fetchHistoricalDataReceipt, fetchSupabaseHistoryRowsReceipt, fetchSupabaseHistoryFreshness',
+    {
+      Date: Clock,
+      console: { error() {}, warn() {}, log() {} },
+      API_URLS: { tzkt: 'https://example.test/v1', octez: 'https://rpc.example.test' },
+      CACHE_TTLS: { memory: 60000 }, FETCH_LIMITS: {},
+      HISTORY_START: '2018-06-30T17:39:57Z',
+      HISTORY_FRESHNESS_LIMITS: {},
+      SUPABASE_CONFIG: { url: 'https://history.example.test', key: 'public-test-key' }
+    }
+  );
+  const requests = [];
+  let release;
+  const pending = new Promise(resolve => { release = resolve; });
+  let failPage = false;
+  context.fetchWithRetry = async (url) => {
+    const parsed = new URL(url);
+    requests.push(parsed);
+    await pending;
+    if (parsed.searchParams.get('limit') === '1') return [{ timestamp: new Clock().toISOString() }];
+    if (parsed.searchParams.get('offset') === '0') return Array.from({ length: 1000 }, (_, id) => ({ id }));
+    if (failPage) throw new Error('injected second-page failure');
+    return [{ id: 1000 }];
+  };
+
+  const first = api.fetchHistoricalDataReceipt('30d');
+  const second = api.fetchHistoricalDataReceipt('30d');
+  assert.equal(requests.length, 1, 'concurrent callers must synchronously reserve one history request');
+  assert.equal(requests[0].searchParams.get('timestamp'), 'gte.2026-08-03T12:34:56.789Z', 'dedupe must not round or shorten the requested range');
+  now += 90000;
+  const slowJoiner = api.fetchHistoricalDataReceipt('30d');
+  assert.equal(requests.length, 1, 'an in-flight request must not expire with the settled-data TTL');
+  release();
+  const receipts = await Promise.all([first, second, slowJoiner]);
+  assert.equal(requests.length, 2, 'each history page is fetched once, not once per caller');
+  assert.equal(receipts[0].rows.length, 1001, 'all callers receive the complete paginated window');
+  assert.equal(receipts[0], receipts[1]);
+  assert.equal(receipts[0], receipts[2]);
+  assert.equal(await api.fetchHistoricalDataReceipt('30d'), receipts[0]);
+  assert.equal(requests.length, 2, 'settled receipts retain their existing cache TTL');
+
+  now += 60001;
+  failPage = true;
+  const failed = await Promise.all([api.fetchHistoricalDataReceipt('30d'), api.fetchHistoricalDataReceipt('30d')]);
+  assert.equal(requests.length, 4, 'failure still shares a single paginated attempt');
+  assert(failed.every(receipt => receipt.status === 'unavailable' && receipt.rows.length === 0), 'partial pages must never become a successful receipt');
+  failPage = false;
+  assert.equal((await api.fetchHistoricalDataReceipt('30d')).rows.length, 1001, 'failed history attempts must be evicted so a new call can recover');
+
+  requests.length = 0;
+  const table = await Promise.all([
+    api.fetchSupabaseHistoryRowsReceipt('market_history', '7d', 'timestamp,price'),
+    api.fetchSupabaseHistoryRowsReceipt('market_history', '7d', 'timestamp,price'),
+    api.fetchSupabaseHistoryRowsReceipt('market_history', '24h', 'timestamp,price'),
+    api.fetchSupabaseHistoryRowsReceipt('market_history', '7d', 'timestamp'),
+    api.fetchSupabaseHistoryRowsReceipt('network_health_history', '7d', 'timestamp')
+  ]);
+  assert.equal(requests.length, 8, 'table, range, and selection stay independent while identical requests coalesce');
+  assert.equal(table[0], table[1]);
+  assert(table.every(receipt => receipt.rows.length === 1001));
+
+  requests.length = 0;
+  const freshness = await Promise.all([api.fetchSupabaseHistoryFreshness(), api.fetchSupabaseHistoryFreshness()]);
+  assert.equal(requests.length, 5, 'concurrent freshness audits share one read per history ledger');
+  assert.equal(new Set(requests.map(url => url.pathname)).size, 5);
+  assert.equal(freshness[0], freshness[1]);
+}
+
+await checkConcurrentHistoryReceipts();
 await checkLiquidityBakingIncrementalRing();
 await checkLiquidityBakingRejectsPartialCanonicalWindow();
 await checkLiquidityBakingRetriesExactCanonicalWindow();

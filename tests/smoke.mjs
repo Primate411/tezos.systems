@@ -31655,6 +31655,133 @@ async function smokeWidgetBuilder(browser, baseUrl) {
   log('ok - widget builder smoke');
 }
 
+async function smokeOptionalStartup(browser, baseUrl) {
+  const optionalPaths = new Set(['/js/features/changelog.js', '/js/features/hen-mode.js', '/css/protocol-anthology.css']);
+  for (const [theme, width] of [['matrix', 1280], ['clean', 390]]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+    await installFeatureMocks(context);
+    const page = await context.newPage();
+    const issues = [];
+    attachIssueCollectors(page, `optional startup ${theme}`, issues);
+    const capture = async (surface) => {
+      if (!ARTIFACTS_DIR) return;
+      await mkdir(ARTIFACTS_DIR, { recursive: true });
+      await page.screenshot({ path: path.join(ARTIFACTS_DIR, `optional-${theme}-${width}-${surface}.png`), fullPage: false });
+    };
+    const requests = [];
+    page.on('request', request => requests.push(new URL(request.url()).pathname));
+    await page.goto(`${baseUrl}/?theme=${theme}`, { waitUntil: 'load' });
+    await page.waitForFunction(() => document.getElementById('changelog-btn')?.dataset.changelogLauncherWired === '1');
+    await waitForIntentionalRealTime(page, 'lazy-chamber-no-intent');
+    assert(!requests.some(item => optionalPaths.has(item)), `optional startup fetched before intent: ${requests.filter(item => optionalPaths.has(item))}`);
+    assert(await page.locator('#changelog-body > *').count() === 0, 'closed changelog must not construct the archive');
+    assert(await page.evaluate(() => document.visibilityState === 'visible'), 'startup assertions need an actually visible tab');
+    const chrome = await page.evaluate(() => ({
+      giftPosition: getComputedStyle(document.getElementById('corner-gift-tray')).position,
+      overflow: document.documentElement.scrollWidth - innerWidth
+    }));
+    assert(['relative', 'fixed'].includes(chrome.giftPosition) && chrome.overflow <= 1, `shared HEN chrome regressed: ${JSON.stringify(chrome)}`);
+    await capture('home');
+
+    // A slow first import must remain cancellable, without constructing hidden DOM.
+    let releaseChangelog;
+    const changelogGate = new Promise(resolve => { releaseChangelog = resolve; });
+    await page.route('**/js/features/changelog.js*', async route => { await changelogGate; await route.continue(); });
+    await openDropdown(page, '#settings-gear', '#settings-dropdown');
+    const changelogRequested = page.waitForRequest('**/js/features/changelog.js*');
+    await page.locator('#changelog-btn').click();
+    await changelogRequested;
+    assert(await page.locator('#changelog-body > *').count() === 0, 'delayed changelog must remain unrendered');
+    await page.keyboard.press('Escape');
+    releaseChangelog();
+    await page.waitForFunction(() => !document.getElementById('changelog-btn')?.hasAttribute('aria-busy'));
+    assert(await page.locator('#changelog-modal').getAttribute('aria-hidden') === 'true', 'Escape must cancel a pending archive open');
+    await ensureDropdownOpen(page, '#settings-gear', '#settings-dropdown');
+    await page.locator('#changelog-btn').click();
+    await page.locator('#changelog-modal[aria-hidden="false"]').waitFor({ state: 'visible' });
+    assert(await page.locator('#changelog-body .changelog-entry').count() > 100, 'lazy archive lost its history');
+    await page.evaluate(() => { window.__startupArchiveNode = document.querySelector('#changelog-body .changelog-entry'); });
+    await page.locator('.changelog-modal-close').click();
+    await ensureDropdownOpen(page, '#settings-gear', '#settings-dropdown');
+    await page.locator('#changelog-btn').click();
+    await page.locator('#changelog-modal[aria-hidden="false"]').waitFor({ state: 'visible' });
+    assert(await page.evaluate(() => document.querySelector('#changelog-body .changelog-entry') === window.__startupArchiveNode), 'reopening must reuse archive DOM');
+    assert(requests.filter(item => item === '/js/features/changelog.js').length === 1, 'reopening must reuse the archive module');
+    await page.locator('.changelog-modal-close').click();
+
+    await page.goto(`${baseUrl}/?theme=${theme}#nfts`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#hen-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
+    assert(new URL(page.url()).pathname === '/hen/', 'legacy NFT route must still activate HEN');
+    await page.goto(`${baseUrl}/hen/`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#hen-overlay.active').waitFor({ state: 'visible', timeout: 15000 });
+    assert(await page.locator('body').getAttribute('data-hen-standalone') === 'true', 'direct HEN must retain its dedicated lightweight page');
+
+    await page.goto(`${baseUrl}/anthology/?theme=${theme}`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#protocol-history-chamber-modal.active .protocol-anthology-library').waitFor({ state: 'visible', timeout: 15000 });
+    const story = page.locator('#protocol-history-chamber-modal [data-protocol-open]').first();
+    const storyPath = await story.getAttribute('href');
+    assert(await page.evaluate(() => Boolean(document.getElementById('protocol-anthology-css')?.sheet)), 'library must wait for its stylesheet');
+    await capture('anthology');
+    await story.click();
+    await page.locator('#protocol-history-modal').waitFor({ state: 'visible' });
+    await page.goto(new URL(storyPath, baseUrl).href, { waitUntil: 'domcontentloaded' });
+    await page.locator('#protocol-history-modal').waitFor({ state: 'visible', timeout: 15000 });
+    const storyGeometry = await page.evaluate(() => ({
+      styled: Boolean(document.getElementById('protocol-anthology-css')?.sheet),
+      overflow: document.documentElement.scrollWidth - innerWidth
+    }));
+    assert(storyGeometry.styled && storyGeometry.overflow <= 1, `direct chapter lost its styles or viewport fit: ${JSON.stringify(storyGeometry)}`);
+    await capture('story');
+    await context.close();
+    assert(issues.length === 0, `optional startup browser issues:\n${issues.join('\n')}`);
+  }
+
+  // Retry failed imports/styles and reject a late HEN activation after navigation.
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' });
+  await installFeatureMocks(context);
+  const page = await context.newPage();
+  let changelogAttempts = 0;
+  let henAttempts = 0;
+  let styleAttempts = 0;
+  let releaseHen;
+  const henGate = new Promise(resolve => { releaseHen = resolve; });
+  await page.route('**/js/features/changelog.js*', route => ++changelogAttempts === 1
+    ? route.fulfill({ status: 503, contentType: 'text/javascript', body: '' }) : route.continue());
+  await page.route('**/js/features/hen-mode.js*', async route => {
+    if (++henAttempts === 1) return route.fulfill({ status: 503, contentType: 'text/javascript', body: '' });
+    await henGate;
+    return route.continue();
+  });
+  await page.route('**/css/protocol-anthology.css*', route => ++styleAttempts === 1
+    ? route.fulfill({ status: 503, contentType: 'text/css', body: '' }) : route.continue());
+  await page.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'load' });
+  await openDropdown(page, '#settings-gear', '#settings-dropdown');
+  await page.locator('#changelog-btn').click();
+  await page.waitForFunction(() => document.getElementById('changelog-btn')?.title.includes('unavailable'));
+  await ensureDropdownOpen(page, '#settings-gear', '#settings-dropdown');
+  await page.locator('#changelog-btn').click();
+  await page.locator('#changelog-modal[aria-hidden="false"]').waitFor({ state: 'visible' });
+  assert(changelogAttempts === 2, `archive import should recover in one retry: ${changelogAttempts}`);
+  await page.locator('.changelog-modal-close').click();
+  await page.locator('#corner-gift-toggle').click();
+  await page.locator('#hen-launcher').click();
+  await page.waitForFunction(() => document.getElementById('hen-launcher')?.title.includes('unavailable'));
+  const henRequested = page.waitForRequest('**/js/features/hen-mode.js*');
+  await page.locator('#hen-launcher').click();
+  await henRequested;
+  await page.locator('#header-protocol-chip').click();
+  await page.waitForFunction(() => !document.getElementById('protocol-anthology-css'));
+  releaseHen();
+  await page.waitForFunction(() => Boolean(window.HenMode) && !document.getElementById('hen-launcher')?.hasAttribute('aria-busy'));
+  assert(await page.locator('#hen-overlay').evaluate(node => !node.classList.contains('active')), 'late HEN download must not replace the newly selected route');
+  await page.locator('#header-protocol-chip').click();
+  await page.locator('#protocol-history-chamber-modal.active .protocol-anthology-library').waitFor({ state: 'visible' });
+  assert(styleAttempts === 2, `Anthology CSS should recover in one retry: ${styleAttempts}`);
+  assert(henAttempts === 2, `HEN must share its successful retry: ${henAttempts}`);
+  await context.close();
+  log('ok - optional startup deferral, cancellation, retries, retained archive, HEN routes, and styled Anthology chapters');
+}
+
 async function smokeHenMode(browser, baseUrl) {
   const issues = [];
   const context = await browser.newContext({
@@ -36270,6 +36397,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'valley-theme', description: 'Valley lazy renderer, data motion, lifecycle, reading-state preservation, reduced motion, and responsive geometry', run: () => smokeValleyTheme(browser, baseUrl) },
     { name: 'themes', description: 'Theme picker availability and representative light/dark/colorful theme switching', run: () => smokeThemeSelection(browser, baseUrl) },
     { name: 'widget-builder', description: 'Standalone widget builder type picker, preview sizing, and embed code tabs', run: () => smokeWidgetBuilder(browser, baseUrl) },
+    { name: 'optional-startup', description: 'Changelog, HEN runtime, and Anthology styles load only on intent, preserve routes, and recover from failed or cancelled loads', run: () => smokeOptionalStartup(browser, baseUrl) },
     { name: 'hen-mode', description: 'HEN overlay startup and exit path', run: () => smokeHenMode(browser, baseUrl) },
     { name: 'route-formatting', description: 'Public pages, widget pages, and 404 screen avoid horizontal overflow and clipped controls on desktop/mobile', run: () => smokeRouteFormatting(browser, baseUrl) },
     { name: 'standalone-links', description: 'Visible first-party links on public and widget routes resolve without local/custom-domain drift', run: () => smokeStandaloneLinks(browser, baseUrl) },

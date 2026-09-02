@@ -1,5 +1,11 @@
 const RULES = [
   {
+    suites: /^(optional-startup|hen-mode)$/,
+    files: ['js/core/hen-init.js', 'js/features/hen-mode.js', 'js/ui/changelog-launcher.js', 'js/features/changelog.js', 'css/protocol-anthology.css', 'hen/index.html'],
+    tags: ['shell', 'navigation'],
+    risk: 'high'
+  },
+  {
     suites: /^(my-tezos-|octez-connect-sdk-loader)/,
     files: [
       'js/features/my-tezos*',

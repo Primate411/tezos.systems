@@ -1514,9 +1514,10 @@ function renderChangelog() {
 /**
  * Open the changelog modal
  */
-function openChangelog() {
+export function openChangelog() {
     const modal = document.getElementById('changelog-modal');
     if (!modal) return;
+    initChangelog();
     
     modal.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
@@ -1537,22 +1538,15 @@ function closeChangelog() {
  * Initialize changelog modal and button
  */
 export function initChangelog() {
-    // Render the changelog content
+    const modal = document.getElementById('changelog-modal');
+    if (!modal || modal.dataset.changelogReady === '1') return;
+    modal.dataset.changelogReady = '1';
+    // First explicit open only; retain the same archive DOM on later visits.
     renderChangelog();
     
     // Get DOM elements
-    const button = document.getElementById('changelog-btn');
-    const modal = document.getElementById('changelog-modal');
     const closeBtn = modal?.querySelector('.changelog-modal-close');
     const backdrop = modal?.querySelector('.changelog-modal-backdrop');
-    
-    // Open modal when button is clicked
-    if (button) {
-        button.addEventListener('click', (e) => {
-            e.stopPropagation();
-            openChangelog();
-        });
-    }
     
     // Close modal with close button
     if (closeBtn) {

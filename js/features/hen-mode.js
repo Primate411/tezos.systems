@@ -30,7 +30,6 @@ const HenMode = (() => {
     const HEN_SORT_KEY = 'tezos-systems-hen-sort';
     const HEN_FAVORITES_KEY = 'tezos-systems-hen-favorites';
     const HEN_HINT_DISMISSED_KEY = 'tezos-systems-hen-loop-hint-dismissed';
-    const HEN_DOORWAY_KEY = 'tezos-hen-doorway-seen';
     const HEN_LORE_KEY = 'tezos-hen-lore-seen';
     const HEN_VIEWER_KEY = 'tezos-systems-hen-viewer-address';
     const MY_TEZOS_ADDRESS_KEY = 'tezos-systems-my-baker-address';
@@ -248,41 +247,6 @@ const HenMode = (() => {
             return window.tezosSystemsPrefersReducedMotion();
         }
         return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    }
-
-    function afterHeroSettled(callback) {
-        var attempts = 0;
-        function waitForGate() {
-            var gate = window.tezosSystemsHeroSettled;
-            if (gate && typeof gate.then === 'function') {
-                gate.then(callback).catch(callback);
-                return;
-            }
-            attempts += 1;
-            if (attempts < 50) {
-                setTimeout(waitForGate, 100);
-            } else {
-                callback();
-            }
-        }
-        waitForGate();
-    }
-
-    function primeHenDoorway() {
-        if (safeGetStorage(HEN_DOORWAY_KEY) === '1') return;
-        afterHeroSettled(function() {
-            var link = document.querySelector('.header-nft-feed-btn') || document.getElementById('hen-launcher');
-            if (!link || safeGetStorage(HEN_DOORWAY_KEY) === '1') return;
-            var tip = '🌱 hic et nunc lives here — enter the feed';
-            link.title = tip;
-            if (!reducedMotion()) {
-                link.classList.add('hen-doorway-attention');
-                setTimeout(function() {
-                    link.classList.remove('hen-doorway-attention');
-                }, 5200);
-            }
-            safeSetStorage(HEN_DOORWAY_KEY, '1');
-        });
     }
 
     function showHenLoreLine() {
@@ -2730,19 +2694,10 @@ const HenMode = (() => {
         }
     }
 
+    var initialized = false;
     function init() {
-        primeHenDoorway();
-        document.querySelectorAll('#hen-launcher, [data-hen-launch]').forEach(function(launcher) {
-            if (launcher.dataset.henLaunchWired === '1') return;
-            launcher.dataset.henLaunchWired = '1';
-            launcher.addEventListener('click', function(e) {
-                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button === 1) return;
-                e.preventDefault();
-                history.replaceState(null, '', '/hen/');
-                activate();
-            });
-        });
-
+        if (initialized) return;
+        initialized = true;
         var closeBtn = document.querySelector('.hen-close');
         if (closeBtn) closeBtn.addEventListener('click', deactivate);
 
@@ -2992,15 +2947,3 @@ if (document.readyState === 'loading') {
 } else {
     HenMode.init();
 }
-
-(function() {
-    var params = new URLSearchParams(window.location.search);
-    var pathname = window.location.pathname.replace(/\/index\.html$/, '/');
-    if (params.has('hen') || pathname === '/hen/') {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', function() { HenMode.activate(); });
-        } else {
-            HenMode.activate();
-        }
-    }
-})();
