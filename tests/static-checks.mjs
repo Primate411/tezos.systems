@@ -270,6 +270,7 @@ async function checkHomeLayoutContracts() {
   }
   for (const route of CHAMBER_ROUTES) {
     const routeHtml = await readText(`${route.slug}/index.html`);
+    if (route.slug === 'tezoscrp' && routeHtml.includes('data-chamber-boot="tezoscrp"')) continue;
     if (!routeHtml.includes('/js/core/home-layout-preload.js') || !routeHtml.includes('id="home-layout-modal"')) {
       fail(`Generated route ${route.slug}/ is missing Home layout recovery controls`);
       break;
@@ -2002,7 +2003,8 @@ async function checkSiteMapGraphContracts() {
 async function checkCacheBustAlignment() {
   const index = await readText('index.html');
   const sw = await readText('sw.js');
-  const app = await readText('js/core/app.js');
+  // Both entry points use the same release/update implementation.
+  const app = await readText('js/core/app.js') + await readText('js/core/shell-lifecycle.js');
   const releaseUpdate = await readText('js/ui/release-update.js');
   const changelogSource = await readText('js/features/changelog.js');
   const changelogModuleUrl = `data:text/javascript;base64,${Buffer.from(changelogSource).toString('base64')}`;
@@ -2094,12 +2096,16 @@ async function checkCacheBustAlignment() {
     for (const route of CHAMBER_ROUTES) {
       const routeShell = await readText(`${route.slug}/index.html`);
       for (const [label, pattern] of generatedRouteCacheRefs) {
+        if (route.slug === 'tezoscrp' && ['hero search', 'app module preload', 'app module script'].includes(label)) continue;
         const routeVersion = routeShell.match(pattern)?.[1];
         if (routeVersion !== generatedRouteCacheVersion) {
           fail(`${route.slug}/index.html ${label} cache stamp must match v${generatedRouteCacheVersion}, saw ${routeVersion || 'missing'}`);
         }
       }
     }
+    const pilot = await readText('tezoscrp/index.html');
+    if (!pilot.includes(`/js/core/standalone-chamber.js?v=${generatedRouteCacheVersion}`)
+      || !pilot.includes(`data-dashboard-src="/js/core/app.js?v=${generatedRouteCacheVersion}"`)) fail('Standalone TezosCRP boot and deferred dashboard must use the same shell version');
     pass(`${CHAMBER_ROUTES.length} generated Chamber shells align seven cache-stamped shell references at v${generatedRouteCacheVersion}`);
   }
 
@@ -5192,6 +5198,25 @@ async function checkChamberEfficiencyContracts() {
     fail('lazy HEN must retain shared loading, retries, cancelled routes, launchers, and the legacy NFT route');
   }
   pass('optional startup assets remain deferred without changing shared HEN styles or route entry points');
+
+  const pilot = await readText('tezoscrp/index.html');
+  const boot = await readText('js/core/standalone-chamber.js');
+  const lifecycle = await readText('js/core/shell-lifecycle.js');
+  const generator = await readText('scripts/lib/standalone-chamber-shell.mjs');
+  for (const forbidden of ['id="hero-slot"', 'id="chambers-grid"', 'id="my-tezos-drawer"', 'rel="modulepreload"', 'chart.umd', ' src="/js/core/app.js']) {
+    if (pilot.includes(forbidden)) fail(`Standalone TezosCRP must not construct or preload dashboard work: ${forbidden}`);
+  }
+  if (!pilot.includes('data-chamber-boot="tezoscrp"') || !generator.includes('renderStandaloneChamberShell')) fail('TezosCRP must use the generated lightweight boot mode');
+  for (const snippet of ['loadDashboardModule()', 'dashboardModuleAttempt', 'preloadedChamber: roomModule', 'initialChamber:', 'shellInstalled', 'transitionIntent', 'data-dashboard-fallback', "cache: 'no-cache'", "initShellLifecycle()", 'newer build is available']) {
+    if (!boot.includes(snippet)) fail(`Standalone boot handoff is missing ${snippet}`);
+  }
+  if (/requestIdleCallback|setTimeout\(/.test(boot)) fail('Standalone boot must not start the dashboard through an idle or timed callback');
+  if (!app.includes('export function startDashboard') || !app.includes('dashboardInitialization') || !app.includes('options.preloadedChamber') || !lifecycle.includes('if (lifecycleStarted) return')) fail('Both boot modes must retain single dashboard and release-controller initialization');
+  const installAssets = sw.match(/const SHELL_ASSETS = \[([\s\S]*?)\];/)?.[1] || '';
+  for (const asset of ['app.js', 'api.js', 'home-layout-preload.js', 'hero-search.css']) {
+    if (installAssets.includes(asset)) fail(`Service-worker installation must not bypass the standalone boundary with ${asset}`);
+  }
+  pass('Standalone TezosCRP owns a small generated shell and an explicit, version-checked, single-instance dashboard transition');
 }
 
 async function checkLauncherProjectionContracts() {

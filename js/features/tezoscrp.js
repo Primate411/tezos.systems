@@ -796,11 +796,14 @@ async function loadRoom({ force = false } = {}) {
     }
 }
 
-export async function openTezosCrpChamber() {
+export async function openTezosCrpChamber({ isCurrent = () => true } = {}) {
     await ensureStyles();
+    if (!isCurrent()) return;
     const overlay = ensureOverlay();
-    savedBodyOverflow = document.body.style.overflow;
-    savedHtmlOverflow = document.documentElement.style.overflow;
+    if (!overlay.classList.contains('active')) {
+        savedBodyOverflow = document.body.style.overflow;
+        savedHtmlOverflow = document.documentElement.style.overflow;
+    }
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
     readRouteState();
@@ -819,6 +822,11 @@ export async function openTezosCrpChamber() {
 export function closeTezosCrpChamber() {
     const overlay = document.getElementById('tezoscrp-modal');
     if (!overlay?.classList.contains('active')) return;
+    // A standalone boot owner can prepare the dashboard before releasing the
+    // reader's existing room. Normal dashboard launches have no interceptor.
+    if (!document.dispatchEvent(new CustomEvent('tezos:chamber-before-close', {
+        cancelable: true, detail: { overlay }
+    }))) return;
     overlay.classList.remove('active');
     deactivateChamberDialog(overlay);
     document.body.style.overflow = savedBodyOverflow || '';
@@ -830,6 +838,7 @@ export function initTezosCrpChamber() {
     if (!ensureEntryCard()) return;
     window.openTezosCrpChamber = openTezosCrpChamber;
     window.closeTezosCrpChamber = closeTezosCrpChamber;
+    if (summaryData) { renderEntryCard(summaryData); return; }
     const queue = () => loadSummary().then(renderEntryCard).catch(renderEntryError);
     if ('requestIdleCallback' in window) window.requestIdleCallback(queue, { timeout: 5000 });
     else window.setTimeout(queue, 1800);

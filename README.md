@@ -1655,6 +1655,16 @@ node tests/smoke.mjs --shard 1/6 --continue-on-failure --retry-failures 1 --retr
 ## Testing
 
 Startup keeps the changelog archive and its DOM deferred until an explicit open.
+
+The standalone `/tezoscrp/` pilot boots only its Recognition Hall, shared theme
+styles, wayfinder, and build/update lifecycle. It does not initialize dashboard
+telemetry on an idle timer. Closing the room or following its dashboard/search
+actions loads the canonical dashboard shell on intent, checks the asset version,
+and initializes the existing app once without reloading the document. Failed
+transitions retain the room and offer retry or normal navigation; other Chamber
+routes retain their current startup path. Service-worker installation no longer
+preloads dashboard-only modules; runtime assets are still cached when requested.
+
 HEN's feed runtime loads only for its route, query/legacy NFT link, or launcher;
 its shared gift-tray, TzSafe, and theme stylesheet remains eager. Protocol Anthology
 loads its editorial stylesheet before opening either the library or a chapter.
@@ -1845,7 +1855,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v613`, including the full-viewport Index
+- Current aligned shell cache stamp: `v614`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

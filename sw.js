@@ -6,7 +6,7 @@
  * so installing an update does not download the whole site.
  */
 
-const CACHE_NAME = 'tezos-systems-v613';
+const CACHE_NAME = 'tezos-systems-v614';
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 const CURRENT_CACHES = new Set([CACHE_NAME, RUNTIME_CACHE]);
 
@@ -19,16 +19,8 @@ const SHELL_ASSETS = [
     '/offline.html',
     '/css/styles.min.css',
     '/css/loading.css',
-    '/css/hero-search.css',
     '/css/site-map.css',
     '/js/core/theme-preload.js',
-    '/js/core/home-layout-preload.js',
-    '/js/core/tzkt-throttle.js',
-    '/js/core/app.js',
-    '/js/core/api.js',
-    '/js/core/config.js',
-    '/js/core/storage.js',
-    '/js/core/utils.js',
     '/js/ui/release-update.js',
     '/favicon.svg',
     '/site.webmanifest'

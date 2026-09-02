@@ -5997,7 +5997,10 @@ async function smokeAppShell(browser, baseUrl) {
 
   const failedAssets = shell.assetResults.filter((asset) => !asset.ok);
   assert(failedAssets.length === 0, `app shell: service worker shell assets failed: ${failedAssets.map((asset) => `${asset.asset} ${asset.status}`).join(', ')}`);
-  assert(shell.assetResults.length >= 12 && shell.assetResults.length <= 24, `app shell: expected a compact core shell, saw ${shell.assetResults.length} discovered assets`);
+  assert(shell.assetResults.length === 8, `app shell: expected the eight shared/offline bootstrap assets, saw ${shell.assetResults.length}`);
+  for (const asset of ['/offline.html', '/css/styles.min.css', '/css/loading.css', '/css/site-map.css', '/js/core/theme-preload.js', '/js/ui/release-update.js', '/favicon.svg', '/site.webmanifest']) {
+    assert(shell.assetResults.some(result => result.asset === asset), `app shell: missing shared bootstrap asset ${asset}`);
+  }
 
   await page.waitForFunction(() => Boolean(navigator.serviceWorker?.controller), null, { timeout: 10000 });
   const cachePolicySeed = await page.evaluate(async () => {
@@ -8790,6 +8793,9 @@ async function smokeRouteSearchState(browser, baseUrl) {
 
   await page.keyboard.press('/');
   await page.waitForFunction(() => document.body.classList.contains('hero-search-mode'));
+  // The overlay owns one initial-focus frame. Settle that frame before moving
+  // focus programmatically so this close-control probe cannot race its opener.
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(resolve)));
   await page.locator('#hero-search-close').focus();
   assert(await page.evaluate(() => document.activeElement?.id === 'hero-search-close'), 'route and search state: close control did not receive focus');
   await page.keyboard.press('Escape');
@@ -19376,6 +19382,204 @@ async function smokeMaxisDomainPassport(browser, baseUrl) {
   log('ok - maxis domain Passport smoke');
 }
 
+async function smokeStandaloneChamberBoot(browser, baseUrl) {
+  for (const { width, height, theme } of [{ width: 1440, height: 900, theme: 'matrix' }, { width: 390, height: 844, theme: 'clean' }]) {
+    const context = await browser.newContext({ viewport: { width, height }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+    await installFeatureMocks(context);
+    await context.addInitScript(theme => {
+      localStorage.setItem('tezos-systems-theme', theme);
+      localStorage.setItem('tezos-toured', '1');
+      localStorage.setItem('tezos-welcomed', '1');
+      window.__standaloneDocument = true;
+    }, theme);
+    const page = await context.newPage();
+    const requests = [];
+    const issues = [];
+    page.on('request', request => requests.push(request.url()));
+    attachIssueCollectors(page, `standalone ${width}`, issues);
+    await page.goto(`${baseUrl}/tezoscrp/?view=archive&period=2026-06&q=Baking+Benjamins`, { waitUntil: 'domcontentloaded' });
+    await page.locator('#tezoscrp-archive-results .tezoscrp-archive-list article').waitFor();
+    if (width === 1440) await waitForIntentionalRealTime(page, 'standalone-chamber-no-idle-dashboard');
+    const cold = await page.evaluate(() => ({
+      ready: document.documentElement.dataset.dashboardReady,
+      dashboardNodes: !!document.querySelector('#hero-slot, #chambers-grid, #my-tezos-drawer, #history-modal'),
+      scripts: performance.getEntriesByType('resource').filter(r => /\.(?:js|mjs)$/.test(new URL(r.name).pathname)).length,
+      elements: document.getElementsByTagName('*').length,
+      theme: document.body.dataset.theme,
+      overflow: document.documentElement.scrollWidth > innerWidth,
+      timeOrigin: performance.timeOrigin
+    }));
+    assert(!cold.ready && !cold.dashboardNodes && cold.scripts < 20 && cold.elements < 1500, `standalone ${width}: eager dashboard leaked ${JSON.stringify(cold)}`);
+    assert(cold.theme === theme && !cold.overflow, `standalone ${width}: theme or geometry changed`);
+    const forbidden = requests.filter(url => /\/(?:app|api|network-health|history|my-tezos|daily-briefing|price|comparison)\.js|chart\.umd|chartjs-adapter|\.supabase\.co|\.tzkt\.io|rpc\.tez\.capital/.test(url));
+    assert(forbidden.length === 0, `standalone ${width}: unrelated startup work ${forbidden.join('\n')}`);
+    if (ARTIFACTS_DIR) await page.screenshot({ path: path.join(ARTIFACTS_DIR, `standalone-${theme}-${width}.png`) });
+
+    await page.locator('#tezoscrp-modal .chamber-close').click();
+    await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && !document.querySelector('#tezoscrp-modal')?.classList.contains('active'), null, { timeout: 15000 });
+    const hydrated = await page.evaluate(() => ({
+      path: location.pathname, query: location.search, timeOrigin: performance.timeOrigin,
+      heroCount: document.querySelectorAll('#hero-slot').length,
+      focused: document.activeElement?.closest('#tezoscrp-entry-card')?.id,
+      canonical: document.querySelector('link[rel="canonical"]')?.href
+    }));
+    assert(hydrated.path === '/' && !hydrated.query && hydrated.timeOrigin === cold.timeOrigin && hydrated.heroCount === 1, `standalone ${width}: close did not hydrate in-place once ${JSON.stringify(hydrated)}`);
+    assert(hydrated.focused === 'tezoscrp-entry-card', `standalone ${width}: close lost launcher focus ${JSON.stringify(hydrated)}`);
+    assert(hydrated.canonical === 'https://tezos.systems/', `standalone ${width}: dashboard inherited archive metadata`);
+    await page.goBack();
+    await page.locator('#tezoscrp-modal.active #tezoscrp-archive-search').waitFor();
+    assert(await page.locator('#tezoscrp-archive-search').inputValue() === 'Baking Benjamins', `standalone ${width}: Back lost archive filters`);
+    await page.goForward();
+    await page.waitForFunction(() => !document.querySelector('#tezoscrp-modal')?.classList.contains('active'));
+    await page.locator('#hero-search-input').focus();
+    await page.locator('#hero-search-input').fill('Network Health');
+    await page.locator('#hero-search-panel .hero-search-result').first().waitFor();
+    await page.keyboard.press('Enter');
+    await page.locator('#network-health-modal.active').waitFor({ state: 'visible' });
+    await page.keyboard.press('Escape');
+    await page.evaluate(() => { location.hash = 'my-tezos'; });
+    await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible' });
+    assert(await page.evaluate(() => performance.timeOrigin) === cold.timeOrigin, `standalone ${width}: search or My Tezos reloaded the document`);
+    assert(requests.filter(url => new URL(url).pathname === '/js/core/app.js').length === 1, `standalone ${width}: dashboard imported more than once`);
+    assert(requests.filter(url => new URL(url).pathname === '/data/tezoscrp-awards.json').length === 1, `standalone ${width}: transition created a second archive cache`);
+    assert(issues.length === 0, `standalone ${width}: ${issues.join('\n')}`);
+    await context.close();
+  }
+
+  // Failure and retry must leave the existing room readable, not replace it.
+  const context = await browser.newContext({ viewport: { width: 1280, height: 800 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+  await installFeatureMocks(context);
+  await context.addInitScript(() => { localStorage.setItem('tezos-toured', '1'); localStorage.setItem('tezos-systems-theme', 'clean'); });
+  let shellAttempts = 0;
+  await context.route('**/index.html', route => {
+    shellAttempts += 1;
+    return shellAttempts === 1 ? route.fulfill({ status: 503, body: 'test shell unavailable' }) : route.continue();
+  });
+  const page = await context.newPage();
+  await page.goto(`${baseUrl}/tezoscrp/`, { waitUntil: 'domcontentloaded' });
+  await page.locator('#tezoscrp-hall-results .tezoscrp-ranking').waitFor();
+  await page.locator('#tezoscrp-tab-archive').click();
+  const reading = await page.evaluate(() => {
+    const input = document.querySelector('#tezoscrp-archive-search');
+    input.focus({ preventScroll: true });
+    input.value = 'Baking Benjamins';
+    input.setSelectionRange(0, 6);
+    const room = document.querySelector('.tezoscrp-content');
+    room.scrollTop = 350;
+    window.__archiveNode = document.querySelector('.tezoscrp-body');
+    return { scroll: room.scrollTop, route: location.href, focused: document.activeElement.id, selection: [input.selectionStart, input.selectionEnd] };
+  });
+  await page.keyboard.press('Escape');
+  await page.locator('[data-dashboard-transition] button').waitFor();
+  const failed = await page.evaluate(() => ({ scroll: document.querySelector('.tezoscrp-content').scrollTop, route: location.href, focused: document.activeElement.id, selection: [document.activeElement.selectionStart, document.activeElement.selectionEnd], sameNode: window.__archiveNode === document.querySelector('.tezoscrp-body'), ready: document.documentElement.dataset.dashboardReady }));
+  assert(failed.sameNode && !failed.ready && failed.scroll === reading.scroll && failed.route === reading.route && failed.focused === reading.focused && JSON.stringify(failed.selection) === JSON.stringify(reading.selection), `standalone failure disturbed the reader ${JSON.stringify({reading,failed})}`);
+  await page.locator('[data-dashboard-transition] button').click();
+  await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && location.pathname === '/', null, { timeout: 15000 });
+  assert(shellAttempts === 2, 'standalone transition did not recover on one explicit retry');
+  await context.close();
+
+  // A retry must preserve the requested destination, not turn every action into
+  // a plain close. Exercise both the cold-room shortcut and visible wayfinder.
+  for (const searchEntry of ['shortcut', 'wayfinder']) {
+    const intentContext = await browser.newContext({ serviceWorkers: 'block', reducedMotion: 'reduce' });
+    await installFeatureMocks(intentContext);
+    await intentContext.addInitScript(() => {
+      localStorage.setItem('tezos-toured', '1');
+      localStorage.setItem('tezos-welcomed', '1');
+      localStorage.setItem('tezos-systems-theme', 'clean');
+    });
+    let attempts = 0;
+    await intentContext.route('**/index.html', route => ++attempts === 1 ? route.fulfill({ status: 503, body: 'test search handoff unavailable' }) : route.continue());
+    const intentPage = await intentContext.newPage();
+    await intentPage.goto(`${baseUrl}/tezoscrp/`);
+    await intentPage.locator('#tezoscrp-hall-results .tezoscrp-ranking').waitFor();
+    const timeOrigin = await intentPage.evaluate(() => performance.timeOrigin);
+    if (searchEntry === 'shortcut') await intentPage.keyboard.press('/');
+    else await intentPage.getByRole('link', { name: 'Search Tezos Systems', exact: true }).click();
+    await intentPage.locator('[data-dashboard-transition] button').waitFor();
+    assert(await intentPage.locator('[data-dashboard-fallback]').getAttribute('href') === '/#search', `standalone ${searchEntry}: fallback lost search intent`);
+    await intentPage.locator('[data-dashboard-transition] button').click();
+    await intentPage.waitForFunction(() => document.body.classList.contains('hero-search-mode') && document.activeElement?.id === 'hero-search-input', null, { timeout: 15000 });
+    assert(attempts === 2 && await intentPage.evaluate(() => performance.timeOrigin) === timeOrigin, `standalone ${searchEntry}: search retry reloaded or repeated initialization`);
+    await intentContext.close();
+  }
+
+  const dashboardFailureContext = await browser.newContext({ serviceWorkers: 'block', reducedMotion: 'reduce' });
+  await installFeatureMocks(dashboardFailureContext);
+  await dashboardFailureContext.addInitScript(() => {
+    localStorage.setItem('tezos-toured', '1');
+    localStorage.setItem('tezos-systems-theme', 'clean');
+  });
+  let dashboardModuleAttempts = 0;
+  await dashboardFailureContext.route('**/js/core/app.js*', route => ++dashboardModuleAttempts === 1 ? route.fulfill({ status: 503, body: 'test dashboard module unavailable' }) : route.continue());
+  const dashboardFailurePage = await dashboardFailureContext.newPage();
+  await dashboardFailurePage.goto(`${baseUrl}/tezoscrp/`);
+  await dashboardFailurePage.locator('#tezoscrp-hall-results .tezoscrp-ranking').waitFor();
+  await dashboardFailurePage.evaluate(() => { window.__retainedRoom = document.querySelector('.tezoscrp-body'); });
+  await dashboardFailurePage.locator('#tezoscrp-modal .chamber-close').click();
+  await dashboardFailurePage.locator('[data-dashboard-transition] button').waitFor();
+  assert(await dashboardFailurePage.evaluate(() => window.__retainedRoom === document.querySelector('.tezoscrp-body') && !document.documentElement.dataset.dashboardReady), 'failed dashboard module disturbed or initialized the retained room');
+  await dashboardFailurePage.locator('[data-dashboard-transition] button').click();
+  await dashboardFailurePage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && location.pathname === '/', null, { timeout: 15000 });
+  assert(dashboardModuleAttempts === 2 && await dashboardFailurePage.locator('#hero-slot').count() === 1, 'failed dashboard import did not retry exactly once without duplicating the shell');
+  await dashboardFailureContext.close();
+
+  const failureContext = await browser.newContext({ serviceWorkers: 'block', reducedMotion: 'reduce' });
+  await installFeatureMocks(failureContext);
+  let moduleAttempts = 0;
+  let styleAttempts = 0;
+  await failureContext.route('**/js/features/tezoscrp.js*', route => ++moduleAttempts === 1 ? route.fulfill({ status: 503, body: 'test module unavailable' }) : route.continue());
+  await failureContext.route('**/css/tezoscrp.min.css*', route => ++styleAttempts === 1 ? route.fulfill({ status: 503, body: 'test styles unavailable' }) : route.continue());
+  const failurePage = await failureContext.newPage();
+  await failurePage.goto(`${baseUrl}/tezoscrp/`);
+  await failurePage.locator('#standalone-chamber-retry').waitFor({ state: 'visible' });
+  await failurePage.locator('#standalone-chamber-retry').click();
+  await failurePage.locator('#standalone-chamber-retry').waitFor({ state: 'visible' });
+  assert(moduleAttempts === 2 && styleAttempts === 1, 'bootstrap retry became visible before its module/style failure settled');
+  await failurePage.locator('#standalone-chamber-retry').click();
+  await failurePage.locator('#tezoscrp-hall-results .tezoscrp-ranking').waitFor();
+  assert(moduleAttempts === 2 && styleAttempts === 2, 'standalone module and stylesheet failures must both retry without reloading');
+  await failureContext.route('**/index.html', async route => {
+    const response = await route.fetch();
+    const body = (await response.text()).replace(/app\.js\?v=\d+/g, 'app.js?v=999999');
+    await route.fulfill({ response, body });
+  });
+  await failurePage.locator('#tezoscrp-modal .chamber-close').click();
+  await failurePage.getByText(/A newer build is available/).waitFor();
+  assert(await failurePage.locator('#hero-slot').count() === 0 && await failurePage.locator('#tezoscrp-modal.active').count() === 1, 'standalone must not install a different-version dashboard');
+  await failureContext.close();
+
+  const workerContext = await browser.newContext({ serviceWorkers: 'allow', reducedMotion: 'reduce' });
+  await installFeatureMocks(workerContext);
+  const workerRequests = [];
+  workerContext.on('request', request => workerRequests.push(request.url()));
+  const workerPage = await workerContext.newPage();
+  await workerPage.goto(`${baseUrl}/tezoscrp/`);
+  await workerPage.locator('#tezoscrp-hall-results .tezoscrp-ranking').waitFor();
+  await workerPage.evaluate(async () => { await navigator.serviceWorker.ready; });
+  assert(!workerRequests.some(url => /\/(?:app|api|home-layout-preload)\.js|hero-search\.css/.test(url)), 'service-worker installation bypassed the standalone request boundary');
+  await workerContext.close();
+
+  const cancelledContext = await browser.newContext({ serviceWorkers: 'block', reducedMotion: 'reduce' });
+  await installFeatureMocks(cancelledContext);
+  await cancelledContext.addInitScript(() => localStorage.setItem('tezos-toured', '1'));
+  let releaseStyle;
+  let styleRequested;
+  const pendingStyle = new Promise(resolve => { releaseStyle = resolve; });
+  const sawStyle = new Promise(resolve => { styleRequested = resolve; });
+  await cancelledContext.route('**/css/tezoscrp.min.css*', async route => { styleRequested(); await pendingStyle; await route.continue(); });
+  const cancelledPage = await cancelledContext.newPage();
+  await cancelledPage.goto(`${baseUrl}/tezoscrp/`, { waitUntil: 'domcontentloaded' });
+  await sawStyle;
+  await cancelledPage.getByRole('link', { name: 'Return to Tezos Systems', exact: true }).click();
+  await cancelledPage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && location.pathname === '/', null, { timeout: 15000 });
+  releaseStyle();
+  await cancelledPage.waitForFunction(() => Boolean(document.getElementById('tezoscrp-css')?.sheet));
+  assert(await cancelledPage.locator('#tezoscrp-modal.active').count() === 0, 'late archive stylesheet reopened a cancelled room');
+  await cancelledContext.close();
+  log('ok - standalone TezosCRP budgets, no idle dashboard, same-document exit, history, search, My Tezos, and failure recovery');
+}
+
 async function smokeTezosCrpChamber(browser, baseUrl) {
   const [datasetResponse, summaryResponse] = await Promise.all([
     fetch(`${baseUrl}/data/tezoscrp-awards.json`),
@@ -19468,14 +19672,6 @@ async function smokeTezosCrpChamber(browser, baseUrl) {
     );
     assert(initial.heroBadges === 9, `TezosCRP ${label}: expected all nine current category badges in the hero`);
     assert(initial.podiumPlaces.join('|') === '1|2|3', `TezosCRP ${label}: top recognition rows lost their distinct placement treatment ${JSON.stringify(initial.podiumPlaces)}`);
-    assert(initial.launcherIdentities === 6, `TezosCRP ${label}: launcher must surface six leading recognition identities`);
-    if (label === 'desktop') {
-      assert(initial.bottomRowHeights['maxis-entry-card'] >= 315 && initial.bottomRowHeights['maxis-entry-card'] <= 335, `TezosCRP desktop: categorized Maxis intrinsic height drifted ${JSON.stringify(initial.bottomRowHeights)}`);
-      assert(initial.bottomRowHeights['tezoscrp-entry-card'] >= 280 && initial.bottomRowHeights['tezoscrp-entry-card'] <= 520, `TezosCRP desktop: categorized TezosCRP intrinsic height drifted ${JSON.stringify(initial.bottomRowHeights)}`);
-      assert(initial.bottomRowHeights['tezos-domains-entry-card'] >= 290 && initial.bottomRowHeights['tezos-domains-entry-card'] <= 500, `TezosCRP desktop: categorized Domains intrinsic height drifted ${JSON.stringify(initial.bottomRowHeights)}`);
-      assert(Object.values(initial.bottomRowWidths).every((width) => width > 1200), `TezosCRP desktop: dense People launchers must own full rows ${JSON.stringify(initial.bottomRowWidths)}`);
-      assert(initial.bottomRowClips.length === 0, `TezosCRP desktop: dense People launcher content clips ${JSON.stringify(initial.bottomRowClips)}`);
-    }
     assert(/one official category listing equals one award/i.test(initial.truth) && /most posts do not state a per-person XTZ payout/i.test(initial.truth), `TezosCRP ${label}: count truth is missing ${initial.truth}`);
     assert(!initial.pageOverflow && !initial.modalOverflow && !initial.bodyOverflow, `TezosCRP ${label}: initial view overflows ${JSON.stringify(initial)}`);
 
@@ -19587,7 +19783,25 @@ async function smokeTezosCrpChamber(browser, baseUrl) {
     assert(!settled.pageOverflow && !settled.modalOverflow && !settled.bodyOverflow, `TezosCRP ${label}: filtered archive overflows ${JSON.stringify(settled)}`);
 
     await page.locator('#tezoscrp-modal .chamber-close').click();
-    await page.waitForFunction(() => !document.querySelector('#tezoscrp-modal')?.classList.contains('active'));
+    await page.waitForFunction(() => !document.querySelector('#tezoscrp-modal')?.classList.contains('active'), null, { timeout: 15000 }).catch(async error => {
+      throw new Error(`${error.message}: ${await page.locator('[data-dashboard-transition]').textContent().catch(() => 'no transition status')}`);
+    });
+    await page.waitForFunction(() => document.querySelectorAll('#tezoscrp-entry-card .tezoscrp-entry-identity-strip > span').length === 6);
+    // Launcher geometry belongs to the dashboard, now constructed on exit.
+    Object.assign(initial, await page.evaluate(() => ({
+      launcherIdentities: document.querySelectorAll('#tezoscrp-entry-card .tezoscrp-entry-identity-strip > span').length,
+      bottomRowHeights: Object.fromEntries(['maxis-entry-card', 'tezoscrp-entry-card', 'tezos-domains-entry-card'].map(id => [id, Math.round(document.getElementById(id)?.getBoundingClientRect().height || 0)])),
+      bottomRowWidths: Object.fromEntries(['maxis-entry-card', 'tezoscrp-entry-card', 'tezos-domains-entry-card'].map(id => [id, Math.round(document.getElementById(id)?.getBoundingClientRect().width || 0)])),
+      bottomRowClips: ['maxis-entry-card', 'tezoscrp-entry-card', 'tezos-domains-entry-card'].filter(id => { const front = document.querySelector(`#${id} .card-front`); return front && front.scrollHeight > front.clientHeight + 4; })
+    })));
+    assert(initial.launcherIdentities === 6, `TezosCRP ${label}: launcher must surface six leading recognition identities`);
+    if (label === 'desktop') {
+      assert(initial.bottomRowHeights['maxis-entry-card'] >= 315 && initial.bottomRowHeights['maxis-entry-card'] <= 335, `TezosCRP desktop: categorized Maxis intrinsic height drifted ${JSON.stringify(initial.bottomRowHeights)}`);
+      assert(initial.bottomRowHeights['tezoscrp-entry-card'] >= 280 && initial.bottomRowHeights['tezoscrp-entry-card'] <= 520, `TezosCRP desktop: categorized TezosCRP intrinsic height drifted ${JSON.stringify(initial.bottomRowHeights)}`);
+      assert(initial.bottomRowHeights['tezos-domains-entry-card'] >= 290 && initial.bottomRowHeights['tezos-domains-entry-card'] <= 500, `TezosCRP desktop: categorized Domains intrinsic height drifted ${JSON.stringify(initial.bottomRowHeights)}`);
+      assert(Object.values(initial.bottomRowWidths).every((width) => width > 1200), `TezosCRP desktop: dense People launchers must own full rows ${JSON.stringify(initial.bottomRowWidths)}`);
+      assert(initial.bottomRowClips.length === 0, `TezosCRP desktop: dense People launcher content clips ${JSON.stringify(initial.bottomRowClips)}`);
+    }
     assert(issues.length === 0, `TezosCRP ${label} browser issues:\n${issues.join('\n')}`);
     await context.close();
   }
@@ -36144,13 +36358,16 @@ async function smokeOverlayStack(browser, baseUrl) {
     });
     overlayApi.deactivateOverlayDialog(overlay);
     overlay.remove();
+    window.__lateOverlayCleanupApplied = false;
     requestAnimationFrame(() => {
       document.body.setAttribute('tabindex', '-1');
       document.body.focus({ preventScroll: true });
       document.body.removeAttribute('tabindex');
+      window.__lateOverlayCleanupApplied = true;
     });
   });
-  await page.waitForFunction(() => document.activeElement?.id === 'overlay-fixture-fallback');
+  // Do not accept the pre-cleanup focus state as proof of later recovery.
+  await page.waitForFunction(() => window.__lateOverlayCleanupApplied && document.activeElement?.id === 'overlay-fixture-fallback');
   assert(
     await page.evaluate(() => document.activeElement?.id === 'overlay-fixture-fallback'),
     'overlay stack did not recover focus after late route/fade cleanup moved it to BODY'
@@ -36374,6 +36591,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'maxis-domain-passport', description: 'Maxi Passport resolves .tez names and subdomains without mutating My Tezos or assigning KT1 activity to an owner', run: () => smokeMaxisDomainPassport(browser, baseUrl) },
     { name: 'maxis', description: 'Default all-lane Maxis crowns, room-aware protocol seasons, career-plus-season Passport, immutable Champions, mobile geometry, and address trails', run: () => smokeMaxisChamber(browser, baseUrl) },
     { name: 'tezoscrp', description: 'Human-identity Recognition Hall, official category icons, latest winners, sourced monthly archive, and mobile geometry', run: () => smokeTezosCrpChamber(browser, baseUrl) },
+    { name: 'standalone-chamber-boot', description: 'TezosCRP loads only its room, then hydrates the dashboard once on intent with preserved routes, search, My Tezos, and retryable failures', run: () => smokeStandaloneChamberBoot(browser, baseUrl) },
     { name: 'tezos-domains', description: 'Tezos Domains opens #domains with fresh .tez names, auctions, offers, and expiring-name pressure', run: () => smokeTezosDomainsChamber(browser, baseUrl) },
     { name: 'ctez', description: 'ctez End of Life opens #ctez with opt-in oven discovery and wallet-reviewed operations', run: () => smokeCtezChamber(browser, baseUrl) },
     { name: 'governance-lb-active', description: 'Active Governance, Tezos X Governance, LB dashboard/modal receipts, lore, links, and smooth refresh', run: () => smokeGovernanceTestingPeriod(browser, baseUrl, 'active') },

@@ -1,5 +1,11 @@
 const RULES = [
   {
+    suites: /^(standalone-chamber-boot|tezoscrp|release-update|route-search-state|overlay-stack)$/,
+    files: ['js/core/standalone-chamber.js', 'js/core/shell-lifecycle.js', 'scripts/lib/standalone-chamber-shell.mjs', 'scripts/generate-chamber-routes.mjs', 'tezoscrp/index.html'],
+    tags: ['shell', 'navigation', 'tezoscrp'],
+    risk: 'high'
+  },
+  {
     suites: /^(optional-startup|hen-mode)$/,
     files: ['js/core/hen-init.js', 'js/features/hen-mode.js', 'js/ui/changelog-launcher.js', 'js/features/changelog.js', 'css/protocol-anthology.css', 'hen/index.html'],
     tags: ['shell', 'navigation'],

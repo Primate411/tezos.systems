@@ -5,6 +5,13 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-02',
+        entries: [
+            { type: '⚡', text: 'TezosCRP opens directly into its Recognition Hall with a smaller standalone startup; dashboard features load when you choose to leave or search' },
+            { type: '⚡', text: 'Startup now defers optional changelog, HEN, and Protocol Anthology work, while History shares matching requests without losing its source timestamps' }
+        ]
+    },
+    {
         date: '2026-08-28',
         entries: [
             { type: '🎨', text: 'Live Head can now show only blocks produced by or carrying activity from saved My Tezos addresses, keeps fixed compact and expanded geometry, and adds distinct L1 and L2 governance voting receipts' },
