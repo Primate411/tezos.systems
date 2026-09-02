@@ -380,6 +380,8 @@ async function main() {
     /^scripts\/generate-chamber-routes\.mjs$/,
     /^scripts\/generate-anthology-routes\.mjs$/,
     /^scripts\/lib\/chamber-routes\.mjs$/,
+    /^scripts\/lib\/standalone-chamber-shell\.mjs$/,
+    /^js\/core\/chamber-features\.mjs$/,
     /^data\/protocol-data\.json$/,
     ...ROUTE_TARGETS
   ]);

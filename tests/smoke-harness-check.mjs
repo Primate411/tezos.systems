@@ -182,6 +182,7 @@ async function main() {
   );
   assert.equal(selectAffectedSmokeSuites(ownershipCatalog, ['README.md']).mode, 'none');
   assert.equal(selectAffectedSmokeSuites(ownershipCatalog, ['tests/smoke.mjs']).mode, 'full');
+  assert.equal(selectAffectedSmokeSuites(ownershipCatalog, ['js/core/chamber-features.mjs']).mode, 'full');
   assert.equal(selectAffectedSmokeSuites(ownershipCatalog, ['js/features/unmapped.js']).mode, 'full');
 
   let overrideRuns = 0;

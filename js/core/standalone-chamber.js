@@ -1,5 +1,6 @@
-/** Recognition Hall boot pilot. No dashboard import or polling before intent. */
+/** Independent Chamber boot. No dashboard import or polling before intent. */
 import { versionedAsset } from './asset-version.js';
+import { CHAMBER_FEATURES } from './chamber-features.mjs';
 import { initSiteWayfinder } from '../ui/wayfinder.js';
 import { initSiteJourneyCapture } from './site-journey.js';
 import { initShellLifecycle } from './shell-lifecycle.js';
@@ -7,6 +8,9 @@ import { findChamberLauncher } from '../ui/chamber-accessibility.js';
 
 const bootScript = document.querySelector('script[data-dashboard-src]');
 const dashboardSrc = bootScript.dataset.dashboardSrc;
+const entryId = document.documentElement.dataset.chamberBoot;
+const chamber = CHAMBER_FEATURES[entryId];
+const room = chamber.standalone;
 const pilotEvents = new AbortController();
 let dashboardPromise = null;
 let dashboardModulePromise = null;
@@ -19,32 +23,37 @@ let roomModule = null;
 let roomAttempt = 0;
 let roomOpenIntent = 0;
 
-function openTezosCrpChamber() {
+function isRoomRoute() {
+    return location.pathname.replace(/\/index\.html$/, '/').replace(/\/+$/, '') === `/${room.route}`
+        && (!location.hash || location.hash.startsWith('#theme='));
+}
+
+function openStandaloneChamber() {
     const intent = ++roomOpenIntent;
     const requestedRoute = location.href;
-    const isCurrent = () => intent === roomOpenIntent && !pilotEvents.signal.aborted && location.href === requestedRoute;
+    const isCurrent = () => intent === roomOpenIntent && !pilotEvents.signal.aborted && isRoomRoute();
     if (!roomPromise) {
-        const path = versionedAsset('/js/features/tezoscrp.js');
+        const path = versionedAsset(new URL(chamber.modulePath, import.meta.url).pathname);
         roomPromise = import(roomAttempt ? `${path}&chamber-retry=${roomAttempt}` : path).then(module => {
             roomModule = module;
             return module;
         }).catch(error => { roomPromise = null; roomAttempt += 1; throw error; });
     }
-    return roomPromise.then(module => isCurrent() ? module.openTezosCrpChamber({ isCurrent }) : undefined);
+    return roomPromise.then(module => isCurrent() && location.href === requestedRoute ? module[chamber.open]({ isCurrent }) : undefined);
 }
 
 function dashboardDestination({ route = null, search = false, historyNavigation = false } = {}) {
     if (historyNavigation) return location.href;
     if (route) return route;
     const params = new URLSearchParams(location.search);
-    for (const key of ['view', 'year', 'period', 'category', 'q']) params.delete(key);
+    for (const key of room.queryKeys) params.delete(key);
     return `/${params.size ? `?${params}` : ''}${search ? '#search' : ''}`;
 }
 
 function transitionStatus(message, { failed = false, retryOptions = {} } = {}) {
-    const room = document.querySelector('#tezoscrp-modal .tezoscrp-content') || document.getElementById('main-content');
-    if (!room) return;
-    let status = room.querySelector('[data-dashboard-transition]');
+    const surface = document.querySelector(`#${room.overlayId} ${room.dialogSelector}`) || document.getElementById('main-content');
+    if (!surface) return;
+    let status = surface.querySelector('[data-dashboard-transition]');
     if (!message) { status?.remove(); return; }
     if (!status) {
         status = document.createElement('div');
@@ -52,7 +61,7 @@ function transitionStatus(message, { failed = false, retryOptions = {} } = {}) {
         status.setAttribute('role', 'status');
         // Out of flow: shell preparation must not shift the archive being read.
         status.style.cssText = 'position:fixed;inset:auto 16px 16px;max-width:640px;margin:auto;z-index:20;padding:12px;background:var(--bg-card,#111);color:var(--text-primary,#fff);border:1px solid var(--border-color,#555)';
-        room.appendChild(status);
+        surface.appendChild(status);
     }
     status.replaceChildren(document.createTextNode(message));
     if (failed) {
@@ -131,7 +140,7 @@ async function prepareDashboard() {
     const scripts = [...parsed.querySelectorAll('script[src]')];
     for (const source of scripts.filter(script => new URL(script.getAttribute('src'), location.origin).origin !== location.origin)) {
         // Analytics has already run from the route head; chart libraries are
-        // dependencies of the dashboard, not of the Recognition Hall.
+        // dependencies of the dashboard, not of these independent rooms.
         if (source.hasAttribute('data-goatcounter')) continue;
         const copy = source.cloneNode(true);
         copy.src = new URL(source.getAttribute('src'), location.origin).href;
@@ -166,7 +175,7 @@ async function prepareDashboard() {
         copy.src = new URL(source.getAttribute('src'), location.origin).href;
         await loadScript(copy);
     }
-    await dashboard.startDashboard({ applyInitialRoute: false, initialChamber: roomModule ? 'tezoscrp' : '', preloadedChamber: roomModule });
+    await dashboard.startDashboard({ applyInitialRoute: false, initialChamber: roomModule ? entryId : '', preloadedChamber: roomModule });
     return dashboard;
 }
 
@@ -190,28 +199,28 @@ async function requestDashboard({ route = null, search = false, historyNavigatio
         transitionStatus('');
         document.documentElement.removeAttribute('data-chamber-boot');
         if (!historyNavigation) history.pushState({ ...(history.state || {}), tezosSystemsRoute: 'home' }, '', dashboardDestination({ route, search }));
-        roomModule?.closeTezosCrpChamber();
+        roomModule?.[chamber.close](...(chamber.closeArgs || []));
         window.dispatchEvent(new CustomEvent('tezos:routechange'));
         if (!route && !search && !historyNavigation) {
-            findChamberLauncher('#tezoscrp-entry-card')?.focus({ preventScroll: true });
+            findChamberLauncher(room.launcher)?.focus({ preventScroll: true });
         }
     } catch (error) {
         if (intent !== transitionIntent) return;
         console.warn('Dashboard transition unavailable:', error);
-        transitionStatus(`${error.message}. The archive remains available.`, { failed: true, retryOptions: { route, search, historyNavigation } });
+        transitionStatus(`${error.message}. Your Chamber remains available.`, { failed: true, retryOptions: { route, search, historyNavigation } });
     } finally {
         if (intent === transitionIntent) transitioning = false;
     }
 }
 
 document.addEventListener('tezos:chamber-before-close', event => {
-    if (event.detail?.overlay?.id !== 'tezoscrp-modal') return;
+    if (event.detail?.overlay?.id !== room.overlayId) return;
     event.preventDefault();
     if (!transitioning) requestDashboard();
 }, { signal: pilotEvents.signal });
 
 document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && !document.querySelector('#tezoscrp-modal.active')) {
+    if (event.key === 'Escape' && !document.getElementById(room.overlayId)?.classList.contains('active')) {
         event.preventDefault();
         requestDashboard();
         return;
@@ -233,11 +242,11 @@ document.addEventListener('click', event => {
 }, { signal: pilotEvents.signal });
 
 const routeChanged = () => {
-    if (location.pathname.replace(/\/index\.html$/, '/') === '/tezoscrp/' && (!location.hash || location.hash.startsWith('#theme='))) {
+    if (isRoomRoute()) {
         transitionIntent += 1;
         transitioning = false;
         transitionStatus('');
-        openTezosCrpChamber().catch(showBootError);
+        openStandaloneChamber().catch(showBootError);
     } else requestDashboard({ historyNavigation: true });
 };
 window.addEventListener('popstate', routeChanged, { signal: pilotEvents.signal });
@@ -245,9 +254,9 @@ window.addEventListener('hashchange', routeChanged, { signal: pilotEvents.signal
 window.addEventListener('tezos:routechange', routeChanged, { signal: pilotEvents.signal });
 
 function showBootError(error) {
-    console.warn('Recognition Hall startup unavailable:', error);
+    console.warn('Chamber startup unavailable:', error);
     const status = document.getElementById('standalone-chamber-status');
-    if (status) status.textContent = 'The recognition archive could not open. Retry or return to the dashboard.';
+    if (status) status.textContent = 'This Chamber could not open. Retry or return to the dashboard.';
     document.getElementById('standalone-chamber-retry')?.removeAttribute('hidden');
 }
 
@@ -256,7 +265,7 @@ initSiteJourneyCapture();
 initShellLifecycle();
 document.getElementById('standalone-chamber-retry')?.addEventListener('click', event => {
     event.currentTarget.hidden = true;
-    openTezosCrpChamber().catch(showBootError);
+    openStandaloneChamber().catch(showBootError);
 });
 if (location.hash && !location.hash.startsWith('#theme=')) requestDashboard({ historyNavigation: true });
-else openTezosCrpChamber().catch(showBootError);
+else openStandaloneChamber().catch(showBootError);

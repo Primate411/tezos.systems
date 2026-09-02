@@ -587,14 +587,17 @@ for (const snippet of [
   "href: '/minerals/?view=proofbook'",
   "minerals: ['uranium', 'metals', 'capital', 'tezosx']"
 ]) assert.ok(siteMap.includes(snippet), `site-map contract missing ${snippet}`);
+const featureCatalog = await fs.readFile(new URL('../js/core/chamber-features.mjs', import.meta.url), 'utf8');
 for (const snippet of [
   "modulePath: '../features/minerals-chamber.js'",
   "init: 'initMineralsChamber'",
+  'closeMineralsChamber'
+]) assert.ok(featureCatalog.includes(snippet), `feature catalog missing ${snippet}`);
+for (const snippet of [
   "() => openChamberFeature('minerals')",
   "case 'minerals':",
   "params.has('critical-minerals')",
   "params.has('strategic-minerals')",
-  'closeMineralsChamber',
   "'minerals-modal': { entryIds: ['minerals']",
   "minerals: { selector: '#minerals-entry-card', layout: 'featured' }"
 ]) assert.ok(app.includes(snippet), `app integration missing ${snippet}`);

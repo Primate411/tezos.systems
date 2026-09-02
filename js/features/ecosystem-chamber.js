@@ -17,6 +17,7 @@ import { escapeHtml } from '../core/utils.js';
 import {
     activateChamberDialog,
     deactivateChamberDialog,
+    requestChamberClose,
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
@@ -1111,11 +1112,12 @@ function wireEntry(card) {
     });
 }
 
-export async function openEcosystemChamber() {
+export async function openEcosystemChamber({ isCurrent = () => true } = {}) {
     const opening = ++openEpoch;
     const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureEcosystemCss();
-    if (opening !== openEpoch) return;
+    if (opening !== openEpoch || !isCurrent()) return;
+    bindVisibilityRefresh();
     readRouteState();
     const overlay = ensureOverlay();
     const body = overlay.querySelector('.ecosystem-body');
@@ -1144,9 +1146,10 @@ export async function openEcosystemChamber() {
 }
 
 export function closeEcosystemChamber() {
+    const overlay = document.getElementById('ecosystem-activity-modal');
+    if (!requestChamberClose(overlay)) return;
     openEpoch += 1;
     stopRefreshTimer();
-    const overlay = document.getElementById('ecosystem-activity-modal');
     overlay?.classList.remove('active');
     deactivateChamberDialog(overlay);
     unlockPageScroll();

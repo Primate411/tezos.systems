@@ -36,6 +36,8 @@ const relevantRules = [
   [/^js\/core\/config\.js$/, 'documented endpoints, refresh intervals, cache TTLs, or constants'],
   [/^js\/ui\/theme\.js$/, 'documented theme list, default theme, or theme storage'],
   [/^js\/core\/app\.js$/, 'documented runtime flow, deep links, or main surfaces'],
+  [/^js\/core\/(?:chamber-features\.mjs|standalone-chamber\.js)$/, 'documented Chamber startup and feature registry'],
+  [/^scripts\/lib\/standalone-chamber-shell\.mjs$/, 'documented standalone Chamber shell'],
   [/^js\/core\/api\.js$/, 'documented data-source behavior'],
   [/^js\/features\/maxis\.js$/, 'documented Maxis chamber behavior'],
   [/^css\/maxis\.css$/, 'documented Maxis chamber presentation'],

@@ -196,3 +196,10 @@ export function deactivateChamberDialog(overlay, { restoreFocus = true } = {}) {
     if (!overlay) return;
     deactivateOverlayDialog(overlay, { restoreFocus });
 }
+
+/** A standalone owner may retain the room while preparing its dashboard exit. */
+export function requestChamberClose(overlay) {
+    return !overlay?.classList.contains('active') || document.dispatchEvent(new CustomEvent('tezos:chamber-before-close', {
+        cancelable: true, detail: { overlay }
+    }));
+}

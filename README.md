@@ -1672,13 +1672,21 @@ lanes. The `chamber-first-paint` smoke covers all six at desktop and phone width
 `tests/chamber-snapshot-cache-check.mjs` covers corrupt, mismatched, expired,
 oversized, denied, and blocked cache reads.
 
-The standalone `/tezoscrp/` pilot boots only its Recognition Hall, shared theme
-styles, wayfinder, and build/update lifecycle. It does not initialize dashboard
+The standalone `/tezoscrp/` pilot now also covers `/capital/`, `/ecosystem/`,
+`/minerals/`, `/metals/`, and `/uranium/`. Each boots only its own room, shared theme
+styles, wayfinder, and build/update lifecycle. They do not initialize dashboard
 telemetry on an idle timer. Closing the room or following its dashboard/search
 actions loads the canonical dashboard shell on intent, checks the asset version,
 and initializes the existing app once without reloading the document. Failed
 transitions retain the room and offer retry or normal navigation; other Chamber
-routes retain their current startup path. Service-worker installation no longer
+routes retain their current startup path. The pure `js/core/chamber-features.mjs`
+catalog is shared by the dashboard, standalone loader, and route generator.
+Opted-in rooms bind visibility handling on open without starting launcher polling.
+Their cancelled closes retain timers and reading state until the dashboard is ready;
+successful closes remove only that room's query state and restore launcher focus.
+`standalone-chamber-expansion` checks all five new routes at desktop and mobile,
+including navigation, failed-exit continuity, and cancelled stylesheet loads.
+Service-worker installation no longer
 preloads dashboard-only modules; runtime assets are still cached when requested.
 
 `npm run measure:chamber-boot -- --baseline-root /absolute/path/to/exported-pre-pilot-tree --runs 3 --output /tmp/chamber-boot/results.json`
@@ -1887,7 +1895,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v615`, including the full-viewport Index
+- Current aligned shell cache stamp: `v616`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

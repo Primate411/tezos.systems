@@ -17,6 +17,7 @@ import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import {
     activateChamberDialog,
     deactivateChamberDialog,
+    requestChamberClose,
     focusChamberTab,
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
@@ -1458,11 +1459,12 @@ function wireEntry(card) {
     });
 }
 
-export async function openCapitalChamber() {
+export async function openCapitalChamber({ isCurrent = () => true } = {}) {
     const opening = ++openEpoch;
     const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureCapitalCss();
-    if (opening !== openEpoch) return;
+    if (opening !== openEpoch || !isCurrent()) return;
+    bindVisibilityRefresh();
     const route = routeView();
     const focus = routeFocus();
     if (route) currentView = route;
@@ -1498,9 +1500,10 @@ export async function openCapitalChamber() {
 }
 
 export function closeCapitalChamber() {
+    const overlay = document.getElementById('capital-modal');
+    if (!requestChamberClose(overlay)) return;
     openEpoch += 1;
     stopRefreshTimer();
-    const overlay = document.getElementById('capital-modal');
     overlay?.classList.remove('active');
     deactivateChamberDialog(overlay);
     unlockPageScroll();

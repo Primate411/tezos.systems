@@ -18,6 +18,7 @@ import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import {
     activateChamberDialog,
     deactivateChamberDialog,
+    requestChamberClose,
     focusChamberTab,
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
@@ -1158,11 +1159,12 @@ function ensureEntryCard() {
     return card;
 }
 
-export async function openMineralsChamber() {
+export async function openMineralsChamber({ isCurrent = () => true } = {}) {
     const opening = ++openEpoch;
     const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureMineralsCss();
-    if (opening !== openEpoch) return;
+    if (opening !== openEpoch || !isCurrent()) return;
+    bindVisibilityRefresh();
     applyRouteState();
     const overlay = ensureOverlay();
     const body = overlay.querySelector('.minerals-body');
@@ -1192,9 +1194,10 @@ export async function openMineralsChamber() {
 }
 
 export function closeMineralsChamber() {
+    const overlay = document.getElementById('minerals-modal');
+    if (!requestChamberClose(overlay)) return;
     openEpoch += 1;
     stopRefreshTimer();
-    const overlay = document.getElementById('minerals-modal');
     overlay?.classList.remove('active');
     deactivateChamberDialog(overlay);
     unlockPageScroll();

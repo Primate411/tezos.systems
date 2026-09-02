@@ -5,7 +5,7 @@
 
 import { escapeHtml } from '../core/utils.js';
 import { versionedAsset } from '../core/asset-version.js';
-import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
+import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher, requestChamberClose } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 
 const SUMMARY_URL = versionedAsset('/data/tezoscrp-summary.json');
@@ -824,9 +824,7 @@ export function closeTezosCrpChamber() {
     if (!overlay?.classList.contains('active')) return;
     // A standalone boot owner can prepare the dashboard before releasing the
     // reader's existing room. Normal dashboard launches have no interceptor.
-    if (!document.dispatchEvent(new CustomEvent('tezos:chamber-before-close', {
-        cancelable: true, detail: { overlay }
-    }))) return;
+    if (!requestChamberClose(overlay)) return;
     overlay.classList.remove('active');
     deactivateChamberDialog(overlay);
     document.body.style.overflow = savedBodyOverflow || '';

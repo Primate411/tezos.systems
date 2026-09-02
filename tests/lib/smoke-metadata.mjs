@@ -6,8 +6,8 @@ const RULES = [
     risk: 'high'
   },
   {
-    suites: /^(standalone-chamber-boot|tezoscrp|release-update|route-search-state|overlay-stack)$/,
-    files: ['js/core/standalone-chamber.js', 'js/core/shell-lifecycle.js', 'scripts/lib/standalone-chamber-shell.mjs', 'scripts/generate-chamber-routes.mjs', 'tezoscrp/index.html'],
+    suites: /^(standalone-chamber-boot|standalone-chamber-expansion|chamber-first-paint|tezoscrp|release-update|route-search-state|overlay-stack)$/,
+    files: ['js/core/standalone-chamber.js', 'js/core/chamber-features.mjs', 'js/core/shell-lifecycle.js', 'scripts/lib/standalone-chamber-shell.mjs', 'scripts/generate-chamber-routes.mjs', 'tests/lib/standalone-chamber-expansion-smoke.mjs', 'tezoscrp/index.html', 'capital/index.html', 'ecosystem/index.html', 'minerals/index.html', 'metals/index.html', 'uranium/index.html'],
     tags: ['shell', 'navigation', 'tezoscrp'],
     risk: 'high'
   },
@@ -187,6 +187,7 @@ export const GLOBAL_SMOKE_PATTERNS = [
   'tests/lib/smoke-*',
   'tests/fixtures/smoke-*',
   'js/core/app.js',
+  'js/core/chamber-features.mjs',
   'js/core/api.js',
   'js/core/config.js',
   'js/core/quiet-refresh.js',

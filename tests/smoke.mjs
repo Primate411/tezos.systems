@@ -22,6 +22,7 @@ import {
 import { selectAffectedSmokeSuites } from './lib/smoke-affected.mjs';
 import { metadataForSmokeSuite } from './lib/smoke-metadata.mjs';
 import { smokeChamberFirstPaint } from './lib/chamber-first-paint-smoke.mjs';
+import { smokeStandaloneChamberExpansion } from './lib/standalone-chamber-expansion-smoke.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -24923,7 +24924,7 @@ async function smokeMetalsChamber(browser, baseUrl) {
         metalButtons: document.querySelectorAll('[data-metals-metal]').length,
         metalButtonsContained: Array.from(document.querySelectorAll('[data-metals-metal]')).every((button) => contained(button)),
         chartContained: contained(document.querySelector('.metals-chart')),
-        launcherContained: contained(document.querySelector('#metals-entry-card'), { left: 0, right: innerWidth })
+        launcherDeferred: !document.querySelector('#metals-entry-card')
       };
     });
     assert(mobileState.content && mobileState.content.left >= -1 && mobileState.content.right <= viewport.width + 1
@@ -24931,8 +24932,16 @@ async function smokeMetalsChamber(browser, baseUrl) {
       && mobileState.bodyScrollable && mobileState.pageOverflow <= 1
       && mobileState.selectedView === 'markets' && mobileState.selectedMetal === 'XAG'
       && mobileState.selectedTabVisible && mobileState.metalButtons === 4
-      && mobileState.metalButtonsContained && mobileState.chartContained && mobileState.launcherContained,
-    `metals chamber ${viewport.width}px: room or launcher escaped the mobile viewport ${JSON.stringify(mobileState)}`);
+      && mobileState.metalButtonsContained && mobileState.chartContained && mobileState.launcherDeferred,
+    `metals chamber ${viewport.width}px: standalone room escaped the mobile viewport or eagerly built its launcher ${JSON.stringify(mobileState)}`);
+    await mobilePage.locator('#metals-modal .chamber-close').click();
+    await mobilePage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true'
+      && !document.getElementById('metals-modal')?.classList.contains('active'));
+    const launcherContained = await mobilePage.locator('#metals-entry-card').evaluate(node => {
+      const bounds = node.getBoundingClientRect();
+      return bounds.left >= -1 && bounds.right <= innerWidth + 1 && node.getClientRects().length > 0;
+    });
+    assert(launcherContained, `metals chamber ${viewport.width}px: hydrated dashboard launcher escaped the mobile viewport`);
     await mobileContext.close();
     assert(mobileIssues.length === 0, `metals chamber ${viewport.width}px browser issues:\n${mobileIssues.join('\n')}`);
   }
@@ -36553,6 +36562,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'network-pulse-launcher', description: 'Network Pulse lower launcher row hydrates from collected history without opening the modal or enabling legacy full stats', run: () => smokeNetworkPulseLauncher(browser, baseUrl) },
     { name: 'launcher-projections', description: 'Capital, Ecosystem Activity, and Maxis hydrate from compact summaries, defer reviewed full artifacts until room open, preserve parity, and fall back safely', run: () => smokeLauncherProjections(browser, baseUrl) },
     { name: 'chamber-first-paint', description: 'Six snapshot rooms finish hidden first render, paint verified saved receipts before network, and revalidate without moving desktop or mobile readers', run: () => smokeChamberFirstPaint(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'standalone-chamber-expansion', description: 'Five independent rooms defer dashboard startup, preserve direct state and failed-exit readers, and hand off once across desktop/mobile navigation and cancelled loads', run: () => smokeStandaloneChamberExpansion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'capital-chamber', description: 'Capital Chamber renders sourced cross-layer, market, asset, RWA, and art-economy views with quality quarantine, explicit gaps, direct routing, and quiet refresh', run: () => smokeCapitalChamber(browser, baseUrl) },
     { name: 'minerals-chamber', description: 'Critical Minerals keeps its compact launcher independent, exposes five accessible sourced views, preserves routes and quiet reading state, retains last-good receipts, and fits 320/390px rooms', run: () => smokeMineralsChamber(browser, baseUrl) },
     { name: 'uranium-chamber', description: 'Uranium Chamber preserves ranged chart history, deterministic Kraken live receipts, direct routing, hidden gating, and quiet reading state', run: () => smokeUraniumChamber(browser, baseUrl) },

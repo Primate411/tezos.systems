@@ -17,6 +17,7 @@ import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import {
     activateChamberDialog,
     deactivateChamberDialog,
+    requestChamberClose,
     focusChamberTab,
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
@@ -1903,11 +1904,12 @@ function ensureEntryCard() {
     return card;
 }
 
-export async function openUraniumChamber() {
+export async function openUraniumChamber({ isCurrent = () => true } = {}) {
     const opening = ++openEpoch;
     const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureUraniumCss();
-    if (opening !== openEpoch) return;
+    if (opening !== openEpoch || !isCurrent()) return;
+    bindVisibilityRefresh();
     const route = routeView();
     if (route) currentView = route;
     const range = routeRange();
@@ -1943,10 +1945,11 @@ export async function openUraniumChamber() {
 }
 
 export function closeUraniumChamber() {
+    const overlay = document.getElementById('uranium-modal');
+    if (!requestChamberClose(overlay)) return;
     openEpoch += 1;
     stopRefreshTimer();
     stopKrakenStream();
-    const overlay = document.getElementById('uranium-modal');
     overlay?.classList.remove('active');
     deactivateChamberDialog(overlay);
     unlockPageScroll();

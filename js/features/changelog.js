@@ -7,6 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-09-02',
         entries: [
+            { type: '⚡', text: 'Direct links to Capital, Ecosystem Activity, Critical Minerals, Precious Metals, and Uranium now load only their own Chamber; the full dashboard starts when you leave or search' },
             { type: '⚡', text: 'TezosCRP opens directly into its Recognition Hall with a smaller standalone startup; dashboard features load when you choose to leave or search' },
             { type: '⚡', text: 'Startup now defers optional changelog, HEN, and Protocol Anthology work, while History shares matching requests without losing its source timestamps' },
             { type: '🎨', text: 'Capital, Ecosystem, Minerals, Metals, and Uranium now reveal section-shaped loading frames; Whale Watch shows its generated archive without waiting for the Live Tape' },

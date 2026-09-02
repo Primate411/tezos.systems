@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CHAMBER_ROUTES, routeImage, routeUrl } from './lib/chamber-routes.mjs';
 import { renderStandaloneChamberShell } from './lib/standalone-chamber-shell.mjs';
+import { CHAMBER_FEATURES } from '../js/core/chamber-features.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const CHAMBER_CATEGORY_KEYS = Object.freeze([
@@ -204,7 +205,7 @@ function renderRoute(route, dashboardShell) {
     html,
     CHAMBER_CATEGORY_BY_ROUTE_HASH[route.hash] || 'ecosystem'
   );
-  if (route.slug === 'tezoscrp') html = renderStandaloneChamberShell(html);
+  if (CHAMBER_FEATURES[route.slug]?.standalone) html = renderStandaloneChamberShell(html, route);
   return html.replace(/[ \t]+$/gm, '');
 }
 

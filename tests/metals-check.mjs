@@ -473,11 +473,13 @@ for (const snippet of [
 ]) {
   assert.ok(siteMap.includes(snippet), `site-map contract missing ${snippet}`);
 }
+const featureCatalog = await fs.readFile(new URL('../js/core/chamber-features.mjs', import.meta.url), 'utf8');
+for (const snippet of ['initMetalsChamber', 'closeMetalsChamber']) {
+  assert.ok(featureCatalog.includes(snippet), `feature catalog missing ${snippet}`);
+}
 for (const snippet of [
-  'initMetalsChamber',
   "case 'metals':",
   "params.has('precious-metals')",
-  'closeMetalsChamber',
   "'metals-modal': { entryIds: ['metals']",
   "metals: { selector: '#metals-entry-card', layout: 'featured' }"
 ]) {

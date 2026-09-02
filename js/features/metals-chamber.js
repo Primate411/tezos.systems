@@ -18,6 +18,7 @@ import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import {
     activateChamberDialog,
     deactivateChamberDialog,
+    requestChamberClose,
     focusChamberTab,
     wireChamberLauncher
 } from '../ui/chamber-accessibility.js';
@@ -1038,11 +1039,12 @@ function ensureEntryCard() {
     return card;
 }
 
-export async function openMetalsChamber() {
+export async function openMetalsChamber({ isCurrent = () => true } = {}) {
     const opening = ++openEpoch;
     const cached = !lastSnapshot ? snapshotCache.read() : null;
     await ensureMetalsCss();
-    if (opening !== openEpoch) return;
+    if (opening !== openEpoch || !isCurrent()) return;
+    bindVisibilityRefresh();
     applyRouteState();
     const overlay = ensureOverlay();
     const body = overlay.querySelector('.metals-body');
@@ -1072,9 +1074,10 @@ export async function openMetalsChamber() {
 }
 
 export function closeMetalsChamber() {
+    const overlay = document.getElementById('metals-modal');
+    if (!requestChamberClose(overlay)) return;
     openEpoch += 1;
     stopRefreshTimer();
-    const overlay = document.getElementById('metals-modal');
     overlay?.classList.remove('active');
     deactivateChamberDialog(overlay);
     unlockPageScroll();
