@@ -1566,6 +1566,10 @@ screenshots, and DOM snapshots.
 Cross-room navigation and route-formatting tests pin the Whale Watch archive
 and Ledger Flow account receipts together, so scheduled changes to the largest
 sender cannot leak an unmocked account lookup into hermetic validation.
+Live Head inspector checks use a real pointer move to a hit-tested, keyed trigger
+and then verify the opened receipt. This avoids repeating a hover action after
+the inspector has opened over its own trigger, while retaining reading-lock,
+receipt-link, focus, geometry, and pointer-exit assertions.
 
 `npm run test:affected` runs the static gate, maps files changed since
 `origin/main` to suite-declared `files`, `tags`, and `risk`, and repeats selected
