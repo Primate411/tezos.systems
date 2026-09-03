@@ -1,10 +1,13 @@
 /** Independent Chamber boot. No dashboard import or polling before intent. */
+import './tzkt-throttle.js';
 import { versionedAsset } from './asset-version.js';
 import { CHAMBER_FEATURES } from './chamber-features.mjs';
 import { initSiteWayfinder } from '../ui/wayfinder.js';
 import { initSiteJourneyCapture } from './site-journey.js';
 import { initShellLifecycle } from './shell-lifecycle.js';
 import { findChamberLauncher } from '../ui/chamber-accessibility.js';
+import { activeOverlayCount } from '../ui/overlay-stack.js';
+import { initChamberThemeEffects } from '../ui/chamber-theme-effects.js';
 
 const bootScript = document.querySelector('script[data-dashboard-src]');
 const dashboardSrc = bootScript.dataset.dashboardSrc;
@@ -24,7 +27,9 @@ let roomAttempt = 0;
 let roomOpenIntent = 0;
 
 function isRoomRoute() {
-    return location.pathname.replace(/\/index\.html$/, '/').replace(/\/+$/, '') === `/${room.route}`
+    const path = location.pathname.replace(/\/index\.html$/, '/').replace(/\/+$/, '');
+    return (path === `/${room.route}` || room.aliases?.some(alias => path === `/${alias}`)
+        || (room.children && path.startsWith(`/${room.route}/`)))
         && (!location.hash || location.hash.startsWith('#theme='));
 }
 
@@ -39,7 +44,13 @@ function openStandaloneChamber() {
             return module;
         }).catch(error => { roomPromise = null; roomAttempt += 1; throw error; });
     }
-    return roomPromise.then(module => isCurrent() && location.href === requestedRoute ? module[chamber.open]({ isCurrent }) : undefined);
+    return roomPromise.then(async module => {
+        if (!isCurrent() || location.href !== requestedRoute) return;
+        if (room.controller) (await loadDashboardModule()).seedChamberFeature(entryId, module);
+        if (!isCurrent()) return;
+        await (room.positional ? module[chamber.open]('', { isCurrent }) : module[chamber.open]({ isCurrent }));
+        if (isCurrent()) document.documentElement.dataset.chamberReady = entryId;
+    });
 }
 
 function dashboardDestination({ route = null, search = false, historyNavigation = false } = {}) {
@@ -51,7 +62,8 @@ function dashboardDestination({ route = null, search = false, historyNavigation 
 }
 
 function transitionStatus(message, { failed = false, retryOptions = {} } = {}) {
-    const surface = document.querySelector(`#${room.overlayId} ${room.dialogSelector}`) || document.getElementById('main-content');
+    const overlay = document.getElementById(room.overlayId);
+    const surface = (room.dialogSelector === ':scope' ? overlay : overlay?.querySelector(room.dialogSelector)) || document.getElementById('main-content');
     if (!surface) return;
     let status = surface.querySelector('[data-dashboard-transition]');
     if (!message) { status?.remove(); return; }
@@ -147,11 +159,35 @@ async function prepareDashboard() {
         await loadScript(copy);
     }
 
+    // Import failures are recoverable before any retained live nodes move.
+    const dashboard = await loadDashboardModule();
+    if (roomModule) dashboard.seedChamberFeature(entryId, roomModule);
+    await dashboard.prepareDashboardDependencies();
     if (!shellInstalled) {
         parsed.querySelectorAll('script').forEach(script => script.remove());
+        for (const stat of room.fragmentStats || []) parsed.querySelector(`[data-stat="${stat}"]`)?.remove();
+        // Static, already-wired History/My Tezos surfaces remain the exact nodes.
+        // Keep them in the live document while dependencies prepare.
+        const retained = (room.fragments || []).map(id => {
+            const current = document.getElementById(id);
+            const replacement = parsed.getElementById(id);
+            if (!current || !replacement) return null;
+            const marker = parsed.createElement('span');
+            marker.dataset.standaloneRetained = id;
+            replacement.replaceWith(marker);
+            return current;
+        }).filter(Boolean);
         const fragment = document.createDocumentFragment();
         for (const child of [...parsed.body.childNodes]) fragment.appendChild(document.importNode(child, true));
+        for (const current of retained) {
+            if (document.getElementById('standalone-chamber-shell').contains(current)) document.body.appendChild(current);
+        }
         document.getElementById('standalone-chamber-shell').replaceWith(fragment);
+        for (const current of retained) {
+            const marker = document.querySelector(`[data-standalone-retained="${current.id}"]`);
+            marker?.replaceWith(current);
+        }
+        document.querySelectorAll('[data-standalone-control]').forEach(node => node.remove());
         document.documentElement.removeAttribute('data-chamber-route');
         document.documentElement.dataset.dashboardBoot = 'manual';
         document.title = parsed.title;
@@ -167,7 +203,6 @@ async function prepareDashboard() {
 
     const homePreload = scripts.find(source => /\/home-layout-preload\.js/.test(source.getAttribute('src')));
     if (homePreload) await loadScript(homePreload);
-    const dashboard = await loadDashboardModule();
     for (const source of scripts.filter(script => new URL(script.getAttribute('src'), location.origin).origin === location.origin)) {
         const path = new URL(source.getAttribute('src'), location.origin).pathname;
         if (/\/(?:app|theme-preload|goatcounter-init)\.js$/.test(path)) continue;
@@ -202,7 +237,7 @@ async function requestDashboard({ route = null, search = false, historyNavigatio
         roomModule?.[chamber.close](...(chamber.closeArgs || []));
         window.dispatchEvent(new CustomEvent('tezos:routechange'));
         if (!route && !search && !historyNavigation) {
-            findChamberLauncher(room.launcher)?.focus({ preventScroll: true });
+            (findChamberLauncher(room.launcher) || document.querySelector(room.launcher))?.focus({ preventScroll: true });
         }
     } catch (error) {
         if (intent !== transitionIntent) return;
@@ -220,7 +255,7 @@ document.addEventListener('tezos:chamber-before-close', event => {
 }, { signal: pilotEvents.signal });
 
 document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && !document.getElementById(room.overlayId)?.classList.contains('active')) {
+    if (event.key === 'Escape' && !event.defaultPrevented && activeOverlayCount() === 0 && (room.controller === 'chambers' || !document.getElementById(room.overlayId)?.matches('.active, .open'))) {
         event.preventDefault();
         requestDashboard();
         return;
@@ -233,6 +268,11 @@ document.addEventListener('keydown', event => {
 
 document.addEventListener('click', event => {
     if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+    if (event.target.closest('[data-copy-hash]')) {
+        event.preventDefault();
+        navigator.clipboard?.writeText(`https://tezos.systems${location.pathname}${location.search}${location.hash}`).catch(() => {});
+        return;
+    }
     const link = event.target.closest('a[href]');
     if (!link || link.target || link.hasAttribute('download') || link.hasAttribute('data-dashboard-fallback')) return;
     const url = new URL(link.href);
@@ -263,6 +303,7 @@ function showBootError(error) {
 initSiteWayfinder();
 initSiteJourneyCapture();
 initShellLifecycle();
+initChamberThemeEffects();
 document.getElementById('standalone-chamber-retry')?.addEventListener('click', event => {
     event.currentTarget.hidden = true;
     openStandaloneChamber().catch(showBootError);

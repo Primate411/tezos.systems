@@ -1,3 +1,4 @@
+import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * tz4 Adoption Chamber
  * Live baker consensus-key adoption status and first-mover timing.
@@ -1142,7 +1143,8 @@ function stopModalRefresh() {
     if (overlay) overlay.dataset.tz4Live = 'false';
 }
 
-export async function openTz4AdoptionChamber() {
+export async function openTz4AdoptionChamber({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
     let overlay = document.getElementById('tz4-adoption-modal');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -1189,8 +1191,10 @@ export async function openTz4AdoptionChamber() {
 
     try {
         await refreshTz4AdoptionChamber({ initial: true });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
         startModalRefresh();
     } catch (error) {
+        if (!isCurrent()) return;
         console.error('tz4 Adoption fetch error:', error);
         overlay.querySelector('.tz4-body').innerHTML = `
             <div class="chamber-error">
@@ -1205,8 +1209,9 @@ export async function openTz4AdoptionChamber() {
 }
 
 export function closeTz4AdoptionChamber() {
-    stopModalRefresh();
     const overlay = document.getElementById('tz4-adoption-modal');
+    if (!requestChamberClose(overlay)) return;
+    stopModalRefresh();
     if (overlay) {
         overlay.classList.remove('active');
         deactivateChamberDialog(overlay);

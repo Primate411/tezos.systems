@@ -5,6 +5,17 @@
 import { activateOverlayDialog, deactivateOverlayDialog } from './overlay-stack.js';
 
 const launcherOpens = new WeakMap();
+const roomVisibility = new Map();
+
+/** An open room owns its catch-up even when its dashboard tile never existed. */
+export function bindChamberVisibility(overlayId, refresh) {
+    if (roomVisibility.has(overlayId)) return;
+    roomVisibility.set(overlayId, refresh);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible' || !document.getElementById(overlayId)?.classList.contains('active')) return;
+        Promise.resolve().then(refresh).catch(error => console.warn('Chamber catch-up unavailable:', error));
+    });
+}
 const CHAMBER_SHELL_EXCLUSIONS = new Set(['release-radar-overlay', 'ctez-overlay']);
 const WIDE_CHAMBER_DIALOG_SELECTOR = [
     '.capital-content',
@@ -199,7 +210,7 @@ export function deactivateChamberDialog(overlay, { restoreFocus = true } = {}) {
 
 /** A standalone owner may retain the room while preparing its dashboard exit. */
 export function requestChamberClose(overlay) {
-    return !overlay?.classList.contains('active') || document.dispatchEvent(new CustomEvent('tezos:chamber-before-close', {
+    return !overlay?.matches('.active, .open') || document.dispatchEvent(new CustomEvent('tezos:chamber-before-close', {
         cancelable: true, detail: { overlay }
     }));
 }

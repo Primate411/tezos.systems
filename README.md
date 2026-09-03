@@ -177,6 +177,15 @@ tezos.systems/
 
 1. `index.html` loads `css/styles.min.css` and `js/core/app.js` as an ES
    module.
+   All 25 generated Chamber routes and the 22 Protocol Anthology chapters use
+   `js/core/standalone-chamber.js` instead: no hidden home DOM or dashboard
+   refresh starts until the visitor leaves or searches. My Tezos, Anthology,
+   and the directory reuse deferred app controllers without initializing home.
+   Other rooms import their own feature directly. History/Chart.js load only
+   for a chart surface; shared Octez receipts no longer import the Health UI.
+   Static drawer/chart nodes and room module instances survive the same-document
+   home handoff, and a failed handoff leaves the reading surface available.
+   Only the selected animated theme's existing painter loads before home.
 2. `app.js` installs `js/core/tzkt-throttle.js` before feature startup so
    browser-side TzKT API fetches are queued at six request starts per second.
    Standalone landing, compare, and widget entry points import the same shim
@@ -1672,20 +1681,32 @@ lanes. The `chamber-first-paint` smoke covers all six at desktop and phone width
 `tests/chamber-snapshot-cache-check.mjs` covers corrupt, mismatched, expired,
 oversized, denied, and blocked cache reads.
 
-The standalone `/tezoscrp/` pilot now also covers `/capital/`, `/ecosystem/`,
-`/minerals/`, `/metals/`, and `/uranium/`. Each boots only its own room, shared theme
-styles, wayfinder, and build/update lifecycle. They do not initialize dashboard
+The standalone `/tezoscrp/` pilot now covers all 25 generated Chamber routes and
+22 Anthology chapters. Each boots its own room, shared theme styles, selected
+theme painter, wayfinder, and build/update lifecycle. They do not initialize dashboard
 telemetry on an idle timer. Closing the room or following its dashboard/search
 actions loads the canonical dashboard shell on intent, checks the asset version,
 and initializes the existing app once without reloading the document. Failed
-transitions retain the room and offer retry or normal navigation; other Chamber
-routes retain their current startup path. The pure `js/core/chamber-features.mjs`
+transitions retain the room and offer retry or normal navigation. The pure `js/core/chamber-features.mjs`
 catalog is shared by the dashboard, standalone loader, and route generator.
 Opted-in rooms bind visibility handling on open without starting launcher polling.
 Their cancelled closes retain timers and reading state until the dashboard is ready;
 successful closes remove only that room's query state and restore launcher focus.
 `standalone-chamber-expansion` checks all five new routes at desktop and mobile,
 including navigation, failed-exit continuity, and cancelled stylesheet loads.
+`standalone-chamber-completion` checks every route and an Anthology chapter at
+desktop/mobile widths, with resource inventories and same-document home/Back
+checks. `standalone-chamber-lifecycle` covers retained My Tezos/History nodes on
+failed exits, early home topic/Search input, nested chart failure/retry, directory
+controls, and theme painters. Fixed Chamber rows never become scroll anchors for
+the dashboard behind them; the shared quiet-refresh test covers that boundary.
+Shared info-tooltip styling lives in the shell, not a lazy room stylesheet;
+open tooltips follow late card layout changes and stay inside the viewport even
+when their opener moves offscreen. History's Clean view keeps a coherent light palette.
+My Tezos, Anthology, and the directory reuse app-owned controllers without
+starting home; all other rooms import their own feature. Directory room choices
+navigate to the chosen room's scoped shell. History, My Tezos, and Health are in
+the feature catalog; shared Octez software data lives separately from Health UI.
 Service-worker installation no longer
 preloads dashboard-only modules; runtime assets are still cached when requested.
 
@@ -1895,7 +1916,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v616`, including the full-viewport Index
+- Current aligned shell cache stamp: `v617`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

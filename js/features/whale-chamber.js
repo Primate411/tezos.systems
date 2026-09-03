@@ -1,3 +1,4 @@
+import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Whale Watch Chamber
  *
@@ -961,10 +962,13 @@ function bindVisibilityRefresh() {
     });
 }
 
-export async function openWhaleChamber(requestedView = '') {
+export async function openWhaleChamber(requestedView = '', { isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
+    bindVisibilityRefresh();
     const opening = ++openEpoch;
     const cached = !lastArtifact ? snapshotCache.read() : null;
     await ensureWhaleCss();
+    if (!isCurrent()) return;
     if (opening !== openEpoch) return;
     readRouteState();
     const normalizedView = requestedView === 'giants' ? 'dormant' : requestedView;
@@ -997,13 +1001,15 @@ export async function openWhaleChamber(requestedView = '') {
         renderBody({ quiet: true });
     }
     await refreshWhaleChamber({ quiet: true, forceArtifact: savedArtifact || !lastArtifact, initial: true });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
     if (opening === openEpoch && overlay.classList.contains('active')) startRefreshTimer();
 }
 
 export function closeWhaleChamber({ preserveRoute = false } = {}) {
+    const overlay = document.getElementById('whale-watch-modal');
+    if (!requestChamberClose(overlay)) return;
     openEpoch += 1;
     stopRefreshTimer();
-    const overlay = document.getElementById('whale-watch-modal');
     overlay?.classList.remove('active');
     deactivateChamberDialog(overlay, { restoreFocus: !preserveRoute });
     unlockPageScroll();

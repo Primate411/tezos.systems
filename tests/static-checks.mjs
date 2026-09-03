@@ -6,7 +6,7 @@ import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { CHAMBER_ROUTES, routeUrl } from '../scripts/lib/chamber-routes.mjs';
-import { CHAMBER_FEATURES } from '../js/core/chamber-features.mjs';
+import { CHAMBER_FEATURES, standaloneFeatureForRoute } from '../js/core/chamber-features.mjs';
 import {
   MILESTONE_BASE_THRESHOLDS,
   MILESTONE_CATALOG_SCHEMA,
@@ -271,7 +271,7 @@ async function checkHomeLayoutContracts() {
   }
   for (const route of CHAMBER_ROUTES) {
     const routeHtml = await readText(`${route.slug}/index.html`);
-    if (CHAMBER_FEATURES[route.slug]?.standalone) continue;
+    if (standaloneFeatureForRoute(route.slug)) continue;
     if (!routeHtml.includes('/js/core/home-layout-preload.js') || !routeHtml.includes('id="home-layout-modal"')) {
       fail(`Generated route ${route.slug}/ is missing Home layout recovery controls`);
       break;
@@ -2097,7 +2097,7 @@ async function checkCacheBustAlignment() {
     for (const route of CHAMBER_ROUTES) {
       const routeShell = await readText(`${route.slug}/index.html`);
       for (const [label, pattern] of generatedRouteCacheRefs) {
-        if (CHAMBER_FEATURES[route.slug]?.standalone && ['hero search', 'app module preload', 'app module script'].includes(label)) continue;
+        if (standaloneFeatureForRoute(route.slug) && ['hero search', 'app module preload', 'app module script'].includes(label)) continue;
         const routeVersion = routeShell.match(pattern)?.[1];
         if (routeVersion !== generatedRouteCacheVersion) {
           fail(`${route.slug}/index.html ${label} cache stamp must match v${generatedRouteCacheVersion}, saw ${routeVersion || 'missing'}`);
@@ -2106,7 +2106,7 @@ async function checkCacheBustAlignment() {
     }
     for (const [id, feature] of Object.entries(CHAMBER_FEATURES)) {
       if (!feature.standalone) continue;
-      const shell = await readText(`${id}/index.html`);
+      const shell = await readText(`${feature.standalone.route}/index.html`);
       if (!shell.includes(`/js/core/standalone-chamber.js?v=${generatedRouteCacheVersion}`)
         || !shell.includes(`data-dashboard-src="/js/core/app.js?v=${generatedRouteCacheVersion}"`)) fail(`Standalone ${id} boot and deferred dashboard must use the same shell version`);
     }
@@ -2595,6 +2595,7 @@ async function checkSelectorContracts() {
   const overlayStack = await readText('js/ui/overlay-stack.js');
   const wallet = await readText('js/core/wallet.js');
   const health = await readText('js/features/network-health.js');
+  const octezVersions = await readText('js/core/octez-versions.js');
   const networkPulse = await readText('js/features/network-pulse.js');
   const history = await readText('js/features/history.js');
   const nativeExplorer = await readText('js/features/native-explorer.js');
@@ -2906,7 +2907,8 @@ async function checkSelectorContracts() {
     ['Staking Chamber Capital category membership', "entryIds: Object.freeze(['capital', 'minerals', 'uranium', 'metals', 'whales', 'staking-chamber'])", siteMap],
     ['Staking Chamber category-aware desktop geometry', '#chambers-grid .staking-entry-card', stakingChamberCss],
     ['Chamber info tooltip viewport positioning', 'positionChamberInfoTooltip(button)', app],
-    ['Chamber info tooltip bounded height', '--card-tooltip-max-height', stakingChamberCss],
+    ['Chamber info tooltip bounded height without a lazy room', '--card-tooltip-max-height', shellExtrasCss],
+    ['Chamber info tooltip late-layout observer', 'chamberInfoResizeObserver = new ResizeObserver', app],
     ['Staking Chamber mobile operation rows', '.staking-operation-row {', stakingChamberCss],
     ['Chamber card copy link', 'data-copy-hash="#chamber"', chamber],
     ['Tezos L1 Governance card label', 'Tezos L1 Governance', chamber],
@@ -3309,8 +3311,8 @@ async function checkSelectorContracts() {
     ['health Nakamoto Chainspect disclosure', 'Chainspect', await readText('data/nakamoto-sources.json')],
     ['health Nakamoto Edinburgh disclosure', 'Edinburgh EDI', await readText('data/nakamoto-sources.json')],
     ['health Octez versions panel', 'id="health-octez-versions"', health],
-    ['health Octez versions TzKT source', '/delegates?active=true', health],
-    ['health Octez versions cache TTL', 'OCTEZ_VERSIONS_TTL', health],
+    ['shared Octez versions TzKT source', '/delegates?active=true', octezVersions],
+    ['shared Octez versions cache TTL', 'OCTEZ_VERSIONS_TTL', octezVersions],
     ['health period telemetry panel', 'id="health-period-telemetry"', health],
     ['health network load panel', 'id="health-network-load"', health],
     ['health chain proof panel', 'id="health-chain-proof"', health],
@@ -3724,7 +3726,7 @@ async function checkSelectorContracts() {
   if (!/\.health-consensus-panel[^\{]*\{[^}]*grid-column:\s*1\s*\/\s*-1\s*;/s.test(healthStyles)) {
     fail('Network Health Consensus Lens must span the full dashboard width');
   }
-  const continuityPanelIndex = health.indexOf('${renderContinuityProofPanel()}');
+  const continuityPanelIndex = health.indexOf('${renderContinuityProofPanel(data)}');
   const promotedCyclePanelIndex = health.indexOf('${renderCycleTimingPanel(data)}', continuityPanelIndex);
   const healthDashboardIndex = health.indexOf('<div class="lb-dashboard-grid health-dashboard-grid">', continuityPanelIndex);
   if (!(continuityPanelIndex >= 0
@@ -4414,7 +4416,7 @@ async function checkUxAuditContracts() {
   for (const href of ['/favicon.svg', '/favicon-48.png', '/favicon-32.png', '/favicon-16.png', '/apple-touch-icon.png', '/safari-pinned-tab.svg', '/site.webmanifest']) {
     if (!index.includes(`href="${href}"`)) fail(`root shell asset must survive history route rewrites: ${href}`);
   }
-  if (!index.includes('id="drawer-address-status"') || !index.includes('id="hero-chain-uptime-finality">—</strong>')) {
+  if (!index.includes('id="drawer-address-status"') || !index.includes('id="hero-chain-uptime-finality">~12s</strong>') || !index.includes('Tenderbake finality estimate; live cadence is sampling now.')) {
     fail('My Tezos validation and finality must ship honest visible initial states');
   }
   if (api.includes('X-Tezos-Systems-Observed-At') || api.includes("response.headers.get('X-Tezos-Systems-Cache')")) {
@@ -5071,7 +5073,7 @@ async function checkChamberEfficiencyContracts() {
   const styleGatedModules = [
     ['capital-chamber.js', 'await ensureCapitalCss()'],
     ['ecosystem-chamber.js', 'await ensureEcosystemCss()'],
-    ['history.js', 'await ensureCycleHistoryStyles()'],
+    ['history.js', 'await Promise.all([ensureCycleHistoryStyles(), ensureChartLibraries()])'],
     ['leaderboard.js', 'await ensureLeaderboardStyles()'],
     ['ledger-flow.js', 'await ensureLedgerFlowStyles()'],
     ['maxis.js', 'await ensureMaxisStyles()'],
@@ -5231,33 +5233,63 @@ async function checkChamberEfficiencyContracts() {
   pass('optional startup assets remain deferred without changing shared HEN styles or route entry points');
 
   const boot = await readText('js/core/standalone-chamber.js');
+  const dashboardInit = app.slice(app.indexOf('async function init('));
+  for (const initializer of ['chamberCategories', 'chambersSurface', 'lazyChamberLaunchers']) {
+    const offset = dashboardInit.indexOf(`safe('${initializer}',`);
+    assert.ok(offset >= 0 && offset < dashboardInit.indexOf('await prepareDashboardDependencies()'), `${initializer} responds before deferred imports`);
+  }
+  assert.match(await readText('js/features/history.js'), /positionCycleHistoryEntryCard\(card\);[\s\S]*?updateCycleHistoryEntryFreshness\(cycleHistoryEntryFreshnessRows\)/, 'New home launcher reuses direct History receipts');
+  assert.match(await readText('js/features/search.js'), /else if \(document.activeElement === input\)\s*\{[\s\S]*?setOpen\(true\);[\s\S]*?render\(\);/, 'Deferred Search honors already-focused input');
+  assert.doesNotMatch(await readText('index.html'), /<script[^>]+src="js\/features\/(?:history|my-tezos|network-health)\.js/, 'Only the catalog owns heavy feature module instances');
+  for (const feature of ['network-health', 'my-tezos', 'history']) {
+    assert.doesNotMatch(app, new RegExp(`^import[^;]+features/${feature}\\.js`, 'm'), `${feature} stays out of the eager app graph`);
+  }
+  for (const feature of ['my-tezos', 'my-baker']) {
+    const source = await readText(`js/features/${feature}.js`);
+    assert.ok(source.includes("from '../core/octez-versions.js'"));
+    assert.doesNotMatch(source, /from ['"].*network-health\.js/);
+  }
+  for (const feature of ['network-pulse', 'staking-chamber']) {
+    const source = await readText(`js/features/${feature}.js`);
+    assert.ok(source.includes("from '../ui/history-intent.js'"));
+    assert.doesNotMatch(source, /from ['"].*\/history\.js/);
+  }
+  assert.ok(boot.indexOf('dashboard.seedChamberFeature(entryId, roomModule)') < boot.indexOf('await dashboard.prepareDashboardDependencies()'));
+  assert.ok(boot.indexOf('await dashboard.prepareDashboardDependencies()') < boot.indexOf("document.getElementById('standalone-chamber-shell').replaceWith(fragment)"));
+  assert.ok(boot.includes('activeOverlayCount() === 0'), 'Directory Escape respects nested dialogs');
+  const themeEffects = await readText('js/ui/chamber-theme-effects.js');
+  assert.ok(themeEffects.includes('if (motion.matches) return;') && themeEffects.includes('loaded.has(source)'));
+  assert.ok(themeEffects.includes("versionedAsset('/js/effects/valley-loader.js')"));
+  const chartLoader = await readText('js/ui/chart-loader.js');
+  assert.ok(chartLoader.includes('if (!chartWork)') && chartLoader.includes('chartWork = null; throw error;'));
   const lifecycle = await readText('js/core/shell-lifecycle.js');
   const generator = await readText('scripts/lib/standalone-chamber-shell.mjs');
   const routeGenerator = await readText('scripts/generate-chamber-routes.mjs');
-  for (const source of [app, boot, routeGenerator]) assert.match(source, /import \{ CHAMBER_FEATURES \} from/);
-  assert.deepEqual(Object.keys(CHAMBER_FEATURES).filter(id => CHAMBER_FEATURES[id].standalone).sort(), ['capital', 'ecosystem', 'metals', 'minerals', 'tezoscrp', 'uranium']);
+  for (const source of [app, boot, routeGenerator]) assert.match(source, /import \{ CHAMBER_FEATURES/);
+  for (const route of CHAMBER_ROUTES) assert.ok(standaloneFeatureForRoute(route.slug), `${route.slug} has an independent boot owner`);
   for (const snippet of ["init: 'initCtezChamber'", 'exclusiveLaunchers: true', 'closeFeatureMenu: true']) assert.ok(registry.includes(snippet));
   for (const [id, feature] of Object.entries(CHAMBER_FEATURES)) {
     if (!feature.standalone) continue;
-    const shell = await readText(`${id}/index.html`);
+    const shell = await readText(`${feature.standalone.route}/index.html`);
     for (const forbidden of ['id="hero-slot"', 'id="chambers-grid"', 'id="my-tezos-drawer"', 'rel="modulepreload"', 'chart.umd', ' src="/js/core/app.js']) {
+      if ((id === 'my' && forbidden === 'id="my-tezos-drawer"') || (id === 'chambers' && forbidden === 'id="chambers-grid"')) continue;
       if (shell.includes(forbidden)) fail(`Standalone ${id} must not construct or preload dashboard work: ${forbidden}`);
     }
-    assert.equal(feature.standalone.route, id);
+    assert.equal(standaloneFeatureForRoute(feature.standalone.route), id);
     assert.ok(shell.includes(`data-chamber-boot="${id}"`));
     assert.ok(shell.includes('https://github.com/Primate411/tezos.systems'));
     assert.ok(shell.includes('MPL-2.0'));
     const source = await fs.readFile(new URL(feature.modulePath, new URL('../js/core/chamber-features.mjs', import.meta.url)), 'utf8');
-    const opening = source.slice(source.indexOf(`export async function ${feature.open}`));
-    assert.ok(opening.includes('!isCurrent()'), `${id} cancels asynchronous styles after navigation`);
+    const opening = source.slice(source.indexOf(`function ${feature.open}`));
+    if (id !== 'my') assert.ok(opening.includes('!isCurrent()') || opening.includes('!options.isCurrent()'), `${id} cancels asynchronous styles after navigation`);
     const closing = source.slice(source.indexOf(`export function ${feature.close}`));
-    assert.ok(closing.includes('requestChamberClose(overlay)'), `${id} allows deferred close`);
-    if (id !== 'tezoscrp') {
+    if (id !== 'my') assert.ok(closing.includes('requestChamberClose(overlay)'), `${id} allows deferred close`);
+    if (['capital', 'minerals', 'metals', 'uranium', 'ecosystem'].includes(id)) {
       assert.ok(opening.includes('bindVisibilityRefresh();'), `${id} owns visibility handling without launcher init`);
       assert.ok(closing.indexOf('requestChamberClose(overlay)') < closing.indexOf('stopRefreshTimer()'), `${id} failed exits retain polling`);
     }
   }
-  assert.ok(generator.includes('renderStandaloneChamberShell(html, route)'));
+  assert.ok(generator.includes('renderStandaloneChamberShell(html, route,'));
   const routeRefresh = (await readText('scripts/refresh-generated-surfaces.mjs')).split('const routeTouched =')[1]?.split('if (routeTouched)')[0];
   assert.ok(routeRefresh?.includes('chamber-features') && routeRefresh.includes('standalone-chamber-shell'), 'boot catalog and shell edits regenerate opted-in routes');
   assert.ok(boot.includes('for (const key of room.queryKeys) params.delete(key)'));
@@ -5271,7 +5303,7 @@ async function checkChamberEfficiencyContracts() {
   for (const asset of ['app.js', 'api.js', 'home-layout-preload.js', 'hero-search.css']) {
     if (installAssets.includes(asset)) fail(`Service-worker installation must not bypass the standalone boundary with ${asset}`);
   }
-  pass('Six standalone rooms share a pure catalog, lightweight shells, cancellable lifecycle, and a version-checked single-instance dashboard transition');
+  pass('All generated rooms share a boot catalog, scoped shells, cancellable lifecycle, and a version-checked single-instance dashboard transition');
 }
 
 async function checkLauncherProjectionContracts() {
@@ -9442,6 +9474,7 @@ async function checkQuietRefreshContracts() {
   for (const helper of requiredQuietHelpers) {
     if (!quiet.includes(helper)) fail(`quiet refresh helper missing ${helper}`);
   }
+  assert.match(quiet, /getComputedStyle\(ancestor\)\.position === 'fixed'\) return null/, 'Fixed Chamber rows never anchor the underlying page');
   for (const snippet of [
     'data-pulse-motion',
     'capturePhase',
@@ -10395,7 +10428,7 @@ async function checkChamberCategoryContracts() {
     ['ctez', 'ecosystem']
   ]) {
     const routeShell = await readText(`${slug}/index.html`);
-    if (CHAMBER_FEATURES[slug]?.standalone) {
+    if (slug !== 'chambers' && standaloneFeatureForRoute(slug)) {
       assert.ok(!routeShell.includes('data-chamber-category='), `${slug} standalone shell defers dashboard categories`);
       continue;
     }

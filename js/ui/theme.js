@@ -7,7 +7,7 @@ const THEME_KEY = 'tezos-systems-theme';
 export const THEMES = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
 // Aurora — bespoke animated default; striking but legible.
 export const DEFAULT_THEME = 'aurora';
-const THEME_CSS_VERSION = '616';
+const THEME_CSS_VERSION = '617';
 const THEME_FONT_FAMILIES = {
     aurora: ['Chakra+Petch:wght@400;600;700'],
     matrix: ['Share+Tech+Mono'],
@@ -33,7 +33,7 @@ export const THEME_COLORS = {
     'signal': { bg: '#060A08', accent: '#00E4A0', text: '#C8F0E0' },
     'nerv': { bg: '#000000', accent: '#FF9830', text: '#F0D8B0' },
     'clean': { bg: '#F8F9FC', accent: '#2563EB', text: '#1A1D26' },
-    'dark': { bg: '#161616', accent: '#D0D0D0', text: '#F0F0F0' },
+    'dark': { bg: '#161716', accent: '#D0D0D0', text: '#F0F0F0' },
     'default': { bg: '#0A0E1A', accent: '#5B8DEF', text: '#D8E0F0' },
     'bubblegum': { bg: '#1F0E18', accent: '#FF69B4', text: '#F5E0EE' },
     'abyss': { bg: '#020A1E', accent: '#00E5FF', text: '#A8D8FF' },

@@ -1,3 +1,4 @@
+import { requestChamberClose } from '../ui/chamber-accessibility.js';
 // Historical data visualization module
 // Handles sparklines and full charts using Chart.js
 
@@ -9,6 +10,7 @@ import {
     fetchSupabaseHistoryFreshness
 } from '../core/api.js';
 import { versionedAsset } from '../core/asset-version.js';
+import { ensureChartLibraries } from '../ui/chart-loader.js';
 import { navigateSiteMapEntry } from '../core/site-map.js';
 import { debugLog } from '../core/utils.js';
 import { getCurrentTheme } from '../ui/theme.js';
@@ -1874,6 +1876,11 @@ function ensureCycleHistoryEntryCard() {
         `;
     }
     positionCycleHistoryEntryCard(card);
+    // A direct room may have fetched these receipts before home (and its tile)
+    // existed. Reuse them when the retained room hands off to the dashboard.
+    if (cycleHistoryEntryFreshnessRows.length) {
+        updateCycleHistoryEntryFreshness(cycleHistoryEntryFreshnessRows);
+    }
     window.syncChamberEntryFooters?.(card);
     wireChamberLauncher(card, {
         open: openCycleHistoryRoute,
@@ -1888,7 +1895,8 @@ function ensureCycleHistoryEntryCard() {
  * launches, the legacy #history route, and the first-party /history/ shell.
  */
 export async function openCycleHistoryChamber(options = {}) {
-    await ensureCycleHistoryStyles();
+    await Promise.all([ensureCycleHistoryStyles(), ensureChartLibraries()]);
+    if (options.isCurrent && !options.isCurrent()) return false;
     if (!initCycleHistoryChamber()) return false;
     const modal = document.getElementById('history-modal');
     const content = modal?.querySelector('.cycle-history-content');
@@ -1932,6 +1940,8 @@ export async function openCycleHistoryChamber(options = {}) {
 
 /** Close the Chamber, restoring focus and the route that owns the dashboard. */
 export function closeCycleHistoryChamber(options = {}) {
+    const overlay = document.getElementById('history-modal');
+    if (!requestChamberClose(overlay)) return;
     const modal = document.getElementById('history-modal');
     if (!modal?.classList.contains('active')) return false;
     const preserveRoute = Boolean(options?.preserveRoute);
@@ -1980,7 +1990,7 @@ export function initCycleHistoryChamber() {
     const openBtn = document.getElementById('history-btn');
     const closeBtn = document.getElementById('history-modal-close');
 
-    if (!modal || !openBtn || !closeBtn) {
+    if (!modal || !closeBtn) {
         console.warn('History modal elements not found');
         return false;
     }
@@ -1990,16 +2000,18 @@ export function initCycleHistoryChamber() {
     scheduleCycleHistoryEntryFreshness();
     window.openCycleHistoryChamber = openCycleHistoryChamber;
     window.closeCycleHistoryChamber = closeCycleHistoryChamber;
+    if (openBtn && openBtn.dataset.cycleHistoryLauncherWired !== '1') {
+        openBtn.dataset.cycleHistoryLauncherWired = '1';
+        openBtn.setAttribute('aria-haspopup', 'dialog');
+        openBtn.setAttribute('aria-controls', 'history-modal');
+        openBtn.addEventListener('click', (event) => {
+            cycleHistoryOpenedFromEntryCard = false;
+            cycleHistoryFocusedBeforeOpen = event.currentTarget;
+            openCycleHistoryChamber().catch((error) => console.warn('Failed to open Cycle History Chamber', error));
+        });
+    }
     if (modal.dataset.cycleHistoryWired === '1') return true;
-
     modal.dataset.cycleHistoryWired = '1';
-    openBtn.setAttribute('aria-haspopup', 'dialog');
-    openBtn.setAttribute('aria-controls', 'history-modal');
-    openBtn.addEventListener('click', (event) => {
-        cycleHistoryOpenedFromEntryCard = false;
-        cycleHistoryFocusedBeforeOpen = event.currentTarget;
-        openCycleHistoryChamber().catch((error) => console.warn('Failed to open Cycle History Chamber', error));
-    });
     closeBtn.addEventListener('click', () => closeCycleHistoryChamber());
     modal.addEventListener('click', (event) => {
         if (event.target === modal) closeCycleHistoryChamber();
@@ -2031,7 +2043,8 @@ export function initCycleHistoryChamber() {
         }
     });
 
-    document.getElementById('history-share-btn')?.addEventListener('click', () => {
+    document.getElementById('history-share-btn')?.addEventListener('click', async () => {
+        if (typeof window.captureHistoricalData !== 'function') await import('../ui/share.js');
         if (typeof window.captureHistoricalData === 'function') window.captureHistoricalData();
     });
     return true;
@@ -2353,6 +2366,7 @@ async function renderCardHistoryChart(modal, config, range) {
 
     // Load data and render chart
     try {
+        await ensureChartLibraries();
         const data = prepareCardHistoryData(await fetchCardHistoryData(config, range), config);
 
         if (requestId !== cardHistoryRequestId || !modal.classList.contains('active')) {

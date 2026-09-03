@@ -625,6 +625,47 @@ async function checkWhaleForcedRefreshCoalescing() {
   assert.equal(requests, 2, 'callers also coalesce when the active request is already forced');
 }
 
+async function checkSharedOctezReceipts() {
+  let now = 1000000, calls = 0, hold = false;
+  const waiting = [];
+  class Clock extends Date { static now() { return now; } }
+  const row = (version, power) => ({ address: `tz1-fixture-${version}`, bakingPower: power, software: { version } });
+  const { api } = await loadBrowserModule('js/core/octez-versions.js', 'fetchOctezVersions, classifyOctezVersion', {
+    Date: Clock,
+    fetchWithRetry: async (url, options) => {
+      calls++;
+      assert(url.includes('select=address,alias,bakingPower,software'));
+      if (hold) return new Promise(resolve => waiting.push({ resolve, options }));
+      return [row('25.1', 90), row('24.3', 10), row('', 0)];
+    }
+  });
+  const [first, concurrent] = await Promise.all([api.fetchOctezVersions(), api.fetchOctezVersions()]);
+  assert.equal(calls, 1);
+  assert.equal(first, concurrent);
+  assert.equal(first.latestVersion, '25.1');
+  assert.equal(first.latestPowerShare, 90);
+  assert.equal(first.knownBakers, 2);
+  assert.equal(api.classifyOctezVersion('24.3', '25.1').state, 'issue');
+  assert.equal(api.classifyOctezVersion('Unknown', '25.1').state, 'unknown');
+  now += 29 * 60000;
+  assert.equal(await api.fetchOctezVersions(), first);
+  assert.equal(calls, 1, 'Shared software receipts preserve the 30-minute TTL');
+  now += 2 * 60000;
+  hold = true;
+  const background = api.fetchOctezVersions();
+  const interactive = api.fetchOctezVersions({ priority: 'interactive' });
+  const joined = api.fetchOctezVersions({ priority: 'interactive' });
+  assert.equal(waiting.length, 2, 'Interactive read can overtake background but joins existing interactive work');
+  assert.equal(waiting[1].options.__tezosSystemsPriority, 'interactive');
+  waiting[1].resolve([row('26.0', 100)]);
+  const newest = await interactive;
+  assert.equal(await joined, newest);
+  waiting[0].resolve([row('25.1', 100)]);
+  assert.equal(await background, newest, 'Late background result cannot overwrite newer interactive receipt');
+  assert.equal((await api.fetchOctezVersions()).latestVersion, '26.0');
+}
+
+await checkSharedOctezReceipts();
 await checkWhaleForcedRefreshCoalescing();
 await checkConcurrentHistoryReceipts();
 await checkLiquidityBakingIncrementalRing();

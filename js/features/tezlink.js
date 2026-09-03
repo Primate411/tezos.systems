@@ -1,3 +1,4 @@
+import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Tezos X Chamber
  * Atomic L2 rollup surface backed by current mainnet L2 data sources.
@@ -724,7 +725,9 @@ async function refreshTezlinkChamber({ force = false } = {}) {
     }
 }
 
-export async function openTezlinkChamber() {
+export async function openTezlinkChamber({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
+    bindChamberVisibility('tezlink-modal', () => refreshTezlinkChamber({ force: true }));
     let overlay = document.getElementById('tezlink-modal');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -759,6 +762,7 @@ export async function openTezlinkChamber() {
         label: 'Tezos X Chamber'
     });
     await refreshTezlinkChamber({ force: true });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
 
     stopChamberRefresh();
     chamberTimer = window.setInterval(() => {
@@ -767,8 +771,9 @@ export async function openTezlinkChamber() {
 }
 
 export function closeTezlinkChamber() {
-    stopChamberRefresh();
     const overlay = document.getElementById('tezlink-modal');
+    if (!requestChamberClose(overlay)) return;
+    stopChamberRefresh();
     if (overlay) {
         overlay.classList.remove('active');
         deactivateChamberDialog(overlay);

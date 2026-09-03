@@ -9,7 +9,7 @@ const ROTATE_INTERVAL = 10000; // 10 seconds
 let rotateTimer = null;
 let currentIndex = 0;
 let currentVariants = [];
-let routeTitle = '';
+let routeTitle = document.documentElement.hasAttribute('data-chamber-boot') ? document.title : '';
 
 function ensureTitleRotation() {
     if (rotateTimer || currentVariants.length <= 1) return;

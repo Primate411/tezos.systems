@@ -4317,6 +4317,14 @@
 }
 
 /* Background data refreshes must never replay entrances or animate scroll. */
+@media (prefers-reduced-motion: reduce) {
+    .chamber-anim-fade {
+        opacity: 1;
+        transform: none;
+        animation: none;
+    }
+}
+
 [data-quiet-refreshing="true"],
 [data-quiet-refreshing="true"] * {
     scroll-behavior: auto !important;
@@ -4343,6 +4351,44 @@
     transform: none !important;
     animation: none !important;
 }
+/* All Chamber launchers own these controls, including standalone directories. */
+#chambers-grid .chamber-entry-card > .card-tooltip {
+    top: var(--card-tooltip-top, 3rem);
+    right: var(--card-tooltip-right, 0.5rem);
+    left: var(--card-tooltip-left, auto);
+    width: min(280px, calc(100% - 1rem));
+    max-width: calc(100% - 1rem);
+    max-height: var(--card-tooltip-max-height, calc(100vh - 24px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0s linear !important;
+}
+
+#chambers-grid .chamber-entry-card > .card-info-btn.is-open + .card-tooltip,
+#chambers-grid .chamber-entry-card > .card-tooltip.is-open {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateY(0) scale(1) !important;
+    pointer-events: auto !important;
+}
+
+#chambers-grid .chamber-entry-card > .card-tooltip::before {
+    right: auto;
+    left: calc(var(--card-tooltip-arrow-left, calc(100% - 28px)) - 6px);
+}
+
+#chambers-grid .chamber-card-pair:has(> .chamber-category-cards > .chamber-entry-card > .card-info-btn:is(:hover, :focus-visible, .is-open)),
+#chambers-grid .chamber-card-pair:has(> .chamber-category-cards > .chamber-entry-card > .card-tooltip:is(:hover, .is-open)) {
+    position: relative;
+    z-index: 390;
+}
+
+#chambers-grid .chamber-entry-card:has(> .card-info-btn:is(:hover, :focus-visible, .is-open)),
+#chambers-grid .chamber-entry-card:has(> .card-tooltip:is(:hover, .is-open)) {
+    z-index: 400;
+    overflow: visible;
+}
+
 /* Shared component roles. This bundle is render-blocking, so base controls and
    lazy Chamber rooms can consume the same values without a first-paint gap. */
 :root {

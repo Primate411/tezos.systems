@@ -1,3 +1,4 @@
+import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Liquidity Baking Monitor
  * Chamber-style monitor for per-block LB toggle votes and EMA status.
@@ -1361,7 +1362,8 @@ function stopLiquidityBakingLiveRefresh() {
     if (overlay) overlay.dataset.lbLive = 'false';
 }
 
-export async function openLiquidityBakingMonitor() {
+export async function openLiquidityBakingMonitor({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
     // Dismiss the entry card's info tooltip so it doesn't linger behind the modal
     document.getElementById('tooltip-liquidity-baking')?.classList.remove('is-open');
     let overlay = document.getElementById('liquidity-baking-modal');
@@ -1398,8 +1400,10 @@ export async function openLiquidityBakingMonitor() {
 
     try {
         await refreshLiquidityBakingMonitor({ resetScroll: true, initial: true });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
         startLiquidityBakingLiveRefresh();
     } catch (err) {
+        if (!isCurrent()) return;
         console.error('Liquidity Baking monitor fetch error:', err);
         overlay.querySelector('.lb-body').innerHTML = `
             <div class="chamber-error">
@@ -1414,8 +1418,9 @@ export async function openLiquidityBakingMonitor() {
 }
 
 export function closeLiquidityBakingMonitor() {
-    stopLiquidityBakingLiveRefresh();
     const overlay = document.getElementById('liquidity-baking-modal');
+    if (!requestChamberClose(overlay)) return;
+    stopLiquidityBakingLiveRefresh();
     if (overlay) {
         overlay.classList.remove('active');
         deactivateChamberDialog(overlay);

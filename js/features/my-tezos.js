@@ -5,6 +5,9 @@
  */
 
 import { API_URLS } from '../core/config.js';
+import { versionedAsset } from '../core/asset-version.js';
+import { formatGovTimeLeft } from '../core/governance-time.js';
+export { formatGovTimeLeft } from '../core/governance-time.js';
 import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import { countsAsProtocolUpgrade } from '../core/protocol-count.js';
 import { fetchProtocolConstants, fetchStakingAPY, fetchWithRetry, getExternalStakerApy } from '../core/api.js';
@@ -18,7 +21,7 @@ import {
 import { fetchXTZPrice } from './price.js';
 import { letterGrade } from './baker-report-card.js';
 import { fetchVotingStatus, getVotingPeriodName } from './governance.js';
-import { classifyOctezVersion, fetchOctezVersions } from './network-health.js';
+import { classifyOctezVersion, fetchOctezVersions } from '../core/octez-versions.js';
 import { fetchObjktProfile } from './objkt.js';
 import { refresh as refreshMyBakerStats } from './my-baker.js';
 import { initRewardsTracker } from './rewards-tracker.js';
@@ -1056,14 +1059,6 @@ function getGreeting() {
     return 'Good evening';
 }
 
-export function formatGovTimeLeft(endTime) {
-    const diff = new Date(endTime) - Date.now();
-    if (diff <= 0) return 'ending now';
-    const days = Math.floor(diff / 86400000);
-    const hours = Math.floor((diff % 86400000) / 3600000);
-    if (days > 0) return `${days}d ${hours}h`;
-    return `${hours}h`;
-}
 
 function getProtocolEra(firstActivityLevel) {
     let era = PROTOCOL_ERAS[0];
@@ -3269,6 +3264,9 @@ function renderMyTezosJourneys({ place = false } = {}) {
 export { setMyTezosView };
 
 export function initMyTezos() {
+    const drawer = document.getElementById('my-tezos-drawer');
+    if (!drawer || drawer.dataset.personalInitialized === '1') return;
+    drawer.dataset.personalInitialized = '1';
     organizeDrawerJourneys();
     initMyTezosPortfolio();
     initMyTezosScope();
@@ -3426,4 +3424,13 @@ export function refreshMyTezos() {
         renderMorningBrief(address, true);
     }
     refreshMyTezosPortfolio().catch(() => {});
+}
+
+export async function openMyTezosChamber(options = {}) {
+    const controller = await import(versionedAsset('/js/core/app.js'));
+    return controller.openStandaloneMyTezos(options);
+}
+
+export function closeMyTezosChamber() {
+    window.tezosSystemsCloseMyTezos?.();
 }

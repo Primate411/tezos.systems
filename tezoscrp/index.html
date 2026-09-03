@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-chamber-route="tezoscrp" data-chamber-boot="tezoscrp">
+<html lang="en" data-chamber-route="tezoscrp" data-chamber-boot="tezoscrp" data-dashboard-boot="manual">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -51,10 +51,10 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="/css/styles.min.css?v=616">
-    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=616">
-    <link rel="stylesheet" href="/css/loading.css?v=616">
-    <link rel="stylesheet" href="/css/site-map.css?v=616">
+    <link rel="stylesheet" href="/css/styles.min.css?v=617">
+    <link id="shell-extras-css" rel="stylesheet" href="/css/shell-extras.min.css?v=617">
+    <link rel="stylesheet" href="/css/loading.css?v=617">
+    <link rel="stylesheet" href="/css/site-map.css?v=617">
     <link rel="stylesheet" href="/css/hen-mode.css?v=98">
 
     <!-- Modulepreload critical JS for parallel fetch -->
@@ -125,10 +125,15 @@
         display: inline-flex; width: auto; height: auto; min-height: 44px;
         padding: 8px 16px; vertical-align: middle;
     }
+    #standalone-chamber-shell #customize-home-btn {
+        display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap;
+        width: auto; height: auto; min-height: 44px; max-width: 100%;
+        padding: 8px 12px; white-space: normal;
+    }
     </style>
 </head>
 <body>
-    <script src="/js/core/theme-preload.js?v=616"></script>
+    <script src="/js/core/theme-preload.js?v=617"></script>
     <div id="standalone-chamber-shell">
         <a class="skip-link" href="#main-content">Skip to main content</a>
         <main id="main-content" class="chamber-loading" aria-live="polite">
@@ -150,6 +155,7 @@
         </div>
     </footer>
     </div>
-    <script type="module" src="/js/core/standalone-chamber.js?v=616" data-dashboard-src="/js/core/app.js?v=616"></script>
+
+    <script type="module" src="/js/core/standalone-chamber.js?v=617" data-dashboard-src="/js/core/app.js?v=617"></script>
 </body>
 </html>

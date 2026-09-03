@@ -167,8 +167,7 @@ if (reducedMotionQuery.addEventListener) reducedMotionQuery.addEventListener('ch
 else reducedMotionQuery.addListener?.(handleThemeChange);
 
 // Check initial theme
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(handleThemeChange, 100);
-});
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', handleThemeChange, { once: true });
+else handleThemeChange();
 
 debugLog('Matrix effects module loaded');

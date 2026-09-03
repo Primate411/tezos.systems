@@ -1,12 +1,15 @@
+import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Network Health
  * Tracks recent Tezos attestation power against the 7,000-power block committee.
  */
 
-import { API_URLS } from '../core/config.js';
+import { API_URLS, REFRESH_INTERVALS } from '../core/config.js';
+import { getCalendarElapsedTime } from '../core/anniversary.js';
+import { classifyOctezVersion, fetchOctezVersions, octezVersionsFallback } from '../core/octez-versions.js';
 import { versionedAsset } from '../core/asset-version.js';
 import { escapeHtml, formatFreshnessStamp, refreshDataFreshnessStates, setDataFreshnessState } from '../core/utils.js';
-import { fetchCycleInfo, fetchWithRetry } from '../core/api.js';
+import { fetchCycleInfo, fetchHeroStats, fetchWithRetry } from '../core/api.js';
 import { readSavedMyTezosEntries } from '../core/wallet.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
@@ -69,8 +72,6 @@ const CYCLE_DRIFT_PEAK_PCT = 1;
 const CYCLE_DRIFT_WATCH_PCT = 3;
 const CYCLE_DRIFT_DEGRADED_PCT = 4;
 const PROTOCOL_CONSTANTS_TTL = 30 * 60 * 1000;
-const OCTEZ_VERSIONS_TTL = 30 * 60 * 1000;
-const OCTEZ_VERSION_PAGE_LIMIT = 500;
 const NAKAMOTO_TTL = 10 * 60 * 1000;
 const NAKAMOTO_SOURCES_TTL = 6 * 60 * 60 * 1000;
 const NAKAMOTO_SOURCES_URL = '/data/nakamoto-sources.json';
@@ -161,6 +162,10 @@ let liveHeadConfirmedLevel = 0;
 let liveHeadStallLatchedLevel = 0;
 let liveHeadResumePendingLevel = 0;
 let heartbeatVisibilityWired = false;
+let dashboardHealthInitialized = false;
+let chamberContinuity = null;
+let chamberContinuityAt = 0;
+let chamberContinuityWork = null;
 let suppressNextHeartbeatMotion = false;
 let cycleTimingCache = null;
 let cycleTimingCacheAt = 0;
@@ -171,12 +176,6 @@ let cycleTimingAppliedSequence = 0;
 let currentCycleCache = null;
 let protocolConstantsCache = null;
 let protocolConstantsCacheAt = 0;
-let octezVersionsCache = null;
-let octezVersionsCacheAt = 0;
-let octezVersionsInFlight = null;
-let octezVersionsInFlightPriority = 'normal';
-let octezVersionsRequestSequence = 0;
-let octezVersionsAppliedSequence = 0;
 let nakamotoCache = null;
 let nakamotoCacheAt = 0;
 let nakamotoInFlight = null;
@@ -302,6 +301,8 @@ function healthAgeAttr(timestamp) {
 }
 
 function refreshHealthAgeLabels(root = document) {
+    const standaloneClock = root.querySelector('#chain-uptime-counter[data-health-own-clock]');
+    if (standaloneClock) standaloneClock.textContent = healthChainAge();
     const pauseLiveHead = liveHeadReadingPaused();
     root.querySelectorAll('[data-health-age]').forEach((element) => {
         if (pauseLiveHead && element.closest('#live-head')) return;
@@ -3464,242 +3465,7 @@ async function fetchUsagePulse({ force = false, priority = 'normal' } = {}) {
     return usagePulseInFlight;
 }
 
-function normalizeOctezSoftware(software) {
-    const rawVersion = typeof software === 'string' ? software : software?.version;
-    const rawDate = typeof software === 'object' && software ? software.date : null;
-    const version = String(rawVersion || '').trim();
-    const known = Boolean(version) && !/^unknown$/i.test(version) && !/^octez$/i.test(version);
-    return {
-        known,
-        version: known ? version : 'Unknown',
-        date: rawDate || null
-    };
-}
-
-function versionParts(version) {
-    const parts = String(version || '').match(/\d+/g);
-    return parts ? parts.map((part) => Number(part)) : [];
-}
-
-function compareVersionLabels(a, b) {
-    const left = versionParts(a);
-    const right = versionParts(b);
-    if (!left.length && !right.length) return String(a || '').localeCompare(String(b || ''));
-    if (!left.length) return -1;
-    if (!right.length) return 1;
-    const length = Math.max(left.length, right.length);
-    for (let index = 0; index < length; index += 1) {
-        const delta = (left[index] || 0) - (right[index] || 0);
-        if (delta) return delta;
-    }
-    return String(a || '').localeCompare(String(b || ''));
-}
-
-export function classifyOctezVersion(version, latestVersion) {
-    const current = String(version || '').trim();
-    const latest = String(latestVersion || '').trim();
-    if (!current || /^unknown$/i.test(current) || !latest || /^unknown$/i.test(latest)) {
-        return {
-            state: 'unknown',
-            className: 'unknown',
-            label: 'Unknown',
-            latestVersion: latest || 'Unknown'
-        };
-    }
-
-    const comparison = compareVersionLabels(current, latest);
-    if (comparison >= 0) {
-        return {
-            state: 'ok',
-            className: 'current',
-            label: current === latest ? 'Latest observed' : 'Newer than latest observed',
-            latestVersion: latest
-        };
-    }
-
-    const currentParts = versionParts(current);
-    const latestParts = versionParts(latest);
-    const currentMajor = currentParts[0] || 0;
-    const latestMajor = latestParts[0] || 0;
-    if (latestMajor > currentMajor) {
-        return {
-            state: 'issue',
-            className: 'critical',
-            label: 'Major upgrade behind',
-            latestVersion: latest
-        };
-    }
-
-    return {
-        state: 'watch',
-        className: 'watch',
-        label: 'Behind latest observed',
-        latestVersion: latest
-    };
-}
-
-function normalizeOctezVersionBaker(row) {
-    const software = normalizeOctezSoftware(row?.software);
-    return {
-        address: row?.address || '',
-        alias: row?.alias || '',
-        bakingPower: Math.max(0, Number(row?.bakingPower) || 0),
-        software
-    };
-}
-
-function octezVersionsFallback(error = '') {
-    return {
-        available: false,
-        label: 'Unavailable',
-        className: 'unknown',
-        error,
-        latestVersion: 'Unknown',
-        latestPowerShare: null,
-        totalBakers: 0,
-        knownBakers: 0,
-        totalPower: 0,
-        latestPower: 0,
-        outdatedPower: 0,
-        bakers: [],
-        versionRows: [],
-        laggingBakers: [],
-        freshestDate: null
-    };
-}
-
-function buildOctezVersions(rows) {
-    const bakers = (Array.isArray(rows) ? rows : [])
-        .map(normalizeOctezVersionBaker)
-        .filter((baker) => baker.address && baker.bakingPower > 0);
-    if (!bakers.length) return octezVersionsFallback('No active baker software data returned');
-
-    const totalPower = bakers.reduce((sum, baker) => sum + baker.bakingPower, 0);
-    const groups = new Map();
-    let freshestDate = null;
-
-    for (const baker of bakers) {
-        const key = baker.software.version;
-        const current = groups.get(key) || {
-            version: key,
-            known: baker.software.known,
-            bakerCount: 0,
-            power: 0,
-            latestDate: null
-        };
-        current.bakerCount += 1;
-        current.power += baker.bakingPower;
-        if (baker.software.date) {
-            const dateMs = new Date(baker.software.date).getTime();
-            const currentMs = current.latestDate ? new Date(current.latestDate).getTime() : 0;
-            const freshestMs = freshestDate ? new Date(freshestDate).getTime() : 0;
-            if (Number.isFinite(dateMs) && dateMs > currentMs) current.latestDate = baker.software.date;
-            if (Number.isFinite(dateMs) && dateMs > freshestMs) freshestDate = baker.software.date;
-        }
-        groups.set(key, current);
-    }
-
-    const knownVersions = [...groups.values()]
-        .filter((group) => group.known)
-        .map((group) => group.version)
-        .sort(compareVersionLabels);
-    const latestVersion = knownVersions[knownVersions.length - 1] || 'Unknown';
-    const latestPower = latestVersion === 'Unknown' ? 0 : (groups.get(latestVersion)?.power || 0);
-    const latestPowerShare = totalPower > 0 ? (latestPower / totalPower) * 100 : 0;
-    const versionRows = [...groups.values()].map((group) => ({
-        ...group,
-        powerShare: totalPower > 0 ? (group.power / totalPower) * 100 : 0,
-        current: group.version === latestVersion && group.known
-    })).sort((a, b) => {
-        if (a.current !== b.current) return a.current ? -1 : 1;
-        if (a.known !== b.known) return a.known ? -1 : 1;
-        const versionDelta = compareVersionLabels(b.version, a.version);
-        return versionDelta || b.power - a.power;
-    });
-
-    const laggingBakers = bakers
-        .filter((baker) => !baker.software.known || baker.software.version !== latestVersion)
-        .sort((a, b) => b.bakingPower - a.bakingPower)
-        .slice(0, 5);
-
-    let className = 'degraded';
-    let label = 'Upgrade gap';
-    if (latestPowerShare >= 90) {
-        className = 'peak';
-        label = 'Broadly current';
-    } else if (latestPowerShare >= 75) {
-        className = 'healthy';
-        label = 'Mostly current';
-    } else if (latestPowerShare >= 50) {
-        className = 'watch';
-        label = 'Split fleet';
-    }
-
-    return {
-        available: true,
-        className,
-        label,
-        latestVersion,
-        latestPowerShare,
-        totalBakers: bakers.length,
-        knownBakers: bakers.filter((baker) => baker.software.known).length,
-        totalPower,
-        latestPower,
-        outdatedPower: Math.max(0, totalPower - latestPower),
-        bakers,
-        versionRows,
-        laggingBakers,
-        freshestDate
-    };
-}
-
-function startOctezVersionsRequest(priority) {
-    const sequence = ++octezVersionsRequestSequence;
-    const request = (async () => {
-        const fields = 'address,alias,bakingPower,software';
-        const rows = [];
-        let offset = 0;
-        while (true) {
-            const url = `${TZKT}/delegates?active=true&select=${fields}&sort.desc=bakingPower&limit=${OCTEZ_VERSION_PAGE_LIMIT}&offset=${offset}`;
-            const page = await fetchJson(url, 1, { priority });
-            if (!Array.isArray(page)) break;
-            rows.push(...page);
-            if (page.length < OCTEZ_VERSION_PAGE_LIMIT) break;
-            offset += OCTEZ_VERSION_PAGE_LIMIT;
-        }
-        return buildOctezVersions(rows);
-    })().then((versions) => {
-        if (sequence < octezVersionsAppliedSequence) return octezVersionsCache;
-        octezVersionsAppliedSequence = sequence;
-        octezVersionsCache = versions;
-        octezVersionsCacheAt = Date.now();
-        return octezVersionsCache;
-    }).catch((error) => {
-        console.warn('Network Health Octez version telemetry failed:', error);
-        return octezVersionsCache || octezVersionsFallback(error?.message || 'TzKT delegate software fetch failed');
-    });
-    const trackedRequest = request.finally(() => {
-        if (octezVersionsInFlight !== trackedRequest) return;
-        octezVersionsInFlight = null;
-        octezVersionsInFlightPriority = 'normal';
-    });
-
-    octezVersionsInFlight = trackedRequest;
-    octezVersionsInFlightPriority = priority;
-    return trackedRequest;
-}
-
-export async function fetchOctezVersions({ force = false, priority = 'normal' } = {}) {
-    if (!force && octezVersionsCache && Date.now() - octezVersionsCacheAt < OCTEZ_VERSIONS_TTL) {
-        return octezVersionsCache;
-    }
-    if (octezVersionsInFlight
-        && (priority !== 'interactive' || octezVersionsInFlightPriority === 'interactive')) {
-        return octezVersionsInFlight;
-    }
-
-    return startOctezVersionsRequest(priority);
-}
+export { classifyOctezVersion, fetchOctezVersions } from '../core/octez-versions.js';
 
 async function fetchProtocolCycleTargetSeconds() {
     if (protocolConstantsCache && Date.now() - protocolConstantsCacheAt < PROTOCOL_CONSTANTS_TTL) {
@@ -4204,11 +3970,13 @@ function updateHealthVerdictPanel(data) {
 
 async function fetchNetworkHealthChamberData() {
     const requestOptions = { priority: 'interactive' };
-    const [blocks, cycleTiming, currentCycle, nakamoto] = await Promise.all([
+    const standalone = !document.getElementById('uptime-counter');
+    const [blocks, cycleTiming, currentCycle, nakamoto, continuity] = await Promise.all([
         fetchRecentBlocks(CHAMBER_BLOCK_LIMIT, requestOptions),
         fetchCycleTiming(requestOptions),
         fetchCurrentCycleProgress(),
-        fetchNakamotoCoefficients()
+        fetchNakamotoCoefficients(),
+        standalone ? fetchChamberContinuity() : null
     ]);
     const summary = summarizeBlocks(blocks);
     const timing = summarizeTiming(blocks);
@@ -4217,6 +3985,12 @@ async function fetchNetworkHealthChamberData() {
     const oldestLevel = blocks[blocks.length - 1]?.level || headLevel;
     const missedBlockStart = Math.max(1, headLevel - MISSED_BLOCK_LOOKBACK);
     const octezVersionsPromise = fetchOctezVersions(requestOptions);
+    let periods = cachedData?.periods || [];
+    let periodUpdatedAt = cachedData?.periodUpdatedAt || 0;
+    if (standalone && headLevel && !periodCacheIsFresh(cachedData)) {
+        periods = await Promise.all(PERIODS.map(period => fetchPeriod(period, headLevel, new Date())));
+        periodUpdatedAt = Date.now();
+    }
     let missedAttestations = [];
     let missedBlocks = [];
     let activityTape = [];
@@ -4235,8 +4009,10 @@ async function fetchNetworkHealthChamberData() {
         octezVersions = await octezVersionsPromise;
     }
 
-    return {
+    const data = {
         updatedAt: Date.now(),
+        continuity,
+        periodUpdatedAt,
         headTimestamp,
         headLevel,
         oldestLevel,
@@ -4250,10 +4026,12 @@ async function fetchNetworkHealthChamberData() {
         teztaleLens,
         octezVersions,
         nakamoto,
-        periods: cachedData?.periods || [],
+        periods,
         cycleTiming: cycleTiming || cachedData?.cycleTiming || null,
         currentCycle
     };
+    if (standalone) { cachedData = data; saveCachedData(data); }
+    return data;
 }
 
 function renderBlock(block) {
@@ -4562,17 +4340,34 @@ function renderHealthScorePanel(data) {
     `;
 }
 
-function renderContinuityProofPanel() {
-    const runtimeHtml = document.getElementById('uptime-counter')?.innerHTML || '—';
-    const bakersText = document.getElementById('uptime-bakers')?.textContent || '—';
+function healthChainAge() {
+    const age = getCalendarElapsedTime();
+    return `${age.years}y ${age.days}d ${age.hours}h ${age.minutes}m ${age.seconds}s`;
+}
+
+function fetchChamberContinuity() {
+    if (chamberContinuity && Date.now() - chamberContinuityAt < REFRESH_INTERVALS.scalar) return Promise.resolve(chamberContinuity);
+    if (!chamberContinuityWork) chamberContinuityWork = fetchHeroStats().then(stats => {
+        chamberContinuity = stats;
+        chamberContinuityAt = Date.now();
+        return stats;
+    }).catch(() => chamberContinuity).finally(() => { chamberContinuityWork = null; });
+    return chamberContinuityWork;
+}
+
+function renderContinuityProofPanel(data = {}) {
+    const ownClock = !document.getElementById('uptime-counter');
+    const stats = data.continuity || {};
+    const runtimeHtml = document.getElementById('uptime-counter')?.innerHTML || escapeHtml(healthChainAge());
+    const bakersText = document.getElementById('uptime-bakers')?.textContent || (Number.isFinite(stats.totalBakers) ? formatCount(stats.totalBakers) : '—');
     const observedFinality = document.getElementById('uptime-finality')?.textContent?.trim() || '';
-    const finalityText = observedFinality && !/^(?:—|--|-)$/.test(observedFinality) ? observedFinality : '~12s';
-    const stakedText = document.getElementById('uptime-staked')?.textContent || '—';
-    const issuanceText = document.getElementById('uptime-issuance')?.textContent || '—';
+    const finalityText = observedFinality && !/^(?:—|--|-)$/.test(observedFinality) ? observedFinality : (data.timing?.avgSeconds > 0 ? `~${Math.round(data.timing.avgSeconds * 2)}s` : '~12s');
+    const stakedText = document.getElementById('uptime-staked')?.textContent || (Number.isFinite(stats.stakingRatio) ? `${stats.stakingRatio.toFixed(1)}%` : '—');
+    const issuanceText = document.getElementById('uptime-issuance')?.textContent || (Number.isFinite(stats.currentIssuanceRate) ? `${stats.currentIssuanceRate.toFixed(2)}%` : '—');
     return `
         <section class="lb-panel health-panel health-continuity-panel chamber-anim-fade" id="health-chain-proof" aria-label="Tezos mainnet age and upgrade history" style="animation-delay:40ms">
             <div class="lb-panel-title">Mainnet Continuity <span class="lb-live-pill">chain age · upgrade history</span></div>
-            <div class="health-continuity-runtime" id="chain-uptime-counter">${runtimeHtml}</div>
+            <div class="health-continuity-runtime" id="chain-uptime-counter"${ownClock ? ' data-health-own-clock' : ''}>${runtimeHtml}</div>
             <p class="health-continuity-copy">Elapsed time since mainnet launch, paired with protocol upgrades adopted on-chain. This is a chain-age measure, not an availability percentage or incident ledger.</p>
             <div class="health-continuity-grid">
                 <div>
@@ -5607,7 +5402,7 @@ function renderNetworkHealthChamber(data, container) {
                 <span><strong>Power</strong> ${formatCount(POWER_PER_BLOCK)} per block</span>
             </div>
         </section>
-        ${renderContinuityProofPanel()}
+        ${renderContinuityProofPanel(data)}
         ${renderCycleTimingPanel(data)}
         <div class="lb-dashboard-grid health-dashboard-grid">
             ${renderHealthScorePanel(data)}
@@ -5779,6 +5574,8 @@ function updateRecentBlockRows(blocks) {
 }
 
 function updateHealthStoryPanels(data) {
+    const continuity = document.getElementById('health-chain-proof');
+    if (continuity && !document.getElementById('uptime-counter')) quietlySyncElement(continuity, renderContinuityProofPanel(data));
     updateNakamotoCoefficientPanel(data);
     const consensus = document.getElementById('health-teztale-consensus');
     if (consensus) quietlySyncElement(consensus, renderTeztaleConsensusPanel(data));
@@ -5921,9 +5718,13 @@ function stopChamberRefresh() {
     if (overlay) overlay.dataset.healthLive = 'false';
 }
 
-export async function openNetworkHealthChamber() {
+export async function openNetworkHealthChamber({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
+    cachedData ||= loadCachedData();
+    bindChamberVisibility('network-health-modal', () => refreshNetworkHealthChamber());
     closeLiveHeadInspector();
     await ensureNetworkHealthCss();
+    if (!isCurrent()) return;
     document.getElementById('tooltip-network-health')?.classList.remove('is-open');
     let overlay = document.getElementById('network-health-modal');
     if (!overlay) {
@@ -5958,8 +5759,10 @@ export async function openNetworkHealthChamber() {
     if (content) content.scrollTop = 0;
     try {
         await refreshNetworkHealthChamber({ initial: true });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
         startChamberRefresh();
     } catch (error) {
+        if (!isCurrent()) return;
         console.error('Network Health chamber fetch error:', error);
         overlay.querySelector('.health-body').innerHTML = `
             <div class="chamber-error">
@@ -5974,8 +5777,9 @@ export async function openNetworkHealthChamber() {
 }
 
 export function closeNetworkHealthChamber() {
-    stopChamberRefresh();
     const overlay = document.getElementById('network-health-modal');
+    if (!requestChamberClose(overlay)) return;
+    stopChamberRefresh();
     if (overlay) {
         overlay.classList.remove('active');
         deactivateChamberDialog(overlay);
@@ -6027,6 +5831,8 @@ export async function refreshNetworkHealth({ force = false } = {}) {
 
 export function initNetworkHealth() {
     if (!document.querySelector('[data-stat="network-health"]')) return;
+    if (dashboardHealthInitialized) return;
+    dashboardHealthInitialized = true;
 
     ensureNetworkHealthCss().catch((error) => console.warn('Network Health styles unavailable', error));
     wireLiveHeadDepthControls();
@@ -6043,7 +5849,7 @@ export function initNetworkHealth() {
         });
     }
 
-    cachedData = loadCachedData();
+    cachedData ||= loadCachedData();
     if (cachedData) {
         lastFullFetch = cachedData.periodUpdatedAt || cachedData.updatedAt || 0;
         renderNetworkHealth(cachedData);

@@ -6,8 +6,8 @@ const RULES = [
     risk: 'high'
   },
   {
-    suites: /^(standalone-chamber-boot|standalone-chamber-expansion|chamber-first-paint|tezoscrp|release-update|route-search-state|overlay-stack)$/,
-    files: ['js/core/standalone-chamber.js', 'js/core/chamber-features.mjs', 'js/core/shell-lifecycle.js', 'scripts/lib/standalone-chamber-shell.mjs', 'scripts/generate-chamber-routes.mjs', 'tests/lib/standalone-chamber-expansion-smoke.mjs', 'tezoscrp/index.html', 'capital/index.html', 'ecosystem/index.html', 'minerals/index.html', 'metals/index.html', 'uranium/index.html'],
+    suites: /^(standalone-chamber-boot|standalone-chamber-expansion|standalone-chamber-completion|standalone-chamber-lifecycle|chamber-first-paint|tezoscrp|release-update|route-search-state|overlay-stack)$/,
+    files: ['js/core/standalone-chamber.js', 'js/core/chamber-features.mjs', 'js/core/shell-lifecycle.js', 'js/ui/chamber-theme-effects.js', 'js/ui/chart-loader.js', 'js/ui/history-intent.js', 'scripts/lib/standalone-chamber-shell.mjs', 'scripts/generate-chamber-routes.mjs', 'scripts/generate-anthology-routes.mjs', 'tests/lib/standalone-chamber-*-smoke.mjs', '*/index.html'],
     tags: ['shell', 'navigation', 'tezoscrp'],
     risk: 'high'
   },
@@ -34,6 +34,7 @@ const RULES = [
     suites: /^(network-health|my-tezos-block-monitor|quiet-refresh)$/,
     files: [
       'js/features/network-health.js',
+      'js/core/octez-versions.js',
       'js/core/block-story.mjs',
       'css/network-health*'
     ],

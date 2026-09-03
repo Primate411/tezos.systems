@@ -1,3 +1,4 @@
+import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Network Pulse Chamber
  * A categorized chamber surface for live stats, historical deltas, and the
@@ -18,7 +19,7 @@ import { loadStats, loadStatsTimestamp, saveStats } from '../core/storage.js';
 import { escapeHtml, formatFreshnessStamp, formatLarge, formatPercentage, formatSupply, formatUtcDateTime, pluralize } from '../core/utils.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
-import { openCardHistoryModal } from './history.js';
+import { openCardHistoryModal } from '../ui/history-intent.js';
 
 const CHAMBER_REFRESH_MS = 2 * 60 * 1000;
 const STATS_STALE_MS = 10 * 60 * 1000;
@@ -1550,8 +1551,11 @@ function wireEntryLauncher(card) {
     });
 }
 
-export async function openNetworkPulseChamber() {
+export async function openNetworkPulseChamber({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
+    bindChamberVisibility('network-pulse-modal', () => refreshNetworkPulseChamber());
     await ensureNetworkPulseCss();
+    if (!isCurrent()) return;
     const overlay = ensureOverlay();
     const body = overlay.querySelector('.network-pulse-body');
     body.dataset.networkPulseRendered = '0';
@@ -1567,13 +1571,15 @@ export async function openNetworkPulseChamber() {
     const content = overlay.querySelector('.network-pulse-content');
     if (content) content.scrollTop = 0;
     await refreshNetworkPulseChamber({ force: true });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
     startChamberRefresh();
 }
 
 export function closeNetworkPulseChamber() {
+    const overlay = document.getElementById('network-pulse-modal');
+    if (!requestChamberClose(overlay)) return;
     stopChamberRefresh();
     stopScrollSpy();
-    const overlay = document.getElementById('network-pulse-modal');
     overlay?.classList.remove('active');
     deactivateChamberDialog(overlay);
     unlockPageScroll();

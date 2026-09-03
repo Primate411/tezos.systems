@@ -1,3 +1,4 @@
+import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Baker Leaderboard — sortable ranking of all active Tezos bakers
  * Shows stake, delegators, tz4 status, capacity usage
@@ -2233,7 +2234,10 @@ export async function refreshBakerDirectoryChamber({ quiet = true, includeGovern
 }
 
 export async function openBakerDirectoryChamber(options = {}) {
+    const isCurrent = options.isCurrent || (() => true);
+    if (!isCurrent()) return;
     await ensureLeaderboardStyles();
+    if (!isCurrent()) return;
     bindBakerDirectoryVisibility();
     applyBakerDirectoryRouteState();
     if (BAKER_DIRECTORY_VIEW_IDS.has(options?.view)) bakerDirectoryState.view = options.view;
@@ -2264,13 +2268,15 @@ export async function openBakerDirectoryChamber(options = {}) {
 
     const hadRenderedData = bakersData.length > 0;
     await refreshBakerDirectoryChamber({ quiet: hadRenderedData });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
     if (overlay.classList.contains('active')) startBakerDirectoryRefreshTimer();
 }
 
 export function closeBakerDirectoryChamber({ preserveRoute = false } = {}) {
+    const overlay = document.getElementById('baker-directory-modal');
+    if (!requestChamberClose(overlay)) return;
     if (bakerActionState) closeBakerActionDialog();
     stopBakerDirectoryRefreshTimer();
-    const overlay = document.getElementById('baker-directory-modal');
     overlay?.classList.remove('active');
     deactivateChamberDialog(overlay, { restoreFocus: !preserveRoute });
     unlockBakerDirectoryPage();

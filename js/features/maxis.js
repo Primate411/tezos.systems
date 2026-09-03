@@ -1,3 +1,4 @@
+import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Tezos Maxis Chamber
  * Ongoing Maxis identities, protocol seasons, address passports, and immutable champions.
@@ -3675,8 +3676,11 @@ async function refreshChamber({ force = false } = {}) {
     if (chamberState.view === 'champions') ensureArchivesLoaded();
 }
 
-export async function openMaxisChamber() {
+export async function openMaxisChamber({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
+    if (!initComplete) { window.addEventListener('my-baker-updated', handleMyTezosUpdate); initComplete = true; }
     await ensureMaxisStyles();
+    if (!isCurrent()) return;
     let overlay = document.getElementById('maxis-modal');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -3712,11 +3716,13 @@ export async function openMaxisChamber() {
     });
     document.addEventListener('pointerdown', handleOutsidePointer, true);
     await refreshChamber({ force: true });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
 }
 
 export function closeMaxisChamber() {
-    document.removeEventListener('pointerdown', handleOutsidePointer, true);
     const overlay = document.getElementById('maxis-modal');
+    if (!requestChamberClose(overlay)) return;
+    document.removeEventListener('pointerdown', handleOutsidePointer, true);
     if (overlay) {
         overlay.classList.remove('active');
         deactivateChamberDialog(overlay);

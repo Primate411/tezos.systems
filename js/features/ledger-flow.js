@@ -1,3 +1,4 @@
+import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Ledger Flow Chamber
  * Account-level diagram for bounded tez transfers and all-time account context.
@@ -1563,9 +1564,11 @@ async function loadWhaleSeed() {
     }
 }
 
-export async function openLedgerFlowChamber(target = '') {
+export async function openLedgerFlowChamber(target = '', { isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
     const openGeneration = ++chamberOpenGeneration;
     await ensureLedgerFlowStyles();
+    if (!isCurrent()) return;
     let overlay = document.getElementById('ledger-flow-modal');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -1611,12 +1614,13 @@ export async function openLedgerFlowChamber(target = '') {
 }
 
 export function closeLedgerFlowChamber() {
+    const overlay = document.getElementById('ledger-flow-modal');
+    if (!requestChamberClose(overlay)) return;
     chamberOpenGeneration += 1;
     window.clearTimeout(thresholdReloadTimer);
     thresholdReloadTimer = null;
     abortActiveLoad('closed');
     renderSeq += 1;
-    const overlay = document.getElementById('ledger-flow-modal');
     if (overlay) {
         overlay.classList.remove('active');
         deactivateChamberDialog(overlay);

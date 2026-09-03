@@ -1,3 +1,4 @@
+import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Tezos L1 Governance — Tezos Governance War Room
  * Full-screen governance modal with live voting data, baker heatmap,
@@ -2110,7 +2111,8 @@ function initEpochNavListeners() {
 
 // ─── Open / Close ───
 
-export async function openChamber() {
+export async function openChamber({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
     let overlay = document.getElementById('chamber-modal');
     if (!overlay) {
         overlay = document.createElement('div');
@@ -2149,6 +2151,7 @@ export async function openChamber() {
     try {
         data = await fetchChamberData();
     } catch (err) {
+        if (!isCurrent()) return;
         console.error('Chamber fetch error:', err);
     }
     if (!data) {
@@ -2164,8 +2167,7 @@ export async function openChamber() {
         const retryBtn = overlay.querySelector('#chamber-retry-open');
         if (retryBtn) {
             retryBtn.addEventListener('click', () => {
-                closeChamber();
-                setTimeout(() => document.getElementById('chamber-entry-card')?.click(), 300);
+                openChamber();
             });
         }
         return;
@@ -2184,6 +2186,7 @@ export async function openChamber() {
 
 export function closeChamber() {
     const overlay = document.getElementById('chamber-modal');
+    if (!requestChamberClose(overlay)) return;
     if (overlay) {
         overlay.classList.remove('active');
         deactivateChamberDialog(overlay);

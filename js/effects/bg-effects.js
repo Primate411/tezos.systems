@@ -1664,8 +1664,7 @@ window.addEventListener('themechange', handleThemeChange);
 if (reducedMotionQuery.addEventListener) reducedMotionQuery.addEventListener('change', handleThemeChange);
 else reducedMotionQuery.addListener?.(handleThemeChange);
 
-document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(handleThemeChange, 0);
-});
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', handleThemeChange, { once: true });
+else handleThemeChange();
 
 debugLog('Background effects module loaded');

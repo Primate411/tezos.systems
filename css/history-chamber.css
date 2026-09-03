@@ -519,12 +519,41 @@
 }
 
 [data-theme='clean'] #history-modal .cycle-history-content {
+    /* This room already has a light Clean treatment. Keep its text and controls
+       on the same palette instead of inheriting the generic dark Chamber skin. */
     --history-panel: rgba(255, 255, 255, 0.94);
+    --history-accent: #2563eb;
+    --history-accent-alt: #7c3aed;
+    --bg-primary: #f8f9fc;
+    --bg-secondary: #fff;
+    --bg-tertiary: #f0f2f8;
+    --glass-bg: rgba(255, 255, 255, 0.95);
+    --glass-border: rgba(0, 50, 120, 0.08);
+    --text-primary: #1a1d26;
+    --text-secondary: #4a5568;
+    --text-tertiary: #5f6f86;
+    --text-muted: #5f6f86;
+    --surface-heading-color: #1e2022;
+    --surface-data-color: #1e2022;
+    --surface-link-color: #0369a1;
+    --surface-link-hover: #0369a1;
+    --surface-control-bg: rgba(255, 255, 255, 0.5);
+    --surface-control-border: #d5dae2;
+    --surface-control-color: #4a5568;
+    --accent-cyan: #2563eb;
+    --accent-purple: #7c3aed;
+    --accent-pink: #dc2626;
+    --accent-blue: #2563eb;
+    color: var(--text-primary);
+    color-scheme: light;
     background:
         radial-gradient(circle at 8% 0%, rgba(7, 132, 195, 0.11), transparent 34%),
         radial-gradient(circle at 92% 8%, rgba(124, 58, 237, 0.08), transparent 30%),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(245, 248, 252, 0.995));
+        linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(245, 248, 252, 0.995)) !important;
 }
+
+[data-theme='clean'] #history-modal .cycle-history-source-coverage.is-empty { color: #92400e; }
+[data-theme='clean'] #history-modal .cycle-history-source-coverage.is-unavailable { color: #b91c1c; }
 
 [data-theme='clean'] .cycle-history-intro,
 [data-theme='clean'] #history-modal .history-controls {

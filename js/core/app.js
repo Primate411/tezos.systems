@@ -67,14 +67,14 @@ import {
 } from './wallet.js';
 import { resolveTezReverseNames } from './tezos-domains.js';
 import { initArcadeEffects, toggleUltraMode } from '../effects/arcade-effects.js';
-import { closeCycleHistoryChamber, initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric, openCardHistoryModal } from '../features/history.js';
+let closeCycleHistoryChamber, initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric, openCardHistoryModal;
 import { ensureCardShareButton, initShare, initProtocolShare, loadHtml2Canvas, showShareModal, setLiveAPY } from '../ui/share.js';
-import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
+import { activateChamberDialog, deactivateChamberDialog, requestChamberClose, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 import { activateOverlayDialog, deactivateOverlayDialog, reconcileOverlayEnvironment } from '../ui/overlay-stack.js';
 import { setToastGate } from '../ui/toast-queue.js';
 import { fetchProtocols } from '../features/governance.js';
-import { initGovernanceAlerts } from '../features/governance-alerts.js';
+let initGovernanceAlerts;
 
 const SPARKLINE_LIVE_METRICS = [
     ['tz4_percentage', 'tz4Percentage'],
@@ -102,38 +102,71 @@ const SPARKLINE_LIVE_METRICS = [
 ];
 
 import { saveStats, loadStats, loadStatsTimestamp, saveProtocols, loadProtocols, getCacheAge, getVisitDeltas, saveVisitSnapshot } from './storage.js';
-import { initWhaleTracker } from '../features/whales.js';
-import { initSleepingGiants } from '../features/sleeping-giants.js';
-import { initPriceBar } from '../features/price.js';
-import { initStreak } from '../features/streak.js';
+let initWhaleTracker;
+let initSleepingGiants;
+let initPriceBar;
+let initStreak;
 import { setPageTitleRoute, updatePageTitle } from '../ui/title.js';
 import { REFRESH_INTERVALS, STAKING_TARGET, MAINNET_LAUNCH, API_URLS } from './config.js';
 import { loadDataAsset } from './data-assets.js';
 import { getCalendarElapsedTime, getTezosUptimeAnniversary } from './anniversary.js';
-import { initComparison, updateComparison } from '../features/comparison.js';
-import { init as initMyBaker, refresh as refreshMyBaker } from '../features/my-baker.js';
-import { initCalculator } from '../features/calculator.js';
-import { checkMoments, initMomentsTimeline } from '../features/moments.js';
+let initComparison, updateComparison;
+let initMyBaker, refreshMyBaker;
+let initCalculator;
+let checkMoments, initMomentsTimeline;
 import { initVibes } from '../effects/vibes.js';
 import { initChangelog } from '../ui/changelog-launcher.js';
-import { initBakerReportCard } from '../features/baker-report-card.js';
+let initBakerReportCard;
 
-import { initMyTezos, refreshMyTezos } from '../features/my-tezos.js';
-import { initUpgradeEffect } from '../features/upgrade-effect.js';
-import { initCyclePulse, updateCyclePulse } from '../features/cycle-pulse.js';
-import { initPriceIntelligence, updatePriceIntelligence } from '../features/price-intelligence.js';
-import { initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } from '../features/rewards-tracker.js';
-import { activateHotTodaySignal, initDailyBriefing, initHotTodayIsland, updateDailyBriefing, updateHotTodayIsland } from '../features/daily-briefing.js';
-import { initStateOfTezos } from '../features/state-of-tezos.js';
-import { closeNetworkHealthChamber, initNetworkHealth, refreshNetworkHealth } from '../features/network-health.js';
-import { initHeroSearch } from '../features/search.js';
-import { initNativeExplorer } from '../features/native-explorer.js';
+let initMyTezos, refreshMyTezos;
+let initUpgradeEffect;
+let initCyclePulse, updateCyclePulse;
+let initPriceIntelligence, updatePriceIntelligence;
+let initRewardsTracker, updateRewardsTracker, destroyRewardsTracker;
+let activateHotTodaySignal, initDailyBriefing, initHotTodayIsland, updateDailyBriefing, updateHotTodayIsland;
+let initStateOfTezos;
+let closeNetworkHealthChamber, initNetworkHealth, refreshNetworkHealth;
+let initHeroSearch;
+let initNativeExplorer;
 import { initSiteWayfinder } from '../ui/wayfinder.js';
+
+// Legacy controllers can open without fetching or initializing the dashboard graph.
+const APP_FEATURE_LOADERS = {
+    'history': () => loadChamberFeature('history', { initialize: false }).then(module => { ({ closeCycleHistoryChamber, initHistoryModal, updateSparklines, addCardHistoryButtons, setLatestLiveMetric, openCardHistoryModal } = module); return module; }),
+    'governance-alerts': () => import('../features/governance-alerts.js').then(module => { ({ initGovernanceAlerts } = module); return module; }),
+    'whales': () => import('../features/whales.js').then(module => { ({ initWhaleTracker } = module); return module; }),
+    'sleeping-giants': () => import('../features/sleeping-giants.js').then(module => { ({ initSleepingGiants } = module); return module; }),
+    'price': () => import('../features/price.js').then(module => { ({ initPriceBar } = module); return module; }),
+    'streak': () => import('../features/streak.js').then(module => { ({ initStreak } = module); return module; }),
+    'comparison': () => import('../features/comparison.js').then(module => { ({ initComparison, updateComparison } = module); return module; }),
+    'my-baker': () => import('../features/my-baker.js').then(module => { ({ init: initMyBaker, refresh: refreshMyBaker } = module); return module; }),
+    'calculator': () => import('../features/calculator.js').then(module => { ({ initCalculator } = module); return module; }),
+    'moments': () => import('../features/moments.js').then(module => { ({ checkMoments, initMomentsTimeline } = module); return module; }),
+    'baker-report-card': () => import('../features/baker-report-card.js').then(module => { ({ initBakerReportCard } = module); return module; }),
+    'my-tezos': () => loadChamberFeature('my', { initialize: false }).then(module => { ({ initMyTezos, refreshMyTezos } = module); return module; }),
+    'upgrade-effect': () => import('../features/upgrade-effect.js').then(module => { ({ initUpgradeEffect } = module); return module; }),
+    'cycle-pulse': () => import('../features/cycle-pulse.js').then(module => { ({ initCyclePulse, updateCyclePulse } = module); return module; }),
+    'price-intelligence': () => import('../features/price-intelligence.js').then(module => { ({ initPriceIntelligence, updatePriceIntelligence } = module); return module; }),
+    'rewards-tracker': () => import('../features/rewards-tracker.js').then(module => { ({ initRewardsTracker, updateRewardsTracker, destroyRewardsTracker } = module); return module; }),
+    'daily-briefing': () => import('../features/daily-briefing.js').then(module => { ({ activateHotTodaySignal, initDailyBriefing, initHotTodayIsland, updateDailyBriefing, updateHotTodayIsland } = module); return module; }),
+    'state-of-tezos': () => import('../features/state-of-tezos.js').then(module => { ({ initStateOfTezos } = module); return module; }),
+    'network-health': () => loadChamberFeature('health', { initialize: false }).then(module => { ({ closeNetworkHealthChamber, initNetworkHealth, refreshNetworkHealth } = module); return module; }),
+    'search': () => import('../features/search.js').then(module => { ({ initHeroSearch } = module); return module; }),
+    'native-explorer': () => import('../features/native-explorer.js').then(module => { ({ initNativeExplorer } = module); return module; })
+};
+const appFeaturePromises = new Map();
+function ensureAppFeature(id) {
+    if (!appFeaturePromises.has(id)) appFeaturePromises.set(id, APP_FEATURE_LOADERS[id]().catch(error => {
+        appFeaturePromises.delete(id);
+        throw error;
+    }));
+    return appFeaturePromises.get(id);
+}
 
 const MY_TEZOS_CSS_URL = versionedAsset('/css/my-tezos.min.css');
 const PI_VISIBLE_KEY = 'tezos-systems-pi-visible';
-const STANDALONE_ROUTE_TITLE = document.documentElement.hasAttribute('data-chamber-route') ? document.title : '';
-const ROOT_DASHBOARD_TITLE = STANDALONE_ROUTE_TITLE ? '' : document.title;
+const STANDALONE_ROUTE_TITLE = document.documentElement.hasAttribute('data-chamber-route') && !document.documentElement.hasAttribute('data-chamber-boot') ? document.title : '';
+const ROOT_DASHBOARD_TITLE = STANDALONE_ROUTE_TITLE || document.documentElement.hasAttribute('data-chamber-boot') ? '' : document.title;
 let setMyTezosDrawerOpenState = null;
 
 function isContentiousProtocol(protocol, lore = null) {
@@ -295,15 +328,20 @@ function ensureMyTezosCss() {
  * Initialize the dashboard
  */
 async function init({ applyInitialRoute = true, initialChamber = '' } = {}) {
+    // Visible topic controls must respond while optional modules are in flight.
+    safe('homeLayout', initHomeLayout);
+    safe('chamberCategories', initChamberCategories);
+    safe('chamberCategoryRoute', primeChamberCategoryFromRoute);
+    // Wire the actual disclosures and intent listeners before the async boundary.
+    safe('chambersSurface', initChambersSurface);
+    safe('lazyChamberLaunchers', initLazyChamberLaunchers);
+    await prepareDashboardDependencies();
     debugLog('Initializing Tezos Systems dashboard...');
 
     safe('platformTextFallbacks', initPlatformTextFallbacks);
 
     // Initialize theme
     safe('theme', initTheme);
-    safe('homeLayout', initHomeLayout);
-    safe('chamberCategories', initChamberCategories);
-    safe('chamberCategoryRoute', primeChamberCategoryFromRoute);
     safe('myTezosCss', ensureMyTezosCss);
 
     // Initialize arcade effects
@@ -315,13 +353,6 @@ async function init({ applyInitialRoute = true, initialChamber = '' } = {}) {
     safe('liveTimeTicker', () => startLiveTimeTicker(document));
     safe('footerDelegation', () => initFooterDelegation(document));
 
-    // Lift chamber entry cards out of the hidden network-stat sections.
-    safe('chambersSurface', initChambersSurface);
-    
-    // Chamber modules hydrate only as their launcher approaches the viewport,
-    // receives intent, or owns the active route. The static launcher shell
-    // keeps the directory complete and stable before those modules arrive.
-    safe('lazyChamberLaunchers', initLazyChamberLaunchers);
     if (initialChamber) await loadChamberFeature(initialChamber);
     safe('governanceAlerts', initGovernanceAlerts);
     safe('protocolHistoryChamber', initProtocolHistoryChamber);
@@ -1170,6 +1201,8 @@ function bringToTop(sectionId) {
 function initMyTezosButton() {
     const btn = document.getElementById('my-tezos-btn');
     if (!btn) return;
+    if (btn.dataset.drawerWired === '1') return;
+    btn.dataset.drawerWired = '1';
     const drawer = document.getElementById('my-tezos-drawer');
     const scrim = document.getElementById('my-tezos-drawer-scrim');
     let drawerFocusedBeforeOpen = null;
@@ -1321,6 +1354,7 @@ function initMyTezosButton() {
     function setDrawerOpen(open, { restoreFocus = true } = {}) {
         if (!drawer || !scrim) return;
         if (open === drawer.classList.contains('open')) return;
+        if (!open && !requestChamberClose(drawer)) return;
         if (open) {
             drawerFocusedBeforeOpen = document.activeElement;
             drawer.classList.add('open');
@@ -1362,6 +1396,7 @@ function initMyTezosButton() {
         drawerFocusedBeforeOpen = null;
     }
     setMyTezosDrawerOpenState = setDrawerOpen;
+    window.tezosSystemsCloseMyTezos = () => setDrawerOpen(false);
 
     function syncDrawerStateFromClass() {
         if (!drawer || !scrim) return;
@@ -1639,7 +1674,11 @@ async function openChamberFeature(entryId, ...args) {
         if (openEpoch !== _chamberOpenEpoch) throw chamberOpenCancelledError(entryId);
         const open = module?.[config?.open];
         if (typeof open !== 'function') throw new Error(`${entryId} Chamber does not export ${config?.open || 'an open function'}`);
-        const result = await open(...args);
+        const isCurrent = () => openEpoch === _chamberOpenEpoch;
+        const openArgs = config.standalone?.positional
+            ? [args[0] || '', { ...(args[1] || {}), isCurrent }]
+            : [{ ...(args[0] || {}), isCurrent }];
+        const result = await open(...openArgs);
         if (openEpoch !== _chamberOpenEpoch) {
             if (_openingChamberModules.get(entryId) === openToken) {
                 const close = module?.[config?.close];
@@ -1753,6 +1792,7 @@ function initLazyChamberLaunchers() {
     }
 
     Object.entries(CHAMBER_FEATURES).forEach(([entryId, config]) => {
+        if (['health', 'history', 'my', 'anthology', 'chambers'].includes(entryId)) return;
         const card = chamberEntryNode(entryId);
         if (card) {
             card.dataset.chamberEntryId = entryId;
@@ -1929,6 +1969,7 @@ function getChamberInfoCopy(card) {
 let activeChamberInfoButton = null;
 let chamberInfoGlobalWired = false;
 let chamberInfoPositionFrame = 0;
+let chamberInfoResizeObserver = null;
 
 function positionChamberInfoTooltip(button) {
     const card = button?.closest('.chamber-entry-card');
@@ -1937,9 +1978,8 @@ function positionChamberInfoTooltip(button) {
 
     const viewportMargin = 12;
     const anchorGap = 8;
-    tooltip.style.removeProperty('--card-tooltip-top');
-    tooltip.style.removeProperty('--card-tooltip-left');
-    tooltip.style.removeProperty('--card-tooltip-right');
+    // Measuring width/height does not require clearing position. Temporarily
+    // restoring the CSS fallback can change scrollable overflow mid-measurement.
     tooltip.style.setProperty('--card-tooltip-max-height', `${Math.max(160, window.innerHeight - (viewportMargin * 2))}px`);
 
     const cardRect = card.getBoundingClientRect();
@@ -1953,11 +1993,14 @@ function positionChamberInfoTooltip(button) {
     const aboveTop = buttonRect.top - cardRect.top - tooltipHeight - anchorGap;
     const fitsBelow = cardRect.top + belowTop + tooltipHeight <= window.innerHeight - viewportMargin;
     const fitsAbove = cardRect.top + aboveTop >= viewportMargin;
-    const top = fitsBelow
+    const preferredTop = fitsBelow
         ? belowTop
         : fitsAbove
             ? aboveTop
-            : Math.min(Math.max(belowTop, minTop), Math.max(minTop, maxTop));
+            : belowTop;
+    // A late layout can move the opener itself outside the viewport. Even an
+    // "above" candidate must be clamped on both edges in that case.
+    const top = Math.min(Math.max(preferredTop, minTop), Math.max(minTop, maxTop));
 
     const minLeft = viewportMargin - cardRect.left;
     const maxLeft = window.innerWidth - viewportMargin - cardRect.left - tooltipWidth;
@@ -1975,11 +2018,11 @@ function positionChamberInfoTooltip(button) {
 }
 
 function queueChamberInfoPosition(button = activeChamberInfoButton) {
-    if (!button) return;
+    if (!button || document.visibilityState !== 'visible') return;
     if (chamberInfoPositionFrame) cancelAnimationFrame(chamberInfoPositionFrame);
     chamberInfoPositionFrame = requestAnimationFrame(() => {
         chamberInfoPositionFrame = 0;
-        positionChamberInfoTooltip(button);
+        positionChamberInfoTooltip(activeChamberInfoButton || button);
     });
 }
 
@@ -1991,9 +2034,13 @@ function setChamberInfoOpen(button, open) {
     tooltip?.classList.toggle('is-open', open);
     if (open) {
         activeChamberInfoButton = button;
+        if (tooltip) chamberInfoResizeObserver?.observe(tooltip);
         queueChamberInfoPosition(button);
     }
-    else if (activeChamberInfoButton === button) activeChamberInfoButton = null;
+    else {
+        if (tooltip) chamberInfoResizeObserver?.unobserve(tooltip);
+        if (activeChamberInfoButton === button) activeChamberInfoButton = null;
+    }
 }
 
 function closeActiveChamberInfo() {
@@ -2003,6 +2050,14 @@ function closeActiveChamberInfo() {
 function wireChamberInfoGlobals() {
     if (chamberInfoGlobalWired) return;
     chamberInfoGlobalWired = true;
+    const grid = document.getElementById('chambers-grid');
+    if (grid && typeof ResizeObserver !== 'undefined') {
+        chamberInfoResizeObserver = new ResizeObserver(() => queueChamberInfoPosition());
+        chamberInfoResizeObserver.observe(grid);
+    }
+    grid?.addEventListener('transitionend', () => queueChamberInfoPosition());
+    grid?.addEventListener('animationend', () => queueChamberInfoPosition());
+    document.addEventListener('visibilitychange', () => queueChamberInfoPosition());
     document.addEventListener('click', (event) => {
         if (!activeChamberInfoButton) return;
         if (event.target.closest('.card-info-btn, .card-tooltip')) return;
@@ -2947,6 +3002,9 @@ function orderChambersSurface() {
             }
             updateAllChamberPairStates();
             syncChamberEntryFooters(grid);
+            // Lazy card hydration can move an open tooltip without a scroll
+            // event. Reposition only that control, never the reader's viewport.
+            queueChamberInfoPosition();
         });
         _chamberPairObserver.observe(grid, {
             subtree: true,
@@ -5150,7 +5208,7 @@ function renderProtocolTimeline(protocols) {
     if (countEl) countEl.textContent = upgradeCount;
     const aboutUpgrades = document.getElementById('about-upgrades');
     if (aboutUpgrades) aboutUpgrades.textContent = upgradeCount;
-    updateComparison(state.currentStats);
+    updateComparison?.(state.currentStats);
 
     if (currentProtocol) {
         const headerProtocolEl = document.getElementById('header-current-protocol');
@@ -6270,18 +6328,19 @@ function wireProtocolHistoryChamberActions(overlay) {
     });
 }
 
-function closeProtocolHistoryChamber() {
+export function closeProtocolHistoryChamber() {
     const overlay = document.getElementById('protocol-history-chamber-modal');
     if (!overlay) return;
+    if (!requestChamberClose(overlay)) return;
     overlay.classList.remove('active');
     deactivateChamberDialog(overlay);
     window.clearTimeout(protocolHistoryChamberCloseTimer);
     protocolHistoryChamberCloseTimer = window.setTimeout(() => overlay.remove(), 220);
 }
 
-async function openProtocolHistoryChamber() {
+async function openProtocolHistoryChamber({ isCurrent = () => true } = {}) {
     const requestedRoute = window.location.href;
-    if (!await ensureProtocolAnthologyCss() || window.location.href !== requestedRoute) return;
+    if (!await ensureProtocolAnthologyCss() || !isCurrent() || window.location.href !== requestedRoute) return;
     document.getElementById('tooltip-protocol-history-entry-card')?.classList.remove('is-open');
     const overlay = ensureProtocolHistoryChamberModal();
     window.clearTimeout(protocolHistoryChamberCloseTimer);
@@ -6380,15 +6439,102 @@ async function updateUpgradeClock() {
 }
 
 let dashboardInitialization = null;
+export async function openStandaloneMyTezos({ isCurrent = () => true } = {}) {
+    await Promise.all([
+        ...['my-tezos', 'my-baker', 'rewards-tracker'].map(ensureAppFeature),
+        ensureChamberStylesheet('my-tezos-css', MY_TEZOS_CSS_URL)
+    ]);
+    if (!isCurrent()) return;
+    initMyTezosButton();
+    initMyTezos();
+    initMyBaker();
+    setMyTezosDrawerOpenState(true);
+}
+
+export async function openStandaloneAnthology({ isCurrent = () => true } = {}) {
+    await ensureAppFeature('upgrade-effect');
+    if (!isCurrent()) return;
+    await openProtocolHistoryChamber({ isCurrent });
+    if (!isCurrent()) return;
+    const protocol = getProtocolStoryRouteValue();
+    if (protocol) await openProtocolHistoryByName(protocol, { updateRoute: false });
+}
+
+export async function openStandaloneDirectory({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
+    const main = document.getElementById('main-content');
+    const homeLink = main.querySelector('a[href="/"]');
+    const navigation = document.createElement('nav');
+    navigation.setAttribute('aria-label', 'Explore controls');
+    navigation.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap';
+    navigation.append(homeLink, document.getElementById('customize-home-btn'));
+    const section = document.getElementById('chambers-section');
+    main.className = 'main-content';
+    main.removeAttribute('aria-live');
+    main.replaceChildren(navigation, section);
+    section.classList.add('active');
+    initHomeLayout();
+    setHomeBlockVisible('explore', true, 'direct-route');
+    initChamberCategories();
+    initChambersSurface();
+    // Directory selections are real room navigations. In particular, History
+    // needs its own static shell, not a missing dashboard modal.
+    const healthCard = section.querySelector('[data-stat="network-health"]');
+    if (healthCard) {
+        healthCard.dataset.chamberEntryId = 'health';
+        healthCard.querySelector('#network-health-front').textContent = 'Live consensus';
+        healthCard.querySelector('#network-health-status').textContent = 'Open for current receipts';
+        healthCard.querySelector('#network-health-blocks').replaceChildren();
+        healthCard.querySelectorAll('.loading').forEach(node => node.classList.remove('loading', 'loading-skeleton'));
+    }
+    const historyCard = section.querySelector('#cycle-history-entry-card');
+    historyCard?.removeAttribute('aria-busy');
+    historyCard?.classList.remove('chamber-entry-skeleton');
+    if (section.dataset.standaloneNavigationWired !== '1') {
+        section.dataset.standaloneNavigationWired = '1';
+        const navigate = event => {
+            if (document.documentElement.dataset.chamberBoot !== 'chambers') return;
+            if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
+            if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey || isChamberLauncherControl(event.target)) return;
+            const card = event.target.closest('[data-chamber-entry-id], [data-stat="tz4-adoption"]');
+            const id = card?.dataset.chamberEntryId || (card?.dataset.stat === 'tz4-adoption' ? 'tz4' : '');
+            const route = CHAMBER_FEATURES[id]?.standalone?.route;
+            if (!route) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            location.assign(`/${route}/`);
+        };
+        section.addEventListener('click', navigate, true);
+        section.addEventListener('keydown', navigate, true);
+    }
+    initLazyChamberLaunchers();
+    initDeepLinkAffordances();
+    initSectionExplainers();
+}
+
+export function closeStandaloneDirectory() {
+    const overlay = document.getElementById('chambers-section');
+    if (!requestChamberClose(overlay)) return;
+    overlay?.classList.remove('active');
+}
+
 export function startDashboard(options = {}) {
     // Keep the exact module instance, including a successful retry URL, owned
     // by a standalone room; never create a second archive data cache.
     if (!dashboardInitialization && options.initialChamber && options.preloadedChamber) {
-        _chamberModulePromises.set(options.initialChamber, Promise.resolve(options.preloadedChamber));
-        _loadedChamberModules.set(options.initialChamber, options.preloadedChamber);
+        seedChamberFeature(options.initialChamber, options.preloadedChamber);
     }
     if (!dashboardInitialization) dashboardInitialization = init(options);
     return dashboardInitialization;
+}
+
+export function seedChamberFeature(entryId, module) {
+    _chamberModulePromises.set(entryId, Promise.resolve(module));
+    _loadedChamberModules.set(entryId, module);
+}
+
+export function prepareDashboardDependencies() {
+    return Promise.all(Object.keys(APP_FEATURE_LOADERS).map(ensureAppFeature));
 }
 
 // The standalone pilot installs the body before starting this same module.
@@ -6661,7 +6807,10 @@ function initSmartDock() {
     });
 }
 
+let deepLinkAffordancesInitialized = false;
 function initDeepLinkAffordances() {
+    if (deepLinkAffordancesInitialized) return;
+    deepLinkAffordancesInitialized = true;
     const copyFeedbackStates = new WeakMap();
     const headerLinks = [
         { selector: '#leaderboard-section .section-header', hash: '#leaderboard', label: 'leaderboard' },
@@ -7149,6 +7298,10 @@ function applyDeepLink() {
 
     const openPrettyChamberRoute = (route) => {
         switch (route) {
+            case 'chambers':
+                setHomeBlockVisible('explore', true, 'deep-link');
+                revealStaticSection('chambers-section');
+                break;
             case 'my-tezos':
                 openMyTezosTarget('');
                 break;
@@ -7214,7 +7367,7 @@ function applyDeepLink() {
                 break;
             case 'health':
                 openHashModal(
-                    () => import('../features/network-health.js').then(({ openNetworkHealthChamber }) => openNetworkHealthChamber()),
+                    () => openChamberFeature('health'),
                     'Failed to open Network Health Chamber'
                 );
                 break;
@@ -7289,7 +7442,7 @@ function applyDeepLink() {
                 break;
             case 'history':
                 openHashModal(
-                    () => import('../features/history.js').then(({ openCycleHistoryChamber }) => openCycleHistoryChamber()),
+                    () => openChamberFeature('history'),
                     'Failed to open Cycle History Chamber'
                 );
                 break;
@@ -7502,7 +7655,7 @@ function applyDeepLink() {
     // #health / #network-health
     if (params.has('health') || hash === 'health' || params.has('network-health') || hash === 'network-health') {
         openHashModal(
-            () => import('../features/network-health.js').then(({ openNetworkHealthChamber }) => openNetworkHealthChamber()),
+            () => openChamberFeature('health'),
             'Failed to open Network Health Chamber'
         );
     }
@@ -7627,7 +7780,7 @@ function applyDeepLink() {
     // #history — open Cycle History Chamber
     if (params.has('history') || hash === 'history') {
         openHashModal(
-            () => import('../features/history.js').then(({ openCycleHistoryChamber }) => openCycleHistoryChamber()),
+            () => openChamberFeature('history'),
             'Failed to open Cycle History Chamber'
         );
     }

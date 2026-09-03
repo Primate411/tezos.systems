@@ -1,3 +1,4 @@
+import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Tezos Domains Chamber
  * Live identity, auction, market, and expiration pulse for .tez names.
@@ -1354,8 +1355,11 @@ function stopChamberRefresh() {
     }
 }
 
-export async function openTezosDomainsChamber(initialName = '') {
+export async function openTezosDomainsChamber(initialName = '', { isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
+    bindChamberVisibility('tezos-domains-modal', () => refreshChamber({ force: true }));
     await ensureTezosDomainsStyles();
+    if (!isCurrent()) return;
     const normalizedInitial = normalizeDomainInput(initialName);
     if (normalizedInitial.name && !normalizedInitial.error) {
         lookupState = { status: 'loading', name: normalizedInitial.name };
@@ -1398,6 +1402,7 @@ export async function openTezosDomainsChamber(initialName = '') {
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
     await refreshChamber({ initial: true, force: true });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
     if (normalizedInitial.name && !normalizedInitial.error) {
         runDomainLookup(normalizedInitial.name);
     } else if (normalizedInitial.error) {
@@ -1408,8 +1413,9 @@ export async function openTezosDomainsChamber(initialName = '') {
 }
 
 export function closeTezosDomainsChamber() {
-    stopChamberRefresh();
     const overlay = document.getElementById('tezos-domains-modal');
+    if (!requestChamberClose(overlay)) return;
+    stopChamberRefresh();
     if (overlay) {
         overlay.classList.remove('active');
         deactivateChamberDialog(overlay);

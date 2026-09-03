@@ -1,3 +1,4 @@
+import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Tezos X Governance Chamber
  * Read-only FAST / SLOW / Sequencer governance surface backed by TzKT storage.
@@ -1825,7 +1826,9 @@ async function refreshChamber({ force = false } = {}) {
     }
 }
 
-export async function openEtherlinkGovernanceChamber(trackKey = '') {
+export async function openEtherlinkGovernanceChamber(trackKey = '', { isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
+    bindChamberVisibility('etherlink-governance-modal', () => refreshChamber({ force: true }));
     if (trackKey && TRACK_TEMPLATES.some((track) => track.key === trackKey)) {
         activeTrackKey = trackKey;
         selectActiveTrackOnNextRender = false;
@@ -1867,6 +1870,7 @@ export async function openEtherlinkGovernanceChamber(trackKey = '') {
     const content = overlay.querySelector('.etherlink-gov-content');
     if (content) content.scrollTop = 0;
     await refreshChamber({ force: true });
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
     stopChamberRefresh();
     chamberTimer = window.setInterval(() => {
         if (document.visibilityState === 'visible') refreshChamber();
@@ -1874,8 +1878,9 @@ export async function openEtherlinkGovernanceChamber(trackKey = '') {
 }
 
 export function closeEtherlinkGovernanceChamber() {
-    stopChamberRefresh();
     const overlay = document.getElementById('etherlink-governance-modal');
+    if (!requestChamberClose(overlay)) return;
+    stopChamberRefresh();
     if (overlay) {
         overlay.classList.remove('active');
         deactivateChamberDialog(overlay);

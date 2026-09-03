@@ -208,6 +208,11 @@ function captureViewportAnchor() {
     const x = Math.max(1, Math.min(window.innerWidth - 1, window.innerWidth / 2));
     const y = Math.max(1, Math.min(window.innerHeight - 1, window.innerHeight / 2));
     let element = document.elementFromPoint(x, y);
+    // A fixed Chamber has its own scroll anchor. Moving one of its rows must
+    // never compensate the underlying dashboard's saved window position.
+    for (let ancestor = element; ancestor; ancestor = ancestor.parentElement) {
+        if (getComputedStyle(ancestor).position === 'fixed') return null;
+    }
     while (element && element !== document.body && !element.id && !element.parentElement?.matches('main, section, article')) {
         element = element.parentElement;
     }

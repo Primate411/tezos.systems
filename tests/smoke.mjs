@@ -23,6 +23,8 @@ import { selectAffectedSmokeSuites } from './lib/smoke-affected.mjs';
 import { metadataForSmokeSuite } from './lib/smoke-metadata.mjs';
 import { smokeChamberFirstPaint } from './lib/chamber-first-paint-smoke.mjs';
 import { smokeStandaloneChamberExpansion } from './lib/standalone-chamber-expansion-smoke.mjs';
+import { smokeStandaloneChamberCompletion } from './lib/standalone-chamber-completion-smoke.mjs';
+import { smokeStandaloneChamberLifecycle } from './lib/standalone-chamber-lifecycle-smoke.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -105,6 +107,10 @@ const allowedWarningPatterns = [
   /SW registration failed/i,
   /Service Worker registration blocked by Playwright/i,
   /Using local protocol fallback/i,
+  // Native Chromium performance advice from NERV's occasional glitch slice,
+  // not a failed draw or application warning. Do not force the mostly-drawing
+  // painter into CPU readback mode solely to silence this diagnostic.
+  /^Canvas2D: Multiple readback operations using getImageData are faster with the willReadFrequently attribute set to true\. See: https:\/\/html\.spec\.whatwg\.org\/multipage\/canvas\.html#concept-canvas-will-read-frequently https?:\/\/[^\s]+\/js\/effects\/bg-effects\.js(?:\?[^\s]*)?$/,
   /preloaded using link preload/i
 ];
 
@@ -4188,6 +4194,13 @@ async function assertPromotedLauncherGeometry(page, label, { desktop = false } =
     return ['whale-watch-entry-card', 'baker-directory-entry-card', 'cycle-history-entry-card']
       .every((id) => document.getElementById(id)?.getBoundingClientRect().height > 0);
   }, null, { timeout: 5000 });
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+    await Promise.all(document.getAnimations().filter(animation => (
+      animation.effect?.target?.closest?.('#chambers-grid')
+      && animation.effect.getTiming().iterations !== Infinity
+    )).map(animation => animation.finished.catch(() => {})));
+  });
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   const geometry = await page.evaluate(() => {
     const readCard = (selector, railsSelector) => {
@@ -4521,7 +4534,12 @@ async function assertChamberInfoTooltipsContained(page, label) {
         expanded: card.querySelector(':scope > .card-info-btn')?.getAttribute('aria-expanded') || '',
         adjacent: tooltip?.previousElementSibling === card.querySelector(':scope > .card-info-btn'),
         scrollable: Boolean(tooltip && tooltip.scrollHeight > tooltip.clientHeight + 1),
-        maxHeight: tooltip ? getComputedStyle(tooltip).maxHeight : ''
+        maxHeight: tooltip ? getComputedStyle(tooltip).maxHeight : '',
+        inlineStyle: tooltip?.getAttribute('style'),
+        computedTop: tooltip ? getComputedStyle(tooltip).top : '',
+        cardTop: card.getBoundingClientRect().top,
+        offsetParent: tooltip?.offsetParent?.className,
+        stakingStyles: Boolean(document.querySelector('link[href*="staking-chamber.min.css"]')?.sheet)
       };
     });
     assert(
@@ -7674,7 +7692,8 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   await page.mouse.click(10, 10);
   await page.waitForFunction(() => !document.body.classList.contains('hero-search-mode') && document.getElementById('hero-search-panel')?.hidden, null, { timeout: 5000 });
 
-  await page.locator('#chambers-grid > .chamber-category[data-chamber-category="history"] .chamber-category-toggle').click();
+  const historyCategoryToggle = page.locator('#chambers-grid > .chamber-category[data-chamber-category="history"] .chamber-category-toggle');
+  if (await historyCategoryToggle.getAttribute('aria-expanded') !== 'true') await historyCategoryToggle.click();
   await page.locator('#protocol-history-entry-card').waitFor({ state: 'visible', timeout: 10000 });
   const protocolEntryText = await page.locator('#protocol-history-entry-card').innerText();
   assert(/Protocol Anthology/i.test(protocolEntryText) && /Lore/i.test(protocolEntryText) && /Impact/i.test(protocolEntryText), `hero command bar: Protocol Anthology card missing expected copy: ${protocolEntryText}`);
@@ -8360,6 +8379,7 @@ async function smokeHandoffQuestionField(browser, baseUrl) {
 
   const renderFocusedHandoff = async () => {
     await page.waitForLoadState('domcontentloaded');
+    await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true', null, { timeout: 30000 });
     await page.locator('#recruit-section[data-site-handoff]').waitFor({ state: 'attached', timeout: 15000 });
     await page.evaluate(async () => {
       const [{ renderSiteHandoff }, { findCurrentSiteMapContext, findCurrentSiteMapEntry, findSiteMapEntry }] = await Promise.all([
@@ -9715,6 +9735,8 @@ async function smokeCycleMilestone(browser, baseUrl) {
   const nearResponse = await nearPage.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'domcontentloaded' });
   assert(nearResponse?.ok(), `near cycle milestone: dashboard failed with HTTP ${nearResponse?.status()}`);
   await nearPage.locator('main').waitFor({ state: 'visible', timeout: 10000 });
+  await nearPage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true'
+    && document.querySelector('#pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
   const nearState = await nearPage.evaluate(() => {
     window.dispatchEvent(new CustomEvent('hot-signal-rendered', {
       detail: {
@@ -11976,6 +11998,8 @@ async function smokeLivePulsePersonalRibbons(browser, baseUrl) {
     attachIssueCollectors(page, `live pulse personal ribbons ${label}`, issues);
     const response = await page.goto(`${baseUrl}/?theme=${theme}`, { waitUntil: 'domcontentloaded' });
     assert(response?.ok(), `live pulse personal ribbons ${label}: dashboard failed with HTTP ${response?.status()}`);
+    await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true', null, { timeout: 30000 });
+    await page.waitForFunction(() => document.querySelector('#pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
     await page.locator('#pulse-ticker-strip [data-pulse-run="live"]').waitFor({ state: 'visible', timeout: 15000 });
     const anonymousState = await page.evaluate(() => ({
       ribbons: document.querySelectorAll('#pulse-ticker-strip .hot-today-you').length,
@@ -12286,7 +12310,10 @@ async function smokeLivePulseDailyCurio(browser, baseUrl) {
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
     localStorage.removeItem('tezos-systems-live-pulse-curio-day-v1');
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', async () => {
+      // The fixture emits before the curio scheduler starts, but after the
+      // deferred signal consumer exists (DOMContentLoaded no longer implies it).
+      await import('/js/features/daily-briefing.js');
       ['price', 'staking', 'volume', 'contracts', 'whales', 'governance', 'ecosystem', 'nft']
         .forEach((category, index) => {
           window.dispatchEvent(new CustomEvent('hot-signal', {
@@ -18676,7 +18703,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   );
   mockState.advanceBlockHead();
   await page.evaluate(async () => {
-    const { refreshNetworkHealth } = await import('/js/features/network-health.js');
+    const { versionedAsset } = await import('/js/core/asset-version.js');
+    const { refreshNetworkHealth } = await import(versionedAsset('/js/features/network-health.js'));
     await refreshNetworkHealth({ force: true });
     await refreshNetworkHealth({ force: true });
   });
@@ -19840,7 +19868,13 @@ async function smokeMaxisChamber(browser, baseUrl) {
   const response = await page.goto(`${baseUrl}/maxis/`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `tezos maxis chamber: pretty route failed with HTTP ${response?.status()}`);
   await page.waitForFunction(() => window.location.pathname === '/maxis/' && window.location.hash === '', null, { timeout: 7000 });
+  await page.locator('#maxis-modal.active .maxis-experience').waitFor({ state: 'visible', timeout: 15000 });
+  assert(await page.locator('#chambers-grid').count() === 0, 'Maxis direct boot must not render hidden home launchers');
+  await page.locator('#maxis-modal .chamber-close').click();
+  await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && location.pathname === '/', null, { timeout: 30000 });
   await page.locator('#maxis-entry-card.chamber-entry-wide').waitFor({ state: 'visible', timeout: 15000 });
+  await page.evaluate(async () => (await import('/js/core/site-map.js')).navigateSiteMapEntry('maxis'));
+  await page.waitForURL(url => url.pathname === '/maxis/');
   await page.locator('#maxis-modal.active .maxis-content').waitFor({ state: 'visible', timeout: 15000 });
   await assertNormalizedChamberShell(page, '#maxis-modal.active', '.maxis-content', 'standard', 'tezos maxis chamber');
   await page.locator('#maxis-modal .maxis-experience').waitFor({ state: 'visible', timeout: 15000 });
@@ -22412,11 +22446,12 @@ async function smokeUraniumChamber(browser, baseUrl) {
   await preferencePage.locator('#tour-overlay').waitFor({ state: 'detached', timeout: 5000 });
   await preferencePage.waitForFunction(() => getComputedStyle(document.querySelector('[data-chamber-entry-id="capital"]')).display === 'none');
 
-  await preferencePage.goto(`${baseUrl}/history/`, { waitUntil: 'domcontentloaded' });
-  await preferencePage.waitForFunction(() => Boolean(window.tezosSystemsChamberCategories));
   await preferencePage.evaluate(() => window.tezosSystemsChamberCategories.setChamberRoomVisible('history', false, 'pretty-route-setup'));
-  await preferencePage.reload({ waitUntil: 'domcontentloaded' });
+  await preferencePage.goto(`${baseUrl}/history/`, { waitUntil: 'domcontentloaded' });
   await preferencePage.locator('#history-modal.active').waitFor({ state: 'visible', timeout: 15000 });
+  assert(await preferencePage.locator('#chambers-grid').count() === 0, 'Direct History owns no hidden Home preferences UI');
+  await preferencePage.locator('#history-modal-close').click();
+  await preferencePage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && location.pathname === '/', null, { timeout: 30000 });
   const prettyHiddenPreference = await preferencePage.evaluate((key) => ({
     hiddenRooms: JSON.parse(localStorage.getItem(key)).hiddenRooms,
     display: getComputedStyle(document.querySelector('[data-chamber-entry-id="history"]')).display
@@ -26465,7 +26500,9 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl, section = 'all') {
   });
   const promotionPage = await promotionContext.newPage();
   attachIssueCollectors(promotionPage, 'Tezos X promotion baker quorum list', promotionIssues);
-  const promotionResponse = await promotionPage.goto(`${baseUrl}/l2chamber/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  // This contract compares the home entry and full ledger together. Direct-room
+  // startup is covered separately and deliberately has no hidden home entry.
+  const promotionResponse = await promotionPage.goto(`${baseUrl}/?theme=matrix#l2chamber`, { waitUntil: 'domcontentloaded' });
   assert(promotionResponse?.ok(), `Tezos X promotion baker quorum list: page failed with HTTP ${promotionResponse?.status()}`);
   try {
     await promotionPage.locator('#etherlink-governance-modal.active #etherlink-governance-recent-bakers').waitFor({ state: 'visible', timeout: 30000 });
@@ -26553,7 +26590,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl, section = 'all') {
   });
   const failedPromotionPage = await failedPromotionContext.newPage();
   attachIssueCollectors(failedPromotionPage, 'Tezos X failed Promotion outcome', failedPromotionIssues);
-  const failedPromotionResponse = await failedPromotionPage.goto(`${baseUrl}/l2chamber/?theme=matrix`, { waitUntil: 'domcontentloaded' });
+  const failedPromotionResponse = await failedPromotionPage.goto(`${baseUrl}/?theme=matrix#l2chamber`, { waitUntil: 'domcontentloaded' });
   assert(failedPromotionResponse?.ok(), `Tezos X failed Promotion outcome: page failed with HTTP ${failedPromotionResponse?.status()}`);
   await failedPromotionPage.waitForFunction(() => Boolean(document.getElementById('shell-extras-css')?.sheet), null, { timeout: 5000 });
   await failedPromotionPage.waitForFunction(() => document.querySelector('#etherlink-governance-entry-value')?.textContent?.trim() === 'CANNOT PASS', null, { timeout: 15000 });
@@ -28424,7 +28461,7 @@ async function smokeLeaderboardSignals(browser, baseUrl) {
   await page.locator('#baker-directory-modal.active').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#baker-directory-panel .baker-directory-table').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => document.querySelectorAll('#baker-directory-panel .baker-directory-table tbody tr').length === 502, null, { timeout: 15000 });
-  await assertPromotedLauncherGeometry(page, 'Baker Directory desktop launcher pair', { desktop: true });
+  assert(await page.locator('#chambers-grid').count() === 0, 'Baker Directory direct boot must not render hidden home launchers');
   assert(mockState.bakerPageOffsets.includes(0) && mockState.bakerPageOffsets.includes(500), `Baker Directory: complete active set was not fetched through the second page: ${JSON.stringify(mockState.bakerPageOffsets)}`);
   assert(new URL(page.url()).pathname === '/leaderboard/' && new URL(page.url()).searchParams.get('view') === 'directory', `Baker Directory: direct route state drifted: ${page.url()}`);
   await expectCount(page, '#baker-directory-modal [role="tab"][data-bdc-view]', 3, 'Baker Directory views');
@@ -28482,8 +28519,6 @@ async function smokeLeaderboardSignals(browser, baseUrl) {
     && /outside the frozen governance-signal source cohort/i.test(badge.title)
     && /Missing is not interpreted as zero history/i.test(badge.title)), `Baker Directory: a baker missing from the source cohort must remain unavailable rather than becoming a zero-governance baker ${JSON.stringify(signalState.postCutoff)}`);
   assert(/^Observed TzKT · /.test(signalState.observed), `Baker Directory: source-aware observation stamp missing ${JSON.stringify(signalState)}`);
-  assert(/^(?:TzKT observed|Cached TzKT) · /.test(signalState.launcherFreshness)
-    && signalState.launcherFreshness === signalState.launcherFooter, `Baker Directory: launcher observation freshness missing ${JSON.stringify(signalState)}`);
   assert(/Complete funded set/.test(signalState.setCopy)
     && /governance receipts \d{4}-\d{2}-\d{2} UTC/.test(signalState.footer)
     && /\b2\/502 current bakers covered\b/.test(signalState.footer), `Baker Directory: set, source receipt, or explicit governance coverage copy drifted ${JSON.stringify(signalState)}`);
@@ -28685,17 +28720,8 @@ async function smokeLeaderboardSignals(browser, baseUrl) {
   await page.evaluate(() => {
     document.documentElement.dataset.theme = 'clean';
     localStorage.setItem('tezos-systems-theme', 'clean');
-    document.getElementById('whale-watch-entry-card')?.dispatchEvent(new PointerEvent('pointerenter', {
-      bubbles: true,
-      pointerType: 'mouse'
-    }));
     return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
-  await page.waitForFunction(() => (
-    !document.getElementById('whale-watch-entry-card')?.hasAttribute('data-chamber-skeleton')
-    && Boolean(document.getElementById('whale-chamber-css')?.sheet)
-  ), null, { timeout: 15000 });
-  await assertPromotedLauncherGeometry(page, 'Baker Directory mobile launcher pair');
   const mobileState = await page.evaluate(() => {
     const overlay = document.querySelector('#baker-directory-modal');
     const content = document.querySelector('.baker-directory-content');
@@ -28714,12 +28740,13 @@ async function smokeLeaderboardSignals(browser, baseUrl) {
   });
   assert(mobileState.bodyOverflow <= 1 && mobileState.overlayActive && mobileState.contentInsideViewport && mobileState.tableContained, `Baker Directory: mobile containment failed ${JSON.stringify(mobileState)}`);
 
-  await page.evaluate(() => {
-    window.__bakerDirectoryDirectRouteFocus = document.querySelector('#baker-directory-entry-card [aria-label="Open Baker Directory Chamber"]');
-  });
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => !document.querySelector('#baker-directory-modal')?.classList.contains('active'), null, { timeout: 5000 });
   await page.waitForURL((url) => url.pathname === '/', { timeout: 5000 });
+  await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true', null, { timeout: 30000 });
+  await page.evaluate(() => {
+    window.__bakerDirectoryDirectRouteFocus = document.querySelector('#baker-directory-entry-card [aria-label="Open Baker Directory Chamber"]');
+  });
   await page.waitForFunction(() => document.activeElement === window.__bakerDirectoryDirectRouteFocus, null, { timeout: 5000 });
   const closeState = await page.evaluate(() => ({
     exactFocus: document.activeElement === window.__bakerDirectoryDirectRouteFocus,
@@ -28738,6 +28765,16 @@ async function smokeLeaderboardSignals(browser, baseUrl) {
       && closeState.activeModals === 0,
     `Baker Directory: direct-route Escape did not restore its exact launcher, home route, and scroll lock ${JSON.stringify(closeState)}`
   );
+
+  // Home geometry is meaningful only after the lightweight route hands off.
+  await assertPromotedLauncherGeometry(page, 'Baker Directory mobile launcher pair');
+  const directoryLauncherFreshness = await page.locator('#baker-directory-entry-card').evaluate(card => ({
+    label: card.dataset.updatedLabel, footer: card.querySelector('.chamber-entry-freshness')?.textContent.trim()
+  }));
+  assert(/^(?:TzKT observed|Cached TzKT) · /.test(directoryLauncherFreshness.label)
+    && directoryLauncherFreshness.label === directoryLauncherFreshness.footer, `Baker Directory: handoff launcher observation freshness missing ${JSON.stringify(directoryLauncherFreshness)}`);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await assertPromotedLauncherGeometry(page, 'Baker Directory desktop launcher pair', { desktop: true });
 
   await context.close();
   assert(issues.length === 0, `Baker Directory browser issues:\n${issues.join('\n')}`);
@@ -28851,6 +28888,14 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
   }, null, { timeout: 15000 });
   const sourceStripText = await page.locator('#whale-watch-freshness').innerText();
   assert(/6h schedule/.test(sourceStripText) && /window .* → .* UTC/.test(sourceStripText), `Whale Watch: exact archived window and generator cadence missing: ${sourceStripText}`);
+  assert(await page.locator('#chambers-grid').count() === 0, 'Whale Watch direct boot must not render hidden home launchers');
+  // The remaining legacy checks compare room receipts with its home tile.
+  // Create home by a real handoff, then reopen the same retained room instance.
+  await page.locator('#whale-watch-modal .chamber-close').click();
+  await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && location.pathname === '/', null, { timeout: 30000 });
+  const restoredWhaleLauncher = page.locator('#whale-watch-entry-card [aria-label="Open Whale Watch Chamber"]');
+  await restoredWhaleLauncher.click();
+  await page.locator('#whale-watch-modal.active #whale-watch-panel-overview').waitFor({ state: 'visible', timeout: 15000 });
   await page.evaluate(() => {
     const loadedModuleUrl = performance.getEntriesByType('resource')
       .map((entry) => entry.name)
@@ -29269,11 +29314,7 @@ async function smokeCycleHistoryChamber(browser, baseUrl) {
   assert(directState.sourceCadences.includes('Scheduled every 2h')
     && directState.sourceCadences.filter((label) => label === 'Scheduled every 30m').length === 4
     && directState.sourceCoverage.some((label) => /observed median ~/.test(label)), `Cycle History: scheduled and observed cadence truth missing ${JSON.stringify(directState)}`);
-  assert(
-    /^History · oldest source \w+(?: · refresh delayed)?$/.test(directState.launcherFreshness)
-      && directState.launcherFreshness === directState.launcherFooter,
-    `Cycle History: launcher oldest-source freshness missing ${JSON.stringify(directState)}`
-  );
+  assert(!directState.launcherFreshness && !directState.launcherFooter, 'Cycle History direct boot must not build a hidden home launcher');
 
   await page.locator('.history-controls .time-range-btn[data-range="7d"]').click();
   await page.waitForFunction(() => document.querySelector('#history-modal')?.dataset.historyRange === '7d' && document.querySelector('#history-modal')?.getAttribute('aria-busy') !== 'true', null, { timeout: 15000 });
@@ -29373,8 +29414,14 @@ async function smokeCycleHistoryChamber(browser, baseUrl) {
     page.locator('#history-modal-close').click()
   ]);
   await page.locator('main').waitFor({ state: 'visible', timeout: 10000 });
-  await page.locator('#chambers-grid > .chamber-category[data-chamber-category="history"] .chamber-category-toggle').click();
+  const restoredHistoryToggle = page.locator('#chambers-grid > .chamber-category[data-chamber-category="history"] .chamber-category-toggle');
+  if (await restoredHistoryToggle.getAttribute('aria-expanded') !== 'true') await restoredHistoryToggle.click();
   await page.locator('#cycle-history-entry-card').scrollIntoViewIfNeeded();
+  const launcherFreshness = await page.locator('#cycle-history-entry-card').evaluate(card => ({
+    label: card.dataset.updatedLabel, footer: card.querySelector('.chamber-entry-freshness')?.textContent.trim()
+  }));
+  assert(/^History · oldest source \w+(?: · refresh delayed)?$/.test(launcherFreshness.label)
+    && launcherFreshness.label === launcherFreshness.footer, `Cycle History: handoff launcher freshness missing ${JSON.stringify(launcherFreshness)}`);
   await assertPromotedLauncherGeometry(page, 'Cycle History desktop launcher geometry');
   assert(await page.locator('#cycle-history-entry-card .cycle-history-entry-route').getAttribute('href') === '/history/', 'Cycle History: entry card must retain the canonical first-party route');
   const cycleKeyboardLauncher = page.locator('#cycle-history-entry-card [aria-label="Open Cycle History Chamber"]');
@@ -31377,6 +31424,7 @@ async function smokeThemeSelection(browser, baseUrl) {
     const themeResponse = await page.goto(`${baseUrl}/?theme=${theme}`, { waitUntil: 'domcontentloaded' });
     assert(themeResponse?.ok(), `theme ${theme}: dashboard failed with HTTP ${themeResponse?.status()}`);
     await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true', null, { timeout: 30000 });
     await page.waitForFunction(() => Boolean(document.getElementById('shell-extras-css')?.sheet), null, { timeout: 5000 });
     const state = await page.evaluate(async () => {
       await document.fonts.ready;
@@ -31597,10 +31645,12 @@ async function smokeThemeSelection(browser, baseUrl) {
 
   for (const theme of registeredThemes) {
     const themeResponse = await mobilePage.goto(`${baseUrl}/?theme=${theme}`, { waitUntil: 'domcontentloaded' });
+    await mobilePage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true', null, { timeout: 30000 });
     assert(themeResponse?.ok(), `theme ${theme} mobile: dashboard failed with HTTP ${themeResponse?.status()}`);
     await mobilePage.locator('main').waitFor({ state: 'visible', timeout: 15000 });
     await mobilePage.waitForFunction(() => Boolean(document.getElementById('shell-extras-css')?.sheet), null, { timeout: 5000 });
     await mobilePage.waitForFunction(() => /\bTX\b/.test(document.querySelector('#header-activity-line')?.textContent || ''), null, { timeout: 10000 });
+    await mobilePage.waitForFunction(() => document.querySelector('#pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
     const state = await mobilePage.evaluate(async () => {
       await document.fonts.ready;
       const title = document.querySelector('.title');
@@ -31672,7 +31722,11 @@ async function smokeThemeSelection(browser, baseUrl) {
         return numbers.length >= 4 ? numbers[3] : 1;
       };
       const activityTopBefore = activity?.getBoundingClientRect().top ?? -1;
+      // This is a crossed-state typography fixture, independent of the live
+      // catalog's current near/crossed status (which can legitimately say Soon).
+      marker.textContent = 'New';
       outline.hidden = false;
+      cluster.classList.remove('is-milestone-near');
       cluster.classList.add('has-milestone-signal', 'is-milestone-crossed', 'is-uptime-milestone-arriving');
       const activityTopAfterSignal = activity?.getBoundingClientRect().top ?? -1;
       await new Promise((resolve) => {
@@ -31787,6 +31841,8 @@ async function smokeThemeSelection(browser, baseUrl) {
   const reducedMotionPage = await reducedMotionContext.newPage();
   for (const theme of ['aurora', 'matrix', 'void']) {
     const reducedResponse = await reducedMotionPage.goto(`${baseUrl}/?theme=${theme}`, { waitUntil: 'domcontentloaded' });
+    await reducedMotionPage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true', null, { timeout: 30000 });
+    await reducedMotionPage.waitForFunction(() => document.querySelector('#pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
     assert(reducedResponse?.ok(), `theme ${theme} reduced motion: dashboard failed with HTTP ${reducedResponse?.status()}`);
     await reducedMotionPage.locator('main').waitFor({ state: 'visible', timeout: 15000 });
     const reducedState = await reducedMotionPage.evaluate(() => {
@@ -32481,6 +32537,9 @@ async function smokeRouteFormatting(browser, baseUrl) {
       serviceWorkers: 'block'
     });
     await installFeatureMocks(context);
+    await context.route('**/v1/accounts/tz1PmPThcxFUEBh1tJrkZKwkaGrE5VjPs4CA', route => fulfillJson(route, {
+      address: 'tz1PmPThcxFUEBh1tJrkZKwkaGrE5VjPs4CA', type: 'user', balance: 100000000000, alias: 'Fixture flow account'
+    }));
     await context.route('https://api.tzkt.io/v1/operations/transactions**', (route) => fulfillJson(route, []));
     await context.route('https://api.tzkt.io/v1/operations/staking**', (route) => fulfillJson(route, []));
     await context.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => fulfillJson(route, {
@@ -32656,6 +32715,21 @@ async function smokeRouteFormatting(browser, baseUrl) {
           const clipsX = ['hidden', 'clip'].includes(style.overflowX);
           const clipsY = ['hidden', 'clip'].includes(style.overflowY);
           if ((clipsX && node.scrollWidth > node.clientWidth + 3) || (clipsY && node.scrollHeight > node.clientHeight + 3)) {
+            // Anthology's decorative arrow intentionally bleeds outside its
+            // tile. Measure every real text fragment rather than pseudo bounds.
+            if (node.matches('[data-anthology-lens]') && getComputedStyle(node, '::after').content.includes('↗')) {
+              const box = node.getBoundingClientRect();
+              const walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT);
+              let fits = true, text;
+              while ((text = walker.nextNode())) {
+                if (!text.textContent.trim()) continue;
+                const range = document.createRange(); range.selectNodeContents(text);
+                for (const rect of range.getClientRects()) {
+                  if (rect.left < box.left - 1 || rect.right > box.right + 1 || rect.top < box.top - 1 || rect.bottom > box.bottom + 1) fits = false;
+                }
+              }
+              if (fits) continue;
+            }
             clipped.push(`${elementName(node)} ${node.scrollWidth}x${node.scrollHeight} > ${node.clientWidth}x${node.clientHeight} "${textSample(node)}"`);
           }
         }
@@ -32784,6 +32858,17 @@ async function smokeQuietRefresh(browser, baseUrl) {
     state.shiftWindowYAfter = window.scrollY;
     quietlyMutate(layoutFixture, () => { shift.hidden = true; });
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const fixedRoom = document.createElement('div');
+    fixedRoom.style.cssText = 'position:fixed;top:-100px;left:0;width:100vw;height:1000px;z-index:2147483647;background:#111;';
+    fixedRoom.innerHTML = '<div style="height:450px"></div><div id="quiet-fixed-anchor" style="height:240px">Fixed Chamber row</div>';
+    layoutFixture.appendChild(fixedRoom);
+    state.fixedRoomPageBefore = window.scrollY;
+    quietlyMutate(fixedRoom, () => {
+      const prepend = document.createElement('div'); prepend.style.height = '78px'; fixedRoom.prepend(prepend);
+    });
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    state.fixedRoomPageAfter = window.scrollY;
+    fixedRoom.remove();
     document.body.classList.remove('quiet-layout-smoke');
     layoutFixture.remove();
     layoutStyle.remove();
@@ -32798,6 +32883,7 @@ async function smokeQuietRefresh(browser, baseUrl) {
   assert(Math.abs(helperState.anchorDeltaAfterMutation) < 1, `quiet refresh: spanning-root prepend shifted the visible row ${JSON.stringify(helperState)}`);
   assert(Math.abs(helperState.compensatedWindowY - helperState.shiftWindowYBefore - 96) < 1, `quiet refresh: spanning-root prepend did not compensate by its inserted height ${JSON.stringify(helperState)}`);
   assert(Math.abs(helperState.shiftWindowYAfter - helperState.readerWindowY) < 1, `quiet refresh: delayed spanning-root restore overwrote an immediate reader scroll ${JSON.stringify(helperState)}`);
+  assert(helperState.fixedRoomPageBefore === helperState.fixedRoomPageAfter, `quiet refresh: a fixed Chamber row must never anchor the underlying page ${JSON.stringify(helperState)}`);
 
   await page.locator('#pulse-ticker-strip').scrollIntoViewIfNeeded();
   await page.waitForFunction(() => (
@@ -35663,19 +35749,10 @@ async function smokeChamberCategories(browser, baseUrl) {
   response = await page.goto(`${baseUrl}/history/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `Chamber categories pretty route failed with HTTP ${response?.status()}`);
   await page.locator('#history-modal.active').waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForFunction(() => (
-    document.querySelector('#chambers-grid > .chamber-category[data-chamber-category="history"]')?.dataset.chamberExpanded === 'true'
-  ), null, { timeout: 10000 });
-  const prettyRouteState = await page.evaluate(() => ({
-    active: document.querySelector('#history-modal')?.classList.contains('active') || false,
-    historyOpen: document.querySelector(
-      '#chambers-grid > .chamber-category[data-chamber-category="history"]'
-    )?.dataset.chamberExpanded === 'true'
-  }));
-  assert(
-    prettyRouteState.active && prettyRouteState.historyOpen,
-    `pretty /history/ route must reveal History before opening its Chamber: ${JSON.stringify(prettyRouteState)}`
-  );
+  assert(await page.locator('#chambers-grid').count() === 0, 'Direct History defers hidden home categories');
+  await page.locator('#history-modal-close').click();
+  await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true' && location.pathname === '/', null, { timeout: 30000 });
+  assert(await page.locator('#chambers-grid > .chamber-category[data-chamber-category="history"]').getAttribute('data-chamber-expanded') === 'true', 'History return reveals its home category');
 
   await context.close();
 
@@ -36563,6 +36640,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'launcher-projections', description: 'Capital, Ecosystem Activity, and Maxis hydrate from compact summaries, defer reviewed full artifacts until room open, preserve parity, and fall back safely', run: () => smokeLauncherProjections(browser, baseUrl) },
     { name: 'chamber-first-paint', description: 'Six snapshot rooms finish hidden first render, paint verified saved receipts before network, and revalidate without moving desktop or mobile readers', run: () => smokeChamberFirstPaint(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'standalone-chamber-expansion', description: 'Five independent rooms defer dashboard startup, preserve direct state and failed-exit readers, and hand off once across desktop/mobile navigation and cancelled loads', run: () => smokeStandaloneChamberExpansion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'standalone-chamber-completion', description: 'Every generated room and alias boots without home telemetry and retains direct desktop/mobile navigation through the dashboard handoff', run: () => smokeStandaloneChamberCompletion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'standalone-chamber-lifecycle', description: 'Standalone legacy rooms retain failed-exit readers, lazy charts retry locally, directory controls navigate correctly, and selected themes survive handoff', run: () => smokeStandaloneChamberLifecycle(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'capital-chamber', description: 'Capital Chamber renders sourced cross-layer, market, asset, RWA, and art-economy views with quality quarantine, explicit gaps, direct routing, and quiet refresh', run: () => smokeCapitalChamber(browser, baseUrl) },
     { name: 'minerals-chamber', description: 'Critical Minerals keeps its compact launcher independent, exposes five accessible sourced views, preserves routes and quiet reading state, retains last-good receipts, and fits 320/390px rooms', run: () => smokeMineralsChamber(browser, baseUrl) },
     { name: 'uranium-chamber', description: 'Uranium Chamber preserves ranged chart history, deterministic Kraken live receipts, direct routing, hidden gating, and quiet reading state', run: () => smokeUraniumChamber(browser, baseUrl) },

@@ -1,5 +1,11 @@
 import { fetchVotingStatus, formatTimeRemaining, getVotingPeriodName } from './governance.js';
-import { fetchBakerVoteStatus, formatGovTimeLeft } from './my-tezos.js';
+import { versionedAsset } from '../core/asset-version.js';
+import { formatGovTimeLeft } from '../core/governance-time.js';
+
+async function fetchBakerVoteStatus(address) {
+    const module = await import(versionedAsset('/js/features/my-tezos.js'));
+    return module.fetchBakerVoteStatus(address);
+}
 import { escapeHtml } from '../core/utils.js';
 import { quietlyMutate, quietlySyncHtml } from '../core/quiet-refresh.js';
 

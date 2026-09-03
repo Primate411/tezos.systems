@@ -1,3 +1,4 @@
+import { requestChamberClose, activateChamberDialog, deactivateChamberDialog } from '../ui/chamber-accessibility.js';
 /**
  * ctez End of Life Chamber
  * Opt-in recovery console for users withdrawing tez from old ctez ovens.
@@ -738,10 +739,6 @@ function wireCtezWalletActions(root) {
     }
 }
 
-function handleEscape(event) {
-    if (event.key === 'Escape') closeCtezChamber();
-}
-
 function closeFeatureLauncher() {
     const dropdown = document.getElementById('features-dropdown');
     const owner = document.querySelector('[aria-controls="features-dropdown"]');
@@ -760,7 +757,8 @@ function wireCtezLauncher(button) {
     });
 }
 
-export function openCtezChamber() {
+export function openCtezChamber({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
     document.getElementById('tooltip-ctez')?.classList.remove('is-open');
     let overlay = document.getElementById('ctez-modal');
     if (!overlay) {
@@ -781,17 +779,18 @@ export function openCtezChamber() {
         wireCtezWalletActions(overlay);
     }
 
-    document.addEventListener('keydown', handleEscape);
     overlay.classList.add('active');
     lockPageScroll();
+    activateChamberDialog(overlay, { close: closeCtezChamber, dialogSelector: '.ctez-content', label: 'ctez Chamber', restoreFocusSelector: '#ctez-launcher' });
     const content = overlay.querySelector('.ctez-content');
     if (content) content.scrollTop = 0;
 }
 
 export function closeCtezChamber() {
-    document.removeEventListener('keydown', handleEscape);
     const overlay = document.getElementById('ctez-modal');
+    if (!requestChamberClose(overlay)) return;
     if (overlay) overlay.classList.remove('active');
+    deactivateChamberDialog(overlay);
     document.getElementById('tooltip-ctez')?.classList.remove('is-open');
     unlockPageScroll();
 }

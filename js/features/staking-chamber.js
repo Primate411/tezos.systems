@@ -1,3 +1,4 @@
+import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Staking Chamber
  * A compact launcher and complete applied stake/unstake tape above 10,000 tez.
@@ -13,7 +14,7 @@ import { loadStats, loadStatsTimestamp } from '../core/storage.js';
 import { escapeHtml, formatFreshnessStamp, matchesTextQuery, pluralize, setDataFreshnessState } from '../core/utils.js';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
-import { openCardHistoryModal } from './history.js';
+import { openCardHistoryModal } from '../ui/history-intent.js';
 
 const STAKING_CSS_URL = versionedAsset('/css/staking-chamber.min.css');
 const LARGE_MOVE_THRESHOLD_XTZ = 10_000;
@@ -1300,8 +1301,10 @@ async function loadRoom({ force = false } = {}) {
     }
 }
 
-export async function openStakingChamber() {
+export async function openStakingChamber({ isCurrent = () => true } = {}) {
+    if (!isCurrent()) return;
     await ensureStakingStyles();
+    if (!isCurrent()) return;
     if (guideViewRequested()) guideOpen = true;
     const overlay = ensureOverlay();
     overlay.classList.add('active');
@@ -1315,10 +1318,12 @@ export async function openStakingChamber() {
     const content = overlay.querySelector('.staking-chamber-content');
     if (content) content.scrollTop = 0;
     await loadRoom();
+    if (!isCurrent() || !overlay.classList.contains('active')) return;
 }
 
 export function closeStakingChamber() {
     const overlay = document.getElementById('staking-chamber-modal');
+    if (!requestChamberClose(overlay)) return;
     if (!overlay?.classList.contains('active')) return;
     overlay.classList.remove('active');
     deactivateChamberDialog(overlay);

@@ -70,7 +70,7 @@ function renderStoryRoute(shell, protocol) {
   const escapedTitle = escapeHtml(pageTitle);
   const escapedDescription = escapeHtml(description);
   let html = shell;
-  html = replaceRequired(html, /<html lang="en" data-chamber-route="anthology">/, `<html lang="en" data-chamber-route="anthology" data-anthology-protocol="${slug}">`);
+  html = replaceRequired(html, /(<html lang="en" data-chamber-route="anthology")([^>]*>)/, `$1 data-anthology-protocol="${slug}"$2`);
   html = replaceRequired(html, /<title>[\s\S]*?<\/title>/, `<title>${escapedTitle} | tezos.systems</title>`);
   html = replaceRequired(html, /<meta name="description" content="[^"]*">/, `<meta name="description" content="${escapedDescription}">`);
   html = replaceRequired(html, /<link rel="canonical" href="[^"]*">/, `<link rel="canonical" href="${url}">`);

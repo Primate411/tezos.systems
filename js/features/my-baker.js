@@ -7,7 +7,7 @@ import { API_URLS } from '../core/config.js';
 import { escapeHtml, formatNumber } from '../core/utils.js';
 import { fetchProtocolConstants, fetchStakingAPY, fetchWithDeadline, getExternalStakerApy } from '../core/api.js';
 import { fetchBakerLiquidityBakingVote } from '../core/liquidity-baking-vote.js';
-import { classifyOctezVersion, fetchOctezVersions } from './network-health.js';
+import { classifyOctezVersion, fetchOctezVersions } from '../core/octez-versions.js';
 import { quietlySyncHtml } from '../core/quiet-refresh.js';
 import {
     MAX_SAVED_MY_TEZOS_ADDRESSES,
@@ -674,6 +674,8 @@ export function init() {
     const errorMsg = document.getElementById('my-baker-error-msg');
 
     if (!input || !saveBtn || !clearBtn || !results) return;
+    if (input.dataset.bakerInitialized === '1') return;
+    input.dataset.bakerInitialized = '1';
 
     // Feature 4: Copy-to-clipboard mode — after save, button becomes Copy
     function showCopyMode(address) {

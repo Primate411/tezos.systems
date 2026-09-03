@@ -1925,5 +1925,11 @@ export function initHeroSearch() {
         setHomeBlockVisible('live-head', true, 'deep-link');
         if (searchHash) applyQuery(searchHash);
         else requestAnimationFrame(() => input.focus({ preventScroll: true }));
+    } else if (document.activeElement === input) {
+        // The visible field can receive focus/text before this deferred module.
+        // Honor that explicit intent without clearing or selecting the typed text.
+        setOpen(true);
+        ensureProtocols();
+        render();
     }
 }
