@@ -9,6 +9,7 @@ import http from 'node:http';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { decodeTezosCrpDataset } from '../js/core/tezoscrp-codec.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -120,6 +121,8 @@ async function measurePair(browser, server, profile, label, run, artifactDir) {
         return {
           readyMs: window.__bootMeasure.readyMs,
           jsResources: scripts.length, jsDecodedBytes: bytes(scripts, 'decodedBodySize'), jsTransferBytes: bytes(scripts, 'transferSize'),
+          readingModules: scripts.filter(r => new URL(r.name).pathname === '/js/ui/chamber-reading.js').length,
+          codecModules: scripts.filter(r => new URL(r.name).pathname === '/js/core/tezoscrp-codec.mjs').length,
           cssDecodedBytes: bytes(styles, 'decodedBodySize'),
           cachedScripts: scripts.filter(r => r.transferSize === 0 && r.decodedBodySize > 0).length,
           domNodes: document.getElementsByTagName('*').length,
@@ -142,7 +145,12 @@ async function measurePair(browser, server, profile, label, run, artifactDir) {
         assert.equal(requests.filter(r => /\.(?:js|mjs)$/.test(r.path)).length, 0, `${label}: warm scripts reached the HTTP server`);
       }
       if (label === 'pilot') {
-        assert(!metrics.dashboardStarted && metrics.jsResources < 20 && metrics.domNodes < 1500, 'Pilot startup boundary regressed');
+        // Count both intentional post-pilot helpers explicitly, while keeping
+        // the original budget for the rest of the startup graph unchanged.
+        assert(metrics.readingModules === 1 && metrics.codecModules === 1
+          && !metrics.dashboardStarted && metrics.jsResources - metrics.readingModules - metrics.codecModules < 20
+          && metrics.domNodes < 1500, 'Pilot startup boundary regressed');
+        assert(!requests.some(r => r.path === '/data/tezoscrp-awards.json'), 'Pilot must not fetch the expanded compatibility archive');
       }
       rows.push({ label, profile: profile.name, cpuRate: profile.cpuRate, run, warmth, ...metrics, requests });
       if (artifactDir && run === 1 && warmth === 'cold') {
@@ -166,6 +174,11 @@ async function main() {
     assert.equal(after, before, `Archive changed between trees: ${file}`);
     sourceHashes[file] = after;
   }
+  const compact = await fs.readFile(path.join(ROOT, 'data/tezoscrp-awards.compact.json'));
+  assert.deepEqual(decodeTezosCrpDataset(JSON.parse(compact)),
+    JSON.parse(await fs.readFile(path.join(options.baselineRoot, 'data/tezoscrp-awards.json'))),
+    'Compact browser archive must retain the exact baseline content');
+  sourceHashes['data/tezoscrp-awards.compact.json'] = digest(compact);
   const servers = [];
   let browser;
   try {

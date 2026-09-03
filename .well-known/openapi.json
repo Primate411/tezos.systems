@@ -463,6 +463,20 @@
         }
       }
     },
+    "/data/tezoscrp-awards.compact.json": {
+      "get": {
+        "operationId": "getTezosCrpCompactAwards",
+        "summary": "Get the lossless dictionary-encoded TezosCRP archive",
+        "description": "Browser schema 2.0.0 preserves all expanded 1.2.0 fields. Resolve each award category_raw_id through award_dictionaries.category_raw and ordered source_ids through award_dictionaries.sources using js/core/tezoscrp-codec.mjs. Complete source records include their independent publication clocks. The expanded public archive remains available at /data/tezoscrp-awards.json.",
+        "x-refresh-cadence": "Daily source check; source dates change only for a new official award period; projection rebuilt with the expanded archive",
+        "x-license-boundary": "Official names, categories, icons, and announcements retain their source terms; original selection, arrangement, and commentary are CC BY 4.0 where owned.",
+        "responses": {
+          "200": {
+            "$ref": "#/components/responses/JsonDocument"
+          }
+        }
+      }
+    },
     "/data/milestone-catalog.json": {
       "get": {
         "operationId": "getMilestoneCatalog",

@@ -100,6 +100,7 @@ tezos.systems/
 │   ├── maxis-l2-governance.json         # Exact all-history Etherlink governance careers
 │   ├── maxis-leaders.json              # Generated canonical lane-native-clock Maxis snapshot
 │   ├── tezoscrp-awards.json             # Full official human-identity recognition archive
+│   ├── tezoscrp-awards.compact.json     # Lossless dictionary-encoded browser projection
 │   ├── tezoscrp-identity-aliases.json    # Evidence-backed identity continuity registry
 │   ├── tezoscrp-summary.json            # Compact launcher/latest-winners projection
 │   ├── maxis/
@@ -1295,6 +1296,7 @@ The governance SEO page also funnels high-intent searches into `/chamber/`,
 | `data/maxis/entry-summary.json` | Compact, integrity-checked launcher projection generated from the reviewed ongoing, L2 Governance, manifest, and active-season Maxis artifacts; full Maxis and Baker Directory governance ledgers wait for an explicit room open |
 | Tezos Commons rewards page and official Medium publication | TezosCRP category definitions, official icons, monthly winner announcements, and source receipts |
 | `data/tezoscrp-awards.json` | Same-origin full TezosCRP recognition archive, with human-identity aliases, monthly/category coverage, and known published amounts kept separate from award counts |
+| `data/tezoscrp-awards.compact.json` | Lossless schema-2 browser projection with shared raw-category and full-source dictionaries; the expanded public archive remains compatible |
 | `data/tezoscrp-identity-aliases.json` | Auditable high-confidence handle, spelling, and cross-platform continuity; uncertain lookalikes remain explicitly pending instead of being guessed |
 | Etherlink JSON-RPC `https://node.mainnet.etherlink.com` | My Tezos linked-account native XTZ balances plus Tezos X chamber RPC head and gas fallback |
 | Etherlink governance `https://governance.etherlink.com/governance` | Official FAST, SLOW, and Sequencer action pages linked from the read-only chamber |
@@ -1726,6 +1728,23 @@ through the existing quiet-refresh helpers, preserving focus, selection, nodes,
 scroll, and charts. The `chamber-reading` smoke tests this at 1440, 390, and 320px;
 the all-route completion matrix requires exactly one summary in every room.
 
+TezosCRP's browser uses `data/tezoscrp-awards.compact.json`, decoded once at the
+read boundary by `js/core/tezoscrp-codec.mjs`. Schema `2.0.0` stores each complete
+source record and raw category label once; `category_raw_id` and ordered
+`source_ids` resolve back to the unchanged expanded schema `1.2.0`. Sources are
+not merged by URL alone. The decoder rejects missing/out-of-range references
+and unsupported encodings, and shares immutable source objects/lists. The
+original `data/tezoscrp-awards.json` remains the generator input and compatible
+public export for old tabs and external consumers; browsers do not fetch both.
+The refresh/check commands and scheduled publisher keep all three CRP artifacts
+in sync. `--rebuild-only` refreshes the projection without advancing source dates
+or polling the feed. Maxis careers use whitespace-free JSON with the same schema,
+semantic integrity hash, and source clocks; `npm run refresh:maxis-careers --
+--compact-only` reformats a validated artifact offline without touching any frozen
+season. `npm run measure:chamber-data` proves full CRP round-trip equality and
+reports raw/gzip sizes and source-object sharing. Its optional `--benchmark`
+reports local Node parse/decode timings, not browser-paint or network guarantees.
+
 `npm run measure:chamber-boot -- --baseline-root /absolute/path/to/exported-pre-pilot-tree --runs 3 --output /tmp/chamber-boot/results.json`
 compares this pilot with an exported full-shell baseline. It serves both trees on temporary loopback ports,
 verifies identical Recognition Hall data, and alternates cold/cached-repeat pairs
@@ -1932,7 +1951,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v618`, including the full-viewport Index
+- Current aligned shell cache stamp: `v619`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

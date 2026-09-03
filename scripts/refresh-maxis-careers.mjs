@@ -40,7 +40,7 @@ async function readJsonIfExists(file) {
 async function writeJsonAtomic(file, value) {
   await fs.mkdir(path.dirname(file), { recursive: true });
   const temporary = `${file}.tmp-${process.pid}`;
-  await fs.writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`);
+  await fs.writeFile(temporary, `${JSON.stringify(value)}\n`);
   await fs.rename(temporary, file);
 }
 
@@ -219,6 +219,14 @@ async function main() {
     const errors = validateGovernanceCareerArtifact(artifact);
     if (errors.length) throw new Error(`Invalid Maxis governance careers artifact: ${errors.join('; ')}`);
     console.log(`Maxis governance careers are valid: ${artifact.recordCount} records through period ${artifact.periodLedger.lastIndex}`);
+    return;
+  }
+  if (process.argv.includes('--compact-only')) {
+    const artifact = await readJson(file);
+    const errors = validateGovernanceCareerArtifact(artifact);
+    if (errors.length) throw new Error(`Cannot compact invalid Maxis governance careers: ${errors.join('; ')}`);
+    await writeJsonAtomic(file, artifact);
+    console.log(`Compacted ${path.relative(ROOT, file)} without changing content, source clocks, or its integrity hash`);
     return;
   }
   const artifact = await buildArtifact(new Date().toISOString());

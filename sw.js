@@ -6,7 +6,7 @@
  * so installing an update does not download the whole site.
  */
 
-const CACHE_NAME = 'tezos-systems-v618';
+const CACHE_NAME = 'tezos-systems-v619';
 const RUNTIME_CACHE = `${CACHE_NAME}-runtime`;
 const CURRENT_CACHES = new Set([CACHE_NAME, RUNTIME_CACHE]);
 
@@ -64,6 +64,7 @@ const NETWORK_ONLY_DATA_PATHS = new Set([
     '/data/maxis-l2-governance.json',
     '/data/maxis/manifest.json',
     '/data/tezoscrp-awards.json',
+    '/data/tezoscrp-awards.compact.json',
     '/data/tezoscrp-summary.json'
 ]);
 

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { decodeTezosCrpDataset, encodeTezosCrpDataset, TEZOSCRP_COMPACT_SCHEMA } from '../js/core/tezoscrp-codec.mjs';
 import {
   CURRENT_CATEGORY_DEFINITIONS,
   TEZOSCRP_SCHEMA_VERSION,
@@ -21,6 +22,48 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const dataset = JSON.parse(await fs.readFile(path.join(ROOT, 'data/tezoscrp-awards.json'), 'utf8'));
 const summary = JSON.parse(await fs.readFile(path.join(ROOT, 'data/tezoscrp-summary.json'), 'utf8'));
 const identityAliases = JSON.parse(await fs.readFile(path.join(ROOT, 'data/tezoscrp-identity-aliases.json'), 'utf8'));
+const compactText = await fs.readFile(path.join(ROOT, 'data/tezoscrp-awards.compact.json'), 'utf8');
+const compact = JSON.parse(compactText);
+const original = structuredClone(dataset);
+assert.equal(compact.schema_version, TEZOSCRP_COMPACT_SCHEMA);
+assert.deepEqual(compact, encodeTezosCrpDataset(dataset), 'Deterministic complete browser projection');
+assert.deepEqual(decodeTezosCrpDataset(compact), dataset, 'Every field survives dictionary decoding');
+assert.deepEqual(decodeTezosCrpDataset(dataset), dataset, 'Expanded-schema compatibility');
+assert.deepEqual(dataset, original, 'Encoding must not mutate the canonical archive');
+assert(compactText.length < JSON.stringify(dataset).length * 0.85, 'Dictionary saving independent of whitespace');
+assert.equal(compactText, `${JSON.stringify(compact)}\n`, 'Compact serialization stays deterministic');
+assert(compact.awards.every(row => !Object.hasOwn(row, 'sources') && !Object.hasOwn(row, 'category_raw')));
+const decoded = decodeTezosCrpDataset(compact);
+const shared = compact.awards.findIndex((row, index) => index > 0 && JSON.stringify(row.source_ids) === JSON.stringify(compact.awards[0].source_ids));
+assert(shared > 0);
+assert.equal(decoded.awards[0].sources, decoded.awards[shared].sources, 'Identical receipt lists share one immutable allocation');
+assert(Object.isFrozen(decoded.awards[0].sources) && Object.isFrozen(decoded.awards[0].sources[0]));
+assert.equal(Object.isFrozen(compact.award_dictionaries.sources[0]), false, 'Decoding must not freeze caller-owned input');
+
+const multiSource = structuredClone(dataset);
+multiSource.awards = [multiSource.awards[0], structuredClone(multiSource.awards[0])];
+multiSource.awards[1].category_raw += ' — historical wording';
+multiSource.awards[1].sources = [multiSource.awards[0].sources[0], { ...multiSource.awards[0].sources[0], published_at: '2026-01-01T00:00:00Z', note: 'Same URL, different receipt' }, multiSource.awards[0].sources[0]];
+const multiPacked = encodeTezosCrpDataset(multiSource);
+assert.equal(multiPacked.award_dictionaries.sources.length, 2, 'Do not merge differing receipts by URL');
+assert.deepEqual(decodeTezosCrpDataset(multiPacked), multiSource, 'Preserve source order, repetition, metadata, and raw category wording');
+for (const mutate of [
+  value => { value.schema_version = 'future'; },
+  value => { delete value.award_dictionaries; },
+  value => { value.awards[0].category_raw_id = -1; },
+  value => { value.awards[0].category_raw_id = 1.5; },
+  value => { value.awards[0].category_raw_id = value.award_dictionaries.category_raw.length; },
+  value => { value.awards[0].source_ids = []; },
+  value => { value.awards[1].source_ids = [null]; },
+  value => { value.awards[0].source_ids = ['0']; },
+  value => { value.awards[0].source_ids = [value.award_dictionaries.sources.length]; },
+  value => { value.awards[0].sources = []; },
+  value => { value.award_dictionaries.sources[0].url = 'javascript:alert(1)'; },
+  value => { value.award_dictionaries.category_raw[0] = null; }
+]) {
+  const invalid = structuredClone(compact); mutate(invalid);
+  assert.throws(() => decodeTezosCrpDataset(invalid), /TezosCRP archive:/);
+}
 
 assert.equal(dataset.schema_version, TEZOSCRP_SCHEMA_VERSION);
 assert.deepEqual(validateTezosCrpIdentityAliases(identityAliases, dataset), []);
@@ -86,6 +129,7 @@ assert.deepEqual(merged.addedPeriods, [fixturePeriod]);
 assert.equal(merged.dataset.awards.length, dataset.awards.length + 4);
 assert.equal(merged.dataset.coverage.missing_periods.length, 0);
 assert.deepEqual(validateTezosCrpDataset(merged.dataset, identityAliases), []);
+assert.deepEqual(decodeTezosCrpDataset(encodeTezosCrpDataset(merged.dataset)), merged.dataset, 'New monthly articles regenerate losslessly');
 
 for (const [personId, awards, periods] of [
   ['x:nicefishtaco', 3, 3],

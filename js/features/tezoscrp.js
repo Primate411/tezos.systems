@@ -6,11 +6,12 @@ import { renderChamberVerdict } from '../ui/chamber-reading.js';
 
 import { escapeHtml } from '../core/utils.js';
 import { versionedAsset } from '../core/asset-version.js';
+import { decodeTezosCrpDataset } from '../core/tezoscrp-codec.mjs';
 import { activateChamberDialog, deactivateChamberDialog, wireChamberLauncher, requestChamberClose } from '../ui/chamber-accessibility.js';
 import { ensureChamberStylesheet } from '../ui/chamber-styles.js';
 
 const SUMMARY_URL = versionedAsset('/data/tezoscrp-summary.json');
-const DATA_URL = versionedAsset('/data/tezoscrp-awards.json');
+const DATA_URL = versionedAsset('/data/tezoscrp-awards.compact.json');
 const CSS_URL = versionedAsset('/css/tezoscrp.min.css');
 const VIEW_KEYS = ['hall', 'records', 'latest', 'categories', 'archive'];
 const VIEW_LABELS = {
@@ -167,8 +168,7 @@ function loadDataset({ force = false } = {}) {
     if (!dataPromise) {
         dataPromise = fetch(DATA_URL, { cache: force ? 'reload' : 'default' }).then(async (response) => {
             if (!response.ok) throw new Error(`TezosCRP archive HTTP ${response.status}`);
-            const data = await response.json();
-            if (!Array.isArray(data?.awards) || !Array.isArray(data?.people_summary)) throw new Error('TezosCRP archive is malformed');
+            const data = decodeTezosCrpDataset(await response.json());
             fullData = data;
             return data;
         }).catch((error) => {

@@ -3,6 +3,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { decodeTezosCrpDataset, encodeTezosCrpDataset } from '../js/core/tezoscrp-codec.mjs';
 import {
   TEZOSCRP_RSS_URL,
   TEZOSCRP_SCHEMA_VERSION,
@@ -17,6 +18,7 @@ import {
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DATA_FILE = path.join(ROOT, 'data', 'tezoscrp-awards.json');
 const SUMMARY_FILE = path.join(ROOT, 'data', 'tezoscrp-summary.json');
+const COMPACT_FILE = path.join(ROOT, 'data', 'tezoscrp-awards.compact.json');
 const IDENTITY_FILE = path.join(ROOT, 'data', 'tezoscrp-identity-aliases.json');
 
 function hasFlag(name) {
@@ -37,8 +39,10 @@ async function readJson(file) {
   return JSON.parse(await fs.readFile(file, 'utf8'));
 }
 
-async function writeJson(file, value) {
-  await fs.writeFile(file, `${JSON.stringify(value, null, 2)}\n`);
+async function writeJson(file, value, compact = false) {
+  const temporary = `${file}.tmp-${process.pid}`;
+  await fs.writeFile(temporary, `${JSON.stringify(value, null, compact ? 0 : 2)}\n`);
+  await fs.rename(temporary, file);
 }
 
 function assertValid(dataset, identityRegistry) {
@@ -61,6 +65,10 @@ async function check(dataset, identityRegistry) {
   const expectedSummary = buildTezosCrpSummary(dataset);
   const actualSummary = await readJson(SUMMARY_FILE);
   if (!equalJson(actualSummary, expectedSummary)) throw new Error('data/tezoscrp-summary.json does not match the full TezosCRP dataset');
+  const compact = await readJson(COMPACT_FILE);
+  if (!equalJson(compact, encodeTezosCrpDataset(dataset)) || !equalJson(decodeTezosCrpDataset(compact), dataset)) {
+    throw new Error('data/tezoscrp-awards.compact.json does not losslessly match the full archive; run npm run refresh:tezoscrp -- --rebuild-only');
+  }
   console.log(`TezosCRP dataset valid: ${dataset.awards.length} awards, ${dataset.people_summary.length} identities, ${dataset.coverage.covered_periods} months`);
 }
 
@@ -102,6 +110,10 @@ async function main() {
   let currentSummary = null;
   try { currentSummary = await readJson(SUMMARY_FILE); } catch { /* first build */ }
   if (!equalJson(currentSummary, summary)) await writeJson(SUMMARY_FILE, summary);
+  const compact = encodeTezosCrpDataset(next);
+  let currentCompact = null;
+  try { currentCompact = await readJson(COMPACT_FILE); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  if (!equalJson(currentCompact, compact)) await writeJson(COMPACT_FILE, compact, true);
 
   if (addedPeriods.length) console.log(`Added TezosCRP award periods: ${addedPeriods.join(', ')}`);
   else console.log('No new TezosCRP winner article found; dataset remains current');

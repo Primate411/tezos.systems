@@ -1,5 +1,11 @@
 const RULES = [
   {
+    suites: /^(tezoscrp|standalone-chamber-boot|standalone-chamber-completion|maxis|baker-directory)$/,
+    files: ['js/core/tezoscrp-codec.mjs', 'data/tezoscrp-awards.compact.json', 'scripts/refresh-tezoscrp-awards.mjs', 'scripts/refresh-maxis-careers.mjs', 'data/maxis-careers.json', 'tests/lib/tezoscrp-compaction-smoke.mjs'],
+    tags: ['chamber', 'data-integrity'],
+    risk: 'high'
+  },
+  {
     suites: /^(chamber-reading|standalone-chamber-completion|chamber-first-paint|quiet-refresh)$/,
     files: ['js/ui/chamber-reading.js', 'js/ui/chamber-accessibility.js', 'css/shell-extras.css', 'tests/lib/chamber-reading-smoke.mjs'],
     tags: ['chamber', 'quiet-refresh', 'accessibility'],

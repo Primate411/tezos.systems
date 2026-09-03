@@ -42,7 +42,7 @@ jobs:
 
       - name: Validate site contracts when awards changed
         run: |
-          if git diff --quiet -- data/tezoscrp-awards.json data/tezoscrp-summary.json; then
+          if git diff --quiet -- data/tezoscrp-awards.json data/tezoscrp-awards.compact.json data/tezoscrp-summary.json; then
             echo "No new TezosCRP award period"
             exit 0
           fi
@@ -52,7 +52,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if git diff --quiet -- data/tezoscrp-awards.json data/tezoscrp-summary.json; then
+          if git diff --quiet -- data/tezoscrp-awards.json data/tezoscrp-awards.compact.json data/tezoscrp-summary.json; then
             echo "No TezosCRP changes to commit"
             exit 0
           fi
@@ -61,7 +61,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git pull --rebase --autostash origin main
           ./scripts/stamp-version.sh
-          git add -- data/tezoscrp-awards.json data/tezoscrp-summary.json version.json
+          git add -- data/tezoscrp-awards.json data/tezoscrp-awards.compact.json data/tezoscrp-summary.json version.json
           git commit -m "Refresh TezosCRP awards"
           git push
           gh workflow run ci.yml --ref main

@@ -24,6 +24,7 @@ import { metadataForSmokeSuite } from './lib/smoke-metadata.mjs';
 import { smokeChamberFirstPaint } from './lib/chamber-first-paint-smoke.mjs';
 import { smokeStandaloneChamberExpansion } from './lib/standalone-chamber-expansion-smoke.mjs';
 import { smokeChamberReading } from './lib/chamber-reading-smoke.mjs';
+import { smokeTezosCrpCompaction } from './lib/tezoscrp-compaction-smoke.mjs';
 import { smokeStandaloneChamberCompletion } from './lib/standalone-chamber-completion-smoke.mjs';
 import { smokeStandaloneChamberLifecycle } from './lib/standalone-chamber-lifecycle-smoke.mjs';
 
@@ -226,6 +227,7 @@ const DEFERRED_CHAMBER_HEAVY_DATA_PATHS = [
   '/data/metals-snapshot.json',
   '/data/minerals-snapshot.json',
   '/data/tezoscrp-awards.json',
+  '/data/tezoscrp-awards.compact.json',
   '/data/uranium-snapshot.json',
   '/data/whale-watch.json'
 ];
@@ -19442,12 +19444,13 @@ async function smokeStandaloneChamberBoot(browser, baseUrl) {
       dashboardNodes: !!document.querySelector('#hero-slot, #chambers-grid, #my-tezos-drawer, #history-modal'),
       scripts: performance.getEntriesByType('resource').filter(r => /\.(?:js|mjs)$/.test(new URL(r.name).pathname)).length,
       readingModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/ui/chamber-reading.js').length,
+      codecModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/core/tezoscrp-codec.mjs').length,
       elements: document.getElementsByTagName('*').length,
       theme: document.body.dataset.theme,
       overflow: document.documentElement.scrollWidth > innerWidth,
       timeOrigin: performance.timeOrigin
     }));
-    assert(cold.readingModules === 1 && !cold.ready && !cold.dashboardNodes && cold.scripts - cold.readingModules < 20 && cold.elements < 1500, `standalone ${width}: eager dashboard leaked ${JSON.stringify(cold)}`);
+    assert(cold.readingModules === 1 && cold.codecModules === 1 && !cold.ready && !cold.dashboardNodes && cold.scripts - cold.readingModules - cold.codecModules < 20 && cold.elements < 1500, `standalone ${width}: eager dashboard leaked ${JSON.stringify(cold)}`);
     assert(cold.theme === theme && !cold.overflow, `standalone ${width}: theme or geometry changed`);
     const forbidden = requests.filter(url => /\/(?:app|api|network-health|history|my-tezos|daily-briefing|price|comparison)\.js|chart\.umd|chartjs-adapter|\.supabase\.co|\.tzkt\.io|rpc\.tez\.capital/.test(url));
     assert(forbidden.length === 0, `standalone ${width}: unrelated startup work ${forbidden.join('\n')}`);
@@ -19479,7 +19482,8 @@ async function smokeStandaloneChamberBoot(browser, baseUrl) {
     await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible' });
     assert(await page.evaluate(() => performance.timeOrigin) === cold.timeOrigin, `standalone ${width}: search or My Tezos reloaded the document`);
     assert(requests.filter(url => new URL(url).pathname === '/js/core/app.js').length === 1, `standalone ${width}: dashboard imported more than once`);
-    assert(requests.filter(url => new URL(url).pathname === '/data/tezoscrp-awards.json').length === 1, `standalone ${width}: transition created a second archive cache`);
+    assert(requests.filter(url => new URL(url).pathname === '/data/tezoscrp-awards.compact.json').length === 1, `standalone ${width}: transition created a second archive cache`);
+    assert(!requests.some(url => new URL(url).pathname === '/data/tezoscrp-awards.json'), `standalone ${width}: browser loaded the expanded compatibility archive`);
     assert(issues.length === 0, `standalone ${width}: ${issues.join('\n')}`);
     await context.close();
   }
@@ -19844,6 +19848,7 @@ async function smokeTezosCrpChamber(browser, baseUrl) {
     await context.close();
   }
   log('ok - TezosCRP Chamber (desktop + mobile)');
+  await smokeTezosCrpCompaction(browser, baseUrl, { dataset: tezosCrpDataset, installFeatureMocks, artifactsDir: ARTIFACTS_DIR });
 }
 
 async function smokeMaxisChamber(browser, baseUrl) {

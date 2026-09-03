@@ -77,7 +77,7 @@ const LAUNCHER_PROJECTION_TARGETS = [
   'data/baker-governance-signals.json'
 ];
 const WHALE_WATCH_TARGETS = ['data/whale-watch.json'];
-const TEZOSCRP_TARGETS = ['data/tezoscrp-awards.json', 'data/tezoscrp-summary.json'];
+const TEZOSCRP_TARGETS = ['data/tezoscrp-awards.json', 'data/tezoscrp-awards.compact.json', 'data/tezoscrp-summary.json'];
 const SEARCH_CATALOG_TARGETS = ['data/search-catalog.json'];
 
 const GENERATED_TARGETS = unique([

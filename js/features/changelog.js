@@ -5,6 +5,13 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-03',
+        entries: [
+            { type: '⚡', text: 'TezosCRP now downloads a smaller, lossless recognition archive with shared source records; every award, identity, historical category, and official link is preserved' },
+            { type: '⚡', text: 'Maxis career downloads use compact JSON without changing governance records, source dates, integrity hashes, or frozen season results' }
+        ]
+    },
+    {
         date: '2026-09-02',
         entries: [
             { type: '🎨', text: 'Chambers now open with plain-language summaries and source-bounded receipts; market rooms explain their units and coverage without changing their distinctive designs' },

@@ -1320,6 +1320,8 @@ async function checkRequiredFiles() {
     'data/maxis/entry-summary.json',
     'data/maxis/manifest.json',
     'data/tezoscrp-awards.json',
+    'data/tezoscrp-awards.compact.json',
+    'js/core/tezoscrp-codec.mjs',
     'data/tezoscrp-identity-aliases.json',
     'data/tezoscrp-summary.json',
     'maxis/index.html',
@@ -4894,7 +4896,9 @@ async function checkInitialLoadMeasurementContracts() {
   for (const contract of ["require('./lib/playwright-browser.cjs')", 'Network.setCacheDisabled',
     'cacheDisabled: false', 'Network.setBlockedURLs', 'Emulation.setCPUThrottlingRate',
     'cachedScripts', 'warm scripts reached the HTTP server', 'Archive changed between trees',
-    "page.goto('about:blank')", 'not a measured physical phone', 'totalBlockingTimeMs']) {
+    "page.goto('about:blank')", 'not a measured physical phone', 'totalBlockingTimeMs',
+    'metrics.jsResources - metrics.readingModules - metrics.codecModules < 20',
+    'Compact browser archive must retain the exact baseline content']) {
     if (!chamberMeasurement.includes(contract)) fail(`Chamber boot measurement missing ${contract}`);
   }
   if (/\b(?:context|page)\.route\s*\(/.test(chamberMeasurement)) {
@@ -7803,7 +7807,9 @@ async function checkReadmeContracts() {
 
 async function checkMaxisContracts() {
   const config = JSON.parse(await readText('data/maxis-contracts.json'));
-  const careerArtifact = JSON.parse(await readText('data/maxis-careers.json'));
+  const careerText = await readText('data/maxis-careers.json');
+  const careerArtifact = JSON.parse(careerText);
+  assert.equal(careerText, `${JSON.stringify(careerArtifact)}\n`, 'Mutable career artifact must retain compact JSON serialization');
   const l2GovernanceArtifact = JSON.parse(await readText('data/maxis-l2-governance.json'));
   const snapshot = JSON.parse(await readText('data/maxis-leaders.json'));
   const maxis = await readText('js/features/maxis.js');
@@ -9166,7 +9172,10 @@ async function checkTezosCrpContracts() {
     ['pretty route metadata', "slug: 'tezoscrp'", routes],
     ['generated data target', "'data/tezoscrp-summary.json'", generatedSurfaces],
     ['central summary version stamp', "versionedAsset('/data/tezoscrp-summary.json')", feature],
-    ['central archive version stamp', "versionedAsset('/data/tezoscrp-awards.json')", feature],
+    ['central compact archive version stamp', "versionedAsset('/data/tezoscrp-awards.compact.json')", feature],
+    ['compact decoding at the read boundary', 'decodeTezosCrpDataset(await response.json())', feature],
+    ['generated compact target', "'data/tezoscrp-awards.compact.json'", generatedSurfaces],
+    ['scheduled compact publication', 'data/tezoscrp-awards.compact.json', workflow],
     ['daily schedule', "23 13 * * *", workflow],
     ['refresh command', 'refresh:tezoscrp', JSON.stringify(packageJson.scripts)],
     ['check command', 'check:tezoscrp', JSON.stringify(packageJson.scripts)]
