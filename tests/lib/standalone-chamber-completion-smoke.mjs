@@ -4,7 +4,7 @@ import path from 'node:path';
 import { CHAMBER_FEATURES, standaloneFeatureForRoute } from '../../js/core/chamber-features.mjs';
 import { CHAMBER_ROUTES } from '../../scripts/lib/chamber-routes.mjs';
 
-export async function smokeStandaloneChamberCompletion(browser, baseUrl, { installFeatureMocks, artifactsDir }) {
+export async function smokeStandaloneChamberCompletion(browser, baseUrl, { installFeatureMocks, artifactsDir, ledgerFlowAddress }) {
   const receipts = [], failures = [];
   const routes = [...CHAMBER_ROUTES.map(route => route.slug), 'anthology/ushuaia'];
   for (const width of [1440, 390]) for (const slug of routes) {
@@ -14,10 +14,9 @@ export async function smokeStandaloneChamberCompletion(browser, baseUrl, { insta
     const context = await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: 'reduce', serviceWorkers: 'block' });
     let page;
     try {
-      await installFeatureMocks(context);
-      await context.route('**/v1/accounts/tz1PmPThcxFUEBh1tJrkZKwkaGrE5VjPs4CA', route => route.fulfill({
-        contentType: 'application/json', body: JSON.stringify({ address: 'tz1PmPThcxFUEBh1tJrkZKwkaGrE5VjPs4CA', type: 'user', balance: 100000000000, alias: 'Fixture flow account' })
-      }));
+      // Ledger Flow seeds itself from Whale Watch. Pin the archive and its
+      // account receipts together instead of following a rolling data file.
+      const mocks = await installFeatureMocks(context, { whaleChamberMocks: true, ledgerFlowMocks: true });
       await context.addInitScript(width => {
         localStorage.setItem('tezos-systems-theme', width === 390 ? 'clean' : 'matrix');
         localStorage.setItem('tezos-toured', '1');
@@ -30,6 +29,11 @@ export async function smokeStandaloneChamberCompletion(browser, baseUrl, { insta
       page.on('request', request => requests.push(request.url()));
       await page.goto(`${baseUrl}/${slug}/`, { waitUntil: 'domcontentloaded' });
       await page.waitForFunction(id => document.documentElement.dataset.chamberReady === id, id, { timeout: 35000 });
+      if (id === 'ledger-flow') {
+        await page.waitForFunction(address => localStorage.getItem('tezos-systems-ledger-flow-target') === address, ledgerFlowAddress);
+        assert(mocks.whaleArtifactRequests > 0, 'Ledger Flow reads the pinned Whale Watch seed');
+        assert(mocks.ledgerFlowTzktRequests.some(url => new URL(url).pathname === `/v1/accounts/${ledgerFlowAddress}`), 'Seed account receipt is exercised, not skipped');
+      }
       await page.evaluate(() => document.fonts.ready);
       const cold = await page.evaluate(() => ({
         timeOrigin: performance.timeOrigin,

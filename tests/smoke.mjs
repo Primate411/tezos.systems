@@ -32543,10 +32543,9 @@ async function smokeRouteFormatting(browser, baseUrl) {
       viewport,
       serviceWorkers: 'block'
     });
-    await installFeatureMocks(context);
-    await context.route('**/v1/accounts/tz1PmPThcxFUEBh1tJrkZKwkaGrE5VjPs4CA', route => fulfillJson(route, {
-      address: 'tz1PmPThcxFUEBh1tJrkZKwkaGrE5VjPs4CA', type: 'user', balance: 100000000000, alias: 'Fixture flow account'
-    }));
+    // The default Ledger Flow account follows Whale Watch's largest sender.
+    // Keep both sides inside one fixture, independent of scheduled data.
+    const mocks = await installFeatureMocks(context, { whaleChamberMocks: true, ledgerFlowMocks: true });
     await context.route('https://api.tzkt.io/v1/operations/transactions**', (route) => fulfillJson(route, []));
     await context.route('https://api.tzkt.io/v1/operations/staking**', (route) => fulfillJson(route, []));
     await context.route('https://api.github.com/repos/Primate411/tezos.systems/commits/main', (route) => fulfillJson(route, {
@@ -32567,10 +32566,20 @@ async function smokeRouteFormatting(browser, baseUrl) {
 
     for (const route of formattingRoutes) {
       const url = `${baseUrl}${route}`;
+      // This suite checks route geometry, not the complete account model. Wait
+      // for the seeded receipt itself; full loading is covered by the Chamber suite.
+      const ledgerReceipt = route === '/ledger-flow/'
+        ? page.waitForResponse(response => new URL(response.url()).pathname === `/v1/accounts/${SAMPLE_ADDRESS}`)
+        : null;
       const response = await page.goto(url, { waitUntil: 'domcontentloaded' });
       assert((response?.status() || 0) < 500, `route formatting ${label}: route returned ${response?.status()}: ${route}`);
       await page.locator('body').waitFor({ state: 'attached', timeout: 5000 });
       await page.waitForTimeout(300);
+      if (route === '/ledger-flow/') {
+        assert((await ledgerReceipt).ok(), 'Route formatting receives the seeded account fixture');
+        assert(mocks.whaleArtifactRequests > 0, 'Route formatting uses the pinned Whale Watch seed');
+        assert(mocks.ledgerFlowTzktRequests.some(url => new URL(url).pathname === `/v1/accounts/${SAMPLE_ADDRESS}`), 'Route formatting exercises the seeded account receipt');
+      }
       if (route === '/my/') {
         await page.waitForFunction(() => {
           const drawer = document.querySelector('#my-tezos-drawer.open');
@@ -36648,7 +36657,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'chamber-first-paint', description: 'Six snapshot rooms finish hidden first render, paint verified saved receipts before network, and revalidate without moving desktop or mobile readers', run: () => smokeChamberFirstPaint(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'chamber-reading', description: 'Room summaries and source clocks stay contained, truthful, visible-only, and quiet across desktop/mobile reader updates', run: () => smokeChamberReading(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'standalone-chamber-expansion', description: 'Five independent rooms defer dashboard startup, preserve direct state and failed-exit readers, and hand off once across desktop/mobile navigation and cancelled loads', run: () => smokeStandaloneChamberExpansion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
-    { name: 'standalone-chamber-completion', description: 'Every generated room and alias boots without home telemetry and retains direct desktop/mobile navigation through the dashboard handoff', run: () => smokeStandaloneChamberCompletion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'standalone-chamber-completion', description: 'Every generated room and alias boots without home telemetry and retains direct desktop/mobile navigation through the dashboard handoff', run: () => smokeStandaloneChamberCompletion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR, ledgerFlowAddress: SAMPLE_ADDRESS }) },
     { name: 'standalone-chamber-lifecycle', description: 'Standalone legacy rooms retain failed-exit readers, lazy charts retry locally, directory controls navigate correctly, and selected themes survive handoff', run: () => smokeStandaloneChamberLifecycle(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'capital-chamber', description: 'Capital Chamber renders sourced cross-layer, market, asset, RWA, and art-economy views with quality quarantine, explicit gaps, direct routing, and quiet refresh', run: () => smokeCapitalChamber(browser, baseUrl) },
     { name: 'minerals-chamber', description: 'Critical Minerals keeps its compact launcher independent, exposes five accessible sourced views, preserves routes and quiet reading state, retains last-good receipts, and fits 320/390px rooms', run: () => smokeMineralsChamber(browser, baseUrl) },

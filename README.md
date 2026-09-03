@@ -1563,6 +1563,10 @@ separate transparent `--retry-infrastructure` allowance. When
 and diagnostic retries additionally retain Playwright traces, viewport
 screenshots, and DOM snapshots.
 
+Cross-room navigation and route-formatting tests pin the Whale Watch archive
+and Ledger Flow account receipts together, so scheduled changes to the largest
+sender cannot leak an unmocked account lookup into hermetic validation.
+
 `npm run test:affected` runs the static gate, maps files changed since
 `origin/main` to suite-declared `files`, `tags`, and `risk`, and repeats selected
 high-risk owners three times. Shared harness/runtime files or any unmapped
