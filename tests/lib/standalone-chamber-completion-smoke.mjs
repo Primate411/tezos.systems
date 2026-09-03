@@ -47,6 +47,13 @@ export async function smokeStandaloneChamberCompletion(browser, baseUrl, { insta
       if (!room.controller) assert(!cold.scripts.some(url => /\/core\/app\.js/.test(url)), 'Independent room stays out of app controller');
       assert.deepEqual(errors, [], 'No boot exceptions');
       assert(await page.locator(`#${room.overlayId}`).isVisible(), 'Room visibly rendered');
+      const verdict = page.locator(`#${room.overlayId} [data-chamber-verdict="${id}"]`);
+      await verdict.waitFor({ state: 'attached' });
+      assert.equal(await verdict.count(), 1, 'One source-bounded summary per room');
+      assert(!/undefined|NaN/.test(await verdict.innerText()), 'Summary has no missing-value artifacts');
+      if (['capital', 'minerals', 'metals', 'uranium'].includes(id)) {
+        assert.equal(await page.locator(`#${room.overlayId} .chamber-reading-guide dt`).count(), 3, 'Three source-scale reference rows');
+      }
       if (id === 'history' && width === 390) {
         const palette = await page.evaluate(() => {
           const room = getComputedStyle(document.querySelector('.cycle-history-content'));

@@ -1,3 +1,4 @@
+import { renderChamberVerdict, renderChamberStamp, settleChamberArrival } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Whale Watch Chamber
@@ -410,7 +411,7 @@ function sourceStripMarkup() {
         <div class="whale-watch-source-strip${stale}" id="whale-watch-freshness" role="status" aria-live="polite">
             <span class="whale-watch-live-dot" aria-hidden="true"></span>
             <strong>Shared archive</strong>
-            <span>${generatedAt ? `generated ${escapeHtml(ageLabel(generatedAt))} · ${escapeHtml(GENERATED_PROOFBOOK_SCHEDULE_LABEL)}` : 'not yet available'}</span>
+            <span>${generatedAt ? `${renderChamberStamp(generatedAt, 'Generated')} · ${escapeHtml(GENERATED_PROOFBOOK_SCHEDULE_LABEL)}` : 'not yet available'}</span>
             ${lastArtifact?.transfers24h ? `<span>window ${escapeHtml(archiveWindowLabel())}</span>` : ''}
             <a href="${ARTIFACT_URL}" target="_blank" rel="noopener">JSON receipt</a>
             <span class="whale-watch-cache-state">${artifactError ? (lastArtifact ? 'Last-good retained · refresh failed' : 'Archive unavailable · refresh failed') : savedArtifact ? 'Saved snapshot · update pending' : generatedAt ? 'Generated archive verified' : 'Awaiting generated archive'}</span>
@@ -426,6 +427,7 @@ function headerMarkup() {
                 <div><p class="whale-watch-kicker">Capital movement · account dormancy · operation receipts</p><h2 id="whale-watch-title">Whale Watch</h2><p>${escapeHtml(active.detail)}</p></div>
                 <button class="whale-watch-refresh" type="button" data-whale-action="refresh" aria-label="Refresh Whale Watch data">Refresh</button>
             </div>
+            ${renderChamberVerdict({ key: 'whales', state: artifactError ? 'watch' : lastArtifact ? 'snapshot' : 'unavailable', sentence: lastArtifact?.transfers24h ? `${exact(lastArtifact.transfers24h.operationCount)} large applied transfers are recorded in the archive’s 24-hour window; the live tape has separate bounded coverage.` : 'The shared archive is not available yet; no quiet-day claim can be made.', receipts: [['Window', archiveWindowLabel()], ['Operation groups', lastArtifact?.transfers24h?.operationGroupCount ?? 'Unavailable']], timestamp: lastArtifact?.generatedAt })}
             <nav class="whale-watch-tabs" role="tablist" aria-label="Whale Watch views">
                 ${VIEWS.map((view) => `<button id="whale-watch-tab-${view.id}" type="button" role="tab" aria-selected="${currentView === view.id}" aria-controls="whale-watch-panel-${view.id}" tabindex="${currentView === view.id ? '0' : '-1'}" data-whale-view="${view.id}">${escapeHtml(view.label)}</button>`).join('')}
             </nav>
@@ -495,7 +497,7 @@ function liveOperationMarkup(operation) {
     const amount = whaleOperationAmountPresentation(operation);
     const amountValue = amount.value === null ? '—' : xtz(amount.value, 2);
     return `
-        <article class="whale-watch-tape-row" data-quiet-key="whale-watch-op-${escapeHtml(id)}">
+        <article class="whale-watch-tape-row" data-chamber-arrival="row" data-quiet-key="whale-watch-op-${escapeHtml(id)}">
             <div class="whale-watch-tape-kind"><span>${escapeHtml(context.emoji)}</span><strong>${escapeHtml(context.label)}</strong><small>${escapeHtml(formatDate(operation.timestamp))}</small></div>
             <div class="whale-watch-tape-amount"><strong>${amountValue}</strong><small>${escapeHtml(amount.label)} · TzKT operation ${escapeHtml(id)}</small></div>
             <div class="whale-watch-tape-flow"><span title="${escapeHtml(parties.senderAddress)}">${escapeHtml(parties.sender.icon)} ${escapeHtml(parties.sender.name)}</span><b>→</b><span title="${escapeHtml(parties.targetAddress)}">${escapeHtml(parties.target.icon)} ${escapeHtml(parties.target.name)}</span></div>
@@ -510,7 +512,7 @@ function liveMarkup() {
         <section class="whale-watch-view" id="whale-watch-panel-live" role="tabpanel" aria-labelledby="whale-watch-tab-live" tabindex="0">
             <div class="whale-watch-view-heading"><div><p class="whale-watch-eyebrow">Current bounded observation</p><h3>Live Tape</h3></div><p>Transfers and stake changes use the applied operation's actual amount. Delegation changes qualify by TzKT sender balance and are labeled as balance context, never tez moved. This tape is a sample, not a complete historical total.</p></div>
             ${filtersMarkup()}
-            <div class="whale-watch-result-line"><span>${exact(operations.length)} matching operations</span><span>All four TzKT lanes required · last good ${escapeHtml(ageLabel(snapshot.updatedAt))}${liveError ? ' · refresh failed' : ''}</span></div>
+            <div class="whale-watch-result-line"><span>${exact(operations.length)} matching operations</span><span>All four TzKT lanes required · ${renderChamberStamp(snapshot.updatedAt, 'Last good read')}${liveError ? ' · refresh failed' : ''}</span></div>
             <div class="whale-watch-tape" id="whale-watch-live-tape">${operations.length ? operations.map(liveOperationMarkup).join('') : `<div class="whale-watch-empty">${escapeHtml(liveError || 'No operations match these filters in the bounded live sample.')}</div>`}</div>
         </section>`;
 }
@@ -704,6 +706,7 @@ function renderBody({ quiet = false } = {}) {
         }
     } else body.innerHTML = markup;
     body.dataset.whaleWatchRendered = '1';
+    settleChamberArrival(body, { quiet });
 }
 
 function entryFooterMarkup() {

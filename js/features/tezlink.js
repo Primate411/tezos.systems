@@ -1,3 +1,4 @@
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Tezos X Chamber
@@ -638,6 +639,7 @@ function renderTezlinkChamber(data, container, { quiet = false } = {}) {
                 <div class="proposal-hash">${head ? `Head ${compactNumber(head)} · ${formatUsd(data.tvl)} TVL · ${compactNumber(data.transactionsToday)} tx today` : 'DefiLlama + Blockscout + JSON-RPC'}</div>
             </div>
         </div>
+        ${renderChamberVerdict({ key: 'tezosx', state: head ? 'observed' : 'unavailable', sentence: head ? 'The L2 execution surface has returned a head; activity, TVL, and gas retain their separate source scopes.' : 'An L2 head has not been returned; missing telemetry is not evidence of a stopped chain.', receipts: [['Head', head ? compactNumber(head) : 'Unavailable'], ['TVL', formatUsd(data.tvl)]] })}
         <section class="lb-explainer tezlink-explainer chamber-anim-fade">
             <div class="lb-explainer-main">
                 <div class="lb-explainer-kicker">Right now</div>

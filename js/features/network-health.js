@@ -3946,7 +3946,7 @@ function healthVerdict(data) {
 function renderHealthVerdictPanel(data) {
     const verdict = healthVerdict(data);
     return `
-        <section class="health-verdict-panel ${escapeHtml(verdict.tone)} chamber-anim-fade" id="health-verdict-panel" aria-label="Network health verdict" style="animation-delay:90ms">
+        <section class="health-verdict-panel ${escapeHtml(verdict.tone)} chamber-anim-fade" id="health-verdict-panel" data-chamber-verdict="health" aria-label="Network health verdict" style="animation-delay:90ms">
             <div class="health-verdict-status">
                 <span class="health-verdict-dot" aria-hidden="true"></span>
                 <span>${escapeHtml(verdict.label)}</span>

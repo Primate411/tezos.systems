@@ -1,3 +1,4 @@
+import { renderChamberVerdict, syncChamberVerdict, settleChamberArrival } from '../ui/chamber-reading.js';
 import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Network Pulse Chamber
@@ -1107,7 +1108,7 @@ function renderMetricCard(metric, stats, rows = lastHistoryRows, domainRows = la
                 <span class="network-pulse-card-label">${escapeHtml(metric.label)}</span>
                 ${renderDeltaChip(metric, stats, rows, domainRows)}
             </div>
-            <strong data-pulse-value>${escapeHtml(presentation.value)}</strong>
+            <strong data-pulse-value data-chamber-arrival="value">${escapeHtml(presentation.value)}</strong>
             <p data-pulse-detail>${renderDetailContent(presentation)}</p>
             <div class="network-pulse-sparkline" data-pulse-sparkline>${sparkline}</div>
             <div class="network-pulse-card-actions">
@@ -1210,6 +1211,10 @@ function hasSeedStats(stats) {
     return Boolean(stats && typeof stats === 'object' && Object.keys(stats).length);
 }
 
+function pulseReading(stats) {
+    return { key: 'pulse', state: hasSeedStats(stats) ? 'observed' : 'unavailable', sentence: 'This field combines network measurements with different capture clocks; a missing measurement is not zero.', receipts: [['Scope', 'Tezos L1 + L2'], ['Sources', 'TzKT, RPC, and captured history']], timestamp: lastStatsAt || null, clockLabel: 'Stats read' };
+}
+
 function renderNetworkPulseChamber(stats, container, { loading = false, rows = lastHistoryRows, domainRows = lastDomainRows } = {}) {
     if (!container) return;
     const seeded = hasSeedStats(stats);
@@ -1235,6 +1240,7 @@ function renderNetworkPulseChamber(stats, container, { loading = false, rows = l
                 <div class="proposal-hash" data-pulse-header-meta>${escapeHtml(headerMeta(stats))}</div>
             </div>
         </div>
+        ${renderChamberVerdict(pulseReading(stats))}
         <div class="network-pulse-nav" aria-label="Network Pulse categories">
             ${GROUPS.map((group) => `<button type="button" data-pulse-target="network-pulse-${escapeHtml(group.id)}">${escapeHtml(group.label)}</button>`).join('')}
             <button type="button" data-pulse-target="network-pulse-rooms">Chambers</button>
@@ -1252,6 +1258,7 @@ function renderNetworkPulseChamber(stats, container, { loading = false, rows = l
         </div>
     `;
     container.dataset.networkPulseRendered = '1';
+    settleChamberArrival(container, { quiet: loading });
     startScrollSpy();
 }
 
@@ -1259,6 +1266,7 @@ function patchNetworkPulseChamber(stats, rows = lastHistoryRows, { loading = fal
     const overlay = document.getElementById('network-pulse-modal');
     const body = overlay?.querySelector('.network-pulse-body');
     if (!body || body.dataset.networkPulseRendered !== '1') return false;
+    syncChamberVerdict(body, pulseReading(stats));
 
     const seeded = hasSeedStats(stats);
     body.querySelector('[data-pulse-live-badge]')?.replaceChildren(document.createTextNode(loading ? (seeded ? 'Warming' : 'Syncing') : 'Live'));

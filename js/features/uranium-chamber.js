@@ -1,3 +1,4 @@
+import { setChamberReadingState, renderAgeingLabel, renderChamberStamp, renderChamberVerdict, renderChamberGuide, syncChamberReading } from '../ui/chamber-reading.js';
 /**
  * Uranium Chamber
  *
@@ -1405,7 +1406,7 @@ function renderProof(snapshot) {
             <article class="uranium-panel"><span class="uranium-eyebrow">Market structure</span><h4>No assumed peg</h4><p>${escapeHtml(pegCopy)} A token can trade above or below the indicative uranium reference; neither quote is proof of executable physical value.${issuerReceiptLink(terms.priceReceipt)}</p></article>
         </section>
         <p class="uranium-footnote">${escapeHtml(terms.caveat)} ${escapeHtml(issuerRightsSummary(terms))}${issuerReceiptLink(terms.rightsReceipt, 'Issuer whitepaper')}</p>
-        <section class="uranium-panel"><div class="uranium-panel-head"><div><span class="uranium-eyebrow">Source ledger</span><h4>Receipts and independent clocks</h4></div><span class="uranium-status is-neutral" id="uranium-proof-generated">Generated ${escapeHtml(ageLabel(snapshot.generatedAt))}</span></div>${renderSources(snapshot)}</section>
+        <section class="uranium-panel"><div class="uranium-panel-head"><div><span class="uranium-eyebrow">Source ledger</span><h4>Receipts and independent clocks</h4></div><span class="uranium-status is-neutral" id="uranium-proof-generated">${renderChamberStamp(snapshot.generatedAt, 'Generated')}</span></div>${renderSources(snapshot)}</section>
         ${renderUnavailable(snapshot.unavailable)}
         <nav class="uranium-pathways" aria-label="Continue through related Tezos Chambers">
             <a href="/minerals/">Critical Minerals<small>Place uranium beside the official strategic-minerals atlas</small></a>
@@ -1440,16 +1441,17 @@ function freshnessPresentation(snapshot) {
 }
 
 function syncUraniumFreshness(snapshot) {
+    setChamberReadingState(document.getElementById('uranium-chamber-body'), lastRefreshError || freshnessPresentation(snapshot).stale ? 'watch' : 'snapshot');
     syncSnapshotStatus(document.getElementById('uranium-chamber-body'), savedSnapshot, lastRefreshError);
     const presentation = freshnessPresentation(snapshot);
     const freshness = document.getElementById('uranium-freshness');
     if (freshness) {
-        if (freshness.textContent !== presentation.label) freshness.textContent = presentation.label;
+        quietlySyncHtml(freshness, renderAgeingLabel(presentation.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt)));
         freshness.classList.toggle('is-stale', presentation.stale);
     }
     const proofGenerated = document.getElementById('uranium-proof-generated');
-    const proofLabel = `Generated ${ageLabel(snapshot.generatedAt)}`;
-    if (proofGenerated && proofGenerated.textContent !== proofLabel) proofGenerated.textContent = proofLabel;
+    const proofLabel = renderChamberStamp(snapshot.generatedAt, 'Generated');
+    if (proofGenerated) quietlySyncHtml(proofGenerated, proofLabel);
 }
 
 function renderChamber(snapshot) {
@@ -1458,10 +1460,10 @@ function renderChamber(snapshot) {
     return `
         <header class="uranium-header market-room-header" data-quiet-key="uranium-header">
             <div class="uranium-system-strip market-room-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>commodity market intelligence</span></div>
-            <div class="uranium-title-row market-room-title-row"><h2 class="market-room-title is-editorial" id="uranium-title">Uranium Chamber</h2><span class="uranium-badge market-room-badge">xU3O8</span><span class="uranium-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="uranium-freshness" aria-live="polite">${escapeHtml(freshness.label)}</span></div>
-            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}<p class="uranium-intro market-room-intro">A source-bounded view of xU3O8, physical U3O8 custody receipts, Uranium.io, Kraken price discovery, and Etherlink state—with each claim kept on its natural clock.</p>
+            <div class="uranium-title-row market-room-title-row"><h2 class="market-room-title is-editorial" id="uranium-title">Uranium Chamber</h2><span class="uranium-badge market-room-badge">xU3O8</span><span class="uranium-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="uranium-freshness" aria-live="polite">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span></div>
+            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}
             <div class="uranium-tabs market-room-tabs" role="tablist" aria-label="Uranium Chamber views">${VIEWS.map((item) => `<button class="uranium-tab market-room-tab" id="uranium-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="uranium-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-uranium-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div>
-        </header>
+        </header>${renderChamberVerdict({ key: 'uranium', state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot', sentence: 'xU3O8 trading and physical uranium evidence are separate receipts, not proof of a fixed peg or present redeemability.', receipts: [['Token market', formatUsd(coinModel(snapshot).price)], ['Network', 'Etherlink']], timestamp: snapshot.generatedAt })}${renderChamberGuide('uranium')}
         <section class="uranium-view-shell market-room-view-shell" id="uranium-view-panel" role="tabpanel" aria-labelledby="uranium-tab-${view.id}" data-quiet-key="uranium-view-panel">
             <div class="uranium-view-head market-room-view-head"><div><h3>${escapeHtml(view.title)}</h3><p>${escapeHtml(view.detail)}</p></div></div>
             <div class="uranium-view-content market-room-view-content" id="uranium-view-content" data-quiet-key="uranium-view-content">${renderView(snapshot)}</div>
@@ -1485,8 +1487,7 @@ function renderBody(snapshot, { quiet = false } = {}) {
     const body = document.getElementById('uranium-chamber-body');
     if (!body || !snapshot) return;
     const markup = renderChamber(snapshot);
-    if (quiet && body.dataset.uraniumRendered === '1') quietlySyncHtml(body, markup);
-    else body.innerHTML = markup;
+    syncChamberReading(body, markup, { quiet: quiet && body.dataset.uraniumRendered === '1' });
     body.dataset.uraniumRendered = '1';
 }
 
@@ -1540,7 +1541,9 @@ function markRefreshFailure() {
     syncSnapshotStatus(document.getElementById('uranium-chamber-body'), savedSnapshot, lastRefreshError);
     const freshness = document.getElementById('uranium-freshness');
     if (freshness && lastSnapshot) {
-        freshness.textContent = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
+        const failedLabel = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
+        quietlySyncHtml(freshness, renderAgeingLabel(failedLabel, lastSnapshot.generatedAt, ageLabel(lastSnapshot.generatedAt)));
+        setChamberReadingState(document.getElementById('uranium-chamber-body'), 'watch');
         freshness.classList.add('is-stale');
     }
     const card = document.getElementById('uranium-entry-card');

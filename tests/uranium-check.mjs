@@ -611,7 +611,7 @@ const rangeBlock = sourceBlock(feature, 'const RANGES = Object.freeze([', 'const
 assert.deepEqual([...rangeBlock.matchAll(/id: '([^']+)'/g)].map((match) => match[1]), ['24H', '7D', '30D', '90D', '1Y'],
   'Uranium price-history ranges drifted');
 assert(feature.includes("import { quietlySyncHtml } from '../core/quiet-refresh.js';"), 'Uranium must use shared quiet reconciliation');
-assert(feature.includes("quietlySyncHtml(body, markup)"), 'Uranium body background render must reconcile quietly');
+assert(feature.includes("syncChamberReading(body, markup, { quiet:"), 'Uranium body background render must reconcile quietly');
 assert(feature.includes("quietlySyncHtml(front, markup)"), 'Uranium launcher background render must reconcile quietly');
 const timerBlock = sourceBlock(feature, 'function startRefreshTimer()', 'function bindVisibilityRefresh()');
 assert(timerBlock.includes("document.visibilityState !== 'visible'"), 'Uranium timer must be visibility gated');

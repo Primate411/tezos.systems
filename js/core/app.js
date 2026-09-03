@@ -4,6 +4,7 @@
  */
 
 import './tzkt-throttle.js';
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { initShellLifecycle } from './shell-lifecycle.js';
 import { CHAMBER_FEATURES } from './chamber-features.mjs';
 import { fetchAllStats, fetchHeroStats, fetchHistoricalDataReceipt, checkApiHealth, fetchWithDeadline, fetchWithRetry } from './api.js';
@@ -6220,6 +6221,7 @@ function renderProtocolHistoryChamberShell(overlay) {
                 Read Tezos one amendment at a time. Search every adopted chapter, open the governance arguments, and share the exact page you are reading.
             </p>
             <div class="protocol-alphabet-march" id="protocol-alphabet-march" aria-live="polite"></div>
+            ${renderChamberVerdict({ key: 'anthology', state: 'archive', sentence: 'Each adopted protocol chapter keeps its governance arguments and historical outcome; it is not a current vote.', receipts: [['Record', 'Adopted amendments'], ['Context', 'Sources and debate by chapter']] })}
             <div class="protocol-history-chamber-actions">
                 <button class="protocol-history-chamber-link protocol-history-chamber-action" type="button" data-anthology-share>Share anthology</button>
                 <button class="protocol-history-chamber-link" type="button" data-copy-hash="#protocol-history">Copy anthology link</button>
@@ -6473,6 +6475,11 @@ export async function openStandaloneDirectory({ isCurrent = () => true } = {}) {
     main.removeAttribute('aria-live');
     main.replaceChildren(navigation, section);
     section.classList.add('active');
+    if (!section.querySelector('[data-chamber-verdict="chambers"]')) {
+        const reading = document.createElement('div');
+        reading.innerHTML = renderChamberVerdict({ key: 'chambers', state: 'guide', sentence: 'Choose a topic to open its own room; each room explains its data, coverage, and clock.', receipts: [['Rooms', Object.keys(CHAMBER_FEATURES).length - 1], ['Navigation', 'Grouped by topic']] });
+        section.prepend(reading.firstElementChild);
+    }
     initHomeLayout();
     setHomeBlockVisible('explore', true, 'direct-route');
     initChamberCategories();

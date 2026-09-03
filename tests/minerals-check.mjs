@@ -532,7 +532,7 @@ for (const snippet of [
   "{ id: 'markets', label: 'Markets'",
   "{ id: 'etherlink', label: 'Etherlink'",
   "{ id: 'proofbook', label: 'Proofbook'",
-  'quietlySyncHtml(body, markup)',
+  'syncChamberReading(body, markup, { quiet:',
   'quietlySyncHtml(front, markup)',
   "body.dataset.mineralsRendered === '1'",
   "front.dataset.mineralsRendered === '1'",

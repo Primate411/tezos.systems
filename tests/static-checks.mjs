@@ -9658,7 +9658,7 @@ async function checkMetalsIntegrationContracts() {
     "{ id: 'markets'",
     "{ id: 'vnxau'",
     "{ id: 'proofbook'",
-    'quietlySyncHtml(body, markup)',
+    'syncChamberReading(body, markup, { quiet:',
     'quietlySyncHtml(front, markup)',
     'document.visibilityState',
     'visibilitychange',
@@ -10144,7 +10144,7 @@ async function checkEcosystemActivityContracts() {
     'All active addresses plus the reviewed-dapp subset',
     'Download full JSON',
     'Contract-universe SHA-256',
-    'quietlySyncHtml(body, markup)',
+    'syncChamberReading(body, markup, { quiet:',
     "document.visibilityState !== 'visible'",
     "document.addEventListener('visibilitychange'",
     '__ECOSYSTEM_CHAMBER_REFRESH_MS__',
@@ -10865,6 +10865,7 @@ async function main() {
   await checkInitialLoadMeasurementContracts();
   await checkChamberEfficiencyContracts();
   await checkChamberFirstPaintContracts();
+  await checkChamberReadingContracts();
   await checkLauncherProjectionContracts();
   await checkModuleImportVersions();
   await checkHistoricalPagination();
@@ -10900,6 +10901,18 @@ async function main() {
 
   console.log(`\nStatic checks: ${passes.length} passed, ${warnings.length} warnings, ${failures.length} failed`);
   if (failures.length) process.exit(1);
+}
+
+async function checkChamberReadingContracts() {
+  const source = await fs.readFile(path.join(ROOT, 'js/ui/chamber-reading.js'), 'utf8');
+  for (const contract of ['renderChamberVerdict', 'renderChamberGuide', 'renderAgeingLabel', 'relativeChamberAge', 'quietlyMutate(root,', 'quietlySyncHtml(root, html)', "document.visibilityState !== 'visible'", 'visibilitychange', 'clearInterval(stampTimer)', 'prefers-reduced-motion: reduce', '!first || !chamberArrivalAllowed']) {
+    assert(source.includes(contract), `Chamber reading helper missing ${contract}`);
+  }
+  for (const name of ['capital-chamber', 'minerals-chamber', 'metals-chamber', 'uranium-chamber', 'ecosystem-chamber', 'whale-chamber', 'tezoscrp', 'maxis', 'history', 'leaderboard', 'ctez', 'chamber', 'etherlink-governance', 'liquidity-baking', 'ledger-flow', 'network-pulse', 'staking-chamber', 'tezlink', 'tezos-domains', 'tz4-adoption', 'my-tezos']) {
+    const feature = await fs.readFile(path.join(ROOT, `js/features/${name}.js`), 'utf8');
+    assert(feature.includes('renderChamberVerdict('), `${name}: missing room summary`);
+  }
+  pass('Chamber summaries, reference guides, visible-only clocks, and first-paint-only arrival helpers checked');
 }
 
 async function checkChamberFirstPaintContracts() {

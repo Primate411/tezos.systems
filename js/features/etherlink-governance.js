@@ -1,3 +1,4 @@
+import { renderChamberVerdict, syncChamberReading } from '../ui/chamber-reading.js';
 import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Tezos X Governance Chamber
@@ -1007,7 +1008,7 @@ function renderBakerVoteLedger(track) {
         const sequence = `${index + 1} of ${voteCount || votes.length}`;
         const via = vote.votingKey ? ` · via ${compactHash(vote.votingKey)}` : '';
         return `
-            <div class="etherlink-gov-baker-vote-row${vote.quorumCrossed ? ' is-quorum-crossing' : ''}" role="listitem" data-baker-vote="${escapeHtml(ballot)}" data-quorum-share="${escapeHtml(Number.isFinite(vote.quorumShare) ? String(vote.quorumShare) : '')}" data-cumulative-quorum-share="${escapeHtml(Number.isFinite(vote.cumulativeQuorumShare) ? String(vote.cumulativeQuorumShare) : '')}" data-quorum-crossed="${vote.quorumCrossed ? 'true' : 'false'}">
+            <div class="etherlink-gov-baker-vote-row${vote.quorumCrossed ? ' is-quorum-crossing' : ''}" data-chamber-arrival="row" role="listitem" data-baker-vote="${escapeHtml(ballot)}" data-quorum-share="${escapeHtml(Number.isFinite(vote.quorumShare) ? String(vote.quorumShare) : '')}" data-cumulative-quorum-share="${escapeHtml(Number.isFinite(vote.cumulativeQuorumShare) ? String(vote.cumulativeQuorumShare) : '')}" data-quorum-crossed="${vote.quorumCrossed ? 'true' : 'false'}">
                 <div class="etherlink-gov-baker-vote-main">
                     <a class="etherlink-gov-voter-link" href="#baker=${escapeHtml(encodeURIComponent(vote.address))}">${escapeHtml(vote.alias || vote.address)}</a>
                     <code>${escapeHtml(vote.address)}</code>
@@ -1651,6 +1652,7 @@ function renderChamber(data, container, { quiet = false } = {}) {
                 <div class="proposal-hash">Contract ${escapeHtml(track.contract || 'discovery unavailable')} · head ${escapeHtml(String(data.headLevel || '--'))} · updated ${escapeHtml(formatDate(data.updatedAt))}</div>
             </div>
         </div>
+        ${renderChamberVerdict({ key: 'l2-governance', state: track.contract ? 'observed' : 'unavailable', sentence: `${track.label} is shown on its own governance clock; the three tracks must not be combined into one vote.`, receipts: [['Track state', status.label], ['Period', track.period?.index ?? 'Unavailable']], timestamp: data.updatedAt, clockLabel: 'Read' })}
         <div class="etherlink-gov-tabs" role="tablist" aria-label="Tezos X governance tracks">
             ${data.tracks.map(renderTab).join('')}
         </div>
@@ -1664,8 +1666,7 @@ function renderChamber(data, container, { quiet = false } = {}) {
         </div>
     `;
     lastRenderedChamberData = data;
-    if (quiet) quietlySyncHtml(container, html);
-    else container.innerHTML = html;
+    syncChamberReading(container, html, { quiet });
     if (container.dataset.etherlinkChamberWired !== 'true') {
         container.dataset.etherlinkChamberWired = 'true';
         container.addEventListener('click', (event) => {

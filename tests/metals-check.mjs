@@ -431,7 +431,7 @@ for (const snippet of [
   "fetch(METALS_SNAPSHOT_URL, { cache: 'no-cache'",
   "fetch(METALS_ENTRY_SUMMARY_URL, { cache: 'no-cache'",
   'metalsSnapshotHash(summary)',
-  'quietlySyncHtml(body, markup)',
+  'syncChamberReading(body, markup, { quiet:',
   'quietlySyncHtml(front, markup)',
   "body.dataset.metalsRendered === '1'",
   "front.dataset.metalsRendered === '1'",

@@ -1,3 +1,4 @@
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Tezos Domains Chamber
@@ -1171,6 +1172,7 @@ function renderChamber(data, options = {}) {
             </div>
         </div>
 
+        ${renderChamberVerdict({ key: 'domains', state: 'observed', sentence: 'The latest returned identity events, live auctions, and expiring names are separate market signals—not completed sales.', receipts: [['Live auctions', liveAuctionCount], ['Registrations in event page', registrationCount]], timestamp: data.freshTimestamp, clockLabel: 'Latest event' })}
         ${renderLookupPanel()}
 
         <section class="td-pulse-grid chamber-anim-fade" style="animation-delay:90ms" aria-label="Tezos Domains pulse metrics">

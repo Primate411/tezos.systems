@@ -1,3 +1,4 @@
+import { setChamberReadingState, renderAgeingLabel, renderChamberVerdict, syncChamberReading } from '../ui/chamber-reading.js';
 /**
  * Ecosystem Activity Chamber
  *
@@ -594,11 +595,12 @@ function freshnessPresentation(snapshot) {
 }
 
 function syncEcosystemFreshness(snapshot) {
+    setChamberReadingState(document.getElementById('ecosystem-chamber-body'), lastRefreshError || freshnessPresentation(snapshot).stale ? 'watch' : 'snapshot');
     syncSnapshotStatus(document.getElementById('ecosystem-chamber-body'), savedSnapshot, lastRefreshError);
     const presentation = freshnessPresentation(snapshot);
     const freshness = document.getElementById('ecosystem-freshness');
     if (freshness) {
-        if (freshness.textContent !== presentation.label) freshness.textContent = presentation.label;
+        quietlySyncHtml(freshness, renderAgeingLabel(presentation.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt)));
         freshness.classList.toggle('is-stale', presentation.stale);
     }
     const card = document.getElementById('ecosystem-entry-card');
@@ -654,9 +656,10 @@ function renderChamber(snapshot) {
             <div class="ecosystem-title-row">
                 <h2 id="ecosystem-title">Ecosystem Activity</h2>
                 <span class="ecosystem-badge">Weekly address ledger</span>
-                <span class="ecosystem-freshness${freshness.stale ? ' is-stale' : ''}" id="ecosystem-freshness">${escapeHtml(freshness.label)}</span>
+                <span class="ecosystem-freshness${freshness.stale ? ' is-stale' : ''}" id="ecosystem-freshness">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span>
             </div>
             ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}<p class="ecosystem-intro">All transaction-originating addresses across Tezos L1 and Etherlink, beside the distinct subset that touched reviewed dapps. Network-wide activity, app rankings, partial-week telemetry, and contract receipts stay explicitly separate.</p>
+            ${renderChamberVerdict({ key: 'ecosystem', state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot', sentence: 'App rankings use the last completed UTC week; the current week is partial and addresses are not people.', receipts: [['Reviewed apps', snapshot.apps.length], ['Weekly observations', snapshot.weeks.length]], timestamp: snapshot.generatedAt })}
             ${renderLayerTabs()}
         </header>
         <div class="ecosystem-toolbar" data-quiet-key="ecosystem-toolbar">
@@ -694,8 +697,7 @@ function renderBody(snapshot, { quiet = false } = {}) {
     const body = document.getElementById('ecosystem-chamber-body');
     if (!body || !snapshot) return;
     const markup = renderChamber(snapshot);
-    if (quiet && body.dataset.ecosystemRendered === '1') quietlySyncHtml(body, markup);
-    else body.innerHTML = markup;
+    syncChamberReading(body, markup, { quiet: quiet && body.dataset.ecosystemRendered === '1' });
     body.dataset.ecosystemRendered = '1';
 }
 
@@ -794,7 +796,9 @@ function markRefreshFailure() {
     syncSnapshotStatus(document.getElementById('ecosystem-chamber-body'), savedSnapshot, lastRefreshError);
     const freshness = document.getElementById('ecosystem-freshness');
     if (freshness && lastSnapshot) {
-        freshness.textContent = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
+        const failedLabel = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
+        quietlySyncHtml(freshness, renderAgeingLabel(failedLabel, lastSnapshot.generatedAt, ageLabel(lastSnapshot.generatedAt)));
+        setChamberReadingState(document.getElementById('ecosystem-chamber-body'), 'watch');
         freshness.classList.add('is-stale');
     }
     const card = document.getElementById('ecosystem-entry-card');

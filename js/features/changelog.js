@@ -7,6 +7,8 @@ export const CHANGELOG = [
     {
         date: '2026-09-02',
         entries: [
+            { type: '🎨', text: 'Chambers now open with plain-language summaries and source-bounded receipts; market rooms explain their units and coverage without changing their distinctive designs' },
+            { type: '🔧', text: 'Chamber source-age labels now advance quietly while visible; cached visits and background updates do not replay row or value entrance effects' },
             { type: '⚡', text: 'Every Chamber direct link now starts its own room without booting the home dashboard; History and chart libraries load on chart intent, while themes, saved My Tezos state, and return navigation are preserved' },
             { type: '⚡', text: 'Direct links to Capital, Ecosystem Activity, Critical Minerals, Precious Metals, and Uranium now load only their own Chamber; the full dashboard starts when you leave or search' },
             { type: '⚡', text: 'TezosCRP opens directly into its Recognition Hall with a smaller standalone startup; dashboard features load when you choose to leave or search' },

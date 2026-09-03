@@ -1,3 +1,4 @@
+import { setChamberReadingState, renderAgeingLabel, renderChamberStamp, renderChamberVerdict, renderChamberGuide, syncChamberReading } from '../ui/chamber-reading.js';
 /**
  * Capital Chamber
  *
@@ -642,7 +643,7 @@ function sourceBar(snapshot, sourceIds, receipt = '') {
     }).join('');
     return `
         <div class="capital-source-bar">
-            <span class="capital-source-receipt">Snapshot ${escapeHtml(ageLabel(snapshot.generatedAt))}${receipt ? ` · ${escapeHtml(receipt)}` : ''}</span>
+            <span class="capital-source-receipt">${renderChamberStamp(snapshot.generatedAt, 'Snapshot')}${receipt ? ` · ${escapeHtml(receipt)}` : ''}</span>
             ${links}
             <details class="capital-source-ledger">
                 <summary>Inspect ${sources.length} source receipt${sources.length === 1 ? '' : 's'}</summary>
@@ -1085,16 +1086,26 @@ function freshnessPresentation(snapshot) {
 }
 
 function syncCapitalFreshness(snapshot) {
+    setChamberReadingState(document.getElementById('capital-chamber-body'), lastRefreshError || freshnessPresentation(snapshot).stale ? 'watch' : 'snapshot');
     syncSnapshotStatus(document.getElementById('capital-chamber-body'), savedSnapshot, lastRefreshError);
     const presentation = freshnessPresentation(snapshot);
     const freshness = document.getElementById('capital-freshness');
     if (freshness) {
-        if (freshness.textContent !== presentation.label) freshness.textContent = presentation.label;
+        quietlySyncHtml(freshness, renderAgeingLabel(presentation.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt)));
         freshness.classList.toggle('is-stale', presentation.stale);
     }
     const entrySource = document.querySelector('#capital-entry-front .capital-entry-source-label');
     const entryLabel = `snapshot ${ageLabel(snapshot.generatedAt)} · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
     if (entrySource && entrySource.textContent !== entryLabel) entrySource.textContent = entryLabel;
+}
+
+function capitalReading(snapshot) {
+    const tezos = chain(snapshot, 'tezos');
+    const etherlink = chain(snapshot, 'etherlink');
+    return renderChamberVerdict({ key: 'capital', state: lastRefreshError || freshnessPresentation(snapshot).stale ? 'watch' : 'snapshot',
+        sentence: 'Tezos L1 and Etherlink capital are shown side by side; TVL is not trading volume or a measure of users.',
+        receipts: [['L1 DeFi TVL', formatUsd(tezos.tvl?.currentUsd)], ['L2 DeFi TVL', formatUsd(etherlink.tvl?.currentUsd)]], timestamp: snapshot.generatedAt
+    }) + renderChamberGuide('capital');
 }
 
 function renderChamber(snapshot) {
@@ -1106,13 +1117,14 @@ function renderChamber(snapshot) {
             <div class="capital-title-row market-room-title-row">
                 <h2 class="market-room-title is-display" id="capital-title">Capital Chamber</h2>
                 <span class="capital-badge market-room-badge">Generated proofbook</span>
-                <span class="capital-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="capital-freshness">${escapeHtml(freshness.label)}</span>
+                <span class="capital-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="capital-freshness">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span>
             </div>
-            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}<p class="capital-intro market-room-intro">A Tezos-native reconstruction of the useful public intelligence surface: reproducible data, explicit coverage limits, no proprietary impersonation, and no invented totals.</p>
+            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}
             <div class="capital-tabs market-room-tabs" role="tablist" aria-label="Capital Chamber views">
                 ${VIEWS.map((item) => `<button class="capital-tab market-room-tab" id="capital-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="capital-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-capital-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}
             </div>
         </header>
+        ${capitalReading(snapshot)}
         <section class="capital-view-shell market-room-view-shell" id="capital-view-panel" role="tabpanel" aria-labelledby="capital-tab-${view.id}" data-quiet-key="capital-view-panel">
             <div class="capital-view-head market-room-view-head">
                 <div><h3>${escapeHtml(view.title)}</h3><p>${escapeHtml(view.detail)}</p></div>
@@ -1138,8 +1150,7 @@ function renderBody(snapshot, { quiet = false } = {}) {
     const body = document.getElementById('capital-chamber-body');
     if (!body || !snapshot) return;
     const markup = renderChamber(snapshot);
-    if (quiet && body.dataset.capitalRendered === '1') quietlySyncHtml(body, markup);
-    else body.innerHTML = markup;
+    syncChamberReading(body, markup, { quiet: quiet && body.dataset.capitalRendered === '1' });
     body.dataset.capitalRendered = '1';
 }
 
@@ -1182,7 +1193,9 @@ function markRefreshFailure() {
     syncSnapshotStatus(document.getElementById('capital-chamber-body'), savedSnapshot, lastRefreshError);
     const freshness = document.getElementById('capital-freshness');
     if (freshness && lastSnapshot) {
-        freshness.textContent = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
+        const failedLabel = `Last good ${ageLabel(lastSnapshot.generatedAt)} · refresh failed · ${GENERATED_PROOFBOOK_SCHEDULE_LABEL}`;
+        quietlySyncHtml(freshness, renderAgeingLabel(failedLabel, lastSnapshot.generatedAt, ageLabel(lastSnapshot.generatedAt)));
+        setChamberReadingState(document.getElementById('capital-chamber-body'), 'watch');
         freshness.classList.add('is-stale');
     }
     const card = document.getElementById('capital-entry-card');

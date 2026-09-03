@@ -3,6 +3,7 @@
  */
 
 import { activateOverlayDialog, deactivateOverlayDialog } from './overlay-stack.js';
+import { startChamberReading, stopChamberReading } from './chamber-reading.js';
 
 const launcherOpens = new WeakMap();
 const roomVisibility = new Map();
@@ -198,6 +199,7 @@ export function activateChamberDialog(overlay, {
         // New or migrated rooms can opt into the shared stack's ownership.
         lockScroll
     });
+    startChamberReading(dialog);
 }
 
 /**
@@ -205,6 +207,7 @@ export function activateChamberDialog(overlay, {
  */
 export function deactivateChamberDialog(overlay, { restoreFocus = true } = {}) {
     if (!overlay) return;
+    stopChamberReading(overlay.matches('[role="dialog"]') ? overlay : overlay.querySelector('[role="dialog"]'));
     deactivateOverlayDialog(overlay, { restoreFocus });
 }
 

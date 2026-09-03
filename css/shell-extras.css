@@ -6143,3 +6143,50 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
         background: HighlightText;
     }
 }
+/* Chamber reading cues inherit each room's identity. No refresh animation. */
+.chamber-reading-verdict {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin: 18px 0;
+    padding: 16px 18px;
+    border: 1px solid color-mix(in srgb, var(--text-secondary, #a5accb) 25%, transparent);
+    border-left: 3px solid currentColor;
+    border-radius: 12px;
+    background: color-mix(in srgb, currentColor 4%, transparent);
+    color: inherit;
+    text-align: left;
+}
+.chamber-reading-state {
+    flex: 0 0 94px;
+    box-sizing: border-box;
+    text-align: center;
+    padding: 4px 7px;
+    border: 1px solid currentColor;
+    border-radius: 5px;
+    font: 700 10px/1.4 var(--font-mono, monospace);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+.chamber-reading-verdict[data-state="watch"] .chamber-reading-state,
+.chamber-reading-verdict[data-state="partial"] .chamber-reading-state { color: var(--text-primary, #e8edf7); border-style: dashed; }
+.chamber-reading-copy { min-width: 0; flex: 1; }
+.chamber-reading-copy > p { margin: 0; font-size: 14px; line-height: 1.55; color: inherit; }
+.chamber-reading-receipts { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-top: 8px; font-size: 11px; line-height: 1.65; color: var(--text-secondary, #a5accb); }
+.chamber-reading-receipts strong { color: var(--text-primary, #e8edf7); font-variant-numeric: tabular-nums; font-weight: 600; }
+/* Leave one spare character beyond "under 1m ago" for fractional glyph rounding. */
+.chamber-reading-clock time { display: inline-block; min-width: 13ch; font-variant-numeric: tabular-nums; }
+.chamber-reading-guide { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 0 0 20px; padding: 0 3px; color: var(--text-secondary, #a5accb); text-align: left; }
+.chamber-reading-kicker { color: var(--text-primary, #e8edf7); font: 700 10px/1.5 var(--font-mono, monospace); text-transform: uppercase; letter-spacing: .12em; }
+.chamber-reading-guide p { margin: 5px 0 0; font-size: 12px; line-height: 1.65; }
+.chamber-reading-guide dl { margin: 0; font-size: 11px; line-height: 1.5; }
+.chamber-reading-guide dl > div { display: grid; grid-template-columns: 85px 1fr; gap: 8px; padding: 4px 0; }
+.chamber-reading-guide dt { color: var(--text-primary, #e8edf7); font-weight: 600; }
+.chamber-reading-guide dd { margin: 0; }
+.market-room-body > .chamber-reading-verdict { margin-inline: var(--market-room-inline, 24px); }
+.market-room-body > .chamber-reading-guide { margin-inline: var(--market-room-inline, 24px); }
+@media (max-width: 600px) {
+    .chamber-reading-verdict { display: block; padding: 12px; }
+    .chamber-reading-state { display: inline-block; margin-bottom: 8px; }
+    .chamber-reading-guide { grid-template-columns: 1fr; gap: 10px; }
+}

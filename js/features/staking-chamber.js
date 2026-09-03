@@ -1,3 +1,4 @@
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Staking Chamber
@@ -1038,6 +1039,7 @@ function renderRoom() {
 
         ${renderStakingGuide(overviewData)}
 
+        ${renderChamberVerdict({ key: 'staking-chamber', state: 'observed', sentence: 'Large explicit staking moves show gross activity, not total inflows from all holders or a change in ownership.', receipts: [['Stake operations · 24h', summary.stakeCount24h], ['Unstake operations · 24h', summary.unstakeCount24h]] })}
         <section class="staking-overview-grid chamber-anim-fade" aria-label="Current staking overview">
             <div class="staking-overview-card is-primary">
                 <span>Current staked</span>

@@ -1,5 +1,11 @@
 const RULES = [
   {
+    suites: /^(chamber-reading|standalone-chamber-completion|chamber-first-paint|quiet-refresh)$/,
+    files: ['js/ui/chamber-reading.js', 'js/ui/chamber-accessibility.js', 'css/shell-extras.css', 'tests/lib/chamber-reading-smoke.mjs'],
+    tags: ['chamber', 'quiet-refresh', 'accessibility'],
+    risk: 'high'
+  },
+  {
     suites: /^(chamber-first-paint|capital-chamber|minerals-chamber|uranium-chamber|metals-chamber|ecosystem-activity|whale-watch-chamber)$/,
     files: ['js/core/chamber-snapshot-cache.js', 'js/ui/chamber-skeleton.js', 'tests/lib/chamber-first-paint-smoke.mjs', 'js/features/*-chamber.js', 'css/loading.css'],
     tags: ['chamber', 'first-paint', 'quiet-refresh'],

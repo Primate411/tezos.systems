@@ -1710,6 +1710,22 @@ the feature catalog; shared Octez software data lives separately from Health UI.
 Service-worker installation no longer
 preloads dashboard-only modules; runtime assets are still cached when requested.
 
+Chambers share a compact reading summary through `js/ui/chamber-reading.js`,
+while Network Health retains its native consensus verdict. Each summary names
+its scope and supporting receipts without inventing cross-source comparisons or
+a universal health score. Capital, Minerals, Metals, Uranium, and Ledger Flow
+also explain their units and coverage in a three-row `Right now` guide. Market
+guides scroll with the content rather than enlarging the sticky navigation.
+Shared age labels retain the original generated, event, head, or read clock;
+they advance every 30 seconds only while a room and browser tab are visible,
+catch up quietly on return, and do not announce age ticks to screen readers.
+Unknown clocks remain unknown and future clocks are explicitly flagged.
+First-paint rows and values may settle briefly when motion is enabled. Cached
+reopens and background changes never replay this effect. Reconciliation runs
+through the existing quiet-refresh helpers, preserving focus, selection, nodes,
+scroll, and charts. The `chamber-reading` smoke tests this at 1440, 390, and 320px;
+the all-route completion matrix requires exactly one summary in every room.
+
 `npm run measure:chamber-boot -- --baseline-root /absolute/path/to/exported-pre-pilot-tree --runs 3 --output /tmp/chamber-boot/results.json`
 compares this pilot with an exported full-shell baseline. It serves both trees on temporary loopback ports,
 verifies identical Recognition Hall data, and alternates cold/cached-repeat pairs
@@ -1916,7 +1932,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v617`, including the full-viewport Index
+- Current aligned shell cache stamp: `v618`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

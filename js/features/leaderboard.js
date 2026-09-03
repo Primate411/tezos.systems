@@ -1,3 +1,4 @@
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Baker Leaderboard — sortable ranking of all active Tezos bakers
@@ -1855,6 +1856,7 @@ function bakerDirectoryShellHtml() {
                 </label>
             </header>
             ${lastGoodWarning}
+            ${renderChamberVerdict({ key: 'leaderboard', state: bakerDirectoryLastError || leaderboardDataQuality.status === 'stale' ? 'watch' : 'observed', sentence: `${summary.active.toLocaleString('en-US')} funded active bakers are in this receipt; discover them by disclosed filters, not an overall quality score.`, receipts: [['Open delegation room', summary.open], ['tz4 consensus keys', summary.tz4]], timestamp: leaderboardDataQuality.observedAt, clockLabel: 'Read' })}
             <div id="baker-directory-panel" class="baker-directory-panel" role="tabpanel" aria-labelledby="baker-directory-tab-${bakerDirectoryState.view}" tabindex="0">
                 ${bakerDirectoryViewHtml()}
             </div>

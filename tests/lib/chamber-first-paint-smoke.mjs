@@ -107,7 +107,7 @@ export async function smokeChamberFirstPaint(browser, baseUrl, { installFeatureM
       await page.waitForFunction(({ bodyId, renderedKey, key }) => {
         const body = document.getElementById(bodyId);
         return body?.dataset[renderedKey] === '1' && !body.querySelector('.chamber-first-paint')
-          && (key !== 'whales' || /generated/.test(document.getElementById('whale-watch-freshness')?.textContent || ''));
+          && (key !== 'whales' || /generated/i.test(document.getElementById('whale-watch-freshness')?.textContent || ''));
       }, { bodyId, renderedKey, key });
       await page.waitForFunction(() => typeof window.__stageTick === 'function');
       assert.equal(await page.evaluate(() => document.visibilityState), 'hidden', `${label}: initial render must finish hidden`);

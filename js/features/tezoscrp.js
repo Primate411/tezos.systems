@@ -1,3 +1,4 @@
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 /**
  * Tezos Community Rewards Chamber
  * Human-identity recognition archive sourced from official Tezos Commons posts.
@@ -332,6 +333,7 @@ function roomHeader() {
             <p class="tezoscrp-hero-lead">Who was recognized, how often, in which categories, and by which official monthly source.</p>
             <a class="tezoscrp-official-link" href="https://tezoscommons.org/rewards/" target="_blank" rel="noopener noreferrer">Official program ↗</a>
         </header>
+        ${renderChamberVerdict({ key: 'tezoscrp', state: 'archive', sentence: `${formatNumber(summaryData?.totals?.periods)} official monthly rounds are recorded through ${shortPeriod(fullData?.program?.latest_award_period)}; category awards are not payout totals.`, receipts: [['Award listings', formatNumber(summaryData?.totals?.awards)], ['Identities', formatNumber(summaryData?.totals?.people)]], timestamp: summaryData?.generated_at })}
         ${overviewMetrics()}
         <div class="tezoscrp-truth-note"><strong>What is counted:</strong> one official category listing equals one award. Monthly recognitions and known published amounts remain separate; most posts do not state a per-person XTZ payout. <strong>Identity continuity:</strong> verified aliases share one record, every published name stays on its receipt, and uncertain lookalikes remain separate.</div>
         <nav class="tezoscrp-tabs" role="tablist" aria-label="TezosCRP Chamber views">

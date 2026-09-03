@@ -1,3 +1,4 @@
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 /**
  * My Tezos — Morning Brief + Your Tezos Story
  * Replaces the old hero strip with a rotating daily brief and personal timeline.
@@ -3267,6 +3268,10 @@ export function initMyTezos() {
     const drawer = document.getElementById('my-tezos-drawer');
     if (!drawer || drawer.dataset.personalInitialized === '1') return;
     drawer.dataset.personalInitialized = '1';
+    const reading = document.createElement('div');
+    reading.className = 'my-tezos-reading';
+    reading.innerHTML = renderChamberVerdict({ key: 'my', state: 'guide', sentence: 'This room follows your selected wallet scope; activity does not establish a person’s identity or link an L2 account.', receipts: [['Scope', 'Selected wallets'], ['Linked accounts', 'Explicit only']] });
+    drawer.querySelector('.drawer-body')?.prepend(reading);
     organizeDrawerJourneys();
     initMyTezosPortfolio();
     initMyTezosScope();

@@ -1,3 +1,4 @@
+import { renderChamberVerdict, settleChamberArrival } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Tezos L1 Governance — Tezos Governance War Room
@@ -1698,7 +1699,7 @@ function renderChronologicalVoteRow(vote, protocols, index) {
     const title = `Epoch ${vote.epoch}, period ${vote.period}: ${name} ${phase} ${status}. Yay ${precisePctText(yay)}; participation ${precisePctText(participation)}.`;
 
     return `
-        <div class="vote-log-row vote-${tone}" role="listitem" data-vote-epoch="${escapeHtml(String(vote.epoch || ''))}" data-vote-period="${escapeHtml(String(vote.period || ''))}" data-vote-start="${escapeHtml(vote.startTime || '')}" title="${escapeHtml(title)}">
+        <div class="vote-log-row vote-${tone}" data-chamber-arrival="row" role="listitem" data-vote-epoch="${escapeHtml(String(vote.epoch || ''))}" data-vote-period="${escapeHtml(String(vote.period || ''))}" data-vote-start="${escapeHtml(vote.startTime || '')}" title="${escapeHtml(title)}">
             <span class="vote-log-index">${rowNumber}</span>
             <span class="vote-log-date">${escapeHtml(dateText)}</span>
             <span class="vote-log-name">${escapeHtml(name)}</span>
@@ -1977,6 +1978,7 @@ function renderChamber(data, container) {
 
     container.innerHTML = `
         ${renderProposalHeader(data)}
+        ${renderChamberVerdict({ key: 'chamber', state: isLive ? 'observed' : 'archive', sentence: isLive ? `The current ${periodTitle(currentPeriod?.kind)} period is distinct from any earlier ballot result shown below.` : 'This is a historical governance epoch; its ballots are not the current live vote.', receipts: [['Epoch', epoch.index], ['Ballot rows', voters?.length ?? 'Unavailable']] })}
         ${renderGovernancePhaseHero(data)}
         ${renderGovernanceNow(data)}
         ${renderProposalIntel(data)}
@@ -1995,6 +1997,7 @@ function renderChamber(data, container) {
     hydrateChronologicalVoteLog(data);
     initChamberShare(data);
     startLiveTimeTicker(container);
+    settleChamberArrival(container, { quiet: false });
     requestAnimationFrame(() => requestAnimationFrame(triggerAnimations));
 }
 

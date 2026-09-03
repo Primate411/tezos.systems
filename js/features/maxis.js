@@ -1,3 +1,4 @@
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Tezos Maxis Chamber
@@ -2890,6 +2891,7 @@ function renderChamberExperience() {
         <div class="maxis-experience${seasonContext ? ' has-season-context' : ''}" data-maxis-current-view="${selectedView}" data-maxis-season-phase="${escapeHtml(selectedSeasonPhase)}">
             ${seasonContext ? renderSeasonSelector() : ''}
             ${renderContextHero()}
+            ${renderChamberVerdict({ key: 'maxis', state: contextError ? 'unavailable' : selectedView === 'champions' ? 'archive' : 'snapshot', sentence: selectedView === 'maxis' ? 'Each crown uses its disclosed natural clock; an ongoing career is not a protocol-season result.' : selectedView === 'champions' ? 'Champions records finalized seasons only; active and settling results are not final titles.' : selectedView === 'passport' ? 'Career stamps and selected-season progress are separate records; missing historical shards stay local.' : 'This race is bounded by the selected protocol season, not an all-time career ranking.', receipts: [['View', selectedView], ['Record', footerDataLabel]] })}
             ${renderRoomTabs()}
             <section class="maxis-room-panel" id="maxis-panel-${selectedView}" role="tabpanel" aria-labelledby="maxis-tab-${selectedView}" tabindex="-1">
                 ${renderCurrentRoom()}

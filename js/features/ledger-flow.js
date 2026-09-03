@@ -1,3 +1,4 @@
+import { renderChamberVerdict, renderChamberGuide, renderChamberStamp, settleChamberArrival } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Ledger Flow Chamber
@@ -495,7 +496,7 @@ function renderFlowRow(edge, model, options = {}) {
         ? accountLinksMarkup(counterparty, { wrapClass: 'ledger-flow-row-links' })
         : '';
     return `
-        <article class="ledger-flow-flow-row${selected ? ' is-selected' : ''}" data-quiet-key="${escapeHtml(edge.id)}">
+        <article class="ledger-flow-flow-row${selected ? ' is-selected' : ''}" data-chamber-arrival="row" data-quiet-key="${escapeHtml(edge.id)}">
             <button type="button" class="ledger-flow-path-button" data-ledger-edge="${escapeHtml(edge.id)}" aria-pressed="${selected ? 'true' : 'false'}" aria-controls="${escapeHtml(options.controls || 'ledger-flow-detail-panel')}">
                 <span class="ledger-flow-path-direction">${escapeHtml(direction)}</span>
                 <strong>${escapeHtml(nodeLabel(counterparty))}</strong>
@@ -1030,6 +1031,8 @@ function renderEmptyState(container, valueOverride = '') {
             <div class="chamber-proposal-info">Map bounded tez transfers with receipt-backed origination and first-inbound context.</div>
         </div>
         <section class="lb-explainer ledger-flow-explainer chamber-anim-fade">
+            ${renderChamberVerdict({ key: 'ledger-flow', state: 'guide', sentence: 'Choose an account to inspect its transfer window; no account data is loaded yet.', receipts: [['Input', 'Wallet, contract, or .tez'], ['Source', 'TzKT']] })}
+            ${renderChamberGuide('ledger-flow')}
             ${renderControls(null, valueOverride)}
             ${renderExampleChips()}
             <div class="ledger-flow-empty-panel">
@@ -1054,6 +1057,7 @@ function applyLedgerBodyMarkup(container, markup, options = {}) {
     } else {
         container.innerHTML = markup;
     }
+    settleChamberArrival(container, { quiet: Boolean(options.quiet) });
 }
 
 function renderLedgerFlow(data, options = {}) {
@@ -1096,6 +1100,8 @@ function renderLedgerFlow(data, options = {}) {
             </div>
         </div>
         <section class="lb-explainer ledger-flow-explainer chamber-anim-fade">
+            ${renderChamberVerdict({ key: 'ledger-flow', state: model.coverage?.mode === 'sample' ? 'partial' : 'observed', sentence: model.coverage?.mode === 'sample' ? 'This account map is a bounded sample; its flows must not be read as complete account history.' : 'These gross transfers belong to the selected account window; counterparties do not establish common ownership.', receipts: [['Received', formatCompactXTZ(model.totals.received)], ['Sent', formatCompactXTZ(model.totals.sent)]] })}
+            ${renderChamberGuide('ledger-flow')}
             ${renderControls(model)}
             ${renderCoverage(model)}
             ${renderStats(model)}
@@ -1125,9 +1131,9 @@ function renderLedgerFlow(data, options = {}) {
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:220ms">
             <span>Source: TzKT transactions</span>
             <span class="chamber-footer-sep">·</span>
-            <span>Fetched ${escapeHtml(formatAge(model.updatedAt))}</span>
+            ${renderChamberStamp(model.updatedAt, 'Fetched')}
             <span class="chamber-footer-sep">·</span>
-            <span>Last matching transfer ${escapeHtml(formatAge(model.latest))}</span>
+            ${renderChamberStamp(model.latest, 'Last matching transfer')}
             <span class="chamber-footer-sep">·</span>
             <a class="panel-direct-link" href="https://tzkt.io/${encodeURIComponent(model.address)}/operations/" target="_blank" rel="noopener">TzKT operations</a>
             <span class="chamber-footer-sep">·</span>

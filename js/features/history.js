@@ -1,3 +1,4 @@
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 // Historical data visualization module
 // Handles sparklines and full charts using Chart.js
@@ -1637,6 +1638,7 @@ function renderCycleHistoryIntro(modal) {
         </div>
         <p class="cycle-history-lede">Measured Tezos history across fifteen captured signals. Ranges describe the retained snapshots available from each source ledger; uncaptured intervals are never invented.</p>
         <section class="cycle-history-provenance" aria-labelledby="cycle-history-provenance-title">
+            ${renderChamberVerdict({ key: 'history', state: 'archive', sentence: 'These charts show captured history, not continuous observation; each source keeps its own cadence and returned coverage.', receipts: [['Signals', CYCLE_HISTORY_METRICS.length], ['Source ledgers', HISTORY_SOURCE_DISCLOSURES.length]] })}
             <div class="cycle-history-provenance-head">
                 <strong id="cycle-history-provenance-title">Sources, cadence &amp; coverage</strong>
                 <span>Scheduled capture · returned snapshots only</span>

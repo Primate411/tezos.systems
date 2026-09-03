@@ -1,3 +1,4 @@
+import { renderChamberVerdict, syncChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Liquidity Baking Monitor
@@ -1247,6 +1248,7 @@ function updateLiquidityBakingInPlace(data, container, activeFilter = _lbActiveF
         return;
     }
     const latest = data.latest;
+    syncChamberVerdict(container, liquidityReading(data));
     setTextIfChanged('#lb-head-meta', latest ? `Head block ${formatLevel(latest.level)} · ${formatAge(latest.timestamp)}` : 'Live TzKT block feed');
     updateGlobalMetrics(data);
     updateEmaStatus(data);
@@ -1254,6 +1256,10 @@ function updateLiquidityBakingInPlace(data, container, activeFilter = _lbActiveF
     updateSavedBakerPanel(data);
     updateRecentBlocks(data.blocks);
     updateBakerVoteList(data, activeFilter);
+}
+
+function liquidityReading(data) {
+    return { key: 'liquidity-baking', state: data.disabled ? 'watch' : 'observed', sentence: data.disabled ? 'The subsidy is disabled by the toggle EMA; individual block votes are not the same as that accumulated signal.' : 'The toggle EMA has not disabled the subsidy; individual block votes feed an accumulated signal.', receipts: [['Toggle EMA', `${data.emaPct.toFixed(1)}%`], ['Head', data.latest ? formatLevel(data.latest.level) : 'Unavailable']], timestamp: data.latest?.timestamp, clockLabel: 'Head' };
 }
 
 function renderLiquidityBaking(data, container, activeFilter = _lbActiveFilter) {
@@ -1275,6 +1281,7 @@ function renderLiquidityBaking(data, container, activeFilter = _lbActiveFilter) 
                 <div class="proposal-hash" id="lb-head-meta">${latest ? `Head block ${formatLevel(latest.level)} · ${escapeHtml(formatAge(latest.timestamp))}` : 'Live TzKT block feed'}</div>
             </div>
         </div>
+        ${renderChamberVerdict(liquidityReading(data))}
         ${renderLiquidityBakingIntro(data)}
         ${renderLiquidityBakingLoreShell()}
         <div class="lb-dashboard-grid">

@@ -1,3 +1,4 @@
+import { renderChamberVerdict } from '../ui/chamber-reading.js';
 import { requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * tz4 Adoption Chamber
@@ -1058,6 +1059,7 @@ function renderTz4Adoption(data, container, activeFilter = _tz4ActiveFilter) {
                 <div class="proposal-hash">Current cycle ${Number.isFinite(data.currentCycle) ? formatCount(data.currentCycle) : 'unknown'} · ${formatCount(data.activeCount)} active · ${formatCount(data.pendingCount)} pending</div>
             </div>
         </div>
+        ${renderChamberVerdict({ key: 'tz4', state: 'observed', sentence: `${formatPercent(data.adoptionPct)} of active bakers currently use tz4 consensus keys; pending switches are not active adoption.`, receipts: [['Active tz4', formatCount(data.activeCount)], ['Pending', formatCount(data.pendingCount)]] })}
         ${renderIntro(data)}
         <div class="lb-dashboard-grid tz4-dashboard-grid">
             ${renderGlobalMetrics(data)}

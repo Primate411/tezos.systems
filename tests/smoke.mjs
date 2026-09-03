@@ -23,6 +23,7 @@ import { selectAffectedSmokeSuites } from './lib/smoke-affected.mjs';
 import { metadataForSmokeSuite } from './lib/smoke-metadata.mjs';
 import { smokeChamberFirstPaint } from './lib/chamber-first-paint-smoke.mjs';
 import { smokeStandaloneChamberExpansion } from './lib/standalone-chamber-expansion-smoke.mjs';
+import { smokeChamberReading } from './lib/chamber-reading-smoke.mjs';
 import { smokeStandaloneChamberCompletion } from './lib/standalone-chamber-completion-smoke.mjs';
 import { smokeStandaloneChamberLifecycle } from './lib/standalone-chamber-lifecycle-smoke.mjs';
 
@@ -19440,12 +19441,13 @@ async function smokeStandaloneChamberBoot(browser, baseUrl) {
       ready: document.documentElement.dataset.dashboardReady,
       dashboardNodes: !!document.querySelector('#hero-slot, #chambers-grid, #my-tezos-drawer, #history-modal'),
       scripts: performance.getEntriesByType('resource').filter(r => /\.(?:js|mjs)$/.test(new URL(r.name).pathname)).length,
+      readingModules: performance.getEntriesByType('resource').filter(r => new URL(r.name).pathname === '/js/ui/chamber-reading.js').length,
       elements: document.getElementsByTagName('*').length,
       theme: document.body.dataset.theme,
       overflow: document.documentElement.scrollWidth > innerWidth,
       timeOrigin: performance.timeOrigin
     }));
-    assert(!cold.ready && !cold.dashboardNodes && cold.scripts < 20 && cold.elements < 1500, `standalone ${width}: eager dashboard leaked ${JSON.stringify(cold)}`);
+    assert(cold.readingModules === 1 && !cold.ready && !cold.dashboardNodes && cold.scripts - cold.readingModules < 20 && cold.elements < 1500, `standalone ${width}: eager dashboard leaked ${JSON.stringify(cold)}`);
     assert(cold.theme === theme && !cold.overflow, `standalone ${width}: theme or geometry changed`);
     const forbidden = requests.filter(url => /\/(?:app|api|network-health|history|my-tezos|daily-briefing|price|comparison)\.js|chart\.umd|chartjs-adapter|\.supabase\.co|\.tzkt\.io|rpc\.tez\.capital/.test(url));
     assert(forbidden.length === 0, `standalone ${width}: unrelated startup work ${forbidden.join('\n')}`);
@@ -36639,6 +36641,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'network-pulse-launcher', description: 'Network Pulse lower launcher row hydrates from collected history without opening the modal or enabling legacy full stats', run: () => smokeNetworkPulseLauncher(browser, baseUrl) },
     { name: 'launcher-projections', description: 'Capital, Ecosystem Activity, and Maxis hydrate from compact summaries, defer reviewed full artifacts until room open, preserve parity, and fall back safely', run: () => smokeLauncherProjections(browser, baseUrl) },
     { name: 'chamber-first-paint', description: 'Six snapshot rooms finish hidden first render, paint verified saved receipts before network, and revalidate without moving desktop or mobile readers', run: () => smokeChamberFirstPaint(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'chamber-reading', description: 'Room summaries and source clocks stay contained, truthful, visible-only, and quiet across desktop/mobile reader updates', run: () => smokeChamberReading(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'standalone-chamber-expansion', description: 'Five independent rooms defer dashboard startup, preserve direct state and failed-exit readers, and hand off once across desktop/mobile navigation and cancelled loads', run: () => smokeStandaloneChamberExpansion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'standalone-chamber-completion', description: 'Every generated room and alias boots without home telemetry and retains direct desktop/mobile navigation through the dashboard handoff', run: () => smokeStandaloneChamberCompletion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'standalone-chamber-lifecycle', description: 'Standalone legacy rooms retain failed-exit readers, lazy charts retry locally, directory controls navigate correctly, and selected themes survive handoff', run: () => smokeStandaloneChamberLifecycle(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
