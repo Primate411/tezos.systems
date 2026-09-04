@@ -1627,6 +1627,19 @@ function wireLiveHeadActivityFilter(root) {
 }
 
 function fitLiveHeadPills(root = document) {
+    // Inline spans preserve a single uninterrupted copy/selection value. Measure
+    // the suffix instead of assuming monospace glyphs across every theme.
+    if (document.visibilityState === 'visible') {
+        root.querySelectorAll?.('.live-head-baker.is-address .live-head-baker-name').forEach((name) => {
+            const suffix = name.querySelector('.live-head-baker-suffix');
+            const width = suffix?.getBoundingClientRect().width;
+            if (!width) return;
+            const value = `${width}px`;
+            if (name.style.getPropertyValue('--live-head-baker-suffix-width') !== value) {
+                name.style.setProperty('--live-head-baker-suffix-width', value);
+            }
+        });
+    }
     const compactViewport = window.matchMedia?.('(max-width: 719px)')?.matches === true;
     root.querySelectorAll?.('.live-head-story').forEach((container) => {
         const missedPills = [...container.querySelectorAll('[data-missed-baker-address]')];
@@ -2281,12 +2294,18 @@ function renderLiveHeadRow(block, activity, { isNew = false, savedAddresses = nu
     const producer = block?.producer || {};
     const producerHasAlias = Boolean(producer.alias);
     const name = producerHasAlias ? producer.alias : (producer.address || 'Unknown baker');
+    // Keep the complete address in the DOM/copy text. Inline layout only clips the
+    // prefix when space runs out, leaving the identifying last five characters.
+    const nameHtml = !producerHasAlias && /^tz[1-4]/.test(name)
+        ? `<span class="live-head-baker-prefix">${escapeHtml(name.slice(0, -5))}</span><span class="live-head-baker-suffix">${escapeHtml(name.slice(-5))}</span>`
+        : escapeHtml(name);
     const status = latestBlockStatus(block);
     const powerKnown = Number.isFinite(block?.power) && Number.isFinite(block?.committee);
+    const missingPower = powerKnown && block.committee > 0 ? Math.max(0, block.committee - block.power) : null;
     const score = Number.isFinite(block?.score) ? Math.max(0, Math.min(100, block.score)) : null;
     const attested = powerKnown ? `${formatCount(block.power)} of ${formatCount(block.committee)}` : 'attestation unavailable';
     const trackTitle = powerKnown
-        ? `${status.label}. The first ${formatCount(status.quorumPower)} power is required; this rail shows only the safety margin beyond it.`
+        ? `${status.label}. The first ${formatCount(status.quorumPower)} power is required; this rail shows only the safety margin beyond it. The number shows missing attestation power: ${missingPower ? `−${formatCount(missingPower)}` : '0 (full attestation)'}.`
         : status.label;
     const details = buildLiveHeadDetails(block, activity);
     const gas = liveHeadGasState(activity);
@@ -2301,14 +2320,13 @@ function renderLiveHeadRow(block, activity, { isNew = false, savedAddresses = nu
         : '';
     const title = `Inspect block ${formatCount(block.level)} from ${name}. ${status.label}: ${attested}.${gasSummary}${missedSummary}`;
     const safetyMargin = Number.isFinite(status.safetyMargin) ? status.safetyMargin : null;
-    const marginSign = safetyMargin === null ? '' : safetyMargin >= 0 ? '+' : '−';
-    const marginAbsolute = safetyMargin === null ? null : Math.abs(safetyMargin);
-    const marginFull = marginAbsolute === null ? '--' : `${marginSign}${formatCount(marginAbsolute)}`;
-    const marginCompact = marginAbsolute === null
+    const missingSign = missingPower > 0 ? '−' : '';
+    const missingFull = missingPower === null ? '--' : `${missingSign}${formatCount(missingPower)}`;
+    const missingCompact = missingPower === null
         ? '--'
-        : marginAbsolute >= 1000
-            ? `${marginSign}${(marginAbsolute / 1000).toFixed(marginAbsolute >= 10000 ? 0 : 1)}K`
-            : `${marginSign}${formatCount(marginAbsolute)}`;
+        : missingPower >= 1000
+            ? `${missingSign}${(missingPower / 1000).toFixed(missingPower >= 10000 ? 0 : 1)}K`
+            : missingFull;
     const barSignature = `${Number(block.level) || 0}:${safetyMargin === null ? 'unknown' : safetyMargin}:${status.quorumPower || 'unknown'}`;
     const missedSnapshot = serializeLiveHeadMissedState(Number(block.level), details.missedState);
     const personal = liveHeadMyTezosRowPresentation(
@@ -2329,7 +2347,7 @@ function renderLiveHeadRow(block, activity, { isNew = false, savedAddresses = nu
                         <span class="live-head-power-full">${powerKnown ? `${formatCount(block.power)}<small>/${formatCount(block.committee)}</small>` : '--'}</span>
                         <span class="live-head-power-compact">${score === null ? '--' : `${formatPct(score)}%`}</span>
                     </span>
-                    <span class="live-head-power-track ${status.className}" title="${escapeHtml(trackTitle)}" aria-label="${escapeHtml(trackTitle)}"><span class="live-head-power-fill" style="--live-head-margin:${status.marginRatio.toFixed(4)}"></span><span class="live-head-margin"><span class="live-head-margin-full">${marginFull}</span><span class="live-head-margin-compact">${marginCompact}</span></span></span>
+                    <span class="live-head-power-track ${status.className}" title="${escapeHtml(trackTitle)}" aria-label="${escapeHtml(trackTitle)}"><span class="live-head-power-fill" style="--live-head-margin:${status.marginRatio.toFixed(4)}"></span><span class="live-head-margin"><span class="live-head-margin-full">${missingFull}</span><span class="live-head-margin-compact">${missingCompact}</span></span></span>
                     ${activityStatus}
                 </span>
                 <span class="live-head-recency">
@@ -2338,7 +2356,7 @@ function renderLiveHeadRow(block, activity, { isNew = false, savedAddresses = nu
                 </span>
             </span>
             <span class="live-head-row-detail">
-                <span class="live-head-baker${producerHasAlias ? '' : ' is-address'}" title="${escapeHtml(producer.address || name)}"><span class="live-head-baker-name">${escapeHtml(name)}</span><span class="live-head-story-connector" aria-hidden="true"></span></span>
+                <span class="live-head-baker${producerHasAlias ? '' : ' is-address'}" title="${escapeHtml(producer.address || name)}"><span class="live-head-baker-name">${nameHtml}</span><span class="live-head-story-connector" aria-hidden="true"></span></span>
                 ${details.html}
             </span>
         </div>

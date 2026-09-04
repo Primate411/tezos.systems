@@ -2,6 +2,72 @@ import assert from 'node:assert/strict';
 import { mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
+async function checkMasthead(page, deviceScaleFactor, artifactsDir) {
+  const themes = deviceScaleFactor === 1 ? ['aurora', 'clean', 'default'] : ['aurora'];
+  for (const theme of themes) {
+    await page.evaluate(async theme => {
+      const { setTheme } = await import('/js/ui/theme.js');
+      setTheme(theme);
+    }, theme);
+    await page.waitForFunction(theme => document.getElementById(`theme-css-${theme}`)?.sheet, theme);
+    await page.evaluate(() => document.fonts.ready);
+    for (const width of [1440, 1181, 1180, 1080, 1054, 900, 801, 800, 768, 641, 640, 390, 320]) {
+      await page.setViewportSize({ width, height: width > 800 ? 1753 : 844 });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const layout = await page.evaluate(() => {
+        const rect = selector => {
+          const box = document.querySelector(selector).getBoundingClientRect();
+          return { left: box.left, right: box.right, top: box.top, bottom: box.bottom, width: box.width, height: box.height };
+        };
+        const pills = [...document.querySelectorAll('.top-continuity-stat')];
+        const visible = [...document.querySelectorAll('.header .title, .header-protocol-chip, .header-nav-btn, .top-continuity-stat, #top-continuity-history')];
+        const titleRow = document.querySelector('.header-title-row');
+        return {
+          title: rect('.header .title'), brand: rect('.header-title-row'), headerLeft: rect('.header-left'), protocol: rect('.header-protocol-chip'),
+          controls: rect('.header .controls'), age: rect('#top-continuity-history'), summary: rect('.top-continuity-row'),
+          header: rect('.header'),
+          pills: pills.map(el => ({ left: el.getBoundingClientRect().left, top: el.getBoundingClientRect().top,
+            bottom: el.getBoundingClientRect().bottom, width: el.getBoundingClientRect().width })),
+          overflow: document.documentElement.scrollWidth - innerWidth,
+          titleGap: parseFloat(getComputedStyle(titleRow).columnGap),
+          textFits: visible.every(el => el.scrollWidth <= el.clientWidth + 1),
+          controlsFit: visible.every(el => el.getBoundingClientRect().left >= 0 && el.getBoundingClientRect().right <= innerWidth),
+          navOrder: [...document.querySelectorAll('.header-nav-btn')].map(el => el.id)
+        };
+      });
+      const label = `${theme} ${width}/${deviceScaleFactor}x masthead: ${JSON.stringify(layout)}`;
+      assert(layout.overflow <= 1 && layout.textFits && layout.controlsFit, label);
+      assert.deepEqual(layout.navOrder, ['my-tezos-btn', 'features-gear', 'settings-gear']);
+      const protocolBesideTitle = layout.protocol.left > layout.title.right
+        && Math.abs((layout.protocol.top + layout.protocol.bottom) / 2 - (layout.title.top + layout.title.bottom) / 2) < 1;
+      if (layout.headerLeft.width + 1 >= layout.title.width + layout.protocol.width + layout.titleGap) {
+        assert(protocolBesideTitle, `${label} should keep protocol beside title while it fits`);
+      } else {
+        assert(layout.protocol.top >= layout.title.bottom - 1, `${label} should wrap protocol only when needed`);
+      }
+      if (width > 800) {
+        assert(layout.brand.right + 12 <= layout.controls.left && layout.controls.top < layout.brand.bottom, label);
+        assert(layout.pills.every(pill => pill.width < 180 && pill.left > layout.age.right
+          && pill.top < layout.age.bottom && pill.bottom > layout.age.top), label);
+        assert(layout.header.height < 175, label);
+      } else {
+        assert(layout.controls.top >= layout.brand.bottom, label);
+        assert(Math.abs((layout.age.left + layout.age.right) / 2 - (layout.summary.left + layout.summary.right) / 2) < 2, label);
+        if (width <= 640) {
+          assert(Math.abs(layout.pills[0].top - layout.pills[1].top) < 1
+            && layout.pills[2].top > layout.pills[0].top, label);
+        }
+      }
+      if (artifactsDir && [1440, 1054, 390].includes(width)) {
+        await mkdir(artifactsDir, { recursive: true });
+        await page.screenshot({ path: path.join(artifactsDir, `masthead-${theme}-${width}-${deviceScaleFactor}x.png`),
+          clip: { x: 0, y: 0, width, height: Math.ceil(layout.header.bottom + 16) } });
+      }
+    }
+  }
+  await page.evaluate(async () => (await import('/js/ui/theme.js')).setTheme('aurora'));
+}
+
 export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, artifactsDir }) {
   for (const deviceScaleFactor of [1, 2]) {
     const context = await browser.newContext({
@@ -22,6 +88,8 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.querySelectorAll('[data-chain-health-level]').length === 25
       && document.querySelector('#live-head-stack .live-head-power-fill'));
+
+    await checkMasthead(page, deviceScaleFactor, artifactsDir);
 
     for (const width of [1080, 1440, 901, 900, 762, 390, 320]) {
       await page.setViewportSize({ width, height: width > 760 ? 1753 : 844 });

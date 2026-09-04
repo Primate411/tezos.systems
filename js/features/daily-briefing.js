@@ -61,7 +61,7 @@ const NFT_FETCH_TIMEOUT_MS = 2500;
 const MILESTONE_FETCH_TIMEOUT_MS = 2800;
 const MILESTONE_CATALOG_URL = '/data/milestone-catalog.json';
 const HOT_TODAY_LIVE_TICK_MS = 1000;
-const HOT_TODAY_INITIAL_TIMEOUT_MS = 8000;
+const HOT_TODAY_INITIAL_TIMEOUT_MS = 20000;
 const HOT_SIGNAL_RENDER_THROTTLE_MS = 1000;
 const HOT_SIGNAL_RENDER_CAP = 12;
 const HOT_SIGNAL_CATEGORY_BUDGET = 2;
@@ -202,6 +202,7 @@ let hotTodayQuietRestore = false;
 let hotTodayLiveTimer = null;
 let hotTodayExpiryTimer = null;
 let hotTodayInitialTimer = null;
+let hotTodayLoadingStartedAt = null;
 let hotTodaySignals = [];
 let hotTodayBriefingSentences = [];
 let hotTodayHasRendered = false;
@@ -3673,6 +3674,7 @@ function wireHotTodayRealtime() {
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
+        scheduleHotTodayInitialTimeout();
         if (hotTodaySurfaceVisible()) refreshHotTodayLiveMetrics();
         schedulePulseHistoryLoad();
         void loadReleaseRadarSignal();
@@ -3745,9 +3747,31 @@ function pulseHasConfirmedStats(stats = {}) {
     && stats?._quality?.status !== 'unavailable';
 }
 
+function scheduleHotTodayInitialTimeout() {
+  if (hotTodayInitialTimer || lastHotTodayDataState !== 'loading'
+    || document.visibilityState !== 'visible' || !hotTodaySurfaceVisible()) return;
+  hotTodayLoadingStartedAt ??= Date.now();
+  const remaining = Math.max(0, HOT_TODAY_INITIAL_TIMEOUT_MS - (Date.now() - hotTodayLoadingStartedAt));
+  hotTodayInitialTimer = window.setTimeout(() => {
+    hotTodayInitialTimer = null;
+    if (document.visibilityState !== 'visible' || !hotTodaySurfaceVisible()
+      || lastHotTodayDataState !== 'loading') return;
+    renderHotTodayState('unavailable', lastStats || {});
+  }, remaining);
+}
+
 function renderHotTodayState(state, stats = lastStats || {}) {
   const island = pulseTickerElement();
   if (!island) return;
+  // Early source failures must not bypass the initial loading window. Real
+  // results (including confirmed quiet reads) still render without a delay.
+  if (state === 'unavailable' && lastHotTodayDataState === 'loading') {
+    hotTodayLoadingStartedAt ??= Date.now();
+    if (Date.now() - hotTodayLoadingStartedAt < HOT_TODAY_INITIAL_TIMEOUT_MS) {
+      scheduleHotTodayInitialTimeout();
+      return;
+    }
+  }
   const loading = state === 'loading';
   const quiet = state === 'quiet';
   lastHotTodayDataState = state;
@@ -3767,7 +3791,10 @@ function renderHotTodayState(state, stats = lastStats || {}) {
   hotTodayHasRendered = !loading;
   wireNetworkContextNavigation(island);
   wireHotTodayRealtime();
+  if (loading) scheduleHotTodayInitialTimeout();
   if (!loading) {
+    if (hotTodayInitialTimer) window.clearTimeout(hotTodayInitialTimer);
+    hotTodayInitialTimer = null;
     scheduleHotSignalExpiryRefresh([]);
     captureDailySnapshot(stats);
   }
@@ -4106,10 +4133,6 @@ export async function initHotTodayIsland(stats, xtzPrice) {
   wireHotTodayVisibility();
   if (hotTodaySurfaceVisible()) {
     renderHotTodayState('loading', mergedStats);
-    hotTodayInitialTimer = window.setTimeout(() => {
-      hotTodayInitialTimer = null;
-      if (lastHotTodayDataState === 'loading') renderHotTodayState('unavailable', mergedStats);
-    }, HOT_TODAY_INITIAL_TIMEOUT_MS);
   }
   wireNetworkContextNavigation(island);
   wireHotTodayRealtime();

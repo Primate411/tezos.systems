@@ -3388,7 +3388,11 @@ async function checkSelectorContracts() {
     ['Live Head width-aware pill fitting', 'function fitLiveHeadPills', health],
     ['Live Head responsive pill observer', 'new ResizeObserver', health],
     ['Live Head full producer addresses', "producerHasAlias ? producer.alias : (producer.address || 'Unknown baker')", health],
+    ['Live Head preserved address suffix', 'escapeHtml(name.slice(-5))', health],
+    ['Live Head adaptive address prefix', 'escapeHtml(name.slice(0, -5))', health],
     ['Live Head two-thirds consensus status', 'const quorumPower = Math.ceil(committee * 2 / 3)', health],
+    ['Live Head signed missing-power label', "const missingSign = missingPower > 0 ? '−' : ''", health],
+    ['Live Head missing power relative to full committee', 'Math.max(0, block.committee - block.power)', health],
     ['Live Head top-line Quiet indicator', 'class="live-head-quiet"', health],
     ['Live Head exact manager gas receipt', '/operations/3', health],
     ['Live Head protocol gas-limit denominator', 'hard_gas_limit_per_block', health],
@@ -3460,8 +3464,9 @@ async function checkSelectorContracts() {
     ['header continuity row styles', '.header-continuity-row', heroSearchCss],
     ['header render-blocking trailing-hour activity styles', '.header-activity-button', heroSearchCss],
     ['header first-paint activity loading state', '.header-activity-cluster.is-loading .block-ticker-value', heroSearchCss],
-    ['header intermediate two-row breakpoint', '@media (min-width: 641px) and (max-width: 1279px)', heroSearchCss],
-    ['header intermediate four-column pill grid', 'grid-template-columns: repeat(4, minmax(0, 1fr));', heroSearchCss],
+    ['header compact desktop breakpoint', '@media (min-width: 801px) and (max-width: 1180px)', heroSearchCss],
+    ['header protocol wraps by available title-row width', 'flex-wrap: wrap;', heroSearchCss],
+    ['header centered tablet breakpoint', '@media (min-width: 641px) and (max-width: 800px)', heroSearchCss],
     ['top continuity stat rail right aligned', 'justify-content: flex-end', styles],
     ['top continuity rail is borderless tape', 'border: 0;', styles],
     ['top continuity identity claim styles', '.top-continuity-claim', heroSearchCss],
@@ -3984,6 +3989,11 @@ async function checkSelectorContracts() {
       || !heroSearchCss.includes('.live-head-story-connector::after')) {
     fail('Live Head baker identities must hand receipts across a restrained right-pointing connector without spending receipt width');
   }
+  if (!/\.live-head-baker-prefix\s*\{[^}]*min-width:\s*0;[^}]*overflow:\s*hidden;[^}]*text-overflow:\s*ellipsis;/.test(heroSearchCss)
+      || !/\.live-head-baker-suffix\s*\{[^}]*display:\s*inline-block;/.test(heroSearchCss)
+      || !health.includes("name.style.setProperty('--live-head-baker-suffix-width', value)")) {
+    fail('Live Head raw addresses must shorten only their prefix while retaining their identifying suffix and complete DOM text');
+  }
   if (!app.includes("import { initPlatformTextFallbacks } from './platform-text.js'")
       || !app.includes("safe('platformTextFallbacks', initPlatformTextFallbacks)")
       || !(await pathExists('js/core/platform-text.js'))) {
@@ -3994,7 +4004,11 @@ async function checkSelectorContracts() {
       || !heroSearchCss.includes('box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 10%, transparent)')
       || !heroSearchCss.includes('text-shadow: 0 1px 2px rgba(2, 8, 18, 0.9);')
       || !heroSearchCss.includes('backdrop-filter: blur(4px);')) {
-    fail('Every Live Head pill must inherit Quiet\'s opaque theme-invariant backing, edge, shadow, and blur');
+    fail('Every Live Head pill must inherit Quiet\'s opaque theme-invariant backing, shadow, and blur');
+  }
+  const storyPillCss = heroSearchCss.match(/\.live-head-story-chip:not\(\.is-round-miss\),\n\.live-head-miss-pill \{[\s\S]*?\n\}/)?.[0] || '';
+  if (!storyPillCss.includes('border-color: transparent;') || storyPillCss.includes('inset')) {
+    fail('Every lower-line pill except a missed-round receipt must keep its fill without a visible border or inset outline');
   }
   if (!chainHeartbeatActivityBlock.includes('/tokens/transfers?level=${level}')
       || chainHeartbeatActivityBlock.includes('token.metadata.artifactUri.null=false')
@@ -4084,6 +4098,10 @@ async function checkSelectorContracts() {
   }
   const marginFillCss = heroSearchCss.match(/\.live-head-power-fill \{[\s\S]*?\n\}/)?.[0] || '';
   const marginLabelCss = heroSearchCss.match(/\.live-head-margin \{[\s\S]*?\n\}/)?.[0] || '';
+  if (!heroSearchCss.includes('clamp(61px, 5.6vw, 77px)')
+      || !/\.live-head-power-track\s*\{[^}]*min-width:\s*max-content;/.test(heroSearchCss)) {
+    fail('Live Head health rails must retain their compact width and a content-sized floor for readable missing-power labels');
+  }
   if (!heroSearchCss.includes('grid-template-columns: max-content 100px;')
       || !heroSearchCss.includes('grid-template-columns: max-content 75px;')
       || !marginLabelCss.includes('font: 800 10px/12px var(--font-runtime);')) {
@@ -7227,6 +7245,10 @@ async function checkNetworkContextNavigationContracts() {
     'window.addEventListener(\'governance-alert-state\'',
     'hotPoolSignals()',
     'LS_DAILY_SNAPSHOT',
+    'HOT_TODAY_INITIAL_TIMEOUT_MS = 20000',
+    "state === 'unavailable' && lastHotTodayDataState === 'loading'",
+    'Date.now() - hotTodayLoadingStartedAt < HOT_TODAY_INITIAL_TIMEOUT_MS',
+    'scheduleHotTodayInitialTimeout()',
     'HOT_SIGNAL_RENDER_CAP = 12',
     'HOT_SIGNAL_VISIBLE_MIN = 4',
     'HOT_SIGNAL_CATEGORY_BUDGET = 2',

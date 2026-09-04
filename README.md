@@ -426,15 +426,25 @@ inline modal styles in `js/core/app.js`.
   identity face. A uniform low-opacity hairline grows through the baker column's
   remaining measured width and ends in a right arrow immediately before the
   receipt lane, so short and long baker names share one exact pill alignment
-  without clipping. An unaliased producer keeps its full address on wide rows and truncates
-  only when the producer column truly runs out of room. The first-line cluster
-  reads power fraction, safety-margin rail, then activity state. Aggregate
-  missed power is reserved for the complete inspector because the health rail
-  already carries the block-level deficit. `Quiet` appears immediately after
+  without clipping. An unaliased producer keeps its full address wherever it fits;
+  when the producer column runs out of room, the middle shortens while the `tz1`–`tz4`
+  prefix and last five characters remain visible. This adapts to the actual column
+  width and font without rewriting the full address used by copy, tooltips, or receipts.
+  The first-line cluster
+  reads power fraction, safety-margin rail, then activity state. The number on
+  the rail shows missing attestation power relative to the full committee:
+  `6,999/7,000` displays `−1`, full attestation displays `0`, and unavailable
+  power stays `--`. The rail fill still depicts the quorum safety margin; its
+  width is about 20% more compact, with a minimum that keeps its number readable.
+  `Quiet` appears immediately after
   the rail only for a complete empty receipt. Every
   Quiet, gas, activity, and missed-attester pill uses the same opaque dark
-  backing, inset edge, shadow, and blur so it survives every theme without
-  surrendering its category or severity color. Every non-quiet block replaces it
+  backing, shadow, and blur so it survives every theme without surrendering
+  its category or severity color. Activity-category pills such as Baker,
+  Transfers, Art, Tokens, Calls, and missed-attester addresses have no visible
+  border or inset edge. Only yellow missed-round receipts retain an edge on the
+  lower line; Quiet/Gas pills and health bars retain their existing edges.
+  Every non-quiet block replaces it
   with a `Gas N%` pill derived from exact outer and internal manager-operation
   milligas against the active protocol block limit. Gas fills progress from
   cool/open through active, busy, and hot as capacity is consumed, leaving the
@@ -461,10 +471,10 @@ inline modal styles in `js/core/app.js`.
   scroll internally when its complete facts exceed the viewport; leaving that
   surface, Escape, page/outside scroll, or a click away releases the lock and
   applies only the newest queued snapshot as one motionless catch-up.
-  The compact health rail excludes the power every block must have and shows
-  only the signed margin above the exact two-thirds quorum; sub-quorum power
+  The compact health rail's fill excludes the power every block must have and shows
+  only the margin above the exact two-thirds quorum; sub-quorum power
   becomes a red deficit. There is no threshold marker or separate Safe/Strong
-  pill. Its number has an opaque theme-aware backing over the full-height fill,
+  pill. Its missing-power number has an opaque theme-aware backing over the full-height fill,
   keeping it legible across severity states; round, timing, and attestation
   colors use the theme's readable health palette. Each rail paints its factual
   length immediately, with no delayed empty-to-full sweep or right-edge flash;
@@ -539,8 +549,15 @@ inline modal styles in `js/core/app.js`.
   missed-baker identities also expose My Tezos handoffs. The receipt footer and
   non-link receipt space open the Network Health Chamber while receipt links
   remain independently clickable.
-- The header keeps the current protocol beside the Tezos Systems title and
-  orders its right-side navigation as My Tezos, Explore, then Setup. HEN stays
+- The compact two-row desktop header keeps the current protocol beside the
+  Tezos Systems title whenever the available title row can hold both; it wraps
+  beneath only when the title, protocol badge, and right-side navigation no
+  longer fit without collision.
+  It orders its right-side navigation as My Tezos,
+  Explore, then Setup. Mainnet age shares the second row with content-sized
+  network stat pills, including on portrait monitors; below 801px the masthead
+  stacks centrally, and phones retain a two-column metric grid. Existing
+  navigation-button styling and the corner gift launcher are unchanged. HEN stays
   tucked inside the corner gift tray instead of appearing as a separate header
   action. My Tezos stays expanded with its emoji and label at narrow widths.
   The header also turns mainnet age into a first-screen statement with years,
@@ -998,7 +1015,10 @@ inline modal styles in `js/core/app.js`.
   compact `What's hot today` live pulse
   sits above Chambers as a horizontally scrolling strip for non-obvious daily
   signals instead of repeating the header's cycle, baker, staking, or security
-  facts. Quiet, curious, headliner, peacock, and historic tiers give stronger
+  facts. Its initial loading state lasts at least 20 seconds before an unavailable
+  message, including early failures; successful and confirmed quiet reads appear
+  immediately. The timeout does not mutate a hidden surface and catches up when
+  it becomes visible again. Quiet, curious, headliner, peacock, and historic tiers give stronger
   stories progressively larger and more distinctive cards, while June 30
   UTC still leads with the uptime anniversary.
   Pace-aware milestone cards normally appear only within the final 14 days and

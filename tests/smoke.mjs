@@ -6662,7 +6662,7 @@ async function smokeHeroIntermediate(browser, baseUrl) {
     const panelRect = rect(panel);
     const pillRects = pills.map((pill) => rect(pill));
     return {
-      breakpoint: matchMedia('(min-width: 641px) and (max-width: 1279px)').matches,
+      breakpoint: matchMedia('(min-width: 801px) and (max-width: 1180px)').matches,
       leftDisplay: left ? getComputedStyle(left).display : '',
       rowColumns: row ? getComputedStyle(row).gridTemplateColumns : '',
       pillColumns: panel?.querySelector('.top-continuity-stats')
@@ -6672,10 +6672,9 @@ async function smokeHeroIntermediate(browser, baseUrl) {
       activityAboveFilter: Boolean(activityRect && filterRect
         && Math.abs(filterRect.top - activityRect.bottom - 6) <= 1
         && Math.abs(activityRect.height - filterRect.height) <= 1),
-      pillsBelowLead: Boolean(leftRect && panelRect && leftRect.bottom <= panelRect.top + 1),
-      fullWidthRows: Boolean(rowRect && leftRect && panelRect
-        && Math.abs(leftRect.width - rowRect.width) <= 2
-        && Math.abs(panelRect.width - rowRect.width) <= 2),
+      pillsBesideLead: Boolean(historyRect && panelRect && historyRect.right < panelRect.left
+        && historyRect.top < panelRect.bottom && historyRect.bottom > panelRect.top),
+      compactPills: pillRects.every(rect => rect.width < 180),
       pillCount: pills.length,
       onePillRow: pillRects.length === 4
         && pillRects.every((pillRect) => Math.abs(
@@ -6691,7 +6690,7 @@ async function smokeHeroIntermediate(browser, baseUrl) {
 
   assert(state.breakpoint && state.leftDisplay === 'flex', `hero intermediate: breakpoint did not keep the uptime lead stable ${JSON.stringify(state)}`);
   assert(state.activityInLiveHead && state.activityAboveFilter, `hero intermediate: 1H activity should occupy its own row above the health and setup controls ${JSON.stringify(state)}`);
-  assert(state.pillsBelowLead && state.fullWidthRows, `hero intermediate: network signals should occupy a full-width row below uptime ${JSON.stringify(state)}`);
+  assert(state.pillsBesideLead && state.compactPills, `hero intermediate: compact network signals should share the uptime row ${JSON.stringify(state)}`);
   assert(state.pillCount === 4 && state.onePillRow, `hero intermediate: network signals should remain one uninterrupted four-pill row ${JSON.stringify(state)}`);
   assert(state.rowInsideViewport && state.activityOverflow <= 1 && state.documentOverflow <= 1, `hero intermediate: responsive signal row escaped or clipped ${JSON.stringify(state)}`);
 
@@ -6701,7 +6700,7 @@ async function smokeHeroIntermediate(browser, baseUrl) {
     const rects = pills.map((pill) => pill.getBoundingClientRect());
     const center = (rect) => rect.top + rect.height / 2;
     return {
-      breakpoint: matchMedia('(min-width: 641px) and (max-width: 1279px)').matches,
+      breakpoint: matchMedia('(min-width: 641px) and (max-width: 800px)').matches,
       oneRow: rects.length === 4 && rects.every((rect) => Math.abs(center(rect) - center(rects[0])) <= 2),
       contentFits: pills.every((pill) => pill.scrollWidth - pill.clientWidth <= 1),
       documentOverflow: document.documentElement.scrollWidth - innerWidth
@@ -6719,7 +6718,7 @@ async function smokeHeroIntermediate(browser, baseUrl) {
     const center = (rect) => rect.top + rect.height / 2;
     return {
       mobile: matchMedia('(max-width: 640px)').matches,
-      intermediate: matchMedia('(min-width: 641px) and (max-width: 1279px)').matches,
+      intermediate: matchMedia('(min-width: 641px) and (max-width: 800px)').matches,
       twoByTwo: rects.length === 4
         && Math.abs(center(rects[0]) - center(rects[1])) <= 2
         && Math.abs(center(rects[2]) - center(rects[3])) <= 2
@@ -11295,7 +11294,78 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   log('ok - my tezos baker activity smoke');
 }
 
+async function smokeLivePulseLoading(browser, baseUrl) {
+  for (const width of [1054, 390]) {
+    for (const outcome of ['unavailable', 'hidden', 'ready', 'quiet']) {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block' });
+      try {
+        await installFeatureMocks(context);
+        // Exercise the real state renderer and timer in isolation from the
+        // dashboard's unrelated successful sources. Exports exist only here.
+        await context.route('**/js/core/app.js*', route => route.fulfill({ contentType: 'text/javascript', body: '' }));
+        await context.route('**/js/features/daily-briefing.js*', route => route.fulfill({
+          contentType: 'text/javascript',
+          body: readFileSync(path.join(ROOT, 'js/features/daily-briefing.js'), 'utf8')
+            + '\nexport { renderHotTodayState as testState, renderToHotIsland as testReady };'
+        }));
+        await context.addInitScript(() => {
+          localStorage.setItem('tezos-systems-theme', 'aurora');
+          Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => window.__pulseVisibility || 'visible' });
+        });
+        const page = await context.newPage();
+        await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+        await page.addStyleTag({ url: `${baseUrl}/css/shell-extras.min.css` });
+        await page.evaluate(async () => { window.__pulseLoadingModule = await import('/js/features/daily-briefing.js'); });
+        await page.clock.install({ time: new Date('2026-09-04T12:00:00Z') });
+        await page.clock.pauseAt(new Date('2026-09-04T12:00:01Z'));
+        await page.evaluate(() => {
+          window.__pulseLoadingModule.testState('loading', {});
+          window.__pulsePlaceholder = document.querySelector('.pulse-ticker-item-placeholder');
+          window.__pulseLoadingModule.testState('unavailable', {});
+        });
+        const state = () => page.locator('#pulse-ticker-strip').getAttribute('data-pulse-state');
+        assert(await state() === 'loading', `${width}: early failure must keep loading`);
+        await page.clock.runFor(50);
+        assert(await page.locator('.pulse-ticker-item-placeholder b').first().evaluate(el => getComputedStyle(el).animationName !== 'none'), 'loading retains its animation');
+        await page.clock.fastForward(7950);
+        assert(await state() === 'loading', `${width}: original eight-second deadline must still load`);
+        if (outcome === 'ready' || outcome === 'quiet') {
+          await page.evaluate(outcome => {
+            if (outcome === 'quiet') window.__pulseLoadingModule.testState('quiet', { cycle: 100, blockLevel: 1000 });
+            else window.__pulseLoadingModule.testReady(100, [{ id: 'loading-success', category: 'activity', text: 'A confirmed activity receipt arrived', score: 1000 }], {});
+          }, outcome);
+          assert(await state() === outcome, `${width}: successful result must not wait for the deadline`);
+          await page.clock.fastForward(12001);
+          assert(await state() === outcome, `${width}: cancelled timeout must not overwrite success`);
+        } else {
+          if (outcome === 'hidden') await page.evaluate(() => {
+            window.__pulseVisibility = 'hidden';
+            document.dispatchEvent(new Event('visibilitychange'));
+          });
+          await page.clock.fastForward(11999);
+          assert(await state() === 'loading', `${width}: unavailable must wait the full twenty seconds`);
+          assert(await page.evaluate(() => window.__pulsePlaceholder === document.querySelector('.pulse-ticker-item-placeholder')), 'early failures retain skeleton DOM');
+          await page.clock.fastForward(1);
+          if (outcome === 'hidden') {
+            assert(await state() === 'loading', `${width}: hidden timeout must not mutate the surface`);
+            await page.evaluate(() => {
+              window.__pulseVisibility = 'visible';
+              document.dispatchEvent(new Event('visibilitychange'));
+            });
+            await page.clock.fastForward(1);
+          }
+          assert(await state() === 'unavailable', `${width}: expired loading must report unavailable`);
+        }
+      } finally {
+        await context.close();
+      }
+    }
+  }
+  log('ok - Live Pulse twenty-second loading floor, early failure, immediate success, and hidden-tab catch-up');
+}
+
 async function smokeLivePulseTicker(browser, baseUrl) {
+  await smokeLivePulseLoading(browser, baseUrl);
   const issues = [];
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
@@ -17067,6 +17137,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	          margin: Number(row.dataset.safetyMargin),
 	          power: Number(row.dataset.attestedPower),
 	          text: visibleMargin?.textContent?.trim() || '',
+	          missingFull: full?.textContent?.trim() || '',
 	          title: track?.getAttribute('title') || '',
 	          adjacent: power?.nextElementSibling === track,
 	          noMarker: getComputedStyle(track, '::after').content === 'none',
@@ -17675,7 +17746,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.liveHeadRounds.every((round) => /^R\d+$/.test(round)), `network health chamber: Live Head round badges are malformed: ${healthState.liveHeadRounds.join(',')}`);
   assert(healthState.liveHeadDeltas.every((delta) => /^\d+(?:\.\d)?s$/.test(delta)), `network health chamber: Live Head deltas are malformed: ${healthState.liveHeadDeltas.join(',')}`);
   assert(healthState.liveHeadPowers.every((power) => /^\d[\d,]*\/\d[\d,]*$/.test(power)), `network health chamber: Live Head attested fractions are malformed: ${healthState.liveHeadPowers.join(',')}`);
-  assert(healthState.liveHeadConsensusStates.includes('watch') && healthState.liveHeadMarginRails.every((rail) => rail.adjacent && rail.noMarker && rail.noStandaloneMissed && rail.order && rail.infoBeforeAge && rail.infoAgeGap >= 0 && rail.infoAgeGap <= 5 && rail.infoSize <= 16 && /^Inspect block /.test(rail.infoLabel) && rail.margin === rail.power - 4667 && /^[+−-](?:\d[\d,]*|\d+(?:\.\d)?K)$/.test(rail.text) && /rail shows only the safety margin/i.test(rail.title)), `network health chamber: compact quorum rail/info control or top-line order drifted ${JSON.stringify(healthState.liveHeadMarginRails)}`);
+  assert(healthState.liveHeadConsensusStates.includes('watch') && healthState.liveHeadMarginRails.every((rail) => rail.adjacent && rail.noMarker && rail.noStandaloneMissed && rail.order && rail.infoBeforeAge && rail.infoAgeGap >= 0 && rail.infoAgeGap <= 5 && rail.infoSize <= 16 && /^Inspect block /.test(rail.infoLabel) && rail.margin === rail.power - 4667 && /^(?:0|−(?:\d[\d,]*|\d+(?:\.\d)?K))$/.test(rail.text) && rail.missingFull === (rail.power === 7000 ? '0' : `−${(7000 - rail.power).toLocaleString('en-US')}`) && /rail shows only the safety margin/i.test(rail.title) && /number shows missing attestation power/i.test(rail.title)), `network health chamber: compact quorum rail/missing-power label/info control or top-line order drifted ${JSON.stringify(healthState.liveHeadMarginRails)}`);
   assert(healthState.liveHeadQuietRows.length >= 1 && healthState.liveHeadQuietRows.every((row) => row.text === 'Quiet' && row.topLine && !row.bottomQuiet), `network health chamber: Quiet did not stay on the top line ${JSON.stringify({ quiet: healthState.liveHeadQuietRows, stories: healthState.liveHeadStories, gas: healthState.liveHeadGasRows })}`);
   const resolvedLiveHeadGasRows = healthState.liveHeadGasRows.filter((row) => row.state === 'resolved');
   assert(resolvedLiveHeadGasRows.length >= 2 && healthState.liveHeadGasRows.filter((row) => row.state === 'loading').length <= 1 && resolvedLiveHeadGasRows.every((row) => Number.isFinite(row.percent) && /^Gas (?:<1|\d+)%$/.test(row.text) && /of 1,040,000 gas used/.test(row.title) && row.topLine && !row.hasQuiet), `network health chamber: non-quiet rows did not replace Quiet with exact gas-fullness pills ${JSON.stringify(healthState.liveHeadGasRows)}`);
@@ -17696,7 +17767,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(liveHeadPillFitProbe?.all >= 6 && liveHeadPillFitProbe.visible >= 1 && liveHeadPillFitProbe.visible < liveHeadPillFitProbe.all && liveHeadPillFitProbe.hidden === liveHeadPillFitProbe.all - liveHeadPillFitProbe.visible && /^\+\d+ bakers?$/.test(liveHeadPillFitProbe.summary), `network health chamber: narrow rows did not collapse only the identities that genuinely overflow ${JSON.stringify(liveHeadPillFitProbe)}`);
   assert(liveHeadRequiredMissRows.some((row) => /second\.tez/.test(row.text) && /tz4Miss\.\.\.ssMis/.test(row.text)), `network health chamber: per-block missed-attester pills do not prefer aliases and truncate tz1-tz4 addresses ${JSON.stringify(liveHeadRequiredMissRows)}`);
   assert(liveHeadRequiredMissRows.some((row) => /tz4MissMissMissMissMissMissMissMis/.test(row.titles)), `network health chamber: truncated missed-attester pills lost their full-address receipt ${JSON.stringify(liveHeadRequiredMissRows)}`);
-  assert(liveHeadRequiredMissRows.filter((row) => row.state === 'resolved').flatMap((row) => row.styles).every((style) => style.overflow === 'hidden' && style.textOverflow === 'ellipsis' && style.whiteSpace === 'nowrap' && style.maxWidth !== 'none' && style.borderColor !== 'rgba(0, 0, 0, 0)'), `network health chamber: indexed missed-attester pills are not visibly color-coded and truncated ${JSON.stringify(liveHeadRequiredMissRows)}`);
+  assert(liveHeadRequiredMissRows.filter((row) => row.state === 'resolved').flatMap((row) => row.styles).every((style) => style.overflow === 'hidden' && style.textOverflow === 'ellipsis' && style.whiteSpace === 'nowrap' && style.maxWidth !== 'none' && style.borderColor === 'rgba(0, 0, 0, 0)'), `network health chamber: indexed missed-attester pills must stay borderless and truncated ${JSON.stringify(liveHeadRequiredMissRows)}`);
 	  assert(new Set(healthState.liveHeadStoryTones).size >= 2, `network health chamber: activity categories are not color coded ${healthState.liveHeadStoryTones.join(',')}`);
 	  const artReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'art');
 	  const transferReceipt = healthState.liveHeadStoryReceipts.find((pill) => pill.kind === 'transfers' && pill.compact === 'Transfers · 2');
@@ -31326,6 +31397,9 @@ async function smokeThemeSelection(browser, baseUrl) {
   const themes = await page.evaluate(() => Array.from(document.querySelectorAll('#theme-picker-dropdown .theme-row')).map((row) => row.dataset.theme)).catch(() => []);
   assert(themes.length === 0, 'theme picker should not exist before opening');
 
+  // A visible <main> precedes the end of synchronous app wiring; wait for the
+  // first resolved Live Head row so the Smart Dock listener is definitely live.
+  await page.waitForFunction(() => document.querySelector('#live-head-stack [data-live-head-level]'), null, { timeout: 15000 });
   await ensureDropdownOpen(page, '#settings-gear', '#settings-dropdown');
   await page.locator('#theme-toggle').click();
   await page.locator('#theme-picker-dropdown.open').waitFor({ state: 'visible', timeout: 5000 });
@@ -31358,14 +31432,14 @@ async function smokeThemeSelection(browser, baseUrl) {
   const beforeCopyUrl = page.url();
   await page.locator('#theme-picker-dropdown .theme-link-copy[data-copy-hash="#theme=valley"]').click();
   await page.waitForFunction(() => document.querySelector('.theme-link-copy[data-copy-hash="#theme=valley"]')?.classList.contains('copied'), null, { timeout: 3000 });
-  const copiedThemeState = await page.evaluate(async () => ({
+  const copiedThemeState = await page.evaluate(() => ({
     checked: document.querySelector('#theme-picker-dropdown .theme-radio:checked')?.value || '',
-    clipboard: await navigator.clipboard.readText(),
     copiedLabel: document.querySelector('.theme-link-copy[data-copy-hash="#theme=valley"]')?.getAttribute('aria-label') || '',
     focusedHash: document.activeElement?.getAttribute?.('data-copy-hash') || '',
     pickerOpen: document.querySelector('#theme-picker-dropdown')?.classList.contains('open') || false,
     theme: document.body.dataset.theme || ''
   }));
+  copiedThemeState.clipboard = await page.evaluate(() => navigator.clipboard.readText());
   assert(
     copiedThemeState.clipboard === new URL('/#theme=valley', baseUrl).toString()
       && copiedThemeState.checked === 'matrix'
@@ -31422,6 +31496,7 @@ async function smokeThemeSelection(browser, baseUrl) {
         ['gas-unavailable', 'live-head-gas is-unavailable'],
         ...['l1-vote', 'l2-vote', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake', 'transfers', 'quiet']
           .map((tone) => [`story-${tone}`, `live-head-story-chip is-${tone}`]),
+        ['story-round-miss', 'live-head-story-chip is-round-miss'],
         ['miss', 'live-head-miss-pill'],
         ['miss-more', 'live-head-miss-pill is-more'],
         ['miss-unavailable', 'live-head-miss-pill is-unavailable'],
@@ -31458,6 +31533,7 @@ async function smokeThemeSelection(browser, baseUrl) {
           backgroundColor: style.backgroundColor,
           backgroundAlpha: background.a,
           borderAlpha: parseColor(style.borderTopColor).a,
+          insetEdge: style.boxShadow.includes('inset'),
           color: style.color,
           fontWeight: Number(style.fontWeight || 0),
           hasBackdrop: style.backdropFilter !== 'none' || style.webkitBackdropFilter !== 'none',
@@ -31491,14 +31567,16 @@ async function smokeThemeSelection(browser, baseUrl) {
     assert(state.specialtyDisplayFonts.length === 2 && state.specialtyDisplayFonts.every((font) => font.includes(expected.display)), `theme ${theme}: specialty display font mismatch ${JSON.stringify(state.specialtyDisplayFonts)} (expected ${expected.display})`);
     assert(state.specialtyDataFonts.length === 2 && state.specialtyDataFonts.every((font) => font.includes(specialtyDataExpected)), `theme ${theme}: specialty data font mismatch ${JSON.stringify(state.specialtyDataFonts)} (expected ${specialtyDataExpected})`);
     assert(
-      state.pillReadability.length === 21
+      state.pillReadability.length === 22
         && state.pillReadability.every((pill) => (
           pill.backgroundAlpha >= 0.85
-          && pill.borderAlpha >= 0.85
+          && (pill.label === 'story-round-miss'
+            ? pill.borderAlpha >= 0.85
+            : (/^(?:story-|miss)/.test(pill.label) ? pill.borderAlpha === 0 && !pill.insetEdge : pill.borderAlpha >= 0.85))
           && pill.hasBackdrop
           && pill.worstContrast >= 4.5
         )),
-      `theme ${theme}: every Live Head pill must retain Quiet's opaque, edged, readable treatment: ${JSON.stringify(state.pillReadability)}`
+      `theme ${theme}: every Live Head pill must retain its opaque readable fill while only missed-round activity keeps a lower-line edge: ${JSON.stringify(state.pillReadability)}`
     );
     const l1VotePill = state.pillReadability.find((pill) => pill.label === 'story-l1-vote');
     const l2VotePill = state.pillReadability.find((pill) => pill.label === 'story-l2-vote');
@@ -31534,6 +31612,7 @@ async function smokeThemeSelection(browser, baseUrl) {
   const hashResponse = await hashPage.goto(`${baseUrl}/#theme=valley`, { waitUntil: 'domcontentloaded' });
   assert(hashResponse?.ok(), `theme hash direct link failed with HTTP ${hashResponse?.status()}`);
   await hashPage.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  await hashPage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true', null, { timeout: 30000 });
   await hashPage.waitForFunction(() => document.body.dataset.theme === 'valley', null, { timeout: 5000 });
   const hashThemeState = await hashPage.evaluate(() => ({
     cssLinks: Array.from(document.querySelectorAll('link[id^="theme-css-"]'), (link) => link.id),
@@ -31569,6 +31648,7 @@ async function smokeThemeSelection(browser, baseUrl) {
   const mobilePickerResponse = await mobilePage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
   assert(mobilePickerResponse?.ok(), `theme picker mobile: dashboard failed with HTTP ${mobilePickerResponse?.status()}`);
   await mobilePage.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  await mobilePage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true', null, { timeout: 30000 });
   await ensureDropdownOpen(mobilePage, '#settings-gear', '#settings-dropdown');
   await mobilePage.locator('#theme-toggle').click();
   await mobilePage.locator('#theme-picker-dropdown.open').waitFor({ state: 'visible', timeout: 5000 });
@@ -36603,7 +36683,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'home-layout', description: 'Six device-local Home switches, inline Hide/Undo, persistence, tab sync, deep-link recovery, tour preview, Live Pulse gating, and responsive accessibility', run: () => smokeHomeLayout(browser, baseUrl) },
     { name: 'app-shell', description: 'Version metadata, service worker, manifest, icons, robots, sitemap, and shell assets', run: () => smokeAppShell(browser, baseUrl) },
     { name: 'release-update', description: 'Persistent desktop/mobile release dock, Later pill, activation fallback, and cross-tab service-worker lifecycle', run: () => smokeReleaseUpdateDock(browser, baseUrl) },
-    { name: 'hero-landscape', description: 'Hero continuity signals form one uptime/activity row above one uninterrupted four-pill row at intermediate widths', run: () => smokeHeroIntermediate(browser, baseUrl) },
+    { name: 'hero-landscape', description: 'Compact network metrics share the mainnet-age row at intermediate widths and stack without clipping on tablets and phones', run: () => smokeHeroIntermediate(browser, baseUrl) },
     { name: 'hero-command-bar-first-paint', description: 'The no-JavaScript Live Head command shell paints with stable geometry and truthful loading state', run: () => smokeHeroCommandBar(browser, baseUrl, 'first-paint') },
     { name: 'hero-command-bar-desktop', description: 'Desktop Index Chamber launches synchronously with its Index Loom, routed full-height results, accessible isolation, and exact reader-state restoration', run: () => smokeHeroCommandBar(browser, baseUrl, 'desktop') },
     { name: 'hero-command-bar-mobile', description: 'Mobile Index Chamber preserves visual viewport, keyboard, focus, scroll, fallback glyph, starter and Loom grids, and routed result geometry', run: () => smokeHeroCommandBar(browser, baseUrl, 'mobile') },

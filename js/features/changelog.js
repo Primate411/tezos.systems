@@ -14,7 +14,12 @@ export const CHANGELOG = [
             { type: '✨', text: 'R1+ blocks now identify missed baking rounds individually: R0 for an R1 block, R0 and R1 for R2, with full baker links in the block inspector and explicit gaps when rights are unavailable' },
             { type: '✨', text: 'Live Blocks now has a narrow selector with a borderless, centered up/down chevron for 4 blocks (3 on mobile), 10, 15, 20, or a custom count with stacked +/− buttons, synchronized with Setup and saved on this device' },
             { type: '🎨', text: 'Chambers now use the full available height on tall screens; Chain Health lines use whole-pixel spacing and block health pills retain clean edges and centered labels on 1× displays' },
-            { type: '🎨', text: '1H Activity and Chain Health now share single-line headings, with a bullet-separated count out of 25, two-digit numerator space, a centered divider, matching outer padding, and stacked narrow-screen controls with separate touch targets' }
+            { type: '🎨', text: '1H Activity and Chain Health now share single-line headings, with a bullet-separated count out of 25, two-digit numerator space, a centered divider, matching outer padding, and stacked narrow-screen controls with separate touch targets' },
+            { type: '🎨', text: 'The header now forms a compact two-row masthead, keeping protocol beside the title whenever their measured row fits and wrapping it beneath only when space runs out; navigation stays on the right and mainnet age stays beside content-sized network metrics' },
+            { type: '🔧', text: 'Live Pulse keeps its initial loading animation for at least 20 seconds before showing unavailable, including early source failures; successful reads still appear immediately' },
+            { type: '🎨', text: 'Raw baker addresses now shorten in the middle when their Live Head column is constrained, keeping the tz prefix and last five characters visible and automatically expanding to the full address when space allows; aliases are unchanged' },
+            { type: '🎨', text: 'Live Head health pills are about 20% shorter and show missing attestation power as a negative number (6,999 of 7,000 becomes −1; full attestation is 0), while retaining the quorum safety-margin fill and enough width for readable labels' },
+            { type: '🎨', text: 'Live Head lower-line pills keep their colored text and filled backing but drop their outlines for a quieter surface; only the yellow missed-round pills retain an edge on that line, while health, Quiet/Gas, and controls remain unchanged' }
         ]
     },
     {

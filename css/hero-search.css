@@ -61,6 +61,7 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 0.55rem 0.95rem;
+    width: 100%;
     min-width: 0;
 }
 
@@ -267,7 +268,9 @@
     }
 }
 
-@media (min-width: 641px) and (max-width: 1279px) {
+/* Compact desktop keeps age and content-sized metrics on one shared row.
+   Stack only when the actual content can no longer fit, not at tablet width. */
+@media (min-width: 641px) and (max-width: 800px) {
     .top-continuity-row {
         grid-template-columns: minmax(0, 1fr);
         align-items: center;
@@ -277,6 +280,7 @@
     .header-continuity-row {
         display: flex;
         align-items: center;
+        justify-content: center;
         width: 100%;
     }
 
@@ -291,12 +295,11 @@
     }
 
     .top-continuity-stats {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        display: flex;
         align-items: center;
         justify-content: center;
         gap: 6px;
-        width: 100%;
+        width: auto;
     }
 
     .top-continuity-stat {
@@ -473,16 +476,6 @@
 }
 
 @media (max-width: 640px) {
-    .header-title-row {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr);
-        justify-items: center;
-    }
-
-    .header-protocol-chip {
-        grid-row: 2;
-    }
-
     .top-continuity-lead {
         display: grid;
         grid-template-columns: 1fr;
@@ -2878,8 +2871,9 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
 .live-head-power-track {
     position: relative;
     display: grid;
-    flex: 0 0 clamp(76px, 7vw, 96px);
-    width: clamp(76px, 7vw, 96px);
+    flex: 0 0 clamp(61px, 5.6vw, 77px);
+    width: clamp(61px, 5.6vw, 77px);
+    min-width: max-content;
     height: 16px;
     place-items: center;
     overflow: hidden;
@@ -3030,6 +3024,20 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
     white-space: nowrap;
 }
 
+.live-head-baker-prefix {
+    display: inline-block;
+    max-width: calc(100% - var(--live-head-baker-suffix-width, 5ch));
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: bottom;
+}
+
+.live-head-baker-suffix {
+    display: inline-block;
+    vertical-align: bottom;
+}
+
 .live-head-story-connector {
     --live-head-connector-color: color-mix(in srgb, var(--text-tertiary) 18%, transparent);
     position: relative;
@@ -3159,6 +3167,12 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
     white-space: nowrap;
 }
 
+.live-head-story-chip:not(.is-round-miss),
+.live-head-miss-pill {
+    border-color: transparent;
+    box-shadow: 0 1px 3px rgba(2, 8, 18, 0.48);
+}
+
 .live-head-story-chip.is-art {
     color: #ff9ddd;
 }
@@ -3183,6 +3197,11 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
         grid-template-columns: minmax(60px, 0.3fr) minmax(0, 1fr);
     }
 
+    .live-head-row-detail:has(.is-round-miss):has(.live-head-baker.is-address) {
+        /* Reserve tz1… + the last five characters even beside two missed rounds. */
+        grid-template-columns: minmax(6rem, 0.3fr) minmax(0, 1fr);
+    }
+
     .live-head-story:has(.is-round-miss) {
         overflow-x: auto;
         scrollbar-width: none;
@@ -3203,7 +3222,7 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
 .live-head-story-chip.is-evidence {
     color: #ff7187;
     background: color-mix(in srgb, #ff7187 18%, rgba(11, 18, 34, 0.96));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, #ff7187 22%, transparent), 0 0 10px rgba(212, 45, 76, 0.25), 0 1px 3px rgba(2, 8, 18, 0.58);
+    box-shadow: 0 0 10px rgba(212, 45, 76, 0.25), 0 1px 3px rgba(2, 8, 18, 0.58);
 }
 
 .live-head-story-chip.is-milestone {
@@ -3219,7 +3238,7 @@ html[data-live-head-my-tezos-only="true"] .live-head-stack {
 .live-head-story-chip:is(.is-l1-vote, .is-l2-vote) {
     color: #c9a6ff;
     background: color-mix(in srgb, #c9a6ff 16%, rgba(11, 18, 34, 0.94));
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, #c9a6ff 18%, transparent), 0 0 9px rgba(129, 86, 190, 0.2), 0 1px 3px rgba(2, 8, 18, 0.55);
+    box-shadow: 0 0 9px rgba(129, 86, 190, 0.2), 0 1px 3px rgba(2, 8, 18, 0.55);
     font-family: var(--font-runtime);
     font-weight: 860;
     letter-spacing: 0.025em;
@@ -4095,8 +4114,8 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     }
 
     .live-head-power-track {
-        flex-basis: 44px;
-        width: 44px;
+        flex-basis: 35px;
+        width: 35px;
     }
 
     .live-head-gas-skeleton {
@@ -4340,8 +4359,8 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     }
 
     .live-head-power-track {
-        flex-basis: 34px;
-        width: 34px;
+        flex-basis: 27px;
+        width: 27px;
     }
 
     .live-head-gas {
@@ -6410,7 +6429,24 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     }
 }
 
-@media (max-width: 1180px) {
+@media (min-width: 801px) and (max-width: 1180px) {
+    .header .title {
+        font-size: clamp(1.6rem, 3.1vw, 2.25rem) !important;
+        letter-spacing: 0.05em !important;
+        white-space: nowrap;
+    }
+
+    .header .controls {
+        gap: 0.5rem;
+        flex-shrink: 0;
+    }
+}
+
+@media (max-width: 800px) {
+    .header-continuity-row {
+        justify-content: center;
+    }
+
     .header-primary-row {
         display: grid;
         grid-template-columns: minmax(0, 1fr);
@@ -6433,6 +6469,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
     .header-title-row {
         justify-content: center;
+        justify-items: center;
         width: 100%;
         text-align: center;
     }
@@ -6483,6 +6520,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
     .header-title-row {
         justify-content: center;
+        justify-items: center;
         max-width: 100%;
         width: 100%;
         text-align: center;
