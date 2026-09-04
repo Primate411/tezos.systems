@@ -988,7 +988,8 @@ inline modal styles in `js/core/app.js`.
   intelligence.
 - First-screen Live Head is built for liveness and retrieval: the top of the
   page moves from live cycle/market data to `Tezos Systems`, a clickable
-  `Running on <current protocol>` Protocol History launcher, Live Pulse, then
+  `Running on <current protocol>` Protocol History launcher beside the title
+  when the row fits (and centered below it on small screens), Live Pulse, then
   recent Passing Blocks telemetry flowing into a pure search well before Chambers.
   The search accepts
   Tezos addresses, `.tez` names, protocol names, block levels, block hashes,

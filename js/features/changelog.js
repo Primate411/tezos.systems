@@ -19,7 +19,8 @@ export const CHANGELOG = [
             { type: '🔧', text: 'Live Pulse keeps its initial loading animation for at least 20 seconds before showing unavailable, including early source failures; successful reads still appear immediately' },
             { type: '🎨', text: 'Raw baker addresses now shorten in the middle when their Live Head column is constrained, keeping the tz prefix and last five characters visible and automatically expanding to the full address when space allows; aliases are unchanged' },
             { type: '🎨', text: 'Live Head health pills are about 20% shorter and show missing attestation power as a negative number (6,999 of 7,000 becomes −1; full attestation is 0), while retaining the quorum safety-margin fill and enough width for readable labels' },
-            { type: '🎨', text: 'Live Head lower-line pills keep their colored text and filled backing but drop their outlines for a quieter surface; only the yellow missed-round pills retain an edge on that line, while health, Quiet/Gas, and controls remain unchanged' }
+            { type: '🎨', text: 'Live Head lower-line pills keep their colored text and filled backing but drop their outlines for a quieter surface; only the yellow missed-round pills retain an edge on that line, while health, Quiet/Gas, and controls remain unchanged' },
+            { type: '🔧', text: 'Small screens now give the title and protocol launcher their own centered lines in every theme, while medium and wide layouts keep the protocol beside the title whenever that row fits' }
         ]
     },
     {
