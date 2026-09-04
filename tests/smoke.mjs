@@ -30183,6 +30183,9 @@ async function smokeFeatureWorkflows(browser, baseUrl, section = 'all') {
   await page.waitForFunction(() => document.querySelector('#history-copy-link')?.textContent?.trim() === '✓', null, { timeout: 3000 });
   const historyCopy = await page.evaluate(() => navigator.clipboard.readText?.());
   assert(historyCopy.endsWith('/history/'), `feature workflows history copy link mismatch: ${historyCopy}`);
+  const historyDigestDisclosure = page.locator('#history-modal details[data-quiet-key="history-digest"]');
+  assert(!(await historyDigestDisclosure.evaluate(node => node.open)), 'feature workflows history digest should start collapsed');
+  await historyDigestDisclosure.locator('summary').click();
   const digestText = (await page.locator('#history-digest').innerText()).toLowerCase();
   for (const expected of ['Consensus', 'Economy', 'Liquidity Baking', 'Market', 'Network Health', 'Tezos X', 'Governance']) {
     assert(digestText.includes(expected.toLowerCase()), `feature workflows history digest missing ${expected}: ${digestText}`);
