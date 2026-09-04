@@ -1604,6 +1604,11 @@ Live Head inspector checks use a real pointer move to a hit-tested, keyed trigge
 and then verify the opened receipt. This avoids repeating a hover action after
 the inspector has opened over its own trigger, while retaining reading-lock,
 receipt-link, focus, geometry, and pointer-exit assertions.
+Cycle milestone checks hold unrelated mock block progression steady and wait
+for the exact cycle-start RPC receipt before the bounded render assertion,
+including cached reloads, peer tabs, and expired milestones. Desktop startup
+also runs at 6× CPU slowdown; an early ticker from other signals cannot satisfy
+the expired-cycle check before its own receipt and briefing have settled.
 
 `npm run test:affected` runs the static gate, maps files changed since
 `origin/main` to suite-declared `files`, `tags`, and `risk`, and repeats selected

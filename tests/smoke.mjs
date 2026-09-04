@@ -9464,6 +9464,32 @@ async function smokeCycleMilestone(browser, baseUrl) {
   const startLevel = 14174689;
   const blocksPerCycle = 14400;
   const headLevel = startLevel + 12545;
+  async function loadCyclePage(openPage, { theme = 'matrix', reload = false, expired = false } = {}) {
+    // DOMContentLoaded is only the shell: throttled headline requests must
+    // finish before Live Pulse asks for this exact cycle-start receipt. Keep
+    // the bounded boot/receipt wait separate from the ten-second render check.
+    const [response, receipt] = await Promise.all([
+      reload
+        ? openPage.reload({ waitUntil: 'domcontentloaded' })
+        : openPage.goto(`${baseUrl}/?theme=${theme}`, { waitUntil: 'domcontentloaded' }),
+      openPage.waitForResponse(candidate => new URL(candidate.url()).pathname
+        === `/chains/main/blocks/${startLevel}/header`, { timeout: 30000 })
+    ]);
+    assert(response?.ok(), `cycle milestone: dashboard failed with HTTP ${response?.status()}`);
+    assert(receipt.ok(), `cycle milestone: exact boundary failed with HTTP ${receipt.status()}`);
+    const header = await receipt.json();
+    const expectedTime = now - ((expired ? 73 : 6) * 60 * 60 * 1000);
+    assert(header.level === startLevel && Date.parse(header.timestamp) === expectedTime,
+      `cycle milestone: wrong boundary receipt ${JSON.stringify(header)}`);
+    await openPage.waitForFunction(() => {
+      const briefing = JSON.parse(localStorage.getItem('tezos-systems-briefing-cache') || 'null');
+      return briefing?.cycle === 1300
+        && document.querySelector('#pulse-ticker-strip')?.dataset.pulseState === 'ready';
+    }, null, { timeout: 10000 });
+    if (!expired) {
+      await openPage.locator('[data-hot-signal-id="milestone-cycle-1300"]').waitFor({ state: 'visible', timeout: 10000 });
+    }
+  }
   const staleCatalog = {
     schema: 1,
     generatedAt: new Date(now - 7 * 86400000).toISOString(),
@@ -9485,6 +9511,9 @@ async function smokeCycleMilestone(browser, baseUrl) {
     serviceWorkers: 'block'
   });
   await installFeatureMocks(context, {
+    // Advancing on every poll manufactures unrelated Live Head work and makes
+    // this milestone test depend on the TzKT queue and host scheduling speed.
+    blockHeadAutoAdvance: false,
     milestoneCatalog: staleCatalog,
     cycleMilestone: {
       cycle: 1300,
@@ -9511,9 +9540,11 @@ async function smokeCycleMilestone(browser, baseUrl) {
   });
   const page = await context.newPage();
   attachIssueCollectors(page, 'cycle milestone', issues);
-  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
-  assert(response?.ok(), `cycle milestone: dashboard failed with HTTP ${response?.status()}`);
-  await page.locator('[data-hot-signal-id="milestone-cycle-1300"]').waitFor({ state: 'visible', timeout: 10000 });
+  const milestoneCdp = await context.newCDPSession(page);
+  // Exercise both initial and cached desktop boot on a constrained renderer.
+  await milestoneCdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+  await loadCyclePage(page);
+  await milestoneCdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
 
   const before = await page.evaluate(() => {
     const card = document.querySelector('[data-hot-signal-id="milestone-cycle-1300"]');
@@ -9716,8 +9747,8 @@ async function smokeCycleMilestone(browser, baseUrl) {
   assert(!before.earlier && !after.earlier, `cycle milestone: dead Earlier today breadcrumb survived ${JSON.stringify({ before, after })}`);
   assert(after.sameCard && after.sameOutline && after.focused && after.selected === '1,300 cycles', `cycle milestone: quiet reconciliation or the live clock rebuild replaced or disturbed stable milestone state ${JSON.stringify(after)}`);
   assert(Math.abs(after.scrollLeft - after.expectedScrollLeft) <= 1, `cycle milestone: quiet reconciliation reset strip scroll ${JSON.stringify(after)}`);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await page.locator('[data-hot-signal-id="milestone-cycle-1300"]').waitFor({ state: 'visible', timeout: 10000 });
+  await milestoneCdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
+  await loadCyclePage(page, { reload: true });
   await context.close();
 
   const nearContext = await browser.newContext({
@@ -9836,6 +9867,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
     serviceWorkers: 'block'
   });
   await installFeatureMocks(mobileContext, {
+    blockHeadAutoAdvance: false,
     milestoneCatalog: staleCatalog,
     cycleMilestone: {
       cycle: 1300,
@@ -9861,14 +9893,10 @@ async function smokeCycleMilestone(browser, baseUrl) {
   });
   const mobilePage = await mobileContext.newPage();
   attachIssueCollectors(mobilePage, 'mobile cycle milestone', issues);
-  const mobileResponse = await mobilePage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
-  assert(mobileResponse?.ok(), `mobile cycle milestone: dashboard failed with HTTP ${mobileResponse?.status()}`);
-  await mobilePage.locator('[data-hot-signal-id="milestone-cycle-1300"]').waitFor({ state: 'visible', timeout: 10000 });
+  await loadCyclePage(mobilePage);
   const peerPage = await mobileContext.newPage();
   attachIssueCollectors(peerPage, 'peer cycle milestone', issues);
-  const peerResponse = await peerPage.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
-  assert(peerResponse?.ok(), `peer cycle milestone: dashboard failed with HTTP ${peerResponse?.status()}`);
-  await peerPage.locator('[data-hot-signal-id="milestone-cycle-1300"]').waitFor({ state: 'visible', timeout: 10000 });
+  await loadCyclePage(peerPage);
   for (const [label, openPage] of [['mobile', mobilePage], ['peer', peerPage]]) {
     const forcedState = await openPage.evaluate(() => {
       window.dispatchEvent(new CustomEvent('hot-signal-rendered', {
@@ -10162,6 +10190,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
     serviceWorkers: 'block'
   });
   await installFeatureMocks(expiredContext, {
+    blockHeadAutoAdvance: false,
     milestoneCatalog: staleCatalog,
     cycleMilestone: {
       cycle: 1300,
@@ -10181,9 +10210,7 @@ async function smokeCycleMilestone(browser, baseUrl) {
   });
   const expiredPage = await expiredContext.newPage();
   attachIssueCollectors(expiredPage, 'expired cycle milestone', issues);
-  const expiredResponse = await expiredPage.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'domcontentloaded' });
-  assert(expiredResponse?.ok(), `expired cycle milestone: dashboard failed with HTTP ${expiredResponse?.status()}`);
-  await expiredPage.waitForFunction(() => document.querySelectorAll('#pulse-ticker-strip [data-hot-signal-index]').length >= 4, null, { timeout: 10000 });
+  await loadCyclePage(expiredPage, { theme: 'clean', expired: true });
   const expiredState = await expiredPage.evaluate(() => {
     const card = document.querySelector('[data-hot-signal-id="milestone-cycle-1300"]');
     return {
