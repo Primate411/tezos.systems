@@ -1,4 +1,4 @@
-import { renderChamberVerdict } from '../ui/chamber-reading.js';
+import { renderChamberStamp, renderChamberVerdict } from '../ui/chamber-reading.js';
 /**
  * Tezos Community Rewards Chamber
  * Human-identity recognition archive sourced from official Tezos Commons posts.
@@ -333,13 +333,14 @@ function roomHeader() {
             <p class="tezoscrp-hero-lead">Who was recognized, how often, in which categories, and by which official monthly source.</p>
             <a class="tezoscrp-official-link" href="https://tezoscommons.org/rewards/" target="_blank" rel="noopener noreferrer">Official program ↗</a>
         </header>
-        ${renderChamberVerdict({ key: 'tezoscrp', state: 'archive', sentence: `${formatNumber(summaryData?.totals?.periods)} official monthly rounds are recorded through ${shortPeriod(fullData?.program?.latest_award_period)}; category awards are not payout totals.`, receipts: [['Award listings', formatNumber(summaryData?.totals?.awards)], ['Identities', formatNumber(summaryData?.totals?.people)]], timestamp: summaryData?.generated_at })}
-        ${overviewMetrics()}
-        <div class="tezoscrp-truth-note"><strong>What is counted:</strong> one official category listing equals one award. Monthly recognitions and known published amounts remain separate; most posts do not state a per-person XTZ payout. <strong>Identity continuity:</strong> verified aliases share one record, every published name stays on its receipt, and uncertain lookalikes remain separate.</div>
+        ${renderChamberVerdict({ key: 'tezoscrp', state: 'archive', sentence: `${formatNumber(summaryData?.totals?.periods)} official monthly rounds are recorded through ${shortPeriod(fullData?.program?.latest_award_period)}; category awards are not payout totals.`, receipts: [['Award listings', formatNumber(summaryData?.totals?.awards)], ['Identities', formatNumber(summaryData?.totals?.people)]] })}
+
         <nav class="tezoscrp-tabs" role="tablist" aria-label="TezosCRP Chamber views">
             ${VIEW_KEYS.map((view) => `<button type="button" id="tezoscrp-tab-${view}" role="tab" aria-selected="${state.view === view}" aria-controls="tezoscrp-view" tabindex="${state.view === view ? '0' : '-1'}" data-tezoscrp-view="${view}">${escapeHtml(VIEW_LABELS[view])}</button>`).join('')}
         </nav>
         <div class="tezoscrp-view" id="tezoscrp-view" role="tabpanel" aria-labelledby="tezoscrp-tab-${state.view}" tabindex="0"></div>
+        <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="tezoscrp-method"><summary>Archive totals &amp; counting method</summary>${renderChamberStamp(summaryData?.generated_at, 'Archive generated')}        ${overviewMetrics()}
+        <div class="tezoscrp-truth-note"><strong>What is counted:</strong> one official category listing equals one award. Monthly recognitions and known published amounts remain separate; most posts do not state a per-person XTZ payout. <strong>Identity continuity:</strong> verified aliases share one record, every published name stays on its receipt, and uncertain lookalikes remain separate.</div></details>
     `;
 }
 

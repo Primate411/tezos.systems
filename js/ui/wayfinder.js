@@ -114,7 +114,7 @@ function createSemanticLink(entry, context) {
 
     const detail = document.createElement('span');
     detail.className = 'site-wayfinder-link-detail';
-    detail.textContent = entry.detail || entry.group || 'Open on Tezos Systems';
+    detail.textContent = entry.question || entry.detail || entry.group || 'Open on Tezos Systems';
     link.appendChild(detail);
 
     item.appendChild(link);

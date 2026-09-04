@@ -923,7 +923,7 @@ function renderLookupPanel() {
         <section class="td-command-panel td-lookup-panel chamber-anim-fade" style="animation-delay:60ms">
             <div class="td-command-copy">
                 <span class="td-kicker">Name rush scanner</span>
-                <h3>Check a .tez name, then jump straight to registration, owner, auction, offer, and recent activity context.</h3>
+                <h3>Check a .tez name</h3>
             </div>
             <form class="td-lookup-form" id="tezos-domains-lookup-form" autocomplete="off">
                 <input id="tezos-domains-lookup-input" class="td-lookup-input" name="tezos-domain" type="search" inputmode="url" placeholder="builder or builder.tez" value="${escapeHtml(value)}" aria-label="Check a Tezos Domains name">
@@ -1094,7 +1094,7 @@ function renderUrgentSurface(data) {
         ? `${urgentCount} urgent surface${urgentCount === 1 ? '' : 's'}: renewal cliffs first, live bidding second.`
         : 'No expiring or auction names returned in the current chamber sample.';
     return `
-        <section class="td-urgent-surface chamber-anim-fade" style="animation-delay:118ms" aria-label="Urgent Tezos Domains market surface">
+        <section id="td-urgent" class="td-urgent-surface chamber-anim-fade" style="animation-delay:118ms" aria-label="Urgent Tezos Domains market surface">
             <div class="td-urgent-head">
                 <div>
                     <span class="td-kicker">Urgency tape</span>
@@ -1174,6 +1174,7 @@ function renderChamber(data, options = {}) {
 
         ${renderChamberVerdict({ key: 'domains', state: 'observed', sentence: 'The latest returned identity events, live auctions, and expiring names are separate market signals—not completed sales.', receipts: [['Live auctions', liveAuctionCount], ['Registrations in event page', registrationCount]], timestamp: data.freshTimestamp, clockLabel: 'Latest event' })}
         ${renderLookupPanel()}
+        <nav class="chamber-context-nav" aria-label="Domains sections"><button type="button" data-chamber-scroll-to="td-urgent">Urgent names</button><button type="button" data-chamber-scroll-to="td-asks">Ask prices</button><button type="button" data-chamber-scroll-to="td-bids">Bid offers</button><button type="button" data-chamber-scroll-to="td-history">Recent events</button></nav>
 
         <section class="td-pulse-grid chamber-anim-fade" style="animation-delay:90ms" aria-label="Tezos Domains pulse metrics">
             ${buildChamberPulseMetrics(data).map(([label, value, note]) => renderMetric(label, value, note)).join('')}
@@ -1182,7 +1183,7 @@ function renderChamber(data, options = {}) {
         ${renderUrgentSurface(data)}
 
         <div class="td-main-grid">
-            <section class="td-panel td-panel-wide chamber-anim-fade" style="animation-delay:120ms">
+            <section id="td-history" class="td-panel td-panel-wide chamber-anim-fade" style="animation-delay:120ms">
                 <div class="td-panel-title">Live Registration Feed <span>new claims and settled auctions</span></div>
                 ${renderPanelVerdict(registrationCount ? `${registrationCount} fresh registration${registrationCount === 1 ? '' : 's'} in the latest event page.` : 'No new registrations in the latest event page; broader identity moves are below.')}
                 <div class="td-event-list td-registration-feed">${renderRegistrationRows(registrationEvents, newEventKeys)}</div>
@@ -1208,12 +1209,12 @@ function renderChamber(data, options = {}) {
                 </div>
             </section>
 
-            <section class="td-panel chamber-anim-fade" style="animation-delay:210ms">
+            <section id="td-asks" class="td-panel chamber-anim-fade" style="animation-delay:210ms">
                 <div class="td-panel-title">Sell Wall <span>highest active asks</span></div>
                 <div class="td-market-list">${renderOfferRows(data.sellOffers, 'sell')}</div>
             </section>
 
-            <section class="td-panel chamber-anim-fade" style="animation-delay:240ms">
+            <section id="td-bids" class="td-panel chamber-anim-fade" style="animation-delay:240ms">
                 <div class="td-panel-title">Want List <span>active buy offers</span></div>
                 <div class="td-market-list">${renderOfferRows(data.buyOffers, 'buy')}</div>
             </section>

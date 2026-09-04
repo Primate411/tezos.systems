@@ -63,7 +63,12 @@ const GUIDES = {
 export function renderChamberGuide(key) {
     const guide = GUIDES[key];
     if (!guide) return '';
-    return `<aside class="chamber-reading-guide" data-quiet-key="guide-${escapeHtml(key)}" aria-label="How to read this room"><div><span class="chamber-reading-kicker">Right now</span><p>${escapeHtml(guide[0])}</p></div><dl>${guide[1].map(([label, target]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(target)}</dd></div>`).join('')}</dl></aside>`;
+    return renderChamberDisclosure(`guide-${key}`, 'How to read this', `<div class="chamber-reading-guide"><p>${escapeHtml(guide[0])}</p><dl>${guide[1].map(([label, target]) => `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(target)}</dd></div>`).join('')}</dl></div>`);
+}
+
+/** Content is trusted renderer markup; labels and keys are always escaped. */
+export function renderChamberDisclosure(key, label, content) {
+    return `<details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="${escapeHtml(key)}"><summary>${escapeHtml(label)}</summary><div class="chamber-disclosure-content">${content}</div></details>`;
 }
 
 // One visible-room clock; no polling, layout measurement, or background-tab work.

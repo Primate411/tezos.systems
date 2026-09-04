@@ -44,6 +44,7 @@ export const SITE_MAP = [
     },
     {
         id: 'anthology',
+        question: 'How did Tezos reach this protocol?',
         title: 'Protocol Anthology',
         href: '/anthology/',
         hash: '#protocol-history',
@@ -56,6 +57,7 @@ export const SITE_MAP = [
     },
     {
         id: 'chamber',
+        question: 'What is being decided on L1?',
         title: 'Tezos L1 Governance',
         href: '/chamber/',
         hash: '#chamber',
@@ -68,6 +70,7 @@ export const SITE_MAP = [
     },
     {
         id: 'pulse',
+        question: 'Which network signals are changing?',
         title: 'Network Pulse',
         href: '/pulse/',
         hash: '#pulse',
@@ -82,6 +85,7 @@ export const SITE_MAP = [
     },
     {
         id: 'capital',
+        question: 'Where is tracked capital held and moving?',
         title: 'Capital Chamber',
         href: '/capital/',
         hash: '#capital',
@@ -101,6 +105,7 @@ export const SITE_MAP = [
     },
     {
         id: 'minerals',
+        question: 'Which material, product form, and source match?',
         title: 'Critical Minerals',
         href: '/minerals/',
         hash: '#minerals',
@@ -121,6 +126,7 @@ export const SITE_MAP = [
     },
     {
         id: 'uranium',
+        question: 'How do token prices compare with physical references?',
         title: 'Uranium',
         href: '/uranium/',
         hash: '#uranium',
@@ -140,6 +146,7 @@ export const SITE_MAP = [
     },
     {
         id: 'metals',
+        question: 'Which metals have comparable price history?',
         title: 'Precious Metals',
         href: '/metals/',
         hash: '#metals',
@@ -159,6 +166,7 @@ export const SITE_MAP = [
     },
     {
         id: 'ecosystem',
+        question: 'Which reviewed apps were active last week?',
         title: 'Ecosystem Activity',
         href: '/ecosystem/',
         hash: '#ecosystem',
@@ -176,6 +184,7 @@ export const SITE_MAP = [
     },
     {
         id: 'staking-chamber',
+        question: 'How is tez moving into and out of stake?',
         title: 'Staking Chamber',
         href: '/stake/',
         hash: '#staking',
@@ -194,6 +203,7 @@ export const SITE_MAP = [
     },
     {
         id: 'maxis',
+        question: 'Which on-chain records has this address earned?',
         title: 'Tezos Maxis',
         href: '/maxis/',
         hash: '#maxis',
@@ -228,6 +238,7 @@ export const SITE_MAP = [
     },
     {
         id: 'tezoscrp',
+        question: 'Who did Tezos Commons recognize?',
         title: 'TezosCRP Recognition Hall',
         href: '/tezoscrp/',
         hash: '#tezoscrp',
@@ -247,6 +258,7 @@ export const SITE_MAP = [
     },
     {
         id: 'health',
+        question: 'Are blocks arriving and reaching consensus?',
         title: 'Network Health',
         href: '/health/',
         hash: '#health',
@@ -261,6 +273,7 @@ export const SITE_MAP = [
     },
     {
         id: 'liquidity-baking',
+        question: 'Is the liquidity subsidy running?',
         title: 'Liquidity Baking',
         href: '/lb/',
         hash: '#lb',
@@ -274,6 +287,7 @@ export const SITE_MAP = [
     },
     {
         id: 'tezosx',
+        question: 'What is happening on Etherlink?',
         title: 'Tezos X',
         href: '/tezosx/',
         paths: ['/tezlink/'],
@@ -287,6 +301,7 @@ export const SITE_MAP = [
     },
     {
         id: 'l2-governance',
+        question: 'What is each Etherlink governance track deciding?',
         title: 'Tezos X Governance',
         href: '/l2chamber/',
         hash: '#l2chamber',
@@ -299,6 +314,7 @@ export const SITE_MAP = [
     },
     {
         id: 'tz4',
+        question: 'Has my baker adopted a tz4 consensus key?',
         title: 'tz4 Adoption',
         href: '/tz4/',
         hash: '#tz4',
@@ -311,6 +327,7 @@ export const SITE_MAP = [
     },
     {
         id: 'ledger-flow',
+        question: 'Where did this account send and receive tez?',
         title: 'Ledger Flow',
         href: '/ledger-flow/',
         hash: '#ledger-flow',
@@ -324,6 +341,7 @@ export const SITE_MAP = [
     },
     {
         id: 'domains',
+        question: 'What is happening to this .tez name?',
         title: 'Tezos Domains',
         href: '/domains/',
         hash: '#domains',
@@ -358,6 +376,7 @@ export const SITE_MAP = [
     },
     {
         id: 'whales',
+        question: 'Which large transfers and awakenings were observed?',
         title: 'Whale Watch',
         href: '/whales/',
         hash: '#whales',
@@ -428,6 +447,7 @@ export const SITE_MAP = [
     },
     {
         id: 'leaderboard',
+        question: 'Which bakers match the facts I care about?',
         title: 'Baker Directory',
         href: '/leaderboard/',
         hash: '#leaderboard',
@@ -446,6 +466,7 @@ export const SITE_MAP = [
     },
     {
         id: 'history',
+        question: 'How has this measured signal changed?',
         title: 'Cycle History',
         href: '/history/',
         hash: '#history',

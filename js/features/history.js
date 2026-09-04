@@ -1633,11 +1633,19 @@ function renderCycleHistoryIntro(modal) {
     intro.className = 'cycle-history-intro';
     intro.setAttribute('aria-label', 'Cycle History Chamber guide');
     intro.innerHTML = `
-        <div class="cycle-history-system-strip" aria-label="History source ledgers">
+
+        <p class="cycle-history-lede">Fifteen captured signals. Each chart keeps its source, cadence, and returned coverage.</p>
+        <div class="cycle-history-route-controls">
+            <label for="cycle-history-metric">Focus a chart</label>
+            <select id="cycle-history-metric" aria-describedby="cycle-history-route-status">
+                <option value="">All charts</option>
+                ${CYCLE_HISTORY_METRICS.map(({ key, label }) => `<option value="${escapeAttr(key)}">${escapeHtml(label)}</option>`).join('')}
+            </select>
+            <span id="cycle-history-route-status" role="status" aria-live="polite">Choose a range or jump directly to one metric.</span>
+        </div>
+        <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="history-sources"><summary>Sources, cadence &amp; coverage</summary><div class="chamber-disclosure-content"><section class="cycle-history-provenance" aria-labelledby="cycle-history-provenance-title">        <div class="cycle-history-system-strip" aria-label="History source ledgers">
             <span>Global</span><span>Market</span><span>Health</span><span>Tezos X</span><span>Governance</span>
         </div>
-        <p class="cycle-history-lede">Measured Tezos history across fifteen captured signals. Ranges describe the retained snapshots available from each source ledger; uncaptured intervals are never invented.</p>
-        <section class="cycle-history-provenance" aria-labelledby="cycle-history-provenance-title">
             ${renderChamberVerdict({ key: 'history', state: 'archive', sentence: 'These charts show captured history, not continuous observation; each source keeps its own cadence and returned coverage.', receipts: [['Signals', CYCLE_HISTORY_METRICS.length], ['Source ledgers', HISTORY_SOURCE_DISCLOSURES.length]] })}
             <div class="cycle-history-provenance-head">
                 <strong id="cycle-history-provenance-title">Sources, cadence &amp; coverage</strong>
@@ -1660,16 +1668,9 @@ function renderCycleHistoryIntro(modal) {
                     </article>
                 `).join('')}
             </div>
-            <p class="cycle-history-provenance-note">Coverage is the stored snapshot window returned for the selected range, not a claim of continuous or backfilled history.</p>
-        </section>
-        <div class="cycle-history-route-controls">
-            <label for="cycle-history-metric">Focus a chart</label>
-            <select id="cycle-history-metric" aria-describedby="cycle-history-route-status">
-                <option value="">All charts</option>
-                ${CYCLE_HISTORY_METRICS.map(({ key, label }) => `<option value="${escapeAttr(key)}">${escapeHtml(label)}</option>`).join('')}
-            </select>
-            <span id="cycle-history-route-status" role="status" aria-live="polite">Choose a range or jump directly to one metric.</span>
-        </div>
+            <p class="cycle-history-provenance-note">Coverage is the stored snapshot window returned for the selected range; uncaptured intervals are never invented.</p>
+        </section></div></details>
+
     `;
     const actionRail = modal.querySelector('.cycle-history-header-actions');
     (actionRail || title).insertAdjacentElement('afterend', intro);

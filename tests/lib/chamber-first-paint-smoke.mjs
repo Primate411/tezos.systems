@@ -23,6 +23,7 @@ function rehash(value) {
 export async function smokeChamberFirstPaint(browser, baseUrl, { installFeatureMocks, artifactsDir }) {
   for (const width of [1440, 390]) for (const revalidateRevision of [0, 1]) for (const [key, routeName, bodyId, renderedKey, fullName, summaryName, receiptKey] of ROOMS) {
     const label = `${key} ${width}px ${revalidateRevision ? 'newer' : 'unchanged'}`;
+    let phase = 'cold render';
     const sourceText = await readFile(new URL(`../../data/${fullName}.json`, import.meta.url), 'utf8');
     const original = JSON.parse(sourceText);
     const originalSummary = summaryName ? JSON.parse(await readFile(new URL(`../../data/${summaryName}.json`, import.meta.url), 'utf8')) : null;
@@ -127,6 +128,7 @@ export async function smokeChamberFirstPaint(browser, baseUrl, { installFeatureM
         });
       }, key);
       await page.evaluate(() => sessionStorage.setItem('first-paint-warm', '1'));
+      phase = 'cached render';
       mode = 'hold'; gate = new Promise(resolve => { release = resolve; });
       await page.reload({ waitUntil: 'domcontentloaded' });
       await page.waitForFunction(bodyId => /Saved snapshot.*update pending/.test(document.getElementById(bodyId)?.textContent || ''), bodyId);
@@ -148,10 +150,11 @@ export async function smokeChamberFirstPaint(browser, baseUrl, { installFeatureM
           range.setStart(text, 0); range.setEnd(text, Math.min(5, text.length));
           getSelection().removeAllRanges(); getSelection().addRange(range);
         }
-        body.scrollTop = Math.min(260, body.scrollHeight - body.clientHeight);
+        const scroll = body.closest('.chamber-room-scroll') || body;
+        scroll.scrollTop = Math.min(260, scroll.scrollHeight - scroll.clientHeight);
         const horizontal = [...body.querySelectorAll('*')].find(node => node.scrollWidth > node.clientWidth + 40 && /auto|scroll/.test(getComputedStyle(node).overflowX));
         if (horizontal) horizontal.scrollLeft = 30;
-        window.__stageReader = { body, header, focus, text, horizontal, left: horizontal?.scrollLeft || 0, top: body.scrollTop,
+        window.__stageReader = { body, scroll, header, focus, text, horizontal, left: horizontal?.scrollLeft || 0, top: scroll.scrollTop,
           headerHeight: header?.getBoundingClientRect().height,
           selected: body.querySelector('[role="tab"][aria-selected="true"]')?.id, selection: getSelection().toString(), windowY: scrollY };
         window.__stageAfterRefresh = null;
@@ -160,23 +163,24 @@ export async function smokeChamberFirstPaint(browser, baseUrl, { installFeatureM
           const saved = window.__stageReader;
           window.__stageAfterRefresh = {
             identity: header === body.querySelector('header'), focus: document.activeElement === focus,
-            selection: getSelection().toString(), top: body.scrollTop, left: horizontal?.scrollLeft || 0,
+            selection: getSelection().toString(), top: scroll.scrollTop, left: horizontal?.scrollLeft || 0,
             headerHeight: header?.getBoundingClientRect().height,
             selected: body.querySelector('[role="tab"][aria-selected="true"]')?.id, windowY: scrollY
           };
           observer.disconnect();
-          body.scrollTop = Math.min(body.scrollHeight - body.clientHeight, saved.top + 37);
-          window.__stageUserScroll = body.scrollTop;
+          scroll.scrollTop = Math.min(scroll.scrollHeight - scroll.clientHeight, saved.top + 37);
+          window.__stageUserScroll = scroll.scrollTop;
         });
         observer.observe(body, { subtree: true, childList: true, characterData: true });
       }, bodyId);
+      phase = 'quiet revalidation';
       revision = revalidateRevision; mode = 'ready'; release();
       await page.waitForFunction(() => window.__stageAfterRefresh !== null);
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       const state = await page.evaluate(() => {
         const before = window.__stageReader, after = window.__stageAfterRefresh;
         return { after, before: { top: before.top, left: before.left, headerHeight: before.headerHeight, selection: before.selection, selected: before.selected, windowY: before.windowY },
-          userScroll: window.__stageUserScroll, actualScroll: before.body.scrollTop, overflow: document.documentElement.scrollWidth > innerWidth + 1,
+          userScroll: window.__stageUserScroll, actualScroll: before.scroll.scrollTop, overflow: document.documentElement.scrollWidth > innerWidth + 1,
           opacity: getComputedStyle(before.body.querySelector('header')).opacity };
       });
       assert(state.after.identity && state.after.focus, `${label}: refresh must retain header DOM and focus ${JSON.stringify(state)}`);
@@ -187,6 +191,7 @@ export async function smokeChamberFirstPaint(browser, baseUrl, { installFeatureM
         assert.equal(await page.evaluate(() => window.__stageFullStarted), 0, `${label}: unchanged projection must avoid downloading the large snapshot`);
       }
       if (artifactsDir) await page.screenshot({ path: path.join(artifactsDir, `first-paint-${key}-${width}-ready.png`) });
+      phase = 'failed refresh';
       mode = 'fail';
       await page.waitForFunction(() => window.__stageDataPending === 0 && typeof window.__stageTick === 'function');
       // Advance only the fixture clock beyond the archive's five-minute cadence.
@@ -196,6 +201,8 @@ export async function smokeChamberFirstPaint(browser, baseUrl, { installFeatureM
       assert(await page.evaluate(() => window.__stageReader.header.isConnected), `${label}: failed refresh retains the reading surface`);
       assert.deepEqual(errors, [], `${label}: no runtime errors`);
       console.log(`ok - first paint ${label}: hidden initial render, cached reload, quiet revalidation, failed refresh, reader state`);
+    } catch (error) {
+      throw new Error(`${label} during ${phase}: ${error.message}`, { cause: error });
     } finally {
       release();
       await context.close();

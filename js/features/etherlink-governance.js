@@ -1190,7 +1190,7 @@ function renderL2GovernanceNow(track) {
                     </div>
                 `).join('')}
             </div>
-            ${renderBakerVoteLedger(track)}
+            <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="l2-vote-ledger"><summary>Full baker vote ledger</summary><div class="chamber-disclosure-content">${renderBakerVoteLedger(track)}</div></details>
             <div class="chamber-now-watch">
                 <div>
                     <span>What to watch next</span>

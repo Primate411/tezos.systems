@@ -1969,7 +1969,7 @@ function renderChamber(data, container) {
         <div class="chamber-no-votes">
             <div class="no-votes-icon">🏛️</div>
             <div class="no-votes-text">No active vote in this epoch</div>
-            <div class="no-votes-sub">Tezos L1 Governance updates during Exploration and Promotion periods</div>
+            <div class="no-votes-sub">Ballot receipts appear during Exploration and Promotion.</div>
         </div>
         ${renderChronologicalVoteLog()}
     `;
@@ -1980,7 +1980,7 @@ function renderChamber(data, container) {
         ${renderProposalHeader(data)}
         ${renderChamberVerdict({ key: 'chamber', state: isLive ? 'observed' : 'archive', sentence: isLive ? `The current ${periodTitle(currentPeriod?.kind)} period is distinct from any earlier ballot result shown below.` : 'This is a historical governance epoch; its ballots are not the current live vote.', receipts: [['Epoch', epoch.index], ['Ballot rows', voters?.length ?? 'Unavailable']] })}
         ${renderGovernancePhaseHero(data)}
-        ${renderGovernanceNow(data)}
+        ${isEmptyLiveProposalWindow(data) ? `<details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="l1-period-context"><summary>Proposal period context &amp; earlier ballots</summary>${renderGovernanceNow(data)}</details>` : renderGovernanceNow(data)}
         ${renderProposalIntel(data)}
         ${liveGridHtml + pipelineHtml + processHtml}
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:800ms">

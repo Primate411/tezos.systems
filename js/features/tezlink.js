@@ -640,7 +640,7 @@ function renderTezlinkChamber(data, container, { quiet = false } = {}) {
             </div>
         </div>
         ${renderChamberVerdict({ key: 'tezosx', state: head ? 'observed' : 'unavailable', sentence: head ? 'The L2 execution surface has returned a head; activity, TVL, and gas retain their separate source scopes.' : 'An L2 head has not been returned; missing telemetry is not evidence of a stopped chain.', receipts: [['Head', head ? compactNumber(head) : 'Unavailable'], ['TVL', formatUsd(data.tvl)]] })}
-        <section class="lb-explainer tezlink-explainer chamber-anim-fade">
+        <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="tezosx-guide"><summary>About the L2 execution surface</summary><div class="chamber-disclosure-content"><section class="lb-explainer tezlink-explainer chamber-anim-fade">
             <div class="lb-explainer-main">
                 <div class="lb-explainer-kicker">Right now</div>
                 <p><strong>Tezos X</strong> tracks the atomic L2 execution surface Tezos users care about: TVL, cost, active transaction flow, and protocol mix.</p>
@@ -650,7 +650,7 @@ function renderTezlinkChamber(data, container, { quiet = false } = {}) {
                 <span><strong>24h tx</strong> ${compactNumber(data.transactionsToday)}</span>
                 <span><strong>Gas</strong> ${formatGas(data.gasGwei)}</span>
             </div>
-        </section>
+        </section></div></details>
         <div class="lb-dashboard-grid tezlink-dashboard-grid">
             ${renderPulsePanel(data)}
             ${renderTrendPanel(data)}

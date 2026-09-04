@@ -12,8 +12,8 @@ const RULES = [
     risk: 'high'
   },
   {
-    suites: /^(chamber-reading|standalone-chamber-completion|chamber-first-paint|quiet-refresh)$/,
-    files: ['js/ui/chamber-reading.js', 'js/ui/chamber-accessibility.js', 'css/shell-extras.css', 'tests/lib/chamber-reading-smoke.mjs'],
+    suites: /^(chamber-ux|chamber-reading|standalone-chamber-completion|chamber-first-paint|quiet-refresh)$/,
+    files: ['js/ui/chamber-reading.js', 'js/ui/chamber-accessibility.js', 'css/shell-extras.css', 'tests/lib/chamber-reading-smoke.mjs', 'tests/lib/chamber-ux-smoke.mjs'],
     tags: ['chamber', 'quiet-refresh', 'accessibility'],
     risk: 'high'
   },

@@ -60,7 +60,7 @@ export async function smokeChamberReading(browser, baseUrl, { installFeatureMock
         api.setChamberReadingState(body, 'snapshot');
         const copyAfter = verdict.querySelector('.chamber-reading-copy').getBoundingClientRect();
         const stableStatusGeometry = copyBefore.x === copyAfter.x && copyBefore.width === copyAfter.width && copyBefore.height === copyAfter.height;
-        const stamp = verdict.querySelector('time');
+        const stamp = body.querySelector('#capital-freshness time');
         stamp.dateTime = new Date(Date.now() - 1000).toISOString();
         api.updateChamberStamps(room);
         const firstMinuteWidth = stamp.getBoundingClientRect().width;
@@ -83,7 +83,7 @@ export async function smokeChamberReading(browser, baseUrl, { installFeatureMock
         api.settleChamberArrival(body, { quiet: false });
         Element.prototype.animate = originalAnimate;
         const after = { scroll: scroll.scrollTop, page: scrollY, selection: getSelection().toString(), tab: document.activeElement.id };
-        const retained = body.querySelector('[data-chamber-verdict]') === verdict && verdict.querySelector('p').firstChild === text && verdict.querySelector('time') === stamp;
+        const retained = body.querySelector('[data-chamber-verdict]') === verdict && verdict.querySelector('p').firstChild === text && body.querySelector('#capital-freshness time') === stamp;
         scroll.scrollTop += 45;
         const readerScroll = scroll.scrollTop;
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));

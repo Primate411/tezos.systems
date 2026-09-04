@@ -7,6 +7,64 @@ import { startChamberReading, stopChamberReading } from './chamber-reading.js';
 
 const launcherOpens = new WeakMap();
 const roomVisibility = new Map();
+const roomControls = new WeakSet();
+
+// Only direct tab actions restore a previous view. Polling and reconciliation
+// never run this path, and every restore completes before the next paint.
+function bindRoomControls(dialog) {
+    if (roomControls.has(dialog)) return;
+    roomControls.add(dialog);
+    const positions = new Map();
+    // A visible edge cue distinguishes a clipped rail from its final choice.
+    // It follows actual overflow, including replacement tablists and resizes.
+    let railFrame = 0;
+    const refreshRailCues = () => {
+        if (railFrame) return;
+        railFrame = requestAnimationFrame(() => {
+            railFrame = 0;
+            if (!dialog.closest('.active') || document.visibilityState !== 'visible') return;
+            for (const rail of dialog.querySelectorAll('.market-room-tabs, .whale-watch-tabs, .ecosystem-tabs, .network-pulse-nav, .tezoscrp-tabs, .minerals-filter-rail')) {
+                rail.dataset.quietOverflowEnd = String(rail.scrollWidth - rail.clientWidth - rail.scrollLeft > 2);
+            }
+        });
+    };
+    new ResizeObserver(refreshRailCues).observe(dialog);
+    new MutationObserver(refreshRailCues).observe(dialog, { childList: true, subtree: true });
+    dialog.addEventListener('scroll', refreshRailCues, true);
+    dialog.addEventListener('focusin', refreshRailCues);
+    document.addEventListener('visibilitychange', refreshRailCues);
+    refreshRailCues();
+    const rememberView = (event) => {
+        const tab = event.target.closest?.('[role="tab"]');
+        const rail = tab?.closest('[role="tablist"]');
+        if (!rail || !dialog.contains(rail)) return;
+        if (event.type === 'keydown' && !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+        const selected = rail.querySelector('[aria-selected="true"]');
+        if (!selected?.id) return;
+        const railIndex = [...dialog.querySelectorAll('[role="tablist"]')].indexOf(rail);
+        const scroll = getChamberScrollContainer(dialog);
+        positions.set(selected.id, scroll.scrollTop);
+        queueMicrotask(() => {
+            const currentRail = dialog.querySelectorAll('[role="tablist"]')[railIndex];
+            const next = currentRail?.querySelector('[aria-selected="true"]');
+            if (!next?.id || next.id === selected.id) return;
+            if (positions.has(next.id)) scroll.scrollTop = positions.get(next.id);
+            focusChamberTab(next);
+        });
+    };
+    dialog.addEventListener('click', rememberView, true);
+    dialog.addEventListener('keydown', rememberView, true);
+    dialog.addEventListener('click', event => {
+        const button = event.target.closest?.('[data-chamber-scroll-to]');
+        if (!button || !dialog.contains(button)) return;
+        const target = dialog.querySelector(`#${CSS.escape(button.dataset.chamberScrollTo)}`);
+        if (!target) return;
+        const scroll = getChamberScrollContainer(dialog);
+        scroll.scrollTop += target.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 62;
+        target.tabIndex = -1;
+        target.focus({ preventScroll: true });
+    });
+}
 
 /** An open room owns its catch-up even when its dashboard tile never existed. */
 export function bindChamberVisibility(overlayId, refresh) {
@@ -39,7 +97,9 @@ const CHAMBER_INTERACTIVE_SELECTOR = [
     '.card-tooltip'
 ].join(',');
 
-function findChamberScrollContainer(dialog) {
+export function getChamberScrollContainer(element) {
+    const dialog = element.closest('.chamber-content') || element;
+    if (dialog.matches('.market-room-shell, .whale-watch-content, .ecosystem-content')) return dialog;
     const candidates = [dialog, ...dialog.querySelectorAll(':scope > .chamber-body, :scope > [class$="-body"]')];
     return candidates.find((element) => ['auto', 'scroll'].includes(getComputedStyle(element).overflowY)) || dialog;
 }
@@ -55,7 +115,7 @@ function normalizeChamberShell(overlay, dialog) {
     dialog.classList.add('chamber-room-shell');
     dialog.dataset.roomSize = roomSize;
 
-    const scrollContainer = findChamberScrollContainer(dialog);
+    const scrollContainer = getChamberScrollContainer(dialog);
     const basePaddingBottom = getComputedStyle(scrollContainer).paddingBottom || '0px';
     scrollContainer.classList.add('chamber-room-scroll');
     if (!scrollContainer.style.getPropertyValue('--chamber-room-base-padding-bottom')) {
@@ -112,7 +172,7 @@ export function focusChamberTab(tab) {
     if (!(tablist instanceof HTMLElement)) return;
     const tabBounds = tab.getBoundingClientRect();
     const listBounds = tablist.getBoundingClientRect();
-    const inset = 4;
+    const inset = tablist.dataset.quietOverflowEnd === 'true' ? 24 : 4;
     if (tabBounds.left < listBounds.left + inset) {
         tablist.scrollLeft += tabBounds.left - listBounds.left - inset;
     } else if (tabBounds.right > listBounds.right - inset) {
@@ -186,6 +246,7 @@ export function activateChamberDialog(overlay, {
     if (titleId) dialog.setAttribute('aria-labelledby', titleId);
     if (label) dialog.setAttribute('aria-label', label);
     normalizeChamberShell(overlay, dialog);
+    bindRoomControls(dialog);
     activateOverlayDialog(overlay, {
         close,
         dialogSelector: dialog,

@@ -41,7 +41,7 @@
     border-radius: 999px;
     background: transparent;
     font-family: inherit;
-    font-size: 0.56rem;
+    font-size: 0.75rem;
     letter-spacing: 0.08em;
     opacity: 0.68;
     text-transform: uppercase;
@@ -908,10 +908,25 @@ html:not([data-live-head-expanded="true"]) #health-recent-block-list .health-blo
 
     .health-block-filter-menu.live-head-filter-menu {
         position: fixed;
-        top: max(12px, env(safe-area-inset-top));
+        top: max(88px, calc(env(safe-area-inset-top) + 72px));
         right: 8px;
         left: 8px;
         width: auto;
+        max-height: calc(100dvh - 104px);
+        overflow-y: auto;
+    }
+
+    .health-block-filter-menu :is(.live-head-filter-all, .live-head-filter-pill) {
+        min-height: 44px;
+        font-size: 12px;
+    }
+
+    .health-block-filter-menu :is(.live-head-filter-heading small, .live-head-filter-my-tezos > small) {
+        font-size: 12px;
+    }
+
+    .health-block-filter-menu .live-head-filter-my-tezos > span {
+        font-size: 13px;
     }
 
     .health-block-filter-menu.live-head-filter-menu::before {

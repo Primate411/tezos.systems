@@ -7,6 +7,8 @@ export const CHANGELOG = [
     {
         date: '2026-09-04',
         entries: [
+            { type: '🎨', text: 'Chambers put live blocks, charts, searches, and views closer to the entrance; methodology expands on demand while every room keeps its artwork and source boundaries' },
+            { type: '🔧', text: 'Market, Whale Watch, and Ecosystem rooms use one reading scrollbar with a reachable close control, readable phone tabs, and remembered view positions; source disclosures stay open through quiet refreshes' },
             { type: '✨', text: 'Baker Signal now has its own My Tezos tab for live health, grade and report card, capacity, participation, governance, delegation guidance, 30-cycle baker history, and recent baker activity' },
             { type: '✨', text: 'Chain Health now tracks the last 25 blocks beside 1H Activity, with smoothly advancing health bars and mini pop-ups showing each block\'s missed bakers' },
             { type: '🎨', text: 'Activity and Chain Health stay the same compact height across desktop and mobile, with Activity first and larger invisible touch targets on phones' },

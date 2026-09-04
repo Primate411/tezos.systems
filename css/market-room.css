@@ -267,3 +267,27 @@
         scroll-behavior: auto !important;
     }
 }
+
+/* The editorial header scrolls away; the compact view rail stays within reach. */
+.market-room-shell .market-room-header { position: static; padding-bottom: 4px; backdrop-filter: none; }
+.market-room-shell .market-room-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 6px 62px 6px var(--market-room-inline);
+    background: #0b151a;
+    border-bottom: 1px solid #8fbfc633;
+    box-shadow: 0 7px 15px #0003;
+    scrollbar-width: thin;
+    scrollbar-color: #85bfc7 #0b151a;
+}
+.market-room-shell .market-room-tab { font-size: 13px; min-height: 44px; }
+.market-room-shell .market-room-view-shell { padding-top: 12px; }
+.market-room-shell .market-room-freshness { font-size: 11px; }
+.market-room-shell .market-room-view-head p { font-size: 13px; }
+@media (max-width: 759px) {
+    .market-room-shell .market-room-header { padding-right: 62px; }
+    .market-room-shell .market-room-title { font-size: clamp(23px, 7vw, 34px); overflow-wrap: normal; word-break: normal; }
+    .market-room-shell .market-room-view-head { gap: 8px; }
+}

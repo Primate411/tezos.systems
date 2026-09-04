@@ -91,7 +91,7 @@ const MISSION_STARTERS = Object.freeze([
     Object.freeze({ id: 'starter:rooms', kind: 'chamber', group: 'Start', title: 'Rooms', detail: 'Find a focused Tezos Systems room', action: 'query', value: 'rooms' }),
     Object.freeze({ id: 'starter:bakers', kind: 'baker', group: 'Start', title: 'Bakers', detail: 'Open the factual active-baker directory', action: 'page', value: '/leaderboard/?view=directory' }),
     Object.freeze({ id: 'starter:network', kind: 'chamber', group: 'Start', title: 'Network', detail: 'Open live consensus and chain health', action: 'page', value: '/health/' }),
-    Object.freeze({ id: 'starter:paste', kind: 'operation', group: 'Start', title: 'Paste a hash', detail: 'Read a block or operation hash from your clipboard', action: 'paste' }),
+    Object.freeze({ id: 'starter:paste', kind: 'operation', group: 'Start', title: 'Paste a hash', detail: 'Read a copied block or operation hash', action: 'paste' }),
     Object.freeze({ id: 'starter:browse', kind: 'page', group: 'Start', title: 'Browse all', detail: 'Open the complete destination list', action: 'browse-all' })
 ]);
 

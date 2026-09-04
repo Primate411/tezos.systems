@@ -1141,7 +1141,8 @@ function renderRoomError(error) {
         <div class="staking-room-error" role="alert">
             <span>⚠</span>
             <h2>Complete staking history is temporarily unavailable</h2>
-            <p>${escapeHtml(error?.message || 'TzKT did not return a complete applied-operation scan.')}</p>
+            <p>The data source could not complete this scan. Try again shortly; the guide and independently loaded staking ratio remain available.</p>
+            <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="staking-error"><summary>Source response</summary><p>${escapeHtml(error?.message || 'TzKT did not return a complete applied-operation scan.')}</p></details>
             <button type="button" id="staking-room-retry">Retry complete scan</button>
         </div>
         <section class="staking-method-panel">

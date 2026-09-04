@@ -1060,7 +1060,8 @@ function renderTz4Adoption(data, container, activeFilter = _tz4ActiveFilter) {
             </div>
         </div>
         ${renderChamberVerdict({ key: 'tz4', state: 'observed', sentence: `${formatPercent(data.adoptionPct)} of active bakers currently use tz4 consensus keys; pending switches are not active adoption.`, receipts: [['Active tz4', formatCount(data.activeCount)], ['Pending', formatCount(data.pendingCount)]] })}
-        ${renderIntro(data)}
+        ${renderBakerStatus(data, activeFilter)}
+        <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="tz4-guide"><summary>Consensus keys &amp; adoption context</summary>${renderIntro(data)}</details>
         <div class="lb-dashboard-grid tz4-dashboard-grid">
             ${renderGlobalMetrics(data)}
             ${renderPowerMetrics(data)}
@@ -1073,7 +1074,6 @@ function renderTz4Adoption(data, container, activeFilter = _tz4ActiveFilter) {
             ${renderMilestonesPanel(data)}
             ${renderFirstMovers(data)}
         </div>
-        ${renderBakerStatus(data, activeFilter)}
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:340ms">
             <a href="https://tzkt.io/bakers" target="_blank" rel="noopener">TzKT Bakers →</a>
             <span class="chamber-footer-sep">&middot;</span>
@@ -1093,8 +1093,6 @@ async function refreshTz4AdoptionChamber({ initial = false } = {}) {
     const body = overlay?.querySelector('.tz4-body');
     if (!overlay?.classList.contains('active') || !body || _tz4ModalRefreshInFlight) return;
 
-    const content = overlay.querySelector('.tz4-content');
-    const scrollTop = content?.scrollTop || 0;
     const activeFilter = document.querySelector('.tz4-filter-row .lb-filter-btn.active')?.dataset.tz4Filter || _tz4ActiveFilter;
     _tz4ModalRefreshInFlight = true;
     overlay.classList.add('tz4-refreshing');
@@ -1106,7 +1104,6 @@ async function refreshTz4AdoptionChamber({ initial = false } = {}) {
         } else {
             quietlyMutate(body, () => renderTz4Adoption(data, body, activeFilter));
         }
-        if (content) content.scrollTop = scrollTop;
     } catch (error) {
         if (initial) throw error;
         console.warn('tz4 Adoption refresh failed', error);

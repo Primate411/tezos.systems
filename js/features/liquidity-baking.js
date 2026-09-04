@@ -1282,7 +1282,7 @@ function renderLiquidityBaking(data, container, activeFilter = _lbActiveFilter) 
             </div>
         </div>
         ${renderChamberVerdict(liquidityReading(data))}
-        ${renderLiquidityBakingIntro(data)}
+        <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="lb-guide"><summary>How the subsidy and toggle work</summary><div class="chamber-disclosure-content">${renderLiquidityBakingIntro(data)}</div></details>
         ${renderLiquidityBakingLoreShell()}
         <div class="lb-dashboard-grid">
             ${renderGlobalMetrics(data)}

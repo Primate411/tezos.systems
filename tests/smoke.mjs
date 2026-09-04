@@ -25,6 +25,7 @@ import { chooseLiveHeadDepth } from './live-head-depth-smoke.mjs';
 import { smokeTallScreen } from './tall-screen-smoke.mjs';
 import { smokeChamberFirstPaint } from './lib/chamber-first-paint-smoke.mjs';
 import { smokeStandaloneChamberExpansion } from './lib/standalone-chamber-expansion-smoke.mjs';
+import { smokeChamberUx } from './lib/chamber-ux-smoke.mjs';
 import { smokeChamberReading } from './lib/chamber-reading-smoke.mjs';
 import { smokeTezosCrpCompaction } from './lib/tezoscrp-compaction-smoke.mjs';
 import { smokeStandaloneChamberCompletion } from './lib/standalone-chamber-completion-smoke.mjs';
@@ -13102,6 +13103,12 @@ async function smokeMyTezosEmptyState(browser, baseUrl) {
     await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
     await page.waitForFunction(() => Boolean(document.querySelector('#my-tezos-css')?.sheet), null, { timeout: 15000 });
 
+    const tour = page.locator('[data-quiet-key="my-tezos-tour"]');
+    assert(!(await tour.evaluate(node => node.open)), 'Account view tour starts collapsed');
+    await tour.locator('summary').click();
+    assert(await page.locator('#my-tezos-onboarding-features-title').isVisible(), 'The full seven-view tour is available on request');
+    await page.locator('#drawer-body').evaluate(node => node.scrollTop = 0);
+
     const state = await page.evaluate(() => {
       const drawer = document.querySelector('#my-tezos-drawer');
       const body = document.querySelector('#drawer-body');
@@ -19118,7 +19125,17 @@ async function smokeLedgerFlowChamber(browser, baseUrl) {
   await page.locator('#chambers-grid > .chamber-category[data-chamber-category="people"] .chamber-category-toggle').click();
   await page.locator('#ledger-flow-entry-card.chamber-entry-wide').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#ledger-flow-entry-card').dispatchEvent('pointerenter');
-  await page.locator('#ledger-flow-entry-card .ledger-flow-entry-hero:not(.is-fallback)').waitFor({ state: 'visible', timeout: 15000 });
+  try {
+    await page.locator('#ledger-flow-entry-card .ledger-flow-entry-hero:not(.is-fallback)').waitFor({ state: 'visible', timeout: 15000 });
+  } catch (error) {
+    const debug = await page.evaluate(() => ({
+      visible: document.visibilityState,
+      entry: document.getElementById('ledger-flow-entry-card')?.textContent,
+      wired: document.getElementById('ledger-flow-entry-card')?.dataset.ledgerFlowWired,
+      resources: performance.getEntriesByType('resource').filter(item => /whale|ledger-flow/.test(item.name)).map(item => item.name)
+    }));
+    throw new Error(`Ledger Flow archive preview did not load: ${JSON.stringify(debug)}; browser issues: ${issues.join(' | ')}`, { cause: error });
+  }
   const entryState = await page.locator('#ledger-flow-entry-card').evaluate((card) => ({
     hero: card.querySelector('.ledger-flow-entry-hero')?.textContent?.replace(/\s+/g, ' ').trim() || '',
     heroHref: card.querySelector('.ledger-flow-entry-hero')?.getAttribute('href') || '',
@@ -22171,7 +22188,7 @@ async function smokeCapitalChamber(browser, baseUrl) {
     const textNode = Array.from(panel.querySelectorAll('td, .capital-kpi-note, p'))
       .map((node) => Array.from(node.childNodes).find((child) => child.nodeType === Node.TEXT_NODE && child.textContent.trim().length >= 8))
       .find(Boolean);
-    body.scrollTop = Math.min(260, Math.max(0, body.scrollHeight - body.clientHeight));
+    body.closest('.chamber-room-scroll').scrollTop = Math.min(260, Math.max(0, body.closest('.chamber-room-scroll').scrollHeight - body.closest('.chamber-room-scroll').clientHeight));
     focus.focus({ preventScroll: true });
     const selection = document.getSelection();
     selection.removeAllRanges();
@@ -22184,12 +22201,12 @@ async function smokeCapitalChamber(browser, baseUrl) {
     window.__capitalQuietFocus = focus;
     window.__capitalQuietSelection = selection.toString();
     return {
-      top: body.scrollTop,
+      top: body.closest('.chamber-room-scroll').scrollTop,
       selected: focus.textContent?.replace(/\s+/g, ' ').trim() || '',
       selection: selection.toString()
     };
   });
-  assert(quietBefore.top > 0 && quietBefore.selection.length > 0, `capital chamber: quiet-refresh fixture must exercise nested scroll and a real text selection ${JSON.stringify(quietBefore)}`);
+  assert(quietBefore.top > 0 && quietBefore.selection.length > 0, `capital chamber: quiet-refresh fixture must exercise room scroll and a real text selection ${JSON.stringify(quietBefore)}`);
   capitalRevision = 1;
   await page.evaluate(() => window.__capitalSmokeTimerTick());
   await page.waitForFunction(() => document.querySelector('#capital-chamber-body')?.dataset.quietRefreshSettled === 'true', null, { timeout: 6000 });
@@ -22206,7 +22223,7 @@ async function smokeCapitalChamber(browser, baseUrl) {
       focused: document.activeElement === window.__capitalQuietFocus,
       selected: modal.querySelector('.capital-tab[aria-selected="true"]')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       selection: document.getSelection()?.toString() || '',
-      top: body.scrollTop,
+      top: body.closest('.chamber-room-scroll').scrollTop,
       settled: body.dataset.quietRefreshSettled === 'true',
       animation: headerStyle.animationName,
       opacity: headerStyle.opacity,
@@ -22224,12 +22241,12 @@ async function smokeCapitalChamber(browser, baseUrl) {
     const observer = new MutationObserver((records) => {
       if (!records.some((record) => record.attributeName === 'data-quiet-refresh-settled')) return;
       observer.disconnect();
-      const max = Math.max(0, body.scrollHeight - body.clientHeight);
-      const before = body.scrollTop;
+      const max = Math.max(0, body.closest('.chamber-room-scroll').scrollHeight - body.closest('.chamber-room-scroll').clientHeight);
+      const before = body.closest('.chamber-room-scroll').scrollTop;
       const target = Math.max(0, Math.min(max, before + (before < max ? 37 : -37)));
-      body.scrollTop = target;
+      body.closest('.chamber-room-scroll').scrollTop = target;
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        window.__capitalReaderScrollResult = { before, target, actual: body.scrollTop };
+        window.__capitalReaderScrollResult = { before, target, actual: body.closest('.chamber-room-scroll').scrollTop };
       }));
     });
     observer.observe(body, { attributes: true, attributeFilter: ['data-quiet-refresh-settled'] });
@@ -22261,17 +22278,17 @@ async function smokeCapitalChamber(browser, baseUrl) {
   const feeRouteResponse = await page.goto(`${baseUrl}/capital/?view=system&focus=fees`, { waitUntil: 'domcontentloaded' });
   assert(feeRouteResponse?.ok(), `capital chamber: direct network-fees route failed with HTTP ${feeRouteResponse?.status()}`);
   await page.locator('#capital-modal.active #capital-network-costs').waitFor({ state: 'visible', timeout: 15000 });
-  await page.waitForFunction(() => (document.querySelector('#capital-chamber-body')?.scrollTop || 0) > 0, null, { timeout: 5000 });
+  await page.waitForFunction(() => (document.querySelector('#capital-chamber-body')?.closest('.chamber-room-scroll')?.scrollTop || 0) > 0, null, { timeout: 5000 });
   const feeRouteState = await page.evaluate(() => {
     const body = document.querySelector('#capital-chamber-body');
     const target = document.querySelector('#capital-network-costs');
-    const bodyRect = body?.getBoundingClientRect();
+    const bodyRect = body?.closest('.chamber-room-scroll')?.getBoundingClientRect();
     const targetRect = target?.getBoundingClientRect();
     return {
       pathname: location.pathname,
       search: location.search,
       selected: document.querySelector('#capital-modal .capital-tab[aria-selected="true"]')?.textContent?.trim() || '',
-      bodyScrollTop: body?.scrollTop || 0,
+      bodyScrollTop: body?.closest('.chamber-room-scroll')?.scrollTop || 0,
       targetTop: targetRect && bodyRect ? targetRect.top - bodyRect.top : null,
       text: target?.textContent?.replace(/\s+/g, ' ').trim() || ''
     };
@@ -22315,7 +22332,7 @@ async function smokeCapitalChamber(browser, baseUrl) {
         const tabRect = tab.getBoundingClientRect();
         return tabRect.left >= -1 && tabRect.right <= innerWidth + 1;
       }),
-      nestedScroll: Boolean(body && body.scrollHeight > body.clientHeight),
+      mainScroll: Boolean(body && body.closest('.chamber-room-scroll').scrollHeight > body.closest('.chamber-room-scroll').clientHeight),
       rangeButtons: document.querySelectorAll('#capital-modal .capital-range-btn').length,
       rangeWindow: document.querySelector('#capital-modal .capital-range-static')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -22325,9 +22342,9 @@ async function smokeCapitalChamber(browser, baseUrl) {
   assert(mobileState.modal && mobileState.modal.left <= 1 && mobileState.modal.right >= 389
     && mobileState.modal.top <= 1 && mobileState.modal.bottom >= 843,
   `capital chamber mobile: room must fill the 390x844 viewport ${JSON.stringify(mobileState)}`);
-  assert(mobileState.tabsContained && mobileState.nestedScroll && mobileState.pageOverflow <= 1 && /Art/i.test(mobileState.selected)
+  assert(mobileState.tabsContained && mobileState.mainScroll && mobileState.pageOverflow <= 1 && /Art/i.test(mobileState.selected)
     && mobileState.rangeButtons === 0 && mobileState.rangeWindow === '30D source window',
-    `capital chamber mobile: tabs, nested scroll, or overflow failed ${JSON.stringify(mobileState)}`);
+    `capital chamber mobile: tabs, room scroll, or overflow failed ${JSON.stringify(mobileState)}`);
   await mobileContext.close();
 
   await context.close();
@@ -23298,7 +23315,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
     const quote = panel?.querySelector('.uranium-live-quote strong');
     const textNode = panel?.querySelector('.uranium-market-lockup p')?.firstChild;
     if (!body || !header || !panel || !focus || !quote || !textNode) throw new Error('uranium quiet-refresh fixture is incomplete');
-    body.scrollTop = Math.min(320, Math.max(0, body.scrollHeight - body.clientHeight));
+    body.closest('.chamber-room-scroll').scrollTop = Math.min(320, Math.max(0, body.closest('.chamber-room-scroll').scrollHeight - body.closest('.chamber-room-scroll').clientHeight));
     focus.focus({ preventScroll: true });
     const selection = document.getSelection();
     selection.removeAllRanges();
@@ -23312,7 +23329,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
     window.__uraniumQuietFocus = focus;
     window.__uraniumQuietQuote = quote;
     return {
-      top: body.scrollTop,
+      top: body.closest('.chamber-room-scroll').scrollTop,
       selection: selection.toString(),
       price: quote.textContent?.trim() || ''
     };
@@ -23353,7 +23370,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
       focused: document.activeElement === window.__uraniumQuietFocus,
       selected: focus?.getAttribute('aria-selected') || '',
       selection: document.getSelection()?.toString() || '',
-      top: body?.scrollTop || 0,
+      top: body?.closest('.chamber-room-scroll')?.scrollTop || 0,
       price: quote?.textContent?.trim() || '',
       marketStatus: panel?.querySelector('.uranium-live-quote .uranium-status')?.textContent?.trim() || '',
       freshness: body?.querySelector('#uranium-freshness')?.textContent?.replace(/\s+/g, ' ').trim() || '',
@@ -23369,7 +23386,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
   assert(quietAfter.selected === 'true' && quietAfter.selection === quietBefore.selection,
     `uranium chamber: quiet refresh lost the selected view or text selection ${JSON.stringify({ quietBefore, quietAfter })}`);
   assert(Math.abs(quietAfter.top - quietBefore.top) < 1,
-    `uranium chamber: quiet refresh moved nested scroll ${JSON.stringify({ quietBefore, quietAfter })}`);
+    `uranium chamber: quiet refresh moved room scroll ${JSON.stringify({ quietBefore, quietAfter })}`);
   assert(quietAfter.price !== quietBefore.price,
     `uranium chamber: mocked fresh quote was not reconciled ${JSON.stringify({ quietBefore, quietAfter })}`);
   assert(quietAfter.marketStatus === 'stale' && /(Kraken .*stale|sources? degraded)/i.test(quietAfter.freshness),
@@ -23408,7 +23425,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
       focused: document.activeElement === window.__uraniumQuietFocus,
       selected: focus?.getAttribute('aria-selected') || '',
       selection: document.getSelection()?.toString() || '',
-      top: body?.scrollTop || 0,
+      top: body?.closest('.chamber-room-scroll')?.scrollTop || 0,
       price: quote?.textContent?.trim() || '',
       status: panel?.querySelector('.uranium-live-quote .uranium-status')?.textContent?.trim() || '',
       provenance: panel?.querySelector('.uranium-chart-provenance')?.textContent?.replace(/\s+/g, ' ').trim() || '',
@@ -23439,7 +23456,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
     samePanel: document.querySelector('#uranium-view-panel') === window.__uraniumQuietPanel,
     focused: document.activeElement === window.__uraniumQuietFocus,
     selection: document.getSelection()?.toString() || '',
-    top: document.querySelector('#uranium-chamber-body')?.scrollTop || 0,
+    top: document.querySelector('#uranium-chamber-body')?.closest('.chamber-room-scroll')?.scrollTop || 0,
     quote: document.querySelector('#uranium-view-panel .uranium-live-quote strong')?.textContent?.trim() || '',
     chartPrice: document.querySelector('#uranium-view-panel [data-uranium-chart-price]')?.textContent?.trim() || '',
     chartDetail: document.querySelector('#uranium-view-panel [data-uranium-chart-secondary]')?.textContent?.replace(/\s+/g, ' ').trim() || ''
@@ -23564,7 +23581,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
         const tabRect = tab.getBoundingClientRect();
         return tabRect.left >= -1 && tabRect.right <= innerWidth + 1;
       }),
-      nestedScroll: Boolean(body && body.scrollHeight > body.clientHeight),
+      mainScroll: Boolean(body && body.closest('.chamber-room-scroll').scrollHeight > body.closest('.chamber-room-scroll').clientHeight),
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       loadedEntryArtifact: resources.some((name) => name.includes('/data/uranium-entry-summary.json')),
       loadedSnapshotArtifact: resources.some((name) => name.includes('/data/uranium-snapshot.json'))
@@ -23578,7 +23595,7 @@ async function smokeUraniumChamber(browser, baseUrl) {
   `uranium chamber LAN HTTP: real integrity-checked artifacts did not render ${JSON.stringify(lanState)}`);
   assert(lanState.modal && lanState.modal.left >= -1 && lanState.modal.right <= 391
     && lanState.modal.top >= -1 && lanState.modal.bottom <= 845
-    && lanState.tabsContained && lanState.nestedScroll && lanState.pageOverflow <= 1,
+    && lanState.tabsContained && lanState.mainScroll && lanState.pageOverflow <= 1,
   `uranium chamber LAN HTTP: mobile room escaped the 390x844 viewport ${JSON.stringify(lanState)}`);
   await lanPage.locator('#uranium-tab-markets').click();
   await lanPage.waitForFunction(() => Boolean(document.querySelector('#uranium-view-panel .uranium-chart.is-interactive')), null, { timeout: 3000 });
@@ -23918,8 +23935,8 @@ async function smokeMineralsChamber(browser, baseUrl) {
     const value = content?.querySelector('.minerals-market-clock > div:first-child strong');
     const textNode = content?.querySelector('.minerals-market-panel .minerals-panel-head p')?.firstChild;
     if (!body || !header || !panel || !content || !focus || !value || !textNode) throw new Error('minerals quiet-refresh fixture is incomplete');
-    const maxTop = Math.max(0, body.scrollHeight - body.clientHeight);
-    body.scrollTop = Math.min(280, Math.max(1, Math.floor(maxTop / 3)));
+    const maxTop = Math.max(0, body.closest('.chamber-room-scroll').scrollHeight - body.closest('.chamber-room-scroll').clientHeight);
+    body.closest('.chamber-room-scroll').scrollTop = Math.min(280, Math.max(1, Math.floor(maxTop / 3)));
     focus.focus({ preventScroll: true });
     const selection = getSelection();
     selection.removeAllRanges();
@@ -23930,14 +23947,14 @@ async function smokeMineralsChamber(browser, baseUrl) {
     delete body.dataset.quietRefreshSettled;
     window.__mineralsQuietFixture = { body, header, panel, content, focus, value };
     return {
-      top: body.scrollTop,
+      top: body.closest('.chamber-room-scroll').scrollTop,
       maxTop,
       selection: selection.toString(),
       value: value.textContent?.trim() || ''
     };
   });
   assert(quietBefore.top > 0 && quietBefore.maxTop > quietBefore.top + 20 && quietBefore.selection.length > 0,
-    `minerals chamber: quiet-refresh fixture did not exercise nested scroll and selection ${JSON.stringify(quietBefore)}`);
+    `minerals chamber: quiet-refresh fixture did not exercise room scroll and selection ${JSON.stringify(quietBefore)}`);
 
   await page.evaluate(() => {
     window.__mineralsSmokeVisibility = 'hidden';
@@ -23983,7 +24000,7 @@ async function smokeMineralsChamber(browser, baseUrl) {
       selectedView: document.querySelector('[data-minerals-view][aria-selected="true"]')?.dataset.mineralsView || '',
       selectedSeries: document.querySelector('[data-minerals-series]')?.value || '',
       selectedRange: document.querySelector('[data-minerals-range][aria-pressed="true"]')?.dataset.mineralsRange || '',
-      top: body?.scrollTop || 0,
+      top: body?.closest('.chamber-room-scroll')?.scrollTop || 0,
       selection: getSelection()?.toString() || '',
       value: value?.textContent?.trim() || '',
       settled: body?.dataset.quietRefreshSettled === 'true' && !body?.dataset.quietRefreshing,
@@ -24003,11 +24020,11 @@ async function smokeMineralsChamber(browser, baseUrl) {
 
   const readerScroll = await page.evaluate(() => {
     const body = document.querySelector('#minerals-chamber-body');
-    body.scrollTop += 19;
-    return body.scrollTop;
+    body.closest('.chamber-room-scroll').scrollTop += 19;
+    return body.closest('.chamber-room-scroll').scrollTop;
   });
   await page.waitForTimeout(100);
-  const readerScrollAfter = await page.evaluate(() => document.querySelector('#minerals-chamber-body')?.scrollTop || 0);
+  const readerScrollAfter = await page.evaluate(() => document.querySelector('#minerals-chamber-body')?.closest('.chamber-room-scroll')?.scrollTop || 0);
   assert(Math.abs(readerScrollAfter - readerScroll) < 1,
     `minerals chamber: a delayed restore overwrote reader scroll after reconciliation ${JSON.stringify({ readerScroll, readerScrollAfter })}`);
 
@@ -24159,7 +24176,7 @@ async function smokeMineralsChamber(browser, baseUrl) {
           const bounds = node?.getBoundingClientRect();
           return bounds ? { left: bounds.left, right: bounds.right, top: bounds.top, bottom: bounds.bottom, width: bounds.width } : null;
         };
-        const bodyRect = body?.getBoundingClientRect();
+        const bodyRect = body?.closest('.chamber-room-scroll')?.getBoundingClientRect();
         const containers = Array.from(shell?.querySelectorAll('.minerals-atlas-card, .minerals-panel, .minerals-token-product, .minerals-proof-hero, .minerals-boundary, .minerals-coverage-card, .minerals-group-context-card') || []);
         const escapedContainers = containers.filter((node) => {
           const bounds = node.getBoundingClientRect();
@@ -24171,7 +24188,7 @@ async function smokeMineralsChamber(browser, baseUrl) {
           content: rect(content),
           header: rect(header),
           shell: rect(shell),
-          bodyScrollable: Boolean(body && body.scrollHeight > body.clientHeight),
+          mainScrollable: Boolean(body && body.closest('.chamber-room-scroll').scrollHeight > body.closest('.chamber-room-scroll').clientHeight),
           pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
           selectedVisible: Boolean(selectedRect && tabsRect && selectedRect.right > tabsRect.left && selectedRect.left < tabsRect.right),
           tabsScrollable: Boolean(tabs && tabs.scrollWidth >= tabs.clientWidth),
@@ -24186,8 +24203,8 @@ async function smokeMineralsChamber(browser, baseUrl) {
     const mobileGeometry = geometryByView.atlas;
     assert(mobileGeometry.content && mobileGeometry.content.left >= -1 && mobileGeometry.content.right <= viewport.width + 1
       && mobileGeometry.content.top >= -1 && mobileGeometry.content.bottom <= viewport.height + 1
-      && mobileGeometry.bodyScrollable,
-    `minerals chamber ${viewport.width}px: dialog escaped or failed to provide nested scroll ${JSON.stringify(geometryByView)}`);
+      && mobileGeometry.mainScrollable,
+    `minerals chamber ${viewport.width}px: dialog escaped or failed to provide room scroll ${JSON.stringify(geometryByView)}`);
     assert(Object.values(geometryByView).every((state) => state.header && state.shell
       && state.header.left >= -1 && state.header.right <= viewport.width + 1
       && state.shell.left >= -1 && state.shell.right <= viewport.width + 1
@@ -24619,7 +24636,7 @@ async function smokeMetalsChamber(browser, baseUrl) {
     const price = content?.querySelector('.metals-clock-pair article strong');
     const textNode = content?.querySelector('.metals-clock-pair article p')?.firstChild;
     if (!body || !header || !panel || !content || !focus || !price || !textNode) throw new Error('metals quiet-refresh fixture is incomplete');
-    body.scrollTop = Math.min(280, Math.max(0, body.scrollHeight - body.clientHeight));
+    body.closest('.chamber-room-scroll').scrollTop = Math.min(280, Math.max(0, body.closest('.chamber-room-scroll').scrollHeight - body.closest('.chamber-room-scroll').clientHeight));
     focus.focus({ preventScroll: true });
     const selection = getSelection();
     selection.removeAllRanges();
@@ -24629,10 +24646,10 @@ async function smokeMetalsChamber(browser, baseUrl) {
     selection.addRange(range);
     delete body.dataset.quietRefreshSettled;
     window.__metalsQuietFixture = { body, header, panel, content, focus, price };
-    return { top: body.scrollTop, selection: selection.toString(), price: price.textContent?.trim() || '' };
+    return { top: body.closest('.chamber-room-scroll').scrollTop, selection: selection.toString(), price: price.textContent?.trim() || '' };
   });
   assert(quietBefore.top > 0 && quietBefore.selection.length > 0,
-    `metals chamber: quiet-refresh fixture did not exercise nested scroll and selection ${JSON.stringify(quietBefore)}`);
+    `metals chamber: quiet-refresh fixture did not exercise room scroll and selection ${JSON.stringify(quietBefore)}`);
 
   await page.evaluate(() => {
     window.__metalsSmokeVisibility = 'hidden';
@@ -24677,7 +24694,7 @@ async function smokeMetalsChamber(browser, baseUrl) {
       focused: document.activeElement === saved?.focus,
       selectedView: document.querySelector('[data-metals-view][aria-selected="true"]')?.dataset.metalsView || '',
       selectedMetal: document.querySelector('[data-metals-metal][aria-pressed="true"]')?.dataset.metalsMetal || '',
-      top: body?.scrollTop || 0,
+      top: body?.closest('.chamber-room-scroll')?.scrollTop || 0,
       selection: getSelection()?.toString() || '',
       price: price?.textContent?.trim() || '',
       settled: body?.dataset.quietRefreshSettled === 'true' && !body?.dataset.quietRefreshing,
@@ -24814,7 +24831,7 @@ async function smokeMetalsChamber(browser, baseUrl) {
     return {
       sameBody: body === saved?.body,
       focused: document.activeElement === saved?.focus,
-      top: body?.scrollTop || 0,
+      top: body?.closest('.chamber-room-scroll')?.scrollTop || 0,
       selectedView: document.querySelector('[data-metals-view][aria-selected="true"]')?.dataset.metalsView || '',
       selectedMetal: document.querySelector('[data-metals-metal][aria-pressed="true"]')?.dataset.metalsMetal || '',
       price: document.querySelector('#metals-view-content .metals-clock-pair article strong')?.textContent?.trim() || '',
@@ -25198,7 +25215,7 @@ async function smokeMetalsChamber(browser, baseUrl) {
       return {
         viewport: { width: innerWidth, height: innerHeight },
         content: rect(content),
-        bodyScrollable: Boolean(body && body.scrollHeight > body.clientHeight),
+        mainScrollable: Boolean(body && body.closest('.chamber-room-scroll').scrollHeight > body.closest('.chamber-room-scroll').clientHeight),
         pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
         selectedView: selectedTab?.dataset.metalsView || '',
         selectedMetal: document.querySelector('[data-metals-metal][aria-pressed="true"]')?.dataset.metalsMetal || '',
@@ -25211,7 +25228,7 @@ async function smokeMetalsChamber(browser, baseUrl) {
     });
     assert(mobileState.content && mobileState.content.left >= -1 && mobileState.content.right <= viewport.width + 1
       && mobileState.content.top >= -1 && mobileState.content.bottom <= viewport.height + 1
-      && mobileState.bodyScrollable && mobileState.pageOverflow <= 1
+      && mobileState.mainScrollable && mobileState.pageOverflow <= 1
       && mobileState.selectedView === 'markets' && mobileState.selectedMetal === 'XAG'
       && mobileState.selectedTabVisible && mobileState.metalButtons === 4
       && mobileState.metalButtonsContained && mobileState.chartContained && mobileState.launcherDeferred,
@@ -25454,7 +25471,7 @@ async function smokeEcosystemActivity(browser, baseUrl) {
     const detail = document.querySelector('#ecosystem-history-detail');
     const focus = document.querySelector('#ecosystem-activity-modal [data-ecosystem-range="12w"]');
     const intro = document.querySelector('#ecosystem-activity-modal .ecosystem-intro')?.firstChild;
-    body.scrollTop = Math.min(640, body.scrollHeight - body.clientHeight);
+    body.closest('.chamber-room-scroll').scrollTop = Math.min(640, body.closest('.chamber-room-scroll').scrollHeight - body.closest('.chamber-room-scroll').clientHeight);
     focus.focus({ preventScroll: true });
     if (intro?.nodeType === Node.TEXT_NODE && intro.length > 12) {
       const selection = getSelection();
@@ -25468,7 +25485,7 @@ async function smokeEcosystemActivity(browser, baseUrl) {
     window.__ecosystemQuietFixture = {
       body,
       detail,
-      scrollTop: body.scrollTop,
+      scrollTop: body.closest('.chamber-room-scroll').scrollTop,
       selectedText: getSelection()?.toString() || ''
     };
   });
@@ -25521,7 +25538,7 @@ async function smokeEcosystemActivity(browser, baseUrl) {
     return {
       sameBody: fixture.body === body,
       sameDetail: fixture.detail === document.querySelector('#ecosystem-history-detail'),
-      scrollDelta: Math.abs(body.scrollTop - fixture.scrollTop),
+      scrollDelta: Math.abs(body.closest('.chamber-room-scroll').scrollTop - fixture.scrollTop),
       focusRange: document.activeElement?.dataset?.ecosystemRange || '',
       selectedText: getSelection()?.toString() || '',
       expectedSelection: fixture.selectedText,
@@ -25539,12 +25556,12 @@ async function smokeEcosystemActivity(browser, baseUrl) {
 
   await page.evaluate(() => {
     const body = document.querySelector('#ecosystem-chamber-body');
-    body.scrollTop = Math.max(0, body.scrollTop - 111);
-    window.__ecosystemReaderScroll = body.scrollTop;
+    body.closest('.chamber-room-scroll').scrollTop = Math.max(0, body.closest('.chamber-room-scroll').scrollTop - 111);
+    window.__ecosystemReaderScroll = body.closest('.chamber-room-scroll').scrollTop;
   });
   await page.waitForTimeout(150);
   const readerScrollPreserved = await page.evaluate(() => (
-    Math.abs(document.querySelector('#ecosystem-chamber-body').scrollTop - window.__ecosystemReaderScroll) <= 1
+    Math.abs(document.querySelector('#ecosystem-chamber-body')?.closest('.chamber-room-scroll')?.scrollTop - window.__ecosystemReaderScroll) <= 1
   ));
   assert(readerScrollPreserved, 'ecosystem activity: delayed quiet restore overwrote an immediate reader scroll');
   await context.close();
@@ -25573,7 +25590,7 @@ async function smokeEcosystemActivity(browser, baseUrl) {
     const rect = modal?.getBoundingClientRect();
     return {
       rect: rect ? { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom } : null,
-      nestedScroll: Boolean(body && body.scrollHeight > body.clientHeight),
+      mainScroll: Boolean(body && body.closest('.chamber-room-scroll').scrollHeight > body.closest('.chamber-room-scroll').clientHeight),
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       headerPosition: getComputedStyle(document.querySelector('#ecosystem-activity-modal .ecosystem-header')).position,
       toolbarContained: Array.from(document.querySelectorAll('#ecosystem-activity-modal .ecosystem-toolbar button')).every((button) => {
@@ -25591,7 +25608,7 @@ async function smokeEcosystemActivity(browser, baseUrl) {
   });
   assert(mobile.rect && mobile.rect.left <= 1 && mobile.rect.right >= 389
     && mobile.rect.top <= 1 && mobile.rect.bottom >= 843
-    && mobile.nestedScroll && mobile.pageOverflow <= 1 && mobile.toolbarContained
+    && mobile.mainScroll && mobile.pageOverflow <= 1 && mobile.toolbarContained
     && mobile.headerPosition !== 'sticky' && mobile.headerPosition !== 'fixed'
     && mobile.layer === 'etherlink' && mobile.range === '3y' && mobile.app === 'curve'
     && mobile.proofCards === 1 && mobile.visibleContracts === 24 && mobile.proofLinks === 4
@@ -26752,6 +26769,7 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl, section = 'all') {
   const promotionResponse = await promotionPage.goto(`${baseUrl}/?theme=matrix#l2chamber`, { waitUntil: 'domcontentloaded' });
   assert(promotionResponse?.ok(), `Tezos X promotion baker quorum list: page failed with HTTP ${promotionResponse?.status()}`);
   try {
+    await promotionPage.locator('[data-quiet-key="l2-vote-ledger"] > summary').click();
     await promotionPage.locator('#etherlink-governance-modal.active #etherlink-governance-recent-bakers').waitFor({ state: 'visible', timeout: 30000 });
   } catch (error) {
     const debug = await promotionPage.evaluate(() => ({
@@ -29130,11 +29148,11 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
   assert(response?.ok(), `Whale Watch: direct route failed with HTTP ${response?.status()}`);
   await page.locator('#whale-watch-modal.active #whale-watch-panel-overview').waitFor({ state: 'visible', timeout: 15000 });
   await page.waitForFunction(() => {
-    const text = document.querySelector('#whale-watch-freshness')?.textContent || '';
-    return /6h schedule/.test(text) && /window .* → .* UTC/.test(text);
+    const text = document.querySelector('.whale-watch-header')?.textContent || '';
+    return /6h schedule/.test(text) && /Window\s+.* → .* UTC/i.test(text);
   }, null, { timeout: 15000 });
-  const sourceStripText = await page.locator('#whale-watch-freshness').innerText();
-  assert(/6h schedule/.test(sourceStripText) && /window .* → .* UTC/.test(sourceStripText), `Whale Watch: exact archived window and generator cadence missing: ${sourceStripText}`);
+  const sourceStripText = await page.locator('.whale-watch-header').innerText();
+  assert(/6h schedule/.test(sourceStripText) && /Window\s+.* → .* UTC/i.test(sourceStripText), `Whale Watch: exact archived window and generator cadence missing: ${sourceStripText}`);
   assert(await page.locator('#chambers-grid').count() === 0, 'Whale Watch direct boot must not render hidden home launchers');
   // The remaining legacy checks compare room receipts with its home tile.
   // Create home by a real handoff, then reopen the same retained room instance.
@@ -29274,10 +29292,10 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
     const body = document.querySelector('#whale-watch-body');
     const input = document.querySelector('#whale-watch-search');
     const tab = document.querySelector('#whale-watch-tab-live');
-    body.scrollTop = Math.min(900, Math.max(1, body.scrollHeight - body.clientHeight - 80));
+    body.closest('.chamber-room-scroll').scrollTop = Math.min(900, Math.max(1, body.closest('.chamber-room-scroll').scrollHeight - body.closest('.chamber-room-scroll').clientHeight - 80));
     input.focus({ preventScroll: true });
     input.setSelectionRange(0, 5);
-    const viewportTop = body.getBoundingClientRect().top;
+    const viewportTop = body.closest('.chamber-room-scroll').getBoundingClientRect().top;
     const visibleRow = [...body.querySelectorAll('#whale-watch-live-tape [data-quiet-key]')]
       .find((row) => row.getBoundingClientRect().bottom > viewportTop + 1);
     window.__whaleWatchBody = body;
@@ -29286,7 +29304,7 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
     window.__whaleWatchRow = visibleRow;
     return {
       pageY: window.scrollY,
-      top: body.scrollTop,
+      top: body.closest('.chamber-room-scroll').scrollTop,
       anchorKey: visibleRow?.dataset.quietKey || '',
       anchorOffset: visibleRow ? visibleRow.getBoundingClientRect().top - viewportTop : 0,
       hadPrepend: Boolean(body.querySelector('[data-quiet-key="whale-watch-op-9001"]')),
@@ -29306,7 +29324,7 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
     const input = document.querySelector('#whale-watch-search');
     const tab = document.querySelector('#whale-watch-tab-live');
     const row = body.querySelector(`[data-quiet-key="${anchorKey}"]`);
-    const viewportTop = body.getBoundingClientRect().top;
+    const viewportTop = body.closest('.chamber-room-scroll').getBoundingClientRect().top;
     const style = row ? getComputedStyle(row) : null;
     return {
       sameBody: body === window.__whaleWatchBody,
@@ -29317,7 +29335,7 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
       selection: input.value.slice(input.selectionStart, input.selectionEnd),
       selectedView: tab?.getAttribute('aria-selected'),
       pageY: window.scrollY,
-      top: body.scrollTop,
+      top: body.closest('.chamber-room-scroll').scrollTop,
       anchorOffset: row ? row.getBoundingClientRect().top - viewportTop : null,
       settled: body.dataset.quietRefreshSettled,
       animation: style?.animationName || '',
@@ -29343,11 +29361,11 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
     && quietAfter.opacity === '1', `Whale Watch: prepend or settled-animation state failed ${JSON.stringify({ quietBefore, quietAfter })}`);
   const readerTop = await page.evaluate(() => {
     const body = document.querySelector('#whale-watch-body');
-    body.scrollTop = Math.max(0, body.scrollTop - 37);
-    return body.scrollTop;
+    body.closest('.chamber-room-scroll').scrollTop = Math.max(0, body.closest('.chamber-room-scroll').scrollTop - 37);
+    return body.closest('.chamber-room-scroll').scrollTop;
   });
   await page.waitForTimeout(120);
-  assert(Math.abs((await page.locator('#whale-watch-body').evaluate((body) => body.scrollTop)) - readerTop) < 1, 'Whale Watch: delayed anchor restore overrode a reader scroll made after reconciliation');
+  assert(Math.abs((await page.locator('#whale-watch-body').evaluate((body) => body.closest('.chamber-room-scroll').scrollTop)) - readerTop) < 1, 'Whale Watch: delayed anchor restore overrode a reader scroll made after reconciliation');
 
   await page.locator('#whale-watch-tab-awakenings').click();
   await page.locator('.whale-watch-awakening').waitFor({ state: 'visible', timeout: 5000 });
@@ -29361,13 +29379,13 @@ async function smokeWhaleWatchChamber(browser, baseUrl) {
     const feature = await import(window.__whaleChamberModuleUrl);
     await feature.refreshWhaleChamber({ quiet: true, forceArtifact: true });
   });
-  await page.waitForFunction(() => /last-good retained.*refresh failed/i.test(document.querySelector('#whale-watch-freshness')?.textContent || ''), null, { timeout: 5000 });
+  await page.waitForFunction(() => /last-good retained.*refresh failed/i.test(document.querySelector('.whale-watch-header')?.textContent || ''), null, { timeout: 5000 });
   const mismatchedDormancyState = await page.evaluate(() => {
     const row = document.querySelector('.whale-watch-awakening');
     return {
       sameRow: row === window.__whaleWatchValidAwakening,
       text: row?.textContent?.replace(/\s+/g, ' ').trim() || '',
-      freshness: document.querySelector('#whale-watch-freshness')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      freshness: document.querySelector('.whale-watch-header')?.textContent?.replace(/\s+/g, ' ').trim() || '',
       launcherFreshness: document.querySelector('#whale-watch-entry-card')?.dataset.updatedLabel || '',
       launcherFooter: document.querySelector('#whale-watch-entry-card .chamber-entry-freshness')?.textContent?.trim() || ''
     };
@@ -36904,6 +36922,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'network-pulse-launcher', description: 'Network Pulse lower launcher row hydrates from collected history without opening the modal or enabling legacy full stats', run: () => smokeNetworkPulseLauncher(browser, baseUrl) },
     { name: 'launcher-projections', description: 'Capital, Ecosystem Activity, and Maxis hydrate from compact summaries, defer reviewed full artifacts until room open, preserve parity, and fall back safely', run: () => smokeLauncherProjections(browser, baseUrl) },
     { name: 'chamber-first-paint', description: 'Six snapshot rooms finish hidden first render, paint verified saved receipts before network, and revalidate without moving desktop or mobile readers', run: () => smokeChamberFirstPaint(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
+    { name: 'chamber-ux', description: 'Chambers keep one scroller, a reachable exit, retained disclosures and view positions, and primary controls near the entrance', run: () => smokeChamberUx(browser, baseUrl, { installFeatureMocks }) },
     { name: 'chamber-reading', description: 'Room summaries and source clocks stay contained, truthful, visible-only, and quiet across desktop/mobile reader updates', run: () => smokeChamberReading(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'standalone-chamber-expansion', description: 'Five independent rooms defer dashboard startup, preserve direct state and failed-exit readers, and hand off once across desktop/mobile navigation and cancelled loads', run: () => smokeStandaloneChamberExpansion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'standalone-chamber-completion', description: 'Every generated room and alias boots without home telemetry and retains direct desktop/mobile navigation through the dashboard handoff', run: () => smokeStandaloneChamberCompletion(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR, ledgerFlowAddress: SAMPLE_ADDRESS }) },

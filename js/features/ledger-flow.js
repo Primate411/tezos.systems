@@ -1031,9 +1031,9 @@ function renderEmptyState(container, valueOverride = '') {
             <div class="chamber-proposal-info">Map bounded tez transfers with receipt-backed origination and first-inbound context.</div>
         </div>
         <section class="lb-explainer ledger-flow-explainer chamber-anim-fade">
+            ${renderControls(null, valueOverride)}
             ${renderChamberVerdict({ key: 'ledger-flow', state: 'guide', sentence: 'Choose an account to inspect its transfer window; no account data is loaded yet.', receipts: [['Input', 'Wallet, contract, or .tez'], ['Source', 'TzKT']] })}
             ${renderChamberGuide('ledger-flow')}
-            ${renderControls(null, valueOverride)}
             ${renderExampleChips()}
             <div class="ledger-flow-empty-panel">
                 <strong>Choose an account</strong>
@@ -1100,21 +1100,24 @@ function renderLedgerFlow(data, options = {}) {
             </div>
         </div>
         <section class="lb-explainer ledger-flow-explainer chamber-anim-fade">
+            ${renderControls(model)}
             ${renderChamberVerdict({ key: 'ledger-flow', state: model.coverage?.mode === 'sample' ? 'partial' : 'observed', sentence: model.coverage?.mode === 'sample' ? 'This account map is a bounded sample; its flows must not be read as complete account history.' : 'These gross transfers belong to the selected account window; counterparties do not establish common ownership.', receipts: [['Received', formatCompactXTZ(model.totals.received)], ['Sent', formatCompactXTZ(model.totals.sent)]] })}
             ${renderChamberGuide('ledger-flow')}
-            ${renderControls(model)}
             ${renderCoverage(model)}
             ${renderStats(model)}
-            ${renderShapeSummary(model)}
-            ${renderWindowContext(model)}
-            ${renderLegend()}
-            ${renderScopeDisclosure()}
+
         </section>
         <section class="lb-panel ledger-flow-panel ledger-flow-map-panel chamber-anim-fade" style="animation-delay:70ms">
             <div class="lb-panel-title">Transfer Map</div>
             ${renderDiagram(model)}
             ${renderTimeline(model)}
         </section>
+        <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="ledger-method"><summary>Transfer shape, window &amp; method</summary>
+            ${renderShapeSummary(model)}
+            ${renderWindowContext(model)}
+            ${renderLegend()}
+            ${renderScopeDisclosure()}
+        </details>
         <section class="lb-panel ledger-flow-panel ledger-flow-origin-panel chamber-anim-fade" style="animation-delay:100ms">
             ${renderOriginContext(model)}
         </section>

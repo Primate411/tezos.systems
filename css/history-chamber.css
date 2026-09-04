@@ -106,8 +106,8 @@
 
 .cycle-history-header-actions {
     position: absolute;
-    top: 18px;
-    right: 68px;
+    top: calc(clamp(22px, 3vw, 38px) + 12px);
+    right: calc(clamp(22px, 3vw, 38px) + 70px);
     z-index: 10;
     display: flex;
     align-items: center;
@@ -676,4 +676,16 @@
         scroll-behavior: auto;
         transition: none;
     }
+}
+
+/* The picker and range lead directly into the charts. Full receipts expand on demand. */
+.cycle-history-content .cycle-history-intro { padding: 12px 14px; margin-bottom: 12px; }
+.cycle-history-content .cycle-history-route-controls { margin-top: 10px; padding-top: 10px; }
+.cycle-history-content .history-controls { position: sticky; top: 0; z-index: 20; background: var(--bg-primary, #10151e); padding-right: 54px; }
+.cycle-history-content .history-controls .time-range-btn { min-height: 44px; }
+
+/* Suppressing an entrance animation must never leave a chart transparent. */
+.cycle-history-content .chart-section { opacity: 1; transform: none; }
+@media (max-width: 759px) {
+    .cycle-history-content .cycle-history-header-actions { position: static; justify-content: flex-start; padding-right: 54px; }
 }

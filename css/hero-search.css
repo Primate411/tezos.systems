@@ -8378,3 +8378,28 @@ body.hen-active .hero-search-overlay.live-head-panel :is(.hero-search-submit, .h
         forced-color-adjust: auto;
     }
 }
+
+/* Keep all six starter labels readable in the required two-column phone grid. */
+@media (max-width: 600px) {
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-search-result {
+        grid-template-columns: 20px minmax(0, 1fr);
+        gap: 6px;
+        align-items: start;
+        min-height: 102px;
+        padding: 12px 8px;
+    }
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-result-mark { width: 20px; height: 24px; font-size: 16px; }
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-result-arrow { display: none; }
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-result-copy strong {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        overflow-wrap: normal;
+        font-size: 14px;
+        line-height: 1.3;
+    }
+    .hero-search-overlay.live-head-panel .hero-search-group.is-starter .hero-result-copy span { white-space: normal; font-size: 12px; line-height: 1.35; -webkit-line-clamp: 3; }
+}
+@media (max-width: 600px) {
+    .hero-search-overlay.live-head-panel .hero-search-panel-copy > span:last-child { white-space: normal; overflow: visible; text-overflow: clip; }
+}

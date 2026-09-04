@@ -15,7 +15,7 @@ import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.
 import { sha256Text } from '../core/sha256.js';
 import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js';
 import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
-import {
+import { getChamberScrollContainer,
     activateChamberDialog,
     deactivateChamberDialog,
     requestChamberClose,
@@ -1104,8 +1104,8 @@ function capitalReading(snapshot) {
     const etherlink = chain(snapshot, 'etherlink');
     return renderChamberVerdict({ key: 'capital', state: lastRefreshError || freshnessPresentation(snapshot).stale ? 'watch' : 'snapshot',
         sentence: 'Tezos L1 and Etherlink capital are shown side by side; TVL is not trading volume or a measure of users.',
-        receipts: [['L1 DeFi TVL', formatUsd(tezos.tvl?.currentUsd)], ['L2 DeFi TVL', formatUsd(etherlink.tvl?.currentUsd)]], timestamp: snapshot.generatedAt
-    }) + renderChamberGuide('capital');
+        receipts: [['L1 DeFi TVL', formatUsd(tezos.tvl?.currentUsd)], ['L2 DeFi TVL', formatUsd(etherlink.tvl?.currentUsd)]]
+    });
 }
 
 function renderChamber(snapshot) {
@@ -1119,11 +1119,11 @@ function renderChamber(snapshot) {
                 <span class="capital-badge market-room-badge">Generated proofbook</span>
                 <span class="capital-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="capital-freshness">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span>
             </div>
-            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}
-            <div class="capital-tabs market-room-tabs" role="tablist" aria-label="Capital Chamber views">
+            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError, snapshot.sources)}
+
+        </header><div class="capital-tabs market-room-tabs" role="tablist" aria-label="Capital Chamber views">
                 ${VIEWS.map((item) => `<button class="capital-tab market-room-tab" id="capital-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="capital-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-capital-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}
             </div>
-        </header>
         ${capitalReading(snapshot)}
         <section class="capital-view-shell market-room-view-shell" id="capital-view-panel" role="tabpanel" aria-labelledby="capital-tab-${view.id}" data-quiet-key="capital-view-panel">
             <div class="capital-view-head market-room-view-head">
@@ -1132,6 +1132,7 @@ function renderChamber(snapshot) {
             </div>
             <div class="market-room-view-content" id="capital-view-content" data-quiet-key="capital-view-content">${renderView(snapshot)}</div>
         </section>
+        ${renderChamberGuide('capital')}
     `;
 }
 
@@ -1487,7 +1488,7 @@ export async function openCapitalChamber({ isCurrent = () => true } = {}) {
     lockPageScroll();
     if (lastSnapshot) renderBody(lastSnapshot);
     else renderLoading(body);
-    body.scrollTop = 0;
+    getChamberScrollContainer(body).scrollTop = 0;
     activateChamberDialog(overlay, {
         close: closeCapitalChamber,
         dialogSelector: '.capital-content',
@@ -1504,10 +1505,11 @@ export async function openCapitalChamber({ isCurrent = () => true } = {}) {
         renderBody(lastSnapshot, { quiet: true });
     }
     await refreshCapitalChamber({ quiet: true, initial: true });
-    if (focus === 'fees' && opening === openEpoch && body.scrollTop === 0 && overlay.classList.contains('active')) {
+    if (focus === 'fees' && opening === openEpoch && getChamberScrollContainer(body).scrollTop === 0 && overlay.classList.contains('active')) {
         const target = document.getElementById('capital-network-costs');
-        const header = body.querySelector('.capital-header');
-        if (target) body.scrollTop = Math.max(0, target.offsetTop - (header?.offsetHeight || 0) - 12);
+        const rail = body.querySelector('.capital-tabs');
+        const scroll = getChamberScrollContainer(body);
+        if (target) scroll.scrollTop += target.getBoundingClientRect().top - scroll.getBoundingClientRect().top - (rail?.offsetHeight || 0) - 12;
     }
     if (opening === openEpoch && overlay.classList.contains('active')) startRefreshTimer();
 }

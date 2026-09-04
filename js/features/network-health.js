@@ -190,7 +190,12 @@ let nakamotoSourcesCacheAt = 0;
 let nakamotoSourcesInFlight = null;
 
 function ensureNetworkHealthCss() {
-    return ensureChamberStylesheet('network-health-css', NETWORK_HEALTH_CSS_URL);
+    // Passing Blocks shares its activity controls and receipt pills with Live
+    // Head. Standalone routes do not inherit the dashboard's stylesheet.
+    return Promise.all([
+        ensureChamberStylesheet('hero-search-css', versionedAsset('/css/hero-search.css')),
+        ensureChamberStylesheet('network-health-css', NETWORK_HEALTH_CSS_URL)
+    ]);
 }
 
 function formatCount(value) {
@@ -5798,7 +5803,9 @@ function renderNetworkHealthChamber(data, container) {
             </div>
         </div>
         ${renderHealthVerdictPanel(data)}
-        <section class="lb-explainer health-explainer chamber-anim-fade">
+        ${renderRecentBlocksPanel(data)}
+        <nav class="chamber-context-nav" aria-label="Network Health sections"><button type="button" data-chamber-scroll-to="health-cycle-timing">Cycle timing</button><button type="button" data-chamber-scroll-to="health-nakamoto-coefficient">Baking power</button><button type="button" data-chamber-scroll-to="health-teztale-consensus">Teztale consensus</button><button type="button" data-chamber-scroll-to="health-network-load">Network load</button></nav>
+        <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="health-guide"><summary>How to read consensus health</summary><div class="chamber-disclosure-content"><section class="lb-explainer health-explainer chamber-anim-fade">
             <div class="lb-explainer-main">
                 <div class="lb-explainer-kicker">Right now</div>
                 <p><strong>Immediate health</strong> follows block cadence, consensus round, and attestation power as each new Tezos block lands.</p>
@@ -5808,7 +5815,7 @@ function renderNetworkHealthChamber(data, container) {
                 <span><strong>Round</strong> R0 ideal</span>
                 <span><strong>Power</strong> ${formatCount(POWER_PER_BLOCK)} per block</span>
             </div>
-        </section>
+        </section></div></details>
         ${renderContinuityProofPanel(data)}
         ${renderCycleTimingPanel(data)}
         <div class="lb-dashboard-grid health-dashboard-grid">
@@ -5825,7 +5832,6 @@ function renderNetworkHealthChamber(data, container) {
             ${renderActivityTapePanel(data)}
             ${renderMissedBlocksPanel(data)}
         </div>
-        ${renderRecentBlocksPanel(data)}
         <div class="chamber-footer chamber-anim-fade" style="animation-delay:360ms">
             <a href="https://tzkt.io/blocks" target="_blank" rel="noopener">TzKT Blocks →</a>
             <span class="chamber-footer-sep">·</span>

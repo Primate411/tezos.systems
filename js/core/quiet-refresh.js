@@ -49,6 +49,9 @@ function preserveRuntimeAttribute(name) {
 }
 
 function syncAttributes(current, desired) {
+    // A reader owns an opt-in disclosure, including across background renders.
+    const disclosureOpen = current instanceof HTMLDetailsElement && current.hasAttribute('data-chamber-disclosure')
+        ? current.open : null;
     for (const attribute of [...current.attributes]) {
         if (!desired.hasAttribute(attribute.name) && !preserveRuntimeAttribute(attribute.name)) {
             current.removeAttribute(attribute.name);
@@ -59,6 +62,7 @@ function syncAttributes(current, desired) {
             current.setAttribute(attribute.name, attribute.value);
         }
     }
+    if (disclosureOpen !== null) current.open = disclosureOpen;
     if (current instanceof HTMLInputElement && desired instanceof HTMLInputElement) {
         if (current.type === 'checkbox' || current.type === 'radio') current.checked = desired.checked;
     } else if (current instanceof HTMLProgressElement && desired instanceof HTMLProgressElement) {
@@ -268,6 +272,7 @@ function captureState(root) {
             }
             : null,
         selection: captureSelection(root),
+        disclosures: [...root.querySelectorAll('details[data-chamber-disclosure][data-quiet-key]')].map(element => ({ key: element.dataset.quietKey, open: element.open })),
         scrollers: [...new Set([...scrollableAncestors(root), ...scrollableElements(root)])].map((element) => ({
             element,
             locator: element === root ? null : elementLocator(root, element),
@@ -278,6 +283,10 @@ function captureState(root) {
 }
 
 function restoreState(root, state) {
+    for (const disclosure of state.disclosures) {
+        const element = root.querySelector(`details[data-chamber-disclosure][data-quiet-key="${CSS.escape(disclosure.key)}"]`);
+        if (element) element.open = disclosure.open;
+    }
     for (const scroll of state.scrollers) {
         const element = scroll.element?.isConnected
             ? scroll.element

@@ -15,7 +15,7 @@ import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.
 import { sha256Text } from '../core/sha256.js';
 import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js';
 import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
-import {
+import { getChamberScrollContainer,
     activateChamberDialog,
     deactivateChamberDialog,
     requestChamberClose,
@@ -1461,14 +1461,14 @@ function renderChamber(snapshot) {
         <header class="uranium-header market-room-header" data-quiet-key="uranium-header">
             <div class="uranium-system-strip market-room-system-strip"><strong>Tezos Systems</strong><span aria-hidden="true">/</span><span>commodity market intelligence</span></div>
             <div class="uranium-title-row market-room-title-row"><h2 class="market-room-title is-editorial" id="uranium-title">Uranium Chamber</h2><span class="uranium-badge market-room-badge">xU3O8</span><span class="uranium-freshness market-room-freshness${freshness.stale ? ' is-stale' : ''}" id="uranium-freshness" aria-live="polite">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span></div>
-            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}
-            <div class="uranium-tabs market-room-tabs" role="tablist" aria-label="Uranium Chamber views">${VIEWS.map((item) => `<button class="uranium-tab market-room-tab" id="uranium-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="uranium-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-uranium-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div>
-        </header>${renderChamberVerdict({ key: 'uranium', state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot', sentence: 'xU3O8 trading and physical uranium evidence are separate receipts, not proof of a fixed peg or present redeemability.', receipts: [['Token market', formatUsd(coinModel(snapshot).price)], ['Network', 'Etherlink']], timestamp: snapshot.generatedAt })}${renderChamberGuide('uranium')}
+            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError, snapshot.sources)}
+
+        </header><div class="uranium-tabs market-room-tabs" role="tablist" aria-label="Uranium Chamber views">${VIEWS.map((item) => `<button class="uranium-tab market-room-tab" id="uranium-tab-${item.id}" type="button" role="tab" aria-selected="${item.id === currentView}" aria-controls="uranium-view-panel" tabindex="${item.id === currentView ? '0' : '-1'}" data-uranium-view="${item.id}">${escapeHtml(item.label)}</button>`).join('')}</div>${renderChamberVerdict({ key: 'uranium', state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot', sentence: 'xU3O8 trading and physical uranium evidence are separate receipts, not proof of a fixed peg or present redeemability.', receipts: [['Token market', formatUsd(coinModel(snapshot).price)], ['Network', 'Etherlink']] })}
         <section class="uranium-view-shell market-room-view-shell" id="uranium-view-panel" role="tabpanel" aria-labelledby="uranium-tab-${view.id}" data-quiet-key="uranium-view-panel">
             <div class="uranium-view-head market-room-view-head"><div><h3>${escapeHtml(view.title)}</h3><p>${escapeHtml(view.detail)}</p></div></div>
             <div class="uranium-view-content market-room-view-content" id="uranium-view-content" data-quiet-key="uranium-view-content">${renderView(snapshot)}</div>
         </section>
-        <p class="uranium-disclaimer">Information only · public-source observations · not investment, custody, legal, or trading advice.</p>
+        ${renderChamberGuide('uranium')}<p class="uranium-disclaimer">Information only · public-source observations · not investment, custody, legal, or trading advice.</p>
     `;
 }
 
@@ -1924,7 +1924,7 @@ export async function openUraniumChamber({ isCurrent = () => true } = {}) {
     const paintedSnapshot = Boolean(lastSnapshot);
     if (paintedSnapshot) renderBody(lastSnapshot);
     else renderLoading(body);
-    body.scrollTop = 0;
+    getChamberScrollContainer(body).scrollTop = 0;
     activateChamberDialog(overlay, {
         close: closeUraniumChamber,
         dialogSelector: '.uranium-content',

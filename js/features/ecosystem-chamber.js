@@ -15,7 +15,7 @@ import { GENERATED_PROOFBOOK_SCHEDULE_LABEL } from '../core/freshness-contracts.
 import { sha256Text } from '../core/sha256.js';
 import { assertSnapshotMatchesProjection } from '../core/snapshot-receipt.js';
 import { escapeHtml } from '../core/utils.js';
-import {
+import { getChamberScrollContainer,
     activateChamberDialog,
     deactivateChamberDialog,
     requestChamberClose,
@@ -658,10 +658,10 @@ function renderChamber(snapshot) {
                 <span class="ecosystem-badge">Weekly address ledger</span>
                 <span class="ecosystem-freshness${freshness.stale ? ' is-stale' : ''}" id="ecosystem-freshness">${renderAgeingLabel(freshness.label, snapshot.generatedAt, ageLabel(snapshot.generatedAt))}</span>
             </div>
-            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError)}<p class="ecosystem-intro">All transaction-originating addresses across Tezos L1 and Etherlink, beside the distinct subset that touched reviewed dapps. Network-wide activity, app rankings, partial-week telemetry, and contract receipts stay explicitly separate.</p>
-            ${renderChamberVerdict({ key: 'ecosystem', state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot', sentence: 'App rankings use the last completed UTC week; the current week is partial and addresses are not people.', receipts: [['Reviewed apps', snapshot.apps.length], ['Weekly observations', snapshot.weeks.length]], timestamp: snapshot.generatedAt })}
-            ${renderLayerTabs()}
+            ${snapshotStatusMarkup(savedSnapshot, lastRefreshError, snapshot.sources || snapshot.sourceReceipts)}<p class="ecosystem-intro">Network-wide addresses and the reviewed-app subset, measured separately.</p>
+            ${renderChamberVerdict({ key: 'ecosystem', state: lastRefreshError || freshness.stale ? 'watch' : 'snapshot', sentence: 'App rankings use the last completed UTC week; the current week is partial and addresses are not people.', receipts: [['Reviewed apps', snapshot.apps.length], ['Weekly observations', snapshot.weeks.length]] })}
         </header>
+        ${renderLayerTabs()}
         <div class="ecosystem-toolbar" data-quiet-key="ecosystem-toolbar">
             ${renderRangeTabs()}
             ${renderCategoryFilters(snapshot)}
@@ -852,7 +852,8 @@ function selectAndRender({ scrollDetail = false, focusDetail = false, focusApp =
                     ?.focus({ preventScroll: true });
             }
             if (scrollDetail && body && target) {
-                body.scrollTo({ top: Math.max(0, target.offsetTop - 12), behavior: 'smooth' });
+                const scroll = getChamberScrollContainer(body);
+                scroll.scrollTo({ top: scroll.scrollTop + target.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 62, behavior: 'smooth' });
             }
         });
     }
@@ -1129,7 +1130,7 @@ export async function openEcosystemChamber({ isCurrent = () => true } = {}) {
     lockPageScroll();
     if (lastSnapshot) renderBody(lastSnapshot);
     else renderLoading(body);
-    body.scrollTop = 0;
+    getChamberScrollContainer(body).scrollTop = 0;
     activateChamberDialog(overlay, {
         close: closeEcosystemChamber,
         dialogSelector: '.ecosystem-content',

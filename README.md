@@ -5,6 +5,14 @@ state, baker activity, and ecosystem signals.
 
 Live site: [tezos.systems](https://tezos.systems)
 
+Chambers keep one main reading scroller and a reachable close control. Compact view
+rails, search, and chart controls lead into the data; methodology and full source
+receipts expand on demand. Open receipt disclosures and compatible view reading
+positions are retained, while background refreshes preserve the reader’s place.
+Artifact validation describes the generated file, not independent verification of
+issuer claims. The complete Chamber directory derives its count from the canonical
+site map.
+
 ## What This Is
 
 Tezos Systems is a static, client-side dashboard for understanding what is

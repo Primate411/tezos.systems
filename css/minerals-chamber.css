@@ -756,3 +756,11 @@
     opacity: 1 !important;
     transform: none !important;
 }
+
+/* On phones the specimen artwork introduces the atlas before the deeper totals. */
+@media (max-width: 759px) {
+    .minerals-hero { display: flex; flex-direction: column; }
+    .minerals-hero .minerals-core-stage { order: -1; width: 100%; min-height: 0; aspect-ratio: 3 / 2; }
+    .minerals-hero .minerals-core-stage img { object-fit: cover; }
+    .minerals-hero .minerals-hero-copy { padding: 18px; }
+}

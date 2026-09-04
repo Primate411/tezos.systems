@@ -1624,12 +1624,12 @@ function bakerDirectoryDiscoverHtml() {
 
     return `
         <section class="baker-directory-view baker-directory-discover" aria-labelledby="baker-directory-discover-title">
-            <div class="baker-directory-kpis" aria-label="Baker directory overview">
+            <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="directory-overview"><summary>Network overview</summary><div class="chamber-disclosure-content"><div class="baker-directory-kpis" aria-label="Baker directory overview">
                 ${directoryKpiHtml('Funded active bakers', summary.active.toLocaleString('en-US'), 'Positive current baking power')}
                 ${directoryKpiHtml('Current staking balance', `${compactXtz(summary.totalStake)} XTZ`, 'Sum across this funded set')}
                 ${directoryKpiHtml('Open delegation room', summary.open.toLocaleString('en-US'), 'At least 50K XTZ room and under 80% used')}
                 ${directoryKpiHtml('tz4 consensus keys', summary.tz4.toLocaleString('en-US'), 'Current BLS consensus addresses')}
-            </div>
+            </div></div></details>
             ${requestedNotFound ? `<div class="baker-directory-inline-state" role="status">No funded active baker matched “${escapeHtml(bakerDirectoryState.requestedBaker)}”. Search remains available below.</div>` : ''}
             ${directoryBakerDetailHtml(selected)}
             <div class="baker-directory-discover-layout">
@@ -1641,7 +1641,7 @@ function bakerDirectoryDiscoverHtml() {
                         </div>
                         <a href="/stake/?view=guide">Read the staking guide</a>
                     </div>
-                    <p class="baker-directory-method">The room and evidence choices are strict filters. Community orders by current delegators + stakers; Capacity orders by current free delegation room; ties use the other fact, then baker name. No blended score or inferred quality grade is calculated.</p>
+                    <details class="chamber-disclosure" data-chamber-disclosure data-quiet-key="directory-method"><summary>How these candidates are ordered</summary><div class="chamber-disclosure-content"><p class="baker-directory-method">The room and evidence choices are strict filters. Community orders by current delegators + stakers; Capacity orders by current free delegation room; ties use the other fact, then baker name. No blended score or inferred quality grade is calculated.</p></div></details>
                     <div class="baker-directory-fit-questions">
                         ${FIT_QUESTIONS.map((question) => `
                             <fieldset class="baker-directory-fit-question">
@@ -1842,6 +1842,8 @@ function bakerDirectoryShellHtml() {
                     <strong>${summary.active.toLocaleString('en-US')} active</strong>
                     <small>${escapeHtml(formattedObservedAt())}</small>
                 </div>
+            </header>
+            <div class="baker-directory-controls">
                 <div class="baker-directory-tabs" role="tablist" aria-label="Baker Directory views">
                     ${BAKER_DIRECTORY_VIEWS.map((view) => `
                         <button type="button" role="tab" id="baker-directory-tab-${view.id}" data-bdc-view="${view.id}" aria-controls="baker-directory-panel" aria-selected="${bakerDirectoryState.view === view.id ? 'true' : 'false'}" tabindex="${bakerDirectoryState.view === view.id ? '0' : '-1'}">${escapeHtml(view.label)}</button>
@@ -1854,7 +1856,7 @@ function bakerDirectoryShellHtml() {
                         ${bakerDirectoryState.search ? '<button type="button" data-bdc-clear-search aria-label="Clear baker search">Clear</button>' : ''}
                     </span>
                 </label>
-            </header>
+            </div>
             ${lastGoodWarning}
             ${renderChamberVerdict({ key: 'leaderboard', state: bakerDirectoryLastError || leaderboardDataQuality.status === 'stale' ? 'watch' : 'observed', sentence: `${summary.active.toLocaleString('en-US')} funded active bakers are in this receipt; discover them by disclosed filters, not an overall quality score.`, receipts: [['Open delegation room', summary.open], ['tz4 consensus keys', summary.tz4]], timestamp: leaderboardDataQuality.observedAt, clockLabel: 'Read' })}
             <div id="baker-directory-panel" class="baker-directory-panel" role="tabpanel" aria-labelledby="baker-directory-tab-${bakerDirectoryState.view}" tabindex="0">

@@ -1162,7 +1162,7 @@ function renderMaxisHero() {
         <header class="maxis-protocol-hero maxis-context-hero maxis-maxis-hero chamber-anim-fade">
             <div class="maxis-protocol-kicker"><span>Tezos Maxis</span> objective identities · honest clocks</div>
             <h2 id="maxis-title" class="maxis-protocol-title">Who is a Maxi?</h2>
-            <p class="maxis-protocol-lead">The ongoing records for Tezos collectors, artists, builders, L1 and L2 governance voters, stakers, transactors, and cross-lane Unicorns. These boards do not reset at protocol activation; every identity keeps its own declared clock.</p>
+            <p class="maxis-protocol-lead">Ongoing Tezos records, each with its own declared clock. These crowns do not reset at protocol activation.</p>
             <div class="maxis-season-telemetry" aria-label="Ongoing Maxis snapshot status">
                 <span><strong>${escapeHtml(String(categories.length || '—'))}</strong>Maxi identities</span>
                 <span><strong>${escapeHtml(String(data ? uniqueRankedWallets(data) : '—'))}</strong>ranked wallets</span>

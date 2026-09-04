@@ -1,5 +1,5 @@
 import { renderChamberVerdict, renderChamberStamp, settleChamberArrival } from '../ui/chamber-reading.js';
-import { requestChamberClose } from '../ui/chamber-accessibility.js';
+import { getChamberScrollContainer, requestChamberClose } from '../ui/chamber-accessibility.js';
 /**
  * Whale Watch Chamber
  *
@@ -412,9 +412,8 @@ function sourceStripMarkup() {
             <span class="whale-watch-live-dot" aria-hidden="true"></span>
             <strong>Shared archive</strong>
             <span>${generatedAt ? `${renderChamberStamp(generatedAt, 'Generated')} · ${escapeHtml(GENERATED_PROOFBOOK_SCHEDULE_LABEL)}` : 'not yet available'}</span>
-            ${lastArtifact?.transfers24h ? `<span>window ${escapeHtml(archiveWindowLabel())}</span>` : ''}
             <a href="${ARTIFACT_URL}" target="_blank" rel="noopener">JSON receipt</a>
-            <span class="whale-watch-cache-state">${artifactError ? (lastArtifact ? 'Last-good retained · refresh failed' : 'Archive unavailable · refresh failed') : savedArtifact ? 'Saved snapshot · update pending' : generatedAt ? 'Generated archive verified' : 'Awaiting generated archive'}</span>
+            <span class="whale-watch-cache-state">${artifactError ? (lastArtifact ? 'Last-good retained · refresh failed' : 'Archive unavailable · refresh failed') : savedArtifact ? 'Saved snapshot · update pending' : generatedAt ? 'Artifact validated' : 'Awaiting generated archive'}</span>
         </div>`;
 }
 
@@ -427,13 +426,14 @@ function headerMarkup() {
                 <div><p class="whale-watch-kicker">Capital movement · account dormancy · operation receipts</p><h2 id="whale-watch-title">Whale Watch</h2><p>${escapeHtml(active.detail)}</p></div>
                 <button class="whale-watch-refresh" type="button" data-whale-action="refresh" aria-label="Refresh Whale Watch data">Refresh</button>
             </div>
-            ${renderChamberVerdict({ key: 'whales', state: artifactError ? 'watch' : lastArtifact ? 'snapshot' : 'unavailable', sentence: lastArtifact?.transfers24h ? `${exact(lastArtifact.transfers24h.operationCount)} large applied transfers are recorded in the archive’s 24-hour window; the live tape has separate bounded coverage.` : 'The shared archive is not available yet; no quiet-day claim can be made.', receipts: [['Window', archiveWindowLabel()], ['Operation groups', lastArtifact?.transfers24h?.operationGroupCount ?? 'Unavailable']], timestamp: lastArtifact?.generatedAt })}
-            <nav class="whale-watch-tabs" role="tablist" aria-label="Whale Watch views">
-                ${VIEWS.map((view) => `<button id="whale-watch-tab-${view.id}" type="button" role="tab" aria-selected="${currentView === view.id}" aria-controls="whale-watch-panel-${view.id}" tabindex="${currentView === view.id ? '0' : '-1'}" data-whale-view="${view.id}">${escapeHtml(view.label)}</button>`).join('')}
-            </nav>
+            ${renderChamberVerdict({ key: 'whales', state: artifactError ? 'watch' : lastArtifact ? 'snapshot' : 'unavailable', sentence: lastArtifact?.transfers24h ? `${exact(lastArtifact.transfers24h.operationCount)} large applied transfers are recorded in the archive’s 24-hour window; the live tape has separate bounded coverage.` : 'The shared archive is not available yet; no quiet-day claim can be made.', receipts: [['Window', archiveWindowLabel()], ['Operation groups', lastArtifact?.transfers24h?.operationGroupCount ?? 'Unavailable']] })}
+
             ${VIEWS.filter((view) => view.id !== currentView).map((view) => `<div id="whale-watch-panel-${view.id}" role="tabpanel" aria-labelledby="whale-watch-tab-${view.id}" tabindex="0" hidden inert aria-hidden="true"></div>`).join('')}
             ${sourceStripMarkup()}
-        </header>`;
+        </header>
+            <nav class="whale-watch-tabs" role="tablist" aria-label="Whale Watch views">
+                ${VIEWS.map((view) => `<button id="whale-watch-tab-${view.id}" type="button" role="tab" aria-selected="${currentView === view.id}" aria-controls="whale-watch-panel-${view.id}" tabindex="${currentView === view.id ? '0' : '-1'}" data-whale-view="${view.id}">${escapeHtml(view.label)}</button>`).join('')}
+            </nav>`;
 }
 
 function thresholdTableMarkup(rows = []) {
@@ -661,28 +661,28 @@ function chamberMarkup() {
 }
 
 function captureLiveTapeAnchor(body) {
-    if (currentView !== 'live' || body.scrollTop <= 0) return null;
-    const viewportTop = body.getBoundingClientRect().top;
+    if (currentView !== 'live' || getChamberScrollContainer(body).scrollTop <= 0) return null;
+    const viewportTop = getChamberScrollContainer(body).getBoundingClientRect().top;
     const rows = [...body.querySelectorAll('#whale-watch-live-tape [data-quiet-key]')];
     const row = rows.find((candidate) => candidate.getBoundingClientRect().bottom > viewportTop + 1);
     return {
         key: row?.getAttribute('data-quiet-key') || '',
         offset: row ? row.getBoundingClientRect().top - viewportTop : 0,
-        scrollTop: body.scrollTop,
-        scrollHeight: body.scrollHeight
+        scrollTop: getChamberScrollContainer(body).scrollTop,
+        scrollHeight: getChamberScrollContainer(body).scrollHeight
     };
 }
 
 function restoreLiveTapeAnchor(body, anchor) {
     if (!anchor) return;
-    const viewportTop = body.getBoundingClientRect().top;
+    const viewportTop = getChamberScrollContainer(body).getBoundingClientRect().top;
     const row = [...body.querySelectorAll('#whale-watch-live-tape [data-quiet-key]')]
         .find((candidate) => candidate.getAttribute('data-quiet-key') === anchor.key);
     if (row) {
-        body.scrollTop += row.getBoundingClientRect().top - viewportTop - anchor.offset;
+        getChamberScrollContainer(body).scrollTop += row.getBoundingClientRect().top - viewportTop - anchor.offset;
         return;
     }
-    body.scrollTop = anchor.scrollTop + Math.max(0, body.scrollHeight - anchor.scrollHeight);
+    getChamberScrollContainer(body).scrollTop = anchor.scrollTop + Math.max(0, getChamberScrollContainer(body).scrollHeight - anchor.scrollHeight);
 }
 
 function renderBody({ quiet = false } = {}) {
@@ -988,7 +988,7 @@ export async function openWhaleChamber(requestedView = '', { isCurrent = () => t
     overlay.classList.add('active');
     lockPageScroll();
     renderBody();
-    body.scrollTop = 0;
+    getChamberScrollContainer(body).scrollTop = 0;
     activateChamberDialog(overlay, {
         close: closeWhaleChamber,
         dialogSelector: '.whale-watch-content',
