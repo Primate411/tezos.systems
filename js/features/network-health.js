@@ -63,7 +63,7 @@ const HEARTBEAT_MANAGER_ENRICHMENT_LIMIT = 100;
 const LIVE_HEAD_POWER_DETAIL_THRESHOLD = 6969;
 const LIVE_HEAD_DETAIL_MIN_WIDTH = 420;
 const HEARTBEAT_SUPPLEMENT_MAX_AGE = 2 * 60 * 1000;
-const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 20;
+const HEARTBEAT_ACTIVITY_CACHE_LIMIT = 2 * CHAIN_HEALTH_BLOCK_LIMIT;
 const CYCLE_TIMING_LIMIT = 8;
 const CYCLE_TIMING_TTL = 10 * 60 * 1000;
 const CONTESTED_ROUND_HOT_SIGNAL_TTL = 30 * 60 * 1000;
@@ -88,8 +88,8 @@ const LIVE_HEAD_ACTIVITY_FILTER_V2_STORAGE_KEY = 'tezos-systems-live-head-activi
 const LIVE_HEAD_ACTIVITY_FILTER_LEGACY_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v1';
 const LIVE_HEAD_MY_TEZOS_STORAGE_KEY = 'tezos-systems-live-head-my-tezos-only-v1';
 const LIVE_HEAD_DEPTH_STORAGE_KEY = 'tezos-systems-live-head-depth-v1';
-const LIVE_HEAD_EXPANDED_DESKTOP_LIMIT = 10;
-const LIVE_HEAD_EXPANDED_MOBILE_LIMIT = 9;
+const LIVE_HEAD_DEPTH_MODES = ['compact', '10', '15', '20', 'custom'];
+const LIVE_HEAD_MAX_ROWS = CHAIN_HEALTH_BLOCK_LIMIT;
 const LIVE_HEAD_ACTIVITY_TYPES = [...BLOCK_STORY_FILTER_TYPES];
 const LIVE_HEAD_ACTIVITY_V2_TYPES = ['l1-vote', 'l2-vote', 'transfers', 'art', 'defi', 'gaming', 'bridge', 'etherlink', 'stake', 'unstake'];
 const ETHERLINK_GOVERNANCE_CURRENT_ADDRESS_SET = new Set(Object.values(ETHERLINK_GOVERNANCE_CURRENT_CONTRACTS));
@@ -145,6 +145,8 @@ let heartbeatGasLimitInFlight = null;
 let liveHeadPillResizeObserver = null;
 let liveHeadPillFitFrame = null;
 let liveHeadExpanded = false;
+let liveHeadDepthMode = 'compact';
+let liveHeadCustomRows = 20;
 let liveHeadDepthControlsWired = false;
 let recentBlockSupplementBlocks = [];
 let recentBlockSupplementInFlight = false;
@@ -518,17 +520,23 @@ function chainHealthReadout(states) {
         counts.unknown ? `${counts.unknown} unavailable` : ''
     ].filter(Boolean);
     const sentence = `Attestation health across the last ${total} blocks: ${descriptions.join(', ')}.`;
-    if (counts.risk) return { text: `${counts.risk} RISK`, tone: 'risk', sentence };
-    if (counts.watch) return { text: `${counts.watch} LOW`, tone: 'watch', sentence };
-    if (counts.unknown) return { text: `${counts.unknown} ?`, tone: 'unknown', sentence };
-    return { text: `${counts.ok} OK`, tone: 'ok', sentence };
+    if (counts.risk) return { text: `${counts.risk}/${total} RISK`, tone: 'risk', sentence };
+    if (counts.watch) return { text: `${counts.watch}/${total} LOW`, tone: 'watch', sentence };
+    if (counts.unknown) return { text: `${counts.unknown}/${total} ?`, tone: 'unknown', sentence };
+    return { text: `${counts.ok}/${total} OK`, tone: 'ok', sentence };
 }
 
 function updateChainHealthReadout(button, readout, { loading = false, stale = false } = {}) {
     const element = document.getElementById('chain-health-readout');
     const text = stale ? 'STALE' : readout.text;
     if (element) {
-        if (element.textContent !== text) quietlySyncHtml(element, escapeHtml(text));
+        if (element.textContent !== text) {
+            const fraction = text.match(/^(\d+)(\/\d+ .+)$/);
+            const html = fraction
+                ? `<span class="chain-health-count" data-quiet-key="chain-health-count">${escapeHtml(fraction[1])}</span>${escapeHtml(fraction[2])}`
+                : escapeHtml(text);
+            quietlySyncHtml(element, html);
+        }
         element.dataset.tone = stale ? 'unknown' : readout.tone;
     }
     button.setAttribute('aria-busy', String(loading));
@@ -820,14 +828,9 @@ function expandedChamberBlockLimit() {
         : CHAMBER_BLOCK_LIMIT;
 }
 
-function expandedLiveHeadBlockLimit() {
-    return window.matchMedia?.('(max-width: 719px)')?.matches
-        ? LIVE_HEAD_EXPANDED_MOBILE_LIMIT
-        : LIVE_HEAD_EXPANDED_DESKTOP_LIMIT;
-}
-
 function liveHeadBlockLimit() {
-    return liveHeadExpanded ? expandedLiveHeadBlockLimit() : compactLiveHeadBlockLimit();
+    if (liveHeadDepthMode === 'compact') return compactLiveHeadBlockLimit();
+    return liveHeadDepthMode === 'custom' ? liveHeadCustomRows : Number(liveHeadDepthMode);
 }
 
 function visibleLiveHeadBlocks(data) {
@@ -837,17 +840,21 @@ function visibleLiveHeadBlocks(data) {
 function readLiveHeadDepthPreference() {
     try {
         const saved = JSON.parse(localStorage.getItem(LIVE_HEAD_DEPTH_STORAGE_KEY) || 'null');
-        return Boolean(saved && saved.version === 1 && saved.expanded === true);
-    } catch (_) {
-        return false;
-    }
+        if (saved?.version === 1) return { mode: saved.expanded === true ? '10' : 'compact', customRows: 20 };
+        if (saved?.version === 2 && LIVE_HEAD_DEPTH_MODES.includes(saved.mode)
+            && Number.isInteger(saved.customRows) && saved.customRows >= 1 && saved.customRows <= LIVE_HEAD_MAX_ROWS) {
+            return { mode: saved.mode, customRows: saved.customRows };
+        }
+    } catch (_) {}
+    return { mode: 'compact', customRows: 20 };
 }
 
 function persistLiveHeadDepthPreference() {
     try {
         localStorage.setItem(LIVE_HEAD_DEPTH_STORAGE_KEY, JSON.stringify({
-            version: 1,
-            expanded: liveHeadExpanded
+            version: 2,
+            mode: liveHeadDepthMode,
+            customRows: liveHeadCustomRows
         }));
     } catch (_) {}
 }
@@ -856,32 +863,40 @@ function syncLiveHeadDepthControls() {
     const compactLimit = compactLiveHeadBlockLimit();
     const chamberCompactLimit = compactChamberBlockLimit();
     const panel = document.getElementById('live-head');
-    const corner = document.getElementById('live-head-depth-toggle');
-    const setting = document.getElementById('live-head-depth-setting');
     const chamber = document.getElementById('health-block-depth-toggle');
-    const expandedLimit = expandedLiveHeadBlockLimit();
     const chamberExpandedLimit = expandedChamberBlockLimit();
-    const action = liveHeadExpanded
-        ? `Contract Live blocks to ${compactLimit}`
-        : `Expand Live blocks to ${expandedLimit}`;
     const chamberAction = liveHeadExpanded
         ? `Show ${chamberCompactLimit} Passing Blocks`
         : `Show all ${chamberExpandedLimit} Passing Blocks`;
 
     document.documentElement.setAttribute('data-live-head-expanded', liveHeadExpanded ? 'true' : 'false');
+    document.documentElement.setAttribute('data-live-head-depth', liveHeadDepthMode);
+    document.documentElement.style.setProperty('--live-head-row-count', liveHeadBlockLimit());
     panel?.setAttribute('data-live-head-expanded', liveHeadExpanded ? 'true' : 'false');
-    if (corner) {
-        corner.setAttribute('aria-expanded', liveHeadExpanded ? 'true' : 'false');
-        corner.setAttribute('aria-label', action);
-        corner.title = action;
-        const copy = corner.querySelector('[data-live-head-depth-action]');
-        if (copy) copy.textContent = action;
-    }
-    if (setting) {
-        setting.setAttribute('aria-pressed', liveHeadExpanded ? 'true' : 'false');
-        setting.setAttribute('aria-label', action);
-        setting.title = action;
-    }
+    document.querySelectorAll('[data-live-head-depth-control]').forEach((control) => {
+        const opener = control.querySelector('[aria-controls]');
+        const input = control.querySelector('input');
+        const menu = control.querySelector('[popover]');
+        if (opener) {
+            opener.dataset.depthMode = liveHeadDepthMode;
+            const count = opener.querySelector('[data-live-head-depth-count]');
+            const label = `${liveHeadBlockLimit()} blocks`;
+            if (count.textContent !== label) count.textContent = label;
+            opener.title = `Live blocks: ${liveHeadBlockLimit()} rows`;
+            opener.setAttribute('aria-label', `Choose Live blocks depth, currently ${label}`);
+        }
+        control.querySelectorAll('[data-live-head-depth-mode]').forEach((button) => {
+            const mode = button.dataset.liveHeadDepthMode;
+            button.setAttribute('aria-pressed', mode === liveHeadDepthMode ? 'true' : 'false');
+            const label = `${compactLimit} blocks`;
+            if (mode === 'compact' && button.textContent !== label) button.textContent = label;
+        });
+        control.querySelector('form')?.classList.toggle('is-selected', liveHeadDepthMode === 'custom');
+        // Keep the fifth option blank until used; never overwrite an open editor.
+        if (input && !menu?.matches(':popover-open')) {
+            input.value = liveHeadDepthMode === 'custom' ? liveHeadCustomRows : '';
+        }
+    });
     if (chamber) {
         chamber.setAttribute('aria-expanded', liveHeadExpanded ? 'true' : 'false');
         chamber.setAttribute('aria-label', chamberAction);
@@ -891,20 +906,20 @@ function syncLiveHeadDepthControls() {
         const count = chamber.querySelector('[data-health-block-depth-count]');
         if (count) count.textContent = `${liveHeadExpanded ? chamberExpandedLimit : chamberCompactLimit} blocks`;
     }
-    document.querySelectorAll('[data-live-head-depth-count]').forEach((badge) => {
-        badge.textContent = liveHeadExpanded ? `${expandedLimit} blocks` : 'Compact';
-    });
 }
 
-function setLiveHeadExpanded(expanded, { persist = true, source = 'api' } = {}) {
-    const nextExpanded = Boolean(expanded);
-    if (liveHeadExpanded === nextExpanded) {
+function setLiveHeadDepth(mode, { customRows = liveHeadCustomRows, persist = true, source = 'api' } = {}) {
+    if (!LIVE_HEAD_DEPTH_MODES.includes(mode) || !Number.isInteger(customRows)
+        || customRows < 1 || customRows > LIVE_HEAD_MAX_ROWS) return false;
+    if (liveHeadDepthMode === mode && liveHeadCustomRows === customRows) {
         syncLiveHeadDepthControls();
         return false;
     }
 
     closeLiveHeadInspector({ suppressReopen: true });
-    liveHeadExpanded = nextExpanded;
+    liveHeadDepthMode = mode;
+    liveHeadCustomRows = customRows;
+    liveHeadExpanded = mode !== 'compact';
     syncLiveHeadDepthControls();
     if (persist) persistLiveHeadDepthPreference();
 
@@ -912,9 +927,14 @@ function setLiveHeadExpanded(expanded, { persist = true, source = 'api' } = {}) 
     if (stack) delete stack.dataset.liveHeadSignature;
     if (heartbeatData) updateBlockTicker(heartbeatData, { suppressMotion: true });
     window.dispatchEvent(new CustomEvent('tezos:live-head-depth-change', {
-        detail: { expanded: liveHeadExpanded, limit: liveHeadBlockLimit(), source }
+        detail: { expanded: liveHeadExpanded, mode: liveHeadDepthMode, limit: liveHeadBlockLimit(), source }
     }));
     return true;
+}
+
+// Retain the Passing Blocks chamber's existing compact/expanded action.
+function setLiveHeadExpanded(expanded, options = {}) {
+    return setLiveHeadDepth(expanded ? '10' : 'compact', options);
 }
 
 function wireLiveHeadDepthControls() {
@@ -923,23 +943,99 @@ function wireLiveHeadDepthControls() {
         return;
     }
     liveHeadDepthControlsWired = true;
-    liveHeadExpanded = readLiveHeadDepthPreference();
+    const saved = readLiveHeadDepthPreference();
+    liveHeadDepthMode = saved.mode;
+    liveHeadCustomRows = saved.customRows;
+    liveHeadExpanded = saved.mode !== 'compact';
     syncLiveHeadDepthControls();
     wireLiveHeadMyTezosControls(document);
 
-    document.getElementById('live-head-depth-toggle')?.addEventListener('click', () => {
-        setLiveHeadExpanded(!liveHeadExpanded, { source: 'corner' });
-    });
-    document.getElementById('live-head-depth-setting')?.addEventListener('click', () => {
-        setLiveHeadExpanded(!liveHeadExpanded, { source: 'setup' });
-        document.getElementById('settings-dropdown')?.classList.remove('open');
-        const settingsGear = document.getElementById('settings-gear');
-        settingsGear?.setAttribute('aria-expanded', 'false');
-        settingsGear?.focus({ preventScroll: true });
+    document.querySelectorAll('[data-live-head-depth-control]').forEach((control) => {
+        const opener = control.querySelector('[aria-controls]');
+        const menu = control.querySelector('[popover]');
+        const input = control.querySelector('input');
+        const source = control.dataset.liveHeadDepthControl;
+        if (!opener || !menu || !input) return;
+        const close = () => {
+            menu.hidePopover();
+            opener.setAttribute('aria-expanded', 'false');
+            opener.focus({ preventScroll: true });
+        };
+        const positionMenu = () => {
+            if (!menu.matches(':popover-open')) return;
+            const rect = opener.getBoundingClientRect();
+            const viewport = window.visualViewport;
+            const left = viewport?.offsetLeft || 0;
+            const top = viewport?.offsetTop || 0;
+            const width = viewport?.width || innerWidth;
+            const height = viewport?.height || innerHeight;
+            menu.style.maxHeight = `${Math.max(44, height - 16)}px`;
+            const menuRect = menu.getBoundingClientRect();
+            const preferredTop = source === 'corner' ? rect.top - menuRect.height - 6 : rect.bottom + 6;
+            menu.style.left = `${Math.max(left + 8, Math.min(rect.right - menuRect.width, left + width - menuRect.width - 8))}px`;
+            menu.style.top = `${Math.max(top + 8, Math.min(preferredTop, top + height - menuRect.height - 8))}px`;
+        };
+        menu.addEventListener('toggle', () => {
+            opener.setAttribute('aria-expanded', menu.matches(':popover-open') ? 'true' : 'false');
+            if (!menu.matches(':popover-open')) syncLiveHeadDepthControls();
+        });
+        opener.addEventListener('click', (event) => {
+            // Keep the native invoker relationship for light-dismiss, while
+            // handling positioning and selected-control focus ourselves.
+            event.preventDefault();
+            if (menu.matches(':popover-open')) return close();
+            closeLiveHeadInspector({ suppressReopen: true });
+            syncLiveHeadDepthControls();
+            menu.showPopover();
+            positionMenu();
+            opener.setAttribute('aria-expanded', 'true');
+            const selected = liveHeadDepthMode === 'custom' ? input : menu.querySelector('[aria-pressed="true"]');
+            selected?.focus({ preventScroll: true });
+        });
+        window.addEventListener('resize', positionMenu);
+        window.visualViewport?.addEventListener('resize', positionMenu);
+        menu.querySelectorAll('[data-live-head-depth-mode]').forEach((button) => {
+            button.addEventListener('click', () => {
+                setLiveHeadDepth(button.dataset.liveHeadDepthMode, { source });
+                close();
+            });
+        });
+        const commitCustom = () => {
+            if (!input.reportValidity()) return false;
+            setLiveHeadDepth('custom', { customRows: input.valueAsNumber, source });
+            return true;
+        };
+        input.addEventListener('change', () => {
+            if (input.validity.valid) commitCustom();
+        });
+        menu.querySelector('form')?.addEventListener('submit', (event) => {
+            event.preventDefault();
+            if (commitCustom()) close();
+        });
+        menu.querySelectorAll('[data-live-head-depth-step]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const current = input.validity.valid ? input.valueAsNumber : liveHeadBlockLimit();
+                const rows = Math.max(1, Math.min(LIVE_HEAD_MAX_ROWS, current + Number(button.dataset.liveHeadDepthStep)));
+                input.value = rows;
+                setLiveHeadDepth('custom', { customRows: rows, source });
+            });
+        });
+        menu.addEventListener('keydown', (event) => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+        });
+        control.addEventListener('focusout', (event) => {
+            if (event.relatedTarget && !control.contains(event.relatedTarget) && menu.matches(':popover-open')) {
+                menu.hidePopover();
+            }
+        });
     });
     window.addEventListener('storage', (event) => {
-        if (event.key !== LIVE_HEAD_DEPTH_STORAGE_KEY) return;
-        setLiveHeadExpanded(readLiveHeadDepthPreference(), { persist: false, source: 'storage' });
+        if (event.key !== LIVE_HEAD_DEPTH_STORAGE_KEY && event.key !== null) return;
+        const preference = readLiveHeadDepthPreference();
+        setLiveHeadDepth(preference.mode, { customRows: preference.customRows, persist: false, source: 'storage' });
     });
     window.matchMedia?.('(max-width: 719px)')?.addEventListener?.('change', () => {
         syncLiveHeadDepthControls();
@@ -951,6 +1047,8 @@ function wireLiveHeadDepthControls() {
     window.tezosSystemsLiveHead = Object.freeze({
         isExpanded: () => liveHeadExpanded,
         setExpanded: (expanded, source = 'api') => setLiveHeadExpanded(expanded, { source }),
+        getDepth: () => ({ mode: liveHeadDepthMode, rows: liveHeadBlockLimit(), customRows: liveHeadCustomRows }),
+        setDepth: (mode, customRows = liveHeadCustomRows) => setLiveHeadDepth(mode, { customRows }),
         isMyTezosOnly: () => liveHeadMyTezosOnly,
         setMyTezosOnly: (enabled, source = 'api') => setLiveHeadMyTezosOnly(enabled, { source })
     });

@@ -4413,11 +4413,10 @@
 
 .chamber-room-shell[data-room-size] {
     --room-max-width: 1180px;
-    --room-max-height: 940px;
     box-sizing: border-box;
     width: min(var(--room-max-width), calc(100vw - (2 * var(--space-4)))) !important;
     max-width: var(--room-max-width) !important;
-    height: min(var(--room-max-height), calc(100dvh - (2 * var(--space-4)))) !important;
+    height: calc(100dvh - (2 * var(--space-4))) !important;
     max-height: calc(100dvh - (2 * var(--space-4))) !important;
     border-radius: var(--radius-room) !important;
 }
@@ -5566,24 +5565,19 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
     white-space: nowrap;
 }
 
-.live-head-depth-setting .live-head-depth-setting-icon {
-    transition: transform 180ms ease;
+.live-head-depth-setting {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    color: var(--text-primary);
+    font-size: 0.75rem;
 }
 
-.live-head-depth-setting[aria-pressed="true"] .live-head-depth-setting-icon {
-    transform: rotate(180deg);
-}
-
-.live-head-depth-setting .live-head-depth-setting-count {
-    flex: 0 0 auto !important;
-    min-width: auto !important;
-    margin-left: auto;
-    padding: 0.2rem 0.43rem;
-    border: 1px solid color-mix(in srgb, var(--accent-cyan) 25%, var(--glass-border));
-    border-radius: 999px;
-    color: color-mix(in srgb, var(--accent-cyan) 72%, var(--text-primary));
-    font: 750 0.58rem/1 'JetBrains Mono', monospace;
-    white-space: nowrap;
+.live-head-depth-setting .live-head-depth-custom {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
 }
 
 .live-head-my-tezos-setting .live-head-my-tezos-setting-icon {
@@ -5612,12 +5606,6 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
 .live-head-my-tezos-setting:disabled {
     cursor: not-allowed;
     opacity: 0.5;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .live-head-depth-setting .live-head-depth-setting-icon {
-        transition: none;
-    }
 }
 
 .home-layout-modal {

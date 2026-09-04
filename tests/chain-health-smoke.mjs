@@ -86,7 +86,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
   assert.equal(initial.colors.length, 4, 'OK, watch, risk and unavailable have distinct theme colors');
   assert.equal(initial.heights.length, 4, 'Health remains legible without color');
   assert.deepEqual(initial.newest, [head], 'Only the newest block has a marker');
-  assert.equal(initial.summary, '5 RISK');
+  assert.equal(initial.summary, '5/25 RISK');
   assert.match(initial.label, /last 25 blocks: 10 at or above 98.5% attestation power, 5 at quorum but below 98.5%, 5 below quorum, 5 unavailable/);
   assert.equal(initial.animations, 0, 'First paint has no conveyor motion');
 
@@ -182,12 +182,12 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
     });
     const stableGeometry = await geometrySnapshot();
     for (const [mode, text, description] of [
-      ['ok', '25 OK', '25 at or above 98.5% attestation power'],
-      ['risk', '25 RISK', '25 below quorum'],
-      ['watch', '25 LOW', '25 at quorum but below 98.5%'],
-      ['risk', '25 RISK', '25 below quorum'],
-      ['unknown', '25 ?', '25 unavailable'],
-      ['partial', '16 ?', '9 at or above 98.5% attestation power, 16 unavailable']
+      ['ok', '25/25 OK', '25 at or above 98.5% attestation power'],
+      ['risk', '25/25 RISK', '25 below quorum'],
+      ['watch', '25/25 LOW', '25 at quorum but below 98.5%'],
+      ['risk', '25/25 RISK', '25 below quorum'],
+      ['unknown', '25/25 ?', '25 unavailable'],
+      ['partial', '16/25 ?', '9 at or above 98.5% attestation power, 16 unavailable']
     ]) {
       scenario = mode;
       await page.evaluate(() => window.__refreshChainHealth());
@@ -229,11 +229,13 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
         const settings = rect('#live-head-filter-toggle');
         const strip = rect('#chain-health-window');
         const label = rect('.chain-health-label');
+        const readout = rect('#chain-health-readout');
+        const stacked = innerWidth <= 900;
         return {
           fits: activity.left >= 0 && health.right <= innerWidth && document.documentElement.scrollWidth <= innerWidth + 1,
-          beside: activity.right <= health.left + 1 && strip.right <= settings.left + 1,
-          aligned: [activity, settings].every((control) => Math.abs(control.top - health.top) <= 0.5 && Math.abs(control.bottom - health.bottom) <= 0.5),
-          labelLeft: label.right <= strip.left, stripWidth: strip.width,
+          beside: (stacked ? activity.bottom <= health.top : activity.right <= health.left + 1) && strip.right <= settings.left + 1,
+          aligned: (stacked ? [settings] : [activity, settings]).every((control) => Math.abs(control.top - health.top) <= 0.5 && Math.abs(control.bottom - health.bottom) <= 0.5),
+          labelLeft: label.right <= readout.left && readout.right <= strip.left && Math.abs(label.y - readout.y) <= 0.5, stripWidth: strip.width,
           activityOverflow: document.getElementById('header-activity-line').scrollWidth - document.getElementById('header-activity-line').clientWidth,
           count: document.querySelectorAll('[data-chain-health-level]').length
         };

@@ -3397,8 +3397,11 @@ async function checkSelectorContracts() {
     ['Live Head gas severity tiers', "pct >= 85 ? 'hot' : pct >= 60 ? 'busy' : pct >= 25 ? 'active' : 'open'", health],
     ['Live Head quiet removed from detail pills', "filter((fragment) => fragment.key !== 'quiet')", health],
     ['Live Head compact responsive cap', 'function compactLiveHeadBlockLimit', health],
-    ['Live Head ten-row desktop expanded cap', 'LIVE_HEAD_EXPANDED_DESKTOP_LIMIT = 10', health],
-    ['Live Head nine-row mobile expanded cap', 'LIVE_HEAD_EXPANDED_MOBILE_LIMIT = 9', health],
+    ['Live Head four presets and custom mode', "LIVE_HEAD_DEPTH_MODES = ['compact', '10', '15', '20', 'custom']", health],
+    ['Live Head custom bounded by the existing feed', 'LIVE_HEAD_MAX_ROWS = CHAIN_HEALTH_BLOCK_LIMIT', health],
+    ['Live Head legacy preference migration', "saved.expanded === true ? '10' : 'compact'", health],
+    ['Live Head stacked custom stepper', 'class="live-head-depth-stepper"', index],
+    ['Live Head custom validation', 'input.reportValidity()', health],
     ['Live Head persistent depth preference', 'tezos-systems-live-head-depth-v1', health],
     ['Live Head shared corner and Setup depth controls', 'function wireLiveHeadDepthControls', health],
     ['Network Health Passing Blocks shares the depth control', 'id="health-block-depth-toggle"', health],
@@ -3411,7 +3414,7 @@ async function checkSelectorContracts() {
     ['Network Health Passing Blocks receipt rail', 'data-health-block-receipts', health],
     ['Network Health Passing Blocks shared supplement request', 'function requestRecentBlockSupplements', health],
     ['Network Health Passing Blocks quiet receipt update', 'quietlySyncElement(receipt, renderRecentBlockReceipts(block))', health],
-    ['Live Head expanded receipt cache', 'HEARTBEAT_ACTIVITY_CACHE_LIMIT = 20', health],
+    ['Live Head expanded receipt cache', 'HEARTBEAT_ACTIVITY_CACHE_LIMIT = 2 * CHAIN_HEALTH_BLOCK_LIMIT', health],
     ['Live Head quiet keyed row reconciliation', 'quietlySyncElement(row, renderLiveHeadRow', health],
     ['Live Head FLIP row shift', 'function smoothlyShiftLiveHeadRows', health],
     ['Live Head Passing Blocks level field', 'class="live-head-level"', health],
@@ -3435,7 +3438,7 @@ async function checkSelectorContracts() {
     ['Live Head mobile viewport-width panel', 'width: var(--page-col);', heroSearchCss],
     ['Live Head full-bleed search unclamped', 'max-width: none;', heroSearchCss],
     ['Live Head reduced-motion settle', '.live-head-story-chip,', heroSearchCss],
-    ['Live Head depth arrow styling', '.live-head-depth-toggle[aria-expanded="true"] svg', heroSearchCss],
+    ['Live Head mini-selector styling', '.live-head-depth-menu > button[aria-pressed="true"]', heroSearchCss],
     ['Network Health Passing Blocks depth arrow styling', '.health-block-depth-toggle[aria-expanded="true"] svg', networkHealthCss],
     ['Network Health Passing Blocks compact row styling', '#health-recent-block-list .health-block-row:nth-child(n + 9)', networkHealthCss],
     ['Network Health Passing Blocks expanded mobile row styling', 'html[data-live-head-expanded="true"] #health-recent-block-list .health-block-row:nth-child(n + 13)', networkHealthCss],
@@ -3823,9 +3826,22 @@ async function checkSelectorContracts() {
   }
   const chainHealthStateBlock = health.match(/function chainHealthState[\s\S]*?function updateChainHealthStrip/)?.[0] || '';
   const chainHealthCssBlock = heroSearchCss.match(/\.chain-health \{[\s\S]*?\.live-head-filter-toggle \{/)?.[0] || '';
+  if (!index.includes('class="chain-health-heading"')
+      || !index.includes('class="chain-health-separator" aria-hidden="true">•</span>')
+      || !index.includes('class="chain-health-divider" aria-hidden="true"')
+      || !chainHealthStateBlock.includes('data-quiet-key="chain-health-count"')
+      || !heroSearchCss.includes('.chain-health-count {\n    display: inline-block;\n    width: 2ch;'))
+    fail('Chain Health must retain a keyed two-digit numerator and a balanced divider');
+  if (!index.includes('class="chain-health-heading"')
+      || !heroSearchCss.includes('.header-activity-cluster-kicker,\n.chain-health-heading')
+      || !chainHealthCssBlock.includes('grid-template-rows: 22px;')
+      || heroSearchCss.includes('.chain-health-label-lead { display: none; }')) {
+    fail('Activity and Chain Health must share single-line full headings with the health readout inline');
+  }
   if (!chainHealthStateBlock.includes('latestBlockStatus(block)')
       || !chainHealthStateBlock.includes('status.safetyMargin < 0')
       || !chainHealthStateBlock.includes('const total = states.length')
+      || !['risk', 'watch', 'unknown', 'ok'].every(tone => chainHealthStateBlock.includes('${counts.' + tone + '}/${total}'))
       || !chainHealthStateBlock.includes('counts.unknown')
       || !chainHealthStateBlock.includes("tone === 'risk' ? readout.sentence : ''")
       || !chainHealthStripBlock.includes('sourceStamp <= Number(button.dataset.sourceStamp || 0)')
@@ -3838,7 +3854,7 @@ async function checkSelectorContracts() {
       || !index.includes('id="chain-health-announcer"')
       || !chainHealthCssBlock.includes('--chain-health-count: 25')
       || !chainHealthCssBlock.includes('--chamber-good-color')
-      || !chainHealthCssBlock.includes('--chain-health-fill: 34%')
+      || !chainHealthCssBlock.includes('--chain-health-fill: 6px')
       || !chainHealthCssBlock.includes('@media (forced-colors: active)')
       || /#[a-f\d]{3,8}\b/i.test(chainHealthCssBlock)) {
     fail('Chain health must share quorum semantics, disclose the complete window including unknowns, announce only risk entry, retain source failure, and use theme-aware height cues');
@@ -3952,18 +3968,16 @@ async function checkSelectorContracts() {
       || health.includes('Watching My Tezos')
       || !heroSearchCss.includes('.live-head-row.is-my-tezos-filtered-out')
       || heroSearchCss.includes('.live-head-my-tezos-status')
-      || !heroSearchCss.includes('--live-head-compact-stack-height: 246px')
-      || !heroSearchCss.includes('--live-head-expanded-stack-height: 618px')
-      || !heroSearchCss.includes('--live-head-compact-stack-height: 196px')
-      || !heroSearchCss.includes('--live-head-expanded-stack-height: 592px')
+      || !heroSearchCss.includes('--live-head-row-pitch: 62px')
+      || !heroSearchCss.includes('--live-head-row-pitch: 66px')
+      || !heroSearchCss.includes('var(--live-head-row-count, var(--live-head-default-rows))')
       || !heroSearchCss.includes('html[data-live-head-my-tezos-only="true"] .live-head-stack')
-      || !heroSearchCss.includes('height: var(--live-head-compact-stack-height)')
-      || !heroSearchCss.includes('height: var(--live-head-expanded-stack-height)')
-      || !/\.live-head-depth-rail\s*\{[\s\S]*?position:\s*static;/.test(heroSearchCss)
-      || !/\.live-head-depth-toggle\s*\{[\s\S]*?right:\s*8px;[\s\S]*?bottom:\s*56px;/.test(heroSearchCss)
+      || !heroSearchCss.includes('height: var(--live-head-stack-height)')
+      || !heroSearchCss.includes('max-height: var(--live-head-stack-height)')
+      || !/\.live-head-depth-rail\s*\{[\s\S]*?justify-content:\s*flex-end;/.test(heroSearchCss)
       || !networkHealthCss.includes('.health-block-row.is-my-tezos-filtered-out')
       || !shellExtrasCss.includes('.live-head-my-tezos-setting-count')) {
-    fail('Setup must persist one silent My Tezos-only block monitor, preclassify rows before insertion, exclude hidden rows from exit ghosts, preserve canonical compact and expanded geometry, pin the depth arrow to the card edge, and reconcile both block surfaces quietly');
+    fail('Setup must persist one silent My Tezos-only block monitor, preclassify rows before insertion, exclude hidden rows from exit ghosts, preserve selected row geometry, align the mini selector to the right edge, and reconcile both block surfaces quietly');
   }
   if (!health.includes('live-head-baker-name')
       || !health.includes('live-head-story-connector')
@@ -4057,7 +4071,7 @@ async function checkSelectorContracts() {
       || health.includes("import { blockTick }")
       || heroSearchCss.includes('.live-head-power-track::after')
       || heroSearchCss.includes('.live-head-consensus-cue')
-      || !heroSearchCss.includes('transform: scaleX(var(--live-head-margin, 0));')
+      || !heroSearchCss.includes('width: calc(100% * var(--live-head-margin, 0));')
       || !health.includes('data-safety-margin=')) {
     fail('Live Head must remove decorative rules, replace row lines with spacing, and use the search well as its integrated bottom edge');
   }
@@ -4070,12 +4084,17 @@ async function checkSelectorContracts() {
   }
   const marginFillCss = heroSearchCss.match(/\.live-head-power-fill \{[\s\S]*?\n\}/)?.[0] || '';
   const marginLabelCss = heroSearchCss.match(/\.live-head-margin \{[\s\S]*?\n\}/)?.[0] || '';
-  if (!marginFillCss.includes('position: absolute;') || !marginFillCss.includes('inset: 0;')
+  if (!heroSearchCss.includes('grid-template-columns: max-content 100px;')
+      || !heroSearchCss.includes('grid-template-columns: max-content 75px;')
+      || !marginLabelCss.includes('font: 800 10px/12px var(--font-runtime);')) {
+    fail('Chain Health must retain whole-pixel line slots and stable, unscaled margin labels');
+  }
+  if (!marginFillCss.includes('position: absolute;') || !marginFillCss.includes('inset: 0 auto 0 0;')
       || !marginLabelCss.includes('background: var(--bg-primary);') || !marginLabelCss.includes('color: var(--text-primary);')) {
     fail('The health fill must occupy the full rail with an opaque theme-readable label above it');
   }
-  if (/\.live-head-power-fill\s*\{[^}]*transform:\s*none\s*!important/.test(heroSearchCss)) {
-    fail('Reduced motion must preserve the factual safety-margin scale instead of filling every health rail');
+  if (marginFillCss.includes('transform:') || !marginFillCss.includes('width: calc(100% * var(--live-head-margin, 0));')) {
+    fail('Health rails must size the factual margin without scaling or distorting their rounded fill');
   }
   if (health.includes('fillLiveHeadBars') || heroSearchCss.includes('liveHeadPowerFill') || heroSearchCss.includes('is-bar-filling')) {
     fail('Health rails must paint their factual width immediately without a delayed empty-to-full sweep');
@@ -5090,6 +5109,11 @@ async function checkChamberEfficiencyContracts() {
     || !mainStyles.includes('#chambers-grid .tezlink-entry-card.chamber-entry-wide {\n        min-height: 344px;')
     || !mainStyles.includes('#chambers-grid .health-entry-card.chamber-entry-wide {\n        min-height: 318px;')) {
     fail('render-blocking mobile Network shell floors must exactly match the hydrated Pulse, Health, and Tezos X floors');
+  }
+  const roomShellCss = shellExtras.match(/\.chamber-room-shell\[data-room-size\] \{[\s\S]*?\n\}/)?.[0] || '';
+  if (!roomShellCss.includes('height: calc(100dvh - (2 * var(--space-4))) !important;')
+      || roomShellCss.includes('--room-max-height')) {
+    fail('Shared Chambers must fill the available tall viewport without a fixed height cap');
   }
   for (const snippet of [
     'const WIDE_CHAMBER_DIALOG_SELECTOR',

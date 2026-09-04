@@ -384,13 +384,27 @@ inline modal styles in `js/core/app.js`.
   controls, a matching section info button, and quiet source-aware freshness
   stamps that distinguish generated archive age, live source observation, and
   the oldest contributing source in a multi-ledger room.
+  Open Chambers use the available viewport height with 16px desktop margins
+  and edge-to-edge mobile layouts; tall displays have no fixed height cap.
 - The **Live Head** card combines recent blocks and site-wide search below
   the header/title row. Four desktop rows or three mobile rows reuse Network
   Health's Passing Blocks language: level, round, previous-block delta,
   attested power/committee, a compact health bar, age, and baker are always
-  present once a block is known. Its bottom-right depth arrow and matching
-  Setup action expand the history to ten desktop rows or nine mobile rows,
-  contract back to the compact count, and persist that browser-local choice.
+  present once a block is known. Its bottom-right mini selector and matching
+  Setup selector offer 4 blocks (3 on mobile), 10, 15, 20,
+  and a custom count (1–25 rows). A borderless, centered chevron points down
+  when closed and up when open without changing position.
+  Chain Health uses whole-pixel line slots, while the safety-margin pills size
+  their fills directly and use fixed-height labels to stay crisp on 1× displays.
+  The matching `1H ACTIVITY` and `CHAIN HEALTH • 1/25 LOW |` headings stay on one line;
+  on screens up to 900px the controls stack so headings and Activity metrics fit.
+  Chain Health reserves two digits for the numerator, centers its divider in
+  the remaining status gap, and fits its border to exact-width bars with matching outer padding.
+  Non-default counts stay exact on mobile. The custom option
+  uses a blank number field with stacked +/− buttons; typing applies on Enter
+  or leaving the field, while the stepper applies immediately. Both controls
+  stay synchronized, and the mode and
+  custom count persist locally; legacy expanded preferences migrate to 10.
   A second line adds applied Tezos L1 voting, current Etherlink L2 governance,
   exact Tezos X rollup publish/cement/outbox actions, DAL commitment
   publications, reviewed Art, DeFi, Gaming, Bridge, and Tezos Domains calls,
@@ -492,8 +506,9 @@ inline modal styles in `js/core/app.js`.
   Green means at least 98.5% attested, amber means below 98.5% but at quorum,
   red means below quorum, and gray means unavailable. Full, half-height, short,
   and tick-height lines encode those same states without color. The newest line
-  has a small marker. A fixed-width readout under the label shows `OK`, `LOW`,
-  `RISK`, or `?` with the corresponding count; its accessible summary accounts
+  has a small marker. A stable-width status area beside the label shows `OK`, `LOW`,
+  `RISK`, or `?` with the corresponding count out of 25, separated from the label
+  by a bullet and from the lines by a divider; its accessible summary accounts
   for all 25 blocks, including unavailable data. Source failures show `STALE`.
   Hover or tap a line to inspect that block's missed attesters, including small
   misses on green blocks. The popup lists baker identities and missed power
@@ -1855,6 +1870,8 @@ in-flight requests; ranges and source availability semantics are unchanged.
 
 Current smoke suites:
 
+- `tall-screen` (covers full-height narrow, standard, and wide Chambers plus
+  whole-pixel health lines and unscaled margin pills at 1×/2× on desktop/mobile)
 - `first-visit-tour`
 - `app-shell`
 - `release-update` (covers the compact-by-default update pill, explicit
@@ -1998,7 +2015,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v621`, including the full-viewport Index
+- Current aligned shell cache stamp: `v622`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

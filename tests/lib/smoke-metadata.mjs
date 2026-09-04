@@ -1,5 +1,11 @@
 const RULES = [
   {
+    suites: /^tall-screen$/,
+    files: ['css/hero-search.css', 'css/shell-extras*', 'js/ui/chamber-accessibility.js', 'tests/tall-screen-smoke.mjs'],
+    tags: ['chamber', 'responsive', 'live-data'],
+    risk: 'high'
+  },
+  {
     suites: /^(tezoscrp|standalone-chamber-boot|standalone-chamber-completion|maxis|baker-directory)$/,
     files: ['js/core/tezoscrp-codec.mjs', 'data/tezoscrp-awards.compact.json', 'scripts/refresh-tezoscrp-awards.mjs', 'scripts/refresh-maxis-careers.mjs', 'data/maxis-careers.json', 'tests/lib/tezoscrp-compaction-smoke.mjs'],
     tags: ['chamber', 'data-integrity'],
@@ -49,6 +55,7 @@ const RULES = [
       'js/core/octez-versions.js',
       'js/core/block-story.mjs',
       'tests/live-head-readability-smoke.mjs',
+      'tests/live-head-depth-smoke.mjs',
       'css/network-health*'
     ],
     tags: ['live-data', 'network-health'],

@@ -21,6 +21,8 @@ import {
 } from './lib/smoke-harness.mjs';
 import { selectAffectedSmokeSuites } from './lib/smoke-affected.mjs';
 import { metadataForSmokeSuite } from './lib/smoke-metadata.mjs';
+import { chooseLiveHeadDepth } from './live-head-depth-smoke.mjs';
+import { smokeTallScreen } from './tall-screen-smoke.mjs';
 import { smokeChamberFirstPaint } from './lib/chamber-first-paint-smoke.mjs';
 import { smokeStandaloneChamberExpansion } from './lib/standalone-chamber-expansion-smoke.mjs';
 import { smokeChamberReading } from './lib/chamber-reading-smoke.mjs';
@@ -4107,7 +4109,7 @@ async function assertNormalizedChamberShell(page, overlaySelector, dialogSelecto
     const maxWidths = { narrow: 900, standard: 1180, wide: 1480 };
     const mobile = window.innerWidth < 760;
     const expectedWidth = mobile ? window.innerWidth : Math.min(maxWidths[expectedSize], window.innerWidth - 32);
-    const expectedHeight = mobile ? window.innerHeight : Math.min(940, window.innerHeight - 32);
+    const expectedHeight = mobile ? window.innerHeight : window.innerHeight - 32;
     return Math.abs(rect.width - expectedWidth) <= 0.25 && Math.abs(rect.height - expectedHeight) <= 0.25;
   }, { overlaySelector, dialogSelector, expectedSize }, { timeout: 5000 });
   const geometry = await page.evaluate(({ overlaySelector, dialogSelector }) => {
@@ -4128,7 +4130,7 @@ async function assertNormalizedChamberShell(page, overlaySelector, dialogSelecto
   const maxWidths = { narrow: 900, standard: 1180, wide: 1480 };
   const mobile = geometry.viewportWidth < 760;
   const expectedWidth = mobile ? geometry.viewportWidth : Math.min(maxWidths[expectedSize], geometry.viewportWidth - 32);
-  const expectedHeight = mobile ? geometry.viewportHeight : Math.min(940, geometry.viewportHeight - 32);
+  const expectedHeight = mobile ? geometry.viewportHeight : geometry.viewportHeight - 32;
   assert(geometry.normalized && geometry.roomShell && geometry.roomSize === expectedSize,
     `${label}: shared Chamber shell lifecycle missing ${JSON.stringify(geometry)}`);
   assert(Math.abs(geometry.width - expectedWidth) <= 2 && Math.abs(geometry.height - expectedHeight) <= 2,
@@ -6667,9 +6669,9 @@ async function smokeHeroIntermediate(browser, baseUrl) {
         ? getComputedStyle(panel.querySelector('.top-continuity-stats')).gridTemplateColumns
         : '',
       activityInLiveHead: Boolean(activity && liveHead?.contains(activity)),
-      activityBesideFilter: Boolean(activityRect && filterRect
-        && activityRect.right <= filterRect.left + 1
-        && Math.abs((activityRect.top + activityRect.height / 2) - (filterRect.top + filterRect.height / 2)) <= 4),
+      activityAboveFilter: Boolean(activityRect && filterRect
+        && Math.abs(filterRect.top - activityRect.bottom - 6) <= 1
+        && Math.abs(activityRect.height - filterRect.height) <= 1),
       pillsBelowLead: Boolean(leftRect && panelRect && leftRect.bottom <= panelRect.top + 1),
       fullWidthRows: Boolean(rowRect && leftRect && panelRect
         && Math.abs(leftRect.width - rowRect.width) <= 2
@@ -6688,7 +6690,7 @@ async function smokeHeroIntermediate(browser, baseUrl) {
   });
 
   assert(state.breakpoint && state.leftDisplay === 'flex', `hero intermediate: breakpoint did not keep the uptime lead stable ${JSON.stringify(state)}`);
-  assert(state.activityInLiveHead && state.activityBesideFilter, `hero intermediate: 1H activity should sit immediately before the Live Head setup control ${JSON.stringify(state)}`);
+  assert(state.activityInLiveHead && state.activityAboveFilter, `hero intermediate: 1H activity should occupy its own row above the health and setup controls ${JSON.stringify(state)}`);
   assert(state.pillsBelowLead && state.fullWidthRows, `hero intermediate: network signals should occupy a full-width row below uptime ${JSON.stringify(state)}`);
   assert(state.pillCount === 4 && state.onePillRow, `hero intermediate: network signals should remain one uninterrupted four-pill row ${JSON.stringify(state)}`);
   assert(state.rowInsideViewport && state.activityOverflow <= 1 && state.documentOverflow <= 1, `hero intermediate: responsive signal row escaped or clipped ${JSON.stringify(state)}`);
@@ -16293,8 +16295,8 @@ async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
           && state.panelOverflow <= 1
           && Math.abs(state.activityHeight - state.expectedControlHeight) <= 1
           && Math.abs(state.activityHeight - state.filterHeight) <= 1
-          && state.controlTopDelta <= 1
-          && state.controlBottomDelta <= 1
+          && Math.abs(state.controlTopDelta - 36) <= 1
+          && Math.abs(state.controlBottomDelta - 36) <= 1
           && state.identityTotal === 3
           && state.visibleIdentities + state.hiddenMisses === state.identityTotal
           && state.hiddenMisses >= 1
@@ -16305,7 +16307,7 @@ async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
           && state.pillsContained
           && state.storyOverflow <= 1
       )),
-    `live head all-theme geometry: missed-baker pills escaped at compact desktop width ${JSON.stringify(states)}`
+    `live head all-theme geometry: stacked controls or missed-baker pills lost their layout ${JSON.stringify(states)}`
   );
 
   await context.close();
@@ -16377,16 +16379,16 @@ async function smokeMyTezosBlockMonitor(browser, baseUrl) {
       && Math.abs(actual.searchTop - expected.searchTop) <= 1
   );
   const compactBaseline = await readTickerGeometry();
-  await page.locator('#live-head-depth-toggle').click();
+  await chooseLiveHeadDepth(page, '10');
   await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'true'
     && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 10, null, { timeout: 5000 });
   const expandedBaseline = await readTickerGeometry();
-  assert(compactBaseline.depthRight >= 7 && compactBaseline.depthRight <= 10
-      && expandedBaseline.depthRight >= 7 && expandedBaseline.depthRight <= 10
+  assert(compactBaseline.depthRight >= 7 && compactBaseline.depthRight <= 28
+      && expandedBaseline.depthRight >= 7 && expandedBaseline.depthRight <= 28
       && compactBaseline.depthTop + compactBaseline.depthHeight <= compactBaseline.searchTop - 3
       && expandedBaseline.depthTop + expandedBaseline.depthHeight <= expandedBaseline.searchTop - 3,
     `My Tezos block monitor: desktop depth arrow is not pinned to the ticker edge ${JSON.stringify({ compactBaseline, expandedBaseline })}`);
-  await page.locator('#live-head-depth-toggle').click();
+  await chooseLiveHeadDepth(page, 'compact');
   await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'false'
     && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 4, null, { timeout: 5000 });
 
@@ -16422,13 +16424,13 @@ async function smokeMyTezosBlockMonitor(browser, baseUrl) {
   const filteredCompact = await readTickerGeometry();
   assert(sameTickerGeometry(filteredCompact, compactBaseline),
     `My Tezos block monitor: compact filtering moved the ticker, search, or expand arrow ${JSON.stringify({ compactBaseline, filteredCompact })}`);
-  await page.locator('#live-head-depth-toggle').click();
+  await chooseLiveHeadDepth(page, '10');
   await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'true'
     && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 10, null, { timeout: 5000 });
   const filteredExpanded = await readTickerGeometry();
   assert(sameTickerGeometry(filteredExpanded, expandedBaseline),
     `My Tezos block monitor: expanded filtering moved the ticker, search, or collapse arrow ${JSON.stringify({ expandedBaseline, filteredExpanded })}`);
-  await page.locator('#live-head-depth-toggle').click();
+  await chooseLiveHeadDepth(page, 'compact');
   await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'false'
     && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 4, null, { timeout: 5000 });
 
@@ -16546,24 +16548,24 @@ async function smokeMyTezosBlockMonitor(browser, baseUrl) {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 3, null, { timeout: 5000 });
   const mobileCompactBaseline = await readTickerGeometry();
-  await page.locator('#live-head-depth-toggle').click();
+  await chooseLiveHeadDepth(page, '10');
   await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'true'
-    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 9, null, { timeout: 5000 });
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 10, null, { timeout: 5000 });
   const mobileExpandedBaseline = await readTickerGeometry();
-  assert(mobileCompactBaseline.depthRight >= 7 && mobileCompactBaseline.depthRight <= 10
-      && mobileExpandedBaseline.depthRight >= 7 && mobileExpandedBaseline.depthRight <= 10
+  assert(mobileCompactBaseline.depthRight >= 7 && mobileCompactBaseline.depthRight <= 28
+      && mobileExpandedBaseline.depthRight >= 7 && mobileExpandedBaseline.depthRight <= 28
       && mobileCompactBaseline.depthTop + mobileCompactBaseline.depthHeight <= mobileCompactBaseline.searchTop - 3
       && mobileExpandedBaseline.depthTop + mobileExpandedBaseline.depthHeight <= mobileExpandedBaseline.searchTop - 3,
     `My Tezos block monitor: mobile depth arrow is not pinned to the ticker edge ${JSON.stringify({ mobileCompactBaseline, mobileExpandedBaseline })}`);
-  await page.locator('#live-head-depth-toggle').click();
+  await chooseLiveHeadDepth(page, 'compact');
   await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'false'
     && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 3, null, { timeout: 5000 });
   await page.evaluate(() => window.tezosSystemsLiveHead?.setMyTezosOnly(true, 'mobile-geometry-smoke'));
   await page.waitForFunction(() => document.documentElement.dataset.liveHeadMyTezosOnly === 'true', null, { timeout: 5000 });
   const mobileFilteredCompact = await readTickerGeometry();
-  await page.locator('#live-head-depth-toggle').click();
+  await chooseLiveHeadDepth(page, '10');
   await page.waitForFunction(() => document.documentElement.dataset.liveHeadExpanded === 'true'
-    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 9, null, { timeout: 5000 });
+    && document.querySelectorAll('#live-head-stack .live-head-row[data-health-level]').length === 10, null, { timeout: 5000 });
   const mobileFilteredExpanded = await readTickerGeometry();
   assert(sameTickerGeometry(mobileFilteredCompact, mobileCompactBaseline)
       && sameTickerGeometry(mobileFilteredExpanded, mobileExpandedBaseline),
@@ -16579,6 +16581,9 @@ async function smokeMyTezosBlockMonitor(browser, baseUrl) {
 }
 
 async function smokeNetworkHealthChamber(browser, baseUrl) {
+  const { smokeLiveHeadDepth } = await import('./live-head-depth-smoke.mjs');
+  await smokeLiveHeadDepth(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR });
+  log('ok - five depth choices, custom validation, persistence, refresh, and responsive geometry');
   const { smokeLiveHeadReadability } = await import('./live-head-readability-smoke.mjs');
   await smokeLiveHeadReadability(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR });
   log('ok - Live Head contrast, full-height health rails, and R2 news threshold');
@@ -16689,7 +16694,11 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       feedState: panel?.dataset.feedState || '',
       placeholders: stack?.querySelectorAll('.live-head-row.is-placeholder').length || 0,
       visiblePlaceholders: Array.from(stack?.querySelectorAll('.live-head-row.is-placeholder') || [])
-        .filter((row) => getComputedStyle(row).display !== 'none').length,
+        .filter((row) => {
+          const bounds = stack.getBoundingClientRect();
+          const rect = row.getBoundingClientRect();
+          return getComputedStyle(row).display !== 'none' && rect.top < bounds.bottom && rect.bottom > bounds.top;
+        }).length,
       primaryBars: stack?.querySelectorAll('.live-head-skeleton-primary i').length || 0,
       secondaryBars: stack?.querySelectorAll('.live-head-skeleton-secondary i').length || 0,
       visibleText: stack?.textContent?.replace(/\s+/g, ' ').trim() || ''
@@ -16698,10 +16707,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(
     initialLiveHeadState.ariaBusy === 'true'
       && initialLiveHeadState.feedState === 'loading'
-      && initialLiveHeadState.placeholders === 10
+      && initialLiveHeadState.placeholders === 25
       && initialLiveHeadState.visiblePlaceholders === 4
-      && initialLiveHeadState.primaryBars === 50
-      && initialLiveHeadState.secondaryBars === 20
+      && initialLiveHeadState.primaryBars === 125
+      && initialLiveHeadState.secondaryBars === 50
       && initialLiveHeadState.visibleText === '',
     `network health chamber: Live Head first paint must be opaque objects without sentences ${JSON.stringify(initialLiveHeadState)}`
   );
@@ -17429,8 +17438,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       initialScroll: window.__healthDepthScroll,
       modalScroll: document.querySelector('#network-health-modal .health-content')?.scrollTop || 0,
       homeRows: document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length,
-      homeExpanded: document.getElementById('live-head-depth-toggle')?.getAttribute('aria-expanded') || '',
-      setupPressed: document.getElementById('live-head-depth-setting')?.getAttribute('aria-pressed') || '',
+      homeExpanded: document.getElementById('live-head-depth-toggle')?.dataset.depthMode || '',
+      setupPressed: document.getElementById('live-head-depth-setting')?.dataset.depthMode || '',
       stored: JSON.parse(localStorage.getItem('tezos-systems-live-head-depth-v1') || 'null')
     };
   });
@@ -17446,9 +17455,9 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && chamberExpandedDepthState.focusStayed
       && Math.abs(chamberExpandedDepthState.modalScroll - chamberExpandedDepthState.initialScroll) <= 1
       && chamberExpandedDepthState.homeRows === 10
-      && chamberExpandedDepthState.homeExpanded === 'true'
-      && chamberExpandedDepthState.setupPressed === 'true'
-      && chamberExpandedDepthState.stored?.expanded === true,
+      && chamberExpandedDepthState.homeExpanded === '10'
+      && chamberExpandedDepthState.setupPressed === '10'
+      && chamberExpandedDepthState.stored?.mode === '10',
     `network health chamber: Passing Blocks did not share the persistent expanded depth without replacing its rows ${JSON.stringify(chamberExpandedDepthState)}`);
   await chamberDepthToggle.click();
   await page.waitForFunction(() => (
@@ -17472,7 +17481,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       && chamberContractedDepthState.count === '8 blocks'
       && chamberContractedDepthState.retainedHead
       && chamberContractedDepthState.focusStayed
-      && chamberContractedDepthState.stored?.expanded === false,
+      && chamberContractedDepthState.stored?.mode === 'compact',
     `network health chamber: Passing Blocks did not contract cleanly ${JSON.stringify(chamberContractedDepthState)}`);
   assert(healthState.roundOne >= 1, 'network health chamber: round-one block badge missing');
   assert(healthState.attesterRows >= 2, `network health chamber: missed attester rows missing, saw ${healthState.attesterRows}`);
@@ -18136,7 +18145,8 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   }
   for (const tickerState of mobileTickerStates) {
     assert(
-      tickerState.height <= (tickerState.alertVisible ? 410 : 360)
+      // The full-label Activity row adds 30px plus a 6px row gap on narrow screens.
+      tickerState.height <= (tickerState.alertVisible ? 446 : 396)
         && Math.abs(tickerState.activityHeight - 30) <= 1
         && Math.abs(tickerState.activityHeight - tickerState.filterHeight) <= 1
         && tickerState.rows === 3
@@ -18267,7 +18277,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     Array.from(document.querySelectorAll('#health-recent-block-list .health-block-row'))
       .filter((row) => getComputedStyle(row).display !== 'none').length === 12
     && Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]'))
-      .filter((row) => getComputedStyle(row).display !== 'none').length === 9
+      .filter((row) => getComputedStyle(row).display !== 'none').length === 10
   ));
   const chamberMobileExpandedDepthState = await page.evaluate(() => {
     const panel = document.querySelector('.health-recent-blocks');
@@ -18308,108 +18318,6 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   await page.locator('#network-health-modal.active .chamber-close').click();
   await page.waitForFunction(() => !document.querySelector('#network-health-modal')?.classList.contains('active'), null, { timeout: 5000 });
 
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4);
-  await page.evaluate(() => {
-    window.__liveHeadDepthRetainedRow = document.querySelector('#live-head-stack .live-head-row[data-live-head-level]');
-  });
-  await page.locator('#live-head-depth-toggle').click();
-  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 10);
-  await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-story')).every((row) => !/syncing/i.test(row.textContent || '')), null, { timeout: 15000 });
-  const expandedDepthState = await page.evaluate(() => {
-    const panel = document.getElementById('live-head');
-    const stack = document.getElementById('live-head-stack');
-    const toggle = document.getElementById('live-head-depth-toggle');
-    const setting = document.getElementById('live-head-depth-setting');
-    const search = panel?.querySelector('.hero-search-form');
-    const rows = Array.from(stack?.querySelectorAll('.live-head-row[data-live-head-level]') || []);
-    const levels = rows.map((row) => Number(row.dataset.liveHeadLevel));
-    const toggleRect = toggle?.getBoundingClientRect();
-    const stackRect = stack?.getBoundingClientRect();
-    const searchRect = search?.getBoundingClientRect();
-    return {
-      expanded: panel?.dataset.liveHeadExpanded || '',
-      rowCount: rows.length,
-      descending: levels.every((level, index) => index === 0 || levels[index - 1] > level),
-      retainedHead: window.__liveHeadDepthRetainedRow === rows[0],
-      cornerExpanded: toggle?.getAttribute('aria-expanded') || '',
-      cornerLabel: toggle?.getAttribute('aria-label') || '',
-      cornerAtBottomRight: Boolean(toggleRect && stackRect
-        && Math.abs(toggleRect.right - stackRect.right) <= 10
-        && searchRect
-        && toggleRect.bottom <= searchRect.top - 3
-        && searchRect.top - toggleRect.bottom <= 8),
-      setupPressed: setting?.getAttribute('aria-pressed') || '',
-      setupCount: setting?.querySelector('[data-live-head-depth-count]')?.textContent?.trim() || '',
-      stored: JSON.parse(localStorage.getItem('tezos-systems-live-head-depth-v1') || 'null')
-    };
-  });
-  assert(expandedDepthState.expanded === 'true'
-      && expandedDepthState.rowCount === 10
-      && expandedDepthState.descending
-      && expandedDepthState.retainedHead
-      && expandedDepthState.cornerExpanded === 'true'
-      && /Contract Live blocks to 4/.test(expandedDepthState.cornerLabel)
-      && expandedDepthState.cornerAtBottomRight
-      && expandedDepthState.setupPressed === 'true'
-      && expandedDepthState.setupCount === '10 blocks'
-      && expandedDepthState.stored?.version === 1
-      && expandedDepthState.stored?.expanded === true,
-    `network health chamber: Live Head corner expansion did not expose ten ordered persistent receipts ${JSON.stringify(expandedDepthState)}`);
-
-  await openDropdown(page, '#settings-gear', '#settings-dropdown');
-  await page.locator('#live-head-depth-setting').click();
-  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4);
-  const setupContractState = await page.evaluate(() => ({
-    expanded: document.getElementById('live-head')?.dataset.liveHeadExpanded || '',
-    cornerExpanded: document.getElementById('live-head-depth-toggle')?.getAttribute('aria-expanded') || '',
-    setupPressed: document.getElementById('live-head-depth-setting')?.getAttribute('aria-pressed') || '',
-    setupCount: document.querySelector('[data-live-head-depth-count]')?.textContent?.trim() || '',
-    setupOpen: document.getElementById('settings-dropdown')?.classList.contains('open') || false,
-    focusReturned: document.activeElement === document.getElementById('settings-gear'),
-    stored: JSON.parse(localStorage.getItem('tezos-systems-live-head-depth-v1') || 'null')
-  }));
-  assert(setupContractState.expanded === 'false'
-      && setupContractState.cornerExpanded === 'false'
-      && setupContractState.setupPressed === 'false'
-      && setupContractState.setupCount === 'Compact'
-      && !setupContractState.setupOpen
-      && setupContractState.focusReturned
-      && setupContractState.stored?.expanded === false,
-    `network health chamber: Setup did not contract the shared Live Head depth state ${JSON.stringify(setupContractState)}`);
-
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 3);
-  await page.locator('#live-head-depth-toggle').click();
-  await page.waitForFunction(() => Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]')).filter((row) => getComputedStyle(row).display !== 'none').length === 9);
-  const mobileExpandedDepthState = await page.evaluate(() => {
-    const panel = document.getElementById('live-head');
-    const toggle = document.getElementById('live-head-depth-toggle');
-    const rows = Array.from(document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]'))
-      .filter((row) => getComputedStyle(row).display !== 'none');
-    const rect = toggle?.getBoundingClientRect();
-    return {
-      rows: rows.length,
-      label: toggle?.getAttribute('aria-label') || '',
-      targetWidth: rect?.width || 0,
-      targetHeight: rect?.height || 0,
-      cardOverflow: panel ? panel.scrollWidth - panel.clientWidth : 999,
-      pageOverflow: document.documentElement.scrollWidth - innerWidth
-    };
-  });
-  assert(mobileExpandedDepthState.rows === 9
-      && /Contract Live blocks to 3/.test(mobileExpandedDepthState.label)
-      && mobileExpandedDepthState.targetWidth >= 44
-      && mobileExpandedDepthState.targetHeight >= 44
-      && mobileExpandedDepthState.cardOverflow <= 1
-      && mobileExpandedDepthState.pageOverflow <= 1,
-    `network health chamber: expanded nine-block mobile mode overflowed or lost its contract action ${JSON.stringify(mobileExpandedDepthState)}`);
-  await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 10);
-  await page.setViewportSize({ width: 390, height: 844 });
-  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 9);
-  await page.locator('#live-head-depth-toggle').click();
-  await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 3);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.waitForFunction(() => document.querySelectorAll('#live-head-stack .live-head-row[data-live-head-level]').length === 4);
   await page.waitForFunction(() => (
@@ -36754,6 +36662,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'my-tezos-deep-link-path', description: 'My Tezos direct address and domain paths override a stale saved baker on first load', run: () => smokeMyTezosDeepLinkOverridesStale(browser, baseUrl, 'path') },
     { name: 'tezlink', description: 'Tezos X Chamber opens #tezosx with atomic L2 TVL, protocol mix, and live transaction tape', run: () => smokeTezlinkChamber(browser, baseUrl) },
     { name: 'my-tezos-block-monitor', description: 'Setup keeps one persisted saved-address-only block monitor synchronized across Home and Network Health', run: () => smokeMyTezosBlockMonitor(browser, baseUrl) },
+    { name: 'tall-screen', description: 'Tall Chambers use available height and health lines and pills remain crisp at 1x/2x pixel density across desktop/mobile', run: () => smokeTallScreen(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'network-health', description: 'Live Head stories and Network Health expose block cadence, missed rights, live 33/66 Nakamoto coefficients, reports, and saved-baker context', run: () => smokeNetworkHealthChamber(browser, baseUrl) },
     { name: 'ledger-flow', description: 'Ledger Flow opens #ledger-flow with sent, received, first-funding, and amount-weighted transfer paths', run: () => smokeLedgerFlowChamber(browser, baseUrl) },
     { name: 'maxis-domain-passport', description: 'Maxi Passport resolves .tez names and subdomains without mutating My Tezos or assigning KT1 activity to an owner', run: () => smokeMaxisDomainPassport(browser, baseUrl) },

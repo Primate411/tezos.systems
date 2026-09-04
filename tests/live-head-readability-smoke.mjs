@@ -57,14 +57,14 @@ export async function smokeLiveHeadReadability(browser, baseUrl, { installFeatur
         const fill = row.querySelector('.live-head-power-fill');
         if (!fill) continue;
         const style = getComputedStyle(fill);
-        const actual = new DOMMatrixReadOnly(style.transform).a;
+        const actual = parseFloat(style.width);
         const expected = Number(style.getPropertyValue('--live-head-margin'));
         const sample = window.__railPaints[row.dataset.liveHeadLevel] ||= {
-          first: now, last: now, frames: 0, maxScaleError: 0, maxAnimations: 0
+          first: now, last: now, frames: 0, maxWidthError: 0, maxAnimations: 0
         };
         sample.last = now;
         sample.frames += 1;
-        sample.maxScaleError = Math.max(sample.maxScaleError, Math.abs(actual - expected));
+        sample.maxWidthError = Math.max(sample.maxWidthError, Math.abs(actual - expected * fill.parentElement.clientWidth));
         sample.maxAnimations = Math.max(sample.maxAnimations, fill.getAnimations().length);
       }
       requestAnimationFrame(sampleRailPaint);
@@ -81,7 +81,7 @@ export async function smokeLiveHeadReadability(browser, baseUrl, { installFeatur
       return sample?.frames >= 10 && sample.last - sample.first >= 600;
     }, level);
     const paints = await page.evaluate((key) => window.__railPaints[key], level);
-    assert(paints.maxScaleError < 0.0001 && paints.maxAnimations === 0,
+    assert(paints.maxWidthError < 0.05 && paints.maxAnimations === 0,
       `Rail ${level} must keep its factual width from first paint through row entrance: ${JSON.stringify(paints)}`);
   };
   await assertStablePaint(head);
@@ -252,7 +252,7 @@ export async function smokeLiveHeadReadability(browser, baseUrl, { installFeatur
           })
         };
       });
-      assert.equal(state.rows.length, width <= 719 ? 9 : 10);
+      assert.equal(state.rows.length, 10);
       assert(state.rows.some((row) => row.margin === '') && state.rows.some((row) => Number(row.margin) < 0)
         && state.rows.some((row) => row.margin === '0'), 'Missing, deficit, and exact-quorum receipts are covered');
       assert(state.overflow <= 1, `${theme}/${width}: page overflow`);

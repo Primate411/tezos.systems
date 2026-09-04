@@ -44,21 +44,31 @@
     document.documentElement.setAttribute('data-home-hidden', hidden.join(' '));
 
     var LIVE_HEAD_DEPTH_STORAGE_KEY = 'tezos-systems-live-head-depth-v1';
-    var liveHeadExpanded = false;
+    var liveHeadDepthMode = 'compact';
+    var liveHeadCustomRows = 20;
     try {
         var liveHeadDepthRaw = localStorage.getItem(LIVE_HEAD_DEPTH_STORAGE_KEY);
         if (liveHeadDepthRaw !== null) {
             var liveHeadDepthSaved = JSON.parse(liveHeadDepthRaw);
-            liveHeadExpanded = Boolean(
-                liveHeadDepthSaved
-                && liveHeadDepthSaved.version === 1
-                && liveHeadDepthSaved.expanded === true
-            );
+            if (liveHeadDepthSaved && liveHeadDepthSaved.version === 1) {
+                liveHeadDepthMode = liveHeadDepthSaved.expanded === true ? '10' : 'compact';
+            } else if (liveHeadDepthSaved && liveHeadDepthSaved.version === 2
+                && ['compact', '10', '15', '20', 'custom'].indexOf(liveHeadDepthSaved.mode) !== -1
+                && Number.isInteger(liveHeadDepthSaved.customRows)
+                && liveHeadDepthSaved.customRows >= 1 && liveHeadDepthSaved.customRows <= 25) {
+                liveHeadDepthMode = liveHeadDepthSaved.mode;
+                liveHeadCustomRows = liveHeadDepthSaved.customRows;
+            }
         }
     } catch (_) {
-        liveHeadExpanded = false;
+        liveHeadDepthMode = 'compact';
     }
-    document.documentElement.setAttribute('data-live-head-expanded', liveHeadExpanded ? 'true' : 'false');
+    document.documentElement.setAttribute('data-live-head-expanded', liveHeadDepthMode !== 'compact' ? 'true' : 'false');
+    document.documentElement.setAttribute('data-live-head-depth', liveHeadDepthMode);
+    if (liveHeadDepthMode !== 'compact') {
+        document.documentElement.style.setProperty('--live-head-row-count',
+            liveHeadDepthMode === 'custom' ? liveHeadCustomRows : Number(liveHeadDepthMode));
+    }
 
     var CATEGORY_STORAGE_KEY = 'tezos-systems-explore-layout-v1';
     var LEGACY_CATEGORY_STORAGE_KEY = 'tezos-systems-chamber-categories-v1';

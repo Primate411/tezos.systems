@@ -11,7 +11,10 @@ export const CHANGELOG = [
             { type: '🎨', text: 'Activity and Chain Health stay the same compact height across desktop and mobile, with Activity first and larger invisible touch targets on phones' },
             { type: '🎨', text: 'Block health bars now paint their true margin immediately without a delayed refill flash, preserve it under reduced motion, and keep the signed number readable across themes; light-theme round, timing, and attestation colors have stronger contrast' },
             { type: '🔧', text: 'Live Pulse now reserves contested-round alerts for R2 and higher; R1 remains visible in block receipts without becoming breaking news' },
-            { type: '✨', text: 'R1+ blocks now identify missed baking rounds individually: R0 for an R1 block, R0 and R1 for R2, with full baker links in the block inspector and explicit gaps when rights are unavailable' }
+            { type: '✨', text: 'R1+ blocks now identify missed baking rounds individually: R0 for an R1 block, R0 and R1 for R2, with full baker links in the block inspector and explicit gaps when rights are unavailable' },
+            { type: '✨', text: 'Live Blocks now has a narrow selector with a borderless, centered up/down chevron for 4 blocks (3 on mobile), 10, 15, 20, or a custom count with stacked +/− buttons, synchronized with Setup and saved on this device' },
+            { type: '🎨', text: 'Chambers now use the full available height on tall screens; Chain Health lines use whole-pixel spacing and block health pills retain clean edges and centered labels on 1× displays' },
+            { type: '🎨', text: '1H Activity and Chain Health now share single-line headings, with a bullet-separated count out of 25, two-digit numerator space, a centered divider, matching outer padding, and stacked narrow-screen controls with separate touch targets' }
         ]
     },
     {
