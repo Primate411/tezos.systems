@@ -81,7 +81,8 @@ const TENDERBAKE_DOCS_URL = 'https://octez.tezos.com/docs/active/consensus.html'
 const NETWORK_HEALTH_CSS_URL = versionedAsset('/css/network-health.min.css');
 const STORAGE_KEY = 'tezos-systems-network-health';
 const MY_BAKER_STORAGE_KEY = 'tezos-systems-my-baker-address';
-const CONTESTED_ROUND_SIGNAL_KEY = 'tezos-systems-contested-round-hot-signal-at';
+// Do not let a legacy R1 alert suppress an R2+ event after the threshold changes.
+const CONTESTED_ROUND_SIGNAL_KEY = 'tezos-systems-contested-round-r2-signal-at';
 const LIVE_HEAD_ACTIVITY_FILTER_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v3';
 const LIVE_HEAD_ACTIVITY_FILTER_V2_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v2';
 const LIVE_HEAD_ACTIVITY_FILTER_LEGACY_STORAGE_KEY = 'tezos-systems-live-head-activity-filter-v1';
@@ -137,6 +138,7 @@ let heartbeatStoryCatalogInFlight = null;
 let heartbeatMissedRightsCache = null;
 let heartbeatMissedRightsInFlight = null;
 let heartbeatMissedRightsFailureRange = null;
+const heartbeatBakingMisses = new Map();
 let heartbeatGasLimitCache = null;
 let heartbeatGasLimitCacheAt = 0;
 let heartbeatGasLimitInFlight = null;
@@ -677,8 +679,8 @@ function blockTickerFallback(className = 'loading') {
 }
 
 function settleLiveHeadReveal(root) {
-    root?.querySelectorAll('.is-revealing, .is-bar-filling').forEach((element) => {
-        element.classList.remove('is-revealing', 'is-bar-filling');
+    root?.querySelectorAll('.is-revealing').forEach((element) => {
+        element.classList.remove('is-revealing');
     });
 }
 
@@ -711,27 +713,6 @@ function revealLiveHeadFacts(panel, { suppressMotion = false } = {}) {
         settleLiveHeadReveal(panel);
         liveHeadAnimationTimer = null;
     }, 440);
-}
-
-function fillLiveHeadBars(panel, { suppressMotion = false } = {}) {
-    if (!panel) return;
-    const motionAllowed = liveHeadMotionAllowed({ suppressMotion });
-    panel.querySelectorAll('.live-head-row[data-bar-signature]').forEach((row) => {
-        const signature = row.dataset.barSignature || '';
-        if (!signature || row.dataset.quietBarPlayed === signature) return;
-        row.dataset.quietBarPlayed = signature;
-        const fill = row.querySelector('.live-head-power-fill');
-        if (!fill || row.dataset.barAvailable !== 'true' || !motionAllowed) return;
-        const play = () => {
-            if (!fill.isConnected) return;
-            fill.classList.remove('is-bar-filling');
-            void fill.offsetWidth;
-            fill.classList.add('is-bar-filling');
-            window.setTimeout(() => fill.classList.remove('is-bar-filling'), 320);
-        };
-        if (row.classList.contains('lb-row-new')) window.setTimeout(play, 90);
-        else play();
-    });
 }
 
 function usageSlotContent(slot, usage) {
@@ -1319,6 +1300,75 @@ function renderLiveHeadMissPills(block, missedState) {
     return pills.join('');
 }
 
+function liveHeadBakingMissState(block) {
+    const round = Number(block?.blockRound);
+    if (!Number.isSafeInteger(round) || round <= 0) return [];
+    const receipt = heartbeatBakingMisses.get(Number(block.level));
+    return Array.from({ length: round }, (_, missedRound) => {
+        const baker = receipt?.bakers.get(missedRound) || null;
+        return { round: missedRound, baker, state: baker ? 'missed' : !receipt || receipt.promise ? 'loading' : 'unavailable' };
+    });
+}
+
+function bakingMissCopy(miss) {
+    return miss.baker
+        ? `Missed R${miss.round} · ${bakerName(miss.baker)}`
+        : `R${miss.round} ${miss.state === 'loading' ? 'syncing' : 'unavailable'}`;
+}
+
+function renderBakingMissPills(block, misses) {
+    return misses.map((miss) => {
+        const copy = bakingMissCopy(miss);
+        const compact = miss.baker ? `R${miss.round} · ${bakerName(miss.baker)}` : copy;
+        const title = miss.baker
+            ? `${copy} · ${miss.baker.address}. TzKT missed baking right for block ${formatCount(block.level)}.`
+            : `The R${miss.round} missed baking-right identity for block ${formatCount(block.level)} is ${miss.state}.`;
+        return `<span class="live-head-story-chip is-round-miss" data-live-head-kind="missed-baking" data-live-head-mandatory="true" data-missed-round="${miss.round}" data-round-miss-state="${miss.state}" data-round-miss-full="${escapeHtml(copy)}" data-round-miss-compact="${escapeHtml(compact)}" data-live-head-compact="${escapeHtml(copy)}" aria-label="${escapeHtml(copy)}" title="${escapeHtml(title)}">${escapeHtml(copy)}</span>`;
+    }).join('');
+}
+
+async function fetchHeartbeatBakingMisses(blocks) {
+    if (document.visibilityState !== 'visible') return;
+    const needed = blocks.filter((block) => Number.isSafeInteger(block.blockRound) && block.blockRound > 0);
+    const pending = [];
+    const missing = needed.filter((block) => {
+        const receipt = heartbeatBakingMisses.get(Number(block.level));
+        if (receipt?.promise) { pending.push(receipt.promise); return false; }
+        return !receipt || (receipt.bakers.size < block.blockRound && Date.now() - receipt.attemptedAt >= LIVE_REFRESH_INTERVAL);
+    });
+    if (!missing.length) return Promise.allSettled(pending);
+    const levels = missing.map((block) => Number(block.level));
+    const limit = 1000;
+    const url = `${TZKT}/rights?type=baking&status=missed&level.in=${levels.join(',')}&limit=${limit}&select=level,round,baker,status,type`;
+    const promise = fetchJson(url, 1, { priority: 'interactive' }).then((rights) => {
+        if (!Array.isArray(rights)) throw new Error('Invalid missed baking-right receipt');
+        for (const right of rights) {
+            const block = missing.find((item) => Number(item.level) === Number(right.level));
+            // A higher block round is not itself proof that a named baker missed a right.
+            if (!block || right.status !== 'missed' || right.type !== 'baking'
+                || !Number.isInteger(right.round) || right.round < 0 || right.round >= block.blockRound
+                || !right.baker?.address) continue;
+            heartbeatBakingMisses.get(Number(block.level))?.bakers.set(right.round, { ...right.baker });
+        }
+    }).catch((error) => {
+        console.warn('Live Head missed baking-right receipt failed:', error);
+    }).finally(() => {
+        for (const level of levels) {
+            const receipt = heartbeatBakingMisses.get(level);
+            if (receipt?.promise === promise) receipt.promise = null;
+        }
+        for (const level of [...heartbeatBakingMisses.keys()].sort((a, b) => a - b)) {
+            if (heartbeatBakingMisses.size <= CHAIN_HEALTH_BLOCK_LIMIT) break;
+            if (!heartbeatBakingMisses.get(level)?.promise) heartbeatBakingMisses.delete(level);
+        }
+    });
+    for (const level of levels) {
+        const previous = heartbeatBakingMisses.get(level);
+        heartbeatBakingMisses.set(level, { bakers: previous?.bakers || new Map(), attemptedAt: Date.now(), promise });
+    }
+    return Promise.allSettled([promise, ...pending]);
+}
+
 function liveHeadPillOverflows(container) {
     if (container.scrollWidth > container.clientWidth + 1) return true;
     return [...container.querySelectorAll('.live-head-miss-pill:not([hidden])')]
@@ -1336,6 +1386,11 @@ function liveHeadStoryDetails(pill) {
 
 function setLiveHeadStoryDetail(pill, level = 0) {
     if (!pill) return;
+    if (pill.dataset.roundMissFull) {
+        pill.dataset.liveHeadCompact = window.matchMedia?.('(max-width: 719px)')?.matches
+            ? pill.dataset.roundMissCompact
+            : pill.dataset.roundMissFull;
+    }
     const details = liveHeadStoryDetails(pill);
     const normalizedLevel = Math.max(0, Math.min(details.length, Number(level) || 0));
     pill.textContent = normalizedLevel > 0
@@ -1645,7 +1700,7 @@ function renderChainHealthInspector(block, missed) {
         ${missed.state === 'resolved' && missed.sampleClipped ? '<p class="chain-health-mini-note">Partial source sample.</p>' : ''}`;
 }
 
-function renderLiveHeadInspector(block, activity, missedSnapshot = null) {
+function renderLiveHeadInspector(block, activity, missedSnapshot = null, bakingSnapshot = []) {
     const level = Number(block?.level) || 0;
     const blockUrl = liveHeadBlockUrl(level);
     const operationsUrl = liveHeadBlockUrl(level, { operations: true });
@@ -1734,6 +1789,14 @@ function renderLiveHeadInspector(block, activity, missedSnapshot = null) {
                 ${liveHeadBakerLinks(block.proposer)}
             </div>` : ''}
         <div class="live-head-inspector-grid">${facts.map(renderLiveHeadInspectorFact).join('')}</div>
+        ${bakingSnapshot.length ? `<div class="live-head-inspector-section" data-inspector-baking-misses>
+            <span class="live-head-inspector-label">Missed baking rounds</span>
+            <div class="live-head-inspector-misses">${bakingSnapshot.map((miss) => miss.baker ? `
+                <div class="live-head-inspector-miss" data-inspector-missed-round="${miss.round}">
+                    <a class="live-head-inspector-miss-power" href="${escapeHtml(blockUrl)}" target="_blank" rel="noopener">R${miss.round} ↗</a>
+                    ${liveHeadBakerLinks(miss.baker)}
+                </div>` : `<div class="live-head-inspector-empty" data-inspector-missed-round="${miss.round}">${escapeHtml(bakingMissCopy(miss))} — no confirmed missed-right identity.</div>`).join('')}</div>
+        </div>` : ''}
         <div class="live-head-inspector-section">
             <span class="live-head-inspector-label">Block contents</span>
             <div class="live-head-inspector-grid is-activity">${activityHtml}${largestTransferHtml}</div>
@@ -1893,8 +1956,10 @@ function showLiveHeadInspector(row, { fetchMissing = true } = {}) {
     });
     const activity = heartbeatActivityCache.get(level) || null;
     const missedSnapshot = isChainHealth ? liveHeadMissedState(block, null, { force: true }) : liveHeadMissedStateFromRow(row, level);
+    let bakingSnapshot = [];
+    try { bakingSnapshot = JSON.parse(row.querySelector('[data-live-head-baking-snapshot]')?.dataset.liveHeadBakingSnapshot || '[]'); } catch { /* retain an unavailable receipt */ }
     inspector.classList.toggle('is-chain-health', isChainHealth);
-    const html = isChainHealth ? renderChainHealthInspector(block, missedSnapshot) : renderLiveHeadInspector(block, activity, missedSnapshot);
+    const html = isChainHealth ? renderChainHealthInspector(block, missedSnapshot) : renderLiveHeadInspector(block, activity, missedSnapshot, bakingSnapshot);
     if (isChainHealth && !inspector.hidden && liveHeadInspectorAnchor?.matches('[data-chain-health-level]')) quietlySyncHtml(inspector, html);
     else inspector.innerHTML = html;
     inspector.setAttribute('aria-label', isChainHealth ? `Missed attestations for block ${formatCount(level)}` : 'Complete block receipt');
@@ -2038,6 +2103,7 @@ function wireLiveHeadInspector(panel, stack) {
 function buildLiveHeadDetails(block, activity) {
     const story = activity?.story || null;
     const missedState = liveHeadMissedState(block, story);
+    const bakingMisses = liveHeadBakingMissState(block);
     const storySignature = story?.signature || 'story:loading';
     const titleParts = [];
     if (story) {
@@ -2062,9 +2128,10 @@ function buildLiveHeadDetails(block, activity) {
             return `<span class="live-head-story-chip is-${escapeHtml(fragment.key)}${details.length ? ' has-detail' : ''}" data-live-head-kind="${escapeHtml(fragment.key)}"${mandatoryAttr} data-live-head-compact="${escapeHtml(fragment.text)}" data-live-head-detail-level="0"${detailAttrs} style="--story-index:${index}">${escapeHtml(fragment.text)}</span>`;
         }).join('')
         : '<i class="live-head-story-skeleton" aria-hidden="true"></i><i class="live-head-story-skeleton is-short" aria-hidden="true"></i>';
-    const signature = `${storySignature}|${missedState.signature}`;
+    const bakingSnapshot = JSON.stringify(bakingMisses);
+    const signature = `${storySignature}|${missedState.signature}|baking:${bakingSnapshot}`;
     return {
-        html: `<span class="live-head-story${story ? '' : ' is-loading'}" data-story-signature="${escapeHtml(signature)}" data-miss-required="${missedState.required ? 'true' : 'false'}" data-miss-state="${escapeHtml(missedState.state)}" title="${escapeHtml(titleParts.join(' '))}">${missPills}${storyPills}</span>`,
+        html: `<span class="live-head-story${story ? '' : ' is-loading'}" data-live-head-baking-snapshot="${escapeHtml(bakingSnapshot)}" data-story-signature="${escapeHtml(signature)}" data-miss-required="${missedState.required ? 'true' : 'false'}" data-miss-state="${escapeHtml(missedState.state)}" title="${escapeHtml(titleParts.join(' '))}">${renderBakingMissPills(block, bakingMisses)}${missPills}${storyPills}</span>`,
         signature,
         missedState
     };
@@ -2334,7 +2401,8 @@ function contestedRoundLastSignalAt() {
 
 function dispatchContestedRoundHotSignal(block) {
     const round = Number(block?.blockRound);
-    if (!Number.isFinite(round) || round < 1) return;
+    // R1 remains a block receipt, not news, and must not consume the alert cooldown.
+    if (!Number.isFinite(round) || round < 2) return;
     const now = Date.now();
     if (now - contestedRoundLastSignalAt() < CONTESTED_ROUND_HOT_SIGNAL_COOLDOWN) return;
     lastContestedRoundSignalAt = now;
@@ -2849,13 +2917,14 @@ function requestHeartbeatSupplements(data) {
     if (!latest || !heartbeatSupplementIsCurrent(latest) || document.visibilityState !== 'visible') return;
     const level = Number(latest.level);
     const refreshIfCurrent = () => {
-        if (Number(heartbeatData?.blocks?.[0]?.level) === level) {
+        if (document.visibilityState === 'visible' && Number(heartbeatData?.blocks?.[0]?.level) === level) {
             updateBlockTicker(heartbeatData, { supplemental: true });
         }
     };
     fetchHeartbeatNextRight(level + 1).then(refreshIfCurrent);
     const visible = visibleLiveHeadBlocks(data);
     Promise.allSettled([
+        fetchHeartbeatBakingMisses(visible),
         fetchHeartbeatL1Voting(visible).then((l1VotingCoverage) => Promise.allSettled(
             visible.map((block) => fetchHeartbeatActivity(Number(block.level), { block, l1VotingCoverage }))
         )),
@@ -2948,7 +3017,6 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     syncLiveHeadMyTezosRows();
     fitLiveHeadPills(panel);
     revealLiveHeadFacts(panel, { suppressMotion: settleWithoutMotion });
-    fillLiveHeadBars(panel, { suppressMotion: settleWithoutMotion });
     refreshLiveHeadInspector();
     if (headChanged) {
         panel.dataset.liveHeadTransitionCount = String(Number(panel.dataset.liveHeadTransitionCount || 0) + 1);
@@ -5461,13 +5529,13 @@ function requestRecentBlockSupplements(blocks) {
     const chamberIsCurrent = () => {
         const overlay = document.getElementById('network-health-modal');
         const renderedLevel = Number(document.querySelector('#health-recent-block-list .health-block-row')?.dataset.healthLevel);
-        return overlay?.classList.contains('active') && renderedLevel === Number(latest.level);
+        return document.visibilityState === 'visible' && overlay?.classList.contains('active') && renderedLevel === Number(latest.level);
     };
     const refreshBlock = (block) => {
         if (chamberIsCurrent()) updateRecentBlockReceipt(block);
     };
 
-    const missedRights = fetchHeartbeatMissedRights(recent).then(() => {
+    const missedRights = Promise.allSettled([fetchHeartbeatMissedRights(recent), fetchHeartbeatBakingMisses(recent)]).then(() => {
         if (chamberIsCurrent()) recent.forEach(updateRecentBlockReceipt);
     });
     (async () => {

@@ -345,6 +345,14 @@ inline modal styles in `js/core/app.js`.
   not reserve a leading glyph. Motion pauses off-screen and in hidden tabs,
   becomes an unfaded manual horizontal scroller under reduced motion, and
   retains its exact phase across quiet background refreshes.
+  Contested-round news starts at **R2**; R0 and R1 remain ordinary block
+  receipts and do not consume the contested-round alert cooldown. The new R2
+  cooldown ignores timestamps from the previous R1-inclusive alert policy.
+  R1+ block rows list prior-round missed baking rights separately, including
+  both R0 and R1 on an R2 block. Only exact TzKT `status=missed` receipts name a
+  missed baker; missing identities remain unavailable. These pills are not
+  activity-filtered, and the inspector preserves the full per-round identities,
+  TzKT/My Tezos links, and the same reading lock as the rest of the receipt.
 - Explore's seven topics and all 21 individual Chamber launchers are independently
   hideable. Topic headers and Chamber cards provide quick eye-off actions with
   Undo, while **Choose Explore Chambers** in Customize home keeps a compact
@@ -442,7 +450,11 @@ inline modal styles in `js/core/app.js`.
   The compact health rail excludes the power every block must have and shows
   only the signed margin above the exact two-thirds quorum; sub-quorum power
   becomes a red deficit. There is no threshold marker or separate Safe/Strong
-  pill. Its high-contrast number stays legible over every severity fill. The raw
+  pill. Its number has an opaque theme-aware backing over the full-height fill,
+  keeping it legible across severity states; round, timing, and attestation
+  colors use the theme's readable health palette. Each rail paints its factual
+  length immediately, with no delayed empty-to-full sweep or right-edge flash;
+  only the containing row has an entrance animation, disabled under reduced motion. The raw
   fraction remains a receipt while rail length, number, and color
   communicate how comfortably the block cleared quorum.
   First paint uses opaque slotted bars rather than loading sentences. Six-second
@@ -1981,7 +1993,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v620`, including the full-viewport Index
+- Current aligned shell cache stamp: `v621`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

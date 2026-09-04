@@ -7,7 +7,7 @@ const THEME_KEY = 'tezos-systems-theme';
 export const THEMES = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
 // Aurora — bespoke animated default; striking but legible.
 export const DEFAULT_THEME = 'aurora';
-const THEME_CSS_VERSION = '620';
+const THEME_CSS_VERSION = '621';
 const THEME_FONT_FAMILIES = {
     aurora: ['Chakra+Petch:wght@400;600;700'],
     matrix: ['Share+Tech+Mono'],

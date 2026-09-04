@@ -48,6 +48,7 @@ const RULES = [
       'js/features/network-health.js',
       'js/core/octez-versions.js',
       'js/core/block-story.mjs',
+      'tests/live-head-readability-smoke.mjs',
       'css/network-health*'
     ],
     tags: ['live-data', 'network-health'],

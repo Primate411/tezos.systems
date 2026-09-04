@@ -8,7 +8,10 @@ export const CHANGELOG = [
         date: '2026-09-04',
         entries: [
             { type: '✨', text: 'Chain Health now tracks the last 25 blocks beside 1H Activity, with smoothly advancing health bars and mini pop-ups showing each block\'s missed bakers' },
-            { type: '🎨', text: 'Activity and Chain Health stay the same compact height across desktop and mobile, with Activity first and larger invisible touch targets on phones' }
+            { type: '🎨', text: 'Activity and Chain Health stay the same compact height across desktop and mobile, with Activity first and larger invisible touch targets on phones' },
+            { type: '🎨', text: 'Block health bars now paint their true margin immediately without a delayed refill flash, preserve it under reduced motion, and keep the signed number readable across themes; light-theme round, timing, and attestation colors have stronger contrast' },
+            { type: '🔧', text: 'Live Pulse now reserves contested-round alerts for R2 and higher; R1 remains visible in block receipts without becoming breaking news' },
+            { type: '✨', text: 'R1+ blocks now identify missed baking rounds individually: R0 for an R1 block, R0 and R1 for R2, with full baker links in the block inspector and explicit gaps when rights are unavailable' }
         ]
     },
     {

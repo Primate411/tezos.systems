@@ -16552,6 +16552,9 @@ async function smokeMyTezosBlockMonitor(browser, baseUrl) {
 }
 
 async function smokeNetworkHealthChamber(browser, baseUrl) {
+  const { smokeLiveHeadReadability } = await import('./live-head-readability-smoke.mjs');
+  await smokeLiveHeadReadability(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR });
+  log('ok - Live Head contrast, full-height health rails, and R2 news threshold');
   const { smokeChainHealth } = await import('./chain-health-smoke.mjs');
   await smokeChainHealth(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR });
   log('ok - 25-block Chain health motion, quiet refresh, failure retention, and responsive themes');
@@ -17060,7 +17063,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
 	        };
 	      }),
 	      liveHeadBarSignatures: liveHeadRows.map((row) => row.dataset.barSignature || ''),
-	      liveHeadBarPlayed: liveHeadRows.map((row) => row.dataset.quietBarPlayed || ''),
+	      liveHeadBarAnimations: liveHeadRows.map((row) => getComputedStyle(row.querySelector('.live-head-power-fill')).animationName),
 	      liveHeadAges: liveHeadRows.map((row) => row.querySelector('.live-head-age')?.textContent?.trim() || ''),
 	      liveHeadRowBakers: liveHeadRows.map((row) => row.querySelector('.live-head-baker')?.textContent?.trim() || ''),
 	      liveHeadSearchHelp: document.querySelector('#hero-search-help')?.textContent?.replace(/\s+/g, ' ').trim() || '',
@@ -17207,9 +17210,23 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
       result = candidate;
       if (candidate.visible > 0 && candidate.hidden > 0 && candidate.visible + candidate.hidden === candidate.all) break;
     }
+    // Mandatory missed-round receipts now share this lane. Prove the no-cap
+    // behavior with explicitly ample space, not the old 1440px content budget.
+    panel.style.width = '2200px';
+    for (let frame = 0; frame < 6; frame += 1) {
+      await new Promise((resolve) => requestAnimationFrame(resolve));
+    }
+    const wideDetail = document.querySelector('#live-head-stack .live-head-story[data-miss-state="resolved"]');
+    const widePills = Array.from(wideDetail?.querySelectorAll('[data-missed-baker-address]') || []);
+    const wide = {
+      all: widePills.length,
+      visible: widePills.filter((pill) => !pill.hidden).length,
+      hidden: Number(wideDetail?.dataset.hiddenMissCount || 0),
+      overflowVisible: Boolean(wideDetail?.querySelector('[data-live-head-miss-overflow]:not([hidden])'))
+    };
     panel.style.width = originalWidth;
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    return result;
+    return { ...result, wide };
   });
 
   await page.waitForFunction(() => {
@@ -17630,7 +17647,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(/Wallets.*\.tez names.*bakers.*KT1 contracts.*operations.*blocks.*protocols.*Chambers.*press \/ anywhere/i.test(healthState.liveHeadSearchHelp), `network health chamber: search usage help is missing or incomplete ${healthState.liveHeadSearchHelp}`);
   assert(healthState.liveHeadTypeAndAlignment.helpVisible && healthState.liveHeadTypeAndAlignment.inputLevelDelta <= 1.5 && healthState.liveHeadTypeAndAlignment.helpBakerDelta <= 1.5 && healthState.liveHeadTypeAndAlignment.inputFont === healthState.liveHeadTypeAndAlignment.helpFont && /JetBrains Mono/.test(healthState.liveHeadTypeAndAlignment.bakerFont), `network health chamber: search UI role, baker data role, or shared left alignment drifted ${JSON.stringify(healthState.liveHeadTypeAndAlignment)}`);
   assert(healthState.liveHeadBarSignatures.every((signature) => /^\d+:-?\d+:\d+$/.test(signature)), `network health chamber: Live Head health bars need level/safety-margin/quorum signatures: ${healthState.liveHeadBarSignatures.join(',')}`);
-  assert(healthState.liveHeadBarPlayed.every((signature, index) => signature === healthState.liveHeadBarSignatures[index]), `network health chamber: initial Live Head bars should settle once: ${healthState.liveHeadBarPlayed.join(',')}`);
+  assert(healthState.liveHeadBarAnimations.every((name) => name === 'none'), `network health chamber: initial Live Head rails must paint without a refill animation: ${healthState.liveHeadBarAnimations.join(',')}`);
   assert(healthState.liveHeadAges.every((age) => /^(?:\d{2}[smhd]|--)$/.test(age)), `network health chamber: Live Head ages are malformed: ${healthState.liveHeadAges.join(',')}`);
   assert(healthState.liveHeadRowBakers.every(Boolean), `network health chamber: Live Head baker aliases are missing: ${healthState.liveHeadRowBakers.join(',')}`);
   assert(healthState.liveHeadRowBorderBottoms.every((width) => width === '0px'), `network health chamber: block separator lines returned ${healthState.liveHeadRowBorderBottoms.join(',')}`);
@@ -17639,7 +17656,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(healthState.liveHeadStoryChipCount >= 4, `network health chamber: Live Head story density drifted ${healthState.liveHeadStoryChipCount}/${healthState.liveHeadStoryMax}`);
   const liveHeadRequiredMissRows = healthState.liveHeadMissRows.filter((row) => row.power < 6969 || row.quiet);
   assert(liveHeadRequiredMissRows.length >= 1 && liveHeadRequiredMissRows.every((row) => row.required === 'true' && ['resolved', 'clear'].includes(row.state)), `network health chamber: low-power or quiet blocks did not resolve their own missed-attester receipts ${JSON.stringify(healthState.liveHeadMissRows)}`);
-  assert(liveHeadRequiredMissRows.some((row) => row.addresses.length >= 6 && row.visibleAddresses.length === row.addresses.length && row.hiddenCount === 0 && !row.overflowVisible), `network health chamber: wide rows collapsed baker pills despite available space ${JSON.stringify(liveHeadRequiredMissRows)}`);
+  assert(liveHeadPillFitProbe?.wide.all >= 6 && liveHeadPillFitProbe.wide.visible === liveHeadPillFitProbe.wide.all && liveHeadPillFitProbe.wide.hidden === 0 && !liveHeadPillFitProbe.wide.overflowVisible, `network health chamber: wide rows collapsed baker pills despite available space ${JSON.stringify(liveHeadPillFitProbe?.wide)}`);
   assert(liveHeadPillFitProbe?.all >= 6 && liveHeadPillFitProbe.visible >= 1 && liveHeadPillFitProbe.visible < liveHeadPillFitProbe.all && liveHeadPillFitProbe.hidden === liveHeadPillFitProbe.all - liveHeadPillFitProbe.visible && /^\+\d+ bakers?$/.test(liveHeadPillFitProbe.summary), `network health chamber: narrow rows did not collapse only the identities that genuinely overflow ${JSON.stringify(liveHeadPillFitProbe)}`);
   assert(liveHeadRequiredMissRows.some((row) => /second\.tez/.test(row.text) && /tz4Miss\.\.\.ssMis/.test(row.text)), `network health chamber: per-block missed-attester pills do not prefer aliases and truncate tz1-tz4 addresses ${JSON.stringify(liveHeadRequiredMissRows)}`);
   assert(liveHeadRequiredMissRows.some((row) => /tz4MissMissMissMissMissMissMissMis/.test(row.titles)), `network health chamber: truncated missed-attester pills lost their full-address receipt ${JSON.stringify(liveHeadRequiredMissRows)}`);
@@ -17934,7 +17951,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
     liveHeadRetainedTransition: window.__heartbeatRetainedCell ? getComputedStyle(window.__heartbeatRetainedCell).transitionProperty : '',
     liveHeadRetainedMotion: Boolean(motionProbe.liveHeadRetainedMotion || window.__heartbeatRetainedCell?.getAnimations().some((animation) => animation.id === 'live-head-shift')),
     liveHeadTopBarSignature: document.querySelector('#live-head-stack .live-head-row')?.dataset.barSignature || '',
-    liveHeadTopBarPlayed: document.querySelector('#live-head-stack .live-head-row')?.dataset.quietBarPlayed || '',
+    liveHeadTopBarAnimation: getComputedStyle(document.querySelector('#live-head-stack .live-head-power-fill')).animationName,
     tickerTransitionCount: Number(document.querySelector('#live-head')?.dataset.liveHeadTransitionCount || 0),
     tablePadding: getComputedStyle(document.querySelector('.health-block-table .lb-table-row')).paddingTop
     };
@@ -17969,29 +17986,29 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   assert(smoothRefreshState.newRows >= 1, 'network health chamber: smooth refresh did not animate newly arriving block rows');
   assert(smoothRefreshState.liveHeadNewRows >= 1, 'network health chamber: Live Head did not use the Passing Blocks arrival transition');
   assert(smoothRefreshState.liveHeadNewRows >= 1 && smoothRefreshState.liveHeadExitRows >= 1 && smoothRefreshState.liveHeadRetainedMotion, `network health chamber: Live Head arrival must keep incoming, retained, and outgoing rows in one continuous conveyor motion ${JSON.stringify(smoothRefreshState)}`);
-  assert(smoothRefreshState.liveHeadTopBarSignature && smoothRefreshState.liveHeadTopBarPlayed === smoothRefreshState.liveHeadTopBarSignature, `network health chamber: Live Head bar did not record its once-only fill signature ${JSON.stringify(smoothRefreshState)}`);
+  assert(smoothRefreshState.liveHeadTopBarSignature && smoothRefreshState.liveHeadTopBarAnimation === 'none', `network health chamber: Live Head bar must retain its factual width during row arrival ${JSON.stringify(smoothRefreshState)}`);
   assert(smoothRefreshState.tickerTransitionCount >= 1, `network health chamber: Live Head did not mark a transition after refresh: ${smoothRefreshState.tickerTransitionCount}`);
   assert(parseFloat(smoothRefreshState.tablePadding) >= 8, `network health chamber: passing blocks row padding too tight: ${smoothRefreshState.tablePadding}`);
 
   await page.waitForTimeout(900);
   const settledBarState = await page.evaluate(() => {
     const row = document.querySelector('#live-head-stack .live-head-row');
-    const before = row?.dataset.quietBarPlayed || '';
+    const fill = row.querySelector('.live-head-power-fill');
+    const before = getComputedStyle(fill).transform;
     (window.__tezosSystemsIntervals || [])
       .filter((item) => item.timeout === 1000)
       .forEach((timer) => timer?.handler?.());
     return {
       signature: row?.dataset.barSignature || '',
-      played: row?.dataset.quietBarPlayed || '',
+      transform: getComputedStyle(fill).transform,
       before,
-      filling: row?.querySelector('.live-head-power-fill')?.classList.contains('is-bar-filling') || false
+      animation: getComputedStyle(fill).animationName
     };
   });
   assert(
     settledBarState.signature
-      && settledBarState.before === settledBarState.signature
-      && settledBarState.played === settledBarState.signature
-      && !settledBarState.filling,
+      && settledBarState.before === settledBarState.transform
+      && settledBarState.animation === 'none',
     `network health chamber: Live Head bar replayed after settling ${JSON.stringify(settledBarState)}`
   );
 

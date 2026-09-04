@@ -33,6 +33,8 @@
     --chamber-good-color: #047857;
     --chamber-watch-color: #B45309;
     --chamber-risk-color: #B91C1C;
+    /* Narrow Chain Health ticks need extra contrast after rasterization. */
+    --chain-health-risk-color: #991B1B;
     --chamber-disabled-color: #B45309;
     --blur-amount: 0px;
     --transition: all 0.15s ease;
@@ -101,6 +103,21 @@
 }
 [data-theme="clean"] .network-health-block.degraded .network-health-block-bar{
     color: #B91C1C;
+}
+[data-theme="clean"] :is(.health-timing-cell.peak, .health-interval.peak, .health-round-badge.round-zero, .health-power.peak){
+    color: var(--chamber-good-color);
+}
+[data-theme="clean"] :is(.health-timing-cell.watch, .health-interval.watch, .health-round-badge.round-watch, .health-power.watch){
+    color: #92400e;
+}
+[data-theme="clean"] :is(.health-timing-cell.degraded, .health-interval.degraded, .health-round-badge.round-late, .health-power.degraded){
+    color: var(--chamber-risk-color);
+}
+[data-theme="clean"] .health-power.healthy{
+    color: #0369a1;
+}
+[data-theme="clean"] .health-round-badge{
+    background: color-mix(in srgb, currentColor 4%, var(--bg-primary));
 }
 [data-theme="clean"] .visit-streak-toast{
     --streak-toast-bg: rgba(255, 255, 255, 0.96);

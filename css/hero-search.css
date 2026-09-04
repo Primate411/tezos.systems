@@ -1735,7 +1735,7 @@
 
 .chain-health-bar.ok { --chain-health-fill: 100%; color: var(--chamber-good-color); }
 .chain-health-bar.watch { --chain-health-fill: 55%; color: var(--chamber-watch-color); }
-.chain-health-bar.risk { --chain-health-fill: 34%; color: var(--chamber-risk-color); }
+.chain-health-bar.risk { --chain-health-fill: 34%; color: var(--chain-health-risk-color, var(--chamber-risk-color)); }
 .chain-health-bar.unknown { --chain-health-fill: 18%; color: var(--text-secondary); }
 .chain-health-exiting { pointer-events: none; }
 
@@ -2727,25 +2727,26 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
     place-items: center;
     overflow: hidden;
     border-radius: 999px;
-    border: 1px solid color-mix(in srgb, currentColor 38%, transparent);
-    background: color-mix(in srgb, currentColor 16%, var(--bg-primary));
+    border: 1px solid currentColor;
+    background: var(--bg-primary);
     color: var(--text-secondary);
 }
 
 .live-head-power-track:is(.peak, .healthy) { color: var(--chamber-live-color, #35e894); }
 .live-head-power-track.watch { color: var(--chamber-watch-color, #f5b84b); }
-.live-head-power-track.degraded { color: #ff5e72; }
+.live-head-power-track.degraded { color: var(--chamber-risk-color, #ff5e72); }
 
 .live-head-power-fill {
-    position: relative;
+    position: absolute;
+    inset: 0;
     z-index: 1;
     display: block;
     width: 100%;
     height: 100%;
     border-radius: inherit;
     background: currentColor;
-    box-shadow: 0 0 8px color-mix(in srgb, currentColor 44%, transparent);
-    opacity: 0.82;
+    opacity: 1;
+    /* Paint the factual width immediately; the row owns the entrance motion. */
     transform: scaleX(var(--live-head-margin, 0));
     transform-origin: left center;
 }
@@ -2753,11 +2754,15 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
 .live-head-margin {
     position: relative;
     z-index: 2;
-    color: #f4f8ff;
-    font: 860 0.55rem/1 var(--font-runtime);
+    /* An opaque label stays readable over both filled and unfilled rail areas. */
+    padding: 1px 3px;
+    border-radius: 3px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font: 860 0.6rem/1 var(--font-runtime);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.015em;
-    text-shadow: 0 1px 2px rgba(2, 8, 18, 0.9), 0 0 4px rgba(2, 8, 18, 0.55);
+    text-shadow: none;
     white-space: nowrap;
 }
 
@@ -2844,10 +2849,6 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
     background: linear-gradient(90deg, color-mix(in srgb, var(--text-primary) 4%, transparent), color-mix(in srgb, var(--text-primary) 11%, transparent), color-mix(in srgb, var(--text-primary) 4%, transparent));
     background-size: 220% 100%;
     animation: liveHeadSkeletonLoading 1.35s linear infinite;
-}
-
-.live-head-power-fill.is-bar-filling {
-    animation: liveHeadPowerFill 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .live-head-baker {
@@ -3003,6 +3004,36 @@ html:not([data-live-head-expanded="true"]) .live-head-stack .live-head-row.is-pl
 
 .live-head-story-chip.is-art {
     color: #ff9ddd;
+}
+
+.live-head-story-chip.is-round-miss {
+    display: block;
+    flex-shrink: 0;
+    max-width: 28ch;
+    color: #ffd071;
+    font-family: var(--font-runtime);
+    font-weight: 800;
+}
+
+.live-head-story-chip.is-round-miss:not([data-round-miss-state="missed"]) {
+    color: #d4def2;
+}
+
+/* Both R0 and R1 remain individually visible at phone widths. Longer identities
+   truncate here; the block inspector keeps the complete round-by-round list. */
+@media (max-width: 719px) {
+    .live-head-row-detail:has(.is-round-miss) {
+        grid-template-columns: minmax(60px, 0.3fr) minmax(0, 1fr);
+    }
+
+    .live-head-story:has(.is-round-miss) {
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+
+    .live-head-story-chip.is-round-miss {
+        max-width: calc((100% - 0.45rem) / 2);
+    }
 }
 
 .live-head-story-chip:is(.is-evidence, .is-milestone, .is-baker) {
@@ -3688,11 +3719,6 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
     to { opacity: 1; transform: none; }
 }
 
-@keyframes liveHeadPowerFill {
-    from { transform: scaleX(0); }
-    to { transform: scaleX(var(--live-head-margin, 0)); }
-}
-
 @keyframes liveHeadSkeletonLoading {
     to { background-position: -220% 0; }
 }
@@ -4219,8 +4245,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
     .live-head-story-chip,
     .live-head-row,
-    .live-head-miss-pill,
-    .live-head-power-fill {
+    .live-head-miss-pill {
         opacity: 1 !important;
         transform: none !important;
     }

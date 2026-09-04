@@ -4064,6 +4064,31 @@ async function checkSelectorContracts() {
   if (!health.includes("document.addEventListener('visibilitychange'") || !health.includes("document.visibilityState !== 'visible'")) {
     fail('Chain Heartbeat polling and catch-up must remain visibility gated');
   }
+  const roundAlert = health.match(/function dispatchContestedRoundHotSignal\(block\) \{[\s\S]*?\n\}/)?.[0] || '';
+  if (!roundAlert.includes('round < 2') || roundAlert.indexOf('round < 2') > roundAlert.indexOf('contestedRoundLastSignalAt()')) {
+    fail('R0/R1 must not emit contested-round news or consume its cooldown');
+  }
+  const marginFillCss = heroSearchCss.match(/\.live-head-power-fill \{[\s\S]*?\n\}/)?.[0] || '';
+  const marginLabelCss = heroSearchCss.match(/\.live-head-margin \{[\s\S]*?\n\}/)?.[0] || '';
+  if (!marginFillCss.includes('position: absolute;') || !marginFillCss.includes('inset: 0;')
+      || !marginLabelCss.includes('background: var(--bg-primary);') || !marginLabelCss.includes('color: var(--text-primary);')) {
+    fail('The health fill must occupy the full rail with an opaque theme-readable label above it');
+  }
+  if (/\.live-head-power-fill\s*\{[^}]*transform:\s*none\s*!important/.test(heroSearchCss)) {
+    fail('Reduced motion must preserve the factual safety-margin scale instead of filling every health rail');
+  }
+  if (health.includes('fillLiveHeadBars') || heroSearchCss.includes('liveHeadPowerFill') || heroSearchCss.includes('is-bar-filling')) {
+    fail('Health rails must paint their factual width immediately without a delayed empty-to-full sweep');
+  }
+  const bakingMissFetcher = health.match(/async function fetchHeartbeatBakingMisses\(blocks\) \{[\s\S]*?\n\}/)?.[0] || '';
+  if (!bakingMissFetcher.includes("document.visibilityState !== 'visible'")
+      || !bakingMissFetcher.includes("right.status !== 'missed'")
+      || !bakingMissFetcher.includes('right.round >= block.blockRound')
+      || !health.includes('data-live-head-baking-snapshot=')
+      || !health.includes('data-inspector-baking-misses')
+      || !health.includes('fetchHeartbeatBakingMisses(visible)')) {
+    fail('R1+ block receipts must list exact earlier missed baking rights with visibility-gated fetching and locked inspector snapshots');
+  }
   if (henMode.includes('feed.insertBefore(output, grid())')) {
     fail('HEN CLI output must stay off-flow instead of inserting before the grid');
   }
