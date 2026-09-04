@@ -23,7 +23,8 @@ const TEZTALE = API_URLS.teztale;
 const OCTEZ_MAINNET = API_URLS.octezMainnet;
 const POWER_PER_BLOCK = 7000;
 const TARGET_BLOCK_SECONDS = 6;
-const LAST_BLOCK_LIMIT = 16;
+const CHAIN_HEALTH_BLOCK_LIMIT = 25;
+const LAST_BLOCK_LIMIT = CHAIN_HEALTH_BLOCK_LIMIT;
 const HEALTH_CARD_BLOCK_LIMIT = 5;
 const CHAMBER_BLOCK_LIMIT = 15;
 const CHAMBER_EXPANDED_MOBILE_BLOCK_LIMIT = 12;
@@ -154,6 +155,7 @@ let liveHeadMyTezosControlsWired = false;
 let liveHeadInspectorCloseTimer = null;
 let liveHeadInspectorResumeTimer = null;
 let liveHeadInspectorLevel = null;
+let liveHeadInspectorAnchor = null;
 let liveHeadPointerPosition = { x: null, y: null };
 let liveHeadInspectorSuppressedPointerPosition = null;
 let liveHeadPendingUpdate = null;
@@ -494,6 +496,169 @@ function latestBlockStatus(block) {
         safetyMargin,
         marginRatio
     };
+}
+
+function chainHealthState(block) {
+    const status = latestBlockStatus(block);
+    if (status.className === 'unknown') return 'unknown';
+    if (status.safetyMargin < 0) return 'risk';
+    return status.className === 'watch' ? 'watch' : 'ok';
+}
+
+function chainHealthReadout(states) {
+    const counts = { ok: 0, watch: 0, risk: 0, unknown: 0 };
+    states.forEach((state) => { counts[state] += 1; });
+    const total = states.length;
+    const descriptions = [
+        counts.ok ? `${counts.ok} at or above 98.5% attestation power` : '',
+        counts.watch ? `${counts.watch} at quorum but below 98.5%` : '',
+        counts.risk ? `${counts.risk} below quorum` : '',
+        counts.unknown ? `${counts.unknown} unavailable` : ''
+    ].filter(Boolean);
+    const sentence = `Attestation health across the last ${total} blocks: ${descriptions.join(', ')}.`;
+    if (counts.risk) return { text: `${counts.risk} RISK`, tone: 'risk', sentence };
+    if (counts.watch) return { text: `${counts.watch} LOW`, tone: 'watch', sentence };
+    if (counts.unknown) return { text: `${counts.unknown} ?`, tone: 'unknown', sentence };
+    return { text: `${counts.ok} OK`, tone: 'ok', sentence };
+}
+
+function updateChainHealthReadout(button, readout, { loading = false, stale = false } = {}) {
+    const element = document.getElementById('chain-health-readout');
+    const text = stale ? 'STALE' : readout.text;
+    if (element) {
+        if (element.textContent !== text) quietlySyncHtml(element, escapeHtml(text));
+        element.dataset.tone = stale ? 'unknown' : readout.tone;
+    }
+    button.setAttribute('aria-busy', String(loading));
+    button.removeAttribute('title');
+    button.setAttribute('aria-label', `Chain health. ${readout.sentence} Hover or tap a line for missed bakers. Open Network Health Chamber from the label.`);
+    const announcer = document.getElementById('chain-health-announcer');
+    const tone = stale ? 'unknown' : readout.tone;
+    if (announcer && button.dataset.announcedTone !== tone) {
+        // Only entry into risk speaks. Clear every exit, including partial data,
+        // so the same risk sentence can be announced again after recovery.
+        announcer.textContent = tone === 'risk' ? readout.sentence : '';
+        button.dataset.announcedTone = tone;
+    }
+}
+
+// A bounded conveyor of attestation receipts, oldest left and newest right.
+// Only a newly observed head moves it; supplements and catch-up stay motionless.
+function updateChainHealthStrip(data, { error = false, supplemental = false, suppressMotion = false } = {}) {
+    if (document.visibilityState !== 'visible') return;
+    const button = document.getElementById('chain-health');
+    const viewport = document.getElementById('chain-health-window');
+    if (!button || !viewport) return;
+    if (!button.dataset.chainHealthWired) {
+        button.dataset.chainHealthWired = '1';
+        button.addEventListener('click', (event) => {
+            const bar = event.target.closest('[data-chain-health-level]');
+            if (bar) showLiveHeadInspector(bar);
+            else openNetworkHealthChamber();
+        });
+        button.addEventListener('pointerover', (event) => {
+            if (event.pointerType === 'touch') return;
+            const bar = event.target.closest('[data-chain-health-level]');
+            if (!bar || bar.contains(event.relatedTarget)) return;
+            const suppressed = liveHeadInspectorSuppressedPointerPosition;
+            if (suppressed && event.clientX === suppressed.x && event.clientY === suppressed.y) return;
+            liveHeadInspectorSuppressedPointerPosition = null;
+            showLiveHeadInspector(bar);
+        });
+        button.addEventListener('pointerout', (event) => {
+            if (event.pointerType === 'touch') return;
+            if (event.relatedTarget?.closest?.('#chain-health, #live-head-inspector')) return;
+            scheduleLiveHeadInspectorClose();
+        });
+        button.addEventListener('focusout', (event) => {
+            if (liveHeadInspectorAnchor?.matches('[data-chain-health-level]')
+                && !event.relatedTarget?.closest?.('#live-head-inspector')) scheduleLiveHeadInspectorClose();
+        });
+        button.addEventListener('keydown', (event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+            event.preventDefault();
+            const bars = [...viewport.querySelectorAll('[data-chain-health-level]')];
+            const current = bars.indexOf(liveHeadInspectorAnchor);
+            const index = event.key === 'Home' ? 0 : event.key === 'End' || current < 0 ? bars.length - 1
+                : Math.max(0, Math.min(bars.length - 1, current + (event.key === 'ArrowLeft' ? -1 : 1)));
+            if (bars[index]) showLiveHeadInspector(bars[index]);
+        });
+    }
+    // Operation supplements and local layout changes cannot prove source recovery.
+    const sourceStamp = Number(data?.updatedAt) || 0;
+    error ||= button.dataset.feedState === 'stale'
+        && (supplemental || sourceStamp <= Number(button.dataset.sourceStamp || 0));
+    if (!error && sourceStamp) button.dataset.sourceStamp = String(sourceStamp);
+    button.dataset.feedState = error ? 'stale' : data?.blocks?.length ? 'live' : 'loading';
+    if (error && viewport.children.length) {
+        updateChainHealthReadout(button, {
+            sentence: `Live source delayed. Showing the last received 25-block history, ending at block ${formatCount(viewport.dataset.headLevel)}.`
+        }, { stale: true });
+        return;
+    }
+    const latest = data?.blocks?.[0];
+    if (!latest) {
+        updateChainHealthReadout(button, {
+            text: '—', tone: 'unknown',
+            sentence: error ? 'Block source unavailable.' : 'Loading the last 25 blocks.'
+        }, { loading: !error });
+        return;
+    }
+    const byLevel = new Map((data.chainHealthBlocks || data.blocks).map((block) => [Number(block.level), block]));
+    const blocks = Array.from({ length: CHAIN_HEALTH_BLOCK_LIMIT }, (_, index) => {
+        const level = Number(latest.level) - CHAIN_HEALTH_BLOCK_LIMIT + 1 + index;
+        return byLevel.get(level) || { level };
+    });
+    const readout = chainHealthReadout(blocks.map(chainHealthState));
+    updateChainHealthReadout(button, {
+        ...readout, sentence: `${readout.sentence} Newest block ${formatCount(latest.level)}.`
+    });
+    viewport.style.setProperty('--chain-health-count', CHAIN_HEALTH_BLOCK_LIMIT);
+    const missedStates = blocks.map((block) => liveHeadMissedState(block, null, { force: true }));
+    const signature = blocks.map((block, index) => `${block.level}:${block.power}:${block.committee}:${block.blockRound}:${missedStates[index].signature}:${missedStates[index].sampleClipped}`).join('|');
+    if (viewport.dataset.receiptSignature === signature) return;
+    const previousLevel = Number(viewport.dataset.headLevel) || 0;
+    const advance = Number(latest.level) - previousLevel;
+    const animate = previousLevel > 0 && advance > 0 && advance < CHAIN_HEALTH_BLOCK_LIMIT
+        && liveHeadMotionAllowed({ suppressMotion });
+    const step = viewport.clientWidth / CHAIN_HEALTH_BLOCK_LIMIT;
+    viewport.querySelectorAll('.chain-health-exiting').forEach((ghost) => ghost.remove());
+    const existing = [...viewport.querySelectorAll('[data-chain-health-level]')];
+    const nextLevels = new Set(blocks.map((block) => String(block.level)));
+    const ghosts = animate ? existing.filter((bar) => !nextLevels.has(bar.dataset.chainHealthLevel)).map((bar) => {
+        const ghost = bar.cloneNode(true);
+        ghost.classList.add('chain-health-exiting');
+        ghost.removeAttribute('data-chain-health-level');
+        ghost.removeAttribute('data-quiet-key');
+        ghost.removeAttribute('title');
+        return ghost;
+    }) : [];
+    quietlySyncHtml(viewport, blocks.map((block, index) => {
+        const status = latestBlockStatus(block);
+        const receipt = status.className === 'unknown'
+            ? 'Attestation unknown'
+            : `${formatCount(block.power)} / ${formatCount(block.committee)} attested (${block.score.toFixed(2)}%). ${status.label}. Round ${block.blockRound}`;
+        const misses = chainHealthMissedCopy(block, missedStates[index]);
+        return `<span class="chain-health-bar ${chainHealthState(block)}${index === blocks.length - 1 ? ' is-head' : ''}" data-chain-health-level="${block.level}" data-quiet-key="chain-health-${block.level}" style="--chain-health-position:${index}" data-chain-health-receipt="Block ${formatCount(block.level)}: ${escapeHtml(receipt)} ${escapeHtml(misses)}"></span>`;
+    }).join(''));
+    viewport.dataset.headLevel = String(latest.level);
+    viewport.dataset.receiptSignature = signature;
+    if (!animate || typeof viewport.animate !== 'function') return;
+    // Retain keyed bars while an outgoing receipt slips beyond the clipped edge.
+    ghosts.forEach((ghost) => viewport.append(ghost));
+    [...viewport.children].forEach((bar) => {
+        const exiting = bar.classList.contains('chain-health-exiting');
+        bar.getAnimations().forEach((animation) => animation.cancel());
+        const animation = bar.animate([
+            { transform: `translateX(${exiting ? 0 : advance * step}px)` },
+            { transform: `translateX(${exiting ? -advance * step : 0}px)` }
+        ], { duration: 520, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'both' });
+        animation.id = 'chain-health-shift';
+        animation.finished.catch(() => {}).finally(() => {
+            if (exiting) bar.remove();
+            animation.cancel();
+        });
+    });
 }
 
 function blockTickerFallback(className = 'loading') {
@@ -1027,7 +1192,7 @@ function cacheLiveHeadMissedState(level, state) {
     };
     liveHeadMissedStateCache.delete(level);
     liveHeadMissedStateCache.set(level, snapshot);
-    while (liveHeadMissedStateCache.size > 16) {
+    while (liveHeadMissedStateCache.size > CHAIN_HEALTH_BLOCK_LIMIT) {
         liveHeadMissedStateCache.delete(liveHeadMissedStateCache.keys().next().value);
     }
     return snapshot;
@@ -1080,11 +1245,11 @@ function liveHeadMissedStateFromRow(row, level) {
     }
 }
 
-function liveHeadMissedState(block, story) {
+function liveHeadMissedState(block, story, { force = false } = {}) {
     const level = Number(block?.level);
     const lowPower = Number.isFinite(Number(block?.power)) && Number(block.power) < LIVE_HEAD_POWER_DETAIL_THRESHOLD;
     const quiet = story?.quiet === true;
-    const required = lowPower || quiet;
+    const required = force || lowPower || quiet;
     if (!required || !Number.isFinite(level)) {
         return { required: false, state: 'not-required', attesters: [], signature: 'miss:not-required' };
     }
@@ -1455,6 +1620,31 @@ function renderLiveHeadInspectorFact({ label, value, href, className = '' }) {
         </a>`;
 }
 
+function chainHealthMissedCopy(block, missed) {
+    if (missed.state === 'resolved') {
+        return `Missed attesters: ${missed.attesters.map((item) => `${item.name} (−${formatCount(item.slots)} power)`).join(', ')}.${missed.sampleClipped ? ' The source sample is incomplete.' : ''}`;
+    }
+    if (missed.sampleClipped) return 'The source sample is incomplete; baker details for this block are unavailable.';
+    if (missed.state === 'clear') return Number(block?.missedPower) > 0
+        ? 'Attestation power was missed, but TzKT has not indexed the baker identities.'
+        : 'No missed attestation rights in the TzKT receipt.';
+    return missed.state === 'unavailable' ? 'Missed-baker details are unavailable.' : 'Loading missed-baker details.';
+}
+
+function renderChainHealthInspector(block, missed) {
+    const blockUrl = liveHeadBlockUrl(block.level);
+    const rows = missed.state === 'resolved'
+        ? missed.attesters.map((attester) => `<a class="chain-health-mini-baker" href="https://tzkt.io/${encodeURIComponent(attester.address)}" target="_blank" rel="noopener" aria-label="${escapeHtml(attester.name)} missed ${formatCount(attester.slots)} attestation power at block ${formatCount(block.level)}">
+            <span>${escapeHtml(attester.name)}</span><strong>−${formatCount(attester.slots)}</strong>
+          </a>`).join('')
+        : `<p class="chain-health-mini-note">${escapeHtml(chainHealthMissedCopy(block, missed))}</p>`;
+    return `<div class="chain-health-mini-heading" data-quiet-key="chain-block-summary">
+            <a href="${escapeHtml(blockUrl)}" target="_blank" rel="noopener">#${formatCount(block.level)} ↗</a><span>Missed power</span>
+        </div>
+        <div class="chain-health-mini-bakers" data-quiet-key="chain-block-misses">${rows}</div>
+        ${missed.state === 'resolved' && missed.sampleClipped ? '<p class="chain-health-mini-note">Partial source sample.</p>' : ''}`;
+}
+
 function renderLiveHeadInspector(block, activity, missedSnapshot = null) {
     const level = Number(block?.level) || 0;
     const blockUrl = liveHeadBlockUrl(level);
@@ -1632,7 +1822,10 @@ function closeLiveHeadInspector({ suppressReopen = false, deferResume = false } 
     document.querySelectorAll('#live-head-stack .live-head-info[aria-expanded="true"]').forEach((trigger) => {
         trigger.setAttribute('aria-expanded', 'false');
     });
+    document.querySelectorAll('.chain-health-bar.is-inspected').forEach((bar) => bar.classList.remove('is-inspected'));
+    document.getElementById('chain-health')?.setAttribute('aria-expanded', 'false');
     liveHeadInspectorLevel = null;
+    liveHeadInspectorAnchor = null;
     if (suppressReopen && wasPaused) {
         liveHeadInspectorSuppressedPointerPosition = { ...liveHeadPointerPosition };
     }
@@ -1653,7 +1846,7 @@ function scheduleLiveHeadInspectorClose() {
     liveHeadInspectorCloseTimer = window.setTimeout(() => {
         liveHeadInspectorCloseTimer = null;
         const inspector = document.getElementById('live-head-inspector');
-        const trigger = Number.isFinite(liveHeadInspectorLevel)
+        const trigger = liveHeadInspectorAnchor?.matches('[data-chain-health-level]') ? liveHeadInspectorAnchor : Number.isFinite(liveHeadInspectorLevel)
             ? document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadInspectorLevel}"] .live-head-info`)
             : null;
         const active = document.activeElement;
@@ -1671,7 +1864,7 @@ function scheduleLiveHeadInspectorClose() {
 function positionLiveHeadInspector(row, inspector) {
     if (!row || !inspector || inspector.hidden) return;
     const rowRect = row.getBoundingClientRect();
-    const triggerRect = row.querySelector('.live-head-info')?.getBoundingClientRect() || null;
+    const triggerRect = row.matches('[data-chain-health-level]') ? rowRect : row.querySelector('.live-head-info')?.getBoundingClientRect() || null;
     const inspectorRect = inspector.getBoundingClientRect();
     const edge = 10;
     const anchorLeft = triggerRect
@@ -1685,10 +1878,12 @@ function positionLiveHeadInspector(row, inspector) {
     inspector.style.top = `${Math.round(top)}px`;
 }
 
-function showLiveHeadInspector(row) {
+function showLiveHeadInspector(row, { fetchMissing = true } = {}) {
     const inspector = document.getElementById('live-head-inspector');
-    const level = Number(row?.dataset.liveHeadLevel);
-    const block = heartbeatData?.blocks?.find((item) => Number(item.level) === level);
+    const isChainHealth = row?.matches('[data-chain-health-level]');
+    const level = Number(isChainHealth ? row.dataset.chainHealthLevel : row?.dataset.liveHeadLevel);
+    const blocks = heartbeatData?.chainHealthBlocks || heartbeatData?.blocks || [];
+    const block = blocks.find((item) => Number(item.level) === level);
     if (!inspector || !row || !block || document.getElementById('network-health-modal')?.classList.contains('active')) return;
     cancelLiveHeadInspectorResume();
     cancelLiveHeadInspectorClose();
@@ -1697,21 +1892,40 @@ function showLiveHeadInspector(row) {
         if (item !== trigger) item.setAttribute('aria-expanded', 'false');
     });
     const activity = heartbeatActivityCache.get(level) || null;
-    const missedSnapshot = liveHeadMissedStateFromRow(row, level);
-    inspector.innerHTML = renderLiveHeadInspector(block, activity, missedSnapshot);
+    const missedSnapshot = isChainHealth ? liveHeadMissedState(block, null, { force: true }) : liveHeadMissedStateFromRow(row, level);
+    inspector.classList.toggle('is-chain-health', isChainHealth);
+    const html = isChainHealth ? renderChainHealthInspector(block, missedSnapshot) : renderLiveHeadInspector(block, activity, missedSnapshot);
+    if (isChainHealth && !inspector.hidden && liveHeadInspectorAnchor?.matches('[data-chain-health-level]')) quietlySyncHtml(inspector, html);
+    else inspector.innerHTML = html;
+    inspector.setAttribute('aria-label', isChainHealth ? `Missed attestations for block ${formatCount(level)}` : 'Complete block receipt');
     inspector.hidden = false;
     inspector.setAttribute('aria-hidden', 'false');
     inspector.dataset.open = 'true';
     inspector.dataset.liveHeadLevel = String(level);
     trigger?.setAttribute('aria-expanded', 'true');
     liveHeadInspectorLevel = level;
+    liveHeadInspectorAnchor = row;
+    document.querySelectorAll('.chain-health-bar.is-inspected').forEach((bar) => bar.classList.remove('is-inspected'));
+    if (isChainHealth) row.classList.add('is-inspected');
+    document.getElementById('chain-health')?.setAttribute('aria-expanded', String(isChainHealth));
     const panel = document.getElementById('live-head');
     if (panel) panel.dataset.readingPaused = 'true';
     positionLiveHeadInspector(row, inspector);
+    if (isChainHealth && fetchMissing && missedSnapshot.state === 'loading') {
+        fetchHeartbeatMissedRights(blocks).then(() => {
+            if (liveHeadInspectorAnchor === row && !inspector.hidden && document.visibilityState === 'visible') {
+                showLiveHeadInspector(row, { fetchMissing: false });
+            }
+        });
+    }
 }
 
 function refreshLiveHeadInspector() {
     if (!Number.isFinite(liveHeadInspectorLevel)) return;
+    if (liveHeadInspectorAnchor?.matches('[data-chain-health-level]') && liveHeadInspectorAnchor.isConnected) {
+        positionLiveHeadInspector(liveHeadInspectorAnchor, document.getElementById('live-head-inspector'));
+        return;
+    }
     const row = document.querySelector(`#live-head-stack .live-head-row[data-live-head-level="${liveHeadInspectorLevel}"]`);
     if (!row) closeLiveHeadInspector();
     else showLiveHeadInspector(row);
@@ -1791,6 +2005,7 @@ function wireLiveHeadInspector(panel, stack) {
     inspector.addEventListener('click', (event) => {
         const link = event.target.closest('a');
         if (link && !link.matches('[data-live-head-open-health]')) return;
+        if (inspector.classList.contains('is-chain-health')) return;
         event.preventDefault();
         closeLiveHeadInspector();
         openNetworkHealthChamber();
@@ -1800,7 +2015,7 @@ function wireLiveHeadInspector(panel, stack) {
     });
     document.addEventListener('pointerdown', (event) => {
         if (inspector.hidden) return;
-        if (event.target.closest('#live-head-inspector, .live-head-info, .live-head-row[data-live-head-level]')) return;
+        if (event.target.closest('#live-head-inspector, #chain-health, .live-head-info, .live-head-row[data-live-head-level]')) return;
         closeLiveHeadInspector();
     }, { capture: true });
     document.addEventListener('pointermove', (event) => {
@@ -2599,6 +2814,7 @@ async function fetchHeartbeatMissedRights(blocks) {
     if (!levels.length) return null;
     const startLevel = Math.min(...levels);
     const endLevel = Math.max(...levels);
+    const limit = Math.max(MISSED_RIGHTS_LIMIT, levels.length * 40);
     if (heartbeatMissedRightsCache?.startLevel === startLevel
         && heartbeatMissedRightsCache?.endLevel === endLevel
         && Date.now() - heartbeatMissedRightsCache.updatedAt < LIVE_REFRESH_INTERVAL) {
@@ -2607,12 +2823,12 @@ async function fetchHeartbeatMissedRights(blocks) {
     if (heartbeatMissedRightsInFlight?.startLevel === startLevel && heartbeatMissedRightsInFlight?.endLevel === endLevel) {
         return heartbeatMissedRightsInFlight.promise;
     }
-    const promise = fetchMissedRights('attestation', startLevel, endLevel, MISSED_RIGHTS_LIMIT, { priority: 'interactive' }).then((attestations) => {
+    const promise = fetchMissedRights('attestation', startLevel, endLevel, limit, { priority: 'interactive' }).then((attestations) => {
         heartbeatMissedRightsCache = {
             startLevel,
             endLevel,
             attestations,
-            sampleClipped: attestations.length >= MISSED_RIGHTS_LIMIT,
+            sampleClipped: attestations.length >= limit,
             updatedAt: Date.now()
         };
         heartbeatMissedRightsFailureRange = null;
@@ -2643,7 +2859,7 @@ function requestHeartbeatSupplements(data) {
         fetchHeartbeatL1Voting(visible).then((l1VotingCoverage) => Promise.allSettled(
             visible.map((block) => fetchHeartbeatActivity(Number(block.level), { block, l1VotingCoverage }))
         )),
-        fetchHeartbeatMissedRights(visible)
+        fetchHeartbeatMissedRights(data.chainHealthBlocks || data.blocks)
     ]).then(refreshIfCurrent);
 }
 
@@ -2676,12 +2892,14 @@ function updateBlockTicker(data, { error = false, supplemental = false, suppress
     const latest = data?.blocks?.[0] || null;
     updateLiveHeadStallAlert(data, { error });
     if (!latest) {
+        updateChainHealthStrip(data, { error, suppressMotion: true });
         blockTickerFallback(error ? 'degraded' : 'loading');
         return;
     }
     heartbeatData = data;
     const motionSuppressed = Boolean(suppressMotion || (suppressNextHeartbeatMotion && !supplemental));
     if (!supplemental) suppressNextHeartbeatMotion = false;
+    updateChainHealthStrip(data, { error, supplemental, suppressMotion: motionSuppressed || !heartbeatSupplementIsCurrent(latest) });
 
     dispatchContestedRoundHotSignal(latest);
     if (!supplemental) fetchUsagePulse({ priority: 'interactive' }).then(patchTickerUsage);
@@ -3971,13 +4189,14 @@ function updateHealthVerdictPanel(data) {
 async function fetchNetworkHealthChamberData() {
     const requestOptions = { priority: 'interactive' };
     const standalone = !document.getElementById('uptime-counter');
-    const [blocks, cycleTiming, currentCycle, nakamoto, continuity] = await Promise.all([
-        fetchRecentBlocks(CHAMBER_BLOCK_LIMIT, requestOptions),
+    const [chainHealthBlocks, cycleTiming, currentCycle, nakamoto, continuity] = await Promise.all([
+        fetchRecentBlocks(CHAIN_HEALTH_BLOCK_LIMIT, requestOptions),
         fetchCycleTiming(requestOptions),
         fetchCurrentCycleProgress(),
         fetchNakamotoCoefficients(),
         standalone ? fetchChamberContinuity() : null
     ]);
+    const blocks = chainHealthBlocks.slice(0, CHAMBER_BLOCK_LIMIT);
     const summary = summarizeBlocks(blocks);
     const timing = summarizeTiming(blocks);
     const headLevel = blocks[0]?.level || 0;
@@ -4017,6 +4236,7 @@ async function fetchNetworkHealthChamberData() {
         headLevel,
         oldestLevel,
         blocks,
+        chainHealthBlocks,
         summary,
         timing,
         missedAttestations,
@@ -4035,10 +4255,13 @@ async function fetchNetworkHealthChamberData() {
 }
 
 function renderBlock(block) {
-    const cls = healthClass(block.score);
+    const known = Number.isFinite(block.score);
+    const cls = known ? healthClass(block.score) : 'unknown';
     const levelTail = block.level ? String(block.level).slice(-3).padStart(3, '0') : '---';
-    const width = Math.max(2, Math.min(100, block.score));
-    const title = `Block ${block.level.toLocaleString()}: ${block.power.toLocaleString()} / ${block.committee.toLocaleString()} power`;
+    const width = known ? Math.max(2, Math.min(100, block.score)) : 0;
+    const title = known
+        ? `Block ${block.level.toLocaleString()}: ${block.power.toLocaleString()} / ${block.committee.toLocaleString()} power`
+        : `Block ${block.level.toLocaleString()}: Attestation unknown`;
 
     return `
         <div class="network-health-block ${cls}" title="${title}" aria-label="${title}">

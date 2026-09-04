@@ -5,6 +5,13 @@
 
 export const CHANGELOG = [
     {
+        date: '2026-09-04',
+        entries: [
+            { type: '✨', text: 'Chain Health now tracks the last 25 blocks beside 1H Activity, with smoothly advancing health bars and mini pop-ups showing each block\'s missed bakers' },
+            { type: '🎨', text: 'Activity and Chain Health stay the same compact height across desktop and mobile, with Activity first and larger invisible touch targets on phones' }
+        ]
+    },
+    {
         date: '2026-09-03',
         entries: [
             { type: '⚡', text: 'TezosCRP now downloads a smaller, lossless recognition archive with shared source records; every award, identity, historical category, and official link is preserved' },

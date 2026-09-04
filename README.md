@@ -474,9 +474,31 @@ inline modal styles in `js/core/app.js`.
   Network Health to blocks produced by or carrying activity from a saved My
   Tezos address. The filter stays silent when nothing matches and preserves the
   canonical compact or expanded ticker height as blocks arrive and leave.
-  The top-right control rail keeps the complete trailing-hour
-  `1H Activity / TX / Moved / NFT` receipt immediately before one setup icon and
-  the `Live` state. Setup expands into persisted All, L1 voting, L2 voting,
+  The top-right control rail shows **1H Activity**, then **Chain health**:
+  25 attestation receipts, oldest left and newest right, sliding left once per
+  new head.
+  Green means at least 98.5% attested, amber means below 98.5% but at quorum,
+  red means below quorum, and gray means unavailable. Full, half-height, short,
+  and tick-height lines encode those same states without color. The newest line
+  has a small marker. A fixed-width readout under the label shows `OK`, `LOW`,
+  `RISK`, or `?` with the corresponding count; its accessible summary accounts
+  for all 25 blocks, including unavailable data. Source failures show `STALE`.
+  Hover or tap a line to inspect that block's missed attesters, including small
+  misses on green blocks. The popup lists baker identities and missed power
+  with receipt links in a small tooltip. Tap another line or use keyboard arrows
+  to explore the retained window. Unavailable, unindexed, and clipped receipts
+  remain explicit. The tooltip has no large actions or duplicate native tooltip.
+  The shared missed-rights request covers all 25 blocks, and the strip pauses
+  while the popup is being read. Clicking the label opens Network Health.
+  All 25 lines remain on mobile. The visible controls stay 30px
+  tall across devices, with invisible 44px hit areas for touch input.
+  Keyed lines survive refreshes, failures retain the last received history,
+  and hidden-tab catch-up, reading locks, and reduced motion remain quiet.
+  A separate polite announcement speaks only when the strip enters risk and
+  clears on every exit, including partial data and source failure.
+  The trailing-hour `1H Activity / TX / Moved / NFT` receipt leads the rail;
+  one setup icon and the `Live` state follow Chain health. Setup expands into
+  persisted All, L1 voting, L2 voting,
   Etherlink / Tezos X, DAL, Art, DeFi, Gaming, Bridge, Domains, Stake, Unstake,
   Delegation, Tokens, Contracts, Transfers, and Calls selectors. Every normal
   category is on by default, prior all-on preferences migrate forward, and
@@ -1959,7 +1981,7 @@ metadata:
 
 - `index.html` serves `css/styles.min.css?v=...` and `js/core/app.js?v=...`.
 - `sw.js` uses `CACHE_NAME = 'tezos-systems-v...'`.
-- Current aligned shell cache stamp: `v619`, including the full-viewport Index
+- Current aligned shell cache stamp: `v620`, including the full-viewport Index
   Chamber search, theme
   bundles, and the Baker Directory, Ledger Flow, Network Pulse, Network Health,
   Staking, Maxis, shared market-room, Uranium, Precious Metals, and Critical

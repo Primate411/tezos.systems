@@ -16192,8 +16192,8 @@ async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
   const states = [];
   const themes = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
   for (const scenario of [
-    { viewportWidth: 320, fixtureWidth: 132, controlHeight: 39 },
-      { viewportWidth: 390, fixtureWidth: 192, controlHeight: 39 },
+    { viewportWidth: 320, fixtureWidth: 132, controlHeight: 30 },
+      { viewportWidth: 390, fixtureWidth: 192, controlHeight: 30 },
     { viewportWidth: 762, fixtureWidth: 250, controlHeight: 30 }
   ]) {
     await page.setViewportSize({ width: scenario.viewportWidth, height: 900 });
@@ -16552,6 +16552,9 @@ async function smokeMyTezosBlockMonitor(browser, baseUrl) {
 }
 
 async function smokeNetworkHealthChamber(browser, baseUrl) {
+  const { smokeChainHealth } = await import('./chain-health-smoke.mjs');
+  await smokeChainHealth(browser, baseUrl, { installFeatureMocks, artifactsDir: ARTIFACTS_DIR });
+  log('ok - 25-block Chain health motion, quiet refresh, failure retention, and responsive themes');
   await smokeNetworkHealthInteractivePriority(browser, baseUrl);
   await smokeLiveHeadThemeGeometry(browser, baseUrl);
   const issues = [];
@@ -18090,7 +18093,7 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   for (const tickerState of mobileTickerStates) {
     assert(
       tickerState.height <= (tickerState.alertVisible ? 410 : 360)
-        && Math.abs(tickerState.activityHeight - 39) <= 1
+        && Math.abs(tickerState.activityHeight - 30) <= 1
         && Math.abs(tickerState.activityHeight - tickerState.filterHeight) <= 1
         && tickerState.rows === 3
         && tickerState.levels.every((level) => /^#[\d,]+$/.test(level))

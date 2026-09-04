@@ -1621,6 +1621,7 @@
 }
 
 .live-head-controls {
+    --live-head-control-height: 30px;
     position: relative;
     display: flex;
     min-width: 0;
@@ -1630,7 +1631,8 @@
 }
 
 .live-head-controls .header-activity-button {
-    min-height: 30px;
+    height: var(--live-head-control-height);
+    min-height: var(--live-head-control-height);
     padding: 0.36rem 0.58rem;
     border-radius: 7px;
     background:
@@ -1645,11 +1647,175 @@
     flex: 0 0 auto;
 }
 
+/* Keep both columns and the outer box stable across all receipt states. */
+.chain-health {
+    position: relative;
+    display: grid;
+    flex: 0 0 214px;
+    grid-template-columns: 70px minmax(0, 1fr);
+    grid-template-rows: 11px 10px;
+    align-content: center;
+    align-items: center;
+    column-gap: 6px;
+    width: 214px;
+    min-width: 0;
+    height: var(--live-head-control-height);
+    padding: 3px 9px;
+    border: 1px solid color-mix(in srgb, var(--accent-cyan) 24%, var(--glass-border));
+    border-radius: 7px;
+    background:
+        linear-gradient(90deg, color-mix(in srgb, var(--accent-cyan) 7%, transparent), color-mix(in srgb, var(--accent-purple) 5%, transparent)),
+        color-mix(in srgb, var(--bg-primary) 48%, transparent);
+    color: var(--text-secondary);
+    box-shadow: inset 0 1px 0 color-mix(in srgb, var(--text-primary) 6%, transparent);
+    text-align: left;
+    cursor: pointer;
+}
+
+.chain-health-label {
+    grid-column: 1;
+    grid-row: 1;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.54rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.06em;
+    color: color-mix(in srgb, var(--accent-cyan) 74%, var(--text-tertiary));
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.chain-health-readout {
+    grid-column: 1;
+    grid-row: 2;
+    min-width: 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.52rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(--text-primary);
+}
+
+.chain-health-readout[data-tone="watch"] { color: var(--chamber-watch-color); }
+.chain-health-readout[data-tone="risk"] { color: var(--chamber-risk-color); }
+.chain-health-readout[data-tone="unknown"] { color: var(--text-secondary); }
+
+.chain-health-window {
+    --chain-health-count: 25;
+    position: relative;
+    display: block;
+    grid-column: 2;
+    grid-row: 1 / 3;
+    width: 100%;
+    height: 22px;
+    overflow: hidden;
+}
+
+.chain-health-bar {
+    position: absolute;
+    top: 1px;
+    bottom: 4px;
+    left: calc(var(--chain-health-position) * (100% / var(--chain-health-count)));
+    width: calc(100% / var(--chain-health-count));
+}
+
+.chain-health-bar::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    right: 0.75px;
+    bottom: 0;
+    left: 0.75px;
+    height: var(--chain-health-fill);
+    border-radius: 1px;
+    background: currentColor;
+}
+
+.chain-health-bar.ok { --chain-health-fill: 100%; color: var(--chamber-good-color); }
+.chain-health-bar.watch { --chain-health-fill: 55%; color: var(--chamber-watch-color); }
+.chain-health-bar.risk { --chain-health-fill: 34%; color: var(--chamber-risk-color); }
+.chain-health-bar.unknown { --chain-health-fill: 18%; color: var(--text-secondary); }
+.chain-health-exiting { pointer-events: none; }
+
+.chain-health-bar.risk::after {
+    content: '';
+    position: absolute;
+    inset: 0 0.75px;
+    background: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.chain-health-bar.is-head::before { box-shadow: 0 0 4px currentColor; }
+
+.chain-health-window::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: calc(100% / var(--chain-health-count));
+    height: 2px;
+    background: var(--text-primary);
+}
+
+.chain-health-window:empty::before {
+    content: '';
+    position: absolute;
+    inset: 1px 0 4px;
+    background: repeating-linear-gradient(90deg, transparent 0 0.75px, color-mix(in srgb, var(--text-secondary) 28%, transparent) 0.75px calc(100% / var(--chain-health-count) - 0.75px), transparent calc(100% / var(--chain-health-count) - 0.75px) calc(100% / var(--chain-health-count)));
+}
+
+.chain-health-window:empty::after { content: none; }
+.chain-health:is(:hover, :focus-visible) { border-color: color-mix(in srgb, var(--accent-cyan) 54%, var(--glass-border)); }
+.chain-health:focus-visible { outline: 2px solid var(--accent-cyan); outline-offset: 2px; }
+.chain-health[data-feed-state="stale"] { border-style: dashed; }
+.chain-health[data-feed-state="stale"] .chain-health-readout { color: var(--text-secondary); }
+
+@media (max-width: 1100px) {
+    .live-head-topline .live-head-controls { grid-column: 1 / -1; }
+}
+
+@media (max-width: 719px) {
+    .live-head-topline .live-head-controls { position: static; }
+    .live-head-topline .live-head-hide.home-block-hide {
+        position: absolute;
+        top: -5px;
+        right: -6px;
+        margin: 0;
+    }
+    .chain-health {
+        flex: 1 1 164px;
+        grid-template-columns: 32px minmax(0, 1fr);
+        column-gap: 2px;
+        width: 164px;
+        min-width: 110px;
+        max-width: 214px;
+        padding: 3px 2px;
+    }
+    .chain-health-label { font-size: 0.5rem; letter-spacing: 0.04em; }
+    .chain-health-label-lead { display: none; }
+    .chain-health-readout { font-size: 0.47rem; }
+    .chain-health-bar::before { right: 0.5px; left: 0.5px; }
+    .chain-health-bar.risk::after { right: 0.5px; left: 0.5px; }
+    .live-head-controls .header-activity-button { flex-shrink: 0; }
+}
+
+@media (max-width: 359px) {
+    .live-head-topline .live-head-controls { gap: 0.125rem; }
+}
+
+@media (forced-colors: active) {
+    .chain-health { border-color: ButtonText; }
+    .chain-health-bar::before,
+    .chain-health-window::after { background: ButtonText; }
+    .chain-health-bar.risk::after { background: none; border: 1px dotted ButtonText; }
+}
+
 .live-head-filter-toggle {
     position: relative;
     display: grid;
     width: 30px;
-    height: 30px;
+    height: var(--live-head-control-height);
     padding: 0;
     place-items: center;
     border: 1px solid color-mix(in srgb, var(--accent-cyan) 26%, var(--glass-border));
@@ -1672,6 +1838,48 @@
     box-shadow: 0 0 6px color-mix(in srgb, var(--live-head-accent) 72%, transparent);
     opacity: 0;
 }
+
+/* Enlarge touch hit areas without changing the visible desktop proportions. */
+@media (pointer: coarse) {
+    .live-head-title.lb-panel-title { min-height: 30px; }
+    .live-head-controls { min-height: 44px; }
+    .live-head-controls .header-activity-button { overflow: visible; }
+    .live-head-controls .live-head-filter { min-width: 44px; justify-content: center; }
+    .live-head-controls :is(.chain-health, .header-activity-button, .live-head-filter-toggle)::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 100%;
+        min-width: 44px;
+        height: 44px;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.chain-health-bar.is-inspected::before { outline: 1px solid var(--text-primary); }
+.live-head-inspector.is-chain-health {
+    width: min(220px, calc(100vw - 20px));
+    max-height: min(200px, calc(100dvh - 20px));
+    padding: 8px;
+    border-radius: 8px;
+    background: var(--bg-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    line-height: 1.45;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    animation: none;
+}
+.chain-health-mini-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.chain-health-mini-heading > a { font-weight: 700; }
+.chain-health-mini-heading > span { color: var(--text-secondary); font-size: 9px; }
+.chain-health-mini-bakers { display: grid; gap: 2px; }
+.chain-health-mini-baker { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding-block: 1px; }
+.chain-health-mini-baker > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chain-health-mini-baker > strong { flex-shrink: 0; color: var(--chamber-watch-color); font-variant-numeric: tabular-nums; }
+.chain-health-mini-note { margin: 3px 0 0; color: var(--text-secondary); }
+.live-head-inspector.is-chain-health a:focus-visible { outline: 1px solid var(--accent-cyan); outline-offset: 1px; }
 
 .live-head-filter-toggle.is-filtered::after {
     opacity: 1;
@@ -3733,10 +3941,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
     .live-head-controls .header-activity-button {
         display: flex;
-        height: 39px;
-        min-height: 39px;
         align-items: center;
-        margin-block: -2.5px;
         padding: 0.3rem 0.42rem;
     }
 
@@ -3746,12 +3951,6 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
 
     .live-head-controls :is(.block-ticker-usage-moved, .block-ticker-usage-nft, .block-ticker-whale) {
         display: none;
-    }
-
-    .live-head-filter-toggle {
-        width: 44px;
-        height: 39px;
-        margin-block: -2.5px;
     }
 
     .live-head-filter-menu {

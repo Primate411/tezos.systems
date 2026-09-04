@@ -3809,6 +3809,40 @@ async function checkSelectorContracts() {
     fail('Live Head rows must not dissolve into the search well');
   }
   const chainHeartbeatUpdateBlock = health.match(/function updateBlockTicker[\s\S]*?function wireCycleChipHealthLauncher/)?.[0] || '';
+  const chainHealthStripBlock = health.match(/function updateChainHealthStrip[\s\S]*?function blockTickerFallback/)?.[0] || '';
+  if (!health.includes('const CHAIN_HEALTH_BLOCK_LIMIT = 25;')
+      || !health.includes('const LAST_BLOCK_LIMIT = CHAIN_HEALTH_BLOCK_LIMIT;')
+      || !chainHealthStripBlock.includes("document.visibilityState !== 'visible'")
+      || !chainHealthStripBlock.includes('quietlySyncHtml(viewport,')
+      || !chainHealthStripBlock.includes('latestBlockStatus(block)')
+      || !chainHealthStripBlock.includes('liveHeadMotionAllowed({ suppressMotion })')
+      || !chainHealthStripBlock.includes('error && viewport.children.length')
+      || !chainHealthStripBlock.includes('advance > 0 && advance < CHAIN_HEALTH_BLOCK_LIMIT')
+      || !index.includes('id="chain-health-window"')) {
+    fail('Chain health must retain 25 keyed attestation receipts with visibility-gated quiet reconciliation, last-good failure state, and new-head-only motion');
+  }
+  const chainHealthStateBlock = health.match(/function chainHealthState[\s\S]*?function updateChainHealthStrip/)?.[0] || '';
+  const chainHealthCssBlock = heroSearchCss.match(/\.chain-health \{[\s\S]*?\.live-head-filter-toggle \{/)?.[0] || '';
+  if (!chainHealthStateBlock.includes('latestBlockStatus(block)')
+      || !chainHealthStateBlock.includes('status.safetyMargin < 0')
+      || !chainHealthStateBlock.includes('const total = states.length')
+      || !chainHealthStateBlock.includes('counts.unknown')
+      || !chainHealthStateBlock.includes("tone === 'risk' ? readout.sentence : ''")
+      || !chainHealthStripBlock.includes('sourceStamp <= Number(button.dataset.sourceStamp || 0)')
+      || !chainHealthStripBlock.includes("? ' is-head' : ''")
+      || !chainHealthStripBlock.includes('chainHealthMissedCopy(block, missedStates[index])')
+      || !health.includes('fetchHeartbeatMissedRights(data.chainHealthBlocks || data.blocks)')
+      || !health.includes('function renderChainHealthInspector')
+      || index.indexOf('id="header-activity-button"') > index.indexOf('id="chain-health"')
+      || !index.includes('aria-describedby="chain-health-legend"')
+      || !index.includes('id="chain-health-announcer"')
+      || !chainHealthCssBlock.includes('--chain-health-count: 25')
+      || !chainHealthCssBlock.includes('--chamber-good-color')
+      || !chainHealthCssBlock.includes('--chain-health-fill: 34%')
+      || !chainHealthCssBlock.includes('@media (forced-colors: active)')
+      || /#[a-f\d]{3,8}\b/i.test(chainHealthCssBlock)) {
+    fail('Chain health must share quorum semantics, disclose the complete window including unknowns, announce only risk entry, retain source failure, and use theme-aware height cues');
+  }
   const chainHeartbeatActivityBlock = health.match(/async function fetchHeartbeatActivity[\s\S]*?function requestHeartbeatSupplements/)?.[0] || '';
   const liveHeadRowBlock = health.match(/function renderLiveHeadRow[\s\S]*?function renderLiveHeadRows/)?.[0] || '';
   if (!health.includes('function updateLiveHeadRows')
