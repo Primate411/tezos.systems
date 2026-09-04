@@ -153,7 +153,11 @@ function renderCollection() {
         };
         Object.entries(values).forEach(([key, value]) => {
             const cell = summaryTarget.querySelector(`[data-collection-total="${key}"] strong`);
-            if (cell) cell.textContent = String(value);
+            if (cell) {
+                const text = String(value);
+                cell.textContent = text;
+                cell.closest('article')?.classList.toggle('is-wide-total', text.length > 9);
+            }
         });
     }
     const spamButton = document.getElementById('collection-spam-toggle');

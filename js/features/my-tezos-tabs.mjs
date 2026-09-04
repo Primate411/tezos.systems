@@ -1,7 +1,8 @@
 const VIEW_SESSION_KEY = 'tezos-systems-my-tezos-view';
-export const MY_TEZOS_VIEWS = Object.freeze(['overview', 'portfolio', 'transactions', 'collection', 'story', 'tezos-x']);
+export const MY_TEZOS_VIEWS = Object.freeze(['overview', 'baker-signal', 'portfolio', 'transactions', 'collection', 'story', 'tezos-x']);
 
 const activators = new Map();
+const viewScrollPositions = new Map();
 let initialized = false;
 
 function routeCanOwnView() {
@@ -49,6 +50,10 @@ export function setMyTezosView(view, {
     routeMode = 'replace'
 } = {}) {
     const selected = normalizeView(view);
+    const body = document.getElementById('drawer-body');
+    const previous = document.querySelector('[data-my-tezos-view][aria-selected="true"]')?.dataset.myTezosView;
+    const viewChanged = previous !== selected;
+    if (body && previous && viewChanged) viewScrollPositions.set(previous, body.scrollTop);
     let selectedButton = null;
     document.querySelectorAll('[data-my-tezos-view]').forEach((button) => {
         const active = button.dataset.myTezosView === selected;
@@ -72,6 +77,9 @@ export function setMyTezosView(view, {
         console.warn(`[my-tezos] ${selected} activation failed:`, error);
     });
     window.dispatchEvent(new CustomEvent('my-tezos-view-changed', { detail: { view: selected } }));
+    // Restore synchronously after the journey footer moves. A deferred restore
+    // could overwrite a scroll the reader makes immediately after choosing a tab.
+    if (body && viewChanged) body.scrollTop = viewScrollPositions.get(selected) || 0;
     return selected;
 }
 
@@ -119,4 +127,5 @@ export function initMyTezosTabs() {
 export function resetMyTezosTabsForTests() {
     initialized = false;
     activators.clear();
+    viewScrollPositions.clear();
 }

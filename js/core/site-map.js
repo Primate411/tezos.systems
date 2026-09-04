@@ -31,6 +31,7 @@ export const SITE_MAP = [
         detail: 'Make a wallet or .tez name the center of a personal Tezos dashboard',
         keywords: ['wallet', 'account', 'portfolio', 'rewards', 'rewards tracker', 'baker', 'baker report card', 'operator health', 'personal brief', 'wallet connect', 'identity', 'my baker'],
         searchIntents: [
+            { id: 'my-tezos-baker-signal', title: 'My Tezos Baker Signal', href: '/my/?view=baker-signal', detail: 'Follow the active wallet’s baker with live health, capacity, participation, governance, and recent activity', keywords: ['baker signal', 'my baker health', 'operator status'], journeyOnly: true },
             { id: 'my-tezos-portfolio', title: 'My Tezos Portfolio', href: '/my/?view=portfolio', detail: 'Open the browser-local L1 portfolio and exact balance history', keywords: ['my portfolio', 'wallet balances', 'portfolio history'], journeyOnly: true },
             { id: 'my-tezos-transactions', title: 'My Tezos Transactions', href: '/my/?view=transactions', detail: 'Open account transfers, NFT interactions, and changes since the last visit', keywords: ['my transactions', 'wallet activity', 'what changed'], journeyOnly: true },
             { id: 'my-tezos-collection', title: 'My Tezos Collection', href: '/my/?view=collection', detail: 'Open collected and created Tezos art across saved accounts', keywords: ['my collection', 'my nfts', 'created art'], journeyOnly: true },

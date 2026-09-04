@@ -29,6 +29,7 @@ import { smokeChamberReading } from './lib/chamber-reading-smoke.mjs';
 import { smokeTezosCrpCompaction } from './lib/tezoscrp-compaction-smoke.mjs';
 import { smokeStandaloneChamberCompletion } from './lib/standalone-chamber-completion-smoke.mjs';
 import { smokeStandaloneChamberLifecycle } from './lib/standalone-chamber-lifecycle-smoke.mjs';
+import { smokeMyTezosLayout } from './lib/my-tezos-layout-smoke.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const require = createRequire(import.meta.url);
@@ -11146,7 +11147,8 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   await page.locator('#drawer-address-input').fill(SAMPLE_ADDRESS);
   await page.locator('#drawer-connect-btn').click();
   await page.waitForFunction(() => {
-    return document.querySelectorAll('#drawer-brief .drawer-loading-card').length === 2
+    return document.querySelectorAll('#drawer-brief .drawer-loading-card').length === 1
+      && document.querySelectorAll('#drawer-baker-brief .drawer-loading-card').length === 1
       && document.querySelectorAll('#my-baker-results .my-baker-loading-stat').length === 8;
   }, null, { timeout: 5000 });
   const loadingLayout = await page.evaluate(() => {
@@ -11166,11 +11168,13 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
     loadingLayout.columns === 2
       && loadingLayout.briefHeight >= 150
       && loadingLayout.rewardsHeight >= 300
-      && loadingLayout.bakerHeight >= 480
+      && loadingLayout.bakerHeight === 0
       && loadingLayout.loadingCards >= 4
       && loadingLayout.loadingStats === 8,
     `my tezos baker activity: first account read did not hold a shape-correct two-column frame ${JSON.stringify(loadingLayout)}`
   );
+  await page.locator('#my-tezos-tab-baker-signal').click();
+  assert(await page.locator('#drawer-baker').evaluate((node) => node.getBoundingClientRect().height >= 480), 'Baker Signal must preserve the baker loading frame');
   try {
     await page.waitForFunction(() => {
       const text = document.querySelector('#drawer-baker-activity')?.textContent || '';
@@ -11216,6 +11220,7 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
     `my tezos baker activity: structured while-away account/network report did not reconcile ${JSON.stringify(overnightState)}`
   );
 
+  await page.locator('#my-tezos-tab-baker-signal').click();
   await page.waitForFunction(() => {
     const text = (document.querySelector('#drawer-operator-status')?.innerText || '').toLowerCase();
     return text.includes('next round 0') && text.includes('back online') && text.includes('last 10 attestations ok') && text.includes('v25.0');
@@ -11238,12 +11243,17 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   assert(operatorText.includes('attestation') && operatorText.includes('100.0%'), 'my tezos baker activity: should show prominent attestation rate');
   assert(operatorText.includes('dal') && operatorText.includes('14/14 dal slots'), 'my tezos baker activity: should show prominent DAL participation');
 
+  await page.locator('#my-tezos-tab-overview').click();
   const settledLayout = await page.evaluate(() => {
     const columns = document.querySelector('.drawer-live-columns')?.getBoundingClientRect();
     const more = document.getElementById('drawer-more-section')?.getBoundingClientRect();
     return {
       rewardsColumn: document.querySelector('#drawer-rewards')?.parentElement?.className || '',
-      bakerColumn: document.querySelector('#drawer-baker')?.parentElement?.className || '',
+      bakerPanel: document.querySelector('#drawer-baker')?.closest('[data-my-tezos-panel]')?.dataset.myTezosPanel,
+      bakerBriefPanel: document.querySelector('#drawer-baker-brief')?.closest('[data-my-tezos-panel]')?.dataset.myTezosPanel,
+      activityPanel: document.querySelector('#drawer-baker-activity')?.closest('[data-my-tezos-panel]')?.dataset.myTezosPanel,
+      overviewBakerCards: document.querySelectorAll('#my-tezos-panel-overview .brief-section-baker, #my-tezos-panel-overview .brief-section-governance, #my-tezos-panel-overview .capacity-bars, #my-tezos-panel-overview .my-baker-grid').length,
+      personalBriefColumn: document.querySelector('#drawer-brief')?.parentElement?.className || '',
       journeyGap: columns && more ? Math.round(more.top - columns.bottom) : null,
       moreDirect: document.getElementById('drawer-more-section')?.parentElement?.id === 'drawer-connected',
       journeyCards: document.querySelectorAll('#drawer-more-actions .drawer-account-journey-card').length,
@@ -11254,7 +11264,11 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   });
   assert(
     settledLayout.rewardsColumn.includes('drawer-live-column-primary')
-      && settledLayout.bakerColumn.includes('drawer-live-column-secondary')
+      && settledLayout.personalBriefColumn.includes('drawer-live-column-secondary')
+      && settledLayout.bakerPanel === 'baker-signal'
+      && settledLayout.bakerBriefPanel === 'baker-signal'
+      && settledLayout.activityPanel === 'baker-signal'
+      && settledLayout.overviewBakerCards === 0
       && settledLayout.journeyGap >= 0
       && settledLayout.journeyGap <= 24
       && settledLayout.moreDirect
@@ -12528,7 +12542,7 @@ async function smokeMyTezosIdleAccount(browser, baseUrl) {
       const briefCards = Array.from(brief?.querySelectorAll('.brief-section') || []);
       const columnRect = columns?.getBoundingClientRect();
       const rewardsRect = document.querySelector('#drawer-rewards')?.getBoundingClientRect();
-      const bakerRect = document.querySelector('#drawer-baker')?.getBoundingClientRect();
+      const briefRect = brief?.getBoundingClientRect();
       const networkRect = document.querySelector('#drawer-network')?.getBoundingClientRect();
       const directoryAction = document.querySelector('#my-tezos-delegation-guidance .my-tezos-directory-action');
       const directoryLabel = directoryAction?.querySelector('.my-tezos-directory-label');
@@ -12553,9 +12567,10 @@ async function smokeMyTezosIdleAccount(browser, baseUrl) {
         }),
         liveColumns: getComputedStyle(columns).gridTemplateColumns,
         rewardsFullWidth: fullWidth(rewardsRect),
-        bakerFullWidth: fullWidth(bakerRect),
+        briefSectionFullWidth: fullWidth(briefRect),
         networkFullWidth: fullWidth(networkRect),
-        liveOrder: Boolean(rewardsRect && bakerRect && networkRect && bakerRect.top >= rewardsRect.bottom && networkRect.top >= bakerRect.bottom),
+        liveOrder: Boolean(rewardsRect && briefRect && networkRect && briefRect.top >= rewardsRect.bottom && networkRect.top >= briefRect.bottom),
+        overviewBakerPanels: document.querySelectorAll('#my-tezos-panel-overview #drawer-baker, #my-tezos-panel-overview #drawer-baker-activity, #my-tezos-panel-overview #my-tezos-delegation-guidance').length,
         awayCards: document.querySelectorAll('#drawer-network .network-away-card').length,
         awaySlotEmpty: (() => {
           const slot = document.querySelector('#drawer-network [data-network-away-slot]');
@@ -12611,7 +12626,8 @@ async function smokeMyTezosIdleAccount(browser, baseUrl) {
     );
     assert(
       state.rewardsFullWidth
-        && state.bakerFullWidth
+        && state.briefSectionFullWidth
+        && state.overviewBakerPanels === 0
         && state.networkFullWidth
         && state.liveOrder,
       `my tezos idle account ${label}: live sections did not collapse into one readable column ${JSON.stringify(state)}`
@@ -12630,6 +12646,27 @@ async function smokeMyTezosIdleAccount(browser, baseUrl) {
         && state.activityHidden,
       `my tezos idle account ${label}: baker-only controls survived the idle state ${JSON.stringify(state)}`
     );
+    await page.locator('#my-tezos-tab-baker-signal').click();
+    const guidanceGeometry = await page.evaluate(() => {
+      const action = document.querySelector('#my-tezos-delegation-guidance .my-tezos-directory-action');
+      const label = action.querySelector('.my-tezos-directory-label');
+      const guide = action.closest('.my-tezos-delegation-guide');
+      const box = action.getBoundingClientRect();
+      const labelBox = label.getBoundingClientRect();
+      const guideBox = guide.getBoundingClientRect();
+      return {
+        directoryActionHeight: box.height,
+        directoryActionWidth: box.width,
+        directoryActionPaddingInline: Math.min(parseFloat(getComputedStyle(action).paddingLeft), parseFloat(getComputedStyle(action).paddingRight)),
+        directoryActionContained: box.left >= guideBox.left - 1 && box.right <= guideBox.right + 1,
+        directoryLabelContained: labelBox.left >= box.left + 8 && labelBox.right <= box.right - 8,
+        directoryActionOverflows: action.scrollWidth > action.clientWidth + 1 || action.scrollHeight > action.clientHeight + 1,
+        drawerOverflow: document.getElementById('drawer-body').scrollWidth > document.getElementById('drawer-body').clientWidth + 1,
+        gradeCount: document.querySelectorAll('#drawer-baker .drawer-baker-grade').length
+      };
+    });
+    Object.assign(state, guidanceGeometry);
+    assert(state.gradeCount === 0, 'An undelegated account must not retain the previous baker grade');
     assert(
       state.guidance.includes('Delegate to an active baker you trust')
         && state.guidance.includes('Delegate to the builder of this site')
@@ -12660,71 +12697,169 @@ async function smokeMyTezosIdleAccount(browser, baseUrl) {
 }
 
 async function smokeMyTezosBakerLiveSignal(browser, baseUrl) {
-  const issues = [];
-  const context = await browser.newContext({
-    viewport: { width: 1440, height: 1000 },
-    serviceWorkers: 'block'
-  });
-  await installFeatureMocks(context, { operatorAttestationSequence: ['missed', 'missed', 'missed', 'missed', 'realized'] });
-  await context.addInitScript(() => {
-    window.__MY_TEZOS_OPERATOR_REFRESH_MS__ = 1000;
-    localStorage.setItem('tezos-systems-theme', 'matrix');
-    localStorage.setItem('tezos-toured', '1');
-    localStorage.setItem('tezos-welcomed', '1');
-    localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
-  });
+  for (const { label, viewport, theme } of [
+    { label: 'desktop', viewport: { width: 1440, height: 800 }, theme: 'matrix' },
+    { label: 'mobile', viewport: { width: 390, height: 740 }, theme: 'clean' }
+  ]) {
+    const issues = [];
+    const context = await browser.newContext({
+      viewport,
+      serviceWorkers: 'block'
+    });
+    await installFeatureMocks(context, { operatorAttestationSequence: ['missed', 'missed', 'missed', 'missed', 'realized'] });
+    await context.addInitScript((theme) => {
+      window.__MY_TEZOS_OPERATOR_REFRESH_MS__ = 1000;
+      localStorage.setItem('tezos-systems-theme', theme);
+      localStorage.setItem('tezos-toured', '1');
+      localStorage.setItem('tezos-welcomed', '1');
+      localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    }, theme);
 
-  const page = await context.newPage();
-  attachIssueCollectors(page, 'my tezos baker live signal', issues);
+    const page = await context.newPage();
+    attachIssueCollectors(page, 'my tezos baker live signal', issues);
 
-  const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'domcontentloaded' });
-  assert(response?.ok(), `my tezos baker live signal: dashboard failed with HTTP ${response?.status()}`);
-  await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+    const response = await page.goto(`${baseUrl}/my/?view=baker-signal&theme=${theme}`, { waitUntil: 'domcontentloaded' });
+    assert(response?.ok(), `my tezos baker live signal: dashboard failed with HTTP ${response?.status()}`);
+    await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
-  await page.locator('#my-tezos-btn').click();
-  await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos baker live signal drawer');
-  await page.locator('#drawer-address-input').fill(SAMPLE_DELEGATOR_ADDRESS);
-  await page.locator('#drawer-connect-btn').click();
+    await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
+    await page.locator('#my-tezos-baker-signal-empty').waitFor({ state: 'visible' });
+    assert(await page.locator('#my-tezos-tab-baker-signal').getAttribute('aria-selected') === 'true', 'Baker Signal direct route must select its tab');
+    await page.locator('#my-tezos-baker-signal-overview').click();
+    await page.locator('#drawer-address-input').fill(SAMPLE_DELEGATOR_ADDRESS);
+    await page.locator('#drawer-connect-btn').click();
+    await page.locator('#my-tezos-tab-baker-signal').click();
 
-  const readSignalState = () => page.evaluate(() => ({
-    operator: document.querySelector('#drawer-operator-status')?.innerText || '',
-    freshness: document.querySelector('#drawer-freshness')?.innerText || ''
-  }));
+    const readSignalState = () => page.evaluate(() => ({
+      operator: document.querySelector('#drawer-operator-status')?.innerText || '',
+      freshness: document.querySelector('#drawer-freshness')?.innerText || ''
+    }));
 
-  try {
-    await page.waitForFunction(() => {
-      const text = (document.querySelector('#drawer-operator-status')?.innerText || '').toLowerCase();
-      return text.includes('your baker signal · qa baker')
-        && text.includes('check now')
-        && text.includes('10/10 recent attestation issues');
-    }, null, { timeout: 15000 });
-  } catch {
-    const state = await readSignalState();
-    throw new Error(`my tezos baker live signal: initial stale state was not visible: ${JSON.stringify(state)}`);
+    try {
+      await page.waitForFunction(() => {
+        const text = (document.querySelector('#drawer-operator-status')?.innerText || '').toLowerCase();
+        return text.includes('your baker signal · qa baker')
+          && text.includes('check now')
+          && text.includes('10/10 recent attestation issues');
+      }, null, { timeout: 15000 });
+    } catch {
+      const state = await readSignalState();
+      throw new Error(`my tezos baker live signal: initial stale state was not visible: ${JSON.stringify(state)}`);
+    }
+
+    const before = await page.evaluate(() => {
+      const panel = document.getElementById('drawer-operator-status');
+      const body = document.getElementById('drawer-body');
+      const tab = document.getElementById('my-tezos-tab-baker-signal');
+      tab.focus({ preventScroll: true });
+      const range = document.createRange();
+      range.selectNodeContents(panel.querySelector('h3'));
+      document.getSelection().removeAllRanges();
+      document.getSelection().addRange(range);
+      body.scrollTop = Math.min(80, body.scrollHeight - body.clientHeight);
+      window.__bakerSignalPanel = panel.querySelector('.drawer-operator-panel');
+      window.__bakerSignalTiles = Array.from(panel.querySelectorAll('.drawer-operator-tile'));
+      return { top: body.scrollTop, pageY: window.scrollY, selection: document.getSelection().toString(), rail: tab.parentElement.scrollLeft };
+    });
+
+    try {
+      await page.waitForFunction(() => {
+        const text = (document.querySelector('#drawer-operator-status')?.innerText || '').toLowerCase();
+        const freshness = (document.querySelector('#drawer-freshness')?.innerText || '').toLowerCase();
+        return text.includes('back online')
+          && text.includes('your baker signal · qa baker')
+          && text.includes('last 10 attestations ok')
+          && freshness.includes('operator signal');
+      }, null, { timeout: 15000 });
+    } catch {
+      const state = await readSignalState();
+      throw new Error(`my tezos baker live signal: live recovery was not visible: ${JSON.stringify(state)}`);
+    }
+
+    const operatorText = (await page.locator('#drawer-operator-status').innerText()).toLowerCase();
+    assert(operatorText.includes('your baker signal · qa baker'), `my tezos baker live signal: delegated baker identity was lost during refresh, saw: ${operatorText}`);
+    assert(operatorText.includes('back online'), `my tezos baker live signal: open drawer did not recover live, saw: ${operatorText}`);
+    assert(!operatorText.includes('check now'), `my tezos baker live signal: stale issue state remained visible, saw: ${operatorText}`);
+
+    const after = await page.evaluate(() => {
+      const panel = document.getElementById('drawer-operator-status');
+      const body = document.getElementById('drawer-body');
+      const tab = document.getElementById('my-tezos-tab-baker-signal');
+      return {
+        top: body.scrollTop, pageY: window.scrollY, selection: document.getSelection().toString(), rail: tab.parentElement.scrollLeft,
+        samePanel: panel.querySelector('.drawer-operator-panel') === window.__bakerSignalPanel,
+        sameTiles: Array.from(panel.querySelectorAll('.drawer-operator-tile')).every((tile, i) => tile === window.__bakerSignalTiles[i]),
+        focused: document.activeElement === tab,
+        selected: tab.getAttribute('aria-selected'),
+        visible: getComputedStyle(panel).opacity === '1' && panel.getBoundingClientRect().width > 0,
+        emptyHidden: document.getElementById('my-tezos-baker-signal-empty').hidden,
+        overflow: body.scrollWidth > body.clientWidth + 1,
+        scope: document.getElementById('my-tezos-baker-signal-scope').textContent
+      };
+    });
+    assert(after.samePanel && after.sameTiles && after.focused && after.selected === 'true' && after.visible && after.emptyHidden,
+      `Baker Signal ${label}: background refresh lost the visible keyed panel or tab state ${JSON.stringify(after)}`);
+    assert(Math.abs(after.top - before.top) < 1 && after.pageY === before.pageY && after.rail === before.rail && after.selection === before.selection,
+      `Baker Signal ${label}: background refresh moved the reader ${JSON.stringify({ before, after })}`);
+    assert(!after.overflow && after.scope.includes('active wallet'), `Baker Signal ${label}: layout or wallet scope drifted ${JSON.stringify(after)}`);
+    await page.locator('#drawer-baker-brief .brief-section-baker').waitFor({ state: 'visible', timeout: 15000 });
+    await page.waitForFunction(() => document.querySelector('#drawer-operator-status')?.textContent.includes('Back online')
+      && document.querySelector('#drawer-baker-brief')?.textContent.includes('Back online'), null, { timeout: 15000 });
+    const ownership = await page.evaluate(() => ({
+      allBakerPanelsOwned: ['drawer-baker', 'drawer-baker-activity', 'drawer-baker-brief', 'my-tezos-delegation-guidance']
+        .every((id) => document.getElementById(id)?.closest('[data-my-tezos-panel]')?.dataset.myTezosPanel === 'baker-signal'),
+      overviewBakerSections: document.querySelectorAll('#my-tezos-panel-overview .my-baker-grid, #my-tezos-panel-overview .capacity-bars, #my-tezos-panel-overview .brief-section-baker, #my-tezos-panel-overview .brief-section-governance').length,
+      statusInSignal: Boolean(document.querySelector('#drawer-baker-brief .brief-section-baker'))
+    }));
+    assert(ownership.allBakerPanelsOwned && ownership.overviewBakerSections === 0 && ownership.statusInSignal,
+      `Baker Signal ${label}: baker content remained in Overview ${JSON.stringify(ownership)}`);
+    const readerTop = await page.evaluate(() => {
+      const body = document.getElementById('drawer-body');
+      body.scrollTop = 30;
+      return body.scrollTop;
+    });
+    await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    assert(await page.locator('#drawer-body').evaluate((body) => body.scrollTop) === readerTop, `Baker Signal ${label}: delayed restoration overwrote reader scroll`);
+    if (ARTIFACTS_DIR) {
+      await page.evaluate(() => {
+        document.getSelection().removeAllRanges();
+        document.querySelector('.drawer-operator-panel').scrollIntoView({ block: 'start' });
+      });
+      await page.screenshot({ path: path.join(ARTIFACTS_DIR, `baker-signal-${label}.png`) });
+    }
+    await page.locator('#my-tezos-tab-baker-signal').press('ArrowLeft');
+    if (ARTIFACTS_DIR) {
+      await page.locator('#drawer-rewards').scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(ARTIFACTS_DIR, `overview-${label}.png`) });
+    }
+    assert(await page.locator('#my-tezos-tab-overview').getAttribute('aria-selected') === 'true', 'Baker Signal must follow Overview in keyboard order');
+    await page.locator('#my-tezos-tab-overview').press('ArrowRight');
+    assert(new URL(page.url()).searchParams.get('view') === 'baker-signal', 'Baker Signal tab must synchronize its route');
+    assert(await page.locator('#drawer-operator-status .drawer-operator-panel').evaluate((panel) => panel === window.__bakerSignalPanel), 'Switching back must retain the signal panel');
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.locator('#drawer-operator-status .drawer-operator-panel').waitFor({ state: 'visible', timeout: 15000 });
+    assert(await page.locator('#my-tezos-tab-baker-signal').getAttribute('aria-selected') === 'true', 'Baker Signal route must survive reload');
+
+    await page.locator('#my-tezos-tab-overview').click();
+    await page.locator('#my-baker-input').fill(SAMPLE_IDLE_ADDRESS);
+    await page.locator('#my-baker-save').click();
+    await page.locator('#my-tezos-tab-baker-signal').click();
+    await page.waitForFunction(() => document.getElementById('my-tezos-baker-signal-message')?.textContent.includes('This account has no baker'), null, { timeout: 15000 });
+    assert(await page.locator('#drawer-operator-status').isHidden(), 'An undelegated wallet must not retain the previous wallet’s signal');
+    await page.locator('#my-tezos-wallet-scope').selectOption(SAMPLE_DELEGATOR_ADDRESS);
+    await page.locator('#drawer-operator-status .drawer-operator-panel').waitFor({ state: 'visible', timeout: 15000 });
+    assert(await page.locator('#my-tezos-tab-baker-signal').getAttribute('aria-selected') === 'true', 'Switching wallets must keep Baker Signal selected');
+    assert((await page.locator('#drawer-operator-status h3').textContent()).includes('QA Baker'), 'Switching wallets must restore the selected wallet’s baker');
+    await page.locator('#my-tezos-tab-overview').click();
+    await page.locator('#my-baker-clear').click();
+    await page.locator('#my-tezos-tab-baker-signal').click();
+    assert((await page.locator('#my-tezos-baker-signal-message').innerText()).includes('Add a Tezos account'), 'Clearing the active wallet must restore Baker Signal setup guidance');
+    assert(await page.locator('#drawer-operator-status').isHidden() && await page.locator('#drawer-baker-details').isHidden(), 'Clearing the active wallet must remove its signal and supporting baker data');
+
+    await context.close();
+    assert(issues.length === 0, `my tezos baker live signal browser issues:\n${issues.join('\n')}`);
+    log(`ok - my tezos baker live signal ${label}`);
   }
-
-  try {
-    await page.waitForFunction(() => {
-      const text = (document.querySelector('#drawer-operator-status')?.innerText || '').toLowerCase();
-      const freshness = (document.querySelector('#drawer-freshness')?.innerText || '').toLowerCase();
-      return text.includes('back online')
-        && text.includes('your baker signal · qa baker')
-        && text.includes('last 10 attestations ok')
-        && freshness.includes('operator signal');
-    }, null, { timeout: 15000 });
-  } catch {
-    const state = await readSignalState();
-    throw new Error(`my tezos baker live signal: live recovery was not visible: ${JSON.stringify(state)}`);
-  }
-
-  const operatorText = (await page.locator('#drawer-operator-status').innerText()).toLowerCase();
-  assert(operatorText.includes('your baker signal · qa baker'), `my tezos baker live signal: delegated baker identity was lost during refresh, saw: ${operatorText}`);
-  assert(operatorText.includes('back online'), `my tezos baker live signal: open drawer did not recover live, saw: ${operatorText}`);
-  assert(!operatorText.includes('check now'), `my tezos baker live signal: stale issue state remained visible, saw: ${operatorText}`);
-
-  await context.close();
-  assert(issues.length === 0, `my tezos baker live signal browser issues:\n${issues.join('\n')}`);
-  log('ok - my tezos baker live signal smoke');
 }
 
 async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
@@ -12847,61 +12982,96 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
     `my tezos drawer live refresh: standardized freshness stamp missing ${JSON.stringify(state)}`
   );
 
-  const quietBefore = await page.evaluate(() => {
-    const drawer = document.querySelector('#drawer-body');
-    const results = document.querySelector('#my-baker-results');
-    const grid = results.querySelector('.my-baker-grid');
-    const button = document.querySelector('#drawer-refresh');
-    const value = results.querySelector('.my-baker-stat-value')?.firstChild;
-    drawer.scrollTop = Math.min(260, Math.max(0, drawer.scrollHeight - drawer.clientHeight));
-    button?.focus({ preventScroll: true });
-    if (value) {
-      const range = document.createRange();
-      range.setStart(value, 0);
-      range.setEnd(value, Math.min(6, value.length));
-      const selection = document.getSelection();
-      selection.removeAllRanges();
-      selection.addRange(range);
+  await page.waitForFunction(() => document.querySelector('#drawer-baker-history .rt-cal-block'), null, { timeout: 15000 });
+  assert(await page.locator('#my-tezos-panel-overview .rt-calendar').count() === 0, 'Baker history must be absent from Overview');
+  assert(await page.locator('#my-tezos-panel-baker-signal .rt-calendar').count() === 1, 'Baker Signal must own the single baker calendar');
+  for (const view of ['overview', 'baker-signal']) {
+    if (await page.locator(`#my-tezos-tab-${view}`).getAttribute('aria-selected') !== 'true') {
+      await page.locator(`#my-tezos-tab-${view}`).click();
     }
-    delete results.dataset.quietRefreshSettled;
-    window.__quietMyTezosGrid = grid;
-    window.__quietMyTezosButton = button;
-    window.__quietMyTezosJourneys = Array.from(document.querySelectorAll('#drawer-more-actions .drawer-account-journey-card'));
-    window.__quietMyTezosSignals = Array.from(document.querySelectorAll('#drawer-network .network-signal'));
-    window.__quietMyTezosAwayCard = document.querySelector('#drawer-network .network-away-card');
-    return {
-      top: drawer.scrollTop,
-      selection: document.getSelection()?.toString() || '',
-      awayPresent: Boolean(window.__quietMyTezosAwayCard),
-      journeyIds: window.__quietMyTezosJourneys.map((card) => card.dataset.myTezosJourneyDestination),
-      signalCategories: window.__quietMyTezosSignals.map((card) => card.dataset.category)
-    };
-  });
-  await page.waitForFunction(() => document.querySelector('#my-baker-results')?.dataset.quietRefreshSettled === 'true', null, { timeout: 5000 });
-  const quietAfter = await page.evaluate(() => {
-    const drawer = document.querySelector('#drawer-body');
-    const results = document.querySelector('#my-baker-results');
-    return {
-      top: drawer.scrollTop,
-      sameGrid: results.querySelector('.my-baker-grid') === window.__quietMyTezosGrid,
-      sameJourneys: Array.from(document.querySelectorAll('#drawer-more-actions .drawer-account-journey-card'))
-        .every((card, index) => card === window.__quietMyTezosJourneys[index]),
-      sameSignals: Array.from(document.querySelectorAll('#drawer-network .network-signal'))
-        .every((card, index) => card === window.__quietMyTezosSignals[index]),
-      sameAwayCard: document.querySelector('#drawer-network .network-away-card') === window.__quietMyTezosAwayCard,
-      journeyIds: Array.from(document.querySelectorAll('#drawer-more-actions .drawer-account-journey-card'))
-        .map((card) => card.dataset.myTezosJourneyDestination),
-      signalCategories: Array.from(document.querySelectorAll('#drawer-network .network-signal'))
-        .map((card) => card.dataset.category),
-      focused: document.activeElement === window.__quietMyTezosButton,
-      selection: document.getSelection()?.toString() || ''
-    };
-  });
-  assert(quietBefore.awayPresent && quietAfter.sameGrid && quietAfter.sameJourneys && quietAfter.sameSignals && quietAfter.sameAwayCard && quietAfter.focused, `my tezos drawer live refresh: background update replaced focused, journey, away-report, or relevance-ranked signal nodes ${JSON.stringify({ quietBefore, quietAfter })}`);
-  assert(JSON.stringify(quietAfter.journeyIds) === JSON.stringify(quietBefore.journeyIds), `my tezos drawer live refresh: background update reordered contextual journeys ${JSON.stringify({ quietBefore, quietAfter })}`);
-  assert(JSON.stringify(quietAfter.signalCategories) === JSON.stringify(quietBefore.signalCategories), `my tezos drawer live refresh: background update reordered relevance-ranked signals ${JSON.stringify({ quietBefore, quietAfter })}`);
-  assert(quietAfter.selection === quietBefore.selection, `my tezos drawer live refresh: background update lost text selection ${JSON.stringify({ quietBefore, quietAfter })}`);
-  assert(Math.abs(quietAfter.top - quietBefore.top) < 1, `my tezos drawer live refresh: background update moved drawer scroll ${JSON.stringify({ quietBefore, quietAfter })}`);
+    const quietBefore = await page.evaluate((view) => {
+      const drawer = document.querySelector('#drawer-body');
+      const results = document.querySelector('#my-baker-results');
+      const grid = results.querySelector('.my-baker-grid');
+      const button = document.querySelector(view === 'overview' ? '#drawer-refresh' : '#my-tezos-tab-baker-signal');
+      const value = document.querySelector(view === 'overview' ? '#drawer-brief .brief-body strong' : '#my-baker-results .my-baker-stat-value')?.firstChild;
+      drawer.scrollTop = Math.min(260, Math.max(0, drawer.scrollHeight - drawer.clientHeight));
+      button?.focus({ preventScroll: true });
+      if (value) {
+        const range = document.createRange();
+        range.setStart(value, 0);
+        range.setEnd(value, Math.min(6, value.length));
+        const selection = document.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      }
+      delete results.dataset.quietRefreshSettled;
+      const history = document.querySelector('#drawer-baker-history');
+      delete history.dataset.quietRefreshSettled;
+      window.__quietMyTezosCalendar = history.querySelector('.rt-calendar');
+      window.__quietMyTezosCycle = history.querySelector('.rt-cal-block');
+      window.__quietMyTezosGrid = grid;
+      window.__quietMyTezosButton = button;
+      window.__quietMyTezosJourneys = Array.from(document.querySelectorAll('#drawer-more-actions .drawer-account-journey-card'));
+      window.__quietMyTezosSignals = Array.from(document.querySelectorAll('#drawer-network .network-signal'));
+      window.__quietMyTezosAwayCard = document.querySelector('#drawer-network .network-away-card');
+      return {
+        top: drawer.scrollTop,
+        selection: document.getSelection()?.toString() || '',
+        awayPresent: Boolean(window.__quietMyTezosAwayCard),
+        journeyIds: window.__quietMyTezosJourneys.map((card) => card.dataset.myTezosJourneyDestination),
+        signalCategories: window.__quietMyTezosSignals.map((card) => card.dataset.category)
+      };
+    }, view);
+    await page.waitForFunction(() => document.querySelector('#my-baker-results')?.dataset.quietRefreshSettled === 'true'
+      && document.querySelector('#drawer-baker-history')?.dataset.quietRefreshSettled === 'true', null, { timeout: 5000 });
+    const quietAfter = await page.evaluate(() => {
+      const drawer = document.querySelector('#drawer-body');
+      const results = document.querySelector('#my-baker-results');
+      return {
+        top: drawer.scrollTop,
+        sameGrid: results.querySelector('.my-baker-grid') === window.__quietMyTezosGrid,
+        sameCalendar: document.querySelector('#drawer-baker-history .rt-calendar') === window.__quietMyTezosCalendar,
+        sameCycle: document.querySelector('#drawer-baker-history .rt-cal-block') === window.__quietMyTezosCycle,
+        sameJourneys: Array.from(document.querySelectorAll('#drawer-more-actions .drawer-account-journey-card'))
+          .every((card, index) => card === window.__quietMyTezosJourneys[index]),
+        sameSignals: Array.from(document.querySelectorAll('#drawer-network .network-signal'))
+          .every((card, index) => card === window.__quietMyTezosSignals[index]),
+        sameAwayCard: document.querySelector('#drawer-network .network-away-card') === window.__quietMyTezosAwayCard,
+        journeyIds: Array.from(document.querySelectorAll('#drawer-more-actions .drawer-account-journey-card'))
+          .map((card) => card.dataset.myTezosJourneyDestination),
+        signalCategories: Array.from(document.querySelectorAll('#drawer-network .network-signal'))
+          .map((card) => card.dataset.category),
+        focused: document.activeElement === window.__quietMyTezosButton,
+        selection: document.getSelection()?.toString() || ''
+      };
+    });
+    assert(quietBefore.awayPresent && quietAfter.sameGrid && quietAfter.sameJourneys && quietAfter.sameSignals && quietAfter.sameAwayCard && quietAfter.focused, `my tezos drawer live refresh: background update replaced focused, journey, away-report, or relevance-ranked signal nodes ${JSON.stringify({ quietBefore, quietAfter })}`);
+    assert(quietAfter.sameCalendar && quietAfter.sameCycle, 'Baker calendar and cycle receipts must retain their DOM across a background refresh');
+    assert(JSON.stringify(quietAfter.journeyIds) === JSON.stringify(quietBefore.journeyIds), `my tezos drawer live refresh: background update reordered contextual journeys ${JSON.stringify({ quietBefore, quietAfter })}`);
+    assert(JSON.stringify(quietAfter.signalCategories) === JSON.stringify(quietBefore.signalCategories), `my tezos drawer live refresh: background update reordered relevance-ranked signals ${JSON.stringify({ quietBefore, quietAfter })}`);
+    assert(quietAfter.selection === quietBefore.selection, `my tezos drawer live refresh: background update lost text selection ${JSON.stringify({ quietBefore, quietAfter })}`);
+    assert(Math.abs(quietAfter.top - quietBefore.top) < 1, `my tezos drawer live refresh: background update moved drawer scroll ${JSON.stringify({ quietBefore, quietAfter })}`);
+  }
+
+  for (const { label, width, height } of [
+    { label: 'desktop', width: 1440, height: 1000 },
+    { label: 'mobile', width: 390, height: 844 }
+  ]) {
+    await page.setViewportSize({ width, height });
+    await page.locator('#drawer-baker-history').scrollIntoViewIfNeeded();
+    const history = await page.locator('#drawer-baker-history').evaluate((node) => ({
+      title: node.querySelector('.rt-cal-title')?.textContent,
+      receipt: node.querySelector('.rt-cal-block')?.getAttribute('data-tip'),
+      overflow: node.scrollWidth > node.clientWidth + 1,
+      width: node.getBoundingClientRect().width,
+      drawerOverflow: document.querySelector('#drawer-body').scrollWidth > document.querySelector('#drawer-body').clientWidth + 1
+    }));
+    assert(history.title.includes('30-Cycle Baker History') && history.receipt.includes('XTZ')
+      && history.width > 250 && !history.overflow && !history.drawerOverflow,
+    `Baker history ${label}: calendar must be readable with cycle receipts and no overflow ${JSON.stringify(history)}`);
+    if (ARTIFACTS_DIR) await page.screenshot({ path: path.join(ARTIFACTS_DIR, `baker-history-${label}.png`) });
+  }
 
   await context.close();
   assert(issues.length === 0, `my tezos drawer live refresh browser issues:\n${issues.join('\n')}`);
@@ -12979,18 +13149,18 @@ async function smokeMyTezosEmptyState(browser, baseUrl) {
       'does not create or submit an operation',
       'Track a public address or .tez name',
       'No wallet extension, pairing, or signature is needed',
-      'Six views, one saved L1 identity',
+      'Seven views, one saved L1 identity',
       'Ledger Flow and Maxi Passport'
     ]) {
       assert(state.text.includes(phrase), `my tezos empty state ${label}: missing "${phrase}" ${JSON.stringify(state)}`);
     }
     assert(
-      JSON.stringify(state.featureTitles) === JSON.stringify(['Overview', 'Portfolio', 'Transactions', 'Collection', 'Your Story', 'Tezos X']),
+      JSON.stringify(state.featureTitles) === JSON.stringify(['Overview', 'Baker Signal', 'Portfolio', 'Transactions', 'Collection', 'Your Story', 'Tezos X']),
       `my tezos empty state ${label}: feature map drifted ${JSON.stringify(state)}`
     );
     assert(
       state.startCardCount === 2
-        && state.featureCardCount === 6
+        && state.featureCardCount === 7
         && state.cardsInside
         && state.actionsReadable,
       `my tezos empty state ${label}: onboarding geometry or controls regressed ${JSON.stringify(state)}`
@@ -13003,15 +13173,36 @@ async function smokeMyTezosEmptyState(browser, baseUrl) {
       `my tezos empty state ${label}: setup paths are unclear ${JSON.stringify(state)}`
     );
     if (label === 'desktop') {
-      assert(state.startRows === 1 && state.featureRows === 2, `my tezos empty state desktop: expected paired setup and 3x2 feature map ${JSON.stringify(state)}`);
+      assert(state.startRows === 1 && state.featureRows === 3, `my tezos empty state desktop: expected paired setup and three-column feature map ${JSON.stringify(state)}`);
       assert(
         Math.abs(state.actionTops.wallet - state.actionTops.watch) <= 1,
         `my tezos empty state desktop: wallet and watch-only controls are not level ${JSON.stringify(state.actionTops)}`
       );
     } else {
-      assert(state.startRows === 2 && state.featureRows === 6, `my tezos empty state mobile: expected readable single-column setup and feature map ${JSON.stringify(state)}`);
+      assert(state.startRows === 2 && state.featureRows === 7, `my tezos empty state mobile: expected readable single-column setup and feature map ${JSON.stringify(state)}`);
     }
     assert(!state.emptyOverflow && !state.drawerOverflow && !state.pageOverflow, `my tezos empty state ${label}: horizontal overflow ${JSON.stringify(state)}`);
+
+    for (const view of ['baker-signal', 'portfolio', 'transactions', 'collection', 'story', 'tezos-x']) {
+      await page.locator(`#my-tezos-tab-${view}`).click();
+      const emptyLayout = await page.evaluate(() => {
+        const body = document.getElementById('drawer-body');
+        const journeys = document.getElementById('drawer-more-section');
+        const button = document.getElementById('my-tezos-baker-signal-overview');
+        return {
+          overflow: body.scrollWidth - body.clientWidth,
+          orphanJourneyHeading: journeys.hidden && getComputedStyle(journeys).display !== 'none',
+          actionWidth: button.clientWidth,
+          actionOverflow: button.scrollHeight - button.clientHeight
+        };
+      });
+      assert(emptyLayout.overflow <= 1 && !emptyLayout.orphanJourneyHeading, `My Tezos empty ${view} ${label}: ${JSON.stringify(emptyLayout)}`);
+      if (view === 'baker-signal') {
+        assert(emptyLayout.actionWidth > 100 && emptyLayout.actionOverflow <= 1, `Baker Signal setup action must fit its label: ${JSON.stringify(emptyLayout)}`);
+        await page.locator('#my-tezos-baker-signal-overview').click();
+        assert(await page.locator('#my-tezos-tab-overview').getAttribute('aria-selected') === 'true', 'Empty Baker Signal returns to account setup');
+      }
+    }
 
     await context.close();
     assert(issues.length === 0, `my tezos empty state ${label} browser issues:\n${issues.join('\n')}`);
@@ -13041,6 +13232,7 @@ async function smokeMyTezosWalletConnect(browser, baseUrl) {
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos wallet connect drawer');
   await page.locator('#drawer-wallet-connect-btn').click();
   await page.waitForFunction((address) => localStorage.getItem('tezos-systems-my-baker-address') === address, SAMPLE_ADDRESS, { timeout: 10000 });
@@ -13077,6 +13269,7 @@ async function smokeMyTezosWalletConnect(browser, baseUrl) {
   assert(delegationState.button === 'Submitted' && /Submitted/.test(delegationState.status), `footer delegation: successful wallet state missing ${JSON.stringify(delegationState)}`);
 
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos wallet reconnect drawer');
 
   await page.evaluate(() => {
@@ -13300,6 +13493,7 @@ async function getMyTezosRewardReport(browser, baseUrl, { address, label, requir
     await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
     await page.locator('#my-tezos-btn').click();
+    await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
     await expectClassContains(page.locator('#my-tezos-drawer'), 'open', `${label} drawer`);
     await page.locator('#drawer-address-input').fill(address);
     await page.locator('#drawer-connect-btn').click();
@@ -13321,6 +13515,7 @@ async function getMyTezosRewardReport(browser, baseUrl, { address, label, requir
       const statsLabels = Array.from(document.querySelectorAll('#my-baker-results .my-baker-stat-label')).map((el) => el.textContent?.trim());
       return {
         rewardsText,
+        rewardHistoryPanel: document.querySelector('.rt-calendar')?.closest('[data-my-tezos-panel]')?.dataset.myTezosPanel,
         cycleClockText: document.querySelectorAll('#rewards-tracker-container .rt-card')[0]?.innerText?.replace(/\s+/g, ' ').trim() || '',
         currentCycleText: document.querySelectorAll('#rewards-tracker-container .rt-card')[1]?.innerText?.replace(/\s+/g, ' ').trim() || '',
         currentCycleValue: document.querySelectorAll('#rewards-tracker-container .rt-card')[1]?.querySelector('.rt-value')?.textContent?.trim() || '',
@@ -13405,6 +13600,7 @@ async function smokeMyTezosStakerRewards(browser, baseUrl) {
     assert(state.rewardsText.includes(rewardCase.expectedCurrent), `${rewardCase.label}: this-cycle card should use current staker reward: ${state.rewardsText}`);
     assert(Math.abs(Number(state.rewardsLastCycle) - rewardCase.expectedLastCycle) < 0.00001, `${rewardCase.label}: Morning Brief reward amount wrong: ${state.rewardsLastCycle}`);
     assert(state.isStaker === true, `${rewardCase.label}: Morning Brief should mark account as a staker`);
+    assert(state.rewardHistoryPanel === 'overview', `${rewardCase.label}: personal staking history belongs with personal rewards`);
     assert(Number(state.staked) / Number(state.totalXTZ) >= rewardCase.minStakeRatio, `${rewardCase.label}: stake ratio should match a mostly-staked account: ${state.staked}/${state.totalXTZ}`);
     assert(state.statsLabels.includes('Missed rights (10 cycles)'), `${rewardCase.label}: baker missed-right window should be explicit, saw ${state.statsLabels.join(', ')}`);
     assert(state.statsLabels.includes('APY (External staker)'), `${rewardCase.label}: APY label should identify the external-staker reward split, saw ${state.statsLabels.join(', ')}`);
@@ -13572,6 +13768,7 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
   }
 
   await page.waitForFunction(() => document.querySelectorAll('#drawer-operator-status .drawer-operator-tile').length === 5, null, { timeout: 15000 });
+  await page.locator('#my-tezos-tab-baker-signal').click();
   const operatorGeometry = await page.evaluate(() => {
     const grid = document.querySelector('.drawer-operator-grid');
     const children = Array.from(grid?.children || []).map((child) => child.getBoundingClientRect());
@@ -13831,6 +14028,8 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
       && cards.every((card) => !card.getAttribute('href')?.includes(staleAddress));
   }, { address: SAMPLE_ADDRESS_2, staleAddress: SAMPLE_ADDRESS }, { timeout: 5000 });
   await page.locator('#my-tezos-tab-overview').press('ArrowRight');
+  await page.waitForFunction(() => document.querySelector('#my-tezos-tab-baker-signal')?.getAttribute('aria-selected') === 'true' && document.activeElement?.id === 'my-tezos-tab-baker-signal', null, { timeout: 3000 });
+  await page.locator('#my-tezos-tab-baker-signal').press('ArrowRight');
   await page.waitForFunction(() => document.querySelector('#my-tezos-tab-portfolio')?.getAttribute('aria-selected') === 'true', null, { timeout: 3000 });
   await page.locator('#my-tezos-tab-portfolio').press('End');
   await page.waitForFunction(() => document.querySelector('#my-tezos-tab-tezos-x')?.getAttribute('aria-selected') === 'true' && document.activeElement?.id === 'my-tezos-tab-tezos-x', null, { timeout: 3000 });
@@ -13841,6 +14040,8 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
   await page.locator('#my-tezos-tab-tezos-x').press('Home');
   await page.waitForFunction(() => document.querySelector('#my-tezos-tab-overview')?.getAttribute('aria-selected') === 'true' && document.activeElement?.id === 'my-tezos-tab-overview', null, { timeout: 3000 });
   await page.locator('#my-tezos-tab-overview').press('ArrowRight');
+  await page.waitForFunction(() => document.querySelector('#my-tezos-tab-baker-signal')?.getAttribute('aria-selected') === 'true' && document.activeElement?.id === 'my-tezos-tab-baker-signal', null, { timeout: 3000 });
+  await page.locator('#my-tezos-tab-baker-signal').press('ArrowRight');
   await page.waitForFunction(() => document.querySelector('#my-tezos-tab-portfolio')?.getAttribute('aria-selected') === 'true', null, { timeout: 3000 });
 
   const state = await page.evaluate(() => ({
@@ -14009,7 +14210,9 @@ async function openMyTezosSmokeView(page, baseUrl, view) {
   const response = await page.goto(`${baseUrl}/?theme=clean`, { waitUntil: 'domcontentloaded' });
   assert(response?.ok(), `my tezos ${view}: dashboard failed with HTTP ${response?.status()}`);
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
+  await page.locator('#my-tezos-btn[data-drawer-wired="1"]').waitFor({ state: 'visible', timeout: 15000 });
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', `my tezos ${view} drawer`);
   await page.locator(`#my-tezos-tab-${view}`).click();
   await page.waitForFunction((selectedView) => (
@@ -14105,7 +14308,11 @@ async function smokeMyTezosStorage(browser, baseUrl) {
 
   await page.reload({ waitUntil: 'domcontentloaded' });
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
-  await page.locator('#my-tezos-btn').click();
+  // The restored /my/ route already opens the drawer; do not toggle it closed.
+  if (!await page.locator('#my-tezos-drawer').evaluate(node => node.classList.contains('open'))) {
+    await page.locator('#my-tezos-btn').click();
+  }
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible' });
   await page.locator('#my-tezos-tab-portfolio').click();
   await page.waitForFunction((address) => (
     document.querySelector(`[data-portfolio-label="${address}"]`)?.value === 'Primary Vault'
@@ -14488,11 +14695,9 @@ async function smokeMyTezosMemory(browser, baseUrl) {
       rowCount: rows.length,
       types: rows.map((row) => row.dataset.activityType),
       body: rows.map((row) => row.textContent?.replace(/\s+/g, ' ').trim() || ''),
-      beforeBakerSignal: Boolean(
-        section
-          && bakerSignal
-          && (section.compareDocumentPosition(bakerSignal) & Node.DOCUMENT_POSITION_FOLLOWING)
-      ),
+      separateBakerSignal: section.closest('[data-my-tezos-panel]')?.dataset.myTezosPanel === 'overview'
+        && bakerSignal.closest('[data-my-tezos-panel]')?.dataset.myTezosPanel === 'baker-signal'
+        && bakerSignal.closest('[data-my-tezos-panel]').hidden,
       buttonHeight: button?.getBoundingClientRect().height || 0,
       sectionInside: section.getBoundingClientRect().left >= drawer.getBoundingClientRect().left
         && section.getBoundingClientRect().right <= drawer.getBoundingClientRect().right,
@@ -14505,7 +14710,7 @@ async function smokeMyTezosMemory(browser, baseUrl) {
       && overviewDesktop.rowCount === 3
       && overviewDesktop.types.includes('nft')
       && /Shared Smoke Artifact/.test(overviewDesktop.body.join(' '))
-      && overviewDesktop.beforeBakerSignal
+      && overviewDesktop.separateBakerSignal
       && overviewDesktop.buttonHeight >= 36
       && overviewDesktop.sectionInside
       && !overviewDesktop.overflow,
@@ -14872,7 +15077,7 @@ async function smokeMyTezosCollection(browser, baseUrl) {
       && collected.scope.height <= 48
       && collected.scope.width <= collected.scope.headingWidth + 1
       && collected.scope.barOverflow <= 1
-      && new Set(collected.scope.metricTops).size === 2
+      && new Set(collected.scope.metricTops.filter(top => top > 0)).size === 1
       && collected.scope.overflow <= 1
       && collected.scope.paddingRight >= 36
       && !/mono/i.test(collected.scope.fontFamily),
@@ -36710,7 +36915,8 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'ecosystem-activity', description: 'Completed-week dapp rankings, partial pulse, full history, app proofbooks, direct routing, responsive layout, and quiet refresh', run: () => smokeEcosystemActivity(browser, baseUrl) },
     { name: 'staking-chamber', description: 'Narrow >10K stake/unstake tape, canonical ratio, complete cursor archive, mover trail, pretty route, and mobile geometry', run: () => smokeStakingChamber(browser, baseUrl) },
     { name: 'my-tezos-cold-start', description: 'My Tezos remains off-screen while its lazy styles are delayed, then preserves normal desktop and mobile open/close behavior', run: () => smokeMyTezosColdStart(browser, baseUrl) },
-    { name: 'my-tezos-empty-state', description: 'My Tezos clearly separates Octez.Connect wallet pairing from watch-only tracking and explains all six responsive views', run: () => smokeMyTezosEmptyState(browser, baseUrl) },
+    { name: 'my-tezos-empty-state', description: 'My Tezos clearly separates Octez.Connect wallet pairing from watch-only tracking and explains all seven responsive views', run: () => smokeMyTezosEmptyState(browser, baseUrl) },
+    { name: 'my-tezos-layout', description: 'All seven tabs retain readable desktop, phone and landscape layouts, exact balances, disclosures, touch targets, and per-tab scroll', run: () => smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, secondAddress: SAMPLE_ADDRESS_2, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'live-pulse-ticker', description: 'Live Pulse drifts continuously above Live Head, opens its explainer, preserves phase, and uses accessible hold/static behavior', run: () => smokeLivePulseTicker(browser, baseUrl) },
     { name: 'release-radar-pulse', description: 'Compact Tezos X and Octez release forecast leads Live Pulse and opens every gate, release lane, dependency boundary, receipt, and history row without disturbing the reader', run: () => smokeReleaseRadarPulse(browser, baseUrl) },
     { name: 'live-pulse-personal-ribbons', description: 'Evidence-only Live Pulse account ribbons preserve stronger events and quiet reading state on desktop and mobile', run: () => smokeLivePulsePersonalRibbons(browser, baseUrl) },

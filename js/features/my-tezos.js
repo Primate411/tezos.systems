@@ -44,6 +44,7 @@ import {
 } from './my-tezos-tabs.mjs';
 import {
     initMyTezosScope,
+    readScopedMyTezosEntries,
     readMyTezosScope,
     MY_TEZOS_SCOPE_ALL
 } from './my-tezos-scope.mjs';
@@ -78,6 +79,7 @@ const _octezSoftwareCache = new Map();
 const _tezNameMemoryCache = new Map();
 let _activeOvernightReport = null;
 let _activeOvernightAddress = '';
+let _latestOperatorSignal = null;
 // Protocol eras — map block levels to protocol names
 const PROTOCOL_ERAS = [
     { name: 'Genesis', level: 0, date: '2018-06-30' },
@@ -1000,16 +1002,38 @@ function renderOperatorTile(label, value, detail, state = 'unknown', extraClass 
     `;
 }
 
+function renderBakerSignalMessage(message) {
+    const empty = document.getElementById('my-tezos-baker-signal-empty');
+    const copy = document.getElementById('my-tezos-baker-signal-message');
+    if (copy) quietlySyncHtml(copy, escapeHtml(message));
+    if (empty) quietlyMutate(empty, () => { empty.hidden = false; });
+}
+
+function renderBakerSignalUnavailable() {
+    // Keep the last confirmed signal on transient source failures.
+    if (document.getElementById('drawer-operator-status')?.hidden) {
+        renderBakerSignalMessage('Baker Signal is unavailable. We’ll retry while My Tezos is open.');
+    }
+}
+
 function renderBakerOperatorStatus(status, isBaker, bakerName = '') {
     const container = document.getElementById('drawer-operator-status');
     if (!container) return;
     if (!status) {
+        _latestOperatorSignal = null;
+        renderBakerSignalMessage(localStorage.getItem(STORAGE_KEY)
+            ? 'This account has no baker. Choose another wallet above or manage the account in Overview.'
+            : 'Add a Tezos account in Overview to follow its baker.');
         if (!container.hidden) quietlyMutate(container, () => {
             container.hidden = true;
             container.innerHTML = '';
         });
         return;
     }
+
+    _latestOperatorSignal = { address: localStorage.getItem(STORAGE_KEY), status };
+    const empty = document.getElementById('my-tezos-baker-signal-empty');
+    if (empty && !empty.hidden) quietlyMutate(empty, () => { empty.hidden = true; });
 
     const next = status.nextBlock
         ? renderOperatorTile('Next round 0', status.nextBlock.eta, status.nextBlock.detail, 'ok', 'drawer-operator-next')
@@ -2377,6 +2401,9 @@ function getActiveViewRefreshMs() {
 async function refreshActiveMyTezosView() {
     if (!isDrawerOpen() || document.visibilityState !== 'visible') return null;
     switch (activeMyTezosView()) {
+        case 'baker-signal':
+            // The existing 15-second operator timer owns this view's refresh.
+            return null;
         case 'portfolio':
             return refreshMyTezosPortfolio();
         case 'collection': {
@@ -2578,11 +2605,30 @@ async function renderDelegationGuidance(data, requestSeq) {
     }
 }
 
+function renderBriefCards(items) {
+    return items.map(card => {
+        const accent = safeTone(card.accent);
+        return `<div class="brief-section brief-section-${accent}" data-brief-accent="${accent}">
+            <h4 class="brief-section-title">${card.icon} ${card.title}</h4>
+            <div class="brief-body">${card.body}</div>
+        </div>`;
+    }).join('');
+}
+
+function renderBakerBrief(cards) {
+    const bakerBrief = document.getElementById('drawer-baker-brief');
+    if (!bakerBrief) return;
+    const bakerCards = cards.filter(card => card.accent === 'baker' || card.accent === 'governance');
+    quietlySyncHtml(bakerBrief, renderBriefCards(bakerCards));
+    quietlyMutate(bakerBrief, () => { bakerBrief.hidden = bakerCards.length === 0; });
+}
+
 function renderBriefTabs(cards, data) {
     const container = document.getElementById('drawer-brief');
     if (!container) return;
     const storyCard = cards.find(card => card.accent === 'story') || null;
-    const briefCards = cards.filter(card => card.accent !== 'story');
+    const bakerCards = cards.filter(card => card.accent === 'baker' || card.accent === 'governance');
+    const briefCards = cards.filter(card => card.accent !== 'story' && !bakerCards.includes(card));
     const connected = container.closest('.drawer-connected');
     const withoutBaker = !data?.bakerAddr;
     quietlyMutate(container, () => {
@@ -2594,16 +2640,11 @@ function renderBriefTabs(cards, data) {
         });
     }
     
-    const sectionsHtml = briefCards.map(card => {
-        const accent = safeTone(card.accent);
-        return `<div class="brief-section brief-section-${accent}" data-brief-accent="${accent}">
-            <h4 class="brief-section-title">${card.icon} ${card.title}</h4>
-            <div class="brief-body">${card.body}</div>
-        </div>`;
-    }).join('');
-    
+    const sectionsHtml = renderBriefCards(briefCards);
     if (container.children.length) quietlySyncHtml(container, sectionsHtml);
     else container.innerHTML = sectionsHtml;
+
+    renderBakerBrief(cards);
 
     renderStoryPanel(storyCard, data);
 }
@@ -2625,7 +2666,7 @@ function renderStoryPanel(card, data) {
     // scope has already rendered. Reassert the account-only boundary at the
     // moment the dossier is published so an active wallet can never look like
     // the combined "All included wallets" story.
-    container.hidden = readMyTezosScope() === MY_TEZOS_SCOPE_ALL;
+    container.hidden = readMyTezosScope() === MY_TEZOS_SCOPE_ALL && readScopedMyTezosEntries().length > 1;
 
     container.querySelectorAll('.story-share-btn').forEach(btn => {
         btn.onclick = () => {
@@ -2808,7 +2849,8 @@ async function renderMorningBrief(address, force = false) {
             totalXTZ, staked, xtzPrice, apyRate, apyBasis, activeRewardEstimate, estDaily, estAnnual,
             rewardsLastCycle, latestRewardCycle, rewardStreak,
             bakerName, bakerInactive, healthScore, health, attestRate,
-            isStaker, hasRewardRole, story, activeProposal, bakerVote, bakerActivity, operatorStatus, greetingName,
+            isStaker, hasRewardRole, story, activeProposal, bakerVote, bakerActivity, greetingName,
+            operatorStatus: _latestOperatorSignal?.address === address ? _latestOperatorSignal.status : operatorStatus,
         };
 
         if (
@@ -2836,7 +2878,8 @@ async function renderMorningBrief(address, force = false) {
 
         // Render morning brief sections in drawer
         updateDrawerGreeting(greetingName);
-        renderBakerOperatorStatus(operatorStatus, isBaker, bakerName);
+        // The early operator promise already painted the signal; do not replay
+        // its older snapshot after slower account/story requests finish.
         renderBriefTabs(cards, data);
         renderWhileAwayNetworkCard();
         renderBakerActivity(bakerActivity);
@@ -2938,7 +2981,7 @@ async function renderMorningBrief(address, force = false) {
             if (storyContainer.children.length) quietlySyncHtml(storyContainer, storyErrorHtml);
             else storyContainer.innerHTML = storyErrorHtml;
         }
-        renderBakerOperatorStatus(null, false);
+        renderBakerSignalUnavailable();
         renderBakerActivity(null);
         finishBriefRender(address, requestSeq);
     }
@@ -3006,7 +3049,11 @@ async function refreshOperatorSignal({ force = false } = {}) {
     try {
         const context = await getOperatorSignalContext(address);
         if (requestSeq !== _operatorSignalSeq || localStorage.getItem(STORAGE_KEY) !== address) return;
-        if (!context?.bakerAddr) {
+        if (!context) {
+            renderBakerSignalUnavailable();
+            return;
+        }
+        if (!context.bakerAddr) {
             renderBakerOperatorStatus(null, false);
             return;
         }
@@ -3024,10 +3071,14 @@ async function refreshOperatorSignal({ force = false } = {}) {
                 bakerName: context.bakerName || window._myTezosData.bakerName,
                 operatorStatus,
             };
+            if (!window._myTezosData.loading) renderBakerBrief(buildMorningBrief(window._myTezosData));
         }
         updateFreshness({ signalLive: true });
         window.dispatchEvent(new Event('my-tezos-operator-signal-ready'));
     } catch (error) {
+        if (requestSeq === _operatorSignalSeq && localStorage.getItem(STORAGE_KEY) === address) {
+            renderBakerSignalUnavailable();
+        }
         console.warn('My Tezos operator signal refresh failed:', error);
     } finally {
         _operatorSignalInFlight = false;
@@ -3117,12 +3168,19 @@ function drawerLoadingCard(label, size = '') {
 }
 
 function seedDrawerLoadingState() {
+    if (document.getElementById('drawer-operator-status')?.hidden) {
+        renderBakerSignalMessage('Checking the active wallet’s baker signal…');
+    }
+    const details = document.getElementById('drawer-baker-details');
+    if (details) details.hidden = false;
     const brief = document.getElementById('drawer-brief');
     if (brief && !brief.children.length) {
-        brief.innerHTML = [
-            drawerLoadingCard('Reading your account'),
-            drawerLoadingCard('Checking baker signal')
-        ].join('');
+        brief.innerHTML = drawerLoadingCard('Reading your account');
+    }
+    const bakerBrief = document.getElementById('drawer-baker-brief');
+    if (bakerBrief && !bakerBrief.children.length) {
+        bakerBrief.hidden = false;
+        bakerBrief.innerHTML = drawerLoadingCard('Checking baker status');
     }
 
     const story = document.getElementById('my-tezos-story-content');
@@ -3145,12 +3203,11 @@ function organizeDrawerJourneys() {
     const connected = document.getElementById('drawer-connected');
     const share = connected?.querySelector('.drawer-share-section');
     const rewards = document.getElementById('drawer-rewards');
-    const baker = document.getElementById('drawer-baker');
-    const activity = document.getElementById('drawer-baker-activity');
+    const brief = document.getElementById('drawer-brief');
     const network = document.getElementById('drawer-network');
     const more = document.getElementById('drawer-more-section');
     const actions = document.getElementById('drawer-more-actions');
-    if (!connected || !share || !rewards || !baker || !activity || !network || !more || !actions) return;
+    if (!connected || !share || !rewards || !brief || !network || !more || !actions) return;
 
     let columns = connected.querySelector('.drawer-live-columns');
     if (!columns) {
@@ -3167,8 +3224,8 @@ function organizeDrawerJourneys() {
     const secondary = columns.querySelector('.drawer-live-column-secondary');
     if (!primary || !secondary) return;
 
-    [rewards, activity].forEach((section) => primary.appendChild(section));
-    secondary.appendChild(baker);
+    primary.appendChild(rewards);
+    secondary.appendChild(brief);
     columns.appendChild(network);
     if (more.parentElement !== connected) connected.insertBefore(more, share);
     connected.querySelector('#drawer-more-section-secondary')?.remove();
@@ -3268,14 +3325,13 @@ export function initMyTezos() {
     const drawer = document.getElementById('my-tezos-drawer');
     if (!drawer || drawer.dataset.personalInitialized === '1') return;
     drawer.dataset.personalInitialized = '1';
-    const reading = document.createElement('div');
-    reading.className = 'my-tezos-reading';
-    reading.innerHTML = renderChamberVerdict({ key: 'my', state: 'guide', sentence: 'This room follows your selected wallet scope; activity does not establish a person’s identity or link an L2 account.', receipts: [['Scope', 'Selected wallets'], ['Linked accounts', 'Explicit only']] });
-    drawer.querySelector('.drawer-body')?.prepend(reading);
+    const reading = document.getElementById('my-tezos-reading-verdict');
+    if (reading) reading.innerHTML = renderChamberVerdict({ key: 'my', state: 'guide', sentence: 'This room follows your selected wallet scope; activity does not establish a person’s identity or link an L2 account.', receipts: [['Scope', 'Selected wallets'], ['Linked accounts', 'Explicit only']] });
     organizeDrawerJourneys();
     initMyTezosPortfolio();
     initMyTezosScope();
     registerMyTezosView('overview', () => activateMyTezosMemory({ activityOnly: true }));
+    registerMyTezosView('baker-signal', () => refreshOperatorSignal());
     registerMyTezosView('portfolio', () => activateMyTezosPortfolio());
     registerMyTezosView('transactions', () => activateMyTezosMemory({ activityOnly: true }));
     registerMyTezosView('collection', () => import('./my-tezos-collection.mjs')
@@ -3311,6 +3367,9 @@ export function initMyTezos() {
             document.getElementById('portfolio-activity-title')?.scrollIntoView({ block: 'nearest' });
         });
     });
+    document.getElementById('my-tezos-baker-signal-overview')?.addEventListener('click', () => {
+        setMyTezosView('overview', { focus: true, routeMode: 'push' });
+    });
     // Create minibar under price bar
     createMinibar();
     initDrawerLiveRefresh();
@@ -3322,6 +3381,10 @@ export function initMyTezos() {
         const newAddr = e.detail?.address;
         if (newAddr) {
             updateDrawerGreeting('');
+            document.querySelector('#drawer-baker .drawer-baker-grade')?.remove();
+            const bakerBrief = document.getElementById('drawer-baker-brief');
+            if (bakerBrief) bakerBrief.innerHTML = '';
+            renderBakerOperatorStatus(null, false);
             seedDrawerLoadingState();
             const previousAddress = e.detail?.previousAddress;
             if (previousAddress && previousAddress !== newAddr) {
@@ -3336,11 +3399,15 @@ export function initMyTezos() {
             renderMorningBrief(newAddr, true);
         } else {
             window._myTezosData = null;
+            renderBakerOperatorStatus(null, false);
             _activeOvernightReport = null;
             _activeOvernightAddress = '';
             updateDrawerGreeting('');
+            const details = document.getElementById('drawer-baker-details');
+            if (details) details.hidden = true;
+            document.querySelector('#drawer-baker .drawer-baker-grade')?.remove();
             // Clear drawer sections
-            ['drawer-operator-status', 'drawer-brief', 'drawer-network', 'drawer-rewards', 'drawer-baker-activity', 'my-tezos-delegation-guidance'].forEach(id => {
+            ['drawer-operator-status', 'drawer-baker-brief', 'drawer-brief', 'drawer-network', 'drawer-rewards', 'drawer-baker-activity', 'my-tezos-delegation-guidance'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) {
                     el.innerHTML = '';

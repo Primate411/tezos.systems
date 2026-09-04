@@ -2956,7 +2956,7 @@ function buildPersonalFacts(data, profile, portfolio) {
       label: data?.bakerInactive ? 'Delegation watch' : 'Delegated to',
       value: data?.bakerName || 'Active baker',
       detail: data?.bakerInactive ? 'Baker is inactive' : 'Baker health and payout policy matter here',
-      route: '#my-baker',
+      view: 'baker-signal',
       tone: data?.bakerInactive ? 'watch' : 'operator'
     });
   }
@@ -2990,7 +2990,7 @@ function buildPersonalFacts(data, profile, portfolio) {
       label: data?.isBaker ? 'Baker health' : 'Your baker signal',
       value: data?.health || (data?.attestRate != null ? `${data.attestRate}%` : 'Live'),
       detail: [data?.bakerName, data?.attestRate != null ? `${data.attestRate}% attestation` : 'Current operator context'].filter(Boolean).join(' · '),
-      route: '#my-baker',
+      view: 'baker-signal',
       tone: data?.bakerInactive ? 'watch' : 'operator'
     });
   }
@@ -3945,6 +3945,7 @@ function closeDrawerForNetworkRoute(route) {
 }
 
 function scrollDrawerToBakerStats() {
+  window.dispatchEvent(new CustomEvent('my-tezos-view-request', { detail: { view: 'baker-signal' } }));
   const target = document.getElementById('drawer-baker') || document.getElementById('drawer-operator-status');
   target?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }

@@ -662,7 +662,7 @@ function buildContainer(report, stats, xtzPrice) {
       </div>
     </div>
 
-    <div class="rt-calendar">
+    <div class="rt-calendar" data-reward-kind="${rewardKind}">
       <div class="rt-cal-title">${rewardKind === 'baker'
         ? '📅 30-Cycle Baker History &nbsp; <span style="color:var(--accent,#00ff88)">■</span> full &nbsp; <span style="color:#f0c040">■</span> partial &nbsp; <span style="color:#ff4444">■</span> missed'
         : '📅 30-Cycle Reward History &nbsp; <span style="color:var(--accent,#00ff88)">■</span> recorded &nbsp; <span style="color:#555">■</span> zero'}
@@ -778,12 +778,22 @@ export async function initRewardsTracker(stats, xtzPrice, options = {}) {
     } catch (_) {}
   }
 
-  // Insert into drawer-rewards container, fallback to before my-baker-results
+  // An account switch may finish while these requests are in flight.
+  if (getAddress() !== address) return;
+
+  // Personal reward cards stay in Overview; baker history belongs to Baker Signal.
   const drawerTarget = document.getElementById('drawer-rewards');
   const fallbackTarget = document.getElementById('my-baker-results');
   if (!drawerTarget && !fallbackTarget) return;
 
   const container = buildContainer(rewardReport, stats, xtzPrice);
+  const historyTarget = document.getElementById('drawer-baker-history');
+  if (historyTarget) {
+    const bakerCalendar = container.querySelector('.rt-calendar[data-reward-kind="baker"]');
+    quietlySyncHtml(historyTarget, bakerCalendar?.outerHTML || '');
+    historyTarget.hidden = !bakerCalendar;
+    bakerCalendar?.remove();
+  }
   if (drawerTarget) {
     if (quiet) {
       const sparkMarkup = drawerTarget.querySelector('.drawer-rewards-spark')?.outerHTML || '';
@@ -878,5 +888,10 @@ export function updateRewardsTracker(stats, xtzPrice) {
 export function destroyRewardsTracker() {
   if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
   document.getElementById(CONTAINER_ID)?.remove();
+  const historyTarget = document.getElementById('drawer-baker-history');
+  if (historyTarget) {
+    historyTarget.replaceChildren();
+    historyTarget.hidden = true;
+  }
   document.getElementById('rewards-tracker-style')?.remove();
 }

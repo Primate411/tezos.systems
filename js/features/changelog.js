@@ -7,6 +7,7 @@ export const CHANGELOG = [
     {
         date: '2026-09-04',
         entries: [
+            { type: '✨', text: 'Baker Signal now has its own My Tezos tab for live health, grade and report card, capacity, participation, governance, delegation guidance, 30-cycle baker history, and recent baker activity' },
             { type: '✨', text: 'Chain Health now tracks the last 25 blocks beside 1H Activity, with smoothly advancing health bars and mini pop-ups showing each block\'s missed bakers' },
             { type: '🎨', text: 'Activity and Chain Health stay the same compact height across desktop and mobile, with Activity first and larger invisible touch targets on phones' },
             { type: '🎨', text: 'Block health bars now paint their true margin immediately without a delayed refill flash, preserve it under reduced motion, and keep the signed number readable across themes; light-theme round, timing, and attestation colors have stronger contrast' },
@@ -20,7 +21,8 @@ export const CHANGELOG = [
             { type: '🎨', text: 'Raw baker addresses now shorten in the middle when their Live Head column is constrained, keeping the tz prefix and last five characters visible and automatically expanding to the full address when space allows; aliases are unchanged' },
             { type: '🎨', text: 'Live Head health pills are about 20% shorter and show missing attestation power as a negative number (6,999 of 7,000 becomes −1; full attestation is 0), while retaining the quorum safety-margin fill and enough width for readable labels' },
             { type: '🎨', text: 'Live Head lower-line pills keep their colored text and filled backing but drop their outlines for a quieter surface; only the yellow missed-round pills retain an edge on that line, while health, Quiet/Gas, and controls remain unchanged' },
-            { type: '🔧', text: 'Small screens now give the title and protocol launcher their own centered lines in every theme, while medium and wide layouts keep the protocol beside the title whenever that row fits' }
+            { type: '🔧', text: 'Small screens now give the title and protocol launcher their own centered lines in every theme, while medium and wide layouts keep the protocol beside the title whenever that row fits' },
+            { type: '🎨', text: 'My Tezos keeps all seven tabs visible on phones, gives balances and artwork more room, remembers each tab’s reading position, and opens wallet guidance only when needed' }
         ]
     },
     {

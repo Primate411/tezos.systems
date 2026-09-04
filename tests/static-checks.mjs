@@ -909,7 +909,7 @@ async function checkMyTezosPortfolioContracts() {
     'Octez.Connect opens the compatible-wallet chooser',
     'Track a public address or .tez name',
     'No wallet extension, pairing, or signature is needed',
-    'Six views, one saved L1 identity',
+    'Seven views, one saved L1 identity',
     'Follow the same account into Ledger Flow and Maxi Passport'
   ]) {
     if (!index.includes(snippet)) fail(`My Tezos empty-state onboarding contract missing: ${snippet}`);
@@ -982,8 +982,28 @@ async function checkMyTezosPortfolioContracts() {
   for (const snippet of ['my-tezos-overview-transactions', 'my-tezos-overview-activity-list', 'View all transactions']) {
     if (!index.includes(snippet)) fail(`My Tezos Overview transaction preview markup missing: ${snippet}`);
   }
-  if (index.indexOf('id="my-tezos-overview-transactions"') > index.indexOf('id="drawer-operator-status"')) {
-    fail('My Tezos Overview transaction preview no longer appears before the baker signal');
+  const signalPanel = index.slice(index.indexOf('<section id="my-tezos-panel-baker-signal"'), index.indexOf('<section id="my-tezos-panel-portfolio"'));
+  const overviewPanel = index.slice(index.indexOf('<section id="my-tezos-panel-overview"'), index.indexOf('<section id="my-tezos-panel-baker-signal"'));
+  if (!signalPanel.includes('id="drawer-operator-status"') || overviewPanel.includes('id="drawer-operator-status"')
+      || !tabs.includes("'overview', 'baker-signal', 'portfolio'")
+      || !myTezos.includes("registerMyTezosView('baker-signal', () => refreshOperatorSignal())")
+      || !signalPanel.includes('my-tezos-baker-signal-scope')
+      || !myTezos.includes('quietlySyncHtml(container, html)')
+      || !myTezos.includes("!isDrawerOpen() || document.visibilityState !== 'visible'")) {
+    fail('Baker Signal must have its own accessible My Tezos tab with active-wallet scope and the existing quiet visible refresh');
+  }
+  for (const id of ['drawer-operator-status', 'drawer-baker', 'drawer-baker-history', 'drawer-baker-activity', 'drawer-baker-brief', 'my-tezos-delegation-guidance']) {
+    if (!signalPanel.includes(`id="${id}"`) || overviewPanel.includes(`id="${id}"`)) {
+      fail(`Baker Signal must own ${id} outside Overview`);
+    }
+  }
+  if (!rewards.includes("document.getElementById('drawer-baker-history')")
+      || !rewards.includes("quietlySyncHtml(historyTarget, bakerCalendar?.outerHTML || '')")) {
+    fail('The 30-cycle baker calendar must quietly reconcile in Baker Signal');
+  }
+  if (!myTezos.includes("card.accent === 'baker' || card.accent === 'governance'")
+      || myTezos.includes('secondary.appendChild(baker)')) {
+    fail('Baker status, governance, and stats must not return to Overview during reconciliation');
   }
   if (!styles.includes('.my-tezos-start-wallet::after')) {
     fail('My Tezos empty-state action rows no longer reserve matching desktop feedback space');

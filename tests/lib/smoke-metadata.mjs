@@ -43,7 +43,8 @@ const RULES = [
       'js/features/rewards-tracker.js',
       'js/core/my-tezos*',
       'js/core/wallet.js',
-      'css/my-tezos*'
+      'css/my-tezos*',
+      'tests/lib/my-tezos-layout-smoke.mjs'
     ],
     tags: ['my-tezos'],
     risk: 'high'

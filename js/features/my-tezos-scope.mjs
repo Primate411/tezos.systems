@@ -102,19 +102,29 @@ function renderScopeTotals(detail = latestPortfolioDetail) {
 
 function renderAccountOnlyBoundaries(scope, entries) {
     const allWallets = scope === MY_TEZOS_SCOPE_ALL;
+    const combinedWallets = allWallets && includedEntries(entries).length > 1;
     const activeAddress = localStorage.getItem(MY_TEZOS_ADDRESS_KEY) || '';
     const activeEntry = entries.find((entry) => entry.address === activeAddress);
     const activeLabel = activeEntry?.label || (activeAddress ? shortAddress(activeAddress) : 'the active wallet');
     const overviewBoundary = document.getElementById('my-tezos-overview-scope-boundary');
-    if (overviewBoundary) overviewBoundary.hidden = !allWallets;
+    if (overviewBoundary) overviewBoundary.hidden = !combinedWallets;
     const overviewCopy = document.getElementById('my-tezos-overview-scope-boundary-copy');
     if (overviewCopy) {
-        overviewCopy.textContent = `Baker, rewards, and identity panels remain tied to ${activeLabel} because those facts cannot be added together. Choose a wallet above to focus every panel.`;
+        overviewCopy.textContent = `Rewards and identity follow ${activeLabel}. Choose one wallet above to focus every panel.`;
     }
+    const signalBoundary = document.getElementById('my-tezos-baker-signal-scope');
+    if (signalBoundary) signalBoundary.hidden = !allWallets || includedEntries(entries).length < 2;
+    const signalCopy = document.getElementById('my-tezos-baker-signal-scope-copy');
+    if (signalCopy) signalCopy.textContent = `Showing the baker for ${activeLabel}. Choose a wallet above to inspect its baker.`;
     const storyBoundary = document.getElementById('my-tezos-story-scope-boundary');
-    if (storyBoundary) storyBoundary.hidden = !allWallets;
+    if (storyBoundary) storyBoundary.hidden = !combinedWallets;
     const storyContent = document.getElementById('my-tezos-story-content');
-    if (storyContent) storyContent.hidden = allWallets;
+    if (storyContent) storyContent.hidden = combinedWallets;
+    const storyAction = document.getElementById('my-tezos-story-active-wallet');
+    if (storyAction) {
+        storyAction.hidden = !includedEntries(entries).some((entry) => entry.address === activeAddress);
+        storyAction.textContent = `Read ${activeLabel}’s story`;
+    }
 }
 
 export function renderMyTezosScope() {
@@ -144,7 +154,7 @@ export function renderMyTezosScope() {
     const description = document.getElementById('my-tezos-scope-description');
     if (description) {
         description.textContent = scope === MY_TEZOS_SCOPE_ALL
-            ? 'Every tab combines the included wallets below. Choose one wallet to focus the whole drawer.'
+            ? 'Totals combine included wallets; baker and identity facts follow the active wallet. Choose one wallet to focus every tab.'
             : 'Every tab is focused on this wallet until you switch back to all included wallets.';
     }
     document.getElementById('my-tezos-drawer')?.classList.toggle('is-all-wallet-scope', scope === MY_TEZOS_SCOPE_ALL);
@@ -188,6 +198,13 @@ export function initMyTezosScope() {
     initialized = true;
     document.getElementById('my-tezos-wallet-scope')?.addEventListener('change', (event) => {
         setMyTezosScope(event.currentTarget.value || MY_TEZOS_SCOPE_ALL, { source: 'control' });
+    });
+    document.getElementById('my-tezos-story-active-wallet')?.addEventListener('click', () => {
+        const address = localStorage.getItem(MY_TEZOS_ADDRESS_KEY);
+        if (address) {
+            setMyTezosScope(address, { source: 'story' });
+            document.getElementById('my-tezos-story-content')?.focus({ preventScroll: true });
+        }
     });
     window.addEventListener('my-tezos-portfolio-changed', () => {
         const nextScope = readMyTezosScope();

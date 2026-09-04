@@ -51,17 +51,17 @@
     <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#45E0C8">
     <link rel="manifest" href="/site.webmanifest">
 
-    <link rel="stylesheet" href="css/styles.min.css?v=624">
-    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=624">
-    <link rel="stylesheet" href="css/loading.css?v=624">
-    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=624">
-    <link rel="stylesheet" href="css/site-map.css?v=624">
+    <link rel="stylesheet" href="css/styles.min.css?v=625">
+    <link id="shell-extras-css" rel="stylesheet" href="css/shell-extras.min.css?v=625">
+    <link rel="stylesheet" href="css/loading.css?v=625">
+    <link id="hero-search-css" rel="stylesheet" href="css/hero-search.css?v=625">
+    <link rel="stylesheet" href="css/site-map.css?v=625">
     <link rel="stylesheet" href="css/hen-mode.css?v=98">
     <script src="js/core/hen-init.js?v=80" defer></script>
 
     <!-- Modulepreload critical JS for parallel fetch -->
     <link rel="modulepreload" href="js/core/tzkt-throttle.js">
-    <link rel="modulepreload" href="js/core/app.js?v=624">
+    <link rel="modulepreload" href="js/core/app.js?v=625">
     <link rel="modulepreload" href="js/core/api.js">
     <link rel="modulepreload" href="js/core/config.js">
     <link rel="modulepreload" href="js/core/data-assets.js">
@@ -275,8 +275,8 @@
     <!-- Apply saved/default theme before first paint to prevent the theme flash.
          Classic (render-blocking) external script — CSP forbids inline scripts,
          and ES modules are deferred so they'd paint first. -->
-    <script src="js/core/theme-preload.js?v=624"></script>
-    <script src="js/core/home-layout-preload.js?v=624"></script>
+    <script src="js/core/theme-preload.js?v=625"></script>
+    <script src="js/core/home-layout-preload.js?v=625"></script>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <div class="top-utility-row">
     <div id="corner-gift-tray" class="corner-gift-tray" aria-label="Corner tools">
@@ -2532,20 +2532,16 @@
       </div>
       <div id="my-tezos-tabs" class="my-tezos-tabs" role="tablist" aria-label="My Tezos views">
         <button id="my-tezos-tab-overview" class="my-tezos-tab active" type="button" role="tab" aria-selected="true" aria-controls="my-tezos-panel-overview" tabindex="0" data-my-tezos-view="overview">Overview</button>
+        <button id="my-tezos-tab-baker-signal" class="my-tezos-tab" type="button" role="tab" aria-selected="false" aria-controls="my-tezos-panel-baker-signal" tabindex="-1" data-my-tezos-view="baker-signal">Baker Signal</button>
         <button id="my-tezos-tab-portfolio" class="my-tezos-tab" type="button" role="tab" aria-selected="false" aria-controls="my-tezos-panel-portfolio" tabindex="-1" data-my-tezos-view="portfolio">Portfolio</button>
         <button id="my-tezos-tab-transactions" class="my-tezos-tab" type="button" role="tab" aria-selected="false" aria-controls="my-tezos-panel-transactions" tabindex="-1" data-my-tezos-view="transactions">Transactions</button>
         <button id="my-tezos-tab-collection" class="my-tezos-tab" type="button" role="tab" aria-selected="false" aria-controls="my-tezos-panel-collection" tabindex="-1" data-my-tezos-view="collection">Collection</button>
         <button id="my-tezos-tab-story" class="my-tezos-tab" type="button" role="tab" aria-selected="false" aria-controls="my-tezos-panel-story" tabindex="-1" data-my-tezos-view="story">Your Story</button>
         <button id="my-tezos-tab-tezos-x" class="my-tezos-tab" type="button" role="tab" aria-selected="false" aria-controls="my-tezos-panel-tezos-x" tabindex="-1" data-my-tezos-view="tezos-x">Tezos X</button>
       </div>
-      <section id="my-tezos-wallet-scope-bar" class="my-tezos-wallet-scope-bar" aria-labelledby="my-tezos-scope-label" hidden>
-        <div class="my-tezos-scope-heading">
-          <span class="portfolio-kicker">Wallet scope</span>
-          <strong id="my-tezos-scope-label">All included wallets</strong>
-          <span id="my-tezos-scope-description">Every tab combines your included wallets.</span>
-        </div>
+      <section id="my-tezos-wallet-scope-bar" class="my-tezos-wallet-scope-bar" aria-label="Wallet scope and balances" hidden>
         <label class="my-tezos-scope-control" for="my-tezos-wallet-scope">
-          <span>Show data for</span>
+          <span>Wallet scope</span>
           <select id="my-tezos-wallet-scope" class="my-tezos-scope-select" aria-label="Wallet scope across every My Tezos tab"></select>
         </label>
         <div class="my-tezos-scope-totals" aria-label="Current wallet scope totals">
@@ -2599,33 +2595,37 @@
               <div class="my-tezos-onboarding-heading">
                 <div>
                   <span class="my-tezos-onboarding-kicker">What one account unlocks</span>
-                  <h4 id="my-tezos-onboarding-features-title">Six views, one saved L1 identity</h4>
+                  <h4 id="my-tezos-onboarding-features-title">Seven views, one saved L1 identity</h4>
                 </div>
                 <p>Add more watch-only addresses from Portfolio whenever you need a broader view.</p>
               </div>
               <div class="my-tezos-feature-map">
                 <article>
                   <span class="my-tezos-feature-mark" aria-hidden="true">01</span>
-                  <div><strong>Overview</strong><span>Balance, stake, baker signal, rewards, cycle timing, and your Morning Brief.</span></div>
+                  <div><strong>Overview</strong><span>Balance, stake, rewards, cycle timing, and your Morning Brief.</span></div>
                 </article>
                 <article>
                   <span class="my-tezos-feature-mark" aria-hidden="true">02</span>
-                  <div><strong>Portfolio</strong><span>Current XTZ across up to ten included L1 addresses, with browser-local history.</span></div>
+                  <div><strong>Baker Signal</strong><span>Live health, capacity, participation, governance, and recent activity for your active wallet’s baker.</span></div>
                 </article>
                 <article>
                   <span class="my-tezos-feature-mark" aria-hidden="true">03</span>
-                  <div><strong>Transactions</strong><span>Human-readable applied transfers, account calls, and NFT interactions.</span></div>
+                  <div><strong>Portfolio</strong><span>Current XTZ across up to ten included L1 addresses, with browser-local history.</span></div>
                 </article>
                 <article>
                   <span class="my-tezos-feature-mark" aria-hidden="true">04</span>
-                  <div><strong>Collection</strong><span>Collected and created Tezos NFTs with Objkt profile and source context.</span></div>
+                  <div><strong>Transactions</strong><span>Human-readable applied transfers, account calls, and NFT interactions.</span></div>
                 </article>
                 <article>
                   <span class="my-tezos-feature-mark" aria-hidden="true">05</span>
-                  <div><strong>Your Story</strong><span>Your Tezos era, milestones, and a local record of what changed while away.</span></div>
+                  <div><strong>Collection</strong><span>Collected and created Tezos NFTs with Objkt profile and source context.</span></div>
                 </article>
                 <article>
                   <span class="my-tezos-feature-mark" aria-hidden="true">06</span>
+                  <div><strong>Your Story</strong><span>Your Tezos era, milestones, and a local record of what changed while away.</span></div>
+                </article>
+                <article>
+                  <span class="my-tezos-feature-mark" aria-hidden="true">07</span>
                   <div><strong>Tezos X</strong><span>Manually link Etherlink 0x accounts on this device—never inferred as ownership.</span></div>
                 </article>
               </div>
@@ -2644,7 +2644,7 @@
         <!-- Connected state (shown when address is set) -->
         <div id="drawer-connected" class="drawer-connected" style="display:none">
           <div id="my-tezos-overview-scope-boundary" class="my-tezos-scope-boundary" role="note" hidden>
-            <strong>Totals and recent activity include every wallet in scope.</strong>
+            <strong>Combined balances &amp; recent activity</strong>
             <span id="my-tezos-overview-scope-boundary-copy">Baker, rewards, and identity panels remain tied to the active wallet because those facts cannot be added together.</span>
           </div>
           <!-- Address bar -->
@@ -2697,20 +2697,8 @@
             <p id="my-tezos-overview-activity-status" class="portfolio-activity-status" aria-live="polite">Transactions refresh while Overview is visible.</p>
           </section>
 
-          <!-- Baker Operator Signal -->
-          <div class="drawer-section" id="drawer-operator-status" hidden></div>
-
           <!-- Rewards Tracker -->
           <div class="drawer-section" id="drawer-rewards"></div>
-
-          <!-- Baker Stats -->
-          <div class="drawer-section" id="drawer-baker">
-            <div id="my-tezos-delegation-guidance" hidden></div>
-            <div id="my-baker-results" class="my-baker-results"></div>
-          </div>
-
-          <!-- Baker Activity -->
-          <div class="drawer-section" id="drawer-baker-activity" hidden></div>
 
           <!-- Morning Brief (tabbed pills, NOT carousel) -->
           <div class="drawer-section" id="drawer-brief"></div>
@@ -2739,6 +2727,33 @@
         </div>
         </section>
 
+        <section id="my-tezos-panel-baker-signal" class="my-tezos-view-panel" role="tabpanel" aria-labelledby="my-tezos-tab-baker-signal" data-my-tezos-panel="baker-signal" hidden>
+          <div id="my-tezos-baker-signal-scope" class="my-tezos-scope-boundary" role="note" hidden>
+            <strong>Baker Signal follows the active wallet.</strong>
+            <span id="my-tezos-baker-signal-scope-copy">Choose a wallet above to inspect its baker.</span>
+          </div>
+          <div id="my-tezos-baker-signal-empty" class="my-tezos-feature-panel">
+            <h3>Baker Signal</h3>
+            <p id="my-tezos-baker-signal-message" class="portfolio-activity-status" aria-live="polite">Add a Tezos account in Overview to follow its baker.</p>
+            <button id="my-tezos-baker-signal-overview" class="glass-button" type="button">Open Overview</button>
+          </div>
+          <div class="drawer-section" id="drawer-operator-status" hidden></div>
+          <div id="drawer-baker-details" class="drawer-baker-details" hidden>
+            <div id="drawer-baker-brief" class="drawer-section" hidden></div>
+            <!-- Baker Stats -->
+            <div class="drawer-section" id="drawer-baker">
+              <div id="my-tezos-delegation-guidance" hidden></div>
+              <div id="my-baker-results" class="my-baker-results"></div>
+            </div>
+
+            <div class="drawer-section" id="drawer-baker-history" hidden></div>
+
+            <!-- Baker Activity -->
+            <div class="drawer-section" id="drawer-baker-activity" hidden></div>
+
+          </div>
+        </section>
+
         <section id="my-tezos-panel-portfolio" class="my-tezos-view-panel" role="tabpanel" aria-labelledby="my-tezos-tab-portfolio" data-my-tezos-panel="portfolio" hidden>
           <div class="my-tezos-portfolio-shell">
             <div class="portfolio-heading-row">
@@ -2753,13 +2768,10 @@
               </button>
             </div>
 
-            <div class="portfolio-local-notice" role="note">
-              <span class="portfolio-local-notice-icon" aria-hidden="true">↓</span>
-              <div>
-                <strong>Calculated on this device</strong>
-                <span>Public wallet data is downloaded directly to this browser and processed locally. A complete update—especially with several wallets—can take a few seconds.</span>
-              </div>
-            </div>
+            <details class="portfolio-local-notice portfolio-data-details">
+              <summary>Calculated on this device</summary>
+              <p>Public wallet data is downloaded directly to this browser and processed locally. A complete update—especially with several wallets—can take a few seconds.</p>
+            </details>
 
             <div id="portfolio-summary" class="portfolio-summary-grid" aria-label="Portfolio totals">
               <article class="portfolio-summary-card portfolio-summary-total" data-portfolio-total="total"><span>Total</span><strong>—</strong><small>Current XTZ</small></article>
@@ -2871,12 +2883,10 @@
               <article data-collection-total="artists"><span>Artists</span><strong>0</strong></article>
               <article data-collection-total="created"><span>Created</span><strong>0</strong></article>
             </div>
-            <section class="my-tezos-feature-panel" aria-labelledby="collection-profiles-title">
-              <div class="portfolio-section-heading">
-                <div><h4 id="collection-profiles-title">Collector and creator profiles</h4><p>Public Objkt profile context for the selected included addresses.</p></div>
-              </div>
+            <details class="my-tezos-feature-panel collection-profile-details">
+              <summary id="collection-profiles-title">Collector and creator profiles</summary>
               <div id="collection-profiles" class="collection-profiles"></div>
-            </section>
+            </details>
             <div class="collection-toolbar">
               <div class="my-tezos-pill-group" role="group" aria-label="Collection view">
                 <button type="button" class="my-tezos-pill active" data-collection-mode="collected" aria-pressed="true">Collected</button>
@@ -2905,8 +2915,9 @@
             <div id="my-tezos-story-scope-boundary" class="my-tezos-scope-boundary" role="note" hidden>
               <strong>Your combined wallet story is in the totals above.</strong>
               <span>On-chain eras, baker history, identity, and milestones belong to individual accounts and are not merged. Choose a specific wallet above to read its story.</span>
+              <button id="my-tezos-story-active-wallet" class="glass-button" type="button">Read the active wallet’s story</button>
             </div>
-            <section id="my-tezos-story-content" class="my-tezos-story-content" aria-label="Your Tezos Story">
+            <section id="my-tezos-story-content" class="my-tezos-story-content" aria-label="Your Tezos Story" tabindex="-1">
               <div class="portfolio-memory-empty"><strong>Add an address in Overview</strong><span>Your Tezos era, milestones, and on-chain identity will appear here.</span></div>
             </section>
             <div id="my-tezos-memory-storage-notice" class="portfolio-storage-notice" role="status" hidden></div>
@@ -2963,6 +2974,14 @@
             </div>
           </div>
         </section>
+        <details class="my-tezos-reading">
+          <summary>About wallet scope &amp; data</summary>
+          <div class="my-tezos-scope-heading">
+            <strong id="my-tezos-scope-label">All included wallets</strong>
+            <span id="my-tezos-scope-description">Totals combine included wallets; baker and identity facts follow the active wallet.</span>
+          </div>
+          <div id="my-tezos-reading-verdict"></div>
+        </details>
       </div>
     </aside>
 
@@ -2971,8 +2990,8 @@
     <script defer src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 
     <!-- Load app as module -->
-    <script type="module" src="js/effects/valley-loader.js?v=624"></script>
-    <script type="module" src="js/core/app.js?v=624"></script>
+    <script type="module" src="js/effects/valley-loader.js?v=625"></script>
+    <script type="module" src="js/core/app.js?v=625"></script>
     <!-- My Baker Info Modal -->
     <div class="modal-overlay" id="my-baker-modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true" aria-labelledby="my-baker-modal-title" tabindex="-1">

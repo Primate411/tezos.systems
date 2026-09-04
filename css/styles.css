@@ -22597,7 +22597,7 @@ body[data-theme="nerv"]::after {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.25rem;
+    padding: 0.55rem 1.25rem;
     border-bottom: 1px solid rgba(255,255,255,0.1);
     background: var(--bg-primary, #0a0e1a);
     position: sticky;
@@ -22640,7 +22640,7 @@ body[data-theme="nerv"]::after {
 .my-tezos-wallet-scope-bar {
     min-width: 0;
     display: grid;
-    grid-template-columns: minmax(150px, 0.72fr) minmax(220px, 1fr) minmax(320px, 1.45fr);
+    grid-template-columns: minmax(220px, 0.9fr) minmax(320px, 1.4fr);
     align-items: center;
     gap: 0.32rem 0.8rem;
     padding: 0.62rem 1.25rem 0.68rem;
@@ -22666,7 +22666,7 @@ body[data-theme="nerv"]::after {
 #my-tezos-scope-freshness {
     min-width: 0;
     color: var(--text-secondary);
-    font-size: 0.62rem;
+    font-size: 0.68rem;
     line-height: 1.35;
 }
 .my-tezos-scope-control {
@@ -22723,7 +22723,7 @@ body[data-theme="nerv"]::after {
     white-space: nowrap;
 }
 #my-tezos-scope-freshness {
-    grid-column: 3;
+    grid-column: 2;
     margin-top: -0.12rem;
 }
 .my-tezos-scope-boundary {
@@ -22759,8 +22759,49 @@ body[data-theme="nerv"]::after {
     overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* Tab changes and quiet refresh preserve this scroller explicitly. */
+    overflow-anchor: none;
     word-break: break-word;
     scrollbar-gutter: stable;
+}
+.my-tezos-reading {
+    margin-top: 1rem;
+    border-top: 1px solid var(--glass-border, rgba(255,255,255,0.1));
+    color: var(--text-secondary);
+    font-size: 0.78rem;
+}
+.my-tezos-reading > summary,
+.portfolio-data-details > summary,
+.collection-profile-details > summary {
+    min-height: 44px;
+    align-content: center;
+    cursor: pointer;
+    font-weight: 700;
+}
+.my-tezos-reading > summary:focus-visible,
+.portfolio-data-details > summary:focus-visible,
+.collection-profile-details > summary:focus-visible {
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+.my-tezos-reading .my-tezos-scope-heading { gap: 0.35rem; }
+.my-tezos-reading .chamber-verdict { margin-bottom: 0; }
+.portfolio-local-notice.portfolio-data-details { display: block; padding: 0.15rem 0.8rem; font-size: 0.78rem; }
+.portfolio-data-details > p { margin: 0.35rem 0 0.65rem; line-height: 1.5; }
+.my-tezos-scope-boundary > .glass-button,
+.my-tezos-feature-panel > .glass-button {
+    justify-self: start;
+    width: auto;
+    height: auto;
+    min-height: 44px;
+    max-width: 100%;
+    padding: 0.65rem 0.9rem;
+    margin-top: 0.35rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    white-space: normal;
+    text-align: left;
 }
 .my-tezos-view-panel { min-width: 0; }
 .my-tezos-view-panel[hidden] { display: none !important; }
@@ -22772,17 +22813,12 @@ body[data-theme="nerv"]::after {
 .drawer-connected > .drawer-section { min-width: 0; }
 .drawer-live-columns {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
     gap: 0.85rem;
     min-width: 0;
 }
-.drawer-live-column {
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-    min-width: 0;
-}
+.drawer-live-column { display: contents; }
 .drawer-live-column > .drawer-section { min-width: 0; }
 .drawer-live-columns > #drawer-network {
     grid-column: 1 / -1;
@@ -22796,6 +22832,7 @@ body[data-theme="nerv"]::after {
     border-radius: 10px;
     background: rgba(255,255,255,0.025);
 }
+.drawer-more-section[hidden] { display: none; }
 .drawer-more-header {
     display: flex;
     align-items: baseline;
@@ -22889,12 +22926,14 @@ body[data-theme="nerv"]::after {
     color: var(--journey-accent);
     font-size: 0.9rem;
 }
-#drawer-brief {
+#drawer-brief,
+#drawer-baker-brief {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.85rem;
 }
-#drawer-brief .brief-section {
+#drawer-brief .brief-section,
+#drawer-baker-brief .brief-section {
     min-width: 0;
     margin: 0;
     padding: 0.9rem;
@@ -22916,8 +22955,7 @@ body[data-theme="nerv"]::after {
     display: contents;
 }
 .drawer-connected.is-without-baker .drawer-live-columns > .drawer-live-column > #drawer-rewards { order: 1; }
-.drawer-connected.is-without-baker .drawer-live-columns > .drawer-live-column > #drawer-baker { order: 2; }
-.drawer-connected.is-without-baker .drawer-live-columns > .drawer-live-column > #drawer-baker-activity { order: 3; }
+.drawer-connected.is-without-baker .drawer-live-columns > .drawer-live-column > #drawer-brief { order: 2; }
 .drawer-connected.is-without-baker .drawer-live-columns > #drawer-network { order: 4; }
 .my-tezos-delegation-guide {
     display: grid;
@@ -23694,7 +23732,7 @@ body[data-theme="nerv"]::after {
 .network-context-panel a { text-decoration: none; }
 .network-context-columns {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
     align-items: start;
     gap: 0.65rem;
 }
@@ -24764,7 +24802,7 @@ body[data-theme="nerv"]::after {
     flex: 0 0 auto;
     flex-wrap: nowrap;
 }
-.portfolio-file-actions { flex-wrap: wrap; }
+.portfolio-file-actions { flex: 0 0 auto; flex-wrap: wrap; }
 .portfolio-history-ranges button,
 .portfolio-wallet-actions button {
     min-width: 38px;
@@ -24995,7 +25033,31 @@ body[data-theme="nerv"]::after {
     flex-wrap: nowrap;
     scrollbar-width: thin;
 }
-.my-tezos-tabs .my-tezos-tab { flex: 0 0 auto; }
+.my-tezos-tabs .my-tezos-tab { flex: 0 0 auto; white-space: nowrap; }
+#my-tezos-panel-baker-signal { display: grid; gap: 1rem; }
+#my-tezos-baker-signal-empty[hidden],
+#drawer-baker-details[hidden],
+#drawer-baker-history[hidden],
+#drawer-baker-brief[hidden] { display: none; }
+.drawer-baker-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 1rem;
+    min-width: 0;
+}
+.drawer-baker-details > #drawer-baker-brief,
+.drawer-baker-details > #drawer-baker-history,
+.drawer-baker-details > #drawer-baker {
+    grid-column: 1 / -1;
+    min-width: 0;
+}
+#drawer-baker-brief { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.drawer-baker-details > #drawer-baker-activity { grid-column: 1 / -1; }
+@media (max-width: 760px) {
+    .drawer-baker-details,
+    #drawer-baker-brief { grid-template-columns: minmax(0, 1fr); }
+}
 .portfolio-memory-panel,
 .portfolio-activity-panel,
 .my-tezos-overview-transactions,
@@ -25379,6 +25441,27 @@ body[data-theme="nerv"]::after {
 }
 .portfolio-activity-item > div,
 .tezosx-transaction-list > a > div { min-width: 0; display: grid; gap: 0.2rem; }
+.portfolio-activity-item > a {
+    display: grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    border: 1px solid var(--glass-border, rgba(255,255,255,0.12));
+    border-radius: 8px;
+    color: var(--accent-cyan, #45e0c8);
+    background: var(--glass-bg, rgba(255,255,255,0.04));
+    text-decoration: none;
+    font-size: 1.1rem;
+}
+.portfolio-activity-item > a:hover,
+.portfolio-activity-item > a:focus-visible {
+    color: var(--text-primary);
+    border-color: var(--accent-cyan);
+    outline: 2px solid var(--accent-cyan);
+    outline-offset: 2px;
+}
+.my-tezos-feature-footer,
+.portfolio-activity-footer { font-size: 0.74rem; line-height: 1.45; color: var(--text-secondary); }
 .portfolio-activity-item strong,
 .tezosx-transaction-list strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .portfolio-activity-item small,
@@ -25428,6 +25511,7 @@ body[data-theme="nerv"]::after {
     gap: 0.55rem;
 }
 .tezosx-summary-grid,
+.transactions-shell .my-tezos-feature-summary,
 .tezosx-shell .my-tezos-feature-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .collection-toolbar label,
 .tezosx-toolbar label,
@@ -25444,6 +25528,10 @@ body[data-theme="nerv"]::after {
 .tezosx-link-form input { min-width: 0; width: 100%; }
 .collection-profile-list,
 .collection-profiles { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.collection-profile-details { display: block; padding: 0.25rem 1rem; }
+.collection-profile-details[open] { padding-bottom: 1rem; }
+.collection-profile-details > summary { color: var(--text-secondary); font-size: 0.8rem; }
+.collection-profile-details .collection-profiles { margin-top: 0.5rem; }
 .collection-profile-list article,
 .collection-profiles article,
 .tezosx-token-list article,
@@ -25503,8 +25591,8 @@ body[data-theme="nerv"]::after {
     right: 0.45rem;
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: rgba(0,0,0,0.72);
     color: #fff;
@@ -25618,19 +25706,20 @@ body[data-theme="nerv"]::after {
 }
 
 /* ── Drawer content overrides ── */
-.my-tezos-drawer .my-baker-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); }
+.my-tezos-drawer .my-baker-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .my-tezos-drawer .capacity-bars { grid-template-columns: 1fr 1fr; }
-.my-tezos-drawer .rt-grid { grid-template-columns: 1fr !important; }
+.my-tezos-drawer .rt-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .my-tezos-drawer .my-baker-stat-value { font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 900px) {
     .my-tezos-drawer { width: 100vw; }
 }
 @media (max-width: 760px) {
+    .my-tezos-drawer .my-baker-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .my-tezos-drawer .rt-grid { grid-template-columns: minmax(0, 1fr); }
     .drawer-live-columns { grid-template-columns: minmax(0, 1fr); }
     .drawer-live-column { display: contents; }
     .drawer-live-columns > .drawer-live-column > #drawer-rewards { order: 1; }
-    .drawer-live-columns > .drawer-live-column > #drawer-baker { order: 2; }
-    .drawer-live-columns > .drawer-live-column > #drawer-baker-activity { order: 3; }
+    .drawer-live-columns > .drawer-live-column > #drawer-brief { order: 2; }
     .drawer-live-columns > #drawer-network { order: 4; }
     .network-personal-facts,
     .network-context-signals { grid-template-columns: minmax(0, 1fr); }
@@ -25642,11 +25731,11 @@ body[data-theme="nerv"]::after {
     .drawer-operator-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .portfolio-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .my-tezos-wallet-scope-bar {
-        grid-template-columns: minmax(150px, 0.8fr) minmax(220px, 1fr);
+        grid-template-columns: minmax(0, 1fr);
     }
     .my-tezos-scope-totals,
     #my-tezos-scope-freshness { grid-column: 1 / -1; }
-    .my-tezos-scope-totals { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .my-tezos-scope-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .portfolio-history-panel .portfolio-section-heading {
         flex-direction: column;
     }
@@ -25687,6 +25776,8 @@ body[data-theme="nerv"]::after {
     .portfolio-away-summary,
     .collection-summary-grid,
     .my-tezos-feature-summary,
+    .transactions-shell .my-tezos-feature-summary,
+    .tezosx-shell .my-tezos-feature-summary,
     .tezosx-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .my-tezos-feature-heading,
@@ -25697,17 +25788,40 @@ body[data-theme="nerv"]::after {
 }
 @media (max-width: 480px) {
     .drawer-body { padding: 0.85rem; }
-    .drawer-header { padding: 0.75rem 0.85rem; }
-    .my-tezos-tabs { padding-left: 0.85rem; padding-right: 0.85rem; }
+    .drawer-header { padding: 0.2rem 0.85rem; }
+    .my-tezos-tabs {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 0;
+        padding: 0 0.5rem;
+        overflow: visible;
+    }
+    .my-tezos-tabs .my-tezos-tab {
+        grid-column: span 3;
+        min-width: 0;
+        min-height: 44px;
+        padding: 0 0.1rem;
+        font-size: 0.72rem;
+        letter-spacing: 0;
+    }
+    .my-tezos-tabs .my-tezos-tab:nth-child(n + 5) { grid-column: span 4; }
     .my-tezos-wallet-scope-bar {
         grid-template-columns: minmax(0, 1fr);
         padding-inline: 0.85rem;
+        padding-block: 0.35rem;
     }
+    .my-tezos-scope-control { grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 0.65rem; }
+    .my-tezos-scope-control > span { font-size: 0.62rem; }
     .my-tezos-scope-totals {
         grid-column: auto;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
+    .my-tezos-scope-totals [data-my-tezos-scope-total="wallets"] { display: none; }
+    .my-tezos-scope-totals article { display: grid; justify-content: stretch; gap: 0.15rem; padding: 0.3rem; }
+    .my-tezos-scope-totals strong { font-size: 0.66rem; }
+    .my-tezos-scope-totals span { font-size: 0.58rem; }
     #my-tezos-scope-freshness { grid-column: auto; }
+    #my-tezos-scope-freshness { font-size: 0.62rem; }
     .drawer-operator-header {
         flex-direction: column;
     }
@@ -25807,6 +25921,9 @@ body[data-theme="nerv"]::after {
         width: 100%;
     }
     .portfolio-refresh { align-self: stretch; }
+    .drawer-address-bar .wallet-connect-btn { flex: 0 0 auto; min-height: 44px; }
+    .drawer-address-bar .wallet-connect-status { flex: 1 1 120px; align-self: center; font-size: 0.68rem; }
+    .collection-toolbar { flex-direction: row; align-items: center; flex-wrap: wrap; }
     .portfolio-summary-card { min-height: 104px; padding: 0.68rem; }
     .portfolio-add-form { grid-template-columns: minmax(0, 1fr); }
     .portfolio-add-form button { grid-column: auto; }
@@ -25816,17 +25933,51 @@ body[data-theme="nerv"]::after {
     .portfolio-wallet-identity,
     .portfolio-wallet-row > [data-label],
     .portfolio-wallet-actions { grid-column: 2 / -1; }
-    .collection-grid,
     .tezosx-assets-grid,
     .tezosx-link-form { grid-template-columns: minmax(0, 1fr); }
+    .collection-shell .my-tezos-feature-summary { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .collection-shell .my-tezos-feature-summary article { grid-column: span 2; padding: 0.6rem; }
+    .collection-shell .my-tezos-feature-summary article:nth-child(n + 4) { grid-column: span 3; }
+    .collection-asset-card > div:last-of-type { padding: 0.55rem; }
+    .collection-asset-card strong { font-size: 0.8rem; }
     .tezosx-link-form button { grid-column: auto; }
     .tezosx-account-row { flex-direction: column; }
     .tezosx-account-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
-    .portfolio-activity-item,
     .tezosx-transaction-list > a { grid-template-columns: auto minmax(0, 1fr); }
-    .portfolio-activity-item > :last-child,
     .tezosx-transaction-list > a > :last-child { grid-column: 2; }
+    .portfolio-activity-item { gap: 0.45rem; padding: 0.65rem; }
+    .portfolio-activity-item strong,
+    .portfolio-activity-item small,
+    .portfolio-activity-item > div > span { white-space: normal; overflow-wrap: anywhere; }
+    .portfolio-activity-item small { font-size: 0.7rem; }
+    .portfolio-history-ranges button,
+    .portfolio-file-actions .glass-button,
+    .portfolio-wallet-actions button { min-height: 44px; min-width: 44px; }
 }
+@media (max-width: 359px) {
+    .my-tezos-drawer .my-baker-grid { grid-template-columns: minmax(0, 1fr); }
+    .my-tezos-tabs { grid-template-columns: repeat(24, minmax(0, 1fr)); }
+    .my-tezos-tabs .my-tezos-tab { grid-column: span 5; }
+    .my-tezos-tabs .my-tezos-tab:nth-child(2) { grid-column: span 6; }
+    .my-tezos-tabs .my-tezos-tab:nth-child(4),
+    .my-tezos-tabs .my-tezos-tab:nth-child(n + 5) { grid-column: span 8; }
+    .collection-grid { grid-template-columns: minmax(0, 1fr); }
+    .my-tezos-scope-totals { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .my-tezos-scope-totals [data-my-tezos-scope-total="total"] { grid-column: 1 / -1; display: flex; }
+}
+@media (max-height: 500px) and (min-width: 481px) {
+    .my-tezos-wallet-scope-bar { grid-template-columns: minmax(180px, 0.8fr) minmax(0, 1.4fr); padding-block: 0.3rem; }
+    .my-tezos-scope-totals { grid-column: 2; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .my-tezos-scope-totals article { display: grid; gap: 0.1rem; }
+    #my-tezos-scope-freshness { grid-column: 1 / -1; }
+    .drawer-header { padding-block: 0.15rem; }
+    .my-tezos-tabs { padding-top: 0; }
+}
+.collection-shell .my-tezos-feature-summary:has(.is-wide-total) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.collection-shell .my-tezos-feature-summary:has(.is-wide-total) article { grid-column: auto; }
+.collection-shell .my-tezos-feature-summary article.is-wide-total { grid-column: 1 / -1; order: 1; }
 @media (max-width: 340px) {
     .drawer-operator-grid,
     .portfolio-summary-grid { grid-template-columns: minmax(0, 1fr); }
@@ -25870,6 +26021,9 @@ body[data-theme="nerv"]::after {
     background: #f59e0b;
     border-color: #f59e0b;
 }
+[data-theme="clean"] .portfolio-history-status[data-state="complete"] { color: #0f766e; }
+[data-theme="clean"] .portfolio-history-status[data-state="loading"] { color: #075985; }
+[data-theme="clean"] .portfolio-history-status[data-state="partial"] { color: #92400e; }
 
 [data-theme="clean"] .header .title {
     font-family: 'JetBrains Mono', 'SF Mono', Consolas, monospace !important;
