@@ -1728,7 +1728,9 @@ entry projection; resources requested before that card becomes visible still
 fail the audit, as do full room artifacts loaded before entry. This keeps the
 default expanded Ecosystem card measurable without changing the page layout.
 It also rejects JavaScript fetched under multiple URLs, so module preloads must
-match their eventual import specifiers, including the shared asset stamp.
+match their eventual import specifiers, including the shared asset stamp. When
+integrating parallel changes, advance that stamp past the deployed value and
+regenerate the standalone route shells.
 
 The README guard reads staged files. If package/tooling, hook, handoff docs,
 smoke-test, config, theme, app-shell, service-worker, SEO, widget, or

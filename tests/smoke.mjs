@@ -4701,8 +4701,18 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
     const simulatedAnchoringShift = 369;
     await page.evaluate((shift) => {
       const head = document.querySelector('#chambers-grid > .chamber-category[data-chamber-category="capital"] > .chamber-category-head > .chamber-category-toggle');
+      window.__chamberCategoryAnchorShift = null;
       head?.addEventListener('click', () => {
-        requestAnimationFrame(() => window.scrollBy(0, shift));
+        requestAnimationFrame(() => {
+          // Browser anchoring is immediate, regardless of CSS smooth scrolling.
+          const html = document.documentElement;
+          const previousBehavior = html.style.scrollBehavior;
+          html.style.scrollBehavior = 'auto';
+          const before = window.scrollY;
+          window.scrollBy(0, shift);
+          window.__chamberCategoryAnchorShift = { before, after: window.scrollY };
+          html.style.scrollBehavior = previousBehavior;
+        });
       }, { once: true });
     }, simulatedAnchoringShift);
     const activationScrollY = await page.evaluate(() => {
@@ -4716,6 +4726,7 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
       const category = document.querySelector('#chambers-grid > .chamber-category[data-chamber-category="capital"]');
       const head = category?.querySelector(':scope > .chamber-category-head > .chamber-category-toggle');
       return Boolean(category?.dataset.chamberExpanded === 'true'
+        && window.__chamberCategoryAnchorShift
         && document.activeElement === head
         && Math.abs(window.scrollY - targetScrollY) <= 4);
     }, activationScrollY, { timeout: 3000 });
@@ -4723,10 +4734,13 @@ async function assertResponsiveChamberCards(browser, baseUrl, viewport, label, m
       const category = document.querySelector('#chambers-grid > .chamber-category[data-chamber-category="capital"]');
       return {
         scrollY: window.scrollY,
+        anchorShift: window.__chamberCategoryAnchorShift,
         open: category?.dataset.chamberExpanded === 'true',
         focused: document.activeElement === category?.querySelector(':scope > .chamber-category-head > .chamber-category-toggle')
       };
     });
+    assert(afterToggle.anchorShift.after - afterToggle.anchorShift.before === simulatedAnchoringShift,
+      `${label}: the complete simulated browser anchor shift must occur before testing its repair ${JSON.stringify(afterToggle)}`);
     assert(afterToggle.open && afterToggle.focused, `${label}: mobile disclosure toggle must remain focused and open ${JSON.stringify(afterToggle)}`);
     assert(Math.abs(afterToggle.scrollY - activationScrollY) <= 4, `${label}: mobile disclosure toggle did not repair a ${simulatedAnchoringShift}px browser anchor shift ${JSON.stringify({ beforeToggle, activationScrollY, afterToggle })}`);
     await page.evaluate(() => {

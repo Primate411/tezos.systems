@@ -5199,6 +5199,8 @@ async function checkChamberEfficiencyContracts() {
     'if (restoreFrame < maxRestoreFrames) requestAnimationFrame(restoreBrowserShift)',
     'else clearScrollIntentListeners()',
     'const simulatedAnchoringShift = 369',
+    '&& window.__chamberCategoryAnchorShift',
+    'afterToggle.anchorShift.after - afterToggle.anchorShift.before === simulatedAnchoringShift',
     'afterReaderScroll.displacingCallsAfterIntent === 0'
   ]) {
     if (!(app.includes(snippet) || smoke.includes(snippet))) {

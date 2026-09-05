@@ -4,7 +4,8 @@ Scope: the complete tracked site at `2f9b08d5`, followed by the safe changes on
 `audit/safe-codebase-cleanup-2026-09-04`. The main checkout contained unrelated
 edits and changed during inspection. Implementation and verification therefore
 use `/Users/primate/Code/tezos.systems-code-audit`, an isolated local worktree.
-This work is commit-only; it does not publish or push anything.
+The initial delivery was commit-only. Publication was subsequently authorized
+on 5 September; the integration note below describes that preparation.
 
 ## What was examined before editing
 
@@ -58,7 +59,7 @@ fact or every possible browser interaction.
 | S10 | Reserve a consistent width for every Chamber status label. | On 390px screens, changing `watch` to `snapshot` moved the sentence by about 20px and changed its height. The existing browser test failed on pristine committed code. It now checks all nine statuses, including `unavailable`, at 1440/390/320px. |
 | S11 | Make initial-load measurement observe launcher intersections before allowing hydration. Keep the full-artifact guard. | The old audit rejected the default visible Ecosystem card's module, CSS and small projection. New checks distinguish legitimate visible hydration from requests made before visibility or for another card. |
 | S12 | Align My Tezos's module preload with its versioned runtime import. Reject duplicate module URLs in startup measurement and enforce preload stamp alignment statically. | Browser capture showed both unversioned and versioned copies downloaded. The change removes one approximately 149 KB decoded download after cleanup; it does not change module initialization. |
-| S13 | Refresh runtime documentation, changelog and cache references. | Replace the stale `v554` handoff claim with its canonical source; describe lazy Chamber boot accurately. Align asset/cache stamp 627 and regenerate the 25 Chamber and 22 Anthology route shells. |
+| S13 | Refresh runtime documentation, changelog and cache references. | Replace the stale `v554` handoff claim with its canonical source; describe lazy Chamber boot accurately. Align asset/cache stamp 629 and regenerate the 25 Chamber and 22 Anthology route shells. |
 | S14 | Wait for dashboard readiness before the Home layout smoke clicks Settings and the reward-report helper opens My Tezos. | A controlled module delay reproduced the race: layout state was exposed while Settings was still unwired; the reward helper likewise clicked an early visible button. The broad run correctly marked retry-only passes as flaky. Focused checks are repeated without retries after correcting readiness. |
 | S15 | Measure Uranium after fonts and entrance animation settle; verify its contained scrolling tab rail and actually open the last tab. | The old smoke assumed all four readable phone tabs fit simultaneously. The current shared room CSS deliberately scrolls that rail. With fallback fonts, Proofbook extended about 4px past the initial viewport but remained scrollable. The new check proves containment and reachability without shrinking labels or weakening page-overflow checks. |
 | S16 | Wait for populated Health, Staking and Ecosystem room content in the tall-screen smoke. | Two fresh-browser repeats reproduced a scroll assertion against the short Network Health loading screen; its screenshot confirmed content was still pending. The shell remains immediately visible, and the test now checks overflow and scrolling after the room's data content renders. |
@@ -263,3 +264,33 @@ assertion and infrastructure retries disabled.
 Detailed local result ledgers, logs and screenshots are retained in
 `/var/folders/lk/krgvf4v95cq96wsb7lh3xl3r0000gn/T/tezos-code-audit-23b4rjwn/`.
 They are evidence from this checkout and run, not hosted CI or deployment proof.
+
+
+## Publication integration — 5 September 2026
+
+The audit commits were rebased onto `eb291176`, retaining the newer mobile
+Activity/Chain Health controls, bare Chamber close controls, governance-period
+receipts and scheduled source-family refreshes. Generated-data conflicts kept
+the newer upstream receipts; normal commit hooks refresh their dependent
+projections. The audit retains its nine-status reading checks and waits for
+populated room content, alongside the newer mobile geometry assertions.
+Asset/cache stamp 629 supersedes deployed stamp 628, and the combined source
+styles and all standalone shells are regenerated before publication.
+
+A repeated governance check exposed a race in its synthetic browser-anchor
+shift: `scrollBy` inherited smooth scrolling, and its repair predicate could
+pass before the injected shift ran. The pending animation then interfered with
+the next simulated reader scroll. A controlled browser probe confirmed that the
+old shift was animated. The fixture now applies the shift immediately, records
+its actual displacement and waits for that receipt before checking repair; the
+reader-position and no-delayed-restore assertions remain strict.
+
+The integrated tree passed the complete static gate. Nine focused browser
+suites each passed twice with assertion and infrastructure retries disabled:
+desktop/mobile Hero Command Bar, Network Health, active/quiet governance,
+Chamber UX, Chamber reading, Uranium and tall-screen geometry. The first
+governance ledger retains the simulation failure; both governance suites passed
+twice after its correction. Rendered desktop/mobile Chamber status screenshots
+were inspected. Integration logs, result ledgers and screenshots are retained in
+`/var/folders/lk/krgvf4v95cq96wsb7lh3xl3r0000gn/T/tezos-audit-publish-boatbb8w/`.
+These local results precede hosted CI and production verification.
