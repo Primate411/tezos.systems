@@ -58,10 +58,11 @@ fact or every possible browser interaction.
 | S10 | Reserve a consistent width for every Chamber status label. | On 390px screens, changing `watch` to `snapshot` moved the sentence by about 20px and changed its height. The existing browser test failed on pristine committed code. It now checks all nine statuses, including `unavailable`, at 1440/390/320px. |
 | S11 | Make initial-load measurement observe launcher intersections before allowing hydration. Keep the full-artifact guard. | The old audit rejected the default visible Ecosystem card's module, CSS and small projection. New checks distinguish legitimate visible hydration from requests made before visibility or for another card. |
 | S12 | Align My Tezos's module preload with its versioned runtime import. Reject duplicate module URLs in startup measurement and enforce preload stamp alignment statically. | Browser capture showed both unversioned and versioned copies downloaded. The change removes one approximately 149 KB decoded download after cleanup; it does not change module initialization. |
-| S13 | Refresh runtime documentation, changelog and cache references. | Replace the stale `v554` handoff claim with its canonical source; describe lazy Chamber boot accurately. Align build/cache stamp 627 and regenerate the 25 Chamber and 22 Anthology route shells. |
+| S13 | Refresh runtime documentation, changelog and cache references. | Replace the stale `v554` handoff claim with its canonical source; describe lazy Chamber boot accurately. Align asset/cache stamp 627 and regenerate the 25 Chamber and 22 Anthology route shells. |
 | S14 | Wait for dashboard readiness before the Home layout smoke clicks Settings and the reward-report helper opens My Tezos. | A controlled module delay reproduced the race: layout state was exposed while Settings was still unwired; the reward helper likewise clicked an early visible button. The broad run correctly marked retry-only passes as flaky. Focused checks are repeated without retries after correcting readiness. |
 | S15 | Measure Uranium after fonts and entrance animation settle; verify its contained scrolling tab rail and actually open the last tab. | The old smoke assumed all four readable phone tabs fit simultaneously. The current shared room CSS deliberately scrolls that rail. With fallback fonts, Proofbook extended about 4px past the initial viewport but remained scrollable. The new check proves containment and reachability without shrinking labels or weakening page-overflow checks. |
 | S16 | Wait for populated Health, Staking and Ecosystem room content in the tall-screen smoke. | Two fresh-browser repeats reproduced a scroll assertion against the short Network Health loading screen; its screenshot confirmed content was still pending. The shell remains immediately visible, and the test now checks overflow and scrolling after the room's data content renders. |
+| S17 | Correct share-image route fallbacks and missing governance metrics. | Final inspection of hook-generated and baseline images exposed the same stale defaults: the topic directory, archive and Tezlink alias inherited governance facts, while null percentages became zero. The generator now uses route-specific directory/archive content, canonical aliases and an identity-only fallback. Anthology metadata points to its own artwork. Missing percentages and closing dates stay unavailable; actual numeric zero remains zero. |
 
 Regression logic is in `tests/request-lifecycle-check.mjs`, the existing static
 contracts, and the extended `chamber-reading` browser suite. These tests execute
@@ -168,8 +169,8 @@ contracts passed at that inspection time.
 
 Review the actual release evidence and regenerate the receipt through its
 normal reviewed process. Advancing timestamps or weakening expiry checks would
-misrepresent readiness. No release claim or content timestamp was changed in
-this audit. This is a time-sensitive operational finding, not a blanket claim
+misrepresent readiness. No Release Radar claim or review timestamp was changed
+in this audit. This is a time-sensitive operational finding, not a blanket claim
 that the site's data is stale.
 
 ### 8. Reduce maintenance duplication in the test/build catalogs
@@ -244,7 +245,20 @@ unchanged.
 The separate freshness alarm still reported the two pre-existing Release Radar
 expiry/review failures described above. Its timestamps and checks were not
 modified. Larger architecture, data-format and editorial changes remain
-recommendations rather than part of this commit.
+recommendations rather than part of the safe audit changes.
+
+Normal commit hooks also refreshed governance receipts, their bound baker
+projection, the RSS build date, share images and build metadata. The reviewed
+governance changes were a source-reported closing-time adjustment and matching
+timestamps/hashes. They did not change protocol identity or vote counts. The
+share-image follow-up (S17) was found while comparing those generated images
+with the original committed images. Its regression check covers missing and
+numeric-zero metrics, closing dates, canonical aliases, archive metadata and
+future-route fallback. All four corrected images were visually inspected;
+Anthology and its story pages were regenerated against the archive image.
+The complete static gate passed again after that correction. A further browser
+run passed all 45 route-formatting checks on both desktop and mobile, with
+assertion and infrastructure retries disabled.
 
 Detailed local result ledgers, logs and screenshots are retained in
 `/var/folders/lk/krgvf4v95cq96wsb7lh3xl3r0000gn/T/tezos-code-audit-23b4rjwn/`.

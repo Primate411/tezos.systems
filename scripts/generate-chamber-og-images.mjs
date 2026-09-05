@@ -21,9 +21,9 @@ function escapeHtml(value) {
 }
 
 function formatUtc(iso) {
-  if (!iso) return 'live now';
+  if (!iso) return 'Closing date unavailable';
   const date = new Date(iso);
-  if (!Number.isFinite(date.getTime())) return 'live now';
+  if (!Number.isFinite(date.getTime())) return 'Closing date unavailable';
   return date.toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -42,19 +42,32 @@ async function readGovernanceReport() {
   }
 }
 
-function routeDetails(route, report) {
+export function routeDetails(route, report) {
   const gov = report?.currentGovernance || {};
-  const proposal = gov.proposalName || 'Current proposal';
   const kind = gov.kind ? `${gov.kind[0].toUpperCase()}${gov.kind.slice(1)}` : 'Governance';
   const end = formatUtc(gov.endTime);
-  const participation = Number.isFinite(Number(gov.tally?.participationPct))
-    ? `${Number(gov.tally.participationPct).toFixed(1)}% participation`
-    : 'live participation';
-  const yay = Number.isFinite(Number(gov.tally?.yayPct))
-    ? `${Number(gov.tally.yayPct).toFixed(1)}% yay`
-    : 'live supermajority';
+  const participation = Number.isFinite(gov.tally?.participationPct)
+    ? `${gov.tally.participationPct.toFixed(1)}% participation`
+    : 'participation unavailable';
+  const yay = Number.isFinite(gov.tally?.yayPct)
+    ? `${gov.tally.yayPct.toFixed(1)}% yay`
+    : 'yay unavailable';
 
   const bySlug = {
+    chambers: {
+      badge: 'Topic Directory',
+      kicker: 'Tezos rooms by topic',
+      value: 'Find your next room',
+      chips: ['network + ecosystem', 'people + governance', 'accounts + history'],
+      body: route.description
+    },
+    anthology: {
+      badge: 'Protocol Archive',
+      kicker: 'Protocol lore + upgrade debates',
+      value: 'Self-amendment, recorded',
+      chips: ['protocol history', 'upgrade debates', 'impact views'],
+      body: route.description
+    },
     my: {
       kicker: 'Personal Tezos',
       value: 'Your wallet at the center',
@@ -134,7 +147,7 @@ function routeDetails(route, report) {
       body: 'Browse every officially published TezosCRP category recognition since October 2020, with human identities, category history, and source receipts kept separate from wallet-based Maxis.'
     },
     chamber: {
-      kicker: `${proposal} ${kind}`,
+      kicker: gov.proposalName ? `${gov.proposalName} ${kind}` : `${kind} period`,
       value: end,
       chips: [participation, yay, 'quorum + ballots'],
       body: 'Live Tezos governance intelligence for vote closing, quorum risk, supermajority, and baker behavior.'
@@ -189,10 +202,15 @@ function routeDetails(route, report) {
     }
   };
 
-  return bySlug[route.slug] || bySlug.chamber;
+  return bySlug[route.canonicalSlug || route.slug] || {
+    kicker: route.eyebrow,
+    value: 'Explore this room',
+    chips: [],
+    body: route.description
+  };
 }
 
-function renderCard(route, report) {
+export function renderCard(route, report) {
   const details = routeDetails(route, report);
   return `<!DOCTYPE html>
 <html>
@@ -314,7 +332,7 @@ function renderCard(route, report) {
   <div class="frame">
     <div class="top">
       <div class="brand">Tezos Systems</div>
-      <div class="live">Live Room</div>
+      <div class="live">${escapeHtml(details.badge || 'Live Room')}</div>
     </div>
     <div class="body">
       <div class="eyebrow">${escapeHtml(route.eyebrow)}</div>
@@ -385,7 +403,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}

@@ -35,6 +35,10 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
   run `npm run build:css`.
 - CSS tooling uses the direct `clean-css` dependency. The pre-commit generator
   rebuilds and stages all 16 lazy surface bundles, including `market-room.css`.
+- Chamber share images use their route identity and canonical aliases. The
+  Protocol Anthology uses its own archive artwork; unavailable governance
+  percentages and closing dates remain unavailable rather than becoming zero
+  or a live timestamp.
 - Critical first-paint skeletons live in `css/loading.css`.
 - Shared hook wrapper: `.githooks/pre-commit`; enable it once per clone with
   `npm run install-hooks`.

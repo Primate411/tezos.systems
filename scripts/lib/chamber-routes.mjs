@@ -21,7 +21,6 @@ export const CHAMBER_ROUTES = [
   },
   {
     slug: 'anthology',
-    imageSlug: 'chamber',
     hash: '#protocol-history',
     title: 'Protocol Anthology - Tezos Self-Amendment Story',
     shortTitle: 'Protocol Anthology',
