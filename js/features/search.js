@@ -15,6 +15,7 @@ import {
 } from '../core/search-entities.js';
 import {
     isSearchCatalogLoaded,
+    isSearchCatalogLoading,
     loadSearchCatalog,
     searchFirstPartyCatalog
 } from '../core/search-catalog.js';
@@ -874,7 +875,7 @@ function buildResults(query, { browseAll = false } = {}) {
     const catalogMatches = q.startsWith('/') || entity
         ? []
         : searchFirstPartyCatalog(q, { limit: 10 }).map(catalogResult);
-    const catalogLoading = q.length >= 2 && !q.startsWith('/') && !entity && !isSearchCatalogLoaded()
+    const catalogLoading = q.length >= 2 && !q.startsWith('/') && !entity && isSearchCatalogLoading()
         ? [statusResult('catalog', 'On tezos.systems', 'Searching the first-party catalog', 'Checking apps, identities, debates, and network milestones')]
         : [];
 
@@ -1572,15 +1573,15 @@ export function initHeroSearch() {
         const q = normalizeQuery(value);
         if (q.length < 2 || q.startsWith('/') || parseSearchEntity(q) || isSearchCatalogLoaded()) return;
         loadSearchCatalog().finally(() => {
-            if (isOpen && normalizeQuery(input.value) === q) render();
+            if (isOpen && normalizeQuery(input.value) === q) render(false);
         });
     };
 
-    const render = () => {
+    const render = (lookupCatalog = true) => {
         if (!isOpen) return;
         queueNameLookups(input.value);
         queueEntityResolution(input.value);
-        queueCatalogLookup(input.value);
+        if (lookupCatalog) queueCatalogLookup(input.value);
         const query = normalizeQuery(input.value);
         root.classList.toggle('has-query', Boolean(query));
         root.classList.toggle('is-browsing-all', isBrowsingAll);

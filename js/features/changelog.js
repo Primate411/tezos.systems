@@ -7,6 +7,9 @@ export const CHANGELOG = [
     {
         date: '2026-09-04',
         entries: [
+            { type: '⚡', text: 'My Tezos now reuses its startup preload instead of downloading the same module twice' },
+            { type: '🔧', text: 'Slow network requests now stay shared until completion, search and contract catalogs recover after connection failures, and Chamber status changes keep nearby text still on phones' },
+            { type: '⚡', text: 'Removed unused legacy renderers and overlapping widget refreshes while preserving source timestamps, cached data rules, and existing visual effects' },
             { type: '✨', text: 'Baker Signal now has its own My Tezos tab for live health, grade and report card, capacity, participation, governance, delegation guidance, 30-cycle baker history, and recent baker activity' },
             { type: '✨', text: 'Chain Health now tracks the last 25 blocks beside 1H Activity, with smoothly advancing health bars and mini pop-ups showing each block\'s missed bakers' },
             { type: '🎨', text: 'Activity and Chain Health stay the same compact height across desktop and mobile, with Activity first and larger invisible touch targets on phones' },

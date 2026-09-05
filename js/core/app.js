@@ -718,7 +718,6 @@ async function refresh() {
         saveStats(newStats);
 
         // Force full re-render by clearing lastUpdate temporarily
-        const hadPriorUpdate = !!state.lastUpdate;
         state.lastUpdate = null;
         await updateStats(newStats);
         syncLiveSparklineMetrics(newStats);
@@ -1186,17 +1185,6 @@ function reportDataQuality(stats) {
 /**
  * Setup event listeners
  */
-/**
- * Move a section to the top of the optional-sections container
- */
-function bringToTop(sectionId) {
-    const container = document.getElementById('optional-sections');
-    const section = document.getElementById(sectionId);
-    if (container && section && section.parentElement === container) {
-        container.prepend(section);
-    }
-}
-
 // ==========================================
 // MY TEZOS HEADER BUTTON
 // ==========================================
@@ -2546,7 +2534,6 @@ async function renderProtocolAnthologyBoard(protocols, currentProtocol = null) {
         ? enriched.find((protocol) => protocol.name === currentProtocol.name) || currentProtocol
         : enriched.find((protocol) => protocol.isCurrent) || enriched[enriched.length - 1];
     renderProtocolAlphabetMarch(enriched, current);
-    const longReads = enriched.filter((protocol) => protocol.history?.sections?.length);
     const debated = enriched.filter((protocol) => protocol.debate || protocol.contention || protocol.history);
     const chapterCount = countProtocolUpgrades(enriched);
     const eras = [];
@@ -5853,8 +5840,6 @@ function showProtocolHistoryModal(history, protocolName, { opener = null, protoc
     const isValley = _modalTheme === 'valley';
     const accent = isClean ? '#2563EB' : isDark ? '#C8C8C8' : isMatrix ? '#00ff00' : isBubblegum ? '#FF69B4' : isValley ? '#E7B66C' : '#00d4ff';
     const accentRgb = isClean ? '37,99,235' : isDark ? '200,200,200' : isMatrix ? '0,255,0' : isBubblegum ? '255,105,180' : isValley ? '231,182,108' : '0,212,255';
-    const bg = isClean ? 'rgba(255, 255, 255, 0.98)' : isDark ? 'rgba(26, 26, 26, 0.98)' : isMatrix ? 'rgba(0, 8, 0, 0.98)' : isBubblegum ? 'rgba(26, 15, 34, 0.98)' : isValley ? 'rgba(29, 33, 22, 0.98)' : 'rgba(8, 8, 16, 0.98)';
-    const borderColor = isClean ? 'rgba(0,0,0,0.1)' : isDark ? '#333333' : isMatrix ? 'rgba(0,255,0,0.3)' : isBubblegum ? 'rgba(255,105,180,0.3)' : isValley ? 'rgba(231,182,108,0.34)' : 'rgba(0,212,255,0.3)';
     const records = Array.isArray(protocols) && protocols.length ? protocols : [protocol].filter(Boolean);
     const record = protocol || findProtocolByRouteValue(records, protocolName);
     const recordIndex = records.findIndex((item) => item?.name === record?.name);

@@ -127,12 +127,6 @@ function formatNumber(value, maximumFractionDigits = 2) {
     return number.toLocaleString('en-US', { maximumFractionDigits });
 }
 
-function formatCompact(value, maximumFractionDigits = 2) {
-    const number = numeric(value);
-    if (number === null) return 'Unavailable';
-    return new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits }).format(number);
-}
-
 function formatPct(value, signed = false) {
     const number = numeric(value);
     if (number === null) return 'Unavailable';

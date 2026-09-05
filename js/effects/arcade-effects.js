@@ -580,7 +580,6 @@ function renderCircuitTrail() {
 function packetBurst(x, y) {
     const colors = getColors();
     const targets = document.querySelectorAll('.stat-card, .glass-button');
-    const packets = [];
     
     // Create 6-8 packets
     for (let i = 0; i < 8; i++) {

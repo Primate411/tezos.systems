@@ -9,6 +9,10 @@ export function isSearchCatalogLoaded() {
     return catalogLoaded;
 }
 
+export function isSearchCatalogLoading() {
+    return !catalogLoaded && catalogPromise !== null;
+}
+
 function warmSearchIndex(rows) {
     const build = () => {
         for (const row of rows) siteMapSearchIndex(row);
@@ -28,8 +32,7 @@ export function loadSearchCatalog() {
                 return catalogRows;
             })
             .catch(() => {
-                catalogRows = [];
-                catalogLoaded = true;
+                catalogPromise = null;
                 return catalogRows;
             });
     }

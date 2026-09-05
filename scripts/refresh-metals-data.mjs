@@ -212,10 +212,6 @@ function iso(value) {
   return Number.isFinite(date.getTime()) ? date.toISOString() : null;
 }
 
-function isoDate(value) {
-  return iso(value)?.slice(0, 10) || null;
-}
-
 function cleanError(error) {
   return String(error?.message || error || 'Unknown source error').replace(/\s+/g, ' ').slice(0, 500);
 }

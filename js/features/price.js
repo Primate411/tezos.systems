@@ -6,10 +6,10 @@
 
 const COINGECKO_URL = 'https://api.coingecko.com/api/v3/simple/price?ids=tezos&vs_currencies=usd,eur,btc&include_24hr_change=true&include_market_cap=true&include_24hr_vol=true';
 const COINGECKO_HORIZONS_URL = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=tezos&order=market_cap_desc&per_page=1&page=1&sparkline=false&price_change_percentage=24h,7d,30d';
-const COINGECKO_PAGE = 'https://www.coingecko.com/en/coins/tezos';
 const CACHE_KEY = 'tezos_price_cache';
 const CACHE_SCHEMA = 2;
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+const FETCH_TIMEOUT_MS = 15_000;
 
 let priceTimer = null;
 let lastPrice = null;
@@ -57,9 +57,15 @@ async function fetchPrice() {
 
     try {
         const fetchJson = async (url) => {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.json();
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+            try {
+                const res = await fetch(url, { signal: controller.signal });
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                return await res.json();
+            } finally {
+                clearTimeout(timer);
+            }
         };
         const [spotResult, horizonsResult] = await Promise.allSettled([
             fetchJson(COINGECKO_URL),
@@ -97,19 +103,16 @@ async function fetchPrice() {
 }
 
 /**
- * Fetch XTZ price (superset CoinGecko data) — shared, 60s TTL, deduplicated.
+ * Share pending CoinGecko requests and the 30-minute session cache.
  * Exported for use by calculator.js, hen-mode.js, my-tezos.js, price-intelligence.js.
  */
 let _xtzPricePromise = null;
-let _xtzPriceTime = 0;
-const XTZ_PRICE_TTL = 60 * 1000; // 60 seconds
 export async function fetchXTZPrice() {
     // Return session-cached data if fresh enough
     const cached = getCachedPrice();
     if (cached) return cached;
     // Dedup concurrent callers
-    if (_xtzPricePromise && Date.now() - _xtzPriceTime < 5000) return _xtzPricePromise;
-    _xtzPriceTime = Date.now();
+    if (_xtzPricePromise) return _xtzPricePromise;
     _xtzPricePromise = fetchPrice().finally(() => { _xtzPricePromise = null; });
     return _xtzPricePromise;
 }
@@ -219,7 +222,7 @@ function updatePriceBar(data) {
  */
 async function refreshPrice() {
     if (document.visibilityState !== 'visible') return;
-    const data = await fetchPrice();
+    const data = await fetchXTZPrice();
     if (data) {
         updatePriceBar(data);
     }
@@ -236,5 +239,6 @@ export function initPriceBar() {
     refreshPrice();
 
     // Auto-refresh every 30 minutes (matches cache TTL)
+    if (priceTimer !== null) clearInterval(priceTimer);
     priceTimer = setInterval(refreshPrice, CACHE_TTL);
 }

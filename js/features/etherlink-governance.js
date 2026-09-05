@@ -1603,33 +1603,6 @@ function renderMergedTimeline(track) {
     `;
 }
 
-function renderActivity(track) {
-    const rows = track.activity.slice(0, 8).map((op) => `
-        <a class="lb-table-row etherlink-gov-activity-row" href="https://tzkt.io/${escapeHtml(op.hash)}" target="_blank" rel="noopener">
-            <span>${escapeHtml(op.entrypoint.replace(/_/g, ' '))}</span>
-            <code>${escapeHtml(op.sender?.alias || op.sender?.address || 'sender')}</code>
-            <strong>${escapeHtml(formatAge(op.time))}</strong>
-        </a>
-    `).join('');
-    return `
-        <section class="lb-panel etherlink-gov-panel chamber-anim-fade" style="animation-delay:120ms">
-            <div class="lb-panel-header">
-                <div>
-                    <span class="lb-panel-kicker">On-chain activity</span>
-                    <h3>Recent contract calls</h3>
-                </div>
-                <a class="lb-live-pill" href="https://tzkt.io/${escapeHtml(track.contract)}/operations/" target="_blank" rel="noopener">TzKT ops</a>
-            </div>
-            <div class="lb-table etherlink-gov-table">
-                <div class="lb-table-head etherlink-gov-activity-row">
-                    <span>Entrypoint</span><span>Sender</span><span>When</span>
-                </div>
-                <div>${rows || '<div class="lb-empty">No contract calls in this period yet.</div>'}</div>
-            </div>
-        </section>
-    `;
-}
-
 function renderTrackPanel(track) {
     const status = trackStatus(track);
     if (track.phase === 'error') {

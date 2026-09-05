@@ -235,7 +235,6 @@ function processProfile(holder) {
         // Total sales volume from listing_sales on created tokens
         let totalSalesVolume = 0;
         let totalSalesCount = 0;
-        const uniqueCollectors = new Set();
 
         for (const ct of createdTokens) {
             const sales = ct.token?.listing_sales || [];

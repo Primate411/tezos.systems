@@ -57,9 +57,11 @@ export async function smokeChamberReading(browser, baseUrl, { installFeatureMock
         scroll.scrollTop = 160;
         const before = { scroll: scroll.scrollTop, page: scrollY, selection: getSelection().toString(), tab: selected.id };
         const copyBefore = verdict.querySelector('.chamber-reading-copy').getBoundingClientRect();
-        api.setChamberReadingState(body, 'snapshot');
-        const copyAfter = verdict.querySelector('.chamber-reading-copy').getBoundingClientRect();
-        const stableStatusGeometry = copyBefore.x === copyAfter.x && copyBefore.width === copyAfter.width && copyBefore.height === copyAfter.height;
+        const statusGeometry = ['snapshot', 'archive', 'observed', 'partial', 'watch', 'unavailable', 'guide', 'healthy', 'degraded'].map(state => {
+          api.setChamberReadingState(body, state);
+          const copyAfter = verdict.querySelector('.chamber-reading-copy').getBoundingClientRect();
+          return { state, stable: ['x', 'y', 'width', 'height'].every(key => copyBefore[key] === copyAfter[key]) };
+        });
         const stamp = body.querySelector('#capital-freshness time');
         stamp.dateTime = new Date(Date.now() - 1000).toISOString();
         api.updateChamberStamps(room);
@@ -87,11 +89,13 @@ export async function smokeChamberReading(browser, baseUrl, { installFeatureMock
         scroll.scrollTop += 45;
         const readerScroll = scroll.scrollTop;
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-        return { before, after, retained, stableStatusGeometry, stableAgeWidth, animations, firstAge, hiddenAge, caughtUpAge, readerScroll, finalScroll: scroll.scrollTop, unknown: api.relativeChamberAge(null), future: api.relativeChamberAge(Date.now() + 120000), escaped: api.renderChamberVerdict({ key: 'safe', sentence: '<img onerror=alert(1)>', receipts: [['x', null]] }) };
+        return { before, after, retained, statusGeometry, stableAgeWidth, animations, firstAge, hiddenAge, caughtUpAge, readerScroll, finalScroll: scroll.scrollTop, unknown: api.relativeChamberAge(null), future: api.relativeChamberAge(Date.now() + 120000), escaped: api.renderChamberVerdict({ key: 'safe', sentence: '<img onerror=alert(1)>', receipts: [['x', null]] }) };
       });
       assert.deepEqual(result.after, result.before, `${width}: clock and data update preserve reading state`);
       assert.equal(result.retained, true);
-      assert.equal(result.stableStatusGeometry, true, `${width}: status changes do not shift or rewrap the sentence`);
+      for (const status of result.statusGeometry) {
+        assert.equal(status.stable, true, `${width}: ${status.state} does not shift or rewrap the sentence`);
+      }
       assert.equal(result.stableAgeWidth, true, 'The first-minute label and later ages reserve the same width');
       assert.equal(result.animations, 0, 'No background or cached replay');
       assert.equal(result.firstAge, '2m ago');

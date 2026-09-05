@@ -4,6 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
+import { classifyLauncherResources, duplicateModuleRequests } from './lib/initial-load-policy.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -194,7 +195,20 @@ async function measureRun(browser, options, runNumber) {
   });
 
   await page.addInitScript(() => {
-    window.__loadQa = { cls: 0, longTasks: [] };
+    window.__loadQa = { cls: 0, longTasks: [], launcherIntersections: [] };
+    // Observe the same callback that triggers hydration, before its requests.
+    const NativeObserver = window.IntersectionObserver;
+    window.IntersectionObserver = class extends NativeObserver {
+      constructor(callback, options) {
+        super((entries, observer) => {
+          for (const entry of entries) {
+            const id = entry.target.dataset.chamberEntryId;
+            if (entry.isIntersecting && id) window.__loadQa.launcherIntersections.push({ id, at: performance.now() });
+          }
+          callback(entries, observer);
+        }, options);
+      }
+    };
     try {
       new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
@@ -237,6 +251,7 @@ async function measureRun(browser, options, runNumber) {
         const resourceUrl = new URL(entry.name);
         return {
           path: `${resourceUrl.pathname}${resourceUrl.search}`,
+          startTime: entry.startTime,
           initiatorType: entry.initiatorType || '',
           transferSize: entry.transferSize || 0,
           encodedBodySize: entry.encodedBodySize || 0,
@@ -303,6 +318,7 @@ async function measureRun(browser, options, runNumber) {
 
     return {
       visibilityState: document.visibilityState,
+      launcherIntersections: window.__loadQa.launcherIntersections,
       serviceWorkerControlled: Boolean(navigator.serviceWorker?.controller),
       readiness: {
         mainVisible: Boolean(document.querySelector('main') && getComputedStyle(document.querySelector('main')).display !== 'none'),
@@ -336,6 +352,7 @@ async function measureRun(browser, options, runNumber) {
         || deferredChamberModulePaths.has(resourcePath(entry))
         || deferredChamberStylePaths.has(resourcePath(entry))
       )),
+      moduleResources: extensionMatches(['.js', '.mjs']),
       forbiddenHeavyResources: resources.filter((entry) => (
         forbiddenInitialPaths.has(resourcePath(entry))
         || /^\/data\/maxis\/seasons\/[^/]+\/summary\.json$/.test(resourcePath(entry))
@@ -345,6 +362,16 @@ async function measureRun(browser, options, runNumber) {
         .slice(0, 30)
     };
   });
+
+  const launcherResources = classifyLauncherResources(result.deferredChamberResources, result.launcherIntersections);
+  result.visibleLauncherResources = launcherResources.hydrated;
+  result.deferredChamberResources = launcherResources.premature;
+  result.duplicateModuleRequests = duplicateModuleRequests(result.moduleResources);
+  delete result.moduleResources;
+
+  if (result.duplicateModuleRequests.length) {
+    throw new Error(`measurement observed duplicate module URLs: ${JSON.stringify(result.duplicateModuleRequests)}`);
+  }
 
   if (result.visibilityState !== 'visible') {
     throw new Error(`measurement page visibilityState was ${result.visibilityState}, not visible`);

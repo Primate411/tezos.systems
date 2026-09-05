@@ -16,12 +16,6 @@ let corePromise = null;
 let domainCache = null;
 let domainPromise = null;
 
-function finiteNumber(value) {
-    if (value == null || value === '') return null;
-    const number = Number(value);
-    return Number.isFinite(number) ? number : null;
-}
-
 function safeSessionRead(key) {
     try {
         const parsed = JSON.parse(globalThis.sessionStorage?.getItem(key) || 'null');

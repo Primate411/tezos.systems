@@ -195,16 +195,16 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
       }
     }
 
-    for (const [hash, size, maxWidth] of [['health', 'standard', 1180], ['staking', 'narrow', 900], ['ecosystem', 'wide', 1480]]) {
+    for (const [hash, size, maxWidth, readySelector] of [
+      ['health', 'standard', 1180, '.health-dashboard-grid'],
+      ['staking', 'narrow', 900, '.staking-overview-grid'],
+      ['ecosystem', 'wide', 1480, '.ecosystem-overview-charts']
+    ]) {
       await page.goto(`${baseUrl}#${hash}`, { waitUntil: 'domcontentloaded' });
       const room = page.locator('.chamber-overlay.active .chamber-room-shell');
       await room.waitFor({ state: 'visible' });
-      // The shell is visible before its data arrives. Exercise the completed
-      // reading surface, not the short opening placeholder.
-      await page.waitForFunction(() => {
-        const scroller = document.querySelector('.chamber-overlay.active .chamber-room-scroll');
-        return scroller && scroller.scrollHeight > scroller.clientHeight + 120;
-      });
+      // A visible loading shell need not overflow; measure the populated room.
+      await room.locator(readySelector).waitFor({ state: 'visible' });
       for (const { width, height } of [
         { width: 1080, height: 1753 }, { width: 1440, height: 1900 },
         { width: 390, height: 844 }, { width: 320, height: 844 }

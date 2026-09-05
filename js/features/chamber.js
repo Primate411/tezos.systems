@@ -114,7 +114,6 @@ const CACHE_TTL = 60000;
 let _currentEpochIndex = null;
 let _latestEpochIndex = null;
 let _earliestEpochIndex = 1;
-let _chamberAnimFrame = null;
 let _savedBodyOverflow = null;
 let _savedHtmlOverflow = null;
 let _savedBodyPosition = null;
@@ -249,14 +248,6 @@ async function fetchChamberData(epochIndex) {
         return null;
     }
 }
-
-async function fetchRecentEpochs(count = 5) {
-    try {
-        const epochs = await fetchJson(`${TZKT}/voting/epochs?sort.desc=id&limit=${count}`);
-        return epochs;
-    } catch { return []; }
-}
-
 
 async function fetchBallotTimeline(periodIndex) {
     if (_ballotTimelinePromises.has(periodIndex)) return _ballotTimelinePromises.get(periodIndex);
@@ -2273,12 +2264,6 @@ function setEntryHero(heroEl, text = '') {
 function formatEntryPct(value, decimals = 1) {
     if (!Number.isFinite(value)) return '--';
     return `${value.toFixed(decimals)}%`;
-}
-
-function formatEntryPower(value) {
-    const number = Number(value);
-    if (!Number.isFinite(number)) return '--';
-    return fmtPower(number);
 }
 
 function entryCountdown(endTime) {

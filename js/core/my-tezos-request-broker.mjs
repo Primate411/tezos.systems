@@ -35,29 +35,30 @@ function abortError(reason = 'Request aborted') {
     return error;
 }
 
-function wait(ms, signal) {
-    if (signal?.aborted) return Promise.reject(abortError(signal.reason));
-    return new Promise((resolve, reject) => {
-        const timer = setTimeout(resolve, ms);
-        signal?.addEventListener('abort', () => {
-            clearTimeout(timer);
-            reject(abortError(signal.reason));
-        }, { once: true });
-    });
+function wait(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 function callerRace(promise, signal) {
     if (!signal) return promise;
     if (signal.aborted) return Promise.reject(abortError(signal.reason));
-    return Promise.race([
-        promise,
-        new Promise((_, reject) => signal.addEventListener('abort', () => reject(abortError(signal.reason)), { once: true }))
-    ]);
+    return new Promise((resolve, reject) => {
+        const onAbort = () => reject(abortError(signal.reason));
+        signal.addEventListener('abort', onAbort, { once: true });
+        promise.then(value => {
+            signal.removeEventListener('abort', onAbort);
+            resolve(value);
+        }, error => {
+            signal.removeEventListener('abort', onAbort);
+            reject(error);
+        });
+    });
 }
 
 function retryDelay(response, attempt) {
     const rawRetryAfter = response?.headers?.get?.('retry-after');
-    const retryAfterSeconds = Number(rawRetryAfter);
+    const retryAfterSeconds = rawRetryAfter == null || String(rawRetryAfter).trim() === ''
+        ? NaN : Number(rawRetryAfter);
     if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds >= 0) return retryAfterSeconds * 1000;
     const retryAfterDate = Date.parse(rawRetryAfter || '');
     if (Number.isFinite(retryAfterDate)) return Math.max(0, retryAfterDate - Date.now());
@@ -109,6 +110,7 @@ export class MyTezosRequestBroker {
         key = '',
         ...init
     } = {}) {
+        if (signal?.aborted) return Promise.reject(abortError(signal.reason));
         const requestKey = key || fingerprintMyTezosRequest({
             method: init.method || 'GET',
             url,

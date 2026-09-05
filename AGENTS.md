@@ -202,7 +202,9 @@ Licensing boundaries:
 
 ## Runtime Flow
 
-- `app.js` imports most modules and initializes features with safe wrappers.
+- `app.js` initializes dashboard features with safe wrappers. Chamber modules
+  load through `js/core/chamber-features.mjs` on launcher visibility or intent;
+  standalone routes initialize their own room before handing off to the dashboard.
 - Cached stats/protocols are loaded first, then background refresh updates live
   UI.
 - Main refresh path updates hero stats, optional full stats, comparisons, cycle
@@ -297,7 +299,9 @@ Current verified intervals in `js/core/config.js`:
 
 Cache/build details to verify when relevant:
 
-- Service worker cache name: `tezos-systems-v554`
+- Read the current cache stamp from `js/core/asset-version.js`; `sw.js`, root
+  HTML, and generated route shells must agree with it. Do not copy a build
+  number into this handoff where it will become stale.
 - `version.json` contains the served build stamp.
 - `git log -1 --oneline` shows the local current commit.
 

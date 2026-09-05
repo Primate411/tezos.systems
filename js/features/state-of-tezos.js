@@ -201,7 +201,6 @@ function buildSnapshotDOM(data) {
     // Colors
     const BG = '#0a0e1a';
     const GREEN = '#00ff88';
-    const CYAN = '#00d4ff';
     const WHITE = '#e0e0e0';
     const DIM = 'rgba(224,224,224,0.45)';
     const BORDER = 'rgba(0,255,136,0.18)';

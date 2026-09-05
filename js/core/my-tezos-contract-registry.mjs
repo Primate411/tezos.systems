@@ -29,7 +29,10 @@ export async function loadMyTezosContractRegistry() {
                 l1: (payload?.tezosL1?.recognizedDexes || []).map((rule) => normalizeRule(rule, 'l1')).filter(Boolean),
                 l2: (payload?.etherlink?.recognizedContracts || []).map((rule) => normalizeRule(rule, 'l2')).filter(Boolean)
             }))
-            .catch(() => ({ schema: '', l1: [], l2: [] }));
+            .catch(() => {
+                registryPromise = null;
+                return { schema: '', l1: [], l2: [] };
+            });
     }
     return registryPromise;
 }

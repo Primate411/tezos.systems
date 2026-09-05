@@ -28,6 +28,7 @@ const LAZY_SURFACE_STYLES = [
   'leaderboard.css',
   'ledger-flow.css',
   'maxis.css',
+  'market-room.css',
   'metals-chamber.css',
   'minerals-chamber.css',
   'network-health.css',

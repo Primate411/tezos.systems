@@ -11,7 +11,7 @@
     "check:supabase:freshness": "node scripts/check-supabase-history-freshness.mjs",
     "backfill:supabase": "node scripts/backfill-supabase-history.mjs",
     "test": "npm run test:static && npm run test:smoke:ci",
-    "test:static": "node tests/static-checks.mjs && node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/chamber-snapshot-cache-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers",
+    "test:static": "node tests/static-checks.mjs && node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/request-lifecycle-check.mjs && node tests/chamber-polling-check.mjs && node tests/chamber-snapshot-cache-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers",
     "test:scheduled-refresh": "node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs",
     "test:smoke": "node tests/smoke.mjs",
     "test:smoke:ci": "node tests/smoke.mjs --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic",
@@ -98,7 +98,7 @@
   "devDependencies": {
     "chart.js": "4.4.1",
     "chartjs-adapter-date-fns": "3.0.0",
-    "clean-css-cli": "^5.6.3",
+    "clean-css": "5.3.3",
     "date-fns": "3.6.0",
     "html2canvas": "1.4.1",
     "knip": "^6.3.1",

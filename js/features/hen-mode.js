@@ -242,13 +242,6 @@ const HenMode = (() => {
         try { localStorage.setItem(key, value); } catch (_) {}
     }
 
-    function reducedMotion() {
-        if (typeof window.tezosSystemsPrefersReducedMotion === 'function') {
-            return window.tezosSystemsPrefersReducedMotion();
-        }
-        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-    }
-
     function showHenLoreLine() {
         if (safeGetStorage(HEN_LORE_KEY) === '1') return;
         var header = document.querySelector('#hen-overlay .hen-header');

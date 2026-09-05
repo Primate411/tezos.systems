@@ -338,21 +338,6 @@ async function getTweetOptions(card) {
 }
 
 /**
- * Get randomized subset of tweet options for display
- */
-async function getRandomTweetOptions(card) {
-    const all = await getTweetOptions(card);
-    return pickRandomOptions(all, 4);
-}
-
-/**
- * Get smart tweet text for a card (first option, backward compat)
- */
-async function getTweetText(card) {
-    return (await getTweetOptions(card))[0].text;
-}
-
-/**
  * Get human-readable card title
  */
 function getCardTitle(card) {

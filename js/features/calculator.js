@@ -282,32 +282,6 @@ function removeBreakdown() {
     if (existing) existing.remove();
 }
 
-function renderBreakdown(items, container) {
-    removeBreakdown();
-    const div = document.createElement('div');
-    div.className = 'calc-baker-breakdown';
-    div.id = 'calc-baker-breakdown';
-    const h4 = document.createElement('h4');
-    h4.textContent = 'Yearly Income Breakdown';
-    div.appendChild(h4);
-
-    for (const item of items) {
-        const row = document.createElement('div');
-        row.className = 'calc-breakdown-row' + (item.total ? ' calc-breakdown-total' : '');
-        const label = document.createElement('span');
-        label.className = 'calc-breakdown-label';
-        label.textContent = item.label;
-        const value = document.createElement('span');
-        value.className = 'calc-breakdown-value';
-        value.textContent = item.value;
-        row.appendChild(label);
-        row.appendChild(value);
-        div.appendChild(row);
-    }
-
-    container.appendChild(div);
-}
-
 /**
  * Calculate baker income from all sources
  */

@@ -142,8 +142,11 @@ function warn(message) {
   warnings.push(message);
 }
 
-async function readText(file) {
-  return fs.readFile(path.join(ROOT, file), 'utf8');
+// This process only reads repository sources; share reads across contracts.
+const sourceReads = new Map();
+function readText(file) {
+  if (!sourceReads.has(file)) sourceReads.set(file, fs.readFile(path.join(ROOT, file), 'utf8'));
+  return sourceReads.get(file);
 }
 
 async function checkHomeLayoutContracts() {
@@ -2052,6 +2055,7 @@ async function checkCacheBustAlignment() {
   const siteMapCssLinkMatch = index.match(/css\/site-map\.css\?v=(\d+)/);
   const appPreloadMatch = index.match(/js\/core\/app\.js\?v=(\d+)/);
   const appScriptMatch = index.match(/<script[^>]+src=["']js\/core\/app\.js\?v=(\d+)["']/);
+  const myTezosPreloadMatch = index.match(/<link rel="modulepreload" href="js\/features\/my-tezos\.js\?v=(\d+)">/);
   const themePreloadScriptMatch = index.match(/js\/core\/theme-preload\.js\?v=(\d+)/);
   const cacheMatch = sw.match(/CACHE_NAME\s*=\s*['"]tezos-systems-v(\d+)['"]/);
   const shellExtrasCssMatch = index.match(/css\/shell-extras\.min\.css\?v=(\d+)/);
@@ -2075,6 +2079,7 @@ async function checkCacheBustAlignment() {
   if (!siteMapCssLinkMatch) fail('index.html must serve css/site-map.css with a ?v= cache stamp');
   if (!appPreloadMatch) fail('index.html modulepreload for js/core/app.js must carry a ?v= cache stamp');
   if (!appScriptMatch) fail('index.html app module script must carry a ?v= cache stamp');
+  if (!myTezosPreloadMatch) fail('My Tezos preload must match its versioned Chamber import');
   if (!themePreloadScriptMatch) fail('index.html theme-preload.js script must carry a ?v= cache stamp');
   if (!cacheMatch) fail('sw.js CACHE_NAME must be tezos-systems-vNN');
   if (!shellExtrasCssMatch) fail('index.html must serve the render-blocking minified shell-extras bundle with a ?v= cache stamp');
@@ -2092,6 +2097,7 @@ async function checkCacheBustAlignment() {
     siteMapCssLinkMatch?.[1],
     appPreloadMatch?.[1],
     appScriptMatch?.[1],
+    myTezosPreloadMatch?.[1],
     themePreloadScriptMatch?.[1],
     cacheMatch?.[1],
     shellExtrasCssMatch?.[1],
@@ -4968,6 +4974,10 @@ async function checkInitialLoadMeasurementContracts() {
     'serviceWorkerResponseCount',
     'readiness',
     'deferredChamberResources',
+    'classifyLauncherResources',
+    'launcherIntersections',
+    'visibleLauncherResources',
+    'duplicateModuleRequests',
     'deferredChamberStylePaths',
     'forbiddenHeavyResources',
     "page.on('pageerror'",
@@ -6345,6 +6355,10 @@ async function checkStylesheetFreshness() {
     }
   }
   const generatedSurfaces = await readText('scripts/refresh-generated-surfaces.mjs');
+  const generatedLazyStyles = generatedSurfaces.match(/const LAZY_SURFACE_STYLES = \[([\s\S]*?)\];/)?.[1] || '';
+  for (const sourceName of lazySurfaceSources) {
+    if (!generatedLazyStyles.includes(`'${sourceName}'`)) fail(`pre-commit CSS catalog omits ${sourceName}`);
+  }
   if (!generatedSurfaces.includes('const CSS_SOURCE_PATTERNS = [')
     || !generatedSurfaces.includes("'css/my-tezos.min.css'")
     || !generatedSurfaces.includes("'css/shell-extras.min.css'")
@@ -6740,7 +6754,7 @@ async function checkPortableTooling() {
     'refresh:milestones': 'node scripts/generate-milestone-catalog.mjs --force',
     'refresh:nakamoto': 'node scripts/refresh-nakamoto-sources.mjs',
     test: 'npm run test:static && npm run test:smoke:ci',
-    'test:static': 'node tests/static-checks.mjs && node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/chamber-polling-check.mjs && node tests/chamber-snapshot-cache-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers',
+    'test:static': 'node tests/static-checks.mjs && node tests/smoke-harness-check.mjs && node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs && node tests/supabase-write-check.mjs && node tests/anniversary-check.mjs && node tests/ledger-flow-check.mjs && node tests/pulse-history-check.mjs && node tests/personal-signal-relevance-check.mjs && node tests/live-pulse-curio-check.mjs && node tests/release-radar-check.mjs && node tests/baker-governance-signals-check.mjs && node tests/tezoscrp-check.mjs && node tests/ecosystem-stats-check.mjs && node tests/uranium-check.mjs && node tests/metals-check.mjs && node tests/minerals-check.mjs && node tests/request-lifecycle-check.mjs && node tests/chamber-polling-check.mjs && node tests/chamber-snapshot-cache-check.mjs && node tests/service-worker-cache-check.mjs && npm run check:routes:chambers',
     'test:scheduled-refresh': 'node tests/scheduled-refresh-check.mjs && node tests/generated-freshness-check.mjs',
     'test:smoke': 'node tests/smoke.mjs',
     'test:smoke:ci': 'node tests/smoke.mjs --continue-on-failure --retry-failures 1 --retry-infrastructure 1 --isolate-suites --hermetic',

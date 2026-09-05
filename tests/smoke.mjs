@@ -6738,6 +6738,44 @@ async function smokeHeroIntermediate(browser, baseUrl) {
   log('ok - hero intermediate continuity rows');
 }
 
+async function smokeSearchCatalogRecovery(browser, baseUrl) {
+  for (const width of [1280, 390]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: 'block', reducedMotion: 'reduce' });
+    try {
+      await installFeatureMocks(context);
+      await context.addInitScript(() => {
+        localStorage.setItem('tezos-toured', '1');
+        localStorage.setItem('tezos-welcomed', '1');
+      });
+      let attempts = 0;
+      await context.route('**/data/search-catalog.json*', async route => {
+        if (++attempts === 1) await route.fulfill({ status: 503, contentType: 'application/json', body: '{}' });
+        else await route.continue();
+      });
+      const page = await context.newPage();
+      await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true');
+      const input = page.locator('#hero-search-input');
+      await input.click();
+      const failure = page.waitForResponse(response => response.url().includes('/data/search-catalog.json') && response.status() === 503);
+      await input.fill('zz'); // two characters isolate the catalog from name lookups
+      await failure;
+      await page.waitForFunction(async () => {
+        const catalog = await import('/js/core/search-catalog.js');
+        return !catalog.isSearchCatalogLoading() && document.querySelector('#hero-search-panel')?.getAttribute('aria-busy') === 'false';
+      });
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      assert(attempts === 1, `${width}: a failed catalog must not retry from its completion render`);
+      assert(await input.inputValue() === 'zz', `${width}: catalog failure preserves the query`);
+      assert(await input.evaluate(node => node === document.activeElement), `${width}: catalog failure preserves input focus`);
+      await input.fill('objkt');
+      await page.waitForFunction(async () => (await import('/js/core/search-catalog.js')).isSearchCatalogLoaded());
+      await page.locator('#hero-search-panel [data-result-id^="catalog:"]').first().waitFor({ state: 'visible' });
+      assert(attempts === 2, `${width}: the next search retries and recovers the catalog`);
+    } finally { await context.close(); }
+  }
+}
+
 async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   const intentNavigationTimeout = 15000;
   const issues = [];
@@ -6802,6 +6840,7 @@ async function smokeHeroCommandBar(browser, baseUrl, section = 'all') {
   }
 
   if (section === 'all' || section === 'desktop') {
+  await smokeSearchCatalogRecovery(browser, baseUrl);
   const context = await browser.newContext({
     viewport: { width: 1280, height: 900 },
     serviceWorkers: 'block'
@@ -13499,6 +13538,7 @@ async function getMyTezosRewardReport(browser, baseUrl, { address, label, requir
     assert(response?.ok(), `${label}: dashboard failed with HTTP ${response?.status()}`);
     await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
+    await page.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true');
     await page.locator('#my-tezos-btn').click();
     await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
     await expectClassContains(page.locator('#my-tezos-drawer'), 'open', `${label} drawer`);
@@ -23569,6 +23609,9 @@ async function smokeUraniumChamber(browser, baseUrl) {
       && performance.getEntriesByType('resource').some(({ name }) => name.includes('/data/uranium-entry-summary.json'))
       && performance.getEntriesByType('resource').some(({ name }) => name.includes('/data/uranium-snapshot.json'))
   ), null, { timeout: 10000 });
+  await lanPage.evaluate(() => document.fonts.ready);
+  await lanPage.waitForFunction(() => document.querySelector('#uranium-modal .uranium-content')
+    ?.getAnimations().every(animation => animation.playState === 'finished'));
   const lanState = await lanPage.evaluate(() => {
     const modal = document.querySelector('#uranium-modal .uranium-content');
     const body = document.querySelector('#uranium-chamber-body');
@@ -23581,10 +23624,12 @@ async function smokeUraniumChamber(browser, baseUrl) {
       retryButtons: body?.querySelectorAll('[data-uranium-retry]').length || 0,
       text: body?.textContent?.replace(/\s+/g, ' ').trim() || '',
       modal: rect ? { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom } : null,
-      tabsContained: Array.from(document.querySelectorAll('#uranium-modal .uranium-tab')).every((tab) => {
-        const tabRect = tab.getBoundingClientRect();
-        return tabRect.left >= -1 && tabRect.right <= innerWidth + 1;
-      }),
+      tabRailContained: (() => {
+        const rail = document.querySelector('#uranium-modal .uranium-tabs');
+        const railRect = rail.getBoundingClientRect();
+        return railRect.left >= -1 && railRect.right <= innerWidth + 1
+          && /auto|scroll/.test(getComputedStyle(rail).overflowX);
+      })(),
       mainScroll: Boolean(body && body.closest('.chamber-room-scroll').scrollHeight > body.closest('.chamber-room-scroll').clientHeight),
       pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       loadedEntryArtifact: resources.some((name) => name.includes('/data/uranium-entry-summary.json')),
@@ -23599,8 +23644,16 @@ async function smokeUraniumChamber(browser, baseUrl) {
   `uranium chamber LAN HTTP: real integrity-checked artifacts did not render ${JSON.stringify(lanState)}`);
   assert(lanState.modal && lanState.modal.left >= -1 && lanState.modal.right <= 391
     && lanState.modal.top >= -1 && lanState.modal.bottom <= 845
-    && lanState.tabsContained && lanState.mainScroll && lanState.pageOverflow <= 1,
+    && lanState.tabRailContained && lanState.mainScroll && lanState.pageOverflow <= 1,
   `uranium chamber LAN HTTP: mobile room escaped the 390x844 viewport ${JSON.stringify(lanState)}`);
+  // Readable phone tabs use a horizontal rail; prove its last view is reachable.
+  await lanPage.locator('#uranium-tab-proofbook').click();
+  await lanPage.waitForFunction(() => document.querySelector('#uranium-tab-proofbook')?.getAttribute('aria-selected') === 'true');
+  const lastTabReachable = await lanPage.locator('#uranium-tab-proofbook').evaluate(tab => {
+    const rect = tab.getBoundingClientRect();
+    return rect.left >= -1 && rect.right <= innerWidth + 1;
+  });
+  assert(lastTabReachable, 'uranium chamber LAN HTTP: scrolling the phone tab rail must reveal Proofbook');
   await lanPage.locator('#uranium-tab-markets').click();
   await lanPage.waitForFunction(() => Boolean(document.querySelector('#uranium-view-panel .uranium-chart.is-interactive')), null, { timeout: 3000 });
   const mobileMarketsState = await lanPage.evaluate(() => {
@@ -27911,6 +27964,8 @@ async function smokeHomeLayout(browser, baseUrl) {
     response = await mobilePage.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
     assert(response?.ok(), `home layout ${width}px: dashboard failed with HTTP ${response?.status()}`);
     await mobilePage.waitForFunction(() => Boolean(window.tezosSystemsHomeLayout));
+    // Layout is exposed before optional module loading; Settings is wired later.
+    await mobilePage.waitForFunction(() => document.documentElement.dataset.dashboardReady === 'true');
     await mobilePage.locator('#settings-gear').click();
     await mobilePage.locator('#customize-home-btn').click();
     await mobilePage.locator('#home-layout-modal.active').waitFor({ state: 'visible', timeout: 5000 });

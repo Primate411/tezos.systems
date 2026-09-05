@@ -234,19 +234,13 @@ function getHistoryStartTime(range = '7d') {
  * Multiple functions need this endpoint; without dedup they'd all miss cache in parallel
  */
 let _statsPromise = null;
-let _statsTimestamp = 0;
 export async function fetchSharedStats() {
-    // Return in-flight promise if one exists (dedup concurrent calls)
-    if (_statsPromise && Date.now() - _statsTimestamp < 5000) return _statsPromise;
-    _statsTimestamp = Date.now();
-    _statsPromise = fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`);
-    try {
-        const result = await _statsPromise;
-        return result;
-    } finally {
-        // Allow re-fetch after resolution
-        setTimeout(() => { _statsPromise = null; }, 1000);
+    // Request lifetime owns deduplication; fetchWithRetry owns the data TTL.
+    if (!_statsPromise) {
+        _statsPromise = fetchWithRetry(`${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.statistics}`)
+            .finally(() => { _statsPromise = null; });
     }
+    return _statsPromise;
 }
 
 /**
@@ -334,19 +328,21 @@ export async function fetchCurrentVotingPeriod({ force = false } = {}) {
     }
 
     const url = `${ENDPOINTS.tzkt.base}${ENDPOINTS.tzkt.voting}`;
-    _currentVotingPeriodPromise = fetchWithRetry(
+    const request = fetchWithRetry(
         url,
         { cache: force ? 'no-store' : 'default', memoryCache: false },
         2
     ).then((period) => {
-        _currentVotingPeriod = period;
-        _currentVotingPeriodAt = Date.now();
+        if (_currentVotingPeriodPromise === request) {
+            _currentVotingPeriod = period;
+            _currentVotingPeriodAt = Date.now();
+        }
         return period;
     }).finally(() => {
-        _currentVotingPeriodPromise = null;
+        if (_currentVotingPeriodPromise === request) _currentVotingPeriodPromise = null;
     });
-
-    return _currentVotingPeriodPromise;
+    _currentVotingPeriodPromise = request;
+    return request;
 }
 
 /**
@@ -431,12 +427,12 @@ export function getExternalStakerApy(grossStakeApy, edgeOfBakingOverStaking) {
  * Deduplicated fetch for /context/constants (used by fetchCycleInfo + fetchIssuance)
  */
 let _constantsPromise = null;
-let _constantsTime = 0;
 function fetchSharedConstants() {
-    if (_constantsPromise && Date.now() - _constantsTime < 5000) return _constantsPromise;
-    _constantsTime = Date.now();
-    _constantsPromise = fetchWithRetry(`${API_URLS.octez}/chains/main/blocks/head/context/constants`)
-        .catch(() => { _constantsPromise = null; return null; });
+    if (!_constantsPromise) {
+        _constantsPromise = fetchWithRetry(`${API_URLS.octez}/chains/main/blocks/head/context/constants`)
+            .catch(() => null)
+            .finally(() => { _constantsPromise = null; });
+    }
     return _constantsPromise;
 }
 
@@ -448,12 +444,12 @@ export async function fetchProtocolConstants() {
  * Deduplicated fetch for /issuance/current_yearly_rate (used by fetchIssuance + fetchStakingAPY)
  */
 let _yearlyRatePromise = null;
-let _yearlyRateTime = 0;
 function fetchSharedYearlyRate() {
-    if (_yearlyRatePromise && Date.now() - _yearlyRateTime < 5000) return _yearlyRatePromise;
-    _yearlyRateTime = Date.now();
-    _yearlyRatePromise = fetchText(`${API_URLS.octez}/chains/main/blocks/head/context/issuance/current_yearly_rate`)
-        .catch(() => { _yearlyRatePromise = null; return null; });
+    if (!_yearlyRatePromise) {
+        _yearlyRatePromise = fetchText(`${API_URLS.octez}/chains/main/blocks/head/context/issuance/current_yearly_rate`)
+            .catch(() => null)
+            .finally(() => { _yearlyRatePromise = null; });
+    }
     return _yearlyRatePromise;
 }
 

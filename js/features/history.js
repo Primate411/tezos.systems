@@ -1096,7 +1096,6 @@ export function createSparkline(canvasId, data, metric) {
     const firstValue = values[0];
     const lastValue = values[values.length - 1];
     const isPositive = lastValue >= firstValue;
-    const isMatrix = getCurrentTheme() === 'matrix';
 
     // Theme-aware sparkline colors
     const currentThemeVal = getCurrentTheme();

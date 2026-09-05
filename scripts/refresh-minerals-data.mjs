@@ -17,7 +17,6 @@ const ENTRY_FILE = path.join(ROOT, ENTRY_PATH);
 const MAX_SNAPSHOT_BYTES = 2 * 1024 * 1024;
 const MAX_ENTRY_BYTES = 96 * 1024;
 const REPORTING_YEAR = 2025;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const USGS_ITEM = 'https://www.sciencebase.gov/catalog/item/69837e43b66b01367d7ec7c7?format=json';
 const USGS_PUBLICATION = 'https://pubs.usgs.gov/publication/mcs2026';

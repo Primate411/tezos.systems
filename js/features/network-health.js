@@ -223,13 +223,6 @@ function formatTezAmount(value) {
     return value > 0 ? '~0' : '0';
 }
 
-function formatBlockDenominator(value) {
-    if (!Number.isFinite(value)) return '/--';
-    if (value === POWER_PER_BLOCK) return '/7k';
-    if (value >= 1000 && value % 1000 === 0) return `/${value / 1000}k`;
-    return `/${value.toLocaleString()}`;
-}
-
 function formatSeconds(value) {
     if (!Number.isFinite(value)) return '--';
     if (value < 10 && value % 1 !== 0) return `${value.toFixed(1)}s`;

@@ -286,10 +286,12 @@ export async function fetchWidgetJson(url, options = {}) {
 export function startWidgetRefresh(fetcher, refreshMs) {
     const intervalMs = Math.max(WIDGET_REFRESH_MIN_SECONDS * 1000, refreshMs);
     let lastRun = 0;
+    let inFlight = false;
     const runIfVisible = () => {
-        if (document.hidden) return;
+        if (document.hidden || inFlight) return;
         lastRun = Date.now();
-        Promise.resolve(fetcher()).catch(() => {});
+        inFlight = true;
+        Promise.resolve().then(fetcher).catch(() => {}).finally(() => { inFlight = false; });
     };
     const intervalId = window.setInterval(runIfVisible, intervalMs);
     document.addEventListener('visibilitychange', () => {

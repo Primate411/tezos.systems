@@ -269,17 +269,6 @@ function summarizeBlocks(blocks) {
     };
 }
 
-function formatUtcTime(value) {
-    const date = new Date(value || Date.now());
-    if (Number.isNaN(date.getTime())) return 'time n/a';
-    return date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: 'UTC'
-    });
-}
-
 function calculateEmaDrift(blocks) {
     const points = (blocks || [])
         .filter((block) => Number.isFinite(Number(block.lbToggleEma)) && block.timestamp)

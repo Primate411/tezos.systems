@@ -90,10 +90,6 @@ function stableJsonValue(value) {
     return Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableJsonValue(value[key])]));
 }
 
-function finiteValues(values) {
-    return values.map(numeric).filter((value) => value !== null);
-}
-
 function sum(values, { requireAll = false } = {}) {
     const normalized = values.map(numeric);
     const available = normalized.filter((value) => value !== null);

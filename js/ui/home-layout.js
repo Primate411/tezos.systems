@@ -84,10 +84,6 @@ function isRendered(element) {
     return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0;
 }
 
-function firstRenderedElement(block) {
-    return blockElements(block).find(isRendered) || blockElements(block)[0] || null;
-}
-
 function captureLayoutAnchor(id, nextHiddenIds = hiddenIds) {
     const index = HOME_BLOCKS.findIndex((block) => block.id === id);
     if (index < 0) return null;

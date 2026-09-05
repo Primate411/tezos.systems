@@ -38,7 +38,7 @@ export function loadDataAsset(name, { force = false } = {}) {
             return response.json();
         })
         .catch((error) => {
-            assetPromises.delete(name);
+            if (assetPromises.get(name) === request) assetPromises.delete(name);
             throw error;
         });
     assetPromises.set(name, request);

@@ -33,6 +33,8 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
 - Local server: `npm run serve`, which runs `python3 -m http.server 9000`.
 - Served stylesheet: `css/styles.min.css`; edit `css/styles.css` first, then
   run `npm run build:css`.
+- CSS tooling uses the direct `clean-css` dependency. The pre-commit generator
+  rebuilds and stages all 16 lazy surface bundles, including `market-room.css`.
 - Critical first-paint skeletons live in `css/loading.css`.
 - Shared hook wrapper: `.githooks/pre-commit`; enable it once per clone with
   `npm run install-hooks`.
@@ -237,6 +239,14 @@ Current refresh and cache intervals from `js/core/config.js`:
 - Price refresh: 30 minutes.
 - Memory cache TTL: 1 minute.
 - Storage cache TTL: 4 hours.
+
+Statistics, protocol constants, issuance rate, and CoinGecko callers share each
+pending request until it settles; the existing data caches own freshness.
+Price endpoints have a 15-second deadline so a stalled read remains retryable.
+Forced voting-period and JSON-asset refreshes retain ownership when an older
+request finishes. Search and My Tezos contract catalogs retry after transient
+failures. Widget refreshes cannot overlap. `tests/request-lifecycle-check.mjs`
+exercises these races, caller cancellation, and retry backoff in the static gate.
 
 ## Themes
 
@@ -1707,6 +1717,14 @@ dated comparison fixture in
 `tests/fixtures/initial-load-baseline.json` preserves the actual historical
 result—including its diagnostic stability flags—rather than silently moving
 the budget.
+
+The load report records each launcher intersection before its hydration request.
+A card visible in the default layout may load its module, stylesheet, and small
+entry projection; resources requested before that card becomes visible still
+fail the audit, as do full room artifacts loaded before entry. This keeps the
+default expanded Ecosystem card measurable without changing the page layout.
+It also rejects JavaScript fetched under multiple URLs, so module preloads must
+match their eventual import specifiers, including the shared asset stamp.
 
 The README guard reads staged files. If package/tooling, hook, handoff docs,
 smoke-test, config, theme, app-shell, service-worker, SEO, widget, or

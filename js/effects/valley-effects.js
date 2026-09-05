@@ -19,7 +19,6 @@ const GRASS_WAVE_SPEED_BASE = 0.9;
 const GRASS_WAVE_SPEED_WIND = 0.75;
 const TREE_SWAY_RATIO = 0.2;
 const EXTRA_GRASS_SEED_SALT = 0x9E3779B9;
-const MEADOW_SEED_SALT = 0x85EBCA6B;
 const TAU = Math.PI * 2;
 
 const clamp = (value, min = 0, max = 1) => Math.min(max, Math.max(min, value));

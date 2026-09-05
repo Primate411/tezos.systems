@@ -1495,29 +1495,6 @@ function appendHotHistory(sentences) {
   writeHotHistory(entries);
 }
 
-function hotHistorySummary(currentTop) {
-  if (!currentTop) return null;
-  const history = readHotHistory();
-  if (!history.length) return null;
-  const yesterday = hotHistoryDay(Date.now() - 24 * 60 * 60 * 1000);
-  const yesterdayEntries = history.filter(entry => entry?.day === yesterday);
-  const yesterdayTop = yesterdayEntries.sort((a, b) => (b.topScore || 0) - (a.topScore || 0))[0] || null;
-
-  let chip = '';
-  if (yesterdayTop) {
-    const yesterdayMeta = categoryMeta(yesterdayTop.topCategory);
-    if ((Number(currentTop.score) || 0) > (Number(yesterdayTop.topScore) || 0) + 4) {
-      chip = 'hotter than yesterday';
-    } else if (yesterdayTop.topCategory !== currentTop.category) {
-      chip = `yesterday: ${yesterdayMeta.label}`;
-    } else {
-      chip = 'steady vs yesterday';
-    }
-  }
-
-  return { chip };
-}
-
 async function resolvePriceContext(stats, xtzPrice) {
   const nextStats = { ...(stats || {}) };
   let price = finiteNumber(xtzPrice) || 0;
@@ -2744,12 +2721,6 @@ function setHotTodayLiveText(key, value) {
   });
 }
 
-function prefersReducedMotion() {
-  return typeof window !== 'undefined'
-    && typeof window.matchMedia === 'function'
-    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
-
 function refreshHotTodayLiveMetrics() {
   const now = Date.now();
   const today = utcDayKey(now);
@@ -3136,11 +3107,6 @@ function renderSignalCard(signal, index, data, portfolio, relevanceContext) {
 function milestoneArrivalIdentity(signal) {
   if (signal?.tone !== 'milestone' || signal?.milestoneStatus !== 'crossed') return '';
   return `${signal.id}|${finiteNumber(signal.createdAt) || ''}|${finiteNumber(signal.expiresAt) || ''}`;
-}
-
-function milestoneArrivalIsUnseen(signal) {
-  const identity = milestoneArrivalIdentity(signal);
-  return Boolean(identity) && !seenMilestoneArrivals.has(identity);
 }
 
 const MILESTONE_PROMO_LINES = {

@@ -121,10 +121,6 @@ function getThemeColors() {
     }
 }
 
-function getAccentColor() {
-    return { r: 0, g: 200, b: 60 };
-}
-
 function lerpColor(from, to, t) {
     return {
         r: Math.round(from.r + (to.r - from.r) * t),
