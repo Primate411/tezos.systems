@@ -91,7 +91,7 @@ export async function smokeChamberReading(browser, baseUrl, { installFeatureMock
       });
       assert.deepEqual(result.after, result.before, `${width}: clock and data update preserve reading state`);
       assert.equal(result.retained, true);
-      assert.equal(result.stableStatusGeometry, true, 'Status changes do not shift or rewrap the sentence');
+      assert.equal(result.stableStatusGeometry, true, `${width}: status changes do not shift or rewrap the sentence`);
       assert.equal(result.stableAgeWidth, true, 'The first-minute label and later ages reserve the same width');
       assert.equal(result.animations, 0, 'No background or cached replay');
       assert.equal(result.firstAge, '2m ago');
