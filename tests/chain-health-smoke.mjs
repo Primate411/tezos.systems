@@ -174,6 +174,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
   });
   for (const width of [1440, 320]) {
     await page.setViewportSize({ width, height: 1000 });
+    await page.waitForFunction(count => document.querySelectorAll('[data-chain-health-level]').length === count, width <= 719 ? 10 : 25);
     await page.evaluate(async () => {
       getSelection().removeAllRanges();
       document.activeElement?.blur();
@@ -181,19 +182,20 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       document.getElementById('live-head').scrollIntoView({ block: 'start', behavior: 'instant' });
     });
     const stableGeometry = await geometrySnapshot();
+    const count = width <= 719 ? 10 : 25;
     for (const [mode, text, description] of [
-      ['ok', '25/25 OK', '25 at or above 98.5% attestation power'],
-      ['risk', '25/25 RISK', '25 below quorum'],
-      ['watch', '25/25 LOW', '25 at quorum but below 98.5%'],
-      ['risk', '25/25 RISK', '25 below quorum'],
-      ['unknown', '25/25 ?', '25 unavailable'],
-      ['partial', '16/25 ?', '9 at or above 98.5% attestation power, 16 unavailable']
+      ['ok', `${count}/${count} OK`, `${count} at or above 98.5% attestation power`],
+      ['risk', `${count}/${count} RISK`, `${count} below quorum`],
+      ['watch', `${count}/${count} LOW`, `${count} at quorum but below 98.5%`],
+      ['risk', `${count}/${count} RISK`, `${count} below quorum`],
+      ['unknown', `${count}/${count} ?`, `${count} unavailable`],
+      ['partial', `${count - 9}/${count} ?`, `9 at or above 98.5% attestation power, ${count - 9} unavailable`]
     ]) {
       scenario = mode;
       await page.evaluate(() => window.__refreshChainHealth());
       const current = await read();
       assert.equal(current.summary, text);
-      assert(current.label.includes(`last 25 blocks: ${description}.`), current.label);
+      assert(current.label.includes(`last ${count} blocks: ${description}.`), current.label);
       assert.equal(current.busy, 'false', 'Missing data is not perpetual loading');
       assert.equal(Boolean(current.announcement), mode === 'risk', 'Announce risk entry and clear every exit');
       assert.deepEqual(await geometrySnapshot(), stableGeometry, `${width}/${mode}: summary must not move either control`);
@@ -216,6 +218,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
     await page.waitForFunction((name) => Boolean(document.getElementById(`theme-css-${name}`)?.sheet), theme);
     for (const width of [1440, 1101, 1024, 762, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
+      await page.waitForFunction(count => document.querySelectorAll('[data-chain-health-level]').length === count, width <= 719 ? 10 : 25);
       await page.evaluate(() => {
         getSelection().removeAllRanges();
         document.activeElement?.blur();
@@ -230,18 +233,25 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
         const strip = rect('#chain-health-window');
         const label = rect('.chain-health-label');
         const readout = rect('#chain-health-readout');
-        const stacked = innerWidth <= 900;
+        const mobile = innerWidth <= 719;
+        const stacked = innerWidth > 719 && innerWidth <= 900;
         return {
           fits: activity.left >= 0 && health.right <= innerWidth && document.documentElement.scrollWidth <= innerWidth + 1,
-          beside: (stacked ? activity.bottom <= health.top : activity.right <= health.left + 1) && strip.right <= settings.left + 1,
-          aligned: (stacked ? [settings] : [activity, settings]).every((control) => Math.abs(control.top - health.top) <= 0.5 && Math.abs(control.bottom - health.bottom) <= 0.5),
-          labelLeft: label.right <= readout.left && readout.right <= strip.left && Math.abs(label.y - readout.y) <= 0.5, stripWidth: strip.width,
+          beside: (stacked ? activity.bottom <= health.top : activity.right <= health.left + 1) && (mobile ? settings.bottom <= health.top : strip.right <= settings.left + 1),
+          aligned: (mobile ? [activity] : stacked ? [settings] : [activity, settings]).every((control) => Math.abs(control.top - health.top) <= 0.5 && Math.abs(control.bottom - health.bottom) <= 0.5),
+          labelLeft: (mobile ? label.bottom <= readout.top : label.right <= readout.left && Math.abs(label.y - readout.y) <= 0.5) && readout.right <= strip.left, stripWidth: strip.width,
           activityOverflow: document.getElementById('header-activity-line').scrollWidth - document.getElementById('header-activity-line').clientWidth,
+          visibleMetrics: ['tx', 'moved', 'nft'].every(slot => {
+            const value = document.querySelector(`#header-activity-line [data-usage-slot="${slot}"]`);
+            const box = value.getBoundingClientRect();
+            return box.width > 0 && box.height > 0 && box.left >= activity.left && box.right <= activity.right;
+          }),
           count: document.querySelectorAll('[data-chain-health-level]').length
         };
       });
-      assert(geometry.fits && geometry.beside && geometry.aligned && geometry.labelLeft && geometry.stripWidth >= 70 && geometry.count === 25 && geometry.activityOverflow <= 1, `${theme}/${width}: ${JSON.stringify(geometry)}`);
-      assert.equal((await geometrySnapshot()).health.height, 30, 'Visible controls keep desktop height at every width');
+      assert(geometry.fits && geometry.beside && geometry.aligned && geometry.labelLeft && geometry.stripWidth >= (width <= 719 ? 40 : 70) && geometry.count === (width <= 719 ? 10 : 25) && geometry.activityOverflow <= 1, `${theme}/${width}: ${JSON.stringify(geometry)}`);
+      assert(geometry.visibleMetrics, `${theme}/${width}: TX, Moved and NFT remain visible`);
+      assert.equal((await geometrySnapshot()).health.height, width <= 719 ? 48 : 30, 'Phone controls provide a full 44px touch target');
       assert.equal(await page.locator('#chain-health-window').evaluate((el) => el.getBoundingClientRect().height), 22, 'The strip keeps the same vertical scale across devices');
       if (width === 1440) {
         // Sample the painted pixels, including the risk wash and all translucent
@@ -338,7 +348,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
   });
   const touchPage = await touchContext.newPage();
   await touchPage.goto(baseUrl, { waitUntil: 'domcontentloaded' });
-  await touchPage.waitForFunction(() => document.querySelectorAll('[data-chain-health-level]').length === 25);
+  await touchPage.waitForFunction(() => document.querySelectorAll('[data-chain-health-level]').length === 10);
   for (const width of [390, 320]) {
     await touchPage.setViewportSize({ width, height: 900 });
     await touchPage.locator('#live-head').scrollIntoViewIfNeeded();
@@ -358,21 +368,21 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
           inViewport: rect.right <= innerWidth && rect.left >= 0 };
       });
     });
-    assert(hitAreas.every((area) => area.height === 30 && area.hitHeight === 44 && area.accepts && area.inViewport), `${width}: touch hit areas ${JSON.stringify(hitAreas)}`);
+    assert(hitAreas.every((area) => area.height === (area.id === 'live-head-filter-toggle' ? 30 : 48) && area.hitHeight === 44 && area.accepts && area.inViewport), `${width}: touch hit areas ${JSON.stringify(hitAreas)}`);
     if (artifactsDir) await touchPage.locator('#live-head').screenshot({ path: path.join(artifactsDir, `chain-health-touch-${width}.png`) });
   }
   const touchTarget = await touchPage.locator('#chain-health').boundingBox();
-  await touchPage.touchscreen.tap(touchTarget.x + touchTarget.width / 2, touchTarget.y - 6);
+  await touchPage.touchscreen.tap(touchTarget.x + 12, touchTarget.y + 8);
   await touchPage.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible' });
   await touchPage.keyboard.press('Escape');
-  const touchBar = touchPage.locator('[data-chain-health-level]').nth(12);
+  const touchBar = touchPage.locator('[data-chain-health-level]').nth(6);
   const touchLevel = Number(await touchBar.getAttribute('data-chain-health-level'));
   await touchBar.scrollIntoViewIfNeeded();
   await touchPage.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await touchBar.tap();
   await touchPage.locator('#live-head-inspector').waitFor({ state: 'visible' });
   assert.equal(await touchPage.locator('#live-head-inspector').getAttribute('data-live-head-level'), String(touchLevel));
-  await touchPage.locator('[data-chain-health-level]').nth(11).tap();
+  await touchPage.locator('[data-chain-health-level]').nth(5).tap();
   assert.equal(await touchPage.locator('#live-head-inspector').getAttribute('data-live-head-level'), String(touchLevel - 1));
   if (artifactsDir) await touchPage.screenshot({ path: path.join(artifactsDir, 'chain-health-touch-inspector.png') });
   await touchContext.close();

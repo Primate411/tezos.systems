@@ -6194,19 +6194,20 @@ html:not([data-chamber-categories-preview="all"])[data-chamber-rooms-hidden~="hi
 }
 .chamber-content > .chamber-close {
     position: sticky !important;
-    top: 12px !important;
+    top: 4px !important;
     float: right;
-    margin: 12px 12px -56px 0 !important;
+    margin: 4px 4px -48px 0 !important;
     width: 44px;
     height: 44px;
     z-index: 40 !important;
-    border: 1px solid color-mix(in srgb, var(--text-secondary, #b5c3d5) 40%, transparent) !important;
-    border-radius: 8px;
-    background: var(--chamber-control-bg, #101925) !important;
-    color: var(--chamber-control-text, #edf5ff) !important;
-    box-shadow: 0 3px 12px #0004;
+    border: 0 !important;
+    border-radius: 0;
+    background: transparent !important;
+    color: var(--text-primary, #edf5ff) !important;
+    box-shadow: none !important;
+    outline: 0 !important;
 }
-.chamber-content > .chamber-close:focus-visible { outline: 2px solid var(--accent-cyan, #68d7e7); outline-offset: 2px; }
+.chamber-content > .chamber-close:focus-visible { color: var(--accent-cyan) !important; text-shadow: 0 0 10px currentColor; }
 .chamber-disclosure {
     min-width: 0;
     margin: 8px 0 12px;

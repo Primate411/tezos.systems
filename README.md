@@ -5,8 +5,9 @@ state, baker activity, and ecosystem signals.
 
 Live site: [tezos.systems](https://tezos.systems)
 
-Chambers keep one main reading scroller and a reachable close control. Compact view
-rails, search, and chart controls lead into the data; methodology and full source
+Chambers keep one main reading scroller and a reachable, bare X close control
+near the upper-right corner. The 44px control stays with the reading scroller.
+Compact view rails, search, and chart controls lead into the data; methodology and full source
 receipts expand on demand. Open receipt disclosures and compatible view reading
 positions are retained, while background refreshes preserve the reader’s place.
 Artifact validation describes the generated file, not independent verification of
@@ -404,8 +405,11 @@ inline modal styles in `js/core/app.js`.
   when closed and up when open without changing position.
   Chain Health uses whole-pixel line slots, while the safety-margin pills size
   their fills directly and use fixed-height labels to stay crisp on 1× displays.
-  The matching `1H ACTIVITY` and `CHAIN HEALTH • 1/25 LOW |` headings stay on one line;
-  on screens up to 900px the controls stack so headings and Activity metrics fit.
+  Desktop `1H ACTIVITY` and `CHAIN HEALTH • 1/25 LOW |` headings stay on one line.
+  Below 720px Activity and Chain Health share one row, with compact labels and
+  TX/Moved/NFT visible inside Activity. Setup sits beside the Live Blocks title.
+  Chain Health shows the latest 10 blocks with a matching count and accessible
+  summary. Between 720px and 900px the controls occupy separate rows.
   Chain Health reserves two digits for the numerator, centers its divider in
   the remaining status gap, and fits its border to exact-width bars with matching outer padding.
   Non-default counts stay exact on mobile. The custom option
@@ -519,15 +523,15 @@ inline modal styles in `js/core/app.js`.
   Tezos address. The filter stays silent when nothing matches and preserves the
   canonical compact or expanded ticker height as blocks arrive and leave.
   The top-right control rail shows **1H Activity**, then **Chain health**:
-  25 attestation receipts, oldest left and newest right, sliding left once per
-  new head.
+  25 desktop or 10 mobile attestation receipts, oldest left and newest right,
+  sliding left once per new head.
   Green means at least 98.5% attested, amber means below 98.5% but at quorum,
   red means below quorum, and gray means unavailable. Full, half-height, short,
   and tick-height lines encode those same states without color. The newest line
   has a small marker. A stable-width status area beside the label shows `OK`, `LOW`,
-  `RISK`, or `?` with the corresponding count out of 25, separated from the label
-  by a bullet and from the lines by a divider; its accessible summary accounts
-  for all 25 blocks, including unavailable data. Source failures show `STALE`.
+  `RISK`, or `?` with the corresponding count out of the displayed window, separated
+  from the label by a bullet on desktop and from the lines by a divider; its accessible
+  summary accounts for every displayed block, including unavailable data. Source failures show `STALE`.
   Hover or tap a line to inspect that block's missed attesters, including small
   misses on green blocks. The popup lists baker identities and missed power
   with receipt links in a small tooltip. Tap another line or use keyboard arrows
@@ -535,8 +539,8 @@ inline modal styles in `js/core/app.js`.
   remain explicit. The tooltip has no large actions or duplicate native tooltip.
   The shared missed-rights request covers all 25 blocks, and the strip pauses
   while the popup is being read. Clicking the label opens Network Health.
-  All 25 lines remain on mobile. The visible controls stay 30px
-  tall across devices, with invisible 44px hit areas for touch input.
+  Mobile shows the newest 10 lines beside Activity in 48px-tall controls; desktop controls remain
+  30px tall, with invisible 44px hit areas for touch input.
   Keyed lines survive refreshes, failures retain the last received history,
   and hidden-tab catch-up, reading locks, and reduced motion remain quiet.
   A separate polite announcement speaks only when the strip enters risk and
@@ -610,7 +614,10 @@ inline modal styles in `js/core/app.js`.
   official-track and TzKT links for action/audit. The dashboard card keeps
   compact track chips visible even when all tracks are idle, keeps its open
   control clear of those chips, computes period countdowns from the current
-  head block, and the open chamber now includes track rules, track memory, and
+  head block, verifies mismatched stored periods through the contract’s read-only
+  `get_voting_state` view at that block, and never reuses a completed ballot as
+  current. A newly advanced Promotion gets fresh voting power and zero ballots
+  until its first receipt; unavailable views remain unknown. The open chamber includes track rules, track memory, and
   a merged submission/vote timeline for each L2 governance track. Active
   proposal and Promotion views lead with the complete represented-baker receipt
   ledger in first-to-latest order. Every row shows its ballot or upvote, exact

@@ -4169,7 +4169,7 @@ body.hen-active .live-head-panel :is(.hero-search-submit, .hero-search-close, .h
         gap: 0.34rem;
     }
 
-    .live-head-controls :is(.block-ticker-usage-moved, .block-ticker-usage-nft, .block-ticker-whale) {
+    .live-head-controls .block-ticker-whale {
         display: none;
     }
 
@@ -8402,4 +8402,63 @@ body.hen-active .hero-search-overlay.live-head-panel :is(.hero-search-submit, .h
 }
 @media (max-width: 600px) {
     .hero-search-overlay.live-head-panel .hero-search-panel-copy > span:last-child { white-space: normal; overflow: visible; text-overflow: clip; }
+}
+
+/* Activity and health share one phone row; Setup stays beside the title. */
+@media (max-width: 719px) {
+    .live-head-controls { --live-head-control-height: 48px; padding-block: 0; }
+    .live-head-topline { grid-template-rows: 44px auto; row-gap: 6px; }
+    .live-head-topline .live-head-hide.home-block-hide { top: 0; }
+    .live-head-topline .live-head-controls {
+        grid-template-columns: minmax(0, 1fr) clamp(104px, 29vw, 140px);
+        gap: 6px;
+    }
+    .live-head-controls .header-activity-button { grid-column: 1; grid-row: 1; padding: 5px 7px; }
+    .live-head-controls .header-activity-line { width: 100%; }
+    .live-head-controls .header-activity-cluster {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) minmax(0, 0.7fr);
+        width: 100%;
+        column-gap: 4px;
+        row-gap: 4px;
+    }
+    .live-head-controls .header-activity-cluster-kicker {
+        grid-column: 1 / -1;
+        padding: 0;
+        border: 0;
+        font-size: 9px;
+        line-height: 1;
+    }
+    .live-head-controls .block-ticker-usage { display: grid; gap: 2px; min-width: 0; }
+    .live-head-controls .block-ticker-label { font-size: 8px; }
+    .live-head-controls .block-ticker-value { min-width: 0; font-size: 11px; }
+    .live-head-controls .block-ticker-whale { display: none; }
+    .chain-health {
+        grid-column: 2;
+        grid-row: 1;
+        width: 100%;
+        grid-template-columns: minmax(0, 1fr) 40px;
+        column-gap: 5px;
+        padding-inline: 6px;
+    }
+    .chain-health-heading { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; font-size: 9px; }
+    .chain-health-label { white-space: normal; line-height: 1.15; }
+    .chain-health-separator, .chain-health-divider { display: none; }
+    .chain-health-status { width: auto; }
+    .chain-health-readout { font-size: 8px; }
+    .chain-health-window { --chain-health-count: 10; }
+    .live-head-controls .live-head-filter {
+        position: absolute;
+        grid-area: auto;
+        top: 0;
+        right: 38px;
+        width: 44px;
+        min-width: 44px;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+    }
+    .live-head-controls .live-head-filter-toggle { height: 30px; }
+    .live-head-next { margin-right: 82px; }
+    .live-head-panel .live-head-alert { top: 76px; }
 }

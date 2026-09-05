@@ -35,7 +35,10 @@ export async function smokeChamberUx(browser, baseUrl, { installFeatureMocks }) 
                     await page.mouse.move(x, bounds.y + Math.min(650, bounds.height - 80));
                     await page.mouse.wheel(0, 220);
                     await page.waitForFunction(before => document.querySelector('.chamber-room-scroll').scrollTop > before + 30, before);
-                    const close = await page.locator('.chamber-content > .chamber-close').boundingBox();
+                    const closeButton = page.locator('.chamber-content > .chamber-close');
+                    const chrome = await closeButton.evaluate(node => { const s = getComputedStyle(node); return { background: s.backgroundColor, border: s.borderTopWidth, outline: s.outlineWidth, shadow: s.boxShadow, position: s.position }; });
+                    assert.deepEqual(chrome, { background: 'rgba(0, 0, 0, 0)', border: '0px', outline: '0px', shadow: 'none', position: 'sticky' }, `${route} ${width}: the scrolling exit stays bare`);
+                    const close = await closeButton.boundingBox();
                     assert(close && close.y >= 0 && close.y < 70 && close.height >= 44, `${route} ${width}: visible, usable close control ${JSON.stringify(close)}`);
                     const rail = await page.locator('.market-room-tabs, .whale-watch-tabs, .ecosystem-tabs').boundingBox();
                     assert(rail.x + rail.width <= close.x, `${route} ${width}: the tab rail leaves the exit's column clear`);
@@ -117,6 +120,24 @@ export async function smokeChamberUx(browser, baseUrl, { installFeatureMocks }) 
                 }
             }
             await page.keyboard.press('Escape');
+            await page.goto(`${baseUrl}/anthology/`, { waitUntil: 'domcontentloaded' });
+            await page.locator('.protocol-anthology-lenses').waitFor();
+            await page.evaluate(() => document.fonts.ready);
+            const lenses = await page.locator('.protocol-anthology-lenses button').evaluateAll(nodes => nodes.map(node => {
+                const box = node.getBoundingClientRect();
+                const arrow = getComputedStyle(node, '::after');
+                const right = box.right - parseFloat(arrow.right);
+                const top = box.top + parseFloat(arrow.top);
+                const left = right - parseFloat(arrow.width);
+                const bottom = top + parseFloat(arrow.height);
+                const overlapsText = [...node.children].some(child => {
+                    const range = document.createRange(); range.selectNodeContents(child);
+                    return [...range.getClientRects()].some(rect => rect.left < right && rect.right > left && rect.top < bottom && rect.bottom > top);
+                });
+                return { content: arrow.content, overlapsText, small: parseFloat(arrow.width) < 16 && parseFloat(arrow.height) < 16 };
+            }));
+            assert.equal(lenses.length, 3);
+            assert(lenses.every(lens => lens.content === '""' && lens.small && !lens.overlapsText), `${width}: small CSS arrows never cover text or use an emoji glyph`);
             assert.deepEqual(errors, [], `${width}: no uncaught browser errors`);
         } finally { await context.close(); }
     }

@@ -3201,7 +3201,7 @@ async function installFeatureMocks(context, options = {}) {
       if (url.includes(`/contracts/${ETHERLINK_SLOW_CONTRACT}/storage`)) {
         return fulfillJson(route, {
           config: {
-            started_at_level: '10454078',
+            started_at_level: etherlinkPromotionFailure ? '9589278' : '10454078',
             period_length: '67200',
             proposal_quorum: '1',
             promotion_quorum: '5',
@@ -16503,8 +16503,8 @@ async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
   const states = [];
   const themes = ['aurora', 'matrix', 'hen', 'default', 'void', 'ember', 'signal', 'nerv', 'clean', 'dark', 'bubblegum', 'abyss', 'moss', 'valley', 'warzone'];
   for (const scenario of [
-    { viewportWidth: 320, fixtureWidth: 132, controlHeight: 30 },
-      { viewportWidth: 390, fixtureWidth: 192, controlHeight: 30 },
+    { viewportWidth: 320, fixtureWidth: 132, controlHeight: 48 },
+    { viewportWidth: 390, fixtureWidth: 192, controlHeight: 48 },
     { viewportWidth: 762, fixtureWidth: 250, controlHeight: 30 }
   ]) {
     await page.setViewportSize({ width: scenario.viewportWidth, height: 900 });
@@ -16537,6 +16537,7 @@ async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
         const visiblePills = Array.from(story?.querySelectorAll('.live-head-miss-pill:not([hidden])') || []);
         const activityRect = document.querySelector('#header-activity-button')?.getBoundingClientRect();
         const filterRect = document.querySelector('#live-head-filter-toggle')?.getBoundingClientRect();
+        const healthRect = document.querySelector('#chain-health')?.getBoundingClientRect();
         return {
           theme: expectedTheme,
           viewportWidth,
@@ -16550,6 +16551,8 @@ async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
           overflowVisible: Boolean(overflowPill && !overflowPill.hidden),
           overflowText: overflowPill?.textContent?.trim() || '',
           activityHeight: activityRect?.height || 0,
+          samePillsRow: activityRect.right <= healthRect.left && Math.abs(activityRect.top - healthRect.top) < 1 && Math.abs(activityRect.bottom - healthRect.bottom) < 1,
+          setupAbove: filterRect.bottom <= activityRect.top,
           filterHeight: filterRect?.height || 0,
           controlTopDelta: activityRect && filterRect ? Math.abs(activityRect.top - filterRect.top) : 999,
           controlBottomDelta: activityRect && filterRect ? Math.abs(activityRect.bottom - filterRect.bottom) : 999,
@@ -16576,9 +16579,10 @@ async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
         state.pageOverflow <= 1
           && state.panelOverflow <= 1
           && Math.abs(state.activityHeight - state.expectedControlHeight) <= 1
-          && Math.abs(state.activityHeight - state.filterHeight) <= 1
-          && Math.abs(state.controlTopDelta - 36) <= 1
-          && Math.abs(state.controlBottomDelta - 36) <= 1
+          && (state.viewportWidth <= 719 ? state.samePillsRow && state.setupAbove && state.filterHeight === 30
+            : Math.abs(state.activityHeight - state.filterHeight) <= 1
+              && Math.abs(state.controlTopDelta - 36) <= 1
+              && Math.abs(state.controlBottomDelta - 36) <= 1)
           && state.identityTotal === 3
           && state.visibleIdentities + state.hiddenMisses === state.identityTotal
           && state.hiddenMisses >= 1
@@ -18428,10 +18432,10 @@ async function smokeNetworkHealthChamber(browser, baseUrl) {
   }
   for (const tickerState of mobileTickerStates) {
     assert(
-      // The full-label Activity row adds 30px plus a 6px row gap on narrow screens.
-      tickerState.height <= (tickerState.alertVisible ? 446 : 396)
-        && Math.abs(tickerState.activityHeight - 30) <= 1
-        && Math.abs(tickerState.activityHeight - tickerState.filterHeight) <= 1
+      // Activity and health share a 48px mobile row; Setup stays beside the title.
+      tickerState.height <= (tickerState.alertVisible ? 474 : 424)
+        && Math.abs(tickerState.activityHeight - 48) <= 1
+        && Math.abs(tickerState.filterHeight - 30) <= 1
         && tickerState.rows === 3
         && tickerState.levels.every((level) => /^#[\d,]+$/.test(level))
 	        && tickerState.rowsContained
@@ -27364,6 +27368,8 @@ async function smokeGovernanceTestingPeriod(browser, baseUrl, section = 'all') {
   }
 
   if (section === 'all' || section === 'quiet') {
+  const { smokeGovernancePeriods } = await import('./lib/governance-period-smoke.mjs');
+  await smokeGovernancePeriods(browser, baseUrl, { installFeatureMocks });
   const quietContext = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     serviceWorkers: 'block'

@@ -3845,7 +3845,7 @@ async function checkSelectorContracts() {
       || !chainHealthStripBlock.includes('latestBlockStatus(block)')
       || !chainHealthStripBlock.includes('liveHeadMotionAllowed({ suppressMotion })')
       || !chainHealthStripBlock.includes('error && viewport.children.length')
-      || !chainHealthStripBlock.includes('advance > 0 && advance < CHAIN_HEALTH_BLOCK_LIMIT')
+      || !chainHealthStripBlock.includes('advance > 0 && advance < visibleBlockLimit')
       || !index.includes('id="chain-health-window"')) {
     fail('Chain health must retain 25 keyed attestation receipts with visibility-gated quiet reconciliation, last-good failure state, and new-head-only motion');
   }

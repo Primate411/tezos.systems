@@ -313,13 +313,15 @@
 
 .protocol-anthology-lenses button::after {
     position: absolute;
-    right: -1rem;
-    bottom: -2.8rem;
-    color: color-mix(in srgb, var(--anthology-tone) 10%, transparent);
-    content: '↗';
-    font-family: var(--font-display, Orbitron, sans-serif);
-    font-size: 8rem;
-    line-height: 1;
+    right: 1.15rem;
+    top: 1.15rem;
+    width: 0.6rem;
+    height: 0.6rem;
+    background: linear-gradient(135deg, transparent 43%, var(--anthology-tone) 44% 56%, transparent 57%);
+    border-top: 2px solid var(--anthology-tone);
+    border-right: 2px solid var(--anthology-tone);
+    content: '';
+    pointer-events: none;
 }
 
 .protocol-anthology-lenses button > span,
@@ -330,6 +332,8 @@
     font: 800 0.6rem/1.3 'JetBrains Mono', monospace;
     text-transform: uppercase;
 }
+
+.protocol-anthology-lenses button > span { padding-right: 1.3rem; }
 
 .protocol-anthology-lenses button > strong {
     position: relative;

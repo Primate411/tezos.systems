@@ -93,6 +93,7 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
 
     for (const width of [1080, 1440, 901, 900, 762, 390, 320]) {
       await page.setViewportSize({ width, height: width > 760 ? 1753 : 844 });
+      await page.waitForFunction(count => document.querySelectorAll('[data-chain-health-level]').length === count, width <= 719 ? 10 : 25);
       await page.locator('#live-head').scrollIntoViewIfNeeded();
       const paint = await page.evaluate(() => {
         const strip = document.getElementById('chain-health-window');
@@ -121,7 +122,7 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
           const range = document.createRange();
           range.selectNodeContents(readout);
           const textRight = range.getBoundingClientRect().right;
-          return { text, oneLine: Math.abs(l.y - r.y) < 0.5 && l.right <= r.left && r.right <= s.left,
+          return { text, oneLine: (innerWidth <= 719 ? l.bottom <= r.top : Math.abs(l.y - r.y) < 0.5 && l.right <= r.left) && r.right <= s.left,
             beforeDivider: dividerX - textRight, afterDivider: s.left - dividerX - 1,
             leftGutter: l.left - health.left, rightGutter: health.right - s.right,
             countWidth: readout.querySelector('.chain-health-count')?.getBoundingClientRect().width,
@@ -138,7 +139,7 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
             && getComputedStyle(activityLabel).fontSize === getComputedStyle(label).fontSize
             && activityLabel.getBoundingClientRect().height > 0,
           controlsFit: health.right <= innerWidth && document.documentElement.scrollWidth <= innerWidth
-            && (innerWidth <= 900 ? activity.bottom <= health.top : activity.right <= health.left),
+            && (innerWidth > 719 && innerWidth <= 900 ? activity.bottom <= health.top : activity.right <= health.left && Math.abs(activity.top - health.top) < 1),
           activityOverflow: document.getElementById('header-activity-line').scrollWidth - document.getElementById('header-activity-line').clientWidth,
           touchTargetsFit: !matchMedia('(pointer: coarse)').matches || ['chain-health', 'header-activity-button', 'live-head-filter-toggle'].every(id => {
             const button = document.getElementById(id);
@@ -169,20 +170,20 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
           })
         };
       });
-      assert.match(paint.originalReadout, /^\d+\/25 (OK|LOW|RISK|\?)$/, 'live status uses a count out of 25');
+      assert.match(paint.originalReadout, new RegExp(`^\\d+/${width <= 719 ? 10 : 25} (OK|LOW|RISK|\\?)$`), 'live status counts the visible window');
       assert(paint.hasReservedNumerator, 'live render reserves only the two-digit numerator');
       assert.equal(paint.separator, '•');
       assert(paint.labelsVisible && paint.controlsFit, `${width}/${deviceScaleFactor}x: matching full labels fit`);
       assert(paint.activityOverflow <= 1, `${width}/${deviceScaleFactor}x: Activity metrics are not clipped`);
       assert(paint.touchTargetsFit, `${width}/${deviceScaleFactor}x: 44px touch targets do not overlap other controls or rows`);
       assert(paint.headings.every(h => h.oneLine && h.unclipped && h.width === paint.stripWidth), JSON.stringify(paint.headings));
-      assert(paint.headings.every(h => h.beforeDivider >= 5.9 && Math.abs(h.beforeDivider - h.afterDivider) < 0.1
+      assert(width <= 719 || paint.headings.every(h => h.beforeDivider >= 5.9 && Math.abs(h.beforeDivider - h.afterDivider) < 0.1
         && Math.abs(h.leftGutter - h.rightGutter) < 0.1), `balanced inner and outer gutters: ${JSON.stringify(paint.headings)}`);
       assert.equal(paint.headings[0].countWidth, paint.headings[1].countWidth, 'one and two digits share the same numerator slot');
       assert.equal(paint.headings[0].readoutWidth, paint.headings[1].readoutWidth, 'count changes do not move the divider or bars');
-      assert(paint.stripWidth >= 75, `${width}/${deviceScaleFactor}x: all lines remain legible`);
-      assert.equal(paint.stripWidth % 25, 0, `${width}/${deviceScaleFactor}x: whole-pixel line slots`);
-      assert.equal(paint.bars.length, 25);
+      assert(paint.stripWidth >= (width <= 719 ? 40 : 75), `${width}/${deviceScaleFactor}x: all lines remain legible`);
+      assert.equal(paint.stripWidth % (width <= 719 ? 10 : 25), 0, `${width}/${deviceScaleFactor}x: whole-pixel line slots`);
+      assert.equal(paint.bars.length, width <= 719 ? 10 : 25);
       assert(paint.bars.every(bar => Number.isInteger(bar.width) && Number.isInteger(bar.height)
         && bar.left === '0px' && bar.right === '1px' && bar.radius === '0px'), JSON.stringify(paint.bars));
       assert(paint.rails.length > 0);
@@ -198,6 +199,12 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
       await page.goto(`${baseUrl}#${hash}`, { waitUntil: 'domcontentloaded' });
       const room = page.locator('.chamber-overlay.active .chamber-room-shell');
       await room.waitFor({ state: 'visible' });
+      // The shell is visible before its data arrives. Exercise the completed
+      // reading surface, not the short opening placeholder.
+      await page.waitForFunction(() => {
+        const scroller = document.querySelector('.chamber-overlay.active .chamber-room-scroll');
+        return scroller && scroller.scrollHeight > scroller.clientHeight + 120;
+      });
       for (const { width, height } of [
         { width: 1080, height: 1753 }, { width: 1440, height: 1900 },
         { width: 390, height: 844 }, { width: 320, height: 844 }

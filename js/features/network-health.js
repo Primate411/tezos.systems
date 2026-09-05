@@ -564,6 +564,7 @@ function updateChainHealthStrip(data, { error = false, supplemental = false, sup
     const button = document.getElementById('chain-health');
     const viewport = document.getElementById('chain-health-window');
     if (!button || !viewport) return;
+    const visibleBlockLimit = window.matchMedia?.('(max-width: 719px)')?.matches ? 10 : CHAIN_HEALTH_BLOCK_LIMIT;
     if (!button.dataset.chainHealthWired) {
         button.dataset.chainHealthWired = '1';
         button.addEventListener('click', (event) => {
@@ -606,37 +607,43 @@ function updateChainHealthStrip(data, { error = false, supplemental = false, sup
     if (!error && sourceStamp) button.dataset.sourceStamp = String(sourceStamp);
     button.dataset.feedState = error ? 'stale' : data?.blocks?.length ? 'live' : 'loading';
     if (error && viewport.children.length) {
-        updateChainHealthReadout(button, {
-            sentence: `Live source delayed. Showing the last received 25-block history, ending at block ${formatCount(viewport.dataset.headLevel)}.`
-        }, { stale: true });
-        return;
+        const retainedCount = viewport.querySelectorAll('[data-chain-health-level]').length;
+        const retainedData = data?.blocks?.length ? data : heartbeatData;
+        if (retainedCount === visibleBlockLimit || !retainedData?.blocks?.length) {
+            updateChainHealthReadout(button, {
+                sentence: `Live source delayed. Showing the last received ${retainedCount}-block history, ending at block ${formatCount(viewport.dataset.headLevel)}.`
+            }, { stale: true });
+            return;
+        }
+        // Resizing can change the displayed window without recovering the source.
+        data = retainedData;
     }
     const latest = data?.blocks?.[0];
     if (!latest) {
         updateChainHealthReadout(button, {
             text: '—', tone: 'unknown',
-            sentence: error ? 'Block source unavailable.' : 'Loading the last 25 blocks.'
+            sentence: error ? 'Block source unavailable.' : `Loading the last ${visibleBlockLimit} blocks.`
         }, { loading: !error });
         return;
     }
     const byLevel = new Map((data.chainHealthBlocks || data.blocks).map((block) => [Number(block.level), block]));
-    const blocks = Array.from({ length: CHAIN_HEALTH_BLOCK_LIMIT }, (_, index) => {
-        const level = Number(latest.level) - CHAIN_HEALTH_BLOCK_LIMIT + 1 + index;
+    const blocks = Array.from({ length: visibleBlockLimit }, (_, index) => {
+        const level = Number(latest.level) - visibleBlockLimit + 1 + index;
         return byLevel.get(level) || { level };
     });
     const readout = chainHealthReadout(blocks.map(chainHealthState));
     updateChainHealthReadout(button, {
-        ...readout, sentence: `${readout.sentence} Newest block ${formatCount(latest.level)}.`
-    });
-    viewport.style.setProperty('--chain-health-count', CHAIN_HEALTH_BLOCK_LIMIT);
+        ...readout, sentence: `${error ? 'Live source delayed. Retained history. ' : ''}${readout.sentence} Newest block ${formatCount(latest.level)}.`
+    }, { stale: error });
+    viewport.style.setProperty('--chain-health-count', visibleBlockLimit);
     const missedStates = blocks.map((block) => liveHeadMissedState(block, null, { force: true }));
     const signature = blocks.map((block, index) => `${block.level}:${block.power}:${block.committee}:${block.blockRound}:${missedStates[index].signature}:${missedStates[index].sampleClipped}`).join('|');
     if (viewport.dataset.receiptSignature === signature) return;
     const previousLevel = Number(viewport.dataset.headLevel) || 0;
     const advance = Number(latest.level) - previousLevel;
-    const animate = previousLevel > 0 && advance > 0 && advance < CHAIN_HEALTH_BLOCK_LIMIT
+    const animate = !error && previousLevel > 0 && advance > 0 && advance < visibleBlockLimit
         && liveHeadMotionAllowed({ suppressMotion });
-    const step = viewport.clientWidth / CHAIN_HEALTH_BLOCK_LIMIT;
+    const step = viewport.clientWidth / visibleBlockLimit;
     viewport.querySelectorAll('.chain-health-exiting').forEach((ghost) => ghost.remove());
     const existing = [...viewport.querySelectorAll('[data-chain-health-level]')];
     const nextLevels = new Set(blocks.map((block) => String(block.level)));

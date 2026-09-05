@@ -2,7 +2,8 @@ import { renderChamberVerdict, syncChamberReading } from '../ui/chamber-reading.
 import { requestChamberClose, bindChamberVisibility } from '../ui/chamber-accessibility.js';
 /**
  * Tezos X Governance Chamber
- * Read-only FAST / SLOW / Sequencer governance surface backed by TzKT storage.
+ * Read-only FAST / SLOW / Sequencer governance backed by TzKT receipts and
+ * the current Octez contract view when storage has not advanced its period.
  */
 
 import { API_URLS } from '../core/config.js';
@@ -217,7 +218,7 @@ function normalizePeriod(track, storage, headLevel) {
     const periodLength = Number(config.period_length ?? track.periodLength ?? 1);
     const storageIndex = Number(storage?.voting_context?.period_index);
     const computedIndex = periodLength > 0 ? Math.floor(Math.max(0, headLevel - startedAt) / periodLength) : 0;
-    const index = Number.isFinite(storageIndex) ? Math.max(storageIndex, computedIndex) : computedIndex;
+    const index = computedIndex;
     const startLevel = startedAt + index * periodLength;
     const endLevel = startLevel + periodLength - 1;
     const blocksRemaining = Math.max(0, endLevel - headLevel);
@@ -225,12 +226,42 @@ function normalizePeriod(track, storage, headLevel) {
 
     return {
         index,
+        storageIndex: storage?.voting_context ? storageIndex : null,
         startLevel,
         endLevel,
         blocksRemaining,
         startDateTime: new Date(now - Math.max(0, headLevel - startLevel) * BLOCK_SECONDS * 1000).toISOString(),
         endDateTime: new Date(now + blocksRemaining * BLOCK_SECONDS * 1000).toISOString()
     };
+}
+
+async function currentVotingStorage(track, storage, period, headLevel) {
+    if (!storage.voting_context || period.storageIndex === period.index) return storage;
+    // Storage only advances on a contract call. Its old ballot must never be
+    // attached to a freshly computed window. The view also catches a proposal
+    // that has entered Promotion before the first ballot updates storage.
+    const rpc = 'https://tezos-mainnet.octez.io';
+    const result = await fetchWithRetry(`${rpc}/chains/main/blocks/${headLevel}/helpers/scripts/run_script_view`, {
+        method: 'POST', cache: 'no-store', memoryCache: false,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contract: track.contract, view: 'get_voting_state', input: { prim: 'Unit' },
+            chain_id: 'NetXdQprcVkpaWU', unparsing_mode: 'Readable' })
+    }, 1);
+    const [index, phase] = result?.data?.args || [];
+    if (Number(index?.int) !== period.index || !['Left', 'Right'].includes(phase?.prim)) {
+        throw new Error('Current governance view does not match the observed block');
+    }
+    if (phase.prim === 'Left') return { ...storage, voting_context: null };
+    const proposal = storage.voting_context.period?.proposal;
+    if (period.index !== period.storageIndex + 1 || !proposal?.winner_candidate) {
+        throw new Error('Current Promotion candidate is unavailable');
+    }
+    const total = await fetchJson(`${rpc}/chains/main/blocks/${headLevel}/votes/total_voting_power`);
+    if (!/^\d+$/.test(String(total)) || toBigInt(total) <= 0n) throw new Error('Current voting power is unavailable');
+    return { ...storage, voting_context: { period_index: String(period.index), period: { promotion: {
+        winner_candidate: proposal.winner_candidate, total_voting_power: String(total),
+        yea_voting_power: '0', nay_voting_power: '0', pass_voting_power: '0'
+    } } } };
 }
 
 function detectPhase(storage) {
@@ -738,12 +769,13 @@ async function fetchTrack(track, headLevel, historicalProposals = []) {
     if (!track.contract) throw new Error('contract discovery unavailable');
     const storage = track.storage || await fetchJson(`${TZKT}/contracts/${track.contract}/storage`);
     const period = normalizePeriod(track, storage, headLevel);
-    const phase = detectPhase(storage);
+    const currentStorage = await currentVotingStorage(track, storage, period, headLevel);
+    const phase = detectPhase(currentStorage);
     const [proposalResult, activityResult] = await Promise.allSettled([
-        buildProposalState(storage),
+        buildProposalState(currentStorage),
         fetchActivity(track, period)
     ]);
-    const promotion = buildPromotionState(storage);
+    const promotion = buildPromotionState(currentStorage);
     const proposal = proposalResult.status === 'fulfilled' ? proposalResult.value : null;
     const activity = activityResult.status === 'fulfilled' ? activityResult.value : [];
     const config = storage.config || {};
@@ -792,6 +824,7 @@ async function fetchEtherlinkGovernanceData({ force = false } = {}) {
         const headRows = await fetchJson(`${TZKT}/blocks?limit=1&sort.desc=level`);
         const head = Array.isArray(headRows) ? headRows[0] : headRows;
         const headLevel = Number(head?.level) || 0;
+        if (headLevel <= 0) throw new Error('Current governance block is unavailable');
         const trackTemplates = await discoverGovernanceTracks();
         const trackResults = await Promise.allSettled(trackTemplates.map((track) => (
             fetchTrack(track, headLevel, historicalProposalCache?.get(track.key) || [])
@@ -883,6 +916,7 @@ function trackLastActivity(track) {
 function topTrack(data) {
     return data.tracks.find((track) => track.phase === 'promotion' && track.promotion && hasActiveTrackPayload(track))
         || data.tracks.find((track) => track.phase === 'proposal' && track.proposal && hasActiveTrackPayload(track))
+        || data.tracks.find((track) => track.phase === 'error')
         || data.tracks[0];
 }
 
@@ -1261,6 +1295,8 @@ function renderEntryCard(data) {
     let value = main.label;
     if (quiet) {
         value = 'No Proposal';
+    } else if (main.phase === 'error') {
+        value = 'Data delayed';
     } else if (main.phase === 'proposal' && main.proposal) {
         value = status.headline || formatPercent(main.proposalProgress);
     } else if (main.phase === 'promotion' && main.promotion) {
