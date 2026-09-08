@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import sharp from 'sharp';
 
@@ -20,8 +20,9 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       timestamp: new Date(Date.now() - i * 6000).toISOString(),
       producer: { address: 'tz1VSUr8wwNhLAzempoch5d6hLRiTh8Cjcjb', alias: 'QA Baker' },
       attestationPower: scenario === 'mixed' ? [7000, 6997, 6500, 4500, null][(head - i) % 5]
+        : scenario === 'bands' ? [7000, 6500, 6000, 5500, 4700, 4666, null][i % 7]
         : scenario === 'partial' ? (i < 9 ? 6895 : null)
-        : { ok: 6895, watch: 4667, risk: 4666, unknown: null }[scenario],
+        : { perfect: 7000, strong: 6500, watch: 6000, low: 5500, dire: 4700, quorum: 4667, risk: 4666, unknown: null }[scenario],
       attestationCommittee: 7000,
       blockRound: 0, payloadRound: 0
     }));
@@ -51,6 +52,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
     localStorage.setItem('tezos-toured', '1');
     localStorage.setItem('tezos-welcomed', '1');
     localStorage.setItem('tezos-systems-my-tezos-dismissed', '1');
+    localStorage.setItem('tezos-systems-live-head-depth-v1', JSON.stringify({ version: 2, mode: '10', customRows: 10 }));
   });
   const page = await context.newPage();
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded' });
@@ -83,11 +85,11 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
   assert.equal(initial.levels.length, 25);
   assert.equal(initial.levels[0], head - 24);
   assert.equal(initial.levels.at(-1), head);
-  assert.equal(initial.colors.length, 4, 'OK, watch, risk and unavailable have distinct theme colors');
-  assert.equal(initial.heights.length, 4, 'Health remains legible without color');
+  assert.equal(initial.colors.length, 4, 'Perfect, Strong, below quorum and unavailable have distinct theme colors');
+  assert.equal(initial.heights.length, 4, 'The mixed receipts retain distinct severity and unavailable heights');
   assert.deepEqual(initial.newest, [head], 'Only the newest block has a marker');
   assert.equal(initial.summary, '5/25 RISK');
-  assert.match(initial.label, /last 25 blocks: 10 at or above 98.5% attestation power, 5 at quorum but below 98.5%, 5 below quorum, 5 unavailable/);
+  assert.match(initial.label, /last 25 blocks: 5 perfect .*10 strong .*5 below quorum, 5 unavailable/);
   assert.equal(initial.animations, 0, 'First paint has no conveyor motion');
 
   await page.evaluate(() => {
@@ -184,12 +186,16 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
     const stableGeometry = await geometrySnapshot();
     const count = width <= 719 ? 10 : 25;
     for (const [mode, text, description] of [
-      ['ok', `${count}/${count} OK`, `${count} at or above 98.5% attestation power`],
+      ['perfect', `${count}/${count} FULL`, `${count} perfect (full attestation power)`],
+      ['strong', `${count}/${count} HIGH`, `${count} strong (6,500 to below 7,000 on a 7,000-power scale)`],
       ['risk', `${count}/${count} RISK`, `${count} below quorum`],
-      ['watch', `${count}/${count} LOW`, `${count} at quorum but below 98.5%`],
+      ['watch', `${count}/${count} WATCH`, `${count} watch (6,000 to below 6,500 on a 7,000-power scale)`],
+      ['low', `${count}/${count} LOW`, `${count} low (5,500 to below 6,000 on a 7,000-power scale)`],
+      ['dire', `${count}/${count} DIRE`, `${count} DIRE (below 5,500 on a 7,000-power scale, quorum still met)`],
+      ['quorum', `${count}/${count} DIRE`, `${count} DIRE (below 5,500 on a 7,000-power scale, quorum still met)`],
       ['risk', `${count}/${count} RISK`, `${count} below quorum`],
       ['unknown', `${count}/${count} ?`, `${count} unavailable`],
-      ['partial', `${count - 9}/${count} ?`, `9 at or above 98.5% attestation power, ${count - 9} unavailable`]
+      ['partial', `${count - 9}/${count} ?`, `9 strong (6,500 to below 7,000 on a 7,000-power scale), ${count - 9} unavailable`]
     ]) {
       scenario = mode;
       await page.evaluate(() => window.__refreshChainHealth());
@@ -200,6 +206,8 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       assert.equal(Boolean(current.announcement), mode === 'risk', 'Announce risk entry and clear every exit');
       assert.deepEqual(await geometrySnapshot(), stableGeometry, `${width}/${mode}: summary must not move either control`);
       assert.equal(current.animations, 0, 'Same-head receipt corrections stay still');
+      assert(await page.evaluate(() => document.getElementById('chain-health-readout').getBoundingClientRect().right
+        <= document.getElementById('chain-health-window').getBoundingClientRect().left), `${width}/${mode}: the complete status stays clear of the strip`);
     }
     unavailable = true;
     await page.evaluate(() => window.__refreshChainHealth());
@@ -207,7 +215,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
     assert.deepEqual(await geometrySnapshot(), stableGeometry, 'Source failure must not change geometry');
     unavailable = false;
   }
-  scenario = 'mixed';
+  scenario = 'bands';
   await page.evaluate(() => window.__refreshChainHealth());
 
   for (const theme of ['ember', 'clean']) {
@@ -216,10 +224,14 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       setTheme(name);
     }, theme);
     await page.waitForFunction((name) => Boolean(document.getElementById(`theme-css-${name}`)?.sheet), theme);
+    await page.evaluate(() => Promise.all(document.getAnimations()
+      .filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity)
+      .map(animation => animation.finished.catch(() => {}))));
     for (const width of [1440, 1101, 1024, 762, 390, 320]) {
       await page.setViewportSize({ width, height: 1000 });
       await page.waitForFunction(count => document.querySelectorAll('[data-chain-health-level]').length === count, width <= 719 ? 10 : 25);
-      await page.evaluate(() => {
+      await page.evaluate(async () => {
+        await document.fonts.ready;
         getSelection().removeAllRanges();
         document.activeElement?.blur();
         document.getElementById('live-head').scrollIntoView({ block: 'start', behavior: 'instant' });
@@ -253,22 +265,53 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       assert(geometry.visibleMetrics, `${theme}/${width}: TX, Moved and NFT remain visible`);
       assert.equal((await geometrySnapshot()).health.height, width <= 719 ? 48 : 30, 'Phone controls provide a full 44px touch target');
       assert.equal(await page.locator('#chain-health-window').evaluate((el) => el.getBoundingClientRect().height), 22, 'The strip keeps the same vertical scale across devices');
+      const parity = await page.evaluate(() => [...document.querySelectorAll('#live-head-stack [data-live-head-level]')].map(row => {
+        const strip = document.querySelector(`[data-chain-health-level="${row.dataset.liveHeadLevel}"]`);
+        const power = row.querySelector('.health-power');
+        const rail = row.querySelector('.live-head-power-track');
+        return {
+          power: Number(row.dataset.attestedPower),
+          tone: power.dataset.attestationTone,
+          sameTone: power.dataset.attestationTone === rail.dataset.attestationTone && power.dataset.attestationTone === strip.dataset.attestationTone,
+          sameColor: getComputedStyle(power).color === getComputedStyle(rail).color && getComputedStyle(power).color === getComputedStyle(strip).color,
+          stripHeight: parseFloat(getComputedStyle(strip, '::before').height),
+          stripCapacity: strip.getBoundingClientRect().height,
+          color: getComputedStyle(strip).color
+        };
+      }));
+      assert.equal(parity.length, 10, 'The comparison spans five severities, below quorum and unavailable');
+      assert(parity.every(row => row.sameTone && row.sameColor), `${theme}/${width}: pills, rails and strips agree ${JSON.stringify(parity)}`);
+      const expectedBands = [[7000, 'perfect', 1], [6500, 'strong', 0.8], [6000, 'watch', 0.6], [5500, 'low', 0.4], [4700, 'dire', 0.2]];
+      const severityRows = expectedBands.map(([power, tone, fill]) => {
+        const row = parity.find(row => row.power === power);
+        assert(row && row.tone === tone && Math.abs(row.stripHeight - row.stripCapacity * fill) < 0.1,
+          `${theme}/${width}: ${power} must have ${tone} color and ${fill * 100}% height: ${JSON.stringify(row)}`);
+        return row;
+      });
+      assert.equal(new Set(severityRows.map(row => row.color)).size, 5, 'Each of the five severities has its own color');
+      assert.equal(new Set(severityRows.map(row => row.stripHeight)).size, 5, 'Each of the five severities has its own height');
       if (width === 1440) {
-        // Sample the painted pixels, including the risk wash and all translucent
-        // ancestor layers, rather than treating the transparent window as opaque.
+        // Sample viewport pixels, including the risk wash and ancestor layers.
+        // Locator crops round fractional origins outward; that offset can move
+        // a sample outside a genuinely painted 2px quorum tick.
         const samples = await page.evaluate(() => {
-          const chip = document.getElementById('chain-health').getBoundingClientRect();
           const windowRect = document.getElementById('chain-health-window').getBoundingClientRect();
-          return ['ok', 'watch', 'risk', 'unknown'].map((state) => {
+          return ['perfect', 'strong', 'watch', 'low', 'dire', 'risk', 'unknown'].map((state) => {
             const bar = document.querySelector(`.chain-health-bar.${state}:not(.is-head)`);
             const rect = bar.getBoundingClientRect();
             const fill = parseFloat(getComputedStyle(bar, '::before').height);
-            return { state, x: rect.x + rect.width / 2 - chip.x,
-              inkY: rect.bottom - fill / 2 - chip.y,
-              backgroundY: (state === 'risk' ? rect.top + 2 : windowRect.bottom - 1) - chip.y };
+            return { state, x: rect.x + (rect.width - 1) / 2,
+              inkY: rect.bottom - fill / 2,
+              backgroundY: state === 'risk' ? rect.top + 2 : windowRect.bottom - 1 };
           });
         });
-        const { data, info } = await sharp(await page.locator('#chain-health').screenshot()).removeAlpha().raw().toBuffer({ resolveWithObject: true });
+        const stripImage = await page.screenshot();
+        if (artifactsDir) {
+          await mkdir(artifactsDir, { recursive: true });
+          await writeFile(path.join(artifactsDir, `chain-health-pixels-${theme}.png`), stripImage);
+          await page.locator('#chain-health').screenshot({ path: path.join(artifactsDir, `chain-health-strip-${theme}.png`) });
+        }
+        const { data, info } = await sharp(stripImage).removeAlpha().raw().toBuffer({ resolveWithObject: true });
         const luminance = (x, y) => {
           const offset = (Math.floor(y) * info.width + Math.floor(x)) * info.channels;
           const rgb = [...data.subarray(offset, offset + 3)].map((v) => {
@@ -281,7 +324,7 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
           const ink = luminance(sample.x, sample.inkY);
           const background = luminance(sample.x, sample.backgroundY);
           const contrast = (Math.max(ink, background) + 0.05) / (Math.min(ink, background) + 0.05);
-          assert(contrast >= 3, `${theme}/${sample.state}: painted contrast ${contrast.toFixed(2)}:1`);
+          assert(contrast >= 3, `${theme}/${sample.state}: painted contrast ${contrast.toFixed(2)}:1 ${JSON.stringify(sample)} ${JSON.stringify(info)}`);
         }
       }
       if (artifactsDir && [1440, 390, 320].includes(width)) {
@@ -297,17 +340,19 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       && getComputedStyle(risk, '::before').backgroundColor !== 'rgba(0, 0, 0, 0)';
   }), 'Forced colors preserve visible bars and the risk outline');
   await page.emulateMedia({ forcedColors: 'none' });
+  scenario = 'mixed';
+  await page.evaluate(() => window.__refreshChainHealth());
   await page.setViewportSize({ width: 1440, height: 1000 });
   const inspectedLevel = Math.floor((head - 12) / 5) * 5 + 1;
   const inspectedBar = page.locator(`[data-chain-health-level="${inspectedLevel}"]`);
   await page.waitForFunction((level) => document.querySelector(`[data-chain-health-level="${level}"]`)?.dataset.chainHealthReceipt.includes(`Receipt Baker ${level}`), inspectedLevel);
-  assert(await inspectedBar.evaluate((bar) => bar.classList.contains('ok')), 'Even a green block can have a missed attester');
+  assert(await inspectedBar.evaluate((bar) => bar.classList.contains('strong')), 'A nearly full Strong block can still have a missed attester');
   await inspectedBar.scrollIntoViewIfNeeded();
   await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   await inspectedBar.hover();
   const inspector = page.locator('#live-head-inspector');
   await inspector.waitFor({ state: 'visible' });
-  assert((await inspector.textContent()).includes(`Receipt Baker ${inspectedLevel}`), 'The old green line shows its own missed baker');
+  assert((await inspector.textContent()).includes(`Receipt Baker ${inspectedLevel}`), 'The older Strong line shows its own missed baker');
   assert(!(await inspector.textContent()).includes(`Receipt Baker ${head}`), 'Do not substitute the head block missed bakers');
   assert((await inspector.locator('a').all()).length > 1, 'The missed-baker identities retain receipt links');
   const mini = await inspector.boundingBox();
@@ -333,8 +378,41 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
   await page.keyboard.press('ArrowLeft');
   assert.equal(await inspector.getAttribute('data-live-head-level'), String(head - 1));
   await page.keyboard.press('Escape');
+  scenario = 'bands';
+  await page.evaluate(() => window.__refreshChainHealth());
   await page.locator('.chain-health-label').click();
   await page.locator('#network-health-modal.active .health-content').waitFor({ state: 'visible' });
+  await page.locator('#network-health-modal .health-block-row').first().waitFor({ state: 'visible' });
+  const chamberParity = await page.evaluate(() => {
+    // Clean has a dark Chamber interior: compare semantics across surfaces,
+    // and require readable ink there instead of copying light-dashboard shades.
+    const surface = document.querySelector('#network-health-modal .health-content');
+    const probe = document.createElement('span');
+    probe.style.cssText = 'position:absolute;visibility:hidden;color:var(--bg-primary)';
+    surface.appendChild(probe);
+    const luminance = color => {
+      const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number).map(v => {
+        const c = v / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+    };
+    const background = luminance(getComputedStyle(probe).color);
+    probe.remove();
+    return [...surface.querySelectorAll('.health-block-row')].map(row => {
+      const pill = row.querySelector('.health-power');
+      const strip = document.querySelector(`[data-chain-health-level="${row.dataset.healthLevel}"]`);
+      const ink = luminance(getComputedStyle(pill).color);
+      return { level: row.dataset.healthLevel, tone: pill.dataset.attestationTone, stripTone: strip?.dataset.attestationTone,
+        text: pill.textContent.trim(),
+        contrast: (Math.max(ink, background) + 0.05) / (Math.min(ink, background) + 0.05) };
+    });
+  });
+  assert(chamberParity.length > 0 && chamberParity.every(row => row.tone === row.stripTone && row.contrast >= 4.5),
+    `Passing Blocks shares receipt bands with readable surface-aware colors: ${JSON.stringify(chamberParity)}`);
+  assert.equal(new Set(chamberParity.map(row => row.tone)).size, 7, 'Passing Blocks covers five severities, below quorum and unknown');
+  assert(chamberParity.filter(row => row.tone === 'unknown').every(row => row.text === '--'), 'Unavailable power never becomes a zero-power receipt');
+  if (artifactsDir) await page.locator('.health-recent-blocks').screenshot({ path: path.join(artifactsDir, 'chain-health-passing-blocks-clean.png') });
   assert(requests > 1, 'The strip uses the shared live block fetch');
   await context.close();
 

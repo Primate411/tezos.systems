@@ -4,6 +4,7 @@ import { CSS_THEMES, CSS_TARGETS, LAZY_SURFACE_STYLES } from '../scripts/lib/css
 
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import vm from 'node:vm';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -3874,7 +3875,7 @@ async function checkSelectorContracts() {
   if (!chainHealthStateBlock.includes('latestBlockStatus(block)')
       || !chainHealthStateBlock.includes('status.safetyMargin < 0')
       || !chainHealthStateBlock.includes('const total = states.length')
-      || !['risk', 'watch', 'unknown', 'ok'].every(tone => chainHealthStateBlock.includes('${counts.' + tone + '}/${total}'))
+      || !['perfect', 'strong', 'watch', 'low', 'dire', 'risk', 'unknown'].every(tone => chainHealthStateBlock.includes('${counts.' + tone + '}/${total}'))
       || !chainHealthStateBlock.includes('counts.unknown')
       || !chainHealthStateBlock.includes("tone === 'risk' ? readout.sentence : ''")
       || !chainHealthStripBlock.includes('sourceStamp <= Number(button.dataset.sourceStamp || 0)')
@@ -3886,11 +3887,39 @@ async function checkSelectorContracts() {
       || !index.includes('aria-describedby="chain-health-legend"')
       || !index.includes('id="chain-health-announcer"')
       || !chainHealthCssBlock.includes('--chain-health-count: 25')
-      || !chainHealthCssBlock.includes('--chamber-good-color')
-      || !chainHealthCssBlock.includes('--chain-health-fill: 6px')
+      || !chainHealthCssBlock.includes('--attestation-perfect-color')
+      || !chainHealthCssBlock.includes('height: var(--attestation-fill)')
+      || !['100%', '80%', '60%', '40%', '20%'].every(fill => heroSearchCss.includes(`--attestation-fill: ${fill};`))
+      || !styles.includes('height: var(--attestation-fill)')
       || !chainHealthCssBlock.includes('@media (forced-colors: active)')
       || /#[a-f\d]{3,8}\b/i.test(chainHealthCssBlock)) {
     fail('Chain health must share quorum semantics, disclose the complete window including unknowns, announce only risk entry, retain source failure, and use theme-aware height cues');
+  }
+  // Exercise production classification at both sides of each display boundary,
+  // including a different committee and the integer-rounded quorum.
+  const classifyReceipt = vm.runInNewContext(`${health.slice(health.indexOf('function latestBlockStatus('), health.indexOf('function chainHealthReadout('))}; ({ latestBlockStatus, chainHealthState })`, { formatCount: String });
+  for (const [committee, power, expected] of [
+    [7000, 7000, 'perfect'], [7000, 6999, 'strong'], [7000, 6500, 'strong'],
+    [7000, 6499, 'watch'], [7000, 6000, 'watch'],
+    [7000, 5999, 'low'], [7000, 5500, 'low'],
+    [7000, 5499, 'dire'], [7000, 5000, 'dire'], [7000, 4700, 'dire'],
+    [7000, 4667, 'dire'], [7000, 4666, 'risk'], [7000, 0, 'risk'],
+    [14000, 14000, 'perfect'], [14000, 13999, 'strong'], [14000, 13000, 'strong'],
+    [14000, 12999, 'watch'], [14000, 12000, 'watch'],
+    [14000, 11999, 'low'], [14000, 11000, 'low'],
+    [14000, 10999, 'dire'], [14000, 9400, 'dire'],
+    [14000, 9334, 'dire'], [14000, 9333, 'risk']
+  ]) {
+    const block = { committee, power, score: power / committee * 100 };
+    assert.equal(classifyReceipt.chainHealthState(block), expected, `${power}/${committee} attestation band`);
+    assert.equal(classifyReceipt.latestBlockStatus(block).safetyMargin, power - Math.ceil(committee * 2 / 3));
+  }
+  for (const block of [{}, { score: null, power: null, committee: 7000 }, { score: 100, power: 0, committee: 0 }]) {
+    assert.equal(classifyReceipt.chainHealthState(block), 'unknown', 'Unavailable power is not healthy or a quorum failure');
+  }
+  for (const renderer of ['renderLiveHeadRow', 'renderRecentBlockRow', 'renderBlock']) {
+    const block = health.slice(health.indexOf(`function ${renderer}(`)).split('\nfunction ')[0];
+    assert(block.includes('chainHealthState(block)') && block.includes('data-attestation-tone='), `${renderer} shares receipt classification and palette`);
   }
   const chainHeartbeatActivityBlock = health.match(/async function fetchHeartbeatActivity[\s\S]*?function requestHeartbeatSupplements/)?.[0] || '';
   const liveHeadRowBlock = health.match(/function renderLiveHeadRow[\s\S]*?function renderLiveHeadRows/)?.[0] || '';

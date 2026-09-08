@@ -568,11 +568,20 @@ inline modal styles in `js/core/app.js`.
   The top-right control rail shows **1H Activity**, then **Chain health**:
   25 desktop or 10 mobile attestation receipts, oldest left and newest right,
   sliding left once per new head.
-  Green means at least 98.5% attested, amber means below 98.5% but at quorum,
-  red means below quorum, and gray means unavailable. Full, half-height, short,
-  and tick-height lines encode those same states without color. The newest line
-  has a small marker. A stable-width status area beside the label shows `OK`, `LOW`,
-  `RISK`, or `?` with the corresponding count out of the displayed window, separated
+  Individual block power pills, rails, inspector facts, Passing Blocks, and strips
+  share five power-severity bands and a theme-aware palette. On a 7,000-power
+  scale: Perfect is 7,000 (green), Strong is 6,500–6,999 (lime), Watch is
+  6,000–6,499 (yellow), Low is 5,500–5,999 (orange), and DIRE is below 5,500
+  (intense red). Only complete attestation is Perfect; 4,700 is DIRE. Thresholds
+  scale with the actual committee. Strip heights are explicitly 100%, 80%, 60%,
+  40%, and 20% for those five bands. Horizontal rails keep the exact quorum-margin
+  fill with matching severity colors. These are display bands, not additional
+  consensus thresholds: below-quorum receipts use the DIRE color/height plus a
+  risk outline. Unknown stays a gray tick and unavailable power stays `--`.
+  Period averages retain their separate aggregate classification. The newest
+  line has a small marker. A stable-width status area shows `FULL` (Perfect),
+  `HIGH` (Strong), `WATCH`, `LOW`, `DIRE`, `RISK`, or `?`, counting the most severe
+  available band out of the displayed window, separated
   from the label by a bullet on desktop and from the lines by a divider; its accessible
   summary accounts for every displayed block, including unavailable data. Source failures show `STALE`.
   Hover or tap a line to inspect that block's missed attesters, including small

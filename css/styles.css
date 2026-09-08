@@ -3286,26 +3286,22 @@ body::before {
 }
 
 .network-health-score.peak,
-.network-health-period.peak .network-health-period-value,
-.network-health-block.peak .network-health-block-bar {
+.network-health-period.peak .network-health-period-value {
     color: #10b981;
 }
 
 .network-health-score.healthy,
-.network-health-period.healthy .network-health-period-value,
-.network-health-block.healthy .network-health-block-bar {
+.network-health-period.healthy .network-health-period-value {
     color: var(--accent-cyan);
 }
 
 .network-health-score.watch,
-.network-health-period.watch .network-health-period-value,
-.network-health-block.watch .network-health-block-bar {
+.network-health-period.watch .network-health-period-value {
     color: #f59e0b;
 }
 
 .network-health-score.degraded,
-.network-health-period.degraded .network-health-period-value,
-.network-health-block.degraded .network-health-block-bar {
+.network-health-period.degraded .network-health-period-value {
     color: #ff4466;
 }
 
@@ -3345,22 +3341,19 @@ body::before {
 
 [data-theme="clean"] .network-health-status.healthy,
 [data-theme="clean"] .network-health-score.healthy,
-[data-theme="clean"] .network-health-period.healthy .network-health-period-value,
-[data-theme="clean"] .network-health-block.healthy .network-health-block-bar {
+[data-theme="clean"] .network-health-period.healthy .network-health-period-value {
     color: #047857;
 }
 
 [data-theme="clean"] .network-health-status.watch,
 [data-theme="clean"] .network-health-score.watch,
-[data-theme="clean"] .network-health-period.watch .network-health-period-value,
-[data-theme="clean"] .network-health-block.watch .network-health-block-bar {
+[data-theme="clean"] .network-health-period.watch .network-health-period-value {
     color: #92400E;
 }
 
 [data-theme="clean"] .network-health-status.degraded,
 [data-theme="clean"] .network-health-score.degraded,
-[data-theme="clean"] .network-health-period.degraded .network-health-period-value,
-[data-theme="clean"] .network-health-block.degraded .network-health-block-bar {
+[data-theme="clean"] .network-health-period.degraded .network-health-period-value {
     color: #B91C1C;
 }
 
@@ -3386,7 +3379,8 @@ body::before {
 }
 
 .network-health-block-bar {
-    display: block;
+    display: flex;
+    align-items: flex-end;
     overflow: hidden;
     align-self: stretch;
     width: 10px;
@@ -3397,6 +3391,7 @@ body::before {
 
 .network-health-block-bar span {
     display: block;
+    height: var(--attestation-fill);
     width: 100%;
     margin-top: auto;
     border-radius: 999px;
@@ -4984,37 +4979,17 @@ body::before {
     font-weight: 850;
 }
 
-.health-power.peak {
-    color: #50e888;
-}
-
-.health-power.healthy {
-    color: #4dd4ff;
-}
-
-.health-power.watch {
-    color: #f5d65b;
-}
-
-.health-power.degraded {
-    color: #ff5e72;
-}
-
 /* Light-theme receipt ink must not inherit the dark themes' neon palette. */
-[data-theme="clean"] :is(.health-timing-cell.peak, .health-interval.peak, .health-round-badge.round-zero, .health-power.peak) {
+[data-theme="clean"] :is(.health-timing-cell.peak, .health-interval.peak, .health-round-badge.round-zero) {
     color: var(--chamber-good-color);
 }
 
-[data-theme="clean"] :is(.health-timing-cell.watch, .health-interval.watch, .health-round-badge.round-watch, .health-power.watch) {
+[data-theme="clean"] :is(.health-timing-cell.watch, .health-interval.watch, .health-round-badge.round-watch) {
     color: #92400e;
 }
 
-[data-theme="clean"] :is(.health-timing-cell.degraded, .health-interval.degraded, .health-round-badge.round-late, .health-power.degraded) {
+[data-theme="clean"] :is(.health-timing-cell.degraded, .health-interval.degraded, .health-round-badge.round-late) {
     color: var(--chamber-risk-color);
-}
-
-[data-theme="clean"] .health-power.healthy {
-    color: #0369a1;
 }
 
 [data-theme="clean"] .health-round-badge {

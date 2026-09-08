@@ -490,9 +490,16 @@ function latestBlockStatus(block) {
             marginRatio
         };
     }
-    const className = score >= 99.5 ? 'peak' : score >= 98.5 ? 'healthy' : 'watch';
+    // Five display bands on a 7,000-power scale; cross-products preserve exact
+    // boundaries for other committee sizes. Only complete power is Perfect.
+    const scaledPower = power * 7000;
+    const className = power >= committee ? 'perfect'
+        : scaledPower >= committee * 6500 ? 'strong'
+            : scaledPower >= committee * 6000 ? 'watch'
+                : scaledPower >= committee * 5500 ? 'low' : 'dire';
+    const band = { perfect: 'Perfect', strong: 'Strong', watch: 'Watch', low: 'Low', dire: 'DIRE' }[className];
     return {
-        label: `Safe by ${marginCopy} attestation power above quorum`,
+        label: `${band}: ${marginCopy} attestation power above quorum`,
         className,
         quorumPower,
         safetyMargin,
@@ -504,24 +511,30 @@ function chainHealthState(block) {
     const status = latestBlockStatus(block);
     if (status.className === 'unknown') return 'unknown';
     if (status.safetyMargin < 0) return 'risk';
-    return status.className === 'watch' ? 'watch' : 'ok';
+    return status.className;
 }
 
 function chainHealthReadout(states) {
-    const counts = { ok: 0, watch: 0, risk: 0, unknown: 0 };
+    const counts = { perfect: 0, strong: 0, watch: 0, low: 0, dire: 0, risk: 0, unknown: 0 };
     states.forEach((state) => { counts[state] += 1; });
     const total = states.length;
     const descriptions = [
-        counts.ok ? `${counts.ok} at or above 98.5% attestation power` : '',
-        counts.watch ? `${counts.watch} at quorum but below 98.5%` : '',
+        counts.perfect ? `${counts.perfect} perfect (full attestation power)` : '',
+        counts.strong ? `${counts.strong} strong (6,500 to below 7,000 on a 7,000-power scale)` : '',
+        counts.watch ? `${counts.watch} watch (6,000 to below 6,500 on a 7,000-power scale)` : '',
+        counts.low ? `${counts.low} low (5,500 to below 6,000 on a 7,000-power scale)` : '',
+        counts.dire ? `${counts.dire} DIRE (below 5,500 on a 7,000-power scale, quorum still met)` : '',
         counts.risk ? `${counts.risk} below quorum` : '',
         counts.unknown ? `${counts.unknown} unavailable` : ''
     ].filter(Boolean);
     const sentence = `Attestation health across the last ${total} blocks: ${descriptions.join(', ')}.`;
     if (counts.risk) return { text: `${counts.risk}/${total} RISK`, tone: 'risk', sentence };
-    if (counts.watch) return { text: `${counts.watch}/${total} LOW`, tone: 'watch', sentence };
+    if (counts.dire) return { text: `${counts.dire}/${total} DIRE`, tone: 'dire', sentence };
+    if (counts.low) return { text: `${counts.low}/${total} LOW`, tone: 'low', sentence };
+    if (counts.watch) return { text: `${counts.watch}/${total} WATCH`, tone: 'watch', sentence };
     if (counts.unknown) return { text: `${counts.unknown}/${total} ?`, tone: 'unknown', sentence };
-    return { text: `${counts.ok}/${total} OK`, tone: 'ok', sentence };
+    if (counts.strong) return { text: `${counts.strong}/${total} HIGH`, tone: 'strong', sentence };
+    return { text: `${counts.perfect}/${total} FULL`, tone: 'perfect', sentence };
 }
 
 function updateChainHealthReadout(button, readout, { loading = false, stale = false } = {}) {
@@ -654,7 +667,7 @@ function updateChainHealthStrip(data, { error = false, supplemental = false, sup
             ? 'Attestation unknown'
             : `${formatCount(block.power)} / ${formatCount(block.committee)} attested (${block.score.toFixed(2)}%). ${status.label}. Round ${block.blockRound}`;
         const misses = chainHealthMissedCopy(block, missedStates[index]);
-        return `<span class="chain-health-bar ${chainHealthState(block)}${index === blocks.length - 1 ? ' is-head' : ''}" data-chain-health-level="${block.level}" data-quiet-key="chain-health-${block.level}" style="--chain-health-position:${index}" data-chain-health-receipt="Block ${formatCount(block.level)}: ${escapeHtml(receipt)} ${escapeHtml(misses)}"></span>`;
+        return `<span class="chain-health-bar ${chainHealthState(block)}${index === blocks.length - 1 ? ' is-head' : ''}" data-attestation-tone="${chainHealthState(block)}" data-chain-health-level="${block.level}" data-quiet-key="chain-health-${block.level}" style="--chain-health-position:${index}" data-chain-health-receipt="Block ${formatCount(block.level)}: ${escapeHtml(receipt)} ${escapeHtml(misses)}"></span>`;
     }).join(''));
     viewport.dataset.headLevel = String(latest.level);
     viewport.dataset.receiptSignature = signature;
@@ -1784,10 +1797,10 @@ function formatLiveHeadTez(mutez) {
     return `${amount.toLocaleString('en-US', { maximumFractionDigits: 6 })} ꜩ`;
 }
 
-function renderLiveHeadInspectorFact({ label, value, href, className = '' }) {
+function renderLiveHeadInspectorFact({ label, value, href, className = '', attestation = false }) {
     return `
         <a class="live-head-inspector-fact ${escapeHtml(className)}" href="${escapeHtml(href)}" target="_blank" rel="noopener">
-            <span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><i aria-hidden="true">↗</i>
+            <span>${escapeHtml(label)}</span><strong${attestation ? ` data-attestation-tone="${className === 'degraded' ? 'risk' : escapeHtml(className)}"` : ''}>${escapeHtml(value)}</strong><i aria-hidden="true">↗</i>
         </a>`;
 }
 
@@ -1837,8 +1850,8 @@ function renderLiveHeadInspector(block, activity, missedSnapshot = null, bakingS
         { label: 'Block round', value: `R${formatCount(block?.blockRound)}`, href: blockUrl },
         { label: 'Payload round', value: `R${formatCount(block?.payloadRound)}`, href: blockUrl },
         { label: 'Cadence', value: formatSeconds(block?.intervalSeconds), href: blockUrl },
-        { label: 'Attested', value: powerKnown ? `${formatCount(block.power)}/${formatCount(block.committee)}` : 'Unavailable', href: blockUrl, className: status.className },
-        { label: safetyLabel, value: safetyValue, href: blockUrl, className: status.className },
+        { label: 'Attested', value: powerKnown ? `${formatCount(block.power)}/${formatCount(block.committee)}` : 'Unavailable', href: blockUrl, className: status.className, attestation: true },
+        { label: safetyLabel, value: safetyValue, href: blockUrl, className: status.className, attestation: true },
         { label: 'Missed power', value: Number.isFinite(block?.missedPower) ? `−${formatCount(block.missedPower)}` : 'Unavailable', href: blockUrl },
         { label: 'Block activity', value: gasValue, href: operationsUrl, className: gas.className ? `gas-${gas.className}` : gas.state },
         { label: 'Transactions', value: Number.isFinite(activity?.txCount) ? formatCount(activity.txCount) : 'Unavailable', href: operationsUrl },
@@ -2348,11 +2361,11 @@ function renderLiveHeadRow(block, activity, { isNew = false, savedAddresses = nu
                 ${renderRoundBadge(block)}
                 <span class="live-head-delta health-interval ${timingClass(block.intervalSeconds)}">${formatSeconds(block.intervalSeconds)}</span>
                 <span class="live-head-attested">
-                    <span class="live-head-power health-power ${status.className}">
+                    <span class="live-head-power health-power ${status.className}" data-attestation-tone="${chainHealthState(block)}">
                         <span class="live-head-power-full">${powerKnown ? `${formatCount(block.power)}<small>/${formatCount(block.committee)}</small>` : '--'}</span>
                         <span class="live-head-power-compact">${score === null ? '--' : `${formatPct(score)}%`}</span>
                     </span>
-                    <span class="live-head-power-track ${status.className}" title="${escapeHtml(trackTitle)}" aria-label="${escapeHtml(trackTitle)}"><span class="live-head-power-fill" style="--live-head-margin:${status.marginRatio.toFixed(4)}"></span><span class="live-head-margin"><span class="live-head-margin-full">${missingFull}</span><span class="live-head-margin-compact">${missingCompact}</span></span></span>
+                    <span class="live-head-power-track ${status.className}" data-attestation-tone="${chainHealthState(block)}" title="${escapeHtml(trackTitle)}" aria-label="${escapeHtml(trackTitle)}"><span class="live-head-power-fill" style="--live-head-margin:${status.marginRatio.toFixed(4)}"></span><span class="live-head-margin"><span class="live-head-margin-full">${missingFull}</span><span class="live-head-margin-compact">${missingCompact}</span></span></span>
                     ${activityStatus}
                 </span>
                 <span class="live-head-recency">
@@ -4445,16 +4458,15 @@ async function fetchNetworkHealthChamberData() {
 
 function renderBlock(block) {
     const known = Number.isFinite(block.score);
-    const cls = known ? healthClass(block.score) : 'unknown';
+    const cls = chainHealthState(block);
     const levelTail = block.level ? String(block.level).slice(-3).padStart(3, '0') : '---';
-    const width = known ? Math.max(2, Math.min(100, block.score)) : 0;
     const title = known
         ? `Block ${block.level.toLocaleString()}: ${block.power.toLocaleString()} / ${block.committee.toLocaleString()} power`
         : `Block ${block.level.toLocaleString()}: Attestation unknown`;
 
     return `
         <div class="network-health-block ${cls}" title="${title}" aria-label="${title}">
-            <span class="network-health-block-bar"><span style="height:${width}%"></span></span>
+            <span class="network-health-block-bar" data-attestation-tone="${cls}"><span></span></span>
             <span class="network-health-block-level">#${levelTail}</span>
         </div>
     `;
@@ -5590,7 +5602,8 @@ function renderRecentBlockReceipts(block) {
 }
 
 function renderRecentBlockRow(block, { isNew = false, savedAddresses = null } = {}) {
-        const cls = healthClass(block.score);
+        const cls = latestBlockStatus(block).className;
+        const known = cls !== 'unknown';
         const timeCls = timingClass(block.intervalSeconds);
         const personal = liveHeadMyTezosRowPresentation(
             Number(block.level) || 0,
@@ -5604,8 +5617,8 @@ function renderRecentBlockRow(block, { isNew = false, savedAddresses = null } = 
                 <span class="health-block-level">${formatCount(block.level)}</span>
                 <span class="health-interval ${timeCls}">${formatSeconds(block.intervalSeconds)}</span>
                 <span>${renderRoundBadge(block)}</span>
-                <span class="health-power ${cls}">${formatCount(block.power)}<small>/${formatCount(block.committee)}</small></span>
-                <span>${formatCount(block.missedPower)}</span>
+                <span class="health-power ${cls}" data-attestation-tone="${chainHealthState(block)}">${known ? `${formatCount(block.power)}<small>/${formatCount(block.committee)}</small>` : '--'}</span>
+                <span>${known ? formatCount(block.missedPower) : '--'}</span>
                 <div class="lb-baker-cell">${bakerLinks(block.producer?.address, bakerName(block.producer))}</div>
                 ${renderRecentBlockReceipts(block)}
             </div>
