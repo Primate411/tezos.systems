@@ -158,11 +158,11 @@ ${indented}
 }
 
 function syncSharedAssetStamps(html, referenceHtml) {
-  const cssTag = referenceHtml.match(/<link rel="stylesheet" href="\/css\/site-map\.css\?v=\d+">/)?.[0];
+  const cssTag = referenceHtml.match(/<link rel="stylesheet" href="\/css\/site-map\.min\.css\?v=\d+">/)?.[0];
   const navTag = referenceHtml.match(/<script type="module" src="\/js\/landing\/site-nav\.js\?v=\d+"><\/script>/)?.[0];
   if (!cssTag || !navTag) throw new Error('Shared comparison asset stamps not found');
   return html
-    .replace(/<link rel="stylesheet" href="\/css\/site-map\.css\?v=\d+">/, cssTag)
+    .replace(/<link rel="stylesheet" href="\/css\/site-map\.(?:min\.)?css\?v=\d+">/, cssTag)
     .replace(/<script type="module" src="\/js\/landing\/site-nav\.js\?v=\d+"><\/script>/, navTag);
 }
 

@@ -1,4 +1,5 @@
 import { renderChamberVerdict } from '../ui/chamber-reading.js';
+import { ensureChartLibraries } from '../ui/chart-loader.js';
 /**
  * My Tezos — Morning Brief + Your Tezos Story
  * Replaces the old hero strip with a rotating daily brief and personal timeline.
@@ -2185,6 +2186,56 @@ let _operatorDrawerObserver = null;
 let _drawerStatsTimer = null;
 let _drawerStatsInFlight = false;
 let _activeViewRefreshTimer = null;
+let latestRewardsChart = null;
+let rewardsChartIntent = 0;
+let rewardsChartFailed = false;
+
+async function renderRewardsChart({ retry = false } = {}) {
+    const intent = ++rewardsChartIntent;
+    if (retry) rewardsChartFailed = false;
+    const receipt = latestRewardsChart;
+    const canvas = document.getElementById('drawer-rewards-sparkline');
+    const isCurrent = () => intent === rewardsChartIntent && latestRewardsChart === receipt
+        && receipt?.address === localStorage.getItem(STORAGE_KEY)
+        && document.visibilityState === 'visible' && isDrawerOpen()
+        && canvas?.isConnected && canvas.getClientRects().length > 0;
+    if (!isCurrent() || rewardsChartFailed) return;
+    try {
+        await ensureChartLibraries();
+    } catch (error) {
+        if (!isCurrent()) return;
+        rewardsChartFailed = true;
+        const label = canvas.closest('.drawer-rewards-spark')?.querySelector('.spark-label');
+        if (label) {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'glass-button';
+            button.dataset.chartRetry = '';
+            button.textContent = 'Chart unavailable · Retry';
+            button.onclick = () => renderRewardsChart({ retry: true });
+            label.replaceChildren(button);
+        }
+        return;
+    }
+    if (!isCurrent()) return;
+    const { values } = receipt;
+    const label = canvas.closest('.drawer-rewards-spark')?.querySelector('.spark-label');
+    if (label) label.textContent = `Earnings Trend (${values.length} cycles)`;
+    const previous = window._drawerRewardsChart;
+    if (previous && previous.canvas !== canvas) {
+        previous.destroy();
+        window._drawerRewardsChart = null;
+    }
+    if (window._drawerRewardsChart) {
+        window._drawerRewardsChart.data.labels = values.map((_, i) => i);
+        window._drawerRewardsChart.data.datasets[0].data = values;
+        window._drawerRewardsChart.update('none');
+    } else window._drawerRewardsChart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: { labels: values.map((_, i) => i), datasets: [{ data: values, borderColor: 'rgba(0,212,255,0.8)', borderWidth: 1.5, fill: true, backgroundColor: 'rgba(0,212,255,0.08)', pointRadius: 0, tension: 0.3 }] },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false, grace: '20%' } } }
+    });
+}
 
 function isDrawerOpen() {
     return document.getElementById('my-tezos-drawer')?.classList.contains('open') === true;
@@ -2728,21 +2779,10 @@ async function renderMorningBrief(address, force = false) {
                     rewardsSection.appendChild(sparkContainer);
                 }
                 const sparkLabel = sparkContainer.querySelector('.spark-label');
-                if (sparkLabel) sparkLabel.textContent = `Earnings Trend (${rewards.length} cycles)`;
+                if (sparkLabel && !sparkLabel.querySelector('[data-chart-retry]')) sparkLabel.textContent = `Earnings Trend (${rewards.length} cycles)`;
 
-                const values = rewards.map(r => getRecordedRewardAmount(r)).reverse();
-                const ctx = document.getElementById('drawer-rewards-sparkline')?.getContext('2d');
-                if (ctx && window.Chart) {
-                    if (window._drawerRewardsChart) {
-                        window._drawerRewardsChart.data.labels = values.map((_, i) => i);
-                        window._drawerRewardsChart.data.datasets[0].data = values;
-                        window._drawerRewardsChart.update('none');
-                    } else window._drawerRewardsChart = new Chart(ctx, {
-                        type: 'line',
-                        data: { labels: values.map((_, i) => i), datasets: [{ data: values, borderColor: 'rgba(0,212,255,0.8)', borderWidth: 1.5, fill: true, backgroundColor: 'rgba(0,212,255,0.08)', pointRadius: 0, tension: 0.3 }] },
-                        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { enabled: false } }, scales: { x: { display: false }, y: { display: false, grace: '20%' } } }
-                    });
-                }
+                latestRewardsChart = { address, values: rewards.map(r => getRecordedRewardAmount(r)).reverse() };
+                renderRewardsChart();
             }
         }
 
@@ -3147,7 +3187,12 @@ export function initMyTezos() {
     registerMyTezosView('tezos-x', () => import('./my-tezos-tezosx.mjs')
         .then((module) => module.activateMyTezosTezosX()));
     initMyTezosTabs();
+    window.addEventListener('my-tezos-view-changed', () => renderRewardsChart({ retry: true }));
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') renderRewardsChart();
+    });
     window.addEventListener('my-tezos-drawer-opened', () => {
+        renderRewardsChart({ retry: true });
         refreshMyTezosPortfolio({ allowHidden: true }).catch(() => {});
     });
     window.addEventListener('my-tezos-scope-changed', () => {
@@ -3268,17 +3313,12 @@ export function initMyTezos() {
 
     window.addEventListener('my-tezos-show-onboarding', () => {
         // Open drawer in empty state
-        const drawer = document.getElementById('my-tezos-drawer');
-        const scrim = document.getElementById('my-tezos-drawer-scrim');
-        if (drawer && scrim) {
-            drawer.classList.add('open');
-            scrim.classList.add('open');
-            document.body.style.overflow = 'hidden';
+        window.tezosSystemsOpenMyTezos?.().then(() => {
             const emptyState = document.getElementById('drawer-empty-state');
             const connectedState = document.getElementById('drawer-connected');
             if (emptyState) emptyState.style.display = '';
             if (connectedState) connectedState.style.display = 'none';
-        }
+        });
     });
 
     if (address) {

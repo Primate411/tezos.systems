@@ -5,9 +5,11 @@
  */
 
 import { getCurrentTheme } from '../ui/theme.js';
+import { ensureChartLibraries } from '../ui/chart-loader.js';
 
 let chartInstance = null;
 let currentMetric = 'blockTime';
+let chartRenderIntent = 0;
 
 // Protocol data with metrics at activation
 // blockTime: seconds, minStake: XTZ, bakers: count, supply: mutez, consensus: name
@@ -96,7 +98,29 @@ function metricTextAlternative(metricKey) {
 /**
  * Render the step chart
  */
-function renderChart(container, metricKey) {
+async function renderChart(container, metricKey) {
+    const intent = ++chartRenderIntent;
+    const isCurrent = () => intent === chartRenderIntent && container.isConnected
+        && container.closest('#upgrade-effect-panel')?.classList.contains('expanded');
+    if (!isCurrent()) return;
+    try {
+        await ensureChartLibraries();
+    } catch (error) {
+        if (!isCurrent()) return;
+        let failure = container.querySelector('[data-chart-retry]');
+        if (!failure) {
+            failure = document.createElement('button');
+            failure.type = 'button';
+            failure.className = 'glass-button';
+            failure.dataset.chartRetry = '';
+            container.appendChild(failure);
+        }
+        failure.textContent = 'Chart unavailable · Retry';
+        failure.onclick = () => renderChart(container, currentMetric);
+        return;
+    }
+    if (!isCurrent()) return;
+    container.querySelector('[data-chart-retry]')?.remove();
     const canvasId = 'upgrade-effect-canvas';
     let canvas = document.getElementById(canvasId);
     if (!canvas) {
@@ -316,6 +340,7 @@ export function initUpgradeEffect() {
         btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
         panel.setAttribute('aria-hidden', expanded ? 'false' : 'true');
         panel.toggleAttribute('inert', !expanded);
+        if (!expanded) chartRenderIntent += 1;
         if (expanded) {
             renderChart(chartContainer, currentMetric);
         }

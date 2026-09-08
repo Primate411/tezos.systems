@@ -417,12 +417,7 @@ function safe(name, fn) {
 }
 
 function ensureMyTezosCss() {
-    if (document.getElementById('my-tezos-css')) return;
-    const link = document.createElement('link');
-    link.id = 'my-tezos-css';
-    link.rel = 'stylesheet';
-    link.href = MY_TEZOS_CSS_URL;
-    document.head.appendChild(link);
+    return ensureChamberStylesheet('my-tezos-css', MY_TEZOS_CSS_URL);
 }
 
 /**
@@ -444,7 +439,6 @@ async function init({ applyInitialRoute = true, initialChamber = '' } = {}) {
 
     // Initialize theme
     safe('theme', initTheme);
-    safe('myTezosCss', ensureMyTezosCss);
 
     // Initialize arcade effects
     safe('arcadeEffects', initArcadeEffects);
@@ -1298,6 +1292,8 @@ function initMyTezosButton() {
     let drawerSavedBodyOverflow = null;
     let drawerSavedHtmlOverflow = null;
     let drawerWasOpen = drawer?.classList.contains('open') === true;
+    let drawerOpenIntent = 0;
+    let drawerOpenPending = false;
 
     const STORAGE_KEY = 'tezos-systems-my-baker-address';
     btn.setAttribute('aria-controls', 'my-tezos-drawer');
@@ -1440,11 +1436,41 @@ function initMyTezosButton() {
     });
     updateWalletDrawerState();
 
-    function setDrawerOpen(open, { restoreFocus = true } = {}) {
+    const prewarmDrawerStyles = () => ensureMyTezosCss().catch(() => {});
+    btn.addEventListener('pointerenter', prewarmDrawerStyles);
+    btn.addEventListener('focus', prewarmDrawerStyles);
+
+    async function setDrawerOpen(open, { restoreFocus = true, connected = null } = {}) {
         if (!drawer || !scrim) return;
+        const intent = ++drawerOpenIntent;
+        drawerOpenPending = false;
+        btn.removeAttribute('aria-busy');
         if (open === drawer.classList.contains('open')) return;
         if (!open && !requestChamberClose(drawer)) return;
         if (open) {
+            const route = location.href;
+            if (!document.getElementById('my-tezos-css')?.sheet) {
+                drawerOpenPending = true;
+                btn.setAttribute('aria-busy', 'true');
+                try {
+                    await ensureMyTezosCss();
+                } catch (error) {
+                    if (intent === drawerOpenIntent && location.href === route) {
+                        btn.title = 'My Tezos unavailable — activate again to retry';
+                        const label = btn.querySelector('.nav-label');
+                        if (label) label.textContent = 'Retry My Tezos';
+                        console.warn('My Tezos styles unavailable:', error);
+                    }
+                    return;
+                } finally {
+                    if (intent === drawerOpenIntent) {
+                        drawerOpenPending = false;
+                        btn.removeAttribute('aria-busy');
+                    }
+                }
+                if (intent !== drawerOpenIntent || location.href !== route || !drawer.isConnected) return;
+            }
+            updateButtonState();
             drawerFocusedBeforeOpen = document.activeElement;
             drawer.classList.add('open');
             scrim.classList.add('open');
@@ -1457,7 +1483,7 @@ function initMyTezosButton() {
             document.body.style.overflow = 'hidden';
             document.documentElement.style.overflow = 'hidden';
             prewarmWalletFromDrawer();
-            const address = localStorage.getItem(STORAGE_KEY);
+            const address = connected ?? localStorage.getItem(STORAGE_KEY);
             const emptyState = document.getElementById('drawer-empty-state');
             const connectedState = document.getElementById('drawer-connected');
             if (emptyState) emptyState.style.display = address ? 'none' : '';
@@ -1485,6 +1511,7 @@ function initMyTezosButton() {
         drawerFocusedBeforeOpen = null;
     }
     setMyTezosDrawerOpenState = setDrawerOpen;
+    window.tezosSystemsOpenMyTezos = (options) => setDrawerOpen(true, options);
     window.tezosSystemsCloseMyTezos = () => setDrawerOpen(false);
 
     function syncDrawerStateFromClass() {
@@ -1559,7 +1586,7 @@ function initMyTezosButton() {
     }
 
     btn.addEventListener('click', () => {
-        setDrawerOpen(!drawer?.classList.contains('open'));
+        setDrawerOpen(!drawerOpenPending && !drawer?.classList.contains('open'));
     });
 
     // Listen for address changes
@@ -6537,7 +6564,7 @@ export async function openStandaloneMyTezos({ isCurrent = () => true } = {}) {
     initMyTezosButton();
     initMyTezos();
     initMyBaker();
-    setMyTezosDrawerOpenState(true);
+    await setMyTezosDrawerOpenState(true);
 }
 
 export async function openStandaloneAnthology({ isCurrent = () => true } = {}) {
@@ -7165,13 +7192,7 @@ async function resolveMyTezosTarget(rawTarget) {
 }
 
 function setMyTezosDrawerOpen(address) {
-    const drawer = document.getElementById('my-tezos-drawer');
-    const scrim = document.getElementById('my-tezos-drawer-scrim');
-    if (drawer && scrim) {
-        drawer.classList.add('open');
-        scrim.classList.add('open');
-        document.body.style.overflow = 'hidden';
-    }
+    setMyTezosDrawerOpenState?.(true, { connected: Boolean(address) });
     const emptyState = document.getElementById('drawer-empty-state');
     const connectedState = document.getElementById('drawer-connected');
     if (emptyState) emptyState.style.display = address ? 'none' : '';

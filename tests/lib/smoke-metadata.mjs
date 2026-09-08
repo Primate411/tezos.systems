@@ -1,5 +1,11 @@
 const RULES = [
   {
+    suites: /^lazy-drawer-charts$/,
+    files: ['js/core/app.js', 'js/ui/chamber-styles.js', 'js/ui/chart-loader.js', 'js/features/my-tezos*.js', 'js/features/history.js', 'js/features/upgrade-effect.js', 'tests/lib/lazy-drawer-charts-smoke.mjs'],
+    tags: ['startup', 'my-tezos', 'navigation'],
+    risk: 'high'
+  },
+  {
     suites: /^(capital-chamber|minerals-chamber|ecosystem-activity|maxis|maxis-domain-passport|launcher-projections|chamber-first-paint|standalone-chamber-expansion|standalone-chamber-completion)$/,
     files: ['js/core/generated-snapshot.js', 'js/core/generated-transport.mjs', 'scripts/generate-chamber-transports.mjs', 'data/transports/**', 'tests/generated-transport-check.mjs', 'tests/generated-transport-browser.mjs'],
     tags: ['chamber', 'data-integrity'],

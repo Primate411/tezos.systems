@@ -654,21 +654,15 @@ function openBakerInDrawer(addr) {
     if (!addr) return;
     const input = document.getElementById('my-baker-input');
     const saveBtn = document.getElementById('my-baker-save');
-    const drawer = document.getElementById('my-tezos-drawer');
-    const scrim = document.getElementById('my-tezos-drawer-scrim');
     const emptyState = document.getElementById('drawer-empty-state');
     const connectedState = document.getElementById('drawer-connected');
 
     if (input) input.value = addr;
     if (saveBtn) saveBtn.click();
 
-    if (drawer && scrim) {
-        drawer.classList.add('open');
-        scrim.classList.add('open');
-        document.body.style.overflow = 'hidden';
-        if (emptyState) emptyState.style.display = 'none';
-        if (connectedState) connectedState.style.display = '';
-    }
+    if (emptyState) emptyState.style.display = 'none';
+    if (connectedState) connectedState.style.display = '';
+    window.tezosSystemsOpenMyTezos?.({ connected: true });
 }
 
 function signalBadgeHtml(badge) {
@@ -1023,17 +1017,11 @@ export function refreshLeaderboard({ quiet = false } = {}) {
  */
 export async function openBakerProfile(address) {
     const openDrawer = () => {
-        const drawer = document.getElementById('my-tezos-drawer');
-        const scrim = document.getElementById('my-tezos-drawer-scrim');
         const emptyState = document.getElementById('drawer-empty-state');
         const connectedState = document.getElementById('drawer-connected');
-        if (drawer && scrim) {
-            drawer.classList.add('open');
-            scrim.classList.add('open');
-            document.body.style.overflow = 'hidden';
-            if (emptyState) emptyState.style.display = 'none';
-            if (connectedState) connectedState.style.display = '';
-        }
+        if (emptyState) emptyState.style.display = 'none';
+        if (connectedState) connectedState.style.display = '';
+        return window.tezosSystemsOpenMyTezos?.({ connected: true });
     };
 
     const setAddressInput = (value) => {

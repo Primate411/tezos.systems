@@ -21,7 +21,7 @@ export const LAZY_SURFACE_STYLES = [
   'whale-chamber.css'
 ];
 
-export const DIRECT_CSS_BUNDLES = ['shell-extras.css', 'hero-search.css', ...LAZY_SURFACE_STYLES]
+export const DIRECT_CSS_BUNDLES = ['shell-extras.css', 'hero-search.css', 'hen-mode.css', 'site-map.css', 'landing.css', 'loading.css', ...LAZY_SURFACE_STYLES]
   .map(filename => ({ source: `css/${filename}`, output: `css/${filename.replace(/\.css$/, '.min.css')}` }));
 
 export const CSS_SOURCES = ['css/styles.css', ...DIRECT_CSS_BUNDLES.map(bundle => bundle.source)];

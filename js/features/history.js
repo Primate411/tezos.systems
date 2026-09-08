@@ -1081,13 +1081,67 @@ function getFullChartTimeScale(range) {
 }
 
 // Create mini sparkline for stat cards
-export function createSparkline(canvasId, data, metric) {
+const pendingSparklines = new Map();
+const sparklineObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        sparklineObserver.unobserve(entry.target);
+        const pending = pendingSparklines.get(entry.target.id);
+        if (pending) createSparkline(entry.target.id, pending.data, pending.metric);
+    }
+});
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    for (const [canvasId, pending] of pendingSparklines) createSparkline(canvasId, pending.data, pending.metric);
+});
+
+export async function createSparkline(canvasId, data, metric) {
     const canvas = document.getElementById(canvasId);
     if (!canvas) return;
+    const receipt = { data, metric };
+    pendingSparklines.set(canvasId, receipt);
+    if (document.visibilityState !== 'visible' || !canvas.getClientRects().length) {
+        sparklineObserver.observe(canvas);
+        return;
+    }
 
     // Extract values and timestamps
     const points = normalizeMetricPoints(data, metric);
     if (points.length < 2) return;
+    const isCurrent = () => pendingSparklines.get(canvasId) === receipt && canvas.isConnected
+        && document.visibilityState === 'visible' && canvas.getClientRects().length > 0;
+    const observeIfHidden = () => {
+        if (pendingSparklines.get(canvasId) === receipt && canvas.isConnected && !canvas.getClientRects().length) {
+            sparklineObserver.observe(canvas);
+        }
+    };
+    try {
+        await ensureChartLibraries();
+    } catch (error) {
+        if (!isCurrent()) {
+            observeIfHidden();
+            return;
+        }
+        let retry = canvas.parentElement.querySelector('[data-chart-retry]');
+        if (!retry) {
+            retry = document.createElement('button');
+            retry.type = 'button';
+            retry.className = 'glass-button';
+            retry.dataset.chartRetry = '';
+            retry.textContent = 'Chart unavailable · Retry';
+            canvas.parentElement.appendChild(retry);
+        }
+        retry.onclick = event => {
+            event.stopPropagation();
+            createSparkline(canvasId, data, metric);
+        };
+        return;
+    }
+    if (!isCurrent()) {
+        observeIfHidden();
+        return;
+    }
+    canvas.parentElement.querySelector('[data-chart-retry]')?.remove();
 
     const values = points.map(point => point.value);
     const timestamps = points.map(point => point.timestamp);
@@ -1133,13 +1187,7 @@ export function createSparkline(canvasId, data, metric) {
     }
 
     const ctx = canvas.getContext('2d');
-    // Destroy existing chart so it picks up fresh options (e.g. grace)
-    if (chartInstances[canvasId]) {
-        chartInstances[canvasId].destroy();
-        delete chartInstances[canvasId];
-    }
-
-    chartInstances[canvasId] = new Chart(ctx, {
+    const chartConfig = {
         type: 'line',
         data: {
             labels: timestamps,
@@ -1191,7 +1239,14 @@ export function createSparkline(canvasId, data, metric) {
             },
             interaction: { mode: 'index', intersect: false }
         }
-    });
+    };
+    if (chartInstances[canvasId]) {
+        chartInstances[canvasId].data = chartConfig.data;
+        chartInstances[canvasId].options = chartConfig.options;
+        chartInstances[canvasId].update('none');
+    } else {
+        chartInstances[canvasId] = new Chart(ctx, chartConfig);
+    }
 
     // Force resize after creation to fix layout timing issues
     requestAnimationFrame(() => {
@@ -1539,11 +1594,11 @@ export async function updateSparklines() {
             { canvasId: 'active-contracts-sparkline', metric: 'active_contracts_24h', trendId: 'active-contracts-trend' }
         ];
 
-        sparklines.forEach(({ canvasId, metric, trendId, inverted, changeMode }) => {
-            createSparkline(canvasId, data, metric);
+        await Promise.all(sparklines.map(async ({ canvasId, metric, trendId, inverted, changeMode }) => {
+            await createSparkline(canvasId, data, metric);
             const trend = calculateTrend(data, metric, changeMode);
             updateTrendArrow(trendId, trend, inverted, changeMode === 'points' ? 'pp' : '%');
-        });
+        }));
 
         debugLog(`Updated ${sparklines.length} sparklines with ${data.length} data points`);
     } catch (error) {

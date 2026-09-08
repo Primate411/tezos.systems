@@ -12,6 +12,7 @@ import {
     setMyTezosMeta
 } from '../core/my-tezos-db.mjs';
 import { LINKED_ETHERLINK_ACCOUNTS_KEY } from '../core/etherlink-client.mjs';
+import { ensureChartLibraries } from '../ui/chart-loader.js';
 import { normalizeLinkedL2Accounts } from '../core/my-tezos-models.mjs';
 import { escapeHtml, formatFreshnessStamp } from '../core/utils.js';
 import { quietlyMutate, quietlySyncHtml } from '../core/quiet-refresh.js';
@@ -65,6 +66,8 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 
 let lastCompletePortfolio = null;
 let portfolioChart = null;
+let historyRenderIntent = 0;
+let historyChartFailed = false;
 let portfolioRange = '1y';
 let portfolioRefreshInFlight = null;
 let portfolioRefreshController = null;
@@ -519,7 +522,21 @@ function renderHistoryStatus(points, coverage) {
                 : 'empty';
 }
 
-function renderHistory() {
+function showHistoryChartFailure(empty) {
+    empty.hidden = false;
+    if (empty.querySelector('[data-chart-retry]')) return;
+    const retryButton = document.createElement('button');
+    retryButton.type = 'button';
+    retryButton.className = 'glass-button';
+    retryButton.dataset.chartRetry = '';
+    retryButton.textContent = 'Chart unavailable · Retry';
+    retryButton.onclick = () => renderHistory({ retry: true });
+    empty.replaceChildren(retryButton);
+}
+
+async function renderHistory({ retry = false } = {}) {
+    const intent = ++historyRenderIntent;
+    if (retry) historyChartFailed = false;
     const canvas = document.getElementById('portfolio-history-chart');
     const empty = document.getElementById('portfolio-history-empty');
     if (!canvas || !empty) return;
@@ -527,7 +544,7 @@ function renderHistory() {
     const points = historyPointsForRange(selected.points, portfolioRange);
     renderHistoryStatus(selected.points, selected.coverage);
 
-    if (points.length < 2 || !window.Chart) {
+    if (points.length < 2) {
         canvas.hidden = true;
         empty.hidden = false;
         const first = points[0];
@@ -544,6 +561,28 @@ function renderHistory() {
         }
         return;
     }
+
+    if (!isPortfolioVisible()) return;
+    if (historyChartFailed) {
+        showHistoryChartFailure(empty);
+        return;
+    }
+    const isCurrent = () => intent === historyRenderIntent && canvas.isConnected && isPortfolioVisible();
+    if (!portfolioChart) {
+        canvas.hidden = true;
+        empty.hidden = false;
+        empty.textContent = 'Loading chart…';
+    }
+    try {
+        await ensureChartLibraries();
+    } catch (error) {
+        // Data can arrive while the shared script is loading. Its failure is
+        // still real even if that older chart render has been superseded.
+        historyChartFailed = true;
+        if (isCurrent()) showHistoryChartFailure(empty);
+        return;
+    }
+    if (!isCurrent()) return;
 
     canvas.hidden = false;
     empty.hidden = true;
@@ -902,6 +941,10 @@ function wirePortfolioControls() {
 }
 
 export async function activateMyTezosPortfolio({ force = false } = {}) {
+    // Reset only at the start of user activation. History receipts can arrive
+    // while the saved portfolio is loading; do not retry their failed script
+    // again when that unrelated read finishes.
+    historyChartFailed = false;
     // Rebind idempotently on activation so route/view rehydration cannot leave
     // a visible Portfolio control pointing at an earlier element instance.
     wirePortfolioControls();
@@ -979,6 +1022,8 @@ export function initMyTezosPortfolio() {
 export function destroyMyTezosPortfolioForTests() {
     if (portfolioChart) portfolioChart.destroy();
     portfolioChart = null;
+    historyRenderIntent += 1;
+    historyChartFailed = false;
     portfolioGeneration += 1;
     portfolioRefreshController?.abort();
     portfolioRefreshController = null;

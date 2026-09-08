@@ -10,7 +10,8 @@ export const CHANGELOG = [
             { type: '🔧', text: 'Widgets keep their last successful readings through source failures, expose source time and retry, and refresh without moving readers' },
             { type: '🔧', text: 'Live data is checked before caching, missing values stay unavailable, and stalled requests release their network slots so later reads can recover' },
             { type: '⚡', text: 'Image capture and optional tools load when opened; large Chamber and Passport downloads preserve every source value in a smaller representation' },
-            { type: '🔧', text: 'Release Radar now confirms Octez 25.2 and EVM node 0.65, corrects earlier Etherlink governance claims, and keeps the wider Tezos X rollout separate from deployed kernel infrastructure' }
+            { type: '🔧', text: 'Release Radar now confirms Octez 25.2 and EVM node 0.65, corrects earlier Etherlink governance claims, and keeps the wider Tezos X rollout separate from deployed kernel infrastructure' },
+            { type: '⚡', text: 'My Tezos styling and chart libraries load when needed, with styled drawer openings and retryable charts; shared HEN, map, landing, and loading styles now use checked minified outputs' }
         ]
     },
     {

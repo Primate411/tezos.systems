@@ -872,14 +872,8 @@ export function init() {
     }
 
     function openDrawer(hasAddress) {
-        const drawer = document.getElementById('my-tezos-drawer');
-        const scrim = document.getElementById('my-tezos-drawer-scrim');
-        if (drawer && scrim) {
-            drawer.classList.add('open');
-            scrim.classList.add('open');
-            document.body.style.overflow = 'hidden';
-        }
         setDrawerConnectionState(hasAddress);
+        return window.tezosSystemsOpenMyTezos?.({ connected: hasAddress });
     }
 
     function setStatus(target, message, tone = '') {

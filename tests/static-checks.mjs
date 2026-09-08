@@ -1912,7 +1912,7 @@ async function checkSiteMapGraphContracts() {
   ];
   for (const file of standalonePages) {
     const html = await readText(file);
-    if (!html.includes('data-site-circulation') || !html.includes('data-site-footer') || !html.includes('/css/site-map.css') || !html.includes('/js/landing/site-nav.js')) {
+    if (!html.includes('data-site-circulation') || !html.includes('data-site-footer') || !html.includes('/css/site-map.min.css') || !html.includes('/js/landing/site-nav.js')) {
       fail(`${file} must expose contextual circulation and the complete shared site map`);
     }
   }
@@ -2052,9 +2052,9 @@ async function checkCacheBustAlignment() {
   const themePreload = await readText('js/core/theme-preload.js');
   const themeUi = await readText('js/ui/theme.js');
   const cssMatch = index.match(/css\/styles\.min\.css\?v=(\d+)/);
-  const loadingCssLinkMatch = index.match(/css\/loading\.css\?v=(\d+)/);
+  const loadingCssLinkMatch = index.match(/css\/loading\.min\.css\?v=(\d+)/);
   const heroCssLinkMatch = index.match(/css\/hero-search\.min\.css\?v=(\d+)/);
-  const siteMapCssLinkMatch = index.match(/css\/site-map\.css\?v=(\d+)/);
+  const siteMapCssLinkMatch = index.match(/css\/site-map\.min\.css\?v=(\d+)/);
   const appPreloadMatch = index.match(/js\/core\/app\.js\?v=(\d+)/);
   const appScriptMatch = index.match(/<script[^>]+src=["']js\/core\/app\.js\?v=(\d+)["']/);
   const myTezosPreloadMatch = index.match(/<link rel="modulepreload" href="js\/features\/my-tezos\.js\?v=(\d+)">/);
@@ -2076,9 +2076,9 @@ async function checkCacheBustAlignment() {
   ];
 
   if (!cssMatch) fail('index.html must serve css/styles.min.css with a ?v= cache stamp');
-  if (!loadingCssLinkMatch) fail('index.html must serve css/loading.css with a ?v= cache stamp');
+  if (!loadingCssLinkMatch) fail('index.html must serve css/loading.min.css with a ?v= cache stamp');
   if (!heroCssLinkMatch) fail('index.html must serve css/hero-search.css with a ?v= cache stamp');
-  if (!siteMapCssLinkMatch) fail('index.html must serve css/site-map.css with a ?v= cache stamp');
+  if (!siteMapCssLinkMatch) fail('index.html must serve css/site-map.min.css with a ?v= cache stamp');
   if (!appPreloadMatch) fail('index.html modulepreload for js/core/app.js must carry a ?v= cache stamp');
   if (!appScriptMatch) fail('index.html app module script must carry a ?v= cache stamp');
   if (!myTezosPreloadMatch) fail('My Tezos preload must match its versioned Chamber import');
@@ -2115,9 +2115,9 @@ async function checkCacheBustAlignment() {
 
   const generatedRouteCacheRefs = [
     ['styles', /<link rel="stylesheet" href="\/css\/styles\.min\.css\?v=(\d+)">/],
-    ['loading', /<link rel="stylesheet" href="\/css\/loading\.css\?v=(\d+)">/],
+    ['loading', /<link rel="stylesheet" href="\/css\/loading\.min\.css\?v=(\d+)">/],
     ['hero search', /<link id="hero-search-css" rel="stylesheet" href="\/css\/hero-search\.min\.css\?v=(\d+)">/],
-    ['site map', /<link rel="stylesheet" href="\/css\/site-map\.css\?v=(\d+)">/],
+    ['site map', /<link rel="stylesheet" href="\/css\/site-map\.min\.css\?v=(\d+)">/],
     ['app module preload', /<link rel="modulepreload" href="\/js\/core\/app\.js\?v=(\d+)">/],
     ['theme preload', /<script src="\/js\/core\/theme-preload\.js\?v=(\d+)"><\/script>/],
     ['app module script', /<script type="module" src="\/js\/core\/app\.js\?v=(\d+)"><\/script>/]
@@ -3101,7 +3101,7 @@ async function checkSelectorContracts() {
     ['HEN standalone canonical URL', '<link rel="canonical" href="https://tezos.systems/hen/">', henPage],
     ['HEN standalone live overlay', 'id="hen-overlay"', henPage],
     ['HEN standalone lazy activator', '/js/core/hen-init.js?v=80', henPage],
-    ['HEN CSS cache stamp', 'css/hen-mode.css?v=98', index],
+    ['HEN CSS cache stamp', 'css/hen-mode.min.css?v=98', index],
     ['HEN JS cache stamp', '/js/features/hen-mode.js?v=96', henInit],
     ['HEN setup status strip', 'id="hen-status-strip"', index],
     ['HEN permanent now line', 'id="hen-now-line"', index],
@@ -4562,7 +4562,7 @@ async function checkUxAuditContracts() {
   }
   if (index.includes('<script defer src="js/features/hen-mode.js')
     || !index.includes('<script src="js/core/hen-init.js?v=80" defer></script>')
-    || !index.includes('<link rel="stylesheet" href="css/hen-mode.css?v=98">')) {
+    || !index.includes('<link rel="stylesheet" href="css/hen-mode.min.css?v=98">')) {
     fail('HEN feed runtime must load on intent while shared theme and launcher styles remain eager');
   }
   if (!index.includes('id="portfolio-import-file" type="file" accept="application/json,.json" aria-label="Import My Tezos portfolio JSON file"')
@@ -5404,6 +5404,17 @@ async function checkChamberEfficiencyContracts() {
   assert.ok(themeEffects.includes('if (motion.matches) return;') && themeEffects.includes('loaded.has(source)'));
   assert.ok(themeEffects.includes("versionedAsset('/js/effects/valley-loader.js')"));
   const chartLoader = await readText('js/ui/chart-loader.js');
+  assert.doesNotMatch(index, /<script[^>]+src=["'][^"']*(?:chart\.umd|chartjs-adapter)/, 'Home chart libraries load only on chart intent');
+  assert.doesNotMatch(app, /safe\('myTezosCss'/, 'Home leaves drawer styles behind launcher intent');
+  for (const feature of ['leaderboard', 'my-baker', 'my-tezos']) {
+    const source = await readText(`js/features/${feature}.js`);
+    assert.doesNotMatch(source, /drawer\.classList\.add\('open'\)/, `${feature} must use the shared styled drawer opener`);
+    assert.match(source, /tezosSystemsOpenMyTezos/, `${feature} routes drawer activation through the shared opener`);
+  }
+  assert.match(app, /await ensureMyTezosCss\(\)/, 'Drawer opening waits for its stylesheet');
+  for (const file of ['my-tezos.js', 'my-tezos-portfolio.js', 'upgrade-effect.js']) {
+    assert.match(await readText(`js/features/${file}`), /await ensureChartLibraries\(\)/, `${file} awaits the shared chart loader`);
+  }
   assert.ok(chartLoader.includes('if (!chartWork)') && chartLoader.includes('chartWork = null; throw error;'));
   const lifecycle = await readText('js/core/shell-lifecycle.js');
   const generator = await readText('scripts/lib/standalone-chamber-shell.mjs');
@@ -6360,7 +6371,7 @@ async function checkStylesheetFreshness() {
   const generatedSurfaces = await readText('scripts/refresh-generated-surfaces.mjs');
   if (!generatedSurfaces.includes("import { CSS_TARGETS, CSS_SOURCE_PATTERNS } from './lib/css-bundles.mjs'")
     || !generatedSurfaces.includes('stageTargets(CSS_TARGETS)')
-    || !['css/my-tezos.min.css', 'css/shell-extras.min.css', 'css/hero-search.min.css'].every(file => CSS_TARGETS.includes(file))) {
+    || !['css/my-tezos.min.css', 'css/shell-extras.min.css', 'css/hero-search.min.css', 'css/hen-mode.min.css', 'css/site-map.min.css', 'css/landing.min.css', 'css/loading.min.css'].every(file => CSS_TARGETS.includes(file))) {
     fail('pre-commit generation must stage the shared complete CSS catalog');
   }
   pass(`lazy surface CSS bundles and pre-commit coverage checked: ${lazySurfaceSources.length}`);

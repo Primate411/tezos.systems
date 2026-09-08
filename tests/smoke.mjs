@@ -34,6 +34,7 @@ import { smokeStandaloneChamberLifecycle } from './lib/standalone-chamber-lifecy
 import { smokeMyTezosLayout } from './lib/my-tezos-layout-smoke.mjs';
 import { checkInspectorKeyboardReceipt } from './lib/network-health-harness-check.mjs';
 import { smokeWidgetRefresh } from './lib/widget-refresh-smoke.mjs';
+import { smokeLazyDrawerCharts } from './lib/lazy-drawer-charts-smoke.mjs';
 import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
 import { encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
@@ -871,6 +872,17 @@ const SPARKLINE_LATEST_EXPECTATIONS = [
 ];
 
 async function assertAllSparklineLatestValues(page, label) {
+  // These legacy sections are hidden on today's home page. Reveal the fixtures
+  // before checking their chart values; hidden charts intentionally stay lazy.
+  const sectionStyles = await page.evaluate(async () => {
+    const sections = Array.from(document.querySelectorAll('.tezos-stats-section'));
+    const styles = sections.map(section => [section.id, section.getAttribute('style')]);
+    sections.forEach(section => { section.style.display = 'block'; });
+    const { ASSET_VERSION } = await import('/js/core/asset-version.js');
+    const history = await import(`/js/features/history.js?v=${ASSET_VERSION}`);
+    await history.updateSparklines();
+    return styles;
+  });
   await page.waitForFunction((expectations) => {
     const stats = window.__smokeLatestStats
       || JSON.parse(localStorage.getItem('tezos-systems-stats') || 'null');
@@ -914,6 +926,13 @@ async function assertAllSparklineLatestValues(page, label) {
     return { ready: mismatches.length === 0, missingStats: false, mismatches };
   }, SPARKLINE_LATEST_EXPECTATIONS);
   assert(state.ready, `${label}: sparkline latest values must match live card stats:\n${JSON.stringify(state.mismatches, null, 2)}`);
+  await page.evaluate(styles => {
+    for (const [id, style] of styles) {
+      const section = document.getElementById(id);
+      if (style === null) section.removeAttribute('style');
+      else section.setAttribute('style', style);
+    }
+  }, sectionStyles);
 }
 
 function fulfillJson(route, data) {
@@ -6078,7 +6097,7 @@ async function smokeAppShell(browser, baseUrl) {
   const failedAssets = shell.assetResults.filter((asset) => !asset.ok);
   assert(failedAssets.length === 0, `app shell: service worker shell assets failed: ${failedAssets.map((asset) => `${asset.asset} ${asset.status}`).join(', ')}`);
   assert(shell.assetResults.length === 8, `app shell: expected the eight shared/offline bootstrap assets, saw ${shell.assetResults.length}`);
-  for (const asset of ['/offline.html', '/css/styles.min.css', '/css/loading.css', '/css/site-map.css', '/js/core/theme-preload.js', '/js/ui/release-update.js', '/favicon.svg', '/site.webmanifest']) {
+  for (const asset of ['/offline.html', '/css/styles.min.css', '/css/loading.min.css', '/css/site-map.min.css', '/js/core/theme-preload.js', '/js/ui/release-update.js', '/favicon.svg', '/site.webmanifest']) {
     assert(shell.assetResults.some(result => result.asset === asset), `app shell: missing shared bootstrap asset ${asset}`);
   }
 
@@ -10995,6 +11014,7 @@ async function smokeDashboard(browser, baseUrl, viewport, label) {
   assert(await page.locator('#features-gear').evaluate((node) => node === document.activeElement), `${label}: Explore close button did not return focus to its trigger`);
 
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', `${label} #my-tezos-drawer`);
   await expectCount(page, '#drawer-address-input', 1, label);
   await page.locator('#drawer-close').click();
@@ -11054,6 +11074,9 @@ async function smokeMyTezosColdStart(browser, baseUrl) {
       const response = await page.goto(`${baseUrl}/?theme=matrix`, { waitUntil: 'commit' });
       assert(response?.ok(), `my tezos cold start ${label}: dashboard failed with HTTP ${response?.status()}`);
       await page.locator('#my-tezos-drawer').waitFor({ state: 'attached', timeout: 15000 });
+      await page.waitForFunction(() => document.querySelector('#my-tezos-btn')?.dataset.drawerWired === '1');
+      assert(await page.locator('#my-tezos-css').count() === 0, 'Drawer CSS stays absent until intent');
+      await page.locator('#my-tezos-btn').hover();
       await Promise.race([
         cssRequested,
         sleep(15000).then(() => { throw new Error(`my tezos cold start ${label}: lazy drawer CSS was never requested`); })
@@ -11103,6 +11126,10 @@ async function smokeMyTezosColdStart(browser, baseUrl) {
         `my tezos cold start ${label}: scrim was visible or interactive before lazy CSS ${JSON.stringify(beforeCss)}`
       );
 
+      await page.locator('#my-tezos-btn').click();
+      assert(await page.locator('#my-tezos-btn').getAttribute('aria-busy') === 'true', 'First activation waits for CSS');
+      assert(await page.locator('#my-tezos-drawer').getAttribute('aria-hidden') === 'true', 'Pending drawer stays inert and hidden');
+      await page.keyboard.press('Escape');
       releaseCss();
       await page.waitForFunction(() => Boolean(document.querySelector('#my-tezos-css')?.sheet), null, { timeout: 15000 });
       await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))));
@@ -11237,6 +11264,7 @@ async function smokeMyTezosBakerActivity(browser, baseUrl) {
   await page.waitForFunction(() => document.getElementById('pulse-ticker-strip')?.dataset.pulseState === 'ready', null, { timeout: 15000 });
 
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos baker activity drawer');
   await page.locator('#drawer-address-input').fill(SAMPLE_ADDRESS);
   await page.locator('#drawer-connect-btn').click();
@@ -13026,6 +13054,7 @@ async function smokeMyTezosDrawerLiveRefresh(browser, baseUrl) {
   }
 
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos drawer live refresh drawer');
   try {
     await page.waitForFunction(() => {
@@ -13527,6 +13556,7 @@ async function smokeMyTezosBakerCapacity(browser, baseUrl) {
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos baker capacity drawer');
   await page.waitForFunction(() => {
     return Array.from(document.querySelectorAll('.capacity-bar-card')).some((card) => (
@@ -13815,6 +13845,7 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos address switch drawer');
   await page.locator('#my-baker-input').waitFor({ state: 'visible', timeout: 5000 });
   await assert(
@@ -16048,6 +16079,7 @@ async function smokeMyTezosProposalAttribution(browser, baseUrl) {
   await page.locator('main').waitFor({ state: 'visible', timeout: 15000 });
 
   await page.locator('#my-tezos-btn').click();
+  await page.locator('#my-tezos-drawer.open').waitFor({ state: 'visible', timeout: 15000 });
   await expectClassContains(page.locator('#my-tezos-drawer'), 'open', 'my tezos proposal attribution drawer');
   await page.waitForFunction((address) => (
     Array.from(document.querySelectorAll('#my-tezos-wallet-scope option'))
@@ -37070,6 +37102,7 @@ function getSuiteCatalog(browser, baseUrl) {
     { name: 'metals-chamber', description: 'Precious Metals isolates compact timers/failures from the full room, preserves independent source clocks and accessible routes, retains last-good data quietly, and fits 320/390px rooms', run: () => smokeMetalsChamber(browser, baseUrl) },
     { name: 'ecosystem-activity', description: 'Completed-week dapp rankings, partial pulse, full history, app proofbooks, direct routing, responsive layout, and quiet refresh', run: () => smokeEcosystemActivity(browser, baseUrl) },
     { name: 'staking-chamber', description: 'Narrow >10K stake/unstake tape, canonical ratio, complete cursor archive, mover trail, pretty route, and mobile geometry', run: () => smokeStakingChamber(browser, baseUrl) },
+    { name: 'lazy-drawer-charts', description: 'Drawer styling and real chart libraries load on intent, cancel safely, retry locally, and remain shared', run: () => smokeLazyDrawerCharts(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, artifactsDir: ARTIFACTS_DIR }) },
     { name: 'my-tezos-cold-start', description: 'My Tezos remains off-screen while its lazy styles are delayed, then preserves normal desktop and mobile open/close behavior', run: () => smokeMyTezosColdStart(browser, baseUrl) },
     { name: 'my-tezos-empty-state', description: 'My Tezos clearly separates Octez.Connect wallet pairing from watch-only tracking and explains all seven responsive views', run: () => smokeMyTezosEmptyState(browser, baseUrl) },
     { name: 'my-tezos-layout', description: 'All seven tabs retain readable desktop, phone and landscape layouts, exact balances, disclosures, touch targets, and per-tab scroll', run: () => smokeMyTezosLayout(browser, baseUrl, { installFeatureMocks, address: SAMPLE_ADDRESS, secondAddress: SAMPLE_ADDRESS_2, artifactsDir: ARTIFACTS_DIR }) },
