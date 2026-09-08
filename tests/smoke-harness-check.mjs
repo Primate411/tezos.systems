@@ -19,12 +19,14 @@ import {
 import { selectAffectedSmokeSuites, smokeGlobMatches } from './lib/smoke-affected.mjs';
 import { SmokeCancelledError } from './lib/smoke-lifecycle.mjs';
 import { checkSmokeProcessCancellation } from './lib/smoke-cancellation-check.mjs';
+import { checkAsyncBrowserWork } from './lib/smoke-browser-work-check.mjs';
 
 function expectThrow(run, pattern) {
   assert.throws(run, pattern);
 }
 
 async function main() {
+  await checkAsyncBrowserWork();
   assert.deepEqual(parseShard('2/4'), { index: 2, total: 4, value: '2/4' });
   assert.equal(parseShard(''), null);
   expectThrow(() => parseShard('2'), /expected <index>\/<total>/);

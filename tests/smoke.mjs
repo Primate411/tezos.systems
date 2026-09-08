@@ -35,6 +35,7 @@ import { smokeMyTezosLayout } from './lib/my-tezos-layout-smoke.mjs';
 import { checkInspectorKeyboardReceipt } from './lib/network-health-harness-check.mjs';
 import { smokeWidgetRefresh } from './lib/widget-refresh-smoke.mjs';
 import { smokeLazyDrawerCharts } from './lib/lazy-drawer-charts-smoke.mjs';
+import { instrumentBrowserForAsyncWork } from './lib/smoke-browser-work.mjs';
 import { smokeOptionalToolsLazy } from './lib/optional-tools-lazy-smoke.mjs';
 import { smokeSourcePayloads } from './lib/source-payload-smoke.mjs';
 import { encodeGeneratedTransport } from '../js/core/generated-transport.mjs';
@@ -37290,9 +37291,9 @@ async function main() {
 
       let hermeticRuntime = null;
       let artifactRuntime = null;
-      let suiteBrowser = rawBrowser;
+      let suiteBrowser = instrumentBrowserForAsyncWork(rawBrowser);
       if (HERMETIC_NETWORK) {
-        hermeticRuntime = await instrumentBrowserForHermeticNetwork(rawBrowser, { baseUrl: server.baseUrl });
+        hermeticRuntime = await instrumentBrowserForHermeticNetwork(suiteBrowser, { baseUrl: server.baseUrl });
         suiteBrowser = hermeticRuntime.browser;
       }
       if (diagnostic && ARTIFACTS_DIR) {

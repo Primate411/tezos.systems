@@ -56,9 +56,10 @@ minification, Playwright, governance refresh scripts, and shared git hooks.
   shown in the faint footer build marker alongside the latest GitHub `main`
   commit.
 - Standard verification: `npm test`, which runs static checks and browser smoke
-  tests. Theme and wallet-layout smoke fixtures start module work and wait for
-  its rendered result, avoiding Chromium's collection of promises awaited
-  through the browser protocol. Assertion retries still fail the gate.
+  tests. Async browser fixtures execute once and retain completion results in
+  their page, avoiding Chromium's collection of promises awaited through the
+  browser protocol. Errors and document replacement still fail the check;
+  assertion retries still fail the gate.
 
 ## Project Structure
 
