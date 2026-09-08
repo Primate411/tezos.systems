@@ -14240,15 +14240,18 @@ async function smokeMyTezosAddressSwitch(browser, baseUrl) {
     `my tezos address switch: account journeys are not one equal desktop row ${JSON.stringify(journeyGeometry)}`
   );
 
-  await page.evaluate(async (addresses) => {
-    const wallet = await import('/js/core/wallet.js');
-    wallet.writeSavedMyTezosEntries(addresses.map((address, index) => ({
-      network: 'tezos-l1',
-      address,
-      label: index === 1 ? 'Active Vault' : `Wallet ${index + 1}`,
-      included: index === 1,
-      addedAt: Date.now() + index
-    })), { source: 'portfolio-ten-wallet-layout-smoke' });
+  await page.evaluate((addresses) => {
+    // Start the import synchronously; wait for its rendered result below.
+    // Returning an async result through CDP can fail with "Promise was collected".
+    window.__smokeWalletLayoutWork = import('/js/core/wallet.js').then((wallet) => {
+      wallet.writeSavedMyTezosEntries(addresses.map((address, index) => ({
+        network: 'tezos-l1',
+        address,
+        label: index === 1 ? 'Active Vault' : `Wallet ${index + 1}`,
+        included: index === 1,
+        addedAt: Date.now() + index
+      })), { source: 'portfolio-ten-wallet-layout-smoke' });
+    });
   }, [
     SAMPLE_ADDRESS,
     SAMPLE_ADDRESS_2,
@@ -16645,9 +16648,10 @@ async function smokeLiveHeadThemeGeometry(browser, baseUrl) {
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     }, scenario.fixtureWidth);
     for (const theme of themes) {
-      await page.evaluate(async (nextTheme) => {
-        const { setTheme } = await import('/js/ui/theme.js');
-        setTheme(nextTheme);
+      await page.evaluate((nextTheme) => {
+        // Avoid awaiting an import through CDP while theme effects trigger GC.
+        // The next assertion waits for the actual theme and loaded stylesheet.
+        window.__smokeThemeChangeWork = import('/js/ui/theme.js').then(({ setTheme }) => setTheme(nextTheme));
       }, theme);
       await page.waitForFunction((expected) => (
         document.body.dataset.theme === expected
