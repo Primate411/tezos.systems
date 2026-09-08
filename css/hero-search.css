@@ -14,13 +14,13 @@
 }
 /* One palette for individual block receipts: numbers, rails, strips and facts.
    Period averages, gas, cadence and round pills keep their own semantics. */
-[data-attestation-tone="perfect"] { --attestation-color: var(--attestation-perfect-color); --attestation-fill: 100%; }
-[data-attestation-tone="strong"] { --attestation-color: var(--attestation-strong-color); --attestation-fill: 80%; }
-[data-attestation-tone="watch"] { --attestation-color: var(--attestation-watch-color); --attestation-fill: 60%; }
-[data-attestation-tone="low"] { --attestation-color: var(--attestation-low-color); --attestation-fill: 40%; }
-[data-attestation-tone="dire"] { --attestation-color: var(--attestation-dire-color); --attestation-fill: 20%; }
-[data-attestation-tone="risk"] { --attestation-color: var(--attestation-dire-color); --attestation-fill: 20%; }
-[data-attestation-tone="unknown"] { --attestation-color: var(--text-secondary); --attestation-fill: 2px; }
+[data-attestation-tone="perfect"] { --attestation-color: var(--attestation-perfect-color); --attestation-fill: 100%; --attestation-strip-height: 17px; }
+[data-attestation-tone="strong"] { --attestation-color: var(--attestation-strong-color); --attestation-fill: 80%; --attestation-strip-height: 14px; }
+[data-attestation-tone="watch"] { --attestation-color: var(--attestation-watch-color); --attestation-fill: 60%; --attestation-strip-height: 10px; }
+[data-attestation-tone="low"] { --attestation-color: var(--attestation-low-color); --attestation-fill: 40%; --attestation-strip-height: 7px; }
+[data-attestation-tone="dire"] { --attestation-color: var(--attestation-dire-color); --attestation-fill: 20%; --attestation-strip-height: 3px; }
+[data-attestation-tone="risk"] { --attestation-color: var(--attestation-dire-color); --attestation-fill: 20%; --attestation-strip-height: 3px; }
+[data-attestation-tone="unknown"] { --attestation-color: var(--text-secondary); --attestation-fill: 2px; --attestation-strip-height: 2px; }
 .health-power[data-attestation-tone],
 .live-head-power-track[data-attestation-tone],
 .chain-health-bar[data-attestation-tone],
@@ -1792,8 +1792,8 @@
     right: 1px;
     bottom: 0;
     left: 0;
-    /* Five explicit power-severity heights match the five pill colors. */
-    height: var(--attestation-fill);
+    /* Five severity steps, rounded to whole pixels on the 17px strip. */
+    height: var(--attestation-strip-height);
     border-radius: 0;
     background: currentColor;
 }

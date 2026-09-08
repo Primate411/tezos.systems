@@ -284,8 +284,8 @@ export async function smokeChainHealth(browser, baseUrl, { installFeatureMocks, 
       const expectedBands = [[7000, 'perfect', 1], [6500, 'strong', 0.8], [6000, 'watch', 0.6], [5500, 'low', 0.4], [4700, 'dire', 0.2]];
       const severityRows = expectedBands.map(([power, tone, fill]) => {
         const row = parity.find(row => row.power === power);
-        assert(row && row.tone === tone && Math.abs(row.stripHeight - row.stripCapacity * fill) < 0.1,
-          `${theme}/${width}: ${power} must have ${tone} color and ${fill * 100}% height: ${JSON.stringify(row)}`);
+        assert(row && row.tone === tone && row.stripHeight === Math.round(row.stripCapacity * fill),
+          `${theme}/${width}: ${power} must have ${tone} color and ${fill * 100}% height rounded to whole pixels: ${JSON.stringify(row)}`);
         return row;
       });
       assert.equal(new Set(severityRows.map(row => row.color)).size, 5, 'Each of the five severities has its own color');

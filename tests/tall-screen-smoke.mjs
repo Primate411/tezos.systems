@@ -106,7 +106,7 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
         const originalNodes = [...readout.childNodes];
         const actualCount = readout.querySelector('.chain-health-count');
         const hasReservedNumerator = actualCount && actualCount.textContent === originalReadout.split('/')[0];
-        const headings = ['1/25 LOW', '10/25 LOW', '25/25 OK', '25/25 LOW', '25/25 RISK', '25/25 ?', 'STALE', '—'].map(text => {
+        const headings = ['1/25 LOW', '10/25 LOW', '25/25 FULL', '25/25 HIGH', '25/25 WATCH', '25/25 LOW', '25/25 DIRE', '25/25 RISK', '25/25 ?', 'STALE', '—'].map(text => {
           const fraction = text.match(/^(\d+)(\/\d+ .+)$/);
           if (fraction) {
             const count = document.createElement('span');
@@ -170,7 +170,7 @@ export async function smokeTallScreen(browser, baseUrl, { installFeatureMocks, a
           })
         };
       });
-      assert.match(paint.originalReadout, new RegExp(`^\\d+/${width <= 719 ? 10 : 25} (OK|LOW|RISK|\\?)$`), 'live status counts the visible window');
+      assert.match(paint.originalReadout, new RegExp(`^\\d+/${width <= 719 ? 10 : 25} (FULL|HIGH|WATCH|LOW|DIRE|RISK|\\?)$`), 'live status counts the visible window');
       assert(paint.hasReservedNumerator, 'live render reserves only the two-digit numerator');
       assert.equal(paint.separator, '•');
       assert(paint.labelsVisible && paint.controlsFit, `${width}/${deviceScaleFactor}x: matching full labels fit`);

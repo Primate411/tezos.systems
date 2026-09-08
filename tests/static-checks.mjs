@@ -3888,7 +3888,7 @@ async function checkSelectorContracts() {
       || !index.includes('id="chain-health-announcer"')
       || !chainHealthCssBlock.includes('--chain-health-count: 25')
       || !chainHealthCssBlock.includes('--attestation-perfect-color')
-      || !chainHealthCssBlock.includes('height: var(--attestation-fill)')
+      || !chainHealthCssBlock.includes('height: var(--attestation-strip-height)')
       || !['100%', '80%', '60%', '40%', '20%'].every(fill => heroSearchCss.includes(`--attestation-fill: ${fill};`))
       || !styles.includes('height: var(--attestation-fill)')
       || !chainHealthCssBlock.includes('@media (forced-colors: active)')

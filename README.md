@@ -573,8 +573,8 @@ inline modal styles in `js/core/app.js`.
   scale: Perfect is 7,000 (green), Strong is 6,500–6,999 (lime), Watch is
   6,000–6,499 (yellow), Low is 5,500–5,999 (orange), and DIRE is below 5,500
   (intense red). Only complete attestation is Perfect; 4,700 is DIRE. Thresholds
-  scale with the actual committee. Strip heights are explicitly 100%, 80%, 60%,
-  40%, and 20% for those five bands. Horizontal rails keep the exact quorum-margin
+  scale with the actual committee. Strip heights target 100%, 80%, 60%,
+  40%, and 20% for those five bands, rounded to whole pixels. Horizontal rails keep the exact quorum-margin
   fill with matching severity colors. These are display bands, not additional
   consensus thresholds: below-quorum receipts use the DIRE color/height plus a
   risk outline. Unknown stays a gray tick and unavailable power stays `--`.
